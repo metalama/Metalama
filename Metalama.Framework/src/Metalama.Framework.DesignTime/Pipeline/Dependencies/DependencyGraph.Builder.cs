@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.DesignTime.Rpc;
 using System.Collections.Immutable;
 
@@ -27,7 +28,7 @@ internal readonly partial struct DependencyGraph
             => (IReadOnlyDictionary<ProjectKey, DependencyGraphByDependentProject>?) this._dependenciesByCompilationBuilder
                ?? this._dependencyGraph.DependenciesByMasterProject;
 
-        public void RemoveDependentSyntaxTree( string path )
+        public void RemoveDependentSyntaxTree( DocumentKey path )
         {
             List<DependencyGraphByDependentProject>? modifiedDependencies = null;
 
@@ -67,7 +68,7 @@ internal readonly partial struct DependencyGraph
 
         public void UpdateDependencies(
             ProjectKey projectKey,
-            string dependentFilePath,
+            DocumentKey dependentFilePath,
             DependencyCollectorByDependentSyntaxTreeAndMasterProject dependencies )
         {
             if ( !this.GetDependenciesByCompilation().TryGetValue( projectKey, out var currentDependenciesOfCompilation ) )

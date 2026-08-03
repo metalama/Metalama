@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -162,7 +162,7 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
 
         this.Logger.Trace?.Log( $"Processing change notification from dependent project '{data.ProjectKey}'." );
 
-        if ( !data.IsPartialCompilation || data.SyntaxTreePaths.Any( p => dependenciesInThisProject.DependenciesByMasterFilePath.ContainsKey( p ) ) )
+        if ( !data.IsPartialCompilation || data.SyntaxTreePaths.Any( p => dependenciesInThisProject.DependenciesByMasterFilePath.ContainsKey( DocumentKey.FromPath( p ) ) ) )
         {
             this.Logger.Trace?.Log( $"Processing change notification from dependent project '{data.ProjectKey}': the current project may be affected." );
             this._eventHub?.OnProjectDirty( this.ProjectKey );
@@ -346,7 +346,7 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
                 var notification = new CompilationResultChangedEventData(
                     this.ProjectKey,
                     true,
-                    this._currentState.CompileTimeSyntaxTrees.Keys.ToImmutableArray() );
+                    this._currentState.CompileTimeSyntaxTrees.Keys.Select( k => k.Path ).ToImmutableArray() );
 
                 this._eventHub?.PublishCompilationResultChangedNotification( notification );
             }
@@ -920,7 +920,7 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
                         var notification = new CompilationResultChangedEventData(
                             this.ProjectKey,
                             partialCompilation.IsPartial,
-                            partialCompilation.IsPartial ? partialCompilation.SyntaxTrees.SelectAsImmutableArray( t => t.Key ) : default );
+                            partialCompilation.IsPartial ? partialCompilation.SyntaxTreeCollection.SelectAsImmutableArray( t => t.FilePath ) : default );
 
                         this._eventHub?.PublishCompilationResultChangedNotification( notification );
 
@@ -1018,9 +1018,9 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
     /// tree has changed compared to the cached configuration of this pipeline. This method is used to
     /// determine whether an error must displayed in the editor.  
     /// </summary>
-    internal bool IsCompileTimeSyntaxTreeOutdated( string name )
+    internal bool IsCompileTimeSyntaxTreeOutdated( DocumentKey documentKey )
         => this._currentState.CompileTimeSyntaxTrees is { } compileTimeSyntaxTrees
-           && compileTimeSyntaxTrees.TryGetValue( name, out var isValid )
+           && compileTimeSyntaxTrees.TryGetValue( documentKey, out var isValid )
            && !isValid;
 
     private IReadOnlyList<DesignTimeAspectInstance>? GetAspectInstancesOnSymbol( ISymbol symbol )
@@ -1035,7 +1035,7 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
 
         var symbolId = symbol.GetSerializableId();
 
-        if ( !this._currentState.PipelineResult.SyntaxTreeResults.TryGetValue( filePath, out var result ) )
+        if ( !this._currentState.PipelineResult.SyntaxTreeResults.TryGetValue( DocumentKey.FromPath( filePath ), out var result ) )
         {
             return null;
         }
@@ -1285,7 +1285,7 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
             semanticModel,
             reportDiagnostic,
             reportSuppression,
-            this.IsCompileTimeSyntaxTreeOutdated( semanticModel.SyntaxTree.FilePath ),
+            this.IsCompileTimeSyntaxTreeOutdated( semanticModel.SyntaxTree.GetDocumentKey() ),
             true,
             this._applicationExitingToken );
 

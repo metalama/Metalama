@@ -114,7 +114,7 @@ public sealed class LinkerTriviaPreservationTests : UnitTestClass
                 continue;
             }
 
-            var outputText = string.Concat( result.Value.SyntaxTrees.Values.Select( t => t.GetRoot().ToFullString() ) );
+            var outputText = string.Concat( result.Value.SyntaxTreeCollection.SelectAsReadOnlyCollection( t => t.GetRoot().ToFullString() ) );
             var occurrences = CountOccurrences( outputText, probeId );
 
             if ( occurrences != 1 )

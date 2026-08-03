@@ -357,7 +357,7 @@ public sealed class InboundReferenceIndexTests : UnitTestClass
             new ReferenceIndexerOptions( validators ),
             SymbolEqualityComparer.Default );
 
-        foreach ( var syntaxTree in compilation.PartialCompilation.SyntaxTrees.Values )
+        foreach ( var syntaxTree in compilation.PartialCompilation.SyntaxTreeCollection )
         {
             builder.IndexSyntaxTree( syntaxTree, compilation.CompilationContext.SemanticModelProvider );
         }

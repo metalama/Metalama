@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine;
 
 namespace Metalama.Framework.DesignTime.Pipeline.Dependencies;
@@ -11,24 +12,24 @@ namespace Metalama.Framework.DesignTime.Pipeline.Dependencies;
 /// </summary>
 internal sealed class DependencyCollectorByDependentSyntaxTreeAndMasterProject
 {
-    private readonly Dictionary<string, ulong> _masterFilePathsAndHashes = new( StringComparer.Ordinal );
+    private readonly Dictionary<DocumentKey, ulong> _masterFilePathsAndHashes = new();
     private readonly HashSet<TypeDependencyKey> _masterPartialTypes = new();
     private int _hashCode;
 
-    public string DependentFilePath { get; }
+    public DocumentKey DependentFilePath { get; }
 
-    public IReadOnlyDictionary<string, ulong> MasterFilePathsAndHashes => this._masterFilePathsAndHashes;
+    public IReadOnlyDictionary<DocumentKey, ulong> MasterFilePathsAndHashes => this._masterFilePathsAndHashes;
 
     public IReadOnlyCollection<TypeDependencyKey> MasterPartialTypes => this._masterPartialTypes;
 
     public bool Contains( TypeDependencyKey type ) => this._masterPartialTypes.Contains( type );
 
-    public DependencyCollectorByDependentSyntaxTreeAndMasterProject( string dependentFilePath )
+    public DependencyCollectorByDependentSyntaxTreeAndMasterProject( DocumentKey dependentFilePath )
     {
         this.DependentFilePath = dependentFilePath;
     }
 
-    public void AddSyntaxTreeDependency( string masterFilePath, ulong masterHash )
+    public void AddSyntaxTreeDependency( DocumentKey masterFilePath, ulong masterHash )
     {
 #if DEBUG
         if ( this._isReadOnly )

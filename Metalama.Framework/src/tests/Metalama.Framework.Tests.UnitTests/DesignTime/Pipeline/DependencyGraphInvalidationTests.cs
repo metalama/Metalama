@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.DesignTime;
 using Metalama.Framework.DesignTime.Pipeline.Dependencies;
 using Metalama.Framework.DesignTime.Pipeline.Diff;
@@ -35,15 +36,15 @@ public sealed class DependencyGraphInvalidationTests : DesignTimeTestBase
             if ( dependency.Kind == DependencyKind.SyntaxTree )
             {
                 dependencyCollector.AddSyntaxTreeDependency(
-                    dependency.Dependent,
+                    DocumentKey.FromPath( dependency.Dependent ),
                     compilation1.GetProjectKey(),
-                    dependency.Master,
-                    compilationVersion1.SyntaxTrees[dependency.Master].DeclarationHash );
+                    DocumentKey.FromPath( dependency.Master ),
+                    compilationVersion1.SyntaxTrees[DocumentKey.FromPath( dependency.Master )].DeclarationHash );
             }
             else
             {
                 dependencyCollector.AddPartialTypeDependency(
-                    dependency.Dependent,
+                    DocumentKey.FromPath( dependency.Dependent ),
                     compilation1.GetProjectKey(),
                     new TypeDependencyKey( dependency.Master ) );
             }
@@ -57,7 +58,7 @@ public sealed class DependencyGraphInvalidationTests : DesignTimeTestBase
         var invalidatedSyntaxTrees = new HashSet<string>();
 
         var newDependencyGraph =
-            await compilationChangesProvider.ProcessCompilationChangesAsync( changes, dependencyGraph, t => invalidatedSyntaxTrees.Add( t ), true );
+            await compilationChangesProvider.ProcessCompilationChangesAsync( changes, dependencyGraph, t => invalidatedSyntaxTrees.Add( t.Path ), true );
 
         return (invalidatedSyntaxTrees.ToOrderedList( x => x ), dependencyGraph, newDependencyGraph);
     }

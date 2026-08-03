@@ -13,6 +13,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 namespace Metalama.Framework.Engine.CodeModel
@@ -45,7 +46,14 @@ namespace Metalama.Framework.Engine.CodeModel
         /// <summary>
         /// Gets the list of syntax trees in the current subset indexed by path.
         /// </summary>
+        [Obsolete( "Use SyntaxTreeCollection to enumerate the syntax trees, or TryGetSyntaxTree to find one by its DocumentKey." )]
         public abstract ImmutableDictionary<string, SyntaxTree> SyntaxTrees { get; }
+
+        /// <inheritdoc cref="IPartialCompilation.SyntaxTreeCollection"/>
+        public abstract IReadOnlyCollection<SyntaxTree> SyntaxTreeCollection { get; }
+
+        /// <inheritdoc cref="IPartialCompilation.TryGetSyntaxTree"/>
+        public abstract bool TryGetSyntaxTree( DocumentKey documentKey, [NotNullWhen( true )] out SyntaxTree? syntaxTree );
 
         /// <summary>
         /// Returns whether the given path is of interest to the current <see cref="PartialCompilation"/>.
@@ -77,9 +85,9 @@ namespace Metalama.Framework.Engine.CodeModel
         {
             get
             {
-                if ( this.SyntaxTrees.Count > 0 )
+                if ( this.SyntaxTreeCollection.Count > 0 )
                 {
-                    var parseOptions = (CSharpParseOptions) this.SyntaxTrees.Values.First().Options;
+                    var parseOptions = (CSharpParseOptions) this.SyntaxTreeCollection.First().Options;
 
                     return new LanguageOptions( parseOptions );
                 }
@@ -124,7 +132,10 @@ namespace Metalama.Framework.Engine.CodeModel
                         continue;
                     }
 
-                    // Find the tree in InitialCompilation.
+                    // Find the tree in InitialCompilation. When the path has not been modified since, the tree the
+                    // transformation applies to is itself the initial tree, so it is taken from the transformation
+                    // rather than looked up by path: Compilation.ReplaceSyntaxTree resolves the tree by identity, and
+                    // resolving it by path here would let the two disagree.
                     SyntaxTree? initialTree;
 
                     if ( transformation.OldTree == null )
@@ -135,9 +146,9 @@ namespace Metalama.Framework.Engine.CodeModel
                     {
                         initialTree = initialTreeReplacement.OldTree;
                     }
-                    else if ( !baseCompilation.SyntaxTrees.TryGetValue( transformation.FilePath, out initialTree! ) )
+                    else
                     {
-                        initialTree = transformation.OldTree.AssertNotNull();
+                        initialTree = transformation.OldTree;
                     }
 
                     SyntaxTreeTransformation? transformationFromInitialCompilation;
@@ -202,8 +213,16 @@ namespace Metalama.Framework.Engine.CodeModel
         /// <summary>
         /// Creates a <see cref="PartialCompilation"/> that represents a complete compilation.
         /// </summary>
+        /// <remarks>
+        /// The compilation is normalized so that a path identifies a syntax tree of it. See
+        /// <see cref="Metalama.Framework.Engine.Utilities.Roslyn.CompilationExtensions.RemoveDuplicatePathSyntaxTrees(Microsoft.CodeAnalysis.Compilation)"/>; the call costs nothing and returns the
+        /// argument unchanged when no path is duplicated, which is every compilation produced by the command-line
+        /// compiler and every compilation the design-time pipeline has already normalized. It is applied here as well
+        /// because <c>AspectDatabase</c>, the preview service and the introspection API reach this method without
+        /// passing through the design-time diff layer.
+        /// </remarks>
         public static PartialCompilation CreateComplete( Compilation compilation, ImmutableArray<ManagedResource> resources = default )
-            => CreateComplete( compilation.GetCompilationContext(), resources );
+            => CreateComplete( compilation.RemoveDuplicatePathSyntaxTrees().GetCompilationContext(), resources );
 
         private static PartialCompilation CreateComplete( CompilationContext compilationContext, ImmutableArray<ManagedResource> resources = default )
             => new CompleteImpl( compilationContext, new Lazy<DerivedTypeIndex>( () => GetDerivedTypeIndex( compilationContext.Compilation ) ), resources );
@@ -216,8 +235,9 @@ namespace Metalama.Framework.Engine.CodeModel
             SyntaxTree syntaxTree,
             ImmutableArray<ManagedResource> resources = default )
         {
-            var compilationContext = compilation.GetCompilationContext();
-            var syntaxTrees = new[] { syntaxTree };
+            var normalizedCompilation = compilation.RemoveDuplicatePathSyntaxTrees();
+            var compilationContext = normalizedCompilation.GetCompilationContext();
+            var syntaxTrees = MapToNormalizedCompilation( compilation, normalizedCompilation,new[] { syntaxTree } );
             var closure = GetClosure( compilationContext, syntaxTrees );
 
             return new PartialImpl(
@@ -241,8 +261,9 @@ namespace Metalama.Framework.Engine.CodeModel
             ImmutableHashSet<string>? observedSyntaxTreePaths = null,
             ImmutableArray<ManagedResource> resources = default )
         {
-            var compilationContext = compilation.GetCompilationContext();
-            var closure = GetClosure( compilationContext, syntaxTrees );
+            var normalizedCompilation = compilation.RemoveDuplicatePathSyntaxTrees();
+            var compilationContext = normalizedCompilation.GetCompilationContext();
+            var closure = GetClosure( compilationContext, MapToNormalizedCompilation( compilation, normalizedCompilation,syntaxTrees ) );
 
             return new PartialImpl(
                 compilationContext,
@@ -268,6 +289,68 @@ namespace Metalama.Framework.Engine.CodeModel
             IReadOnlyCollection<SyntaxTreeTransformation>? transformations = null,
             ImmutableArray<ManagedResource> resources = default );
 
+        /// <summary>
+        /// Translates the syntax trees the caller asked for, which belong to <paramref name="requestedCompilation"/>,
+        /// into the corresponding syntax trees of <paramref name="normalizedCompilation"/>.
+        /// </summary>
+        /// <param name="requestedCompilation">The compilation the caller passed to <c>CreatePartial</c>.</param>
+        /// <param name="normalizedCompilation">
+        /// The result of
+        /// <see cref="Metalama.Framework.Engine.Utilities.Roslyn.CompilationExtensions.RemoveDuplicatePathSyntaxTrees(Microsoft.CodeAnalysis.Compilation)"/>
+        /// on <paramref name="requestedCompilation"/>: the same compilation minus every syntax tree whose path an
+        /// earlier tree already held.
+        /// </param>
+        /// <param name="requestedSyntaxTrees">Syntax trees of <paramref name="requestedCompilation"/>.</param>
+        /// <returns>The corresponding syntax trees of <paramref name="normalizedCompilation"/>, without duplicates.</returns>
+        /// <remarks>
+        /// <para>
+        /// The problem this solves: <c>CreatePartial</c> builds the closure against the normalized compilation, and
+        /// asking that compilation for the semantic model of a syntax tree it does not contain throws. The caller,
+        /// however, selected its trees from the compilation it holds, which is the compilation before normalization. So
+        /// whenever normalization removed anything, the two sets have to be reconciled before the closure is computed.
+        /// </para>
+        /// <para>
+        /// Two cases arise, and both are handled by looking the tree up by its path in the normalized compilation.
+        /// A tree that survived normalization is found and maps to itself. A tree that was removed, because an earlier
+        /// tree held its path, is found as that earlier tree: under the one-document model the two are the same
+        /// document, so the caller asking for one is asking for that document, and the surviving tree is what
+        /// represents it. Two requested trees can therefore map to one, hence the duplicate check on the way out.
+        /// </para>
+        /// <para>
+        /// A lookup can also fail, which happens only if the caller passes a tree belonging to some other compilation
+        /// entirely. Such a tree is dropped rather than reported, matching what <c>CreatePartial</c> did before: it
+        /// would previously have produced a closure whose semantic model lookups failed further along.
+        /// </para>
+        /// <para>
+        /// Nothing is allocated and nothing is looked up in the ordinary case, in which no path was duplicated and
+        /// normalization returned the compilation itself. See issue #1742.
+        /// </para>
+        /// </remarks>
+        private static IReadOnlyList<SyntaxTree> MapToNormalizedCompilation(
+            Compilation requestedCompilation,
+            Compilation normalizedCompilation,
+            IReadOnlyList<SyntaxTree> requestedSyntaxTrees )
+        {
+            if ( ReferenceEquals( requestedCompilation, normalizedCompilation ) )
+            {
+                return requestedSyntaxTrees;
+            }
+
+            var syntaxTreesByPath = normalizedCompilation.GetIndexedSyntaxTrees();
+            var mappedSyntaxTrees = new List<SyntaxTree>( requestedSyntaxTrees.Count );
+
+            foreach ( var requestedSyntaxTree in requestedSyntaxTrees )
+            {
+                if ( syntaxTreesByPath.TryGetValue( requestedSyntaxTree.FilePath, out var mappedSyntaxTree )
+                     && !mappedSyntaxTrees.Contains( mappedSyntaxTree ) )
+                {
+                    mappedSyntaxTrees.Add( mappedSyntaxTree );
+                }
+            }
+
+            return mappedSyntaxTrees;
+        }
+
         private sealed record Closure(
             ImmutableHashSet<INamedTypeSymbol> DeclaredTypes,
             ImmutableHashSet<SyntaxTree> Trees,
@@ -287,14 +370,11 @@ namespace Metalama.Framework.Engine.CodeModel
             var trees = ImmutableHashSet.CreateBuilder<SyntaxTree>();
             var derivedTypesBuilder = new DerivedTypeIndex.Builder( compilationContext );
 
-            void AddTree( SyntaxTree newTree )
-            {
-                // At design time, the collection of syntax trees can contain duplicates.
-                if ( trees.All( t => t.FilePath != newTree.FilePath ) )
-                {
-                    trees.Add( newTree );
-                }
-            }
+            // The trees are those of a compilation from which CompilationExtensions.RemoveDuplicatePathSyntaxTrees has
+            // already removed every tree that shared a path with an earlier one, so a path identifies a tree here and
+            // membership of the set is enough. The previous guard compared the path of the candidate against the path of
+            // every tree already collected, which made building the closure quadratic in the number of trees.
+            void AddTree( SyntaxTree newTree ) => trees.Add( newTree );
 
             void AddTypeRecursive( INamedTypeSymbol type )
             {
@@ -378,7 +458,7 @@ namespace Metalama.Framework.Engine.CodeModel
         internal ImmutableArray<SyntaxTreeTransformation> ToTransformations() => this.ModifiedSyntaxTrees.Values.ToImmutableArray();
 
         public override string ToString()
-            => $"{{Assembly={this.Compilation.AssemblyName}, SyntaxTrees={this.SyntaxTrees.Count}/{this.Compilation.SyntaxTrees.Count()}}}";
+            => $"{{Assembly={this.Compilation.AssemblyName}, SyntaxTrees={this.SyntaxTreeCollection.Count}/{this.Compilation.SyntaxTrees.Count()}}}";
 
         /// <summary>
         /// Gets the compilation with respect to which the <see cref="ModifiedSyntaxTrees"/> collection has been constructed.

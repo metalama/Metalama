@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.DesignTime.Pipeline.Dependencies;
 using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.Services;
@@ -60,7 +61,7 @@ internal sealed partial class ProjectVersionProvider : IGlobalService, IDisposab
     public async ValueTask<DependencyGraph> ProcessCompilationChangesAsync(
         CompilationChanges changes,
         DependencyGraph dependencyGraph,
-        Action<string> invalidateAction,
+        Action<DocumentKey> invalidateAction,
         bool invalidateOnlyDependencies = false,
         TestableCancellationToken cancellationToken = default )
     {
@@ -105,7 +106,7 @@ internal sealed partial class ProjectVersionProvider : IGlobalService, IDisposab
 
                     if ( syntaxTreeChange.SyntaxTreeChangeKind == SyntaxTreeChangeKind.Removed )
                     {
-                        dependencyGraphBuilder.RemoveDependentSyntaxTree( syntaxTreeChange.FilePath );
+                        dependencyGraphBuilder.RemoveDependentSyntaxTree( syntaxTreeChange.DocumentKey );
                     }
 
                     if ( invalidatedAllTrees )
@@ -120,7 +121,7 @@ internal sealed partial class ProjectVersionProvider : IGlobalService, IDisposab
                         // but editing a file with global attributes should be relatively rare, so that's probably not worth it.
                         foreach ( var tree in currentCompilationChanges.NewProjectVersion.Compilation.SyntaxTrees )
                         {
-                            invalidateAction( tree.FilePath );
+                            invalidateAction( tree.GetDocumentKey() );
                         }
 
                         invalidatedAllTrees = true;
@@ -131,7 +132,7 @@ internal sealed partial class ProjectVersionProvider : IGlobalService, IDisposab
                     if ( syntaxTreeChange.SyntaxTreeChangeKind is SyntaxTreeChangeKind.Changed or SyntaxTreeChangeKind.Removed )
                     {
                         if ( dependenciesOfCompilation.DependenciesByMasterFilePath.TryGetValue(
-                                syntaxTreeChange.FilePath,
+                                syntaxTreeChange.DocumentKey,
                                 out var dependenciesOfSyntaxTree ) )
                         {
                             foreach ( var dependentSyntaxTree in dependenciesOfSyntaxTree.DependentFilePaths )

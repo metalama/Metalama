@@ -11,6 +11,7 @@ using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Metalama.Framework.Engine.CodeModel
 {
@@ -30,8 +31,21 @@ namespace Metalama.Framework.Engine.CodeModel
                 ImmutableArray<ManagedResource> resources )
                 : base( baseCompilation, modifications, resources ) { }
 
+            /// <remarks>
+            /// Materialized only if the obsolete property is actually read, which no code of this repository does any
+            /// more. The index of the compilation is a plain dictionary, because it is built once and never updated, so
+            /// producing an <see cref="ImmutableDictionary{TKey,TValue}"/> from it is a conversion that exists purely to
+            /// satisfy the declared type.
+            /// </remarks>
             [Memo]
-            public override ImmutableDictionary<string, SyntaxTree> SyntaxTrees => this.Compilation.GetIndexedSyntaxTrees();
+            [Obsolete( "Use SyntaxTreeCollection to enumerate the syntax trees, or TryGetSyntaxTree to find one by its DocumentKey." )]
+            public override ImmutableDictionary<string, SyntaxTree> SyntaxTrees
+                => this.Compilation.GetIndexedSyntaxTrees().ToImmutableDictionary( x => x.Key, x => x.Value, StringComparer.Ordinal );
+
+            public override IReadOnlyCollection<SyntaxTree> SyntaxTreeCollection => this.Compilation.GetSyntaxTreeIndex().SyntaxTrees;
+
+            public override bool TryGetSyntaxTree( DocumentKey documentKey, [NotNullWhen( true )] out SyntaxTree? syntaxTree )
+                => this.Compilation.GetIndexedSyntaxTrees().TryGetValue( documentKey.Path, out syntaxTree );
 
             [Memo]
             public override ImmutableHashSet<INamedTypeSymbol> Types => this.Compilation.SourceModule.GetTypes().ToImmutableHashSet();

@@ -81,7 +81,7 @@ public class TestClass
 
         Assert.Empty( emitResult.Diagnostics.Where( d => d.Id is not "CS0067" and not "CS8019" ) );
 
-        var transformedProperty = result.Value.ResultingCompilation.SyntaxTrees.SelectAsReadOnlyCollection( x => x.Value.GetRoot() )
+        var transformedProperty = result.Value.ResultingCompilation.SyntaxTreeCollection.SelectAsReadOnlyCollection( x => x.GetRoot() )
             .SelectMany( x => x.DescendantNodes() )
             .Single( x => x is TypeDeclarationSyntax { Identifier.Text: "TestClass" } )
             .NormalizeWhitespace()

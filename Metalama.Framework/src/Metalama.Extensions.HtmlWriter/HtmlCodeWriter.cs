@@ -616,12 +616,12 @@ internal sealed class HtmlCodeWriter : IHtmlCodeWriter
 
         FileDiffInfo? GetDiffInfoForPath( string path, bool isOld )
         {
-            if ( !inputCompilation.SyntaxTrees.TryGetValue( path, out var oldTree ) )
+            if ( !inputCompilation.TryGetSyntaxTree( DocumentKey.FromPath( path ), out var oldTree ) )
             {
                 return null;
             }
 
-            if ( !outputCompilation.SyntaxTrees.TryGetValue( path, out var newTree ) )
+            if ( !outputCompilation.TryGetSyntaxTree( DocumentKey.FromPath( path ), out var newTree ) )
             {
                 return null;
             }
@@ -631,7 +631,7 @@ internal sealed class HtmlCodeWriter : IHtmlCodeWriter
 
         SyntaxTreeKind GetOutputSyntaxTreeKind( string path )
         {
-            if ( inputCompilation.SyntaxTrees.ContainsKey( path ) )
+            if ( inputCompilation.TryGetSyntaxTree( DocumentKey.FromPath( path ), out _ ) )
             {
                 return SyntaxTreeKind.Transformed;
             }

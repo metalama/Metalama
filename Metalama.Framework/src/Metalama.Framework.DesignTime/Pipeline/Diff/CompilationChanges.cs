@@ -4,6 +4,7 @@
 
 using Metalama.Framework.DesignTime.Rpc;
 using Metalama.Framework.Engine;
+using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Microsoft.CodeAnalysis;
@@ -18,7 +19,7 @@ namespace Metalama.Framework.DesignTime.Pipeline.Diff
     {
         private readonly WeakReference<ProjectVersion>? _oldProjectVersionRef;
 
-        public ImmutableDictionary<string, SyntaxTreeChange> SyntaxTreeChanges { get; }
+        public ImmutableDictionary<DocumentKey, SyntaxTreeChange> SyntaxTreeChanges { get; }
 
         public ProjectVersion? OldProjectVersionDangerous
         {
@@ -72,7 +73,7 @@ namespace Metalama.Framework.DesignTime.Pipeline.Diff
         public CompilationChanges(
             ProjectVersion? oldProjectVersion,
             ProjectVersion newProjectVersion,
-            ImmutableDictionary<string, SyntaxTreeChange> syntaxTreeChanges,
+            ImmutableDictionary<DocumentKey, SyntaxTreeChange> syntaxTreeChanges,
             ImmutableDictionary<ProjectKey, ReferencedProjectChange> referencedCompilationChanges,
             ImmutableDictionary<string, ReferenceChangeKind> referencedPortableExecutableChanges,
             bool assemblyIdentityChanged,
@@ -101,7 +102,7 @@ namespace Metalama.Framework.DesignTime.Pipeline.Diff
             => new(
                 oldProject,
                 newProject,
-                ImmutableDictionary<string, SyntaxTreeChange>.Empty,
+                ImmutableDictionary<DocumentKey, SyntaxTreeChange>.Empty,
                 ImmutableDictionary<ProjectKey, ReferencedProjectChange>.Empty,
                 ImmutableDictionary<string, ReferenceChangeKind>.Empty,
                 assemblyIdentityChanged: false,
@@ -153,10 +154,11 @@ namespace Metalama.Framework.DesignTime.Pipeline.Diff
 
             oldProjectVersion.Strategy.Observer?.OnComputeIncrementalChanges();
 
-            var newTrees = ImmutableDictionary.CreateBuilder<string, SyntaxTreeVersion>( StringComparer.Ordinal );
+            var newTrees = ImmutableDictionary.CreateBuilder<DocumentKey, SyntaxTreeVersion>();
             var generatedTrees = new List<SyntaxTree>();
+            List<SyntaxTree>? duplicatePathTrees = null;
 
-            var syntaxTreeChanges = ImmutableDictionary.CreateBuilder<string, SyntaxTreeChange>( StringComparer.Ordinal );
+            var syntaxTreeChanges = ImmutableDictionary.CreateBuilder<DocumentKey, SyntaxTreeChange>();
 
             var hasCompileTimeChange = !referenceChanges.PortableExecutableReferenceChanges.IsEmpty
                                        || referenceChanges.ProjectReferenceChanges.Any( c => c.Value.HasCompileTimeCodeChange );
@@ -184,16 +186,22 @@ namespace Metalama.Framework.DesignTime.Pipeline.Diff
                     continue;
                 }
 
-                // At design time, the collection of syntax trees can contain duplicates,
-                // which may not even have the same text (e.g. one could contain `internal class C`, while the other just `class C`).
-                if ( newTrees.TryGetValue( newSyntaxTree.FilePath, out _ ) )
+                // At design time, the collection of syntax trees can contain duplicates, which may not even have the
+                // same text (e.g. one could contain `internal class C`, while the other just `class C`). The tree is
+                // removed from the compilation to analyse and not merely skipped here, so that the version index and
+                // that compilation continue to describe the same set of documents. See issue #1742 and
+                // ProjectVersion.Create, which resolves the condition the same way on the non-incremental path.
+                if ( newTrees.ContainsKey( newSyntaxTree.GetDocumentKey() ) )
                 {
+                    duplicatePathTrees ??= new List<SyntaxTree>();
+                    duplicatePathTrees.Add( newSyntaxTree );
+
                     continue;
                 }
 
                 SyntaxTreeVersion newSyntaxTreeVersion;
 
-                if ( lastTrees.TryGetValue( newSyntaxTree.FilePath, out var oldSyntaxTreeVersion ) )
+                if ( lastTrees.TryGetValue( newSyntaxTree.GetDocumentKey(), out var oldSyntaxTreeVersion ) )
                 {
                     if ( oldProjectVersion.Strategy.IsDifferent(
                             oldSyntaxTreeVersion,
@@ -206,13 +214,13 @@ namespace Metalama.Framework.DesignTime.Pipeline.Diff
                             newSyntaxTreeVersion.HasCompileTimeCode );
 
                         var change = new SyntaxTreeChange(
-                            newSyntaxTree.FilePath,
+                            newSyntaxTree.GetDocumentKey(),
                             SyntaxTreeChangeKind.Changed,
                             compileTimeChangeKind,
                             oldSyntaxTreeVersion,
                             newSyntaxTreeVersion );
 
-                        syntaxTreeChanges.Add( newSyntaxTree.FilePath, change );
+                        syntaxTreeChanges.Add( newSyntaxTree.GetDocumentKey(), change );
 
                         hasCompileTimeChange |= newSyntaxTreeVersion.HasCompileTimeCode || oldSyntaxTreeVersion.HasCompileTimeCode;
                     }
@@ -225,19 +233,19 @@ namespace Metalama.Framework.DesignTime.Pipeline.Diff
                     compileTimeChangeKind = DiffStrategy.GetCompileTimeChangeKind( false, newSyntaxTreeVersion.HasCompileTimeCode );
 
                     var change = new SyntaxTreeChange(
-                        newSyntaxTree.FilePath,
+                        newSyntaxTree.GetDocumentKey(),
                         SyntaxTreeChangeKind.Added,
                         compileTimeChangeKind,
                         default,
                         newSyntaxTreeVersion );
 
-                    syntaxTreeChanges.Add( newSyntaxTree.FilePath, change );
+                    syntaxTreeChanges.Add( newSyntaxTree.GetDocumentKey(), change );
 
                     hasCompileTimeChange |= newSyntaxTreeVersion.HasCompileTimeCode;
                 }
 
-                newTrees.Add( newSyntaxTree.FilePath, newSyntaxTreeVersion );
-                lastTrees = lastTrees.Remove( newSyntaxTree.FilePath );
+                newTrees.Add( newSyntaxTree.GetDocumentKey(), newSyntaxTreeVersion );
+                lastTrees = lastTrees.Remove( newSyntaxTree.GetDocumentKey() );
             }
 
             // Process old trees.
@@ -256,7 +264,13 @@ namespace Metalama.Framework.DesignTime.Pipeline.Diff
             // Create the new CompilationVersion.
             var syntaxTreeVersions = newTrees.ToImmutable();
 
-            // We have to analyze a new compilation, however we need to remove generated trees.
+            // We have to analyze a new compilation, however we need to remove the generated trees, and the trees whose
+            // path an earlier tree already holds.
+            if ( duplicatePathTrees != null )
+            {
+                generatedTrees.AddRange( duplicatePathTrees );
+            }
+
             var compilationToAnalyze = newCompilation.RemoveSyntaxTrees( generatedTrees );
 
             var newCompilationVersion = new ProjectVersion(

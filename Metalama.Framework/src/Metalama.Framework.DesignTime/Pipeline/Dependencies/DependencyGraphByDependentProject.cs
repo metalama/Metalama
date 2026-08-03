@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.DesignTime.Rpc;
 using System.Collections.Immutable;
 
@@ -12,24 +13,24 @@ namespace Metalama.Framework.DesignTime.Pipeline.Dependencies;
 /// </summary>
 internal readonly struct DependencyGraphByDependentProject
 {
-    private static readonly ImmutableDictionary<string, DependencyGraphByMasterSyntaxTree> _emptyDependenciesByMasterFilePath =
-        ImmutableDictionary<string, DependencyGraphByMasterSyntaxTree>.Empty.WithComparers( StringComparer.Ordinal );
+    private static readonly ImmutableDictionary<DocumentKey, DependencyGraphByMasterSyntaxTree> _emptyDependenciesByMasterFilePath =
+        ImmutableDictionary<DocumentKey, DependencyGraphByMasterSyntaxTree>.Empty;
 
-    private static readonly ImmutableDictionary<string, DependencyCollectorByDependentSyntaxTreeAndMasterProject> _emptyDependenciesByDependentFilePath =
-        ImmutableDictionary<string, DependencyCollectorByDependentSyntaxTreeAndMasterProject>.Empty.WithComparers( StringComparer.Ordinal );
+    private static readonly ImmutableDictionary<DocumentKey, DependencyCollectorByDependentSyntaxTreeAndMasterProject> _emptyDependenciesByDependentFilePath =
+        ImmutableDictionary<DocumentKey, DependencyCollectorByDependentSyntaxTreeAndMasterProject>.Empty;
 
     public ProjectKey ProjectKey { get; }
 
     /// <summary>
     /// Gets the list of dependencies on syntax trees within the master compilation, indexed by file path.
     /// </summary>
-    public ImmutableDictionary<string, DependencyGraphByMasterSyntaxTree> DependenciesByMasterFilePath { get; }
+    public ImmutableDictionary<DocumentKey, DependencyGraphByMasterSyntaxTree> DependenciesByMasterFilePath { get; }
 
     public ImmutableDictionary<TypeDependencyKey, DependencyGraphByMasterPartialType> DependenciesByMasterPartialType { get; }
 
     public bool IsEmpty => this.DependenciesByMasterFilePath.Count == 0 && this.DependenciesByMasterPartialType.Count == 0;
 
-    internal ImmutableDictionary<string, DependencyCollectorByDependentSyntaxTreeAndMasterProject> DependenciesByDependentFilePath { get; }
+    internal ImmutableDictionary<DocumentKey, DependencyCollectorByDependentSyntaxTreeAndMasterProject> DependenciesByDependentFilePath { get; }
 
     public DependencyGraphByDependentProject( ProjectKey projectKey ) : this(
         projectKey,
@@ -39,9 +40,9 @@ internal readonly struct DependencyGraphByDependentProject
 
     private DependencyGraphByDependentProject(
         ProjectKey projectKey,
-        ImmutableDictionary<string, DependencyGraphByMasterSyntaxTree> dependenciesByMasterFilePath,
+        ImmutableDictionary<DocumentKey, DependencyGraphByMasterSyntaxTree> dependenciesByMasterFilePath,
         ImmutableDictionary<TypeDependencyKey, DependencyGraphByMasterPartialType> dependenciesByMasterPartialType,
-        ImmutableDictionary<string, DependencyCollectorByDependentSyntaxTreeAndMasterProject> dependenciesByDependentFilePath )
+        ImmutableDictionary<DocumentKey, DependencyCollectorByDependentSyntaxTreeAndMasterProject> dependenciesByDependentFilePath )
     {
         this.ProjectKey = projectKey;
         this.DependenciesByMasterFilePath = dependenciesByMasterFilePath;
@@ -49,7 +50,7 @@ internal readonly struct DependencyGraphByDependentProject
         this.DependenciesByDependentFilePath = dependenciesByDependentFilePath;
     }
 
-    public bool TryRemoveDependentSyntaxTree( string dependentFilePath, out DependencyGraphByDependentProject newDependenciesGraph )
+    public bool TryRemoveDependentSyntaxTree( DocumentKey dependentFilePath, out DependencyGraphByDependentProject newDependenciesGraph )
     {
         if ( !this.DependenciesByDependentFilePath.TryGetValue( dependentFilePath, out var oldDependencies ) )
         {
@@ -111,7 +112,7 @@ internal readonly struct DependencyGraphByDependentProject
     }
 
     public bool TryUpdateDependencies(
-        string dependentFilePath,
+        DocumentKey dependentFilePath,
         DependencyCollectorByDependentSyntaxTreeAndMasterProject dependencies,
         out DependencyGraphByDependentProject newDependenciesGraph )
     {

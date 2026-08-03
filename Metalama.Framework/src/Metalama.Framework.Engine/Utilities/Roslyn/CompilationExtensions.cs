@@ -7,6 +7,7 @@ using Metalama.Framework.Engine.Utilities.Caching;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
@@ -16,13 +17,51 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn;
 [PublicAPI]
 public static class CompilationExtensions
 {
-    private static readonly WeakCache<Compilation, ImmutableDictionary<string, SyntaxTree>> _indexedSyntaxTreesCache = new( isStaticCache: true );
+    private static readonly WeakCache<Compilation, SyntaxTreeIndex> _syntaxTreeIndexCache = new( isStaticCache: true );
 
-    public static ImmutableDictionary<string, SyntaxTree> GetIndexedSyntaxTrees( this Compilation compilation )
-        => _indexedSyntaxTreesCache.GetOrAdd( compilation, GetIndexedSyntaxTreesCore );
+    internal static SyntaxTreeIndex GetSyntaxTreeIndex( this Compilation compilation )
+        => _syntaxTreeIndexCache.GetOrAdd( compilation, SyntaxTreeIndex.Create );
 
-    private static ImmutableDictionary<string, SyntaxTree> GetIndexedSyntaxTreesCore( Compilation compilation )
-        => compilation.SyntaxTrees.ToImmutableDictionary( x => x.FilePath, x => x );
+    /// <summary>
+    /// Gets the syntax trees of a <see cref="Compilation"/> indexed by <see cref="SyntaxTree.FilePath"/>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// When two syntax trees share a path, the first one in the order of <see cref="Compilation.SyntaxTrees"/> is
+    /// indexed and the others are not. See <see cref="SyntaxTreeIndex"/> for why that condition is reachable and why it
+    /// is resolved rather than reported here. A caller that goes on to process the indexed trees must first remove the
+    /// others from the compilation, which <see cref="RemoveDuplicatePathSyntaxTrees"/> does.
+    /// </para>
+    /// <para>
+    /// The dictionary is read-only rather than immutable, because it is built once per compilation and never updated.
+    /// </para>
+    /// </remarks>
+    public static IReadOnlyDictionary<string, SyntaxTree> GetIndexedSyntaxTrees( this Compilation compilation )
+        => compilation.GetSyntaxTreeIndex().SyntaxTreesByPath;
+
+    /// <summary>
+    /// Gets the syntax trees of a <see cref="Compilation"/> that share their <see cref="SyntaxTree.FilePath"/> with an
+    /// earlier tree, and are therefore excluded from <see cref="GetIndexedSyntaxTrees"/>. Empty for every compilation
+    /// produced by the command-line compiler, which deduplicates source files itself.
+    /// </summary>
+    public static ImmutableArray<SyntaxTree> GetDuplicatePathSyntaxTrees( this Compilation compilation )
+        => compilation.GetSyntaxTreeIndex().DuplicatePathSyntaxTrees;
+
+    /// <summary>
+    /// Removes from a <see cref="Compilation"/> every syntax tree that shares its path with an earlier one, so that a
+    /// path identifies a syntax tree of the result. Returns the argument unchanged, without allocating, when no path is
+    /// duplicated, which is the ordinary case.
+    /// </summary>
+    /// <remarks>
+    /// This is the single point at which Metalama resolves the condition. Everything downstream may then assume that
+    /// the index of <see cref="GetIndexedSyntaxTrees"/> covers the compilation it describes.
+    /// </remarks>
+    public static Compilation RemoveDuplicatePathSyntaxTrees( this Compilation compilation )
+    {
+        var index = compilation.GetSyntaxTreeIndex();
+
+        return index.HasDuplicatePaths ? compilation.RemoveSyntaxTrees( index.DuplicatePathSyntaxTrees ) : compilation;
+    }
 
     internal static INamespaceSymbol? GetDescendant( this INamespaceSymbol parentNamespace, string ns )
     {

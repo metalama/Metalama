@@ -22,7 +22,7 @@ public sealed partial class DependencyCollectorTests : UnitTestClass
         var assemblyIdentity = ProjectKeyFactory.CreateTest( "DependentAssembly" );
         var dependencies = new BaseDependencyCollector( new TestProjectVersion( assemblyIdentity ) );
 
-        const string dependentFilePath = "dependent.cs";
+        var dependentFilePath = DocumentKey.FromPath( "dependent.cs" );
         var masterType = new TypeDependencyKey( "type" );
         dependencies.AddPartialTypeDependency( dependentFilePath, assemblyIdentity, masterType );
 
@@ -39,7 +39,7 @@ public sealed partial class DependencyCollectorTests : UnitTestClass
         var projectKey = ProjectKeyFactory.CreateTest( "DependentAssembly" );
         var dependencies = new BaseDependencyCollector( new TestProjectVersion( projectKey ) );
 
-        const string dependentFilePath = "dependent.cs";
+        var dependentFilePath = DocumentKey.FromPath( "dependent.cs" );
         var masterType = new TypeDependencyKey( "type" );
         dependencies.AddPartialTypeDependency( dependentFilePath, projectKey, masterType );
         dependencies.AddPartialTypeDependency( dependentFilePath, projectKey, masterType );

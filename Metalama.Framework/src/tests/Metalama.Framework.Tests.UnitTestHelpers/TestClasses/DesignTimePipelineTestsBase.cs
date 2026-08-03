@@ -73,7 +73,11 @@ public abstract class DesignTimePipelineTestsBase : UnitTestClass
 
             i++;
 
-            var syntaxTree = syntaxTreeResult.SyntaxTreePath != null ? results.ProjectVersion.SyntaxTrees[syntaxTreeResult.SyntaxTreePath].SyntaxTree : null;
+            // Probed rather than indexed, because a result can be filed under DocumentKey.Compilation, which identifies
+            // no document and is therefore absent from the version index.
+            var syntaxTree = results.ProjectVersion.SyntaxTrees.TryGetValue( syntaxTreeResult.SyntaxTreePath, out var syntaxTreeVersion )
+                ? syntaxTreeVersion.SyntaxTree
+                : null;
 
             DumpSyntaxTreeResult( syntaxTree, syntaxTreeResult, stringBuilder );
         }

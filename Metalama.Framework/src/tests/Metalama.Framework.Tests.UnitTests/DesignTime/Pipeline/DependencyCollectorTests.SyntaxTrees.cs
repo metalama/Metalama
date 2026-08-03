@@ -22,8 +22,8 @@ public sealed partial class DependencyCollectorTests
         var dependencies = new BaseDependencyCollector( new TestProjectVersion( projectKey ) );
         const ulong hash = 54;
 
-        const string dependentFilePath = "dependent.cs";
-        const string masterFilePath = "master.cs";
+        var dependentFilePath = DocumentKey.FromPath( "dependent.cs" );
+        var masterFilePath = DocumentKey.FromPath( "master.cs" );
         dependencies.AddSyntaxTreeDependency( dependentFilePath, projectKey, masterFilePath, hash );
 
         Assert.Equal( dependentFilePath, dependencies.DependenciesByDependentFilePath[dependentFilePath].DependentFilePath );
@@ -43,8 +43,8 @@ public sealed partial class DependencyCollectorTests
 
         const ulong hash = 54;
 
-        const string dependentFilePath = "dependent.cs";
-        const string masterFilePath = "master.cs";
+        var dependentFilePath = DocumentKey.FromPath( "dependent.cs" );
+        var masterFilePath = DocumentKey.FromPath( "master.cs" );
         dependencies.AddSyntaxTreeDependency( dependentFilePath, projectKey, masterFilePath, hash );
         dependencies.AddSyntaxTreeDependency( dependentFilePath, projectKey, masterFilePath, hash );
 

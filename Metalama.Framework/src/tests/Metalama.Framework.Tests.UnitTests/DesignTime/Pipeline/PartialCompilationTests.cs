@@ -149,7 +149,7 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline
 
             var compilation = testContext.CreateCSharpCompilation( code );
             var partialCompilation = PartialCompilation.CreatePartial( compilation, compilation.SyntaxTrees[0] );
-            Assert.Single( partialCompilation.SyntaxTrees );
+            Assert.Single( partialCompilation.SyntaxTreeCollection );
         }
 
         [Fact]
@@ -169,14 +169,14 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline
 
             // Test the initial compilation.
             const string path1 = "1.cs";
-            Assert.Single( partialCompilation1.SyntaxTrees );
+            Assert.Single( partialCompilation1.SyntaxTreeCollection );
             Assert.Empty( partialCompilation1.ModifiedSyntaxTrees );
 
             // Add a syntax tree.
             var partialCompilation2 = (PartialCompilation) partialCompilation1.AddSyntaxTrees(
                 CSharpSyntaxTree.ParseText( "", path: path1, options: SupportedCSharpVersions.DefaultParseOptions ) );
 
-            Assert.Equal( 2, partialCompilation2.SyntaxTrees.Count );
+            Assert.Equal( 2, partialCompilation2.SyntaxTreeCollection.Count );
             Assert.Single( partialCompilation2.ModifiedSyntaxTrees );
             Assert.Same( initialCompilation, partialCompilation2.InitialCompilation );
             Assert.Null( partialCompilation2.ModifiedSyntaxTrees[path1].OldTree );
@@ -185,7 +185,7 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline
             var partialCompilation3 = (PartialCompilation) partialCompilation2.AddSyntaxTrees(
                 CSharpSyntaxTree.ParseText( "", path: "2.cs", options: SupportedCSharpVersions.DefaultParseOptions ) );
 
-            Assert.Equal( 3, partialCompilation3.SyntaxTrees.Count );
+            Assert.Equal( 3, partialCompilation3.SyntaxTreeCollection.Count );
             Assert.Equal( 2, partialCompilation3.ModifiedSyntaxTrees.Count );
             Assert.Null( partialCompilation3.ModifiedSyntaxTrees[path1].OldTree );
             Assert.Same( initialCompilation, partialCompilation3.InitialCompilation );
@@ -195,7 +195,7 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline
                 _ => new Rewriter(),
                 ServiceProvider<IProjectService>.Empty.WithService( new SingleThreadedTaskRunner() ) );
 
-            Assert.Equal( 3, partialCompilation4.SyntaxTrees.Count );
+            Assert.Equal( 3, partialCompilation4.SyntaxTreeCollection.Count );
             Assert.Equal( 3, partialCompilation4.ModifiedSyntaxTrees.Count );
             Assert.Null( partialCompilation4.ModifiedSyntaxTrees[path1].OldTree );
             Assert.Same( initialCompilation, partialCompilation4.InitialCompilation );

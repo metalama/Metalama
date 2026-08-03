@@ -5,6 +5,7 @@
 using Metalama.Backstage.Diagnostics;
 using Metalama.Framework.DesignTime.Rpc;
 using Metalama.Framework.Engine;
+using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Utilities;
 using Microsoft.CodeAnalysis;
 using System.Collections.Immutable;
@@ -18,7 +19,7 @@ namespace Metalama.Framework.DesignTime.Pipeline.Diff
     {
         public DiffStrategy Strategy { get; }
 
-        public ImmutableDictionary<string, SyntaxTreeVersion> SyntaxTrees { get; }
+        public ImmutableDictionary<DocumentKey, SyntaxTreeVersion> SyntaxTrees { get; }
 
         public ImmutableDictionary<ProjectKey, IProjectVersion> ReferencedProjectVersions { get; }
 
@@ -37,7 +38,7 @@ namespace Metalama.Framework.DesignTime.Pipeline.Diff
             ProjectKey projectKey,
             Compilation compilation,
             Compilation compilationToAnalyze,
-            ImmutableDictionary<string, SyntaxTreeVersion> syntaxTrees,
+            ImmutableDictionary<DocumentKey, SyntaxTreeVersion> syntaxTrees,
             ImmutableDictionary<ProjectKey, IProjectVersion> referencedCompilations,
             ImmutableHashSet<string> referencesPortableExecutables )
         {
@@ -64,9 +65,10 @@ namespace Metalama.Framework.DesignTime.Pipeline.Diff
             referencedCompilations ??= ImmutableDictionary<ProjectKey, IProjectVersion>.Empty;
             referencesPortableExecutables ??= ImmutableHashSet<string>.Empty;
 
-            var syntaxTreesBuilder = ImmutableDictionary.CreateBuilder<string, SyntaxTreeVersion>( StringComparer.Ordinal );
+            var syntaxTreesBuilder = ImmutableDictionary.CreateBuilder<DocumentKey, SyntaxTreeVersion>();
 
             var generatedSyntaxTrees = new List<SyntaxTree>();
+            List<SyntaxTree>? duplicatePathSyntaxTrees = null;
 
             foreach ( var syntaxTree in compilation.SyntaxTrees )
             {
@@ -79,8 +81,15 @@ namespace Metalama.Framework.DesignTime.Pipeline.Diff
                     continue;
                 }
 
-                if ( syntaxTreesBuilder.TryGetValue( syntaxTree.FilePath, out var existingTreeVersion ) )
+                if ( syntaxTreesBuilder.TryGetValue( syntaxTree.GetDocumentKey(), out var existingTreeVersion ) )
                 {
+                    // The tree is removed from the compilation and not merely skipped here. A version index that
+                    // excludes a tree the analysed compilation still contains describes a compilation it does not
+                    // match, and the pipeline would then leave that tree unrewritten while its declarations remain
+                    // visible in the code model. See issue #1742.
+                    duplicatePathSyntaxTrees ??= new List<SyntaxTree>();
+                    duplicatePathSyntaxTrees.Add( syntaxTree );
+
                     logger ??= serviceProvider?.GetLoggerFactory().GetLogger( nameof(ProjectVersion) );
 
                     if ( logger?.Warning is { } warningLogger )
@@ -108,12 +117,13 @@ namespace Metalama.Framework.DesignTime.Pipeline.Diff
 
                 var syntaxTreeVersion = strategy.GetSyntaxTreeVersion( syntaxTree, compilation );
 
-                syntaxTreesBuilder.Add( syntaxTree.FilePath, syntaxTreeVersion );
+                syntaxTreesBuilder.Add( syntaxTree.GetDocumentKey(), syntaxTreeVersion );
             }
 
             var syntaxTreeVersions = syntaxTreesBuilder.ToImmutable();
 
-            var compilationToAnalyze = generatedSyntaxTrees.Count > 0 ? compilation.RemoveSyntaxTrees( generatedSyntaxTrees ) : compilation;
+            var treesToRemove = Concat( generatedSyntaxTrees, duplicatePathSyntaxTrees );
+            var compilationToAnalyze = treesToRemove.Count > 0 ? compilation.RemoveSyntaxTrees( treesToRemove ) : compilation;
 
             return new ProjectVersion(
                 strategy,
@@ -125,10 +135,33 @@ namespace Metalama.Framework.DesignTime.Pipeline.Diff
                 referencesPortableExecutables );
         }
 
+        /// <summary>
+        /// Concatenates the two lists of syntax trees to remove from the compilation, avoiding an allocation in the
+        /// ordinary case where at most one of them has content.
+        /// </summary>
+        private static IReadOnlyList<SyntaxTree> Concat( List<SyntaxTree> generated, List<SyntaxTree>? duplicatePaths )
+        {
+            if ( duplicatePaths == null )
+            {
+                return generated;
+            }
+
+            if ( generated.Count == 0 )
+            {
+                return duplicatePaths;
+            }
+
+            var all = new List<SyntaxTree>( generated.Count + duplicatePaths.Count );
+            all.AddRange( generated );
+            all.AddRange( duplicatePaths );
+
+            return all;
+        }
+
         public ProjectKey ProjectKey { get; }
 
-        public bool TryGetSyntaxTreeVersion( string path, out SyntaxTreeVersion syntaxTreeVersion )
-            => this.SyntaxTrees.AssertNotNull().TryGetValue( path, out syntaxTreeVersion );
+        public bool TryGetSyntaxTreeVersion( DocumentKey documentKey, out SyntaxTreeVersion syntaxTreeVersion )
+            => this.SyntaxTrees.AssertNotNull().TryGetValue( documentKey, out syntaxTreeVersion );
 
         public override string ToString() => this.Compilation.AssemblyName ?? nameof(ProjectVersion);
     }

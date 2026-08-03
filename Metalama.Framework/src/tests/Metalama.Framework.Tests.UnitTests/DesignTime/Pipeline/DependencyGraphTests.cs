@@ -24,8 +24,8 @@ public sealed class DependencyGraphTests : DesignTimeTestBase
 
         const ulong hash = 54;
 
-        const string masterFilePath = "master.cs";
-        const string dependentFilePath = "dependent.cs";
+        var masterFilePath = DocumentKey.FromPath( "master.cs" );
+        var dependentFilePath = DocumentKey.FromPath( "dependent.cs" );
 
         dependencyCollector.AddSyntaxTreeDependency( dependentFilePath, masterCompilation, masterFilePath, hash );
 
@@ -45,9 +45,9 @@ public sealed class DependencyGraphTests : DesignTimeTestBase
         var dependencyCollector = new BaseDependencyCollector( new TestProjectVersion( masterProject ) );
         const ulong hash = 54;
 
-        const string masterFilePath = "master.cs";
-        const string dependentFilePath1 = "dependent1.cs";
-        const string dependentFilePath2 = "dependent2.cs";
+        var masterFilePath = DocumentKey.FromPath( "master.cs" );
+        var dependentFilePath1 = DocumentKey.FromPath( "dependent1.cs" );
+        var dependentFilePath2 = DocumentKey.FromPath( "dependent2.cs" );
 
         dependencyCollector.AddSyntaxTreeDependency( dependentFilePath1, masterProject, masterFilePath, hash );
         dependencyCollector.AddSyntaxTreeDependency( dependentFilePath2, masterProject, masterFilePath, hash );
@@ -80,9 +80,9 @@ public sealed class DependencyGraphTests : DesignTimeTestBase
 
         const ulong hash = 54;
 
-        const string masterFilePath = "master.cs";
-        const string dependentFilePath1 = "dependent1.cs";
-        const string dependentFilePath2 = "dependent2.cs";
+        var masterFilePath = DocumentKey.FromPath( "master.cs" );
+        var dependentFilePath1 = DocumentKey.FromPath( "dependent1.cs" );
+        var dependentFilePath2 = DocumentKey.FromPath( "dependent2.cs" );
 
         dependencyCollector.AddSyntaxTreeDependency( dependentFilePath1, masterCompilation1.ProjectKey, masterFilePath, hash );
         dependencyCollector.AddSyntaxTreeDependency( dependentFilePath2, masterCompilation2.ProjectKey, masterFilePath, hash );
@@ -103,13 +103,13 @@ public sealed class DependencyGraphTests : DesignTimeTestBase
     {
         const ulong hash = 54;
 
-        const string masterFilePath = "master.cs";
-        const string dependentFilePath = "dependent.cs";
+        var masterFilePath = DocumentKey.FromPath( "master.cs" );
+        var dependentFilePath = DocumentKey.FromPath( "dependent.cs" );
 
         using var testContext = this.CreateTestContext();
 
         var masterCompilation = testContext.CreateCSharpCompilation(
-            new Dictionary<string, string>() { [masterFilePath] = "", [dependentFilePath] = "" },
+            new Dictionary<string, string>() { [masterFilePath.Path] = "", [dependentFilePath.Path] = "" },
             assemblyName: "MasterAssembly" );
 
         var dependencies1 = new BaseDependencyCollector( new TestProjectVersion( masterCompilation ) );
@@ -129,16 +129,16 @@ public sealed class DependencyGraphTests : DesignTimeTestBase
     {
         const ulong hash = 54;
 
-        const string masterFilePath = "master.cs";
-        const string dependentFilePath1 = "dependent1.cs";
-        const string dependentFilePath2 = "dependent2.cs";
+        var masterFilePath = DocumentKey.FromPath( "master.cs" );
+        var dependentFilePath1 = DocumentKey.FromPath( "dependent1.cs" );
+        var dependentFilePath2 = DocumentKey.FromPath( "dependent2.cs" );
 
         var masterCompilation = new TestProjectVersion( "MasterAssembly" );
 
         // Create a 1st version of the dependent assembly with two references to master.cs.
         var dependentCompilationVersion1 = new TestProjectVersion(
             ProjectKeyFactory.CreateTest( "DependentAssembly" ),
-            hashes: new Dictionary<string, ulong>() { [dependentFilePath1] = hash, [dependentFilePath2] = hash },
+            hashes: new Dictionary<DocumentKey, ulong>() { [dependentFilePath1] = hash, [dependentFilePath2] = hash },
             referencedCompilations: new IProjectVersion[] { masterCompilation } );
 
         var dependencyCollector1 = new BaseDependencyCollector( dependentCompilationVersion1 );
@@ -174,8 +174,8 @@ public sealed class DependencyGraphTests : DesignTimeTestBase
         const ulong hash1 = 54;
         const ulong hash2 = 55;
 
-        const string masterFilePath = "master.cs";
-        const string dependentFilePath = "dependent.cs";
+        var masterFilePath = DocumentKey.FromPath( "master.cs" );
+        var dependentFilePath = DocumentKey.FromPath( "dependent.cs" );
 
         var dependencies1 = new BaseDependencyCollector( new TestProjectVersion( "dummy" ) );
         dependencies1.AddSyntaxTreeDependency( dependentFilePath, masterCompilation, masterFilePath, hash1 );
@@ -197,14 +197,14 @@ public sealed class DependencyGraphTests : DesignTimeTestBase
         var masterCompilation = ProjectKeyFactory.CreateTest( "MasterAssembly" );
         const ulong hash1 = 54;
 
-        const string masterFilePath = "master.cs";
+        var masterFilePath = DocumentKey.FromPath( "master.cs" );
 
         // We need two dependent files to make appear a bug in DependencyGraph.Builder.RemoveDependentSyntaxTree
-        const string dependentFilePath1 = "dependent1.cs";
-        const string dependentFilePath2 = "dependent2.cs";
+        var dependentFilePath1 = DocumentKey.FromPath( "dependent1.cs" );
+        var dependentFilePath2 = DocumentKey.FromPath( "dependent2.cs" );
 
         var compilation = testContext.CreateCSharpCompilation(
-            new Dictionary<string, string> { [masterFilePath] = "", [dependentFilePath1] = "", [dependentFilePath2] = "" } );
+            new Dictionary<string, string> { [masterFilePath.Path] = "", [dependentFilePath1.Path] = "", [dependentFilePath2.Path] = "" } );
 
         var partialCompilation = PartialCompilation.CreateComplete( compilation );
 

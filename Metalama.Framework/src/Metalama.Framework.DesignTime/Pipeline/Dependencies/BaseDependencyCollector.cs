@@ -20,9 +20,9 @@ internal class BaseDependencyCollector
     /// </summary>
     public PartialCompilation PartialCompilation { get; }
 
-    private readonly ConcurrentDictionary<string, DependencyCollectorByDependentSyntaxTree> _dependenciesByDependentFilePath = new();
+    private readonly ConcurrentDictionary<DocumentKey, DependencyCollectorByDependentSyntaxTree> _dependenciesByDependentFilePath = new();
 
-    public IReadOnlyDictionary<string, DependencyCollectorByDependentSyntaxTree> DependenciesByDependentFilePath => this._dependenciesByDependentFilePath;
+    public IReadOnlyDictionary<DocumentKey, DependencyCollectorByDependentSyntaxTree> DependenciesByDependentFilePath => this._dependenciesByDependentFilePath;
 
     public BaseDependencyCollector( IProjectVersion projectVersion, PartialCompilation? partialCompilation = null )
     {
@@ -64,7 +64,7 @@ internal class BaseDependencyCollector
         }
     }
 
-    public void AddPartialTypeDependency( string dependentFilePath, ProjectKey masterProjectKey, TypeDependencyKey masterPartialType )
+    public void AddPartialTypeDependency( DocumentKey dependentFilePath, ProjectKey masterProjectKey, TypeDependencyKey masterPartialType )
     {
 #if DEBUG
         if ( this.IsReadOnly )
@@ -78,7 +78,7 @@ internal class BaseDependencyCollector
         dependencies.AddPartialTypeDependency( masterProjectKey, masterPartialType );
     }
 
-    public void AddSyntaxTreeDependency( string dependentFilePath, ProjectKey masterProjectKey, string masterFilePath, ulong masterHash )
+    public void AddSyntaxTreeDependency( DocumentKey dependentFilePath, ProjectKey masterProjectKey, DocumentKey masterFilePath, ulong masterHash )
     {
 #if DEBUG
         if ( this.IsReadOnly )

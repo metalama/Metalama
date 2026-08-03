@@ -1242,10 +1242,19 @@ internal sealed partial class CompileTimeCompilationBuilder
 
                         if ( diagnostics.Any() )
                         {
-                            sourceFilePathIndexes = sourceTreesWithCompileTimeCode
-                                .OrderBy( x => x.FilePath )
-                                .Select( ( tree, index ) => (tree.FilePath, index) )
-                                .ToDictionary( x => x.FilePath, x => x.index );
+                            // Distinct paths, because a compilation is not guaranteed to hold one syntax tree per path
+                            // and this index only has to give each path a number. See issue #1742.
+                            sourceFilePathIndexes = new Dictionary<string, int>( StringComparer.Ordinal );
+
+                            var distinctSourceFilePaths = sourceTreesWithCompileTimeCode
+                                .SelectAsArray( x => x.FilePath )
+                                .Distinct( StringComparer.Ordinal )
+                                .OrderBy( x => x, StringComparer.Ordinal );
+
+                            foreach ( var filePath in distinctSourceFilePaths )
+                            {
+                                sourceFilePathIndexes.Add( filePath, sourceFilePathIndexes.Count );
+                            }
                         }
 
                         var manifest = new CompileTimeProjectManifest(

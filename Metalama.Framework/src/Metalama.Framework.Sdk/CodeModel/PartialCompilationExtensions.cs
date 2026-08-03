@@ -53,7 +53,7 @@ namespace Metalama.Framework.Engine.CodeModel
             Func<SyntaxTree, CancellationToken, SyntaxTree> updateTree,
             CancellationToken cancellationToken = default )
             => compilation.WithSyntaxTreeTransformations(
-                compilation.SyntaxTrees.Values.Select( t => SyntaxTreeTransformation.ReplaceTree( t, updateTree( t, cancellationToken ) ) )
+                compilation.SyntaxTreeCollection.Select( t => SyntaxTreeTransformation.ReplaceTree( t, updateTree( t, cancellationToken ) ) )
                     .Where( t => t.NewTree != t.OldTree )
                     .ToList() );
 
@@ -70,7 +70,7 @@ namespace Metalama.Framework.Engine.CodeModel
             Func<SyntaxNode, CancellationToken, SyntaxNode> updateSyntaxRoot,
             CancellationToken cancellationToken = default )
             => compilation.WithSyntaxTreeTransformations(
-                compilation.SyntaxTrees.Values.Select( t => (OldTree: t, NewRoot: updateSyntaxRoot( t.GetRoot( cancellationToken ), cancellationToken )) )
+                compilation.SyntaxTreeCollection.Select( t => (OldTree: t, NewRoot: updateSyntaxRoot( t.GetRoot( cancellationToken ), cancellationToken )) )
                     .Where( x => x.OldTree.GetRoot( cancellationToken ) != x.NewRoot )
                     .Select(
                         x => SyntaxTreeTransformation.ReplaceTree(
@@ -83,9 +83,9 @@ namespace Metalama.Framework.Engine.CodeModel
             Func<SyntaxTree, SyntaxTree> updateTree,
             CancellationToken cancellationToken = default )
         {
-            var modifiedSyntaxTrees = new List<SyntaxTreeTransformation>( compilation.SyntaxTrees.Count );
+            var modifiedSyntaxTrees = new List<SyntaxTreeTransformation>( compilation.SyntaxTreeCollection.Count );
 
-            foreach ( var tree in compilation.SyntaxTrees.Values )
+            foreach ( var tree in compilation.SyntaxTreeCollection )
             {
                 var newTree = updateTree( tree );
 
@@ -116,19 +116,18 @@ namespace Metalama.Framework.Engine.CodeModel
             var taskScheduler = serviceProvider.GetRequiredService<IConcurrentTaskRunner>();
             var modifiedSyntaxTrees = new ConcurrentQueue<SyntaxTreeTransformation>();
 
-            await taskScheduler.RunConcurrentlyAsync( compilation.SyntaxTrees, RewriteSyntaxTreeAsync, cancellationToken );
+            await taskScheduler.RunConcurrentlyAsync( compilation.SyntaxTreeCollection, RewriteSyntaxTreeAsync, cancellationToken );
 
-            async Task RewriteSyntaxTreeAsync( KeyValuePair<string, SyntaxTree> tree )
+            async Task RewriteSyntaxTreeAsync( SyntaxTree tree )
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                var oldRoot = await tree.Value.GetRootAsync( cancellationToken );
+                var oldRoot = await tree.GetRootAsync( cancellationToken );
                 var newRoot = rewriterFactory( oldRoot ).Visit( oldRoot );
 
                 if ( newRoot != oldRoot )
                 {
-                    modifiedSyntaxTrees.Enqueue(
-                        SyntaxTreeTransformation.ReplaceTree( tree.Value, tree.Value.WithRootAndOptions( newRoot, tree.Value.Options ) ) );
+                    modifiedSyntaxTrees.Enqueue( SyntaxTreeTransformation.ReplaceTree( tree, tree.WithRootAndOptions( newRoot, tree.Options ) ) );
                 }
             }
 
@@ -146,7 +145,7 @@ namespace Metalama.Framework.Engine.CodeModel
         /// </summary>
         public static ParseOptions GetParseOptions( this IPartialCompilation compilation )
         {
-            var firstTree = compilation.SyntaxTrees.Values.FirstOrDefault();
+            var firstTree = compilation.SyntaxTreeCollection.FirstOrDefault();
 
             if ( firstTree == null )
             {
