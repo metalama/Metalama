@@ -9,6 +9,7 @@ using Metalama.Compiler;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.CompileTimeContracts;
 using Metalama.Framework.Engine.AspectWeavers;
+using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities;
@@ -20,6 +21,7 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -63,7 +65,7 @@ internal sealed class CompileTimeAssemblyLocator
         }
     }
 
-    private readonly string _cacheDirectory;
+    private readonly string _cacheDirectory = null!;
     private readonly ILogger _logger;
     private readonly DotNetTool _dotNetTool;
     private readonly int _restoreTimeout;
@@ -75,22 +77,22 @@ internal sealed class CompileTimeAssemblyLocator
     /// This compilation is used by the <see cref="SymbolClassifier"/> to determine if an API is available
     /// at compile time.
     /// </summary>
-    private readonly Compilation _referenceCompilation;
+    private readonly Compilation _referenceCompilation = null!;
 
-    private readonly CompilationContext _referenceCompilationContext;
+    private readonly CompilationContext _referenceCompilationContext = null!;
     private readonly IReadOnlyList<string>? _nugetConfigFiles;
 
     /// <summary>
     /// Gets the name (without path and extension) of all compile-time assemblies, including Metalama, Roslyn and .NET standard.
     /// </summary>
-    internal ImmutableHashSet<string> AssemblyNames { get; }
+    internal ImmutableHashSet<string> AssemblyNames { get; } = ImmutableHashSet<string>.Empty;
 
     /// <summary>
     /// Gets the full path of executable system assemblies for the current platform.
     /// </summary>
     internal ImmutableArray<string> AdditionalCompileTimeAssemblyPaths { get; }
 
-    internal ImmutableDictionary<string, AssemblyIdentity> AssemblyIdentities { get; }
+    internal ImmutableDictionary<string, AssemblyIdentity> AssemblyIdentities { get; } = ImmutableDictionary<string, AssemblyIdentity>.Empty;
 
     internal bool IsStandardAssemblyName( string assemblyName )
         => string.Equals( assemblyName, "System.Private.CoreLib", StringComparison.OrdinalIgnoreCase )
@@ -101,8 +103,44 @@ internal sealed class CompileTimeAssemblyLocator
     /// </summary>
     internal ImmutableArray<MetadataReference> MetadataReferences { get; }
 
-    internal CompileTimeAssemblyLocator( in ProjectServiceProvider serviceProvider, string additionalReferences, ITempFileManager tempFileManager )
+    /// <summary>
+    /// Creates a <see cref="CompileTimeAssemblyLocator"/>, or reports to <paramref name="diagnostics"/> and returns
+    /// <c>false</c> when the compile-time reference assemblies cannot be resolved.
+    /// </summary>
+    /// <remarks>
+    /// Resolving the reference assemblies runs a nested build, which fails for reasons that belong to the environment
+    /// rather than to Metalama: a NuGet feed that requires credentials, a <c>global.json</c> that pins an absent .NET
+    /// SDK, and so on. Such a failure is reported as a diagnostic and not thrown, so that the caller can abort the
+    /// pipeline the way it aborts for any other diagnostic. See issue #1744.
+    /// </remarks>
+    internal static bool TryCreate(
+        in ProjectServiceProvider serviceProvider,
+        string additionalReferences,
+        ITempFileManager tempFileManager,
+        IDiagnosticAdder diagnostics,
+        [NotNullWhen( true )] out CompileTimeAssemblyLocator? locator )
     {
+        var candidate = new CompileTimeAssemblyLocator( serviceProvider, additionalReferences, tempFileManager, diagnostics, out var success );
+        locator = success ? candidate : null;
+
+        return success;
+    }
+
+    /// <remarks>
+    /// The constructor interleaves the steps that can fail with the assignment of the fields that depend on them, so it
+    /// reports through <paramref name="diagnostics"/> and returns early instead of throwing, setting
+    /// <paramref name="success"/> to <c>false</c>. A partially initialized instance never escapes
+    /// <see cref="TryCreate"/>, which is the only caller.
+    /// </remarks>
+    private CompileTimeAssemblyLocator(
+        in ProjectServiceProvider serviceProvider,
+        string additionalReferences,
+        ITempFileManager tempFileManager,
+        IDiagnosticAdder diagnostics,
+        out bool success )
+    {
+        success = false;
+
         this._logger = serviceProvider.GetLoggerFactory().GetLogger( nameof(CompileTimeAssemblyLocator) );
         this._sdkVersion = serviceProvider.GetRequiredService<IProjectOptions>().SdkVersion;
         this._msBuildBinPath = serviceProvider.GetRequiredService<IProjectOptions>().MSBuildBinPath;
@@ -119,16 +157,21 @@ internal sealed class CompileTimeAssemblyLocator
                 new[] { this.GetType(), typeof(IAspect), typeof(IAspectWeaver), typeof(ITemplateSyntaxFactory), typeof(FieldOrPropertyInfo) }
                     .SelectAsReadOnlyList( x => x.Assembly.Location ) ) );
 
-        var targetFrameworksString = string.IsNullOrEmpty( projectOptions.CompileTimeTargetFrameworks )
-            ? _defaultCompileTimeTargetFrameworks
-            : projectOptions.CompileTimeTargetFrameworks;
+        this._targetFrameworks = ParseTargetFrameworks(
+            string.IsNullOrEmpty( projectOptions.CompileTimeTargetFrameworks )
+                ? _defaultCompileTimeTargetFrameworks
+                : projectOptions.CompileTimeTargetFrameworks! );
 
-        this._targetFrameworks = targetFrameworksString.Split( ';' ).ToImmutableArray();
+        // The parsed value is rejoined with the separator that MSBuild expects, because it is written into the
+        // TargetFrameworks property of the temporary project, and it is what the cache key is computed from, so that
+        // two spellings of one set of target frameworks share a cache directory.
+        var targetFrameworksString = string.Join( ";", this._targetFrameworks );
 
         if ( !this._targetFrameworks.Contains( "netstandard2.0" ) )
         {
-            throw new InvalidOperationException(
-                $"Custom MetalamaCompileTimeTargetFrameworks has to include 'netstandard2.0', but it was {this._targetFrameworks}" );
+            ReportInvalidTargetFrameworks( diagnostics, targetFrameworksString, "it must include 'netstandard2.0'" );
+
+            return;
         }
 
         // Load nuget.config.
@@ -190,11 +233,16 @@ internal sealed class CompileTimeAssemblyLocator
         var metalamaImplementationPaths = metalamaImplementationAssemblies.Values;
 
         // Get system assemblies.
-        var referencePaths = this.GetReferenceAssembliesManifest(
-            targetFrameworksString,
-            additionalReferences,
-            additionalNugetSources,
-            projectOptions.AssemblyLocatorHooksDirectory );
+        if ( !this.TryGetReferenceAssembliesManifest(
+                targetFrameworksString,
+                additionalReferences,
+                additionalNugetSources,
+                projectOptions.AssemblyLocatorHooksDirectory,
+                diagnostics,
+                out var referencePaths ) )
+        {
+            return;
+        }
 
         // Sets the collection of all standard assemblies, i.e. system assemblies and ours.
         this.AssemblyNames = metalamaImplementationAssemblyNames
@@ -229,7 +277,12 @@ internal sealed class CompileTimeAssemblyLocator
             .GroupBy( s => s.Identity.Name )
             .ToImmutableDictionary( s => s.Key, s => s.OrderByDescending( x => x.Identity.Version ).First().Identity );
 
-        var additionalCompileTimeAssemblies = Directory.GetFiles( this.GetAdditionalCompileTimeAssembliesDirectory(), "*.dll" );
+        if ( !this.TryGetAdditionalCompileTimeAssembliesDirectory( diagnostics, out var additionalCompileTimeAssembliesDirectory ) )
+        {
+            return;
+        }
+
+        var additionalCompileTimeAssemblies = Directory.GetFiles( additionalCompileTimeAssembliesDirectory, "*.dll" );
 
         this.AdditionalCompileTimeAssemblyPaths =
             additionalCompileTimeAssemblies.Where( p => !p.EndsWith( "TempProject.dll", StringComparison.OrdinalIgnoreCase ) ).ToImmutableArray();
@@ -242,24 +295,65 @@ internal sealed class CompileTimeAssemblyLocator
                 new CSharpCompilationOptions( OutputKind.DynamicallyLinkedLibrary, deterministic: true, optimizationLevel: OptimizationLevel.Debug ) );
 
         this._referenceCompilationContext = this._referenceCompilation.GetCompilationContext();
+
+        success = true;
     }
 
-    private string GetAdditionalCompileTimeAssembliesDirectory()
+    /// <summary>
+    /// Splits the value of the <see cref="MSBuildPropertyNames.MetalamaCompileTimeTargetFrameworks"/> property into
+    /// target framework monikers.
+    /// </summary>
+    /// <remarks>
+    /// Both the comma and the semicolon are accepted. The property reaches the compiler through the generated analyzer
+    /// configuration file, in which a semicolon starts a comment, so the build normalizes the semicolon that a user
+    /// naturally writes in MSBuild into a comma. A value set directly through <see cref="IProjectOptions"/>, as in
+    /// tests, does not go through that file and keeps whichever separator it was given. See issue #1789.
+    /// </remarks>
+    internal static ImmutableArray<string> ParseTargetFrameworks( string value )
+        => value
+            .Split( [',', ';'], StringSplitOptions.RemoveEmptyEntries )
+            .SelectAsArray( f => f.Trim() )
+            .Where( f => f.Length > 0 )
+            .ToImmutableArray();
+
+    /// <summary>
+    /// Creates the exception reported when the <see cref="MSBuildPropertyNames.MetalamaCompileTimeTargetFrameworks"/>
+    /// property does not describe a usable set of target frameworks.
+    /// </summary>
+    /// <remarks>
+    /// A <see cref="DiagnosticException"/> and not an <see cref="InvalidOperationException"/>, because the value comes
+    /// from the project and the user is the one who can correct it. Reported as <c>LAMA0001</c>, it invited a crash
+    /// report for what is a configuration mistake. See issues #1744 and #1789.
+    /// </remarks>
+    private static void ReportInvalidTargetFrameworks( IDiagnosticAdder diagnostics, string value, string requirement )
+        => diagnostics.Report(
+            GeneralDiagnosticDescriptors.InvalidCompileTimeTargetFrameworks.CreateRoslynDiagnostic(
+                null,
+                (MSBuildPropertyNames.MetalamaCompileTimeTargetFrameworks, value, requirement) ) );
+
+    private bool TryGetAdditionalCompileTimeAssembliesDirectory( IDiagnosticAdder diagnostics, [NotNullWhen( true )] out string? directory )
     {
-        string platform;
+        var targetFrameworks = string.Join( ";", this._targetFrameworks );
 
-        if ( Environment.Version.Major < 6 )
+        var platform = Environment.Version.Major < 6
+            ? this._targetFrameworks.FirstOrDefault( f => f.StartsWith( "net4", StringComparison.Ordinal ) )
+            : this._targetFrameworks.FirstOrDefault( f => f is ['n', 'e', 't', '1' or (>= '6' and <= '9'), ..] );
+
+        if ( platform == null )
         {
-            platform = this._targetFrameworks.FirstOrDefault( f => f.StartsWith( "net4", StringComparison.Ordinal ) )
-                       ?? throw new InvalidOperationException( "Custom MetalamaCompileTimeTargetFrameworks did not include .NET Framework 4.x." );
-        }
-        else
-        {
-            platform = this._targetFrameworks.FirstOrDefault( f => f is ['n', 'e', 't', '1' or (>= '6' and <= '9'), ..] )
-                       ?? throw new InvalidOperationException( "Custom MetalamaCompileTimeTargetFrameworks did not include .NET 6+." );
+            var requirement = Environment.Version.Major < 6
+                ? "it must include a .NET Framework 4.x target framework"
+                : "it must include a .NET 6.0 or later target framework";
+
+            ReportInvalidTargetFrameworks( diagnostics, targetFrameworks, requirement );
+            directory = null;
+
+            return false;
         }
 
-        return Path.Combine( this._cacheDirectory, "bin", "Debug", platform );
+        directory = Path.Combine( this._cacheDirectory, "bin", "Debug", platform );
+
+        return true;
     }
 
     public static string GetAdditionalReferences( IProjectOptions options )
@@ -449,11 +543,13 @@ internal sealed class CompileTimeAssemblyLocator
         return true;
     }
 
-    private IReadOnlyList<string> GetReferenceAssembliesManifest(
+    private bool TryGetReferenceAssembliesManifest(
         string targetFrameworks,
         string additionalPackageReferences,
         string? additionalNugetSources,
-        string? hooksDirectory )
+        string? hooksDirectory,
+        IDiagnosticAdder diagnostics,
+        [NotNullWhen( true )] out IReadOnlyList<string>? referencePaths )
     {
         using ( MutexHelper.WithGlobalLock( this._cacheDirectory, this._logger ) )
         {
@@ -470,11 +566,18 @@ internal sealed class CompileTimeAssemblyLocator
 
                 if ( missingFiles.Count == 0 )
                 {
-                    var additionalCompileTimeAssembliesDirectory = this.GetAdditionalCompileTimeAssembliesDirectory();
+                    if ( !this.TryGetAdditionalCompileTimeAssembliesDirectory( diagnostics, out var additionalCompileTimeAssembliesDirectory ) )
+                    {
+                        referencePaths = null;
+
+                        return false;
+                    }
 
                     if ( Directory.Exists( additionalCompileTimeAssembliesDirectory ) )
                     {
-                        return assembliesFromFile;
+                        referencePaths = assembliesFromFile;
+
+                        return true;
                     }
                     else
                     {
@@ -513,7 +616,7 @@ internal sealed class CompileTimeAssemblyLocator
   <Import Project=""{hooksDirectory}/Metalama.AssemblyLocator.Build.props"" Condition=""Exists('{hooksDirectory}/Metalama.AssemblyLocator.Build.props')"" />";
 
                 hooksTargetsImport = $@"
-  <Import Project=""{{hooksDirectory}}/Metalama.AssemblyLocator.Build.targets"" Condition=""Exists('{{hooksDirectory}}/Metalama.AssemblyLocator.Build.targets')"" />";
+  <Import Project=""{hooksDirectory}/Metalama.AssemblyLocator.Build.targets"" Condition=""Exists('{hooksDirectory}/Metalama.AssemblyLocator.Build.targets')"" />";
 
                 hooksImportWarnings = $@"
   <Target Name=""_WarnOfImports"">
@@ -575,27 +678,43 @@ internal sealed class CompileTimeAssemblyLocator
 
             this._logger.Trace?.Log( $"Building with restore timeout {this._restoreTimeout}." );
 
-            // When NETCoreSdkVersion is not available (e.g., old-style .NET Framework projects built with msbuild.exe),
-            // use msbuild.exe directly instead of dotnet.exe.
-            if ( string.IsNullOrEmpty( this._sdkVersion ) && !string.IsNullOrEmpty( this._msBuildBinPath ) )
-            {
-                var msBuildTool = new MSBuildTool( this._msBuildBinPath );
-                var arguments = $"\"{projectFilePath}\" /t:Restore;Build /bl:msbuild_{Guid.NewGuid():N}.binlog";
+            // The binary log is written in the working directory, i.e. in the cache directory. Its name is computed here
+            // and not inline in the arguments so that the diagnostic reported on a failure can name its full path, which
+            // is the only artifact from which such a failure can be diagnosed after the fact. See #1740 and #1746.
+            var binaryLogFileName = $"msbuild_{Guid.NewGuid():N}.binlog";
+            var binaryLogPath = Path.Combine( this._cacheDirectory, binaryLogFileName );
 
-                msBuildTool.Execute( arguments, this._cacheDirectory, this._restoreTimeout );
+            try
+            {
+                // When NETCoreSdkVersion is not available (e.g., old-style .NET Framework projects built with msbuild.exe),
+                // use msbuild.exe directly instead of dotnet.exe.
+                if ( string.IsNullOrEmpty( this._sdkVersion ) && !string.IsNullOrEmpty( this._msBuildBinPath ) )
+                {
+                    var msBuildTool = new MSBuildTool( this._msBuildBinPath );
+                    var arguments = $"\"{projectFilePath}\" /t:Restore;Build /bl:{binaryLogFileName}";
+
+                    msBuildTool.Execute( arguments, this._cacheDirectory, this._restoreTimeout );
+                }
+                else
+                {
+                    // Remove configuration environment variable to avoid having different output directory than Debug.
+                    // Build scripts may rely on env var to set the configuration in MSBuild.
+                    // Case insensitive comparison needed because MSBuild is case insensitive.
+                    var arguments = $"build -bl:{binaryLogFileName}";
+
+                    this._dotNetTool.Execute(
+                        arguments,
+                        this._cacheDirectory,
+                        this._restoreTimeout,
+                        envVar => !StringComparer.OrdinalIgnoreCase.Equals( envVar.Key, "configuration" ) );
+                }
             }
-            else
+            catch ( ProcessFailedException exception )
             {
-                // Remove configuration environment variable to avoid having different output directory than Debug.
-                // Build scripts may rely on env var to set the configuration in MSBuild.
-                // Case insensitive comparison needed because MSBuild is case insensitive.
-                var arguments = $"build -bl:msbuild_{Guid.NewGuid():N}.binlog";
+                this.ReportReferenceAssemblyBuildFailure( exception, projectFilePath, binaryLogPath, diagnostics );
+                referencePaths = null;
 
-                this._dotNetTool.Execute(
-                    arguments,
-                    this._cacheDirectory,
-                    this._restoreTimeout,
-                    envVar => !StringComparer.OrdinalIgnoreCase.Equals( envVar.Key, "configuration" ) );
+                return false;
             }
 
             var assemblies = File.ReadAllLines( assembliesListPath );
@@ -605,7 +724,39 @@ internal sealed class CompileTimeAssemblyLocator
                 throw new AssertionFailedException( $"The file '{assembliesListPath}' is empty." );
             }
 
-            return assemblies;
+            referencePaths = assemblies;
+
+            return true;
         }
+    }
+
+    /// <summary>
+    /// Converts the failure of the nested reference-assembly build into a <see cref="DiagnosticException"/>, so that it
+    /// is reported to the user as an actionable diagnostic instead of an unexpected exception and a crash report.
+    /// </summary>
+    /// <remarks>
+    /// The complete output of the child process is written to the Metalama log, because the diagnostic can quote only a
+    /// few of its lines: a Roslyn diagnostic cannot contain line breaks, and a console transcript embedded in a build
+    /// error is unreadable. See issue #1744.
+    /// </remarks>
+    private void ReportReferenceAssemblyBuildFailure(
+        ProcessFailedException exception,
+        string projectFilePath,
+        string binaryLogPath,
+        IDiagnosticAdder diagnostics )
+    {
+        this._logger.Error?.Log( exception.Message );
+
+        var diagnostic =
+            exception.HasTimedOut
+                ? GeneralDiagnosticDescriptors.ReferenceAssemblyBuildTimedOut.CreateRoslynDiagnostic(
+                    null,
+                    (projectFilePath, exception.Timeout / 1000f, MSBuildPropertyNames.MetalamaReferenceAssemblyRestoreTimeout, binaryLogPath) )
+                : GeneralDiagnosticDescriptors.ReferenceAssemblyBuildFailed.CreateRoslynDiagnostic(
+                    null,
+                    (projectFilePath, exception.ExitCode!.Value, ReferenceAssemblyBuildFailureClassifier.GetReportedErrors( exception.Output ),
+                     ReferenceAssemblyBuildFailureClassifier.GetProbableCause( exception.Output, this._cacheDirectory, this._sdkVersion ), binaryLogPath) );
+
+        diagnostics.Report( diagnostic );
     }
 }

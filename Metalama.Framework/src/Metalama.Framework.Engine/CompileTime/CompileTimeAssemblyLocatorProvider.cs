@@ -3,9 +3,11 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Backstage.Maintenance;
+using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Services;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Metalama.Framework.Engine.CompileTime;
 
@@ -29,25 +31,50 @@ public sealed class CompileTimeAssemblyLocatorProvider : ICompileTimeAssemblyLoc
         this._tempFileManager = tempFileManager;
     }
 
-    CompileTimeAssemblyLocator ICompileTimeAssemblyLocatorProvider.GetInstance( in ProjectServiceProvider serviceProvider )
+    bool ICompileTimeAssemblyLocatorProvider.TryGetInstance(
+        in ProjectServiceProvider serviceProvider,
+        IDiagnosticAdder diagnostics,
+        [NotNullWhen( true )] out CompileTimeAssemblyLocator? locator )
     {
         var projectOptions = serviceProvider.GetRequiredService<IProjectOptions>();
 
         var additionalReferences = CompileTimeAssemblyLocator.GetAdditionalReferences( projectOptions );
 
-        if ( !this._referenceAssemblyLocators.TryGetValue( additionalReferences, out var referenceAssemblyLocator ) )
+        if ( this._referenceAssemblyLocators.TryGetValue( additionalReferences, out locator ) )
         {
-            // We look instead of using ConcurrentDictionary because instantiating the class is expensive.
-            lock ( this._sync )
-            {
-                if ( !this._referenceAssemblyLocators.TryGetValue( additionalReferences, out referenceAssemblyLocator ) )
-                {
-                    referenceAssemblyLocator = new CompileTimeAssemblyLocator( serviceProvider, additionalReferences, this._tempFileManager );
-                    this._referenceAssemblyLocators = this._referenceAssemblyLocators.Add( additionalReferences, referenceAssemblyLocator );
-                }
-            }
+            return true;
         }
 
-        return referenceAssemblyLocator;
+        // We lock instead of using ConcurrentDictionary because instantiating the class is expensive.
+        lock ( this._sync )
+        {
+            if ( this._referenceAssemblyLocators.TryGetValue( additionalReferences, out locator ) )
+            {
+                return true;
+            }
+
+            if ( !CompileTimeAssemblyLocator.TryCreate( serviceProvider, additionalReferences, this._tempFileManager, diagnostics, out locator ) )
+            {
+                // A failure is deliberately not cached: it is almost always caused by the environment, so the next
+                // compilation must try again instead of repeating a stale verdict. See issue #1744.
+                return false;
+            }
+
+            this._referenceAssemblyLocators = this._referenceAssemblyLocators.Add( additionalReferences, locator );
+
+            return true;
+        }
+    }
+
+    CompileTimeAssemblyLocator ICompileTimeAssemblyLocatorProvider.GetInstance( in ProjectServiceProvider serviceProvider )
+    {
+        // ThrowingDiagnosticAdder, because this overload is for the callers that have no diagnostic sink. A caller on a
+        // pipeline path uses TryGetInstance, in which case the locator is already cached here and this cannot fail.
+        if ( !((ICompileTimeAssemblyLocatorProvider) this).TryGetInstance( serviceProvider, ThrowingDiagnosticAdder.Instance, out var locator ) )
+        {
+            throw new AssertionFailedException( "ThrowingDiagnosticAdder did not throw." );
+        }
+
+        return locator;
     }
 }

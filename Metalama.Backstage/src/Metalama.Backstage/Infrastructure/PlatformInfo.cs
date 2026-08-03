@@ -166,12 +166,29 @@ namespace Metalama.Backstage.Infrastructure
 
             if ( this._runtimeInformation.IsOSPlatform( OSPlatform.Windows ) )
             {
-                // On Windows, %ProgramFiles% expands to the correct directory for the current architecture.
+                // %ProgramFiles% expands to the directory of the architecture of the current process, which is
+                // 'C:\Program Files (x86)' in a 32-bit process. That is the wrong installation to prefer: a 32-bit host,
+                // such as the MSBuild.exe of Visual Studio, still builds the project with the .NET SDK of the native
+                // architecture, so the version that the nested build is pinned to is the one installed there.
+                // %ProgramW6432% always denotes the native directory, in a process of either architecture, and is
+                // therefore searched first. %ProgramFiles% is still searched afterwards, so that a machine whose only
+                // .NET installation is the 32-bit one continues to work. See issue #1745.
+                var programFilesNative = this._environmentVariableProvider.GetEnvironmentVariable( "ProgramW6432" );
                 var programFiles = this._environmentVariableProvider.GetEnvironmentVariable( "ProgramFiles" );
 
-                if ( programFiles != null )
+                // The two variables have the same value in a 64-bit process, which is the ordinary case.
+                var programFilesDirectories = string.Equals( programFilesNative, programFiles, StringComparison.OrdinalIgnoreCase )
+                    ? new[] { programFiles }
+                    : new[] { programFilesNative, programFiles };
+
+                foreach ( var directory in programFilesDirectories )
                 {
-                    var baseDirectory = Path.Combine( programFiles, "dotnet" );
+                    if ( string.IsNullOrEmpty( directory ) )
+                    {
+                        continue;
+                    }
+
+                    var baseDirectory = Path.Combine( directory!, "dotnet" );
 
                     // On ARM64 OS running x64 process, check the x64 subfolder first.
                     if ( this._runtimeInformation is { OSArchitecture: Architecture.Arm64, ProcessArchitecture: Architecture.X64 } )

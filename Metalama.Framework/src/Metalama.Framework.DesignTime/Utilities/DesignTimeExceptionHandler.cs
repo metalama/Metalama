@@ -5,6 +5,7 @@
 using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Telemetry;
+using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.Diagnostics;
@@ -49,6 +50,16 @@ namespace Metalama.Framework.DesignTime.Utilities
         internal void ReportException( Exception e, IProjectOptions? projectOptions, ILogger? logger = null )
         {
             logger ??= Logger.DesignTime;
+
+            // A DiagnosticException means that the failure has already been analyzed and that the responsibility for it
+            // lies with the user or with the build environment, typically a nested build that cannot restore its NuGet
+            // packages. Such a condition is not a defect of Metalama and must not be sent as a crash report. See #1744.
+            if ( DiagnosticException.TryFind( e ) is { } diagnosticException )
+            {
+                logger.Warning?.Log( $"A user-attributable failure occurred: {diagnosticException.GetSingleLineMessage()}" );
+
+                return;
+            }
 
             var classifiedException = ExceptionClassifier.Classify( e );
             logger.LogException( classifiedException );
