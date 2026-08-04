@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Engine.CodeModel;
+using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Pipeline;
 using Metalama.Framework.Engine.Utilities.ObjectGraph;
 using Metalama.Testing.UnitTesting;
@@ -178,6 +179,47 @@ public sealed class UserCodeRetentionPolicyTests : UnitTestClass
         Assert.True(
             visited.Count < 100,
             $"The walk visited {visited.Count} objects from a single delegate, which means it escaped through a runtime internal." );
+    }
+
+    [Fact]
+    public void TemplateReflectionContext_IsABoundary()
+    {
+        // The cacheable template reflection context owns the compilation against which the templates of a referenced
+        // assembly are reflected. That compilation has no syntax tree and only portable executable references, so the
+        // framework keeps it deliberately, for the whole session. A fabric reaches it through the template class of its
+        // own aspect, therefore a walk that descended into it would report a compilation the user did not create and
+        // cannot release, and would name the fabric as the cause.
+        using var testContext = this.CreateTestContext();
+
+        var provider = new CacheableTemplateDiscoveryContextProvider(
+            testContext.CreateCSharpCompilation( "class C { }" ),
+            testContext.ServiceProvider );
+
+        // Without this call the provider concludes that no reference contains compile-time code and creates no context.
+        provider.OnPortableExecutableReferenceDiscovered();
+
+        var context = provider.GetTemplateDiscoveryContext()!;
+
+        Assert.True( UserCodeRetentionPolicy.IsBoundary( context ) );
+        Assert.Empty( FindRetentions( new Holder { Value = context } ) );
+    }
+
+    [Fact]
+    public void SourceCompilationContext_IsStillReported()
+    {
+        // The pair of the case above, and the reason why the boundary is safe: the compilation context of the source
+        // compilation also implements the template reflection context interface, but it pins a compilation the user
+        // does edit, so it must keep being reported.
+        using var testContext = this.CreateTestContext();
+        var compilationModel = testContext.CreateCompilationModel( "class C { }" );
+        var compilationContext = compilationModel.CompilationContext;
+
+        Assert.IsAssignableFrom<ITemplateReflectionContext>( compilationContext );
+        Assert.True( UserCodeRetentionPolicy.IsPinning( compilationContext ) );
+
+        var finding = Assert.Single( FindRetentions( new Holder { Value = compilationContext } ) );
+
+        Assert.Same( compilationContext, finding.Node.Object );
     }
 
     [Fact]
