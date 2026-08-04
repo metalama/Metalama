@@ -112,7 +112,15 @@ When starting work on a GitHub issue:
 - Never await without cancellation token - ever
 - For assertions, use `Invariant.Assert` / `Invariant.AssertNotNull` (`Metalama.Framework.Engine`) instead of the `System.Diagnostics.Debug` assert methods, so the compiler and the `MetalamaAssertionAnalyzer` can track control flow. In projects that don't reference the engine (e.g. `Metalama.Patterns.Caching.Backend`), throw `CachingAssertionFailedException` instead; `System.Diagnostics.Debug` is only acceptable there in already-ported code that uses it throughout.
 - Github comments and issues and PRs must be signed by Claude - not commits. No ad link, just the signature `— Claude for @gfraiteur`.
-- don't loose time solving cosmetic warnings (such as redundant usings) until the finalizing stage of a commit
+- **Warnings: ignore them while coding, but zero warnings is a gate for any push to a PR.** While writing and testing code, don't lose time on cosmetic warnings (such as redundant usings). But the CI build runs with `-p:ContinuousIntegrationBuild=True`, which promotes analyzer suggestions to errors: `IDE0005` ("using directive is unnecessary") is invisible in a local build and *fails* the CI build. A green local build and a green test suite therefore prove nothing about CI.
+
+  So, before creating a PR **and before every push to an existing PR**, build every project you touched in CI mode and get zero warnings:
+
+  ```powershell
+  dotnet build <project> -c Debug -p:ContinuousIntegrationBuild=True -nodeReuse:false
+  ```
+
+  Do this for test projects too: they are not built by `Build.ps1 build`, so new test code is the most likely place for such a diagnostic to hide. Do not push and let CI find them; a red CI build costs far more than the check.
 - `Build.ps1 build` does not build test projects, only packable projects.
 - `Build.ps1 test` implicitly does a clean rebuild (not incremental), so do NOT chain it after `Build.ps1 build` — they overlap. After `Build.ps1 build`, run individual test projects with `dotnet test <project> --no-build`. Only re-run `Build.ps1 build` when you need a cross-solution rebuild.
 
