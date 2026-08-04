@@ -121,10 +121,11 @@ public sealed class DesignTimeGeneratedCodeCompilesTests : DesignTimePipelineTes
     /// Verifies that the code generated for a project deriving from a type of a referenced project compiles.
     /// </summary>
     /// <remarks>
-    /// The consumer references the producer as an editor presents it, that is, as the compilation built from its
-    /// source without the output of its source generators, which is the arrangement that
-    /// <c>PullParameterTests.CrossProjectIntegration</c> models. The transitive aspect exported by the pull has to
-    /// introduce the parameter into the derived constructor, and the result has to compile.
+    /// The consumer references the producer as a consuming project sees it, that is, including the code that the
+    /// design-time pipeline generated for it, because a project reference resolves to the compilation of the
+    /// referenced project and the compilation of a project includes its source-generated documents. The transitive
+    /// aspect exported by the pull has to introduce the parameter into the derived constructor, and the result has to
+    /// compile.
     /// </remarks>
     [Fact]
     public void PullAcrossProjects_GeneratedCodeOfTheConsumerCompiles()
@@ -142,20 +143,20 @@ public sealed class DesignTimeGeneratedCodeCompilesTests : DesignTimePipelineTes
                                     }
                                     """;
 
-        var consumer = testContext.CreateCSharpCompilation(
-            consumerCode,
-            assemblyName: "Consumer",
-            additionalReferences: [library.ToMetadataReference()] );
-
         using var pipelineFactory = new TestDesignTimeAspectPipelineFactory( testContext );
 
         // The producer's pipeline runs first, so that its transitive manifest is available to the consumer's.
-        Assert.True( pipelineFactory.TryExecute( libraryContext.ProjectOptions, library, default, out _ ) );
+        Assert.True( pipelineFactory.TryExecute( libraryContext.ProjectOptions, library, default, out var libraryResult ) );
+
+        var consumer = testContext.CreateCSharpCompilation(
+            consumerCode,
+            assemblyName: "Consumer",
+            additionalReferences: [AddDesignTimeGeneratedCode( library, libraryResult ).ToMetadataReference()] );
+
         Assert.True( pipelineFactory.TryExecute( consumerContext.ProjectOptions, consumer, default, out var consumerResult ) );
 
         // Asserted separately from the compilation, so that a failure distinguishes the transitive aspect not applying
-        // at all from it applying and producing code that does not compile. Today it does not apply: the consumer
-        // introduces nothing, which is what PullParameterTests.CrossProjectIntegration reports by another route.
+        // at all from it applying and producing code that does not compile.
         Assert.NotEmpty( consumerResult.Result.SyntaxTreeResults.Values.SelectMany( r => r.Introductions ) );
 
         this.AssertCompiles( AddDesignTimeGeneratedCode( consumer, consumerResult ) );
