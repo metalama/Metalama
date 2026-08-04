@@ -321,7 +321,18 @@ internal sealed class ObjectGraphWalker
     /// public so that a caller can say so in its report rather than presenting a partial answer as a complete one.
     /// </para>
     /// </remarks>
-    public static bool CanFollowConditionalReferences { get; } = (object) new ConditionalWeakTable<object, object>() is IEnumerable;
+    public static bool CanFollowConditionalReferences { get; } = ProbeConditionalReferenceSupport();
+
+    private static bool ProbeConditionalReferenceSupport()
+    {
+        // The local is typed object deliberately. Testing the concrete type does not compile on .NET Framework, where
+        // ConditionalWeakTable implements no enumerable interface, and is a redundant cast on .NET, where it does. The
+        // question is answered by asking the runtime rather than by a conditional-compilation symbol, so that a future
+        // runtime that gains or loses the interface is handled without a change here.
+        object table = new ConditionalWeakTable<object, object>();
+
+        return table is IEnumerable;
+    }
 
     /// <summary>
     /// Determines whether a type is a <see cref="ConditionalWeakTable{TKey,TValue}"/>.
