@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Spectre.Console;
-using System;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
