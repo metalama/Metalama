@@ -15,6 +15,10 @@ using System;
 using System.Linq;
 using Xunit;
 
+// Several tests below declare the type of a local explicitly, because what they assert is the static type of the
+// expression and not merely the run-time type of the value it produces.
+#pragma warning disable IDE0007 // Use 'var' instead of explicit type
+
 namespace Metalama.Framework.Tests.UnitTests.CodeModel;
 
 public sealed class RefTests : UnitTestClass
