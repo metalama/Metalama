@@ -224,11 +224,9 @@ internal sealed class PullConstructorParameterAdviceImpl
                     this._pullStrategy,
 
                     // Durable, like the target declaration below: the aspect object is carried by the transitive
-                    // aspect instance and lives exactly as long. The pulled parameter may itself have been
-                    // introduced by an earlier aspect, in which case this is an IntroducedRef, whose serializable
-                    // identifier names the constructor signature and the ordinal and therefore survives the
-                    // re-introduction that a later run performs. See issue #1797.
-                    baseParameter.ToRef(),
+                    // aspect instance and lives exactly as long, so a live reference would pin the compilation the
+                    // instance was produced in for the whole design-time session. See issue #1797.
+                    baseParameter.ToDurableRef(),
                     this._context.AspectOrder,
                     this._forwardingHelper?.OverloadingStrategy );
 

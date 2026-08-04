@@ -123,7 +123,7 @@ public static class PullStrategy
         bool materializeOnRecord = false )
         => new IntroduceParameterPullStrategy(
             name,
-            type?.ToRef(),
+            type?.ToDurableRef(),
             defaultValue?.ToText(),
             forwarderExpression?.ToText(),
             reuseExistingParameterOfCompatibleType,

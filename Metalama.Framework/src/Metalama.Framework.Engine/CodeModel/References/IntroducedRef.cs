@@ -112,7 +112,19 @@ internal sealed partial class IntroducedRef<T> : FullRef<T>, IIntroducedRef
             _ => null
         };
 
-    public override SerializableDeclarationId ToSerializableId() => this.ConstructedDeclaration.ToSerializableId();
+    public override SerializableDeclarationId ToSerializableId()
+    {
+        // A reference to an introduced declaration can be created before the declaration is built, because the
+        // reference is needed while the builder is still being populated. Its identifier, however, is derived from
+        // ConstructedDeclaration, which resolves the declaration against the canonical compilation, so asking for it
+        // before the builder has been frozen and its data assigned yields an identifier computed from an unfinished
+        // declaration. See issue #1797.
+        Invariant.Assert(
+            this._builderData.Value != null,
+            "Cannot compute the serializable identifier of an introduced declaration before its builder has been frozen." );
+
+        return this.ConstructedDeclaration.ToSerializableId();
+    }
 
     protected override ISymbol GetSymbolIgnoringRefKind( CompilationContext compilationContext ) => throw new NotSupportedException();
 

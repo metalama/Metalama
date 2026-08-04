@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -106,33 +106,17 @@ public sealed class TransitiveContributorMemoryLeakTests : DesignTimeTestBase
         };
 
     /// <summary>
-    /// Records that the transitive contributor which survives the session still retains the version of the project it
-    /// was produced in, and by which route.
+    /// Verifies that the transitive contributor which survives the session does not retain the version of the project
+    /// it was produced in.
     /// </summary>
     /// <remarks>
-    /// <para>
-    /// The contributor reaches a compilation by two routes. Its own target declaration is now durable, and so is the
-    /// one of the aspect instance that carries it. What remains is the aspect object, which for the pull strategy
-    /// holds a reference to the parameter that was pulled, and that parameter is one an earlier aspect introduced, so
-    /// the reference is an <c>IntroducedRef</c>.
-    /// </para>
-    /// <para>
-    /// That reference cannot simply be made durable, which was established by trying it: an <c>IntroducedRef</c> does
-    /// have a serializable identifier, and <c>ToDurable</c> compiles and closes this retention, but fixing the
-    /// identifier at the moment the advice runs breaks the cross-project case. With the parameter reference made
-    /// durable, <c>PullParameterTests.CrossProjectIntegration</c> fails: the consuming project resolves nothing and
-    /// the transitive aspect silently does not apply. The identity of an introduced declaration is not yet settled
-    /// when the transitive aspect is created, so making it durable has to happen later than that, which is a change of
-    /// design rather than a change of call. Issue #1797 carries the detail.
-    /// </para>
-    /// <para>
-    /// The assertion is deliberately the opposite of the one the rest of this suite makes. It is a control: it holds
-    /// the measurement that the retention is real and confined to that single route, and it fails the moment #1797 is
-    /// fixed, which is the signal to replace it with the ordinary assertion that the compilation is released.
-    /// </para>
+    /// The contributor reached a compilation by two routes, both now closed: the target declaration of the aspect
+    /// instance that carries it, and the reference to the pulled parameter held by the aspect object itself. Both are
+    /// durable references. Issue #1797 carries the history, including the measurement that established the second
+    /// route and the reason it was not closed at the same time as the first.
     /// </remarks>
     [Fact]
-    public void TransitiveContributor_StillRetainsTheCompilation_ThroughTheIntroducedParameterOnly()
+    public void TransitiveContributor_DoesNotRetainTheCompilationItWasProducedIn()
     {
         using var testContext = this.CreateTestContext();
         using var factory = new TestDesignTimeAspectPipelineFactory( testContext );
@@ -140,7 +124,7 @@ public sealed class TransitiveContributorMemoryLeakTests : DesignTimeTestBase
         var simulator = new DesignTimeEditingSimulator(
             testContext,
             factory,
-            nameof(this.TransitiveContributor_StillRetainsTheCompilation_ThroughTheIntroducedParameterOnly),
+            nameof(this.TransitiveContributor_DoesNotRetainTheCompilationItWasProducedIn),
             CreateInitialCode() );
 
         var initialCompilation = simulator.GetWeakReferenceToCurrentCompilation();
@@ -151,13 +135,11 @@ public sealed class TransitiveContributorMemoryLeakTests : DesignTimeTestBase
             simulator.ApplyEdit( _editedFileName, GetEditedCode( version ) );
         }
 
-        // Without a surviving contributor there would be nothing to retain anything, and the assertion below would
-        // hold for a reason unrelated to what it measures.
+        // Without a surviving contributor the assertion below would hold for a reason unrelated to what it measures.
         Assert.NotEmpty( simulator.GetPipeline().AspectPipelineResult.Extensions.Extensions );
 
-        MemoryLeakAssert.RetainedThrough(
+        MemoryLeakAssert.Collected(
             initialCompilation,
-            nameof(PullConstructorParameterTransitiveAspect),
             "The compilation in which the transitive contributor was produced",
             ("pipelineFactory", factory) );
     }

@@ -37,10 +37,17 @@ public class DefaultParameterPullStrategy : IParameterPullStrategy
     /// </summary>
     /// <param name="parameterType">A reference to the type of the constructor parameter.</param>
     /// <param name="dependencyName">The name of the dependency, used to derive the parameter name.</param>
-    public DefaultParameterPullStrategy( IRef<IType> parameterType, string dependencyName )
+    public DefaultParameterPullStrategy( IDurableRef<IType> parameterType, string dependencyName )
     {
+        // Made durable so that a pull strategy reachable from a stored transitive aspect instance does not retain the
+        // compilation it was created in. See issue #1797.
         this.ParameterType = parameterType;
         this.DependencyName = dependencyName;
+    }
+    
+    [Obsolete("Pass an IDurableRef<IType>.")]
+    public DefaultParameterPullStrategy( IRef<IType> parameterType, string dependencyName ) : this( parameterType.ToDurable(), dependencyName )
+    {
     }
 
     /// <summary>

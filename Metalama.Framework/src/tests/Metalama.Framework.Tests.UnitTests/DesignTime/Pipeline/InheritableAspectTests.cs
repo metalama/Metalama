@@ -103,11 +103,7 @@ public class Aspect : TypeAspect { }
                     .ToArray() );
         }
 
-#if NET5_0_OR_GREATER
-        [Fact( Skip = "CLR internal error when unloading the domain" )]
-#else
         [Fact]
-#endif
         public void CrossProjectIntegration()
         {
             using var testContext = this.CreateTestContext();
