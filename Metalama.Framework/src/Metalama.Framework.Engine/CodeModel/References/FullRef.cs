@@ -124,9 +124,26 @@ internal abstract partial class FullRef<T> : BaseRef<T>, IFullRef<T>
     public abstract IFullRef<T> DefinitionRef { get; }
 
     [Memo]
-    private DeclarationIdRef<T> CompilationNeutralRef => new( this.ToSerializableId() );
+    private IDurableRef<T> DurableRef => this.CreateDurableRef();
 
-    public sealed override IDurableRef<T> ToDurable() => this.CompilationNeutralRef;
+    public sealed override IDurableRef<T> ToDurable() => this.DurableRef;
+
+    /// <summary>
+    /// Creates the durable reference that <see cref="ToDurable"/> returns.
+    /// </summary>
+    /// <remarks>
+    /// A constructed generic type is identified by its <see cref="SerializableTypeId"/> rather than by its declaration
+    /// identifier, because a declaration identifier names the generic definition and would therefore drop the type
+    /// arguments, turning <c>Generic&lt;int&gt;</c> into <c>Generic&lt;T&gt;</c>. A canonical generic instance, such as
+    /// the definition itself, has nothing to lose and keeps the declaration identifier. This matches
+    /// <see cref="DurableRefFactory.FromDeclarationOrType{T}"/>, so both routes to a durable reference agree.
+    /// </remarks>
+    private protected virtual IDurableRef<T> CreateDurableRef()
+        => this.TargetKind == RefTargetKind.Default
+           && this.GetSymbolIgnoringRefKind( this.CompilationContext ) is INamedTypeSymbol { IsGenericType: true } typeSymbol
+           && !SymbolEqualityComparer.Default.Equals( typeSymbol, typeSymbol.OriginalDefinition )
+            ? new TypeIdRef<T>( typeSymbol.GetSerializableTypeId() )
+            : new DeclarationIdRef<T>( this.ToSerializableId() );
 
     public override SerializableDeclarationId ToSerializableId()
     {

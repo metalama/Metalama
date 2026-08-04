@@ -217,16 +217,15 @@ public sealed class RefTests : UnitTestClass
     }
 
     /// <summary>
-    /// A constructed generic type keeps its type arguments, because it is a named type and is therefore identified by
-    /// its declaration identifier exactly as <c>ToRef().ToDurable()</c> would identify it.
+    /// A constructed generic type keeps its type arguments, because it is identified by its
+    /// <see cref="SerializableTypeId"/> rather than by a declaration identifier.
     /// </summary>
     /// <remarks>
-    /// This records deliberately that <see cref="Code.RefExtensions.ToDurableRef{T}"/> does not change the behaviour that
-    /// <see cref="DurableRefToConstructedGenericTypeLosesTheTypeArguments"/> documents. A caller that needs the type
-    /// arguments preserved has to use a <see cref="SerializableTypeId"/>, whichever of the two routes it takes.
+    /// This is the counterpart of <see cref="DurableRefToConstructedGenericTypeKeepsTheTypeArguments"/>: both routes to
+    /// a durable reference preserve the type arguments, so they agree.
     /// </remarks>
     [Fact]
-    public void ToDurableRefToConstructedGenericTypeLosesTheTypeArgumentsToo()
+    public void ToDurableRefToConstructedGenericTypeKeepsTheTypeArguments()
     {
         using var testContext = this.CreateTestContext();
         var compilation = testContext.CreateCompilationModel( _genericTypesCode );
@@ -234,7 +233,7 @@ public sealed class RefTests : UnitTestClass
         var type = GetTestType( compilation, "Constructed" );
         Assert.Equal( "Generic<int>", type.ToDisplayString() );
 
-        Assert.Equal( "Generic<T>", type.ToDurableRef().GetTarget( compilation ).ToDisplayString() );
+        Assert.Equal( "Generic<int>", type.ToDurableRef().GetTarget( compilation ).ToDisplayString() );
     }
 
     /// <summary>
@@ -334,7 +333,7 @@ public sealed class RefTests : UnitTestClass
     /// <summary>
     /// Verifies that converting an <see cref="INamedType"/> to a durable reference with <c>ToDurable</c> and resolving
     /// it again yields an equivalent type, for every shape of type except a constructed generic one, which
-    /// <see cref="DurableRefToConstructedGenericTypeLosesTheTypeArguments"/> covers.
+    /// <see cref="DurableRefToConstructedGenericTypeKeepsTheTypeArguments"/> covers.
     /// </summary>
     [Theory]
     [InlineData( "Plain" )]
@@ -359,11 +358,13 @@ public sealed class RefTests : UnitTestClass
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <c>ToDurable</c> is backed by a <c>SerializableDeclarationId</c>, which names a declaration and therefore names
-    /// the generic definition. Resolving it returns <c>Generic&lt;T&gt;</c> where <c>Generic&lt;int&gt;</c> was
-    /// converted, silently and with no diagnostic. This is a trap for any caller that converts a type coming from user
-    /// code, because the result is a usable type rather than an error, and the widening only shows in what the caller
-    /// subsequently matches.
+    /// A declaration identifier names a declaration and therefore names the generic definition, so backing
+    /// <c>ToDurable</c> with one returned <c>Generic&lt;T&gt;</c> where <c>Generic&lt;int&gt;</c> was converted,
+    /// silently and with no diagnostic. That was a trap for any caller converting a type coming from user code,
+    /// because the result was a usable type rather than an error and the widening only showed in what the caller
+    /// subsequently matched. It broke the constructor parameter pull, which compares the type of the parameter it
+    /// introduced against the type it is asked to introduce (issue #1797). A constructed generic type is therefore
+    /// identified by its <see cref="SerializableTypeId"/>.
     /// </para>
     /// <para>
     /// <c>Query.CreateBaseTypeResolver</c> is such a caller: <c>SelectTypesDerivedFrom( INamedType )</c> accepts a
@@ -372,7 +373,7 @@ public sealed class RefTests : UnitTestClass
     /// </para>
     /// </remarks>
     [Fact]
-    public void DurableRefToConstructedGenericTypeLosesTheTypeArguments()
+    public void DurableRefToConstructedGenericTypeKeepsTheTypeArguments()
     {
         using var testContext = this.CreateTestContext();
         var compilation = testContext.CreateCompilationModel( _genericTypesCode );
@@ -380,8 +381,8 @@ public sealed class RefTests : UnitTestClass
         var type = GetTestType( compilation, "Constructed" );
         Assert.Equal( "Generic<int>", type.ToDisplayString() );
 
-        var throughDeclarationId = type.ToRef().ToDurable().GetTarget( compilation );
-        Assert.Equal( "Generic<T>", throughDeclarationId.ToDisplayString() );
+        var throughToDurable = type.ToRef().ToDurable().GetTarget( compilation );
+        Assert.Equal( "Generic<int>", throughToDurable.ToDisplayString() );
 
         var throughTypeId = DurableRefFactory.FromTypeId<INamedType>( type.GetSerializableTypeId() ).GetTarget( compilation );
         Assert.Equal( "Generic<int>", throughTypeId.ToDisplayString() );
