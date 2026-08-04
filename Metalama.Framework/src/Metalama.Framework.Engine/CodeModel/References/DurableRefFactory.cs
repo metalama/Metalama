@@ -32,12 +32,23 @@ internal static class DurableRefFactory
     /// A type that is not a declaration, such as an array type or a pointer type, has no declaration identifier and is
     /// therefore identified by its <see cref="SerializableTypeId"/>.
     /// </para>
+    /// <para>
+    /// A <i>constructed</i> generic type is identified by its <see cref="SerializableTypeId"/> as well, even though it
+    /// is also a declaration, because a declaration identifier names the generic definition and therefore loses the
+    /// type arguments: <c>ICovariant&lt;Derived&gt;</c> would come back as <c>ICovariant&lt;T&gt;</c>, and a caller
+    /// comparing the two types would then see them as unrelated. The declaration case is matched after this one
+    /// because an <see cref="INamedType"/> is both a declaration and a type. A canonical generic instance, such as the
+    /// definition <c>ICovariant&lt;T&gt;</c> itself, has nothing to lose and keeps the declaration identifier, which
+    /// is also what <see cref="IRef.ToDurable"/> produces for it.
+    /// </para>
     /// </remarks>
     public static IDurableRef<T> FromDeclarationOrType<T>( ICompilationElement declarationOrType )
         where T : class, ICompilationElement
         => declarationOrType switch
         {
             IAttribute => throw new NotSupportedException( AttributeRef.CannotBeMadeDurableMessage ),
+            INamedType { IsGeneric: true, IsCanonicalGenericInstance: false } constructedType
+                => new TypeIdRef<T>( constructedType.GetSerializableTypeId() ),
             IDeclaration declaration => new DeclarationIdRef<T>( declaration.GetSerializableId() ),
             IType type => new TypeIdRef<T>( type.GetSerializableTypeId() ),
             _ => throw new NotSupportedException(
