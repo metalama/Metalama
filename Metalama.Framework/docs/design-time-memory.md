@@ -70,6 +70,13 @@ request, and is a retention as soon as it is stored.
 `SerializableTypeId`, which reaches nothing. Resolve it later with `GetTarget( compilation )` against whichever
 compilation is current.
 
+**Declare the requirement in the type, do not leave it to the caller.** A field, property or constructor parameter that
+must hold a durable reference is typed `IDurableRef<T>`, not `IRef<T>`. The conversion then cannot be forgotten,
+because the compiler asks for it at every call site, and a reader of the type learns the constraint from its signature
+rather than from a comment. `TransitiveAspectInstance.TargetDeclaration` is the model. Where such a reference crosses a
+serializer, keep `IRef<T>` as the wire shape, which is what the serialization framework resolves, and convert on that
+boundary.
+
 This is why `SyntaxTreePipelineResult` documents itself as *compilation-independent and cacheable*: the pipeline
 re-analyses only the syntax trees that changed and carries the results of every other file forward from an earlier
 run, so a compilation-bound reference in one of them pins the version it was computed in for as long as the project
@@ -137,7 +144,7 @@ used instead, the subscriber must unsubscribe in `Dispose`, and the event must c
 ## What the pipeline stores for longer than one request
 
 Three collections outlive a request without being obviously long-lived, because they belong to objects a reader
-naturally takes to be per-run. Each of them is a place where the rule has been broken.
+naturally takes to be per-run. Each is a place to check before storing anything in it.
 
 **The pipeline configuration.** `AspectPipelineConfiguration` is built once, from whichever version of the project was
 current at the time, and `PipelineState` then reuses it for every subsequent version, discarding it only when the
@@ -152,13 +159,16 @@ addition to the current one. The exception in the rule above does not cover that
 configuration is therefore subject to the rule, including `FabricsContributors`, which reaches the amender of every
 static fabric and, through the amender, the queries it owns. `FabricMemoryLeakTests` guards this.
 
-The corollary is worth stating separately, because it is where the rule is easiest to break by accident.
+The corollary is where this rule is easiest to break by accident, and is worth stating separately.
 `UserCodeExecutionContext` is ambient and scoped to one execution of user code, so it is entitled to hold a
-compilation, a declaration and a syntax builder: that is its purpose. **The objects created from a context and outliving
-it are the ones that must not.** An amender stored a whole context, and a query built by `SelectTypesDerivedFrom`
-captured the `INamedType` it was given. Both are durable, both are reachable from the configuration, and both were
-fixed by keeping a durable reference and resolving it against the compilation of each run, which
-`UserCodeExecutionContext.WithCompilationAndDiagnosticAdder` was already doing for everything else.
+compilation, a declaration and a syntax builder: that is its purpose. **The objects created from a context and
+outliving it are the ones that must not.** A fabric amender and the queries it owns are such objects.
+
+Two shapes follow. An owner that outlives a request does not store a context but produces one per compilation, which is
+what `IQueryOwner.GetUserCodeExecutionContext` exists for; an owner whose own lifetime is a single run, such as an
+aspect builder, may return the context it holds, rebound through
+`UserCodeExecutionContext.WithCompilationAndDiagnosticAdder`. And a query builder that is handed a declaration converts
+it to a durable reference before capturing it in the adder closure, because the closure lives as long as the query.
 
 **The per-file results.** `SyntaxTreePipelineResult` describes itself as compilation-independent and cacheable, and
 the pipeline relies on that: `DesignTimeAspectPipelineResult.Update` carries forward the entry of every file the run
@@ -223,114 +233,100 @@ one version at a time and waits for each to be analysed never cancels anything a
 why the growth was so hard to reproduce outside a real editing session. When testing a component that cancels
 superseded work, the test must cancel too.
 
-## Known residuals
+## Open items
 
-What follows is deliberately not fixed, or not fixed everywhere. It is recorded here rather than left in a pull
-request description, because the next person to work on design-time memory will read this document and not that.
-Please keep the list honest: strike an entry when it is closed, and add one rather than leaving a repair half-applied.
+Recorded here rather than in a pull request, because this is the document the next person to work on design-time memory
+reads. Strike an entry when it is closed, and add one rather than leaving a repair half-applied. State for each whether
+it was **measured** or **reasoned**, and phrase a reasoned one as a question: an entry that has not been measured is
+about as often wrong as right.
 
-### Uncancellable waits on a task completion source
+### A transitive aspect instance retains one compilation
 
-Closed. All three call sites now compose the token with `WithCancellation` before `WarnIfLongAsync`, which is the
-defect: that method uses the token for its own delay and returns the original task untouched when warning logging is
-disabled, so passing it there alone leaves the wait uncancellable by either path. `RpcServiceProviderServerEndpoint`
-also completes `_hubRegistrationTask` when the service hub endpoint cannot be obtained, because registration is
-attempted once and nothing else would ever complete it. The awaiters of `ClientEndpoint` are deliberately left waiting
-in that situation, because a later connection attempt can legitimately complete them; making the wait cancellable is
-the whole of what was needed there.
+Measured. Tracked by [#1797](https://github.com/metalama/Metalama/issues/1797). The remaining route is:
 
-This is worth re-checking after any change on that surface, because the mistake is easy to repeat and invisible:
-
-```bash
-grep -rn "Task\.WarnIfLongAsync" --include=*.cs . | grep -v WithCancellation
+```
+TransitiveAspectInstance.Aspect
+  -> PullConstructorParameterTransitiveAspect._parameter : IntroducedRef<IParameter>
+    -> RefFactory -> CompilationContext -> Compilation
 ```
 
-### `WithCancellation` does not leave anything behind: measured, contrary to a claim made here earlier
+The target declarations on that path are durable and typed `IDurableRef<IDeclaration>`, so only the aspect object
+remains. Why the parameter reference is not also durable is specific, and worth knowing before trying it again:
 
-An earlier revision of this section stated that a cancelled `WithCancellation` leaves a `Task.WhenAny` continuation on
-the task it waited for, and that this accumulates on a task that never completes. **That is false, and it was asserted
-from reading the code rather than from measuring it.**
+- an `IntroducedRef` **is** serializable. It overrides `ToSerializableId`, `FullRef.ToDurable` is built on that, and
+  the identifier of a pulled parameter names the constructor signature and the ordinal, which the resolution path
+  handles explicitly and `ConstructorParameterIdResolutionTests` covers;
+- calling `ToDurable()` on it therefore compiles, and does close this retention;
+- but it breaks the cross-project case. `PullParameterTests.CrossProjectIntegration` then fails: the consuming project
+  resolves nothing and the transitive aspect silently does not apply. That test runs on `net48` only, so a `net8.0` run
+  stays green and hides it.
 
-`Task.WhenAny` removes its continuation from the task that did not win. Measured on a task that is never completed, the
-number of continuations left after 10, 100 and 1000 cancelled waits is the same small constant, for both
-implementations in use: `TaskExtensions.WithCancellation` of this codebase, and
-`Microsoft.VisualStudio.Threading.ThreadingTools.WithCancellation`, which the two waits in
-`Metalama.Framework.DesignTime.Rpc` resolve to because that project does not reference the engine.
+The identity of an introduced declaration is not settled at the moment the advice runs. Making the reference durable
+has to happen later in the pipeline, which is a change of design rather than a change of call.
 
-`WithCancellationMemoryLeakTests` holds the property, since it belongs to the runtime and to a third-party library
-rather than to this codebase, and nothing else here would notice its loss. It counts continuations by reflection over
-a private field of `Task`, which is the only way to observe something that no public API exposes and that no weak
-reference can track.
+`TransitiveContributorMemoryLeakTests` holds a control that asserts the compilation is *still* retained. It fails when
+this is fixed, which is the signal to replace it with the ordinary assertion.
 
-The lesson is the one this section exists to enforce: an entry here has to say whether it was measured or reasoned
-about, and a reasoned one is a question rather than a finding.
+### Two requirements the framework cannot check
 
-### `TransitiveAspectInstance` retains the compilation it was produced in
+Structural, and open by nature. Both are contracts stated in documentation, because what is stored is opaque to the
+code that stores it:
 
-Bounded to one version, and tracked by [#1797](https://github.com/metalama/Metalama/issues/1797). Its target
-declaration closes with `ToDurable()` exactly as the inheritable aspect instances did. The aspect object is the harder
-half: it carries an `IntroducedRef` to a declaration the pipeline introduced, which has no source identity to be
-durable against, so it needs a design change rather than a repair.
+- what an extension puts in an `IDesignTimePipelineResultExtension`;
+- what a user lambda captures. `Select`, `SelectMany`, `Where` and `Tag` take delegates written by the user, and the
+  query holding them is as durable as its owner. Only the framework's own captures can be fixed.
 
-### `TransitiveManifestDeserializationCache` is invalidated, contrary to a second claim made here earlier
+A DEBUG invariant in `DesignTimeAspectPipelineResult.Update`, walking a stored extension for a non-durable `IFullRef`,
+would make the first of these detectable. It has not been written.
 
-An earlier revision of this section listed this cache as having no eviction and being "reset only wholesale". That
-reading was wrong, and it inverted the design: the wholesale replacement in `EnsureBoundTo` is not a substitute for
-missing eviction, it *is* the invalidation.
+## Established as clean
 
-Both dictionaries are dropped whenever the consuming project's `CompileTimeProject` is not the one they were filled
-for. That scope is the point. A manifest is deserialized with the *consuming* project's service provider so that it
-binds to that project's compile-time copy of each type ([#1710](https://github.com/metalama/Metalama/issues/1710)), so
-an entry made against a superseded projection must not be reused, and a consumer whose compile-time project is unknown
-is not cached at all rather than risk a wrong binding. `TransitiveManifestDeserializationCacheTests` covers this,
-`ReprojectedConsumer_DropsTheCache` by name.
+Recorded so that the same suspicions are not re-investigated from the same reading of the same code. Each of these
+looks like a leak and is not.
 
-The path is also narrower than the entry implied: the hash-keyed overload is reached only when `CanReuseLiveManifest`
-is false, which is a cross-version reference or one whose compile-time copies differ. A same-version reference reads
-the producer's live result instead and never touches the cache.
+**`WithCancellation` does not accumulate on the task it waits for.** `Task.WhenAny` removes its continuation from the
+task that did not win. Measured on a task that is never completed, the number of continuations left is the same small
+constant after 10, 100 and 1000 cancelled waits, for both implementations in use: `TaskExtensions.WithCancellation` of
+this codebase, and `Microsoft.VisualStudio.Threading.ThreadingTools.WithCancellation`, which
+`Metalama.Framework.DesignTime.Rpc` resolves to because that project does not reference the engine.
+`WithCancellationMemoryLeakTests` holds the property, which belongs to the runtime and to a third-party library rather
+than to this codebase and would otherwise go unnoticed if lost.
 
-What remains is a question rather than a finding, and is recorded as one because it has *not* been measured. Within one
-`CompileTimeProject` lifetime, an entry is added per distinct manifest content of a referenced project. A referenced
-project's manifest content can change without its compile-time code changing, by an edit to run-time code that carries
-an inheritable aspect, and such a change does not re-project the consumer. Whether that is reachable often enough to
-matter, given the narrow reference configuration required, is unknown. The values are compilation-neutral, so it would
-be managed memory rather than a retained compilation.
+**`TransitiveManifestDeserializationCache` is invalidated.** The wholesale replacement of its dictionaries in
+`EnsureBoundTo` is not a substitute for missing eviction, it *is* the invalidation, keyed on the identity of the
+consuming project's `CompileTimeProject`. That scope is load-bearing: a manifest is deserialized with the consuming
+project's service provider so that it binds to that project's compile-time copy of each type
+([#1710](https://github.com/metalama/Metalama/issues/1710)), so an entry made against a superseded projection must not
+be reused, and a consumer whose compile-time project is unknown is not cached at all.
+`TransitiveManifestDeserializationCacheTests` covers this, `ReprojectedConsumer_DropsTheCache` by name. The hash-keyed
+overload is also reached only when `CanReuseLiveManifest` is false; a same-version reference reads the producer's live
+result and never touches the cache.
 
-### Requirements that cannot be enforced
+**Waits on a task completion source observe their token.** Every call site composes the token with `WithCancellation`
+before `WarnIfLongAsync`. Passing the token to that method alone is not enough, and is the mistake to watch for: it
+uses the token for its own delay, and returns the original task untouched when warning logging is disabled. Worth
+re-checking after any change on that surface, because it is invisible until an analysis process runs for hours with no
+client attached:
 
-Two of the rules in this document are contracts that the framework states and cannot check, because what is stored is
-opaque to it.
+```bash
+grep -rn "Task[.]WarnIfLongAsync" --include=*.cs . | grep -v WithCancellation
+```
 
-- What an extension puts in an `IDesignTimePipelineResultExtension`. The one violation known at the time of writing,
-  `TypeEqualityPredicate` in Metalama.Premium, is fixed; another extension can break it silently.
-- What a user lambda captures. `Select`, `SelectMany`, `Where` and `Tag` take delegates written by the user, and the
-  query that holds them is as durable as the amender that owns it. Only the framework's own captures, such as the one
-  in `SelectTypesDerivedFrom`, could be fixed.
+## What has not been examined
 
-An assertion in `DesignTimeAspectPipelineResult.Update`, in DEBUG only, walking a stored extension for a non-durable
-`IFullRef`, would turn the first of these into something detectable. It has not been written.
+The rules and entries above came from an audit of the extension, fabric, query, RPC and design-time-result surfaces.
+The linker, the code-model caches, and the source-generator pipeline beyond what the RPC surface touches were not
+examined. Treat the absence of an entry as "not looked at" rather than "clean"; the section above lists what was
+positively established.
 
-### What the audit did not cover
+Two habits are worth keeping, because the defects that escaped this audit escaped it for the same two reasons.
 
-The sweep behind [#1799](https://github.com/metalama/Metalama/issues/1799) examined the extension, fabric, query, RPC
-and design-time-result surfaces. It did not examine the linker, the code-model caches, or the source-generator pipeline
-beyond what the RPC surface touched. Treat the absence of an entry as "not looked at" rather than "clean", except for
-the list under **Checked and clean** in that issue.
+**Measure before recording.** A retention that is easy to reason about is not thereby real. Entries have stood in the
+list of open items and been struck once somebody measured them.
 
-Calibrate the entries above by how they were established, because the record is not good:
-
-- The audit **missed** the diagnostic-argument defect entirely, which was found by accident when it broke an unrelated
-  control test, and which was probably the most consequential of the set.
-- It **missed** the third route by which the pipeline configuration pinned a compilation, the capture in
-  `SelectTypesDerivedFrom`, which was found only after the rule was restated as belonging to the durable objects
-  created from a context rather than to the context.
-- Two entries it produced, on `WithCancellation` and on this cache, were **wrong**, and both were wrong in the same
-  way: asserted from reading the code, never measured, and disproved the moment someone measured or read more
-  carefully.
-
-The rule that follows is the one this section is written to enforce. An entry must say whether it was measured. One
-that was not is a question, and should be phrased as a question, because on this evidence roughly half of them are
-false.
+**Make a test prove its scenario happened.** A control that passes for the wrong reason proves nothing. Assert that the
+run produced what it was supposed to produce, a contributor, a diagnostic, a validator, before asserting anything about
+what is retained.
 
 ## Related documents
 
