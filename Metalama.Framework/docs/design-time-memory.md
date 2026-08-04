@@ -329,6 +329,24 @@ compiler-generated closure types of their lambdas. Only the first kind raises `L
 project that has a fabric, because of the retentions listed under *Open items* below, and would be worth nothing to the
 customer.
 
+### What a symbol does and does not pin
+
+A `Compilation`, a `SyntaxTree` and a `SemanticModel` always pin. **An `ISymbol` does not.** Only a symbol that belongs
+to the source of a compilation reaches it; the symbols of a referenced assembly hang off a `PEAssemblySymbol` owned by a
+reference manager that Roslyn shares between compilations, have no declaring compilation, and keep nothing alive.
+`dynamic` is a singleton and keeps nothing either. A metadata generic constructed over a source type, such as
+`List<MyClass>`, does reach source through its type arguments, so the components of a type are examined as well as the
+type itself.
+
+This distinction decides most of a report. The template members of every aspect class hold the parameter types of their
+templates, so classifying every symbol as pinning fills the report with dozens of findings from the aspects of every
+referenced package, none of which anybody can act upon, and buries the few that matter.
+
+The counterpart rule is that **a symbol is a boundary of the walk whether or not it is reported.** Descending into a
+symbol that was not reported reaches its module, that module's references and the symbols of every other assembly, and
+turns the report into nonsense. On one measured example, honouring the first rule without the second took a walk from
+around 1,800 objects to 34,000, and from one finding to twenty-five.
+
 A finding names the chain of fields, in the same form as a memory-leak test failure:
 
 ```

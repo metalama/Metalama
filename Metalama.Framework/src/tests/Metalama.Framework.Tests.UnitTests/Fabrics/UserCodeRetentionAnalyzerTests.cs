@@ -10,7 +10,9 @@ using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Globalization;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
@@ -379,6 +381,60 @@ public sealed class UserCodeRetentionAnalyzerTests : UnitTestClass
             """ );
 
         Assert.Empty( Retentions( diagnostics ) );
+    }
+
+    [Fact]
+    public async Task AspectDeclaredInSourceWithATemplateParameter_IsRetainedThroughTheAspectClass()
+    {
+        // The template members of an aspect class hold the parameter types of their templates, and the aspect classes
+        // belong to the pipeline configuration, which outlives the compilation. For an aspect that comes from a package
+        // the parameter types are metadata symbols and pin nothing, which is why an ordinary project produces no
+        // finding. For an aspect declared in the project, with a template parameter of a type declared in the project,
+        // the symbol comes from source and the retention is real.
+        //
+        // The count below is the record of a defect that is known and not yet fixed, in the manner of
+        // MemoryLeakAssert.RetainedThrough: when #1803 is fixed this test fails, which is the signal to change the
+        // expected count to zero rather than to relax the assertion.
+        var diagnostics = await this.RunAsync(
+            """
+
+            internal class IntroducingAspect : TypeAspect
+            {
+                [Introduce]
+                public void IntroducedMethod( TargetOne parameter ) { }
+            }
+
+            internal class TheFabric : ProjectFabric
+            {
+                public override void AmendProject( IProjectAmender amender )
+                {
+                    amender.SelectTypes().Where( t => t.Name == "TargetTwo" ).AddAspect<IntroducingAspect>();
+                }
+            }
+            """ );
+
+        // The retention belongs to Metalama, not to the user: every hop of the chain is an engine type, so nothing here
+        // is something the author of the aspect could change.
+        Assert.Empty( Retentions( diagnostics ) );
+        Assert.Equal( 1, FrameworkRetentionCount( diagnostics ) );
+    }
+
+    /// <summary>
+    /// Reads the number of retentions attributed to Metalama itself from the summary diagnostic.
+    /// </summary>
+    /// <remarks>
+    /// The findings attributed to Metalama are counted rather than reported one by one, so a test that asserts their
+    /// absence has to read the summary. Asserting on it matters: a regression that starts retaining something inside the
+    /// pipeline would otherwise be invisible to every test here, since none of those findings raises a diagnostic.
+    /// </remarks>
+    private static int FrameworkRetentionCount( ImmutableArray<Diagnostic> diagnostics )
+    {
+        var summary = Assert.Single( diagnostics.Where( d => d.Id == _summaryDiagnosticId ) );
+        var match = Regex.Match( summary.GetMessage(), @"and (\d+) retention\(s\) in Metalama itself" );
+
+        Assert.True( match.Success, $"Could not read the count from the summary: {summary.GetMessage()}" );
+
+        return int.Parse( match.Groups[1].Value, CultureInfo.InvariantCulture );
     }
 
     [Fact]

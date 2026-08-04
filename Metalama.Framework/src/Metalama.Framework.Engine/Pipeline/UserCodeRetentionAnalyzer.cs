@@ -162,17 +162,19 @@ internal sealed class UserCodeRetentionAnalyzer
             roots,
             node =>
             {
-                if ( UserCodeRetentionPolicy.IsBoundary( node.Object ) )
-                {
-                    return ObjectGraphAction.Skip;
-                }
-
+                // The pinning check comes first, because the two sets overlap: a Roslyn symbol is always a boundary,
+                // and is reported as well when it belongs to source.
                 if ( UserCodeRetentionPolicy.IsPinning( node.Object ) )
                 {
                     collected.Add( CreateFinding( node, userCodeRoots, policy ) );
 
                     // The internal graph of a compilation-bound object is large and belongs to another component. The
                     // walk therefore reports it and stops, which is also what bounds the cost of the analysis.
+                    return ObjectGraphAction.Skip;
+                }
+
+                if ( UserCodeRetentionPolicy.IsBoundary( node.Object ) )
+                {
                     return ObjectGraphAction.Skip;
                 }
 
@@ -432,12 +434,12 @@ internal sealed class UserCodeRetentionAnalyzer
     /// </remarks>
     private string? TryWriteReport( string report )
     {
-        if ( this._standardDirectories == null )
-        {
-            return null;
-        }
+        // The standard directories are a backstage service, which a host that cuts the backstage flow, such as the unit
+        // test framework, does not provide. The report is the only place the findings attributed to Metalama appear at
+        // all, so it falls back to the ordinary temporary directory rather than being lost.
+        var baseDirectory = this._standardDirectories?.TempDirectory ?? Path.Combine( Path.GetTempPath(), "Metalama" );
 
-        var directory = Path.Combine( this._standardDirectories.TempDirectory, "FabricRetentionReports" );
+        var directory = Path.Combine( baseDirectory, "FabricRetentionReports" );
         var name = $"{this._projectOptions?.AssemblyName ?? "project"}-{this._projectOptions?.TargetFramework ?? "unknown"}.txt";
         var file = Path.Combine( directory, name );
 

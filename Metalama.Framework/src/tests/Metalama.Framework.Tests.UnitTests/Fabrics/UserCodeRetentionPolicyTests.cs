@@ -16,6 +16,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Reflection.Emit;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -102,6 +103,85 @@ public sealed class UserCodeRetentionPolicyTests : UnitTestClass
         };
 
         Assert.True( UserCodeRetentionPolicy.IsPinning( pinning ), $"'{kind}' should have been reported as pinning." );
+    }
+
+    [Fact]
+    public void MetadataSymbol_IsNotReported()
+    {
+        // The symbols of a referenced assembly hang off a reference manager that Roslyn shares between compilations.
+        // They have no declaring compilation and keep nothing alive. This matters more than it looks: the template
+        // members of every aspect that comes from a package hold the parameter types of their templates, so reporting
+        // every symbol buries the few findings that matter under dozens that cannot be acted upon.
+        using var testContext = this.CreateTestContext();
+        var compilationModel = testContext.CreateCompilationModel( "class C { }" );
+
+        var metadataSymbol = compilationModel.RoslynCompilation.GetTypeByMetadataName( "System.String" )!;
+
+        Assert.False( UserCodeRetentionPolicy.IsPinning( metadataSymbol ) );
+        Assert.False( UserCodeRetentionPolicy.IsPinning( compilationModel.RoslynCompilation.DynamicType ) );
+    }
+
+    [Fact]
+    public void SourceSymbol_IsReported()
+    {
+        using var testContext = this.CreateTestContext();
+        var compilationModel = testContext.CreateCompilationModel( "class C { }" );
+
+        var sourceSymbol = compilationModel.RoslynCompilation.GetTypeByMetadataName( "C" )!;
+
+        Assert.True( UserCodeRetentionPolicy.IsPinning( sourceSymbol ) );
+    }
+
+    [Fact]
+    public void MetadataSymbolConstructedOverASourceType_IsReported()
+    {
+        // The type is declared in metadata but reaches a source symbol through its type arguments, so stopping at the
+        // declaring assembly alone would miss it.
+        using var testContext = this.CreateTestContext();
+        var compilationModel = testContext.CreateCompilationModel( "class C { }" );
+        var roslynCompilation = compilationModel.RoslynCompilation;
+
+        var listOfSource = roslynCompilation.GetTypeByMetadataName( "System.Collections.Generic.List`1" )!
+            .Construct( roslynCompilation.GetTypeByMetadataName( "C" )! );
+
+        var listOfString = roslynCompilation.GetTypeByMetadataName( "System.Collections.Generic.List`1" )!
+            .Construct( roslynCompilation.GetTypeByMetadataName( "System.String" )! );
+
+        Assert.True( UserCodeRetentionPolicy.IsPinning( listOfSource ) );
+        Assert.False( UserCodeRetentionPolicy.IsPinning( listOfString ) );
+    }
+
+    [Fact]
+    public void LoaderAllocatorAndRuntimeInternals_AreBoundaries()
+    {
+        // A delegate to a dynamic method holds a LoaderAllocator in its _methodBase field, and that object references
+        // everything allocated in its load context. Following it turns any delegate into a route to arbitrary unrelated
+        // objects and produces a chain naming a dozen types the user has never heard of.
+        var method = new DynamicMethod( "Test", typeof(int), [] );
+        var il = method.GetILGenerator();
+        il.Emit( OpCodes.Ldc_I4_1 );
+        il.Emit( OpCodes.Ret );
+        var dynamicDelegate = (Func<int>) method.CreateDelegate( typeof(Func<int>) );
+
+        var holder = new Holder { Value = dynamicDelegate };
+        var visited = new List<string>();
+
+        new ObjectGraphWalker().Walk(
+            [("root", holder)],
+            node =>
+            {
+                visited.Add( node.Object.GetType().FullName ?? "" );
+
+                return UserCodeRetentionPolicy.IsBoundary( node.Object ) ? ObjectGraphAction.Skip : ObjectGraphAction.Traverse;
+            } );
+
+        Assert.Equal( 1, dynamicDelegate() );
+
+        // The delegate itself is a handful of objects. Escaping through the load context is not a matter of a few extra
+        // hops: it reaches everything the context ever allocated.
+        Assert.True(
+            visited.Count < 100,
+            $"The walk visited {visited.Count} objects from a single delegate, which means it escaped through a runtime internal." );
     }
 
     [Fact]

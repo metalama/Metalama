@@ -77,7 +77,12 @@ internal sealed class UserCodeRetentionPolicy
     public static bool IsPinning( object obj )
         => obj switch
         {
-            Compilation or SyntaxTree or SemanticModel or ISymbol or SyntaxNode => true,
+            Compilation or SyntaxTree or SemanticModel or SyntaxNode => true,
+
+            // A symbol pins a compilation only when it belongs to the source of one. The symbols of a referenced
+            // assembly belong to its metadata, which the reference manager shares between compilations, and 'dynamic'
+            // belongs to nothing.
+            ISymbol symbol => IsFromSource( symbol ),
             CompilationModel or PartialCompilation or CompilationContext => true,
             IDeclaration or IType => true,
 
@@ -87,6 +92,51 @@ internal sealed class UserCodeRetentionPolicy
             IRef => obj is not IDurableRef,
             _ => false
         };
+
+    /// <summary>
+    /// Determines whether a symbol belongs to the source of a compilation, and therefore reaches it.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This distinction decides most of the report. The template members of the aspect classes hold the parameter types
+    /// of their templates, and for an aspect that comes from a referenced package those are metadata symbols: they hang
+    /// off a <c>PEAssemblySymbol</c> owned by a reference manager that Roslyn shares between compilations, they have no
+    /// declaring compilation, and they keep nothing alive. Reporting every symbol would fill the report with those and
+    /// bury the few that matter.
+    /// </para>
+    /// <para>
+    /// A constructed type such as <c>List&lt;MyClass&gt;</c> is declared in metadata but reaches a source symbol through
+    /// its type arguments, so the components of a type are examined as well as the type itself.
+    /// </para>
+    /// </remarks>
+    private static bool IsFromSource( ISymbol symbol )
+    {
+        switch ( symbol )
+        {
+            case IArrayTypeSymbol array:
+                return IsFromSource( array.ElementType );
+
+            case IPointerTypeSymbol pointer:
+                return IsFromSource( pointer.PointedAtType );
+
+            case INamedTypeSymbol { IsGenericType: true } namedType when !namedType.TypeArguments.IsDefaultOrEmpty:
+                if ( namedType.TypeArguments.Any( IsFromSource ) )
+                {
+                    return true;
+                }
+
+                break;
+        }
+
+        if ( symbol.Locations.Any( l => l.IsInSource ) )
+        {
+            return true;
+        }
+
+        // A symbol with no location of its own, such as an implicitly declared member, is attributed to its assembly.
+        // A source assembly is the assembly of a compilation; a metadata one is not.
+        return symbol.ContainingAssembly is { } assembly && assembly.GetMetadata() == null;
+    }
 
     /// <summary>
     /// Determines whether the walk must stop at an object without reporting it.
@@ -101,6 +151,14 @@ internal sealed class UserCodeRetentionPolicy
     {
         switch ( obj )
         {
+            // The graph of a Roslyn symbol or syntax object is enormous and belongs to the compiler. It is stopped at
+            // whether or not it was reported: a metadata symbol pins nothing, but descending into one reaches the
+            // module, its references and the symbols of every other assembly, and turns a report into nonsense.
+            case ISymbol:
+            case Compilation:
+            case SyntaxTree:
+            case SemanticModel:
+            case SyntaxNode:
             case ServiceProvider:
             case CompileTimeProject:
             case CompileTimeDomain:
@@ -115,9 +173,23 @@ internal sealed class UserCodeRetentionPolicy
                 return true;
 
             default:
-                return false;
+                return IsRuntimeInternal( obj.GetType() );
         }
     }
+
+    /// <summary>
+    /// Determines whether a type belongs to the internals of the runtime, through which no chain says anything about
+    /// the code that this analysis is about.
+    /// </summary>
+    /// <remarks>
+    /// The case that matters is <c>LoaderAllocator</c>, which the runtime stores in the <c>_methodBase</c> field of a
+    /// delegate to a dynamic method, and which references everything allocated in its load context. Following it turns
+    /// any delegate into a route to arbitrary unrelated objects, and produces a chain that names a dozen types the user
+    /// has never heard of and no field anybody could change. The type is internal, so it is matched by name.
+    /// </remarks>
+    private static bool IsRuntimeInternal( Type type )
+        => type.FullName is "System.Reflection.LoaderAllocator" or "System.Reflection.Emit.DynamicResolver"
+            or "System.RuntimeType+RuntimeTypeCache";
 
     /// <summary>
     /// Returns the name to display for a type when it belongs to compile-time user code, and <c>null</c> otherwise.
