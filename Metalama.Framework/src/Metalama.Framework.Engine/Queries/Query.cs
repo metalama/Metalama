@@ -111,28 +111,20 @@ namespace Metalama.Framework.Engine.Queries
         /// run, which is what the overloads taking a <see cref="Type"/> do already. See issue #1799.
         /// </para>
         /// <para>
-        /// The durable form is built explicitly from a <see cref="SerializableTypeId"/> rather than by calling
-        /// <c>ToDurable</c> or <c>ToDurableRef</c>, for the sake of the fallback described below rather than for the
-        /// identifier itself: a type identifier can be requested for any type and the result merely fails to resolve,
-        /// whereas <c>ToDurableRef</c> asks a type that is also a declaration for its declaration identifier, which
-        /// throws when none can be built, as is the case for a type an aspect introduced.
+        /// These overloads accept any <see cref="INamedType"/>, including a constructed generic type such as
+        /// <c>Base&lt;int&gt;</c>. A durable reference used to be backed by a declaration identifier, which names the
+        /// generic definition only, and going through one would silently have widened the query to every construction
+        /// of the generic type. A constructed generic type is now identified by its <see cref="SerializableTypeId"/>,
+        /// so the type arguments survive the conversion. <c>DurableRefToConstructedGenericTypeKeepsTheTypeArguments</c>
+        /// holds that property. See issue #1797.
         /// </para>
         /// <para>
-        /// The identifier no longer needs to be a type identifier for correctness. <c>IRef.ToDurable</c> used to
-        /// produce a declaration identifier for every named type, which names the generic definition only and would
-        /// silently have widened this query to every construction of a generic type. It now uses a type identifier for
-        /// a constructed generic type, so both routes preserve the type arguments;
-        /// <c>DurableRefToConstructedGenericTypeKeepsTheTypeArguments</c> holds that property. See issue #1797.
-        /// </para>
-        /// <para>
-        /// A type that no identifier can denote, which in practice means a type introduced by an aspect or a type
-        /// constructed over one, is kept as it is. Resolving a type identifier goes through the symbol table, and an
-        /// introduced type has no symbol, so converting it would replace a query that works with one that throws on
-        /// the first run. Keeping the type retains the compilation, but only for as long as the query lives, and a
-        /// query over an introduced type can only be built by an aspect, whose queries do not outlive the run: a
-        /// fabric, whose queries do, runs before any aspect and therefore never sees an introduced type. The
-        /// conversion is verified here rather than predicated on the kind of reference, because a type may reach an
-        /// introduced type through its type arguments, its containing type or its element type.
+        /// A type introduced by an aspect, or a type constructed over one, has no symbol, so the reference resolves
+        /// only in a compilation in which that type exists. That is not a restriction in practice, because a query
+        /// over an introduced type can only be built by an aspect, whose queries do not outlive the run, whereas a
+        /// fabric, whose queries do, runs before any aspect and therefore never sees an introduced type.
+        /// <c>Metalama.Framework.Tests.AspectTests/Tests/Fabrics/SelectTypesDerivedFromIntroducedType.cs</c> covers
+        /// this end to end.
         /// </para>
         /// </remarks>
         private static Func<CompilationModel, INamedType> CreateBaseTypeResolver( INamedType baseType )
