@@ -73,7 +73,7 @@ public sealed class UserCodeRetentionAnalyzerTests : UnitTestClass
 
         var result = await pipeline.ExecuteAsync( diagnostics.Report, null, compilation, default, testContext.CancellationToken );
 
-        this.TestOutput.WriteLine( string.Join( "\n", diagnostics.Select( d => d.ToString() ) ) );
+        this.TestOutput.WriteLine( string.Join( "\n", diagnostics.SelectAsArray( d => d.ToString() ) ) );
 
         Assert.True(
             result.IsSuccessful,

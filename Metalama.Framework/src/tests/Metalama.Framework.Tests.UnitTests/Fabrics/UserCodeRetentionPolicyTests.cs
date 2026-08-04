@@ -232,7 +232,7 @@ public sealed class UserCodeRetentionPolicyTests : UnitTestClass
         var finding = Assert.Single( FindRetentions( holder ) );
 
         Assert.Same( syntaxTree, finding.Node.Object );
-        Assert.Equal( "root -> Value -> _syntaxTree", string.Join( " -> ", finding.Node.GetPath().Select( n => n.Label ) ) );
+        Assert.Equal( "root -> Value -> _syntaxTree", string.Join( " -> ", finding.Node.GetPath().SelectAsArray( n => n.Label ) ) );
     }
 
     [Fact]
@@ -365,7 +365,7 @@ public sealed class UserCodeRetentionPolicyTests : UnitTestClass
         var finding = Assert.Single( FindRetentions( root ) );
 
         Assert.Equal( 1, finding.Node.Depth );
-        Assert.Equal( "root -> Value", string.Join( " -> ", finding.Node.GetPath().Select( n => n.Label ) ) );
+        Assert.Equal( "root -> Value", string.Join( " -> ", finding.Node.GetPath().SelectAsArray( n => n.Label ) ) );
     }
 
     [Fact]
@@ -379,7 +379,7 @@ public sealed class UserCodeRetentionPolicyTests : UnitTestClass
 
         var finding = Assert.Single( FindRetentions( indirection ) );
 
-        Assert.Equal( "root -> Holder -> Value", string.Join( " -> ", finding.Node.GetPath().Select( n => n.Label ) ) );
+        Assert.Equal( "root -> Holder -> Value", string.Join( " -> ", finding.Node.GetPath().SelectAsArray( n => n.Label ) ) );
         Assert.Contains( nameof(Holder), finding.UserType! );
     }
 

@@ -56,7 +56,9 @@ public sealed class ObjectGraphWalkerTests
 
     private static bool Reached( IReadOnlyList<ObjectGraphNode> nodes, object target ) => Find( nodes, target ) != null;
 
-#pragma warning disable SA1401, CS0649, IDE0044, IDE0051, RS0030
+// The fields below are written and never read by this code on purpose: what reads them is the walker, by reflection,
+// which is the whole point of the test.
+#pragma warning disable SA1401, CS0649, IDE0044, IDE0051, IDE0052, RS0030
 
     private sealed class Node
     {
@@ -92,7 +94,7 @@ public sealed class ObjectGraphWalkerTests
 
         var nodes = Walk( a );
 
-        Assert.Single( nodes.Where( n => ReferenceEquals( n.Object, a ) ) );
+        Assert.Single( nodes, n => ReferenceEquals( n.Object, a ) );
     }
 
     [Fact]
@@ -115,7 +117,7 @@ public sealed class ObjectGraphWalkerTests
 
         Assert.NotNull( node );
         Assert.Equal( 2, node!.Depth );
-        Assert.Equal( "root -> Other -> Next", string.Join( " -> ", node.GetPath().Select( n => n.Label ) ) );
+        Assert.Equal( "root -> Other -> Next", string.Join( " -> ", node.GetPath().SelectAsArray( n => n.Label ) ) );
     }
 
     private class BaseWithPrivateField
@@ -461,7 +463,7 @@ public sealed class ObjectGraphWalkerTests
         var root = new Node( "root" ) { Next = target };
 
         var formatted = Find( Walk( root ), target )!.FormatPath();
-        var lines = formatted.Split( '\n' ).Select( l => l.TrimEnd( '\r' ) ).ToReadOnlyList();
+        var lines = formatted.Split( '\n' ).SelectAsArray( l => l.TrimEnd( '\r' ) );
 
         Assert.Equal( 2, lines.Count );
         Assert.Equal( "root : Node", lines[0] );
