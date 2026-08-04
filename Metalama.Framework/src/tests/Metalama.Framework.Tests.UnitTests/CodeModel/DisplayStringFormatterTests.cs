@@ -50,6 +50,9 @@ public sealed class DisplayStringFormatterTests : UnitTestClass
                                              public int? NullableValue;
                                              public int NonNullableValue;
                                              public Dictionary<string, IService?>? NestedNullable = null;
+
+                                             public void Method<TMethod>( TMethod? nullable, TMethod nonNullable )
+                                                 where TMethod : class { }
                                          }
                                          """;
 
@@ -57,6 +60,11 @@ public sealed class DisplayStringFormatterTests : UnitTestClass
     /// Verifies that the display string of a type carries its nullable annotation, so that a nullable type and its
     /// non-nullable counterpart do not render identically (issue #1812).
     /// </summary>
+    /// <remarks>
+    /// A type parameter reached at the root of the formatting is qualified by its containing declaration, hence the
+    /// <c>Container&lt;T&gt;/</c> prefix. That form is the pre-existing rendering of a type parameter and issue #1812
+    /// leaves it out of scope: what this test pins is that the annotation is appended to it.
+    /// </remarks>
     [Theory]
     [InlineData( "NullableReference", "IService?" )]
     [InlineData( "NonNullableReference", "IService" )]
@@ -64,8 +72,8 @@ public sealed class DisplayStringFormatterTests : UnitTestClass
     [InlineData( "NonNullableTypeArgument", "List<IService>" )]
     [InlineData( "NullableArray", "IService[]?" )]
     [InlineData( "ArrayOfNullableReference", "IService?[]" )]
-    [InlineData( "NullableTypeParameter", "T?" )]
-    [InlineData( "NonNullableTypeParameter", "T" )]
+    [InlineData( "NullableTypeParameter", "Container<T>/T?" )]
+    [InlineData( "NonNullableTypeParameter", "Container<T>/T" )]
     [InlineData( "NullableTypeParameterArgument", "List<T?>" )]
     [InlineData( "NonNullableTypeParameterArgument", "List<T>" )]
     [InlineData( "NullableValue", "int?" )]
@@ -78,6 +86,22 @@ public sealed class DisplayStringFormatterTests : UnitTestClass
         var field = compilation.Types.OfName( "Container" ).Single().Fields.OfName( fieldName ).Single();
 
         Assert.Equal( expectedDisplayString, field.Type.ToDisplayString() );
+    }
+
+    /// <summary>
+    /// Verifies that the annotation is also rendered for a type parameter of a method, whose containing declaration
+    /// is the method and not a type (issue #1812).
+    /// </summary>
+    [Theory]
+    [InlineData( 0, "Container<T>.Method<TMethod>(TMethod?, TMethod)/TMethod?" )]
+    [InlineData( 1, "Container<T>.Method<TMethod>(TMethod?, TMethod)/TMethod" )]
+    public void NullableAnnotationIsRenderedForMethodTypeParameter( int parameterIndex, string expectedDisplayString )
+    {
+        using var testContext = this.CreateTestContext();
+        var compilation = testContext.CreateCompilationModel( _nullableCode );
+        var method = compilation.Types.OfName( "Container" ).Single().Methods.OfName( "Method" ).Single();
+
+        Assert.Equal( expectedDisplayString, method.Parameters[parameterIndex].Type.ToDisplayString() );
     }
 
     /// <summary>
