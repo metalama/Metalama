@@ -35,7 +35,6 @@ internal abstract partial class FabricDriver : IComparable<FabricDriver>
         this.FabricTypeSymbolId = SymbolId.Create( creationData.FabricType );
         this.FabricTypeFullName = creationData.FabricType.GetReflectionFullName().AssertNotNull();
         this.FabricTypeShortName = creationData.FabricType.Name;
-        this.DiagnosticLocation = creationData.FabricType.GetDiagnosticLocation();
         this.CompileTimeProject = creationData.CompileTimeProject;
     }
 
@@ -82,7 +81,17 @@ internal abstract partial class FabricDriver : IComparable<FabricDriver>
         return new CreationData( fabric, fabricManager, compileTimeProject, symbol, originalPath, runTimeCompilation );
     }
 
-    public Location? DiagnosticLocation { get; }
+    /// <summary>
+    /// Returns the location of the declaration of the fabric in <paramref name="compilation"/>, for use in a diagnostic.
+    /// </summary>
+    /// <remarks>
+    /// The location is resolved on demand rather than stored, because a <see cref="Location"/> that comes from source
+    /// holds its <see cref="SyntaxTree"/>, and a driver is reachable from the pipeline configuration, which outlives the
+    /// compilation it was built from. Storing one would keep the whole version of the project alive at design time. See
+    /// <c>design-time-memory.md</c>.
+    /// </remarks>
+    public Location? GetDiagnosticLocation( Compilation compilation )
+        => this.FabricTypeSymbolId.Resolve( compilation )?.GetDiagnosticLocation();
 
     public SymbolId FabricTypeSymbolId { get; }
 
