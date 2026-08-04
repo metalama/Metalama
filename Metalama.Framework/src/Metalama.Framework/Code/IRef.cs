@@ -73,8 +73,7 @@ namespace Metalama.Framework.Code
 
         /// <summary>
         /// Gets a value indicating whether the reference stores only a string identifier rather than holding
-        /// a reference to the compilation state. This is an internal concept with no user-facing scenario;
-        /// there is no public API to create durable references.
+        /// a reference to the compilation state.
         /// </summary>
         /// <remarks>
         /// <para>
@@ -85,12 +84,39 @@ namespace Metalama.Framework.Code
         /// </para>
         /// <para>
         /// <b>Durable references</b> (when <c>IsDurable</c> is <c>true</c>) store only a string-based identifier.
-        /// They are slower to resolve but do not hold any reference to the compilation. There is no public API
-        /// to create durable references; they are used internally at design time to persist references between
-        /// IDE compilation updates without causing memory leaks.
+        /// They are slower to resolve but do not hold any reference to the compilation. Call <see cref="ToDurable"/>
+        /// to obtain one, and prefer the <see cref="IDurableRef"/> or <see cref="IDurableRef{T}"/> type over this
+        /// property when the requirement can be expressed in a signature.
+        /// </para>
+        /// <para>
+        /// A reference that is stored for longer than a single pipeline run must be durable. The design-time pipeline
+        /// keeps the objects that fabrics and aspects leave behind across many compilations, so a non-durable reference
+        /// held by one of them keeps a whole version of the project in memory for as long as the solution is open.
         /// </para>
         /// </remarks>
+        /// <seealso cref="ToDurable"/>
+        /// <seealso cref="IDurableRef"/>
         bool IsDurable { get; }
+
+        /// <summary>
+        /// Returns a reference to the same declaration that stores only a string identifier, and therefore does not keep
+        /// the compilation in memory. Returns the current instance when it is already durable.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Call this method before storing a reference in an object that outlives the current pipeline run, such as a
+        /// field of a fabric or of an inheritable aspect. Resolving the result costs an identifier lookup, which is why
+        /// references are not durable by default.
+        /// </para>
+        /// <para>
+        /// A reference that cannot be represented by an identifier, such as a reference to an attribute, does not
+        /// support this method.
+        /// </para>
+        /// </remarks>
+        /// <exception cref="System.NotSupportedException">The reference cannot be made durable.</exception>
+        /// <seealso cref="IsDurable"/>
+        /// <seealso cref="IDurableRef"/>
+        IDurableRef ToDurable();
 
         /// <summary>
         /// Compares this reference to another reference using the specified comparison strategy.

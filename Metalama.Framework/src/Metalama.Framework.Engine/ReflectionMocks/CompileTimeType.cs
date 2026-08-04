@@ -217,7 +217,7 @@ namespace Metalama.Framework.Engine.ReflectionMocks
             var compilation = ((SyntaxSerializationContext) syntaxGenerationContext).CompilationModel;
 
             return CompileTimeMocksHelper.ToTypedExpressionSyntax(
-                this.ToRef()
+                ((ISdkRef) this.ToRef())
                     .GetSymbol( compilation.RoslynCompilation )
                     .AssertCast<ITypeSymbol>()
                     .AssertSymbolNullNotImplemented( UnsupportedFeatures.IntroducedTypeSerialization ),

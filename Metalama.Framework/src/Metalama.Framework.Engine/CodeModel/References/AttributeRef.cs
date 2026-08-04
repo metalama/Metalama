@@ -15,7 +15,7 @@ namespace Metalama.Framework.Engine.CodeModel.References
     /// <summary>
     /// Base implementation of <see cref="IRef"/> for <see cref="IAttribute"/>.
     /// </summary>
-    internal abstract class AttributeRef : IRef<IAttribute>, IEquatable<AttributeRef>, IRefImpl
+    internal abstract class AttributeRef : IRef<IAttribute>, IEquatable<AttributeRef>, ISdkRef
     {
         // Note: These references are not necessarily full refs in case of deserialization.
         [PublicAPI]
@@ -41,7 +41,10 @@ namespace Metalama.Framework.Engine.CodeModel.References
 
         public bool IsDurable => false;
 
-        IRef IRefImpl.ToDurable() => throw new NotSupportedException();
+        // An attribute has no serializable identifier of its own, so it cannot be represented by a durable reference.
+        public IDurableRef<IAttribute> ToDurable() => throw new NotSupportedException();
+
+        IDurableRef IRef.ToDurable() => this.ToDurable();
 
         ICompilationElement? IRef.GetTargetInterface( ICompilation compilation, Type? interfaceType, IGenericContext? genericContext, bool throwIfMissing )
         {

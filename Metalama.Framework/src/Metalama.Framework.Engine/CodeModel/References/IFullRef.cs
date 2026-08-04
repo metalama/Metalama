@@ -13,7 +13,7 @@ namespace Metalama.Framework.Engine.CodeModel.References;
 /// <summary>
 /// Represents an <see cref="IRef{T}"/> that is bound to a compilation and therefore several additional members.
 /// </summary>
-internal interface IFullRef : IRefImpl
+internal interface IFullRef : ISdkRef
 {
     ISymbol GetClosestContainingSymbol();
 

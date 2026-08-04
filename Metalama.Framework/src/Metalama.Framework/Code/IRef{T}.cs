@@ -28,4 +28,17 @@ namespace Metalama.Framework.Code;
 /// <seealso cref="RefEqualityComparer{T}"/>
 /// <seealso href="@aspect-serialization"/>
 public interface IRef<out T> : IRef
-    where T : class, ICompilationElement { }
+    where T : class, ICompilationElement
+{
+    /// <summary>
+    /// Returns a reference to the same declaration that stores only a string identifier, and therefore does not keep
+    /// the compilation in memory. Returns the current instance when it is already durable.
+    /// </summary>
+    /// <remarks>
+    /// This is the strongly-typed variant of <see cref="IRef.ToDurable"/>, which documents when to call it.
+    /// </remarks>
+    /// <exception cref="System.NotSupportedException">The reference cannot be made durable.</exception>
+    /// <seealso cref="IRef.IsDurable"/>
+    /// <seealso cref="IDurableRef{T}"/>
+    new IDurableRef<T> ToDurable();
+}

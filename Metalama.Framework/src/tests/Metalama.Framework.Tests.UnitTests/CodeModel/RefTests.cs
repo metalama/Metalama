@@ -11,6 +11,7 @@ using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.SerializableIds;
 using Metalama.Framework.Engine.Services;
 using Metalama.Testing.UnitTesting;
+using System;
 using System.Linq;
 using Xunit;
 
@@ -51,6 +52,74 @@ public sealed class RefTests : UnitTestClass
         var assemblyRefSymbol = compilation.Factory.GetTypeByReflectionType( typeof(string) ).GetSymbol();
         var assemblyRefRef = SymbolId.Create( assemblyRefSymbol );
         _ = assemblyRefRef.Resolve( compilation.RoslynCompilation );
+    }
+
+    /// <summary>
+    /// <see cref="IRef{T}.ToDurable"/> is public, and it returns the strongly-typed <see cref="IDurableRef{T}"/> so that
+    /// an API that must not retain a compilation can require durability in its signature rather than document it
+    /// (issue #1806).
+    /// </summary>
+    [Fact]
+    public void ToDurableReturnsATypedDurableRef()
+    {
+        using var testContext = this.CreateTestContext();
+        var compilation = testContext.CreateCompilationModel( "class C { }" );
+
+        var fullRef = compilation.Types.OfName( "C" ).Single().ToRef();
+
+        Assert.False( fullRef.IsDurable );
+
+        // The static type of the expression, not merely its run-time type, is what this test is about.
+        IDurableRef<INamedType> durableRef = fullRef.ToDurable();
+
+        Assert.True( durableRef.IsDurable );
+        Assert.Same( compilation.Types.OfName( "C" ).Single(), durableRef.GetTarget( compilation ) );
+    }
+
+    /// <summary>
+    /// Making a durable reference durable again returns the same instance rather than allocating an equivalent one.
+    /// </summary>
+    [Fact]
+    public void ToDurableOnADurableRefReturnsTheSameInstance()
+    {
+        using var testContext = this.CreateTestContext();
+        var compilation = testContext.CreateCompilationModel( "class C { }" );
+
+        var durableRef = compilation.Types.OfName( "C" ).Single().ToRef().ToDurable();
+
+        Assert.Same( durableRef, durableRef.ToDurable() );
+    }
+
+    /// <summary>
+    /// The non-generic <see cref="IRef.ToDurable"/> returns an <see cref="IDurableRef"/>, so that a caller holding a
+    /// weakly-typed reference can make it durable without knowing its type argument.
+    /// </summary>
+    [Fact]
+    public void NonGenericToDurableReturnsADurableRef()
+    {
+        using var testContext = this.CreateTestContext();
+        var compilation = testContext.CreateCompilationModel( "class C { }" );
+
+        IRef weaklyTyped = compilation.Types.OfName( "C" ).Single().ToRef();
+
+        IDurableRef durableRef = weaklyTyped.ToDurable();
+
+        Assert.True( durableRef.IsDurable );
+    }
+
+    /// <summary>
+    /// An attribute has no serializable identifier of its own, so its reference cannot be made durable and says so
+    /// rather than returning something that would fail later.
+    /// </summary>
+    [Fact]
+    public void ToDurableOnAnAttributeRefThrows()
+    {
+        using var testContext = this.CreateTestContext();
+        var compilation = testContext.CreateCompilationModel( "using System; [Obsolete] class C { }" );
+
+        var attribute = compilation.Types.OfName( "C" ).Single().Attributes.Single();
+
+        Assert.Throws<NotSupportedException>( () => attribute.ToRef().ToDurable() );
     }
 
     /// <summary>
