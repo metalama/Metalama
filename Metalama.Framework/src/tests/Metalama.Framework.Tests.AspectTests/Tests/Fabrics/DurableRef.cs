@@ -28,11 +28,10 @@ namespace Metalama.Framework.Tests.PublicPipeline.Aspects.Fabrics.DurableRef
                 .Where(
                     t =>
                     {
-                        // The declared type of the local is the point of the test: ToDurableRef returns the
-                        // strongly-typed durable reference, not a plain IRef that would have to be trusted rather than
-                        // checked.
-                        IDurableRef<INamedType> durableRef = t.ToDurableRef();
-                        this._types.Add( durableRef );
+                        // The element type of the list is the point of the test: the call compiles only because
+                        // ToDurableRef returns the strongly-typed durable reference, and not a plain IRef that would
+                        // have to be trusted rather than checked.
+                        this._types.Add( t.ToDurableRef() );
 
                         return t.Name == nameof(TargetCode);
                     } )
