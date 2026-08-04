@@ -8,8 +8,10 @@ using Metalama.Framework.Diagnostics;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.Helpers;
+using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Fabrics;
+using Metalama.Framework.Engine.SerializableIds;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Metalama.Framework.Engine.Utilities.UserCode;
@@ -87,13 +89,56 @@ namespace Metalama.Framework.Engine.Queries
         ITaggedQuery<INamedType, TTag> ITaggedQuery<TDeclaration, TTag>.SelectTypesDerivedFrom(
             INamedType baseType,
             DerivedTypesOptions options )
-            => this.SelectTypesDerivedFromCore( _ => baseType, options );
+            => this.SelectTypesDerivedFromCore( CreateBaseTypeResolver( baseType ), options );
 
         IQuery<INamedType> IQuery<TDeclaration>.SelectTypesDerivedFrom( Type baseType, DerivedTypesOptions options )
             => this.SelectTypesDerivedFromCore( c => c.Factory.GetNamedTypeByReflectionType( baseType ), options );
 
         IQuery<INamedType> IQuery<TDeclaration>.SelectTypesDerivedFrom( INamedType baseType, DerivedTypesOptions options )
-            => this.SelectTypesDerivedFromCore( _ => baseType, options );
+            => this.SelectTypesDerivedFromCore( CreateBaseTypeResolver( baseType ), options );
+
+        /// <summary>
+        /// Returns a function that resolves <paramref name="baseType"/> in the compilation of the run, given the type
+        /// as it stands in the compilation in which the query is being built.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// A query outlives by far the compilation it is built from: the query of a static fabric belongs to the
+        /// amender, which belongs to the pipeline configuration, which is long-lived by design and reused across
+        /// keystrokes. Capturing <paramref name="baseType"/> itself, which these overloads used to do, therefore made
+        /// the configuration pin the version of the project the fabric ran in, for the whole editing session. The
+        /// reference is made durable here, while the compilation is certainly available, and resolved again on each
+        /// run, which is what the overloads taking a <see cref="Type"/> do already. See issue #1799.
+        /// </para>
+        /// <para>
+        /// The durable form is a <see cref="SerializableTypeId"/> and not the <c>SerializableDeclarationId</c> that
+        /// <c>IRef.ToDurable</c> would produce, because these overloads accept any <see cref="INamedType"/>, including
+        /// a constructed generic type such as <c>Base&lt;int&gt;</c>. A declaration identifier names the generic
+        /// definition only, so going through it would silently widen the query to every construction of the generic
+        /// type. <c>DurableRefToConstructedGenericTypeLosesTheTypeArguments</c> holds that distinction.
+        /// </para>
+        /// <para>
+        /// A type that no identifier can denote, which in practice means a type introduced by an aspect or a type
+        /// constructed over one, is kept as it is. Resolving a type identifier goes through the symbol table, and an
+        /// introduced type has no symbol, so converting it would replace a query that works with one that throws on
+        /// the first run. Keeping the type retains the compilation, but only for as long as the query lives, and a
+        /// query over an introduced type can only be built by an aspect, whose queries do not outlive the run: a
+        /// fabric, whose queries do, runs before any aspect and therefore never sees an introduced type. The
+        /// conversion is verified here rather than predicated on the kind of reference, because a type may reach an
+        /// introduced type through its type arguments, its containing type or its element type.
+        /// </para>
+        /// </remarks>
+        private static Func<CompilationModel, INamedType> CreateBaseTypeResolver( INamedType baseType )
+        {
+            var baseTypeRef = DurableRefFactory.FromTypeId<INamedType>( baseType.GetSerializableTypeId() );
+
+            if ( baseTypeRef.GetTargetOrNull( baseType.Compilation ) == null )
+            {
+                return _ => baseType;
+            }
+
+            return c => baseTypeRef.GetTarget( c );
+        }
 
         private ITaggedQuery<INamedType, TTag> SelectTypesDerivedFromCore( Func<CompilationModel, INamedType> getBaseType, DerivedTypesOptions options )
             => this.AddChild(
@@ -188,7 +233,7 @@ namespace Metalama.Framework.Engine.Queries
                             compilationModel,
                             NullDiagnosticAdder.Instance,
                             this.Owner.UserCodeInvoker,
-                            this.Owner.UserCodeExecutionContext,
+                            this.Owner.GetUserCodeExecutionContext( compilationModel, NullDiagnosticAdder.Instance ),
                             CancellationToken.None ),
                         ( declaration, _, _ ) =>
                         {
@@ -416,7 +461,7 @@ namespace Metalama.Framework.Engine.Queries
                 compilation,
                 diagnosticAdder,
                 this.Owner.UserCodeInvoker,
-                this.Owner.UserCodeExecutionContext.WithCompilationAndDiagnosticAdder( compilation, diagnosticAdder ),
+                this.Owner.GetUserCodeExecutionContext( compilation, diagnosticAdder ),
                 cancellationToken );
 
             await this.InvokeAdderAsync( context, ProcessTarget );

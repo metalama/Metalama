@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
+using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.Extensibility;
 using Microsoft.CodeAnalysis;
 
@@ -13,7 +14,7 @@ internal sealed class TransitiveAspectInstance : ITransitivePipelineContributor,
 {
     internal TransitiveAspectInstance(
         IAspect aspect,
-        IRef<IDeclaration> targetDeclaration,
+        IDurableRef<IDeclaration> targetDeclaration,
         int targetDeclarationDepth,
         IAspectClassImpl aspectClass,
         IAspectState? aspectState,
@@ -31,7 +32,17 @@ internal sealed class TransitiveAspectInstance : ITransitivePipelineContributor,
 
     public int PredecessorDegree { get; }
 
-    public IRef<IDeclaration> TargetDeclaration { get; }
+    /// <summary>
+    /// Gets the declaration this aspect instance applies to.
+    /// </summary>
+    /// <remarks>
+    /// Typed as <see cref="IDurableRef{T}"/> rather than <see cref="IRef{T}"/> on purpose. An instance of this class is
+    /// stored in the design-time result of the file declaring its target, and the pipeline carries that result forward
+    /// to every later version of the project, so a compilation-bound reference here would pin the version it was
+    /// produced in for the whole editing session. Declaring the requirement in the type makes it the compiler's
+    /// business rather than the caller's discipline. See issue #1797.
+    /// </remarks>
+    public IDurableRef<IDeclaration> TargetDeclaration { get; }
 
     public IAspect Aspect { get; }
 

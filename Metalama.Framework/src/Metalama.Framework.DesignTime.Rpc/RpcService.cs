@@ -28,8 +28,29 @@ public abstract class RpcService
         this.Logger.Trace?.Log( $"Instantiating." );
     }
 
+    /// <summary>
+    /// Waits until a client has attached to the endpoint, which is what makes this service usable.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The token is composed with <c>WithCancellation</c>, as it is in the client-side counterpart
+    /// <c>RpcClient.WaitUntilInitializedAsync</c>. Passing it to <c>LongTaskHelper.WarnIfLongAsync</c> alone is not
+    /// enough, and was the defect reported by issue
+    /// #1799: that method uses the token for its own delay only, and returns the original task untouched when warning
+    /// logging is disabled, so the wait was not cancellable by either path.
+    /// </para>
+    /// <para>
+    /// It has to be cancellable because <see cref="_initialized"/> is completed only by
+    /// <see cref="OnRpcConnected"/>, so a caller that reaches this method while no client is attached waits until one
+    /// is, and waits forever in the configuration where none ever attaches. A suspended asynchronous method retains
+    /// its own frame, and the callers on this surface hold Roslyn objects: the source generator waits here while
+    /// holding the compilation whose generated sources it is publishing.
+    /// </para>
+    /// </remarks>
     protected Task WaitUntilInitializedAsync( CancellationToken cancellationToken = default )
-        => this._initialized.Task.WarnIfLongAsync( this.Logger, nameof(this.WaitUntilInitializedAsync), cancellationToken );
+        => this._initialized.Task
+            .WithCancellation( cancellationToken )
+            .WarnIfLongAsync( this.Logger, nameof(this.WaitUntilInitializedAsync), cancellationToken );
 
     internal abstract void ConfigureRpc( JsonRpc rpc );
 

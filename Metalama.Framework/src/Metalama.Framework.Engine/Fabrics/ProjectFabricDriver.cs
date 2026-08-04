@@ -103,9 +103,13 @@ namespace Metalama.Framework.Engine.Fabrics
 
             var projectFabric = (ProjectFabric) this.Fabric;
 
+            var description = UserCodeDescription.Create( "calling the AmendProject method for the fabric {0}", projectFabric.GetType() );
+
+            // The context is for the immediate call to AmendProject below. The amender, which outlives this
+            // compilation, is given the description only. See IQueryOwner.GetUserCodeExecutionContext.
             var executionContext = UserCodeExecutionContext.CreateInstance(
                 this.FabricManager.ServiceProvider.Underlying,
-                UserCodeDescription.Create( "calling the AmendProject method for the fabric {0}", projectFabric.GetType() ),
+                description,
                 compilation,
                 diagnostics: diagnosticAdder );
 
@@ -114,7 +118,7 @@ namespace Metalama.Framework.Engine.Fabrics
                 compilation,
                 this.FabricManager,
                 new FabricInstance( this, assembly ),
-                executionContext );
+                description );
 
             if ( !this.FabricManager.UserCodeInvoker.TryInvoke( () => projectFabric.AmendProject( amender ), executionContext ) )
             {
@@ -135,13 +139,13 @@ namespace Metalama.Framework.Engine.Fabrics
                 CompilationModel compilation,
                 FabricManager fabricManager,
                 FabricInstance fabricInstance,
-                UserCodeExecutionContext userCodeExecutionContext ) : base(
+                UserCodeDescription userCodeDescription ) : base(
                 project,
                 fabricManager,
                 fabricInstance,
                 compilation.RefFactory.ForCompilation(),
                 null,
-                userCodeExecutionContext ) { }
+                userCodeDescription ) { }
         }
     }
 }

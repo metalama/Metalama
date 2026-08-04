@@ -46,7 +46,8 @@ public sealed partial class DesignTimeAspectPipelineResult
                 this._parent.Extensions,
                 this._parent.InheritableOptions,
                 this._parent.Annotations,
-                this._parent.AspectInstancesHashCode );
+                this._parent.AspectInstancesHashCode,
+                this._parent._foreignExtensions );
         }
     }
 }

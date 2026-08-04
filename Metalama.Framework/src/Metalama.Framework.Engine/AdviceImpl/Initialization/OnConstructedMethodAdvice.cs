@@ -169,7 +169,7 @@ internal sealed class OnConstructedMethodAdvice : Advice<AddInitializerAdviceRes
             context.AddTransitiveAspect(
                 new TransitiveAspectInstance(
                     transitiveAspect,
-                    targetType.ToRef(),
+                    targetType.ToRef().ToDurable(),
                     targetType.Depth,
                     (IAspectClassImpl) context.AspectClassResolver.GetAspectClass( typeof(AddConstructorEpilogueTransitiveAspect) ),
                     this.AspectLayerInstance.AspectInstance.AspectState,
