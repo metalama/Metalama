@@ -12,6 +12,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Globalization;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Xunit;
@@ -56,9 +57,15 @@ public sealed class UserCodeRetentionAnalyzerTests : UnitTestClass
                                      internal class TargetTwo { }
                                      """;
 
-    private async Task<ImmutableArray<Diagnostic>> RunAsync( string fabricCode, bool enabled = true )
+    private async Task<ImmutableArray<Diagnostic>> RunAsync(
+        string fabricCode,
+        bool enabled = true,
+        [CallerMemberName] string? callerMemberName = null )
     {
-        using var testContext = this.CreateTestContext( new TestContextOptions { DiagnoseMemoryLeaks = enabled } );
+        // The project name reaches the name of the report file, so that a run of the whole suite leaves one report per
+        // test rather than a single file that every test overwrites.
+        using var testContext = this.CreateTestContext(
+            new TestContextOptions { DiagnoseMemoryLeaks = enabled, ProjectName = callerMemberName } );
 
         var compilation = testContext.CreateCSharpCompilation( _prologue + fabricCode );
         var pipeline = new CompileTimeAspectPipeline( testContext.ServiceProvider );
@@ -392,8 +399,10 @@ public sealed class UserCodeRetentionAnalyzerTests : UnitTestClass
         // parameter of a type declared in the project, the symbol came from source and the retention was real, until
         // TemplateClassMemberParameter was changed to hold a durable identifier instead. See #1803.
         //
-        // This is the test that reported the defect, asserting a count of one, and it is the test that now states the
-        // fix. Should the parameter types go back to being symbols, it fails again.
+        // The count of retentions attributed to Metalama is asserted, not only the absence of user-code findings,
+        // because the defect this test is about produces the former and never the latter. The liveness proof is
+        // FabricMemoryLeakTests.AspectWithATemplateParameterOfASourceType_InitialCompilationIsCollected, which fails
+        // before the fix and passes after it.
         var diagnostics = await this.RunAsync(
             """
 
@@ -417,12 +426,13 @@ public sealed class UserCodeRetentionAnalyzerTests : UnitTestClass
     }
 
     /// <summary>
-    /// Reads the number of retentions attributed to Metalama itself from the summary diagnostic.
+    /// Reads from the summary diagnostic the number of retentions attributed to Metalama itself.
     /// </summary>
     /// <remarks>
-    /// The findings attributed to Metalama are counted rather than reported one by one, so a test that asserts their
-    /// absence has to read the summary. Asserting on it matters: a regression that starts retaining something inside the
-    /// pipeline would otherwise be invisible to every test here, since none of those findings raises a diagnostic.
+    /// Those findings are counted rather than reported one by one, so a test that asserts their absence has to read the
+    /// summary. The count is stable across a run of the whole suite only because the walk stops at the objects that are
+    /// shared by the process, such as the service provider and the loggers; when it did not, a logger led into the test
+    /// runner and from there into every other test, and this count was 250 instead of 0.
     /// </remarks>
     private static int FrameworkRetentionCount( ImmutableArray<Diagnostic> diagnostics )
     {

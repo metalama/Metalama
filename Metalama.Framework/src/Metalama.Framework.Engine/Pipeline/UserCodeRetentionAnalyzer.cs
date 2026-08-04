@@ -440,7 +440,8 @@ internal sealed class UserCodeRetentionAnalyzer
         var baseDirectory = this._standardDirectories?.TempDirectory ?? Path.Combine( Path.GetTempPath(), "Metalama" );
 
         var directory = Path.Combine( baseDirectory, "FabricRetentionReports" );
-        var name = $"{this._projectOptions?.AssemblyName ?? "project"}-{this._projectOptions?.TargetFramework ?? "unknown"}.txt";
+        var projectName = this._projectOptions?.AssemblyName ?? this._projectOptions?.ProjectName ?? "project";
+        var name = $"{projectName}-{this._projectOptions?.TargetFramework ?? "unknown"}.txt";
         var file = Path.Combine( directory, name );
 
         try

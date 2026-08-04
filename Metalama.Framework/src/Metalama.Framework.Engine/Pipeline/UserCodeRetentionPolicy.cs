@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Backstage.Diagnostics;
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.References;
@@ -162,6 +163,12 @@ internal sealed class UserCodeRetentionPolicy
             case ServiceProvider:
             case CompileTimeProject:
             case CompileTimeDomain:
+
+            // A logger is process-wide infrastructure. Nothing reached through one is a retention that the owner of the
+            // chain could act upon, and the graph behind it is unbounded: in a test host it reaches the runner, and
+            // through the runner every other test in the process.
+            case ILogger:
+            case ILoggerFactory:
             case string:
             case Type:
             case Assembly:
