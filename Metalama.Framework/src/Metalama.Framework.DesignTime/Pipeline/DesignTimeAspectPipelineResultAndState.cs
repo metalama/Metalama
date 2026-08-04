@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.DesignTime.Pipeline.Diff;
 using Metalama.Framework.Engine.Pipeline;
 using Microsoft.CodeAnalysis;
@@ -33,9 +34,9 @@ public sealed class DesignTimeAspectPipelineResultAndState
 
     internal IEnumerable<Diagnostic> GetAllDiagnostics() => this.Result.SyntaxTreeResults.SelectMany( x => x.Value.Diagnostics );
 
-    internal ImmutableArray<CacheableScopedSuppression> GetSuppressionsOnSyntaxTree( string path )
+    internal ImmutableArray<CacheableScopedSuppression> GetSuppressionsOnSyntaxTree( DocumentKey documentKey )
     {
-        if ( this.Result.SyntaxTreeResults.TryGetValue( path, out var syntaxTreeResult ) )
+        if ( this.Result.SyntaxTreeResults.TryGetValue( documentKey, out var syntaxTreeResult ) )
         {
             return syntaxTreeResult.Suppressions;
         }
@@ -45,9 +46,9 @@ public sealed class DesignTimeAspectPipelineResultAndState
         }
     }
 
-    public ImmutableArray<Diagnostic> GetDiagnosticsOnSyntaxTree( string path )
+    public ImmutableArray<Diagnostic> GetDiagnosticsOnSyntaxTree( DocumentKey documentKey )
     {
-        if ( this.Result.SyntaxTreeResults.TryGetValue( path, out var syntaxTreeResult ) )
+        if ( this.Result.SyntaxTreeResults.TryGetValue( documentKey, out var syntaxTreeResult ) )
         {
             return syntaxTreeResult.Diagnostics;
         }

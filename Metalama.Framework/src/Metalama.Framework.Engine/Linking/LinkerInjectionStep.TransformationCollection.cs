@@ -868,7 +868,7 @@ internal sealed partial class LinkerInjectionStep
             // In this case, there will be an attempt to add an existing syntax tree to the compilation. Here we work around this issue,
             // however the problem is upstream. Even if we solve the issue, it may be good to be tolerant of upstream bugs in this code.
 
-            if ( this._finalCompilationModel.RoslynCompilation.GetIndexedSyntaxTrees().ContainsKey( transformedSyntaxTree.FilePath ) )
+            if ( this._finalCompilationModel.RoslynCompilation.GetIndexedSyntaxTrees().ContainsKey( transformedSyntaxTree.GetDocumentKey() ) )
             {
                 return;
             }

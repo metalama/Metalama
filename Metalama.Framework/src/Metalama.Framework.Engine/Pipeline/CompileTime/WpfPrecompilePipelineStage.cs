@@ -45,7 +45,7 @@ namespace Metalama.Framework.Engine.Pipeline.CompileTime
 
             // Generated trees default to C# 1 parse options; copy the project's options so the new trees share the
             // same LangVersion, preprocessor symbols and nullable context as the original sources.
-            var projectParseOptions = input.LastCompilation.SyntaxTrees.Values.FirstOrDefault()?.Options;
+            var projectParseOptions = input.LastCompilation.SyntaxTreeCollection.FirstOrDefault()?.Options;
 
             var addTransformations = introducedSyntaxTrees.SelectAsArray(
                 t =>

@@ -247,7 +247,7 @@ Target.cs:
 
         Assert.Equal( DesignTimeAspectPipelineStatus.Paused, pipeline.Status );
         Assert.True( factory.EventHub.IsEditingCompileTimeCode );
-        Assert.True( pipeline.IsCompileTimeSyntaxTreeOutdated( "Aspect.cs" ) );
+        Assert.True( pipeline.IsCompileTimeSyntaxTreeOutdated( DocumentKey.FromPath( "Aspect.cs" ) ) );
 
         var dumpedResults4 = DumpResults( results4 );
 
@@ -302,7 +302,7 @@ Target.cs:
         AssertEx.EolInvariantEqual( expectedResult.ReplaceOrdinal( "$AspectVersion$", "3" ).ReplaceOrdinal( "$TargetVersion$", "2" ).Trim(), dumpedResults6 );
         Assert.Equal( 3, pipeline.PipelineExecutionCount );
         Assert.Equal( 2, pipeline.PipelineInitializationCount );
-        Assert.False( pipeline.IsCompileTimeSyntaxTreeOutdated( "Aspect.cs" ) );
+        Assert.False( pipeline.IsCompileTimeSyntaxTreeOutdated( DocumentKey.FromPath( "Aspect.cs" ) ) );
 
         List<Diagnostic> diagnostics6 = new();
 
@@ -398,7 +398,7 @@ Target.cs:
         Assert.Equal( DesignTimeAspectPipelineStatus.Paused, targetProjectPipeline.Status );
         Assert.Equal( DesignTimeAspectPipelineStatus.Paused, aspectProjectPipeline.Status );
         Assert.True( factory.EventHub.IsEditingCompileTimeCode );
-        Assert.True( aspectProjectPipeline.IsCompileTimeSyntaxTreeOutdated( "Aspect.cs" ) );
+        Assert.True( aspectProjectPipeline.IsCompileTimeSyntaxTreeOutdated( DocumentKey.FromPath( "Aspect.cs" ) ) );
 
         var dumpedResults3 = DumpResults( results3 );
 
@@ -423,7 +423,7 @@ Target.cs:
         await aspectProjectPipeline.ProcessJobQueueWhenLockAvailableAsync();
         Assert.Equal( 2, targetProjectPipeline.PipelineExecutionCount );
         Assert.Equal( 2, targetProjectPipeline.PipelineInitializationCount );
-        Assert.False( targetProjectPipeline.IsCompileTimeSyntaxTreeOutdated( "Aspect.cs" ) );
+        Assert.False( targetProjectPipeline.IsCompileTimeSyntaxTreeOutdated( DocumentKey.FromPath( "Aspect.cs" ) ) );
     }
 
     [Fact]
@@ -942,7 +942,7 @@ class D{version}
         Assert.True( pipeline.TryExecute( compilation2, default, out var compilationResult ) );
 
         // Note that LAMA0118 is no longer reported by the pipeline but by the analyzer.
-        Assert.Empty( compilationResult.GetDiagnosticsOnSyntaxTree( "Aspect.cs" ) );
+        Assert.Empty( compilationResult.GetDiagnosticsOnSyntaxTree( DocumentKey.FromPath( "Aspect.cs" ) ) );
 
         Assert.Equal( DesignTimeAspectPipelineStatus.Paused, pipeline.Status );
 
@@ -1856,7 +1856,7 @@ Target.cs:
                                   """;
 
         var expectedResult = $"""
-                              :
+                              (none):
                               2 diagnostic(s):
                                  Error LAMA0113 on ``: `Cannot find in the current compilation the aspect type 'MyAspect' defined in the aspect library '{aspect1AssemblyName}'.`
                                  Error LAMA0113 on ``: `Cannot find in the current compilation the aspect type 'MyAspect' defined in the aspect library '{aspect2AssemblyName}'.`

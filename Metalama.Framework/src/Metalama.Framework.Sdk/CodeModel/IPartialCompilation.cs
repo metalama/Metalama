@@ -4,9 +4,12 @@
 
 using JetBrains.Annotations;
 using Metalama.Compiler;
+using Metalama.Framework.Utilities;
 using Microsoft.CodeAnalysis;
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Metalama.Framework.Engine.CodeModel;
 
@@ -39,6 +42,7 @@ namespace Metalama.Framework.Engine.CodeModel;
 /// <seealso cref="Metalama.Framework.Engine.AspectWeavers.AspectWeaverContext"/>
 /// <seealso href="@aspect-weavers"/>
 [PublicAPI]
+[InternalImplement]
 public interface IPartialCompilation
 {
     /// <summary>
@@ -49,7 +53,29 @@ public interface IPartialCompilation
     /// <summary>
     /// Gets the syntax trees in the current subset, keyed by file path.
     /// </summary>
+    [Obsolete( "Use SyntaxTreeCollection to enumerate the syntax trees, or TryGetSyntaxTree to find one by its DocumentKey." )]
     ImmutableDictionary<string, SyntaxTree> SyntaxTrees { get; }
+
+    /// <summary>
+    /// Gets the syntax trees in the current subset.
+    /// </summary>
+    /// <remarks>
+    /// Replaces <see cref="SyntaxTrees"/> for the majority of uses, which enumerate the trees and never read the path
+    /// that keyed them. The collection is identified by the trees themselves, so it costs no string hashing, and it is
+    /// not an <see cref="ImmutableDictionary{TKey,TValue}"/>, which is only useful to a caller building a modified copy.
+    /// </remarks>
+    IReadOnlyCollection<SyntaxTree> SyntaxTreeCollection { get; }
+
+    /// <summary>
+    /// Gets the syntax tree of the current subset that represents a given document, and returns
+    /// <see langword="false"/> if there is none.
+    /// </summary>
+    /// <remarks>
+    /// At most one syntax tree of an <see cref="IPartialCompilation"/> represents a document. Roslyn does not guarantee
+    /// that of a <see cref="Microsoft.CodeAnalysis.Compilation"/>, so Metalama establishes it: a tree whose path an
+    /// earlier tree already holds is removed from the compilation before the subset is built. See issue #1742.
+    /// </remarks>
+    bool TryGetSyntaxTree( DocumentKey documentKey, [NotNullWhen( true )] out SyntaxTree? syntaxTree );
 
     /// <summary>
     /// Gets a value indicating whether this <see cref="IPartialCompilation"/> represents a subset of the full compilation,

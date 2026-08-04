@@ -90,19 +90,19 @@ public sealed class SplitResultsByTreePathLookupTests : UnitTestClass
         var targetTree = compilation.SyntaxTrees.Single( t => t.FilePath == "target.cs" );
         var partialCompilation = PartialCompilation.CreatePartial( compilation, targetTree );
 
-        Assert.DoesNotContain( "base.cs", partialCompilation.SyntaxTrees.Keys );
+        Assert.DoesNotContain( "base.cs", partialCompilation.SyntaxTreeCollection.SelectAsReadOnlyCollection( t => t.FilePath ) );
 
         var updated = Update( executed, compilation, partialCompilation, inheritableAspect );
 
         // The aspect must survive the update. It is carried by the result of base.cs, which the run that did include
         // that tree produced and which this update must leave alone: overwriting it with a result holding the aspect
         // and nothing else would drop the diagnostics and introductions of a file that has not changed.
-        Assert.Contains( inheritableAspect, updated.SyntaxTreeResults["base.cs"].InheritableAspects );
+        Assert.Contains( inheritableAspect, updated.SyntaxTreeResults[DocumentKey.FromPath( "base.cs" )].InheritableAspects );
         Assert.Contains( inheritableAspect, updated.GetInheritableAspects( "Aspect" ) );
 
         AssertEx.EolInvariantEqual(
-            DumpSyntaxTreeResult( executed.Result.SyntaxTreeResults["base.cs"] ),
-            DumpSyntaxTreeResult( updated.SyntaxTreeResults["base.cs"] ) );
+            DumpSyntaxTreeResult( executed.Result.SyntaxTreeResults[DocumentKey.FromPath( "base.cs" )] ),
+            DumpSyntaxTreeResult( updated.SyntaxTreeResults[DocumentKey.FromPath( "base.cs" )] ) );
     }
 
     /// <summary>
@@ -120,11 +120,11 @@ public sealed class SplitResultsByTreePathLookupTests : UnitTestClass
         var baseTree = compilation.SyntaxTrees.Single( t => t.FilePath == "base.cs" );
         var partialCompilation = PartialCompilation.CreatePartial( compilation, baseTree );
 
-        Assert.Contains( "base.cs", partialCompilation.SyntaxTrees.Keys );
+        Assert.Contains( "base.cs", partialCompilation.SyntaxTreeCollection.SelectAsReadOnlyCollection( t => t.FilePath ) );
 
         var updated = Update( executed, compilation, partialCompilation, inheritableAspect );
 
-        Assert.Contains( inheritableAspect, updated.SyntaxTreeResults["base.cs"].InheritableAspects );
+        Assert.Contains( inheritableAspect, updated.SyntaxTreeResults[DocumentKey.FromPath( "base.cs" )].InheritableAspects );
         Assert.Contains( inheritableAspect, updated.GetInheritableAspects( "Aspect" ) );
     }
 
@@ -157,7 +157,7 @@ public sealed class SplitResultsByTreePathLookupTests : UnitTestClass
         InheritableAspectInstance inheritableAspect )
     {
         var pipelineResults = new DesignTimePipelineExecutionResult(
-            partialCompilation.SyntaxTrees,
+            partialCompilation.SyntaxTreeCollection,
             ImmutableArray<IntroducedSyntaxTree>.Empty,
             ImmutableUserDiagnosticList.Empty,
             ImmutableArray.Create( inheritableAspect ),

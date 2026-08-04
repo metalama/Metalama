@@ -32,7 +32,7 @@ public sealed class PipelineResultBasedAspectRepository : AspectRepository
             return false;
         }
 
-        if ( !this._result.SyntaxTreeResults.TryGetValue( syntaxTree.FilePath, out var syntaxTreeResult ) )
+        if ( !this._result.SyntaxTreeResults.TryGetValue( syntaxTree.GetDocumentKey(), out var syntaxTreeResult ) )
         {
             return false;
         }

@@ -9,6 +9,7 @@ using Metalama.Framework.DesignTime.Pipeline;
 using Metalama.Framework.DesignTime.Services;
 using Metalama.Framework.DesignTime.Utilities;
 using Metalama.Framework.Engine;
+using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Services;
@@ -107,6 +108,8 @@ namespace Metalama.Framework.DesignTime.DiagnosticAnalysis
                     return;
                 }
 
+                ReportDuplicateSyntaxTreePath( context, compilation, syntaxTreeFilePath );
+
                 // Execute the pipeline.
                 var cancellationToken = context.CancellationToken.IgnoreIfDebugging().ToTestable();
 
@@ -166,8 +169,8 @@ namespace Metalama.Framework.DesignTime.DiagnosticAnalysis
                 }
                 else
                 {
-                    diagnostics = pipelineResult.Value.GetDiagnosticsOnSyntaxTree( syntaxTreeFilePath ).Concat( filteredPipelineDiagnostics );
-                    suppressions = pipelineResult.Value.GetSuppressionsOnSyntaxTree( syntaxTreeFilePath );
+                    diagnostics = pipelineResult.Value.GetDiagnosticsOnSyntaxTree( DocumentKey.FromPath( syntaxTreeFilePath ) ).Concat( filteredPipelineDiagnostics );
+                    suppressions = pipelineResult.Value.GetSuppressionsOnSyntaxTree( DocumentKey.FromPath( syntaxTreeFilePath ) );
                 }
 
                 // Execute the analyses that are not performed in the design-time pipeline.
@@ -177,7 +180,7 @@ namespace Metalama.Framework.DesignTime.DiagnosticAnalysis
                     context.SemanticModel,
                     ReportDiagnostic,
                     null,
-                    pipeline.MustReportPausedPipelineAsErrors && pipeline.IsCompileTimeSyntaxTreeOutdated( context.SemanticModel.SyntaxTree.FilePath ),
+                    pipeline.MustReportPausedPipelineAsErrors && pipeline.IsCompileTimeSyntaxTreeOutdated( context.SemanticModel.SyntaxTree.GetDocumentKey() ),
                     true,
                     cancellationToken );
 
@@ -373,6 +376,44 @@ namespace Metalama.Framework.DesignTime.DiagnosticAnalysis
             }
         }
 
+        /// <summary>
+        /// Reports <see cref="DesignTimeDiagnosticDescriptors.DuplicateSyntaxTreePath"/> when several syntax trees of
+        /// the compilation share the path of the tree being analyzed.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Reported here rather than from the pipeline because this is the only design-time surface that reaches the
+        /// user's editor with a location, and because the condition is a property of the compilation the IDE built and
+        /// not of anything the pipeline did. The pipeline never sees it: the compilation it analyzes has already been
+        /// normalized. See issue #1742.
+        /// </para>
+        /// <para>
+        /// Reported once, on the tree that keeps the path, so that the two analyzer invocations Roslyn makes for the two
+        /// trees do not produce two warnings on one file.
+        /// </para>
+        /// </remarks>
+        private static void ReportDuplicateSyntaxTreePath( ISemanticModelAnalysisContext context, Compilation compilation, string syntaxTreeFilePath )
+        {
+            var duplicates = compilation.GetDuplicatePathSyntaxTrees();
+
+            if ( duplicates.IsEmpty )
+            {
+                return;
+            }
+
+            var syntaxTree = context.SemanticModel.SyntaxTree;
+
+            if ( compilation.GetIndexedSyntaxTrees().TryGetValue( syntaxTree.GetDocumentKey(), out var indexedSyntaxTree )
+                 && indexedSyntaxTree == syntaxTree
+                 && duplicates.Any( t => string.Equals( t.FilePath, syntaxTreeFilePath, StringComparison.Ordinal ) ) )
+            {
+                context.ReportDiagnostic(
+                    DesignTimeDiagnosticDescriptors.DuplicateSyntaxTreePath.CreateRoslynDiagnostic(
+                        Location.Create( syntaxTree, default ),
+                        syntaxTreeFilePath ) );
+            }
+        }
+
         private bool TryMapLocation( Location location, Compilation compilation, [NotNullWhen( true )] out Location? mappedLocation, ref bool hasChange )
         {
             var reportSourceTree = location.SourceTree;
@@ -391,7 +432,7 @@ namespace Metalama.Framework.DesignTime.DiagnosticAnalysis
 
                 // Find the new syntax tree in the compilation.
 
-                if ( !compilation.GetIndexedSyntaxTrees().TryGetValue( reportSourceTree.FilePath, out var newSyntaxTree ) )
+                if ( !compilation.GetIndexedSyntaxTrees().TryGetValue( reportSourceTree.GetDocumentKey(), out var newSyntaxTree ) )
                 {
                     mappedLocation = Location.Create( reportSourceTree.FilePath, location.SourceSpan, location.GetLineSpan().Span );
 

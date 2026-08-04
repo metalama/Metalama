@@ -25,7 +25,7 @@ namespace Metalama.Framework.DesignTime.Pipeline
     /// <param name="IntroducedSyntaxTrees">The syntax trees introduced by the pipeline (for source generators).</param>
     /// <param name="Diagnostics">The list of diagnostics and suppressions.</param>
     internal sealed record DesignTimePipelineExecutionResult(
-        ImmutableDictionary<string, SyntaxTree> InputSyntaxTrees,
+        IReadOnlyCollection<SyntaxTree> InputSyntaxTrees,
         IReadOnlyList<IntroducedSyntaxTree> IntroducedSyntaxTrees,
         ImmutableUserDiagnosticList Diagnostics,
         IReadOnlyList<InheritableAspectInstance> InheritableAspects,

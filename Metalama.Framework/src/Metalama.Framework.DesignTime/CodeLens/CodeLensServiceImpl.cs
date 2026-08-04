@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Engine.CodeModel;
 using Metalama.Backstage.Diagnostics;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
@@ -117,7 +118,7 @@ internal sealed class CodeLensServiceImpl : PreviewPipelineBasedService, ICodeLe
         }
 
         // If we have a plain method, display the number of target aspects.
-        if ( !codePointData.PipelineResult.SyntaxTreeResults.TryGetValue( codePointData.FilePath, out var syntaxTreeResult ) )
+        if ( !codePointData.PipelineResult.SyntaxTreeResults.TryGetValue( DocumentKey.FromPath( codePointData.FilePath ), out var syntaxTreeResult ) )
         {
             this._logger.Trace?.Log( $"Cannot return code lens info for symbol '{symbolId}' in '{projectKey}' because there is no result for this symbol." );
 

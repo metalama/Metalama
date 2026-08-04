@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.DesignTime.Rpc;
+using Metalama.Framework.Engine.CodeModel;
 using System.Collections.Immutable;
 
 namespace Metalama.Framework.DesignTime.Pipeline.Dependencies;
@@ -36,26 +37,26 @@ internal readonly partial struct DependencyGraph
         var builder = this.ToBuilder();
 
         // Add or update dependencies.
-        foreach ( var dependenciesByDependentFilePath in dependencyCollector.DependenciesByDependentFilePath )
+        foreach ( var dependenciesByDependentDocumentKey in dependencyCollector.DependenciesByDependentDocumentKey )
         {
-            var dependentFilePath = dependenciesByDependentFilePath.Key;
+            var dependentDocumentKey = dependenciesByDependentDocumentKey.Key;
 
             // ReSharper disable once SuspiciousTypeConversion.Global
 
-            foreach ( var dependenciesByMasterProject in dependenciesByDependentFilePath.Value.DependenciesByMasterProject )
+            foreach ( var dependenciesByMasterProject in dependenciesByDependentDocumentKey.Value.DependenciesByMasterProject )
             {
                 var projectKey = dependenciesByMasterProject.Key;
-                builder.UpdateDependencies( projectKey, dependentFilePath, dependenciesByMasterProject.Value );
+                builder.UpdateDependencies( projectKey, dependentDocumentKey, dependenciesByMasterProject.Value );
             }
         }
 
         // Remove graphs for dependent syntax trees were analyzed but for which no dependency was found.
-        foreach ( var syntaxTreeEntry in dependencyCollector.PartialCompilation.SyntaxTrees )
+        foreach ( var syntaxTree in dependencyCollector.PartialCompilation.SyntaxTreeCollection )
         {
-            if ( !dependencyCollector.DependenciesByDependentFilePath.ContainsKey( syntaxTreeEntry.Key ) )
+            if ( !dependencyCollector.DependenciesByDependentDocumentKey.ContainsKey( syntaxTree.GetDocumentKey() ) )
             {
                 // The syntax tree does not have any dependency in any compilation.
-                builder.RemoveDependentSyntaxTree( syntaxTreeEntry.Key );
+                builder.RemoveDependentSyntaxTree( syntaxTree.GetDocumentKey() );
             }
         }
 

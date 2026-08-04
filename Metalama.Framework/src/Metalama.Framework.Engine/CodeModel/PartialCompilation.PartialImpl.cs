@@ -4,10 +4,12 @@
 
 using Metalama.Compiler;
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Engine.Utilities;
 using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 namespace Metalama.Framework.Engine.CodeModel
@@ -25,7 +27,7 @@ namespace Metalama.Framework.Engine.CodeModel
 
             public PartialImpl(
                 CompilationContext compilationContext,
-                ImmutableDictionary<string, SyntaxTree> syntaxTrees,
+                ImmutableDictionary<DocumentKey, SyntaxTree> syntaxTrees,
                 ImmutableHashSet<string>? observedSyntaxTreePaths,
                 ImmutableHashSet<INamedTypeSymbol>? types,
                 Lazy<DerivedTypeIndex> derivedTypeIndex,
@@ -33,7 +35,7 @@ namespace Metalama.Framework.Engine.CodeModel
                 : base( compilationContext, derivedTypeIndex, resources )
             {
                 this._types = types;
-                this.SyntaxTrees = syntaxTrees;
+                this.SyntaxTreesByDocumentKey = syntaxTrees;
                 this._observedSyntaxTreePaths = observedSyntaxTreePaths;
 
 #if DEBUG
@@ -42,7 +44,7 @@ namespace Metalama.Framework.Engine.CodeModel
             }
 
             private PartialImpl(
-                ImmutableDictionary<string, SyntaxTree> syntaxTrees,
+                ImmutableDictionary<DocumentKey, SyntaxTree> syntaxTrees,
                 ImmutableHashSet<string>? observedSyntaxTreePaths,
                 ImmutableHashSet<INamedTypeSymbol>? types,
                 PartialCompilation baseCompilation,
@@ -51,7 +53,7 @@ namespace Metalama.Framework.Engine.CodeModel
                 : base( baseCompilation, modifications, resources )
             {
                 this._types = types;
-                this.SyntaxTrees = syntaxTrees;
+                this.SyntaxTreesByDocumentKey = syntaxTrees;
                 this._observedSyntaxTreePaths = observedSyntaxTreePaths;
 
 #if DEBUG
@@ -63,14 +65,35 @@ namespace Metalama.Framework.Engine.CodeModel
 
             private void CheckTrees()
             {
-                if ( this.SyntaxTrees.Any( t => string.IsNullOrEmpty( t.Key ) ) )
+                if ( this.SyntaxTreesByDocumentKey.Any( t => string.IsNullOrEmpty( t.Key.Path ) ) )
                 {
                     throw new AssertionFailedException( "A syntax tree has no name." );
                 }
             }
 #endif
 
-            public override ImmutableDictionary<string, SyntaxTree> SyntaxTrees { get; }
+            /// <summary>
+            /// Gets the syntax trees of the subset indexed by path. This is the storage of the class, and the source of
+            /// both <see cref="SyntaxTreeCollection"/> and <see cref="TryGetSyntaxTree"/>. It is an
+            /// <see cref="ImmutableDictionary{TKey,TValue}"/>, unlike the index of a complete compilation, because
+            /// <see cref="Update"/> derives a new subset from it and the structural sharing is what makes that cheap.
+            /// </summary>
+            private ImmutableDictionary<DocumentKey, SyntaxTree> SyntaxTreesByDocumentKey { get; }
+
+            [Obsolete( "Use SyntaxTreeCollection to enumerate the syntax trees, or TryGetSyntaxTree to find one by its DocumentKey." )]
+            public override ImmutableDictionary<string, SyntaxTree> SyntaxTrees
+                => this.SyntaxTreesByDocumentKey.ToImmutableDictionary( x => x.Key.Path, x => x.Value, StringComparer.Ordinal );
+
+            /// <remarks>
+            /// Materialized under <see cref="MemoAttribute"/> rather than adapted, because the pipeline enumerates this
+            /// collection once per tree and an array is the cheapest thing to walk. One instance exists per
+            /// <see cref="PartialImpl"/>, and instances are created only by <see cref="Update"/>.
+            /// </remarks>
+            [Memo]
+            public override IReadOnlyCollection<SyntaxTree> SyntaxTreeCollection => this.SyntaxTreesByDocumentKey.Values.ToImmutableArray();
+
+            public override bool TryGetSyntaxTree( DocumentKey documentKey, [NotNullWhen( true )] out SyntaxTree? syntaxTree )
+                => this.SyntaxTreesByDocumentKey.TryGetValue( documentKey, out syntaxTree );
 
             public override ImmutableHashSet<INamedTypeSymbol> Types => this._types ?? throw new NotImplementedException();
 
@@ -90,15 +113,22 @@ namespace Metalama.Framework.Engine.CodeModel
             {
                 Validate( transformations );
 
-                var syntaxTrees = this.SyntaxTrees.ToBuilder();
+                var syntaxTrees = this.SyntaxTreesByDocumentKey.ToBuilder();
 
                 if ( transformations != null )
                 {
                     foreach ( var transformation in transformations )
                     {
-                        if ( transformation.OldTree != null && !this.SyntaxTrees.ContainsKey( transformation.FilePath ) )
+                        // Matched by identity and not merely by path: the transformation names the tree it applies to,
+                        // and Compilation.ReplaceSyntaxTree resolves it by identity, so a transformation naming a tree
+                        // that this partial compilation does not hold has to be rejected here. Left to Roslyn it fails
+                        // with a message that names neither the path nor the caller.
+                        if ( transformation.OldTree != null
+                             && (!this.SyntaxTreesByDocumentKey.TryGetValue( DocumentKey.FromPath( transformation.FilePath ), out var existingTree )
+                                 || existingTree != transformation.OldTree) )
                         {
-                            throw new KeyNotFoundException();
+                            throw new KeyNotFoundException(
+                                $"The partial compilation does not contain the syntax tree '{transformation.FilePath}' that the transformation replaces." );
                         }
 
                         switch ( transformation.Kind )
@@ -108,12 +138,12 @@ namespace Metalama.Framework.Engine.CodeModel
 
                             case SyntaxTreeTransformationKind.Add:
                             case SyntaxTreeTransformationKind.Replace:
-                                syntaxTrees[transformation.FilePath] = transformation.NewTree.AssertNotNull();
+                                syntaxTrees[DocumentKey.FromPath( transformation.FilePath )] = transformation.NewTree.AssertNotNull();
 
                                 break;
 
                             case SyntaxTreeTransformationKind.Remove:
-                                syntaxTrees.Remove( transformation.FilePath );
+                                syntaxTrees.Remove( DocumentKey.FromPath( transformation.FilePath ) );
 
                                 break;
 

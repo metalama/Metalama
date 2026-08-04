@@ -5,6 +5,7 @@
 using Metalama.Framework.DesignTime;
 using Metalama.Framework.DesignTime.Pipeline;
 using Metalama.Framework.DesignTime.Rpc;
+using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Utilities;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -16,11 +17,11 @@ namespace Metalama.Framework.Tests.UnitTestHelpers.Mocks;
 
 public sealed class TestProjectVersion : IProjectVersion
 {
-    private readonly Dictionary<string, ulong> _hashes;
+    private readonly Dictionary<DocumentKey, ulong> _hashes;
 
     public TestProjectVersion(
         string assemblyName,
-        Dictionary<string, ulong>? hashes = null,
+        Dictionary<DocumentKey, ulong>? hashes = null,
         IProjectVersion[]? referencedCompilations = null ) : this(
         ProjectKeyFactory.CreateTest( assemblyName ),
         hashes,
@@ -28,15 +29,15 @@ public sealed class TestProjectVersion : IProjectVersion
 
     public TestProjectVersion(
         ProjectKey assemblyIdentity,
-        Dictionary<string, ulong>? hashes = null,
+        Dictionary<DocumentKey, ulong>? hashes = null,
         IProjectVersion[]? referencedCompilations = null )
     {
-        this._hashes = hashes ?? new Dictionary<string, ulong>();
+        this._hashes = hashes ?? new Dictionary<DocumentKey, ulong>();
         this.ProjectKey = assemblyIdentity;
 
         this.Compilation = CSharpCompilation.Create(
             assemblyIdentity.AssemblyName,
-            hashes?.SelectAsArray( p => CSharpSyntaxTree.ParseText( "", path: p.Key, options: SupportedCSharpVersions.DefaultParseOptions ) ) );
+            hashes?.SelectAsArray( p => CSharpSyntaxTree.ParseText( "", path: p.Key.Path, options: SupportedCSharpVersions.DefaultParseOptions ) ) );
 
         this.ReferencedProjectVersions = referencedCompilations?.ToImmutableDictionary( c => c.ProjectKey, c => c )
                                          ?? ImmutableDictionary<ProjectKey, IProjectVersion>.Empty;
@@ -54,16 +55,21 @@ public sealed class TestProjectVersion : IProjectVersion
             .GroupBy( r => r.Compilation.GetProjectKey() )
             .ToImmutableDictionary( g => g.Key, g => (IProjectVersion) new TestProjectVersion( g.First().Compilation ) );
 
+        // Grouped by path, keeping the first, because a compilation can hold two syntax trees with one path and
+        // ToDictionary would throw on the duplicate. This mirrors what ProjectVersion.Create does in the product
+        // (issue #1742).
 #pragma warning disable CA1307
-        this._hashes = compilation.SyntaxTrees.ToDictionary( t => t.FilePath, t => (ulong) t.GetRoot().ToFullString().GetHashCode() );
+        this._hashes = compilation.SyntaxTrees
+            .GroupBy( t => t.GetDocumentKey() )
+            .ToDictionary( g => g.Key, g => (ulong) g.First().GetRoot().ToFullString().GetHashCode() );
 #pragma warning restore CA1307
     }
 
     public ProjectKey ProjectKey { get; }
 
-    public bool TryGetSyntaxTreeVersion( string path, out SyntaxTreeVersion syntaxTreeVersion )
+    public bool TryGetSyntaxTreeVersion( DocumentKey documentKey, out SyntaxTreeVersion syntaxTreeVersion )
     {
-        if ( this._hashes.TryGetValue( path, out var hash ) )
+        if ( this._hashes.TryGetValue( documentKey, out var hash ) )
         {
             syntaxTreeVersion = new SyntaxTreeVersion( null!, false, hash );
 

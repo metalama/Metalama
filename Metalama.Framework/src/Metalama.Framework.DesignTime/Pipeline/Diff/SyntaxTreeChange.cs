@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Engine;
+using Metalama.Framework.Engine.CodeModel;
 using Microsoft.CodeAnalysis;
 using System.Collections.Immutable;
 
@@ -30,7 +31,7 @@ namespace Metalama.Framework.DesignTime.Pipeline.Diff
         /// <summary>
         /// Gets the path of the syntax tree.
         /// </summary>
-        public string FilePath { get; }
+        public DocumentKey DocumentKey { get; }
 
         // ReSharper disable once MemberCanBePrivate.Global
 
@@ -82,14 +83,14 @@ namespace Metalama.Framework.DesignTime.Pipeline.Diff
 
         public static SyntaxTreeChange NonIncremental( in SyntaxTreeVersion syntaxTreeVersion )
             => new(
-                syntaxTreeVersion.SyntaxTree.FilePath,
+                syntaxTreeVersion.SyntaxTree.GetDocumentKey(),
                 SyntaxTreeChangeKind.Added,
                 syntaxTreeVersion.HasCompileTimeCode ? CompileTimeChangeKind.NewlyCompileTime : CompileTimeChangeKind.None,
                 default,
                 syntaxTreeVersion );
 
         public SyntaxTreeChange(
-            string filePath,
+            DocumentKey documentKey,
             SyntaxTreeChangeKind syntaxTreeChangeKind,
             CompileTimeChangeKind compileTimeChangeKind,
             in SyntaxTreeVersion oldSyntaxTreeVersion,
@@ -97,7 +98,7 @@ namespace Metalama.Framework.DesignTime.Pipeline.Diff
         {
             this.SyntaxTreeChangeKind = syntaxTreeChangeKind;
             this.CompileTimeChangeKind = compileTimeChangeKind;
-            this.FilePath = filePath;
+            this.DocumentKey = documentKey;
             this.NewSyntaxTreeVersion = newSyntaxTreeVersion;
             this._oldSyntaxTreeVersionData = new SyntaxTreeVersionData( oldSyntaxTreeVersion );
             this._oldSyntaxTreeRef = oldSyntaxTreeVersion.IsDefault ? null : new WeakReference<SyntaxTree>( oldSyntaxTreeVersion.SyntaxTree );
@@ -134,7 +135,7 @@ namespace Metalama.Framework.DesignTime.Pipeline.Diff
             }
         }
 
-        public override string ToString() => $"{this.FilePath}, ChangeKind={this.SyntaxTreeChangeKind}, CompileTimeChangeKind={this.CompileTimeChangeKind}";
+        public override string ToString() => $"{this.DocumentKey}, ChangeKind={this.SyntaxTreeChangeKind}, CompileTimeChangeKind={this.CompileTimeChangeKind}";
 
         public SyntaxTreeChange Merge( in SyntaxTreeChange newChange )
         {
@@ -172,7 +173,7 @@ namespace Metalama.Framework.DesignTime.Pipeline.Diff
             var oldSyntaxTreeVersion = this.OldSyntaxTreeVersionDangerous;
 
             return new SyntaxTreeChange(
-                this.FilePath,
+                this.DocumentKey,
                 newSyntaxTreeChangeKind,
                 newCompileTimeChangeKind,
                 oldSyntaxTreeVersion,
@@ -185,7 +186,7 @@ namespace Metalama.Framework.DesignTime.Pipeline.Diff
                && this.NewSyntaxTreeVersion.Equals( other.NewSyntaxTreeVersion )
                && this.SyntaxTreeChangeKind == other.SyntaxTreeChangeKind
                && this.CompileTimeChangeKind == other.CompileTimeChangeKind
-               && this.FilePath == other.FilePath
+               && this.DocumentKey == other.DocumentKey
                && this.PartialTypeChanges.Equals( other.PartialTypeChanges );
 
         public override bool Equals( object? obj ) => obj is SyntaxTreeChange other && this.Equals( other );
@@ -197,7 +198,7 @@ namespace Metalama.Framework.DesignTime.Pipeline.Diff
                 this.NewSyntaxTreeVersion,
                 (int) this.SyntaxTreeChangeKind,
                 (int) this.CompileTimeChangeKind,
-                this.FilePath,
+                this.DocumentKey,
                 this.PartialTypeChanges );
     }
 }
