@@ -59,19 +59,13 @@ public static class RefExtensions
     /// </summary>
     internal static IFullRef<T> ToFullRef<T>( this IRef<T> reference, RefFactory refFactory )
         where T : class, ICompilationElement
-        => reference as IFullRef<T> ?? (IFullRef<T>) ((IDurableRef) reference).ToFullRef( refFactory );
+        => reference as IFullRef<T> ?? (IFullRef<T>) ((IDurableRefImpl) reference).ToFullRef( refFactory );
 
     internal static IFullRef<T> AsFullRef<T>( this IRef reference )
         where T : class, ICompilationElement
         => (IFullRef<T>) reference.As<T>();
 
     internal static bool HasSymbol( this IRef reference ) => reference is ISymbolRef;
-
-    internal static IDurableRef<T> ToDurable<T>( this IRef<T> reference )
-        where T : class, ICompilationElement
-        => (IDurableRef<T>) ((IRefImpl) reference).ToDurable();
-
-    internal static IRef ToDurable( this IRef reference ) => ((IRefImpl) reference).ToDurable();
 
     internal static bool IsConvertibleTo( this IFullRef<IType> type, IType otherType, ConversionKind conversionKind = ConversionKind.Default )
         => type.ConstructedDeclaration.IsConvertibleTo( otherType, conversionKind );

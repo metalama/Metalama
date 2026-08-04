@@ -159,5 +159,39 @@ namespace Metalama.Framework.Code
         public static T? GetTargetOrNull<T>( this IRef<T> reference )
             where T : class, ICompilationElement
             => reference.GetTargetOrNull( MetalamaExecutionContext.Current.Compilation );
+
+        /// <summary>
+        /// Returns a durable reference to a given declaration or type, i.e. a reference that stores only a string
+        /// identifier and therefore does not keep the compilation in memory.
+        /// </summary>
+        /// <typeparam name="T">The type of the declaration or type, such as <see cref="IMethod"/>,
+        /// <see cref="IProperty"/> or <see cref="INamedType"/>. It is inferred from
+        /// <paramref name="declarationOrType"/>.</typeparam>
+        /// <param name="declarationOrType">The declaration or type to reference.</param>
+        /// <returns>A durable reference to <paramref name="declarationOrType"/>.</returns>
+        /// <exception cref="NotSupportedException">The declaration cannot be identified by an identifier, which is the
+        /// case of an attribute.</exception>
+        /// <remarks>
+        /// <para>
+        /// Call this method instead of <see cref="IDeclaration.ToRef"/> whenever the reference is stored in an object
+        /// that outlives the current pipeline run, such as a field of a fabric or of an inheritable aspect. The
+        /// reference returned by <see cref="IDeclaration.ToRef"/> holds the compilation, and the design-time pipeline
+        /// keeps such objects across many compilations, so storing one keeps a whole version of the project in memory
+        /// for as long as the solution is open.
+        /// </para>
+        /// <para>
+        /// This method produces the same reference as <c>declaration.ToRef().ToDurable()</c> but computes the
+        /// identifier from the declaration itself, so the intermediate non-durable reference is never created.
+        /// </para>
+        /// <para>
+        /// A type that is not a declaration, such as an array type or a pointer type, is identified by its
+        /// <see cref="SerializableTypeId"/> instead of by a <see cref="SerializableDeclarationId"/>.
+        /// </para>
+        /// </remarks>
+        /// <seealso cref="IDurableRef{T}"/>
+        /// <seealso cref="IRef.ToDurable"/>
+        public static IDurableRef<T> ToDurableRef<T>( this T declarationOrType )
+            where T : class, ICompilationElement
+            => ((ICompilationInternal) declarationOrType.Compilation).Helpers.ToDurableRef<T>( declarationOrType );
     }
 }

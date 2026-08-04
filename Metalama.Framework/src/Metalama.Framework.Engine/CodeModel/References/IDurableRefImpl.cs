@@ -3,13 +3,17 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Code;
-using Metalama.Framework.Engine.Services;
 
 namespace Metalama.Framework.Engine.CodeModel.References;
 
 /// <summary>
-/// An <see cref="IRef"/> that does not keep a reference to a <see cref="CompilationContext"/>.
+/// The implementation interface of <see cref="IDurableRef"/>, in the same relationship to it as <see cref="ISdkRef"/>
+/// is to <see cref="IRef"/>: it carries the members that are expressed in engine types and that therefore cannot appear
+/// on the public interface.
 /// </summary>
-/// <typeparam name="T"></typeparam>
-internal interface IDurableRef<out T> : IRef<T>, IDurableRef
-    where T : class, ICompilationElement { }
+internal interface IDurableRefImpl : ISdkRef, IDurableRef
+{
+    string Id { get; }
+
+    IFullRef ToFullRef( RefFactory refFactory );
+}

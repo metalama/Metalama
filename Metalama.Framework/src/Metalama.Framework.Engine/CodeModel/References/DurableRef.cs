@@ -10,7 +10,7 @@ using System;
 
 namespace Metalama.Framework.Engine.CodeModel.References;
 
-internal abstract class DurableRef<T> : BaseRef<T>, IDurableRef<T>
+internal abstract class DurableRef<T> : BaseRef<T>, IDurableRef<T>, IDurableRefImpl
     where T : class, ICompilationElement
 {
     public string Id { get; }
@@ -22,7 +22,7 @@ internal abstract class DurableRef<T> : BaseRef<T>, IDurableRef<T>
         this.Id = id;
     }
 
-    protected override IDurableRef<T> ToDurable() => this;
+    public override IDurableRef<T> ToDurable() => this;
 
     public override bool IsDurable => true;
 
@@ -33,7 +33,7 @@ internal abstract class DurableRef<T> : BaseRef<T>, IDurableRef<T>
             return false;
         }
 
-        if ( other is not IDurableRef stringRef )
+        if ( other is not IDurableRefImpl stringRef )
         {
             if ( comparison is RefComparison.Structural or RefComparison.StructuralIncludeNullability )
             {

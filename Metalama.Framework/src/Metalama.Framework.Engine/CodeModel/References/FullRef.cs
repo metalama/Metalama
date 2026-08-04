@@ -126,7 +126,7 @@ internal abstract partial class FullRef<T> : BaseRef<T>, IFullRef<T>
     [Memo]
     private DeclarationIdRef<T> CompilationNeutralRef => new( this.ToSerializableId() );
 
-    protected sealed override IDurableRef<T> ToDurable() => this.CompilationNeutralRef;
+    public sealed override IDurableRef<T> ToDurable() => this.CompilationNeutralRef;
 
     public override SerializableDeclarationId ToSerializableId()
     {

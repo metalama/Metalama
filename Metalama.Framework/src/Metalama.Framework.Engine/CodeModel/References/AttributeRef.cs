@@ -15,7 +15,7 @@ namespace Metalama.Framework.Engine.CodeModel.References
     /// <summary>
     /// Base implementation of <see cref="IRef"/> for <see cref="IAttribute"/>.
     /// </summary>
-    internal abstract class AttributeRef : IRef<IAttribute>, IEquatable<AttributeRef>, IRefImpl
+    internal abstract class AttributeRef : IRef<IAttribute>, IEquatable<AttributeRef>, ISdkRef
     {
         // Note: These references are not necessarily full refs in case of deserialization.
         [PublicAPI]
@@ -41,7 +41,18 @@ namespace Metalama.Framework.Engine.CodeModel.References
 
         public bool IsDurable => false;
 
-        IRef IRefImpl.ToDurable() => throw new NotSupportedException();
+        /// <summary>
+        /// The message of the <see cref="NotSupportedException"/> thrown by every route that would produce a durable
+        /// reference to an attribute.
+        /// </summary>
+        internal const string CannotBeMadeDurableMessage =
+            "A reference to an attribute cannot be made durable, because an attribute has no serializable identifier of its own. "
+            + "Store a durable reference to the declaration on which the attribute is applied, together with the attribute type, and "
+            + "find the attribute again in the declaration's Attributes collection.";
+
+        public IDurableRef<IAttribute> ToDurable() => throw new NotSupportedException( CannotBeMadeDurableMessage );
+
+        IDurableRef IRef.ToDurable() => this.ToDurable();
 
         ICompilationElement? IRef.GetTargetInterface( ICompilation compilation, Type? interfaceType, IGenericContext? genericContext, bool throwIfMissing )
         {
