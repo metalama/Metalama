@@ -60,10 +60,16 @@ internal readonly struct TemplateMemberRef
         var parameters = this._templateMember.Parameters;
         var typeParameterCount = this._templateMember.TypeParameters.Length;
 
+        // The parameter types are stored as durable identifiers, so that a template class, which lives as long as the
+        // pipeline configuration, holds no symbol of the compilation it was built from. They are resolved here against
+        // the compilation in which the template is being looked up, which is the one the comparison below is about.
+        var templateReflectionCompilationContext = templateReflectionContext.Compilation.GetCompilationContext();
+        var parameterTypes = parameters.SelectAsArray( p => p.GetTypeSymbol( templateReflectionCompilationContext ) );
+
         var symbol = type.GetSingleMemberIncludingBase(
             this._templateMember.Name,
             symbol => classifier.IsTemplate( symbol )
-                      && symbol.GetParameters().Select( p => p.Type ).SequenceEqual( parameters.Select( p => p.Type ), StructuralSymbolComparer.Default )
+                      && symbol.GetParameters().Select( p => (ITypeSymbol?) p.Type ).SequenceEqual( parameterTypes, StructuralSymbolComparer.Default! )
                       && (symbol is not IMethodSymbol methodSymbol || methodSymbol.TypeParameters.Length == typeParameterCount) );
 
         var declaration = templateReflectionContext.GetCompilationModel( compilation ).Factory.GetDeclaration( symbol );

@@ -384,17 +384,16 @@ public sealed class UserCodeRetentionAnalyzerTests : UnitTestClass
     }
 
     [Fact]
-    public async Task AspectDeclaredInSourceWithATemplateParameter_IsRetainedThroughTheAspectClass()
+    public async Task AspectDeclaredInSourceWithATemplateParameter_RetainsNothing()
     {
-        // The template members of an aspect class hold the parameter types of their templates, and the aspect classes
+        // The template members of an aspect class hold the types of their template parameters, and the aspect classes
         // belong to the pipeline configuration, which outlives the compilation. For an aspect that comes from a package
-        // the parameter types are metadata symbols and pin nothing, which is why an ordinary project produces no
-        // finding. For an aspect declared in the project, with a template parameter of a type declared in the project,
-        // the symbol comes from source and the retention is real.
+        // those types are metadata symbols and pin nothing. For an aspect declared in the project, with a template
+        // parameter of a type declared in the project, the symbol came from source and the retention was real, until
+        // TemplateClassMemberParameter was changed to hold a durable identifier instead. See #1803.
         //
-        // The count below is the record of a defect that is known and not yet fixed, in the manner of
-        // MemoryLeakAssert.RetainedThrough: when #1803 is fixed this test fails, which is the signal to change the
-        // expected count to zero rather than to relax the assertion.
+        // This is the test that reported the defect, asserting a count of one, and it is the test that now states the
+        // fix. Should the parameter types go back to being symbols, it fails again.
         var diagnostics = await this.RunAsync(
             """
 
@@ -413,10 +412,8 @@ public sealed class UserCodeRetentionAnalyzerTests : UnitTestClass
             }
             """ );
 
-        // The retention belongs to Metalama, not to the user: every hop of the chain is an engine type, so nothing here
-        // is something the author of the aspect could change.
         Assert.Empty( Retentions( diagnostics ) );
-        Assert.Equal( 1, FrameworkRetentionCount( diagnostics ) );
+        Assert.Equal( 0, FrameworkRetentionCount( diagnostics ) );
     }
 
     /// <summary>

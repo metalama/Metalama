@@ -177,7 +177,7 @@ internal sealed class TemplateClassMemberBuilder : ITemplateClassMemberBuilder
                                 new TemplateClassMemberParameter(
                                     typeParameter.Ordinal,
                                     typeParameter.Name,
-                                    Type: null,
+                                    TypeId: null,
                                     isCompileTime,
                                     allTemplateParametersCount ) );
 
