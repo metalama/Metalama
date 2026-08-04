@@ -38,10 +38,10 @@ public interface I {}
 
             Assert.True( pipeline.TryExecute( compilation1.RoslynCompilation, default, out var compilationResult1 ) );
 
-            Assert.Equal( new[] { "Aspect" }, compilationResult1.Result.InheritableAspectTypes.ToArray() );
+            Assert.Equal( ["Aspect"], compilationResult1.Result.InheritableAspectTypes.ToArray() );
 
             Assert.Equal(
-                new[] { "T:I" },
+                ["Y:global::I!"],
                 compilationResult1.Result.GetInheritableAspects( "Aspect" ).Select( i => i.TargetDeclaration.ToSerializableId().Id ).ToArray() );
         }
 
@@ -71,7 +71,7 @@ public class Aspect : TypeAspect { }
             Assert.True( pipeline.TryExecute( compilation1.RoslynCompilation, default, out var compilationResult1 ) );
 
             Assert.Equal(
-                new[] { "T:I" },
+                ["Y:global::I!"],
                 compilationResult1.Result.GetInheritableAspects( "Aspect" ).Select( i => i.TargetDeclaration.ToSerializableId().Id ).ToArray() );
 
             // Add a target class.
@@ -84,7 +84,7 @@ public class Aspect : TypeAspect { }
             Assert.True( pipeline.TryExecute( compilation2.RoslynCompilation, default, out var compilationResult2 ) );
 
             Assert.Equal(
-                new[] { "T:C", "T:I" },
+                ["Y:global::C!", "Y:global::I!"],
                 compilationResult2.Result.GetInheritableAspects( "Aspect" )
                     .Select( i => i.TargetDeclaration.ToSerializableId().Id )
                     .OrderBy( a => a )
@@ -96,7 +96,7 @@ public class Aspect : TypeAspect { }
             Assert.True( pipeline.TryExecute( compilation3.RoslynCompilation, default, out var compilationResult3 ) );
 
             Assert.Equal(
-                new[] { "T:C" },
+                ["Y:global::C!"],
                 compilationResult3.Result.GetInheritableAspects( "Aspect" )
                     .Select( i => i.TargetDeclaration.ToSerializableId().Id )
                     .OrderBy( a => a )
@@ -131,7 +131,7 @@ public interface I {}
 
             using var testContext2 = this.CreateTestContext();
 
-            var compilation2 = testContext.CreateCSharpCompilation( code2, additionalReferences: new[] { compilation1.ToMetadataReference() } );
+            var compilation2 = testContext.CreateCSharpCompilation( code2, additionalReferences: [compilation1.ToMetadataReference()] );
 
             // We have to execute the pipeline on compilation1 first and explicitly because implicit running is not currently possible
             // because of missing project options.

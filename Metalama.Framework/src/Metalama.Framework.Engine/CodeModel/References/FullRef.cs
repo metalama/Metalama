@@ -132,17 +132,20 @@ internal abstract partial class FullRef<T> : BaseRef<T>, IFullRef<T>
     /// Creates the durable reference that <see cref="ToDurable"/> returns.
     /// </summary>
     /// <remarks>
-    /// A constructed generic type is identified by its <see cref="SerializableTypeId"/> rather than by its declaration
-    /// identifier, because a declaration identifier names the generic definition and would therefore drop the type
-    /// arguments, turning <c>Generic&lt;int&gt;</c> into <c>Generic&lt;T&gt;</c>. A canonical generic instance, such as
-    /// the definition itself, has nothing to lose and keeps the declaration identifier. This matches
+    /// A type is identified by its <see cref="SerializableTypeId"/> rather than by a declaration identifier, because a
+    /// declaration identifier names a declaration and the identity of a type is more than that: it includes the type
+    /// arguments, so <c>Generic&lt;int&gt;</c> would come back as <c>Generic&lt;T&gt;</c>, and the nullable
+    /// annotation, so <c>IService?</c> would come back as <c>IService</c>. This matches
     /// <see cref="DurableRefFactory.FromDeclarationOrType{T}"/>, so both routes to a durable reference agree.
+    /// The identifier is written with its generic context, so that a type parameter, and a type that contains one,
+    /// resolve. The context is the innermost declaration that declares the parameter, a type or a method, which is
+    /// appended to the identifier after a <c>|</c>. Without it the identifier of <c>T</c> is the bare name of the
+    /// parameter and names nothing that can be found.
     /// </remarks>
     private protected virtual IDurableRef<T> CreateDurableRef()
         => this.TargetKind == RefTargetKind.Default
-           && this.GetSymbolIgnoringRefKind( this.CompilationContext ) is { Kind: SymbolKind.NamedType } and INamedTypeSymbol { IsGenericType: true } typeSymbol
-           && !SymbolEqualityComparer.Default.Equals( typeSymbol, typeSymbol.OriginalDefinition )
-            ? new TypeIdRef<T>( typeSymbol.GetSerializableTypeId() )
+           && this.GetSymbolIgnoringRefKind( this.CompilationContext ) is ITypeSymbol typeSymbol
+            ? new TypeIdRef<T>( typeSymbol.GetSerializableTypeId( includeGenericContext: true ) )
             : new DeclarationIdRef<T>( this.ToSerializableId() );
 
     public override SerializableDeclarationId ToSerializableId()

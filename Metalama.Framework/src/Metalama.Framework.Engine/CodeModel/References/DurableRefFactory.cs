@@ -33,13 +33,12 @@ internal static class DurableRefFactory
     /// therefore identified by its <see cref="SerializableTypeId"/>.
     /// </para>
     /// <para>
-    /// A <i>constructed</i> generic type is identified by its <see cref="SerializableTypeId"/> as well, even though it
-    /// is also a declaration, because a declaration identifier names the generic definition and therefore loses the
-    /// type arguments: <c>ICovariant&lt;Derived&gt;</c> would come back as <c>ICovariant&lt;T&gt;</c>, and a caller
-    /// comparing the two types would then see them as unrelated. The declaration case is matched after this one
-    /// because an <see cref="INamedType"/> is both a declaration and a type. A canonical generic instance, such as the
-    /// definition <c>ICovariant&lt;T&gt;</c> itself, has nothing to lose and keeps the declaration identifier, which
-    /// is also what <see cref="IRef.ToDurable"/> produces for it.
+    /// A type is identified by its <see cref="SerializableTypeId"/> even when it is also a declaration, which a named
+    /// type is, and the type case is therefore matched first. A declaration identifier names a declaration, and the
+    /// identity of a type is more than the declaration it comes from: it includes the type arguments, so
+    /// <c>ICovariant&lt;Derived&gt;</c> would come back as <c>ICovariant&lt;T&gt;</c>, and it includes the nullable
+    /// annotation, so <c>IService?</c> would come back as <c>IService</c>. Neither loss is reported, and the caller has
+    /// no reason to think the conversion is lossy. See issue #1797.
     /// </para>
     /// </remarks>
     public static IDurableRef<T> FromDeclarationOrType<T>( ICompilationElement declarationOrType )
@@ -47,10 +46,8 @@ internal static class DurableRefFactory
         => declarationOrType switch
         {
             IAttribute => throw new NotSupportedException( AttributeRef.CannotBeMadeDurableMessage ),
-            INamedType { IsGeneric: true, IsCanonicalGenericInstance: false } constructedType
-                => new TypeIdRef<T>( constructedType.GetSerializableTypeId() ),
+            IType type => new TypeIdRef<T>( type.GetSerializableTypeId( includeGenericContext: true ) ),
             IDeclaration declaration => new DeclarationIdRef<T>( declaration.GetSerializableId() ),
-            IType type => new TypeIdRef<T>( type.GetSerializableTypeId() ),
             _ => throw new NotSupportedException(
                 $"Cannot create a durable reference to a '{declarationOrType.DeclarationKind}' because it is neither a declaration nor a type." )
         };

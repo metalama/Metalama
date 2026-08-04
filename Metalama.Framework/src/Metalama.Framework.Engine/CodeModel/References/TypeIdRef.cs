@@ -19,8 +19,16 @@ internal sealed class TypeIdRef<T> : DurableRef<T>
 
     public TypeIdRef( SerializableTypeId id ) : base( id.Id ) { }
 
-    public override SerializableDeclarationId ToSerializableId()
-        => throw new NotSupportedException( "The durable reference must be first resolved to a full reference." );
+    /// <summary>
+    /// Returns the type identifier wrapped in a <see cref="SerializableDeclarationId"/>.
+    /// </summary>
+    /// <remarks>
+    /// This is the same representation that <c>SerializableDeclarationIdProvider</c> gives an array or a pointer type,
+    /// whose identifier is a type identifier as well, and the resolution of an identifier already dispatches on the
+    /// prefix. Throwing here instead made every caller that asks a durable reference for its identifier fail once
+    /// named types started being identified this way, including <c>GetPrimarySyntaxTree</c>.
+    /// </remarks>
+    public override SerializableDeclarationId ToSerializableId() => new( this.Id );
 
     protected override ISymbol GetSymbol( CompilationContext compilationContext, bool ignoreAssemblyKey = false )
     {
@@ -40,12 +48,12 @@ internal sealed class TypeIdRef<T> : DurableRef<T>
     {
         Invariant.Assert( genericContext.IsEmptyOrIdentity );
 
-        if ( !compilation.SerializableTypeIdResolver.TryResolveId( new SerializableTypeId( this.Id ), out var symbol ) )
+        if ( !compilation.SerializableTypeIdResolver.TryResolveId( new SerializableTypeId( this.Id ), out var type ) )
         {
             return ReturnNullOrThrow( this.Id, throwIfMissing, compilation );
         }
 
-        return ConvertDeclarationOrThrow( symbol, compilation, interfaceType );
+        return ConvertDeclarationOrThrow( type, compilation, interfaceType );
     }
 
     protected override IRef<TOut> CastAsRef<TOut>() => this as IRef<TOut> ?? new TypeIdRef<TOut>( this.Id );
