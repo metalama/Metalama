@@ -89,7 +89,7 @@ public sealed class SplitResultsByTreeExtensionAccumulationTests : UnitTestClass
 
         // The subset the pipeline ran on: target.cs is dirty, base.cs is not.
         var partialCompilation = PartialCompilation.CreatePartial( compilation, targetTree );
-        Assert.DoesNotContain( "base.cs", partialCompilation.SyntaxTrees.Keys );
+        Assert.False( partialCompilation.TryGetSyntaxTree( DocumentKey.FromPath( "base.cs" ), out _ ) );
 
         var result = executed.Result;
 
@@ -123,14 +123,14 @@ public sealed class SplitResultsByTreeExtensionAccumulationTests : UnitTestClass
         var wholeCompilation = PartialCompilation.CreatePartial( compilation, new[] { baseTree, targetTree } );
         var afterFullRun = Update( executed.Result, compilation, wholeCompilation, contributor );
 
-        Assert.Contains( contributor, afterFullRun.SyntaxTreeResults["base.cs"].Extensions );
+        Assert.Contains( contributor, afterFullRun.SyntaxTreeResults[DocumentKey.FromPath( "base.cs" )].Extensions );
         Assert.Contains( contributor, afterFullRun.Extensions.Extensions );
 
         // A later run in which only target.cs is dirty must leave that entry alone, and must not add a second one.
         var partialCompilation = PartialCompilation.CreatePartial( compilation, targetTree );
         var afterPartialRun = Update( afterFullRun, compilation, partialCompilation, contributor );
 
-        Assert.Contains( contributor, afterPartialRun.SyntaxTreeResults["base.cs"].Extensions );
+        Assert.Contains( contributor, afterPartialRun.SyntaxTreeResults[DocumentKey.FromPath( "base.cs" )].Extensions );
         Assert.Same( contributor, Assert.Single( afterPartialRun.Extensions.Extensions ) );
     }
 
@@ -301,7 +301,7 @@ public sealed class SplitResultsByTreeExtensionAccumulationTests : UnitTestClass
         }
 
         Assert.Single( result.Extensions.Extensions );
-        Assert.Single( result.SyntaxTreeResults["base.cs"].Extensions );
+        Assert.Single( result.SyntaxTreeResults[DocumentKey.FromPath( "base.cs" )].Extensions );
     }
 
     /// <summary>
@@ -340,7 +340,7 @@ public sealed class SplitResultsByTreeExtensionAccumulationTests : UnitTestClass
         ImmutableArray<ITransitivePipelineContributor> contributors )
     {
         var pipelineResults = new DesignTimePipelineExecutionResult(
-            partialCompilation.SyntaxTrees,
+            partialCompilation.SyntaxTreeCollection,
             ImmutableArray<IntroducedSyntaxTree>.Empty,
             ImmutableUserDiagnosticList.Empty,
             ImmutableArray<InheritableAspectInstance>.Empty,

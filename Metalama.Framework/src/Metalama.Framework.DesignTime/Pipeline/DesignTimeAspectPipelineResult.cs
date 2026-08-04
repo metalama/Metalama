@@ -579,17 +579,17 @@ public sealed partial class DesignTimeAspectPipelineResult
                     // introductions it holds. See issue #1768.
                     Logger.DesignTime.Trace?.Log(
                         $"SplitResultsByTree: skipping the transitive contributor of kind '{designTimeExtension.ContributorKind}' because it belongs "
-                        + $"to syntax tree '{filePath}' of this project, which is not a part of the partial compilation." );
+                        + $"to syntax tree '{documentKey}' of this project, which is not a part of the partial compilation." );
                 }
                 else
                 {
                     // The tree belongs to another compilation, or the contributor reports none and the result keyed by
-                    // the empty path was not created, which the branch above normally guarantees. The case that
-                    // matters is the first: with cross-project validators the syntax
-                    // tree a reference validator reports is that of the validated declaration, and a fabric of this
-                    // project can validate references to declarations of a referenced project. No result of this
-                    // project is keyed by that path, and none ever will be, so skipping the contributor would lose it
-                    // and the rules it enforces would silently stop being applied.
+                    // the default DocumentKey was not created, which the branch above normally guarantees. The case
+                    // that matters is the first: with cross-project validators the syntax tree a reference validator
+                    // reports is that of the validated declaration, and a fabric of this project can validate
+                    // references to declarations of a referenced project. No result of this project is keyed by that
+                    // document, and none ever will be, so skipping the contributor would lose it and the rules it
+                    // enforces would silently stop being applied.
                     //
                     // Such a contributor is therefore kept, in a collection that is replaced on every run rather than
                     // appended to. Replacing is correct because a run re-produces the complete set: the extension that
