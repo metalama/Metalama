@@ -68,7 +68,8 @@ request, and is a retention as soon as it is stored.
 
 `IRef<T>.ToDurable()` converts it to an `IDurableRef<T>`, backed by a `SerializableDeclarationId` or a
 `SerializableTypeId`, which reaches nothing. Resolve it later with `GetTarget( compilation )` against whichever
-compilation is current.
+compilation is current. When what is at hand is the declaration rather than a reference, call
+`declaration.ToDurableRef()`: it produces an equal reference and never allocates the compilation-bound one.
 
 **Declare the requirement in the type, do not leave it to the caller.** A field, property or constructor parameter that
 must hold a durable reference is typed `IDurableRef<T>`, not `IRef<T>`. The conversion then cannot be forgotten,
@@ -88,9 +89,10 @@ holds a `Location`, which holds its source tree.
 
 **A type is not a declaration, and `ToDurable()` treats it as one.** `ToDurable()` is backed by a
 `SerializableDeclarationId`, which names a *declaration*, so converting `Base<int>` yields a reference that resolves
-to `Base<T>`: the type arguments are lost, silently, and the result is a usable type rather than an error. Where the
-value is an `IType` rather than a declaration, and above all where it comes from user code and its shape is therefore
-not known, use `DurableRefFactory.FromTypeId( type.GetSerializableTypeId() )` instead.
+to `Base<T>`: the type arguments are lost, silently, and the result is a usable type rather than an error.
+`ToDurableRef()` behaves identically here, deliberately: it takes the declaration route for everything that is a
+declaration, and a named type is one. Where the value is an `IType`, and above all where it comes from user code and
+its shape is therefore not known, use `DurableRefFactory.FromTypeId( type.GetSerializableTypeId() )` instead.
 `Query.CreateBaseTypeResolver` does, and `RefTests.DurableRefToConstructedGenericTypeLosesTheTypeArguments` records
 the difference.
 

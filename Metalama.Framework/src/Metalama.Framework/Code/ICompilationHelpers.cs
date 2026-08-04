@@ -22,6 +22,9 @@ namespace Metalama.Framework.Code
 
         SerializableTypeId GetSerializableId( IType type );
 
+        IDurableRef<T> ToDurableRef<T>( ICompilationElement declarationOrType )
+            where T : class, ICompilationElement;
+
         IExpression ToTypeOfExpression( IType type, bool preferConstructedType = false );
 
         bool DerivesFrom( INamedType left, INamedType right, DerivedTypesOptions options = DerivedTypesOptions.Default );

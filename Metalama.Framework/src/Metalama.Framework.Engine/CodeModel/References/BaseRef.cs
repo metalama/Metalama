@@ -17,7 +17,7 @@ namespace Metalama.Framework.Engine.CodeModel.References;
 /// <summary>
 /// The base implementation of <see cref="IRef{T}"/> except for attributes.
 /// </summary>
-internal abstract class BaseRef<T> : IRefImpl, IRef<T>
+internal abstract class BaseRef<T> : ISdkRef, IRef<T>
     where T : class, ICompilationElement
 {
     // The compilation for which the symbol (stored in Target) is valid.
@@ -34,11 +34,13 @@ internal abstract class BaseRef<T> : IRefImpl, IRef<T>
 
     public abstract SerializableDeclarationId ToSerializableId();
 
-    protected abstract IDurableRef<T> ToDurable();
+    public abstract IDurableRef<T> ToDurable();
 
     public abstract bool IsDurable { get; }
 
-    IRef IRefImpl.ToDurable() => this.ToDurable();
+    // The non-generic overload cannot be implemented implicitly, because C# requires the return type of an implicit
+    // implementation to match the interface exactly.
+    IDurableRef IRef.ToDurable() => this.ToDurable();
 
     public T GetTarget( ICompilation compilation, IGenericContext? genericContext = null )
         => (T) this.GetTargetImpl( compilation, true, genericContext, typeof(T) )!;
