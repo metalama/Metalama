@@ -105,6 +105,12 @@ public record TestContextOptions
     internal bool VerifyOutputCode { get; init; }
 
     /// <summary>
+    /// Gets a value indicating whether the objects that the fabrics of the project leave behind should be analysed for
+    /// references that pin a compilation.
+    /// </summary>
+    internal bool DiagnoseMemoryLeaks { get; init; }
+
+    /// <summary>
     /// Gets the list of extension types given explicitly as types using <see cref="ITestExtensionCollector"/>,
     /// typically through the unit test framework.
     /// </summary>

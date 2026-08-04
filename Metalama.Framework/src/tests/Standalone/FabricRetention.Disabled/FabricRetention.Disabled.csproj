@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <MetalamaEnabled>true</MetalamaEnabled>
+
+    <!-- MetalamaDiagnoseMemoryLeaks is deliberately not set. The absence of the diagnostics is what this
+         scenario asserts. -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Metalama.Framework" />
+  </ItemGroup>
+</Project>

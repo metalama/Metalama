@@ -187,6 +187,104 @@ public sealed class FabricMemoryLeakTests : DesignTimeTestBase
     }
 
     /// <summary>
+    /// An aspect whose template has a parameter of a type declared in the project.
+    /// </summary>
+    /// <remarks>
+    /// The template members of an aspect class hold the types of their template parameters, and the aspect classes
+    /// belong to the pipeline configuration. Whether that is a retention depends on which compilation the symbol comes
+    /// from: a symbol of the compile-time projection is harmless, because that compilation has the same lifetime as the
+    /// configuration and is discarded with it, whereas a symbol of the run-time compilation keeps the first version of
+    /// the session alive. Neither the code nor the reachability report answers that question, which is what this test
+    /// is for. See #1803.
+    /// </remarks>
+    private const string _aspectWithTemplateParameterCode = """
+                                                            using Metalama.Framework.Aspects;
+
+                                                            public class IntroduceAspect : TypeAspect
+                                                            {
+                                                                [Introduce]
+                                                                public void IntroducedMethod( Filler0 parameter ) { }
+                                                            }
+                                                            """;
+
+    private const string _fabricAddingIntroduceAspectCode = """
+                                                            using Metalama.Framework.Aspects;
+                                                            using Metalama.Framework.Fabrics;
+                                                            using System.Linq;
+
+                                                            public class TheFabric : ProjectFabric
+                                                            {
+                                                                public override void AmendProject( IProjectAmender amender )
+                                                                    => amender.SelectTypes().Where( t => t.Name == "Filler1" ).AddAspect<IntroduceAspect>();
+                                                            }
+                                                            """;
+
+    /// <summary>
+    /// Determines whether an aspect whose template has a parameter of a type declared in the project retains the
+    /// compilation of the first version.
+    /// </summary>
+    /// <remarks>
+    /// The parameter type is <c>Filler0</c>, which is declared in a file the session never edits, so that the result
+    /// cannot be attributed to the edited file. The aspect is applied to <c>Filler1</c> rather than to the edited type
+    /// for the same reason.
+    /// </remarks>
+    [Fact]
+    public void AspectWithATemplateParameterOfASourceType_InitialCompilationIsCollected()
+    {
+        using var testContext = this.CreateTestContext();
+        using var factory = new TestDesignTimeAspectPipelineFactory( testContext );
+
+        var initialCompilation = this.RunEditingSessionWithTemplateParameterAspect( testContext, factory, editCount: 10 );
+
+        MemoryLeakAssert.Collected(
+            initialCompilation,
+            "The compilation from which the configuration of a project with a template parameter of a source type was built",
+            ("pipelineFactory", factory),
+            ("testContext", testContext),
+            ("domain", testContext.Domain) );
+    }
+
+    [MethodImpl( MethodImplOptions.NoInlining )]
+    private WeakReference RunEditingSessionWithTemplateParameterAspect(
+        TestContext testContext,
+        TestDesignTimeAspectPipelineFactory factory,
+        int editCount )
+    {
+        var code = new Dictionary<string, string>
+        {
+            [_aspectFileName] = _aspectWithTemplateParameterCode,
+            [_fabricFileName] = _fabricAddingIntroduceAspectCode,
+            [_targetFileName] = GetTargetCode( 0 )
+        };
+
+        for ( var i = 0; i < 3; i++ )
+        {
+            code[$"Filler{i}.cs"] = GetFillerCode( i );
+        }
+
+        var simulator = new DesignTimeEditingSimulator( testContext, factory, "FabricMemoryLeak_TemplateParameter", code );
+
+        var initialCompilation = simulator.GetWeakReferenceToCurrentCompilation();
+
+        simulator.Execute();
+
+        for ( var version = 1; version <= editCount; version++ )
+        {
+            simulator.ApplyEdit( _targetFileName, GetTargetCode( version ) );
+        }
+
+        var executionCount = simulator.GetPipeline().PipelineExecutionCount;
+        this.TestOutput.WriteLine( $"The pipeline was executed {executionCount} times for {editCount} edits." );
+
+        Assert.True(
+            executionCount >= editCount,
+            $"The pipeline was executed only {executionCount} times for {editCount} edits, therefore the test did not "
+            + "exercise the retention it was supposed to exercise." );
+
+        return initialCompilation;
+    }
+
+    /// <summary>
     /// Verifies that a project that declares a fabric releases the compilation of its first version once the user has
     /// made further edits to run-time code.
     /// </summary>

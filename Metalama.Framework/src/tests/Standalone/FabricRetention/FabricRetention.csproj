@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <MetalamaEnabled>true</MetalamaEnabled>
+
+    <!-- The subject of this scenario: the property must travel from here to IProjectOptions through
+         CompilerVisibleProperty and the generated .editorconfig. -->
+    <MetalamaDiagnoseMemoryLeaks>true</MetalamaDiagnoseMemoryLeaks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Metalama.Framework" />
+  </ItemGroup>
+</Project>

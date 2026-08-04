@@ -232,10 +232,29 @@ Three parts of the harness matter more than the tests themselves.
 - **`RetentionPathFinder` applies ephemeron marking**, exactly as described above: it follows the value of a
   conditional-weak-table entry only once the key of that entry has been proven reachable by strong references, and it
   never reports a key as retained through the table. Without that rule it reports paths that are circular, or paths
-  along which the collector is in fact free to reclaim the object.
+  along which the collector is in fact free to reclaim the object. The traversal itself lives in
+  `Metalama.Framework.Engine/Utilities/ObjectGraph/ObjectGraphWalker`, which the shipping diagnostic described below
+  shares; `RetentionPathFinder` only supplies the stop rule and formats the result. `ObjectGraphWalkerTests` covers the
+  traversal rules one by one, on graphs small enough that the expected answer is evident by inspection.
+- **Conditional references cannot be followed on .NET Framework at all**, and
+  `ObjectGraphWalker.CanFollowConditionalReferences` says so. The entries of a `ConditionalWeakTable` are held through
+  dependent handles, which reflection cannot read, so the only route to them is the enumerable interface of the table;
+  .NET Core has one and .NET Framework implements none. This is not confined to the tests: `Metalama.Framework.Engine`
+  targets .NET Framework, which is the runtime of desktop MSBuild and of Visual Studio. On that runtime both the walk
+  and anything built on it are **sound but incomplete**: every chain reported is real, and a retention held only through
+  an ephemeron is invisible. Assert against the property rather than for the .NET Core behaviour, as the
+  conditional-weak-table tests do.
 - **`MemoryLeakAssertSelfTests`** plants a retention deliberately and requires the assertions to catch it and name the
   field. A suite of liveness tests that all pass is indistinguishable from a suite whose assertions never fire, so
   this positive control is what gives the rest of the suite its value.
+
+**A retention through a symbol cannot be narrated.** `ShouldTraverse` stops at an `ISymbol`, so the finder can never
+show the edge from a symbol to the compilation that declares it. When a source symbol is what retains the compilation,
+the assertion therefore fails with "no path exists from the given roots", which reads exactly like a retention by a root
+that was not supplied and sends the reader looking for a static field that does not exist. If an assertion fails that
+way and the object under test is reachable from anything holding a source symbol, suspect the symbol first. This is how
+[#1803](https://github.com/metalama/Metalama/issues/1803) presented, and the liveness assertion was right while the
+explanation was missing.
 
 **Recording a retention that is known but not yet fixed** is done with `MemoryLeakAssert.RetainedThrough`, which names
 the route as well as asserting that the object is alive. Asserting liveness alone would hold whether the documented
@@ -259,6 +278,109 @@ Finally, note what a passing test does **not** prove. Both of the largest defect
 one version at a time and waits for each to be analysed never cancels anything and shows no growth at all, which is
 why the growth was so hard to reproduce outside a real editing session. When testing a component that cancels
 superseded work, the test must cancel too.
+
+## Diagnosing what a customer's compile-time code retains
+
+Everything above constrains code in this repository. A fabric, an aspect and a validator are code in the customer's
+repository, held by the long-lived objects described earlier, and subject to the same rule without being covered by any
+of the tests that enforce it. A customer whose Visual Studio grows while editing has, until now, had no way to tell
+whether the cause was their own code or ours.
+
+`MetalamaDiagnoseMemoryLeaks` answers that question. Setting the MSBuild property to `true` and building the project
+makes `UserCodeRetentionAnalyzer` walk the object graph reachable from everything that the design-time pipeline keeps
+beyond the run that produced it, and report every reference that pins a compilation:
+
+```
+dotnet build MyProject.csproj -p:MetalamaDiagnoseMemoryLeaks=true
+```
+
+### What it walks
+
+Two families of long-lived objects, and the static fields of the compile-time assemblies.
+
+**What the fabrics registered**, which the pipeline configuration retains. The fabric instances themselves are reachable
+from those contributors, so they are not roots of their own: a fabric that registered nothing is not retained at all and
+therefore cannot leak.
+
+**What the design-time pipeline files under a document path**, which it carries forward across every version in which
+that file did not change: the inheritable aspect instances, the transitive contributors such as reference validators,
+and the annotations. These are walked in their *design-time* form, the one that is actually cached, which is not the
+form the compile-time pipeline holds. An `InheritableAspectInstance` is constructed as the design-time pipeline
+constructs it, and a transitive contributor is converted with `ToDesignTime()`; walking the raw objects instead would
+report the very conversions that those two steps exist to perform.
+
+That second family is not covered by serialization, which is the point. Serialization happens when a result crosses a
+project boundary; within a project the objects are kept as they are. An `InheritableAspectInstance` converts its target
+declaration to a durable reference, but its `Aspect` and `AspectState` are the user's own objects, held live.
+
+### Where this diagnostic ends and the serializer begins
+
+The compile-time pipeline serializes the externally inheritable aspects into the transitive manifest, and the serializer
+**refuses a declaration**, with a hard error naming the field. That check is stronger than this diagnostic, because it is
+an error rather than a warning and is always on. This diagnostic is therefore not what protects that case and must not be
+expected to.
+
+What the serializer cannot see is a field marked `[NonCompileTimeSerialized]`. It is skipped on the way to the manifest,
+so a batch build reports nothing, and it is retained all the same by the design-time cache, which does not serialize.
+That is the gap this diagnostic closes, and
+`UserCodeRetentionAnalyzerTests.InheritableAspectWithNonSerializedDeclarationField_IsReported` is the test that pins it
+down, next to the one that records the serializer's own refusal so that the boundary between the two stays visible.
+
+### Three things worth knowing before reading a report
+
+**It runs at compile time, and nothing is leaking while it runs.** A batch compilation handles one compilation and
+exits, so a retention costs nothing there. The diagnostic reports the *shape* of what the user's code left behind, and
+that shape is built by the same code in both hosts, so a batch build reproduces what an editing session would retain.
+Running the walk in the analysis process instead would put its cost on the very path the diagnostic exists to protect.
+The one case a batch build cannot reach is code that branches on `IExecutionScenario.IsDesignTime` and behaves
+differently in the IDE.
+
+**It runs after the pipeline has executed, not after the fabrics have run.** A fabric captures a declaration at two
+different moments: while `AmendProject` builds the query, and while the query is executed against a compilation. The
+second is the more damaging, because the field grows with every version of the project, and it is still empty when
+`AmendProject` returns. Running after the execution is also what makes the aspect instances available.
+
+**Findings are attributed either to the user or to Metalama**, according to whether any type on the chain of references
+is declared in a compile-time assembly of the project, which covers the fabric and aspect classes and the
+compiler-generated closure types of their lambdas. Only the first kind raises `LAMA0085`; the rest are counted by the
+`LAMA0086` summary and written to the report file it names. Without that split the diagnostic would fire on every
+project that has a fabric, because of the retentions listed under *Open items* below, and would be worth nothing to the
+customer.
+
+### What a symbol does and does not pin
+
+A `Compilation`, a `SyntaxTree` and a `SemanticModel` always pin. **An `ISymbol` does not.** Only a symbol that belongs
+to the source of a compilation reaches it; the symbols of a referenced assembly hang off a `PEAssemblySymbol` owned by a
+reference manager that Roslyn shares between compilations, have no declaring compilation, and keep nothing alive.
+`dynamic` is a singleton and keeps nothing either. A metadata generic constructed over a source type, such as
+`List<MyClass>`, does reach source through its type arguments, so the components of a type are examined as well as the
+type itself.
+
+This distinction decides most of a report. The template members of every aspect class hold the parameter types of their
+templates, so classifying every symbol as pinning fills the report with dozens of findings from the aspects of every
+referenced package, none of which anybody can act upon, and buries the few that matter.
+
+The counterpart rule is that **a symbol is a boundary of the walk whether or not it is reported.** Descending into a
+symbol that was not reported reaches its module, that module's references and the symbols of every other assembly, and
+turns the report into nonsense. On one measured example, honouring the first rule without the second took a walk from
+around 1,800 objects to 34,000, and from one finding to twenty-five.
+
+A finding names the chain of fields, in the same form as a memory-leak test failure:
+
+```
+contributor #0 (AspectQuerySource<IDeclaration>) -> _query -> <Owner>k__BackingField -> _fabricInstance
+  -> <Driver>k__BackingField -> <Fabric>k__BackingField -> _seen -> _items -> [0]
+```
+
+The fix is the one the rest of this document prescribes, expressed in public API: store
+`IDeclaration.ToSerializableId()` and resolve it against the current compilation with
+`IDeclarationFactory.GetDeclarationFromId`.
+
+Two limitations are deliberate. The static fields of the compile-time assemblies are walked as roots, because a static
+field outlives every configuration and is invisible to a walk that starts from the contributors alone; reading them runs
+the type initializers of those types, which is a side effect the property opts into. And the walk stops
+at a service provider and at a compile-time project, because a chain through one of those explains nothing about the
+fabric and would make the walk explore the whole engine.
 
 ## Open items
 

@@ -10,6 +10,7 @@ using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Diagnostics;
+
 using Metalama.Framework.Engine.Formatting;
 using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Pipeline.DesignTime;
@@ -231,6 +232,11 @@ public class CompileTimeAspectPipeline : AspectPipeline
             {
                 return default;
             }
+
+            // Diagnose what the fabrics retain, on demand. This runs after the execution rather than after the fabrics
+            // have run, because a fabric that accumulates declarations in a field of its own does so while its queries
+            // are executed, and that field is still empty when AmendProject returns.
+            UserCodeRetentionAnalyzer.AnalyzeIfEnabled( result.Value, diagnosticAdder );
 
             var resultPartialCompilation = result.Value.LastCompilation;
 

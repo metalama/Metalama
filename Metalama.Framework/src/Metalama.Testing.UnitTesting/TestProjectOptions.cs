@@ -117,6 +117,8 @@ internal sealed class TestProjectOptions : DefaultProjectOptions, IDisposable
 
     public override bool VerifyOutputCode => this.TestContextOptions.VerifyOutputCode;
 
+    public override bool DiagnoseMemoryLeaks => this.TestContextOptions.DiagnoseMemoryLeaks;
+
     public override ImmutableArray<TargetedAssemblyReference> CompileTimeAssemblies
         => this.TestContextOptions.CompileTimeAssemblies.Select( TargetedAssemblyReference.FromPath ).ToImmutableArray();
 
