@@ -105,11 +105,18 @@ internal abstract partial class FabricDriver
 
         /// <inheritdoc />
         /// <remarks>
+        /// <para>
         /// Built afresh for each compilation, because a static fabric amender is durable. An amender whose own lifetime
         /// is a single run overrides this and may reuse a context it holds.
+        /// </para>
+        /// <para>
+        /// The context inherits nothing from the ambient one. This method is called on demand rather than while the
+        /// fabric is running, so an ambient context here belongs to whoever called into the query, not to the fabric.
+        /// See <see cref="UserCodeExecutionContext.CreateWithoutInheritance"/>.
+        /// </para>
         /// </remarks>
         public virtual UserCodeExecutionContext GetUserCodeExecutionContext( CompilationModel compilation, IDiagnosticAdder diagnostics )
-            => new( this._fabricManager.ServiceProvider, this._userCodeDescription, compilation, diagnostics: diagnostics );
+            => UserCodeExecutionContext.CreateWithoutInheritance( this._fabricManager.ServiceProvider, this._userCodeDescription, compilation, diagnostics );
 
         [Memo]
         public IQuery<T> Outbound

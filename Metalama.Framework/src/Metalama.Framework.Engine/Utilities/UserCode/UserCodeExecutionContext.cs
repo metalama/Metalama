@@ -174,6 +174,51 @@ public class UserCodeExecutionContext : IExecutionContextInternal
         => new( serviceProvider, description, compilation, diagnostics: diagnostics );
 
     /// <summary>
+    /// Creates a <see cref="UserCodeExecutionContext"/> that inherits nothing from the context that happens to be
+    /// current, as opposed to <see cref="CreateInstance(ProjectServiceProvider,UserCodeDescription,CompilationModel,IDiagnosticAdder)"/>,
+    /// which fills in its target declaration, meta API and syntax builder from that context.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Inheriting is the right behaviour for a context created while the user code it belongs to is running, which is
+    /// the usual case: an aspect that reports a diagnostic without naming a declaration means the one it is being
+    /// applied to. It is the wrong behaviour for a context created on demand, from an owner that is not itself running
+    /// user code, because what it would inherit is not the owner's own state but whatever the calling thread was doing.
+    /// </para>
+    /// <para>
+    /// The owner in question is a static fabric amender, which builds a context per compilation rather than storing
+    /// one, so that the pipeline configuration does not pin a compilation (issue #1799). Its queries are executed by
+    /// the pipeline, where nothing is current, but also by <c>IQuery.ToCollection</c>, which is public and is called
+    /// from user code: were the context to inherit there, a fabric query would silently acquire the target declaration
+    /// and the meta API of the aspect that happened to call it.
+    /// </para>
+    /// </remarks>
+    internal static UserCodeExecutionContext CreateWithoutInheritance(
+        ProjectServiceProvider serviceProvider,
+        UserCodeDescription description,
+        CompilationModel compilation,
+        IDiagnosticAdder? diagnostics = null )
+    {
+        var current = MetalamaExecutionContext.CurrentOrNull;
+
+        if ( current == null )
+        {
+            return new UserCodeExecutionContext( serviceProvider, description, compilation, diagnostics: diagnostics );
+        }
+
+        MetalamaExecutionContext.CurrentOrNull = null;
+
+        try
+        {
+            return new UserCodeExecutionContext( serviceProvider, description, compilation, diagnostics: diagnostics );
+        }
+        finally
+        {
+            MetalamaExecutionContext.CurrentOrNull = current;
+        }
+    }
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="UserCodeExecutionContext"/> class that can be used
     /// to invoke user code using <see cref="UserCodeInvoker.Invoke"/> but not <see cref="UserCodeInvoker.TryInvoke{T}"/>.
     /// </summary>
