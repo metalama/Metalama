@@ -223,6 +223,52 @@ public sealed class SplitResultsByTreeExtensionAccumulationTests : UnitTestClass
     /// Creates a syntax tree that belongs to another compilation, standing in for a declaration of a referenced
     /// project.
     /// </summary>
+    /// <summary>
+    /// A run that carries no contributor at all must not discard the contributors of another compilation that earlier
+    /// runs established.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The set of foreign contributors is replaced on each run rather than appended to, which is correct only for a
+    /// run that actually re-produced them. A run can carry none for reasons that say nothing about whether the rules
+    /// still apply: <c>DesignTimePipelineStage</c> invokes the extensions only when the run produced at least one
+    /// contributor of extension kind, so a validator source registered by an aspect contributes nothing on a run in
+    /// which that aspect's file is clean, and a run whose pipeline failed carries none either, because
+    /// <c>PipelineState</c> reads <c>TransitiveContributors</c> from a result that is then null.
+    /// </para>
+    /// <para>
+    /// Replacing unconditionally in that situation loses the rules of a referenced project silently, which is the
+    /// regression that <see cref="ContributorOnTreeOfAnotherCompilation_IsRetained"/> exists to prevent, reached
+    /// through a different door.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void RunWithoutContributors_KeepsTheContributorsOfAnotherCompilation()
+    {
+        using var testContext = this.CreateTestContext();
+        using var factory = new TestDesignTimeAspectPipelineFactory( testContext );
+
+        var (executed, compilation) = Execute( testContext, factory );
+
+        var foreignTree = CreateForeignTree( testContext );
+        var targetTree = compilation.SyntaxTrees.Single( t => t.FilePath == "target.cs" );
+        var partialCompilation = PartialCompilation.CreatePartial( compilation, targetTree );
+
+        var contributor = new TestContributor( foreignTree );
+        var afterFirstRun = Update( executed.Result, compilation, partialCompilation, contributor );
+
+        Assert.Contains( contributor, afterFirstRun.Extensions.Extensions );
+
+        // The second run produces nothing, as happens when no source of extension contributors ran.
+        var afterEmptyRun = Update(
+            afterFirstRun,
+            compilation,
+            partialCompilation,
+            ImmutableArray<ITransitivePipelineContributor>.Empty );
+
+        Assert.Contains( contributor, afterEmptyRun.Extensions.Extensions );
+    }
+
     private static SyntaxTree CreateForeignTree( TestContext testContext )
     {
         var referencedCompilation = testContext.CreateCSharpCompilation(
@@ -282,6 +328,16 @@ public sealed class SplitResultsByTreeExtensionAccumulationTests : UnitTestClass
         Compilation compilation,
         PartialCompilation partialCompilation,
         ITransitivePipelineContributor contributor )
+        => Update( result, compilation, partialCompilation, ImmutableArray.Create( contributor ) );
+
+    /// <summary>
+    /// Files an execution result carrying the given contributors, which may be none, into the accumulated result.
+    /// </summary>
+    private static DesignTimeAspectPipelineResult Update(
+        DesignTimeAspectPipelineResult result,
+        Compilation compilation,
+        PartialCompilation partialCompilation,
+        ImmutableArray<ITransitivePipelineContributor> contributors )
     {
         var pipelineResults = new DesignTimePipelineExecutionResult(
             partialCompilation.SyntaxTrees,
@@ -289,7 +345,7 @@ public sealed class SplitResultsByTreeExtensionAccumulationTests : UnitTestClass
             ImmutableUserDiagnosticList.Empty,
             ImmutableArray<InheritableAspectInstance>.Empty,
             ImmutableArray<KeyValuePair<HierarchicalOptionsKey, IHierarchicalOptions>>.Empty,
-            ImmutableArray.Create( contributor ),
+            contributors,
             ImmutableArray<IAspectInstance>.Empty,
             ImmutableArray<ITransformationBase>.Empty,
             ImmutableDictionaryOfArray<IRef<IDeclaration>, AnnotationInstance>.Empty );

@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -169,11 +169,6 @@ internal sealed class OnConstructedMethodAdvice : Advice<AddInitializerAdviceRes
             context.AddTransitiveAspect(
                 new TransitiveAspectInstance(
                     transitiveAspect,
-
-                    // Durable: a transitive aspect instance is stored in the design-time results of the file
-                    // declaring its target, which the pipeline carries forward to every later version of the
-                    // project, so a symbol-backed reference would pin the compilation it was produced in for the
-                    // whole editing session. See issue #1797.
                     targetType.ToRef().ToDurable(),
                     targetType.Depth,
                     (IAspectClassImpl) context.AspectClassResolver.GetAspectClass( typeof(AddConstructorEpilogueTransitiveAspect) ),
