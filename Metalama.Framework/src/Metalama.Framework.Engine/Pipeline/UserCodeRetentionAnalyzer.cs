@@ -8,14 +8,12 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Code.Collections;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel;
-using Metalama.Framework.Engine.Collections;
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Options;
-using Metalama.Framework.Engine.Pipeline;
 using Metalama.Framework.Engine.Services;
-using Metalama.Framework.Engine.Utilities.Diagnostics;
+using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.ObjectGraph;
 using Microsoft.CodeAnalysis;
 using System;
@@ -130,7 +128,7 @@ internal sealed class UserCodeRetentionAnalyzer
         var roots = new List<(string Name, object Root)>();
         var userCodeRoots = new HashSet<object>( ReferenceEqualityComparer<object>.Instance );
 
-        this.AddFabricContributorRoots( result, roots );
+        AddFabricContributorRoots( result, roots );
         this.AddTransitiveOutputRoots( result, roots );
         this.AddStaticFieldRoots( roots, userCodeRoots );
 
@@ -193,7 +191,7 @@ internal sealed class UserCodeRetentionAnalyzer
     /// The fabric instances themselves are reachable from these objects, so they do not need to be roots of their own:
     /// a fabric that registered nothing is not retained at all and therefore cannot leak.
     /// </remarks>
-    private void AddFabricContributorRoots( AspectPipelineResult result, List<(string Name, object Root)> roots )
+    private static void AddFabricContributorRoots( AspectPipelineResult result, List<(string Name, object Root)> roots )
     {
         var contributors = result.Configuration.FabricsContributors?.Contributors ?? ImmutableArray<IPipelineContributor>.Empty;
 
@@ -387,8 +385,8 @@ internal sealed class UserCodeRetentionAnalyzer
         stringBuilder.AppendLine( "Analysis of the references retained by compile-time code" );
         stringBuilder.AppendLine( "============================================" );
         stringBuilder.AppendLine();
-        stringBuilder.AppendLine( $"Project: {this._projectOptions?.AssemblyName} ({this._projectOptions?.TargetFramework})" );
-        stringBuilder.AppendLine( $"Objects visited: {walkResult.VisitedObjectCount}" );
+        stringBuilder.AppendLineInvariant( $"Project: {this._projectOptions?.AssemblyName} ({this._projectOptions?.TargetFramework})" );
+        stringBuilder.AppendLineInvariant( $"Objects visited: {walkResult.VisitedObjectCount}" );
         stringBuilder.AppendLine( completeness );
         stringBuilder.AppendLine();
 
@@ -415,7 +413,7 @@ internal sealed class UserCodeRetentionAnalyzer
 
             foreach ( var finding in sectionFindings )
             {
-                stringBuilder.AppendLine( $"{ObjectGraphNode.FormatType( finding.Node.Object.GetType() )} is retained{FormatOrigin( finding )}:" );
+                stringBuilder.AppendLineInvariant( $"{ObjectGraphNode.FormatType( finding.Node.Object.GetType() )} is retained{FormatOrigin( finding )}:" );
                 stringBuilder.AppendLine( finding.Node.FormatPath() );
                 stringBuilder.AppendLine();
             }

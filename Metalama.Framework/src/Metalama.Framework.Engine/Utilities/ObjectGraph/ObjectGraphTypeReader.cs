@@ -5,7 +5,9 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+#if !NET6_0_OR_GREATER
 using System.Linq;
+#endif
 using System.Reflection;
 using System.Reflection.Emit;
 
@@ -96,7 +98,7 @@ internal sealed class ObjectGraphTypeReader
 
         for ( var i = 0; i < this._paths.Length; i++ )
         {
-            object? current = obj;
+            var current = obj;
 
             foreach ( var field in this._paths[i] )
             {

@@ -8,6 +8,7 @@ using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.ObjectGraph;
 using Microsoft.CodeAnalysis;
 using System;
@@ -112,16 +113,18 @@ internal sealed class UserCodeRetentionPolicy
     /// </remarks>
     private static bool IsFromSource( ISymbol symbol )
     {
-        switch ( symbol )
+        switch ( symbol.Kind )
         {
-            case IArrayTypeSymbol array:
-                return IsFromSource( array.ElementType );
+            case SymbolKind.ArrayType:
+                return IsFromSource( ((IArrayTypeSymbol) symbol).ElementType );
 
-            case IPointerTypeSymbol pointer:
-                return IsFromSource( pointer.PointedAtType );
+            case SymbolKind.PointerType:
+                return IsFromSource( ((IPointerTypeSymbol) symbol).PointedAtType );
 
-            case INamedTypeSymbol { IsGenericType: true } namedType when !namedType.TypeArguments.IsDefaultOrEmpty:
-                if ( namedType.TypeArguments.Any( IsFromSource ) )
+            case SymbolKind.NamedType:
+                var namedType = (INamedTypeSymbol) symbol;
+
+                if ( namedType.IsGenericType && !namedType.TypeArguments.IsDefaultOrEmpty && namedType.TypeArguments.Any( IsFromSource ) )
                 {
                     return true;
                 }
@@ -216,7 +219,7 @@ internal sealed class UserCodeRetentionPolicy
 
         var outermost = type;
 
-        while ( outermost.DeclaringType != null && outermost.Name.IndexOf( '<' ) >= 0 )
+        while ( outermost.DeclaringType != null && outermost.Name.IndexOfOrdinal( '<' ) >= 0 )
         {
             outermost = outermost.DeclaringType;
         }

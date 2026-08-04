@@ -86,7 +86,8 @@ internal sealed class ObjectGraphNode
         {
             var indent = new string( ' ', i * 2 );
             var kind = path[i].IsConditional ? " [conditional]" : "";
-            stringBuilder.AppendLine( $"{indent}{path[i].Label} : {FormatType( path[i].Object.GetType() )}{kind}" );
+
+            stringBuilder.AppendLineInvariant( $"{indent}{path[i].Label} : {FormatType( path[i].Object.GetType() )}{kind}" );
         }
 
         return stringBuilder.ToString().TrimEnd();
@@ -103,7 +104,7 @@ internal sealed class ObjectGraphNode
         }
 
         var name = type.Name;
-        var backTick = name.IndexOf( '`' );
+        var backTick = name.IndexOfOrdinal( '`' );
 
         if ( backTick > 0 )
         {
