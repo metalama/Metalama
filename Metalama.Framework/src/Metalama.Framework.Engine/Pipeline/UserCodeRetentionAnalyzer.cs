@@ -358,9 +358,7 @@ internal sealed class UserCodeRetentionAnalyzer
                     description: finding.Node.FormatPath() ) );
         }
 
-        var completeness = walkResult.IsExhausted
-            ? "The walk of the object graph was interrupted before it completed, therefore this result is a lower bound."
-            : "The whole object graph reachable from the retained objects was analysed.";
+        var completeness = FormatCompleteness( walkResult );
 
         var report = this.FormatReport( findings, walkResult, completeness );
         var reportPath = this.TryWriteReport( report ) ?? "(the report file could not be written)";
@@ -377,6 +375,34 @@ internal sealed class UserCodeRetentionAnalyzer
     /// Formats the chain of references on a single line, so that it fits in a diagnostic message.
     /// </summary>
     private static string FormatCompactPath( ObjectGraphNode node ) => string.Join( " -> ", node.GetPath().SelectAsArray( n => n.Label ) );
+
+    /// <summary>
+    /// States how far the walk got, so that the report never presents a partial answer as a complete one.
+    /// </summary>
+    /// <remarks>
+    /// There are two distinct reasons the answer can be partial, and they are worth telling apart. The walk may have
+    /// run out of its budget, which is a property of the project being analysed. Or the runtime may not allow the
+    /// entries of a <c>ConditionalWeakTable</c> to be read at all, which is a property of the host: .NET Framework
+    /// implements no enumerable interface on that type, and .NET Framework is what desktop MSBuild and Visual Studio
+    /// run. In the second case the walk is sound but blind to anything held only through an ephemeron, and the user
+    /// deserves to know that before concluding that their code retains nothing.
+    /// </remarks>
+    private static string FormatCompleteness( ObjectGraphWalkResult walkResult )
+    {
+        var scope = walkResult.IsExhausted
+            ? "The walk of the object graph was interrupted before it completed, therefore this result is a lower bound."
+            : "The whole object graph reachable from the retained objects was analysed.";
+
+        if ( ObjectGraphWalker.CanFollowConditionalReferences )
+        {
+            return scope;
+        }
+
+        return scope
+               + " This run is on .NET Framework, where the entries of a ConditionalWeakTable cannot be enumerated, so"
+               + " an object retained only through such a table is not reported. Run the analysis on .NET to cover those"
+               + " references as well.";
+    }
 
     private string FormatReport( IReadOnlyList<Finding> findings, ObjectGraphWalkResult walkResult, string completeness )
     {

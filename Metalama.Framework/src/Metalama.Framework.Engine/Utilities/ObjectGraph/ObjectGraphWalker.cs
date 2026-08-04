@@ -303,6 +303,27 @@ internal sealed class ObjectGraphWalker
     }
 
     /// <summary>
+    /// Gets a value indicating whether the current runtime allows the entries of a
+    /// <see cref="ConditionalWeakTable{TKey,TValue}"/> to be enumerated, and therefore whether the walk can follow
+    /// conditional references at all.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The entries are held through dependent handles, which reflection cannot read, so the only way to reach them is
+    /// the <see cref="IEnumerable"/> implementation of the table. .NET Core has one and .NET Framework does not: there
+    /// <c>ConditionalWeakTable</c> implements no enumerable interface whatsoever, so nothing held only through such a
+    /// table can be discovered.
+    /// </para>
+    /// <para>
+    /// This matters beyond the tests, because <c>Metalama.Framework.Engine</c> targets .NET Framework as well, and that
+    /// is the runtime of desktop MSBuild and of Visual Studio. On that runtime the walk is sound but incomplete: every
+    /// chain it reports is real, and a retention held only through an ephemeron is invisible to it. The property is
+    /// public so that a caller can say so in its report rather than presenting a partial answer as a complete one.
+    /// </para>
+    /// </remarks>
+    public static bool CanFollowConditionalReferences { get; } = (object) new ConditionalWeakTable<object, object>() is IEnumerable;
+
+    /// <summary>
     /// Determines whether a type is a <see cref="ConditionalWeakTable{TKey,TValue}"/>.
     /// </summary>
     private static bool IsConditionalWeakTable( Type type )
@@ -332,6 +353,11 @@ internal sealed class ObjectGraphWalker
     private IEnumerable<Reference> EnumerateReachableConditionalValues( object table )
     {
         var references = new List<Reference>();
+
+        if ( !CanFollowConditionalReferences )
+        {
+            return references;
+        }
 
         try
         {

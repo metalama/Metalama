@@ -288,6 +288,25 @@ public sealed class ObjectGraphWalkerTests
         public object? StrongKey;
     }
 
+    /// <summary>
+    /// Verifies that the walker agrees with the runtime about whether conditional references can be followed at all.
+    /// </summary>
+    /// <remarks>
+    /// The entries of a <see cref="ConditionalWeakTable{TKey,TValue}"/> are held through dependent handles, which
+    /// reflection cannot read, so the only route to them is the enumerable interface of the table. .NET Core has one
+    /// and .NET Framework has none. The tests below are conditional on this, and asserting it separately keeps the
+    /// reason visible instead of leaving a bare <c>#if</c> in the middle of them.
+    /// </remarks>
+    [Fact]
+    public void ConditionalReferences_AreFollowedOnlyWhereTheRuntimeAllowsIt()
+    {
+#if NET6_0_OR_GREATER
+        Assert.True( ObjectGraphWalker.CanFollowConditionalReferences );
+#else
+        Assert.False( ObjectGraphWalker.CanFollowConditionalReferences );
+#endif
+    }
+
     [Fact]
     public void ConditionalWeakTable_FollowsTheValueOfAReachableKey()
     {
@@ -298,8 +317,17 @@ public sealed class ObjectGraphWalkerTests
 
         var node = Find( Walk( holder ), value );
 
-        Assert.NotNull( node );
-        Assert.True( node!.IsConditional );
+        if ( ObjectGraphWalker.CanFollowConditionalReferences )
+        {
+            Assert.NotNull( node );
+            Assert.True( node!.IsConditional );
+        }
+        else
+        {
+            // On .NET Framework the entries cannot be reached at all, so the value is invisible. The walk stays sound,
+            // because every chain it does report is real; it is incomplete, which is what the property says.
+            Assert.Null( node );
+        }
     }
 
     [Fact]
@@ -361,7 +389,7 @@ public sealed class ObjectGraphWalkerTests
         holder.First.Add( firstKey, secondKey );
         holder.Second.Add( secondKey, secondValue );
 
-        Assert.True( Reached( Walk( holder ), secondValue ) );
+        Assert.Equal( ObjectGraphWalker.CanFollowConditionalReferences, Reached( Walk( holder ), secondValue ) );
     }
 
     [Fact]

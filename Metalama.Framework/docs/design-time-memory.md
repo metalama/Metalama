@@ -236,6 +236,14 @@ Three parts of the harness matter more than the tests themselves.
   `Metalama.Framework.Engine/Utilities/ObjectGraph/ObjectGraphWalker`, which the shipping diagnostic described below
   shares; `RetentionPathFinder` only supplies the stop rule and formats the result. `ObjectGraphWalkerTests` covers the
   traversal rules one by one, on graphs small enough that the expected answer is evident by inspection.
+- **Conditional references cannot be followed on .NET Framework at all**, and
+  `ObjectGraphWalker.CanFollowConditionalReferences` says so. The entries of a `ConditionalWeakTable` are held through
+  dependent handles, which reflection cannot read, so the only route to them is the enumerable interface of the table;
+  .NET Core has one and .NET Framework implements none. This is not confined to the tests: `Metalama.Framework.Engine`
+  targets .NET Framework, which is the runtime of desktop MSBuild and of Visual Studio. On that runtime both the walk
+  and anything built on it are **sound but incomplete**: every chain reported is real, and a retention held only through
+  an ephemeron is invisible. Assert against the property rather than for the .NET Core behaviour, as the
+  conditional-weak-table tests do.
 - **`MemoryLeakAssertSelfTests`** plants a retention deliberately and requires the assertions to catch it and name the
   field. A suite of liveness tests that all pass is indistinguishable from a suite whose assertions never fire, so
   this positive control is what gives the rest of the suite its value.
