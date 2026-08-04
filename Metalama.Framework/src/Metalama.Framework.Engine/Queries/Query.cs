@@ -137,12 +137,7 @@ namespace Metalama.Framework.Engine.Queries
         /// </remarks>
         private static Func<CompilationModel, INamedType> CreateBaseTypeResolver( INamedType baseType )
         {
-            var baseTypeRef = DurableRefFactory.FromTypeId<INamedType>( baseType.GetSerializableTypeId() );
-
-            if ( baseTypeRef.GetTargetOrNull( baseType.Compilation ) == null )
-            {
-                return _ => baseType;
-            }
+            var baseTypeRef = baseType.ToDurableRef();
 
             return c => baseTypeRef.GetTarget( c );
         }
