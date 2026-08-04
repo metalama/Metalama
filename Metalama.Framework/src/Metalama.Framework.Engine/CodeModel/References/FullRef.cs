@@ -144,7 +144,7 @@ internal abstract partial class FullRef<T> : BaseRef<T>, IFullRef<T>
     /// </remarks>
     private protected virtual IDurableRef<T> CreateDurableRef()
         => this.TargetKind == RefTargetKind.Default
-           && this.GetSymbolIgnoringRefKind( this.CompilationContext ) is ITypeSymbol typeSymbol
+           && this.GetSymbolIgnoringRefKind( this.CompilationContext ) is { Kind.IsType: true } and ITypeSymbol typeSymbol
             ? new TypeIdRef<T>( typeSymbol.GetSerializableTypeId( includeGenericContext: true ) )
             : new DeclarationIdRef<T>( this.ToSerializableId() );
 
