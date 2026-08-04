@@ -220,10 +220,6 @@ public sealed class SplitResultsByTreeExtensionAccumulationTests : UnitTestClass
     }
 
     /// <summary>
-    /// Creates a syntax tree that belongs to another compilation, standing in for a declaration of a referenced
-    /// project.
-    /// </summary>
-    /// <summary>
     /// A run that carries no contributor at all must not discard the contributors of another compilation that earlier
     /// runs established.
     /// </summary>
@@ -269,6 +265,10 @@ public sealed class SplitResultsByTreeExtensionAccumulationTests : UnitTestClass
         Assert.Contains( contributor, afterEmptyRun.Extensions.Extensions );
     }
 
+    /// <summary>
+    /// Creates a syntax tree that belongs to another compilation, standing in for a declaration of a referenced
+    /// project.
+    /// </summary>
     private static SyntaxTree CreateForeignTree( TestContext testContext )
     {
         var referencedCompilation = testContext.CreateCSharpCompilation(
