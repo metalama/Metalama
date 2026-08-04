@@ -297,4 +297,15 @@ public interface IProjectOptions : IProjectService, IEquatable<IProjectOptions>
     /// WPF MarkupCompilePass1 temporary assembly).
     /// </summary>
     CompilationScenario CompilationScenario { get; }
+
+    /// <summary>
+    /// Gets a value indicating whether the objects that the fabrics of the project leave behind should be analysed for
+    /// references that pin a compilation. The default is <c>false</c>.
+    /// </summary>
+    /// <remarks>
+    /// The analysis walks the object graph of every fabric instance and of everything the fabrics registered, which is
+    /// expensive, therefore it runs only when a user who suspects a memory leak asks for it. See
+    /// <c>design-time-memory.md</c> for what the analysis reports and why it matters.
+    /// </remarks>
+    bool DiagnoseMemoryLeaks { get; }
 }

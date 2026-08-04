@@ -566,6 +566,23 @@ internal sealed class CompileTimeProject : IProjectService
             nameof(reflectionName),
             $"Cannot find a type named '{reflectionName}' in the compile-time project '{this.CompileTimeIdentity}'." );
 
+    /// <summary>
+    /// Gets every type declared by the compile-time assembly of the current project, or an empty array when the project
+    /// has no compile-time assembly of its own.
+    /// </summary>
+    /// <remarks>
+    /// A project that represents <c>Metalama.Framework</c> itself is excluded, because its types are not user code.
+    /// </remarks>
+    internal Type[] GetDeclaredTypes()
+    {
+        if ( this.IsEmpty || this.IsFramework || this.CompiledAssemblyPath == null )
+        {
+            return [];
+        }
+
+        return this.Assembly.GetTypes();
+    }
+
     internal (CompileTimeFileManifest? File, CompileTimeProject? Project) FindCodeFileFromTransformedPath( string transformedCodePath )
         => this.ClosureCodeFiles[Path.GetFileName( transformedCodePath )]
             .OrderByDescending( t => t.File.TransformedPath.Length )

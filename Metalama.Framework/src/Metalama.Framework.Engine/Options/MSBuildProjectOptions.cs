@@ -203,6 +203,9 @@ public partial class MSBuildProjectOptions : DefaultProjectOptions
     public override CompilationScenario CompilationScenario => this.GetEnumOption<CompilationScenario>( MSBuildPropertyNames.MetalamaCompilationScenario );
 
     [Memo]
+    public override bool DiagnoseMemoryLeaks => this.GetBooleanOption( MSBuildPropertyNames.MetalamaDiagnoseMemoryLeaks );
+
+    [Memo]
     public override ImmutableArray<string> SourceGeneratorAttributes => this.GetListOption( MSBuildPropertyNames.MetalamaSourceGeneratorAttributes );
 
     public override bool AvoidLockingExtensionAssemblies => this.GetBooleanOption( MSBuildPropertyNames.MetalamaAvoidLockingExtensionAssemblies );

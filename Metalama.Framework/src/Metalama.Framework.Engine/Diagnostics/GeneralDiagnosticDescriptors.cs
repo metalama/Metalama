@@ -544,6 +544,33 @@ namespace Metalama.Framework.Engine.Diagnostics
                     "The MSBuild property that selects the compile-time target frameworks is invalid.",
                     _category );
 
+        // The two diagnostics below are produced by UserCodeRetentionAnalyzer, which runs only when the
+        // MetalamaDiagnoseMemoryLeaks MSBuild property is set. They describe a retention that is harmless during
+        // the batch compilation that reports them, and costly at design time, where the objects that hold the reported
+        // object outlive the compilation. See design-time-memory.md.
+        internal static readonly DiagnosticDefinition<(string UserType, string PinnedType, string Path)>
+            UserCodePinsCompilation =
+                new(
+                    "LAMA0085",
+                    _category,
+                    "The compile-time type '{0}' holds a reference to a '{1}', which pins the Roslyn compilation. At "
+                    + "design time the objects that hold it outlive the compilation, therefore this "
+                    + "reference prevents every version of the project from being released while the solution is open. The "
+                    + "chain of references is: {2}. Store the identifier returned by IDeclaration.ToSerializableId() instead, "
+                    + "and resolve it against the current compilation with IDeclarationFactory.GetDeclarationFromId.",
+                    Warning,
+                    "Compile-time code holds a reference that pins the compilation." );
+
+        internal static readonly DiagnosticDefinition<(int UserCodeCount, int FrameworkCount, string Completeness, string ReportPath)>
+            UserCodeRetentionAnalysisCompleted =
+                new(
+                    "LAMA0086",
+                    _category,
+                    "The analysis of the references retained by compile-time code found {0} retention(s) in code written by the user "
+                    + "and {1} retention(s) in Metalama itself. {2} The full report is in '{3}'.",
+                    Warning,
+                    "The analysis of the references retained by compile-time code is complete." );
+
         // TODO: Use formattable string (C# does not seem to find extension methods).
         internal static readonly DiagnosticDefinition<string>
             UnsupportedFeature = new(
