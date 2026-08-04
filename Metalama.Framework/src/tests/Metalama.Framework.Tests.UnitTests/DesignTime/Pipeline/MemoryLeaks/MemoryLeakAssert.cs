@@ -95,6 +95,60 @@ internal static class MemoryLeakAssert
     }
 
     /// <summary>
+    /// Asserts that the target of a weak reference is still alive and that what retains it is the expected route.
+    /// </summary>
+    /// <param name="weakReference">A weak reference to the object that is known to be retained.</param>
+    /// <param name="expectedInPath">
+    /// A fragment of the retention chain, usually the name of the type or of the field that carries the reference.
+    /// </param>
+    /// <param name="description">A description of the object, used in the failure messages.</param>
+    /// <param name="roots">The objects that play the role of garbage-collection roots in the analysis.</param>
+    /// <remarks>
+    /// <para>
+    /// This is the inverse of <see cref="Collected"/> and is used to record a retention that is known and tracked but
+    /// not yet fixed. Asserting only that the object is alive would be a weak record, because it would hold whether the
+    /// documented route retains the object or something else does, and it would go on holding after the documented
+    /// route was removed. Naming the route makes the assertion say what it means, and makes it fail in both of the
+    /// directions that matter: when the retention is fixed, and when the retention survives for a different reason
+    /// than the one written down.
+    /// </para>
+    /// <para>
+    /// A failure of the first kind is the signal to replace the call with <see cref="Collected"/>.
+    /// </para>
+    /// </remarks>
+    [MethodImpl( MethodImplOptions.NoInlining )]
+    public static void RetainedThrough(
+        WeakReference weakReference,
+        string expectedInPath,
+        string description,
+        params (string Name, object Root)[] roots )
+    {
+        GarbageCollectionHelper.Collect();
+
+        var target = weakReference.Target;
+
+        Assert.True(
+            target != null,
+            $"{description} was released, so the retention through {expectedInPath} is gone. If the issue that tracks "
+            + $"it has been fixed, replace this control with {nameof(Collected)}." );
+
+        var finder = new RetentionPathFinder();
+
+        if ( !finder.TryFindPath( target!, out var path, roots ) )
+        {
+            Assert.Fail(
+                $"{description} is retained, as expected, but no retention path was found from the given roots, "
+                + $"therefore this control cannot confirm that {expectedInPath} is what retains it. The search visited "
+                + $"{finder.VisitedObjectCount} objects and "
+                + (finder.IsExhausted ? "was exhausted before completing." : "completed.") );
+        }
+
+        Assert.True(
+            path!.Contains( expectedInPath, StringComparison.Ordinal ),
+            $"{description} is retained, but not through {expectedInPath}. Retention path:{Environment.NewLine}{path}" );
+    }
+
+    /// <summary>
     /// Builds a failure message that includes the retention chain of <paramref name="target"/>, when one can be found.
     /// </summary>
     private static string BuildFailureMessage( object target, string description, (string Name, object Root)[] roots )

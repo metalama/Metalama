@@ -240,13 +240,11 @@ public sealed class ExtensionContributorMemoryLeakTests : DesignTimeTestBase
 
         var initialCompilation = this.RunEditingSession( testContext, factory, "NonDurableContributor", 10 );
 
-        GarbageCollectionHelper.Collect();
-
-        Assert.True(
-            initialCompilation.IsAlive,
-            "The compilation in which a non-durable contributor was produced was released. Either the pipeline no "
-            + "longer stores what an extension returns, in which case this suite needs revisiting, or the framework "
-            + "now enforces the durability requirement, in which case this test should assert the enforcement." );
+        MemoryLeakAssert.RetainedThrough(
+            initialCompilation,
+            nameof(TestContributor),
+            "The compilation in which a non-durable contributor was produced",
+            ("pipelineFactory", factory) );
     }
 
     /// <summary>
