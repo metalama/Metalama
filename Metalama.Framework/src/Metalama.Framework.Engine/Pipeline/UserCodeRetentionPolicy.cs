@@ -166,6 +166,15 @@ internal sealed class UserCodeRetentionPolicy
             case CompileTimeProject:
             case CompileTimeDomain:
 
+            // A cacheable template reflection context owns the compilation against which the templates of a referenced
+            // assembly are reflected. That compilation has no syntax tree and only portable executable references, so
+            // the engine keeps it deliberately, for the whole session. A fabric reaches it through the template class of
+            // its own aspect, therefore descending into it would report a compilation that the user did not create and
+            // cannot release, and would name the fabric as the cause. The compilation context of the source compilation
+            // also implements this interface, but it is classified as pinning and is reported before this method is
+            // consulted.
+            case ITemplateReflectionContext:
+
             // A logger is process-wide infrastructure. Nothing reached through one is a retention that the owner of the
             // chain could act upon, and the graph behind it is unbounded: in a test host it reaches the runner, and
             // through the runner every other test in the process.
