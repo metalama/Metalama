@@ -367,9 +367,11 @@ public sealed class RefTests : UnitTestClass
     /// identified by its <see cref="SerializableTypeId"/>.
     /// </para>
     /// <para>
-    /// <c>Query.CreateBaseTypeResolver</c> is such a caller: <c>SelectTypesDerivedFrom( INamedType )</c> accepts a
+    /// <c>Query.CreateBaseTypeResolver</c> was such a caller: <c>SelectTypesDerivedFrom( INamedType )</c> accepts a
     /// constructed generic type, and going through a declaration identifier would have made the query match the types
-    /// derived from every construction of the generic type. It uses a <see cref="SerializableTypeId"/> for that reason.
+    /// derived from every construction of the generic type. It builds a <see cref="SerializableTypeId"/> explicitly,
+    /// which is no longer needed to avoid the widening, but is still needed because that conversion does not throw for
+    /// a type an aspect introduced.
     /// </para>
     /// </remarks>
     [Fact]

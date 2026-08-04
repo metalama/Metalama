@@ -111,11 +111,18 @@ namespace Metalama.Framework.Engine.Queries
         /// run, which is what the overloads taking a <see cref="Type"/> do already. See issue #1799.
         /// </para>
         /// <para>
-        /// The durable form is a <see cref="SerializableTypeId"/> and not the <c>SerializableDeclarationId</c> that
-        /// <c>IRef.ToDurable</c> would produce, because these overloads accept any <see cref="INamedType"/>, including
-        /// a constructed generic type such as <c>Base&lt;int&gt;</c>. A declaration identifier names the generic
-        /// definition only, so going through it would silently widen the query to every construction of the generic
-        /// type. <c>DurableRefToConstructedGenericTypeLosesTheTypeArguments</c> holds that distinction.
+        /// The durable form is built explicitly from a <see cref="SerializableTypeId"/> rather than by calling
+        /// <c>ToDurable</c> or <c>ToDurableRef</c>, for the sake of the fallback described below rather than for the
+        /// identifier itself: a type identifier can be requested for any type and the result merely fails to resolve,
+        /// whereas <c>ToDurableRef</c> asks a type that is also a declaration for its declaration identifier, which
+        /// throws when none can be built, as is the case for a type an aspect introduced.
+        /// </para>
+        /// <para>
+        /// The identifier no longer needs to be a type identifier for correctness. <c>IRef.ToDurable</c> used to
+        /// produce a declaration identifier for every named type, which names the generic definition only and would
+        /// silently have widened this query to every construction of a generic type. It now uses a type identifier for
+        /// a constructed generic type, so both routes preserve the type arguments;
+        /// <c>DurableRefToConstructedGenericTypeKeepsTheTypeArguments</c> holds that property. See issue #1797.
         /// </para>
         /// <para>
         /// A type that no identifier can denote, which in practice means a type introduced by an aspect or a type
