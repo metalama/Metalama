@@ -105,6 +105,64 @@ public sealed class TransitiveContributorMemoryLeakTests : DesignTimeTestBase
         };
 
     /// <summary>
+    /// Records that the transitive contributor which survives the session still retains the version of the project it
+    /// was produced in, and by which route.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The contributor reaches a compilation by two routes. Its own target declaration is now durable, and so is the
+    /// one of the aspect instance that carries it. What remains is the aspect object, which for the pull strategy
+    /// holds a reference to the parameter that was pulled, and that parameter is one an earlier aspect introduced, so
+    /// the reference is an <c>IntroducedRef</c>.
+    /// </para>
+    /// <para>
+    /// That reference cannot simply be made durable, which was established by trying it: an <c>IntroducedRef</c> does
+    /// have a serializable identifier, and <c>ToDurable</c> compiles and closes this retention, but fixing the
+    /// identifier at the moment the advice runs breaks the cross-project case. With the parameter reference made
+    /// durable, <c>PullParameterTests.CrossProjectIntegration</c> fails: the consuming project resolves nothing and
+    /// the transitive aspect silently does not apply. The identity of an introduced declaration is not yet settled
+    /// when the transitive aspect is created, so making it durable has to happen later than that, which is a change of
+    /// design rather than a change of call. Issue #1797 carries the detail.
+    /// </para>
+    /// <para>
+    /// The assertion is deliberately the opposite of the one the rest of this suite makes. It is a control: it holds
+    /// the measurement that the retention is real and confined to that single route, and it fails the moment #1797 is
+    /// fixed, which is the signal to replace it with the ordinary assertion that the compilation is released.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void TransitiveContributor_StillRetainsTheCompilation_ThroughTheIntroducedParameterOnly()
+    {
+        using var testContext = this.CreateTestContext();
+        using var factory = new TestDesignTimeAspectPipelineFactory( testContext );
+
+        var simulator = new DesignTimeEditingSimulator(
+            testContext,
+            factory,
+            nameof(this.TransitiveContributor_StillRetainsTheCompilation_ThroughTheIntroducedParameterOnly),
+            CreateInitialCode() );
+
+        var initialCompilation = simulator.GetWeakReferenceToCurrentCompilation();
+        simulator.Execute();
+
+        for ( var version = 1; version <= 10; version++ )
+        {
+            simulator.ApplyEdit( _editedFileName, GetEditedCode( version ) );
+        }
+
+        // Without a surviving contributor there would be nothing to retain anything, and the assertion below would
+        // hold for a reason unrelated to what it measures.
+        Assert.NotEmpty( simulator.GetPipeline().AspectPipelineResult.Extensions.Extensions );
+
+        GarbageCollectionHelper.Collect();
+
+        Assert.True(
+            initialCompilation.IsAlive,
+            "The compilation was released, so the retention through the introduced parameter is gone. If issue #1797 "
+            + "has been fixed, replace this control with MemoryLeakAssert.Collected." );
+    }
+
+    /// <summary>
     /// Verifies that the number of transitive contributors the pipeline holds does not grow with the number of edits.
     /// </summary>
     /// <remarks>

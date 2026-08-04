@@ -16,6 +16,13 @@ namespace Metalama.Framework.Engine.AdviceImpl.Introduction.Constructors;
 internal sealed partial class PullConstructorParameterTransitiveAspect : IAspect<INamedType>
 {
     private readonly IPullStrategy? _pullStrategy;
+    /// <remarks>
+    /// Durable by declaration, for the reason given on <see cref="TransitiveAspectInstance.TargetDeclaration"/>: this
+    /// aspect object is carried by a transitive aspect instance and lives exactly as long as it does. The parameter
+    /// may itself have been introduced by an earlier aspect, in which case the reference is an <c>IntroducedRef</c>,
+    /// whose serializable identifier names the constructor signature and the ordinal and so survives the
+    /// re-introduction a later run performs.
+    /// </remarks>
     private readonly IRef<IParameter> _parameter;
     private readonly int _order;
     private readonly IConstructorOverloadingStrategy? _overloadingStrategy;

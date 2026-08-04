@@ -222,6 +222,12 @@ internal sealed class PullConstructorParameterAdviceImpl
             {
                 var transitiveAspect = new PullConstructorParameterTransitiveAspect(
                     this._pullStrategy,
+
+                    // Durable, like the target declaration below: the aspect object is carried by the transitive
+                    // aspect instance and lives exactly as long. The pulled parameter may itself have been
+                    // introduced by an earlier aspect, in which case this is an IntroducedRef, whose serializable
+                    // identifier names the constructor signature and the ordinal and therefore survives the
+                    // re-introduction that a later run performs. See issue #1797.
                     baseParameter.ToRef(),
                     this._context.AspectOrder,
                     this._forwardingHelper?.OverloadingStrategy );
@@ -229,7 +235,7 @@ internal sealed class PullConstructorParameterAdviceImpl
                 this._context.AddTransitiveAspect(
                     new TransitiveAspectInstance(
                         transitiveAspect,
-                        baseParameter.DeclaringMember.DeclaringType.ToRef(),
+                        baseParameter.DeclaringMember.DeclaringType.ToRef().ToDurable(),
                         baseParameter.DeclaringMember.DeclaringType.Depth,
                         (IAspectClassImpl) this._context.AspectClassResolver.GetAspectClass( typeof(PullConstructorParameterTransitiveAspect) ),
                         this._aspectLayerInstance.AspectInstance.AspectState,

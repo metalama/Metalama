@@ -19,6 +19,10 @@ internal sealed partial class PullConstructorParameterTransitiveAspect
         public override PullConstructorParameterTransitiveAspect CreateInstance( IArgumentsReader constructorArguments )
         {
             var pullStrategy = constructorArguments.GetValue<IPullStrategy>( nameof(_pullStrategy) );
+            // Read and written as IRef, which is the shape the serialization framework knows, and converted on this
+            // boundary. A deserialized reference is already durable, since RefSerializer rebuilds it from a
+            // serializable identifier, so ToDurable is a no-op here; it is what satisfies the field type, which
+            // declares the requirement rather than trusting the caller. See issue #1797.
             var parameter = constructorArguments.GetValue<IRef<IParameter>>( nameof(_parameter) ).AssertNotNull();
             var order = constructorArguments.GetValue<int>( nameof(_order) );
             var overloadingStrategy = constructorArguments.GetValue<IConstructorOverloadingStrategy>( nameof(_overloadingStrategy) );
