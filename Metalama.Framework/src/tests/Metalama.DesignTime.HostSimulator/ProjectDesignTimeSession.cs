@@ -96,7 +96,7 @@ internal sealed class ProjectDesignTimeSession
     /// <para>
     /// These do not make the simulation fail. A design-time scenario is allowed to be one that does not compile, and
     /// <see cref="ProjectReport.HasFailure"/> deliberately counts only the failures of the analysis infrastructure. A
-    /// scenario that wants a compiler diagnostic to be a failure says so in its <c>test.json</c>.
+    /// scenario that wants a compiler diagnostic to be a failure says so in its <see cref="TestOptions.FileName"/>.
     /// </para>
     /// </remarks>
     private void AddCompilerDiagnostics( Compilation compilation, ProjectReport projectReport, CancellationToken cancellationToken )

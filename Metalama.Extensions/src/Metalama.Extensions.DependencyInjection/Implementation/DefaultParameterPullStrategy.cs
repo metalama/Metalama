@@ -44,7 +44,7 @@ public class DefaultParameterPullStrategy : IParameterPullStrategy
         this.ParameterType = parameterType;
         this.DependencyName = dependencyName;
     }
-    
+
     [Obsolete("Pass an IDurableRef<IType>.")]
     public DefaultParameterPullStrategy( IRef<IType> parameterType, string dependencyName ) : this( parameterType.ToDurable(), dependencyName )
     {
