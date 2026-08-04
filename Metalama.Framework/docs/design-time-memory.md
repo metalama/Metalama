@@ -272,13 +272,29 @@ declaration closes with `ToDurable()` exactly as the inheritable aspect instance
 half: it carries an `IntroducedRef` to a declaration the pipeline introduced, which has no source identity to be
 durable against, so it needs a design change rather than a repair.
 
-### `TransitiveManifestDeserializationCache` has no eviction
+### `TransitiveManifestDeserializationCache` is invalidated, contrary to a second claim made here earlier
 
-`_manifests` and `_manifestsByHash` (`Metalama.Framework.Engine/Aspects/TransitiveManifestDeserializationCache.cs:42`
-and `:43`) grow without bound and are reset only wholesale, in `EnsureBoundTo`. The values are compilation-neutral
-deserialized manifests, so this is uncapped managed memory rather than a retained compilation, which is why it is not
-treated as a leak by the rules above. It is reached only on a minority reference configuration, namely a cross-version
-reference or one whose live manifest cannot be reused.
+An earlier revision of this section listed this cache as having no eviction and being "reset only wholesale". That
+reading was wrong, and it inverted the design: the wholesale replacement in `EnsureBoundTo` is not a substitute for
+missing eviction, it *is* the invalidation.
+
+Both dictionaries are dropped whenever the consuming project's `CompileTimeProject` is not the one they were filled
+for. That scope is the point. A manifest is deserialized with the *consuming* project's service provider so that it
+binds to that project's compile-time copy of each type ([#1710](https://github.com/metalama/Metalama/issues/1710)), so
+an entry made against a superseded projection must not be reused, and a consumer whose compile-time project is unknown
+is not cached at all rather than risk a wrong binding. `TransitiveManifestDeserializationCacheTests` covers this,
+`ReprojectedConsumer_DropsTheCache` by name.
+
+The path is also narrower than the entry implied: the hash-keyed overload is reached only when `CanReuseLiveManifest`
+is false, which is a cross-version reference or one whose compile-time copies differ. A same-version reference reads
+the producer's live result instead and never touches the cache.
+
+What remains is a question rather than a finding, and is recorded as one because it has *not* been measured. Within one
+`CompileTimeProject` lifetime, an entry is added per distinct manifest content of a referenced project. A referenced
+project's manifest content can change without its compile-time code changing, by an edit to run-time code that carries
+an inheritable aspect, and such a change does not re-project the consumer. Whether that is reachable often enough to
+matter, given the narrow reference configuration required, is unknown. The values are compilation-neutral, so it would
+be managed memory rather than a retained compilation.
 
 ### Requirements that cannot be enforced
 
@@ -298,10 +314,23 @@ An assertion in `DesignTimeAspectPipelineResult.Update`, in DEBUG only, walking 
 
 The sweep behind [#1799](https://github.com/metalama/Metalama/issues/1799) examined the extension, fabric, query, RPC
 and design-time-result surfaces. It did not examine the linker, the code-model caches, or the source-generator pipeline
-beyond what the RPC surface touched. It also missed the diagnostic-argument defect that the same issue fixes, which was
-found by accident when it broke an unrelated control test, and which was probably the most consequential of the set.
-Treat the absence of an entry here as "not looked at" rather than "clean", except for the list under **Checked and
-clean** in the issue.
+beyond what the RPC surface touched. Treat the absence of an entry as "not looked at" rather than "clean", except for
+the list under **Checked and clean** in that issue.
+
+Calibrate the entries above by how they were established, because the record is not good:
+
+- The audit **missed** the diagnostic-argument defect entirely, which was found by accident when it broke an unrelated
+  control test, and which was probably the most consequential of the set.
+- It **missed** the third route by which the pipeline configuration pinned a compilation, the capture in
+  `SelectTypesDerivedFrom`, which was found only after the rule was restated as belonging to the durable objects
+  created from a context rather than to the context.
+- Two entries it produced, on `WithCancellation` and on this cache, were **wrong**, and both were wrong in the same
+  way: asserted from reading the code, never measured, and disproved the moment someone measured or read more
+  carefully.
+
+The rule that follows is the one this section is written to enforce. An entry must say whether it was measured. One
+that was not is a question, and should be phrased as a question, because on this evidence roughly half of them are
+false.
 
 ## Related documents
 
