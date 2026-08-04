@@ -86,6 +86,18 @@ When adding a member to a type that is stored in a `SyntaxTreePipelineResult`, t
 convenient to keep" but "does this reach a `Compilation`". Note that a `Microsoft.CodeAnalysis.Diagnostic` does: it
 holds a `Location`, which holds its source tree.
 
+**A type is not a declaration, and `ToDurable()` treats it as one.** `ToDurable()` is backed by a
+`SerializableDeclarationId`, which names a *declaration*, so converting `Base<int>` yields a reference that resolves
+to `Base<T>`: the type arguments are lost, silently, and the result is a usable type rather than an error. Where the
+value is an `IType` rather than a declaration, and above all where it comes from user code and its shape is therefore
+not known, use `DurableRefFactory.FromTypeId( type.GetSerializableTypeId() )` instead.
+`Query.CreateBaseTypeResolver` does, and `RefTests.DurableRefToConstructedGenericTypeLosesTheTypeArguments` records
+the difference.
+
+Neither identifier can denote a type an aspect introduced, because resolving one goes through the symbol table. Where
+such a type can reach the conversion, verify it rather than assume it: converting unconditionally replaces a query
+that works with one that throws `SymbolNotFoundException` when it runs, far from the call site.
+
 ### Understand `ConditionalWeakTable` before relying on it
 
 `WeakCache<TKey, TValue>` wraps a `ConditionalWeakTable`, and the diff subsystem is built on it. The semantics are
@@ -170,6 +182,13 @@ aspect builder, may return the context it holds, rebound through
 `UserCodeExecutionContext.WithCompilationAndDiagnosticAdder`. And a query builder that is handed a declaration converts
 it to a durable reference before capturing it in the adder closure, because the closure lives as long as the query.
 
+Building a context on demand has a consequence that is easy to miss, because it is not about memory. The ordinary
+constructor fills in the target declaration, the meta API and the syntax builder from the context that happens to be
+current, which is right for a context created while its own user code is running and wrong for one created on demand:
+what it would inherit is then whatever the calling thread was doing. `IQuery.ToCollection` is public, so a fabric query
+can be executed from inside an aspect. Use `UserCodeExecutionContext.CreateWithoutInheritance` in that shape;
+`UserCodeExecutionContextTests` holds the distinction.
+
 **The per-file results.** `SyntaxTreePipelineResult` describes itself as compilation-independent and cacheable, and
 the pipeline relies on that: `DesignTimeAspectPipelineResult.Update` carries forward the entry of every file the run
 did not analyse, and `SplitResultsByTree` goes further, discarding a freshly produced item whose file is not dirty so
@@ -216,6 +235,12 @@ Three parts of the harness matter more than the tests themselves.
   field. A suite of liveness tests that all pass is indistinguishable from a suite whose assertions never fire, so
   this positive control is what gives the rest of the suite its value.
 
+**Recording a retention that is known but not yet fixed** is done with `MemoryLeakAssert.RetainedThrough`, which names
+the route as well as asserting that the object is alive. Asserting liveness alone would hold whether the documented
+route retains the object or something else does, and would go on holding after the documented route was removed. Naming
+the route makes the record fail in both of the directions that matter: when the defect is fixed, which is the signal to
+replace the call with `Collected`, and when the object is retained for a different reason than the one written down.
+
 Two practical points when writing such a test.
 
 **Never let a compilation reach a local variable of the test method.** A debug build keeps every local alive until the
@@ -237,8 +262,8 @@ superseded work, the test must cancel too.
 
 Recorded here rather than in a pull request, because this is the document the next person to work on design-time memory
 reads. Strike an entry when it is closed, and add one rather than leaving a repair half-applied. State for each whether
-it was **measured** or **reasoned**, and phrase a reasoned one as a question: an entry that has not been measured is
-about as often wrong as right.
+it was **measured** or **reasoned**, and phrase a reasoned one as a question, so that a reader can tell an observation
+from a hypothesis without re-deriving it.
 
 ### A transitive aspect instance retains one compilation
 

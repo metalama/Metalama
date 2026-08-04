@@ -35,6 +35,12 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline.MemoryLeaks;
 /// cancellations is what fails, rather than the exact figure, which is a few units of asynchronous bookkeeping still
 /// in flight.
 /// </para>
+/// <para>
+/// This class deliberately does not derive from <c>UnitTestClass</c>, unlike the rest of the suite. What it measures
+/// belongs to the runtime and to Microsoft.VisualStudio.Threading, not to Metalama, so it needs neither a test context
+/// nor a service provider, and constructing one would suggest that the compilation or the pipeline takes part in the
+/// result. It writes through the logger it is given for the same reason.
+/// </para>
 /// </remarks>
 public sealed class WithCancellationMemoryLeakTests( ITestOutputHelper logger )
 {

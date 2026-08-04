@@ -16,14 +16,21 @@ namespace Metalama.Framework.Engine.AdviceImpl.Introduction.Constructors;
 internal sealed partial class PullConstructorParameterTransitiveAspect : IAspect<INamedType>
 {
     private readonly IPullStrategy? _pullStrategy;
+
+    /// <summary>
+    /// The parameter of the base constructor whose value the derived constructor is made to pull.
+    /// </summary>
     /// <remarks>
-    /// Durable by declaration, for the reason given on <see cref="TransitiveAspectInstance.TargetDeclaration"/>: this
-    /// aspect object is carried by a transitive aspect instance and lives exactly as long as it does. The parameter
-    /// may itself have been introduced by an earlier aspect, in which case the reference is an <c>IntroducedRef</c>,
-    /// whose serializable identifier names the constructor signature and the ordinal and so survives the
-    /// re-introduction a later run performs.
+    /// This reference is deliberately not durable, unlike <see cref="TransitiveAspectInstance.TargetDeclaration"/>,
+    /// and it is the last route by which a transitive aspect instance retains the version of the project it was
+    /// produced in. Issue #1797 tracks it. Making it durable compiles and does close the retention, because an
+    /// <c>IntroducedRef</c> has a serializable identifier naming the constructor signature and the ordinal, but the
+    /// identity of an introduced declaration is not settled while the advice runs, so the identifier captured at that
+    /// moment is one the consuming project cannot resolve, and the cross-project case then fails silently. Making it
+    /// durable therefore has to happen later in the pipeline, which is a change of design.
     /// </remarks>
     private readonly IRef<IParameter> _parameter;
+
     private readonly int _order;
     private readonly IConstructorOverloadingStrategy? _overloadingStrategy;
 

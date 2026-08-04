@@ -33,9 +33,9 @@ public abstract class RpcService
     /// </summary>
     /// <remarks>
     /// <para>
-    /// The token is composed with <see cref="TplExtensions.WithCancellation{T}(Task{T},CancellationToken)"/>, as it is
-    /// in the client-side counterpart <c>RpcClient.WaitUntilInitializedAsync</c>. Passing it to
-    /// <see cref="LongTaskHelper.WarnIfLongAsync{T}"/> alone is not enough, and was the defect reported by issue
+    /// The token is composed with <c>WithCancellation</c>, as it is in the client-side counterpart
+    /// <c>RpcClient.WaitUntilInitializedAsync</c>. Passing it to <c>LongTaskHelper.WarnIfLongAsync</c> alone is not
+    /// enough, and was the defect reported by issue
     /// #1799: that method uses the token for its own delay only, and returns the original task untouched when warning
     /// logging is disabled, so the wait was not cancellable by either path.
     /// </para>
