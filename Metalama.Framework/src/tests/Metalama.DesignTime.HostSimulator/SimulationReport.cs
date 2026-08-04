@@ -101,7 +101,7 @@ internal sealed class SimulationReport
     /// <summary>
     /// Renders the report, listing every failure and, when <paramref name="verbose"/> is set, every diagnostic.
     /// </summary>
-    public void Render( bool verbose )
+    public ImmutableArray<string> Render( bool verbose )
     {
         if ( !this.ProjectOrder.IsEmpty )
         {
@@ -131,7 +131,7 @@ internal sealed class SimulationReport
 
         AnsiConsole.Write( table );
 
-        this.WriteDiagnostics( verbose );
+        return this.WriteDiagnostics( verbose );
     }
 
     /// <summary>
@@ -150,25 +150,34 @@ internal sealed class SimulationReport
     /// with exactly the same <c>test.json</c> syntax as a compile-time one.
     /// </para>
     /// </remarks>
-    private void WriteDiagnostics( bool verbose )
+    private ImmutableArray<string> WriteDiagnostics( bool verbose )
     {
+        var lines = ImmutableArray.CreateBuilder<string>();
+
         foreach ( var project in this.Projects )
         {
             // Failures that are not diagnostics still have to reach the assertion machinery, which only looks at
             // lines containing ': error ' or ': warning '.
             foreach ( var error in project.Errors )
             {
-                Console.Out.WriteLine( $"{project.ProjectName}: error SIM0001: {SingleLine( error )}" );
+                lines.Add( $"{project.ProjectName}: error SIM0001: {SingleLine( error )}" );
             }
 
             foreach ( var diagnostic in project.Diagnostics )
             {
                 if ( verbose || diagnostic.Severity >= DiagnosticSeverity.Warning )
                 {
-                    Console.Out.WriteLine( SingleLine( diagnostic.ToString() ) );
+                    lines.Add( SingleLine( diagnostic.ToString() ) );
                 }
             }
         }
+
+        foreach ( var line in lines )
+        {
+            Console.Out.WriteLine( line );
+        }
+
+        return lines.ToImmutable();
     }
 
     /// <summary>

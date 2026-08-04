@@ -78,6 +78,37 @@ more than seven projects, since the number of orders is factorial.
 
 The exit code is `0` when no infrastructure failure was seen, `1` when one was, and `2` on a usage error.
 
+## Asserting on the diagnostics from here: `designtime-test.json`
+
+The diagnostics written to standard output include those of the compilation itself, not only those an analyzer or a
+generator produced. This matters because the way an aspect fails to apply is usually silent: nothing is reported, and
+the only visible consequence is that code relying on the aspect no longer compiles. A scenario can therefore be
+written around a call that binds only when the aspect applied, and assert on the compiler error that appears when it
+did not. These diagnostics do not by themselves make the run fail, because a design-time scenario is allowed to be one
+that does not compile.
+
+A scenario may put a `designtime-test.json` beside its solution to assert on those diagnostics and decide the exit
+code:
+
+```json
+{
+    "ExpectedDiagnosticsRegexes": [ "LAMA0082" ],
+    "ForbiddenDiagnosticsRegexes": [ "LAMA0001", "AD0001" ],
+    "ErrorRegexes": [ "cannot be used at run-time" ]
+}
+```
+
+Each expected and each error pattern must match at least one reported line; no forbidden pattern may match any. When
+the file declares any of them, they decide the verdict, including whether an infrastructure failure is the expected
+outcome, so that a scenario reproducing a crash can assert on the crash. `--ignore-assertions` skips the file.
+
+**This is deliberately not `test.json`.** That file belongs to the build engineering, which applies its regular
+expressions to the whole output of this process, including the trace and the output of the tools the analysis starts.
+The assertions here see only the diagnostics the simulation reported, so the same regular expression can hold for one
+and not for the other: `LAMA0082`, for instance, appears in the trace of a scenario whose analysis never reported it
+as a diagnostic. Giving each file one owner keeps the two from disagreeing about what they mean. A scenario that only
+needs the engineering to judge it has no `designtime-test.json` at all.
+
 ## First result
 
 Run against `Standalone/Issue1749`, which `dotnet build` fails on with a `FileLoadException` from
