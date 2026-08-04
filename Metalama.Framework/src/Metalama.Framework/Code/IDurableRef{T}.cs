@@ -15,10 +15,12 @@ namespace Metalama.Framework.Code;
 /// <see cref="INamedType"/>, or any other <see cref="ICompilationElement"/>.</typeparam>
 /// <remarks>
 /// This is the strongly-typed variant of <see cref="IDurableRef"/>, which documents when to use it. Obtain one by
-/// calling <see cref="IRef{T}.ToDurable"/>.
+/// calling <see cref="RefExtensions.ToDurableRef{T}"/> on a declaration or a type, or <see cref="IRef{T}.ToDurable"/>
+/// on a reference.
 /// </remarks>
 /// <seealso cref="IDurableRef"/>
 /// <seealso cref="IRef{T}.ToDurable"/>
+/// <seealso cref="RefExtensions.ToDurableRef{T}"/>
 [CompileTime]
 [InternalImplement]
 public interface IDurableRef<out T> : IRef<T>, IDurableRef

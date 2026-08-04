@@ -85,8 +85,8 @@ namespace Metalama.Framework.Code
         /// <para>
         /// <b>Durable references</b> (when <c>IsDurable</c> is <c>true</c>) store only a string-based identifier.
         /// They are slower to resolve but do not hold any reference to the compilation. Call <see cref="ToDurable"/>
-        /// to obtain one, and prefer the <see cref="IDurableRef"/> or <see cref="IDurableRef{T}"/> type over this
-        /// property when the requirement can be expressed in a signature.
+        /// or <see cref="RefExtensions.ToDurableRef{T}"/> to obtain one, and prefer the <see cref="IDurableRef"/> or
+        /// <see cref="IDurableRef{T}"/> type over this property when the requirement can be expressed in a signature.
         /// </para>
         /// <para>
         /// A reference that is stored for longer than a single pipeline run must be durable. The design-time pipeline
@@ -106,7 +106,9 @@ namespace Metalama.Framework.Code
         /// <para>
         /// Call this method before storing a reference in an object that outlives the current pipeline run, such as a
         /// field of a fabric or of an inheritable aspect. Resolving the result costs an identifier lookup, which is why
-        /// references are not durable by default.
+        /// references are not durable by default. When the declaration itself is at hand, call
+        /// <see cref="RefExtensions.ToDurableRef{T}"/> instead, which does not create the intermediate non-durable
+        /// reference.
         /// </para>
         /// <para>
         /// A reference that cannot be represented by an identifier, such as a reference to an attribute, does not

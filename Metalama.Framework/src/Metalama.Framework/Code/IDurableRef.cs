@@ -19,13 +19,15 @@ namespace Metalama.Framework.Code;
 /// <see cref="IDeclaration.ToRef"/> holds the compilation and cannot be converted implicitly.
 /// </para>
 /// <para>
-/// Call <see cref="IRef.ToDurable"/> to obtain one. Resolving a durable reference costs an identifier lookup, which
-/// is why references are not durable by default.
+/// Call <see cref="RefExtensions.ToDurableRef{T}"/> on a declaration or a type to obtain one, or
+/// <see cref="IRef.ToDurable"/> when a reference is already at hand. Resolving a durable reference costs an
+/// identifier lookup, which is why references are not durable by default.
 /// </para>
 /// </remarks>
 /// <seealso cref="IDurableRef{T}"/>
 /// <seealso cref="IRef.IsDurable"/>
 /// <seealso cref="IRef.ToDurable"/>
+/// <seealso cref="RefExtensions.ToDurableRef{T}"/>
 [CompileTime]
 [InternalImplement]
 public interface IDurableRef : IRef { }

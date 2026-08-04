@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -120,6 +120,132 @@ public sealed class RefTests : UnitTestClass
         var attribute = compilation.Types.OfName( "C" ).Single().Attributes.Single();
 
         Assert.Throws<NotSupportedException>( () => attribute.ToRef().ToDurable() );
+    }
+
+    /// <summary>
+    /// <see cref="Code.RefExtensions.ToDurableRef{T}"/> returns the strongly-typed <see cref="IDurableRef{T}"/> for the
+    /// static type of its argument, so that a field declared as <see cref="IDurableRef{T}"/> can be assigned from a
+    /// declaration without an intermediate reference and without a cast.
+    /// </summary>
+    [Fact]
+    public void ToDurableRefReturnsATypedDurableRef()
+    {
+        using var testContext = this.CreateTestContext();
+        var compilation = testContext.CreateCompilationModel( "class C { }" );
+
+        var type = compilation.Types.OfName( "C" ).Single();
+
+        // The static type of the expression, not merely its run-time type, is what this test is about.
+        IDurableRef<INamedType> durableRef = type.ToDurableRef();
+
+        Assert.True( durableRef.IsDurable );
+        Assert.Same( type, durableRef.GetTarget( compilation ) );
+    }
+
+    /// <summary>
+    /// Verifies that <see cref="Code.RefExtensions.ToDurableRef{T}"/> produces the same reference as
+    /// <c>ToRef().ToDurable()</c> for every kind of declaration whose identifier is computed by a dedicated code path.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="Code.RefExtensions.ToDurableRef{T}"/> computes the identifier from the declaration instead of from the
+    /// symbol of an intermediate <c>IFullRef</c>, so the two routes go through different code. A parameter, a return
+    /// parameter and a type parameter are included because their identifiers are built from the identifier of the
+    /// containing declaration rather than by the general case.
+    /// </remarks>
+    [Theory]
+    [InlineData( "Type" )]
+    [InlineData( "Method" )]
+    [InlineData( "Parameter" )]
+    [InlineData( "ReturnParameter" )]
+    [InlineData( "TypeParameter" )]
+    [InlineData( "Field" )]
+    public void ToDurableRefIsEquivalentToToRefThenToDurable( string kind )
+    {
+        using var testContext = this.CreateTestContext();
+        var compilation = testContext.CreateCompilationModel( "class C<T> { int _f; int M( string p ) => 0; }" );
+
+        var type = compilation.Types.OfName( "C" ).Single();
+        var method = type.Methods.OfName( "M" ).Single();
+
+        IDeclaration declaration = kind switch
+        {
+            "Type" => type,
+            "Method" => method,
+            "Parameter" => method.Parameters[0],
+            "ReturnParameter" => method.ReturnParameter,
+            "TypeParameter" => type.TypeParameters[0],
+            "Field" => type.Fields.OfName( "_f" ).Single(),
+            _ => throw new AssertionFailedException( $"Unknown kind '{kind}'." )
+        };
+
+        var throughRef = declaration.ToRef().ToDurable();
+        var direct = declaration.ToDurableRef();
+
+        Assert.Equal( throughRef.ToSerializableId(), direct.ToSerializableId() );
+        Assert.True( direct.Equals( throughRef, RefComparison.Default ) );
+        Assert.Same( declaration, direct.GetTarget( compilation ) );
+    }
+
+    /// <summary>
+    /// A type that is not a declaration, such as an array type, has no declaration identifier, so
+    /// <see cref="Code.RefExtensions.ToDurableRef{T}"/> identifies it by its <see cref="SerializableTypeId"/>.
+    /// </summary>
+    /// <remarks>
+    /// <c>ToRef().ToDurable()</c> reaches the same identifier by a different route: the symbol overload of
+    /// <c>GetSerializableId</c> returns the type identifier wrapped in a <see cref="SerializableDeclarationId"/> for
+    /// these type kinds. The two references are therefore equal, and only the object that carries the identifier
+    /// differs.
+    /// </remarks>
+    [Fact]
+    public void ToDurableRefOnATypeThatIsNotADeclaration()
+    {
+        using var testContext = this.CreateTestContext();
+        var compilation = testContext.CreateCompilationModel( "/* nothing */" );
+
+        var arrayType = compilation.Factory.GetTypeByReflectionType( typeof(string[]) );
+
+        var durableRef = arrayType.ToDurableRef();
+
+        Assert.True( durableRef.IsDurable );
+        Assert.Equal( arrayType.ToDisplayString(), durableRef.GetTarget( compilation ).ToDisplayString() );
+
+        Assert.True( durableRef.Equals( arrayType.ToRef().ToDurable(), RefComparison.Default ) );
+    }
+
+    /// <summary>
+    /// A constructed generic type keeps its type arguments, because it is a named type and is therefore identified by
+    /// its declaration identifier exactly as <c>ToRef().ToDurable()</c> would identify it.
+    /// </summary>
+    /// <remarks>
+    /// This records deliberately that <see cref="Code.RefExtensions.ToDurableRef{T}"/> does not change the behaviour that
+    /// <see cref="DurableRefToConstructedGenericTypeLosesTheTypeArguments"/> documents. A caller that needs the type
+    /// arguments preserved has to use a <see cref="SerializableTypeId"/>, whichever of the two routes it takes.
+    /// </remarks>
+    [Fact]
+    public void ToDurableRefToConstructedGenericTypeLosesTheTypeArgumentsToo()
+    {
+        using var testContext = this.CreateTestContext();
+        var compilation = testContext.CreateCompilationModel( _genericTypesCode );
+
+        var type = GetTestType( compilation, "Constructed" );
+        Assert.Equal( "Generic<int>", type.ToDisplayString() );
+
+        Assert.Equal( "Generic<T>", type.ToDurableRef().GetTarget( compilation ).ToDisplayString() );
+    }
+
+    /// <summary>
+    /// An attribute has no serializable identifier of its own, so <see cref="Code.RefExtensions.ToDurableRef{T}"/> refuses
+    /// it with the same explanation as <see cref="IRef.ToDurable"/>.
+    /// </summary>
+    [Fact]
+    public void ToDurableRefOnAnAttributeThrows()
+    {
+        using var testContext = this.CreateTestContext();
+        var compilation = testContext.CreateCompilationModel( "using System; [Obsolete] class C { }" );
+
+        var attribute = compilation.Types.OfName( "C" ).Single().Attributes.Single();
+
+        Assert.Throws<NotSupportedException>( () => attribute.ToDurableRef() );
     }
 
     /// <summary>

@@ -11,12 +11,12 @@ using Metalama.Framework.Fabrics;
 namespace Metalama.Framework.Tests.PublicPipeline.Aspects.Fabrics.DurableRef
 {
     /// <summary>
-    /// Verifies that compile-time user code can call <c>ToDurable</c> and store the resulting
+    /// Verifies that compile-time user code can call <c>ToDurableRef</c> and <c>ToDurable</c> and store the resulting
     /// <see cref="IDurableRef{T}"/>, which is what issue #1806 made possible. A fabric keeps its declarations for as
     /// long as the design-time pipeline keeps the fabric, so a non-durable reference here would retain a compilation.
     /// </summary>
     /// <remarks>
-    /// The test is that this file compiles: the field type and the call are both part of the public compile-time API.
+    /// The test is that this file compiles: the field type and both calls are part of the public compile-time API.
     /// </remarks>
     internal class Fabric : ProjectFabric
     {
@@ -28,9 +28,10 @@ namespace Metalama.Framework.Tests.PublicPipeline.Aspects.Fabrics.DurableRef
                 .Where(
                     t =>
                     {
-                        // The declared type of the local is the point of the test: ToDurable returns the strongly-typed
-                        // durable reference, not a plain IRef that would have to be trusted rather than checked.
-                        IDurableRef<INamedType> durableRef = t.ToRef().ToDurable();
+                        // The declared type of the local is the point of the test: ToDurableRef returns the
+                        // strongly-typed durable reference, not a plain IRef that would have to be trusted rather than
+                        // checked.
+                        IDurableRef<INamedType> durableRef = t.ToDurableRef();
                         this._types.Add( durableRef );
 
                         return t.Name == nameof(TargetCode);

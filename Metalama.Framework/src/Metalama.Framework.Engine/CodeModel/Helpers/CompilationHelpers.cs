@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Code;
 using Metalama.Framework.Diagnostics;
+using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.SerializableIds;
@@ -46,6 +47,10 @@ internal sealed class CompilationHelpers : ICompilationHelpers
     public string GetFullMetadataName( INamedType type ) => type.GetReflectionFullName();
 
     public SerializableTypeId GetSerializableId( IType type ) => type.GetSerializableTypeId();
+
+    public IDurableRef<T> ToDurableRef<T>( ICompilationElement declarationOrType )
+        where T : class, ICompilationElement
+        => DurableRefFactory.FromDeclarationOrType<T>( declarationOrType );
 
     public IExpression ToTypeOfExpression( IType type, bool preferConstructedType = false ) => new TypeOfUserExpression( type, preferConstructedType );
 
