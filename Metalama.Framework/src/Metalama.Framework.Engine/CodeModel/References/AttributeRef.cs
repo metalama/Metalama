@@ -41,8 +41,11 @@ namespace Metalama.Framework.Engine.CodeModel.References
 
         public bool IsDurable => false;
 
-        // An attribute has no serializable identifier of its own, so it cannot be represented by a durable reference.
-        public IDurableRef<IAttribute> ToDurable() => throw new NotSupportedException();
+        public IDurableRef<IAttribute> ToDurable()
+            => throw new NotSupportedException(
+                "A reference to an attribute cannot be made durable, because an attribute has no serializable identifier of its own. "
+                + "Store a durable reference to the declaration on which the attribute is applied, together with the attribute type, and "
+                + "find the attribute again in the declaration's Attributes collection." );
 
         IDurableRef IRef.ToDurable() => this.ToDurable();
 
