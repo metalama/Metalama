@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -10,6 +10,7 @@ using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using System;
+using System.Linq;
 
 // A pull strategy holds the type of the parameter it introduces as a durable reference, so that the transitive aspect
 // carrying it does not pin the compilation it was produced in (issue #1797). Resolving that reference happens while
@@ -31,17 +32,18 @@ public class MyAspect : TypeAspect
     {
         var parameterType = TypeFactory.GetType( typeof(IFormatProvider) ).ToNullable();
 
-        foreach ( var constructor in builder.Target.Constructors )
-        {
-            builder.With( constructor )
-                .IntroduceParameter(
-                    "formatProvider",
-                    parameterType,
-                    TypedConstant.Default( parameterType ),
-                    PullStrategy.IntroduceParameterAndPull(
-                        type: parameterType,
-                        defaultValue: TypedConstant.Default( parameterType ) ) );
-        }
+        // Introduced into the parameterless constructor only. The other constructor chains to it, so the pull brings
+        // the parameter there, and introducing it into both as well would introduce it twice.
+        var constructor = builder.Target.Constructors.Single( c => c.Parameters.Count == 0 );
+
+        builder.With( constructor )
+            .IntroduceParameter(
+                "formatProvider",
+                parameterType,
+                TypedConstant.Default( parameterType ),
+                PullStrategy.IntroduceParameterAndPull(
+                    type: parameterType,
+                    defaultValue: TypedConstant.Default( parameterType ) ) );
     }
 }
 
