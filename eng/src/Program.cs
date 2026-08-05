@@ -109,6 +109,7 @@ var product = new Product( MetalamaDependencies.Metalama )
         "Metalama.Backstage.Commands.$(PackageVersion).nupkg", // Required by SourceLink in Metalama.Framework.
         "Metalama.Backstage.Testing.$(PackageVersion).nupkg",  // Required by SourceLink in Metalama.Framework.
         "Metalama.Backstage.Tools.$(PackageVersion).nupkg",    // Required by Metalama.Testing.AspectTesting via Metalama.Framework.Engine.
+        "Metalama.Testing.Hooks.$(PackageVersion).nupkg",      // Required by Metalama.Framework.Engine and Metalama.Patterns.Caching.Backend.
         "Metalama.Framework.$(PackageVersion).nupkg",
         "Metalama.Testing.UnitTesting.$(PackageVersion).nupkg",
         "Metalama.Testing.AspectTesting.$(PackageVersion).nupkg",

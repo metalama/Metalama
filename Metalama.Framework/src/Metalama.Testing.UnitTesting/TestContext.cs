@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -22,6 +22,7 @@ using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Metalama.Framework.Engine.Utilities.UserCode;
 using Metalama.Framework.Project;
+using Metalama.Testing.Hooks;
 using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Generic;
@@ -113,6 +114,46 @@ public partial class TestContext : ITempFileManager, IApplicationInfoProvider, I
     /// by the <see cref="TestContextOptions.Timeout"/> option.
     /// </summary>
     public CancellationToken CancellationToken { get; }
+
+    /// <summary>
+    /// Gets the provider of the synchronization points that the code under test reaches, which lets the test drive
+    /// concurrent code into a specific interleaving. All of its synchronization points are released when this context
+    /// is disposed, so a failing test does not hang.
+    /// </summary>
+    /// <remarks>
+    /// The provider is registered by <see cref="UnitTestClass.CreateTestSynchronizationProvider"/>, so this property is
+    /// available only in a context created by <see cref="UnitTestClass"/>.
+    /// </remarks>
+    public TestSynchronizationProvider SyncProvider => this.GetTestHook<TestSynchronizationProvider>( typeof(ITestSynchronizationProvider) );
+
+    /// <summary>
+    /// Gets the injector of the fault injection points that the code under test reaches, which lets the test make
+    /// production code throw at a chosen place.
+    /// </summary>
+    /// <remarks>
+    /// The injector is registered by <see cref="UnitTestClass.CreateTestFaultInjector"/>, so this property is available
+    /// only in a context created by <see cref="UnitTestClass"/>.
+    /// </remarks>
+    public TestFaultInjector FaultInjector => this.GetTestHook<TestFaultInjector>( typeof(ITestFaultInjector) );
+
+    /// <summary>
+    /// Gets a test hook from the service provider, reporting a comprehensible error when the context was created
+    /// directly instead of through <see cref="UnitTestClass"/>, or when the hook was replaced by another implementation.
+    /// </summary>
+    private T GetTestHook<T>( Type serviceType )
+        where T : class
+    {
+        var service = this.ServiceProvider.Global.Underlying.GetService( serviceType );
+
+        return service switch
+        {
+            T hook => hook,
+            null => throw new InvalidOperationException(
+                $"The service '{serviceType.Name}' is not registered. It is registered by UnitTestClass, so this property is not available in a TestContext created directly." ),
+            _ => throw new InvalidOperationException(
+                $"The service '{serviceType.Name}' is registered, but its implementation is a '{service.GetType().Name}' and not a '{typeof(T).Name}'." )
+        };
+    }
     
     public ImmutableArray<object> PlugIns => this._plugIns.Value;
 
@@ -336,6 +377,10 @@ public partial class TestContext : ITempFileManager, IApplicationInfoProvider, I
 
         if ( this._isRoot )
         {
+            // Release every synchronization point before anything else, so that a test failing while the code under
+            // test is blocked at one does not hang instead of reporting its failure.
+            (this.ServiceProvider.Global.Underlying.GetService( typeof(ITestSynchronizationProvider) ) as TestSynchronizationProvider)?.ReleaseAll();
+
             this._applicationExitManager.Dispose();
 
             this.TestProjectOptions.Dispose();

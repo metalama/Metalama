@@ -20,6 +20,8 @@
 
     <ItemGroup>
       <PackageReference Include="Metalama.Backstage" />
+      <!-- Must not be PrivateAssets, so that it flows to Metalama.Framework.CompilerExtensions.Resources and gets embedded. -->
+      <PackageReference Include="Metalama.Testing.Hooks" />
     </ItemGroup>
 
        

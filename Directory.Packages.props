@@ -171,6 +171,7 @@
     <PackageVersion Include="Metalama.Compiler" Version="$(MetalamaCompilerVersion)" />
     <PackageVersion Include="Metalama.Compiler.Sdk" Version="$(MetalamaCompilerVersion)" />
     <PackageVersion Include="Metalama.Backstage.Testing" Version="$(MetalamaVersion)" />
+    <PackageVersion Include="Metalama.Testing.Hooks" Version="$(MetalamaVersion)" />
     <PackageVersion Include="Metalama.Framework" Version="$(MetalamaVersion)" />
     <PackageVersion Include="Metalama.Framework.Redist" Version="$(MetalamaVersion)" />
     <PackageVersion Include="Metalama.Framework.Workspaces" Version="$(MetalamaVersion)" />

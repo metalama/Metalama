@@ -15,7 +15,6 @@
   <ItemGroup>
     <PackageReference Include="xunit" />
     <PackageReference Include="xunit.runner.visualstudio" />
-    <PackageReference Include="Xunit.SkippableFact" />
     <PackageReference Include="xunit.assemblyfixture" />
     <PackageReference Include="xunit.extensibility.execution" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />

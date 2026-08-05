@@ -18,6 +18,7 @@ using Metalama.Framework.Engine.Utilities.Diagnostics;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Metalama.Framework.Engine.Utilities.UserCode;
 using Metalama.Framework.Project;
+using Metalama.Testing.Hooks;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -91,10 +92,14 @@ public sealed partial class SourceTransformer : ISourceTransformerWithServices
     {
         var globalServices = context.ServiceProvider.Underlying;
 
+        // Resolved untyped, because ITestFaultInjector is shared with the other layers and therefore cannot derive
+        // from IGlobalService.
+        var faultInjector = (ITestFaultInjector?) globalServices.GetService( typeof(ITestFaultInjector) );
+
         try
         {
             // Test-only fault injection point exercising the global (outer) handling layer. No-op in production. See #1701.
-            globalServices.GetService<ITestFaultInjector>()?.InjectFault( FaultInjectionPoints.SourceTransformerEntry );
+            faultInjector?.InjectFault( FaultInjectionPoints.SourceTransformerEntry );
 
             var projectOptions = context.ProjectOptions;
 
@@ -108,7 +113,7 @@ public sealed partial class SourceTransformer : ISourceTransformerWithServices
             {
                 // Test-only fault injection point exercising the project-scoped (inner) handling layer. No-op in
                 // production. See #1701.
-                globalServices.GetService<ITestFaultInjector>()?.InjectFault( FaultInjectionPoints.CompileTimePipeline );
+                faultInjector?.InjectFault( FaultInjectionPoints.CompileTimePipeline );
 
                 using var pipeline = CompileTimeAspectPipeline.Create( projectServiceProvider );
 

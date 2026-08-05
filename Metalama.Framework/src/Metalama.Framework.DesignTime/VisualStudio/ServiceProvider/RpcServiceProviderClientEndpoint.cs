@@ -7,6 +7,7 @@ using Metalama.Framework.DesignTime.Rpc;
 using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.Threading;
+using Metalama.Testing.Hooks;
 
 namespace Metalama.Framework.DesignTime.VisualStudio.ServiceProvider;
 

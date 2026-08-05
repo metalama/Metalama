@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -88,11 +88,8 @@ public sealed class RemotingTests : UnitTestClass
     public async Task PublishGeneratedSourceBeforeCallbackConnectedAsync()
     {
         // Add a sync provider to inject synchronization point
-        var syncProvider = new TestSynchronizationProvider();
-        var additionalServices = new AdditionalServiceCollection();
-        additionalServices.AddUntypedGlobalService( typeof(ITestSynchronizationProvider), syncProvider );
-
-        using var testContext = this.CreateTestContext( additionalServices );
+        using var testContext = this.CreateTestContext();
+        var syncProvider = testContext.SyncProvider;
 
         // ReSharper disable once UseAwaitUsing
         using var cancellationRegistration = testContext.CancellationToken.Register( () => syncProvider.ReleaseAll() );

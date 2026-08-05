@@ -9,6 +9,7 @@ using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Services;
+using Metalama.Testing.Hooks;
 using System;
 using System.Runtime.CompilerServices;
 using Xunit.Abstractions;
@@ -88,9 +89,40 @@ namespace Metalama.Testing.UnitTesting
             this.AddSyntaxGenerationOptions( services );
             this.AddXunitLogging( services );
             this.AddExceptionHandler( services );
+            this.AddTestHooks( services );
 
             services.AddGlobalService( _ => TestingServices.CompileTimeAssemblyLocatorProvider );
         }
+
+        /// <summary>
+        /// Registers the test-only hooks that the code under test reaches: the synchronization points and the fault
+        /// injection points. They are registered in every test context, and are exposed as
+        /// <see cref="TestContext.SyncProvider"/> and <see cref="TestContext.FaultInjector"/>.
+        /// </summary>
+        /// <remarks>
+        /// Registering them unconditionally costs nothing when a test does not use them: a synchronization point that
+        /// the test has not enabled and an injection point that it has not armed both return immediately. The services
+        /// are registered untyped, because they are shared with the other layers of Metalama and therefore derive from
+        /// no dependency injection marker interface.
+        /// </remarks>
+        private void AddTestHooks( IAdditionalServiceCollection services )
+        {
+            services.AddUntypedGlobalService( typeof(ITestSynchronizationProvider), this.CreateTestSynchronizationProvider() );
+            services.AddUntypedGlobalService( typeof(ITestFaultInjector), this.CreateTestFaultInjector() );
+        }
+
+        /// <summary>
+        /// Creates the <see cref="TestSynchronizationProvider"/> of each test context created by this class. A derived
+        /// class can override this method to supply a differently configured provider.
+        /// </summary>
+        protected virtual TestSynchronizationProvider CreateTestSynchronizationProvider()
+            => new( this._logger != null ? this._logger.WriteLine : null );
+
+        /// <summary>
+        /// Creates the <see cref="TestFaultInjector"/> of each test context created by this class. A derived class can
+        /// override this method to supply a differently configured injector, for instance one with a fault already armed.
+        /// </summary>
+        protected virtual TestFaultInjector CreateTestFaultInjector() => new();
 
 #pragma warning disable LAMA0821
         protected virtual void ConfigureExtensions( ITestExtensionCollector collector ) { }
