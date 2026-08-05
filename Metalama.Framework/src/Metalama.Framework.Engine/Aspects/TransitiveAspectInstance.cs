@@ -6,6 +6,7 @@ using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Extensibility;
 using Microsoft.CodeAnalysis;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Metalama.Framework.Engine.Aspects;
 
@@ -43,14 +44,44 @@ internal sealed class TransitiveAspectInstance : ITransitivePipelineContributor,
     /// </remarks>
     public IDurableRef<IDeclaration> TargetDeclaration { get; }
 
+    [SuppressMessage(
+        "Metalama",
+        "LAMA0876:The durability of a type cannot be established",
+        Justification =
+            "The aspect is user code. The route by which it reaches a compilation is the open item tracked by #1797, "
+            + "and is recorded in design-time-memory.md. See #1830." )]
     public IAspect Aspect { get; }
 
+    [SuppressMessage(
+        "Metalama",
+        "LAMA0876:The durability of a type cannot be established",
+        Justification =
+            "An interface, so what an implementation holds cannot be established here. The known retention through "
+            + "the template parameters was closed by #1803. Whether the type can be constrained is decided in #1830." )]
     public IAspectClassImpl AspectClass { get; }
 
+    [SuppressMessage(
+        "Metalama",
+        "LAMA0876:The durability of a type cannot be established",
+        Justification =
+            "The aspect state is user code, so what it holds cannot be established here. Whether a constraint can be "
+            + "stated for it is decided in #1830." )]
     public IAspectState? AspectState { get; }
 
     public int TargetDeclarationDepth { get; }
 
+    /// <remarks>
+    /// This member belongs to <see cref="ITransitivePipelineContributor"/>, which is under no durability constraint,
+    /// but <see cref="ToDesignTime"/> returns <c>this</c>, so it survives into the object that the design-time
+    /// pipeline stores per file. That is a real retention, and it is tracked by #1830.
+    /// </remarks>
+    [SuppressMessage(
+        "Metalama",
+        "LAMA0870:A member of a durable type is not durable",
+        Justification =
+            "A real retention, not a false positive. Separating the design-time form from the contributor also has to "
+            + "keep the transitive manifest working and flips a control in TransitiveContributorMemoryLeakTests, so it "
+            + "is done under #1830 rather than here." )]
     public SyntaxTree? SyntaxTree { get; }
 
     public IDesignTimePipelineResultExtension ToDesignTime() => this;
