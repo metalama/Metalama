@@ -37,6 +37,12 @@
     </ItemGroup>
     
     <ItemGroup>
+        <!-- The contract assembly declares DurableLazy<T>, which is itself marked [Durable], so the analyzer verifies
+             that type against its own contract. -->
+        <ProjectReference Include="../Metalama.Framework.Analyzers/Metalama.Framework.Analyzers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    </ItemGroup>
+
+    <ItemGroup>
         <PackageReference Include="Microsoft.CSharp"/>
 
         <PackageReference Include="Microsoft.Bcl.HashCode" Condition="'$(TargetFramework)'=='netstandard2.0'" />

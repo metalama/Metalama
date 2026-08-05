@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <Nullable>enable</Nullable>
+
+        <!-- The assembly is shipped inside the Metalama.Framework package, by the _AddAnalyzersToOutput target of
+             Metalama.Framework.Package, and is therefore not a package of its own. -->
+        <IsPackable>false</IsPackable>
+
+        <!-- Disable vulnerability checking because this project has no dependency other than Roslyn. -->
+        <NuGetAudit>false</NuGetAudit>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <!-- This project must reference the *minimal* supported Roslyn API and nothing else.
+
+             A single netstandard2.0 assembly is loaded by both a 4.12 and a 5.0 host, exactly as for
+             Metalama.Framework.Engine.Analyzers, Metalama.SourceTransformer and Metalama.Framework.CompilerExtensions,
+             so it must use no API introduced after the minimal version. The central version of this package is
+             RoslynApiMinVersion, so no VersionOverride is needed here, but the absence of one is deliberate and must
+             not be replaced by ThisRoslynVersion.
+
+             Microsoft.CodeAnalysis.CSharp.Workspaces is deliberately absent. Only a code fix provider needs it, and an
+             analyzer shipped to customers should carry the smallest possible closure. -->
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+    </ItemGroup>
+
+</Project>

@@ -100,6 +100,50 @@ Neither identifier can denote a type an aspect introduced, because resolving one
 such a type can reach the conversion, verify it rather than assume it: converting unconditionally replaces a query
 that works with one that throws `SymbolNotFoundException` when it runs, far from the call site.
 
+### Declare durability with `[Durable]`, and let the analyzer check it
+
+The rule above says what a type may hold. `Metalama.Framework.Utilities.DurableAttribute` says that a type, a member
+or a parameter obeys it, and `DurableContractAnalyzer` verifies the claim and reports a warning when it does not
+hold. The attribute and the analyzer ship to customers in the `Metalama.Framework` package, because a fabric and an
+implementation of `IDesignTimePipelineResultExtension` are subject to the same rule as our own code.
+
+| Applied to | Means | Diagnostic |
+|---|---|---|
+| a type | every instance field and auto-property of the type is durable, recursively | `LAMA0870` |
+| a field or auto-property whose declared type is not durable | the check on the declared type is waived, and every assignment to the member must instead have a durable type | `LAMA0871` |
+| a parameter | every argument at every call site is durable, and a lambda argument's captures are analysed | `LAMA0872`, `LAMA0878` |
+
+Durability is **opt-in**: intrinsics are durable, a system collection is durable when its type arguments are, and a
+type that is neither marked nor in the analyzer's tables is not durable. Marking a type therefore propagates the
+obligation to the types of all of its members, which is the point. A type that is an interface or is abstract yields
+`LAMA0876` rather than `LAMA0870`, because what it holds depends on an implementation the analyzer cannot see.
+
+Where the declaration cannot be satisfied directly, prefer in this order:
+
+1. make the member genuinely durable, by typing it `IDurableRef<T>` or by storing a `SerializableDeclarationId`, a
+   `SymbolDictionaryKey.CreatePersistentKey` or a document path;
+2. apply `[Durable]` to the member, when its declared type is an interface or `object` but every assignment is
+   durable;
+3. add the type to `WellKnownDurableTypes` in `Metalama.Framework.Analyzers`, when the verdict holds in general. This
+   is the default destination for a verdict established once;
+4. list it in the `MetalamaDurableType` or `MetalamaNonDurableType` MSBuild item, for a type about which this
+   repository has no general opinion;
+5. use `DurableLazy<T>` rather than `System.Lazy<T>`, which holds its factory delegate and therefore that delegate's
+   closure, and `DurableDangerous<T>` where durability holds at one member but cannot be established;
+6. suppress the warning with a justification naming an issue, where the retention is real, known and not yet
+   fixable. The suppression is then the record, in the same way as `MemoryLeakAssert.RetainedThrough`.
+
+**The tables of the analyzer mirror `UserCodeRetentionPolicy.IsPinning`**, which decides the same question at run time
+for the diagnostic described below, and the two must be kept in correspondence: a user who sees a warning from one and
+nothing from the other on the same object learns only that one of them is wrong. Two divergences are deliberate, and
+both follow from the analyzer seeing a declared type where the walker sees an instance.
+
+- `Diagnostic` and `Location` are not durable for the analyzer and are absent from `IsPinning`. The walker descends
+  into them and reports the syntax tree it actually finds; the analyzer cannot descend into an instance it will never
+  see.
+- Every `ISymbol` is not durable for the analyzer, whereas `IsPinning` reports only the symbols that belong to the
+  source of a compilation. A declared type says nothing about where the value will come from.
+
 ### Understand `ConditionalWeakTable` before relying on it
 
 `WeakCache<TKey, TValue>` wraps a `ConditionalWeakTable`, and the diff subsystem is built on it. The semantics are
@@ -427,6 +471,15 @@ code that stores it:
 
 A DEBUG invariant in `DesignTimeAspectPipelineResult.Update`, walking a stored extension for a non-durable `IFullRef`,
 would make the first of these detectable. It has not been written.
+
+Both have since been narrowed, and neither has been closed. `[Durable]` on
+`IDesignTimePipelineResultExtension` makes an implementation *whose source the analyzer sees* checkable, which covers
+this repository and any customer project that compiles against the shipped analyzer, but not an implementation
+compiled without it or one that suppresses the warning. `LAMA0878` analyses what a lambda captures at the sites the
+analyzer can see, which covers a lambda written inline at a durable parameter, but not one that arrives through a
+local, a factory or another assembly. What remains uncovered by both is what
+`MetalamaDiagnoseMemoryLeaks` reports, which is why the static and the runtime diagnostic are complementary rather
+than alternatives.
 
 ## Established as clean
 
