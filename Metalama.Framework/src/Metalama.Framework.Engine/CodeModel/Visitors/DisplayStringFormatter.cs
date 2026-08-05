@@ -441,9 +441,15 @@ internal sealed class DisplayStringFormatter : CompilationElementVisitor
                     this.Append( "/" );
                     this.Append( typeParameter.Name );
                 }
+
+                if ( typeParameter.IsNullable == true )
+                {
+                    this.Append( "?" );
+                }
             }
             else
             {
+                // The annotation of the mapped type is appended by the visitor of that type.
                 this.Visit( this._genericContext.Map( typeParameter ) );
             }
         }
