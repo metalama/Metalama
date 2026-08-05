@@ -14,8 +14,10 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.AppendParameter.OfI
 /// introduced type that is pulled from the constructors of the derived types.
 /// </summary>
 /// <remarks>
-/// The pull strategy makes the parameter type durable, and an introduced type has no symbol in the compilation, so a
-/// durable reference to it must be a declaration identifier rather than a serializable type identifier.
+/// The pull strategy makes the parameter type durable, so the type is named by an identifier instead of being reached
+/// through a live reference. The type is introduced into a namespace that the aspect introduces as well, so neither
+/// exists in the source, and resolving the identifier requires both of them to be registered in the merged namespace
+/// tree, where that resolution starts. See issue #1825.
 /// </remarks>
 public class MyAspect : TypeAspect
 {
