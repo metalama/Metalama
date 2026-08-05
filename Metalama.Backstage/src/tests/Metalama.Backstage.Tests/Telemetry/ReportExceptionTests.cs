@@ -5,6 +5,7 @@
 using Metalama.Backstage.Configuration;
 using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Extensibility;
+using Metalama.Backstage.Infrastructure;
 using Metalama.Backstage.Telemetry;
 using Metalama.Backstage.Testing;
 using Metalama.Backstage.UserInterface.Toasts;
@@ -54,14 +55,33 @@ public sealed class ReportExceptionTests : TestsBase
         }
     }
 
+    // Determines whether a file of the mock file system is a captured telemetry report, that is, a scrubbed upload
+    // payload sitting in one of the two report directories. The predicate has to be restricted to those directories:
+    // counting every file of the mock file system made the assertion depend on whatever an unrelated background
+    // service happened to have written by then. The telemetry upload task started by SendReport writes 'cleanup.json'
+    // under the Backstage tools directory, which made the count 1 or 2 depending on the interleaving. See #1814.
+    private bool IsReportFile( string path )
+    {
+        // The full local rendering ('.local.xml') is a review-only sibling of the scrubbed upload payload; it is never
+        // uploaded, so it does not count as a captured report. See #1674.
+        if ( path.EndsWith( ".local.xml", StringComparison.Ordinal ) )
+        {
+            return false;
+        }
+
+        var standardDirectories = this.ServiceProvider.GetRequiredBackstageService<IStandardDirectories>();
+        var directory = Path.GetDirectoryName( path );
+
+        return string.Equals( directory, standardDirectories.TelemetryExceptionsDirectory, StringComparison.Ordinal )
+               || string.Equals( directory, standardDirectories.TelemetryUploadQueueDirectory, StringComparison.Ordinal );
+    }
+
     private void AssertFilesCount( int expectedCount )
     {
         this.Logger.WriteLine( "Files:" );
         this.FileSystem.Mock.AllFiles.ToList().ForEach( this.Logger.WriteLine );
 
-        // The full local rendering ('.local.xml') is a review-only sibling of the scrubbed upload payload; it is never
-        // uploaded, so it does not count as a captured report. See #1674.
-        var reportFiles = this.FileSystem.Mock.AllFiles.Count( f => !f.EndsWith( ".local.xml", StringComparison.Ordinal ) );
+        var reportFiles = this.FileSystem.Mock.AllFiles.Count( this.IsReportFile );
 
         Assert.Equal( expectedCount, reportFiles );
     }
@@ -434,6 +454,14 @@ public sealed class ReportExceptionTests : TestsBase
         var toolsDirectory = Path.Combine( Path.GetTempPath(), "Metalama", "Tools", "Metalama.Backstage.Worker" );
         this.FileSystem.CreateDirectory( toolsDirectory );
         this.FileSystem.WriteAllText( Path.Combine( toolsDirectory, "cleanup.json" ), "{}" );
+
+        // An unrelated file that has the extension of a report, but is not in a report directory, is not a report either.
+        this.FileSystem.WriteAllText( Path.Combine( toolsDirectory, "settings.xml" ), "<settings />" );
+
+        // Neither is a file in the telemetry tree that is outside the two report directories.
+        var logsDirectory = this.ServiceProvider.GetRequiredBackstageService<IStandardDirectories>().TelemetryLogsDirectory;
+        this.FileSystem.CreateDirectory( logsDirectory );
+        this.FileSystem.WriteAllText( Path.Combine( logsDirectory, "Telemetry-2026-08.log" ), "" );
 
         // Exactly one report was captured, whatever else happens to be in the file system.
         this.AssertFilesCount( 1 );
