@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Engine.Utilities.UserCode;
 using Microsoft.CodeAnalysis;
 using System;
 
@@ -48,12 +49,21 @@ internal sealed class TypeIdRef<T> : DurableRef<T>
     {
         Invariant.Assert( genericContext.IsEmptyOrIdentity );
 
-        if ( !compilation.SerializableTypeIdResolver.TryResolveId( new SerializableTypeId( this.Id ), out var type ) )
+        // The resolution looks a name up through the namespaces, which BuildAspect rejects at design time because
+        // design-time cache invalidation cannot track such a query. This is framework machinery and not a user code
+        // model query: the identifier names a single type, and the dependency on the project that declares it is
+        // already tracked through the project version. Dependency collection is therefore suppressed for the duration
+        // of the lookup, exactly as SerializableDeclarationId.ResolveToDeclaration does for the same reason (issue
+        // #1752). Without it, resolving a durable reference to a type throws inside BuildAspect at design time.
+        using ( UserCodeExecutionContext.CurrentOrNull?.WithoutDependencyCollection() ?? default )
         {
-            return ReturnNullOrThrow( this.Id, throwIfMissing, compilation );
-        }
+            if ( !compilation.SerializableTypeIdResolver.TryResolveId( new SerializableTypeId( this.Id ), out var type ) )
+            {
+                return ReturnNullOrThrow( this.Id, throwIfMissing, compilation );
+            }
 
-        return ConvertDeclarationOrThrow( type, compilation, interfaceType );
+            return ConvertDeclarationOrThrow( type, compilation, interfaceType );
+        }
     }
 
     protected override IRef<TOut> CastAsRef<TOut>() => this as IRef<TOut> ?? new TypeIdRef<TOut>( this.Id );
