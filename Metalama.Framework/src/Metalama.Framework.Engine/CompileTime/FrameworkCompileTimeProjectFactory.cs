@@ -7,6 +7,7 @@ using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.CompileTime.Manifest;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Diagnostics;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Framework.Services;
@@ -14,6 +15,7 @@ using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.Versioning;
@@ -44,8 +46,31 @@ internal sealed class FrameworkCompileTimeProjectFactory : IGlobalService
     /// Compared with <see cref="StringComparer.Ordinal"/> rather than case-insensitively, because two spellings of one
     /// path only cost a second entry, while two paths that differ in case are two files on a case-sensitive file system.
     /// </para>
+    /// <para>
+    /// The entry records the time the file was last written, so that an assembly rebuilt at the same path is not served
+    /// from an entry describing the previous build. This is the invalidation that <see cref="MetadataReader"/> applies
+    /// to its own cache of the same files.
+    /// </para>
     /// </remarks>
-    private readonly ConcurrentDictionary<string, CompileTimeProjectManifest> _manifestsByReferencePath = new( StringComparer.Ordinal );
+    private readonly ConcurrentDictionary<string, CachedManifest> _manifestsByReferencePath = new( StringComparer.Ordinal );
+
+    /// <summary>
+    /// A manifest together with the time the file it was built from was last written, or <c>null</c> when the path does
+    /// not name a file on disk.
+    /// </summary>
+    private readonly record struct CachedManifest( DateTime? LastFileWrite, CompileTimeProjectManifest Manifest );
+
+    /// <summary>
+    /// Returns the time the file at the given path was last written, or <c>null</c> when the path does not name a file.
+    /// </summary>
+    /// <remarks>
+    /// The path of a metadata reference is not necessarily a file. A reference created from a stream carries a display
+    /// string instead, which is what <see cref="CompileTimeAssemblyLocator"/> produces for the assemblies it embeds as
+    /// manifest resources. The entry of such a reference is never invalidated, which is correct: its content is inside
+    /// the engine assembly and cannot change while the process runs.
+    /// </remarks>
+    private static DateTime? GetLastFileWriteOrNull( string path )
+        => CompileTimeAssemblyLocator.IsEmbeddedAssemblyFilePath( path ) ? null : File.GetLastWriteTime( path );
 
     private static DiagnosticManifest CreateFrameworkDiagnosticManifest()
     {
@@ -57,7 +82,17 @@ internal sealed class FrameworkCompileTimeProjectFactory : IGlobalService
         return new DiagnosticManifest( diagnostics, suppressions );
     }
 
-    private static TemplateProjectManifest CreateFrameworkTemplateProjectManifest( IAssemblySymbol assembly )
+    /// <summary>
+    /// Builds the manifest that indexes the template members of the given <c>Metalama.Framework</c> assembly.
+    /// </summary>
+    /// <remarks>
+    /// A type that the assembly does not expose is reported and skipped rather than asserted. The assembly is a
+    /// reference of a compilation that the engine does not control, so it can be one that no type can be read from: a
+    /// stale or truncated file, or a reference of a compilation whose references are incomplete. The pipeline then
+    /// initializes with a manifest that indexes fewer templates, which degrades the analysis of the affected project
+    /// instead of aborting it. See issue #1820.
+    /// </remarks>
+    private static TemplateProjectManifest CreateFrameworkTemplateProjectManifest( IAssemblySymbol assembly, ILogger logger )
     {
         // Create a builder.
         var builder = new TemplateProjectManifestBuilder( assembly.GlobalNamespace );
@@ -67,7 +102,16 @@ internal sealed class FrameworkCompileTimeProjectFactory : IGlobalService
 
         foreach ( var reflectionType in typesDefiningTemplates )
         {
-            var typeSymbol = assembly.GetTypeByMetadataName( reflectionType.FullName! ).AssertNotNull();
+            var typeSymbol = assembly.GetTypeByMetadataName( reflectionType.FullName! );
+
+            if ( typeSymbol == null )
+            {
+                logger.Error?.Log(
+                    $"The type '{reflectionType.FullName}' cannot be read from assembly '{assembly.Identity}'. Its templates are "
+                    + "not indexed in the manifest of the framework compile-time project." );
+
+                continue;
+            }
 
             foreach ( var member in typeSymbol.GetMembers() )
             {
@@ -121,7 +165,7 @@ internal sealed class FrameworkCompileTimeProjectFactory : IGlobalService
         return builder.Build();
     }
 
-    private static CompileTimeProjectManifest CreateFrameworkProjectManifest( IAssemblySymbol assembly )
+    private static CompileTimeProjectManifest CreateFrameworkProjectManifest( IAssemblySymbol assembly, ILogger logger )
         => new(
             _frameworkAssemblyIdentity.ToString(),
             "",
@@ -132,7 +176,7 @@ internal sealed class FrameworkCompileTimeProjectFactory : IGlobalService
             ImmutableArray<string>.Empty,
             ImmutableArray<string>.Empty,
             ImmutableArray<string>.Empty,
-            CreateFrameworkTemplateProjectManifest( assembly ),
+            CreateFrameworkTemplateProjectManifest( assembly, logger ),
             0,
             Array.Empty<CompileTimeFileManifest>(),
             Array.Empty<CompileTimeDiagnosticManifest>(),
@@ -141,29 +185,34 @@ internal sealed class FrameworkCompileTimeProjectFactory : IGlobalService
     public CompileTimeProject CreateFrameworkProject( in ProjectServiceProvider serviceProvider, CompileTimeDomain domain, Compilation compilation )
     {
         var assembly = compilation.SourceModule.ReferencedAssemblySymbols.First( x => x.Name == "Metalama.Framework" );
+        var logger = serviceProvider.GetLoggerFactory().CompileTime();
 
         CompileTimeProjectManifest manifest;
 
         if ( compilation.GetMetadataReference( assembly ) is PortableExecutableReference { FilePath: { } path } )
         {
-            manifest = this._manifestsByReferencePath.GetOrAdd(
-                path,
-                static ( _, a ) => CreateFrameworkProjectManifest( a ),
-                assembly );
+            var lastFileWrite = GetLastFileWriteOrNull( path );
+
+            if ( !this._manifestsByReferencePath.TryGetValue( path, out var cached ) || cached.LastFileWrite != lastFileWrite )
+            {
+                cached = new CachedManifest( lastFileWrite, CreateFrameworkProjectManifest( assembly, logger ) );
+                this._manifestsByReferencePath[path] = cached;
+            }
+
+            manifest = cached.Manifest;
         }
         else
         {
-            // The reference has no path when it is a CompilationReference, that is, when the analyzed project references
-            // Metalama.Framework as a project of the same solution, or when it was created from an image. Nothing then
-            // identifies the assembly across compilations, so the manifest is built for this call only, which is correct
-            // at the cost of not being shared.
-            serviceProvider.GetLoggerFactory()
-                .CompileTime()
-                .Trace?.Log(
-                    $"The reference to assembly '{assembly.Identity}' has no path. The manifest of the framework compile-time "
-                    + "project is built for this compilation instead of being shared." );
+            // A CompilationReference, which is the form a project reference takes at design time, carries no path, and
+            // neither does a reference created from an image. Nothing then identifies the assembly across compilations,
+            // so the manifest is built for this call only. Reported as an error because the compilations the pipeline is
+            // given are expected to reference Metalama.Framework as a file, so this indicates an arrangement that has
+            // not been accounted for.
+            logger.Error?.Log(
+                $"The reference to assembly '{assembly.Identity}' carries no path. The manifest of the framework compile-time "
+                + "project is built for this compilation instead of being shared." );
 
-            manifest = CreateFrameworkProjectManifest( assembly );
+            manifest = CreateFrameworkProjectManifest( assembly, logger );
         }
 
         return new CompileTimeProject(

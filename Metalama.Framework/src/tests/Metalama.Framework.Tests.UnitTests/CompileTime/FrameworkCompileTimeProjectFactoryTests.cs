@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.CompileTime;
+using Metalama.Framework.Engine.CompileTime.Manifest;
 using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -106,5 +107,33 @@ public sealed class FrameworkCompileTimeProjectFactoryTests : UnitTestClass
 
         Assert.NotNull( project1.Manifest );
         Assert.Same( project1.Manifest, project2.Manifest );
+    }
+
+    /// <summary>
+    /// Verifies that an assembly rebuilt at a path already in the index is not served from the entry that describes the
+    /// previous build.
+    /// </summary>
+    [Fact]
+    public void ManifestIsRebuiltWhenTheFileIsWrittenAgain()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var path = Path.Combine( testContext.BaseDirectory, "Metalama.Framework.dll" );
+        File.Copy( FrameworkAssemblyPath, path );
+
+        CompileTimeProjectManifest? CreateManifest()
+            => CreateFrameworkProject(
+                    testContext,
+                    CSharpCompilation.Create( "test", references: new[] { MetadataReference.CreateFromFile( path ) } ) )
+                .Manifest;
+
+        var manifest = CreateManifest();
+
+        // The file is unchanged, so the entry is used.
+        Assert.Same( manifest, CreateManifest() );
+
+        File.SetLastWriteTime( path, File.GetLastWriteTime( path ).AddHours( 1 ) );
+
+        Assert.NotSame( manifest, CreateManifest() );
     }
 }
