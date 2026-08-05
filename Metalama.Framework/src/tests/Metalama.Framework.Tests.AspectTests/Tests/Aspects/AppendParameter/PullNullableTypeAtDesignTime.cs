@@ -29,7 +29,7 @@ public class MyAspect : TypeAspect
 {
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        var parameterType = TypeFactory.GetType( typeof(IFormatProvider) ).ToNullableType();
+        var parameterType = TypeFactory.GetType( typeof(IFormatProvider) ).ToNullable();
 
         foreach ( var constructor in builder.Target.Constructors )
         {
