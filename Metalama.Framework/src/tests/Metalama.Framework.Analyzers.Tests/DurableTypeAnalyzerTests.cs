@@ -113,14 +113,20 @@ public sealed class DurableTypeAnalyzerTests : DurableAnalyzerTestBase
         Assert.Contains( "does not constrain what may be stored", message, StringComparison.Ordinal );
     }
 
+    /// <remarks>
+    /// The remedy is to mark <c>IContract</c>, after which every implementation is verified in turn, which
+    /// <see cref="ImplementationOfDurableInterface_InheritsTheObligation"/> covers. The identifier differs from
+    /// LAMA0870 because that remedy differs in kind from marking a class, not because the case is undecidable.
+    /// </remarks>
     [Fact]
-    public async Task InterfaceField_CannotBeEstablished()
+    public async Task UnmarkedInterfaceField_IsReported()
     {
         var message = await AssertSingleDiagnosticAsync(
             Code( "[Durable] class A { private IContract? _contract; } interface IContract { }" ),
             "LAMA0876" );
 
-        Assert.Contains( "implementation is not known", message, StringComparison.Ordinal );
+        Assert.Contains( "not marked [Durable]", message, StringComparison.Ordinal );
+        Assert.Contains( "every implementation to be durable", message, StringComparison.Ordinal );
     }
 
     [Fact]

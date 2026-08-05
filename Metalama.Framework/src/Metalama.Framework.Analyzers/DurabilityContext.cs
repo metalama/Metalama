@@ -342,13 +342,15 @@ namespace Metalama.Framework.Analyzers
                 return Verdict.Durable;
             }
 
-            // Rule 14. An interface or an abstract type has no members of its own to examine and its implementation
-            // is not known, so this is undecidable rather than wrong, and carries its own diagnostic.
+            // Rule 14. An interface or an abstract type has no members of its own to examine, so marking it does not
+            // check anything here; it requires every implementation to be durable, which the rule that walks the
+            // members of a type bound by the contract then verifies. That is a different remedy from marking a class,
+            // so it carries its own diagnostic.
             if ( namedType.TypeKind == TypeKind.Interface || namedType.IsAbstract )
             {
-                return Verdict.Unprovable(
+                return Verdict.UnmarkedInterface(
                     GetDisplayName( type ),
-                    "the implementation is not known here" );
+                    "an interface or abstract type that is not marked [Durable]" );
             }
 
             // Rule 15. Durability is opt-in.

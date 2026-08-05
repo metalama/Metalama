@@ -115,8 +115,16 @@ implementation of `IDesignTimePipelineResultExtension` are subject to the same r
 
 Durability is **opt-in**: intrinsics are durable, a system collection is durable when its type arguments are, and a
 type that is neither marked nor in the analyzer's tables is not durable. Marking a type therefore propagates the
-obligation to the types of all of its members, which is the point. A type that is an interface or is abstract yields
-`LAMA0876` rather than `LAMA0870`, because what it holds depends on an implementation the analyzer cannot see.
+obligation to the types of all of its members, which is the point.
+
+**An interface may be marked, and that is how a member typed as an interface is made durable.** The attribute then
+means two things at once, and both are checked: a consumer of the interface may assume that any implementation is
+durable, and every implementation is required to be durable, which the analyzer verifies member by member exactly as
+it does for a marked class. An unmarked interface or abstract type therefore yields `LAMA0876` rather than `LAMA0870`
+only because the remedy differs in kind, not because anything is undecidable: marking a class is verified against its
+own members, whereas marking an interface exports the obligation to its implementations. The one caveat is reach.
+An implementation compiled without this analyzer is not verified, which is the boundary at which
+`MetalamaDiagnoseMemoryLeaks` takes over.
 
 Where the declaration cannot be satisfied directly, prefer in this order:
 
@@ -432,33 +440,6 @@ Recorded here rather than in a pull request, because this is the document the ne
 reads. Strike an entry when it is closed, and add one rather than leaving a repair half-applied. State for each whether
 it was **measured** or **reasoned**, and phrase a reasoned one as a question, so that a reader can tell an observation
 from a hypothesis without re-deriving it.
-
-### A transitive aspect instance retains one compilation
-
-Measured. Tracked by [#1797](https://github.com/metalama/Metalama/issues/1797). The remaining route is:
-
-```
-TransitiveAspectInstance.Aspect
-  -> PullConstructorParameterTransitiveAspect._parameter : IntroducedRef<IParameter>
-    -> RefFactory -> CompilationContext -> Compilation
-```
-
-The target declarations on that path are durable and typed `IDurableRef<IDeclaration>`, so only the aspect object
-remains. Why the parameter reference is not also durable is specific, and worth knowing before trying it again:
-
-- an `IntroducedRef` **is** serializable. It overrides `ToSerializableId`, `FullRef.ToDurable` is built on that, and
-  the identifier of a pulled parameter names the constructor signature and the ordinal, which the resolution path
-  handles explicitly and `ConstructorParameterIdResolutionTests` covers;
-- calling `ToDurable()` on it therefore compiles, and does close this retention;
-- but it breaks the cross-project case. `PullParameterTests.CrossProjectIntegration` then fails: the consuming project
-  resolves nothing and the transitive aspect silently does not apply. That test runs on `net48` only, so a `net8.0` run
-  stays green and hides it.
-
-The identity of an introduced declaration is not settled at the moment the advice runs. Making the reference durable
-has to happen later in the pipeline, which is a change of design rather than a change of call.
-
-`TransitiveContributorMemoryLeakTests` holds a control that asserts the compilation is *still* retained. It fails when
-this is fixed, which is the signal to replace it with the ordinary assertion.
 
 ### Two requirements the framework cannot check
 

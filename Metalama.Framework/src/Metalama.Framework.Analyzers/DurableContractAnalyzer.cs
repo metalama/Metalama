@@ -49,17 +49,25 @@ namespace Metalama.Framework.Analyzers
             DiagnosticSeverity.Warning,
             true );
 
-        internal static readonly DiagnosticDescriptor DurabilityCannotBeEstablished = new(
+        /// <remarks>
+        /// Separate from <see cref="MemberIsNotDurable"/> because the remedy differs in kind, not because the case is
+        /// undecidable. Marking a class is verified where it is declared, by checking its own members. Marking an
+        /// interface instead exports an obligation to every implementation: a consumer may then assume that an
+        /// implementation is durable, and each implementation is verified in turn. That is a real decision procedure,
+        /// but it reaches only the implementations the analyzer sees, so a project may reasonably want to weigh this
+        /// rule differently from the others.
+        /// </remarks>
+        internal static readonly DiagnosticDescriptor InterfaceIsNotDurable = new(
             "LAMA0876",
-            "The durability of a type cannot be established",
-            "'{0}' does not satisfy the [Durable] contract because the durability of '{1}' cannot be established. "
-            + "Mark that type [Durable], or use a type that is durable. Retention path: {2}.",
+            "An interface or abstract type used by a durable type is not marked [Durable]",
+            "'{0}' does not satisfy the [Durable] contract because '{1}' is not marked [Durable]. Marking it requires "
+            + "every implementation to be durable, which this analyzer verifies. Retention path: {2}.",
             _category,
             DiagnosticSeverity.Warning,
             true );
 
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =
-            ImmutableArray.Create( MemberIsNotDurable, BaseTypeIsNotDurable, DurabilityCannotBeEstablished );
+            ImmutableArray.Create( MemberIsNotDurable, BaseTypeIsNotDurable, InterfaceIsNotDurable );
 
         public override void Initialize( AnalysisContext context )
         {
@@ -203,7 +211,7 @@ namespace Metalama.Framework.Analyzers
                 return;
             }
 
-            var descriptor = verdict.Kind == DurabilityKind.Unprovable ? DurabilityCannotBeEstablished : MemberIsNotDurable;
+            var descriptor = verdict.Kind == DurabilityKind.UnmarkedInterface ? InterfaceIsNotDurable : MemberIsNotDurable;
 
             var chain = verdict
                 .Prepend( declaredMember.Name )

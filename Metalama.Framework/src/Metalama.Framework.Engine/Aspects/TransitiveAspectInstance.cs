@@ -46,26 +46,29 @@ internal sealed class TransitiveAspectInstance : ITransitivePipelineContributor,
 
     [SuppressMessage(
         "Metalama",
-        "LAMA0876:The durability of a type cannot be established",
+        "LAMA0876:An interface or abstract type used by a durable type is not marked [Durable]",
         Justification =
-            "The aspect is user code. The route by which it reaches a compilation is the open item tracked by #1797, "
-            + "and is recorded in design-time-memory.md. See #1830." )]
+            "Marking IAspect would require every aspect, including every aspect a user writes, to be durable. That is "
+            + "a decision about the public contract of the framework rather than a local repair. The one retention "
+            + "that was known here, through the pulled parameter of PullConstructorParameterTransitiveAspect, was "
+            + "closed by #1797. See #1830." )]
     public IAspect Aspect { get; }
 
     [SuppressMessage(
         "Metalama",
-        "LAMA0876:The durability of a type cannot be established",
+        "LAMA0876:An interface or abstract type used by a durable type is not marked [Durable]",
         Justification =
-            "An interface, so what an implementation holds cannot be established here. The known retention through "
-            + "the template parameters was closed by #1803. Whether the type can be constrained is decided in #1830." )]
+            "Marking IAspectClassImpl would propagate the obligation to AspectClass and to everything it holds, which "
+            + "is a wider change than this one. The known retention through the template parameters was closed by "
+            + "#1803. See #1830." )]
     public IAspectClassImpl AspectClass { get; }
 
     [SuppressMessage(
         "Metalama",
-        "LAMA0876:The durability of a type cannot be established",
+        "LAMA0876:An interface or abstract type used by a durable type is not marked [Durable]",
         Justification =
-            "The aspect state is user code, so what it holds cannot be established here. Whether a constraint can be "
-            + "stated for it is decided in #1830." )]
+            "Marking IAspectState would require every aspect state a user writes to be durable, which is the same "
+            + "decision about the public contract as for IAspect. See #1830." )]
     public IAspectState? AspectState { get; }
 
     public int TargetDeclarationDepth { get; }

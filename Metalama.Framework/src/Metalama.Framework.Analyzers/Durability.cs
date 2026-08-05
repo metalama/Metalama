@@ -22,11 +22,13 @@ namespace Metalama.Framework.Analyzers
         NotDurable,
 
         /// <summary>
-        /// The type is an interface or an abstract type, so what it holds depends on an implementation that is not
-        /// known here. Reported separately from <see cref="NotDurable"/>, because it is undecidable rather than wrong
-        /// and a project may reasonably choose a different severity for it.
+        /// The type is an interface or an abstract type that is not marked. Reported separately from
+        /// <see cref="NotDurable"/> because the remedy differs in kind: marking a class is verified against its own
+        /// members, whereas marking an interface exports the obligation to every implementation, which the analyzer
+        /// then verifies in turn. It is not undecidable, but the guarantee reaches only the implementations that are
+        /// compiled with this analyzer, so a project may reasonably weigh it differently.
         /// </summary>
-        Unprovable
+        UnmarkedInterface
     }
 
     /// <summary>
@@ -137,10 +139,10 @@ namespace Metalama.Framework.Analyzers
             => new( DurabilityKind.NotDurable, ImmutableArray.Create( typeName ), reason );
 
         /// <summary>
-        /// Creates the verdict of a type whose durability cannot be established, starting a new chain at that type.
+        /// Creates the verdict of an interface or abstract type that is not marked, starting a new chain at that type.
         /// </summary>
-        public static Verdict Unprovable( string typeName, string? reason )
-            => new( DurabilityKind.Unprovable, ImmutableArray.Create( typeName ), reason );
+        public static Verdict UnmarkedInterface( string typeName, string? reason )
+            => new( DurabilityKind.UnmarkedInterface, ImmutableArray.Create( typeName ), reason );
 
         /// <summary>
         /// Returns a verdict identical to the current one except that the given step is prepended to its chain.
