@@ -132,12 +132,15 @@ namespace Metalama.Framework.Analyzers
             Durable( "Microsoft.CodeAnalysis.SyntaxKind" );
 
             // ---------------------------------------------------------------------------------------------------
-            // Always durable: the durable identifiers of this codebase.
+            // Always durable: the durable identifiers of this codebase that cannot carry the attribute themselves.
+            //
+            // SerializableDeclarationId, SerializableTypeId and DocumentKey are deliberately absent: they are marked
+            // [Durable] where they are declared, which is better than an entry here because the claim is then
+            // verified against their members rather than asserted.
             // ---------------------------------------------------------------------------------------------------
 
-            Durable( "Metalama.Framework.Code.SerializableDeclarationId" );
-            Durable( "Metalama.Framework.Code.SerializableTypeId" );
-            Durable( "Metalama.Framework.Engine.CodeModel.DocumentKey" );
+            // Declared in Metalama.Framework.DesignTime.Rpc, which does not reference the contract assembly and is
+            // kept dependency-light on purpose, so it cannot carry the attribute.
             Durable( "Metalama.Framework.DesignTime.Rpc.ProjectKey" );
 
             // The identity field of a SymbolDictionaryKey is declared as object and holds a string when the key was

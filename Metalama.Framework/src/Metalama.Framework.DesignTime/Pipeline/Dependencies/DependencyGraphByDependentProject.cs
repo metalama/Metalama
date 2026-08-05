@@ -4,6 +4,7 @@
 
 using Metalama.Framework.DesignTime.Rpc;
 using Metalama.Framework.Engine.CodeModel;
+using Metalama.Framework.Utilities;
 using System.Collections.Immutable;
 
 namespace Metalama.Framework.DesignTime.Pipeline.Dependencies;
@@ -11,6 +12,7 @@ namespace Metalama.Framework.DesignTime.Pipeline.Dependencies;
 /// <summary>
 /// Represents a dependency of a compilation to another project.
 /// </summary>
+[Durable]
 internal readonly struct DependencyGraphByDependentProject
 {
     private static readonly ImmutableDictionary<DocumentKey, DependencyGraphByMasterSyntaxTree> _emptyDependenciesByMasterDocumentKey =

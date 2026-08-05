@@ -4,6 +4,7 @@
 
 using Metalama.Framework.DesignTime.Rpc;
 using Metalama.Framework.Engine.CodeModel;
+using Metalama.Framework.Utilities;
 using System.Collections.Immutable;
 
 namespace Metalama.Framework.DesignTime.Pipeline.Dependencies;
@@ -11,6 +12,7 @@ namespace Metalama.Framework.DesignTime.Pipeline.Dependencies;
 /// <summary>
 /// Represents all dependencies of a given compilation.
 /// </summary>
+[Durable]
 internal readonly partial struct DependencyGraph
 {
     public static DependencyGraph Create( BaseDependencyCollector dependencies )

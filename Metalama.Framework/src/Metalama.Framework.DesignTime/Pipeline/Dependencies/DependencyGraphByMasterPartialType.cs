@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Engine.CodeModel;
+using Metalama.Framework.Utilities;
 using System.Collections.Immutable;
 
 namespace Metalama.Framework.DesignTime.Pipeline.Dependencies;
@@ -10,6 +11,7 @@ namespace Metalama.Framework.DesignTime.Pipeline.Dependencies;
 /// <summary>
 /// Represents the set of syntax trees that depend on a master partial type.
 /// </summary>
+[Durable]
 internal readonly struct DependencyGraphByMasterPartialType
 {
     private static readonly ImmutableHashSet<DocumentKey> _emptyDependencies = ImmutableHashSet.Create<DocumentKey>();

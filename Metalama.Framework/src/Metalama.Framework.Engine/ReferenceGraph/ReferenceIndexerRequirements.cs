@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Code;
+using Metalama.Framework.Utilities;
 
 namespace Metalama.Framework.Engine.ReferenceGraph;
 
@@ -10,6 +11,7 @@ namespace Metalama.Framework.Engine.ReferenceGraph;
 /// Exposes the requirements for reference indexing. Requirements are aggregated by the <see cref="ReferenceIndexerOptions"/>
 /// class.
 /// </summary>
+[Durable]
 public sealed record ReferenceIndexerRequirements(
     ReferenceKinds ReferenceKinds,
     bool IncludeDerivedTypes,

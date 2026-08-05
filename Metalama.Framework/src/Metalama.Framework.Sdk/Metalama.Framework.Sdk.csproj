@@ -39,6 +39,9 @@
 
         <ProjectReference Include="../Metalama.Framework/Metalama.Framework.csproj" PrivateAssets="Analyzers;Build;BuildTransitive" />
 
+        <!-- DocumentKey is declared here and is marked [Durable], so the analyzer verifies it. -->
+        <ProjectReference Include="../Metalama.Framework.Analyzers/Metalama.Framework.Analyzers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+
     </ItemGroup>
 
     <!-- Packaging -->
