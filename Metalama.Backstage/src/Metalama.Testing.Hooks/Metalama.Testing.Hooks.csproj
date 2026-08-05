@@ -11,7 +11,7 @@
         <IncludeSymbols Condition="'$(Configuration)'=='Debug'">false</IncludeSymbols>
 
         <!-- Packaging -->
-        <PackageDescription>A helper package used internally by Metalama to make concurrent code deterministically testable. This package should only be installed as a dependency. (This is not the package you are looking for.)</PackageDescription>
+        <PackageDescription>A helper package used internally by Metalama to make concurrent code deterministically testable. This package should only be installed as a dependency.</PackageDescription>
     </PropertyGroup>
 
     <ItemGroup>

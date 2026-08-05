@@ -33,7 +33,7 @@ internal sealed class TestSynchronizationProvider : ITestSynchronizationProvider
     {
         if ( this._syncPoints.TryGetValue( name, out var syncPoint ) )
         {
-            syncPoint.Trip();
+            syncPoint.Trip( cancellationToken );
         }
     }
 
@@ -82,13 +82,17 @@ internal sealed class TestSynchronizationProvider : ITestSynchronizationProvider
         private readonly SemaphoreSlim _release = new( 0, int.MaxValue );
         private int _armed = 1;
 
-        public void Trip()
+        /// <summary>
+        /// Called by the code under test. Blocks the first thread that reaches this synchronization point until the
+        /// test releases it, or until <paramref name="cancellationToken"/> is signalled.
+        /// </summary>
+        public void Trip( CancellationToken cancellationToken = default )
         {
             // Only the first matching call blocks.
             if ( Interlocked.Exchange( ref this._armed, 0 ) == 1 )
             {
                 this._reached.Release();
-                this._release.Wait();
+                this._release.Wait( cancellationToken );
             }
         }
 
