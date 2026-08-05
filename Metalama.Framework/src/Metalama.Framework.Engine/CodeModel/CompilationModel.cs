@@ -361,7 +361,6 @@ namespace Metalama.Framework.Engine.CodeModel
             this.AspectRepository = prototype.AspectRepository;
             this.HierarchicalOptionsManager = prototype.HierarchicalOptionsManager;
             this.MetricManager = prototype.MetricManager;
-            this.SerializableTypeIdResolver = prototype.SerializableTypeIdResolver;
         }
 
         private CompilationModel( CompilationModel prototype, AspectRepository aspectRepository, string? debugLabel ) : this( prototype, false, debugLabel )

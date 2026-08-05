@@ -816,7 +816,17 @@ internal static partial class DocumentationIdHelper
                 declarationParameterCount = declarationParameters.Count;
             }
 
-            if ( declarationParameterCount != expectedParameters.Count )
+            // The identifier describes the signature as it stood when the identifier was written, which for a
+            // constructor may already include parameters that an earlier aspect had introduced. Later runs introduce
+            // more, and an introduced parameter is always appended, so the identifier names a prefix of the current
+            // parameter list rather than the whole of it. Requiring equality here rejected the very constructor the
+            // identifier denotes as soon as a second parameter was pulled into it (issue #1797).
+            //
+            // The identifier must still name every source parameter, otherwise it describes a different constructor:
+            // a declaration with more source parameters than the identifier lists cannot be the one it denotes. It
+            // must also have at least as many parameters as the identifier lists, so that every listed parameter has
+            // a counterpart to be compared with.
+            if ( declarationParameterCount > expectedParameters.Count || declarationParameters.Count < expectedParameters.Count )
             {
                 return false;
             }

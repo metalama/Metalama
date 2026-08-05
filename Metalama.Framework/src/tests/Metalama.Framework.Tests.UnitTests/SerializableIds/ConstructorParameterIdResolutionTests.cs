@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -220,5 +220,132 @@ public sealed class ConstructorParameterIdResolutionTests : UnitTestClass
         Assert.NotNull( firstDeclaringMember );
         Assert.NotNull( secondDeclaringMember );
         Assert.Equal( firstDeclaringMember.Parameters.Count, secondDeclaringMember.Parameters.Count );
+    }
+
+    /// <summary>
+    /// A type whose constructor was extended twice, so that its parameter list holds one source parameter followed by
+    /// two introduced ones.
+    /// </summary>
+    /// <remarks>
+    /// This is the shape that arises when a parameter is pulled into a constructor which an earlier aspect had already
+    /// extended, which is what happens across a project reference: the identifier stored by the first aspect was
+    /// written from a signature that already included that aspect's own parameter.
+    /// </remarks>
+    private const string _twiceExtendedCode = """
+                                              using System;
+                                              using Metalama.Framework.RunTime;
+
+                                              public class C
+                                              {
+                                                  public C( string s ) { }
+
+                                                  public C( string s, [AspectGenerated] DateTime t = default, [AspectGenerated] int p = 0 ) : this( s ) { }
+                                              }
+                                              """;
+
+    /// <summary>
+    /// Verifies that an identifier naming a source parameter followed by an already-introduced one matches the
+    /// constructor after a further parameter has been introduced into it.
+    /// </summary>
+    /// <remarks>
+    /// The parser compares the identifier against the source parameters of the candidate, and used to require the two
+    /// counts to be equal. An identifier written when one parameter had already been introduced names more parameters
+    /// than the candidate has source ones, so the equality rejected the very constructor the identifier denotes, and
+    /// the transitive aspect silently did not apply. Issue #1797 carries the measurement. The identifier names a
+    /// prefix of the parameter list, because an introduced parameter is always appended.
+    /// </remarks>
+    [Fact]
+    public void IdentifierNamingAnAlreadyIntroducedParameterMatchesTheFurtherExtendedConstructor()
+    {
+        using var testContext = this.CreateTestContext();
+        var compilation = testContext.CreateCompilationModel( _twiceExtendedCode );
+
+        // The identifier as the first aspect wrote it: one source parameter and the parameter it had introduced.
+        const string id = "M:C.#ctor(System.String,System.DateTime)";
+
+        var candidates = DocumentationIdHelper.GetDeclarationsForDeclarationId( id, compilation );
+        var descriptions = candidates.SelectAsArray( Describe );
+
+        this.TestOutput.WriteLine( $"'{id}' matches {descriptions.Length} declaration(s):" );
+
+        foreach ( var description in descriptions )
+        {
+            this.TestOutput.WriteLine( $"  {description}" );
+        }
+
+        Assert.Equal(
+            ["Constructor( string, DateTime [AspectGenerated], int [AspectGenerated] )"],
+            descriptions );
+    }
+
+    /// <summary>
+    /// Verifies that the ordinal of the parameter introduced last resolves through such an identifier.
+    /// </summary>
+    /// <remarks>
+    /// This is the end that the pull actually uses: the transitive aspect stores the identifier of the parameter it
+    /// must pull, and that parameter is the one at the highest ordinal.
+    /// </remarks>
+    [Fact]
+    public void OrdinalOfTheLastIntroducedParameterResolvesThroughSuchAnIdentifier()
+    {
+        using var testContext = this.CreateTestContext();
+        var compilation = testContext.CreateCompilationModel( _twiceExtendedCode );
+
+        var id = new SerializableDeclarationId( "M:C.#ctor(System.String,System.DateTime);Parameter;2" );
+
+        var parameter = Assert.IsAssignableFrom<IParameter>( id.ResolveToDeclaration( compilation ) );
+
+        Assert.Equal( "p", parameter.Name );
+        Assert.Equal( 2, parameter.Index );
+    }
+
+    /// <summary>
+    /// Verifies that a candidate declaring more source parameters than the identifier names is not matched.
+    /// </summary>
+    /// <remarks>
+    /// This is the boundary that the relaxed comparison must still enforce. Were it dropped, an identifier would match
+    /// any constructor whose parameter list merely starts with the same types, and the resolution of an overloaded
+    /// constructor would become arbitrary.
+    /// </remarks>
+    [Fact]
+    public void IdentifierNamingFewerParametersThanTheSourceSignatureDoesNotMatch()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var compilation = testContext.CreateCompilationModel(
+            """
+            public class C
+            {
+                public C( string s, int i ) { }
+            }
+            """ );
+
+        var candidates = DocumentationIdHelper.GetDeclarationsForDeclarationId( "M:C.#ctor(System.String)", compilation );
+
+        Assert.Empty( candidates );
+    }
+
+    /// <summary>
+    /// Verifies that an identifier naming more parameters than the candidate has is not matched, and in particular
+    /// does not index past the end of the parameter list.
+    /// </summary>
+    [Fact]
+    public void IdentifierNamingMoreParametersThanTheDeclarationHasDoesNotMatch()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var compilation = testContext.CreateCompilationModel(
+            """
+            using Metalama.Framework.RunTime;
+
+            public class C
+            {
+                public C( string s, [AspectGenerated] int p = 0 ) { }
+            }
+            """ );
+
+        var candidates = DocumentationIdHelper.GetDeclarationsForDeclarationId( "M:C.#ctor(System.String,System.Int32,System.Boolean)", compilation );
+
+        Assert.Empty( candidates );
     }
 }

@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Engine.Utilities.UserCode;
 using Microsoft.CodeAnalysis;
 using System;
 
@@ -19,8 +20,16 @@ internal sealed class TypeIdRef<T> : DurableRef<T>
 
     public TypeIdRef( SerializableTypeId id ) : base( id.Id ) { }
 
-    public override SerializableDeclarationId ToSerializableId()
-        => throw new NotSupportedException( "The durable reference must be first resolved to a full reference." );
+    /// <summary>
+    /// Returns the type identifier wrapped in a <see cref="SerializableDeclarationId"/>.
+    /// </summary>
+    /// <remarks>
+    /// This is the same representation that <c>SerializableDeclarationIdProvider</c> gives an array or a pointer type,
+    /// whose identifier is a type identifier as well, and the resolution of an identifier already dispatches on the
+    /// prefix. Throwing here instead made every caller that asks a durable reference for its identifier fail once
+    /// named types started being identified this way, including <c>GetPrimarySyntaxTree</c>.
+    /// </remarks>
+    public override SerializableDeclarationId ToSerializableId() => new( this.Id );
 
     protected override ISymbol GetSymbol( CompilationContext compilationContext, bool ignoreAssemblyKey = false )
     {
@@ -40,12 +49,21 @@ internal sealed class TypeIdRef<T> : DurableRef<T>
     {
         Invariant.Assert( genericContext.IsEmptyOrIdentity );
 
-        if ( !compilation.SerializableTypeIdResolver.TryResolveId( new SerializableTypeId( this.Id ), out var symbol ) )
+        // The resolution looks a name up through the namespaces, which BuildAspect rejects at design time because
+        // design-time cache invalidation cannot track such a query. This is framework machinery and not a user code
+        // model query: the identifier names a single type, and the dependency on the project that declares it is
+        // already tracked through the project version. Dependency collection is therefore suppressed for the duration
+        // of the lookup, exactly as SerializableDeclarationId.ResolveToDeclaration does for the same reason (issue
+        // #1752). Without it, resolving a durable reference to a type throws inside BuildAspect at design time.
+        using ( UserCodeExecutionContext.CurrentOrNull?.WithoutDependencyCollection() ?? default )
         {
-            return ReturnNullOrThrow( this.Id, throwIfMissing, compilation );
-        }
+            if ( !compilation.SerializableTypeIdResolver.TryResolveId( new SerializableTypeId( this.Id ), out var type ) )
+            {
+                return ReturnNullOrThrow( this.Id, throwIfMissing, compilation );
+            }
 
-        return ConvertDeclarationOrThrow( symbol, compilation, interfaceType );
+            return ConvertDeclarationOrThrow( type, compilation, interfaceType );
+        }
     }
 
     protected override IRef<TOut> CastAsRef<TOut>() => this as IRef<TOut> ?? new TypeIdRef<TOut>( this.Id );

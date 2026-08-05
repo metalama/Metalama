@@ -21,22 +21,18 @@ internal sealed partial class PullConstructorParameterTransitiveAspect : IAspect
     /// The parameter of the base constructor whose value the derived constructor is made to pull.
     /// </summary>
     /// <remarks>
-    /// This reference is deliberately not durable, unlike <see cref="TransitiveAspectInstance.TargetDeclaration"/>,
-    /// and it is the last route by which a transitive aspect instance retains the version of the project it was
-    /// produced in. Issue #1797 tracks it. Making it durable compiles and does close the retention, because an
-    /// <c>IntroducedRef</c> has a serializable identifier naming the constructor signature and the ordinal, but the
-    /// identity of an introduced declaration is not settled while the advice runs, so the identifier captured at that
-    /// moment is one the consuming project cannot resolve, and the cross-project case then fails silently. Making it
-    /// durable therefore has to happen later in the pipeline, which is a change of design.
+    /// This reference is durable, like <see cref="TransitiveAspectInstance.TargetDeclaration"/>, so that a transitive
+    /// aspect instance stored in the design-time pipeline results does not retain the version of the project it was
+    /// produced in. See issue #1797.
     /// </remarks>
-    private readonly IRef<IParameter> _parameter;
+    private readonly IDurableRef<IParameter> _parameter;
 
     private readonly int _order;
     private readonly IConstructorOverloadingStrategy? _overloadingStrategy;
 
     public PullConstructorParameterTransitiveAspect(
         IPullStrategy? pullStrategy,
-        IRef<IParameter> parameter,
+        IDurableRef<IParameter> parameter,
         int order,
         IConstructorOverloadingStrategy? overloadingStrategy )
     {

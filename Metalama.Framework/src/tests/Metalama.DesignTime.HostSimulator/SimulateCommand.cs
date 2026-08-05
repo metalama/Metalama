@@ -122,7 +122,26 @@ internal sealed class SimulateCommand : AsyncCommand<SimulateCommandSettings>
             .Spinner( Spinner.Known.Dots )
             .StartAsync( "Loading the solution and running the pipelines...", _ => host.RunAsync( cancellationToken ) );
 
-        report.Render( settings.Verbose );
+        var reportedLines = report.Render( settings.Verbose );
+
+        var testOptions = settings.IgnoreAssertions ? null : TestOptions.TryLoad( settings.FullSolutionPath );
+
+        if ( testOptions is { HasAssertions: true } )
+        {
+            // These assertions decide the verdict, including whether an infrastructure failure is the expected
+            // outcome: a scenario that reproduces a crash asserts on the crash, so failing on it as well would make
+            // such a scenario impossible to express.
+            if ( !testOptions.Evaluate( reportedLines ) )
+            {
+                AnsiConsole.MarkupLineInterpolated( $"[red]Result: FAILED ({TestOptions.FileName}).[/]" );
+
+                return _failureExitCode;
+            }
+
+            AnsiConsole.MarkupLineInterpolated( $"[green]Result: succeeded ({TestOptions.FileName} satisfied).[/]" );
+
+            return 0;
+        }
 
         if ( report.HasFailure )
         {

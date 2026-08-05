@@ -50,7 +50,7 @@ public class DefaultDependencyPullStrategy : IDependencyPullStrategy
         => this.GetAssignmentStatement( existingParameter, this.AssignedFieldOrProperty );
 
     public IParameterPullStrategy CreateParameterPullStrategy()
-        => new DefaultParameterPullStrategy( this.ParameterType.ToRef(), this.IntroducedFieldOrProperty.Name );
+        => new DefaultParameterPullStrategy( this.ParameterType.ToDurableRef(), this.IntroducedFieldOrProperty.Name );
 
     private IStatement GetAssignmentStatement( IParameter existingParameter, IFieldOrProperty assignedFieldOrProperty )
     {
