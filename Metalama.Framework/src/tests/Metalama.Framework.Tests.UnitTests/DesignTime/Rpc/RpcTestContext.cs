@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Engine.Services;
+using Metalama.Testing.Hooks;
 using Metalama.Testing.UnitTesting;
 using System;
 using System.Threading;

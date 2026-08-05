@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -6,6 +6,7 @@ using Metalama.Backstage.Configuration;
 using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Infrastructure;
+using Metalama.Testing.Hooks;
 using Metalama.Backstage.Licensing.Audit;
 using Metalama.Backstage.Tools;
 using Metalama.Backstage.Utilities;
@@ -62,7 +63,9 @@ namespace Metalama.Backstage.Telemetry
             this._randomNumberGenerator = serviceProvider.GetRequiredBackstageService<RandomNumberGenerator>();
 
             // Never registered in production, so this stays null there.
-            this._testSynchronizationProvider = serviceProvider.GetBackstageService<ITestSynchronizationProvider>();
+            // Resolved untyped, because ITestSynchronizationProvider is shared with the layers above and therefore
+            // cannot derive from IBackstageService.
+            this._testSynchronizationProvider = (ITestSynchronizationProvider?) serviceProvider.GetService( typeof(ITestSynchronizationProvider) );
         }
 
         private static void CopyStream( Stream inputStream, Stream outputStream )

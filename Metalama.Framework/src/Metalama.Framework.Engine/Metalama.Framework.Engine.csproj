@@ -57,6 +57,7 @@
             <GeneratePathProperty>True</GeneratePathProperty>
         </PackageReference>
         <PackageReference Include="Metalama.Backstage" />
+        <PackageReference Include="Metalama.Testing.Hooks" />
         <PackageReference Include="Metalama.Backstage.Tools" />
 
         <PackageReference Include="Microsoft.Bcl.HashCode" />

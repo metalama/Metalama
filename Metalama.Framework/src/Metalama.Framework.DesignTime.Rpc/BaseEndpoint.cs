@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Backstage.Diagnostics;
+using Metalama.Testing.Hooks;
 using MessagePack;
 using MessagePack.Resolvers;
 using Microsoft.VisualStudio.Threading;

@@ -1,0 +1,28 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFrameworks>netstandard2.0;net8.0</TargetFrameworks>
+        <RootNamespace>Metalama.Testing.Hooks</RootNamespace>
+
+        <!-- In the Debug configuration, SourceLink.props sets DebugType to embedded, so no symbol file is produced
+             and the symbol package would be empty. Other packages get away with it because a symbol package that
+             declares dependencies is accepted, but this one deliberately has none, so packing it would fail with
+             NU5017. Symbol packages are still produced in the other configurations. -->
+        <IncludeSymbols Condition="'$(Configuration)'=='Debug'">false</IncludeSymbols>
+
+        <!-- Packaging -->
+        <PackageDescription>A helper package used internally by Metalama to make concurrent code deterministically testable. This package should only be installed as a dependency.</PackageDescription>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="\" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- This project must not have any dependency that flows to consumers. It is referenced by production
+             assemblies of every layer, including Metalama.Patterns.Caching.Backend, which must remain usable
+             without the rest of Metalama. -->
+        <PackageReference Include="JetBrains.Annotations" PrivateAssets="all" />
+    </ItemGroup>
+
+</Project>

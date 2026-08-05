@@ -41,6 +41,28 @@ internal sealed class CompileTimeAssemblyLocator
     private const string _defaultCompileTimeTargetFrameworks = "netstandard2.0;net8.0;net48";
     private static readonly ImmutableArray<string> _defaultNugetSources = GetDefaultNuGetSources().ToImmutableArray();
 
+    /// <summary>
+    /// Returns the path given to the metadata reference of an assembly that this class embeds as a manifest resource.
+    /// </summary>
+    /// <remarks>
+    /// The path is a display string and not a file, because the assembly exists only inside the container. It is formed
+    /// so that <see cref="IsEmbeddedAssemblyFilePath"/> recognizes it, which is how a caller can tell that the file
+    /// system has nothing to say about the reference.
+    /// </remarks>
+    private static string GetEmbeddedAssemblyFilePath( string containerPath, string assemblyName ) => $"[{containerPath}]{assemblyName}.dll";
+
+    /// <summary>
+    /// Determines whether the given path of a metadata reference is one produced by
+    /// <see cref="GetEmbeddedAssemblyFilePath"/>, that is, whether it names an assembly embedded as a manifest resource
+    /// instead of a file.
+    /// </summary>
+    /// <remarks>
+    /// Tested by shape rather than by asking the file system, because the path is one this class produced and because a
+    /// path of that shape is not even syntactically valid, so an attempt to open it raises
+    /// <see cref="System.IO.IOException"/> instead of reporting the file as absent.
+    /// </remarks>
+    public static bool IsEmbeddedAssemblyFilePath( string path ) => path.StartsWith( "[", StringComparison.Ordinal );
+
     private static IEnumerable<string> GetDefaultNuGetSources()
     {
         yield return "https://api.nuget.org/v3/index.json";
@@ -259,7 +281,7 @@ internal sealed class CompileTimeAssemblyLocator
                     MetadataReference.CreateFromStream(
                         this.GetType().Assembly.GetManifestResourceStream( name + ".dll" )
                         ?? throw new InvalidOperationException( $"{name}.dll not found in assembly manifest resources." ),
-                        filePath: $"[{this.GetType().Assembly.Location}]{name}.dll" ) );
+                        filePath: GetEmbeddedAssemblyFilePath( this.GetType().Assembly.Location, name ) ) );
 
         this._logger.Trace?.Log( "System assemblies: " + string.Join( ", ", referencePaths ) );
         this._logger.Trace?.Log( "Metalama assemblies: " + string.Join( ", ", metalamaImplementationPaths ) );

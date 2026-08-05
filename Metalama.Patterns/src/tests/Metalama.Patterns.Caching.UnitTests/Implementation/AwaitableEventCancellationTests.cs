@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -23,15 +23,11 @@ public sealed class AwaitableEventCancellationTests
     // these purely synchronous tests never exercise).
     private const string _autoPreBlock = "Signal not taken, wait.";
 
-    [SkippableTheory( Timeout = 30000 )]
+    [Theory( Timeout = 30000 )]
     [InlineData( EventResetMode.ManualReset, _manualPreBlock )]
     [InlineData( EventResetMode.AutoReset, _autoPreBlock )]
     public async Task Wait_CancelledWhileBlocked_ThrowsAndLeavesEventUsable( EventResetMode mode, string preBlockMessage )
     {
-        Skip.IfNot(
-            TestSynchronizationProvider.AreSyncPointsEnabled(),
-            "The back-end was not built with DEBUG, so its synchronization points are compiled away." );
-
         using var syncProvider = new TestSynchronizationProvider();
 
         var awaitableEvent = new AwaitableEvent( mode, syncProvider );
@@ -44,7 +40,7 @@ public sealed class AwaitableEventCancellationTests
 
         Assert.True(
             syncPoint.WaitUntilReached( TimeSpan.FromSeconds( 10 ) ),
-            "The waiter did not reach the pre-block sync point. Is the back-end built with DEBUG?" );
+            "The waiter did not reach the pre-block synchronization point." );
 
         // Cancel, then let the waiter proceed into the (now cancelled) blocking wait.
         cts.Cancel();

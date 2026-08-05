@@ -1,7 +1,8 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Testing.Hooks;
 using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -65,10 +66,9 @@ internal sealed class AwaitableEvent
 
     /// <summary>
     /// Reaches a synchronization point, letting a test deterministically control the interleaving of this
-    /// lock-free code. Compiled away outside of DEBUG builds, and a no-op unless a test registered an
-    /// <see cref="ITestSynchronizationProvider"/>.
+    /// lock-free code. Costs a null check unless a test registered an <see cref="ITestSynchronizationProvider"/>,
+    /// which never happens in production.
     /// </summary>
-    [Conditional( "DEBUG" )]
     private void SyncPoint( string name ) => this._testSynchronizationProvider?.SyncPoint( name );
 
     public void Wait( CancellationToken cancellationToken = default )
@@ -1009,7 +1009,6 @@ internal sealed class AwaitableEvent
         public ITestSynchronizationProvider? TestSynchronizationProvider;
 
         /// <inheritdoc cref="AwaitableEvent.SyncPoint"/>
-        [Conditional( "DEBUG" )]
         protected void SyncPoint( string name ) => this.TestSynchronizationProvider?.SyncPoint( name );
 
         public abstract bool Activate();
