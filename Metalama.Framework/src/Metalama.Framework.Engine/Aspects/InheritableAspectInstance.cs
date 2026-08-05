@@ -4,15 +4,29 @@
 
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
+using Metalama.Framework.Utilities;
 using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 namespace Metalama.Framework.Engine.Aspects;
 
+[Durable]
 public sealed partial class InheritableAspectInstance : IAspectInstance, IAspectPredecessorImpl
 {
+    /// <remarks>
+    /// The four members of this class that are typed as an interface, this one, <see cref="Aspect"/>,
+    /// <see cref="AspectState"/> and <see cref="SecondaryInstances"/>, are all instances of the same open question,
+    /// which is recorded under "Should the contract propagate to the user-implementable interfaces?" in
+    /// <c>design-time-memory.md</c>. Marking the interface is a real remedy rather than a workaround, but for the
+    /// user-facing ones it would require every aspect and every aspect state a user writes to be durable.
+    /// </remarks>
+    [SuppressMessage(
+        "Metalama",
+        "LAMA0876:An interface or abstract type used by a durable type is not marked [Durable]",
+        Justification = "Marking IAspectClass propagates the obligation to AspectClass and to everything it holds." )]
     private readonly IAspectClass? _aspectClass;
 
     /// <summary>
@@ -36,12 +50,26 @@ public sealed partial class InheritableAspectInstance : IAspectInstance, IAspect
 
     public bool IsInheritable => true;
 
+    [SuppressMessage(
+        "Metalama",
+        "LAMA0876:An interface or abstract type used by a durable type is not marked [Durable]",
+        Justification =
+            "The elements are themselves InheritableAspectInstance, so marking IAspectInstance is bounded work rather "
+            + "than a contract change. See the remark on _aspectClass." )]
     public ImmutableArray<IAspectInstance> SecondaryInstances { get; private set; }
 
     ImmutableArray<AspectPredecessor> IAspectPredecessor.Predecessors => ImmutableArray<AspectPredecessor>.Empty;
 
+    [SuppressMessage(
+        "Metalama",
+        "LAMA0876:An interface or abstract type used by a durable type is not marked [Durable]",
+        Justification = "The aspect state is user code. See the remark on _aspectClass." )]
     public IAspectState? AspectState { get; private set; }
 
+    [SuppressMessage(
+        "Metalama",
+        "LAMA0876:An interface or abstract type used by a durable type is not marked [Durable]",
+        Justification = "The aspect is user code. See the remark on _aspectClass." )]
     public IAspect Aspect { get; private set; }
 
     public int PredecessorDegree { get; }

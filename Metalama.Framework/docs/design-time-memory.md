@@ -441,6 +441,45 @@ reads. Strike an entry when it is closed, and add one rather than leaving a repa
 it was **measured** or **reasoned**, and phrase a reasoned one as a question, so that a reader can tell an observation
 from a hypothesis without re-deriving it.
 
+### The per-file result holds three Roslyn objects
+
+Measured, by marking `SyntaxTreePipelineResult` and `IntroducedSyntaxTree` `[Durable]`. Each member below carries a
+suppression naming this entry.
+
+- **`IntroducedSyntaxTree.SourceSyntaxTree`.** `DesignTimeAspectPipelineResult.SplitResultsByTree` already converts
+  this tree to a `DocumentKey` in order to file the introduction under the right document, and then stores the
+  introduction with the tree still in it. Every consumer outside the pipeline reads only `.FilePath`. Replacing the
+  member with a `DocumentKey` therefore looks local. This is the same shape as `TransitiveAspectInstance.SyntaxTree`.
+- **`IntroducedSyntaxTree.GeneratedSyntaxTree`.** The introduced code itself, and a tree Metalama produced rather
+  than one belonging to the source compilation, so it cannot simply be dropped. Whether it reaches a source
+  compilation at all has **not** been measured. Measure it before changing anything.
+- **`SyntaxTreePipelineResult.Diagnostics`.** The hazard this document already describes: a `Diagnostic` holds a
+  `Location`, which holds its source tree, and its lazily formatted arguments are held with it. The fix is a durable
+  diagnostic record, that is, an identifier, a severity, a `DocumentKey` with a `TextSpan`, and an eagerly formatted
+  message. Note that `UserCodeRetentionPolicy.IsPinning` deliberately does not classify a `Diagnostic` as pinning,
+  because the run-time walker can descend into one; the analyzer cannot, so it is conservative here, and this warning
+  is expected rather than surprising.
+
+### Should the contract propagate to the user-implementable interfaces?
+
+Reasoned, and phrased as a question because it is a decision about the public contract rather than a defect. Marking
+the design-time result revealed that what remains, once the three Roslyn objects above are set aside, is seven
+interfaces reached from objects the pipeline stores per file: `IAspect`, `IAspectState`, `IAspectClass`,
+`IAspectInstance`, `IHierarchicalOptions`, `IAnnotation` and `ISuppression`.
+
+Marking an interface is a real remedy rather than a workaround: a consumer may then assume that an implementation is
+durable, and every implementation is verified. The question is what that would cost. `IAspectClass`,
+`IAspectInstance` and `IAspectClassImpl` are internal, so marking them is bounded work. `IAspect`, `IAspectState`,
+`IHierarchicalOptions` and `IAnnotation` are implemented by users, so marking them would require every aspect, aspect
+state, options class and annotation to be durable. That is defensible, since those objects really are kept across
+compilations, but it is a visible tightening of what Metalama asks of its users and should be a release decision.
+
+One of the seven is a concrete risk rather than a hypothetical, and is worth measuring first:
+`ISuppression.Filter` is a `Func<ISuppressibleDiagnostic, bool>?`, and `SuppressionDefinition.WithFilter` produces an
+implementation that captures the user's lambda. A `CacheableScopedSuppression` is stored in the per-file result, so a
+filter that captures a declaration pins a compilation for the session. `SuppressionDefinition` itself returns `null`
+and is fine.
+
 ### Two requirements the framework cannot check
 
 Structural, and open by nature. Both are contracts stated in documentation, because what is stored is opaque to the

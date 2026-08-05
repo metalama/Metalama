@@ -7,15 +7,31 @@ using Metalama.Framework.Diagnostics;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.SerializableIds;
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Utilities;
 using Microsoft.CodeAnalysis;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Metalama.Framework.DesignTime.Pipeline;
 
 /// <summary>
 /// A compilation-independent version of <see cref="ScopedSuppression"/>, which stores the symbol id instead of the <see cref="ISymbol"/> itself.
 /// </summary>
+[Durable]
 internal sealed class CacheableScopedSuppression : IScopedSuppression
 {
+    /// <remarks>
+    /// <see cref="ISuppression.Filter"/> is a delegate, and <c>SuppressionDefinition.WithFilter</c> produces an
+    /// implementation that captures the user's lambda, so this is the one member of the durable design-time surface
+    /// typed as an interface that carries a concrete risk rather than a hypothetical one. It is worth measuring
+    /// before the general question is settled. <c>SuppressionDefinition</c> itself returns <c>null</c> for the filter
+    /// and is fine.
+    /// </remarks>
+    [SuppressMessage(
+        "Metalama",
+        "LAMA0876:An interface or abstract type used by a durable type is not marked [Durable]",
+        Justification =
+            "See \"Should the contract propagate to the user-implementable interfaces?\" in design-time-memory.md, "
+            + "which records this member as the one to measure first." )]
     public ISuppression Suppression { get; }
 
     ISymbol? IScopedSuppression.GetScopeSymbolOrNull( CompilationContext compilationContext ) => this.DeclarationId.ResolveToSymbolOrNull( compilationContext );

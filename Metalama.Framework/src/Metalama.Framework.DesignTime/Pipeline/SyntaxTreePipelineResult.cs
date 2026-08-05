@@ -2,7 +2,6 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using System.IO.Hashing;
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel;
@@ -10,8 +9,11 @@ using Metalama.Framework.Engine.Collections;
 using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Pipeline;
 using Metalama.Framework.Engine.Utilities;
+using Metalama.Framework.Utilities;
 using Microsoft.CodeAnalysis;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
+using System.IO.Hashing;
 
 namespace Metalama.Framework.DesignTime.Pipeline
 {
@@ -19,6 +21,7 @@ namespace Metalama.Framework.DesignTime.Pipeline
     /// Represents the content of <see cref="DesignTimePipelineExecutionResult"/>, but only the items that relate to a single <see cref="Microsoft.CodeAnalysis.SyntaxTree"/>.
     /// This class is compilation-independent and cacheable.
     /// </summary>
+    [Durable]
     internal sealed partial class SyntaxTreePipelineResult
     {
         /// <summary>
@@ -27,6 +30,15 @@ namespace Metalama.Framework.DesignTime.Pipeline
         /// </summary>
         public DocumentKey SyntaxTreePath { get; }
 
+        [SuppressMessage(
+            "Metalama",
+            "LAMA0870:A member of a durable type is not durable",
+            Justification =
+                "A Diagnostic holds a Location, which holds its source tree, and its lazily formatted arguments are "
+                + "held with it. The fix is a durable diagnostic record. Note that UserCodeRetentionPolicy.IsPinning "
+                + "deliberately does not classify a Diagnostic as pinning, because the run-time walker can descend "
+                + "into one and this analyzer cannot. See \"The per-file result holds three Roslyn objects\" in "
+                + "design-time-memory.md." )]
         public ImmutableArray<Diagnostic> Diagnostics { get; }
 
         public ImmutableArray<CacheableScopedSuppression> Suppressions { get; }
@@ -52,6 +64,13 @@ namespace Metalama.Framework.DesignTime.Pipeline
 
         public ImmutableArray<DesignTimeTransformation> Transformations { get; }
 
+        [SuppressMessage(
+            "Metalama",
+            "LAMA0876:An interface or abstract type used by a durable type is not marked [Durable]",
+            Justification =
+                "Marking IAnnotation would require every annotation a user writes to be durable, which is a decision "
+                + "about the public contract of the framework. See \"Should the contract propagate to the "
+                + "user-implementable interfaces?\" in design-time-memory.md." )]
         public ImmutableDictionaryOfArray<SerializableDeclarationId, IAnnotation> Annotations { get; }
 
         public ulong AspectInstancesHashCode { get; }
