@@ -185,13 +185,20 @@ public class DefaultDependencyInjectionStrategy
 
         var pullStrategy = dependencyPullStrategy.CreateParameterPullStrategy();
 
+        // The pull strategy resolves the type of the parameter against the compilation of the constructor it is given.
+        // The current aspect may have introduced that type itself, as the metrics sample does. IAdviser.Target is the
+        // constructor in the compilation that precedes the current aspect, and that compilation does not contain the
+        // declarations the aspect introduces, so the constructor is translated into the mutable compilation, which
+        // does contain them. See issue #1825.
+        var advisedConstructor = constructor.ForCompilation( adviser.MutableCompilation );
+
         // Find a compatible type in the constructor.
-        var existingParameter = pullStrategy.GetExistingParameter( constructor );
+        var existingParameter = pullStrategy.GetExistingParameter( advisedConstructor );
 
         // If there is no compatible parameter, create one.
         if ( existingParameter == null )
         {
-            var newParameter = pullStrategy.GetNewParameter( constructor );
+            var newParameter = pullStrategy.GetNewParameter( advisedConstructor );
 
             // Use the framework's IntroduceParameterPullStrategy with reuseExistingParameterOfCompatibleType
             // so that derived constructors that already have a parameter of the same (or covariant) service type

@@ -7,10 +7,9 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Tests.PublicPipeline.Aspects.Fabrics.SelectTypesDerivedFromIntroducedType;
 
 // SelectTypesDerivedFrom( INamedType ) converts the type it is given to a durable reference, so that a query built by
-// a fabric does not pin the compilation (issue #1799). A type introduced by an aspect has no symbol and therefore no
-// resolvable type identifier, so that conversion has to be skipped for it, which is safe because only an aspect can
-// hold an introduced type and the queries of an aspect do not outlive the run. Converting it unconditionally makes
-// this test fail with a SymbolNotFoundException while the query is being executed.
+// a fabric does not pin the compilation (issue #1799). A type introduced by an aspect has no symbol, so the reference
+// resolves only in a compilation in which that type exists. That is not a restriction here, because only an aspect can
+// hold an introduced type and the queries of an aspect do not outlive the run. This test covers that end to end.
 
 [assembly: AspectOrder( AspectOrderDirection.RunTime, typeof(Aspect2), typeof(Aspect1) )]
 
