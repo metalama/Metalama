@@ -93,7 +93,7 @@ public sealed class DurableMsBuildTypeListTests
     [Fact]
     public async Task TheListIsSemicolonSeparatedAndTrimmed()
     {
-        var diagnostics = await GetDiagnosticsAsync( " System.Foo ; System.Text.RegularExpressions.Regex ; ", null );
+        var diagnostics = await GetDiagnosticsAsync( " System.String ; System.Text.RegularExpressions.Regex ; ", null );
 
         Assert.Empty( diagnostics.Select( d => d.GetMessage() ) );
     }
@@ -111,6 +111,38 @@ public sealed class DurableMsBuildTypeListTests
 
         Assert.Single( diagnostics );
         Assert.Contains( "MetalamaNonDurableType", diagnostics[0].GetMessage(), StringComparison.Ordinal );
+    }
+
+    /// <remarks>
+    /// Without this rule a mistyped entry is a rule that silently never applies, which is the worst outcome for a
+    /// mechanism whose whole purpose is to suppress a warning.
+    /// </remarks>
+    [Fact]
+    public async Task AMistypedTypeName_IsReported()
+    {
+        var diagnostics = await GetDiagnosticsAsync( "System.Text.RegularExpressions.Regexx", null );
+
+        Assert.Contains( diagnostics, d => d.Id == "LAMA0879" );
+        Assert.Contains( diagnostics, d => d.GetMessage().Contains( "MetalamaDurableType", StringComparison.Ordinal ) );
+    }
+
+    /// <remarks>
+    /// A generic type must carry its arity, because the analyzer matches the full metadata name.
+    /// </remarks>
+    [Fact]
+    public async Task AGenericNameWithoutItsArity_IsReported()
+    {
+        var diagnostics = await GetDiagnosticsAsync( "System.Collections.Generic.List", null );
+
+        Assert.Contains( diagnostics, d => d.Id == "LAMA0879" );
+    }
+
+    [Fact]
+    public async Task AGenericNameWithItsArity_IsNotReported()
+    {
+        var diagnostics = await GetDiagnosticsAsync( "System.Collections.Generic.List`1", null );
+
+        Assert.DoesNotContain( diagnostics, d => d.Id == "LAMA0879" );
     }
 
     [Fact]

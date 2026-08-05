@@ -152,6 +152,22 @@ both follow from the analyzer seeing a declared type where the walker sees an in
 - Every `ISymbol` is not durable for the analyzer, whereas `IsPinning` reports only the symbols that belong to the
   source of a compilation. A declared type says nothing about where the value will come from.
 
+Two limits of the analyzer are worth knowing, because both are invisible until they matter.
+
+**A lambda is analysed only where it is written.** `LAMA0878` runs `AnalyzeDataFlow` on a lambda that appears
+directly at a durable parameter or in an assignment to a durable member, and reports the captured variable rather
+than the lambda, so that the squiggle lands on the thing to remove. A delegate that arrives through a local, a
+factory or another assembly is not visible there, so the declared type is the only evidence and the delegate rule
+applies instead. That gap is what `MetalamaDiagnoseMemoryLeaks` covers at run time.
+
+**The private fields of a referenced assembly are invisible.** A compilation is created with
+`MetadataImportOptions.Public` by default, so Roslyn does not expose them at all. The analyzer therefore verifies the
+members of types declared in the compilation being analysed, and trusts `[Durable]` on a type that comes from
+metadata, which was verified where it was compiled. The one place this changes an answer is the set of type
+parameters a generic type stores: it cannot be computed from metadata, so every parameter of a metadata generic type
+is assumed stored. That is conservative, and the remedy for a metadata type with a genuinely unused parameter is an
+entry in `WellKnownDurableTypes` or in `MetalamaDurableType`.
+
 ### Understand `ConditionalWeakTable` before relying on it
 
 `WeakCache<TKey, TValue>` wraps a `ConditionalWeakTable`, and the diff subsystem is built on it. The semantics are

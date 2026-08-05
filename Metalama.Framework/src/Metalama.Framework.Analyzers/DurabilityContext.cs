@@ -32,7 +32,7 @@ namespace Metalama.Framework.Analyzers
     /// against pathological nesting rather than against non-termination.
     /// </para>
     /// </remarks>
-    internal sealed class DurabilityContext
+    internal sealed partial class DurabilityContext
     {
         private const int _maxDepth = 20;
 
@@ -44,6 +44,7 @@ namespace Metalama.Framework.Analyzers
 
         private readonly ConcurrentDictionary<ITypeSymbol, Verdict> _verdicts;
         private readonly ConcurrentDictionary<INamedTypeSymbol, bool> _isSubjectToContract;
+        private readonly ConcurrentDictionary<INamedTypeSymbol, ulong> _storedTypeParameters;
         private readonly ImmutableHashSet<string> _additionalDurableTypes;
         private readonly ImmutableHashSet<string> _additionalNonDurableTypes;
 
@@ -53,6 +54,7 @@ namespace Metalama.Framework.Analyzers
         {
             this._verdicts = new ConcurrentDictionary<ITypeSymbol, Verdict>( SymbolEqualityComparer.Default );
             this._isSubjectToContract = new ConcurrentDictionary<INamedTypeSymbol, bool>( SymbolEqualityComparer.Default );
+            this._storedTypeParameters = new ConcurrentDictionary<INamedTypeSymbol, ulong>( SymbolEqualityComparer.Default );
             this._additionalDurableTypes = additionalDurableTypes;
             this._additionalNonDurableTypes = additionalNonDurableTypes;
         }
@@ -103,10 +105,15 @@ namespace Metalama.Framework.Analyzers
         }
 
         /// <summary>
-        /// Gets the type names declared by the <c>MetalamaDurableType</c> and <c>MetalamaNonDurableType</c> items, so
-        /// that the analyzer can report a name that matches no type in the compilation.
+        /// Gets the type names declared by the <c>MetalamaDurableType</c> item, so that the analyzer can report a name
+        /// that matches no type in the compilation.
         /// </summary>
-        public IEnumerable<string> AdditionalTypeNames => this._additionalDurableTypes.Union( this._additionalNonDurableTypes );
+        public IEnumerable<string> DurableTypeNames => this._additionalDurableTypes;
+
+        /// <summary>
+        /// Gets the type names declared by the <c>MetalamaNonDurableType</c> item.
+        /// </summary>
+        public IEnumerable<string> NonDurableTypeNames => this._additionalNonDurableTypes;
 
         /// <summary>
         /// Determines whether a type is bound by the durable contract, either because it carries the attribute or
@@ -336,9 +343,31 @@ namespace Metalama.Framework.Analyzers
             }
 
             // Rule 13. The declaration is trusted here. It is verified separately, by the rule that walks the members
-            // of every type bound by the contract.
+            // of every type bound by the contract. A constructed generic is trusted only for the type arguments it
+            // does not store: DurableLazy<T> holds a T, so DurableLazy<Compilation> is not durable however well
+            // DurableLazy<T> itself satisfies its contract.
             if ( this.IsSubjectToContract( namedType ) )
             {
+                if ( namedType.IsGenericType && !namedType.TypeArguments.IsDefaultOrEmpty )
+                {
+                    var storedParameters = this.GetStoredTypeParameters( definition );
+
+                    for ( var i = 0; i < namedType.TypeArguments.Length && i < 64; i++ )
+                    {
+                        if ( (storedParameters & (1UL << i)) == 0 )
+                        {
+                            continue;
+                        }
+
+                        var argumentVerdict = this.GetVerdictCore( namedType.TypeArguments[i], depth + 1 );
+
+                        if ( !argumentVerdict.IsDurable )
+                        {
+                            return argumentVerdict.Prepend( GetDisplayName( type ) );
+                        }
+                    }
+                }
+
                 return Verdict.Durable;
             }
 
@@ -421,6 +450,93 @@ namespace Metalama.Framework.Analyzers
             SymbolDisplayFormat.MinimallyQualifiedFormat.WithMiscellaneousOptions(
                 SymbolDisplayFormat.MinimallyQualifiedFormat.MiscellaneousOptions
                 & ~SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier );
+
+        /// <summary>
+        /// Returns, as a bit per ordinal, the type parameters of a generic definition that appear in the type of one
+        /// of its instance fields, and which a construction of that type must therefore supply durably.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Requiring every type argument to be durable would be simpler and is wrong, because the first exception
+        /// would be the most important durable type of the codebase: <c>IDurableRef&lt;T&gt;</c> stores a serializable
+        /// identifier and never a <c>T</c>, so its type argument is a phantom. Requiring only the parameters that are
+        /// actually stored drops that case with no special rule.
+        /// </para>
+        /// <para>
+        /// An interface or an abstract type has no fields to examine, so every parameter is assumed stored.
+        /// </para>
+        /// </remarks>
+        private ulong GetStoredTypeParameters( INamedTypeSymbol definition )
+        {
+            if ( this._storedTypeParameters.TryGetValue( definition, out var cached ) )
+            {
+                return cached;
+            }
+
+            ulong result;
+
+            // An interface or an abstract type has no fields to examine.
+            //
+            // A type that comes from another assembly has none that can be seen either: a compilation is created with
+            // MetadataImportOptions.Public by default, so Roslyn does not expose the private fields of a referenced
+            // assembly at all. Reading the empty field list as "this type stores nothing" would silently exempt every
+            // durable generic type outside the compilation, DurableLazy<T> first among them. Assuming instead that
+            // every parameter is stored is the conservative answer, and the remedy for a metadata type that genuinely
+            // has a phantom parameter is an entry in WellKnownDurableTypes or in MetalamaDurableType.
+            if ( definition.TypeKind == TypeKind.Interface
+                 || definition.IsAbstract
+                 || definition.DeclaringSyntaxReferences.IsDefaultOrEmpty )
+            {
+                result = definition.TypeParameters.Length >= 64 ? ulong.MaxValue : (1UL << definition.TypeParameters.Length) - 1;
+            }
+            else
+            {
+                result = 0;
+
+                foreach ( var member in definition.GetMembers() )
+                {
+                    if ( member is IFieldSymbol { IsStatic: false, IsConst: false } field )
+                    {
+                        CollectTypeParameters( field.Type, definition, ref result, 0 );
+                    }
+                }
+            }
+
+            this._storedTypeParameters.TryAdd( definition, result );
+
+            return result;
+        }
+
+        private static void CollectTypeParameters( ITypeSymbol type, INamedTypeSymbol owner, ref ulong result, int depth )
+        {
+            if ( depth > _maxDepth )
+            {
+                return;
+            }
+
+            switch ( type )
+            {
+                case ITypeParameterSymbol typeParameter
+                    when typeParameter.Ordinal < 64
+                         && SymbolEqualityComparer.Default.Equals( typeParameter.ContainingType?.OriginalDefinition, owner ):
+                    result |= 1UL << typeParameter.Ordinal;
+
+                    break;
+
+                case IArrayTypeSymbol array:
+                    CollectTypeParameters( array.ElementType, owner, ref result, depth + 1 );
+
+                    break;
+
+                case INamedTypeSymbol { IsGenericType: true } namedType:
+                    foreach ( var argument in namedType.TypeArguments )
+                    {
+                        CollectTypeParameters( argument, owner, ref result, depth + 1 );
+                    }
+
+                    break;
+            }
+        }
 
         /// <summary>
         /// Returns the name of a type as it appears in a diagnostic message.

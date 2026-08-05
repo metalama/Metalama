@@ -1,0 +1,219 @@
+// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+// SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
+// Refer to LICENSE.md in the repository root for complete details.
+
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.Diagnostics;
+using Microsoft.CodeAnalysis.Operations;
+using System.Linq;
+
+namespace Metalama.Framework.Analyzers
+{
+    /// <summary>
+    /// The rules that apply where a value is stored or passed, rather than where a type is declared.
+    /// </summary>
+    public partial class DurableContractAnalyzer
+    {
+        internal static readonly DiagnosticDescriptor AssignedValueIsNotDurable = new(
+            "LAMA0871",
+            "A durable member is assigned a value that is not durable",
+            "'{0}' is marked [Durable] but is assigned a value of type '{1}', which is not durable. "
+            + "Retention path: {2}.",
+            _category,
+            DiagnosticSeverity.Warning,
+            true );
+
+        internal static readonly DiagnosticDescriptor ArgumentIsNotDurable = new(
+            "LAMA0872",
+            "A durable parameter receives an argument that is not durable",
+            "The parameter '{0}' is marked [Durable] but the argument is of type '{1}', which is not durable. "
+            + "Retention path: {2}.",
+            _category,
+            DiagnosticSeverity.Warning,
+            true );
+
+        /// <remarks>
+        /// The rule that the design document calls the trap that costs the most, because the captured object is
+        /// invisible in the source: a lambda that mentions a compilation produces a closure object holding it, and
+        /// whatever holds the delegate holds the compilation.
+        /// </remarks>
+        internal static readonly DiagnosticDescriptor CapturedValueIsNotDurable = new(
+            "LAMA0878",
+            "A lambda in a durable position captures a value that is not durable",
+            "This lambda is used where a durable value is required, and it captures '{0}', which is not durable. "
+            + "Retention path: {1}.",
+            _category,
+            DiagnosticSeverity.Warning,
+            true );
+
+        /// <remarks>
+        /// A weak reference is durable whatever it refers to, so nothing else in this analyzer would say anything
+        /// about it. The convention that names such a member <c>Dangerous</c> exists so that a reader knows the value
+        /// may be absent and that the caller is responsible for establishing that it is not, and a convention an
+        /// analyzer can enforce for nothing should be enforced.
+        /// </remarks>
+        internal static readonly DiagnosticDescriptor WeakReferenceShouldBeNamedDangerous = new(
+            "LAMA0875",
+            "A weak reference held by a durable type should be named Dangerous",
+            "'{0}' holds a weak reference, so its name should end in 'Dangerous' to show that the value may be absent",
+            _category,
+            DiagnosticSeverity.Info,
+            true );
+
+        internal static readonly DiagnosticDescriptor UnknownDeclaredTypeName = new(
+            "LAMA0879",
+            "A declared durable type name matches no type",
+            "The name '{0}', declared in {1}, matches no type in this compilation. A generic type must be written "
+            + "with its arity, as in System.Collections.Generic.List`1.",
+            _category,
+            DiagnosticSeverity.Warning,
+            true,
+            customTags: WellKnownDiagnosticTags.CompilationEnd );
+
+        private static void RegisterUseSiteActions( CompilationStartAnalysisContext context, DurabilityContext durabilityContext )
+        {
+            context.RegisterCompilationEndAction( c => AnalyzeDeclaredTypeNames( c, durabilityContext ) );
+
+            context.RegisterOperationAction(
+                c => AnalyzeAssignment( c, durabilityContext ),
+                OperationKind.SimpleAssignment,
+                OperationKind.CoalesceAssignment );
+
+            context.RegisterOperationAction(
+                c => AnalyzeInitializer( c, durabilityContext ),
+                OperationKind.FieldInitializer,
+                OperationKind.PropertyInitializer );
+
+            context.RegisterOperationAction( c => AnalyzeArgument( c, durabilityContext ), OperationKind.Argument );
+        }
+
+        /// <summary>
+        /// Reports a name declared in <c>MetalamaDurableType</c> or <c>MetalamaNonDurableType</c> that matches no type,
+        /// so that a typo is not silently a rule that never applies.
+        /// </summary>
+        private static void AnalyzeDeclaredTypeNames( CompilationAnalysisContext context, DurabilityContext durabilityContext )
+        {
+            foreach ( var name in durabilityContext.DurableTypeNames )
+            {
+                ReportIfUnknown( name, "MetalamaDurableType" );
+            }
+
+            foreach ( var name in durabilityContext.NonDurableTypeNames )
+            {
+                ReportIfUnknown( name, "MetalamaNonDurableType" );
+            }
+
+            void ReportIfUnknown( string name, string itemName )
+            {
+                if ( context.Compilation.GetTypeByMetadataName( name ) == null )
+                {
+                    context.ReportDiagnostic( Diagnostic.Create( UnknownDeclaredTypeName, Location.None, name, itemName ) );
+                }
+            }
+        }
+
+        private static void AnalyzeAssignment( OperationAnalysisContext context, DurabilityContext durabilityContext )
+        {
+            var assignment = (IAssignmentOperation) context.Operation;
+
+            var target = assignment.Target switch
+            {
+                IFieldReferenceOperation field => (ISymbol) field.Field,
+                IPropertyReferenceOperation property => property.Property,
+                _ => null
+            };
+
+            // The cheapest possible test first: this action runs on every assignment of every project that references
+            // Metalama, so it must cost nothing when the target does not carry the attribute.
+            if ( target == null || !DurabilityContext.HasDurableAttribute( target ) )
+            {
+                return;
+            }
+
+            ReportIfNotDurable( context, durabilityContext, assignment.Value, AssignedValueIsNotDurable, target.Name );
+        }
+
+        private static void AnalyzeInitializer( OperationAnalysisContext context, DurabilityContext durabilityContext )
+        {
+            ISymbol? target = context.Operation switch
+            {
+                IFieldInitializerOperation { InitializedFields.Length: > 0 } field => field.InitializedFields[0],
+                IPropertyInitializerOperation { InitializedProperties.Length: > 0 } property => property.InitializedProperties[0],
+                _ => null
+            };
+
+            if ( target == null || !DurabilityContext.HasDurableAttribute( target ) )
+            {
+                return;
+            }
+
+            var value = ((ISymbolInitializerOperation) context.Operation).Value;
+
+            ReportIfNotDurable( context, durabilityContext, value, AssignedValueIsNotDurable, target.Name );
+        }
+
+        private static void AnalyzeArgument( OperationAnalysisContext context, DurabilityContext durabilityContext )
+        {
+            var argument = (IArgumentOperation) context.Operation;
+
+            // IArgumentOperation.Parameter resolves the target of a named, optional or params argument, and covers an
+            // object creation as well as an invocation, which is why the rule is registered on the argument rather
+            // than on each of the operations that can carry one.
+            if ( argument.Parameter is not { } parameter || !DurabilityContext.HasDurableAttribute( parameter ) )
+            {
+                return;
+            }
+
+            ReportIfNotDurable( context, durabilityContext, argument.Value, ArgumentIsNotDurable, parameter.Name );
+        }
+
+        private static void ReportIfNotDurable(
+            OperationAnalysisContext context,
+            DurabilityContext durabilityContext,
+            IOperation? value,
+            DiagnosticDescriptor descriptor,
+            string targetName )
+        {
+            if ( value == null )
+            {
+                return;
+            }
+
+            var verdict = durabilityContext.GetExpressionVerdict( value );
+
+            if ( verdict.IsDurable )
+            {
+                return;
+            }
+
+            // A verdict that carries a location came from a closure, so the diagnostic is the one about captures and
+            // is reported at the capture rather than at the assignment.
+            if ( verdict.Location != null )
+            {
+                context.ReportDiagnostic(
+                    Diagnostic.Create(
+                        CapturedValueIsNotDurable,
+                        verdict.Location,
+                        verdict.CapturedSymbol?.Name ?? "this",
+                        verdict.Verdict.FormatChain() ) );
+
+                return;
+            }
+
+            var location = value.Syntax?.GetLocation();
+
+            if ( location == null )
+            {
+                return;
+            }
+
+            context.ReportDiagnostic(
+                Diagnostic.Create(
+                    descriptor,
+                    location,
+                    targetName,
+                    value.Type == null ? "?" : DurabilityContext.GetDisplayName( value.Type ),
+                    verdict.Verdict.FormatChain() ) );
+        }
+    }
+}

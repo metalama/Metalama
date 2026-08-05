@@ -28,7 +28,7 @@ namespace Metalama.Framework.Analyzers
     /// </para>
     /// </remarks>
     [DiagnosticAnalyzer( LanguageNames.CSharp )]
-    public class DurableContractAnalyzer : DiagnosticAnalyzer
+    public partial class DurableContractAnalyzer : DiagnosticAnalyzer
     {
         private const string _category = "Metalama";
 
@@ -67,7 +67,15 @@ namespace Metalama.Framework.Analyzers
             true );
 
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =
-            ImmutableArray.Create( MemberIsNotDurable, BaseTypeIsNotDurable, InterfaceIsNotDurable );
+            ImmutableArray.Create(
+                MemberIsNotDurable,
+                AssignedValueIsNotDurable,
+                ArgumentIsNotDurable,
+                BaseTypeIsNotDurable,
+                WeakReferenceShouldBeNamedDangerous,
+                InterfaceIsNotDurable,
+                CapturedValueIsNotDurable,
+                UnknownDeclaredTypeName );
 
         public override void Initialize( AnalysisContext context )
         {
@@ -88,6 +96,7 @@ namespace Metalama.Framework.Analyzers
             }
 
             context.RegisterSymbolAction( c => AnalyzeNamedType( c, durabilityContext ), SymbolKind.NamedType );
+            RegisterUseSiteActions( context, durabilityContext );
         }
 
         /// <remarks>
@@ -190,6 +199,8 @@ namespace Metalama.Framework.Analyzers
             ISymbol declaredMember,
             ITypeSymbol memberType )
         {
+            ReportWeakReferenceNaming( context, declaredMember, memberType );
+
             // The attribute on the member waives the check on the declared type and requires instead that every value
             // assigned to it be durable, which is the form to use for a member typed as an interface or as object.
             if ( DurabilityContext.HasDurableAttribute( declaredMember ) )
@@ -225,6 +236,36 @@ namespace Metalama.Framework.Analyzers
                     DurabilityContext.GetDisplayName( type ),
                     DurabilityContext.GetDisplayName( memberType ),
                     chain ) );
+        }
+
+        /// <summary>
+        /// Enforces the naming convention that goes with holding a value weakly.
+        /// </summary>
+        private static void ReportWeakReferenceNaming( SymbolAnalysisContext context, ISymbol declaredMember, ITypeSymbol memberType )
+        {
+            if ( memberType is not INamedTypeSymbol namedType )
+            {
+                return;
+            }
+
+            var metadataName = DurabilityContext.GetFullMetadataName( namedType.OriginalDefinition );
+
+            if ( metadataName is not ("System.WeakReference" or "System.WeakReference`1") )
+            {
+                return;
+            }
+
+            if ( declaredMember.Name.EndsWith( "Dangerous", System.StringComparison.Ordinal ) )
+            {
+                return;
+            }
+
+            var location = declaredMember.Locations.FirstOrDefault( l => l.IsInSource );
+
+            if ( location != null )
+            {
+                context.ReportDiagnostic( Diagnostic.Create( WeakReferenceShouldBeNamedDangerous, location, declaredMember.Name ) );
+            }
         }
 
         /// <summary>
