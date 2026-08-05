@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -7,7 +7,6 @@ using Metalama.Framework.DesignTime.AspectExplorer;
 using Metalama.Framework.DesignTime.CodeLens;
 using Metalama.Framework.DesignTime.Diagnostics;
 using Metalama.Framework.DesignTime.Preview;
-using Metalama.Framework.DesignTime.Rpc;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Services;
 using Metalama.Framework.Tests.UnitTestHelpers.Mocks;
@@ -43,15 +42,11 @@ public class DistributedDesignTimeTestBase : UnitTestClass
         ServiceProviderBuilder<IGlobalService>? analysisProcessServices = null,
         TestContextOptions? options = null )
     {
-        var syncProvider = new TestSynchronizationProvider( this.TestOutput );
-
         var services = new AdditionalServiceCollection();
         services.AddGlobalService( provider => new TestWorkspaceProvider( provider ) );
         services.AddGlobalService( provider => new TransformationPreviewServiceImpl( provider ) );
         services.AddGlobalService( provider => new CodeLensServiceImpl( provider ) );
         services.AddGlobalService( provider => new AspectDatabase( provider ) );
-
-        services.AddUntypedGlobalService( typeof(ITestSynchronizationProvider), syncProvider );
 
         var context = (DistributedDesignTimeTestContext) this.CreateTestContext( options, services );
         _ = context.InitializeAsync( userProcessServices, analysisProcessServices );

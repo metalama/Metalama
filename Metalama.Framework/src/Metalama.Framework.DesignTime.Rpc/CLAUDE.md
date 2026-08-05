@@ -123,7 +123,9 @@ This allows different Metalama versions to be loaded in the same AppDomain while
 For the overall test-suite architecture, see `Metalama.Framework/docs/testing.md`. This section covers only the
 RPC-specific pattern for deterministic timing.
 
-For deterministic testing, use `ITestSynchronizationProvider`:
+For deterministic testing, use `Metalama.Testing.Hooks.ITestSynchronizationProvider`. It is shared by every layer,
+so it derives from no dependency injection marker interface and is registered and resolved untyped
+(`AddUntypedGlobalService` / `IServiceProvider.GetService`):
 
 ```csharp
 // Enable sync point BEFORE the operation that hits it

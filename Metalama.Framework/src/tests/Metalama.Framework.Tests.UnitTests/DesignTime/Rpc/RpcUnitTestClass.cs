@@ -1,10 +1,9 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
 using JetBrains.Annotations;
-using Metalama.Framework.DesignTime.Rpc;
-using Metalama.Framework.Engine.Services;
+using Metalama.Testing.Hooks;
 using Metalama.Testing.UnitTesting;
 using System.Runtime.CompilerServices;
 using Xunit.Abstractions;
@@ -33,13 +32,8 @@ public abstract class RpcUnitTestClass : UnitTestClass
         [CallerFilePath] string? callerFile = null,
         [CallerMemberName] string? callerMemberName = null )
     {
-        var syncProvider = new TestSynchronizationProvider( this.TestOutput );
+        var testContext = this.CreateTestContext( contextOptions, null, callerFile, callerMemberName );
 
-        var additionalServices = new AdditionalServiceCollection();
-        additionalServices.AddUntypedGlobalService( typeof(ITestSynchronizationProvider), syncProvider );
-
-        var testContext = this.CreateTestContext( contextOptions, additionalServices, callerFile, callerMemberName );
-
-        return new RpcTestContext( testContext, syncProvider );
+        return new RpcTestContext( testContext, testContext.SyncProvider );
     }
 }

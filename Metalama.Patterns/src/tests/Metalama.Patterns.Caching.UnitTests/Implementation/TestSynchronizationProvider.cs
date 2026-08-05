@@ -1,8 +1,9 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Patterns.Caching.Implementation;
+using Metalama.Testing.Hooks;
 using System.Collections.Concurrent;
 
 namespace Metalama.Patterns.Caching.Tests.Implementation;
@@ -23,24 +24,13 @@ namespace Metalama.Patterns.Caching.Tests.Implementation;
 /// This is an ordinary service, injected through the <see cref="IServiceProvider"/> given to the component under
 /// test - not global mutable state - so tests using it can safely run in parallel with each other.
 /// </para>
-/// <para>
-/// Requires the component under test to be built with the <c>DEBUG</c> symbol, because its synchronization points
-/// are <c>[Conditional("DEBUG")]</c>.
-/// </para>
 /// </remarks>
 internal sealed class TestSynchronizationProvider : ITestSynchronizationProvider, IServiceProvider, IDisposable
 {
     private readonly ConcurrentDictionary<string, SyncPoint> _syncPoints = new( StringComparer.Ordinal );
 
-    /// <summary>
-    /// Gets a value indicating whether any synchronization point was reached on this instance.
-    /// </summary>
-    public bool AnySyncPointReached { get; private set; }
-
-    void ITestSynchronizationProvider.SyncPoint( string name )
+    void ITestSynchronizationProvider.SyncPoint( string name, CancellationToken cancellationToken )
     {
-        this.AnySyncPointReached = true;
-
         if ( this._syncPoints.TryGetValue( name, out var syncPoint ) )
         {
             syncPoint.Trip();
@@ -48,23 +38,14 @@ internal sealed class TestSynchronizationProvider : ITestSynchronizationProvider
     }
 
     /// <summary>
-    /// Determines, by probing, whether the assembly containing <see cref="AwaitableEvent"/> was built with the
-    /// <c>DEBUG</c> symbol and therefore actually reaches its synchronization points.
+    /// Not used: the caching code has no asynchronous synchronization point. It delegates to the synchronous
+    /// implementation so that the two cannot drift apart if one is added.
     /// </summary>
-    /// <remarks>
-    /// Tests that drive sync points must skip when this returns <c>false</c>, otherwise they would fail waiting
-    /// for a point that can never be reached. This probes the real behaviour rather than testing <c>#if DEBUG</c>
-    /// in the test assembly: the two do not necessarily agree, because the test project defines <c>DEBUG</c> in the
-    /// <c>LamaDebug</c> configuration while <c>Metalama.Patterns.Caching.Backend</c> does not.
-    /// </remarks>
-    public static bool AreSyncPointsEnabled()
+    Task ITestSynchronizationProvider.SyncPointAsync( string name, CancellationToken cancellationToken )
     {
-        using var probe = new TestSynchronizationProvider();
+        ((ITestSynchronizationProvider) this).SyncPoint( name, cancellationToken );
 
-        // Set() reaches several sync points; none of them are armed, so this cannot block.
-        new AwaitableEvent( EventResetMode.ManualReset, probe ).Set();
-
-        return probe.AnySyncPointReached;
+        return Task.CompletedTask;
     }
 
     /// <summary>

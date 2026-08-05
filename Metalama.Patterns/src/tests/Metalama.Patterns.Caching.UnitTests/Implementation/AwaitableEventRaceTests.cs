@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -35,13 +35,9 @@ public sealed class AwaitableEventRaceTests
     /// which throws "attempt to transition a task to a final state when it had already completed" on a
     /// thread-pool thread (and can leave the dispose wait hung).
     /// </summary>
-    [SkippableFact( Timeout = 30000 )]
+    [Fact( Timeout = 30000 )]
     public Task ManualReset_SetRacesScheduleContinuation_ActivatesContinuationOnce()
     {
-        Skip.IfNot(
-            TestSynchronizationProvider.AreSyncPointsEnabled(),
-            "The back-end was not built with DEBUG, so its synchronization points are compiled away." );
-
         // Run the blocking orchestration off the test thread so the xunit Timeout can abort a hang (lost wakeup).
         return Task.Run( this.ManualReset_SetRacesScheduleContinuation_Core );
     }
@@ -70,7 +66,7 @@ public sealed class AwaitableEventRaceTests
 
         Assert.True(
             syncPoint.WaitUntilReached( TimeSpan.FromSeconds( 10 ) ),
-            "The scheduling thread did not reach the sync point. Is the back-end built with DEBUG (so its sync points fire)?" );
+            "The scheduling thread did not reach the synchronization point." );
 
         // While the scheduling thread is paused, signal the event. This activates the enqueued operation
         // (scheduling the continuation once) before the scheduling thread resumes.
