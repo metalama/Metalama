@@ -61,13 +61,22 @@ internal sealed class FrameworkCompileTimeProjectFactory : IGlobalService
     private readonly record struct CachedManifest( DateTime? LastFileWrite, CompileTimeProjectManifest Manifest );
 
     /// <summary>
-    /// Returns the time the file at the given path was last written, or <c>null</c> when the path does not name a file.
+    /// Returns the time the file at the given path was last written, or <c>null</c> when the path is the display string
+    /// of an embedded assembly rather than a path on disk.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// The path of a metadata reference is not necessarily a file. A reference created from a stream carries a display
     /// string instead, which is what <see cref="CompileTimeAssemblyLocator"/> produces for the assemblies it embeds as
     /// manifest resources. The entry of such a reference is never invalidated, which is correct: its content is inside
     /// the engine assembly and cannot change while the process runs.
+    /// </para>
+    /// <para>
+    /// Only that one form is recognized, by its shape and not by asking the file system, because it is the only one the
+    /// engine produces. Any other path is given to <see cref="File.GetLastWriteTime(string)"/>, which answers with a constant
+    /// for a path that names no existing file, so an assembly that appears at that path later is not served from an
+    /// entry built before it existed.
+    /// </para>
     /// </remarks>
     private static DateTime? GetLastFileWriteOrNull( string path )
         => CompileTimeAssemblyLocator.IsEmbeddedAssemblyFilePath( path ) ? null : File.GetLastWriteTime( path );
