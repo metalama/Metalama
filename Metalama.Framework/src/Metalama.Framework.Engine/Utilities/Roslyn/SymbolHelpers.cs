@@ -16,6 +16,18 @@ internal static class SymbolHelpers
 {
     internal static bool? BelongsToCompilation( this ISymbol symbol, CompilationContext compilationContext )
     {
+        if ( IsErrorSymbol( symbol ) )
+        {
+            // An error symbol is a placeholder that Roslyn synthesizes for a reference that it could not resolve, so it is
+            // not a legitimate member of any compilation and no decision can be taken. Taking one would not be reliable
+            // either: the assembly that contains an error symbol can be the assembly symbol of a different compilation, or
+            // a synthesized placeholder, whose identity collides with an identity of the current compilation. Error symbols
+            // reach this method in the IDE whenever the references of a project are momentarily incomplete, for instance
+            // while a build replaces them.
+
+            return null;
+        }
+
         var assembly = symbol.ContainingAssembly;
 
         if ( assembly == null )
@@ -80,12 +92,25 @@ internal static class SymbolHelpers
             return;
         }
 
+        if ( IsErrorSymbol( symbol ) || IsErrorSymbol( otherSymbol ) )
+        {
+            // See the comment in BelongsToCompilation.
+
+            return;
+        }
+
         if ( symbol.ContainingAssembly.Identity.Equals( otherSymbol.ContainingAssembly.Identity )
              && !symbol.ContainingAssembly.Equals( otherSymbol.ContainingAssembly ) )
         {
             throw new AssertionFailedException( $"The symbols '{symbol}' and '{otherSymbol}' do not belong to the same compilation." );
         }
     }
+
+    /// <summary>
+    /// Determines whether a symbol is an error symbol, that is, a placeholder that Roslyn synthesizes for a reference
+    /// that it could not resolve, or a member of such a placeholder.
+    /// </summary>
+    private static bool IsErrorSymbol( ISymbol symbol ) => symbol.Kind == SymbolKind.ErrorType || symbol.ContainingType?.Kind == SymbolKind.ErrorType;
 
     internal static ImmutableArray<SpecialType> ArrayGenericInterfaces { get; } =
         ImmutableArray.Create(
