@@ -217,16 +217,15 @@ public sealed class RefTests : UnitTestClass
     }
 
     /// <summary>
-    /// A constructed generic type keeps its type arguments, because it is a named type and is therefore identified by
-    /// its declaration identifier exactly as <c>ToRef().ToDurable()</c> would identify it.
+    /// A constructed generic type keeps its type arguments, because it is identified by its
+    /// <see cref="SerializableTypeId"/> rather than by a declaration identifier.
     /// </summary>
     /// <remarks>
-    /// This records deliberately that <see cref="Code.RefExtensions.ToDurableRef{T}"/> does not change the behaviour that
-    /// <see cref="DurableRefToConstructedGenericTypeLosesTheTypeArguments"/> documents. A caller that needs the type
-    /// arguments preserved has to use a <see cref="SerializableTypeId"/>, whichever of the two routes it takes.
+    /// This is the counterpart of <see cref="DurableRefToConstructedGenericTypeKeepsTheTypeArguments"/>: both routes to
+    /// a durable reference preserve the type arguments, so they agree.
     /// </remarks>
     [Fact]
-    public void ToDurableRefToConstructedGenericTypeLosesTheTypeArgumentsToo()
+    public void ToDurableRefToConstructedGenericTypeKeepsTheTypeArguments()
     {
         using var testContext = this.CreateTestContext();
         var compilation = testContext.CreateCompilationModel( _genericTypesCode );
@@ -234,7 +233,7 @@ public sealed class RefTests : UnitTestClass
         var type = GetTestType( compilation, "Constructed" );
         Assert.Equal( "Generic<int>", type.ToDisplayString() );
 
-        Assert.Equal( "Generic<T>", type.ToDurableRef().GetTarget( compilation ).ToDisplayString() );
+        Assert.Equal( "Generic<int>", type.ToDurableRef().GetTarget( compilation ).ToDisplayString() );
     }
 
     /// <summary>
@@ -305,6 +304,193 @@ public sealed class RefTests : UnitTestClass
         Assert.Null( durableRef.GetPrimarySyntaxTree( compilation.CompilationContext ) );
     }
 
+    /// <summary>
+    /// The code that <see cref="OldFormatIdentifiersStillResolve"/> resolves its hardcoded identifiers against.
+    /// </summary>
+    private const string _backwardCompatibilityCode = """
+                                                      namespace Ns
+                                                      {
+                                                          public class C<T>
+                                                          {
+                                                              public int Field;
+
+                                                              public int M( string p ) => 0;
+                                                          }
+
+                                                          public class Plain { }
+                                                      }
+                                                      """;
+
+    /// <summary>
+    /// Verifies that the identifiers written by an earlier version still resolve.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A durable reference to a type is now written as a <see cref="SerializableTypeId"/>, so the identifier of a named
+    /// type changed from the documentation form <c>T:Ns.Plain</c> to the type form <c>Y:global::Ns.Plain!</c>. These
+    /// identifiers are written into the transitive manifest, which one version of Metalama writes and another reads,
+    /// so the old form has to keep resolving. The literals below are hardcoded on purpose: computing them from the
+    /// current code would test nothing, because it would produce the new form.
+    /// </para>
+    /// <para>
+    /// The identifiers of declarations that are not types are unchanged, and are included so that a future change to
+    /// the format is measured against all of them rather than against types alone. See issue #1797.
+    /// </para>
+    /// </remarks>
+    [Theory]
+    [InlineData( "T:Ns.Plain", "Plain" )]
+    [InlineData( "T:Ns.C`1", "C<T>" )]
+    [InlineData( "M:Ns.C`1.M(System.String)", "M" )]
+    [InlineData( "F:Ns.C`1.Field", "Field" )]
+    [InlineData( "M:Ns.C`1.M(System.String);Parameter;0", "p" )]
+    [InlineData( "T:Ns.C`1;TypeParameter;0", "T" )]
+    public void OldFormatIdentifiersStillResolve( string id, string expectedName )
+    {
+        using var testContext = this.CreateTestContext();
+        var compilation = testContext.CreateCompilationModel( _backwardCompatibilityCode );
+
+        var resolved = new SerializableDeclarationId( id ).ResolveToDeclaration( compilation );
+
+        Assert.NotNull( resolved );
+        Assert.Equal( expectedName, resolved is INamedType namedType ? namedType.ToDisplayString() : ((INamedDeclaration) resolved!).Name );
+    }
+
+    /// <summary>
+    /// Verifies that a durable reference built from an identifier of the old form resolves, which is the route the
+    /// deserializer takes when it reads a manifest written by an earlier version.
+    /// </summary>
+    [Fact]
+    public void DurableRefFromAnOldFormatTypeIdentifierResolves()
+    {
+        using var testContext = this.CreateTestContext();
+        var compilation = testContext.CreateCompilationModel( _backwardCompatibilityCode );
+
+        var durableRef = DurableRefFactory.FromDeclarationId<INamedType>( new SerializableDeclarationId( "T:Ns.Plain" ) );
+
+        Assert.Equal( "Plain", durableRef.GetTarget( compilation ).ToDisplayString() );
+    }
+
+    /// <summary>
+    /// A generic type whose fields give the shapes in which a type parameter appears in the type of a declaration.
+    /// </summary>
+    private const string _typeParameterCode = """
+                                              #nullable enable
+
+                                              using System.Collections.Generic;
+
+                                              class C<T>
+                                                  where T : class
+                                              {
+                                                  public T? NullableParameter = null;
+                                                  public T NonNullableParameter = null!;
+                                                  public List<T?> ListOfNullableParameter = null!;
+                                                  public List<T> ListOfNonNullableParameter = null!;
+                                              }
+                                              """;
+
+    /// <summary>
+    /// Verifies that a durable reference to a type that is, or contains, a type parameter round-trips exactly,
+    /// including the nullable annotation.
+    /// </summary>
+    /// <remarks>
+    /// <c>T?</c> has to come back as <c>T?</c>, and <c>List&lt;T?&gt;</c> as <c>List&lt;T?&gt;</c>. A type parameter
+    /// appears both as the type itself and inside the type arguments of another type, and the second case cannot be
+    /// avoided by treating type parameters specially at the top level. See issue #1797.
+    /// </remarks>
+    [Theory]
+    [InlineData( "NullableParameter", true )]
+    [InlineData( "NonNullableParameter", false )]
+    [InlineData( "ListOfNullableParameter", false )]
+    [InlineData( "ListOfNonNullableParameter", false )]
+    public void DurableRefToATypeParameterRoundTripsExactly( string fieldName, bool expectedIsNullable )
+    {
+        using var testContext = this.CreateTestContext();
+        var compilation = testContext.CreateCompilationModel( _typeParameterCode );
+
+        var type = compilation.Types.OfName( "C" ).Single().Fields.OfName( fieldName ).Single().Type;
+        Assert.Equal( expectedIsNullable, type.IsNullable );
+
+        // Asserted on the identity and the nullability rather than on a display string, because a display string does
+        // not render the nullable annotation and a type parameter does not render identically when it is reached from
+        // a field and when it is resolved from an identifier.
+        Assert.Equal( expectedIsNullable, type.ToRef().ToDurable().GetTarget( compilation ).IsNullable );
+        Assert.True( type.Equals( type.ToRef().ToDurable().GetTarget( compilation ) ) );
+
+        Assert.Equal( expectedIsNullable, type.ToDurableRef().GetTarget( compilation ).IsNullable );
+        Assert.True( type.Equals( type.ToDurableRef().GetTarget( compilation ) ) );
+
+        // The annotation of a type argument is the case the outer assertions do not reach: List<T?> is itself a
+        // non-nullable List, and only its argument is annotated.
+        if ( type is INamedType { TypeArguments.Count: 1 } )
+        {
+            var expectedArgumentIsNullable = fieldName == "ListOfNullableParameter";
+
+            Assert.Equal( expectedArgumentIsNullable, ((INamedType) type).TypeArguments[0].IsNullable );
+
+            Assert.Equal(
+                expectedArgumentIsNullable,
+                ((INamedType) type.ToRef().ToDurable().GetTarget( compilation )).TypeArguments[0].IsNullable );
+
+            Assert.Equal(
+                expectedArgumentIsNullable,
+                ((INamedType) type.ToDurableRef().GetTarget( compilation )).TypeArguments[0].IsNullable );
+        }
+    }
+
+    /// <summary>
+    /// A type whose fields give a nullable and a non-nullable form of the same named type.
+    /// </summary>
+    private const string _nullableTypesCode = """
+                                             #nullable enable
+
+                                             interface IService { }
+
+                                             class Container
+                                             {
+                                                 public IService? NullableField = null;
+                                                 public IService NonNullableField = null!;
+                                             }
+                                             """;
+
+    /// <summary>
+    /// Returns the type of the named field of <c>Container</c> in a compilation of <see cref="_nullableTypesCode"/>.
+    /// </summary>
+    private static IType GetFieldType( CompilationModel compilation, string fieldName )
+        => compilation.Types.OfName( "Container" ).Single().Fields.OfName( fieldName ).Single().Type;
+
+    /// <summary>
+    /// Verifies that a durable reference to a nullable named type keeps the nullable annotation.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A named type is identified by its documentation identifier, which names the type and nothing else, so the
+    /// annotation is not part of what is written. An array or a pointer type is identified by its
+    /// <see cref="SerializableTypeId"/> instead, which does carry it. The nullability of a named type is therefore lost
+    /// by a conversion that the caller has no reason to think is lossy.
+    /// </para>
+    /// <para>
+    /// It is observable: the dependency injection strategies of <c>Metalama.Extensions</c> hold the type of the
+    /// parameter they introduce, and an <c>IService?</c> parameter became an <c>IService</c> one. See issue #1797.
+    /// </para>
+    /// </remarks>
+    [Theory]
+    [InlineData( "NullableField", true )]
+    [InlineData( "NonNullableField", false )]
+    public void DurableRefToNamedTypeKeepsTheNullability( string fieldName, bool expectedIsNullable )
+    {
+        using var testContext = this.CreateTestContext();
+        var compilation = testContext.CreateCompilationModel( _nullableTypesCode );
+
+        var type = GetFieldType( compilation, fieldName );
+        Assert.Equal( expectedIsNullable, type.IsNullable );
+
+        var throughToDurable = type.ToRef().ToDurable().GetTarget( compilation );
+        Assert.Equal( expectedIsNullable, throughToDurable.IsNullable );
+
+        var throughToDurableRef = type.ToDurableRef().GetTarget( compilation );
+        Assert.Equal( expectedIsNullable, throughToDurableRef.IsNullable );
+    }
+
     private const string _genericTypesCode = """
                                              class Plain { }
 
@@ -334,7 +520,7 @@ public sealed class RefTests : UnitTestClass
     /// <summary>
     /// Verifies that converting an <see cref="INamedType"/> to a durable reference with <c>ToDurable</c> and resolving
     /// it again yields an equivalent type, for every shape of type except a constructed generic one, which
-    /// <see cref="DurableRefToConstructedGenericTypeLosesTheTypeArguments"/> covers.
+    /// <see cref="DurableRefToConstructedGenericTypeKeepsTheTypeArguments"/> covers.
     /// </summary>
     [Theory]
     [InlineData( "Plain" )]
@@ -359,20 +545,24 @@ public sealed class RefTests : UnitTestClass
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <c>ToDurable</c> is backed by a <c>SerializableDeclarationId</c>, which names a declaration and therefore names
-    /// the generic definition. Resolving it returns <c>Generic&lt;T&gt;</c> where <c>Generic&lt;int&gt;</c> was
-    /// converted, silently and with no diagnostic. This is a trap for any caller that converts a type coming from user
-    /// code, because the result is a usable type rather than an error, and the widening only shows in what the caller
-    /// subsequently matches.
+    /// A declaration identifier names a declaration and therefore names the generic definition, so backing
+    /// <c>ToDurable</c> with one returned <c>Generic&lt;T&gt;</c> where <c>Generic&lt;int&gt;</c> was converted,
+    /// silently and with no diagnostic. That was a trap for any caller converting a type coming from user code,
+    /// because the result was a usable type rather than an error and the widening only showed in what the caller
+    /// subsequently matched. It broke the constructor parameter pull, which compares the type of the parameter it
+    /// introduced against the type it is asked to introduce (issue #1797). A constructed generic type is therefore
+    /// identified by its <see cref="SerializableTypeId"/>.
     /// </para>
     /// <para>
-    /// <c>Query.CreateBaseTypeResolver</c> is such a caller: <c>SelectTypesDerivedFrom( INamedType )</c> accepts a
+    /// <c>Query.CreateBaseTypeResolver</c> was such a caller: <c>SelectTypesDerivedFrom( INamedType )</c> accepts a
     /// constructed generic type, and going through a declaration identifier would have made the query match the types
-    /// derived from every construction of the generic type. It uses a <see cref="SerializableTypeId"/> for that reason.
+    /// derived from every construction of the generic type. It builds a <see cref="SerializableTypeId"/> explicitly,
+    /// which is no longer needed to avoid the widening, but is still needed because that conversion does not throw for
+    /// a type an aspect introduced.
     /// </para>
     /// </remarks>
     [Fact]
-    public void DurableRefToConstructedGenericTypeLosesTheTypeArguments()
+    public void DurableRefToConstructedGenericTypeKeepsTheTypeArguments()
     {
         using var testContext = this.CreateTestContext();
         var compilation = testContext.CreateCompilationModel( _genericTypesCode );
@@ -380,8 +570,8 @@ public sealed class RefTests : UnitTestClass
         var type = GetTestType( compilation, "Constructed" );
         Assert.Equal( "Generic<int>", type.ToDisplayString() );
 
-        var throughDeclarationId = type.ToRef().ToDurable().GetTarget( compilation );
-        Assert.Equal( "Generic<T>", throughDeclarationId.ToDisplayString() );
+        var throughToDurable = type.ToRef().ToDurable().GetTarget( compilation );
+        Assert.Equal( "Generic<int>", throughToDurable.ToDisplayString() );
 
         var throughTypeId = DurableRefFactory.FromTypeId<INamedType>( type.GetSerializableTypeId() ).GetTarget( compilation );
         Assert.Equal( "Generic<int>", throughTypeId.ToDisplayString() );

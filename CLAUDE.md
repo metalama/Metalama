@@ -112,7 +112,17 @@ When starting work on a GitHub issue:
 - Never await without cancellation token - ever
 - For assertions, use `Invariant.Assert` / `Invariant.AssertNotNull` (`Metalama.Framework.Engine`) instead of the `System.Diagnostics.Debug` assert methods, so the compiler and the `MetalamaAssertionAnalyzer` can track control flow. In projects that don't reference the engine (e.g. `Metalama.Patterns.Caching.Backend`), throw `CachingAssertionFailedException` instead; `System.Diagnostics.Debug` is only acceptable there in already-ported code that uses it throughout.
 - Github comments and issues and PRs must be signed by Claude - not commits. No ad link, just the signature `— Claude for @gfraiteur`.
-- don't loose time solving cosmetic warnings (such as redundant usings) until the finalizing stage of a commit
+- **Warnings: ignore them while coding, but zero warnings is a gate for any push to a PR.** While writing and testing code, don't lose time on cosmetic warnings (such as redundant usings). But the CI build runs with `-p:ContinuousIntegrationBuild=True`, which promotes analyzer suggestions to errors: `IDE0005` ("using directive is unnecessary") is invisible in a local build and *fails* the CI build. A green local build and a green test suite therefore prove nothing about CI.
+
+  So, before creating a PR **and before every push to an existing PR**, build every project you touched in CI mode and get zero warnings:
+
+  ```powershell
+  dotnet build <project> -c Debug -p:ContinuousIntegrationBuild=True -nodeReuse:false
+  ```
+
+  Do this for test projects too: they are not built by `Build.ps1 build`, so new test code is the most likely place for such a diagnostic to hide. Do not push and let CI find them; a red CI build costs far more than the check.
+
+  **Re-run it for every project, every time.** Checking one project and then adding a file to another defeats the purpose: `CS0618` on an obsolete API (`TypeFactory.ToNullableType`) is also only an error under this switch, and it failed a build that way. The diagnostics that behave like this are the ones invisible in a normal build, so the check has to follow the code you touched, not the code you remember touching.
 - `Build.ps1 build` does not build test projects, only packable projects.
 - `Build.ps1 test` implicitly does a clean rebuild (not incremental), so do NOT chain it after `Build.ps1 build` — they overlap. After `Build.ps1 build`, run individual test projects with `dotnet test <project> --no-build`. Only re-run `Build.ps1 build` when you need a cross-solution rebuild.
 
@@ -139,6 +149,7 @@ Example: `TemplateExpansionContext.ProceedUserExpression.cs` contains `private s
 The testing strategies and every test suite (unit, aspect, template, linker, standalone, design-time standalone, benchmarks, workspaces) are documented in `Metalama.Framework/docs/testing.md`. Read it before writing or debugging tests. A few reminders that bite in practice:
 
 - **Aspect tests** are discovered by `.cs` file path under `Tests/`; the test name is the file name without extension. Filter with the bare name (`dotnet test <project> -f net8.0 --filter "ReplaceParameter_Covariant"`), not `Name~`, and rebuild after adding a new `.cs` test file.
+- **Never commit a new aspect test without running it first and committing its expected output.** An aspect test compares the transformed code against an expected file beside it, so a test committed without one fails on every run, including CI. Run the test, read the actual output under `obj/transformed/<tfm>/...`, check that it is what the test is meant to prove, then copy it next to the `.cs`. A `@TestScenario(DesignTime)` test needs the generated partial classes as well (`<Name>.0.i.cs` and so on), because the design-time pipeline cannot change the signature of an existing declaration and exposes what it introduces as an overload in a separate document. Read the output rather than copying it blindly: a test whose baseline was adopted without being read asserts whatever the code happened to do, including a defect.
 - **Unit tests** inherit `UnitTestClass` and use `CreateTestContext()` / `CreateCompilationModel(code)`.
 - To emit output from a test, use `ITestOutputService`; for deterministic timing use `ITestSynchronizationProvider` sync points, never hardcoded delays.
 

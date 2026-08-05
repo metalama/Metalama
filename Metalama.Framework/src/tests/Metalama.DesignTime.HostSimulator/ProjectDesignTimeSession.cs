@@ -72,12 +72,43 @@ internal sealed class ProjectDesignTimeSession
 
         var compilationWithGeneratedCode = this.RunGenerators( compilation, generators, projectReport, cancellationToken );
 
+        this.AddCompilerDiagnostics( compilationWithGeneratedCode, projectReport, cancellationToken );
+
         if ( analyzers.IsEmpty )
         {
             return;
         }
 
         await this.RunAnalyzersAsync( compilationWithGeneratedCode, analyzers, projectReport, cancellationToken );
+    }
+
+    /// <summary>
+    /// Adds the diagnostics of the compilation itself, once the generated documents are part of it.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Without these, the only diagnostics a scenario can assert on are the ones an analyzer or a generator produced,
+    /// so a scenario cannot observe what the compiler makes of the generated code. That matters because the way an
+    /// aspect fails to apply is usually silent: no diagnostic is reported, and the only visible consequence is that
+    /// code which relies on the aspect no longer compiles. Collecting these lets a scenario be written around a call
+    /// that binds only when the aspect applied.
+    /// </para>
+    /// <para>
+    /// These do not make the simulation fail. A design-time scenario is allowed to be one that does not compile, and
+    /// <see cref="ProjectReport.HasFailure"/> deliberately counts only the failures of the analysis infrastructure. A
+    /// scenario that wants a compiler diagnostic to be a failure says so in its <see cref="TestOptions.FileName"/>.
+    /// </para>
+    /// </remarks>
+    private void AddCompilerDiagnostics( Compilation compilation, ProjectReport projectReport, CancellationToken cancellationToken )
+    {
+        try
+        {
+            projectReport.AddDiagnostics( compilation.GetDiagnostics( cancellationToken ) );
+        }
+        catch ( Exception exception ) when ( exception is not OperationCanceledException )
+        {
+            projectReport.AddError( $"Getting the diagnostics of '{this._project.Name}' threw {exception.GetType().Name}: {exception.Message}" );
+        }
     }
 
     /// <summary>

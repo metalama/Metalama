@@ -239,7 +239,7 @@ internal static class OnConstructedEpilogueEmitter
 
         var pullStrategy = new IntroduceParameterPullStrategy(
             _defaultContextParameterName,
-            initializationContextType.ToRef(),
+            initializationContextType.ToDurableRef(),
             defaultValueText,
             reuseExistingParameterOfCompatibleType: true );
 

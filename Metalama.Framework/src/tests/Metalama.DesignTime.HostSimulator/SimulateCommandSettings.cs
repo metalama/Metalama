@@ -91,6 +91,15 @@ internal sealed class SimulateCommandSettings : CommandSettings
     [CommandOption( "-v|--verbose" )]
     public bool Verbose { get; init; }
 
+    [UsedImplicitly]
+    [Description(
+        "Do not read the designtime-test.json beside the solution. Without this, its assertions on the reported "
+        + "diagnostics decide the exit code. It is a different file from the test.json that the build engineering "
+        + "reads, because the engineering matches the whole output of this process while these assertions see only "
+        + "the diagnostics the simulation reported." )]
+    [CommandOption( "--ignore-assertions" )]
+    public bool IgnoreAssertions { get; init; }
+
     /// <summary>
     /// Gets the requested project order, or an empty array to use the solution order.
     /// </summary>
