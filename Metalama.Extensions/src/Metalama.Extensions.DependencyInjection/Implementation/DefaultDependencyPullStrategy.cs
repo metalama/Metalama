@@ -49,21 +49,8 @@ public class DefaultDependencyPullStrategy : IDependencyPullStrategy
     public virtual IStatement GetAssignmentStatement( IParameter existingParameter )
         => this.GetAssignmentStatement( existingParameter, this.AssignedFieldOrProperty );
 
-    /// <summary>
-    /// Creates the <see cref="IParameterPullStrategy"/> that introduces and pulls the constructor parameter.
-    /// </summary>
-    /// <remarks>
-    /// The reference to the parameter type is made durable, so that a strategy reachable from a stored transitive
-    /// aspect instance does not retain the compilation it was created in. See issue #1797. A durable reference is an
-    /// identifier and resolves only in a compilation that contains the declaration it names. The compilation an aspect
-    /// operates on does not contain the declarations introduced by that same aspect, because advice is applied to a
-    /// later revision, so a type introduced by an aspect keeps a non-durable reference. Such a reference retains a
-    /// compilation of the current pipeline run, which an introduced type does not outlive. See issue #1825.
-    /// </remarks>
     public IParameterPullStrategy CreateParameterPullStrategy()
-        => this.ParameterType is IDeclaration { Origin.Kind: DeclarationOriginKind.Aspect }
-            ? new DefaultParameterPullStrategy( this.ParameterType.ToRef(), this.IntroducedFieldOrProperty.Name )
-            : new DefaultParameterPullStrategy( this.ParameterType.ToDurableRef(), this.IntroducedFieldOrProperty.Name );
+        => new DefaultParameterPullStrategy( this.ParameterType.ToDurableRef(), this.IntroducedFieldOrProperty.Name );
 
     private IStatement GetAssignmentStatement( IParameter existingParameter, IFieldOrProperty assignedFieldOrProperty )
     {
