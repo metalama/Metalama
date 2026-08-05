@@ -420,6 +420,26 @@ public sealed class ReportExceptionTests : TestsBase
     }
 
     [Fact]
+    public void FilesThatAreNotTelemetryReportsAreNotCounted()
+    {
+        // #1814: AssertFilesCount used to count every file of the mock file system, so a file written by any service
+        // other than the telemetry report capture was counted as a report. That made the assertion depend on the
+        // interleaving with the background telemetry upload task, which reaches TempFileManager.GetTempDirectory and
+        // writes 'cleanup.json' under the Backstage tools directory. The count was therefore 1 or 2 depending on
+        // timing, and SendReportDecidesOnTheIssueAndStopsPrompting failed intermittently on CI.
+        this.ConfigureExceptionReporting( ExceptionReportingKind.Exception, TelemetryConsent.Default );
+        this.RecordException();
+
+        // Write the very file the background upload task writes, so that the race is reproduced deterministically.
+        var toolsDirectory = Path.Combine( Path.GetTempPath(), "Metalama", "Tools", "Metalama.Backstage.Worker" );
+        this.FileSystem.CreateDirectory( toolsDirectory );
+        this.FileSystem.WriteAllText( Path.Combine( toolsDirectory, "cleanup.json" ), "{}" );
+
+        // Exactly one report was captured, whatever else happens to be in the file system.
+        this.AssertFilesCount( 1 );
+    }
+
+    [Fact]
     public void ExceptionsWithTheSameStackTraceAreReportedOnce()
     {
         var exception = new TestException( "Test", "Test" );
