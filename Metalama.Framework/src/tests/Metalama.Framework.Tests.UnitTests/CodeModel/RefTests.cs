@@ -606,39 +606,120 @@ public sealed class RefTests : UnitTestClass
     }
 
     /// <summary>
-    /// Records that a type introduced by an aspect has a <see cref="SerializableTypeId"/> but that the identifier does
-    /// not resolve, and that the failure is a resolution failure rather than a failure to produce the identifier.
+    /// Verifies that a durable reference to a type that an aspect introduced into the global namespace resolves back
+    /// to that type.
     /// </summary>
     /// <remarks>
-    /// <para>
-    /// A type identifier is syntactic, so one is produced for an introduced type as readily as for any other. Resolving
-    /// it, however, goes through the symbol table of the Roslyn compilation, in which an introduced type does not
-    /// exist. The two halves failing at different moments is what matters to a caller: the conversion succeeds, and the
-    /// exception surfaces later, wherever the reference happens to be resolved.
-    /// </para>
-    /// <para>
-    /// <c>Query.CreateBaseTypeResolver</c> is such a caller, and this is why it verifies the conversion instead of
-    /// assuming it. Without that check, passing an introduced type to <c>SelectTypesDerivedFrom</c> builds a query that
-    /// throws when it is executed, which
-    /// <c>Metalama.Framework.Tests.AspectTests/Tests/Fabrics/SelectTypesDerivedFromIntroducedType.cs</c> demonstrates
-    /// end to end.
-    /// </para>
+    /// The resolution of an identifier starts in the namespace tree merged over the compilation and its references,
+    /// whereas an aspect introduces a type into the tree of <see cref="IAssembly.GlobalNamespace"/>. The global
+    /// namespace has a distinct declaration in each tree, so the introduced type is added to the collections of both.
+    /// See issue #1825.
     /// </remarks>
     [Fact]
-    public void DurableTypeIdRefToIntroducedTypeDoesNotResolve()
+    public void DurableTypeIdRefToTypeIntroducedIntoGlobalNamespaceResolves()
     {
         using var testContext = this.CreateTestContext();
         var compilation = testContext.CreateCompilationModel( "class Outer;" ).CreateMutableClone();
 
-        var typeBuilder = new NamedTypeBuilder( null!, compilation.GlobalNamespace, "Introduced", TypeKind.Class );
-        typeBuilder.Freeze();
-        compilation.AddTransformation( typeBuilder.CreateTransformation() );
-
-        var introducedType = compilation.Types.OfName( "Introduced" ).Single();
+        var introducedType = IntroduceType( compilation, compilation.GlobalNamespace, "Introduced" );
 
         var durableRef = DurableRefFactory.FromTypeId<INamedType>( introducedType.GetSerializableTypeId() );
 
-        Assert.Null( durableRef.GetTargetOrNull( compilation ) );
-        Assert.Throws<SymbolNotFoundException>( () => durableRef.GetTarget( compilation ) );
+        Assert.Same( introducedType, durableRef.GetTarget( compilation ) );
+    }
+
+    /// <summary>
+    /// Verifies that a durable reference to a type that an aspect introduced into a namespace that the aspect also
+    /// introduced resolves back to that type.
+    /// </summary>
+    /// <remarks>
+    /// This is the shape of the metrics sample, whose aspect introduces its type into a namespace of its own. The
+    /// introduced namespace is added to the global namespace of both trees, and the introduced type is added to the
+    /// single collection of that namespace, which has one declaration. See issue #1825.
+    /// </remarks>
+    [Fact]
+    public void DurableTypeIdRefToTypeIntroducedIntoIntroducedNamespaceResolves()
+    {
+        using var testContext = this.CreateTestContext();
+        var compilation = testContext.CreateCompilationModel( "class Outer;" ).CreateMutableClone();
+
+        var introducedNamespace = IntroduceNamespace( compilation, compilation.GlobalNamespace, "Introduced" );
+        var introducedType = IntroduceType( compilation, introducedNamespace, "Companion" );
+
+        var durableRef = DurableRefFactory.FromTypeId<INamedType>( introducedType.GetSerializableTypeId() );
+
+        Assert.Same( introducedType, durableRef.GetTarget( compilation ) );
+    }
+
+    /// <summary>
+    /// Verifies that a durable reference to a type that an aspect introduced into a namespace which a referenced
+    /// assembly declares as well resolves back to that type.
+    /// </summary>
+    /// <remarks>
+    /// The namespace has two constituents, so Roslyn creates a merged namespace, and that namespace has a declaration
+    /// in each tree. The type is introduced into the declaration of the tree of <see cref="IAssembly.GlobalNamespace"/>
+    /// and must also be added to the declaration of the merged tree. A namespace declared by this compilation alone
+    /// would not cover this case, because Roslyn then returns the single constituent and one declaration exists.
+    /// <c>System</c> is used because every compilation references an assembly that declares it. See issue #1825.
+    /// </remarks>
+    [Fact]
+    public void DurableTypeIdRefToTypeIntroducedIntoMergedNamespaceResolves()
+    {
+        using var testContext = this.CreateTestContext();
+        var compilation = testContext.CreateCompilationModel( "namespace System { class Outer; }" ).CreateMutableClone();
+
+        var mergedNamespace = compilation.GlobalNamespace.GetDescendant( "System" ).AssertNotNull();
+        var introducedType = IntroduceType( compilation, mergedNamespace, "Companion" );
+
+        var durableRef = DurableRefFactory.FromTypeId<INamedType>( introducedType.GetSerializableTypeId() );
+
+        Assert.Same( introducedType, durableRef.GetTarget( compilation ) );
+    }
+
+    /// <summary>
+    /// Verifies that a durable reference backed by a <see cref="SerializableDeclarationId"/>, which is what
+    /// <see cref="IRef{T}.ToDurable"/> returns for an introduced declaration, resolves to a type introduced into an
+    /// introduced namespace.
+    /// </summary>
+    /// <remarks>
+    /// The two kinds of durable identifier are resolved by different code, so both are covered: a type identifier by
+    /// <c>SerializableTypeIdResolverForIType</c> and a declaration identifier by <c>DocumentationIdHelper</c>. Both
+    /// start their lookup in the merged namespace tree. See issue #1825.
+    /// </remarks>
+    [Fact]
+    public void DurableDeclarationIdRefToTypeIntroducedIntoIntroducedNamespaceResolves()
+    {
+        using var testContext = this.CreateTestContext();
+        var compilation = testContext.CreateCompilationModel( "class Outer;" ).CreateMutableClone();
+
+        var introducedNamespace = IntroduceNamespace( compilation, compilation.GlobalNamespace, "Introduced" );
+        var introducedType = IntroduceType( compilation, introducedNamespace, "Companion" );
+
+        IDurableRef<INamedType> durableRef = introducedType.ToRef().ToDurable();
+
+        Assert.Same( introducedType, durableRef.GetTarget( compilation ) );
+    }
+
+    /// <summary>
+    /// Introduces a namespace into a mutable compilation and returns the resulting declaration.
+    /// </summary>
+    private static INamespace IntroduceNamespace( CompilationModel compilation, INamespace containingNamespace, string name )
+    {
+        var namespaceBuilder = new NamespaceBuilder( null!, containingNamespace, name );
+        compilation.AddTransformation( namespaceBuilder.CreateTransformation() );
+
+        return containingNamespace.Namespaces.OfName( name ).AssertNotNull();
+    }
+
+    /// <summary>
+    /// Introduces a type into a mutable compilation and returns the resulting declaration.
+    /// </summary>
+    private static INamedType IntroduceType( CompilationModel compilation, INamespace containingNamespace, string name )
+    {
+        var typeBuilder = new NamedTypeBuilder( null!, containingNamespace, name, TypeKind.Class );
+        typeBuilder.Freeze();
+        compilation.AddTransformation( typeBuilder.CreateTransformation() );
+
+        return containingNamespace.Types.OfName( name ).Single();
     }
 }

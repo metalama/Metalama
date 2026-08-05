@@ -345,6 +345,53 @@ public sealed partial class CompilationModel
         }
     }
 
+    /// <summary>
+    /// Gets a reference to the declaration of <paramref name="ns"/> in the merged namespace tree, or <c>null</c> if
+    /// <paramref name="ns"/> and the merged namespace tree share a single declaration of that namespace.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A compilation exposes two namespace trees. The tree of <see cref="IAssembly.GlobalNamespace"/> is backed by the
+    /// namespaces of the source module and contains the declarations of this compilation only. It is the tree passed
+    /// to an aspect, therefore the tree into which an aspect introduces a namespace or a type. The other tree is
+    /// merged over this compilation and its references. The resolution of a <see cref="SerializableTypeId"/> or of a
+    /// <see cref="SerializableDeclarationId"/> starts there, because it is the only tree that contains the types of
+    /// the referenced assemblies.
+    /// </para>
+    /// <para>
+    /// A namespace declared both by this compilation and by a referenced assembly has one declaration in each tree,
+    /// and each of them has its own collections of child namespaces and types. A declaration added to one of these
+    /// collections is not returned by the other, and an identifier naming it therefore fails to resolve.
+    /// <see cref="AddDeclaration"/> adds it to both. See issue #1825.
+    /// </para>
+    /// <para>
+    /// This method returns <c>null</c> in the two cases where a single declaration exists and one insertion is
+    /// therefore sufficient. The first is a namespace introduced by an aspect: it has no symbol, and
+    /// <see cref="AddDeclaration"/> has already added it to both trees, so both return that instance. The second is a
+    /// namespace declared by this compilation only: Roslyn returns the single constituent instead of creating a merged
+    /// namespace, so both trees again return one instance. The global namespace is declared by every assembly and has
+    /// two declarations in every compilation.
+    /// </para>
+    /// </remarks>
+    private IFullRef<INamespace>? GetMergedNamespaceRef( IFullRef<INamespace> ns )
+    {
+        if ( ns is not ISymbolRef { Symbol: INamespaceSymbol moduleNamespace } )
+        {
+            // The namespace was introduced by an aspect and has no symbol.
+            return null;
+        }
+
+        var mergedNamespace = this.RoslynCompilation.GetCompilationNamespace( moduleNamespace );
+
+        if ( mergedNamespace == null || SymbolEqualityComparer.Default.Equals( mergedNamespace, moduleNamespace ) )
+        {
+            // Roslyn returned the single constituent instead of a merged namespace.
+            return null;
+        }
+
+        return mergedNamespace.ToRef( this.RefFactory ).As<INamespace>();
+    }
+
     internal void AddDeclaration( DeclarationBuilderData declaration )
     {
         // TODO Perf: switch on DeclarationKind,
@@ -426,14 +473,18 @@ public sealed partial class CompilationModel
                 break;
 
             case NamedTypeBuilderData namedType:
-                var types = this.GetNamedTypeCollectionByParent(
-                    namedType.ContainingDeclaration.AssertNotNull().As<INamespaceOrNamedType>(),
-                    true );
+                var declaringNamespaceOrType = namedType.ContainingDeclaration.AssertNotNull().As<INamespaceOrNamedType>();
 
-                types.Add( namedType.ToRef() );
+                this.GetNamedTypeCollectionByParent( declaringNamespaceOrType, true ).Add( namedType.ToRef() );
 
                 if ( namedType.DeclaringType == null )
                 {
+                    // The containing declaration is a namespace, which can have a second declaration in the merged tree.
+                    if ( this.GetMergedNamespaceRef( declaringNamespaceOrType.As<INamespace>() ) is { } mergedTypeNamespace )
+                    {
+                        this.GetNamedTypeCollectionByParent( mergedTypeNamespace.As<INamespaceOrNamedType>(), true ).Add( namedType.ToRef() );
+                    }
+
                     var topLevelTypes = this.GetTopLevelNamedTypeCollection( true );
                     topLevelTypes.Add( namedType.ToRef() );
                 }
@@ -456,11 +507,24 @@ public sealed partial class CompilationModel
 
                 if ( !this._namespaceBuilders.ContainsKey( ns.FullName ) )
                 {
-                    var namespaces = this.GetNamespaceCollection(
-                        ns.ContainingDeclaration.AssertNotNull().As<INamespace>(),
-                        true );
+                    var declaringNamespace = ns.ContainingDeclaration.AssertNotNull().As<INamespace>();
 
-                    namespaces.Add( ns.ToRef() );
+                    this.GetNamespaceCollection( declaringNamespace, true ).Add( ns.ToRef() );
+
+                    if ( this.GetMergedNamespaceRef( declaringNamespace ) is { } mergedParentNamespace )
+                    {
+                        var mergedNamespaces = this.GetNamespaceCollection( mergedParentNamespace, true );
+
+                        // The merged declaration can already have a child namespace of that name, declared by a
+                        // referenced assembly and not by this compilation. Adding the introduced namespace would
+                        // replace it in the collection, so the introduced namespace is added only when the name is
+                        // free, and it remains reachable from the tree of IAssembly.GlobalNamespace only.
+                        if ( mergedNamespaces.OfName( ns.Name ).IsDefaultOrEmpty )
+                        {
+                            mergedNamespaces.Add( ns.ToRef() );
+                        }
+                    }
+
                     this._namespaceBuilders = this._namespaceBuilders.Add( ns.FullName, ns );
                 }
 

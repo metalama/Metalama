@@ -33,21 +33,40 @@ namespace Metalama.Extensions.DependencyInjection.Implementation;
 public class DefaultParameterPullStrategy : IParameterPullStrategy
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="DefaultParameterPullStrategy"/> class.
+    /// Initializes a new instance of the <see cref="DefaultParameterPullStrategy"/> class with a durable reference to
+    /// the type of the constructor parameter.
     /// </summary>
-    /// <param name="parameterType">A reference to the type of the constructor parameter.</param>
+    /// <param name="parameterType">A durable reference to the type of the constructor parameter.</param>
     /// <param name="dependencyName">The name of the dependency, used to derive the parameter name.</param>
+    /// <remarks>
+    /// A durable reference does not retain the compilation it was created in, so this overload applies whenever the
+    /// strategy can be reached from a stored transitive aspect instance. See issue #1797. It requires the type to
+    /// exist in every compilation the strategy is used with, which excludes a type introduced by an aspect: use
+    /// <see cref="DefaultParameterPullStrategy(IRef{IType}, string)"/> for such a type.
+    /// </remarks>
     public DefaultParameterPullStrategy( IDurableRef<IType> parameterType, string dependencyName )
     {
-        // Made durable so that a pull strategy reachable from a stored transitive aspect instance does not retain the
-        // compilation it was created in. See issue #1797.
         this.ParameterType = parameterType;
         this.DependencyName = dependencyName;
     }
 
-    [Obsolete("Pass an IDurableRef<IType>.")]
-    public DefaultParameterPullStrategy( IRef<IType> parameterType, string dependencyName ) : this( parameterType.ToDurable(), dependencyName )
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DefaultParameterPullStrategy"/> class with a reference to the type
+    /// of the constructor parameter that is not necessarily durable.
+    /// </summary>
+    /// <param name="parameterType">A reference to the type of the constructor parameter.</param>
+    /// <param name="dependencyName">The name of the dependency, used to derive the parameter name.</param>
+    /// <remarks>
+    /// Prefer <see cref="DefaultParameterPullStrategy(IDurableRef{IType}, string)"/>, which does not retain the
+    /// compilation the reference was created in. This overload is required for a type introduced by an aspect, because
+    /// a durable reference is an identifier and resolves only in a compilation that contains the declaration it names,
+    /// and the compilation an aspect operates on does not contain the declarations introduced by that same aspect:
+    /// advice is applied to a later revision. See issue #1825.
+    /// </remarks>
+    public DefaultParameterPullStrategy( IRef<IType> parameterType, string dependencyName )
     {
+        this.ParameterType = parameterType;
+        this.DependencyName = dependencyName;
     }
 
     /// <summary>
