@@ -162,6 +162,10 @@ namespace Metalama.Framework.Analyzers
             // Boundaries: project-scoped or process-wide infrastructure, mirroring UserCodeRetentionPolicy.IsBoundary.
             // ---------------------------------------------------------------------------------------------------
 
+            // Both the non-generic base and the generic class. IsBoundary matches on the base, which covers the
+            // generic one at run time through inheritance, but the analyzer looks the type up by name and would
+            // otherwise miss whichever of the two a member is declared with.
+            Durable( "Metalama.Framework.Engine.Services.ServiceProvider", _boundaryReason );
             Durable( "Metalama.Framework.Engine.Services.ServiceProvider`1", _boundaryReason );
             Durable( "Metalama.Framework.Engine.CompileTime.CompileTimeProject", _boundaryReason );
             Durable( "Metalama.Framework.Engine.CompileTime.CompileTimeDomain", _boundaryReason );

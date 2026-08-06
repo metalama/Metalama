@@ -36,6 +36,7 @@ public abstract class DurableAnalyzerTestBase
             MetadataReference.CreateFromFile( Path.Combine( runtimeDirectory, "System.Collections.dll" ) ),
             MetadataReference.CreateFromFile( Path.Combine( runtimeDirectory, "System.Collections.Concurrent.dll" ) ),
             MetadataReference.CreateFromFile( Path.Combine( runtimeDirectory, "System.Linq.dll" ) ),
+            MetadataReference.CreateFromFile( Path.Combine( runtimeDirectory, "System.Threading.dll" ) ),
             MetadataReference.CreateFromFile( typeof(ImmutableArray).Assembly.Location ),
 
             // For Compilation, SyntaxTree, SemanticModel and ISymbol, which are the types the rule is written about.
@@ -47,9 +48,17 @@ public abstract class DurableAnalyzerTestBase
         {
             references.Add( MetadataReference.CreateFromFile( typeof(DurableAttribute).Assembly.Location ) );
 
-            // For CompilationModel, PartialCompilation and CompilationContext, which the correspondence test probes.
+            // For CompilationModel, PartialCompilation, CompilationContext and the boundary types, which the
+            // correspondence test probes.
             references.Add(
                 MetadataReference.CreateFromFile( typeof(Metalama.Framework.Engine.CodeModel.CompilationModel).Assembly.Location ) );
+
+            references.Add(
+                MetadataReference.CreateFromFile( typeof(Metalama.Backstage.Diagnostics.ILogger).Assembly.Location ) );
+
+            // ServiceProvider is declared in Metalama.Framework.Sdk, not in the engine.
+            references.Add(
+                MetadataReference.CreateFromFile( typeof(Metalama.Framework.Engine.Services.ServiceProvider).Assembly.Location ) );
         }
 
         return references.ToArray();
@@ -111,4 +120,14 @@ public abstract class DurableAnalyzerTestBase
 
         Assert.Empty( diagnostics.Select( d => d.GetMessage() ) );
     }
+
+    /// <summary>
+    /// Creates a compilation with the standard references, for a test that inspects symbols rather than diagnostics.
+    /// </summary>
+    private protected static CSharpCompilation CreateCompilation( string code )
+        => CSharpCompilation.Create(
+            "ProbeAssembly",
+            new[] { CSharpSyntaxTree.ParseText( code, new CSharpParseOptions( LanguageVersion.CSharp12 ) ) },
+            _references,
+            new CSharpCompilationOptions( OutputKind.DynamicallyLinkedLibrary ) );
 }

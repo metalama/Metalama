@@ -63,10 +63,51 @@ public sealed class DurableTableCorrespondenceTests : DurableAnalyzerTestBase
     ];
 
     /// <summary>
-    /// Reads the embedded source of <c>UserCodeRetentionPolicy</c> and returns the simple type names that the
-    /// patterns of <c>IsPinning</c> mention.
+    /// The types named by <c>IsBoundary</c>, at which the run-time walk stops without reporting.
     /// </summary>
-    private static HashSet<string> GetTypeNamesNamedByIsPinning()
+    /// <remarks>
+    /// <para>
+    /// Five of them are also named by <c>IsPinning</c> and are reported before this method is consulted, so they are
+    /// covered by <see cref="_pinningTypes"/> and appear here only so that the set comparison is complete. The rest
+    /// are project-scoped or process-wide infrastructure through which a chain explains nothing, so the analyzer must
+    /// treat them as durable.
+    /// </para>
+    /// <para>
+    /// <c>Probe</c> is <c>false</c> for a type this assembly cannot name because it is internal to the engine. The
+    /// table entry is still checked, by resolving its metadata name, which is the drift that matters: an entry whose
+    /// namespace or arity is wrong simply never matches, and nothing else would notice.
+    /// </para>
+    /// </remarks>
+    private static readonly (string PatternName, string MetadataName, bool AlsoPinning, bool Probe)[] _boundaryTypes =
+    [
+        ("ISymbol", "Microsoft.CodeAnalysis.ISymbol", true, false),
+        ("Compilation", "Microsoft.CodeAnalysis.Compilation", true, false),
+        ("SyntaxTree", "Microsoft.CodeAnalysis.SyntaxTree", true, false),
+        ("SemanticModel", "Microsoft.CodeAnalysis.SemanticModel", true, false),
+        ("SyntaxNode", "Microsoft.CodeAnalysis.SyntaxNode", true, false),
+        ("ServiceProvider", "Metalama.Framework.Engine.Services.ServiceProvider", false, true),
+        ("CompileTimeProject", "Metalama.Framework.Engine.CompileTime.CompileTimeProject", false, false),
+        ("CompileTimeDomain", "Metalama.Framework.Engine.CompileTime.CompileTimeDomain", false, true),
+        ("ITemplateReflectionContext", "Metalama.Framework.Engine.CompileTime.ITemplateReflectionContext", false, false),
+        ("ILogger", "Metalama.Backstage.Diagnostics.ILogger", false, true),
+        ("ILoggerFactory", "Metalama.Backstage.Diagnostics.ILoggerFactory", false, true),
+        ("string", "System.String", false, true),
+        ("Type", "System.Type", false, true),
+        ("Assembly", "System.Reflection.Assembly", false, true),
+        ("Module", "System.Reflection.Module", false, true),
+        ("MemberInfo", "System.Reflection.MemberInfo", false, true),
+        ("ParameterInfo", "System.Reflection.ParameterInfo", false, true),
+        ("Thread", "System.Threading.Thread", false, true),
+        ("AppDomain", "System.AppDomain", false, true)
+    ];
+
+    private static HashSet<string> GetTypeNamesNamedByIsPinning() => GetTypeNamesNamedBy( "IsPinning" );
+
+    /// <summary>
+    /// Reads the embedded source of <c>UserCodeRetentionPolicy</c> and returns the simple type names that the
+    /// patterns of the named method mention.
+    /// </summary>
+    private static HashSet<string> GetTypeNamesNamedBy( string methodName )
     {
         using var stream = typeof(DurableTableCorrespondenceTests).Assembly
             .GetManifestResourceStream( "UserCodeRetentionPolicy.cs" );
@@ -80,12 +121,12 @@ public sealed class DurableTableCorrespondenceTests : DurableAnalyzerTestBase
 
         var method = root.DescendantNodes()
             .OfType<MethodDeclarationSyntax>()
-            .SingleOrDefault( m => m.Identifier.Text == "IsPinning" );
+            .SingleOrDefault( m => m.Identifier.Text == methodName );
 
         Assert.True(
             method != null,
-            "UserCodeRetentionPolicy no longer declares a single method named IsPinning. The correspondence between "
-            + "its list and the tables of the analyzer has to be re-established by hand." );
+            "UserCodeRetentionPolicy no longer declares a single method named " + methodName + ". The correspondence "
+            + "between its list and the tables of the analyzer has to be re-established by hand." );
 
         var names = new HashSet<string>( StringComparer.Ordinal );
 
@@ -111,6 +152,17 @@ public sealed class DurableTableCorrespondenceTests : DurableAnalyzerTestBase
                     names.Add( GetSimpleName( constantPattern.Expression.ToString() ) );
 
                     break;
+
+                // 'case ISymbol:' in a switch *statement* is a case label whose value the parser reads as a constant,
+                // for the same reason: a type and a constant are indistinguishable at that position.
+                case CaseSwitchLabelSyntax { Value: IdentifierNameSyntax or QualifiedNameSyntax } caseLabel:
+                    names.Add( GetSimpleName( caseLabel.Value.ToString() ) );
+
+                    break;
+
+                    // 'case string:' needs no case of its own: a keyword cannot be a constant, so the parser makes it
+                    // a type pattern, which the first case above already handles. Matching PredefinedTypeSyntax
+                    // directly would also collect the 'bool' of the return type and the 'object' of the parameter.
             }
         }
 
@@ -179,6 +231,90 @@ public sealed class DurableTableCorrespondenceTests : DurableAnalyzerTestBase
             if ( patternName != "IDurableRef" )
             {
                 data.Add( metadataName, expectedReason );
+            }
+        }
+
+        return data;
+    }
+
+    /// <remarks>
+    /// The same drift assertion for <c>IsBoundary</c>, which the analyzer's boundary entries were taken from.
+    /// </remarks>
+    [Fact]
+    public void TheSetOfTypesNamedByIsBoundary_IsTheSetThisTestKnowsAbout()
+    {
+        var actual = GetTypeNamesNamedBy( "IsBoundary" );
+        var expected = _boundaryTypes.Select( t => t.PatternName ).ToHashSet( StringComparer.Ordinal );
+
+        var added = actual.Except( expected ).OrderBy( n => n, StringComparer.Ordinal ).ToList();
+        var removed = expected.Except( actual ).OrderBy( n => n, StringComparer.Ordinal ).ToList();
+
+        Assert.True(
+            added.Count == 0 && removed.Count == 0,
+            "UserCodeRetentionPolicy.IsBoundary and the tables of the analyzer have drifted apart."
+            + (added.Count > 0 ? " Named by IsBoundary but unknown here: " + string.Join( ", ", added ) + "." : null)
+            + (removed.Count > 0 ? " Known here but no longer named by IsBoundary: " + string.Join( ", ", removed ) + "." : null)
+            + " Update WellKnownDurableTypes and the map in this test together." );
+    }
+
+    /// <remarks>
+    /// <para>
+    /// A boundary that is not also pinning is infrastructure through which a chain explains nothing, so a member of a
+    /// durable type may hold one. Asserting that no diagnostic appears is a stronger check than it looks: a table
+    /// entry whose name is wrong does not match, the type falls through to "not marked [Durable]", and a diagnostic
+    /// appears. That is how the missing entry for the non-generic <c>ServiceProvider</c> was found.
+    /// </para>
+    /// </remarks>
+    [Theory]
+    [MemberData( nameof(ProbeableBoundaryTypes) )]
+    public async Task ABoundaryThatIsNotPinning_IsDurableForTheAnalyzer( string metadataName )
+        => await AssertNoDiagnosticAsync(
+            "using Metalama.Framework.Utilities; [Durable] class Probe { private global::" + metadataName + "? _field; }" );
+
+    public static TheoryData<string> ProbeableBoundaryTypes()
+    {
+        var data = new TheoryData<string>();
+
+        foreach ( var (_, metadataName, alsoPinning, probe) in _boundaryTypes )
+        {
+            if ( !alsoPinning && probe )
+            {
+                data.Add( metadataName );
+            }
+        }
+
+        return data;
+    }
+
+    /// <remarks>
+    /// The entries the probe above cannot reach, because the type is internal to the engine. Resolving the metadata
+    /// name is what catches the drift that matters for a table entry: a wrong namespace or a wrong arity means the
+    /// entry never matches, and nothing else notices.
+    /// </remarks>
+    [Theory]
+    [MemberData( nameof(AllCorrespondingTypeNames) )]
+    public void EveryTypeNameInTheTables_ResolvesToAType( string metadataName )
+    {
+        var compilation = CreateCompilation( "class Dummy { }" );
+
+        Assert.True(
+            compilation.GetTypeByMetadataName( metadataName ) != null,
+            "'" + metadataName + "' matches no type. The entry in WellKnownDurableTypes therefore never matches, so "
+            + "the type falls through to the rule for an unmarked type and is reported for the wrong reason, or not "
+            + "reported at all when the entry was meant to make it durable." );
+    }
+
+    public static TheoryData<string> AllCorrespondingTypeNames()
+    {
+        var data = new TheoryData<string>();
+        var seen = new HashSet<string>( StringComparer.Ordinal );
+
+        foreach ( var name in _pinningTypes.Select( t => t.MetadataName )
+                     .Concat( _boundaryTypes.Select( t => t.MetadataName ) ) )
+        {
+            if ( seen.Add( name ) )
+            {
+                data.Add( name );
             }
         }
 
