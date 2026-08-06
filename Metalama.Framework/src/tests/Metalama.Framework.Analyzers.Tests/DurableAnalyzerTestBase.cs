@@ -46,6 +46,10 @@ public abstract class DurableAnalyzerTestBase
         if ( withMetalama )
         {
             references.Add( MetadataReference.CreateFromFile( typeof(DurableAttribute).Assembly.Location ) );
+
+            // For CompilationModel, PartialCompilation and CompilationContext, which the correspondence test probes.
+            references.Add(
+                MetadataReference.CreateFromFile( typeof(Metalama.Framework.Engine.CodeModel.CompilationModel).Assembly.Location ) );
         }
 
         return references.ToArray();

@@ -20,6 +20,17 @@
     <ItemGroup>
         <ProjectReference Include="../../Metalama.Framework/Metalama.Framework.csproj" />
         <ProjectReference Include="../../Metalama.Framework.Analyzers/Metalama.Framework.Analyzers.csproj" />
+
+        <!-- For CompilationModel, PartialCompilation and CompilationContext, which the correspondence test probes. -->
+        <ProjectReference Include="../../Metalama.Framework.Engine/Metalama.Framework.Engine.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- The correspondence test reads this source rather than a copy of it, so that the two lists cannot drift
+             apart silently. Embedding it also means that moving or renaming the file breaks this build, which is
+             itself the signal that the test needs attention. -->
+        <EmbeddedResource Include="../../Metalama.Framework.Engine/Pipeline/UserCodeRetentionPolicy.cs"
+                          LogicalName="UserCodeRetentionPolicy.cs" />
     </ItemGroup>
 
 </Project>

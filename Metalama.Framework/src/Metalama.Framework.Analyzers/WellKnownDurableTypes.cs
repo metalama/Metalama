@@ -226,7 +226,7 @@ namespace Metalama.Framework.Analyzers
             NotDurable( "Metalama.Framework.Code.IRef", "a reference that is not durable holds the symbol and the reference factory" );
             NotDurable( "Metalama.Framework.Code.IRef`1", "a reference that is not durable holds the symbol and the reference factory" );
             NotDurable( "Metalama.Framework.Engine.CodeModel.CompilationModel", "a CompilationModel holds its compilation" );
-            NotDurable( "Metalama.Framework.Engine.CodeModel.CompilationContext", "a CompilationContext holds its compilation" );
+            NotDurable( "Metalama.Framework.Engine.Services.CompilationContext", "a CompilationContext holds its compilation" );
             NotDurable( "Metalama.Framework.Engine.CodeModel.PartialCompilation", "a PartialCompilation holds its compilation" );
             NotDurable( "Metalama.Framework.Engine.CodeModel.References.RefFactory", "a RefFactory reaches its compilation" );
 
