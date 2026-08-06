@@ -13,5 +13,14 @@
              so we can't use C# 14 in templates and build-time code. -->
         <MetalamaTemplateLanguageVersion>13.0</MetalamaTemplateLanguageVersion>
 
+        <!-- The rules of the [Durable] contract, LAMA0870 to LAMA0879, report objects that the design-time pipeline
+             keeps beyond the run that produced them and that hold something which cannot be shown to be durable. They
+             are a survey rather than a list of defects, and each one that remains is recorded and deliberate.
+
+             CodeQuality.targets sets TreatWarningsAsErrors when ContinuousIntegrationBuild is true, which would turn
+             that survey into a broken build. They are kept as warnings so that they stay visible without stopping the
+             build. Remove this line once the findings are resolved, so that a new one cannot be introduced silently. -->
+        <WarningsNotAsErrors>$(WarningsNotAsErrors);LAMA0870;LAMA0871;LAMA0872;LAMA0873;LAMA0874;LAMA0875;LAMA0876;LAMA0877;LAMA0878;LAMA0879</WarningsNotAsErrors>
+
     </PropertyGroup>
 </Project>

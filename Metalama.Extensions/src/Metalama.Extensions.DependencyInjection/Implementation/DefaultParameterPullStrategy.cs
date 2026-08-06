@@ -53,7 +53,13 @@ public class DefaultParameterPullStrategy : IParameterPullStrategy
     /// <summary>
     /// Gets the type of the constructor parameter.
     /// </summary>
-    public IRef<IType> ParameterType
+    /// <remarks>
+    /// Typed <see cref="IDurableRef{T}"/> rather than <see cref="IRef{T}"/> so that the requirement is stated in the
+    /// type rather than left to the constructor, which already performed the conversion. A pull strategy is reachable
+    /// from a transitive aspect instance that the design-time pipeline stores per document, so a compilation-bound
+    /// reference here would pin the version it was created in for the whole editing session. See issue #1797.
+    /// </remarks>
+    public IDurableRef<IType> ParameterType
     {
         get;
 

@@ -87,14 +87,17 @@ When adding a member to a type that is stored in a `SyntaxTreePipelineResult`, t
 convenient to keep" but "does this reach a `Compilation`". Note that a `Microsoft.CodeAnalysis.Diagnostic` does: it
 holds a `Location`, which holds its source tree.
 
-**A type is not a declaration, and `ToDurable()` treats it as one.** `ToDurable()` is backed by a
-`SerializableDeclarationId`, which names a *declaration*, so converting `Base<int>` yields a reference that resolves
-to `Base<T>`: the type arguments are lost, silently, and the result is a usable type rather than an error.
-`ToDurableRef()` behaves identically here, deliberately: it takes the declaration route for everything that is a
-declaration, and a named type is one. Where the value is an `IType`, and above all where it comes from user code and
-its shape is therefore not known, use `DurableRefFactory.FromTypeId( type.GetSerializableTypeId() )` instead.
-`Query.CreateBaseTypeResolver` does, and `RefTests.DurableRefToConstructedGenericTypeLosesTheTypeArguments` records
-the difference.
+**`ToDurable()` preserves the type arguments of a constructed generic type.** It did not always: it was backed by a
+`SerializableDeclarationId`, which names a *declaration* and therefore names the generic definition, so converting
+`Generic<int>` yielded a reference that resolved to `Generic<T>`, silently and with no diagnostic. That was a trap,
+because the result was a usable type rather than an error, and it broke the constructor parameter pull, which
+compares the type of the parameter it introduced against the type it is asked to introduce (issue #1797). A
+constructed generic type is now identified by its `SerializableTypeId` instead, and
+`RefTests.DurableRefToConstructedGenericTypeKeepsTheTypeArguments` holds both routes side by side.
+
+`DurableRefFactory.FromTypeId( type.GetSerializableTypeId() )` is therefore no longer needed to avoid that widening.
+`Query.CreateBaseTypeResolver` still builds one explicitly, for the separate reason given below: that conversion does
+not throw for a type an aspect introduced.
 
 Neither identifier can denote a type an aspect introduced, because resolving one goes through the symbol table. Where
 such a type can reach the conversion, verify it rather than assume it: converting unconditionally replaces a query

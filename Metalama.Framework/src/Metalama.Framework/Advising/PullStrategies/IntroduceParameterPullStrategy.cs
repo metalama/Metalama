@@ -13,7 +13,14 @@ namespace Metalama.Framework.Advising.PullStrategies;
 internal sealed class IntroduceParameterPullStrategy : IPullStrategy
 {
     private readonly string? _parameterName;
-    private readonly IRef<IType>? _parameterType;
+
+    /// <remarks>
+    /// Typed <see cref="IDurableRef{T}"/> rather than <see cref="IRef{T}"/> so that the requirement is stated in the
+    /// type rather than left to the caller. A pull strategy is reachable from a transitive aspect instance that the
+    /// design-time pipeline stores per document, so a compilation-bound reference here would pin the version it was
+    /// created in for the whole editing session. See issue #1797, which closed the same shape on the pulled parameter.
+    /// </remarks>
+    private readonly IDurableRef<IType>? _parameterType;
     private readonly string? _parameterDefaultValue;
     private readonly string? _forwarderExpression;
     private readonly bool _reuseExistingParameterOfCompatibleType;
@@ -23,7 +30,7 @@ internal sealed class IntroduceParameterPullStrategy : IPullStrategy
 
     public IntroduceParameterPullStrategy(
         string? parameterName,
-        IRef<IType>? parameterType,
+        IDurableRef<IType>? parameterType,
         string? parameterDefaultValue,
         string? forwarderExpression = null,
         bool reuseExistingParameterOfCompatibleType = false,
@@ -86,7 +93,11 @@ internal sealed class IntroduceParameterPullStrategy : IPullStrategy
         public override IntroduceParameterPullStrategy CreateInstance( IArgumentsReader constructorArguments )
         {
             var parameterName = constructorArguments.GetValue<string>( nameof(_parameterName) )!;
-            var parameterType = constructorArguments.GetValue<IRef<IType>>( nameof(_parameterType) )!;
+            // The wire shape stays IRef<IType>, which is what the serialization framework resolves, and the conversion
+            // happens on this boundary, as design-time-memory.md prescribes. The value is genuinely optional: a pull
+            // strategy that does not constrain the parameter type stores none, so this must not be dereferenced
+            // unconditionally.
+            var parameterType = constructorArguments.GetValue<IRef<IType>>( nameof(_parameterType) )?.ToDurable();
             var parameterDefaultValue = constructorArguments.GetValue<string>( nameof(_parameterDefaultValue) );
             var forwarderExpression = constructorArguments.GetValue<string>( nameof(_forwarderExpression) );
             var reuseExistingParameterOfCompatibleType = constructorArguments.GetValue<bool>( nameof(_reuseExistingParameterOfCompatibleType) );
