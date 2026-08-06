@@ -87,6 +87,10 @@ namespace Metalama.Framework.Analyzers
             Durable( "System.Numerics.BigInteger" );
             Durable( "System.Text.StringBuilder" );
 
+            // A compiled regular expression holds its pattern and its automaton, and reaches nothing else. The naming
+            // conventions of Metalama.Patterns.Wpf hold one.
+            Durable( "System.Text.RegularExpressions.Regex" );
+
             // Rooted by the runtime for the lifetime of the process, so retaining one costs nothing. These are the
             // same types at which RetentionPathFinder.ShouldTraverse and UserCodeRetentionPolicy.IsBoundary stop.
             Durable( "System.Type" );
@@ -109,6 +113,11 @@ namespace Metalama.Framework.Analyzers
             // target. This is a judgement call: Exception.Data is a dictionary of object and could in principle carry
             // a compilation-bound value. Nothing in this codebase does that.
             Durable( "System.Exception" );
+
+            // Attribute declares no instance field, so it contributes nothing to a derived type. Without this entry
+            // every aspect written as an attribute reports LAMA0873 for a base type that holds nothing, which is the
+            // shape of most aspects. The fields the derived attribute declares are still examined.
+            Durable( "System.Attribute" );
 
             // A weak reference is durable whatever it refers to, and its type argument is deliberately not examined.
             // ProjectVersionProvider holds a Dictionary<ProjectKey, WeakReference<Compilation>> and
@@ -143,6 +152,22 @@ namespace Metalama.Framework.Analyzers
             // kept dependency-light on purpose, so it cannot carry the attribute.
             Durable( "Metalama.Framework.DesignTime.Rpc.ProjectKey" );
 
+            // The three marker interfaces of the dependency injection scopes. A service is scoped to the pipeline
+            // configuration, to the process or to the infrastructure, never to one execution of the pipeline, so
+            // holding one is durable by design.
+            //
+            // These are entries here rather than [Durable] attributes on purpose, and the difference matters. An
+            // entry means "trusted, and the members are not examined". The attribute means "verify every member", and
+            // applying it to these three brought roughly a hundred services under the contract, most of them holding
+            // a semaphore, a task completion source or a cache that is ordinary infrastructure rather than anything
+            // bound to a compilation. Durable by lifetime is not the same claim as durable by structure, and only the
+            // first is true of a service.
+            const string serviceReason = "a service is scoped to the pipeline configuration or wider, never to one pipeline execution";
+
+            Durable( "Metalama.Framework.Services.IProjectService", serviceReason );
+            Durable( "Metalama.Framework.Services.IGlobalService", serviceReason );
+            Durable( "Metalama.Backstage.Extensibility.IBackstageService", serviceReason );
+
             // The identity field of a SymbolDictionaryKey is declared as object and holds a string when the key was
             // created by CreatePersistentKey and a symbol when it was created by CreateLookupKey. One type, two
             // lifetimes, so no structural rule can ever accept it, and yet CreatePersistentKey is the documented way
@@ -167,6 +192,11 @@ namespace Metalama.Framework.Analyzers
             // otherwise miss whichever of the two a member is declared with.
             Durable( "Metalama.Framework.Engine.Services.ServiceProvider", _boundaryReason );
             Durable( "Metalama.Framework.Engine.Services.ServiceProvider`1", _boundaryReason );
+
+            // The wrappers over a service provider. A project service provider is scoped to a pipeline configuration
+            // and not to a pipeline execution, so it is durable by design and holding one costs nothing.
+            Durable( "Metalama.Framework.Engine.Services.ProjectServiceProvider", _boundaryReason );
+            Durable( "Metalama.Framework.Engine.Services.GlobalServiceProvider", _boundaryReason );
             Durable( "Metalama.Framework.Engine.CompileTime.CompileTimeProject", _boundaryReason );
             Durable( "Metalama.Framework.Engine.CompileTime.CompileTimeDomain", _boundaryReason );
             Durable( "Metalama.Framework.Engine.CompileTime.ITemplateReflectionContext", _boundaryReason );

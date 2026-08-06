@@ -377,7 +377,7 @@ namespace Metalama.Framework.Analyzers
             // so it carries its own diagnostic.
             if ( namedType.TypeKind == TypeKind.Interface || namedType.IsAbstract )
             {
-                return Verdict.UnmarkedInterface(
+                return Verdict.NotAnnotated(
                     GetDisplayName( type ),
                     "an interface or abstract type that is not marked [Durable]" );
             }
@@ -488,6 +488,18 @@ namespace Metalama.Framework.Analyzers
                  || definition.DeclaringSyntaxReferences.IsDefaultOrEmpty )
             {
                 result = definition.TypeParameters.Length >= 64 ? ulong.MaxValue : (1UL << definition.TypeParameters.Length) - 1;
+
+                // A contravariant parameter appears only in input position, so an implementation cannot store a value
+                // of that type: it never receives one to store. Without this, IEligibilityRule<in T> and
+                // IAnnotation<in T> would demand that their argument be durable, and IEligibilityRule<IDeclaration>
+                // would be reported although the rule stores no declaration.
+                for ( var i = 0; i < definition.TypeParameters.Length && i < 64; i++ )
+                {
+                    if ( definition.TypeParameters[i].Variance == VarianceKind.In )
+                    {
+                        result &= ~(1UL << i);
+                    }
+                }
             }
             else
             {

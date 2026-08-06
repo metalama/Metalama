@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Serialization;
+using Metalama.Framework.Utilities;
 
 namespace Metalama.Framework.Code;
 
@@ -13,6 +14,7 @@ namespace Metalama.Framework.Code;
 /// <seealso cref="IAnnotation{T}"/>
 /// <seealso cref="DeclarationEnhancements{T}"/>
 /// <seealso cref="ICompileTimeSerializable"/>
+[Durable]
 public interface IAnnotation : ICompileTimeSerializable;
 
 // ReSharper disable once UnusedTypeParameter

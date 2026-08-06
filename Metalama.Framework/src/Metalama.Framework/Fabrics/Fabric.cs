@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Serialization;
+using Metalama.Framework.Utilities;
 
 namespace Metalama.Framework.Fabrics
 {
@@ -38,6 +39,7 @@ namespace Metalama.Framework.Fabrics
     /// <seealso href="@fabrics-adding-aspects"/>
     /// <seealso href="@aspect-configuration"/>
     /// <seealso href="@validation"/>
+    [Durable]
     [CompileTime]
     public abstract class Fabric : ICompileTimeSerializable, ITemplateProvider
     {

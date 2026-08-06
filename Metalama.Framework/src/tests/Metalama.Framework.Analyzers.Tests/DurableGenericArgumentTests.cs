@@ -73,4 +73,25 @@ public sealed class DurableGenericArgumentTests : DurableAnalyzerTestBase
     public async Task SelfReferencingGenericType_DoesNotDiverge()
         => await AssertNoDiagnosticAsync(
             Code( "[Durable] class Node<T> { private Node<T>? _next; private T? _value; } [Durable] class A { private Node<string>? _n; }" ) );
+
+    /// <remarks>
+    /// A contravariant parameter appears only in input position, so an implementation never receives a value of that
+    /// type to store. Without this, <c>IEligibilityRule&lt;in T&gt;</c> and <c>IAnnotation&lt;in T&gt;</c> would demand
+    /// a durable argument, and <c>IEligibilityRule&lt;IDeclaration&gt;</c> would be reported although an eligibility
+    /// rule stores no declaration.
+    /// </remarks>
+    [Fact]
+    public async Task ContravariantTypeArgumentOfAnInterface_IsNotExamined()
+        => await AssertNoDiagnosticAsync(
+            Code( "[Durable] interface ISink<in T> { void Accept(T value); } [Durable] class A { private ISink<ISymbol>? _sink; }" ) );
+
+    /// <remarks>
+    /// The counterpart: an interface parameter that is not contravariant is assumed stored, because an interface has
+    /// no fields to examine.
+    /// </remarks>
+    [Fact]
+    public async Task InvariantTypeArgumentOfAnInterface_IsExamined()
+        => await AssertSingleDiagnosticAsync(
+            Code( "[Durable] interface IBox<T> { T Value { get; } } [Durable] class A { private IBox<ISymbol>? _box; }" ),
+            "LAMA0870" );
 }

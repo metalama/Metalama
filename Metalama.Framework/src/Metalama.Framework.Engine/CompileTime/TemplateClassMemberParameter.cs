@@ -5,6 +5,7 @@
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.SerializableIds;
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Utilities;
 using Microsoft.CodeAnalysis;
 
 namespace Metalama.Framework.Engine.CompileTime;
@@ -31,6 +32,7 @@ namespace Metalama.Framework.Engine.CompileTime;
 /// parameter of the template itself, which cannot be resolved without knowing where it was declared.
 /// </para>
 /// </remarks>
+[Durable]
 internal sealed record TemplateClassMemberParameter(
     int SourceIndex,
     string Name,
@@ -38,7 +40,7 @@ internal sealed record TemplateClassMemberParameter(
     bool IsCompileTime,
     int? TemplateIndex,
     bool HasDefaultValue = false,
-    object? DefaultValue = null )
+    [property: Durable] object? DefaultValue = null )
 {
     public TemplateClassMemberParameter( IParameterSymbol parameterSymbol, bool isCompileTime, int? templateIndex )
         : this(

@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Options;
+using Metalama.Framework.Utilities;
 using Metalama.Patterns.Caching.Aspects.Configuration;
 using Metalama.Patterns.Caching.Implementation;
 
@@ -22,6 +23,7 @@ namespace Metalama.Patterns.Caching.Aspects;
 /// <seealso cref="CachingConfigurationAttribute"/>
 /// <seealso cref="CachingProfile"/>
 /// <seealso href="@caching-configuration"/>
+[Durable]
 [RunTimeOrCompileTime]
 public abstract class CachingBaseAttribute : Attribute, IHierarchicalOptionsProvider
 {

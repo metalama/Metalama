@@ -39,14 +39,17 @@ public sealed class DurableMsBuildTypeListTests
 
     private const string _code = """
                                  using Metalama.Framework.Utilities;
-                                 using System.Text.RegularExpressions;
 
                                  [Durable]
                                  class A
                                  {
-                                     private Regex? _regex;
+                                     private Opaque? _opaque;
                                      private Marked? _marked;
                                  }
+
+                                 // Deliberately declared here rather than taken from the base class library, so that
+                                 // the test does not depend on a type being absent from WellKnownDurableTypes.
+                                 class Opaque { }
 
                                  [Durable]
                                  class Marked { }
@@ -79,13 +82,13 @@ public sealed class DurableMsBuildTypeListTests
         var diagnostics = await GetDiagnosticsAsync( null, null );
 
         Assert.Single( diagnostics );
-        Assert.Contains( "Regex", diagnostics[0].GetMessage(), StringComparison.Ordinal );
+        Assert.Contains( "Opaque", diagnostics[0].GetMessage(), StringComparison.Ordinal );
     }
 
     [Fact]
     public async Task MetalamaDurableType_MakesTheTypeDurable()
     {
-        var diagnostics = await GetDiagnosticsAsync( "System.Text.RegularExpressions.Regex", null );
+        var diagnostics = await GetDiagnosticsAsync( "Opaque", null );
 
         Assert.Empty( diagnostics.Select( d => d.GetMessage() ) );
     }
@@ -93,7 +96,7 @@ public sealed class DurableMsBuildTypeListTests
     [Fact]
     public async Task TheListIsSemicolonSeparatedAndTrimmed()
     {
-        var diagnostics = await GetDiagnosticsAsync( " System.String ; System.Text.RegularExpressions.Regex ; ", null );
+        var diagnostics = await GetDiagnosticsAsync( " System.String ; Opaque ; ", null );
 
         Assert.Empty( diagnostics.Select( d => d.GetMessage() ) );
     }
@@ -106,8 +109,8 @@ public sealed class DurableMsBuildTypeListTests
     public async Task MetalamaNonDurableType_WinsOverTheDurableList()
     {
         var diagnostics = await GetDiagnosticsAsync(
-            "System.Text.RegularExpressions.Regex",
-            "System.Text.RegularExpressions.Regex" );
+            "Opaque",
+            "Opaque" );
 
         Assert.Single( diagnostics );
         Assert.Contains( "MetalamaNonDurableType", diagnostics[0].GetMessage(), StringComparison.Ordinal );

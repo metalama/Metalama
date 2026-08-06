@@ -17,6 +17,7 @@ using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Framework.Engine.Utilities.UserCode;
+using Metalama.Framework.Utilities;
 using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Generic;
@@ -38,6 +39,7 @@ namespace Metalama.Framework.Engine.Aspects;
 /// <summary>
 /// Represents the metadata of an aspect class. This class is compilation-independent. It is not used to represent a fabric class.
 /// </summary>
+[Durable]
 public sealed class AspectClass : TemplateClass, IBoundAspectClass
 {
     private readonly UserCodeInvoker _userCodeInvoker;

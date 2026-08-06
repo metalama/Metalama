@@ -5,6 +5,7 @@
 using Metalama.Extensions.DependencyInjection.Implementation;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Serialization;
+using Metalama.Framework.Utilities;
 using System.Collections.Immutable;
 
 namespace Metalama.Extensions.DependencyInjection;
@@ -26,6 +27,7 @@ namespace Metalama.Extensions.DependencyInjection;
 /// <seealso cref="DependencyInjectionOptionsBuilder"/>
 /// <seealso cref="IDependencyInjectionFramework"/>
 /// <seealso href="@dependency-injection"/>
+[Durable]
 [CompileTime]
 public interface IDependencyInjectionFrameworkSelector : ICompileTimeSerializable
 {

@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Serialization;
+using Metalama.Framework.Utilities;
 
 namespace Metalama.Framework.Aspects;
 
@@ -24,4 +25,5 @@ namespace Metalama.Framework.Aspects;
 /// <seealso href="@aspects"/>
 /// <seealso href="@sharing-state-with-advice"/>
 [CompileTime]
+[Durable]
 public interface IAspectState : ICompileTimeSerializable;

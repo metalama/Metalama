@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.Utilities;
+using Metalama.Framework.Utilities;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -12,6 +13,7 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Metalama.Framework.Engine.Aspects
 {
+    [Durable]
     internal sealed class AspectClassCollection : IReadOnlyCollection<IBoundAspectClass>, IReadOnlyCollection<IAspectClass>, IAspectClassResolver
     {
         public ImmutableDictionary<string, IBoundAspectClass> Dictionary { get; }

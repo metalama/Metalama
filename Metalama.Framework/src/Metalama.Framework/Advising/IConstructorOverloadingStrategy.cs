@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Code;
 using Metalama.Framework.Serialization;
+using Metalama.Framework.Utilities;
 
 namespace Metalama.Framework.Advising;
 
@@ -27,6 +28,7 @@ namespace Metalama.Framework.Advising;
 /// </remarks>
 /// <seealso cref="ConstructorOverloadingStrategy"/>
 /// <seealso cref="PullStrategy.IntroduceParameterAndPull"/>
+[Durable]
 public interface IConstructorOverloadingStrategy : ICompileTimeSerializable
 {
     /// <summary>

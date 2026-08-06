@@ -9,6 +9,7 @@ using Metalama.Framework.Engine.SerializableIds;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Framework.Fabrics;
+using Metalama.Framework.Utilities;
 using Microsoft.CodeAnalysis;
 using System;
 using System.Reflection;
@@ -18,6 +19,7 @@ namespace Metalama.Framework.Engine.Fabrics;
 /// <summary>
 /// The base class for fabric drivers, which are responsible for ordering and executing fabrics.
 /// </summary>
+[Durable]
 internal abstract partial class FabricDriver : IComparable<FabricDriver>
 {
     protected FabricManager FabricManager { get; }

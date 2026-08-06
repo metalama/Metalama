@@ -6,6 +6,7 @@ using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Utilities;
 using Microsoft.CodeAnalysis;
 using System;
 
@@ -14,6 +15,7 @@ namespace Metalama.Framework.Engine.Fabrics;
 /// <summary>
 /// An implementation of <see cref="TemplateClass"/> that represents a fabric class.
 /// </summary>
+[Durable]
 internal sealed class FabricTemplateClass : TemplateClass
 {
     public FabricDriver Driver { get; }

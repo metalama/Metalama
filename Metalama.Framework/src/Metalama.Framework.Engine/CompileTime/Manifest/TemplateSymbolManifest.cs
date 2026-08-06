@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.SerializableIds;
+using Metalama.Framework.Utilities;
 using Microsoft.CodeAnalysis;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,6 +13,7 @@ using MethodKind = Microsoft.CodeAnalysis.MethodKind;
 
 namespace Metalama.Framework.Engine.CompileTime.Manifest;
 
+[Durable]
 internal sealed class TemplateSymbolManifest : ITemplateInfo
 {
     public string Id { get; }

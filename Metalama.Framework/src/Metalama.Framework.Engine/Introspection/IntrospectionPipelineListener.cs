@@ -9,9 +9,11 @@ using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.Fabrics;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Services;
+using Metalama.Framework.Utilities;
 
 namespace Metalama.Framework.Engine.Introspection;
 
+[Durable]
 internal sealed class IntrospectionPipelineListener : IProjectService
 {
     private readonly IntrospectionFactory _introspectionFactory;

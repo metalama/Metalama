@@ -4,6 +4,7 @@
 
 using JetBrains.Annotations;
 using Metalama.Framework.Serialization;
+using Metalama.Framework.Utilities;
 using System;
 using System.Collections.Generic;
 
@@ -11,6 +12,7 @@ namespace Metalama.Framework.Options;
 
 public partial class IncrementalKeyedCollection<TKey, TValue>
 {
+    [Durable]
     protected internal readonly struct Item : ICompileTimeSerializable, IEquatable<Item>
     {
         public TValue? Value { get; }

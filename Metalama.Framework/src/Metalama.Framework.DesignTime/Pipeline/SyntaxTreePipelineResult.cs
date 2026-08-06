@@ -12,7 +12,6 @@ using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Utilities;
 using Microsoft.CodeAnalysis;
 using System.Collections.Immutable;
-using System.Diagnostics.CodeAnalysis;
 using System.IO.Hashing;
 
 namespace Metalama.Framework.DesignTime.Pipeline
@@ -30,15 +29,14 @@ namespace Metalama.Framework.DesignTime.Pipeline
         /// </summary>
         public DocumentKey SyntaxTreePath { get; }
 
-        [SuppressMessage(
-            "Metalama",
-            "LAMA0870:A member of a durable type is not durable",
-            Justification =
-                "A Diagnostic holds a Location, which holds its source tree, and its lazily formatted arguments are "
-                + "held with it. The fix is a durable diagnostic record. Note that UserCodeRetentionPolicy.IsPinning "
-                + "deliberately does not classify a Diagnostic as pinning, because the run-time walker can descend "
-                + "into one and this analyzer cannot. See \"The per-file result holds three Roslyn objects\" in "
-                + "design-time-memory.md." )]
+        /// <remarks>
+        /// This member reports LAMA0870, deliberately left unsuppressed as a problem to be solved. A
+        /// <see cref="Diagnostic"/> holds a <see cref="Location"/>, which holds its source tree, and its lazily
+        /// formatted arguments are held with it, so this result pins the version of the project it was produced in.
+        /// The repair is a durable diagnostic record: an identifier, a severity, a document key with a text span, and
+        /// an eagerly formatted message. See "The per-file result holds three Roslyn objects" in
+        /// <c>design-time-memory.md</c>.
+        /// </remarks>
         public ImmutableArray<Diagnostic> Diagnostics { get; }
 
         public ImmutableArray<CacheableScopedSuppression> Suppressions { get; }
@@ -64,13 +62,6 @@ namespace Metalama.Framework.DesignTime.Pipeline
 
         public ImmutableArray<DesignTimeTransformation> Transformations { get; }
 
-        [SuppressMessage(
-            "Metalama",
-            "LAMA0876:An interface or abstract type used by a durable type is not marked [Durable]",
-            Justification =
-                "Marking IAnnotation would require every annotation a user writes to be durable, which is a decision "
-                + "about the public contract of the framework. See \"Should the contract propagate to the "
-                + "user-implementable interfaces?\" in design-time-memory.md." )]
         public ImmutableDictionaryOfArray<SerializableDeclarationId, IAnnotation> Annotations { get; }
 
         public ulong AspectInstancesHashCode { get; }

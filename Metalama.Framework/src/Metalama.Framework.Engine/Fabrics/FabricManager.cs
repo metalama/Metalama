@@ -13,6 +13,7 @@ using Metalama.Framework.Engine.Pipeline;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.UserCode;
 using Metalama.Framework.Fabrics;
+using Metalama.Framework.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -24,6 +25,7 @@ namespace Metalama.Framework.Engine.Fabrics;
 /// The top-level class that discovers, instantiates and executes fabrics. It exposes an <see cref="ExecuteFabrics"/>
 /// method, which returns the <see cref="PipelineContributorSources"/> object, which is then a part of the <see cref="AspectPipelineConfiguration"/>.
 /// </summary>
+[Durable]
 internal sealed class FabricManager
 {
     private readonly IntrospectionPipelineListener? _listener;

@@ -7,87 +7,6 @@ using System.Collections.Immutable;
 namespace Metalama.Framework.Analyzers
 {
     /// <summary>
-    /// The verdict of the durability evaluator for a type.
-    /// </summary>
-    internal enum DurabilityKind
-    {
-        /// <summary>
-        /// The type is safe to be held across compilations.
-        /// </summary>
-        Durable,
-
-        /// <summary>
-        /// The type reaches, or may reach, an object that is bound to a compilation.
-        /// </summary>
-        NotDurable,
-
-        /// <summary>
-        /// The type is an interface or an abstract type that is not marked. Reported separately from
-        /// <see cref="NotDurable"/> because the remedy differs in kind: marking a class is verified against its own
-        /// members, whereas marking an interface exports the obligation to every implementation, which the analyzer
-        /// then verifies in turn. It is not undecidable, but the guarantee reaches only the implementations that are
-        /// compiled with this analyzer, so a project may reasonably weigh it differently.
-        /// </summary>
-        UnmarkedInterface
-    }
-
-    /// <summary>
-    /// How a well-known type is classified, without examining its members.
-    /// </summary>
-    internal enum WellKnownDurability
-    {
-        /// <summary>
-        /// Durable whatever its type arguments are. Also used for the types at which the walk stops because a chain
-        /// through them explains nothing, which mirrors <c>UserCodeRetentionPolicy.IsBoundary</c>.
-        /// </summary>
-        Durable,
-
-        /// <summary>
-        /// Never durable.
-        /// </summary>
-        NotDurable,
-
-        /// <summary>
-        /// Durable exactly when the type arguments selected by the argument mask are durable.
-        /// </summary>
-        Transparent
-    }
-
-    /// <summary>
-    /// An entry of one of the well-known type tables.
-    /// </summary>
-    internal readonly struct WellKnownEntry
-    {
-        /// <summary>
-        /// Gets the classification of the type.
-        /// </summary>
-        public WellKnownDurability Durability { get; }
-
-        /// <summary>
-        /// Gets the explanation that appears at the end of the retention chain in the diagnostic message, or
-        /// <c>null</c> when the classification needs none.
-        /// </summary>
-        public string? Reason { get; }
-
-        /// <summary>
-        /// Gets the indices of the type arguments that must be durable, or <c>null</c> when all of them must be.
-        /// Relevant only when <see cref="Durability"/> is <see cref="WellKnownDurability.Transparent"/>.
-        /// </summary>
-        /// <remarks>
-        /// The mask exists for <c>ConditionalWeakTable{TKey,TValue}</c>, whose key is not kept alive by the table and
-        /// must therefore be ignored.
-        /// </remarks>
-        public ImmutableArray<int> ArgumentMask { get; }
-
-        public WellKnownEntry( WellKnownDurability durability, string? reason = null, ImmutableArray<int> argumentMask = default )
-        {
-            this.Durability = durability;
-            this.Reason = reason;
-            this.ArgumentMask = argumentMask;
-        }
-    }
-
-    /// <summary>
     /// The result of evaluating the durability of a type, with the chain of members and types that explains a
     /// negative verdict.
     /// </summary>
@@ -139,10 +58,11 @@ namespace Metalama.Framework.Analyzers
             => new( DurabilityKind.NotDurable, ImmutableArray.Create( typeName ), reason );
 
         /// <summary>
-        /// Creates the verdict of an interface or abstract type that is not marked, starting a new chain at that type.
+        /// Creates the verdict of an interface or abstract type that does not carry the attribute, starting a new
+        /// chain at that type.
         /// </summary>
-        public static Verdict UnmarkedInterface( string typeName, string? reason )
-            => new( DurabilityKind.UnmarkedInterface, ImmutableArray.Create( typeName ), reason );
+        public static Verdict NotAnnotated( string typeName, string? reason )
+            => new( DurabilityKind.NotAnnotated, ImmutableArray.Create( typeName ), reason );
 
         /// <summary>
         /// Returns a verdict identical to the current one except that the given step is prepended to its chain.

@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Code;
 using Metalama.Framework.Serialization;
+using Metalama.Framework.Utilities;
 
 namespace Metalama.Patterns.Immutability.Configuration;
 
@@ -20,6 +21,7 @@ namespace Metalama.Patterns.Immutability.Configuration;
 /// <seealso cref="ImmutabilityKind"/>
 /// <seealso cref="ImmutabilityConfigurationExtensions"/>
 /// <seealso href="@immutability"/>
+[Durable]
 public interface IImmutabilityClassifier : ICompileTimeSerializable
 {
     /// <summary>

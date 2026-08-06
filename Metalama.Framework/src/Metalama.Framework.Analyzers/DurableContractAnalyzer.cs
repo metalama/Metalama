@@ -222,7 +222,7 @@ namespace Metalama.Framework.Analyzers
                 return;
             }
 
-            var descriptor = verdict.Kind == DurabilityKind.UnmarkedInterface ? InterfaceIsNotDurable : MemberIsNotDurable;
+            var descriptor = verdict.Kind == DurabilityKind.NotAnnotated ? InterfaceIsNotDurable : MemberIsNotDurable;
 
             var chain = verdict
                 .Prepend( declaredMember.Name )

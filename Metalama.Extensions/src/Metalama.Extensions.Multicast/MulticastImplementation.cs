@@ -6,6 +6,7 @@ using JetBrains.Annotations;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Eligibility;
+using Metalama.Framework.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -40,6 +41,7 @@ namespace Metalama.Extensions.Multicast;
 /// <seealso cref="IMulticastAttribute"/>
 /// <seealso cref="MulticastTargets"/>
 /// <seealso href="@migrating-multicasting"/>
+[Durable]
 [CompileTime]
 [PublicAPI]
 public sealed class MulticastImplementation
