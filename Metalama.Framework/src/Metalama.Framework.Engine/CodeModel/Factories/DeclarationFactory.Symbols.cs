@@ -605,9 +605,16 @@ public partial class DeclarationFactory
                 newTypeSymbol = this._compilationModel.RoslynCompilation.GetSpecialType( RoslynSpecialType.System_Nullable_T )
                     .Construct( typeSymbol );
             }
-            else
+            else if ( typeSymbol.OriginalDefinition.SpecialType == RoslynSpecialType.System_Nullable_T )
             {
                 return ((INamedType) type).TypeArguments[0];
+            }
+            else
+            {
+                // The type is a value type that is not a Nullable<T>, for instance a type parameter constrained to
+                // be a value type. Such a type carries no nullability annotation, therefore there is nothing to remove
+                // and the type is returned unchanged.
+                return type;
             }
         }
 

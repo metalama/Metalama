@@ -1521,6 +1521,44 @@ public class PublicClass
         Assert.NotEqual( nullableObjectType, nonNullableObjectType, compilation.Comparers.IncludeNullability );
     }
 
+    /// <summary>
+    /// Tests that removing the nullability annotation of a type parameter that is constrained to be a value type
+    /// returns the type parameter itself.
+    /// </summary>
+    /// <remarks>
+    /// Such a type parameter is a value type that is not a <see cref="Nullable{T}"/>, therefore it has no nullability
+    /// annotation to remove. See issue #1835.
+    /// </remarks>
+    [Fact]
+    public void NullabilityOfValueTypeConstrainedTypeParameters()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var compilation = testContext.CreateCompilationModel(
+            @"
+class C<TStruct, TUnmanaged, TUnconstrained>
+    where TStruct : struct
+    where TUnmanaged : unmanaged
+{
+}" );
+
+        var type = compilation.Types.Single();
+
+        foreach ( var typeParameter in new[] { type.TypeParameters[0], type.TypeParameters[1] } )
+        {
+            Assert.False( typeParameter.IsReferenceType );
+            Assert.False( typeParameter.IsNullable );
+            Assert.Same( typeParameter, typeParameter.ToNonNullable() );
+            Assert.Same( typeParameter, typeParameter.StripNullabilityAnnotation() );
+            Assert.True( typeParameter.ToNullable().IsNullable );
+        }
+
+        var unconstrainedTypeParameter = type.TypeParameters[2];
+        Assert.Null( unconstrainedTypeParameter.IsNullable );
+        Assert.Same( unconstrainedTypeParameter, unconstrainedTypeParameter.ToNonNullable() );
+        Assert.Same( unconstrainedTypeParameter, unconstrainedTypeParameter.StripNullabilityAnnotation() );
+    }
+
     [Fact]
     public void AutomaticPropertiesAndBackingFields()
     {
