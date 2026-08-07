@@ -1480,20 +1480,41 @@ public class PublicClass
         Assert.Single( type.Types );
     }
 
+    /// <summary>
+    /// Tests the nullability of a value type, of the <see cref="Nullable{T}"/> of it, and of the conversions between
+    /// them.
+    /// </summary>
+    /// <remarks>
+    /// A value type that is not a <see cref="Nullable{T}"/> carries no nullability annotation, so removing one returns
+    /// the type itself, whereas removing the annotation of a <see cref="Nullable{T}"/> returns the type it wraps.
+    /// Both cases are covered for both entry points, because the code model distinguishes them by whether the type
+    /// really is a <see cref="Nullable{T}"/> rather than by whether it is a value type. See issue #1835, where
+    /// assuming the latter made the conversion throw. A type declared in source is covered as well as a type built
+    /// into the language, so that the assertions do not depend on the special type.
+    /// </remarks>
     [Fact]
     public void NullableValueTypes()
     {
         using var testContext = this.CreateTestContext();
 
-        var compilation = testContext.CreateCompilationModel( "" );
-        var intType = compilation.Factory.GetNamedTypeByReflectionType( typeof(int) );
-        Assert.False( intType.IsNullable );
-        Assert.Same( intType, intType.ToNonNullable() );
-        Assert.Same( intType, intType.UnderlyingType );
-        var nullableIntType = intType.ToNullable();
-        Assert.NotSame( intType, nullableIntType );
-        Assert.True( nullableIntType.IsNullable );
-        Assert.Same( intType, nullableIntType.ToNonNullable() );
+        var compilation = testContext.CreateCompilationModel( "struct S { }" );
+
+        foreach ( var valueType in new[]
+                 {
+                     compilation.Factory.GetNamedTypeByReflectionType( typeof(int) ), compilation.Types.OfName( "S" ).Single()
+                 } )
+        {
+            Assert.False( valueType.IsNullable );
+            Assert.Same( valueType, valueType.ToNonNullable() );
+            Assert.Same( valueType, valueType.StripNullabilityAnnotation() );
+            Assert.Same( valueType, valueType.UnderlyingType );
+
+            var nullableValueType = valueType.ToNullable();
+            Assert.NotSame( valueType, nullableValueType );
+            Assert.True( nullableValueType.IsNullable );
+            Assert.Same( valueType, nullableValueType.ToNonNullable() );
+            Assert.Same( valueType, nullableValueType.StripNullabilityAnnotation() );
+        }
     }
 
     [Fact]
