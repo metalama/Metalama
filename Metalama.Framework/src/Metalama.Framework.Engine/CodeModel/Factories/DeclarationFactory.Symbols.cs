@@ -602,8 +602,13 @@ public partial class DeclarationFactory
         {
             if ( isNullable == true )
             {
+                // Roslyn annotates the symbol of a value type written as 'T?' in source, whereas constructing
+                // Nullable<T> leaves the constructed type unannotated. The annotation is set so that a nullable value
+                // type built here is indistinguishable from the same type read from source, which the comparer that
+                // includes nullability would otherwise tell apart.
                 newTypeSymbol = this._compilationModel.RoslynCompilation.GetSpecialType( RoslynSpecialType.System_Nullable_T )
-                    .Construct( typeSymbol );
+                    .Construct( typeSymbol )
+                    .WithNullableAnnotation( NullableAnnotation.Annotated );
             }
             else if ( typeSymbol.OriginalDefinition.SpecialType == RoslynSpecialType.System_Nullable_T )
             {

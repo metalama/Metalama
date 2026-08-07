@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -160,26 +160,27 @@ public sealed class SerializableTypeIdTests : UnitTestClass
     /// resolvable.
     /// </para>
     /// <para>
-    /// The annotation of a parameter that is not known to be a value type does not survive the round trip: the code
-    /// model answers that such a parameter is not nullable, so the identifier is written with the marker that means
-    /// non-nullable, whereas the parameter of the declaration is oblivious. That is a defect of the identifier and
-    /// not of the resolution, and it is covered by issue #1837.
+    /// The identifier of a type parameter carries no nullability marker, whatever the constraint answers about the
+    /// nullability of the parameter, because the parameter is resolved from the generic context and the marker can
+    /// only contradict what the context declares. See <c>SerializableTypeIdGenerator.CanBeAnnotated</c>.
     /// </para>
     /// </remarks>
     [Theory]
-    [InlineData( "StructConstrained", true )]
-    [InlineData( "UnmanagedConstrained", true )]
-    [InlineData( "ClassConstrained", false )]
-    [InlineData( "NotNullConstrained", false )]
-    [InlineData( "Unconstrained", true )]
-    public void TestTypeParameter( string typeName, bool annotationIsPreserved )
+    [InlineData( "StructConstrained" )]
+    [InlineData( "UnmanagedConstrained" )]
+    [InlineData( "ClassConstrained" )]
+    [InlineData( "NotNullConstrained" )]
+    [InlineData( "Unconstrained" )]
+    public void TestTypeParameter( string typeName )
     {
         using var testContext = this.CreateTestContext();
         var compilation = testContext.CreateCompilationModel( _constrainedGenericTypesCode );
 
         var typeParameter = compilation.Types.OfName( typeName ).Single().TypeParameters[0];
 
-        this.AssertRoundTrip( compilation, typeParameter, annotationIsPreserved );
+        Assert.DoesNotContain( '!', typeParameter.GetSerializableTypeId( includeGenericContext: true ).Id );
+
+        this.AssertRoundTrip( compilation, typeParameter );
     }
 
     /// <summary>
@@ -199,19 +200,17 @@ public sealed class SerializableTypeIdTests : UnitTestClass
     /// the position in which a value type is annotated is the one it does not occupy itself.
     /// </para>
     /// <para>
-    /// The annotation of a <see cref="Nullable{T}"/> that is the outermost type does not survive the round trip
-    /// through the resolver of symbols: Roslyn annotates the symbol of a value type written as <c>T?</c>, whereas the
-    /// resolver rebuilds it by constructing <see cref="Nullable{T}"/>, which leaves it unannotated. The resolver of
-    /// the code model does not lose it, so this is one more place where the two do not agree. It is covered by issue
-    /// #1837.
+    /// The <see cref="Nullable{T}"/> of the type is covered in both positions as well, because Roslyn annotates the
+    /// symbol of a value type written as <c>T?</c> whereas constructing <see cref="Nullable{T}"/> does not, so the
+    /// resolver has to set the annotation itself.
     /// </para>
     /// </remarks>
     [Theory]
-    [InlineData( "Struct", true )]
-    [InlineData( "Struct?", false )]
-    [InlineData( "System.Collections.Generic.List<Struct>", true )]
-    [InlineData( "System.Collections.Generic.List<Struct?>", true )]
-    public void TestValueTypeDeclaredInSource( string type, bool annotationIsPreserved )
+    [InlineData( "Struct" )]
+    [InlineData( "Struct?" )]
+    [InlineData( "System.Collections.Generic.List<Struct>" )]
+    [InlineData( "System.Collections.Generic.List<Struct?>" )]
+    public void TestValueTypeDeclaredInSource( string type )
     {
         using var testContext = this.CreateTestContext();
 
@@ -219,20 +218,14 @@ public sealed class SerializableTypeIdTests : UnitTestClass
 
         var fieldType = compilation.Types.OfName( "C" ).Single().Fields.OfName( "F" ).Single().Type;
 
-        this.AssertRoundTrip( compilation, fieldType, annotationIsPreserved );
+        this.AssertRoundTrip( compilation, fieldType );
     }
 
     /// <summary>
     /// Asserts that the identifier of a type, built the way a durable reference builds it, resolves to an equivalent
     /// type through the resolver of symbols and through the resolver of the code model alike.
     /// </summary>
-    /// <param name="annotationIsPreserved">
-    /// Whether the nullability annotation of the type is expected to survive the round trip. It is not preserved for a
-    /// type whose annotation the identifier cannot record, which is described in issue #1837 and is not what the tests
-    /// calling this method with <c>false</c> are about. Those tests assert that the type itself resolves; the
-    /// annotation is then compared with the comparer that ignores it, rather than not compared at all.
-    /// </param>
-    private void AssertRoundTrip( CompilationModel compilation, IType type, bool annotationIsPreserved = true )
+    private void AssertRoundTrip( CompilationModel compilation, IType type )
     {
         foreach ( var bypassSymbols in new[] { false, true } )
         {
@@ -240,18 +233,10 @@ public sealed class SerializableTypeIdTests : UnitTestClass
             this.TestOutput.WriteLine( id.Id );
 
             var roundTripSymbol = compilation.CompilationContext.SerializableTypeIdResolver.ResolveId( id );
-
-            Assert.Equal(
-                type.GetSymbol(),
-                roundTripSymbol,
-                annotationIsPreserved ? SymbolEqualityComparer.IncludeNullability : SymbolEqualityComparer.Default );
+            Assert.Equal( type.GetSymbol(), roundTripSymbol, SymbolEqualityComparer.IncludeNullability );
 
             var roundTripType = compilation.SerializableTypeIdResolver.ResolveId( id );
-
-            Assert.Equal(
-                type,
-                roundTripType,
-                annotationIsPreserved ? compilation.Comparers.IncludeNullability : compilation.Comparers.Default );
+            Assert.Equal( type, roundTripType, compilation.Comparers.IncludeNullability );
         }
     }
 

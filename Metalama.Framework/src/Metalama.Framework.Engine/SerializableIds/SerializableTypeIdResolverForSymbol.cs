@@ -77,9 +77,16 @@ public sealed class SerializableTypeIdResolverForSymbol : SerializableTypeIdReso
     protected override ITypeSymbol CreatePointerType( ITypeSymbol pointedAtType ) => this.Compilation.CreatePointerTypeSymbol( pointedAtType );
 
     protected override ITypeSymbol CreateNullableType( ITypeSymbol elementType )
-        => elementType.IsValueType
+    {
+        var nullableType = elementType.IsValueType
             ? this.Compilation.GetSpecialType( SpecialType.System_Nullable_T ).Construct( elementType )
-            : elementType.WithNullableAnnotation( NullableAnnotation.Annotated );
+            : elementType;
+
+        // Roslyn annotates the symbol of a value type written as 'T?', whereas constructing Nullable<T> leaves the
+        // constructed type unannotated, so the annotation is set in both cases. Without it, the identifier of a
+        // nullable value type resolved to a symbol that differed from the one it was built from.
+        return nullableType.WithNullableAnnotation( NullableAnnotation.Annotated );
+    }
 
     protected override ITypeSymbol AddNonNullableAnnotation( ITypeSymbol referenceType )
         => referenceType.WithNullableAnnotation( NullableAnnotation.NotAnnotated );
