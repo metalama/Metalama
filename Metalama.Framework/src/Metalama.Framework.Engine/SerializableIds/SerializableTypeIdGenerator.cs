@@ -24,31 +24,43 @@ public static class SerializableTypeIdGenerator
     private static readonly WeakCache<Type, SerializableTypeId> _reflectionTypeIdCache = new( isStaticCache: true );
 
     /// <summary>
-    /// Determines whether the nullability marker may be appended to the identifier of a type. It may not be appended
-    /// to the identifier of a type parameter.
+    /// Determines whether the nullability marker is appended to the identifier of a type, which happens for a
+    /// reference type that is not annotated, and for no other type.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// A type parameter is resolved from the generic context that the identifier carries, which yields the parameter
-    /// as its declaration declares it. The marker is applied on top of that, and it can only contradict the context
-    /// rather than refine it: the code model reports the same nullability for the declaration of a parameter and for
-    /// every use of it, so the marker carries nothing that distinguishes them, whereas applying it produces a
-    /// parameter annotated as non-nullable where the declaration is oblivious. C# cannot state that a type parameter
-    /// is non-nullable either, which is why <see cref="Code.IType.ToNonNullable"/> removes the annotation of a type
-    /// parameter rather than setting it.
+    /// The overloads of <c>GetSerializableTypeId</c> have to produce the same string for the same type, because
+    /// <c>CompileTimeType</c> equality and the cache of <c>CompileTimeTypeFactory</c> key on it. This method is the
+    /// test that the <see cref="Code.IType"/> overload applies, expressed over a symbol. Testing the annotation alone
+    /// appended the marker to every value type, whose annotation is
+    /// <see cref="NullableAnnotation.NotAnnotated"/> rather than <see cref="NullableAnnotation.None"/>, and to an
+    /// annotated reference type, whose identifier then carried the question mark and a marker contradicting it alike.
+    /// See issue #1838.
+    /// </para>
+    /// <para>
+    /// A type parameter is excluded whatever its annotation, because it is resolved from the generic context that the
+    /// identifier carries, which yields the parameter as its declaration declares it. The marker is applied on top of
+    /// that, and it can only contradict the context rather than refine it: the code model reports the same nullability
+    /// for the declaration of a parameter and for every use of it, so the marker carries nothing that distinguishes
+    /// them, whereas applying it produces a parameter annotated as non-nullable where the declaration is oblivious.
+    /// C# cannot state that a type parameter is non-nullable either, which is why
+    /// <see cref="Code.IType.ToNonNullable"/> removes the annotation of a type parameter rather than setting it.
     /// </para>
     /// <para>
     /// The marker applies to every name in the identifier, so a type parameter appearing as a type argument of an
     /// annotated type is still annotated. Only a type parameter that is the outermost type is concerned.
     /// </para>
     /// </remarks>
-    private static bool CanBeAnnotated( ITypeSymbol symbol ) => symbol.Kind != SymbolKind.TypeParameter;
+    private static bool IsNonNullableReferenceType( ITypeSymbol symbol )
+        => symbol.Kind != SymbolKind.TypeParameter
+           && symbol.IsReferenceType
+           && symbol.NullableAnnotation == NullableAnnotation.NotAnnotated;
 
     public static SerializableTypeId GetSerializableTypeId( this ITypeSymbol symbol, bool includeGenericContext = false )
     {
         var id = SyntaxGenerationContext.Contextless.SyntaxGenerator.TypeSyntax( symbol ).ToString();
 
-        if ( CanBeAnnotated( symbol ) && symbol.NullableAnnotation != NullableAnnotation.None )
+        if ( IsNonNullableReferenceType( symbol ) )
         {
             id += '!';
         }
@@ -81,7 +93,7 @@ public static class SerializableTypeIdGenerator
     {
         var id = SyntaxGenerationContext.Contextless.SyntaxGenerator.TypeSyntax( type, bypassSymbols ).ToString();
 
-        // See CanBeAnnotated for why a type parameter is excluded.
+        // See IsNonNullableReferenceType for why a type parameter is excluded.
         if ( type is not ITypeParameter && type.IsNullable == false && type.IsReferenceType != false )
         {
             id += '!';
@@ -241,7 +253,7 @@ public static class SerializableTypeIdGenerator
 
     // A reference type is anything that is neither a value type (which includes Nullable<T>), a pointer, nor a by-ref
     // type. This mirrors the 'IsNullable == false && IsReferenceType != false' test the IType overload applies, and
-    // excludes a type parameter for the reason given in CanBeAnnotated.
+    // excludes a type parameter for the reason given in IsNonNullableReferenceType.
     private static bool IsNonNullableReferenceType( Type type )
         => !type.IsValueType && !type.IsPointer && !type.IsByRef && !type.IsGenericParameter;
 }

@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Code;
+using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.SerializableIds;
 using Metalama.Testing.UnitTesting;
@@ -257,6 +258,46 @@ public sealed class SerializableTypeIdTests : UnitTestClass
             var roundTripType = compilation.SerializableTypeIdResolver.ResolveId( id );
             Assert.Equal( type, roundTripType, compilation.Comparers.IncludeNullability );
         }
+    }
+
+    /// <summary>
+    /// Verifies that the overload of <c>GetSerializableTypeId</c> taking an <see cref="IType"/> and the overload
+    /// taking an <c>ITypeSymbol</c> produce the same identifier for the same type.
+    /// </summary>
+    /// <remarks>
+    /// They have to, because <c>CompileTimeType</c> equality and the cache of <c>CompileTimeTypeFactory</c> key on
+    /// the identifier, and the two overloads feed them from different places: the overload taking a symbol through
+    /// <c>TypeOfRewriter</c> and <c>CompileTimeTypeFactory</c>, and the overload taking a type through
+    /// <c>DurableRefFactory</c> and <c>TemplateCompilerRewriter</c>. They disagreed for every value type and for an
+    /// annotated reference type. See issue #1838.
+    /// </remarks>
+    [Theory]
+    [InlineData( "object" )]
+    [InlineData( "object?" )]
+    [InlineData( "int" )]
+    [InlineData( "int?" )]
+    [InlineData( "S" )]
+    [InlineData( "S?" )]
+    [InlineData( "string[]" )]
+    [InlineData( "int[]" )]
+    [InlineData( "System.Collections.Generic.List<object?>" )]
+    [InlineData( "System.Collections.Generic.List<int>" )]
+    [InlineData( "(int, string)" )]
+    [InlineData( "dynamic" )]
+    public void TestTheTwoOverloadsProduceTheSameId( string type )
+    {
+        using var testContext = this.CreateTestContext();
+
+        var compilation = testContext.CreateCompilationModel( $"struct S {{ }} class C {{ {type} F; }}" );
+
+        var fieldType = compilation.Types.OfName( "C" ).Single().Fields.OfName( "F" ).Single().Type;
+
+        var fromType = fieldType.GetSerializableTypeId().Id;
+        var fromSymbol = fieldType.GetSymbol().AssertNotNull().GetSerializableTypeId().Id;
+
+        this.TestOutput.WriteLine( $"{type}: '{fromType}'" );
+
+        Assert.Equal( fromType, fromSymbol );
     }
 
     [Theory]
