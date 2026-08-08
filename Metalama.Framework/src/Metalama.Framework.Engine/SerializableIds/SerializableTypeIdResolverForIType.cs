@@ -4,9 +4,11 @@
 
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.CodeModel;
+using Metalama.Framework.Engine.CodeModel.Abstractions;
 using Metalama.Framework.Engine.Collections;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Roslyn;
+using Microsoft.CodeAnalysis;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -66,7 +68,28 @@ public sealed class SerializableTypeIdResolverForIType : SerializableTypeIdResol
 
     protected override IType CreateNullableType( IType elementType ) => elementType.ToNullable();
 
-    protected override IType AddNonNullableAnnotation( IType referenceType ) => referenceType.ToNonNullable();
+    protected override IType AddNonNullableAnnotation( IType referenceType )
+    {
+        // A type parameter is annotated rather than stripped. IType.ToNonNullable removes the annotation of a type
+        // parameter, because C# cannot state that a type parameter is non-nullable and because the code model answers
+        // the same nullability for the declaration of a parameter and for a use of it, so it cannot tell them apart.
+        // A type parameter appearing as the type argument of a type annotated as non-nullable is nonetheless annotated
+        // in the source the identifier was built from, and removing the annotation made the resolved type differ from
+        // it, where the resolver of symbols reproduced it. The identifier of a type parameter that is itself the
+        // outermost type carries no marker, so this method is never asked to annotate one. See issue #1839.
+        if ( referenceType is ITypeParameter and ISymbolBasedCompilationElement symbolBasedType )
+        {
+            var typeSymbol = (ITypeSymbol) symbolBasedType.Symbol;
+
+            return typeSymbol.NullableAnnotation == NullableAnnotation.NotAnnotated
+                ? referenceType
+                : this._compilation.Factory.GetIType(
+                    typeSymbol.WithNullableAnnotation( NullableAnnotation.NotAnnotated ),
+                    defaultNullability: null );
+        }
+
+        return referenceType.ToNonNullable();
+    }
 
     protected override IType ConstructGenericType( IType genericType, IType[] typeArguments )
         => genericType.AssertCast<INamedType>().WithTypeArguments( typeArguments );

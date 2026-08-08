@@ -91,11 +91,20 @@ public sealed class SerializableTypeIdTests : UnitTestClass
 
                                                         class UnmanagedConstrained<T> where T : unmanaged { }
 
-                                                        class ClassConstrained<T> where T : class { }
+                                                        class ClassConstrained<T> where T : class
+                                                        {
+                                                            public List<T> Field = null!;
+                                                        }
 
-                                                        class NotNullConstrained<T> where T : notnull { }
+                                                        class NotNullConstrained<T> where T : notnull
+                                                        {
+                                                            public List<T> Field = null!;
+                                                        }
 
-                                                        class Unconstrained<T> { }
+                                                        class Unconstrained<T>
+                                                        {
+                                                            public List<T> Field = null!;
+                                                        }
                                                         """;
 
     /// <summary>
@@ -134,17 +143,27 @@ public sealed class SerializableTypeIdTests : UnitTestClass
     }
 
     /// <summary>
-    /// Verifies that the identifier of a type that mentions a type parameter constrained to be a value type, in a
-    /// position other than the parameter list of the declaration being resolved, resolves to an equivalent type
-    /// through both resolvers.
+    /// Verifies that the identifier of a type that mentions a type parameter, in a position other than the parameter
+    /// list of the declaration being resolved, resolves to an equivalent type through both resolvers, whatever
+    /// constrains the parameter.
     /// </summary>
-    [Fact]
-    public void TestTypeMentioningAValueTypeConstrainedTypeParameter()
+    /// <remarks>
+    /// The type argument here is annotated as non-nullable in the source, whatever the constraint, so the resolver
+    /// has to reproduce that annotation rather than remove it. Removing it is what the code model resolver did, which
+    /// only a parameter that is not constrained to be a value type revealed: the declaration of a value-type
+    /// constrained parameter is annotated already, so removing the annotation and setting it agreed. See issue #1839.
+    /// </remarks>
+    [Theory]
+    [InlineData( "StructConstrained" )]
+    [InlineData( "ClassConstrained" )]
+    [InlineData( "NotNullConstrained" )]
+    [InlineData( "Unconstrained" )]
+    public void TestTypeMentioningATypeParameter( string typeName )
     {
         using var testContext = this.CreateTestContext();
         var compilation = testContext.CreateCompilationModel( _constrainedGenericTypesCode );
 
-        var fieldType = compilation.Types.OfName( "StructConstrained" ).Single().Fields.OfName( "Field" ).Single().Type;
+        var fieldType = compilation.Types.OfName( typeName ).Single().Fields.OfName( "Field" ).Single().Type;
         Assert.Equal( "List<T>", fieldType.ToDisplayString() );
 
         this.AssertRoundTrip( compilation, fieldType );
