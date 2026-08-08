@@ -65,6 +65,32 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
 
     public bool Equals( ICompilationElement? x, ICompilationElement? y ) => this.Compare( x, y ) == 0;
 
+    /// <summary>
+    /// Compares the names of the elements of two tuples, which are part of the type but are not carried by the symbol
+    /// that the code model wraps. See issue #1844.
+    /// </summary>
+    private static int CompareTupleElementNames( ITupleType x, ITupleType y )
+    {
+        var result = x.TupleElements.Count.CompareTo( y.TupleElements.Count );
+
+        if ( result != 0 )
+        {
+            return result;
+        }
+
+        for ( var i = 0; i < x.TupleElements.Count; i++ )
+        {
+            result = string.CompareOrdinal( x.TupleElements[i].Name, y.TupleElements[i].Name );
+
+            if ( result != 0 )
+            {
+                return result;
+            }
+        }
+
+        return 0;
+    }
+
     public int Compare( ICompilationElement? x, ICompilationElement? y )
     {
         if ( ReferenceEquals( x, y ) )
@@ -97,6 +123,22 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
             // Both are IType since they have the same type-related DeclarationKind
             var xType = (IType) x;
             var yType = (IType) y;
+
+            // The names of the elements of a tuple are part of the type, and Roslyn takes them into account in the
+            // equality of two symbols. The code model records them on the tuple beside the symbol it wraps, which is
+            // the unnamed ValueTuple, so neither the symbol comparer nor the structural comparison below can see them
+            // and two tuples differing only by the names of their elements compared equal. They are therefore compared
+            // here, before either. See issue #1844. The identity conversion of the language does not take them into
+            // account, which ConversionKind.Identical handles separately, so this does not affect it.
+            if ( x is ITupleType xTuple && y is ITupleType yTuple )
+            {
+                result = CompareTupleElementNames( xTuple, yTuple );
+
+                if ( result != 0 )
+                {
+                    return result;
+                }
+            }
 
             if ( xType.GetSymbol() is { } xSymbol && yType.GetSymbol() is { } ySymbol && this._symbolComparer != null )
             {

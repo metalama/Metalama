@@ -511,9 +511,13 @@ public partial class DeclarationFactory
 
     internal ITupleType GetTupleTypeFromSymbol( INamedTypeSymbol symbol, ImmutableArray<string> elementNames, IGenericContext? genericContext = null )
     {
-        var (mappedSymbol, genericContextForSymbolMapping) = this.MapSymbolAndContext( symbol, genericContext );
-
         Invariant.Assert( symbol is { IsTupleType: true } );
+
+        // The tuple is keyed by its underlying type and by the names of its elements, so that a symbol that carries
+        // the names and one that does not resolve to the same instance. See issue #1844.
+        var symbolWithoutElementNames = symbol.TupleUnderlyingType ?? symbol;
+
+        var (mappedSymbol, genericContextForSymbolMapping) = this.MapSymbolAndContext( symbolWithoutElementNames, genericContext );
 
         if ( elementNames.IsDefault )
         {
@@ -533,9 +537,35 @@ public partial class DeclarationFactory
                 new TupleTypeKey( (INamedTypeSymbol) canonicalSymbolInfo.Symbol, elementNames ),
                 canonicalSymbolInfo.Context,
                 typeof(IType),
-                static ( key, _, x ) => new TupleType( key.Symbol, x.me._compilationModel, x.genericContextForSymbolMapping, key.ElementNames ),
+                static ( key, _, x ) => new TupleType(
+                    ApplyTupleElementNames( x.me._compilationModel.RoslynCompilation, key.Symbol, key.ElementNames ),
+                    x.me._compilationModel,
+                    x.genericContextForSymbolMapping,
+                    key.ElementNames ),
                 (me: this, symbol, genericContextForSymbolMapping) );
         }
+    }
+
+    /// <summary>
+    /// Returns the symbol of a tuple whose elements carry the given names.
+    /// </summary>
+    /// <remarks>
+    /// The names of the elements are part of the type and Roslyn records them on the symbol, where its comparers take
+    /// them into account. The code model recorded them beside the symbol instead, so the symbol of a named tuple was
+    /// the unnamed one. See issue #1844. This is safe because the identity conversion removes them again, in
+    /// <c>DeclarationEqualityComparer</c>, the language not taking them into account.
+    /// </remarks>
+    private static INamedTypeSymbol ApplyTupleElementNames( Compilation compilation, INamedTypeSymbol symbol, ImmutableArray<string> elementNames )
+    {
+        // A tuple whose elements are not named reports the default name of each position, which is not a name of its
+        // own, so such a tuple is left alone rather than rebuilt as one that names its elements explicitly.
+        if ( elementNames.IsDefaultOrEmpty
+             || !elementNames.Where( ( name, index ) => !string.IsNullOrEmpty( name ) && name != $"Item{index + 1}" ).Any() )
+        {
+            return symbol;
+        }
+
+        return compilation.CreateTupleTypeSymbol( symbol.TupleUnderlyingType ?? symbol, elementNames.CastArray<string?>() );
     }
 
     public IParameter GetReturnParameter( IMethodSymbol methodSymbol, GenericContext? genericContext = null )
