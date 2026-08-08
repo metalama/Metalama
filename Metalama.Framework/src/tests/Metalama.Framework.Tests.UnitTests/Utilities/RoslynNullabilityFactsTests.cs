@@ -126,6 +126,35 @@ public sealed class RoslynNullabilityFactsTests
     }
 
     /// <summary>
+    /// Establishes that the nullability of a reference type does not take part in the identity conversion between two
+    /// types, whereas it does take part in the equality of their symbols.
+    /// </summary>
+    /// <remarks>
+    /// The two questions are distinct in Roslyn: the equality of symbols is the identity of the type as written, and
+    /// the classification of a conversion is what the language says about assigning one to the other. A comparison
+    /// that answers one of them cannot be used for the other.
+    /// </remarks>
+    [Fact]
+    public void NullabilityTakesPartInEqualityButNotInTheIdentityConversion()
+    {
+        var compilation = CreateCompilation( "class C { public object NonNullable = null!; public object? Nullable; }" );
+
+        var nonNullable = GetField( compilation, "C", "NonNullable" ).Type;
+        var nullable = GetField( compilation, "C", "Nullable" ).Type;
+
+        var conversion = compilation.ClassifyConversion( nonNullable, nullable );
+
+        this._logger?.WriteLine(
+            $"object vs object?: Default={SymbolEqualityComparer.Default.Equals( nonNullable, nullable )}, "
+            + $"IncludeNullability={SymbolEqualityComparer.IncludeNullability.Equals( nonNullable, nullable )}, "
+            + $"identityConversion={conversion.IsIdentity}" );
+
+        Assert.True( SymbolEqualityComparer.Default.Equals( nonNullable, nullable ) );
+        Assert.False( SymbolEqualityComparer.IncludeNullability.Equals( nonNullable, nullable ) );
+        Assert.True( conversion.IsIdentity );
+    }
+
+    /// <summary>
     /// Establishes that the declaration of a type parameter constrained to be a reference type is oblivious, whereas
     /// a use of the same parameter is not annotated, and that the difference is observable.
     /// </summary>
