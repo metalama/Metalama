@@ -5,6 +5,7 @@
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -106,7 +107,8 @@ public sealed class SerializableTypeIdResolverForSymbol : SerializableTypeIdReso
         }
     }
 
-    protected override ITypeSymbol CreateTupleType( ImmutableArray<ITypeSymbol> elementTypes ) => this.Compilation.CreateTupleTypeSymbol( elementTypes );
+    protected override ITypeSymbol CreateTupleType( ImmutableArray<ITypeSymbol> elementTypes, ImmutableArray<string?> elementNames )
+        => this.Compilation.CreateTupleTypeSymbol( elementTypes, elementNames.All( n => n == null ) ? default : elementNames );
 
     protected override ITypeSymbol DynamicType => this.Compilation.DynamicType;
 
@@ -136,7 +138,11 @@ public sealed class SerializableTypeIdResolverForSymbol : SerializableTypeIdReso
 
             if ( arity == memberArity )
             {
-                return (INamespaceOrTypeSymbol) member;
+                // The code model applies a default nullability of not annotated to every symbol it wraps, so the same
+                // default is applied to a looked-up type here. Without it the two resolvers answer differently for an
+                // identifier that carries no nullability marker, such as the identifier of a tuple, where the name is
+                // returned as declared and therefore oblivious. See issue #1845.
+                return member is ITypeSymbol typeSymbol ? typeSymbol.ApplyDefaultNullability( false ) : (INamespaceOrTypeSymbol) member;
             }
         }
 

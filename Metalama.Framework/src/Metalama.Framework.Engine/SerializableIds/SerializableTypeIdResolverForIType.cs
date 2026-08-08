@@ -94,13 +94,23 @@ public sealed class SerializableTypeIdResolverForIType : SerializableTypeIdResol
     protected override IType ConstructGenericType( IType genericType, IType[] typeArguments )
         => genericType.AssertCast<INamedType>().WithTypeArguments( typeArguments );
 
-    protected override IType CreateTupleType( ImmutableArray<IType> elementTypes )
+    protected override IType CreateTupleType( ImmutableArray<IType> elementTypes, ImmutableArray<string?> elementNames )
     {
         Invariant.Assert( elementTypes.Length >= 2 );
 
-        var tupleType = this._compilation.Factory.GetTypeByReflectionName( $"System.ValueTuple`{elementTypes.Length}" );
+        // The construction is delegated to the factory rather than repeated here. Looking System.ValueTuple up by the
+        // arity of the tuple is correct only up to seven elements: the type is declared for the arities one to eight,
+        // and its eighth type parameter holds the remaining elements and must itself be a tuple, which the factory
+        // nests correctly. See issues #1841 and #1842.
+        if ( elementNames.All( n => n == null ) )
+        {
+            return this._compilation.Factory.CreateTupleType( elementTypes );
+        }
 
-        return tupleType.WithTypeArguments( elementTypes.ToArray() );
+        // An element that is not named takes the default name of its position, which is what an unnamed element of a
+        // tuple is called and is therefore not a name of its own.
+        return this._compilation.Factory.CreateTupleType(
+            elementTypes.Select( ( type, index ) => (Type: type, Name: elementNames[index] ?? $"Item{index + 1}") ) );
     }
 
     protected override IType DynamicType => this._compilation.Factory.GetIType( this._compilation.RoslynCompilation.DynamicType );
