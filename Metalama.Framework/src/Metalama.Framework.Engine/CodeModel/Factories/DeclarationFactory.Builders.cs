@@ -62,7 +62,8 @@ public partial class DeclarationFactory
 
                     return x.createBuiltDeclaration( new CreateFromBuilderArgs<TBuilderData>( x.builder, gc ?? GenericContext.Empty, x.me, x.isNullable ) );
                 },
-                (me: this, builder, createBuiltDeclaration, supportsRedirection, isNullable) );
+                (me: this, builder, createBuiltDeclaration, supportsRedirection, isNullable),
+                isNullable );
         }
     }
 

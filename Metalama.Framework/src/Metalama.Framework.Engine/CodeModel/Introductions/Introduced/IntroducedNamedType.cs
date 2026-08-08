@@ -261,7 +261,10 @@ internal sealed class IntroducedNamedType : IntroducedMemberOrNamedType, INamedT
         }
         else
         {
-            return this.Compilation.Factory.CreateNullableValueType( this );
+            // A value type that is not a Nullable<T> carries no nullability annotation, so there is nothing to remove.
+            // The nullable form of an introduced value type is a Nullable<T> constructed over it, which is a type read
+            // from source and does not reach this implementation. See issue #1840.
+            return this;
         }
     }
 
@@ -280,7 +283,22 @@ internal sealed class IntroducedNamedType : IntroducedMemberOrNamedType, INamedT
     IType IType.StripNullabilityAnnotation() => this.StripNullabilityAnnotation();
 
     public INamedType ToNullable()
-        => this.IsNullable == true ? this : this.Compilation.Factory.GetNamedType( this._namedTypeBuilderData, this.GenericContext, true );
+    {
+        if ( this.IsNullable == true )
+        {
+            return this;
+        }
+        else if ( this.IsReferenceType ?? true )
+        {
+            return this.Compilation.Factory.GetNamedType( this._namedTypeBuilderData, this.GenericContext, true );
+        }
+        else
+        {
+            // The nullable form of a value type is Nullable<T> constructed over it, which is how the implementation
+            // for a type read from source answers as well, so that an aspect cannot tell the two apart. See #1840.
+            return this.Compilation.Factory.CreateNullableValueType( this );
+        }
+    }
 
     public INamedType MakeGenericInstance( IReadOnlyList<IType> typeArguments )
     {
