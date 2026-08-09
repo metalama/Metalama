@@ -23,7 +23,8 @@ internal sealed class StructuralSymbolComparer : IEqualityComparer<ISymbol?>, IC
             StructuralComparerOptions.GenericParameterCount |
             StructuralComparerOptions.GenericArguments |
             StructuralComparerOptions.ParameterTypes |
-            StructuralComparerOptions.ParameterModifiers );
+            StructuralComparerOptions.ParameterModifiers |
+            StructuralComparerOptions.TupleElementNames );
 
     public static readonly StructuralSymbolComparer IncludeAssembly =
         new(
@@ -33,6 +34,7 @@ internal sealed class StructuralSymbolComparer : IEqualityComparer<ISymbol?>, IC
             StructuralComparerOptions.GenericArguments |
             StructuralComparerOptions.ParameterTypes |
             StructuralComparerOptions.ParameterModifiers |
+            StructuralComparerOptions.TupleElementNames |
             StructuralComparerOptions.ContainingAssembly );
 
     public static readonly StructuralSymbolComparer IncludeNullability =
@@ -43,6 +45,7 @@ internal sealed class StructuralSymbolComparer : IEqualityComparer<ISymbol?>, IC
             StructuralComparerOptions.GenericArguments |
             StructuralComparerOptions.ParameterTypes |
             StructuralComparerOptions.ParameterModifiers |
+            StructuralComparerOptions.TupleElementNames |
             StructuralComparerOptions.Nullability );
 
     public static readonly StructuralSymbolComparer IncludeAssemblyAndNullability =
@@ -53,8 +56,22 @@ internal sealed class StructuralSymbolComparer : IEqualityComparer<ISymbol?>, IC
             StructuralComparerOptions.GenericArguments |
             StructuralComparerOptions.ParameterTypes |
             StructuralComparerOptions.ParameterModifiers |
+            StructuralComparerOptions.TupleElementNames |
             StructuralComparerOptions.Nullability |
             StructuralComparerOptions.ContainingAssembly );
+
+    /// <summary>
+    /// Compares as <see cref="Default"/> does, except that it ignores the names of the elements of a tuple at any
+    /// depth, which is the relation the identity conversion of the language defines.
+    /// </summary>
+    internal static readonly StructuralSymbolComparer TupleElementNameOblivious =
+        new(
+            StructuralComparerOptions.ContainingDeclaration |
+            StructuralComparerOptions.Name |
+            StructuralComparerOptions.GenericParameterCount |
+            StructuralComparerOptions.GenericArguments |
+            StructuralComparerOptions.ParameterTypes |
+            StructuralComparerOptions.ParameterModifiers );
 
     public static readonly StructuralSymbolComparer ContainingDeclarationOblivious =
         new(
@@ -303,6 +320,44 @@ internal sealed class StructuralSymbolComparer : IEqualityComparer<ISymbol?>, IC
         return this.CompareNamespaces( nsX.ContainingNamespace, nsY.ContainingNamespace );
     }
 
+    /// <summary>
+    /// Compares the names of the elements of two tuples, one of which may not be a tuple at all.
+    /// </summary>
+    /// <remarks>
+    /// Roslyn treats the names as part of the identity of the type, so a comparison that means to answer what
+    /// <see cref="SymbolEqualityComparer"/> answers has to compare them. See issue #1844.
+    /// </remarks>
+    private static int CompareTupleElementNames( INamedTypeSymbol namedTypeX, INamedTypeSymbol namedTypeY )
+    {
+        var elementsX = namedTypeX.TupleElements;
+        var elementsY = namedTypeY.TupleElements;
+
+        if ( elementsX.IsDefault || elementsY.IsDefault )
+        {
+            // Only one of the two is a tuple, which the comparison of the names of the types below reports anyway.
+            return elementsX.IsDefault.CompareTo( elementsY.IsDefault );
+        }
+
+        var result = elementsX.Length.CompareTo( elementsY.Length );
+
+        if ( result != 0 )
+        {
+            return result;
+        }
+
+        for ( var i = 0; i < elementsX.Length; i++ )
+        {
+            result = StringComparer.Ordinal.Compare( elementsX[i].Name, elementsY[i].Name );
+
+            if ( result != 0 )
+            {
+                return result;
+            }
+        }
+
+        return 0;
+    }
+
     private int CompareNamedTypes( INamedTypeSymbol namedTypeX, INamedTypeSymbol namedTypeY, StructuralComparerOptions options )
     {
         int result;
@@ -331,6 +386,17 @@ internal sealed class StructuralSymbolComparer : IEqualityComparer<ISymbol?>, IC
         {
             // PERF: Cast enum to byte otherwise it will be boxed on .NET Framework.
             result = Comparer<byte>.Default.Compare( (byte) namedTypeX.NullableAnnotation, (byte) namedTypeY.NullableAnnotation );
+
+            if ( result != 0 )
+            {
+                return result;
+            }
+        }
+
+        if ( options.HasFlagFast( StructuralComparerOptions.TupleElementNames )
+             && (namedTypeX.IsTupleType || namedTypeY.IsTupleType) )
+        {
+            result = CompareTupleElementNames( namedTypeX, namedTypeY );
 
             if ( result != 0 )
             {
