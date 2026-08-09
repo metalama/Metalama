@@ -117,6 +117,22 @@ public abstract class AspectPipeline : IDisposable
             return false;
         }
 
+        // Check that the core library can be resolved. When the .NET SDK of the project cannot be resolved, the
+        // compilation loses every reference contributed by the SDK, so no type of the core library can be resolved and
+        // no feature of Metalama can work. No diagnostic is reported, because the C# compiler already reports this
+        // condition itself (CS0518 and its cascade) and the condition is typically transient in an IDE. Without this
+        // check, the pipeline fails later with an InvalidOperationException thrown by ReflectionMapper while it
+        // resolves a well-known type, which the user sees as a crash of Metalama. See issue #1832.
+        if ( compilation.ObjectType.TypeKind == TypeKind.Error )
+        {
+            this.Logger.Warning?.Log(
+                $"TryInitialize('{this.ProjectOptions.AssemblyName}') failed: the compilation does not reference the core library." );
+
+            configuration = null;
+
+            return false;
+        }
+
         // Check the Metalama version.
         var referencedMetalamaVersions = GetMetalamaVersions( compilation ).ToReadOnlyList();
 
