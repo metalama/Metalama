@@ -71,7 +71,10 @@ public sealed class SerializableTypeIdResolverForSymbol : SerializableTypeIdReso
 
     protected override ITypeSymbol CreateArrayType( ITypeSymbol elementType, int rank, bool isNullOblivious )
     {
-        return this.Compilation.CreateArrayTypeSymbol( elementType, rank )
+        // The annotation of the element has to be passed explicitly. CreateArrayTypeSymbol takes it as a parameter that
+        // defaults to NullableAnnotation.None, and the default discards the annotation carried by the element that was
+        // just resolved, so 'string[]' of an annotated context came back with an oblivious element.
+        return this.Compilation.CreateArrayTypeSymbol( elementType, rank, elementType.NullableAnnotation )
             .WithNullableAnnotation( isNullOblivious ? NullableAnnotation.None : NullableAnnotation.NotAnnotated );
     }
 

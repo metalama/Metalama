@@ -8,10 +8,13 @@ using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Caching;
 using Metalama.Framework.Engine.Utilities.Roslyn;
+using Metalama.Framework.Code.Types;
+using Metalama.Framework.Engine.CodeModel.Abstractions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Text;
+using CodeTypeKind = Metalama.Framework.Code.TypeKind;
 
 namespace Metalama.Framework.Engine.SerializableIds;
 
@@ -24,47 +27,98 @@ public static class SerializableTypeIdGenerator
     private static readonly WeakCache<Type, SerializableTypeId> _reflectionTypeIdCache = new( isStaticCache: true );
 
     /// <summary>
-    /// Determines whether the nullability marker is appended to the identifier of a type, which happens for a
-    /// reference type that is not annotated, and for no other type.
+    /// Determines whether a position of a type carries information about the nullable context it was written in, which
+    /// a reference type and a type parameter do and no other type does.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A value type is <see cref="NullableAnnotation.NotAnnotated"/> in an unannotated context as well as in an
+    /// annotated one, because it can never be oblivious: obliviousness is a statement about something that could be
+    /// null. Its annotation therefore says nothing about the context and has to be ignored. A reference type is
+    /// <see cref="NullableAnnotation.None"/> in an unannotated context and annotated in an annotated one, so it settles
+    /// the question.
+    /// </para>
+    /// <para>
+    /// A type parameter counts as well. The generic context appended to the identifier after a <c>|</c> resolves the
+    /// parameter as its declaration declares it, which is oblivious, whereas a use of the parameter in an annotated
+    /// context is not: without the marker a use of <c>T</c> in an annotated context resolved back to the declaration
+    /// and lost the annotation. The constraint of the parameter is not what is being recorded, only the context of the
+    /// reference.
+    /// </para>
+    /// </remarks>
+    private static bool IsNullabilityInformative( ITypeSymbol symbol )
+        => symbol.Kind == SymbolKind.TypeParameter || symbol.IsReferenceType;
+
+    /// <summary>
+    /// Determines whether the nullability marker is appended to the identifier of a type, which happens when the type
+    /// was written in an annotated nullable context.
     /// </summary>
     /// <remarks>
     /// <para>
     /// The meaning of the marker, and the format of an identifier as a whole, are documented on
-    /// <see cref="SerializableTypeId"/>.
+    /// <see cref="SerializableTypeId"/>. In short, <c>?</c> states that one position is nullable and the marker states
+    /// that the whole reference was written in an annotated context, so that every position without a <c>?</c> is
+    /// non-nullable rather than oblivious. The two are not alternatives and can both appear.
+    /// </para>
+    /// <para>
+    /// A reference belongs to a single nullable context, that of the place it was written, so one bit describes all of
+    /// its positions. The context is not recorded on a symbol and has to be recovered from the annotations, which the
+    /// whole tree of the type is searched for: any informative position that is not
+    /// <see cref="NullableAnnotation.None"/> proves the context was annotated. Reading the outermost position alone was
+    /// not enough, because it is uninformative whenever it is a value type, as in
+    /// <c>KeyValuePair&lt;string, string&gt;</c> or a tuple, and because an annotated outermost type says the position
+    /// is nullable rather than that the context was unannotated, as in <c>List&lt;string&gt;?</c>. In each of those the
+    /// marker was omitted and the reference types nested in the type came back oblivious.
+    /// </para>
+    /// <para>
+    /// A type with no informative position at all, such as <c>KeyValuePair&lt;int, int&gt;</c>, needs no marker,
+    /// nothing in it being able to be oblivious.
     /// </para>
     /// <para>
     /// The overloads of <c>GetSerializableTypeId</c> have to produce the same string for the same type, because
-    /// <c>CompileTimeType</c> equality and the cache of <c>CompileTimeTypeFactory</c> key on it. This method is the
-    /// test that the <see cref="Code.IType"/> overload applies, expressed over a symbol. Testing the annotation alone
-    /// appended the marker to every value type, whose annotation is
-    /// <see cref="NullableAnnotation.NotAnnotated"/> rather than <see cref="NullableAnnotation.None"/>, and to an
-    /// annotated reference type, whose identifier then carried the question mark and a marker contradicting it alike.
-    /// See issue #1838.
-    /// </para>
-    /// <para>
-    /// A type parameter is excluded whatever its annotation, because it is resolved from the generic context that the
-    /// identifier carries, which yields the parameter as its declaration declares it. The marker is applied on top of
-    /// that, and it can only contradict the context rather than refine it: the code model reports the same nullability
-    /// for the declaration of a parameter and for every use of it, so the marker carries nothing that distinguishes
-    /// them, whereas applying it produces a parameter annotated as non-nullable where the declaration is oblivious.
-    /// C# cannot state that a type parameter is non-nullable either, which is why
-    /// <see cref="Code.IType.ToNonNullable"/> removes the annotation of a type parameter rather than setting it.
-    /// </para>
-    /// <para>
-    /// The marker applies to every name in the identifier, so a type parameter appearing as a type argument of an
-    /// annotated type is still annotated. Only a type parameter that is the outermost type is concerned.
+    /// <c>CompileTimeType</c> equality and the cache of <c>CompileTimeTypeFactory</c> key on it, so the same search is
+    /// expressed over a symbol, over an <see cref="Code.IType"/> and over a reflection type.
     /// </para>
     /// </remarks>
-    private static bool IsNonNullableReferenceType( ITypeSymbol symbol )
-        => symbol.Kind != SymbolKind.TypeParameter
-           && symbol.IsReferenceType
-           && symbol.NullableAnnotation == NullableAnnotation.NotAnnotated;
+    private static bool IsWrittenInAnnotatedContext( ITypeSymbol symbol )
+    {
+        // Only NotAnnotated proves the context, not any annotation other than None: writing 'string?' in an unannotated
+        // context is a warning rather than an error, and Roslyn annotates it all the same, so Annotated proves nothing.
+        // A reference type or a type parameter is never NotAnnotated in an unannotated context.
+        if ( IsNullabilityInformative( symbol ) && symbol.NullableAnnotation == NullableAnnotation.NotAnnotated )
+        {
+            return true;
+        }
+
+        switch ( symbol.Kind )
+        {
+            case SymbolKind.ArrayType when symbol is IArrayTypeSymbol arrayType:
+                return IsWrittenInAnnotatedContext( arrayType.ElementType );
+
+            case SymbolKind.PointerType when symbol is IPointerTypeSymbol pointerType:
+                return IsWrittenInAnnotatedContext( pointerType.PointedAtType );
+
+            case SymbolKind.NamedType or SymbolKind.ErrorType when symbol is INamedTypeSymbol namedType:
+                foreach ( var typeArgument in namedType.TypeArguments )
+                {
+                    if ( IsWrittenInAnnotatedContext( typeArgument ) )
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+
+            default:
+                return false;
+        }
+    }
 
     public static SerializableTypeId GetSerializableTypeId( this ITypeSymbol symbol, bool includeGenericContext = false )
     {
         var id = SyntaxGenerationContext.Contextless.SyntaxGenerator.TypeSyntax( symbol ).ToString();
 
-        if ( IsNonNullableReferenceType( symbol ) )
+        if ( IsWrittenInAnnotatedContext( symbol ) )
         {
             id += '!';
         }
@@ -91,14 +145,97 @@ public static class SerializableTypeIdGenerator
         return new SerializableTypeId( SerializableTypeId.Prefix + typeSyntax );
     }
 
+    /// <summary>
+    /// Answers what <see cref="IsWrittenInAnnotatedContext(ITypeSymbol)"/> answers, over the code model rather than
+    /// over a symbol. A position is informative when it is a reference type or a type parameter, and it proves the
+    /// context annotated when its nullability is known, <c>null</c> being how the code model reports obliviousness.
+    /// </summary>
+    private static bool IsWrittenInAnnotatedContext( IType type )
+    {
+        // The nullability of a type parameter is read from its symbol rather than from IsNullable, which answers
+        // whether the constraint of the parameter allows null and not what the annotation of this reference is. The two
+        // differ in both directions: a 'class' or 'notnull' constrained parameter reports IsNullable false where its
+        // declaration is oblivious, and a use of an unconstrained parameter in an annotated context reports IsNullable
+        // null where the reference is annotated. Either disagreement makes this overload produce a different identifier
+        // from the one the overload over a symbol produces for the same type.
+        if ( type.TypeKind == CodeTypeKind.TypeParameter )
+        {
+            return type is ISymbolBasedCompilationElement { Symbol: ITypeSymbol typeSymbol }
+                   && typeSymbol.NullableAnnotation == NullableAnnotation.NotAnnotated;
+        }
+
+        // See the overload over a symbol: only a known non-nullable position proves the context, a nullable one being
+        // written the same way in either.
+        if ( type.IsReferenceType != false && type.IsNullable == false )
+        {
+            return true;
+        }
+
+        switch ( type.TypeKind )
+        {
+            case CodeTypeKind.Array when type is IArrayType arrayType:
+                return IsWrittenInAnnotatedContext( arrayType.ElementType );
+
+            case CodeTypeKind.Pointer when type is IPointerType pointerType:
+                return IsWrittenInAnnotatedContext( pointerType.PointedAtType );
+
+            case CodeTypeKind.Class or CodeTypeKind.Struct or CodeTypeKind.Interface or CodeTypeKind.Delegate or CodeTypeKind.Enum
+                or CodeTypeKind.Error or CodeTypeKind.Tuple
+                when type is INamedType namedType:
+                foreach ( var typeArgument in namedType.TypeArguments )
+                {
+                    if ( IsWrittenInAnnotatedContext( typeArgument ) )
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+
+            default:
+                return false;
+        }
+    }
+
+    /// <summary>
+    /// Answers what <see cref="IsWrittenInAnnotatedContext(ITypeSymbol)"/> answers, for a reflection type, which
+    /// carries no nullable annotation at all.
+    /// </summary>
+    /// <remarks>
+    /// A reflection type cannot say which context it was written in, so an annotated one is assumed whenever the type
+    /// has a position that could be oblivious. This is the assumption the identifier of a reflection type has always
+    /// made, and it is what keeps the three overloads producing the same string for a type of an annotated context.
+    /// </remarks>
+    private static bool IsWrittenInAnnotatedContext( Type type )
+    {
+        if ( type.IsGenericParameter || (!type.IsValueType && !type.IsPointer && !type.IsByRef) )
+        {
+            return true;
+        }
+
+        if ( type.HasElementType )
+        {
+            return IsWrittenInAnnotatedContext( type.GetElementType()! );
+        }
+
+        foreach ( var typeArgument in type.GetGenericArguments() )
+        {
+            if ( IsWrittenInAnnotatedContext( typeArgument ) )
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     // ReSharper disable once MemberCanBeInternal
 
     public static SerializableTypeId GetSerializableTypeId( this IType type, bool includeGenericContext = false, bool bypassSymbols = false )
     {
         var id = SyntaxGenerationContext.Contextless.SyntaxGenerator.TypeSyntax( type, bypassSymbols ).ToString();
 
-        // See IsNonNullableReferenceType for why a type parameter is excluded.
-        if ( type is not ITypeParameter && type.IsNullable == false && type.IsReferenceType != false )
+        if ( IsWrittenInAnnotatedContext( type ) )
         {
             id += '!';
         }
@@ -128,14 +265,12 @@ public static class SerializableTypeIdGenerator
         // The id must be byte-identical to the one the ITypeSymbol/IType overloads produce (via the syntax generator),
         // because CompileTimeType equality and the CompileTimeTypeFactory cache key on this string. That form is C# type
         // syntax: 'global::'-qualified names, '<...>' generics whose arguments are separated by ',' with no space,
-        // Nullable<T> written as 'T?', with a trailing '!' for a non-nullable reference type.
+        // Nullable<T> written as 'T?', with a trailing '!' when the type was written in an annotated context.
         var stringBuilder = new StringBuilder();
         stringBuilder.Append( SerializableTypeId.Prefix );
         AppendType( type );
 
-        // The nullability annotation is appended once, for the outermost type only. A reference type is non-nullable
-        // oblivious here (there is no annotation on a reflection Type), which the symbol side renders as '!'.
-        if ( IsNonNullableReferenceType( type ) )
+        if ( IsWrittenInAnnotatedContext( type ) )
         {
             stringBuilder.Append( '!' );
         }
@@ -255,9 +390,4 @@ public static class SerializableTypeIdGenerator
         }
     }
 
-    // A reference type is anything that is neither a value type (which includes Nullable<T>), a pointer, nor a by-ref
-    // type. This mirrors the 'IsNullable == false && IsReferenceType != false' test the IType overload applies, and
-    // excludes a type parameter for the reason given in IsNonNullableReferenceType.
-    private static bool IsNonNullableReferenceType( Type type )
-        => !type.IsValueType && !type.IsPointer && !type.IsByRef && !type.IsGenericParameter;
 }

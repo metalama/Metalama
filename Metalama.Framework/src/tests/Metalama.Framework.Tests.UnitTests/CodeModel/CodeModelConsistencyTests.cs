@@ -94,6 +94,113 @@ public sealed class CodeModelConsistencyTests : UnitTestClass
         => $"IsNullable={type.IsNullable?.ToString() ?? "null"} IsReferenceType={type.IsReferenceType?.ToString() ?? "null"}";
 
     /// <summary>
+    /// Verifies that a type read from source resolves from its own identifier to the same type, nullable annotations
+    /// included, whether it was written in an annotated nullable context or in an unannotated one.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The identifier records the context in a single marker, so the corpus has to contain a type whose outermost
+    /// position says nothing about the context. A value type is not annotated in either context, so
+    /// <c>KeyValuePair&lt;string, string&gt;</c> and a tuple are uninformative at their outermost position, and an
+    /// annotated reference type says that the position is nullable rather than that the context was unannotated, which
+    /// <c>List&lt;string&gt;?</c> covers. Reading the outermost position alone left the reference types nested in each
+    /// of those oblivious.
+    /// </para>
+    /// <para>
+    /// The array is here because the element of an array lost its annotation separately, the annotation having to be
+    /// passed to <c>CreateArrayTypeSymbol</c> explicitly.
+    /// </para>
+    /// </remarks>
+    /// <remarks>
+    /// <para>
+    /// Only the annotated context is covered. An identifier written in an unannotated context is correct, carrying no
+    /// marker, but resolving it yields <c>NotAnnotated</c> for every reference position where the source had
+    /// <c>None</c>, because the resolver has no operation that makes a type oblivious: it can add the non-nullable
+    /// annotation and it cannot remove it. That is a defect of the resolver rather than of the identifier, it predates
+    /// the marker being derived from the whole type, and it needs the mirror of
+    /// <c>AddNonNullableAnnotation</c>, applied to reference types and type parameters alone.
+    /// </para>
+    /// </remarks>
+    [Theory]
+    [InlineData( "enable" )]
+    public void ATypeResolvesFromItsIdentifierToItself( string nullableContext )
+    {
+        using var testContext = this.CreateTestContext();
+
+        var code = $$"""
+                     #nullable {{nullableContext}}
+                     using System.Collections.Generic;
+
+                     struct S { }
+
+                     class C
+                     {
+                         public int Int;
+                         public S Struct;
+                         public string String = null!;
+                         public string? NullableString;
+                         public List<string> ListOfString = null!;
+                         public List<string>? NullableListOfString;
+                         public List<string?> ListOfNullableString = null!;
+                         public KeyValuePair<string, string> StructOverReferences;
+                         public KeyValuePair<int, int> StructOverValueTypes;
+                         public (string A, string B) Tuple;
+                         public string[] ArrayOfString = null!;
+                         public string[][] ArrayOfArrayOfString = null!;
+                     }
+                     """;
+
+        var compilation = testContext.CreateCompilationModel( code );
+
+        var mismatches = new System.Collections.Generic.List<string>();
+
+        foreach ( var field in compilation.Types.OfName( "C" ).Single().Fields.Where( f => !f.IsImplicitlyDeclared ) )
+        {
+            var symbol = (Microsoft.CodeAnalysis.ITypeSymbol) field.Type.GetSymbol()!;
+            var id = symbol.GetSerializableTypeId();
+            var roundTrip = compilation.CompilationContext.SerializableTypeIdResolver.ResolveId( id );
+
+            this.TestOutput.WriteLine( $"{field.Name}: {id.Id}  [{DescribeAnnotations( symbol )}] -> [{DescribeAnnotations( roundTrip )}]" );
+
+            if ( !SymbolEqualityComparer.IncludeNullability.Equals( symbol, roundTrip ) )
+            {
+                mismatches.Add( $"{field.Name}: {id.Id} gave [{DescribeAnnotations( roundTrip )}] instead of [{DescribeAnnotations( symbol )}]" );
+            }
+        }
+
+        foreach ( var mismatch in mismatches )
+        {
+            this.TestOutput.WriteLine( mismatch );
+        }
+
+        Assert.Empty( mismatches );
+    }
+
+    /// <summary>
+    /// Renders the nullable annotation of a type and of the positions nested in it, which the display string does not
+    /// show and which is what these assertions are about.
+    /// </summary>
+    private static string DescribeAnnotations( Microsoft.CodeAnalysis.ITypeSymbol symbol )
+    {
+        var text = symbol.NullableAnnotation.ToString();
+
+        switch ( symbol )
+        {
+            case Microsoft.CodeAnalysis.INamedTypeSymbol { TypeArguments.Length: > 0 } namedType:
+                text += "<" + string.Join( ",", namedType.TypeArguments.Select( DescribeAnnotations ) ) + ">";
+
+                break;
+
+            case Microsoft.CodeAnalysis.IArrayTypeSymbol arrayType:
+                text += "[" + DescribeAnnotations( arrayType.ElementType ) + "]";
+
+                break;
+        }
+
+        return text;
+    }
+
+    /// <summary>
     /// Verifies that the nullable form of a type an aspect introduced survives being written as a
     /// <see cref="SerializableTypeId"/> and resolved again.
     /// </summary>

@@ -20,33 +20,36 @@ namespace Metalama.Framework.Code;
 /// <c>T?</c>.
 /// </para>
 /// <para>
-/// The <c>!</c> marker means that the type is a non-nullable reference type, and it is appended for no other type. C# syntax
-/// can state that a reference type is nullable, by writing <c>string?</c>, but it cannot distinguish a reference type that is
-/// known to be non-nullable from one whose nullability is unknown, because both are written <c>string</c>. The marker records
-/// that distinction, so that the three identifiers below denote three different types:
+/// The two nullability markers describe different things and are not alternatives. <c>?</c> belongs to one position and means
+/// that this position is nullable, exactly as in C#. The <c>!</c> at the end belongs to the whole identifier and means that
+/// the type was written in an annotated nullable context, so that every position without a <c>?</c> is non-nullable rather
+/// than oblivious. A reference belongs to a single nullable context, that of the place it was written, which is why one
+/// marker suffices for all of its positions.
 /// </para>
 /// <list type="table">
 /// <listheader><term>Identifier</term><description>Type</description></listheader>
 /// <item><term><c>Y:global::System.String!</c></term><description>the non-nullable <c>string</c>.</description></item>
-/// <item><term><c>Y:global::System.String?</c></term><description>the nullable <c>string?</c>.</description></item>
+/// <item><term><c>Y:global::System.String?!</c></term><description>the nullable <c>string?</c>.</description></item>
 /// <item>
 /// <term><c>Y:global::System.String</c></term>
 /// <description>the <c>string</c> of a context that is oblivious to nullability.</description>
 /// </item>
+/// <item>
+/// <term><c>Y:global::System.Collections.Generic.List&lt;global::System.String?&gt;!</c></term>
+/// <description>a non-nullable <c>List&lt;string?&gt;</c>, the list itself carrying no <c>?</c> and its argument carrying
+/// one.</description>
+/// </item>
 /// </list>
 /// <para>
-/// An identifier that carries no marker therefore resolves to a type that is oblivious to nullability, and not to a
-/// non-nullable one.
+/// An identifier that carries no marker therefore resolves to a type every position of which is oblivious to nullability, and
+/// not to a non-nullable one.
 /// </para>
 /// <para>
-/// A value type never carries the marker, because it is not a reference type and because a nullable value type is written
-/// <c>T?</c> instead. A type parameter never carries it either, because its nullability comes from the declaration that the
-/// generic context resolves, which the marker could only contradict: C# cannot state that a type parameter is non-nullable.
-/// </para>
-/// <para>
-/// The marker is written once, after the outermost type, and applies to every name of the identifier when it is resolved. The
-/// nullability of an argument of a generic type is written on the argument itself, as in
-/// <c>Y:global::System.Collections.Generic.List&lt;global::System.String?&gt;!</c>.
+/// The marker is written whenever any position of the type proves the context annotated, and applies to every type the
+/// identifier names when it is resolved. Only a reference type and a type parameter prove anything: a value type is not
+/// annotated in an unannotated context any more than in an annotated one, because it can never be oblivious. A type with no
+/// reference type and no type parameter anywhere in it, such as <c>KeyValuePair&lt;int, int&gt;</c>, therefore carries no
+/// marker and needs none.
 /// </para>
 /// </remarks>
 [CompileTime]
