@@ -180,9 +180,16 @@ public sealed class SerializableTypeIdTests : UnitTestClass
     /// resolvable.
     /// </para>
     /// <para>
-    /// The identifier of a type parameter carries no nullability marker, whatever the constraint answers about the
-    /// nullability of the parameter, because the parameter is resolved from the generic context and the marker can
-    /// only contradict what the context declares. See <c>SerializableTypeIdGenerator.CanBeAnnotated</c>.
+    /// Whether the identifier carries the nullability marker depends on the annotation of the reference and not on the
+    /// constraint, so it is not asserted here: the declaration of a parameter constrained to a value type is annotated
+    /// and carries the marker, whereas the declaration of one constrained to <c>class</c> or to <c>notnull</c> is
+    /// oblivious and does not. What matters is that the round trip is exact, which is what is asserted.
+    /// </para>
+    /// <para>
+    /// The marker is derived from the annotation of the symbol rather than from <see cref="IType.IsNullable"/>, which
+    /// for a type parameter answers whether its constraint allows null. Deriving it from <see cref="IType.IsNullable"/>
+    /// made the identifier of a <c>class</c> or <c>notnull</c> constrained parameter differ from the one built from the
+    /// symbol of the same parameter. See <c>SerializableTypeIdGenerator.IsWrittenInAnnotatedContext</c>.
     /// </para>
     /// </remarks>
     [Theory]
@@ -197,8 +204,6 @@ public sealed class SerializableTypeIdTests : UnitTestClass
         var compilation = testContext.CreateCompilationModel( _constrainedGenericTypesCode );
 
         var typeParameter = compilation.Types.OfName( typeName ).Single().TypeParameters[0];
-
-        Assert.DoesNotContain( '!', typeParameter.GetSerializableTypeId( includeGenericContext: true ).Id );
 
         this.AssertRoundTrip( compilation, typeParameter );
     }
