@@ -198,10 +198,15 @@ public partial class DeclarationFactory
                 args.GenericContext ) );
 #endif
 
+    /// <param name="isNullable">
+    /// The nullability of the resulting type, which applies to a named type alone. A reference to an introduced type
+    /// carries it, because the annotation is part of the type and not of the declaration the builder describes.
+    /// </param>
     internal IDeclaration GetDeclaration(
         DeclarationBuilderData builder,
         IGenericContext? genericContext = null,
-        Type? interfaceType = null )
+        Type? interfaceType = null,
+        bool? isNullable = false )
     {
 #if DEBUG
 
@@ -240,7 +245,10 @@ public partial class DeclarationFactory
                 genericParameterBuilder,
                 genericContext ),
             DeclarationKind.Constructor when builder is ConstructorBuilderData constructorBuilder => this.GetConstructor( constructorBuilder, genericContext ),
-            DeclarationKind.NamedType when builder is NamedTypeBuilderData namedTypeBuilder => this.GetNamedType( namedTypeBuilder, genericContext ),
+            DeclarationKind.NamedType when builder is NamedTypeBuilderData namedTypeBuilder => this.GetNamedType(
+                namedTypeBuilder,
+                genericContext,
+                isNullable ),
             DeclarationKind.Namespace when builder is NamespaceBuilderData namespaceBuilder => this.GetNamespace( namespaceBuilder, genericContext ),
 #if ROSLYN_5_0_0_OR_GREATER
             DeclarationKind.ExtensionBlock when builder is ExtensionBlockBuilderData extensionBlockBuilder => this.GetExtensionBlock( extensionBlockBuilder, genericContext ),

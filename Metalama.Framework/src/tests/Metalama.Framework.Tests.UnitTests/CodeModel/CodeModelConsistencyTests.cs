@@ -94,6 +94,96 @@ public sealed class CodeModelConsistencyTests : UnitTestClass
         => $"IsNullable={type.IsNullable?.ToString() ?? "null"} IsReferenceType={type.IsReferenceType?.ToString() ?? "null"}";
 
     /// <summary>
+    /// Verifies that the nullable form of a type an aspect introduced survives being written as a
+    /// <see cref="SerializableTypeId"/> and resolved again.
+    /// </summary>
+    /// <remarks>
+    /// An aspect that introduces a type and then uses it as the type of a member it introduces reaches this, because
+    /// the type is carried as a durable reference from the aspect that builds it to the code that emits the member.
+    /// Losing the annotation there produces a member declared with a non-nullable type and initialized with
+    /// <c>default</c>, which the compiler reports as CS8625.
+    /// </remarks>
+    [Theory]
+    [InlineData( "Class" )]
+    [InlineData( "Struct" )]
+    [InlineData( "Array" )]
+    public void TheNullableFormOfAnIntroducedTypeSurvivesItsTypeId( string shape )
+    {
+        using var testContext = this.CreateTestContext();
+        var compilation = testContext.CreateCompilationModel( "class Outer;" ).CreateMutableClone();
+
+        var nullable = GetIntroducedType( compilation, shape ).ToNullable();
+
+        var id = nullable.GetSerializableTypeId();
+        var roundTrip = compilation.SerializableTypeIdResolver.ResolveId( id );
+
+        this.TestOutput.WriteLine( $"{shape}: {nullable.ToDisplayString()}/{Describe( nullable )} -> {id.Id}" );
+        this.TestOutput.WriteLine( $"    resolved to {roundTrip.ToDisplayString()}/{Describe( roundTrip )}" );
+
+        Assert.Equal( true, roundTrip.IsNullable );
+        Assert.Equal( nullable.ToDisplayString(), roundTrip.ToDisplayString() );
+    }
+
+    /// <summary>
+    /// Verifies that the nullable form of a type an aspect introduced survives being turned into a reference and back,
+    /// both through the reference that <see cref="IDeclaration.ToRef"/> returns and through the durable form of it.
+    /// </summary>
+    /// <remarks>
+    /// Advice carries the type of a member it introduces as a reference, and the pull strategy of a parameter carries
+    /// it as a durable one, so a reference that cannot express the annotation drops it before the member is emitted.
+    /// </remarks>
+    [Theory]
+    [InlineData( "Class" )]
+    [InlineData( "Struct" )]
+    public void TheNullableFormOfAnIntroducedTypeSurvivesItsReference( string shape )
+    {
+        using var testContext = this.CreateTestContext();
+        var compilation = testContext.CreateCompilationModel( "class Outer;" ).CreateMutableClone();
+
+        var nullable = (INamedType) GetIntroducedType( compilation, shape ).ToNullable();
+
+        var throughRef = nullable.ToRef().GetTarget( compilation );
+        var throughDurableRef = nullable.ToRef().ToDurable().GetTarget( compilation );
+
+        // A durable reference is identified by its identifier alone, so the annotation is only durable if it survives
+        // being written to that string and read back from it.
+        var id = nullable.ToRef().ToDurable().ToSerializableId();
+        var throughId = (IType) id.Resolve( compilation );
+
+        this.TestOutput.WriteLine( $"{shape}: nullable={nullable.ToDisplayString()}/{Describe( nullable )}" );
+        this.TestOutput.WriteLine( $"    through a reference: {throughRef.ToDisplayString()}/{Describe( throughRef )}" );
+        this.TestOutput.WriteLine( $"    through a durable reference: {throughDurableRef.ToDisplayString()}/{Describe( throughDurableRef )}" );
+        this.TestOutput.WriteLine( $"    through the identifier '{id}': {throughId.ToDisplayString()}/{Describe( throughId )}" );
+
+        Assert.Equal( true, throughRef.IsNullable );
+        Assert.Equal( true, throughDurableRef.IsNullable );
+        Assert.Equal( true, throughId.IsNullable );
+    }
+
+    /// <summary>
+    /// Establishes that a reference to a type read from source carries the nullable annotation, which is the behaviour
+    /// that the reference to an introduced type has to match.
+    /// </summary>
+    [Fact]
+    public void TheNullableFormOfASourceTypeSurvivesItsReference()
+    {
+        using var testContext = this.CreateTestContext();
+        var compilation = testContext.CreateCompilationModel( "class SourceClass;" );
+
+        var nullable = (INamedType) compilation.Types.OfName( "SourceClass" ).Single().ToNullable();
+
+        var throughRef = nullable.ToRef().GetTarget( compilation );
+        var throughDurableRef = nullable.ToRef().ToDurable().GetTarget( compilation );
+
+        this.TestOutput.WriteLine( $"source: nullable={nullable.ToDisplayString()}/{Describe( nullable )}" );
+        this.TestOutput.WriteLine( $"    through a reference: {throughRef.ToDisplayString()}/{Describe( throughRef )}" );
+        this.TestOutput.WriteLine( $"    through a durable reference: {throughDurableRef.ToDisplayString()}/{Describe( throughDurableRef )}" );
+
+        Assert.Equal( true, throughRef.IsNullable );
+        Assert.Equal( true, throughDurableRef.IsNullable );
+    }
+
+    /// <summary>
     /// Verifies that <see cref="IType.ToNullable"/> on a value type produces the same shape of type whether the value
     /// type was read from source or introduced by an aspect.
     /// </summary>
