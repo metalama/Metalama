@@ -9,8 +9,8 @@ using Xunit;
 namespace Metalama.Framework.Tests.UnitTests.Utilities;
 
 /// <summary>
-/// Tests the rules that <see cref="AssemblyResolutionPolicy"/> applies when an assembly embedded in the current build
-/// of Metalama is requested and another build of Metalama is loaded in the same process.
+/// Tests <see cref="AssemblyResolutionPolicy"/>, which decides which assembly already loaded in the process may satisfy
+/// an assembly resolution request of the resource extractor.
 /// </summary>
 public sealed class AssemblyResolutionPolicyTests
 {
@@ -19,80 +19,104 @@ public sealed class AssemblyResolutionPolicyTests
     private static AssemblyName GetBackstageName( string version )
         => new( $"{_backstageName}, Version={version}, Culture=neutral, PublicKeyToken=d793dee9bee12010" );
 
-    /// <summary>
-    /// Verifies that a request for an embedded assembly is not satisfied by a higher version of the same assembly that
-    /// another build of Metalama has already loaded in the process. See issue #1833: <c>Metalama.Backstage</c> makes no
-    /// API compatibility promise across builds, so binding an older build of Metalama to a newer
-    /// <c>Metalama.Backstage</c> throws <see cref="System.TypeLoadException"/> as soon as a removed type is used.
-    /// </summary>
-    [Fact]
-    public void EmbeddedAssemblyDoesNotAcceptHigherVersionOfAlreadyLoadedAssembly()
-        => Assert.False( AssemblyResolutionPolicy.AcceptsHigherVersionOfAlreadyLoadedAssembly( _backstageName, isEmbeddedInCurrentBuild: true ) );
+    private static AssemblyName GetRoslynName( string version )
+        => new( $"Microsoft.CodeAnalysis, Version={version}, Culture=neutral, PublicKeyToken=31bf3856ad364e35" );
 
     /// <summary>
-    /// Verifies that the newer <c>Metalama.Backstage</c> of the reported scenario does not match the request issued by
-    /// the older build of Metalama.
+    /// Verifies that a request for an assembly embedded in the current build is not satisfied by a higher version of
+    /// the same assembly that another build of Metalama has already loaded in the process. This is the scenario of
+    /// issue #1833: an older build of Metalama requested <c>Metalama.Backstage 2025.1.17.1043</c> in a Visual Studio
+    /// process where a newer build had already loaded <c>Metalama.Backstage 2026.1.22.854</c>, and the resulting
+    /// binding threw <see cref="System.TypeLoadException"/> on the first type that the newer build had removed.
     /// </summary>
     [Fact]
-    public void NewerBackstageDoesNotMatchRequestOfOlderMetalama()
+    public void EmbeddedAssemblyIsNotSatisfiedByHigherAlreadyLoadedVersion()
     {
         var requested = GetBackstageName( "2025.1.17.1043" );
-        var alreadyLoaded = GetBackstageName( "2026.1.22.854" );
+        AssemblyName[] alreadyLoaded = [GetBackstageName( "2026.1.22.854" )];
 
-        Assert.False( AssemblyResolutionPolicy.MatchesExactVersion( requested, alreadyLoaded ) );
-        Assert.False( AssemblyResolutionPolicy.AcceptsHigherVersionOfAlreadyLoadedAssembly( requested.Name!, isEmbeddedInCurrentBuild: true ) );
+        Assert.Equal( -1, AssemblyResolutionPolicy.SelectAlreadyLoadedAssembly( requested, alreadyLoaded, isEmbeddedInCurrentBuild: true ) );
     }
 
     /// <summary>
-    /// Verifies that an embedded assembly that is already loaded with exactly the requested version is still accepted.
+    /// Verifies that an assembly embedded in the current build is still satisfied by an already-loaded assembly of
+    /// exactly the requested version, which is what keeps a single copy of the assembly in processes such as
+    /// Metalama.Try.
     /// </summary>
     [Fact]
-    public void EmbeddedAssemblyAcceptsExactVersionOfAlreadyLoadedAssembly()
+    public void EmbeddedAssemblyIsSatisfiedByExactAlreadyLoadedVersion()
     {
         var requested = GetBackstageName( "2026.1.22.854" );
-        var alreadyLoaded = GetBackstageName( "2026.1.22.854" );
+        AssemblyName[] alreadyLoaded = [GetBackstageName( "2026.1.22.854" )];
 
-        Assert.True( AssemblyResolutionPolicy.MatchesExactVersion( requested, alreadyLoaded ) );
+        Assert.Equal( 0, AssemblyResolutionPolicy.SelectAlreadyLoadedAssembly( requested, alreadyLoaded, isEmbeddedInCurrentBuild: true ) );
     }
 
     /// <summary>
-    /// Verifies that a lower version of an embedded assembly never matches the request, whatever the resolution rules.
+    /// Verifies that an assembly of a lower version is never selected.
     /// </summary>
-    [Fact]
-    public void LowerVersionNeverMatches()
+    [Theory]
+    [InlineData( true )]
+    [InlineData( false )]
+    public void LowerAlreadyLoadedVersionIsNeverSelected( bool isEmbeddedInCurrentBuild )
     {
         var requested = GetBackstageName( "2026.1.22.854" );
-        var alreadyLoaded = GetBackstageName( "2025.1.17.1043" );
+        AssemblyName[] alreadyLoaded = [GetBackstageName( "2025.1.17.1043" )];
 
-        Assert.False( AssemblyResolutionPolicy.MatchesExactVersion( requested, alreadyLoaded ) );
-        Assert.False( AssemblyResolutionPolicy.MatchesSameOrHigherVersion( requested, alreadyLoaded ) );
+        Assert.Equal( -1, AssemblyResolutionPolicy.SelectAlreadyLoadedAssembly( requested, alreadyLoaded, isEmbeddedInCurrentBuild ) );
     }
 
     /// <summary>
     /// Verifies that an assembly that is not embedded in the current build, typically an assembly provided by the host
-    /// process such as Roslyn, is still resolved to a higher version that is already loaded.
+    /// process such as Roslyn, is still satisfied by a higher version that is already loaded. Our own assemblies may
+    /// request a lower version of Roslyn than the one that the host has loaded.
     /// </summary>
     [Fact]
-    public void NotEmbeddedAssemblyAcceptsHigherVersionOfAlreadyLoadedAssembly()
+    public void NotEmbeddedAssemblyIsSatisfiedByHigherAlreadyLoadedVersion()
     {
-        Assert.True( AssemblyResolutionPolicy.AcceptsHigherVersionOfAlreadyLoadedAssembly( "Microsoft.CodeAnalysis", isEmbeddedInCurrentBuild: false ) );
+        var requested = GetRoslynName( "4.12.0.0" );
+        AssemblyName[] alreadyLoaded = [GetRoslynName( "5.0.0.0" )];
 
-        var requested = new AssemblyName( "Microsoft.CodeAnalysis, Version=4.12.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35" );
-        var alreadyLoaded = new AssemblyName( "Microsoft.CodeAnalysis, Version=5.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35" );
-
-        Assert.True( AssemblyResolutionPolicy.MatchesSameOrHigherVersion( requested, alreadyLoaded ) );
+        Assert.Equal( 0, AssemblyResolutionPolicy.SelectAlreadyLoadedAssembly( requested, alreadyLoaded, isEmbeddedInCurrentBuild: false ) );
     }
 
     /// <summary>
-    /// Verifies that a request that does not specify a version is satisfied by any version, which is the case of the
-    /// requests issued by <see cref="Assembly.Load(string)"/> with a simple name.
+    /// Verifies that the exact requested version is preferred over a higher one, whatever the order in which the
+    /// assemblies were loaded.
     /// </summary>
     [Fact]
-    public void RequestWithoutVersionMatchesAnyVersion()
+    public void ExactAlreadyLoadedVersionIsPreferredOverHigherOne()
     {
-        var requested = new AssemblyName( _backstageName );
-        var alreadyLoaded = GetBackstageName( "2026.1.22.854" );
+        var requested = GetRoslynName( "4.12.0.0" );
+        AssemblyName[] alreadyLoaded = [GetRoslynName( "5.0.0.0" ), GetRoslynName( "4.12.0.0" )];
 
-        Assert.True( AssemblyResolutionPolicy.MatchesSameOrHigherVersion( requested, alreadyLoaded ) );
+        Assert.Equal( 1, AssemblyResolutionPolicy.SelectAlreadyLoadedAssembly( requested, alreadyLoaded, isEmbeddedInCurrentBuild: false ) );
+    }
+
+    /// <summary>
+    /// Verifies that a request that does not specify a version, as issued by <see cref="Assembly.Load(string)"/> with a
+    /// simple name, is satisfied by any version of an assembly that is not embedded in the current build.
+    /// </summary>
+    [Fact]
+    public void RequestWithoutVersionIsSatisfiedByAnyVersion()
+    {
+        var requested = new AssemblyName( "Microsoft.CodeAnalysis" );
+        AssemblyName[] alreadyLoaded = [GetRoslynName( "5.0.0.0" )];
+
+        Assert.Equal( 0, AssemblyResolutionPolicy.SelectAlreadyLoadedAssembly( requested, alreadyLoaded, isEmbeddedInCurrentBuild: false ) );
+    }
+
+    /// <summary>
+    /// Verifies that no assembly is selected when none of the already-loaded assemblies has the requested name.
+    /// </summary>
+    [Theory]
+    [InlineData( true )]
+    [InlineData( false )]
+    public void NoAssemblyIsSelectedWhenNoneMatchesTheName( bool isEmbeddedInCurrentBuild )
+    {
+        var requested = GetBackstageName( "2026.1.22.854" );
+        AssemblyName[] alreadyLoaded = [GetRoslynName( "5.0.0.0" )];
+
+        Assert.Equal( -1, AssemblyResolutionPolicy.SelectAlreadyLoadedAssembly( requested, alreadyLoaded, isEmbeddedInCurrentBuild ) );
     }
 }
