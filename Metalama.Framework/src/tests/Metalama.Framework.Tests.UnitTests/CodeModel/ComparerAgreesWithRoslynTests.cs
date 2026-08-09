@@ -11,7 +11,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Xunit;
 using Xunit.Abstractions;
-using ITypeSymbol = Microsoft.CodeAnalysis.ITypeSymbol;
 using SymbolEqualityComparer = Microsoft.CodeAnalysis.SymbolEqualityComparer;
 
 namespace Metalama.Framework.Tests.UnitTests.CodeModel;
@@ -111,8 +110,8 @@ public sealed class ComparerAgreesWithRoslynTests : UnitTestClass
         {
             foreach ( var (rightName, right) in types )
             {
-                var leftSymbol = (ITypeSymbol) left.GetSymbol()!;
-                var rightSymbol = (ITypeSymbol) right.GetSymbol()!;
+                var leftSymbol = left.GetSymbol()!;
+                var rightSymbol = right.GetSymbol()!;
                 var pair = $"{leftName} -> {rightName}";
 
                 var conversion = roslynCompilation.ClassifyConversion( leftSymbol, rightSymbol );

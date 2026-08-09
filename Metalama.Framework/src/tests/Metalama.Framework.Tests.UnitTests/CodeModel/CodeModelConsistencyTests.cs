@@ -246,4 +246,28 @@ public sealed class CodeModelConsistencyTests : UnitTestClass
                   ? $" arguments={string.Join( ",", named.TypeArguments.Select( a => $"{a}:{a.NullableAnnotation}" ) )}"
                   : "")
             : "not a type";
+
+    /// <summary>
+    /// Verifies that the serializable identifier of a method that takes a named tuple resolves back to that method.
+    /// </summary>
+    /// <remarks>
+    /// A declaration identifier is a documentation identifier, which renders a tuple as the ValueTuple it is and
+    /// cannot express the names of its elements. Resolving it therefore has to match the parameter by a comparison
+    /// that ignores those names, which is the identity conversion and not the equality of two types. See issue #1844.
+    /// </remarks>
+    [Theory]
+    [InlineData( "(int x, int y)" )]
+    [InlineData( "(int, int)" )]
+    public void DeclarationIdOfAMethodTakingATupleResolves( string parameterType )
+    {
+        using var testContext = this.CreateTestContext();
+        var compilation = testContext.CreateCompilationModel( $"class C {{ public void M( {parameterType} p ) {{ }} }}" );
+
+        var method = compilation.Types.OfName( "C" ).Single().Methods.OfName( "M" ).Single();
+
+        var id = method.ToSerializableId();
+        this.TestOutput.WriteLine( id.Id );
+
+        Assert.NotNull( id.ResolveToDeclaration( compilation ) );
+    }
 }

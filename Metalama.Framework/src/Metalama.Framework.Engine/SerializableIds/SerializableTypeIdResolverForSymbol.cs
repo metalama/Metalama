@@ -142,7 +142,9 @@ public sealed class SerializableTypeIdResolverForSymbol : SerializableTypeIdReso
                 // default is applied to a looked-up type here. Without it the two resolvers answer differently for an
                 // identifier that carries no nullability marker, such as the identifier of a tuple, where the name is
                 // returned as declared and therefore oblivious. See issue #1845.
-                return member is ITypeSymbol typeSymbol ? typeSymbol.ApplyDefaultNullability( false ) : (INamespaceOrTypeSymbol) member;
+                return member.Kind == SymbolKind.NamedType && member is ITypeSymbol typeSymbol
+                    ? typeSymbol.ApplyDefaultNullability( false )
+                    : (INamespaceOrTypeSymbol) member;
             }
         }
 

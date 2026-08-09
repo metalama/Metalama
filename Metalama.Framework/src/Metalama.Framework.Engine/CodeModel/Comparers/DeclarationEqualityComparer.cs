@@ -39,7 +39,9 @@ internal sealed partial class DeclarationEqualityComparer : IDeclarationComparer
     /// the language does not take them into account whereas <see cref="SymbolEqualityComparer"/> does.
     /// </summary>
     private static ITypeSymbol StripTupleElementNames( ITypeSymbol symbol )
-        => symbol is INamedTypeSymbol { IsTupleType: true, TupleUnderlyingType: { } underlyingType } ? underlyingType : symbol;
+        => symbol.Kind == SymbolKind.NamedType && symbol is INamedTypeSymbol { IsTupleType: true, TupleUnderlyingType: { } underlyingType }
+            ? underlyingType
+            : symbol;
 
     /// <summary>
     /// Determines whether the language defines an identity conversion between two types, without using their symbols.
@@ -174,9 +176,11 @@ internal sealed partial class DeclarationEqualityComparer : IDeclarationComparer
             // elements of a tuple, so it is not the equality of this comparer, which takes both into account. Answering
             // it with the equality made ConversionKind.Identical refuse 'object' and 'object?' whenever the comparer
             // that includes nullability was used, where the language accepts them. See issue #1846.
-            if ( !bypassSymbols && left.GetSymbol() is ITypeSymbol leftTypeSymbol && right.GetSymbol() is ITypeSymbol rightTypeSymbol )
+            if ( !bypassSymbols && left.GetSymbol() is { } leftTypeSymbol && right.GetSymbol() is { } rightTypeSymbol )
             {
-                return SymbolEqualityComparer.Default.Equals( StripTupleElementNames( leftTypeSymbol ), StripTupleElementNames( rightTypeSymbol ) );
+                return SymbolEqualityComparer.Default.Equals(
+                    StripTupleElementNames( leftTypeSymbol ),
+                    StripTupleElementNames( rightTypeSymbol ) );
             }
 
             return HasIdentityConversionWithoutSymbols( left, right );

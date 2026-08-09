@@ -86,10 +86,12 @@ internal class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeImpl
         var specialType = this.NamedTypeSymbol.SpecialType.ToOurSpecialType();
 
         // Only the definition of a generic type has a special type, as Roslyn reports it: a construction of
+        // it has none. A type that is not generic keeps its special type, whatever the generic context it was
+        // reached through, because the test below is also false for a non-generic type in a non-empty context.
         // Nullable<T> has none. The symbol is the definition when the construction is over a type an aspect
         // introduced, because such a construction has no symbol of its own, so the special type of the definition
         // would be reported for it. The other special types below already guard themselves the same way. See #1843.
-        if ( specialType != SpecialType.None && this.IsCanonicalGenericInstance )
+        if ( specialType != SpecialType.None && (!this.IsGeneric || this.IsCanonicalGenericInstance) )
         {
             return specialType;
         }
