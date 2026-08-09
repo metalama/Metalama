@@ -4,9 +4,11 @@
 
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.CodeModel;
+using Metalama.Framework.Engine.CodeModel.Abstractions;
 using Metalama.Framework.Engine.Collections;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Roslyn;
+using Microsoft.CodeAnalysis;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -66,18 +68,49 @@ public sealed class SerializableTypeIdResolverForIType : SerializableTypeIdResol
 
     protected override IType CreateNullableType( IType elementType ) => elementType.ToNullable();
 
-    protected override IType AddNonNullableAnnotation( IType referenceType ) => referenceType.ToNonNullable();
+    protected override IType AddNonNullableAnnotation( IType referenceType )
+    {
+        // A type parameter is annotated rather than stripped. IType.ToNonNullable removes the annotation of a type
+        // parameter, because C# cannot state that a type parameter is non-nullable and because the code model answers
+        // the same nullability for the declaration of a parameter and for a use of it, so it cannot tell them apart.
+        // A type parameter appearing as the type argument of a type annotated as non-nullable is nonetheless annotated
+        // in the source the identifier was built from, and removing the annotation made the resolved type differ from
+        // it, where the resolver of symbols reproduced it. The identifier of a type parameter that is itself the
+        // outermost type carries no marker, so this method is never asked to annotate one. See issue #1839.
+        if ( referenceType is ITypeParameter and ISymbolBasedCompilationElement symbolBasedType )
+        {
+            var typeSymbol = (ITypeSymbol) symbolBasedType.Symbol;
+
+            return typeSymbol.NullableAnnotation == NullableAnnotation.NotAnnotated
+                ? referenceType
+                : this._compilation.Factory.GetIType(
+                    typeSymbol.WithNullableAnnotation( NullableAnnotation.NotAnnotated ),
+                    defaultNullability: null );
+        }
+
+        return referenceType.ToNonNullable();
+    }
 
     protected override IType ConstructGenericType( IType genericType, IType[] typeArguments )
         => genericType.AssertCast<INamedType>().WithTypeArguments( typeArguments );
 
-    protected override IType CreateTupleType( ImmutableArray<IType> elementTypes )
+    protected override IType CreateTupleType( ImmutableArray<IType> elementTypes, ImmutableArray<string?> elementNames )
     {
         Invariant.Assert( elementTypes.Length >= 2 );
 
-        var tupleType = this._compilation.Factory.GetTypeByReflectionName( $"System.ValueTuple`{elementTypes.Length}" );
+        // The construction is delegated to the factory rather than repeated here. Looking System.ValueTuple up by the
+        // arity of the tuple is correct only up to seven elements: the type is declared for the arities one to eight,
+        // and its eighth type parameter holds the remaining elements and must itself be a tuple, which the factory
+        // nests correctly. See issues #1841 and #1842.
+        if ( elementNames.All( n => n == null ) )
+        {
+            return this._compilation.Factory.CreateTupleType( elementTypes );
+        }
 
-        return tupleType.WithTypeArguments( elementTypes.ToArray() );
+        // An element that is not named takes the default name of its position, which is what an unnamed element of a
+        // tuple is called and is therefore not a name of its own.
+        return this._compilation.Factory.CreateTupleType(
+            elementTypes.Select( ( type, index ) => (Type: type, Name: elementNames[index] ?? $"Item{index + 1}") ) );
     }
 
     protected override IType DynamicType => this._compilation.Factory.GetIType( this._compilation.RoslynCompilation.DynamicType );

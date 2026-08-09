@@ -38,6 +38,18 @@ public static partial class SerializableDeclarationIdProvider
 
     public static ISymbol? ResolveToSymbolOrNull( this SerializableDeclarationId id, CompilationContext compilationContext, out bool isReturnParameter )
     {
+        // The nullable annotation is carried by the identifier but is not part of the documentation identifier that
+        // names the declaration, so it is removed before the lookup and applied to its result.
+        var idWithoutNullability = id.StripNullability( out var isNullable );
+
+        return ApplyNullability( ResolveToSymbolOrNullCore( idWithoutNullability, compilationContext, out isReturnParameter ), isNullable );
+    }
+
+    private static ISymbol? ResolveToSymbolOrNullCore(
+        SerializableDeclarationId id,
+        CompilationContext compilationContext,
+        out bool isReturnParameter )
+    {
         var compilation = compilationContext.Compilation;
 
         isReturnParameter = false;

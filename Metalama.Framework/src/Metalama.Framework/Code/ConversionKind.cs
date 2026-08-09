@@ -40,9 +40,23 @@ namespace Metalama.Framework.Code
         TypeDefinition,
 
         /// <summary>
-        /// Requires the types to be exactly identical (type equality). No conversions are accepted.
+        /// Accepts only the types between which the language defines an identity conversion. As in the language, the
+        /// nullability of a reference type and the names of the elements of a tuple do not take part, so
+        /// <c>object</c> and <c>object?</c>, and <c>(int A, int B)</c> and <c>(int, int)</c>, are accepted.
         /// </summary>
+        /// <remarks>
+        /// This is the comparison to use to match a signature, because overload resolution ignores both. Use
+        /// <see cref="Equal"/> to require the types to be equal, which is a stricter question and the one the
+        /// comparers of <see cref="Comparers.ICompilationComparers"/> answer.
+        /// </remarks>
         Identical,
+
+        /// <summary>
+        /// Accepts only the types that are equal, as the comparer that is being used defines equality. Unlike
+        /// <see cref="Identical"/>, the names of the elements of a tuple take part, and the nullability of a
+        /// reference type takes part when the comparer is <see cref="Comparers.ICompilationComparers.IncludeNullability"/>.
+        /// </summary>
+        Equal,
 
         [Obsolete( "Use Reference.", true )]
         ImplicitReference = Reference

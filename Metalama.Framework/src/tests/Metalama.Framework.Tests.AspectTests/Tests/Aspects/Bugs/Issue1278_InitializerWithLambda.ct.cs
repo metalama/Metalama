@@ -26,7 +26,7 @@ public class TheAspect : TypeAspect
     {
       List<StatementOrTrivia> __s2 = new List<StatementOrTrivia>();
       bool __skip2 = false;
-      ITemplateSyntaxFactory localTemplateSyntaxFactory1 = templateSyntaxFactory.ForLocalFunction("Y:global::System.Int32!", null, false);
+      ITemplateSyntaxFactory localTemplateSyntaxFactory1 = templateSyntaxFactory.ForLocalFunction("Y:global::System.Int32", null, false);
       if (TheAspect.RequestedPermission == Permission.NotSet)
       {
         // return 0;

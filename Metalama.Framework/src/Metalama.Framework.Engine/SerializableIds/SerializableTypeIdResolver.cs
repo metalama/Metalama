@@ -171,7 +171,15 @@ public abstract class SerializableTypeIdResolver<TType, TTypeOrNamespace>
 
     protected abstract TType ConstructGenericType( TType genericType, TType[] typeArguments );
 
-    protected abstract TType CreateTupleType( ImmutableArray<TType> elementTypes );
+    /// <summary>
+    /// Creates a tuple type from its elements. An entry of <paramref name="elementNames"/> is <c>null</c> where the
+    /// element is not named.
+    /// </summary>
+    /// <remarks>
+    /// The names are part of the type and are written into the identifier, because it is written in tuple syntax, so
+    /// they are read from it and passed on. See issue #1841.
+    /// </remarks>
+    protected abstract TType CreateTupleType( ImmutableArray<TType> elementTypes, ImmutableArray<string?> elementNames );
 
     protected abstract TType DynamicType { get; }
 
@@ -409,7 +417,13 @@ public abstract class SerializableTypeIdResolver<TType, TTypeOrNamespace>
                 return results.FirstOrDefault( r => !r.IsSuccess );
             }
 
-            return ResolverResult.Success( this._parent.CreateTupleType( results.SelectAsImmutableArray( x => x.Type ) ) );
+            // Tuple syntax carries the name of each element, which is part of the type, so the names are read from the
+            // identifier rather than dropped. An element that is not named has no identifier token.
+            var elementNames = node.Elements.SelectAsImmutableArray(
+                e => e.Identifier.IsKind( SyntaxKind.None ) ? null : e.Identifier.ValueText );
+
+            return ResolverResult.Success(
+                this._parent.CreateTupleType( results.SelectAsImmutableArray( x => x.Type ), elementNames ) );
         }
 
         public override ResolverResult DefaultVisit( SyntaxNode node ) => throw new InvalidOperationException( $"Unexpected node {node.Kind()}." );
