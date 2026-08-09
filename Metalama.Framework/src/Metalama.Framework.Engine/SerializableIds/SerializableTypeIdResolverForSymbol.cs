@@ -95,6 +95,11 @@ public sealed class SerializableTypeIdResolverForSymbol : SerializableTypeIdReso
     protected override ITypeSymbol AddNonNullableAnnotation( ITypeSymbol referenceType )
         => referenceType.WithNullableAnnotation( NullableAnnotation.NotAnnotated );
 
+    protected override ITypeSymbol AddObliviousAnnotation( ITypeSymbol type )
+        => type.Kind == SymbolKind.TypeParameter || type.IsReferenceType
+            ? type.WithNullableAnnotation( NullableAnnotation.None )
+            : type;
+
     protected override ITypeSymbol ConstructGenericType( ITypeSymbol genericType, ITypeSymbol[] typeArguments )
     {
         var namedType = genericType.AssertCast<INamedTypeSymbol>();

@@ -111,18 +111,9 @@ public sealed class CodeModelConsistencyTests : UnitTestClass
     /// passed to <c>CreateArrayTypeSymbol</c> explicitly.
     /// </para>
     /// </remarks>
-    /// <remarks>
-    /// <para>
-    /// Only the annotated context is covered. An identifier written in an unannotated context is correct, carrying no
-    /// marker, but resolving it yields <c>NotAnnotated</c> for every reference position where the source had
-    /// <c>None</c>, because the resolver has no operation that makes a type oblivious: it can add the non-nullable
-    /// annotation and it cannot remove it. That is a defect of the resolver rather than of the identifier, it predates
-    /// the marker being derived from the whole type, and it needs the mirror of
-    /// <c>AddNonNullableAnnotation</c>, applied to reference types and type parameters alone.
-    /// </para>
-    /// </remarks>
     [Theory]
     [InlineData( "enable" )]
+    [InlineData( "disable" )]
     public void ATypeResolvesFromItsIdentifierToItself( string nullableContext )
     {
         using var testContext = this.CreateTestContext();
