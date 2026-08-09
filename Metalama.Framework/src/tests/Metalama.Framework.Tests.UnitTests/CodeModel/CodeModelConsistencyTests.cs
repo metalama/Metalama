@@ -147,7 +147,7 @@ public sealed class CodeModelConsistencyTests : UnitTestClass
 
         foreach ( var field in compilation.Types.OfName( "C" ).Single().Fields.Where( f => !f.IsImplicitlyDeclared ) )
         {
-            var symbol = (Microsoft.CodeAnalysis.ITypeSymbol) field.Type.GetSymbol()!;
+            var symbol = field.Type.GetSymbol()!;
             var id = symbol.GetSerializableTypeId();
             var roundTrip = compilation.CompilationContext.SerializableTypeIdResolver.ResolveId( id );
 
