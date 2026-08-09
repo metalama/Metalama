@@ -27,7 +27,7 @@ public static class SerializableTypeIdGenerator
     private static readonly WeakCache<Type, SerializableTypeId> _reflectionTypeIdCache = new( isStaticCache: true );
 
     /// <summary>
-    /// Determines whether a position of a type carries information about the nullable context it was written in, which
+    /// Determines whether a type reference carries information about the nullable context it was written in, which
     /// a reference type and a type parameter do and no other type does.
     /// </summary>
     /// <remarks>
@@ -56,22 +56,22 @@ public static class SerializableTypeIdGenerator
     /// <remarks>
     /// <para>
     /// The meaning of the marker, and the format of an identifier as a whole, are documented on
-    /// <see cref="SerializableTypeId"/>. In short, <c>?</c> states that one position is nullable and the marker states
-    /// that the whole reference was written in an annotated context, so that every position without a <c>?</c> is
+    /// <see cref="SerializableTypeId"/>. In short, <c>?</c> states that one type reference is nullable and the marker states
+    /// that the whole reference was written in an annotated context, so that every type reference without a <c>?</c> is
     /// non-nullable rather than oblivious. The two are not alternatives and can both appear.
     /// </para>
     /// <para>
     /// A reference belongs to a single nullable context, that of the place it was written, so one bit describes all of
-    /// its positions. The context is not recorded on a symbol and has to be recovered from the annotations, which the
-    /// whole tree of the type is searched for: any informative position that is not
-    /// <see cref="NullableAnnotation.None"/> proves the context was annotated. Reading the outermost position alone was
+    /// its type references. The context is not recorded on a symbol and has to be recovered from the annotations, which the
+    /// whole tree of the type is searched for: any informative type reference that is not
+    /// <see cref="NullableAnnotation.None"/> proves the context was annotated. Reading the outermost type reference alone was
     /// not enough, because it is uninformative whenever it is a value type, as in
-    /// <c>KeyValuePair&lt;string, string&gt;</c> or a tuple, and because an annotated outermost type says the position
+    /// <c>KeyValuePair&lt;string, string&gt;</c> or a tuple, and because an annotated outermost type says the type reference
     /// is nullable rather than that the context was unannotated, as in <c>List&lt;string&gt;?</c>. In each of those the
     /// marker was omitted and the reference types nested in the type came back oblivious.
     /// </para>
     /// <para>
-    /// A type with no informative position at all, such as <c>KeyValuePair&lt;int, int&gt;</c>, needs no marker,
+    /// A type with no informative type reference at all, such as <c>KeyValuePair&lt;int, int&gt;</c>, needs no marker,
     /// nothing in it being able to be oblivious.
     /// </para>
     /// <para>
@@ -147,7 +147,7 @@ public static class SerializableTypeIdGenerator
 
     /// <summary>
     /// Answers what <see cref="IsWrittenInAnnotatedContext(ITypeSymbol)"/> answers, over the code model rather than
-    /// over a symbol. A position is informative when it is a reference type or a type parameter, and it proves the
+    /// over a symbol. A type reference is informative when it is a reference type or a type parameter, and it proves the
     /// context annotated when its nullability is known, <c>null</c> being how the code model reports obliviousness.
     /// </summary>
     private static bool IsWrittenInAnnotatedContext( IType type )
@@ -164,7 +164,7 @@ public static class SerializableTypeIdGenerator
                    && typeSymbol.NullableAnnotation == NullableAnnotation.NotAnnotated;
         }
 
-        // See the overload over a symbol: only a known non-nullable position proves the context, a nullable one being
+        // See the overload over a symbol: only a known non-nullable type reference proves the context, a nullable one being
         // written the same way in either.
         if ( type.IsReferenceType != false && type.IsNullable == false )
         {
@@ -203,7 +203,7 @@ public static class SerializableTypeIdGenerator
     /// </summary>
     /// <remarks>
     /// A reflection type cannot say which context it was written in, so an annotated one is assumed whenever the type
-    /// has a position that could be oblivious. This is the assumption the identifier of a reflection type has always
+    /// has a type reference that could be oblivious. This is the assumption the identifier of a reflection type has always
     /// made, and it is what keeps the three overloads producing the same string for a type of an annotated context.
     /// </remarks>
     private static bool IsWrittenInAnnotatedContext( Type type )

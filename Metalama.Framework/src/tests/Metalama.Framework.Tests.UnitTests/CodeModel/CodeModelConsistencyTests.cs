@@ -100,10 +100,10 @@ public sealed class CodeModelConsistencyTests : UnitTestClass
     /// <remarks>
     /// <para>
     /// The identifier records the context in a single marker, so the corpus has to contain a type whose outermost
-    /// position says nothing about the context. A value type is not annotated in either context, so
-    /// <c>KeyValuePair&lt;string, string&gt;</c> and a tuple are uninformative at their outermost position, and an
-    /// annotated reference type says that the position is nullable rather than that the context was unannotated, which
-    /// <c>List&lt;string&gt;?</c> covers. Reading the outermost position alone left the reference types nested in each
+    /// type reference says nothing about the context. A value type is not annotated in either context, so
+    /// <c>KeyValuePair&lt;string, string&gt;</c> and a tuple are uninformative at their outermost type reference, and an
+    /// annotated reference type says that the type reference is nullable rather than that the context was unannotated, which
+    /// <c>List&lt;string&gt;?</c> covers. Reading the outermost type reference alone left the reference types nested in each
     /// of those oblivious.
     /// </para>
     /// <para>
@@ -168,7 +168,7 @@ public sealed class CodeModelConsistencyTests : UnitTestClass
     }
 
     /// <summary>
-    /// Renders the nullable annotation of a type and of the positions nested in it, which the display string does not
+    /// Renders the nullable annotation of a type and of the type references nested in it, which the display string does not
     /// show and which is what these assertions are about.
     /// </summary>
     private static string DescribeAnnotations( Microsoft.CodeAnalysis.ITypeSymbol symbol )

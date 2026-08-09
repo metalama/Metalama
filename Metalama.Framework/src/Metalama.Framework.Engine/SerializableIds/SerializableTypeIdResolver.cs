@@ -179,7 +179,7 @@ public abstract class SerializableTypeIdResolver<TType, TTypeOrNamespace>
     /// reference type and to a type parameter alone, a value type being not annotated in either context because it can
     /// never be oblivious.
     /// </remarks>
-    protected abstract TType AddObliviousAnnotation( TType type );
+    protected abstract TType AddNullObliviousAnnotation( TType type );
 
     protected abstract TType ConstructGenericType( TType genericType, TType[] typeArguments );
 
@@ -343,7 +343,7 @@ public abstract class SerializableTypeIdResolver<TType, TTypeOrNamespace>
             }
             else
             {
-                return ResolverResult.Success( this._parent.AddObliviousAnnotation( result.Type ) );
+                return ResolverResult.Success( this._parent.AddNullObliviousAnnotation( result.Type ) );
             }
         }
 
@@ -472,7 +472,7 @@ public abstract class SerializableTypeIdResolver<TType, TTypeOrNamespace>
             if ( node.Keyword.Kind() is SyntaxKind.ObjectKeyword or SyntaxKind.StringKeyword )
             {
                 result = this._isNullOblivious
-                    ? this._parent.AddObliviousAnnotation( result )
+                    ? this._parent.AddNullObliviousAnnotation( result )
                     : this._parent.AddNonNullableAnnotation( result );
             }
 

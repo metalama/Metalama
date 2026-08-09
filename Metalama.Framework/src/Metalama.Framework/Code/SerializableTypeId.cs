@@ -20,11 +20,11 @@ namespace Metalama.Framework.Code;
 /// <c>T?</c>.
 /// </para>
 /// <para>
-/// The two nullability markers describe different things and are not alternatives. <c>?</c> belongs to one position and means
-/// that this position is nullable, exactly as in C#. The <c>!</c> at the end belongs to the whole identifier and means that
-/// the type was written in an annotated nullable context, so that every position without a <c>?</c> is non-nullable rather
+/// The two nullability markers describe different things and are not alternatives. <c>?</c> belongs to one type reference and means
+/// that this type reference is nullable, exactly as in C#. The <c>!</c> at the end belongs to the whole identifier and means that
+/// the type was written in an annotated nullable context, so that every type reference without a <c>?</c> is non-nullable rather
 /// than oblivious. A reference belongs to a single nullable context, that of the place it was written, which is why one
-/// marker suffices for all of its positions.
+/// marker suffices for all of its type references.
 /// </para>
 /// <list type="table">
 /// <listheader><term>Identifier</term><description>Type</description></listheader>
@@ -41,11 +41,11 @@ namespace Metalama.Framework.Code;
 /// </item>
 /// </list>
 /// <para>
-/// An identifier that carries no marker therefore resolves to a type every position of which is oblivious to nullability, and
+/// An identifier that carries no marker therefore resolves to a type every type reference of which is oblivious to nullability, and
 /// not to a non-nullable one.
 /// </para>
 /// <para>
-/// The marker is written whenever any position of the type proves the context annotated, and applies to every type the
+/// The marker is written whenever any type reference of the type proves the context annotated, and applies to every type the
 /// identifier names when it is resolved. Only a reference type and a type parameter prove anything: a value type is not
 /// annotated in an unannotated context any more than in an annotated one, because it can never be oblivious. A type with no
 /// reference type and no type parameter anywhere in it, such as <c>KeyValuePair&lt;int, int&gt;</c>, therefore carries no
