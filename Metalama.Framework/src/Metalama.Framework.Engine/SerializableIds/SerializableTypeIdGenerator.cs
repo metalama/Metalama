@@ -29,6 +29,10 @@ public static class SerializableTypeIdGenerator
     /// </summary>
     /// <remarks>
     /// <para>
+    /// The meaning of the marker, and the format of an identifier as a whole, are documented on
+    /// <see cref="SerializableTypeId"/>.
+    /// </para>
+    /// <para>
     /// The overloads of <c>GetSerializableTypeId</c> have to produce the same string for the same type, because
     /// <c>CompileTimeType</c> equality and the cache of <c>CompileTimeTypeFactory</c> key on it. This method is the
     /// test that the <see cref="Code.IType"/> overload applies, expressed over a symbol. Testing the annotation alone
