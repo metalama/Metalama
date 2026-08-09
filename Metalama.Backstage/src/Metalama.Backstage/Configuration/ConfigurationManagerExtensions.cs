@@ -35,12 +35,9 @@ namespace Metalama.Backstage.Configuration
         public static bool UpdateIf<T>( this IConfigurationManager configurationManager, Predicate<T> condition, Func<T, T> updateFunc )
             where T : ConfigurationFile
         {
-            T newSettings;
-            T originalSettings;
-
             var attempts = 0;
 
-            do
+            while ( true )
             {
                 attempts++;
 
@@ -59,7 +56,7 @@ namespace Metalama.Backstage.Configuration
                     return false;
                 }
 
-                originalSettings = configurationManager.Get<T>( true );
+                var originalSettings = configurationManager.Get<T>( true );
 
                 if ( !condition( originalSettings ) )
                 {
@@ -69,7 +66,7 @@ namespace Metalama.Backstage.Configuration
                     return false;
                 }
 
-                newSettings = updateFunc( originalSettings );
+                var newSettings = updateFunc( originalSettings );
 
                 if ( originalSettings.Timestamp.HasValue && newSettings.Equals( originalSettings ) )
                 {
@@ -77,21 +74,24 @@ namespace Metalama.Backstage.Configuration
 
                     return false;
                 }
-            }
-            while ( !configurationManager.TryUpdate( newSettings, originalSettings.Timestamp ) );
 
-            return true;
+                switch ( TryUpdateCore( configurationManager, newSettings, originalSettings.Timestamp ) )
+                {
+                    case UpdateResult.Updated:
+                        return true;
+
+                    case UpdateResult.Abandoned:
+                        return false;
+                }
+            }
         }
 
         public static bool Update<T>( this IConfigurationManager configurationManager, Func<T, T> updateFunc )
             where T : ConfigurationFile, new()
         {
-            T newSettings;
-            T originalSettings;
-
             var attempts = 0;
 
-            do
+            while ( true )
             {
                 attempts++;
 
@@ -110,9 +110,9 @@ namespace Metalama.Backstage.Configuration
                     return false;
                 }
 
-                originalSettings = configurationManager.Get<T>( true );
+                var originalSettings = configurationManager.Get<T>( true );
 
-                newSettings = updateFunc( originalSettings );
+                var newSettings = updateFunc( originalSettings );
 
                 if ( originalSettings.Timestamp.HasValue && newSettings.Equals( originalSettings ) )
                 {
@@ -120,10 +120,63 @@ namespace Metalama.Backstage.Configuration
 
                     return false;
                 }
-            }
-            while ( !configurationManager.TryUpdate( newSettings, originalSettings.Timestamp ) );
 
-            return true;
+                switch ( TryUpdateCore( configurationManager, newSettings, originalSettings.Timestamp ) )
+                {
+                    case UpdateResult.Updated:
+                        return true;
+
+                    case UpdateResult.Abandoned:
+                        return false;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Performs a single attempt of the optimistic update loop, and reports whether the update succeeded, must be
+        /// retried, or must be abandoned.
+        /// </summary>
+        /// <remarks>
+        /// An update is abandoned when the global configuration mutex is unavailable. Retrying would wait for the same
+        /// mutex again, and no configuration file is important enough to fail the operation during which it is written.
+        /// See issue #1847.
+        /// </remarks>
+        private static UpdateResult TryUpdateCore(
+            IConfigurationManager configurationManager,
+            ConfigurationFile newSettings,
+            ConfigurationFileTimestamp? expectedTimestamp )
+        {
+            try
+            {
+                return configurationManager.TryUpdate( newSettings, expectedTimestamp ) ? UpdateResult.Updated : UpdateResult.Conflict;
+            }
+            catch ( ConfigurationMutexTimeoutException e )
+            {
+                configurationManager.Logger.Error?.Log( $"The configuration {newSettings.GetType().Name} was not updated. {e.Message}" );
+
+                return UpdateResult.Abandoned;
+            }
+        }
+
+        /// <summary>
+        /// The outcome of a single attempt of the optimistic update loop.
+        /// </summary>
+        private enum UpdateResult
+        {
+            /// <summary>
+            /// The configuration file was written.
+            /// </summary>
+            Updated,
+
+            /// <summary>
+            /// The configuration file was modified by somebody else since it was read, so the update must be retried.
+            /// </summary>
+            Conflict,
+
+            /// <summary>
+            /// The configuration file could not be written and the update must not be retried.
+            /// </summary>
+            Abandoned
         }
     }
 }

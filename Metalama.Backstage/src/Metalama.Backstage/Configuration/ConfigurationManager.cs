@@ -34,12 +34,35 @@ namespace Metalama.Backstage.Configuration
         private readonly IJsonSerializationService _jsonSerializationService;
         private readonly ConcurrentDictionary<string, string> _fileChanges = new( StringComparer.Ordinal );
 
+        /// <summary>
+        /// The default time during which an acquisition of <see cref="_mutex"/> waits before it is abandoned.
+        /// </summary>
+        private const int _defaultMutexTimeoutMilliseconds = 30000;
+
+        private readonly int _mutexTimeoutMilliseconds;
+
         // Named semaphore to handle many instances.
         private readonly Mutex _mutex;
         private volatile int _fileChangeProcessingTaskStatus;
 
-        public ConfigurationManager( IServiceProvider serviceProvider )
+        /// <summary>
+        /// A value indicating whether the last attempt to acquire <see cref="_mutex"/> timed out, in which case the next
+        /// attempts do not wait for it. See <see cref="TryAcquireMutex"/>.
+        /// </summary>
+        private volatile bool _isMutexUnavailable;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ConfigurationManager"/> class.
+        /// </summary>
+        /// <param name="serviceProvider">The service provider.</param>
+        /// <param name="mutexTimeoutMilliseconds">
+        /// The time during which an acquisition of the global configuration mutex waits before it is abandoned. Only a
+        /// test passes a value other than the default one, so that it does not have to wait for the real timeout.
+        /// </param>
+        public ConfigurationManager( IServiceProvider serviceProvider, int mutexTimeoutMilliseconds = _defaultMutexTimeoutMilliseconds )
         {
+            this._mutexTimeoutMilliseconds = mutexTimeoutMilliseconds;
+
             if ( !string.IsNullOrEmpty( Environment.GetEnvironmentVariable( "METALAMA_DEBUG_CONFIGURATION_MANAGER" ) ) )
             {
                 DebuggerHelper.Launch();
@@ -96,7 +119,16 @@ namespace Metalama.Backstage.Configuration
                 // waiting here is annoying for debugging.
                 Thread.Sleep( 100 );
 
-                using ( this.WithMutex() )
+                if ( !this.TryAcquireMutex( out var mutexHandle ) )
+                {
+                    // The changes stay in the buffer, so that they are processed by the next notification, once the
+                    // mutex has become available again.
+                    this._fileChangeProcessingTaskStatus = 0;
+
+                    return;
+                }
+
+                using ( mutexHandle )
                 {
                     void Process()
                     {
@@ -169,9 +201,16 @@ namespace Metalama.Backstage.Configuration
 
         public ConfigurationFile Get( Type type, bool ignoreCache = false )
         {
-            ConfigurationFile GetCore()
+            // Returns null when the configuration could not be read because the global configuration mutex was
+            // unavailable.
+            ConfigurationFile? GetCore()
             {
-                using ( this.WithMutex() )
+                if ( !this.TryAcquireMutex( out var mutexHandle ) )
+                {
+                    return null;
+                }
+
+                using ( mutexHandle )
                 {
                     this.Logger.Trace?.Log( $"Loading configuration {type.Name} from file." );
 
@@ -180,28 +219,43 @@ namespace Metalama.Backstage.Configuration
                         return value;
                     }
 
-                    var settingsObject = Activator.CreateInstance( type )
-                                         ?? throw new InvalidOperationException( $"Failed to create instance of '{type.FullName}' type." );
-
-                    var settings = (ConfigurationFile) settingsObject;
-
-                    return settings;
+                    return CreateDefaultInstance( type );
                 }
             }
 
-            ConfigurationFile settings;
+            ConfigurationFile? settings;
 
             if ( ignoreCache )
             {
                 settings = GetCore();
-                this.AddToCache( settings );
+
+                if ( settings != null )
+                {
+                    this.AddToCache( settings );
+                }
             }
-            else
+            else if ( !this._instances.TryGetValue( type, out settings ) )
             {
-                settings = this._instances.GetOrAdd( type, _ => GetCore() );
+                settings = GetCore();
+
+                if ( settings != null )
+                {
+                    settings = this._instances.GetOrAdd( type, settings );
+                }
             }
 
-            return settings;
+            // When the mutex is unavailable, degrade to the default configuration instead of failing the operation
+            // during which the configuration happens to be read. The default value is deliberately not cached, so that
+            // a later read returns the real configuration once the mutex becomes available again. See issue #1847.
+            return settings ?? CreateDefaultInstance( type );
+        }
+
+        private static ConfigurationFile CreateDefaultInstance( Type type )
+        {
+            var settingsObject = Activator.CreateInstance( type )
+                                 ?? throw new InvalidOperationException( $"Failed to create instance of '{type.FullName}' type." );
+
+            return (ConfigurationFile) settingsObject;
         }
 
         public event Action<ConfigurationFile>? ConfigurationFileChanged;
@@ -236,7 +290,13 @@ namespace Metalama.Backstage.Configuration
 
         public bool TryUpdate( ConfigurationFile value, ConfigurationFileTimestamp? expectedTimestamp )
         {
-            using ( this.WithMutex() )
+            if ( !this.TryAcquireMutex( out var mutexHandle ) )
+            {
+                throw new ConfigurationMutexTimeoutException(
+                    $"Cannot update '{this.GetFilePath( value.GetType() )}' because the global configuration mutex cannot be acquired." );
+            }
+
+            using ( mutexHandle )
             {
                 var type = value.GetType();
                 var fileName = this.GetFilePath( type );
@@ -407,17 +467,46 @@ namespace Metalama.Backstage.Configuration
             }
         }
 
-        private DisposableAction WithMutex()
+        /// <summary>
+        /// Attempts to acquire the global configuration mutex, and returns <c>false</c> when it cannot be acquired
+        /// within the configured timeout.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Failing to acquire the mutex must never fail the operation during which the configuration happens to be read
+        /// or written, so this method reports the failure instead of throwing. See issue #1847: the mutex was acquired
+        /// on behalf of housekeeping, such as usage telemetry, and the resulting exception aborted the compilation.
+        /// </para>
+        /// <para>
+        /// Once an acquisition has timed out, the following ones do not wait at all until one succeeds again. The mutex
+        /// is then either abandoned in a state in which it can no longer be acquired, or contended by many processes,
+        /// and in both cases waiting for the full timeout on every subsequent configuration access would block the
+        /// process for minutes.
+        /// </para>
+        /// </remarks>
+        private bool TryAcquireMutex( out DisposableAction mutexHandle )
         {
             try
             {
                 if ( !this._mutex.WaitOne( 0 ) )
                 {
+                    var isKnownUnavailable = this._isMutexUnavailable;
+
                     this.Logger.Trace?.Log( $"Waiting for the configuration mutex." );
 
-                    if ( !this._mutex.WaitOne( 30000 ) )
+                    if ( !this._mutex.WaitOne( isKnownUnavailable ? 0 : this._mutexTimeoutMilliseconds ) )
                     {
-                        throw new TimeoutException( "Cannot acquire the global configuration mutex in 30s." );
+                        if ( !isKnownUnavailable )
+                        {
+                            this._isMutexUnavailable = true;
+
+                            this.Logger.Error?.Log(
+                                $"Cannot acquire the global configuration mutex in {this._mutexTimeoutMilliseconds} ms. The configuration is ignored until the mutex becomes available again." );
+                        }
+
+                        mutexHandle = default;
+
+                        return false;
                     }
                 }
             }
@@ -426,11 +515,13 @@ namespace Metalama.Backstage.Configuration
                 this.Logger.Trace?.Log( $"The mutex has been abandoned by another process." );
             }
 
+            this._isMutexUnavailable = false;
+
             this.Logger.Trace?.Log( $"Configuration mutex acquired." );
 
             var stopwatch = Stopwatch.StartNew();
 
-            return new DisposableAction(
+            mutexHandle = new DisposableAction(
                 () =>
                 {
                     this.Logger.Trace?.Log( $"Releasing configuration mutex. It was held for {stopwatch.ElapsedMilliseconds} ms." );
@@ -442,6 +533,8 @@ namespace Metalama.Backstage.Configuration
 
                     this._mutex.ReleaseMutex();
                 } );
+
+            return true;
         }
 
         public void Dispose()
