@@ -66,6 +66,11 @@ public sealed class ComparerAgreesWithRoslynTests : UnitTestClass
                                      public S? NullableStruct;
                                      public (int Count, string Name) NamedTuple;
                                      public (int, string) UnnamedTuple;
+                                     public (int Other, string Different) DifferentlyNamedTuple;
+                                     public List<(int Count, string Name)> ListOfNamedTuple = null!;
+                                     public List<(int Other, string Different)> ListOfDifferentlyNamedTuple = null!;
+                                     public (int Count, string Name)[] ArrayOfNamedTuple = null!;
+                                     public (int Other, string Different)[] ArrayOfDifferentlyNamedTuple = null!;
                                      public A A = null!;
                                      public B B = null!;
                                      public I I = null!;

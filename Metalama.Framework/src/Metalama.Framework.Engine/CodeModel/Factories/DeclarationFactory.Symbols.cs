@@ -557,15 +557,74 @@ public partial class DeclarationFactory
     /// </remarks>
     private static INamedTypeSymbol ApplyTupleElementNames( Compilation compilation, INamedTypeSymbol symbol, ImmutableArray<string> elementNames )
     {
-        // A tuple whose elements are not named reports the default name of each position, which is not a name of its
-        // own, so such a tuple is left alone rather than rebuilt as one that names its elements explicitly.
-        if ( elementNames.IsDefaultOrEmpty
-             || !elementNames.Where( ( name, index ) => !string.IsNullOrEmpty( name ) && name != $"Item{index + 1}" ).Any() )
+        if ( elementNames.IsDefaultOrEmpty || !HasExplicitElementName( elementNames ) )
         {
             return symbol;
         }
 
+        // CastArray reinterprets the array rather than copying it, string and string? being the same type at run time,
+        // and it is required because ImmutableArray<T> is invariant.
         return compilation.CreateTupleTypeSymbol( symbol.TupleUnderlyingType ?? symbol, elementNames.CastArray<string?>() );
+    }
+
+    /// <summary>
+    /// Determines whether any element of a tuple is named, the default name that each unnamed position reports not
+    /// counting as a name of its own.
+    /// </summary>
+    /// <remarks>
+    /// A tuple whose elements are not named is left alone rather than rebuilt as one that names its elements
+    /// explicitly, which would print as <c>(int Item1, string Item2)</c>.
+    /// </remarks>
+    private static bool HasExplicitElementName( ImmutableArray<string> elementNames )
+    {
+        for ( var i = 0; i < elementNames.Length; i++ )
+        {
+            var name = elementNames[i];
+
+            if ( !string.IsNullOrEmpty( name ) && !IsDefaultElementName( name, i ) )
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Determines whether the given name is the default name of the element at the given index, which is
+    /// <c>Item</c> followed by the position of the element, counted from one.
+    /// </summary>
+    private static bool IsDefaultElementName( string name, int index )
+    {
+        const string prefix = "Item";
+
+        // The comparison is written out rather than made against an interpolated string, so that it allocates nothing.
+        if ( name.Length <= prefix.Length || !name.StartsWith( prefix, StringComparison.Ordinal ) )
+        {
+            return false;
+        }
+
+        var position = 0;
+
+        for ( var i = prefix.Length; i < name.Length; i++ )
+        {
+            var c = name[i];
+
+            if ( c is < '0' or > '9' )
+            {
+                return false;
+            }
+
+            position = (position * 10) + (c - '0');
+
+            if ( position > index + 1 )
+            {
+                // Leaves early rather than overflowing on a name such as "Item99999999999999999999".
+                return false;
+            }
+        }
+
+        return position == index + 1;
     }
 
     public IParameter GetReturnParameter( IMethodSymbol methodSymbol, GenericContext? genericContext = null )

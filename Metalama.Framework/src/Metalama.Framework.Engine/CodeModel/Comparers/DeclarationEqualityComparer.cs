@@ -35,45 +35,16 @@ internal sealed partial class DeclarationEqualityComparer : IDeclarationComparer
     }
 
     /// <summary>
-    /// Returns the given type with the names of the elements of a tuple removed, because the identity conversion of
-    /// the language does not take them into account whereas <see cref="SymbolEqualityComparer"/> does.
-    /// </summary>
-    private static ITypeSymbol StripTupleElementNames( ITypeSymbol symbol )
-        => symbol.Kind == SymbolKind.NamedType && symbol is INamedTypeSymbol { IsTupleType: true, TupleUnderlyingType: { } underlyingType }
-            ? underlyingType
-            : symbol;
-
-    /// <summary>
     /// Determines whether the language defines an identity conversion between two types, without using their symbols.
     /// </summary>
     /// <remarks>
     /// The identity conversion ignores the nullability of a reference type and the names of the elements of a tuple,
-    /// so it is not the equality of this comparer, which takes both into account since issues #1844 and #1846. The
-    /// tuples are therefore compared element by element, and everything else by the structural comparison that ignores
-    /// nullability.
+    /// so it is not the equality of this comparer, which takes both into account since issues #1844 and #1846. Both are
+    /// ignored at any depth, so this cannot delegate a nested pair of types to a comparer that answers the equality,
+    /// and the comparison bypasses the symbols throughout.
     /// </remarks>
     internal static bool HasIdentityConversionWithoutSymbols( IType left, IType right )
-    {
-        if ( left is ITupleType leftTuple && right is ITupleType rightTuple )
-        {
-            if ( leftTuple.TupleElements.Count != rightTuple.TupleElements.Count )
-            {
-                return false;
-            }
-
-            for ( var i = 0; i < leftTuple.TupleElements.Count; i++ )
-            {
-                if ( !HasIdentityConversionWithoutSymbols( leftTuple.TupleElements[i].Type, rightTuple.TupleElements[i].Type ) )
-                {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
-        return StructuralDeclarationComparer.Default.Equals( left, right );
-    }
+        => StructuralDeclarationComparer.IdentityConversion.Equals( left, right );
 
     public bool Equals( IDeclaration? x, IDeclaration? y )
     {
@@ -178,9 +149,7 @@ internal sealed partial class DeclarationEqualityComparer : IDeclarationComparer
             // that includes nullability was used, where the language accepts them. See issue #1846.
             if ( !bypassSymbols && left.GetSymbol() is { } leftTypeSymbol && right.GetSymbol() is { } rightTypeSymbol )
             {
-                return SymbolEqualityComparer.Default.Equals(
-                    StripTupleElementNames( leftTypeSymbol ),
-                    StripTupleElementNames( rightTypeSymbol ) );
+                return this.IsConvertibleTo( leftTypeSymbol, rightTypeSymbol, kind );
             }
 
             return HasIdentityConversionWithoutSymbols( left, right );
@@ -241,13 +210,6 @@ internal sealed partial class DeclarationEqualityComparer : IDeclarationComparer
                 : SymbolEqualityComparer.Default.Equals( left, right );
         }
 
-        if ( kind == ConversionKind.Identical )
-        {
-            // See the comment on the same kind in the other overload: the names of the elements of a tuple do not take
-            // part in the identity conversion, and SymbolEqualityComparer.Default takes them into account.
-            return SymbolEqualityComparer.Default.Equals( StripTupleElementNames( left ), StripTupleElementNames( right ) );
-        }
-
         if ( kind == ConversionKind.TypeDefinition )
         {
             // Cannot use Roslyn for this kind of conversion.
@@ -265,6 +227,12 @@ internal sealed partial class DeclarationEqualityComparer : IDeclarationComparer
 
         switch ( kind )
         {
+            // The identity conversion is what Roslyn classifies, and no comparer of symbols answers it: it ignores the
+            // nullability of a reference type and the names of the elements of a tuple, at any depth, and
+            // SymbolEqualityComparer keeps distinguishing the latter. See issues #1844 and #1846.
+            case ConversionKind.Identical:
+                return conversion.IsIdentity;
+
             case ConversionKind.Implicit:
                 return conversion is { IsIdentity: true } or { IsImplicit: true };
 

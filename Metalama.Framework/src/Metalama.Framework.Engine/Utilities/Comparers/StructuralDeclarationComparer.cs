@@ -40,6 +40,20 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
     // used for testing
     internal static readonly StructuralDeclarationComparer BypassSymbols = new( StructuralSymbolComparer.Default, bypassSymbols: true );
 
+    /// <summary>
+    /// Answers the relation that the identity conversion of the language defines, which ignores the nullability of a
+    /// reference type and the names of the elements of a tuple, at any depth.
+    /// </summary>
+    /// <remarks>
+    /// This is used only when one of the two types has no symbol, because no comparer of Roslyn answers this relation:
+    /// <see cref="SymbolEqualityComparer"/> keeps distinguishing the names of the elements of a tuple however deeply
+    /// they are nested. When both types have a symbol, <c>ClassifyConversion</c> answers it instead. The symbols are
+    /// therefore bypassed here, so that the comparison recurses into every type argument rather than delegating a
+    /// nested pair to a comparer that answers a different relation. See issue #1844.
+    /// </remarks>
+    internal static readonly StructuralDeclarationComparer IdentityConversion =
+        new( StructuralSymbolComparer.TupleElementNameOblivious, bypassSymbols: true );
+
     private static readonly StructuralDeclarationComparer _nonRecursive = new( StructuralSymbolComparer.NonRecursive );
 
     private readonly StructuralComparerOptions _options;
@@ -66,9 +80,14 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
     public bool Equals( ICompilationElement? x, ICompilationElement? y ) => this.Compare( x, y ) == 0;
 
     /// <summary>
-    /// Compares the names of the elements of two tuples, which are part of the type but are not carried by the symbol
-    /// that the code model wraps. See issue #1844.
+    /// Compares the names of the elements of two tuples, which are part of the type and which Roslyn takes into account
+    /// in the equality of two symbols. See issue #1844.
     /// </summary>
+    /// <remarks>
+    /// This is reached only when one of the two types has no symbol, the symbol comparer answering the same question
+    /// otherwise. It is called from the comparison of two named types rather than from the entry point, so that it
+    /// reaches a tuple nested in a type argument or in the element of an array as well as one compared directly.
+    /// </remarks>
     private static int CompareTupleElementNames( ITupleType x, ITupleType y )
     {
         var result = x.TupleElements.Count.CompareTo( y.TupleElements.Count );
@@ -123,22 +142,6 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
             // Both are IType since they have the same type-related DeclarationKind
             var xType = (IType) x;
             var yType = (IType) y;
-
-            // The names of the elements of a tuple are part of the type, and Roslyn takes them into account in the
-            // equality of two symbols. The code model records them on the tuple beside the symbol it wraps, which is
-            // the unnamed ValueTuple, so neither the symbol comparer nor the structural comparison below can see them
-            // and two tuples differing only by the names of their elements compared equal. They are therefore compared
-            // here, before either. See issue #1844. The identity conversion of the language does not take them into
-            // account, which ConversionKind.Identical handles separately, so this does not affect it.
-            if ( x is ITupleType xTuple && y is ITupleType yTuple )
-            {
-                result = CompareTupleElementNames( xTuple, yTuple );
-
-                if ( result != 0 )
-                {
-                    return result;
-                }
-            }
 
             if ( xType.GetSymbol() is { } xSymbol && yType.GetSymbol() is { } ySymbol && this._symbolComparer != null )
             {
@@ -401,6 +404,20 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
         if ( options.HasFlagFast( StructuralComparerOptions.Nullability ) )
         {
             result = Comparer<bool?>.Default.Compare( namedTypeX.IsNullable, namedTypeY.IsNullable );
+
+            if ( result != 0 )
+            {
+                return result;
+            }
+        }
+
+        if ( options.HasFlagFast( StructuralComparerOptions.TupleElementNames )
+             && namedTypeX.TypeKind == TypeKind.Tuple
+             && namedTypeY.TypeKind == TypeKind.Tuple
+             && namedTypeX is ITupleType tupleX
+             && namedTypeY is ITupleType tupleY )
+        {
+            result = CompareTupleElementNames( tupleX, tupleY );
 
             if ( result != 0 )
             {
@@ -671,7 +688,10 @@ internal sealed class StructuralDeclarationComparer : IEqualityComparer<ICompila
 
                 return result;
 
+            // A tuple is compared as the named type it is, which reaches the names of its elements in CompareNamedTypes
+            // and the type of each of them through the type arguments.
             case TypeKind.Class or TypeKind.Struct or TypeKind.Interface or TypeKind.Delegate or TypeKind.Enum or TypeKind.Error or TypeKind.Extension
+                or TypeKind.Tuple
                 when typeX is INamedType namedTypeX && typeY is INamedType namedTypeY:
                 return this.CompareNamedTypes( namedTypeX, namedTypeY, this._options );
 

@@ -53,10 +53,25 @@ public sealed class RoslynTupleFactsTests
         return compilation;
     }
 
-    private static INamedTypeSymbol GetFieldType( CSharpCompilation compilation, string fieldName )
-        => (INamedTypeSymbol) compilation.GetTypeByMetadataName( "C" )!.GetMembers( fieldName ).OfType<IFieldSymbol>().Single().Type;
+    private static ITypeSymbol GetAnyFieldType( CSharpCompilation compilation, string fieldName )
+        => compilation.GetTypeByMetadataName( "C" )!.GetMembers( fieldName ).OfType<IFieldSymbol>().Single().Type;
 
-    private const string _code = "class C { public (int Count, string Name) Named; public (int, string) Unnamed; }";
+    private static INamedTypeSymbol GetFieldType( CSharpCompilation compilation, string fieldName )
+        => (INamedTypeSymbol) GetAnyFieldType( compilation, fieldName );
+
+    private const string _code = """
+                                 class G<T> { }
+
+                                 class C
+                                 {
+                                     public (int Count, string Name) Named;
+                                     public (int, string) Unnamed;
+                                     public G<(int Count, string Name)> GenericOfNamed = null!;
+                                     public G<(int Other, string Different)> GenericOfDifferentlyNamed = null!;
+                                     public (int Count, string Name)[] ArrayOfNamed = null!;
+                                     public (int Other, string Different)[] ArrayOfDifferentlyNamed = null!;
+                                 }
+                                 """;
 
     /// <summary>
     /// Establishes that the symbol of a tuple read from source carries the names of its elements, and that a tuple
@@ -159,5 +174,42 @@ public sealed class RoslynTupleFactsTests
         this._logger?.WriteLine( $"conversion from {named} to {unnamed}: identity={conversion.IsIdentity}, implicit={conversion.IsImplicit}" );
 
         Assert.True( conversion.IsIdentity );
+    }
+
+    /// <summary>
+    /// Establishes that a tuple nested in another type, as the argument of a generic type or as the element of an
+    /// array, also does not take part in the conversion by the names of its elements.
+    /// </summary>
+    /// <remarks>
+    /// The identity conversion is defined recursively, so it reaches a tuple at any depth, whereas
+    /// <see cref="SymbolEqualityComparer"/> keeps distinguishing the names at any depth. An implementation of the
+    /// identity conversion that normalizes only the tuple it is given therefore answers the wrong thing as soon as the
+    /// tuple is nested, which is what this establishes.
+    /// </remarks>
+    [Fact]
+    public void TheNamesOfTheElementsOfANestedTupleDoNotTakePartInConversion()
+    {
+        var compilation = CreateCompilation( _code );
+
+        foreach ( var (leftName, rightName) in new[]
+                  {
+                      ("GenericOfNamed", "GenericOfDifferentlyNamed"), ("ArrayOfNamed", "ArrayOfDifferentlyNamed")
+                  } )
+        {
+            var left = GetAnyFieldType( compilation, leftName );
+            var right = GetAnyFieldType( compilation, rightName );
+
+            var conversion = compilation.ClassifyConversion( left, right );
+
+            this._logger?.WriteLine(
+                $"{left} -> {right}: identity={conversion.IsIdentity}, "
+                + $"symbolEquality={SymbolEqualityComparer.Default.Equals( left, right )}" );
+
+            Assert.True( conversion.IsIdentity );
+
+            // The comparison of the symbols disagrees, which is the whole point: it cannot be used to answer the
+            // identity conversion, at any depth.
+            Assert.False( SymbolEqualityComparer.Default.Equals( left, right ) );
+        }
     }
 }
