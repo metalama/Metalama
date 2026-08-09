@@ -170,7 +170,7 @@ public sealed class CodeModelConsistencyTests : UnitTestClass
         using var testContext = this.CreateTestContext();
         var compilation = testContext.CreateCompilationModel( "class SourceClass;" );
 
-        var nullable = (INamedType) compilation.Types.OfName( "SourceClass" ).Single().ToNullable();
+        var nullable = compilation.Types.OfName( "SourceClass" ).Single().ToNullable();
 
         var throughRef = nullable.ToRef().GetTarget( compilation );
         var throughDurableRef = nullable.ToRef().ToDurable().GetTarget( compilation );
