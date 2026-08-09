@@ -91,6 +91,9 @@ public sealed class SerializableTypeIdResolverForIType : SerializableTypeIdResol
         return referenceType.ToNonNullable();
     }
 
+    protected override IType AddNullObliviousAnnotation( IType type )
+        => type.IsReferenceType != false ? type.StripNullabilityAnnotation() : type;
+
     protected override IType ConstructGenericType( IType genericType, IType[] typeArguments )
         => genericType.AssertCast<INamedType>().WithTypeArguments( typeArguments );
 
