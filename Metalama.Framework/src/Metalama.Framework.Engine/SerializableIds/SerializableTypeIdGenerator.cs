@@ -197,38 +197,6 @@ public static class SerializableTypeIdGenerator
         }
     }
 
-    /// <summary>
-    /// Answers what <see cref="IsWrittenInAnnotatedContext(ITypeSymbol)"/> answers, for a reflection type, which
-    /// carries no nullable annotation at all.
-    /// </summary>
-    /// <remarks>
-    /// A reflection type cannot say which context it was written in, so an annotated one is assumed whenever the type
-    /// has a type reference that could be oblivious. This is the assumption the identifier of a reflection type has always
-    /// made, and it is what keeps the three overloads producing the same string for a type of an annotated context.
-    /// </remarks>
-    private static bool IsWrittenInAnnotatedContext( Type type )
-    {
-        if ( type.IsGenericParameter || (!type.IsValueType && !type.IsPointer && !type.IsByRef) )
-        {
-            return true;
-        }
-
-        if ( type.HasElementType )
-        {
-            return IsWrittenInAnnotatedContext( type.GetElementType()! );
-        }
-
-        foreach ( var typeArgument in type.GetGenericArguments() )
-        {
-            if ( IsWrittenInAnnotatedContext( typeArgument ) )
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     // ReSharper disable once MemberCanBeInternal
 
     public static SerializableTypeId GetSerializableTypeId( this IType type, bool includeGenericContext = false, bool bypassSymbols = false )
@@ -266,14 +234,19 @@ public static class SerializableTypeIdGenerator
         // because CompileTimeType equality and the CompileTimeTypeFactory cache key on this string. That form is C# type
         // syntax: 'global::'-qualified names, '<...>' generics whose arguments are separated by ',' with no space,
         // Nullable<T> written as 'T?', with a trailing '!' when the type was written in an annotated context.
+        //
+        // No marker is appended here. A reflection type carries no nullable annotation and denotes a typeof expression,
+        // which cannot name a nullable reference type at all, so it is null-oblivious and the unmarked form is what
+        // describes it. Appending the marker for every reference type, as this did, made the identifier of a reflection
+        // type claim an annotated context that a reflection type cannot be in.
+        //
+        // The code model deliberately answers differently: Factory.GetTypeByReflectionType returns a non-nullable type
+        // rather than an oblivious one, because Metalama was written when the annotated context was already the norm
+        // and that is the more useful default. The two therefore describe different types on purpose, and a caller that
+        // wants to compare their identifiers removes the annotation first.
         var stringBuilder = new StringBuilder();
         stringBuilder.Append( SerializableTypeId.Prefix );
         AppendType( type );
-
-        if ( IsWrittenInAnnotatedContext( type ) )
-        {
-            stringBuilder.Append( '!' );
-        }
 
         return new SerializableTypeId( stringBuilder.ToString() );
 
