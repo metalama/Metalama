@@ -102,7 +102,10 @@ public sealed class InMemoryConfigurationManager : IConfigurationManager
             }
             else
             {
-                var valueToStore = newValue with { Version = (newValue.Version ?? 0) + 1 };
+                // Incremented from the current value and not from the one the transformation produced, for the
+                // reason given in ConfigurationManager: the version counts the writes made to the file, so a
+                // transformation that builds a fresh instance must not take it back to one.
+                var valueToStore = newValue with { Version = (currentValue.Version ?? 0) + 1 };
                 valueToStore.SetFileSystemTimestamp( this._timeProvider.UtcNow );
                 this._files[type] = valueToStore;
 

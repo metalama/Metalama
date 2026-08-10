@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -631,11 +631,18 @@ namespace Metalama.Backstage.Configuration
                 return ConfigurationUpdateOutcome.NoChange;
             }
 
-            // The version is incremented on a copy rather than on the value the transformation produced, so that a
+            // The version is incremented from the value that was just read, and not from the value the
+            // transformation produced, because the version counts the writes made to the file and must therefore
+            // be a property of the file rather than of what a caller happens to return. A transformation that
+            // builds a fresh instance, as resetting a configuration file to its default content does, otherwise
+            // takes the version back to one, and the cache then declines the new content as older than what it
+            // holds whenever the two share a modification time.
+            //
+            // The increment is applied to a copy rather than to the value the transformation produced, so that a
             // write that does not happen leaves nothing behind. The previous implementation incremented the
             // caller's own record before writing, so a declined attempt left the caller one version ahead of the
             // file, and the retry that followed incremented it again.
-            var valueToWrite = newValue with { Version = (newValue.Version ?? 0) + 1 };
+            var valueToWrite = newValue with { Version = (currentValue.Version ?? 0) + 1 };
 
             var json = this._jsonSerializationService.Serialize( valueToWrite, type );
 

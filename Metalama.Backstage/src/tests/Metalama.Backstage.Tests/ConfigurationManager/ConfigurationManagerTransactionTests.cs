@@ -222,6 +222,49 @@ public sealed class ConfigurationManagerTransactionTests : TestsBase, IDisposabl
     }
 
     /// <summary>
+    /// Verifies that a transformation returning a fresh instance, which carries no version, does not take the
+    /// version of the file backwards and does not leave the cache holding the superseded content.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Resetting a configuration file to its default content is written as <c>_ => new T()</c>, and such an
+    /// instance has no version. Deriving the version to write from the transformed value rather than from the
+    /// value read would restart the count at one, and the cache, which never adopts an older value, would then
+    /// keep the content that the file no longer holds.
+    /// </para>
+    /// <para>
+    /// The clock is stopped so that both writes share a modification time, which is what leaves the version as the
+    /// only thing ordering them. That is the ordinary case during a build, where several updates land within one
+    /// tick, and it is also the case a coarse file system produces on its own.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void ATransformationReturningAFreshInstanceDoesNotTakeTheVersionBackwards()
+    {
+        this.Time.Stop();
+
+        using var configurationManager = this.CreateConfigurationManager();
+
+        Assert.Equal( ConfigurationUpdateOutcome.Updated, AppendMark( configurationManager, "a" ) );
+        Assert.Equal( ConfigurationUpdateOutcome.Updated, AppendMark( configurationManager, "b" ) );
+        Assert.Equal( 2, configurationManager.Get<TestConfigurationFile>().Version );
+
+        // The reset, as ConfigurationFileCommandAdapter writes it.
+        Assert.Equal(
+            ConfigurationUpdateOutcome.Updated,
+            configurationManager.Update( typeof(TestConfigurationFile), _ => new TestConfigurationFile() ) );
+
+        var valueFromFile = configurationManager.Get<TestConfigurationFile>( true );
+        Assert.Equal( "", valueFromFile.Marks );
+        Assert.Equal( 3, valueFromFile.Version );
+
+        // The cache holds what the file holds, rather than the content the reset replaced.
+        var cachedValue = configurationManager.Get<TestConfigurationFile>();
+        Assert.Equal( "", cachedValue.Marks );
+        Assert.Equal( 3, cachedValue.Version );
+    }
+
+    /// <summary>
     /// Verifies that a configuration file is created once and not again.
     /// </summary>
     [Fact]

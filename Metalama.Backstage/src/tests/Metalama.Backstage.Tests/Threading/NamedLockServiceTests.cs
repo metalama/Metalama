@@ -7,6 +7,7 @@ using Metalama.Testing.Hooks;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -1176,5 +1177,51 @@ public sealed class NamedLockServiceTests : IDisposable
         Assert.Throws<ArgumentException>( () => service.GetLock( name ) );
 
         Assert.DoesNotContain( this.GetEvents(), e => e.Kind == LockEventKind.Degraded && e.Name == name );
+    }
+
+    /// <summary>
+    /// Verifies that a machine that cannot provide named objects at all degrades every name, and stops asking the
+    /// operating system after the first refusal.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This is the branch that fixes issue 272. On Unix the runtime backs the objects with files under
+    /// <c>/tmp/.dotnet/shm</c>, and when that tree is unusable it raises <see cref="IOException"/> for every name,
+    /// which used to fail the whole compilation. The condition is a property of the machine, so it is latched.
+    /// </para>
+    /// <para>
+    /// What distinguishes this from the refusal of one particular name is the second half: a name for which
+    /// nothing is armed must also be process-local, and must not even be attempted. The absence of a
+    /// <see cref="LockEventKind.Created"/> event for it is what proves the latch, and is the assertion that a
+    /// regression removing <see cref="IOException"/> from the classifier would fail. Until now that branch was
+    /// covered only by the docker test.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void AMachineThatCannotProvideNamedObjectsDegradesEveryName()
+    {
+        var service = this.CreateService();
+        var name = CreateName();
+
+        this._faultInjector.ArmFault(
+            GetFaultPointName( NamedLockService.BeforeCreateWithAccessControlLocation, name ),
+            () => new IOException( "Injected by a test." ) );
+
+        using var degradedLock = service.GetLock( name );
+
+        Assert.True( degradedLock.TryAcquire( TimeSpan.Zero, out var handle ) );
+        handle!.Dispose();
+
+        Assert.Contains( this.GetEvents(), e => e.Kind == LockEventKind.Degraded && e.Name == name );
+
+        var otherName = CreateName();
+        using var otherLock = service.GetLock( otherName );
+
+        Assert.True( otherLock.TryAcquire( TimeSpan.Zero, out var otherHandle ) );
+        otherHandle!.Dispose();
+
+        // Nothing was created for the second name, and nothing was even attempted: the latch answers before the
+        // operating system is asked. A refusal specific to one name would instead have created an object here.
+        Assert.DoesNotContain( this.GetEvents(), e => e.Kind == LockEventKind.Created && e.Name == otherName );
     }
 }
