@@ -9,9 +9,12 @@ using Metalama.Backstage.Infrastructure;
 using Metalama.Backstage.Serialization;
 using Metalama.Backstage.Threading;
 using Metalama.Backstage.Utilities;
+using Metalama.Testing.Hooks;
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -20,12 +23,48 @@ using System.Threading.Tasks;
 
 namespace Metalama.Backstage.Configuration
 {
+    /// <summary>
+    /// Reads and writes the configuration files of the current user, and keeps an in-memory copy of the ones that
+    /// have been read.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Reading takes no lock at all. A writer publishes a file by substituting it in a single operation, through
+    /// <see cref="IFileSystem.WriteAllTextAtomically"/>, so a reader observes either the whole previous content or
+    /// the whole new one. What a reader can observe is a file that is no longer the most recent, which the
+    /// <see cref="ConfigurationFile.Timestamp"/> of the value it obtains reports, and which the update path
+    /// resolves by re-reading under the lock.
+    /// </para>
+    /// <para>
+    /// Writing takes one lock per file rather than one lock for the whole directory, so that an update of one
+    /// configuration file does not wait for an unrelated update of another. The lock is only ever held across one
+    /// read and one write of a single file: neither the dispatch of <see cref="ConfigurationFileChanged"/> nor the
+    /// processing of an external change holds it.
+    /// </para>
+    /// </remarks>
     internal sealed class ConfigurationManager : IConfigurationManager
     {
         /// <summary>
-        /// The maximal time an operation waits for the lock protecting the configuration files.
+        /// The maximal time an update waits for the lock protecting one configuration file.
         /// </summary>
-        private static readonly TimeSpan _lockTimeout = TimeSpan.FromSeconds( 30 );
+        /// <remarks>
+        /// A critical section is one read and one write of a single small file, so a wait of this length already
+        /// means that something is wrong. Waiting longer would not make the operation more likely to succeed, and
+        /// because a failure to acquire the lock is not an error (see <see cref="TryAcquireLock"/>), a long timeout
+        /// would stall the caller instead of letting it proceed with what it has.
+        /// </remarks>
+        private static readonly TimeSpan _lockTimeout = TimeSpan.FromSeconds( 5 );
+
+        /// <summary>
+        /// The minimal interval between two warnings about the same file failing to be locked, so that a machine on
+        /// which the condition holds does not fill the log with one warning per operation.
+        /// </summary>
+        private static readonly TimeSpan _lockWarningPeriod = TimeSpan.FromMinutes( 1 );
+
+        /// <summary>
+        /// The source of <see cref="InstanceContext"/>.
+        /// </summary>
+        private static int _nextInstanceId;
 
         // Stores the in-memory configuration object. Note that ConfigurationFile can be implemented in a different assembly, and that
         // there may be several copies of this assembly in the current AppDomain. Therefore, this dictionary may contain several objects
@@ -37,12 +76,36 @@ namespace Metalama.Backstage.Configuration
         private readonly IDateTimeProvider _dateTimeProvider;
         private readonly IEnvironmentVariableProvider _environmentVariableProvider;
         private readonly IJsonSerializationService _jsonSerializationService;
-        private readonly ConcurrentDictionary<string, string> _fileChanges = new( StringComparer.Ordinal );
+        private readonly INamedLockService _lockService;
 
-        // Named lock, shared with the other instances of this class in this process and with the other processes
-        // of the machine.
-        private readonly INamedLock _lock;
+        /// <summary>
+        /// The provider of the test synchronization points, which is never registered in production and is
+        /// therefore normally <see langword="null"/>.
+        /// </summary>
+        private readonly ITestSynchronizationProvider? _testSynchronizationProvider;
+
+        /// <summary>
+        /// The paths of the files whose external modification has been notified but not processed yet.
+        /// </summary>
+        /// <remarks>
+        /// The comparer is case-insensitive, like every other comparison this class makes between two paths.
+        /// </remarks>
+        private readonly ConcurrentDictionary<string, string> _fileChanges = new( StringComparer.OrdinalIgnoreCase );
+
+        /// <summary>
+        /// The locks protecting the individual configuration files, keyed by path and created on demand.
+        /// </summary>
+        private readonly Dictionary<string, INamedLock> _locks = new( StringComparer.OrdinalIgnoreCase );
+
+        private readonly object _locksSync = new();
+
+        /// <summary>
+        /// The moment at which the failure to lock each file was last reported, which throttles the warning.
+        /// </summary>
+        private readonly ConcurrentDictionary<string, DateTime> _lastLockWarnings = new( StringComparer.OrdinalIgnoreCase );
+
         private volatile int _fileChangeProcessingTaskStatus;
+        private int _isDisposed;
 
         public ConfigurationManager( IServiceProvider serviceProvider )
         {
@@ -56,14 +119,19 @@ namespace Metalama.Backstage.Configuration
             this._dateTimeProvider = serviceProvider.GetRequiredBackstageService<IDateTimeProvider>();
             this._environmentVariableProvider = serviceProvider.GetRequiredBackstageService<IEnvironmentVariableProvider>();
             this._jsonSerializationService = serviceProvider.GetRequiredBackstageService<IJsonSerializationService>();
+            this._lockService = serviceProvider.GetRequiredBackstageService<INamedLockService>();
+
+            // Resolved untyped, because ITestSynchronizationProvider is shared with the layers above and therefore
+            // cannot derive from IBackstageService.
+            this._testSynchronizationProvider = (ITestSynchronizationProvider?) serviceProvider.GetService( typeof(ITestSynchronizationProvider) );
+
+            this.InstanceContext = string.Format( CultureInfo.InvariantCulture, "instance-{0}", Interlocked.Increment( ref _nextInstanceId ) );
 
             // There is a cyclic dependency between the logger factory and the configuration manager. To work around this problem, we buffer
             // the reported messages and we report them when the real logging service is available.
             this.Logger = serviceProvider.GetRequiredBackstageService<EarlyLoggerFactory>().GetLogger( "Configuration" );
 
             this.ApplicationDataDirectory = serviceProvider.GetRequiredBackstageService<IStandardDirectories>().ApplicationDataDirectory;
-
-            this._lock = serviceProvider.GetRequiredBackstageService<INamedLockService>().GetGlobalLock( this.ApplicationDataDirectory );
 
             if ( !this._fileSystem.DirectoryExists( this.ApplicationDataDirectory ) )
             {
@@ -75,6 +143,72 @@ namespace Metalama.Backstage.Configuration
                 this._fileSystemWatcher = this._fileSystem.WatchChanges( this.ApplicationDataDirectory, "*.json", this.OnFileChanged );
             }
         }
+
+        /// <summary>
+        /// The location of the synchronization point reached during an update, inside the lock, after the current
+        /// content of the file has been read and before the new content is serialized.
+        /// </summary>
+        internal const string UpdateAfterReadLocation = "UpdateAfterRead";
+
+        /// <summary>
+        /// The location of the synchronization point reached during an update, inside the lock, after the new
+        /// content has been serialized and before it is written.
+        /// </summary>
+        internal const string UpdateBeforeWriteLocation = "UpdateBeforeWrite";
+
+        /// <summary>
+        /// The location of the synchronization point reached during an update, after the file has been written and
+        /// the cache updated, while the lock is still held.
+        /// </summary>
+        internal const string UpdateBeforeUnlockLocation = "UpdateBeforeUnlock";
+
+        /// <summary>
+        /// The location of the synchronization point reached before <see cref="ConfigurationFileChanged"/> is
+        /// dispatched, which is always after every lock has been released.
+        /// </summary>
+        internal const string RaiseChangedBeforeInvokeLocation = "RaiseChangedBeforeInvoke";
+
+        /// <summary>
+        /// The location of the synchronization point reached at the beginning of the processing of the external
+        /// changes, before the pending changes are snapshotted.
+        /// </summary>
+        internal const string ProcessFileChangesBeforeDrainLocation = "ProcessFileChangesBeforeDrain";
+
+        /// <summary>
+        /// The location of the synchronization point reached after one file has been taken from the pending
+        /// changes and before it is reloaded, which is where a further change can land during the processing.
+        /// </summary>
+        internal const string ProcessFileChangesAfterDequeueLocation = "ProcessFileChangesAfterDequeue";
+
+        /// <summary>
+        /// The location of the synchronization point reached between the decision to replace the cached value and
+        /// the replacement itself.
+        /// </summary>
+        internal const string AddToCacheBeforeSwapLocation = "AddToCacheBeforeSwap";
+
+        /// <summary>
+        /// Gets a context identifying this instance, used by the synchronization points that are not about one
+        /// particular file, so that a test can pin one manager without pinning the others.
+        /// </summary>
+        internal string InstanceContext { get; }
+
+        /// <summary>
+        /// Composes the name of a synchronization point, following the <c>{ClassName}.{Location}:{Context}</c>
+        /// convention.
+        /// </summary>
+        /// <param name="location">One of the <c>Location</c> constants of this class.</param>
+        /// <param name="context">The path of the file concerned, or <see cref="InstanceContext"/>.</param>
+        /// <returns>The name of the synchronization point.</returns>
+        internal static string GetSyncPointName( string location, string context )
+            => string.Format( CultureInfo.InvariantCulture, "ConfigurationManager.{0}:{1}", location, context );
+
+        /// <summary>
+        /// Reaches a synchronization point, which does nothing unless a test has armed it.
+        /// </summary>
+        /// <param name="location">One of the <c>Location</c> constants of this class.</param>
+        /// <param name="context">The path of the file concerned, or <see cref="InstanceContext"/>.</param>
+        private void SyncPoint( string location, string context )
+            => this._testSynchronizationProvider?.SyncPoint( GetSyncPointName( location, context ) );
 
         private void OnFileChanged( FileSystemEventArgs e )
         {
@@ -93,58 +227,81 @@ namespace Metalama.Backstage.Configuration
             }
         }
 
+        /// <summary>
+        /// Reloads the files whose external modification has been notified.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// This method takes no lock. It reads the files, which needs none because a writer publishes atomically,
+        /// and it updates the cache, which is a compare-and-swap. The implementation this one replaces held the
+        /// single lock of the whole directory across the entire drain, which is one of the two causes of issue
+        /// 1847: a process that both writes the configuration and watches it blocked its own writers for as long as
+        /// the notifications kept arriving.
+        /// </para>
+        /// <para>
+        /// The pending state is released before the work rather than after it, both for the whole drain and for
+        /// each file, so that a change notified while this method runs starts a new pass instead of being dropped.
+        /// The price is that two passes can overlap, which is harmless: the cache only ever moves forward, so the
+        /// later of two passes over the same file has no effect.
+        /// </para>
+        /// </remarks>
         private void ProcessFileChanges()
         {
+            var changedValues = new List<ConfigurationFile>();
+
+            // Released before anything that can fail, so that a failure of this pass cannot leave the flag set and
+            // suppress every subsequent pass.
+            this._fileChangeProcessingTaskStatus = 0;
+
             try
             {
-                // To frequent avoid file locks, wait. There is another wait cycle in TryLoadSettings but not
-                // waiting here is annoying for debugging.
-                Thread.Sleep( 100 );
+                // Replaces a Thread.Sleep(100) whose only purpose was to make the sequence easier to observe in a
+                // debugger, and which made this method impossible to test.
+                this.SyncPoint( ProcessFileChangesBeforeDrainLocation, this.InstanceContext );
 
-                using ( this.WithMutex() )
+                foreach ( var fileName in this._fileChanges.Keys.ToList() )
                 {
-                    void Process()
-                    {
-                        while ( !this._fileChanges.IsEmpty )
-                        {
-                            foreach ( var fileName in this._fileChanges.Keys )
-                            {
-                                var oldSettings = this._instances.Values.Where(
-                                    s =>
-                                        string.Equals(
-                                            this.GetFilePath( s.GetType() ),
-                                            fileName,
-                                            StringComparison.OrdinalIgnoreCase ) );
+                    this._fileChanges.TryRemove( fileName, out _ );
 
-                                foreach ( var oldSetting in oldSettings )
-                                {
-                                    if ( this.TryLoadConfigurationFile( oldSetting.GetType(), out var newSetting ) &&
-                                         (oldSetting.Timestamp == null || oldSetting.Timestamp.Value.IsOlderThan( newSetting.Timestamp!.Value )) )
-                                    {
-                                        this.AddToCache( newSetting );
-                                    }
-                                }
+                    this.SyncPoint( ProcessFileChangesAfterDequeueLocation, fileName );
 
-                                this._fileChanges.TryRemove( fileName, out _ );
-                            }
-                        }
-                    }
-
-                    Process();
-
-                    this._fileChangeProcessingTaskStatus = 0;
-
-                    // In case of race we don't want to lose events in the buffer.
-                    // It is preferable in this case to have two concurrent tasks. They will not interfere because of the lock.
-                    Process();
+                    this.ReloadFile( fileName, changedValues );
                 }
             }
             catch ( Exception e )
             {
-                // When we have an exception we may miss events in case of race.
-
                 this.Logger.LogException( e );
-                this._fileChangeProcessingTaskStatus = 0;
+            }
+
+            foreach ( var changedValue in changedValues )
+            {
+                this.RaiseConfigurationFileChanged( changedValue );
+            }
+        }
+
+        /// <summary>
+        /// Reloads every configuration file of the cache that is stored at a given path.
+        /// </summary>
+        /// <param name="fileName">The path of the file that has changed.</param>
+        /// <param name="changedValues">The list to which the values whose change must be announced are added.</param>
+        private void ReloadFile( string fileName, List<ConfigurationFile> changedValues )
+        {
+            var types = this._instances.Values
+                .Where( s => string.Equals( this.GetFilePath( s.GetType() ), fileName, StringComparison.OrdinalIgnoreCase ) )
+                .Select( s => s.GetType() )
+                .ToList();
+
+            foreach ( var type in types )
+            {
+                if ( this.TryLoadConfigurationFile( type, out var newSetting ) )
+                {
+                    var cachedValue = this.UpdateCacheWithoutEvent( newSetting, out var isChange );
+
+                    if ( isChange )
+                    {
+                        changedValues.Add( cachedValue );
+                    }
+                }
             }
         }
 
@@ -173,16 +330,11 @@ namespace Metalama.Backstage.Configuration
         }
 
         /// <summary>
-        /// Loads a configuration file, or creates a default instance of it if it does not exist, without taking
-        /// the lock.
+        /// Loads a configuration file, or creates a default instance of it if it does not exist.
         /// </summary>
         /// <param name="type">The type of the configuration file.</param>
         /// <returns>The configuration file.</returns>
-        /// <remarks>
-        /// The lock is left to the caller because <see cref="TryUpdate"/> loads the file while already holding it.
-        /// Named locks are not reentrant, so it cannot go through a method that takes the lock itself.
-        /// </remarks>
-        private ConfigurationFile LoadOrCreateWithoutLock( Type type )
+        private ConfigurationFile LoadOrCreate( Type type )
         {
             this.Logger.Trace?.Log( $"Loading configuration {type.Name} from file." );
 
@@ -197,45 +349,160 @@ namespace Metalama.Backstage.Configuration
             return (ConfigurationFile) settingsObject;
         }
 
+        /// <inheritdoc />
+        /// <remarks>
+        /// This method takes no lock, which is what keeps a read off the critical path of every other operation.
+        /// See the remarks of <see cref="ConfigurationManager"/> for what makes that safe.
+        /// </remarks>
         public ConfigurationFile Get( Type type, bool ignoreCache = false )
         {
-            ConfigurationFile GetCore()
+            if ( !ignoreCache && this._instances.TryGetValue( type, out var cachedValue ) )
             {
-                using ( this.WithMutex() )
-                {
-                    return this.LoadOrCreateWithoutLock( type );
-                }
+                return cachedValue;
             }
 
-            ConfigurationFile settings;
+            var loadedValue = this.LoadOrCreate( type );
 
-            if ( ignoreCache )
+            var newCachedValue = this.UpdateCacheWithoutEvent( loadedValue, out var isChange );
+
+            if ( isChange )
             {
-                settings = GetCore();
-                this.AddToCache( settings );
-            }
-            else
-            {
-                settings = this._instances.GetOrAdd( type, _ => GetCore() );
+                this.RaiseConfigurationFileChanged( newCachedValue );
             }
 
-            return settings;
+            // A caller that asked to ignore the cache receives what was on disk, even when the cache turns out to
+            // hold something more recent, because that is what it asked for and what it will pass back as the
+            // expected timestamp of an update.
+            return ignoreCache ? loadedValue : newCachedValue;
         }
 
         public event Action<ConfigurationFile>? ConfigurationFileChanged;
 
-        private void AddToCache( ConfigurationFile settings )
+        /// <summary>
+        /// Announces a change of a configuration file to the subscribers of <see cref="ConfigurationFileChanged"/>.
+        /// </summary>
+        /// <param name="value">The new value of the configuration file.</param>
+        /// <remarks>
+        /// <para>
+        /// This method must only be called once every lock has been released. A handler is free to read and to
+        /// update any configuration file, including the one it is being notified about, and a lock of this class is
+        /// not reentrant, so dispatching while holding one would deadlock.
+        /// </para>
+        /// <para>
+        /// The handlers are invoked one by one rather than through the multicast delegate, because a multicast
+        /// invocation stops at the first handler that throws, so one faulty subscriber would silently deprive every
+        /// subsequent one of the notification.
+        /// </para>
+        /// <para>
+        /// The guarantee a handler receives is the weak one: a notification means that the file has changed and is
+        /// worth re-reading, not that <paramref name="value"/> is its current content. Dispatching outside the lock
+        /// is what makes the strong guarantee unachievable, and it is the price of never holding a lock across
+        /// arbitrary user code.
+        /// </para>
+        /// </remarks>
+        private void RaiseConfigurationFileChanged( ConfigurationFile value )
         {
-            var isChange = this._instances.TryGetValue( settings.GetType(), out var oldValue ) &&
-                           !this.StructurallyEquals( oldValue, settings );
+            var handlers = this.ConfigurationFileChanged;
 
-            // We always update the cache even if there is no structural change to make sure we have the latest version number.
-            this._instances.AddOrUpdate( settings.GetType(), settings, ( _, _ ) => settings );
-
-            // However, we only raise the event when there is a change.
-            if ( isChange )
+            if ( handlers == null )
             {
-                this.ConfigurationFileChanged?.Invoke( settings );
+                return;
+            }
+
+            this.SyncPoint( RaiseChangedBeforeInvokeLocation, this.GetFilePath( value.GetType() ) );
+
+            foreach ( var handler in handlers.GetInvocationList() )
+            {
+                try
+                {
+                    ((Action<ConfigurationFile>) handler).Invoke( value );
+                }
+                catch ( Exception e )
+                {
+                    this.Logger.LogException( e, $"Error in a handler of {nameof(this.ConfigurationFileChanged)}" );
+                }
+            }
+        }
+
+        /// <summary>
+        /// Determines whether a configuration file supersedes the one currently cached.
+        /// </summary>
+        /// <param name="oldValue">The value currently cached.</param>
+        /// <param name="newValue">The candidate value.</param>
+        /// <returns><see langword="true"/> if <paramref name="newValue"/> is the more recent of the two.</returns>
+        /// <remarks>
+        /// A value that has no timestamp is a default instance, created because the file did not exist or could not
+        /// be read, and never supersedes a value that was actually read.
+        /// </remarks>
+        private static bool IsNewer( ConfigurationFile oldValue, ConfigurationFile newValue )
+        {
+            if ( newValue.Timestamp == null )
+            {
+                return false;
+            }
+
+            if ( oldValue.Timestamp == null )
+            {
+                return true;
+            }
+
+            return oldValue.Timestamp.Value.IsOlderThan( newValue.Timestamp.Value );
+        }
+
+        /// <summary>
+        /// Stores a configuration file in the cache unless the cache already holds a more recent one, and reports
+        /// whether the change must be announced.
+        /// </summary>
+        /// <param name="newValue">The value to store.</param>
+        /// <param name="isChange">
+        /// At output, whether the value that is now cached differs from the one that was cached before, other than
+        /// by its version.
+        /// </param>
+        /// <returns>The value that is cached when this method returns, which is not necessarily <paramref name="newValue"/>.</returns>
+        /// <remarks>
+        /// The cache only ever moves forward. Without that, two readers that loaded two versions of the same file
+        /// could store them in the reverse order, and the cache would then hold the older one indefinitely. This is
+        /// what allows a read to take no lock at all, and what makes a second pass over a file that has already
+        /// been reloaded a no-op.
+        /// </remarks>
+        private ConfigurationFile UpdateCacheWithoutEvent( ConfigurationFile newValue, out bool isChange )
+        {
+            var type = newValue.GetType();
+
+            while ( true )
+            {
+                if ( !this._instances.TryGetValue( type, out var oldValue ) )
+                {
+                    if ( this._instances.TryAdd( type, newValue ) )
+                    {
+                        // There was nothing to change from, so the first value of a file is never announced.
+                        isChange = false;
+
+                        return newValue;
+                    }
+
+                    continue;
+                }
+
+                if ( !IsNewer( oldValue, newValue ) )
+                {
+                    isChange = false;
+
+                    return oldValue;
+                }
+
+                // The comparison excludes the version, so that a file rewritten with the same content is not
+                // announced as a change.
+                var isStructuralChange = !this.StructurallyEquals( oldValue, newValue );
+
+                this.SyncPoint( AddToCacheBeforeSwapLocation, this.GetFilePath( type ) );
+
+                if ( this._instances.TryUpdate( type, newValue, oldValue ) )
+                {
+                    isChange = isStructuralChange;
+
+                    return newValue;
+                }
             }
         }
 
@@ -254,75 +521,128 @@ namespace Metalama.Backstage.Configuration
 
         public bool TryUpdate( ConfigurationFile value, ConfigurationFileTimestamp? expectedTimestamp )
         {
-            using ( this.WithMutex() )
+            var type = value.GetType();
+            var fileName = this.GetFilePath( type );
+
+            ConfigurationFile? valueToAnnounce = null;
+
+            try
             {
-                var type = value.GetType();
-                var fileName = this.GetFilePath( type );
-
-                this.Logger.Trace?.Log( $"Trying to update '{fileName}'. Our last timestamp is '{expectedTimestamp}'." );
-
-                // Verify (inside the global lock) that we have a fresh copy of the file.
-                if ( expectedTimestamp == null )
+                if ( !this.TryAcquireLock( fileName, "updating it", out var releaser ) )
                 {
-                    if ( this._fileSystem.FileExists( fileName ) )
-                    {
-                        this.Logger.Warning?.Log( $"Cannot update '{fileName}' because the file exists but was not expected to exist." );
-
-                        return false;
-                    }
-                }
-                else
-                {
-                    if ( !this._fileSystem.FileExists( fileName ) )
-                    {
-                        this.Logger.Warning?.Log( $"Cannot update '{fileName}' because the file does not exists but was expected to exist." );
-
-                        return false;
-                    }
-
-                    // Loaded without going through Get, which would take the lock that this method already holds.
-                    // Named locks are not reentrant.
-                    var existingFile = this.LoadOrCreateWithoutLock( type );
-                    this.AddToCache( existingFile );
-
-                    if ( existingFile.Timestamp!.Value != expectedTimestamp.Value )
-                    {
-                        this.Logger.Warning?.Log(
-                            $"Cannot update '{fileName}' because the file has a different timestamp than expected: {existingFile.Timestamp} instead of {expectedTimestamp.Value}." );
-
-                        return false;
-                    }
-
-                    // We must wait until the clock returns a different value than the current one.
-                    while ( this._dateTimeProvider.UtcNow == existingFile.Timestamp.Value.ToUtcDateTime() )
-                    {
-                        Thread.Sleep( 1 );
-                    }
+                    return false;
                 }
 
-                if ( this._instances.TryGetValue( type, out var originalSettings ) )
+                using ( releaser )
                 {
-                    if ( expectedTimestamp.HasValue && originalSettings.Timestamp != expectedTimestamp.Value )
-                    {
-                        this.Logger.Warning?.Log( $"Cannot update '{fileName}' because our cached copy does not have the latest timestamp." );
-
-                        return false;
-                    }
+                    return this.TryUpdateWithinLock( value, expectedTimestamp, type, fileName, ref valueToAnnounce );
                 }
-
-                value.IncrementVersion();
-                var json = this._jsonSerializationService.Serialize( value, value.GetType() );
-
-                // The write is atomic because a reader is not required to hold the lock that this method holds, so a
-                // reader must never be able to observe a partially written file. The method retries by itself.
-                this._fileSystem.WriteAllTextAtomically( fileName, json );
-
-                var newLastModified = this._fileSystem.GetFileLastWriteTime( fileName );
-                value.SetFileSystemTimestamp( newLastModified );
-                this.AddToCache( value );
-
-                this.Logger.Trace?.Log( $"File '{fileName}' updated. The new timestamp is '{value.Timestamp}'." );
             }
+            finally
+            {
+                // Outside the using, and therefore outside the lock: see the remarks of
+                // RaiseConfigurationFileChanged.
+                if ( valueToAnnounce != null )
+                {
+                    this.RaiseConfigurationFileChanged( valueToAnnounce );
+                }
+            }
+        }
+
+        /// <summary>
+        /// Performs the part of <see cref="TryUpdate"/> that runs while the lock protecting the file is held.
+        /// </summary>
+        /// <param name="value">The value to write.</param>
+        /// <param name="expectedTimestamp">The timestamp the file is expected to have, or <see langword="null"/> if it is expected not to exist.</param>
+        /// <param name="type">The type of the configuration file.</param>
+        /// <param name="fileName">The path of the configuration file.</param>
+        /// <param name="valueToAnnounce">The value whose change the caller must announce once the lock is released.</param>
+        /// <returns><see langword="true"/> if the file was written.</returns>
+        private bool TryUpdateWithinLock(
+            ConfigurationFile value,
+            ConfigurationFileTimestamp? expectedTimestamp,
+            Type type,
+            string fileName,
+            ref ConfigurationFile? valueToAnnounce )
+        {
+            this.Logger.Trace?.Log( $"Trying to update '{fileName}'. Our last timestamp is '{expectedTimestamp}'." );
+
+            // Verify (inside the lock) that we have a fresh copy of the file.
+            if ( expectedTimestamp == null )
+            {
+                if ( this._fileSystem.FileExists( fileName ) )
+                {
+                    this.Logger.Warning?.Log( $"Cannot update '{fileName}' because the file exists but was not expected to exist." );
+
+                    return false;
+                }
+            }
+            else
+            {
+                if ( !this._fileSystem.FileExists( fileName ) )
+                {
+                    this.Logger.Warning?.Log( $"Cannot update '{fileName}' because the file does not exists but was expected to exist." );
+
+                    return false;
+                }
+
+                var existingFile = this.LoadOrCreate( type );
+
+                var cachedExistingFile = this.UpdateCacheWithoutEvent( existingFile, out var isExistingFileChange );
+
+                if ( isExistingFileChange )
+                {
+                    valueToAnnounce = cachedExistingFile;
+                }
+
+                if ( existingFile.Timestamp!.Value != expectedTimestamp.Value )
+                {
+                    this.Logger.Warning?.Log(
+                        $"Cannot update '{fileName}' because the file has a different timestamp than expected: {existingFile.Timestamp} instead of {expectedTimestamp.Value}." );
+
+                    return false;
+                }
+
+                // There is deliberately no wait for the clock to advance here. ConfigurationFileTimestamp combines
+                // the modification time of the file with the version, and IsOlderThan falls back to the version
+                // when the two times are equal, so incrementing the version below already yields a timestamp
+                // distinct from the one just read. The wait that used to be here also spun forever under a frozen
+                // clock, while holding the lock.
+            }
+
+            this.SyncPoint( UpdateAfterReadLocation, fileName );
+
+            // The cached copy is deliberately not consulted here. The file has just been read under the lock, so
+            // it is the authoritative answer to the question of whether the caller holds the current base, and the
+            // cache cannot contradict it usefully: it only ever moves forward, so a file that went backwards would
+            // leave the cache permanently ahead of it, and a check against the cache would then decline every
+            // attempt to write the file, including the ones whose base is exactly what the file holds.
+
+            // The version is incremented on a copy rather than on the value the caller handed over, so that a
+            // write that does not happen leaves the caller with exactly what it had. The previous implementation
+            // incremented the caller's own record before writing, so a declined attempt left the caller one
+            // version ahead of the file, and the retry that followed incremented it again.
+            var newValue = value with { Version = (value.Version ?? 0) + 1 };
+
+            var json = this._jsonSerializationService.Serialize( newValue, type );
+
+            this.SyncPoint( UpdateBeforeWriteLocation, fileName );
+
+            this._fileSystem.WriteAllTextAtomically( fileName, json );
+
+            var newLastModified = this._fileSystem.GetFileLastWriteTime( fileName );
+            newValue.SetFileSystemTimestamp( newLastModified );
+
+            var cachedNewValue = this.UpdateCacheWithoutEvent( newValue, out var isChange );
+
+            if ( isChange )
+            {
+                valueToAnnounce = cachedNewValue;
+            }
+
+            this.Logger.Trace?.Log( $"File '{fileName}' updated. The new timestamp is '{newValue.Timestamp}'." );
+
+            this.SyncPoint( UpdateBeforeUnlockLocation, fileName );
 
             return true;
         }
@@ -375,6 +695,19 @@ namespace Metalama.Backstage.Configuration
             return false;
         }
 
+        /// <summary>
+        /// Reads a configuration file and gives the result the timestamp the file had.
+        /// </summary>
+        /// <param name="type">The type of the configuration file.</param>
+        /// <param name="settings">At output, the configuration file that was read.</param>
+        /// <returns><see langword="true"/> if the file exists and could be read.</returns>
+        /// <remarks>
+        /// The modification time is read before the content on purpose. A writer that substitutes the file between
+        /// the two makes the result carry a timestamp older than its content, which is harmless: the value is then
+        /// superseded by the next read, and an update that quotes that timestamp is declined rather than applied to
+        /// the wrong base. Reading the time afterwards would produce the opposite error, in which stale content
+        /// carries a current timestamp, and that one is not recoverable.
+        /// </remarks>
         private bool TryLoadConfigurationFile( Type type, [NotNullWhen( true )] out ConfigurationFile? settings )
         {
             var fileName = this.GetFilePath( type );
@@ -431,28 +764,109 @@ namespace Metalama.Backstage.Configuration
         }
 
         /// <summary>
-        /// Acquires the lock protecting the configuration files.
+        /// Gets the lock protecting one configuration file, creating it on the first use.
         /// </summary>
-        /// <returns>An object that releases the lock when it is disposed.</returns>
+        /// <param name="fileName">The path of the configuration file.</param>
+        /// <returns>The lock.</returns>
         /// <remarks>
-        /// The waiting, the abandonment of the lock by a process that terminated, and the warning about a lock
-        /// held for a long time are all handled by the lock service, which reports them through its events.
+        /// The lock is named after the path of the file and not after its type, because the same file is
+        /// represented by a different type in each copy of the declaring assembly that is loaded, and because two
+        /// distinct types can be stored in the same file.
         /// </remarks>
-        private IDisposable WithMutex()
+        private INamedLock GetLock( string fileName )
         {
-            if ( !this._lock.TryAcquire( _lockTimeout, out var releaser ) )
+            // A monitor rather than GetOrAdd, whose factory can run twice and would then create, and leak, a
+            // second operating system object.
+            lock ( this._locksSync )
             {
-                throw new TimeoutException(
-                    $"Cannot acquire the global configuration lock in {_lockTimeout.TotalSeconds} s." );
-            }
+                if ( !this._locks.TryGetValue( fileName, out var namedLock ) )
+                {
+                    namedLock = this._lockService.GetGlobalLock( fileName );
+                    this._locks.Add( fileName, namedLock );
+                }
 
-            return releaser;
+                return namedLock;
+            }
+        }
+
+        /// <summary>
+        /// Acquires the lock protecting one configuration file.
+        /// </summary>
+        /// <param name="fileName">The path of the configuration file.</param>
+        /// <param name="operation">What the lock is being acquired for, used in the warning.</param>
+        /// <param name="releaser">At output, an object that releases the lock when it is disposed.</param>
+        /// <returns><see langword="true"/> if the lock was acquired.</returns>
+        /// <remarks>
+        /// This method never throws. Failing to write a configuration file must never fail a compilation, so the
+        /// caller degrades instead: an update is declined, and its caller retries or gives up. The implementation
+        /// this one replaces threw a <see cref="TimeoutException"/>, which is issue 1847 as it was reported.
+        /// </remarks>
+        private bool TryAcquireLock( string fileName, string operation, [NotNullWhen( true )] out IDisposable? releaser )
+        {
+            try
+            {
+                if ( this.GetLock( fileName ).TryAcquire( _lockTimeout, out releaser ) )
+                {
+                    return true;
+                }
+
+                this.ReportLockFailure( fileName, $"Timeout while waiting {_lockTimeout.TotalSeconds} s for the lock protecting '{fileName}' before {operation}." );
+
+                return false;
+            }
+            catch ( Exception e )
+            {
+                this.Logger.LogException( e, $"Cannot acquire the lock protecting '{fileName}' before {operation}" );
+
+                releaser = null;
+
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Reports that a file could not be locked, at most once per file and per <see cref="_lockWarningPeriod"/>.
+        /// </summary>
+        /// <param name="fileName">The path of the configuration file.</param>
+        /// <param name="message">The message to report.</param>
+        /// <remarks>
+        /// On a machine where the condition holds it holds for every operation, so an unthrottled warning would
+        /// produce one entry per configuration read or write of every build.
+        /// </remarks>
+        private void ReportLockFailure( string fileName, string message )
+        {
+            var now = this._dateTimeProvider.UtcNow;
+            var lastWarning = this._lastLockWarnings.GetOrAdd( fileName, DateTime.MinValue );
+
+            if ( now - lastWarning >= _lockWarningPeriod && this._lastLockWarnings.TryUpdate( fileName, now, lastWarning ) )
+            {
+                this.Logger.Warning?.Log( message );
+            }
+            else
+            {
+                this.Logger.Trace?.Log( message );
+            }
         }
 
         public void Dispose()
         {
-            this._lock.Dispose();
+            if ( Interlocked.Exchange( ref this._isDisposed, 1 ) != 0 )
+            {
+                return;
+            }
+
+            // The watcher goes first, so that no further processing is started while the locks are being disposed.
             this._fileSystemWatcher?.Dispose();
+
+            lock ( this._locksSync )
+            {
+                foreach ( var namedLock in this._locks.Values )
+                {
+                    namedLock.Dispose();
+                }
+
+                this._locks.Clear();
+            }
         }
     }
 }

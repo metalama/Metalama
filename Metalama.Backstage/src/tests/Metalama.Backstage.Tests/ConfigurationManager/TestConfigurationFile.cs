@@ -11,3 +11,16 @@ internal sealed record TestConfigurationFile : ConfigurationFile
 {
     public bool IsModified { get; init; }
 }
+
+/// <summary>
+/// A second configuration file, stored separately from <see cref="TestConfigurationFile"/>.
+/// </summary>
+/// <remarks>
+/// It exists so that a test can distinguish operations that are serialized because they concern the same file from
+/// operations that are serialized because the implementation locks more than the file it is about.
+/// </remarks>
+[ConfigurationFile( "test2.json" )]
+internal sealed record SecondTestConfigurationFile : ConfigurationFile
+{
+    public bool IsModified { get; init; }
+}
