@@ -17,13 +17,15 @@ using System.Threading;
 // ReSharper disable InconsistentNaming
 // ReSharper disable MemberHidesStaticFromOuterClass
 
-namespace Metalama.Framework.Threading;
+namespace Metalama.Backstage.Threading;
 
 // This code is mostly taken from https://github.com/dotnet/runtime/blob/770df102/src/libraries/System.Threading.AccessControl/src/System/Threading/MutexAcl.cs.
 // The main difference is that Create takes mutexSecurity as an SDDL string instead of a MutexSecurity object.
+// This file is compiled into several assemblies, including the ones that run before Metalama.Backstage has been
+// extracted and can therefore reference nothing. See the remarks of INamedLockService.
 internal static class MutexAcl
 {
-    // This SDDL form is created by creating the same MutexSecurity as used by MutexHelper
+    // This SDDL form is created by creating a MutexSecurity
     // (with .AddAccessRule(new(new SecurityIdentifier(WorldSid, null), Synchronize | Modify, Allow))
     // and then calling GetSecurityDescriptorSddlForm(All).
     public static string? AllowUsingMutexToEveryone => RuntimeInformation.IsOSPlatform( OSPlatform.Windows ) ? "D:(A;;0x100001;;;WD)" : null;

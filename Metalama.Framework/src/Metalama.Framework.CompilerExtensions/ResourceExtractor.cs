@@ -3,7 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Engine.Utilities.AssemblyLoaders;
-using Metalama.Framework.Threading;
+using Metalama.Backstage.Threading;
 using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Concurrent;

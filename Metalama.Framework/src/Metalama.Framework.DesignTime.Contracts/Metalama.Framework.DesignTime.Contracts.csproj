@@ -14,7 +14,17 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <Compile Include="..\Metalama.Framework.CompilerExtensions\MutexAcl.cs" Link="MutexAcl.cs" />
+      <!-- This project can have no reference at all, because it is loaded side by side by every Metalama version
+           present in one Visual Studio session and must stay version-frozen. It therefore shares the named-lock
+           implementation with Metalama.Backstage by compiling the same source files. -->
+      <Compile Include="$(MetalamaSharedThreadingSourceDirectory)MutexAcl.cs" Link="MutexAcl.cs" />
+      <Compile Include="$(MetalamaSharedThreadingSourceDirectory)INamedLock.cs" Link="INamedLock.cs" />
+      <Compile Include="$(MetalamaSharedThreadingSourceDirectory)INamedLockService.cs" Link="INamedLockService.cs" />
+      <Compile Include="$(MetalamaSharedThreadingSourceDirectory)LockEventArgs.cs" Link="LockEventArgs.cs" />
+      <Compile Include="$(MetalamaSharedThreadingSourceDirectory)NamedLockService.cs" Link="NamedLockService.cs" />
+      <Compile Include="$(MetalamaSharedThreadingSourceDirectory)NamedLockService.NamedLockBase.cs" Link="NamedLockService.NamedLockBase.cs" />
+      <Compile Include="$(MetalamaSharedThreadingSourceDirectory)NamedLockService.OperatingSystemLock.cs" Link="NamedLockService.OperatingSystemLock.cs" />
+      <Compile Include="$(MetalamaSharedThreadingSourceDirectory)NamedLockService.ProcessLocalLock.cs" Link="NamedLockService.ProcessLocalLock.cs" />
     </ItemGroup>
 
     <ItemGroup>
