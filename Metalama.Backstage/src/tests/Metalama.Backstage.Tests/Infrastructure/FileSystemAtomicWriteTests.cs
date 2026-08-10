@@ -276,6 +276,78 @@ public sealed class FileSystemAtomicWriteTests : IDisposable
     }
 
     /// <summary>
+    /// Verifies that two writers substituting the same destination at the same time leave it holding one of the
+    /// two contents in full, and leave nothing else behind.
+    /// </summary>
+    /// <returns>A task that completes when the test does.</returns>
+    /// <remarks>
+    /// This method provides no mutual exclusion between writers, and does not claim to: what it guarantees is that
+    /// no reader ever sees a partial file. Two writers therefore produce one of the two contents, never a mixture,
+    /// and neither leaks a temporary file.
+    /// </remarks>
+    [Fact]
+    public async Task ConcurrentWritersLeaveOneWholeContent()
+    {
+        var path = this.GetPath();
+        var firstContent = new string( 'a', 256 * 1024 );
+        var secondContent = new string( 'b', 256 * 1024 );
+
+        var syncPointName = GetSyncPointName( path );
+        this._syncProvider.EnableSyncPoint( syncPointName );
+
+        var firstWriter = RunOnDedicatedThreadAsync( () => this._fileSystem.WriteAllTextAtomically( path, firstContent ) );
+        await this.WithTimeout( this._syncProvider.WaitForSyncPointReachedAsync( syncPointName, this._timeout.Token ) );
+
+        var secondWriter = RunOnDedicatedThreadAsync( () => this._fileSystem.WriteAllTextAtomically( path, secondContent ) );
+        await this.WithTimeout( this._syncProvider.WaitForSyncPointReachedAsync( syncPointName, this._timeout.Token ) );
+
+        // Both have written their temporary file and are about to substitute it.
+        this._syncProvider.DisableSyncPoint( syncPointName );
+
+        await this.WithTimeout( Task.WhenAll( firstWriter, secondWriter ) );
+
+        var finalContent = File.ReadAllText( path );
+        Assert.True(
+            finalContent == firstContent || finalContent == secondContent,
+            $"The destination holds neither content in full: {finalContent.Length} characters." );
+
+        Assert.Equal( new[] { Path.GetFileName( path ) }, this.GetFileNames() );
+    }
+
+    /// <summary>
+    /// Verifies that a substitution that never succeeds leaves no temporary file behind.
+    /// </summary>
+    /// <returns>A task that completes when the test does.</returns>
+    /// <remarks>
+    /// The retry gives up eventually, and the attempt that gives up must clean up after itself like the others.
+    /// The condition is held for the whole operation by a reader that is never closed until it has failed.
+    /// </remarks>
+    [Fact]
+    public async Task ASubstitutionThatKeepsFailingLeavesNoTemporaryFile()
+    {
+        if ( !RuntimeInformation.IsOSPlatform( OSPlatform.Windows ) )
+        {
+            // See the remarks of RetriesTheSubstitutionWhileAReaderHoldsTheDestination: on Unix an open descriptor
+            // does not prevent the substitution, so it cannot be made to fail this way.
+            return;
+        }
+
+        var path = this.GetPath();
+        File.WriteAllText( path, _previousContent );
+
+        using ( new FileStream( path, FileMode.Open, FileAccess.Read, FileShare.Read ) )
+        {
+            var writer = RunOnDedicatedThreadAsync( () => this._fileSystem.WriteAllTextAtomically( path, _newContent ) );
+
+            await this.WithTimeout( Assert.ThrowsAsync<IOException>( () => writer ) );
+        }
+
+        // The previous content is intact and the temporary file of every attempt has been removed.
+        Assert.Equal( _previousContent, File.ReadAllText( path ) );
+        Assert.Equal( new[] { Path.GetFileName( path ) }, this.GetFileNames() );
+    }
+
+    /// <summary>
     /// Verifies that the substitution is retried, and eventually succeeds, while a reader holds the destination
     /// open in a way that prevents it from being replaced.
     /// </summary>

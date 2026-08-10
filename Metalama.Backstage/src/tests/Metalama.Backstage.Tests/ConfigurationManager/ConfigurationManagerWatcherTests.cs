@@ -185,6 +185,61 @@ public sealed class ConfigurationManagerWatcherTests : TestsBase, IDisposable
     }
 
     /// <summary>
+    /// Verifies that a change notified while a pass is in progress is not dropped.
+    /// </summary>
+    /// <returns>A task that completes when the test does.</returns>
+    /// <remarks>
+    /// <para>
+    /// The pending state is released before the work rather than after it, so a notification arriving mid-pass
+    /// either merges into an entry that has not been taken yet or arms a fresh pass. Moving that release after the
+    /// drain would reopen the window in which a notification is silently lost, and this is the test that would
+    /// then fail.
+    /// </para>
+    /// <para>
+    /// The pass must be held <em>after</em> it has taken the file from the pending changes, not before. Held
+    /// before, the second notification merely merges into an entry that has not been taken yet, and the same pass
+    /// reloads the newer content on its own: the test would pass whichever way the flag was ordered. It is only
+    /// once the entry has been taken that a second notification has to arm a pass of its own, which it can do only
+    /// if the flag has already been released.
+    /// </para>
+    /// <para>
+    /// Reaching the synchronization point a second time is therefore the assertion. Under the reversed ordering no
+    /// second pass is armed at all and the wait below times out.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public async Task AChangeNotifiedDuringAPassIsNotDropped()
+    {
+        using var configurationManager = this.CreateConfigurationManager();
+        var path = configurationManager.GetFilePath<TestConfigurationFile>();
+
+        Assert.Null( configurationManager.Get<TestConfigurationFile>().Timestamp );
+
+        var afterDequeueSyncPoint = Configuration.ConfigurationManager.GetSyncPointName(
+            Configuration.ConfigurationManager.ProcessFileChangesAfterDequeueLocation,
+            path );
+
+        this._syncProvider.EnableSyncPoint( afterDequeueSyncPoint );
+
+        this.WriteFileExternally( configurationManager, new TestConfigurationFile { Marks = "first", Version = 1 } );
+
+        // The first pass has taken the file from the pending changes and has not reloaded it yet.
+        await this.WithTimeout( this._syncProvider.WaitForSyncPointReachedAsync( afterDequeueSyncPoint, this._timeout.Token ) );
+
+        var secondChangeSeen = WaitForChangeAsync( configurationManager, value => value.Marks == "second" );
+        this.WriteFileExternally( configurationManager, new TestConfigurationFile { Marks = "second", Version = 2 } );
+
+        // A second pass was armed, which is what the released flag makes possible.
+        await this.WithTimeout( this._syncProvider.WaitForSyncPointReachedAsync( afterDequeueSyncPoint, this._timeout.Token ) );
+
+        this._syncProvider.DisableSyncPoint( afterDequeueSyncPoint );
+
+        await this.WithTimeout( secondChangeSeen );
+
+        Assert.Equal( "second", configurationManager.Get<TestConfigurationFile>().Marks );
+    }
+
+    /// <summary>
     /// Verifies that two managers over one file system see each other's writes.
     /// </summary>
     /// <returns>A task that completes when the test does.</returns>

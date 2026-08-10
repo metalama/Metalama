@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -85,7 +85,25 @@ namespace Metalama.Backstage.Threading
             }
 
             /// <inheritdoc />
-            protected override void ReleaseCore() => this._mutex.ReleaseMutex();
+            /// <remarks>
+            /// A release that finds the handle already closed is not an error. It means that the owner of the lock
+            /// was disposed while this acquisition was still in flight, which happens during the teardown of a
+            /// process: the state the lock protected is no longer of interest to anybody, and the operating system
+            /// has released the mutex along with the handle. Letting the exception escape would instead fail the
+            /// operation that was holding the lock, and would do so out of a method documented never to throw.
+            /// </remarks>
+            protected override void ReleaseCore()
+            {
+                try
+                {
+                    this._mutex.ReleaseMutex();
+                }
+                catch ( ObjectDisposedException )
+                {
+                    // See the remarks above. There is deliberately nothing to report: the service that would
+                    // report it is being torn down as well.
+                }
+            }
 
             /// <inheritdoc />
             public override void Dispose() => this._mutex.Dispose();

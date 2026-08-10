@@ -1076,4 +1076,105 @@ public sealed class NamedLockServiceTests : IDisposable
 
         Assert.Equal( 1, this._faultInjector.GetInjectedFaultCount( faultPoint ) );
     }
+
+    /// <summary>
+    /// Verifies that releasing a lock whose object has been disposed in the meantime does not throw.
+    /// </summary>
+    /// <returns>A task that completes when the test does.</returns>
+    /// <remarks>
+    /// <para>
+    /// This is the teardown of a process that disposes its locks while an operation still holds one. The state the
+    /// lock protected is no longer of interest, and the operating system releases the mutex with the handle, so
+    /// the only thing that must not happen is an exception escaping the release.
+    /// </para>
+    /// <para>
+    /// The real service is used deliberately. The substitute owns no handle, so its disposal is a no-op and it
+    /// cannot reproduce the condition at all: a test written against it establishes that the caller orchestrates
+    /// the teardown correctly, not that the release survives it.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public async Task ReleasingALockDisposedInTheMeantimeDoesNotThrow()
+    {
+        var service = this.CreateService();
+        var name = CreateName();
+
+        var @lock = service.GetLock( name );
+
+        var acquired = new TaskCompletionSource<bool>( TaskCreationOptions.RunContinuationsAsynchronously );
+        var disposed = new TaskCompletionSource<bool>( TaskCreationOptions.RunContinuationsAsynchronously );
+
+        // The whole acquisition is confined to one thread, because a mutex must be released by the thread that
+        // acquired it.
+        var holder = RunOnDedicatedThreadAsync(
+            () =>
+            {
+                Assert.True( @lock.TryAcquire( TimeSpan.Zero, out var handle ) );
+                acquired.TrySetResult( true );
+
+                disposed.Task.GetAwaiter().GetResult();
+
+                // The handle was closed under this thread while it owned the mutex.
+                handle!.Dispose();
+            } );
+
+        Assert.True( await this.WithTimeout( acquired.Task ) );
+
+        @lock.Dispose();
+        disposed.TrySetResult( true );
+
+        await this.WithTimeout( holder );
+
+        Assert.Contains( this.GetEvents(), e => e.Kind == LockEventKind.Released && e.Name == name );
+    }
+
+    /// <summary>
+    /// Verifies that a failure the classifier does not recognize degrades to a lock local to the current process
+    /// rather than escaping.
+    /// </summary>
+    /// <remarks>
+    /// Two of the callers of <see cref="INamedLockService.GetLock"/> run during the bootstrap of the compiler and
+    /// have nowhere to catch an exception, so anything escaping this service fails the compilation outright. The
+    /// classifier lists the failures that are understood; this covers everything else.
+    /// </remarks>
+    [Fact]
+    public void AnUnrecognizedFailureDegradesInsteadOfEscaping()
+    {
+        var service = this.CreateService();
+        var name = CreateName();
+
+        this._faultInjector.ArmFault(
+            GetFaultPointName( NamedLockService.BeforeCreateWithAccessControlLocation, name ),
+            () => new InvalidOperationException( "Injected by a test." ) );
+
+        using var @lock = service.GetLock( name );
+
+        Assert.True( @lock.TryAcquire( TimeSpan.Zero, out var handle ) );
+        handle!.Dispose();
+
+        Assert.Contains( this.GetEvents(), e => e.Kind == LockEventKind.Degraded && e.Name == name );
+    }
+
+    /// <summary>
+    /// Verifies that a defect of the caller is not degraded away but reported.
+    /// </summary>
+    /// <remarks>
+    /// An invalid or excessively long name is not a refusal of the operating system that another lock could work
+    /// around: it is a defect that no degradation repairs and that the caller has to be told about. This is the
+    /// boundary of the preceding test.
+    /// </remarks>
+    [Fact]
+    public void ADefectOfTheCallerIsNotDegradedAway()
+    {
+        var service = this.CreateService();
+        var name = CreateName();
+
+        this._faultInjector.ArmFault(
+            GetFaultPointName( NamedLockService.BeforeCreateWithAccessControlLocation, name ),
+            () => new ArgumentException( "Injected by a test." ) );
+
+        Assert.Throws<ArgumentException>( () => service.GetLock( name ) );
+
+        Assert.DoesNotContain( this.GetEvents(), e => e.Kind == LockEventKind.Degraded && e.Name == name );
+    }
 }
