@@ -313,7 +313,9 @@ namespace Metalama.Backstage.Configuration
                 value.IncrementVersion();
                 var json = this._jsonSerializationService.Serialize( value, value.GetType() );
 
-                RetryHelper.Retry( () => this._fileSystem.WriteAllText( fileName, json ) );
+                // The write is atomic because a reader is not required to hold the lock that this method holds, so a
+                // reader must never be able to observe a partially written file. The method retries by itself.
+                this._fileSystem.WriteAllTextAtomically( fileName, json );
 
                 var newLastModified = this._fileSystem.GetFileLastWriteTime( fileName );
                 value.SetFileSystemTimestamp( newLastModified );

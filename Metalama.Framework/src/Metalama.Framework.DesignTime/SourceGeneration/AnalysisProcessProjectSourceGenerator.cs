@@ -275,7 +275,10 @@ internal class AnalysisProcessProjectSourceGenerator : ProjectSourceGenerator
         // Write atomically so Rider/Roslyn, which parse this <Compile> file on every change, never observe a
         // truncated half-written buffer: write to a sibling temp file, then File.Replace/Move into place
         // (atomic on NTFS). The cross-process named lock still orders concurrent writers from racing on the
-        // same path. Same write pattern as Metalama.Framework.Engine/CompileTime/CompileTimeCompilationBuilder.cs.
+        // same path. This is the same pattern as IFileSystem.WriteAllTextAtomically, written out here because the
+        // touch file is read back through System.IO by Roslyn and by the file system watcher of
+        // DesignTimeAspectPipeline, so writing it through the file system abstraction would send it to the
+        // in-memory substitute in a test while those readers went on looking at the disk.
         using ( this.ServiceProvider.GetRequiredBackstageService<INamedLockService>().WithGlobalLock( touchFile ) )
         {
             RetryHelper.Retry(

@@ -4,9 +4,11 @@
 
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Utilities;
+using Metalama.Testing.Hooks;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -20,6 +22,13 @@ namespace Metalama.Backstage.Infrastructure
     internal sealed class FileSystem : IFileSystem
     {
         private readonly IServiceProvider? _serviceProvider;
+
+        /// <summary>
+        /// The provider of the test synchronization points, which is never registered in production and is therefore
+        /// normally <see langword="null"/>.
+        /// </summary>
+        private readonly ITestSynchronizationProvider? _testSynchronizationProvider;
+
         private IStandardDirectories? _standardDirectories;
 
         public FileSystem() { }
@@ -27,7 +36,35 @@ namespace Metalama.Backstage.Infrastructure
         public FileSystem( IServiceProvider serviceProvider )
         {
             this._serviceProvider = serviceProvider;
+
+            // Resolved untyped, because ITestSynchronizationProvider is shared with the layers above and therefore
+            // cannot derive from IBackstageService.
+            this._testSynchronizationProvider = (ITestSynchronizationProvider?) serviceProvider.GetService( typeof(ITestSynchronizationProvider) );
         }
+
+        /// <summary>
+        /// The location of the synchronization point reached by <see cref="WriteAllTextAtomically"/> once the
+        /// temporary file holds the new content and the existence of the destination has been established, but
+        /// before the destination is substituted.
+        /// </summary>
+        /// <remarks>
+        /// The point is deliberately between the test of the destination and the substitution, because that is the
+        /// window in which the two ways the substitution can fail are both reachable: a test pinning a writer here
+        /// can create the destination, which invalidates the test that was just made, or hold the destination open,
+        /// which prevents it from being replaced.
+        /// </remarks>
+        internal const string BeforeSubstitutionLocation = "WriteAllTextAtomicallyBeforeSubstitution";
+
+        /// <summary>
+        /// Composes the name of a synchronization point, following the <c>{ClassName}.{Location}:{Context}</c>
+        /// convention. The context is the path of the destination, so that a test can pin one file without pinning
+        /// every other file written by the process.
+        /// </summary>
+        /// <param name="location">One of the <c>Location</c> constants of this class.</param>
+        /// <param name="path">The path of the file being written.</param>
+        /// <returns>The name of the synchronization point.</returns>
+        internal static string GetSyncPointName( string location, string path )
+            => string.Format( CultureInfo.InvariantCulture, "FileSystem.{0}:{1}", location, path );
 
         /// <inheritdoc />
         public DateTime GetFileLastWriteTime( string path )
@@ -265,6 +302,58 @@ namespace Metalama.Backstage.Infrastructure
         {
             File.WriteAllText( path, contents, encoding );
         }
+
+        /// <inheritdoc />
+        public void WriteAllTextAtomically( string path, string? content )
+            => RetryHelper.Retry(
+                () =>
+                {
+                    // A new temporary file for every attempt: the previous one has been deleted, and two attempts
+                    // that were to reuse a name would depend on that deletion having completed.
+                    var tempPath = GetTemporarySiblingPath( path );
+
+                    try
+                    {
+                        File.WriteAllText( tempPath, content );
+
+                        var destinationExists = File.Exists( path );
+
+                        this._testSynchronizationProvider?.SyncPoint( GetSyncPointName( BeforeSubstitutionLocation, path ) );
+
+                        if ( destinationExists )
+                        {
+                            // File.Replace requires the destination to exist, and preserves its access control list.
+                            // It fails while a reader holds the destination open without FileShare.Delete, which is
+                            // the race the retry is there to absorb.
+                            File.Replace( tempPath, path, destinationBackupFileName: null );
+                        }
+                        else
+                        {
+                            // File.Move throws when the destination exists, which is what makes this branch safe: if
+                            // the destination appeared between the test above and this call, the next attempt finds
+                            // it and substitutes it properly instead of this one failing to create it.
+                            File.Move( tempPath, path );
+                        }
+                    }
+                    finally
+                    {
+                        if ( File.Exists( tempPath ) )
+                        {
+                            File.Delete( tempPath );
+                        }
+                    }
+                } );
+
+        /// <summary>
+        /// Returns the path of a file that does not exist, located in the same directory as <paramref name="path"/>.
+        /// </summary>
+        /// <remarks>
+        /// The name begins with a period, so that the file is hidden on Unix, and ends with <c>.tmp</c>, so that a
+        /// caller enumerating the directory by the extension of the destination does not observe it. The identifier
+        /// in the middle makes two concurrent writers use two different temporary files.
+        /// </remarks>
+        private static string GetTemporarySiblingPath( string path )
+            => Path.Combine( Path.GetDirectoryName( path ) ?? ".", $".{Path.GetFileName( path )}.{Guid.NewGuid():N}.tmp" );
 
         /// <inheritdoc />
         public string[] ReadAllLines( string path )
