@@ -52,11 +52,19 @@ namespace Metalama.Backstage.Configuration
     /// writes the defaults back. The settings the older process had written are then lost.
     /// </para>
     /// <para>
-    /// This was accepted rather than repaired, because repairing it means acquiring the legacy directory-wide lock
-    /// in addition to the per-file one for as long as the older versions remain in use, which reintroduces the
-    /// directory-wide serialization that this class exists to remove. A machine running two generations of Metalama
-    /// against one data directory is the case to consider first when a configuration file is reported as having
-    /// reverted to its default content.
+    /// This is accepted by default, because the remedy is to acquire the lock of the previous generation in
+    /// addition to the per-file one, which reintroduces for every write the directory-wide serialization that this
+    /// class exists to remove. The remedy is available on demand: setting the
+    /// <see cref="LegacyLockEnvironmentVariableName"/> environment variable to <c>true</c> makes every update take
+    /// that lock as well, which restores mutual exclusion with the older versions at that cost. A machine running
+    /// two generations of Metalama against one data directory is the case to consider first when a configuration
+    /// file is reported as having reverted to its default content, and that variable is the first thing to try.
+    /// </para>
+    /// <para>
+    /// The variable governs the writes only. A read takes no lock in either case, so a reader of this generation
+    /// can still observe a file that an older version is in the middle of writing. What the variable removes is the
+    /// path that loses settings, because an update then reads the file while the older version is excluded from
+    /// writing it.
     /// </para>
     /// </remarks>
     internal sealed class ConfigurationManager : IConfigurationManager
@@ -82,6 +90,25 @@ namespace Metalama.Backstage.Configuration
         /// The source of <see cref="InstanceContext"/>.
         /// </summary>
         private static int _nextInstanceId;
+
+        /// <summary>
+        /// The name of the environment variable that makes an update additionally acquire the lock that the
+        /// versions of Metalama preceding this class use, so that the two generations exclude each other.
+        /// </summary>
+        /// <remarks>
+        /// It is off by default because it reintroduces, for writes, the directory-wide serialization that this
+        /// class exists to remove: every update of every configuration file waits for every other. It exists so
+        /// that a machine on which two generations of Metalama share a data directory, and on which the settings
+        /// of the older one are being lost, can be repaired without a new build. See the remarks of
+        /// <see cref="ConfigurationManager"/> for what is lost when it is off.
+        /// </remarks>
+        public const string LegacyLockEnvironmentVariableName = "METALAMA_LEGACY_CONFIGURATION_LOCK";
+
+        /// <summary>
+        /// Whether <see cref="LegacyLockEnvironmentVariableName"/> is set, read once because an environment
+        /// variable does not change during the lifetime of a process.
+        /// </summary>
+        private readonly bool _useLegacyDirectoryLock;
 
         // Stores the in-memory configuration object. Note that ConfigurationFile can be implemented in a different assembly, and that
         // there may be several copies of this assembly in the current AppDomain. Therefore, this dictionary may contain several objects
@@ -142,6 +169,8 @@ namespace Metalama.Backstage.Configuration
             // cannot derive from IBackstageService.
             this._testSynchronizationProvider = (ITestSynchronizationProvider?) serviceProvider.GetService( typeof(ITestSynchronizationProvider) );
 
+            this._useLegacyDirectoryLock = IsEnabled( this._environmentVariableProvider.GetEnvironmentVariable( LegacyLockEnvironmentVariableName ) );
+
             this.InstanceContext = string.Format( CultureInfo.InvariantCulture, "instance-{0}", Interlocked.Increment( ref _nextInstanceId ) );
 
             // There is a cyclic dependency between the logger factory and the configuration manager. To work around this problem, we buffer
@@ -160,6 +189,21 @@ namespace Metalama.Backstage.Configuration
                 this._fileSystemWatcher = this._fileSystem.WatchChanges( this.ApplicationDataDirectory, "*.json", this.OnFileChanged );
             }
         }
+
+        /// <summary>
+        /// Determines whether the value of an environment variable expresses assent.
+        /// </summary>
+        /// <param name="value">The value of the variable, which is empty or <see langword="null"/> when it is not set.</param>
+        /// <returns><see langword="true"/> if the variable is set to <c>true</c> or to <c>1</c>.</returns>
+        /// <remarks>
+        /// A variable set to any other value, <c>false</c> in particular, is off. Treating the mere presence of the
+        /// variable as assent, which some of the older variables of this product do, would make setting it to
+        /// <c>false</c> switch the feature on.
+        /// </remarks>
+        private static bool IsEnabled( string? value )
+            => bool.TryParse( value, out var parsed )
+                ? parsed
+                : string.Equals( value, "1", StringComparison.Ordinal );
 
         /// <summary>
         /// The location of the synchronization point reached during an update, inside the lock, after the current
@@ -544,14 +588,28 @@ namespace Metalama.Backstage.Configuration
 
             try
             {
-                if ( !this.TryAcquireLock( fileName, "updating it", out var releaser ) )
+                // The lock of the previous generation is taken first and released last, so that the two locks are
+                // always acquired in the same order and can therefore never deadlock against each other. Only this
+                // method acquires either of them, which makes that ordering trivially consistent.
+                IDisposable? legacyReleaser = null;
+
+                if ( this._useLegacyDirectoryLock
+                     && !this.TryAcquireLock( this.ApplicationDataDirectory, "updating a configuration file", out legacyReleaser ) )
                 {
                     return ConfigurationUpdateOutcome.LockTimeout;
                 }
 
-                using ( releaser )
+                using ( legacyReleaser )
                 {
-                    return this.UpdateWithinLock( type, fileName, transform, ref valueToAnnounce );
+                    if ( !this.TryAcquireLock( fileName, "updating it", out var releaser ) )
+                    {
+                        return ConfigurationUpdateOutcome.LockTimeout;
+                    }
+
+                    using ( releaser )
+                    {
+                        return this.UpdateWithinLock( type, fileName, transform, ref valueToAnnounce );
+                    }
                 }
             }
             finally

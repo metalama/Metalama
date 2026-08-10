@@ -4,6 +4,7 @@
 
 using Metalama.Backstage.Configuration;
 using Metalama.Backstage.Extensibility;
+using Metalama.Backstage.Infrastructure;
 using Metalama.Backstage.Serialization;
 using Metalama.Backstage.Testing;
 using Metalama.Backstage.Threading;
@@ -158,6 +159,126 @@ public sealed class ConfigurationManagerLockingTests : TestsBase, IDisposable
         Assert.True( configurationManager.Get<TestConfigurationFile>( true ).IsModified );
 
         Assert.Equal( acquisitionsAfterUpdate, this.Locks.GetAcquisitionCount( lockName ) );
+    }
+
+    /// <summary>
+    /// Gets the name of the lock that the versions of Metalama preceding this class take, which is derived from
+    /// the data directory rather than from the path of a file.
+    /// </summary>
+    /// <returns>The name of the lock.</returns>
+    private string GetLegacyLockName()
+        => NamedLockExtensions.GetGlobalLockName(
+            this.ServiceProvider.GetRequiredBackstageService<IStandardDirectories>().ApplicationDataDirectory );
+
+    /// <summary>
+    /// Verifies that an update does not take the lock of the previous generation unless it is asked to.
+    /// </summary>
+    /// <remarks>
+    /// The default matters: taking that lock serializes every write of every configuration file against every
+    /// other, which is the behaviour this class exists to remove.
+    /// </remarks>
+    [Fact]
+    public void TheLegacyLockIsNotTakenByDefault()
+    {
+        using var configurationManager = this.CreateConfigurationManager();
+
+        Assert.True( configurationManager.Update<TestConfigurationFile>( c => c with { IsModified = true } ) );
+
+        Assert.Equal( new[] { GetLockName<TestConfigurationFile>( configurationManager ) }, this.Locks.GetKnownNames() );
+        Assert.Equal( 0, this.Locks.GetAcquisitionCount( this.GetLegacyLockName() ) );
+    }
+
+    /// <summary>
+    /// Verifies that the environment variable makes an update additionally take the lock of the previous
+    /// generation, under the name that generation uses.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The name is the whole point: mutual exclusion with a process of another generation is obtained only if both
+    /// name the same operating system object, and that name is derived from the data directory. Asserting on the
+    /// composed name rather than merely on the count of acquisitions is what makes this a compatibility test.
+    /// </para>
+    /// <para>
+    /// The locking discipline of the substitute is relaxed for this test, because holding two named locks at once
+    /// is exactly what is being verified. The nesting is safe here because the order is fixed, the lock of the
+    /// previous generation always being taken first, and because no other operation of this class acquires either
+    /// of the two.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void TheEnvironmentVariableMakesAnUpdateTakeTheLegacyLock()
+    {
+        this.Locks.EnforceDiscipline = false;
+        this.EnvironmentVariableProvider.Environment[Configuration.ConfigurationManager.LegacyLockEnvironmentVariableName] = "true";
+
+        using var configurationManager = this.CreateConfigurationManager();
+
+        Assert.True( configurationManager.Update<TestConfigurationFile>( c => c with { IsModified = true } ) );
+
+        var legacyLockName = this.GetLegacyLockName();
+
+        Assert.Equal( 1, this.Locks.GetAcquisitionCount( legacyLockName ) );
+        Assert.Equal( 1, this.Locks.GetAcquisitionCount( GetLockName<TestConfigurationFile>( configurationManager ) ) );
+
+        // Both were released, and the update took effect.
+        Assert.Empty( this.Locks.GetHeldLocks() );
+        Assert.True( configurationManager.Get<TestConfigurationFile>( true ).IsModified );
+
+        // The nesting was recorded rather than thrown, which is what relaxing the discipline means.
+        Assert.NotEmpty( this.Locks.Violations );
+    }
+
+    /// <summary>
+    /// Verifies that a value which does not express assent leaves the lock of the previous generation alone.
+    /// </summary>
+    /// <param name="value">The value of the environment variable.</param>
+    /// <remarks>
+    /// The variable named after a feature and set to <c>false</c> must switch that feature off, which is not what
+    /// treating the mere presence of the variable as assent would do.
+    /// </remarks>
+    [Theory]
+    [InlineData( "false" )]
+    [InlineData( "0" )]
+    [InlineData( "" )]
+    [InlineData( "yes" )]
+    public void AValueThatDoesNotExpressAssentLeavesTheLegacyLockAlone( string value )
+    {
+        this.EnvironmentVariableProvider.Environment[Configuration.ConfigurationManager.LegacyLockEnvironmentVariableName] = value;
+
+        using var configurationManager = this.CreateConfigurationManager();
+
+        Assert.True( configurationManager.Update<TestConfigurationFile>( c => c with { IsModified = true } ) );
+
+        Assert.Equal( 0, this.Locks.GetAcquisitionCount( this.GetLegacyLockName() ) );
+    }
+
+    /// <summary>
+    /// Verifies that an update is declined, and takes no further lock, when the lock of the previous generation is
+    /// held by another process.
+    /// </summary>
+    /// <remarks>
+    /// This is the exclusion the variable exists to obtain, seen from this side: a process of the previous
+    /// generation holding its directory-wide lock now keeps this one out.
+    /// </remarks>
+    [Fact]
+    public void AnUpdateWaitsForTheLegacyLockWhenItIsHeldElsewhere()
+    {
+        this.Locks.EnforceDiscipline = false;
+        this.EnvironmentVariableProvider.Environment[Configuration.ConfigurationManager.LegacyLockEnvironmentVariableName] = "true";
+
+        using var configurationManager = this.CreateConfigurationManager();
+
+        this.Locks.ForceTimeout( this.GetLegacyLockName(), int.MaxValue );
+
+        Assert.Equal(
+            ConfigurationUpdateOutcome.LockTimeout,
+            configurationManager.Update(
+                typeof(TestConfigurationFile),
+                currentValue => ((TestConfigurationFile) currentValue) with { IsModified = true } ) );
+
+        // The per-file lock was never reached, so nothing was written.
+        Assert.Equal( 0, this.Locks.GetAcquisitionCount( GetLockName<TestConfigurationFile>( configurationManager ) ) );
+        Assert.Null( configurationManager.Get<TestConfigurationFile>( true ).Timestamp );
     }
 
     /// <summary>
