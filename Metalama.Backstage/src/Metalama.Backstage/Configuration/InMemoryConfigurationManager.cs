@@ -86,11 +86,21 @@ public sealed class InMemoryConfigurationManager : IConfigurationManager
         ConfigurationFile? valueToAnnounce = null;
         ConfigurationUpdateOutcome outcome;
 
+        // The same guard as the real implementation, so that a transformation which nests an update fails here as
+        // it would there. The monitor below is reentrant, so without it a nested update would silently succeed and
+        // a test written against this class would not see the defect.
+        ConfigurationUpdateScope.VerifyNotNested( type.Name );
+
         lock ( this._sync )
         {
             var currentValue = GetWithinLock( this._files, type );
 
-            var newValue = transform( currentValue );
+            ConfigurationFile? newValue;
+
+            using ( ConfigurationUpdateScope.Enter( type.Name ) )
+            {
+                newValue = transform( currentValue );
+            }
 
             if ( newValue == null )
             {
@@ -116,7 +126,9 @@ public sealed class InMemoryConfigurationManager : IConfigurationManager
 
         if ( valueToAnnounce != null )
         {
-            this.ConfigurationFileChanged?.Invoke( valueToAnnounce );
+            // Dispatched one handler at a time, like the real implementation, so that a handler which throws does
+            // not deprive the handlers registered after it of the notification.
+            ConfigurationUpdateScope.RaiseConfigurationFileChanged( this.ConfigurationFileChanged, valueToAnnounce, this.Logger );
         }
 
         return outcome;

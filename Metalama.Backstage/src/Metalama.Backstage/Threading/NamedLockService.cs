@@ -78,9 +78,18 @@ internal
     /// name so that two locks of the same name still exclude each other within the process.
     /// </summary>
     /// <remarks>
-    /// The field is static because the degraded mode has nothing but this table to rely on, and because several
-    /// instances of this service can coexist in one process. A table held per instance would silently provide no
-    /// exclusion at all between them.
+    /// <para>
+    /// The field is static, so that two instances of the same copy of this class exclude each other. A table held
+    /// per instance would silently provide no exclusion at all between them.
+    /// </para>
+    /// <para>
+    /// The exclusion reaches no further than that. This source file is compiled into several assemblies, and a
+    /// static field belongs to one type of one assembly, so the copies do not share this table: two of them
+    /// degrading on the same name in one process do not exclude each other. Several loaded copies of one assembly,
+    /// which is the ordinary situation when different versions of Metalama coexist in a design-time host, are in
+    /// the same position. Degraded mode is therefore weaker than it looks, and it remains an improvement only
+    /// because the alternative it replaced was to fail outright.
+    /// </para>
     /// </remarks>
     private static readonly ConcurrentDictionary<string, SemaphoreSlim> _processLocalMonitors = new( StringComparer.Ordinal );
 
@@ -405,10 +414,20 @@ internal
     /// <param name="exception">The exception thrown while opening or creating the object.</param>
     /// <returns><see langword="true"/> if no name is usable on this machine.</returns>
     /// <remarks>
+    /// <para>
     /// This is the case of issue 272. On Unix the runtime implements the named objects with files under
     /// <c>/tmp/.dotnet/shm</c>, and when that tree cannot be used it raises <see cref="IOException"/>. Until this
     /// method existed, that exception escaped and failed the whole compilation with LAMA0623. The condition is a
     /// property of the machine, not of the name, so it is worth latching.
+    /// </para>
+    /// <para>
+    /// The latch is deliberately coarse in two respects. It is set by any <see cref="IOException"/>, including a
+    /// transient one such as the volume being momentarily full, and once set it holds for the lifetime of the
+    /// process. For a build process, which is short-lived, that is the right trade: the alternative is to pay an
+    /// exception for every lock on a machine where the condition is permanent. For a design-time process, which
+    /// runs for as long as the editor does, it means that cross-process exclusion is not attempted again after a
+    /// single transient failure.
+    /// </para>
     /// </remarks>
     private static bool IsMachineWideRefusal( Exception exception ) => exception is IOException or PlatformNotSupportedException or NotSupportedException;
 

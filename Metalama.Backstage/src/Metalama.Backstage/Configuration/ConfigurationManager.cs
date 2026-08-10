@@ -41,6 +41,23 @@ namespace Metalama.Backstage.Configuration
     /// read and one write of a single file: neither the dispatch of <see cref="ConfigurationFileChanged"/> nor the
     /// processing of an external change holds it.
     /// </para>
+    /// <para>
+    /// Mutual exclusion with the versions of Metalama that preceded this class is deliberately not maintained.
+    /// Those versions take a single lock named after the data directory, whereas the names used here are derived
+    /// from the paths of the individual files, so the two sets of names are disjoint and two processes of different
+    /// generations sharing one data directory do not exclude each other. The consequence is worth stating plainly:
+    /// an older version writes a configuration file without substituting it atomically, so a reader of this
+    /// generation can observe a partially written file. Such a file fails to deserialize, which yields a default
+    /// instance carrying the modification time of the file, and an update that takes that instance as its base
+    /// writes the defaults back. The settings the older process had written are then lost.
+    /// </para>
+    /// <para>
+    /// This was accepted rather than repaired, because repairing it means acquiring the legacy directory-wide lock
+    /// in addition to the per-file one for as long as the older versions remain in use, which reintroduces the
+    /// directory-wide serialization that this class exists to remove. A machine running two generations of Metalama
+    /// against one data directory is the case to consider first when a configuration file is reported as having
+    /// reverted to its default content.
+    /// </para>
     /// </remarks>
     internal sealed class ConfigurationManager : IConfigurationManager
     {
@@ -65,18 +82,6 @@ namespace Metalama.Backstage.Configuration
         /// The source of <see cref="InstanceContext"/>.
         /// </summary>
         private static int _nextInstanceId;
-
-        /// <summary>
-        /// The file whose transformation the current thread is executing, or <see langword="null"/>.
-        /// </summary>
-        /// <remarks>
-        /// A transformation runs while the lock protecting its file is held, so one that started a second update
-        /// would make the thread hold two named locks at once, which deadlocks as soon as another thread takes the
-        /// same two in the opposite order. The field is static, and therefore shared by every instance of this
-        /// class in the process, because two managers over the same directory take the same locks.
-        /// </remarks>
-        [ThreadStatic]
-        private static string? _fileBeingUpdatedByCurrentThread;
 
         // Stores the in-memory configuration object. Note that ConfigurationFile can be implemented in a different assembly, and that
         // there may be several copies of this assembly in the current AppDomain. Therefore, this dictionary may contain several objects
@@ -296,6 +301,14 @@ namespace Metalama.Backstage.Configuration
         /// </summary>
         /// <param name="fileName">The path of the file that has changed.</param>
         /// <param name="changedValues">The list to which the values whose change must be announced are added.</param>
+        /// <remarks>
+        /// The deletion of a file is not propagated. Reading a file that no longer exists yields a default
+        /// instance carrying no timestamp, and the cache never adopts such a value, so a process that has already
+        /// read a file goes on serving its content after the file is removed from disk. This is deliberate: a
+        /// value that was read is better than the defaults, the supported way of resetting a configuration file is
+        /// an update, which writes one, and the alternative would let any transient failure to read a file discard
+        /// the settings held in memory.
+        /// </remarks>
         private void ReloadFile( string fileName, List<ConfigurationFile> changedValues )
         {
             var types = this._instances.Values
@@ -383,8 +396,7 @@ namespace Metalama.Backstage.Configuration
             }
 
             // A caller that asked to ignore the cache receives what was on disk, even when the cache turns out to
-            // hold something more recent, because that is what it asked for and what it will pass back as the
-            // expected timestamp of an update.
+            // hold something more recent, because reading the file is what it asked for.
             return ignoreCache ? loadedValue : newCachedValue;
         }
 
@@ -423,17 +435,7 @@ namespace Metalama.Backstage.Configuration
 
             this.SyncPoint( RaiseChangedBeforeInvokeLocation, this.GetFilePath( value.GetType() ) );
 
-            foreach ( var handler in handlers.GetInvocationList() )
-            {
-                try
-                {
-                    ((Action<ConfigurationFile>) handler).Invoke( value );
-                }
-                catch ( Exception e )
-                {
-                    this.Logger.LogException( e, $"Error in a handler of {nameof(this.ConfigurationFileChanged)}" );
-                }
-            }
+            ConfigurationUpdateScope.RaiseConfigurationFileChanged( handlers, value, this.Logger );
         }
 
         /// <summary>
@@ -536,15 +538,7 @@ namespace Metalama.Backstage.Configuration
         {
             var fileName = this.GetFilePath( type );
 
-            if ( _fileBeingUpdatedByCurrentThread != null )
-            {
-                // Refused rather than allowed to nest, because the alternative is a deadlock between two processes
-                // that is neither reproducible nor diagnosable. A transformation may read any configuration file,
-                // which takes no lock, but it may not update one.
-                throw new InvalidOperationException(
-                    $"Cannot update '{fileName}' from within the transformation of '{_fileBeingUpdatedByCurrentThread}'. "
-                    + "A transformation runs while the lock protecting its own file is held, and the locks of this class are not reentrant." );
-            }
+            ConfigurationUpdateScope.VerifyNotNested( fileName );
 
             ConfigurationFile? valueToAnnounce = null;
 
@@ -603,18 +597,9 @@ namespace Metalama.Backstage.Configuration
 
             ConfigurationFile? newValue;
 
-            // The marker covers exactly the transformation, and not the dispatch of the event that follows the
-            // release of the lock: a handler is free to update whatever it likes, precisely because it holds
-            // nothing when it runs.
-            _fileBeingUpdatedByCurrentThread = fileName;
-
-            try
+            using ( ConfigurationUpdateScope.Enter( fileName ) )
             {
                 newValue = transform( currentValue );
-            }
-            finally
-            {
-                _fileBeingUpdatedByCurrentThread = null;
             }
 
             if ( newValue == null )

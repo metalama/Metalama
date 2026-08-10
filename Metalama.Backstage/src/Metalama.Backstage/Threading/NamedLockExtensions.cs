@@ -38,8 +38,18 @@ public static class NamedLockExtensions
     /// </param>
     /// <returns>The name of the operating system object.</returns>
     /// <remarks>
+    /// <para>
     /// The name is hashed because a path can exceed the length an operating system object name may have, and
     /// because a path can contain characters that such a name may not.
+    /// </para>
+    /// <para>
+    /// The resource name is hashed exactly as it is given. On a file system that ignores the case of a path, two
+    /// callers that reach the same file through paths differing only in case therefore obtain two different locks
+    /// and do not exclude each other. The paths used by this product come from <c>IStandardDirectories</c> and are
+    /// composed the same way in every process, so the situation does not arise; normalizing here would require
+    /// assuming that every resource name is a path and that the case rules of the current platform apply to it,
+    /// which is a stronger assumption than this method is entitled to make.
+    /// </para>
     /// </remarks>
     public static string GetGlobalLockName( string resourceName ) => _globalLockNamePrefix + HashUtilities.HashToString( resourceName );
 

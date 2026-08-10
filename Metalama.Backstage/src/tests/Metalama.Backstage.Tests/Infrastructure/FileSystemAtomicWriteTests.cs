@@ -322,15 +322,13 @@ public sealed class FileSystemAtomicWriteTests : IDisposable
     /// The retry gives up eventually, and the attempt that gives up must clean up after itself like the others.
     /// The condition is held for the whole operation by a reader that is never closed until it has failed.
     /// </remarks>
-    [Fact]
+    [SkippableFact]
     public async Task ASubstitutionThatKeepsFailingLeavesNoTemporaryFile()
     {
-        if ( !RuntimeInformation.IsOSPlatform( OSPlatform.Windows ) )
-        {
-            // See the remarks of RetriesTheSubstitutionWhileAReaderHoldsTheDestination: on Unix an open descriptor
-            // does not prevent the substitution, so it cannot be made to fail this way.
-            return;
-        }
+        // Skipped rather than returned from, so that a run on a platform where this cannot be exercised reports a
+        // skip instead of a pass. See the remarks of RetriesTheSubstitutionWhileAReaderHoldsTheDestination: on
+        // Unix an open descriptor does not prevent the substitution, so it cannot be made to fail this way.
+        Skip.IfNot( RuntimeInformation.IsOSPlatform( OSPlatform.Windows ), "The substitution can only be made to fail on Windows." );
 
         var path = this.GetPath();
         File.WriteAllText( path, _previousContent );
@@ -363,13 +361,12 @@ public sealed class FileSystemAtomicWriteTests : IDisposable
     /// does not prevent, so there is nothing to retry and nothing to assert.
     /// </para>
     /// </remarks>
-    [Fact]
+    [SkippableFact]
     public async Task RetriesTheSubstitutionWhileAReaderHoldsTheDestination()
     {
-        if ( !RuntimeInformation.IsOSPlatform( OSPlatform.Windows ) )
-        {
-            return;
-        }
+        Skip.IfNot(
+            RuntimeInformation.IsOSPlatform( OSPlatform.Windows ),
+            "On Unix the substitution is a rename, which an open descriptor does not prevent." );
 
         var path = this.GetPath();
         File.WriteAllText( path, _previousContent );

@@ -84,6 +84,26 @@ public sealed class ConfigurationManagerStressTests : IDisposable
     }
 
     /// <summary>
+    /// Runs a small number of concurrent updates against the real file system and the real named locks, and
+    /// verifies that no update is lost.
+    /// </summary>
+    /// <returns>A task that completes when the test does.</returns>
+    /// <remarks>
+    /// <para>
+    /// Unlike the two load tests below, this one runs in continuous integration. Without it nothing there would
+    /// compose the real file system, the real named locks and genuine contention at the same time: the
+    /// deterministic tests substitute the locks, and the load tests are excluded. The test this pull request
+    /// removed was the only one that did, so a small version of it is kept.
+    /// </para>
+    /// <para>
+    /// It is deliberately modest, because it has to be quick and must never be flaky. It asserts an invariant that
+    /// holds whatever the interleaving turns out to be, rather than a particular interleaving.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public Task ConcurrentUpdatesAgainstTheRealStackNeverLoseAnUpdate() => this.RunStressAsync( withCpuLoad: false, workerCount: 2, iterationsPerWorker: 20 );
+
+    /// <summary>
     /// Runs the stress without competing for the processors.
     /// </summary>
     /// <returns>A task that completes when the test does.</returns>
@@ -135,7 +155,7 @@ public sealed class ConfigurationManagerStressTests : IDisposable
     /// </summary>
     /// <param name="withCpuLoad">Whether to saturate the processors while the workers run.</param>
     /// <returns>A task that completes when the test does.</returns>
-    private async Task RunStressAsync( bool withCpuLoad )
+    private async Task RunStressAsync( bool withCpuLoad, int workerCount = _workerCount, int iterationsPerWorker = _iterationsPerWorker )
     {
         var serviceProvider = this.CreateServiceProvider();
 
@@ -144,17 +164,17 @@ public sealed class ConfigurationManagerStressTests : IDisposable
             _ = cpuLoad;
 
             var outcomes = new ConcurrentQueue<ConfigurationUpdateOutcome>();
-            var acceptedByWorker = new List<string>[_workerCount];
+            var acceptedByWorker = new List<string>[workerCount];
 
-            var workers = new Task[_workerCount];
+            var workers = new Task[workerCount];
 
-            for ( var workerId = 0; workerId < _workerCount; workerId++ )
+            for ( var workerId = 0; workerId < workerCount; workerId++ )
             {
                 var capturedWorkerId = workerId;
                 acceptedByWorker[workerId] = new List<string>();
 
                 workers[workerId] = Task.Factory.StartNew(
-                    () => RunWorker( serviceProvider, capturedWorkerId, acceptedByWorker[capturedWorkerId], outcomes ),
+                    () => RunWorker( serviceProvider, capturedWorkerId, iterationsPerWorker, acceptedByWorker[capturedWorkerId], outcomes ),
                     CancellationToken.None,
                     TaskCreationOptions.LongRunning,
                     TaskScheduler.Default );
@@ -177,6 +197,7 @@ public sealed class ConfigurationManagerStressTests : IDisposable
     private static void RunWorker(
         IServiceProvider serviceProvider,
         int workerId,
+        int iterationsPerWorker,
         List<string> accepted,
         ConcurrentQueue<ConfigurationUpdateOutcome> outcomes )
     {
@@ -184,7 +205,7 @@ public sealed class ConfigurationManagerStressTests : IDisposable
         // concerned, which is the situation this test exists to exercise.
         using var configurationManager = new Configuration.ConfigurationManager( serviceProvider );
 
-        for ( var iteration = 0; iteration < _iterationsPerWorker; iteration++ )
+        for ( var iteration = 0; iteration < iterationsPerWorker; iteration++ )
         {
             var mark = FormatMark( workerId, iteration );
 

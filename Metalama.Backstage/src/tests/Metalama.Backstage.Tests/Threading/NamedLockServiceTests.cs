@@ -914,15 +914,12 @@ public sealed class NamedLockServiceTests : IDisposable
     /// the classifier treats as specific to the name.
     /// </para>
     /// </remarks>
-    [Fact]
+    [SkippableFact]
     public void ANameTakenByAnotherKindOfObjectDegradesWithoutAffectingTheOtherNames()
     {
-        if ( !RuntimeInformation.IsOSPlatform( OSPlatform.Windows ) )
-        {
-            // Unix does not keep a namespace shared by the kinds of synchronization object, so a semaphore of the
-            // same name does not collide with a mutex there.
-            return;
-        }
+        Skip.IfNot(
+            RuntimeInformation.IsOSPlatform( OSPlatform.Windows ),
+            "Unix does not keep a namespace shared by the kinds of synchronization object, so a semaphore of the same name does not collide with a mutex." );
 
         var service = this.CreateService();
         var takenName = CreateName();
