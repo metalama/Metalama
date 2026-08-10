@@ -7,10 +7,10 @@ using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Infrastructure;
 using Metalama.Backstage.Serialization;
+using Metalama.Backstage.Threading;
 using Metalama.Backstage.Utilities;
 using System;
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
@@ -22,6 +22,11 @@ namespace Metalama.Backstage.Configuration
 {
     internal sealed class ConfigurationManager : IConfigurationManager
     {
+        /// <summary>
+        /// The maximal time an operation waits for the lock protecting the configuration files.
+        /// </summary>
+        private static readonly TimeSpan _lockTimeout = TimeSpan.FromSeconds( 30 );
+
         // Stores the in-memory configuration object. Note that ConfigurationFile can be implemented in a different assembly, and that
         // there may be several copies of this assembly in the current AppDomain. Therefore, this dictionary may contain several objects
         // that represent the same file.
@@ -34,8 +39,9 @@ namespace Metalama.Backstage.Configuration
         private readonly IJsonSerializationService _jsonSerializationService;
         private readonly ConcurrentDictionary<string, string> _fileChanges = new( StringComparer.Ordinal );
 
-        // Named semaphore to handle many instances.
-        private readonly Mutex _mutex;
+        // Named lock, shared with the other instances of this class in this process and with the other processes
+        // of the machine.
+        private readonly INamedLock _lock;
         private volatile int _fileChangeProcessingTaskStatus;
 
         public ConfigurationManager( IServiceProvider serviceProvider )
@@ -57,8 +63,7 @@ namespace Metalama.Backstage.Configuration
 
             this.ApplicationDataDirectory = serviceProvider.GetRequiredBackstageService<IStandardDirectories>().ApplicationDataDirectory;
 
-            // We pass no logger here, we will be unable to read the log anyway if this throws an exception.
-            this._mutex = MutexHelper.OpenOrCreateMutex( this.ApplicationDataDirectory, this._fileSystem.SynchronizationPrefix, null );
+            this._lock = serviceProvider.GetRequiredBackstageService<INamedLockService>().GetGlobalLock( this.ApplicationDataDirectory );
 
             if ( !this._fileSystem.DirectoryExists( this.ApplicationDataDirectory ) )
             {
@@ -167,25 +172,38 @@ namespace Metalama.Backstage.Configuration
             return attribute.EnvironmentVariableName;
         }
 
+        /// <summary>
+        /// Loads a configuration file, or creates a default instance of it if it does not exist, without taking
+        /// the lock.
+        /// </summary>
+        /// <param name="type">The type of the configuration file.</param>
+        /// <returns>The configuration file.</returns>
+        /// <remarks>
+        /// The lock is left to the caller because <see cref="TryUpdate"/> loads the file while already holding it.
+        /// Named locks are not reentrant, so it cannot go through a method that takes the lock itself.
+        /// </remarks>
+        private ConfigurationFile LoadOrCreateWithoutLock( Type type )
+        {
+            this.Logger.Trace?.Log( $"Loading configuration {type.Name} from file." );
+
+            if ( this.TryLoadConfigurationFile( type, out var value ) )
+            {
+                return value;
+            }
+
+            var settingsObject = Activator.CreateInstance( type )
+                                 ?? throw new InvalidOperationException( $"Failed to create instance of '{type.FullName}' type." );
+
+            return (ConfigurationFile) settingsObject;
+        }
+
         public ConfigurationFile Get( Type type, bool ignoreCache = false )
         {
             ConfigurationFile GetCore()
             {
                 using ( this.WithMutex() )
                 {
-                    this.Logger.Trace?.Log( $"Loading configuration {type.Name} from file." );
-
-                    if ( this.TryLoadConfigurationFile( type, out var value ) )
-                    {
-                        return value;
-                    }
-
-                    var settingsObject = Activator.CreateInstance( type )
-                                         ?? throw new InvalidOperationException( $"Failed to create instance of '{type.FullName}' type." );
-
-                    var settings = (ConfigurationFile) settingsObject;
-
-                    return settings;
+                    return this.LoadOrCreateWithoutLock( type );
                 }
             }
 
@@ -262,7 +280,10 @@ namespace Metalama.Backstage.Configuration
                         return false;
                     }
 
-                    var existingFile = this.Get( value.GetType(), true );
+                    // Loaded without going through Get, which would take the lock that this method already holds.
+                    // Named locks are not reentrant.
+                    var existingFile = this.LoadOrCreateWithoutLock( type );
+                    this.AddToCache( existingFile );
 
                     if ( existingFile.Timestamp!.Value != expectedTimestamp.Value )
                     {
@@ -407,46 +428,28 @@ namespace Metalama.Backstage.Configuration
             }
         }
 
-        private DisposableAction WithMutex()
+        /// <summary>
+        /// Acquires the lock protecting the configuration files.
+        /// </summary>
+        /// <returns>An object that releases the lock when it is disposed.</returns>
+        /// <remarks>
+        /// The waiting, the abandonment of the lock by a process that terminated, and the warning about a lock
+        /// held for a long time are all handled by the lock service, which reports them through its events.
+        /// </remarks>
+        private IDisposable WithMutex()
         {
-            try
+            if ( !this._lock.TryAcquire( _lockTimeout, out var releaser ) )
             {
-                if ( !this._mutex.WaitOne( 0 ) )
-                {
-                    this.Logger.Trace?.Log( $"Waiting for the configuration mutex." );
-
-                    if ( !this._mutex.WaitOne( 30000 ) )
-                    {
-                        throw new TimeoutException( "Cannot acquire the global configuration mutex in 30s." );
-                    }
-                }
-            }
-            catch ( AbandonedMutexException )
-            {
-                this.Logger.Trace?.Log( $"The mutex has been abandoned by another process." );
+                throw new TimeoutException(
+                    $"Cannot acquire the global configuration lock in {_lockTimeout.TotalSeconds} s." );
             }
 
-            this.Logger.Trace?.Log( $"Configuration mutex acquired." );
-
-            var stopwatch = Stopwatch.StartNew();
-
-            return new DisposableAction(
-                () =>
-                {
-                    this.Logger.Trace?.Log( $"Releasing configuration mutex. It was held for {stopwatch.ElapsedMilliseconds} ms." );
-
-                    if ( stopwatch.ElapsedMilliseconds > 1000 )
-                    {
-                        this.Logger.Warning?.Log( $"The configuration mutex was held for a long time: {stopwatch.Elapsed}." );
-                    }
-
-                    this._mutex.ReleaseMutex();
-                } );
+            return releaser;
         }
 
         public void Dispose()
         {
-            this._mutex.Dispose();
+            this._lock.Dispose();
             this._fileSystemWatcher?.Dispose();
         }
     }

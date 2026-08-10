@@ -10,6 +10,7 @@ using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Infrastructure;
 using Metalama.Backstage.Serialization;
 using Metalama.Backstage.Testing;
+using Metalama.Backstage.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using System.Linq;
 using System.Text.Json.Serialization.Metadata;
@@ -35,6 +36,10 @@ public sealed class ConfigurationManagerLoadTests : TestsBase
         services.AddSingleton<IRuntimeInformation>( new RuntimeInformationProvider() );
         services.AddSingleton<EarlyLoggerFactory>();
         services.AddSingleton<IStandardDirectories>( s => new StandardDirectories( s ) );
+
+        // The real service and not the substitute, because this test uses the real file system and therefore has
+        // to exclude the other processes of the machine exactly as the product does.
+        services.AddSingleton<INamedLockService>( new NamedLockService() );
 
         services.AddSingleton<IJsonSerializationService>(
             _ => new JsonSerializationService( new IJsonTypeInfoResolver[] { TestConfigurationJsonContext.Default } ) );

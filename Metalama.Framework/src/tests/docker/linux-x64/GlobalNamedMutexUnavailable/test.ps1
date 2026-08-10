@@ -19,15 +19,14 @@
 # robust process-shared pthread mutexes, so it maintains a second tree, /tmp/.dotnet/lockfiles,
 # that Linux never creates.
 #
-# The intended behaviour, which this test asserts, is that Metalama degrades instead of failing:
-# Metalama.Backstage.Threading.NamedLockService catches the IOException, reports a
-# LockEventKind.Degraded event, and returns a lock backed by a monitor of the current process. Mutual
-# exclusion between processes is lost, which every caller tolerates, and the build succeeds.
+# Metalama now degrades instead of failing: Metalama.Backstage.Threading.NamedLockService catches the
+# IOException, reports a LockEventKind.Degraded event, and returns a lock backed by a monitor of the
+# current process. Mutual exclusion between processes is lost, which every caller tolerates, and the
+# build succeeds. This test asserts that behaviour.
 #
-# THIS TEST IS EXPECTED TO FAIL UNTIL EVERY CALLER HAS BEEN MOVED TO THAT SERVICE. ResourceExtractor,
-# which runs first, has been. Metalama.Backstage.Configuration.ConfigurationManager still opens its
-# mutex through MutexHelper, which lets the IOException escape, so Backstage initialization still
-# fails after the extraction has succeeded.
+# The two places that a build reaches are ResourceExtractor, which extracts the embedded assemblies
+# before anything else can run, and ConfigurationManager, which is constructed while the Backstage
+# services are initialized. Both now go through that service.
 
 $ErrorActionPreference = 'Stop'
 

@@ -24,7 +24,14 @@ namespace Metalama.Backstage.Threading;
 /// </para>
 /// </remarks>
 [PublicAPI]
-public interface INamedLock : IDisposable
+#if METALAMA_BACKSTAGE
+public
+#else
+
+// See the remark on the accessibility of INamedLockService.
+internal
+#endif
+    interface INamedLock : IDisposable
 {
     /// <summary>
     /// Gets the name of the lock, as it was given to <see cref="INamedLockService.GetLock"/>.

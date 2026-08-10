@@ -39,6 +39,12 @@ public sealed class CleanUpTests : TestsBase
 
     public CleanUpTests( ITestOutputHelper logger ) : base( logger )
     {
+        // TempFileManager holds the lock on the temporary directory while it cleans the legacy directories, and
+        // takes the lock on each of those in turn, which is a nesting of two named locks. It cannot cycle: a
+        // legacy directory belongs to an older version of Metalama, whose own legacy directories are older still,
+        // so the order is a strict hierarchy by version. The nesting is therefore knowingly accepted here.
+        this.Locks.EnforceDiscipline = false;
+
         this._standardDirectories = this.ServiceProvider.GetRequiredBackstageService<IStandardDirectories>();
         this.SetupTempDirectory();
     }

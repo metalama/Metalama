@@ -36,7 +36,14 @@ namespace Metalama.Backstage.Threading;
 /// </para>
 /// </remarks>
 [PublicAPI]
-public sealed partial class NamedLockService : INamedLockService
+#if METALAMA_BACKSTAGE
+public
+#else
+
+// See the remark on the accessibility of INamedLockService.
+internal
+#endif
+    sealed partial class NamedLockService : INamedLockService
 {
     /// <summary>
     /// The time after which holding a lock is reported as <see cref="LockEventKind.HeldTooLong"/>.

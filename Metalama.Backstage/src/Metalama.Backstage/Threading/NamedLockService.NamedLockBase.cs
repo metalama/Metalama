@@ -9,7 +9,12 @@ using System.Threading;
 
 namespace Metalama.Backstage.Threading
 {
-    public sealed partial class NamedLockService
+#if METALAMA_BACKSTAGE
+    public
+#else
+    internal
+#endif
+        sealed partial class NamedLockService
     {
         /// <summary>
         /// The part of <see cref="INamedLock"/> that does not depend on the primitive backing the lock, namely

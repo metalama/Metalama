@@ -24,7 +24,14 @@ namespace Metalama.Backstage.Threading;
 /// </para>
 /// </remarks>
 [PublicAPI]
-public sealed class LockEventArgs : EventArgs
+#if METALAMA_BACKSTAGE
+public
+#else
+
+// See the remark on the accessibility of INamedLockService.
+internal
+#endif
+    sealed class LockEventArgs : EventArgs
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="LockEventArgs"/> class.
@@ -104,7 +111,14 @@ public sealed class LockEventArgs : EventArgs
 /// The kinds of <see cref="LockEventArgs"/>.
 /// </summary>
 [PublicAPI]
-public enum LockEventKind
+#if METALAMA_BACKSTAGE
+public
+#else
+
+// See the remark on the accessibility of INamedLockService.
+internal
+#endif
+    enum LockEventKind
 {
     /// <summary>
     /// The operating system object backing the lock was opened or created.

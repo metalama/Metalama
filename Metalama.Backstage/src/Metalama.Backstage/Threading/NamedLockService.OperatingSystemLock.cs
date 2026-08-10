@@ -7,7 +7,12 @@ using System.Threading;
 
 namespace Metalama.Backstage.Threading
 {
-    public sealed partial class NamedLockService
+#if METALAMA_BACKSTAGE
+    public
+#else
+    internal
+#endif
+        sealed partial class NamedLockService
     {
         /// <summary>
         /// A lock backed by a named <see cref="Mutex"/>, and therefore shared by all the processes of the machine.

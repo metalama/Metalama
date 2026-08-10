@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Backstage.Utilities;
+using Metalama.Backstage.Threading;
 using Metalama.Framework.DesignTime.Pipeline;
 using Metalama.Framework.DesignTime.Rpc;
 using Metalama.Framework.DesignTime.Utilities;
@@ -273,9 +274,9 @@ internal class AnalysisProcessProjectSourceGenerator : ProjectSourceGenerator
 
         // Write atomically so Rider/Roslyn, which parse this <Compile> file on every change, never observe a
         // truncated half-written buffer: write to a sibling temp file, then File.Replace/Move into place
-        // (atomic on NTFS). The cross-process MutexHelper still orders concurrent writers from racing on the
+        // (atomic on NTFS). The cross-process named lock still orders concurrent writers from racing on the
         // same path. Same write pattern as Metalama.Framework.Engine/CompileTime/CompileTimeCompilationBuilder.cs.
-        using ( MutexHelper.WithGlobalLock( touchFile, this.Logger ) )
+        using ( this.ServiceProvider.GetRequiredBackstageService<INamedLockService>().WithGlobalLock( touchFile ) )
         {
             RetryHelper.Retry(
                 () =>

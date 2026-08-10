@@ -11,6 +11,16 @@ using System.Threading;
 
 namespace Metalama.Backstage.Utilities;
 
+/// <summary>
+/// Opens or creates named operating system mutexes.
+/// </summary>
+/// <remarks>
+/// This class is superseded by <see cref="Metalama.Backstage.Threading.INamedLockService"/>, which is resolved
+/// from the service provider rather than reached statically, which a test can therefore substitute, and which
+/// degrades to a lock local to the current process when the operating system cannot provide a named object
+/// instead of letting the exception escape. See issues 1847 and 272.
+/// </remarks>
+[Obsolete( "Use Metalama.Backstage.Threading.INamedLockService instead." )]
 public static class MutexHelper
 {
     private static readonly object _sync = new();

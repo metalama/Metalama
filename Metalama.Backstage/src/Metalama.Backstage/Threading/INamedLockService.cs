@@ -39,7 +39,15 @@ namespace Metalama.Backstage.Threading;
 /// </para>
 /// </remarks>
 [PublicAPI]
-public interface INamedLockService
+#if METALAMA_BACKSTAGE
+public
+#else
+
+// Internal outside Metalama.Backstage: several assemblies compile these files, and a consumer that references
+// two of them would otherwise find the same full type name in both and fail to compile with CS0433.
+internal
+#endif
+    interface INamedLockService
 #if METALAMA_BACKSTAGE
     : IBackstageService
 #endif
