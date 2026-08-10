@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -316,14 +316,8 @@ public sealed class ConfigurationManagerLockingTests : TestsBase, IDisposable
     /// it is reported once.
     /// </summary>
     /// <remarks>
-    /// <para>
     /// Failing to write a configuration file must never fail a compilation. The implementation this one replaces
     /// threw a <see cref="TimeoutException"/> here, which is issue 1847 as it was reported.
-    /// </para>
-    /// <para>
-    /// The test goes through <see cref="IConfigurationManager.TryUpdate"/> rather than through the extension
-    /// methods, which still retry an update that was declined. That retry is what the next commit removes.
-    /// </para>
     /// </remarks>
     [Fact]
     public void AnUpdateIsDeclinedWhenTheLockCannotBeAcquired()
@@ -334,8 +328,8 @@ public sealed class ConfigurationManagerLockingTests : TestsBase, IDisposable
 
         this.Locks.ForceTimeout( GetLockName<TestConfigurationFile>( configurationManager ), int.MaxValue );
 
-        Assert.False( configurationManager.TryUpdate( new TestConfigurationFile { IsModified = true }, null ) );
-        Assert.False( configurationManager.TryUpdate( new TestConfigurationFile { IsModified = true }, null ) );
+        Assert.Equal( ConfigurationUpdateOutcome.LockTimeout, UpdateTestFile( configurationManager ) );
+        Assert.Equal( ConfigurationUpdateOutcome.LockTimeout, UpdateTestFile( configurationManager ) );
 
         // Reported once and not twice: on a machine on which the condition holds, it holds for every operation.
         Assert.Single(
@@ -357,30 +351,16 @@ public sealed class ConfigurationManagerLockingTests : TestsBase, IDisposable
             GetLockName<TestConfigurationFile>( configurationManager ),
             () => new UnauthorizedAccessException( "Injected by a test." ) );
 
-        Assert.False( configurationManager.TryUpdate( new TestConfigurationFile { IsModified = true }, null ) );
+        Assert.Equal( ConfigurationUpdateOutcome.LockTimeout, UpdateTestFile( configurationManager ) );
     }
 
     /// <summary>
-    /// Verifies that a declined update leaves the value the caller submitted exactly as it was.
+    /// Sets <see cref="TestConfigurationFile.IsModified"/>, and reports what happened.
     /// </summary>
-    /// <remarks>
-    /// The implementation this one replaces incremented the version of the caller's own record before writing, so a
-    /// declined attempt left the caller one version ahead of the file, and every retry incremented it again.
-    /// </remarks>
-    [Fact]
-    public void ADeclinedUpdateDoesNotChangeTheSubmittedValue()
-    {
-        using var configurationManager = this.CreateConfigurationManager();
-
-        this.Locks.ForceTimeout( GetLockName<TestConfigurationFile>( configurationManager ), int.MaxValue );
-
-        var value = new TestConfigurationFile { IsModified = true };
-
-        Assert.False( configurationManager.TryUpdate( value, null ) );
-
-        Assert.Null( value.Version );
-        Assert.Null( value.Timestamp );
-    }
+    /// <param name="configurationManager">The manager.</param>
+    /// <returns>The outcome.</returns>
+    private static ConfigurationUpdateOutcome UpdateTestFile( IConfigurationManager configurationManager )
+        => configurationManager.Update( typeof(TestConfigurationFile), current => ((TestConfigurationFile) current) with { IsModified = true } );
 
     /// <summary>
     /// Verifies that reading a file that has gone backwards on disk does not make the cache go backwards with it.

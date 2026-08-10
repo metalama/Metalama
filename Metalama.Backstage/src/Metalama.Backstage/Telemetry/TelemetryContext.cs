@@ -74,50 +74,55 @@ internal sealed class TelemetryContext : ITelemetryContext
         }
     }
 
+    /// <summary>
+    /// Determines whether the usage of a project should be reported, and records that it has been, so that at most
+    /// one report per project and per day is produced.
+    /// </summary>
+    /// <param name="projectName">The name of the project, or the kind of the session when the project is unknown.</param>
+    /// <returns><see langword="true"/> if this caller is the one that must report the session.</returns>
+    /// <remarks>
+    /// The decision and the record of it are a single transaction of the configuration manager, so exactly one of
+    /// several concurrent callers obtains <see langword="true"/> for a given project and day. The in-process
+    /// monitor that used to surround this method is gone with the optimistic loop it existed to relieve: the
+    /// callers of that loop each read, transformed and compared before discovering that another one had written in
+    /// the meantime, and this method, being a per-process singleton called once per project, was the largest
+    /// source of that self-contention (issue 1696).
+    /// </remarks>
     private bool ShouldCollectMetrics( string projectName )
     {
-        // Serializes the in-process callers of ShouldCollectMetrics. This service is a per-process singleton, so when a
-        // single process compiles many projects concurrently (e.g. the design-time analysis service or an in-process build),
-        // all those threads would otherwise race on the shared TelemetryConfiguration timestamp and exhaust the
-        // optimistic-concurrency retries in UpdateIf. Serializing them removes this self-contention, which is the dominant
-        // source. It is not a full guarantee: occasional retries remain possible from other (infrequent) TelemetryConfiguration
-        // writers in the same process, or from other processes (still bounded by the cross-process mutex in ConfigurationManager).
-        lock ( this._usageSessionFactory.Sync )
+        var now = this._time.UtcNow;
+
+        var configuration = this._configurationManager.Get<TelemetryConfiguration>();
+
+        if ( configuration.Sessions.TryGetValue( projectName, out var lastReported ) && lastReported.AddDays( 1 ) > now )
         {
-            var now = this._time.UtcNow;
+            this._logger.Trace?.Log( $"Session of project '{projectName}' should not be reported because it has been reported on {lastReported}." );
 
-            var configuration = this._configurationManager.Get<TelemetryConfiguration>();
-
-            if ( configuration.Sessions.TryGetValue( projectName, out var lastReported ) && lastReported.AddDays( 1 ) > now )
-            {
-                this._logger.Trace?.Log( $"Session of project '{projectName}' should not be reported because it has been reported on {lastReported}." );
-
-                return false;
-            }
-
-            return this._configurationManager.UpdateIf<TelemetryConfiguration>(
-                c =>
-                {
-                    if ( c.Sessions.TryGetValue( projectName, out var raceReported ) && raceReported.AddDays( 1 ) > now )
-                    {
-                        this._logger.Trace?.Log(
-                            $"Session of project '{projectName}' should not be reported because it is being reported by a concurrent process." );
-
-                        return false;
-                    }
-
-                    return true;
-                },
-                c =>
-                {
-                    this._logger.Trace?.Log( $"Session of project '{projectName}' should be reported." );
-
-                    c = c.CleanUp( now.AddDays( -1 ) );
-                    c = c with { Sessions = c.Sessions.SetItem( projectName, now ) };
-
-                    return c;
-                } );
+            return false;
         }
+
+        return this._configurationManager.UpdateIf<TelemetryConfiguration>(
+            c =>
+            {
+                if ( c.Sessions.TryGetValue( projectName, out var raceReported ) && raceReported.AddDays( 1 ) > now )
+                {
+                    this._logger.Trace?.Log(
+                        $"Session of project '{projectName}' should not be reported because it is being reported by a concurrent process." );
+
+                    return false;
+                }
+
+                return true;
+            },
+            c =>
+            {
+                this._logger.Trace?.Log( $"Session of project '{projectName}' should be reported." );
+
+                c = c.CleanUp( now.AddDays( -1 ) );
+                c = c with { Sessions = c.Sessions.SetItem( projectName, now ) };
+
+                return c;
+            } );
     }
 
     private void EnableTelemetryIfDefault()

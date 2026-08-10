@@ -78,6 +78,7 @@ namespace Metalama.Backstage.Testing
                         try
                         {
                             this._service.DetectDeadlock( this.Name );
+                            this._service.SignalWaiterCountWithinLock( this.Name );
 
                             var remaining = deadline == null
                                 ? Timeout.Infinite

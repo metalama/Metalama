@@ -10,6 +10,17 @@ namespace Metalama.Backstage.Tests.ConfigurationManager;
 internal sealed record TestConfigurationFile : ConfigurationFile
 {
     public bool IsModified { get; init; }
+
+    /// <summary>
+    /// Gets an accumulating record of what each update contributed, to which every writer appends.
+    /// </summary>
+    /// <remarks>
+    /// A test that only counted the successful updates could not tell an update that was lost from one that was
+    /// declined, because both leave the count of successes right. Accumulating instead makes a lost update visible
+    /// as a missing contribution. It is a string rather than a collection so that the structural equality of the
+    /// record, which decides whether an update changes anything, compares the contents and not the reference.
+    /// </remarks>
+    public string Marks { get; init; } = "";
 }
 
 /// <summary>

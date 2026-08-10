@@ -10,6 +10,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Metalama.Backstage.Testing;
 
@@ -38,6 +39,12 @@ public sealed partial class TestNamedLockService : INamedLockService
     private readonly Dictionary<int, List<string>> _namesHeldByThread = new();
     private readonly Dictionary<int, string> _nameWaitedForByThread = new();
     private readonly List<string> _violations = new();
+
+    /// <summary>
+    /// The pending calls to <see cref="WaitForWaitersAsync"/>.
+    /// </summary>
+    private readonly List<(string Name, int Count, TaskCompletionSource<bool> Signal)> _waiterCountWaiters = new();
+
     private readonly Action<string>? _log;
 
     /// <summary>
@@ -176,6 +183,92 @@ public sealed partial class TestNamedLockService : INamedLockService
         lock ( this._sync )
         {
             return this._locks.Keys.ToList();
+        }
+    }
+
+    /// <summary>
+    /// Returns a task that completes once at least a given number of threads are blocked waiting for a lock of a
+    /// given name.
+    /// </summary>
+    /// <param name="name">The name of the lock.</param>
+    /// <param name="count">The number of waiting threads to wait for.</param>
+    /// <param name="cancellationToken">A token that abandons the wait.</param>
+    /// <returns>A task that completes when the condition holds.</returns>
+    /// <remarks>
+    /// A test that has driven one thread into the critical section uses this to establish that a second thread is
+    /// genuinely waiting for the lock, rather than assuming it after a delay. Without it, releasing the first
+    /// thread could easily happen before the second one has even asked for the lock, which is a different
+    /// interleaving from the one the test means to exercise.
+    /// </remarks>
+    public async Task WaitForWaitersAsync( string name, int count, CancellationToken cancellationToken = default )
+    {
+        TaskCompletionSource<bool> signal;
+
+        lock ( this._sync )
+        {
+            if ( this.CountWaitersWithinLock( name ) >= count )
+            {
+                return;
+            }
+
+            signal = new TaskCompletionSource<bool>( TaskCreationOptions.RunContinuationsAsynchronously );
+            this._waiterCountWaiters.Add( (name, count, signal) );
+        }
+
+        this.Log( $"WaitForWaitersAsync '{name}' ({count}): waiting." );
+
+        using ( cancellationToken.Register( () => signal.TrySetCanceled( cancellationToken ) ) )
+        {
+            await signal.Task;
+        }
+
+        this.Log( $"WaitForWaitersAsync '{name}' ({count}): reached." );
+    }
+
+    /// <summary>
+    /// Counts the threads currently blocked waiting for a lock of a given name.
+    /// </summary>
+    /// <param name="name">The name of the lock.</param>
+    /// <returns>The number of waiting threads.</returns>
+    /// <remarks>Must be called while <see cref="_sync"/> is held.</remarks>
+    private int CountWaitersWithinLock( string name )
+    {
+        var count = 0;
+
+        foreach ( var waitedFor in this._nameWaitedForByThread.Values )
+        {
+            if ( string.Equals( waitedFor, name, StringComparison.Ordinal ) )
+            {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    /// <summary>
+    /// Releases the tasks of <see cref="WaitForWaitersAsync"/> whose condition has become true.
+    /// </summary>
+    /// <param name="name">The name a thread has just started waiting for.</param>
+    /// <remarks>Must be called while <see cref="_sync"/> is held.</remarks>
+    private void SignalWaiterCountWithinLock( string name )
+    {
+        if ( this._waiterCountWaiters.Count == 0 )
+        {
+            return;
+        }
+
+        var count = this.CountWaitersWithinLock( name );
+
+        for ( var i = this._waiterCountWaiters.Count - 1; i >= 0; i-- )
+        {
+            var waiter = this._waiterCountWaiters[i];
+
+            if ( string.Equals( waiter.Name, name, StringComparison.Ordinal ) && count >= waiter.Count )
+            {
+                this._waiterCountWaiters.RemoveAt( i );
+                waiter.Signal.TrySetResult( true );
+            }
         }
     }
 

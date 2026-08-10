@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -65,6 +65,18 @@ namespace Metalama.Backstage.Configuration
         /// The source of <see cref="InstanceContext"/>.
         /// </summary>
         private static int _nextInstanceId;
+
+        /// <summary>
+        /// The file whose transformation the current thread is executing, or <see langword="null"/>.
+        /// </summary>
+        /// <remarks>
+        /// A transformation runs while the lock protecting its file is held, so one that started a second update
+        /// would make the thread hold two named locks at once, which deadlocks as soon as another thread takes the
+        /// same two in the opposite order. The field is static, and therefore shared by every instance of this
+        /// class in the process, because two managers over the same directory take the same locks.
+        /// </remarks>
+        [ThreadStatic]
+        private static string? _fileBeingUpdatedByCurrentThread;
 
         // Stores the in-memory configuration object. Note that ConfigurationFile can be implemented in a different assembly, and that
         // there may be several copies of this assembly in the current AppDomain. Therefore, this dictionary may contain several objects
@@ -519,10 +531,20 @@ namespace Metalama.Backstage.Configuration
             return jsonA.Equals( jsonB, StringComparison.Ordinal );
         }
 
-        public bool TryUpdate( ConfigurationFile value, ConfigurationFileTimestamp? expectedTimestamp )
+        /// <inheritdoc />
+        public ConfigurationUpdateOutcome Update( Type type, Func<ConfigurationFile, ConfigurationFile?> transform )
         {
-            var type = value.GetType();
             var fileName = this.GetFilePath( type );
+
+            if ( _fileBeingUpdatedByCurrentThread != null )
+            {
+                // Refused rather than allowed to nest, because the alternative is a deadlock between two processes
+                // that is neither reproducible nor diagnosable. A transformation may read any configuration file,
+                // which takes no lock, but it may not update one.
+                throw new InvalidOperationException(
+                    $"Cannot update '{fileName}' from within the transformation of '{_fileBeingUpdatedByCurrentThread}'. "
+                    + "A transformation runs while the lock protecting its own file is held, and the locks of this class are not reentrant." );
+            }
 
             ConfigurationFile? valueToAnnounce = null;
 
@@ -530,12 +552,12 @@ namespace Metalama.Backstage.Configuration
             {
                 if ( !this.TryAcquireLock( fileName, "updating it", out var releaser ) )
                 {
-                    return false;
+                    return ConfigurationUpdateOutcome.LockTimeout;
                 }
 
                 using ( releaser )
                 {
-                    return this.TryUpdateWithinLock( value, expectedTimestamp, type, fileName, ref valueToAnnounce );
+                    return this.UpdateWithinLock( type, fileName, transform, ref valueToAnnounce );
                 }
             }
             finally
@@ -550,101 +572,104 @@ namespace Metalama.Backstage.Configuration
         }
 
         /// <summary>
-        /// Performs the part of <see cref="TryUpdate"/> that runs while the lock protecting the file is held.
+        /// Performs the part of <see cref="Update"/> that runs while the lock protecting the file is held.
         /// </summary>
-        /// <param name="value">The value to write.</param>
-        /// <param name="expectedTimestamp">The timestamp the file is expected to have, or <see langword="null"/> if it is expected not to exist.</param>
         /// <param name="type">The type of the configuration file.</param>
         /// <param name="fileName">The path of the configuration file.</param>
+        /// <param name="transform">Produces the new content of the file from its current content.</param>
         /// <param name="valueToAnnounce">The value whose change the caller must announce once the lock is released.</param>
-        /// <returns><see langword="true"/> if the file was written.</returns>
-        private bool TryUpdateWithinLock(
-            ConfigurationFile value,
-            ConfigurationFileTimestamp? expectedTimestamp,
+        /// <returns>What happened.</returns>
+        private ConfigurationUpdateOutcome UpdateWithinLock(
             Type type,
             string fileName,
+            Func<ConfigurationFile, ConfigurationFile?> transform,
             ref ConfigurationFile? valueToAnnounce )
         {
-            this.Logger.Trace?.Log( $"Trying to update '{fileName}'. Our last timestamp is '{expectedTimestamp}'." );
+            this.Logger.Trace?.Log( $"Updating '{fileName}'." );
 
-            // Verify (inside the lock) that we have a fresh copy of the file.
-            if ( expectedTimestamp == null )
+            // The file is read here rather than taken from the caller, which is what makes this a transaction:
+            // there is no window between the read and the write in which another writer could intervene, so there
+            // is nothing for the caller to compare against and nothing to retry.
+            var currentValue = this.LoadOrCreate( type );
+
+            var cachedCurrentValue = this.UpdateCacheWithoutEvent( currentValue, out var isCurrentValueChange );
+
+            if ( isCurrentValueChange )
             {
-                if ( this._fileSystem.FileExists( fileName ) )
-                {
-                    this.Logger.Warning?.Log( $"Cannot update '{fileName}' because the file exists but was not expected to exist." );
-
-                    return false;
-                }
-            }
-            else
-            {
-                if ( !this._fileSystem.FileExists( fileName ) )
-                {
-                    this.Logger.Warning?.Log( $"Cannot update '{fileName}' because the file does not exists but was expected to exist." );
-
-                    return false;
-                }
-
-                var existingFile = this.LoadOrCreate( type );
-
-                var cachedExistingFile = this.UpdateCacheWithoutEvent( existingFile, out var isExistingFileChange );
-
-                if ( isExistingFileChange )
-                {
-                    valueToAnnounce = cachedExistingFile;
-                }
-
-                if ( existingFile.Timestamp!.Value != expectedTimestamp.Value )
-                {
-                    this.Logger.Warning?.Log(
-                        $"Cannot update '{fileName}' because the file has a different timestamp than expected: {existingFile.Timestamp} instead of {expectedTimestamp.Value}." );
-
-                    return false;
-                }
-
-                // There is deliberately no wait for the clock to advance here. ConfigurationFileTimestamp combines
-                // the modification time of the file with the version, and IsOlderThan falls back to the version
-                // when the two times are equal, so incrementing the version below already yields a timestamp
-                // distinct from the one just read. The wait that used to be here also spun forever under a frozen
-                // clock, while holding the lock.
+                valueToAnnounce = cachedCurrentValue;
             }
 
             this.SyncPoint( UpdateAfterReadLocation, fileName );
 
-            // The cached copy is deliberately not consulted here. The file has just been read under the lock, so
-            // it is the authoritative answer to the question of whether the caller holds the current base, and the
-            // cache cannot contradict it usefully: it only ever moves forward, so a file that went backwards would
-            // leave the cache permanently ahead of it, and a check against the cache would then decline every
-            // attempt to write the file, including the ones whose base is exactly what the file holds.
+            ConfigurationFile? newValue;
 
-            // The version is incremented on a copy rather than on the value the caller handed over, so that a
-            // write that does not happen leaves the caller with exactly what it had. The previous implementation
-            // incremented the caller's own record before writing, so a declined attempt left the caller one
-            // version ahead of the file, and the retry that followed incremented it again.
-            var newValue = value with { Version = (value.Version ?? 0) + 1 };
+            // The marker covers exactly the transformation, and not the dispatch of the event that follows the
+            // release of the lock: a handler is free to update whatever it likes, precisely because it holds
+            // nothing when it runs.
+            _fileBeingUpdatedByCurrentThread = fileName;
 
-            var json = this._jsonSerializationService.Serialize( newValue, type );
+            try
+            {
+                newValue = transform( currentValue );
+            }
+            finally
+            {
+                _fileBeingUpdatedByCurrentThread = null;
+            }
+
+            if ( newValue == null )
+            {
+                this.Logger.Trace?.Log( $"Update of '{fileName}' declined because the file did not need to be updated." );
+
+                return ConfigurationUpdateOutcome.Declined;
+            }
+
+            if ( currentValue.Timestamp != null && newValue.Equals( currentValue ) )
+            {
+                this.Logger.Trace?.Log( $"Update of '{fileName}' skipped because no change was required." );
+
+                return ConfigurationUpdateOutcome.NoChange;
+            }
+
+            // The version is incremented on a copy rather than on the value the transformation produced, so that a
+            // write that does not happen leaves nothing behind. The previous implementation incremented the
+            // caller's own record before writing, so a declined attempt left the caller one version ahead of the
+            // file, and the retry that followed incremented it again.
+            var valueToWrite = newValue with { Version = (newValue.Version ?? 0) + 1 };
+
+            var json = this._jsonSerializationService.Serialize( valueToWrite, type );
 
             this.SyncPoint( UpdateBeforeWriteLocation, fileName );
 
-            this._fileSystem.WriteAllTextAtomically( fileName, json );
+            try
+            {
+                this._fileSystem.WriteAllTextAtomically( fileName, json );
+            }
+            catch ( Exception e )
+            {
+                // The write is atomic, so the previous content of the file is intact and the cache still describes
+                // it. Reporting the failure is all there is to do: a configuration that could not be written must
+                // not fail the operation that wanted to write it.
+                this.Logger.LogException( e, $"Cannot write '{fileName}'" );
+
+                return ConfigurationUpdateOutcome.WriteFailed;
+            }
 
             var newLastModified = this._fileSystem.GetFileLastWriteTime( fileName );
-            newValue.SetFileSystemTimestamp( newLastModified );
+            valueToWrite.SetFileSystemTimestamp( newLastModified );
 
-            var cachedNewValue = this.UpdateCacheWithoutEvent( newValue, out var isChange );
+            var cachedNewValue = this.UpdateCacheWithoutEvent( valueToWrite, out var isChange );
 
             if ( isChange )
             {
                 valueToAnnounce = cachedNewValue;
             }
 
-            this.Logger.Trace?.Log( $"File '{fileName}' updated. The new timestamp is '{newValue.Timestamp}'." );
+            this.Logger.Trace?.Log( $"File '{fileName}' updated. The new timestamp is '{valueToWrite.Timestamp}'." );
 
             this.SyncPoint( UpdateBeforeUnlockLocation, fileName );
 
-            return true;
+            return ConfigurationUpdateOutcome.Updated;
         }
 
         private bool TryLoadConfigurationContent( Type type, string fileName, DateTime lastModified, [NotNullWhen( true )] out string? json )

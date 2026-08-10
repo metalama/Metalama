@@ -8,7 +8,5 @@ namespace Metalama.Backstage.Testing;
 
 public sealed class NullUsageSessionFactory : IUsageSessionFactory
 {
-    public object Sync { get; } = new();
-
     public IUsageSession CreateSession( string kind, bool shouldCollectMetrics ) => NullUsageSession.Instance;
 }
