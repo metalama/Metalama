@@ -195,6 +195,18 @@ public sealed partial class NamedLockService : INamedLockService
     /// </remarks>
     public event EventHandler<LockEventArgs>? LockEventReported;
 
+    /// <summary>
+    /// Gets or sets a predicate deciding which kinds of event are reported, or <see langword="null"/> to report
+    /// every kind.
+    /// </summary>
+    /// <remarks>
+    /// A subscriber that is interested only in the unusual events, which is what a logger normally wants, sets
+    /// this to <see cref="LockEventArgs.IsWarningKind"/>. Without it, subscribing at all would cost one object
+    /// per acquisition and per release, on the critical path of every compilation, to produce events that the
+    /// subscriber would discard.
+    /// </remarks>
+    public Predicate<LockEventKind>? ReportFilter { get; set; }
+
     /// <inheritdoc />
     public INamedLock GetLock( string name, CancellationToken cancellationToken = default )
     {
@@ -377,6 +389,24 @@ public sealed partial class NamedLockService : INamedLockService
     private bool IsReportEnabled => this.LockEventReported != null;
 
     /// <summary>
+    /// Determines whether an event of a given kind would be reported, so that no object is created for one that
+    /// would be discarded.
+    /// </summary>
+    /// <param name="kind">The kind of event.</param>
+    /// <returns><see langword="true"/> if the event must be created and raised.</returns>
+    private bool IsReported( LockEventKind kind )
+    {
+        if ( this.LockEventReported == null )
+        {
+            return false;
+        }
+
+        var filter = this.ReportFilter;
+
+        return filter == null || filter( kind );
+    }
+
+    /// <summary>
     /// Raises <see cref="LockEventReported"/>.
     /// </summary>
     /// <param name="kind">The kind of event.</param>
@@ -395,7 +425,7 @@ public sealed partial class NamedLockService : INamedLockService
         // check and the invocation cannot cause a NullReferenceException.
         var handler = this.LockEventReported;
 
-        if ( handler == null )
+        if ( handler == null || !this.IsReported( kind ) )
         {
             return;
         }

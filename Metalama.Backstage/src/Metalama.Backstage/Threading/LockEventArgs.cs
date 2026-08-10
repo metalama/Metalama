@@ -78,8 +78,20 @@ public sealed class LockEventArgs : EventArgs
     /// This spares each consumer from having to classify the kinds itself when it maps the events to its own
     /// diagnostic levels.
     /// </remarks>
-    public bool IsWarning
-        => this.Kind is LockEventKind.Degraded or LockEventKind.Abandoned or LockEventKind.HeldTooLong or LockEventKind.ReentrancyDetected;
+    public bool IsWarning => IsWarningKind( this.Kind );
+
+    /// <summary>
+    /// Determines whether a kind of event reports a situation that the user should be told about.
+    /// </summary>
+    /// <param name="kind">The kind of event.</param>
+    /// <returns><see langword="true"/> if the event is worth a warning.</returns>
+    /// <remarks>
+    /// This is exposed on the kind, and not only on the event, so that a subscriber can decide whether it is
+    /// interested before an event object has been created for it. See
+    /// <see cref="NamedLockService.ReportFilter"/>.
+    /// </remarks>
+    public static bool IsWarningKind( LockEventKind kind )
+        => kind is LockEventKind.Degraded or LockEventKind.Abandoned or LockEventKind.HeldTooLong or LockEventKind.ReentrancyDetected;
 
     /// <inheritdoc />
     public override string ToString()

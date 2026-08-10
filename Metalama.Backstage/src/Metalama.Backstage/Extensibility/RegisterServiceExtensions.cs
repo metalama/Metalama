@@ -15,6 +15,7 @@ using Metalama.Backstage.Maintenance;
 using Metalama.Backstage.Repositories;
 using Metalama.Backstage.Serialization;
 using Metalama.Backstage.Telemetry;
+using Metalama.Backstage.Threading;
 using Metalama.Backstage.Tools;
 using Metalama.Backstage.UserInterface;
 using Metalama.Backstage.UserInterface.Rss;
@@ -133,12 +134,52 @@ public static class RegisterServiceExtensions
             .AddSingleton<IProcessExecutor>( new ProcessExecutor() )
             .AddSingleton<IHttpClientFactory>( new HttpClientFactory() )
             .AddSingleton<IJsonSerializationService>( _ => new JsonSerializationService( options.AdditionalJsonTypeInfoResolvers ) )
+            .AddSingleton<INamedLockService>( CreateNamedLockService )
             .AddSingleton<IConfigurationManager>( serviceProvider => new ConfigurationManager( serviceProvider ) )
             .AddSingleton<IPlatformInfo>( serviceProvider => new PlatformInfo( serviceProvider ) )
             .AddSingleton<BackstageBackgroundTasksService>( _ => BackstageBackgroundTasksService.Default )
             .AddSingleton<WebLinks>( _ => new WebLinks() )
             .AddSingleton<ITempFileManager>( serviceProvider => new TempFileManager( serviceProvider ) )
             .AddSingleton( serviceProvider => new ShutdownService( serviceProvider ) );
+
+    /// <summary>
+    /// Creates the named lock service and routes its events to the log.
+    /// </summary>
+    /// <param name="serviceProvider">The service provider.</param>
+    /// <returns>The service.</returns>
+    /// <remarks>
+    /// <para>
+    /// The logger comes from <see cref="EarlyLoggerFactory"/>, which buffers until the real logging services are
+    /// available. That is necessary because <see cref="IConfigurationManager"/> is a consumer of this service and
+    /// is itself a dependency of the logging services, so resolving a real logger here would be a cycle.
+    /// </para>
+    /// <para>
+    /// The filter keeps the routine acquisitions and releases from being reported at all unless tracing is on.
+    /// Without it, subscribing would cost one event object per acquisition on the critical path of every
+    /// compilation, only for the logger to discard it.
+    /// </para>
+    /// </remarks>
+    private static INamedLockService CreateNamedLockService( IServiceProvider serviceProvider )
+    {
+        var service = new NamedLockService( serviceProvider );
+        var logger = serviceProvider.GetRequiredBackstageService<EarlyLoggerFactory>().GetLogger( "NamedLock" );
+
+        service.ReportFilter = kind => logger.Trace != null || LockEventArgs.IsWarningKind( kind );
+
+        service.LockEventReported += ( _, lockEvent ) =>
+        {
+            if ( lockEvent.IsWarning )
+            {
+                logger.Warning?.Log( lockEvent.ToString() );
+            }
+            else
+            {
+                logger.Trace?.Log( lockEvent.ToString() );
+            }
+        };
+
+        return service;
+    }
 
     private static void AddLicensing(
         this ServiceProviderBuilder serviceProviderBuilder,
