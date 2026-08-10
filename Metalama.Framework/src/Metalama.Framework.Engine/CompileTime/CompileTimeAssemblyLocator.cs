@@ -3,9 +3,8 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Backstage.Diagnostics;
-using Metalama.Backstage.Threading;
 using Metalama.Backstage.Maintenance;
-using Metalama.Backstage.Utilities;
+using Metalama.Backstage.Threading;
 using Metalama.Compiler;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.CompileTimeContracts;

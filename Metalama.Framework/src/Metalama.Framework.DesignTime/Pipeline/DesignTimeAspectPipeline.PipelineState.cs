@@ -4,7 +4,6 @@
 
 using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Threading;
-using Metalama.Backstage.Utilities;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Comparers;
