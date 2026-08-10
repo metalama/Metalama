@@ -109,6 +109,12 @@ internal
     private readonly ITestSynchronizationProvider? _testSynchronizationProvider;
 
     /// <summary>
+    /// The injector of the test faults, which is never registered in production and is therefore normally
+    /// <see langword="null"/>.
+    /// </summary>
+    private readonly ITestFaultInjector? _testFaultInjector;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="NamedLockService"/> class.
     /// </summary>
     /// <param name="serviceProvider">
@@ -125,6 +131,7 @@ internal
         // Resolved untyped, because ITestSynchronizationProvider is shared with the layers above and therefore
         // cannot derive from IBackstageService.
         this._testSynchronizationProvider = (ITestSynchronizationProvider?) serviceProvider?.GetService( typeof(ITestSynchronizationProvider) );
+        this._testFaultInjector = (ITestFaultInjector?) serviceProvider?.GetService( typeof(ITestFaultInjector) );
     }
 #endif
 
@@ -145,6 +152,26 @@ internal
     /// owned.
     /// </summary>
     internal const string BeforeReleaseLocation = "ReleaseBeforeRelease";
+
+    /// <summary>
+    /// The location of the fault injection point reached immediately before the operating system is asked to
+    /// create the object with a security descriptor.
+    /// </summary>
+    /// <remarks>
+    /// It exists because the two failures the surrounding code handles cannot be produced by any operating system
+    /// this product runs on. An <see cref="UnauthorizedAccessException"/> requires a peer process that has already
+    /// created the object with a security descriptor denying this one the right to create it again, which no
+    /// single-process test can arrange. A <see cref="PlatformNotSupportedException"/> is not merely difficult but
+    /// impossible, because <c>MutexAcl.Create</c> returns before it could be raised on the platforms that have no
+    /// security descriptors. Injecting before the call is therefore the only way to reach either branch.
+    /// </remarks>
+    internal const string BeforeCreateWithAccessControlLocation = "TryOpenOrCreateMutexBeforeCreateWithAccessControl";
+
+    /// <summary>
+    /// The location of the fault injection point reached immediately before the operating system is asked to
+    /// create the object without a security descriptor.
+    /// </summary>
+    internal const string BeforeCreateLocation = "TryOpenOrCreateMutexBeforeCreate";
 
     /// <summary>
     /// Composes the name of a synchronization point, following the <c>{ClassName}.{Location}:{Context}</c>
@@ -181,6 +208,28 @@ internal
         _ = location;
         _ = name;
         _ = cancellationToken;
+#endif
+    }
+
+    /// <summary>
+    /// Reaches a fault injection point, which does nothing unless a test has armed it.
+    /// </summary>
+    /// <param name="location">One of the <c>Location</c> constants of this class.</param>
+    /// <param name="name">The name of the lock.</param>
+    /// <remarks>
+    /// Like the synchronization points, the injection points exist only in the copies of this class that can
+    /// reference <c>Metalama.Testing.Hooks</c>, and the call sites are removed from the other copies by
+    /// <see cref="ConditionalAttribute"/>.
+    /// </remarks>
+    // CA1822: see the remark on SyncPoint above.
+    [Conditional( "HAS_METALAMA_TESTING_HOOKS" )]
+    private void InjectFault( string location, string name )
+    {
+#if HAS_METALAMA_TESTING_HOOKS
+        this._testFaultInjector?.InjectFault( GetSyncPointName( location, name ) );
+#else
+        _ = location;
+        _ = name;
 #endif
     }
 #pragma warning restore CA1822
@@ -288,6 +337,8 @@ internal
                             // differs between systems and can make the object unusable by another user.
                             // MutexAcl.Create falls back to the default security on the platforms where a
                             // security descriptor is not a meaningful concept.
+                            this.InjectFault( BeforeCreateWithAccessControlLocation, name );
+
                             var securedMutex = MutexAcl.Create( false, name, MutexAcl.AllowUsingMutexToEveryone );
 
                             this.Report( LockEventKind.Created, name );
@@ -303,6 +354,8 @@ internal
                             }
                         }
                     }
+
+                    this.InjectFault( BeforeCreateLocation, name );
 
                     var mutex = new Mutex( false, name );
 

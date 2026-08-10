@@ -50,6 +50,12 @@ public sealed class NamedLockServiceTests : IDisposable
     private readonly TestSynchronizationProvider _syncProvider;
 
     /// <summary>
+    /// Drives the fault injection points of <see cref="NamedLockService"/>, which are the only way to reach the
+    /// branches that handle a refusal of the operating system to create a named object.
+    /// </summary>
+    private readonly TestFaultInjector _faultInjector = new();
+
+    /// <summary>
     /// Signals armed by <see cref="WaitForEventAsync"/>, so that a test can wait for the code under test to reach
     /// a given state instead of waiting for a duration.
     /// </summary>
@@ -81,11 +87,19 @@ public sealed class NamedLockServiceTests : IDisposable
     /// <returns>The service.</returns>
     private NamedLockService CreateService()
     {
-        var service = new NamedLockService( new TestServiceProvider( this._syncProvider ) );
+        var service = new NamedLockService( new TestServiceProvider( this._syncProvider, this._faultInjector ) );
         service.LockEventReported += this.OnLockEvent;
 
         return service;
     }
+
+    /// <summary>
+    /// Composes the name of the fault injection point reached before a mutex of a given name is created.
+    /// </summary>
+    /// <param name="location">One of the <c>Location</c> constants of <see cref="NamedLockService"/>.</param>
+    /// <param name="name">The name of the lock.</param>
+    /// <returns>The name of the injection point.</returns>
+    private static string GetFaultPointName( string location, string name ) => NamedLockService.GetSyncPointName( location, name );
 
     /// <summary>
     /// The minimal service provider through which <see cref="NamedLockService"/> resolves the synchronization
@@ -98,18 +112,29 @@ public sealed class NamedLockServiceTests : IDisposable
     private sealed class TestServiceProvider : IServiceProvider
     {
         private readonly TestSynchronizationProvider _syncProvider;
+        private readonly TestFaultInjector _faultInjector;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="TestServiceProvider"/> class.
         /// </summary>
-        /// <param name="syncProvider">The provider to return.</param>
-        public TestServiceProvider( TestSynchronizationProvider syncProvider )
+        /// <param name="syncProvider">The synchronization provider to return.</param>
+        /// <param name="faultInjector">The fault injector to return.</param>
+        public TestServiceProvider( TestSynchronizationProvider syncProvider, TestFaultInjector faultInjector )
         {
             this._syncProvider = syncProvider;
+            this._faultInjector = faultInjector;
         }
 
         /// <inheritdoc />
-        public object? GetService( Type serviceType ) => serviceType == typeof(ITestSynchronizationProvider) ? this._syncProvider : null;
+        public object? GetService( Type serviceType )
+        {
+            if ( serviceType == typeof(ITestSynchronizationProvider) )
+            {
+                return this._syncProvider;
+            }
+
+            return serviceType == typeof(ITestFaultInjector) ? this._faultInjector : null;
+        }
     }
 
     /// <summary>
@@ -920,5 +945,135 @@ public sealed class NamedLockServiceTests : IDisposable
 
             Assert.DoesNotContain( this.GetEvents(), e => e.Kind == LockEventKind.Degraded && e.Name == freeName );
         }
+    }
+
+    /// <summary>
+    /// Verifies that the creation of a mutex is retried when the operating system denies it, which is what happens
+    /// when a peer process creates the object between the attempt to open it and the attempt to create it.
+    /// </summary>
+    /// <remarks>
+    /// The retry is the reason the mapping of the denied-access error matters: the exception has to arrive as an
+    /// <see cref="UnauthorizedAccessException"/> for this branch to be entered at all.
+    /// </remarks>
+    [Fact]
+    public void TheCreationOfAMutexIsRetriedWhenItIsDenied()
+    {
+        var service = this.CreateService();
+        var name = CreateName();
+        var faultPoint = GetFaultPointName( NamedLockService.BeforeCreateWithAccessControlLocation, name );
+
+        // Denied twice, then allowed, which is how a race between two processes actually resolves.
+        this._faultInjector.ArmFault( faultPoint, () => new UnauthorizedAccessException( "Injected by a test." ), count: 2 );
+
+        using var @lock = service.GetLock( name );
+
+        Assert.True( @lock.TryAcquire( TimeSpan.Zero, out var handle ) );
+        handle!.Dispose();
+
+        Assert.Equal( 2, this._faultInjector.GetInjectedFaultCount( faultPoint ) );
+        Assert.DoesNotContain( this.GetEvents(), e => e.Kind == LockEventKind.Degraded && e.Name == name );
+    }
+
+    /// <summary>
+    /// Verifies that a name the operating system keeps refusing degrades to a lock local to the current process,
+    /// rather than retrying for ever or letting the exception escape.
+    /// </summary>
+    [Fact]
+    public void ANameThatIsAlwaysDeniedDegrades()
+    {
+        var service = this.CreateService();
+        var name = CreateName();
+        var faultPoint = GetFaultPointName( NamedLockService.BeforeCreateWithAccessControlLocation, name );
+
+        this._faultInjector.ArmFault( faultPoint, () => new UnauthorizedAccessException( "Injected by a test." ) );
+
+        using var @lock = service.GetLock( name );
+
+        // The lock still works, which is what degrading is for.
+        Assert.True( @lock.TryAcquire( TimeSpan.Zero, out var handle ) );
+        handle!.Dispose();
+
+        Assert.Contains( this.GetEvents(), e => e.Kind == LockEventKind.Degraded && e.Name == name );
+
+        // The refusal concerns one name, so another name is not affected by it.
+        var otherName = CreateName();
+        using var otherLock = service.GetLock( otherName );
+
+        Assert.True( otherLock.TryAcquire( TimeSpan.Zero, out var otherHandle ) );
+        otherHandle!.Dispose();
+
+        Assert.DoesNotContain( this.GetEvents(), e => e.Kind == LockEventKind.Degraded && e.Name == otherName );
+    }
+
+    /// <summary>
+    /// Verifies that a platform which does not support security descriptors makes the service create the object
+    /// without one, and that the decision is taken once rather than on every lock.
+    /// </summary>
+    /// <remarks>
+    /// This branch cannot be reached without injecting the fault. On the platforms that have no security
+    /// descriptors, <c>MutexAcl.AllowUsingMutexToEveryone</c> is <see langword="null"/> and
+    /// <c>MutexAcl.Create</c> returns a plain mutex before the exception could be raised, and on the platforms
+    /// that do have them the exception does not occur.
+    /// </remarks>
+    [Fact]
+    public void APlatformWithoutSecurityDescriptorsCreatesTheMutexWithoutOne()
+    {
+        var service = this.CreateService();
+        var name = CreateName();
+
+        this._faultInjector.ArmFault(
+            GetFaultPointName( NamedLockService.BeforeCreateWithAccessControlLocation, name ),
+            () => new PlatformNotSupportedException( "Injected by a test." ),
+            count: 1 );
+
+        using var @lock = service.GetLock( name );
+
+        Assert.True( @lock.TryAcquire( TimeSpan.Zero, out var handle ) );
+        handle!.Dispose();
+
+        Assert.Contains(
+            this.GetEvents(),
+            e => e.Kind == LockEventKind.Created && e.Name == name && e.Detail == "created without a security descriptor" );
+
+        // The decision is latched, so a second name goes straight to the path without a security descriptor even
+        // though nothing is armed for it.
+        var otherName = CreateName();
+        using var otherLock = service.GetLock( otherName );
+
+        Assert.Contains(
+            this.GetEvents(),
+            e => e.Kind == LockEventKind.Created && e.Name == otherName && e.Detail == "created without a security descriptor" );
+
+        Assert.DoesNotContain( this.GetEvents(), e => e.Kind == LockEventKind.Degraded );
+    }
+
+    /// <summary>
+    /// Verifies that a cancellation is observed between two attempts to create the object, rather than only before
+    /// the first one.
+    /// </summary>
+    [Fact]
+    public void ACancellationIsObservedBetweenTwoCreationAttempts()
+    {
+        var service = this.CreateService();
+        var name = CreateName();
+        var faultPoint = GetFaultPointName( NamedLockService.BeforeCreateWithAccessControlLocation, name );
+
+        using var cancellation = new CancellationTokenSource();
+
+        this._faultInjector.ArmFault(
+            faultPoint,
+            () =>
+            {
+                // Cancelled from inside the first attempt, so that the token is signalled exactly when the loop is
+                // about to start the second one.
+                cancellation.Cancel();
+
+                return new UnauthorizedAccessException( "Injected by a test." );
+            },
+            count: 1 );
+
+        Assert.Throws<OperationCanceledException>( () => service.GetLock( name, cancellation.Token ) );
+
+        Assert.Equal( 1, this._faultInjector.GetInjectedFaultCount( faultPoint ) );
     }
 }
