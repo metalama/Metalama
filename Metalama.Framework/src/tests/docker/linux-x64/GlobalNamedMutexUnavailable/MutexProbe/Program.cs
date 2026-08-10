@@ -4,8 +4,8 @@ using System.Threading;
 namespace MutexProbe;
 
 /// <summary>
-/// Creates a global named mutex the same way <c>Metalama.Backstage.Utilities.MutexHelper</c> does,
-/// and reports the outcome.
+/// Creates a global named mutex the same way <c>Metalama.Backstage.Threading.NamedLockService</c>
+/// does, and reports the outcome.
 /// </summary>
 /// <remarks>
 /// This program deliberately does not reference Metalama. It establishes whether the
