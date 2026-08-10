@@ -29,8 +29,6 @@ namespace Metalama.Backstage.Infrastructure
             this._serviceProvider = serviceProvider;
         }
 
-        public string? SynchronizationPrefix => null;
-
         /// <inheritdoc />
         public DateTime GetFileLastWriteTime( string path )
         {

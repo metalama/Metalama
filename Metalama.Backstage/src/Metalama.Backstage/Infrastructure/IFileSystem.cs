@@ -20,12 +20,6 @@ namespace Metalama.Backstage.Infrastructure
     public interface IFileSystem : IBackstageService
     {
         /// <summary>
-        /// Gets prefix for synchronization objects (mutexes) related to objects of the current file system.
-        /// Returns <see langword="null" /> for global file system.
-        /// </summary>
-        string? SynchronizationPrefix { get; }
-
-        /// <summary>
         /// Returns the date and time the specified file was last written to.
         /// </summary>
         /// <param name="path">The file for which to obtain write date and time information.</param>
