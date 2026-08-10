@@ -316,18 +316,43 @@ public sealed partial class TestNamedLockService : INamedLockService
     }
 
     /// <summary>
-    /// Makes the next acquisition of a given name report that the previous owner terminated without releasing the
-    /// lock.
+    /// Makes the lock of a given name held by a previous owner that terminated without releasing it, so that the
+    /// next acquisition finds it abandoned.
     /// </summary>
     /// <param name="name">The name of the lock.</param>
+    /// <remarks>
+    /// Assert on <see cref="GetAbandonedAcquisitionCount"/> afterwards. Without it a test cannot tell the
+    /// abandonment path from an ordinary acquisition of a lock nobody held.
+    /// </remarks>
     public void Abandon( string name )
     {
         lock ( this._sync )
         {
-            this.GetOrCreateState( name ).IsAbandoned = true;
+            var state = this.GetOrCreateState( name );
+
+            if ( state.OwnerThreadId != null || state.IsPinned )
+            {
+                throw new InvalidOperationException( $"The lock '{name}' cannot be abandoned while it is held." );
+            }
+
+            state.IsAbandoned = true;
         }
 
         this.Log( $"Abandon '{name}'." );
+    }
+
+    /// <summary>
+    /// Gets the number of times a lock of a given name has been acquired from a previous owner that terminated
+    /// without releasing it.
+    /// </summary>
+    /// <param name="name">The name of the lock.</param>
+    /// <returns>The number of such acquisitions.</returns>
+    public int GetAbandonedAcquisitionCount( string name )
+    {
+        lock ( this._sync )
+        {
+            return this._locks.TryGetValue( name, out var state ) ? state.AbandonedAcquisitionCount : 0;
+        }
     }
 
     /// <summary>

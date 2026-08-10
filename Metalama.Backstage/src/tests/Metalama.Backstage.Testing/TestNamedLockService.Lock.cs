@@ -67,6 +67,19 @@ namespace Metalama.Backstage.Testing
 
                     this._service.VerifyDiscipline( this.Name );
 
+                    // A lock abandoned by a process that terminated without releasing it is free, and the
+                    // acquisition that finds it reports the abandonment. Modelling it as ownership by a thread
+                    // that no longer exists would be closer to the operating system, but this class has no such
+                    // thread to name, and what the code under test observes is only that the lock was granted.
+                    if ( state.IsAbandoned )
+                    {
+                        state.IsAbandoned = false;
+                        state.OwnerThreadId = null;
+                        state.AbandonedAcquisitionCount++;
+
+                        this._service.Log( $"TryAcquire '{this.Name}': the previous owner abandoned the lock." );
+                    }
+
                     var deadline = effectiveTimeout == Timeout.InfiniteTimeSpan
                         ? (DateTime?) null
                         : DateTime.UtcNow + effectiveTimeout;
@@ -101,7 +114,6 @@ namespace Metalama.Backstage.Testing
 
                     state.OwnerThreadId = threadId;
                     state.AcquisitionCount++;
-                    state.IsAbandoned = false;
 
                     if ( !this._service._namesHeldByThread.TryGetValue( threadId, out var held ) )
                     {

@@ -332,6 +332,15 @@ internal
                 {
                     return this.ReportDegraded( name, e, isMachineWide: true );
                 }
+                catch ( Exception e ) when ( !IsCallerDefect( e ) )
+                {
+                    // Nothing that this method does not recognize may escape it. Two of the three callers of
+                    // GetLock, the resource extractor and the design-time entry point manager, run during the
+                    // bootstrap and have nowhere to catch an exception, so one escaping here fails the compilation
+                    // outright, which is the class of failure this service exists to eliminate. Degrading is
+                    // always available and always better.
+                    return this.ReportDegraded( name, e, isMachineWide: false );
+                }
             }
         }
     }
@@ -362,6 +371,19 @@ internal
     /// a defect in the caller and must remain visible, so it is deliberately absent from this list.
     /// </remarks>
     private static bool IsNameSpecificRefusal( Exception exception ) => exception is WaitHandleCannotBeOpenedException;
+
+    /// <summary>
+    /// Determines whether an exception reports a defect of the caller rather than a refusal of the operating
+    /// system, in which case it must remain visible instead of being degraded away.
+    /// </summary>
+    /// <param name="exception">The exception thrown while opening or creating the object.</param>
+    /// <returns><see langword="true"/> if the exception must propagate.</returns>
+    /// <remarks>
+    /// An <see cref="ArgumentException"/> means that the name is invalid or too long, which no degradation can
+    /// repair and which the caller must be told about. An <see cref="OperationCanceledException"/> is the answer to
+    /// a cancellation the caller itself requested.
+    /// </remarks>
+    private static bool IsCallerDefect( Exception exception ) => exception is ArgumentException or OperationCanceledException;
 
     /// <summary>
     /// Reports that the lock of a given name has to degrade to a process-local one, and returns

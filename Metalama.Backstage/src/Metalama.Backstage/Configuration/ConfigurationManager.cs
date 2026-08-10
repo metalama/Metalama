@@ -804,6 +804,14 @@ namespace Metalama.Backstage.Configuration
             // second operating system object.
             lock ( this._locksSync )
             {
+                // Checked under the same monitor as the disposal, so that a lock created here can never be added
+                // to a table that Dispose has already emptied, which would leak the operating system object and
+                // give the caller a lock nobody will ever dispose.
+                if ( this._isDisposed != 0 )
+                {
+                    throw new ObjectDisposedException( nameof(ConfigurationManager) );
+                }
+
                 if ( !this._locks.TryGetValue( fileName, out var namedLock ) )
                 {
                     namedLock = this._lockService.GetGlobalLock( fileName );

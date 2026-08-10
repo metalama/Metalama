@@ -109,11 +109,15 @@ public sealed class ConfigurationManagerResilienceTests : TestsBase, IDisposable
     public void AnAbandonedLockDoesNotPreventAnUpdate()
     {
         using var configurationManager = this.CreateConfigurationManager();
+        var lockName = GetLockName( configurationManager );
 
-        this.Locks.Abandon( GetLockName( configurationManager ) );
+        this.Locks.Abandon( lockName );
 
         Assert.True( configurationManager.Update<TestConfigurationFile>( c => c with { IsModified = true } ) );
         Assert.True( configurationManager.Get<TestConfigurationFile>( true ).IsModified );
+
+        // Asserted explicitly, because an acquisition that found the lock free would satisfy everything above.
+        Assert.Equal( 1, this.Locks.GetAbandonedAcquisitionCount( lockName ) );
     }
 
     /// <summary>
@@ -129,9 +133,10 @@ public sealed class ConfigurationManagerResilienceTests : TestsBase, IDisposable
     {
         using var configurationManager = this.CreateConfigurationManager();
         var path = configurationManager.GetFilePath<TestConfigurationFile>();
+        var lockName = GetLockName( configurationManager );
 
         this.FileSystem.WriteAllText( path, "{ this is not the whole file" );
-        this.Locks.Abandon( GetLockName( configurationManager ) );
+        this.Locks.Abandon( lockName );
 
         // The read recovers with a default instance carrying the timestamp of the file, so the update has a base
         // to work from rather than looping on a file that seems not to exist.
@@ -141,6 +146,7 @@ public sealed class ConfigurationManagerResilienceTests : TestsBase, IDisposable
         Assert.True( value.IsModified );
         Assert.Equal( 1, value.Version );
 
+        Assert.Equal( 1, this.Locks.GetAbandonedAcquisitionCount( lockName ) );
         Assert.Contains( this.Log.Entries, e => e.Severity == TestLoggerFactory.Severity.Error );
     }
 
@@ -225,6 +231,68 @@ public sealed class ConfigurationManagerResilienceTests : TestsBase, IDisposable
 
         // The situation the guarantee is about was actually reached, rather than the assertion holding vacuously.
         Assert.Equal( 1, sawTheCacheAhead );
+    }
+
+    /// <summary>
+    /// Verifies that an update attempted on a disposed manager is declined rather than throwing, and creates no
+    /// lock that nobody would ever dispose.
+    /// </summary>
+    /// <remarks>
+    /// The check belongs under the monitor that guards the disposal, otherwise a lock created between the last
+    /// disposal and the clearing of the table would be added to a table nobody empties again, leaking the object
+    /// of the operating system it wraps.
+    /// </remarks>
+    [Fact]
+    public void AnUpdateOnADisposedManagerIsDeclined()
+    {
+        var configurationManager = this.CreateConfigurationManager();
+
+        configurationManager.Dispose();
+
+        Assert.Equal(
+            ConfigurationUpdateOutcome.LockTimeout,
+            configurationManager.Update(
+                typeof(TestConfigurationFile),
+                currentValue => ((TestConfigurationFile) currentValue) with { IsModified = true } ) );
+
+        Assert.Empty( this.Locks.GetKnownNames() );
+    }
+
+    /// <summary>
+    /// Verifies that disposing a manager while one of its own updates is in flight does not make that update
+    /// throw.
+    /// </summary>
+    /// <returns>A task that completes when the test does.</returns>
+    /// <remarks>
+    /// The update is held while it owns the lock, which is the moment at which a disposal is most inconvenient.
+    /// Note what this does not cover: the substitute does not close an operating system handle, so it cannot
+    /// reproduce a release performed on a handle that the disposal has closed. What it does establish is the
+    /// contract the callers rely on, namely that an update reports an outcome instead of raising.
+    /// </remarks>
+    [Fact]
+    public async Task DisposingAManagerDuringItsOwnUpdateDoesNotMakeTheUpdateThrow()
+    {
+        var configurationManager = this.CreateConfigurationManager();
+
+        var beforeUnlockSyncPoint = Configuration.ConfigurationManager.GetSyncPointName(
+            Configuration.ConfigurationManager.UpdateBeforeUnlockLocation,
+            configurationManager.GetFilePath<TestConfigurationFile>() );
+
+        this._syncProvider.EnableSyncPoint( beforeUnlockSyncPoint );
+
+        var update = RunOnDedicatedThreadAsync(
+            () => configurationManager.Update(
+                typeof(TestConfigurationFile),
+                currentValue => ((TestConfigurationFile) currentValue) with { IsModified = true } ) );
+
+        await this.WithTimeout( this._syncProvider.WaitForSyncPointReachedAsync( beforeUnlockSyncPoint, this._timeout.Token ) );
+
+        configurationManager.Dispose();
+
+        this._syncProvider.DisableSyncPoint( beforeUnlockSyncPoint );
+
+        Assert.Equal( ConfigurationUpdateOutcome.Updated, await update );
+        Assert.Empty( this.Locks.GetHeldLocks() );
     }
 
     /// <summary>

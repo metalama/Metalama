@@ -175,6 +175,72 @@ public sealed class ConfigurationManagerTransactionTests : TestsBase, IDisposabl
     }
 
     /// <summary>
+    /// Verifies that two managers updating one file exclude each other, and that both updates survive.
+    /// </summary>
+    /// <returns>A task that completes when the test does.</returns>
+    /// <remarks>
+    /// <para>
+    /// Two managers over one directory are two processes as far as the locks are concerned: each holds its own
+    /// <see cref="INamedLock"/> for the same name, which is what a second Metalama process would do. The other
+    /// overlapping-update test shares a single manager, and therefore a single lock object, so it establishes the
+    /// exclusion between threads but not between holders.
+    /// </para>
+    /// <para>
+    /// The second manager is proved to be genuinely waiting for the lock, rather than assumed to be, before the
+    /// first one is released.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public async Task TwoManagersUpdatingOneFileBothTakeEffect()
+    {
+        using var firstManager = this.CreateConfigurationManager();
+        using var secondManager = this.CreateConfigurationManager();
+
+        var afterReadSyncPoint = GetSyncPointName( firstManager, Configuration.ConfigurationManager.UpdateAfterReadLocation );
+        this._syncProvider.EnableSyncPoint( afterReadSyncPoint );
+
+        var firstWriter = RunOnDedicatedThreadAsync( () => AppendMark( firstManager, "a" ) );
+        await this.WithTimeout( this._syncProvider.WaitForSyncPointReachedAsync( afterReadSyncPoint, this._timeout.Token ) );
+
+        var secondWriter = RunOnDedicatedThreadAsync( () => AppendMark( secondManager, "b" ) );
+        await this.WithTimeout( this.Locks.WaitForWaitersAsync( GetLockName( firstManager ), 1, this._timeout.Token ) );
+
+        this._syncProvider.DisableSyncPoint( afterReadSyncPoint );
+
+        await this.WithTimeout( Task.WhenAll( firstWriter, secondWriter ) );
+
+        Assert.Equal( ConfigurationUpdateOutcome.Updated, await firstWriter );
+        Assert.Equal( ConfigurationUpdateOutcome.Updated, await secondWriter );
+
+        var value = secondManager.Get<TestConfigurationFile>( true );
+        Assert.Equal( "ab", value.Marks );
+        Assert.Equal( 2, value.Version );
+
+        // Two holders, one acquisition each, and no attempt abandoned and retried.
+        Assert.Equal( 2, this.Locks.GetAcquisitionCount( GetLockName( firstManager ) ) );
+        Assert.Equal( 2, this.Locks.GetCreationCount( GetLockName( firstManager ) ) );
+    }
+
+    /// <summary>
+    /// Verifies that a configuration file is created once and not again.
+    /// </summary>
+    [Fact]
+    public void CreateIfMissingCreatesTheFileOnceOnly()
+    {
+        using var configurationManager = this.CreateConfigurationManager();
+
+        Assert.True( configurationManager.CreateIfMissing<TestConfigurationFile>() );
+        Assert.NotNull( configurationManager.Get<TestConfigurationFile>( true ).Timestamp );
+
+        var acquisitionsAfterCreation = this.Locks.GetAcquisitionCount( GetLockName( configurationManager ) );
+
+        Assert.False( configurationManager.CreateIfMissing<TestConfigurationFile>() );
+
+        // The second call stops at the read, which takes no lock.
+        Assert.Equal( acquisitionsAfterCreation, this.Locks.GetAcquisitionCount( GetLockName( configurationManager ) ) );
+    }
+
+    /// <summary>
     /// Verifies that a transformation that attempts to update another configuration file is refused.
     /// </summary>
     /// <remarks>

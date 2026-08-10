@@ -37,6 +37,18 @@ namespace Metalama.Backstage.Testing
             public bool IsAbandoned { get; set; }
 
             /// <summary>
+            /// Gets or sets the number of times the lock has been acquired from a previous owner that terminated
+            /// without releasing it.
+            /// </summary>
+            /// <remarks>
+            /// A test asserts on this rather than only on the acquisition having succeeded. Without it, a test of
+            /// the abandonment path cannot be distinguished from a test that acquires a lock nobody held, which is
+            /// what this class used to make it: <see cref="Abandon"/> set <see cref="IsAbandoned"/> and the
+            /// acquisition never read it.
+            /// </remarks>
+            public int AbandonedAcquisitionCount { get; set; }
+
+            /// <summary>
             /// Gets or sets a factory of the exception that the next acquisition must throw, or
             /// <see langword="null"/>.
             /// </summary>

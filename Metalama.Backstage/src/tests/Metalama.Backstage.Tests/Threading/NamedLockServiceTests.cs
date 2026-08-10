@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
@@ -813,5 +814,111 @@ public sealed class NamedLockServiceTests : IDisposable
                 } ) );
 
         Assert.DoesNotContain( this.GetEvents(), e => e.Kind == LockEventKind.ReentrancyDetected && e.Name == name );
+    }
+
+    /// <summary>
+    /// Verifies that a lock whose owner terminated without releasing it is granted to the next acquisition, and
+    /// reported as abandoned.
+    /// </summary>
+    /// <returns>A task that completes when the test does.</returns>
+    /// <remarks>
+    /// <para>
+    /// A process killed while holding a lock is ordinary during a build, and the state the lock protects is a file
+    /// written atomically, so an abandoned lock leaves nothing half done. The operating system signals this with
+    /// <see cref="AbandonedMutexException"/>, which the implementation treats as a successful acquisition.
+    /// </para>
+    /// <para>
+    /// The owner here is a real thread that ends without releasing, which is the only way to produce the exception:
+    /// the substitute cannot, since it models abandonment rather than causing it.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public async Task AnAbandonedLockIsGrantedAndReported()
+    {
+        var service = this.CreateService();
+        var name = CreateName();
+
+        using var @lock = service.GetLock( name );
+
+        var acquired = new TaskCompletionSource<bool>( TaskCreationOptions.RunContinuationsAsynchronously );
+
+        // The thread acquires the lock and ends without disposing the releaser, which is what abandons the mutex.
+        var abandoningThread = new Thread(
+            () =>
+            {
+                var succeeded = @lock.TryAcquire( TimeSpan.Zero, out _ );
+                acquired.TrySetResult( succeeded );
+            } ) { IsBackground = true };
+
+        abandoningThread.Start();
+        Assert.True( await this.WithTimeout( acquired.Task ) );
+
+        // Joining the thread is what makes this deterministic: the mutex is abandoned when its owner ends, and
+        // the ownership records of this service are per-thread, so nothing of the previous owner survives.
+        abandoningThread.Join();
+
+        await this.WithTimeout(
+            RunOnDedicatedThreadAsync(
+                () =>
+                {
+                    Assert.True( @lock.TryAcquire( TimeSpan.FromSeconds( 30 ), out var handle ) );
+
+                    Assert.NotNull( handle );
+                    handle!.Dispose();
+                } ) );
+
+        Assert.Contains( this.GetEvents(), e => e.Kind == LockEventKind.Abandoned && e.Name == name );
+        Assert.DoesNotContain( this.GetEvents(), e => e.Kind == LockEventKind.TimedOut && e.Name == name );
+    }
+
+    /// <summary>
+    /// Verifies that a name already taken by a synchronization object of a different kind degrades to a lock local
+    /// to the current process, and that the degradation is not generalized to the other names.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This drives the classifier with an exception the operating system really throws, rather than with
+    /// <see cref="NamedLockService.ForceProcessLocalLocks"/>, which sets the latch directly and therefore
+    /// exercises none of the ladder that decides whether to degrade at all. The machine-wide branch of that ladder
+    /// is what fixes issue 272, so a regression that removed a clause from it must fail a test rather than
+    /// resurface as a broken build on Unix.
+    /// </para>
+    /// <para>
+    /// A semaphore of the same name makes the runtime raise <see cref="WaitHandleCannotBeOpenedException"/>, which
+    /// the classifier treats as specific to the name.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void ANameTakenByAnotherKindOfObjectDegradesWithoutAffectingTheOtherNames()
+    {
+        if ( !RuntimeInformation.IsOSPlatform( OSPlatform.Windows ) )
+        {
+            // Unix does not keep a namespace shared by the kinds of synchronization object, so a semaphore of the
+            // same name does not collide with a mutex there.
+            return;
+        }
+
+        var service = this.CreateService();
+        var takenName = CreateName();
+        var freeName = CreateName();
+
+        using ( new Semaphore( 1, 1, takenName ) )
+        {
+            using var degradedLock = service.GetLock( takenName );
+
+            // The lock still works, which is the whole point of degrading.
+            Assert.True( degradedLock.TryAcquire( TimeSpan.Zero, out var handle ) );
+            handle!.Dispose();
+
+            Assert.Contains( this.GetEvents(), e => e.Kind == LockEventKind.Degraded && e.Name == takenName );
+
+            // The refusal concerns one name, so another name still gets an object of the operating system.
+            using var healthyLock = service.GetLock( freeName );
+
+            Assert.True( healthyLock.TryAcquire( TimeSpan.Zero, out var healthyHandle ) );
+            healthyHandle!.Dispose();
+
+            Assert.DoesNotContain( this.GetEvents(), e => e.Kind == LockEventKind.Degraded && e.Name == freeName );
+        }
     }
 }
