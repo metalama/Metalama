@@ -6,7 +6,6 @@ using Metalama.Backstage.Threading;
 using System;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace Metalama.Framework.DesignTime.Contracts.EntryPoint
@@ -22,7 +21,6 @@ namespace Metalama.Framework.DesignTime.Contracts.EntryPoint
     public sealed partial class DesignTimeEntryPointManager : IDesignTimeEntryPointManager
     {
         private const string _appDomainDataName = "Metalama.Framework.DesignTime.Contracts.v2.DesignTimeEntryPointManager";
-        private static readonly object _openOrCreateMutexSync = new();
 
         [ExcludeFromCodeCoverage]
         public static IDesignTimeEntryPointManager Instance { get; }
@@ -31,34 +29,33 @@ namespace Metalama.Framework.DesignTime.Contracts.EntryPoint
         static DesignTimeEntryPointManager()
         {
             // Note that there maybe many instances of this class in the AppDomain, so it needs to make sure it uses a shared point of contact.
-            // We're using a named AppDomain data slot for this. We have to synchronize access using a named mutex.
+            // We're using a named AppDomain data slot for this. We have to synchronize access using a named lock.
+            //
+            // NamedLockService is shared with Metalama.Backstage by compiling the same source files, because this
+            // assembly is loaded side by side by every Metalama version present in one Visual Studio session and
+            // must stay version-frozen, which forbids referencing anything.
+            //
+            // The name is used verbatim and must never change: it is what makes the copies of this class that
+            // belong to different Metalama versions exclude each other.
+            var lockService = new NamedLockService();
 
-            using var mutex = OpenOrCreateMutex( $@"Local\{_appDomainDataName}" );
+            using var entryPointLock = lockService.GetLock( $@"Local\{_appDomainDataName}" );
 
-            try
+            // The wait is unbounded, so this cannot fail. A lock abandoned by a process that terminated is
+            // acquired normally, which is correct here: the data slot it protects is either set or not.
+            using var entryPointLockHandle = entryPointLock.Acquire();
+
+            var untypedSharedInstance = AppDomain.CurrentDomain.GetData( _appDomainDataName );
+            var sharedInstance = (IDesignTimeEntryPointManager?) untypedSharedInstance;
+
+            if ( sharedInstance != null )
             {
-                try
-                {
-                    mutex.WaitOne();
-                }
-                catch ( AbandonedMutexException ) { }
-
-                var untypedSharedInstance = AppDomain.CurrentDomain.GetData( _appDomainDataName );
-                var sharedInstance = (IDesignTimeEntryPointManager?) untypedSharedInstance;
-
-                if ( sharedInstance != null )
-                {
-                    Instance = sharedInstance;
-                }
-                else
-                {
-                    Instance = new DesignTimeEntryPointManager();
-                    AppDomain.CurrentDomain.SetData( _appDomainDataName, Instance );
-                }
+                Instance = sharedInstance;
             }
-            finally
+            else
             {
-                mutex.ReleaseMutex();
+                Instance = new DesignTimeEntryPointManager();
+                AppDomain.CurrentDomain.SetData( _appDomainDataName, Instance );
             }
         }
 
@@ -105,52 +102,5 @@ namespace Metalama.Framework.DesignTime.Contracts.EntryPoint
         }
 
         Version IDesignTimeEntryPointManager.Version => this.GetType().Assembly.GetName().Version!;
-
-        // This code is duplicated from MutexHelper in Metalama.Backstage and should be kept in sync (this version does not have logging).
-        private static Mutex OpenOrCreateMutex( string mutexName )
-        {
-            lock ( _openOrCreateMutexSync )
-            {
-                // The number of iterations is intentionally very low.
-                // We will restart if the following occurs:
-                //   1) TryOpenExisting fails, i.e. there is no existing mutex.
-                //   2) Creating a new mutex fails, i.e. the mutex was created in the meantime by a process with higher set of rights.
-                // The probability of mutex being destroyed when we call TryOpenExisting again is fairly low.
-
-                // ReSharper disable once BadSemicolonSpaces
-                for ( var i = 0; /* Intentionally empty. */; i++ )
-                {
-                    // First try opening the mutex.
-                    if ( Mutex.TryOpenExisting( mutexName, out var existingMutex ) )
-                    {
-                        return existingMutex;
-                    }
-                    else
-                    {
-                        // Otherwise we will try to create the mutex.
-                        try
-                        {
-                            return MutexAcl.Create( false, mutexName, MutexAcl.AllowUsingMutexToEveryone );
-                        }
-                        catch ( UnauthorizedAccessException )
-                        {
-                            if ( i < 3 )
-                            {
-                                Thread.Sleep( 0 );
-
-                                // Mutex was probably created in the meantime and is not accessible - we will restart.
-                                // ReSharper disable once RedundantJumpStatement
-                                continue;
-                            }
-                            else
-                            {
-                                // There were too many restarts - just rethrow.
-                                throw;
-                            }
-                        }
-                    }
-                }
-            }
-        }
     }
 }

@@ -4,6 +4,7 @@
 
 using JetBrains.Annotations;
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 
 namespace Metalama.Backstage.Threading;
@@ -37,10 +38,14 @@ public interface INamedLock : IDisposable
     /// The maximal waiting time. Pass <see cref="System.Threading.Timeout.InfiniteTimeSpan"/> to wait
     /// indefinitely, or <see cref="TimeSpan.Zero"/> to return immediately when the lock is owned.
     /// </param>
+    /// <param name="releaser">
+    /// At output, an object that releases the lock when it is disposed, or <see langword="null"/> if the lock was
+    /// not acquired.
+    /// </param>
     /// <param name="cancellationToken">A token that aborts the wait.</param>
     /// <returns>
-    /// An object that releases the lock when it is disposed, or <see langword="null"/> if the lock could not be
-    /// acquired within <paramref name="timeout"/>.
+    /// <see langword="true"/> if the lock was acquired, or <see langword="false"/> if it could not be acquired
+    /// within <paramref name="timeout"/>.
     /// </returns>
     /// <exception cref="OperationCanceledException">
     /// <paramref name="cancellationToken"/> was cancelled, in which case the lock was not acquired. This is the
@@ -66,5 +71,24 @@ public interface INamedLock : IDisposable
     /// <see cref="InvalidOperationException"/>.
     /// </para>
     /// </remarks>
-    IDisposable? TryAcquire( TimeSpan timeout, CancellationToken cancellationToken = default );
+    bool TryAcquire( TimeSpan timeout, [NotNullWhen( true )] out IDisposable? releaser, CancellationToken cancellationToken = default );
+
+    /// <summary>
+    /// Acquires the lock, waiting for at most a given time, and throws if it cannot be acquired.
+    /// </summary>
+    /// <param name="timeout">
+    /// The maximal waiting time, or <see langword="null"/> to wait indefinitely, which is the usual case and the
+    /// one in which this method cannot fail.
+    /// </param>
+    /// <param name="cancellationToken">A token that aborts the wait.</param>
+    /// <returns>An object that releases the lock when it is disposed. Never <see langword="null"/>.</returns>
+    /// <exception cref="TimeoutException">The lock could not be acquired within <paramref name="timeout"/>.</exception>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
+    /// <remarks>
+    /// This is the form to use when the caller has no meaningful way to proceed without the lock, which spares it
+    /// from writing the same unreachable failure branch that an unbounded <see cref="TryAcquire"/> would require.
+    /// A caller that can proceed without the lock, or that wants to skip the operation instead of failing, uses
+    /// <see cref="TryAcquire"/>.
+    /// </remarks>
+    IDisposable Acquire( TimeSpan? timeout = null, CancellationToken cancellationToken = default );
 }

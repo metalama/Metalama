@@ -4,6 +4,7 @@
 
 using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 
 namespace Metalama.Backstage.Threading
@@ -52,8 +53,10 @@ namespace Metalama.Backstage.Threading
             public abstract void Dispose();
 
             /// <inheritdoc />
-            public IDisposable? TryAcquire( TimeSpan timeout, CancellationToken cancellationToken = default )
+            public bool TryAcquire( TimeSpan timeout, [NotNullWhen( true )] out IDisposable? releaser, CancellationToken cancellationToken = default )
             {
+                releaser = null;
+
                 cancellationToken.ThrowIfCancellationRequested();
 
                 this._service.CheckNotReentrant( this.Name );
@@ -84,7 +87,7 @@ namespace Metalama.Backstage.Threading
                 {
                     this._service.Report( LockEventKind.TimedOut, this.Name, waited );
 
-                    return null;
+                    return false;
                 }
 
                 MarkHeldByCurrentThread( this.Name );
@@ -101,7 +104,22 @@ namespace Metalama.Backstage.Threading
                     waited,
                     wasAbandoned ? "the previous owner terminated without releasing the lock" : null );
 
-                return new Releaser( this );
+                releaser = new Releaser( this );
+
+                return true;
+            }
+
+            /// <inheritdoc />
+            public IDisposable Acquire( TimeSpan? timeout = null, CancellationToken cancellationToken = default )
+            {
+                var effectiveTimeout = timeout ?? Timeout.InfiniteTimeSpan;
+
+                if ( !this.TryAcquire( effectiveTimeout, out var releaser, cancellationToken ) )
+                {
+                    throw new TimeoutException( $"Could not acquire the lock '{this.Name}' within {effectiveTimeout}." );
+                }
+
+                return releaser;
             }
 
             /// <summary>

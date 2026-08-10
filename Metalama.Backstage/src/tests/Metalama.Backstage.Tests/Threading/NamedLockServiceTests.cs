@@ -218,11 +218,18 @@ public sealed class NamedLockServiceTests : IDisposable
             this.Completed = RunOnDedicatedThreadAsync(
                 () =>
                 {
-                    IDisposable? handle;
+                    IDisposable releaser;
 
                     try
                     {
-                        handle = @lock.TryAcquire( timeout, cancellationToken );
+                        if ( !@lock.TryAcquire( timeout, out var acquiredReleaser, cancellationToken ) )
+                        {
+                            this._acquired.TrySetResult( false );
+
+                            return;
+                        }
+
+                        releaser = acquiredReleaser;
                     }
                     catch ( Exception e )
                     {
@@ -233,16 +240,11 @@ public sealed class NamedLockServiceTests : IDisposable
                         return;
                     }
 
-                    this._acquired.TrySetResult( handle != null );
-
-                    if ( handle == null )
-                    {
-                        return;
-                    }
+                    this._acquired.TrySetResult( true );
 
                     this._release.Task.GetAwaiter().GetResult();
 
-                    handle.Dispose();
+                    releaser.Dispose();
                 } );
         }
 
@@ -305,7 +307,7 @@ public sealed class NamedLockServiceTests : IDisposable
         {
             Assert.Equal( name, @lock.Name );
 
-            var handle = @lock.TryAcquire( TimeSpan.Zero );
+            Assert.True( @lock.TryAcquire( TimeSpan.Zero, out var handle ) );
 
             Assert.NotNull( handle );
             handle!.Dispose();
@@ -396,17 +398,20 @@ public sealed class NamedLockServiceTests : IDisposable
 
         using var @lock = service.GetLock( name );
 
-        var handle = @lock.TryAcquire( TimeSpan.Zero );
+        Assert.True( @lock.TryAcquire( TimeSpan.Zero, out var handle ) );
         Assert.NotNull( handle );
 
         try
         {
 #if DEBUG
-            Assert.Throws<InvalidOperationException>( () => @lock.TryAcquire( TimeSpan.Zero ) );
+            Assert.Throws<InvalidOperationException>( () => @lock.TryAcquire( TimeSpan.Zero, out _ ) );
 #else
             // A release build only reports, so that a defect that reached production behaves as it did before the
             // check existed. The underlying mutex is reentrant, so the acquisition succeeds.
-            @lock.TryAcquire( TimeSpan.Zero )?.Dispose();
+            if ( @lock.TryAcquire( TimeSpan.Zero, out var reentrantHandle ) )
+            {
+                reentrantHandle.Dispose();
+            }
 #endif
         }
         finally
@@ -426,7 +431,7 @@ public sealed class NamedLockServiceTests : IDisposable
         using var firstLock = service.GetLock( name );
         using var secondLock = service.GetLock( name );
 
-        var handle = firstLock.TryAcquire( TimeSpan.Zero );
+        Assert.True( firstLock.TryAcquire( TimeSpan.Zero, out var handle ) );
         Assert.NotNull( handle );
 
         try
@@ -434,9 +439,12 @@ public sealed class NamedLockServiceTests : IDisposable
 #if DEBUG
             // The check is keyed on the name and not on the object, because acquiring the same name through two
             // objects deadlocks just as surely as through one.
-            Assert.Throws<InvalidOperationException>( () => secondLock.TryAcquire( TimeSpan.Zero ) );
+            Assert.Throws<InvalidOperationException>( () => secondLock.TryAcquire( TimeSpan.Zero, out _ ) );
 #else
-            secondLock.TryAcquire( TimeSpan.Zero )?.Dispose();
+            if ( secondLock.TryAcquire( TimeSpan.Zero, out var reentrantHandle ) )
+            {
+                reentrantHandle.Dispose();
+            }
 #endif
         }
         finally
@@ -455,7 +463,7 @@ public sealed class NamedLockServiceTests : IDisposable
 
         using var @lock = service.GetLock( name );
 
-        var handle = @lock.TryAcquire( TimeSpan.Zero );
+        Assert.True( @lock.TryAcquire( TimeSpan.Zero, out var handle ) );
         Assert.NotNull( handle );
 
         handle!.Dispose();
@@ -632,12 +640,49 @@ public sealed class NamedLockServiceTests : IDisposable
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
 
-        Assert.Throws<OperationCanceledException>( () => @lock.TryAcquire( Timeout.InfiniteTimeSpan, cancellation.Token ) );
+        Assert.Throws<OperationCanceledException>( () => @lock.TryAcquire( Timeout.InfiniteTimeSpan, out _, cancellation.Token ) );
 
         // Nothing was acquired, so the lock is free and the reentrancy bookkeeping is clean.
-        var handle = @lock.TryAcquire( TimeSpan.Zero );
+        Assert.True( @lock.TryAcquire( TimeSpan.Zero, out var handle ) );
         Assert.NotNull( handle );
         handle!.Dispose();
+    }
+
+    [Fact]
+    public void Acquire_ReturnsAReleaserWhenTheLockIsFree()
+    {
+        var name = CreateName();
+        var service = this.CreateService();
+
+        using var @lock = service.GetLock( name );
+
+        using ( @lock.Acquire() )
+        {
+            Assert.Contains( this.GetEvents(), e => e.Kind == LockEventKind.Acquired && e.Name == name );
+        }
+
+        Assert.Contains( this.GetEvents(), e => e.Kind == LockEventKind.Released && e.Name == name );
+    }
+
+    [Fact]
+    public async Task Acquire_ThrowsWhenTheTimeoutElapses()
+    {
+        var name = CreateName();
+        var service = this.CreateService();
+
+        using var ownerLock = service.GetLock( name );
+        using var contenderLock = service.GetLock( name );
+
+        var owner = new LockHolder( ownerLock, TimeSpan.Zero );
+        Assert.True( await this.WithTimeout( owner.Acquired ) );
+
+        // A timeout of zero makes this deterministic: the lock is owned, so the acquisition cannot succeed, and
+        // the test never waits.
+        await this.WithTimeout(
+            RunOnDedicatedThreadAsync( () => Assert.Throws<TimeoutException>( () => contenderLock.Acquire( TimeSpan.Zero ) ) ) );
+
+        owner.Release();
+        await this.WithTimeout( owner.Completed );
     }
 
     [Fact]
@@ -759,9 +804,9 @@ public sealed class NamedLockServiceTests : IDisposable
             RunOnDedicatedThreadAsync(
                 () =>
                 {
-                    Assert.Throws<OperationCanceledException>( () => @lock.TryAcquire( Timeout.InfiniteTimeSpan, cancellation.Token ) );
+                    Assert.Throws<OperationCanceledException>( () => @lock.TryAcquire( Timeout.InfiniteTimeSpan, out _, cancellation.Token ) );
 
-                    var handle = @lock.TryAcquire( TimeSpan.Zero );
+                    Assert.True( @lock.TryAcquire( TimeSpan.Zero, out var handle ) );
 
                     Assert.NotNull( handle );
                     handle!.Dispose();

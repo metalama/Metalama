@@ -81,7 +81,9 @@ public static class MutexHelper
         return OpenOrCreateMutex( mutexName, logger );
     }
 
-    // This code is duplicated in DesignTimeEntryPointManager in Metalama.Framework and should be kept in sync.
+    // The copies of this code that used to live in DesignTimeEntryPointManager and in ResourceExtractor have been
+    // replaced by Metalama.Backstage.Threading.NamedLockService, which those projects compile from source. This
+    // class is the last remaining copy and is itself replaced by that service.
     private static Mutex OpenOrCreateMutex( string mutexName, ILogger? logger )
     {
         logger?.Trace?.Log( $"  Mutex name: '{mutexName}'." );
