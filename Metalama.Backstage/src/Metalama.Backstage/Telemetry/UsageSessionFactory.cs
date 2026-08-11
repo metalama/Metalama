@@ -12,8 +12,6 @@ internal sealed class UsageSessionFactory : IUsageSessionFactory
     private readonly IServiceProvider _serviceProvider;
     private readonly ITelemetryConfigurationService _telemetryConfigurationService;
 
-    public object Sync { get; } = new();
-
     public UsageSessionFactory( IServiceProvider serviceProvider )
     {
         this._serviceProvider = serviceProvider;

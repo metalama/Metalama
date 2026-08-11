@@ -6,6 +6,7 @@ using Metalama.Backstage.Application;
 using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Infrastructure;
+using Metalama.Backstage.Threading;
 using Metalama.Backstage.Utilities;
 using System;
 using System.Globalization;
@@ -23,10 +24,12 @@ internal sealed class TelemetryLogger : IBackstageService
     private readonly IFileSystem _fileSystem;
     private readonly ILogger _logger;
     private readonly string _source;
+    private readonly INamedLockService _lockService;
 
     public TelemetryLogger( IServiceProvider serviceProvider )
     {
         this._serviceProvider = serviceProvider;
+        this._lockService = serviceProvider.GetRequiredBackstageService<INamedLockService>();
         this._logsDirectory = serviceProvider.GetRequiredBackstageService<IStandardDirectories>().TelemetryLogsDirectory;
         this._fileSystem = serviceProvider.GetRequiredBackstageService<IFileSystem>();
         this._logger = serviceProvider.GetLoggerFactory().GetLogger( nameof(TelemetryLogger) );
@@ -40,7 +43,7 @@ internal sealed class TelemetryLogger : IBackstageService
         {
             var fileName = Path.Combine( this._logsDirectory, $"Telemetry-{DateTime.Now.Year}-{DateTime.Now.Month:00}.log" );
 
-            using ( MutexHelper.WithGlobalLock( fileName ) )
+            using ( this._lockService.WithGlobalLock( fileName ) )
             {
                 if ( !this._fileSystem.DirectoryExists( this._logsDirectory ) )
                 {

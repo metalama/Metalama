@@ -293,10 +293,9 @@ namespace Metalama.Backstage.Telemetry
                          c.LastUploadTime.Value.AddDays( 1 ) < now,
                     c =>
                     {
-                        // Captured here, and not from a separate read, because the update is re-evaluated whenever
-                        // another process writes the file first: this is the only place where the value we are about to
-                        // replace is the value we actually replace. Releasing the wrong one would hand the day to a
-                        // process that never uploaded.
+                        // Captured here, and not from a separate read, because this transformation runs inside the
+                        // lock protecting the file: the value it receives is the value the write replaces.
+                        // Releasing the wrong one would hand the day to a process that never uploaded.
                         previousUploadTime = c.LastUploadTime;
 
                         // 'now', not a second reading of the clock: the value we claim with must be the one the
@@ -306,9 +305,9 @@ namespace Metalama.Backstage.Telemetry
                     } ) )
             {
                 // UpdateIf tells us that this call did not perform the transition, but not why: the throttle may not
-                // have elapsed, another process may have claimed the upload, or the write may have run out of
-                // contention retries (which UpdateIf logs as an error of its own). Claiming a single one of those in
-                // the message sends whoever reads the trace after it, as it did in #1764.
+                // have elapsed, another process may have claimed the upload, or the file may have failed to be
+                // locked or written. Claiming a single one of those in the message sends whoever reads the trace
+                // after it, as it did in #1764.
                 this._logger.Trace?.Log( "Not uploading the telemetry now: it is not time yet, or another process has claimed the upload." );
 
                 return false;

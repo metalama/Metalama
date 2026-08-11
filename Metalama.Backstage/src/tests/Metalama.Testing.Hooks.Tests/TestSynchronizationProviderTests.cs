@@ -151,6 +151,56 @@ public sealed class TestSynchronizationProviderTests
     }
 
     [Fact]
+    public async Task DisableSyncPointReleasesCodeAlreadyBlocked()
+    {
+        using var watchdog = CreateWatchdog();
+        using var provider = new TestSynchronizationProvider();
+        using var registration = watchdog.Token.Register( () => provider.ReleaseAll() );
+
+        provider.EnableSyncPoint( _syncPointName );
+
+        var operation = Task.Run(
+            async () => await provider.SyncPointAsync( _syncPointName, watchdog.Token ) );
+
+        await provider.WaitForSyncPointReachedAsync( _syncPointName, watchdog.Token );
+
+        Assert.False( operation.IsCompleted );
+
+        // Removing the registration alone would not release this thread, because it passed the registration test
+        // before the point was disabled.
+        provider.DisableSyncPoint( _syncPointName );
+
+        await operation;
+    }
+
+    [Fact]
+    public async Task DisableSyncPointStopsBlockingLaterArrivals()
+    {
+        using var watchdog = CreateWatchdog();
+        using var provider = new TestSynchronizationProvider();
+        using var registration = watchdog.Token.Register( () => provider.ReleaseAll() );
+
+        provider.EnableSyncPoint( _syncPointName );
+
+        var firstOperation = Task.Run(
+            async () => await provider.SyncPointAsync( _syncPointName, watchdog.Token ) );
+
+        await provider.WaitForSyncPointReachedAsync( _syncPointName, watchdog.Token );
+
+        provider.DisableSyncPoint( _syncPointName );
+
+        await firstOperation;
+
+        // This is the reason the method exists: the code under test reaches the same point an unknown number of
+        // further times, and none of those must block. Releasing instead of disabling would require the test to
+        // know that number.
+        for ( var i = 0; i < 3; i++ )
+        {
+            await provider.SyncPointAsync( _syncPointName, watchdog.Token );
+        }
+    }
+
+    [Fact]
     public async Task TraceDelegateReceivesMessages()
     {
         using var watchdog = CreateWatchdog();

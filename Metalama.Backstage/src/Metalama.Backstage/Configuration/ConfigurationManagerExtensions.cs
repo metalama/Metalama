@@ -10,8 +10,6 @@ namespace Metalama.Backstage.Configuration
     [PublicAPI]
     public static class ConfigurationManagerExtensions
     {
-        private const int _maxUpdateAttempts = 10;
-
         public static T Get<T>( this IConfigurationManager configurationManager, bool ignoreCache = false )
             where T : ConfigurationFile
             => (T) configurationManager.Get( typeof(T), ignoreCache );
@@ -20,6 +18,12 @@ namespace Metalama.Backstage.Configuration
             where T : ConfigurationFile
             => configurationManager.GetFilePath( typeof(T) );
 
+        /// <summary>
+        /// Creates a configuration file with its default content if it does not exist yet.
+        /// </summary>
+        /// <typeparam name="T">The type of the configuration file.</typeparam>
+        /// <param name="configurationManager">The configuration manager.</param>
+        /// <returns><see langword="true"/> if the file was created.</returns>
         public static bool CreateIfMissing<T>( this IConfigurationManager configurationManager )
             where T : ConfigurationFile
         {
@@ -32,98 +36,63 @@ namespace Metalama.Backstage.Configuration
             return configurationManager.UpdateIf<T>( c => !c.Timestamp.HasValue, c => c );
         }
 
+        /// <summary>
+        /// Updates a configuration file if a condition holds.
+        /// </summary>
+        /// <typeparam name="T">The type of the configuration file.</typeparam>
+        /// <param name="configurationManager">The configuration manager.</param>
+        /// <param name="condition">Decides whether the file needs to be updated.</param>
+        /// <param name="updateFunc">Produces the new content of the file from its current content.</param>
+        /// <returns><see langword="true"/> if the file was written.</returns>
+        /// <remarks>
+        /// <para>
+        /// The condition is evaluated twice. The first evaluation takes no lock and is only a filter: most
+        /// conditions ask whether the setting is already in the desired state, and the great majority of calls stop
+        /// there, without the file ever being locked. The second evaluation happens inside the transaction, on the
+        /// content of the file at the moment of the write, and is the one that decides.
+        /// </para>
+        /// <para>
+        /// The first evaluation is at least as fresh as the second, because a read takes no lock and therefore sees
+        /// the file exactly as the locked path would. A condition that stops here can only have been false at a
+        /// moment when it would also have been false inside the lock.
+        /// </para>
+        /// </remarks>
         public static bool UpdateIf<T>( this IConfigurationManager configurationManager, Predicate<T> condition, Func<T, T> updateFunc )
             where T : ConfigurationFile
         {
-            T newSettings;
-            T originalSettings;
-
-            var attempts = 0;
-
-            do
+            if ( !condition( configurationManager.Get<T>( true ) ) )
             {
-                attempts++;
+                configurationManager.Logger.Trace?.Log(
+                    $"Update of {typeof(T).Name} skipped because the configuration setting was already in the desired state." );
 
-                configurationManager.Logger.Trace?.Log( $"{attempts}-th attempt to update {typeof(T).Name}" );
-
-                if ( attempts > _maxUpdateAttempts )
-                {
-                    // We no longer throw an exception here because we have a known random issue and throwing an exception seems to be worse
-                    // than ignoring it.
-
-                    // Include the call stack so that, if this recurs, the contending caller can be identified from the log.
-                    configurationManager.Logger.Error?.Log(
-                        $"Too many attempts to update the configuration {typeof(T).Name}. There must be an unaddressed race condition.{
-                            Environment.NewLine}{Environment.StackTrace}" );
-
-                    return false;
-                }
-
-                originalSettings = configurationManager.Get<T>( true );
-
-                if ( !condition( originalSettings ) )
-                {
-                    configurationManager.Logger.Trace?.Log(
-                        $"Update of {typeof(T).Name} skipped because the configuration setting was already in the desired state." );
-
-                    return false;
-                }
-
-                newSettings = updateFunc( originalSettings );
-
-                if ( originalSettings.Timestamp.HasValue && newSettings.Equals( originalSettings ) )
-                {
-                    configurationManager.Logger.Trace?.Log( $"Update of {typeof(T).Name} skipped because no change was required." );
-
-                    return false;
-                }
+                return false;
             }
-            while ( !configurationManager.TryUpdate( newSettings, originalSettings.Timestamp ) );
 
-            return true;
+            var outcome = configurationManager.Update(
+                typeof(T),
+                currentValue =>
+                {
+                    var typedCurrentValue = (T) currentValue;
+
+                    return condition( typedCurrentValue ) ? updateFunc( typedCurrentValue ) : null;
+                } );
+
+            return outcome == ConfigurationUpdateOutcome.Updated;
         }
 
+        /// <summary>
+        /// Updates a configuration file.
+        /// </summary>
+        /// <typeparam name="T">The type of the configuration file.</typeparam>
+        /// <param name="configurationManager">The configuration manager.</param>
+        /// <param name="updateFunc">Produces the new content of the file from its current content.</param>
+        /// <returns><see langword="true"/> if the file was written.</returns>
+        /// <remarks>
+        /// Unlike <see cref="UpdateIf{T}"/>, this method has no condition to filter on, so it takes the lock at
+        /// once.
+        /// </remarks>
         public static bool Update<T>( this IConfigurationManager configurationManager, Func<T, T> updateFunc )
             where T : ConfigurationFile, new()
-        {
-            T newSettings;
-            T originalSettings;
-
-            var attempts = 0;
-
-            do
-            {
-                attempts++;
-
-                configurationManager.Logger.Trace?.Log( $"{attempts}-th attempt to update {typeof(T).Name}" );
-
-                if ( attempts > _maxUpdateAttempts )
-                {
-                    // We no longer throw an exception here because we have a known random issue and throwing an exception seems to be worse
-                    // than ignoring it.
-
-                    // Include the call stack so that, if this recurs, the contending caller can be identified from the log.
-                    configurationManager.Logger.Error?.Log(
-                        $"Too many attempts to update the configuration {typeof(T).Name}. There must be an unaddressed race condition.{
-                            Environment.NewLine}{Environment.StackTrace}" );
-
-                    return false;
-                }
-
-                originalSettings = configurationManager.Get<T>( true );
-
-                newSettings = updateFunc( originalSettings );
-
-                if ( originalSettings.Timestamp.HasValue && newSettings.Equals( originalSettings ) )
-                {
-                    configurationManager.Logger.Trace?.Log( $"Update of {typeof(T).Name} skipped because no change was required." );
-
-                    return false;
-                }
-            }
-            while ( !configurationManager.TryUpdate( newSettings, originalSettings.Timestamp ) );
-
-            return true;
-        }
+            => configurationManager.Update( typeof(T), currentValue => updateFunc( (T) currentValue ) ) == ConfigurationUpdateOutcome.Updated;
     }
 }

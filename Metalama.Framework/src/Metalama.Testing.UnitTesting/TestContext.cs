@@ -9,6 +9,7 @@ using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Infrastructure;
 using Metalama.Backstage.Maintenance;
+using Metalama.Backstage.Threading;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.SyntaxBuilders;
 using Metalama.Framework.Engine;
@@ -206,6 +207,12 @@ public partial class TestContext : ITempFileManager, IApplicationInfoProvider, I
                 .WithService( platformInfo )
                 .WithService( this._telemetryService )
                 .WithService( BackstageServiceFactory.ServiceProvider.GetRequiredBackstageService<IFileSystem>() )
+
+                // Forwarded from the real provider rather than substituted, so that the compile-time cache, which
+                // several test processes can share, is protected exactly as it is in production. Before this
+                // service existed the same call sites used a static helper, which needed no registration at all,
+                // so a provider that lists the backstage services it exposes did not have to mention it.
+                .WithService( BackstageServiceFactory.ServiceProvider.GetRequiredBackstageService<INamedLockService>() )
                 .WithService( BackstageServiceFactory.ServiceProvider.GetRequiredBackstageService<BackstageBackgroundTasksService>() );
 
             backstageServices = backstageServices.WithService( new InMemoryConfigurationManager( backstageServices ), true );

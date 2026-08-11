@@ -6,6 +6,7 @@ using System.IO.Hashing;
 using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Maintenance;
+using Metalama.Backstage.Threading;
 using Metalama.Backstage.Utilities;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.CompileTime.Manifest;
@@ -678,7 +679,7 @@ internal sealed partial class CompileTimeCompilationBuilder
                 {
                     string? deletedDirectory = null;
 
-                    using ( MutexHelper.WithGlobalLock( outputDirectory, this._logger ) )
+                    using ( this._serviceProvider.Underlying.GetRequiredBackstageService<INamedLockService>().WithGlobalLock( outputDirectory ) )
                     {
                         var files = Directory.GetFiles( outputDirectory );
 
@@ -1421,5 +1422,6 @@ internal sealed partial class CompileTimeCompilationBuilder
             $"Please delete \"{Path.GetDirectoryName( outputPaths.Directory )}\" directory before retrying the build. " +
             $"If this occurs on a build server, please verify that the cache is correctly cleaned up between builds." );
 
-    private IDisposable WithLock( string compileTimeAssemblyName ) => MutexHelper.WithGlobalLock( compileTimeAssemblyName, this._logger );
+    private IDisposable WithLock( string compileTimeAssemblyName )
+        => this._serviceProvider.Underlying.GetRequiredBackstageService<INamedLockService>().WithGlobalLock( compileTimeAssemblyName );
 }

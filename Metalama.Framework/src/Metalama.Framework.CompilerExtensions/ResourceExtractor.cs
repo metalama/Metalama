@@ -2,8 +2,8 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Backstage.Threading;
 using Metalama.Framework.Engine.Utilities.AssemblyLoaders;
-using Metalama.Framework.Threading;
 using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Concurrent;
@@ -16,7 +16,6 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading;
 
 // ReSharper disable NullableWarningSuppressionIsUsed
 // Resharper disable EmptyGeneralCatchClause
@@ -275,20 +274,22 @@ public static class ResourceExtractor
             }
         }
 
-        // We cannot use MutexHelper because of dependencies on an embedded assembly.
+        // NamedLockService is shared with Metalama.Backstage by compiling the same source files, because this
+        // assembly embeds Metalama.Backstage and extracts it here, and can therefore reference nothing.
+        // A process that crashed while holding the lock is not a problem: the presence of the `.completed` file
+        // alone says that the extraction was successful.
+        // When the operating system cannot provide a named object at all, which is issue #272, the lock excludes
+        // only the threads of this process. That is enough, because two processes extracting at once still
+        // converge: each file is either written or, if another process holds it open, read back and compared.
+        // A concurrent queue, because the events are reported on whichever thread caused them, which is not
+        // necessarily the thread running this method.
+        var lockEvents = new ConcurrentQueue<string>();
+        var lockService = new NamedLockService();
 
-        using var extractMutex = MutexAcl.Create( false, mutexName, MutexAcl.AllowUsingMutexToEveryone );
+        lockService.LockEventReported += ( _, lockEvent ) => lockEvents.Enqueue( lockEvent.ToString() );
 
-        try
-        {
-            extractMutex.WaitOne();
-        }
-        catch ( AbandonedMutexException )
-        {
-            // Another process crashed while holding the mutex.
-            // This situation can be ignored because the presence of the `.completed` file alone says
-            // that the extraction was successful.
-        }
+        using var extractLock = lockService.GetLock( mutexName );
+        using var extractLockHandle = extractLock.Acquire();
 
         StreamWriter? log = null;
 
@@ -321,6 +322,15 @@ public static class ResourceExtractor
                 log.WriteLine( $"Source Assembly Name: '{currentAssembly.FullName}'" );
                 log.WriteLine( $"Source Assembly Location: '{currentAssembly.Location}'" );
                 log.WriteLine( $"Mutex name: '{mutexName}'" );
+
+                // The lock is acquired before this log file exists, so its events are buffered until here. They
+                // record whether the operating system could provide a named object, which is the first thing to
+                // look at when a machine shows the symptoms of issue #272.
+                foreach ( var lockEvent in lockEvents )
+                {
+                    log.WriteLine( $"Lock: {lockEvent}" );
+                }
+
                 log.WriteLine( "----" );
 
                 foreach ( var (resourceName, filePath) in GetEmbeddedAssemblies( currentAssembly, log ) )
@@ -368,7 +378,6 @@ public static class ResourceExtractor
         finally
         {
             log?.Dispose();
-            extractMutex.ReleaseMutex();
         }
     }
 

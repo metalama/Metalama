@@ -3,7 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Backstage.Diagnostics;
-using Metalama.Backstage.Utilities;
+using Metalama.Backstage.Threading;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Comparers;
@@ -19,6 +19,7 @@ using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.HierarchicalOptions;
 using Metalama.Framework.Engine.Pipeline;
+using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.Utilities.Diagnostics;
 using Metalama.Framework.Engine.Utilities.Threading;
@@ -347,7 +348,8 @@ public sealed partial class DesignTimeAspectPipeline
                         {
                             if ( File.Exists( pipeline.ProjectOptions.BuildTouchFile ) )
                             {
-                                using ( MutexHelper.WithGlobalLock( pipeline.ProjectOptions.BuildTouchFile ) )
+                                using ( pipeline.ServiceProvider.Global.GetRequiredBackstageService<INamedLockService>()
+                                            .WithGlobalLock( pipeline.ProjectOptions.BuildTouchFile ) )
                                 {
                                     File.Delete( pipeline.ProjectOptions.BuildTouchFile );
                                 }
