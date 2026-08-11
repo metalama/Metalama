@@ -36,9 +36,9 @@ internal sealed class TestProjectProperties
     public ImmutableArray<string> IgnoredWarnings { get; }
 
     /// <summary>
-    /// Gets the kind of durable reference that the tests of the project run with, as set by the
-    /// <c>MetalamaDurableRefKind</c> MSBuild property. The default lets the execution scenario decide, which for an
-    /// aspect test means the kind a batch compilation uses.
+    /// Gets the kind of durable reference used by the tests of the project, as set by the
+    /// <c>MetalamaDurableRefKind</c> MSBuild property. The default value lets the execution scenario select the
+    /// representation. An aspect test is a batch compilation, so it then uses live references.
     /// </summary>
     public DurableRefKind DurableRefKind { get; }
 

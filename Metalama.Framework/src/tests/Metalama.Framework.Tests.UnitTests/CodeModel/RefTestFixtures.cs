@@ -12,13 +12,13 @@ using System.Linq;
 namespace Metalama.Framework.Tests.UnitTests.CodeModel;
 
 /// <summary>
-/// The source fixtures and the declaration builders shared by <see cref="RefTests"/>, whose tests run once per kind of
-/// durable reference, and by <see cref="SerializableRefResolutionTests"/>, whose tests do not.
+/// The source code fixtures and the declaration builders shared by <see cref="RefTests"/>, whose tests run once per
+/// kind of durable reference, and by <see cref="SerializableRefResolutionTests"/>, whose tests run once.
 /// </summary>
 internal static class RefTestFixtures
 {
     /// <summary>
-    /// A compilation holding one type of every shape that a reference to a named type has to survive.
+    /// Source code that declares one type of each shape that a reference to a named type must support.
     /// </summary>
     public const string GenericTypesCode = """
                                            class Plain { }

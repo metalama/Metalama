@@ -9,20 +9,20 @@ using Metalama.Framework.Serialization;
 namespace Metalama.Framework.Engine.CompileTime.Serialization.Serializers;
 
 /// <summary>
-/// Serializes a <see cref="LiveDurableRef{T}"/>, which holds the reference it was made from rather than an identifier.
+/// Serializes a <see cref="LiveDurableRef{T}"/>, which stores the reference it was created from instead of an
+/// identifier.
 /// </summary>
 /// <remarks>
 /// <para>
-/// Being durable for retention and being durable for serialization are two different requirements, and only the second
-/// one needs an identifier. This serializer is where that identifier is produced: writing it here rather than when the
-/// reference was made is exactly what a batch compilation gains, because the identifier is then computed once, for the
-/// references that are actually written, instead of for every reference that is made durable.
+/// Retention and serialization are two distinct requirements, and only serialization requires an identifier. This
+/// serializer computes that identifier. A batch compilation therefore computes an identifier only for the references
+/// that are serialized, instead of for every reference that is made durable.
 /// </para>
 /// <para>
-/// The deserialized reference is identifier-based whatever was written, which is the only correct answer: a reference
-/// is read in a compilation other than the one that wrote it, so there is nothing live for it to hold. The kind is
-/// chosen from the identifier, so that a type keeps its type arguments and its nullable annotation. Reusing
-/// <see cref="RefSerializer{T}"/> would lose that, because it always builds a <c>DeclarationIdRef</c>.
+/// Deserialization always produces an identifier-based reference, because a reference is read in a compilation other
+/// than the one that wrote it, and there is therefore no reference to store. The class is selected according to the
+/// identifier, so that a type retains its type arguments and its nullable annotation.
+/// <see cref="RefSerializer{T}"/> cannot be used here, because it always creates a <c>DeclarationIdRef</c>.
 /// </para>
 /// </remarks>
 internal sealed class DurableRefSerializer<T> : ReferenceTypeSerializer<BaseRef<T>>

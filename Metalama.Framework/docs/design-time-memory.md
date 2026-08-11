@@ -71,32 +71,40 @@ later with `GetTarget( compilation )` against whichever compilation is current. 
 rather than a reference, call `declaration.ToDurableRef()`: it produces an equal reference and never allocates the
 compilation-bound one.
 
-**What a durable reference stores depends on the scope, and only the guarantee is common to both.** The rule above is a
-design-time rule, and at compile time it costs something for nothing: a batch build has one compilation, which outlives
-every object the build produces, so collapsing a reference to an identifier and resolving it again through the symbol
-table buys no retention and is not free. `IDurableRefFactory` is the service that decides, with one implementation per
-scope, and `AspectPipeline` chooses between them from `ExecutionScenario.IsBatchCompilation`:
+#### The representation of a durable reference depends on the execution scenario
 
-- `SerializableDurableRefFactory` backs the reference with a `SerializableDeclarationId` or a `SerializableTypeId`,
-  which reaches nothing. This is what design time gets, and what every scope other than a batch compilation gets.
-  Note that `ExecutionScenario.Introspection` is *not* a design-time scenario but is not a batch compilation either,
-  because `Metalama.Framework.Workspaces` and the aspect explorer keep many compilations alive; the discriminator is
-  therefore `IsBatchCompilation` and never `!IsDesignTime`.
-- `LiveDurableRefFactory` produces a `LiveDurableRef`, which holds the reference it was made from and computes its
-  identifier only when one is asked for. It does retain its compilation, deliberately.
+A durable reference stores a serializable identifier at design time, and stores the original reference during a batch
+compilation. Both representations satisfy the rule stated above, which is that the object holding the reference may
+outlive the compilation.
 
-Two consequences are worth knowing before reading anything else in this document:
+The two representations exist because a batch compilation processes a single compilation, which lives until the build
+ends. Converting a reference to an identifier, and then resolving that identifier through the symbol table, does not
+reduce memory consumption in that scenario, and both operations have a cost. The service `IDurableRefFactory` selects
+the representation. `AspectPipeline` selects the implementation according to `ExecutionScenario.IsBatchCompilation`:
 
-- **Serialization is unaffected.** A `LiveDurableRef` writes exactly the identifier the serializable kind would have
-  carried, because it asks `SerializableDurableRefFactory` for it, and a deserialized reference is always
-  identifier-based. Being durable for retention and being durable for serialization are different requirements, and
-  only the second one needs an identifier.
-- **The retention diagnostic still analyses the design-time graph.** `MetalamaDiagnoseMemoryLeaks` forces the
-  serializable kind, and `UserCodeRetentionPolicy.IsPinning` reports a durable reference that holds a compilation.
-  Without both, the analysis would answer that a graph is clean in precisely the scenario it runs in.
+- `SerializableDurableRefFactory` stores a `SerializableDeclarationId` or a `SerializableTypeId`. The reference then
+  holds no reference to a compilation. This implementation is used at design time and in every scenario that is not a
+  batch compilation. Note that `ExecutionScenario.Introspection` is not a design-time scenario, but it is not a batch
+  compilation either, because `Metalama.Framework.Workspaces` and the aspect explorer keep several compilations in
+  memory. The selection criterion is therefore `IsBatchCompilation`, and not the negation of `IsDesignTime`.
+- `LiveDurableRefFactory` creates a `LiveDurableRef`, which stores the `IFullRef` it was created from and computes the
+  identifier only when the identifier is requested. This reference holds a reference to its compilation.
 
-The `MetalamaDurableRefKind` MSBuild property overrides the choice, which is what the test suites use to exercise a
-kind their own scope would not select. See issue [#1811](https://github.com/metalama/Metalama/issues/1811).
+Two properties of this design are relevant to the rest of this document.
+
+The first property concerns serialization. A `LiveDurableRef` writes the same identifier that
+`SerializableDurableRefFactory` would have produced, because it requests the identifier from that factory, and
+deserialization always produces an identifier-based reference. Retention and serialization are two distinct
+requirements, and only serialization requires an identifier.
+
+The second property concerns the retention diagnostic. `MetalamaDiagnoseMemoryLeaks` selects the serializable
+representation, and `UserCodeRetentionPolicy.IsPinning` reports a durable reference that holds a compilation. Both are
+required, because the diagnostic runs during a batch compilation, which is the scenario in which the live
+representation is the default.
+
+The `MetalamaDurableRefKind` MSBuild property overrides the selection. The test suites use it to exercise a
+representation that their own execution scenario would not select. See issue
+[#1811](https://github.com/metalama/Metalama/issues/1811).
 
 **Declare the requirement in the type, do not leave it to the caller.** A field, property or constructor parameter that
 must hold a durable reference is typed `IDurableRef<T>`, not `IRef<T>`. The conversion then cannot be forgotten,

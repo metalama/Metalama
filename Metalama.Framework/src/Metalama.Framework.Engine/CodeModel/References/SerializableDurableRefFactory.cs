@@ -10,30 +10,31 @@ namespace Metalama.Framework.Engine.CodeModel.References;
 
 /// <summary>
 /// The implementation of <see cref="IDurableRefFactory"/> that identifies the target of a durable reference by a
-/// <see cref="SerializableDeclarationId"/> or a <see cref="SerializableTypeId"/>, so that the reference reaches no
-/// compilation.
+/// <see cref="SerializableDeclarationId"/> or a <see cref="SerializableTypeId"/>. The resulting reference holds no
+/// reference to a compilation.
 /// </summary>
 /// <remarks>
 /// <para>
-/// This is what design time requires, and it is what every scope other than a batch compilation uses.
+/// This implementation is required at design time, and is used in every execution scenario that is not a batch
+/// compilation.
 /// </para>
 /// <para>
-/// It is also the form in which every durable reference is written and read, whatever the scope that produced it, which
-/// is what the name refers to: <see cref="LiveDurableRef{T}"/> asks this factory for the identifier it writes, and a
-/// deserialized reference is always one of the two kinds this factory builds.
+/// It also determines the serialized form of every durable reference, which is the origin of its name.
+/// <see cref="LiveDurableRef{T}"/> obtains from this factory the identifier that it writes, and deserialization always
+/// produces one of the two classes that this factory creates.
 /// </para>
 /// </remarks>
 internal sealed class SerializableDurableRefFactory : IDurableRefFactory
 {
     /// <summary>
-    /// Gets the instance used by the projects that have no <see cref="IDurableRefFactory"/> of their own, and by the
-    /// call sites that have no service provider at all, such as the deserialization of a reference.
+    /// Gets the instance used by projects that have registered no <see cref="IDurableRefFactory"/>, and by call sites
+    /// that have no service provider, such as the deserialization of a reference.
     /// </summary>
     public static SerializableDurableRefFactory Instance { get; } = new( isResolutionCacheEnabled: true );
 
     /// <summary>
-    /// Gets the instance that resolves every reference through the symbol table, which the test suites use in order to
-    /// keep that path covered.
+    /// Gets the instance whose references always resolve their identifier through the symbol table. The test suites
+    /// use this instance to cover that code path.
     /// </summary>
     public static SerializableDurableRefFactory InstanceWithoutResolutionCache { get; } = new( isResolutionCacheEnabled: false );
 

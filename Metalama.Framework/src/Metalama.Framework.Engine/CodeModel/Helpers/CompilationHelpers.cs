@@ -49,8 +49,8 @@ internal sealed class CompilationHelpers : ICompilationHelpers
 
     public SerializableTypeId GetSerializableId( IType type ) => type.GetSerializableTypeId();
 
-    // The service is not always available in tests, so we get it lazily and fall back on the identifier-based factory,
-    // which is what a project that declares nothing has always used.
+    // The service is not always available in tests, so it is resolved lazily. When it is absent, the identifier-based
+    // implementation is used.
     private IDurableRefFactory GetDurableRefFactory()
         => this._durableRefFactory ??= this._serviceProvider.GetService<IDurableRefFactory>() ?? SerializableDurableRefFactory.Instance;
 

@@ -9,13 +9,13 @@ using System;
 namespace Metalama.Framework.Engine.CodeModel.References;
 
 /// <summary>
-/// Builds durable references at the call sites that have no service provider, and therefore no
-/// <see cref="IDurableRefFactory"/>, such as the deserialization of a reference or a reflection mock.
+/// Creates durable references at the call sites that have no service provider, and therefore no
+/// <see cref="IDurableRefFactory"/>. Examples are the deserialization of a reference and the reflection mocks.
 /// </summary>
 /// <remarks>
-/// These methods build an identifier-based reference whatever the scope of the project. That is the only possible
-/// answer here: they start from an identifier rather than from a declaration, so there is nothing live to hold, and a
-/// reference read from a serialized stream is by definition read in a compilation other than the one that wrote it.
+/// These methods always create an identifier-based reference, in every execution scenario. Their argument is an
+/// identifier and not a declaration, so there is no reference to store. A reference read from a serialized stream is
+/// also read in a compilation other than the one that wrote it.
 /// </remarks>
 internal static class DurableRefFactory
 {
@@ -36,8 +36,8 @@ internal static class DurableRefFactory
     /// Returns the factory that implements a given <see cref="DurableRefKind"/>.
     /// </summary>
     /// <exception cref="ArgumentOutOfRangeException">
-    /// <paramref name="kind"/> is <see cref="DurableRefKind.Default"/>, which names no factory: the choice is then made
-    /// by the execution scenario, in <c>AspectPipeline</c>.
+    /// <paramref name="kind"/> is <see cref="DurableRefKind.Default"/>. That value designates no implementation,
+    /// because <c>AspectPipeline</c> then selects the implementation according to the execution scenario.
     /// </exception>
     public static IDurableRefFactory GetFactory( DurableRefKind kind )
         => kind switch

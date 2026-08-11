@@ -7,8 +7,8 @@ using Metalama.Framework.Engine.Options;
 namespace Metalama.Framework.Tests.UnitTests.CodeModel;
 
 /// <summary>
-/// Runs <see cref="RefTests"/> with the durable references of a batch compilation, which hold the reference they were
-/// made from instead of an identifier.
+/// Runs <see cref="RefTests"/> with the durable references of a batch compilation. Those references store the
+/// reference they were created from instead of an identifier.
 /// </summary>
 public sealed class LiveRefTests : RefTests
 {

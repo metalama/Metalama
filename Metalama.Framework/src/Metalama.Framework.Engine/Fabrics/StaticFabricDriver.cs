@@ -33,8 +33,9 @@ namespace Metalama.Framework.Engine.Fabrics
         {
             private readonly ImmutableArray<IPipelineContributor>.Builder _contributors = ImmutableArray.CreateBuilder<IPipelineContributor>();
 
-            // What ToDurable costs is now decided by the scope: a batch compilation keeps the reference it is given,
-            // because its single compilation outlives the amender. See IDurableRefFactory and issue #1811.
+            // The representation of the durable reference depends on the execution scenario. During a batch
+            // compilation, ToDurable stores the given reference, because the compilation lives longer than the amender.
+            // See IDurableRefFactory and issue #1811.
             protected StaticAmender(
                 IProject project,
                 FabricManager fabricManager,

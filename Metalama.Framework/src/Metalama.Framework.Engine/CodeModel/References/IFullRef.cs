@@ -47,9 +47,10 @@ internal interface IFullRef : ISdkRef
     /// <see cref="SerializableDeclarationId"/>.
     /// </summary>
     /// <remarks>
-    /// This is the single decision that keeps the kinds of durable reference produced by <see cref="IDurableRefFactory"/>
-    /// carrying the same identifier for the same target. It belongs here rather than to the factories because only the
-    /// reference can inspect its own symbol, which an introduced declaration does not have.
+    /// This method is the single place where the choice between the two kinds of identifier is made, so that both
+    /// implementations of <see cref="IDurableRefFactory"/> produce the same identifier for the same target. It is
+    /// declared here rather than in those implementations because it requires the symbol of the reference, and an
+    /// introduced declaration has no symbol.
     /// </remarks>
     SerializableTypeId? GetDurableTypeId();
 

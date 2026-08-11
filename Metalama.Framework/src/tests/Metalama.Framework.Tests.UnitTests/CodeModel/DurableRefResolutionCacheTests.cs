@@ -13,14 +13,15 @@ using Xunit;
 namespace Metalama.Framework.Tests.UnitTests.CodeModel;
 
 /// <summary>
-/// Tests the cache through which an identifier-based durable reference remembers the reference it last resolved to.
+/// Tests the cache in which an identifier-based durable reference stores the reference returned by its last
+/// resolution.
 /// </summary>
 /// <remarks>
-/// The cache exists because resolving an identifier walks the symbol table, which is a large constant on an operation
-/// that is not rare. It is required to leave the result of every resolution unchanged, and that requirement is what
-/// <see cref="SerializableRefTests"/> and <see cref="UncachedSerializableRefTests"/> hold, by running the same assertions
-/// with the cache enabled and disabled. What is left to test here is that the cache is populated, that it is honoured,
-/// and that it is bypassed when it must be. See issue #1811.
+/// The cache exists because resolving an identifier requires a lookup in the symbol table, and references are resolved
+/// frequently. The cache must return the same result as a resolution that does not use it.
+/// <see cref="SerializableRefTests"/> and <see cref="UncachedSerializableRefTests"/> verify that requirement, by
+/// running the same assertions with the cache enabled and disabled. The tests in this class verify that the cache is
+/// populated, that it is used, and that it is not used when it must not be. See issue #1811.
 /// </remarks>
 public sealed class DurableRefResolutionCacheTests : UnitTestClass
 {
@@ -87,9 +88,9 @@ public sealed class DurableRefResolutionCacheTests : UnitTestClass
     /// Verifies that a cached reference is not reused against an unrelated compilation.
     /// </summary>
     /// <remarks>
-    /// The cached reference belongs to one <c>RefFactory</c>, which one lineage of compilation models shares and no
-    /// other compilation has. Resolving against a compilation of another lineage must therefore go through the
-    /// identifier, and must answer with the declaration of that compilation rather than with the cached one.
+    /// The cached reference belongs to a single <c>RefFactory</c>, which is shared by all versions of one compilation
+    /// model and by no other compilation. A resolution in another compilation must therefore use the identifier, and
+    /// must return the declaration of that compilation and not the cached one.
     /// </remarks>
     [Fact]
     public void ACachedRefIsNotReusedAcrossCompilations()
@@ -106,8 +107,9 @@ public sealed class DurableRefResolutionCacheTests : UnitTestClass
     }
 
     /// <summary>
-    /// Verifies that a cached reference is reused across the versions of one compilation, which is where the cache
-    /// earns its place: the pipeline produces a new compilation model at every step, and they share a <c>RefFactory</c>.
+    /// Verifies that a cached reference is reused across the versions of a single compilation model. This is the case
+    /// in which the cache is effective, because the pipeline creates a new compilation model at each step, and all
+    /// these versions share a <c>RefFactory</c>.
     /// </summary>
     [Fact]
     public void ACachedRefIsReusedAcrossTheVersionsOfOneCompilation()

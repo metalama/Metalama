@@ -8,8 +8,8 @@ using System;
 namespace Metalama.Framework.Engine.CodeModel.References;
 
 /// <summary>
-/// The implementation of <see cref="IDurableRefFactory"/> used during a batch compilation, which builds a
-/// <see cref="LiveDurableRef{T}"/> rather than an identifier-based reference.
+/// The implementation of <see cref="IDurableRefFactory"/> used during a batch compilation. It creates a
+/// <see cref="LiveDurableRef{T}"/> instead of an identifier-based reference.
 /// </summary>
 internal sealed class LiveDurableRefFactory : IDurableRefFactory
 {
@@ -18,8 +18,8 @@ internal sealed class LiveDurableRefFactory : IDurableRefFactory
     private LiveDurableRefFactory() { }
 
     /// <summary>
-    /// Gets <c>true</c>, because a project that builds live references still reads identifier-based ones, in particular
-    /// from the transitive manifest of a referenced project, and those resolve faster with the cache.
+    /// Gets <c>true</c>. A project that creates live references also deserializes identifier-based references, in
+    /// particular from the transitive manifest of a referenced project, and those references benefit from the cache.
     /// </summary>
     public bool IsResolutionCacheEnabled => true;
 
@@ -29,10 +29,9 @@ internal sealed class LiveDurableRefFactory : IDurableRefFactory
 
     /// <inheritdoc cref="SerializableDurableRefFactory.FromDeclarationOrType{T}"/>
     /// <remarks>
-    /// The type case does not need to precede the declaration case as it does in
-    /// <see cref="SerializableDurableRefFactory"/>, because holding the reference loses neither the type arguments nor
-    /// the nullable annotation. Both cases are kept nonetheless, so that the two factories accept and reject exactly
-    /// the same arguments.
+    /// In this implementation, the order of the <see cref="IType"/> and <see cref="IDeclaration"/> cases has no effect,
+    /// because storing the reference preserves the type arguments and the nullable annotation. Both cases are present
+    /// so that the two implementations accept and reject the same arguments.
     /// </remarks>
     public IDurableRef<T> FromDeclarationOrType<T>( ICompilationElement declarationOrType )
         where T : class, ICompilationElement

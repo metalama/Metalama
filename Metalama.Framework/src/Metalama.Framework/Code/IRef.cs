@@ -89,12 +89,12 @@ namespace Metalama.Framework.Code
         /// requirement can be expressed in a signature.
         /// </para>
         /// <para>
-        /// What a durable reference stores depends on the kind of compilation. Wherever a compilation is one of many,
-        /// which is the case at design time because the analysis process is long-lived and receives a new compilation
-        /// on every keystroke, a durable reference stores only a string identifier and reaches nothing else; it is
-        /// slower to resolve, which is the price of not retaining anything. During a batch compilation there is a
-        /// single compilation, which outlives everything the build produces, so a durable reference holds the reference
-        /// it was made from and computes its identifier only if it is asked for one, such as when it is serialized.
+        /// The representation of a durable reference depends on the kind of compilation. At design time, the analysis
+        /// process is long-lived and receives a new compilation after each modification of the source code. A durable
+        /// reference then stores only a string identifier and holds no other object, and resolving it costs a lookup in
+        /// the symbol table. A batch compilation processes a single compilation, which lives until the build ends. A
+        /// durable reference then stores the reference it was created from, and computes its identifier only when the
+        /// identifier is requested, for instance during serialization.
         /// </para>
         /// <para>
         /// A reference that is stored for longer than a single pipeline run must be durable. The design-time pipeline

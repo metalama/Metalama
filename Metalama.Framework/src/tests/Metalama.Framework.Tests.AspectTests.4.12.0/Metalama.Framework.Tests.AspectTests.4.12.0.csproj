@@ -1,9 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <!-- This variant runs the whole aspect test suite through the identifier-based durable references, without their
-         resolution cache. An aspect test is a batch compilation, whose durable references hold the reference they were
-         made from, so without this the identifier resolution path would no longer be covered by the suite that used to
-         cover all of it. See issue #1811. -->
+    <!-- This variant runs the aspect test suite with identifier-based durable references and without their resolution
+         cache. An aspect test is a batch compilation, and the durable references of a batch compilation store the
+         reference they were created from. Without this property, the identifier resolution code would no longer be
+         covered by the aspect test suite. See issue #1811. -->
     <MetalamaDurableRefKind>SerializableWithoutCache</MetalamaDurableRefKind>
   </PropertyGroup>
   <ItemGroup>

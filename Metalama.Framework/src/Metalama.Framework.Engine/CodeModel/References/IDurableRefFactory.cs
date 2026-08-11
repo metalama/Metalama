@@ -8,18 +8,22 @@ using Metalama.Framework.Services;
 namespace Metalama.Framework.Engine.CodeModel.References;
 
 /// <summary>
-/// Builds the durable references of a project, and decides what "durable" means for it.
+/// Creates the durable references of a project, and determines their representation.
 /// </summary>
 /// <remarks>
 /// <para>
-/// A durable reference exists so that an object outliving a single request does not keep a compilation in memory. That
-/// requirement belongs to design time, where the analysis process is long-lived and Roslyn produces a new compilation
-/// on every keystroke. A batch compilation has one compilation that outlives every object the run produces, so
-/// collapsing a reference to an identifier and resolving it again through the symbol table buys nothing there, and
-/// neither half of the round trip is free.
+/// A durable reference allows an object that outlives a single request to hold a reference to a declaration without
+/// keeping a compilation in memory. This requirement applies to design time, where the analysis process is long-lived
+/// and Roslyn creates a new compilation after each modification of the source code.
 /// </para>
 /// <para>
-/// The call sites therefore keep asking for a durable reference and stop deciding what one is. See issue #1811.
+/// A batch compilation processes a single compilation, which lives until the build ends. Converting a reference to an
+/// identifier and resolving that identifier through the symbol table does not reduce memory consumption in that
+/// scenario, and both operations have a cost.
+/// </para>
+/// <para>
+/// This interface allows the call sites to request a durable reference without determining its representation. See
+/// issue #1811.
 /// </para>
 /// </remarks>
 internal interface IDurableRefFactory : IProjectService
@@ -38,12 +42,12 @@ internal interface IDurableRefFactory : IProjectService
         where T : class, ICompilationElement;
 
     /// <summary>
-    /// Gets a value indicating whether an identifier-based durable reference may remember the reference it last
-    /// resolved to.
+    /// Gets a value indicating whether an identifier-based durable reference may cache the reference returned by its
+    /// last resolution.
     /// </summary>
     /// <remarks>
-    /// The cache is consulted on every resolution rather than fixed when the reference is built, so that this setting
-    /// applies to every durable reference of the project, including the ones read from a transitive manifest.
+    /// This property is read during each resolution, and not when the reference is created, so that the setting
+    /// applies to all durable references of the project, including those deserialized from a transitive manifest.
     /// </remarks>
     bool IsResolutionCacheEnabled { get; }
 }

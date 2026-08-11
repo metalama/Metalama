@@ -88,14 +88,15 @@ internal sealed class UserCodeRetentionPolicy
             CompilationModel or PartialCompilation or CompilationContext => true,
             IDeclaration or IType => true,
 
-            // A durable reference is normally backed by a serializable identifier and reaches nothing. Any other
-            // reference holds the symbol and the RefFactory, which reaches the compilation. The equivalent in the
-            // public API is SerializableDeclarationId, which is a string and is therefore never reported.
+            // A durable reference is usually identified by a serializable identifier and holds no reference to a
+            // compilation. Any other reference holds the symbol and the RefFactory, which holds the compilation. The
+            // equivalent in the public API is SerializableDeclarationId, which is a string and is therefore never
+            // reported.
             //
-            // During a batch compilation a durable reference may instead hold the reference it was made from, because
-            // the compilation outlives the run (see IDurableRefFactory and issue #1811). Such a reference does pin a
-            // compilation and must be reported, otherwise this analysis would answer that a graph is clean in exactly
-            // the scenario it runs in.
+            // During a batch compilation, a durable reference stores instead the reference it was created from,
+            // because the compilation lives until the build ends. See IDurableRefFactory and issue #1811. Such a
+            // reference does hold a compilation and must be reported, because this analysis runs during a batch
+            // compilation.
             IRef => obj is not IDurableRefImpl { ReachesCompilation: false },
             _ => false
         };

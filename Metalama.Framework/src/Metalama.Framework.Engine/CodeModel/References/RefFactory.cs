@@ -49,18 +49,18 @@ namespace Metalama.Framework.Engine.CodeModel.References
             => this._canonicalCompilationModel ?? throw new InvalidOperationException( "The CanonicalCompilation is not available." );
 
         /// <summary>
-        /// Gets the factory that decides what a durable reference of this project is.
+        /// Gets the factory that determines the representation of the durable references of this project.
         /// </summary>
         /// <remarks>
         /// <para>
-        /// The service is resolved lazily rather than injected, because a reference reaches its project only through
-        /// the compilation model, and because a compilation model built outside a pipeline has no such service. The
-        /// fallback keeps those compilations on the identifier-based references they have always had.
+        /// The service is resolved lazily instead of being injected, because a reference can reach its project only
+        /// through the compilation model, and because a compilation model created outside a pipeline has no such
+        /// service. In that case, the identifier-based implementation is used.
         /// </para>
         /// <para>
-        /// Memoizing the answer is safe: a <see cref="RefFactory"/> belongs to one compilation model lineage, which
-        /// belongs to one project, whose service provider is immutable. A reference can therefore never observe two
-        /// different factories.
+        /// Caching the result is safe. A <see cref="RefFactory"/> is shared by all versions of a single compilation
+        /// model, which belong to a single project, and the service provider of a project is immutable. A reference
+        /// can therefore never observe two different implementations.
         /// </para>
         /// </remarks>
         public IDurableRefFactory DurableRefFactory

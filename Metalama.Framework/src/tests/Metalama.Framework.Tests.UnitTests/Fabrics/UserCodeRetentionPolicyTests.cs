@@ -101,9 +101,9 @@ public sealed class UserCodeRetentionPolicyTests : UnitTestClass
             "method" => type.Methods.OfName( "M" ).Single(),
             "fullRef" => type.ToRef(),
 
-            // A batch compilation makes a durable reference that holds the reference it was made from, because the
-            // compilation outlives the run. This analysis exists to reproduce the design-time object graph inside a
-            // build, so such a reference does pin a compilation as far as it is concerned. See issue #1811.
+            // During a batch compilation, a durable reference stores the reference it was created from, because the
+            // compilation lives until the build ends. This analysis reproduces the design-time object graph during a
+            // build, so it must report such a reference as holding a compilation. See issue #1811.
             "liveDurableRef" => type.ToRef().ToDurable(),
             _ => throw new ArgumentOutOfRangeException( nameof(kind) )
         };
@@ -116,9 +116,9 @@ public sealed class UserCodeRetentionPolicyTests : UnitTestClass
     /// reference durable.
     /// </summary>
     /// <remarks>
-    /// This is the negative counterpart of the <c>liveDurableRef</c> case of <see cref="PinningObject_IsReported"/>.
-    /// Both are needed: an analysis that reported every durable reference would be as useless as one that reported
-    /// none, and the two kinds are told apart by a single property.
+    /// This test is the negative counterpart of the <c>liveDurableRef</c> case of
+    /// <see cref="PinningObject_IsReported"/>. Both are required: an analysis that reported every durable reference
+    /// would be as inaccurate as one that reported none, and a single property distinguishes the two representations.
     /// </remarks>
     [Theory]
     [InlineData( DurableRefKind.Serializable )]

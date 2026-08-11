@@ -24,14 +24,15 @@ namespace Metalama.Framework.Engine.CodeModel
         public bool IsTest { get; private set; }
 
         /// <summary>
-        /// Gets a value indicating whether the run processes exactly one compilation and ends with it, so that the
-        /// compilation outlives every object the run produces.
+        /// Gets a value indicating whether the execution processes a single compilation and ends when that compilation
+        /// has been processed. The compilation then lives longer than every object that the execution creates.
         /// </summary>
         /// <remarks>
-        /// This is not the negation of <see cref="IsDesignTime"/>. <see cref="Introspection"/> is not a design-time
-        /// scenario, but <c>Metalama.Framework.Workspaces</c> and the aspect explorer keep many compilations alive for
-        /// the lifetime of their host, so it is not a batch compilation either. The distinction decides what a durable
-        /// reference is for the project: see <see cref="References.IDurableRefFactory"/>.
+        /// This property is not the negation of <see cref="IsDesignTime"/>. <see cref="Introspection"/> is not a
+        /// design-time scenario, but it is not a batch compilation either, because
+        /// <c>Metalama.Framework.Workspaces</c> and the aspect explorer keep several compilations in memory for the
+        /// lifetime of their host process. This property determines the representation of the durable references of
+        /// the project. See <see cref="References.IDurableRefFactory"/>.
         /// </remarks>
         internal bool IsBatchCompilation { get; }
 

@@ -7,12 +7,12 @@ using Metalama.Framework.Engine.Options;
 namespace Metalama.Framework.Tests.UnitTests.CodeModel;
 
 /// <summary>
-/// Runs <see cref="RefTests"/> with identifier-based durable references and without the resolution cache, so that every
-/// resolution goes through the symbol table.
+/// Runs <see cref="RefTests"/> with identifier-based durable references and without the resolution cache, so that
+/// every resolution goes through the symbol table.
 /// </summary>
 /// <remarks>
-/// The cache answers most resolutions of a live compilation, so without this class the identifier resolution path would
-/// be exercised only on the first resolution of each reference.
+/// The cache returns the result of most resolutions performed in a single compilation. Without this class, the
+/// identifier resolution code would be covered only by the first resolution of each reference.
 /// </remarks>
 public sealed class UncachedSerializableRefTests : RefTests
 {

@@ -16,13 +16,14 @@ internal interface IDurableRefImpl : ISdkRef, IDurableRef
     string Id { get; }
 
     /// <summary>
-    /// Gets a value indicating whether the current reference reaches a compilation.
+    /// Gets a value indicating whether the current reference holds a reference to a compilation.
     /// </summary>
     /// <remarks>
-    /// A durable reference is normally backed by an identifier and reaches nothing, which is what makes it safe to
-    /// store in an object outliving a single request. During a batch compilation it may instead hold the reference it
-    /// was made from, because the compilation outlives every object the run produces. The distinction matters to
-    /// whatever reasons about retention, in particular to <c>UserCodeRetentionPolicy</c>.
+    /// A durable reference is usually identified by a serializable identifier and holds no reference to a compilation,
+    /// which is what allows it to be stored in an object that outlives a single request. During a batch compilation it
+    /// stores instead the reference it was created from, because the compilation lives until the build ends. This
+    /// distinction is used by the code that analyzes memory retention, in particular by
+    /// <c>UserCodeRetentionPolicy</c>.
     /// </remarks>
     bool ReachesCompilation { get; }
 

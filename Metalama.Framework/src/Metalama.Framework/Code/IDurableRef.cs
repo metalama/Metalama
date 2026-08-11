@@ -25,10 +25,11 @@ namespace Metalama.Framework.Code;
 /// identifier lookup, which is why references are not durable by default.
 /// </para>
 /// <para>
-/// What such a reference stores is not part of this contract, and depends on the kind of compilation: a string
-/// identifier wherever compilations succeed one another, as they do at design time, and the reference it was made from
-/// during a batch compilation, whose single compilation outlives the build. Both are durable in the sense that matters,
-/// which is that holding one is safe. See <see cref="IRef.IsDurable"/>.
+/// The representation of such a reference is not part of this contract and depends on the kind of compilation. At
+/// design time, where compilations succeed one another, the reference stores a string identifier. During a batch
+/// compilation, which processes a single compilation, the reference stores the reference it was created from. Both
+/// representations satisfy this contract, which is that the reference may be held for as long as its holder lives. See
+/// <see cref="IRef.IsDurable"/>.
 /// </para>
 /// </remarks>
 /// <seealso cref="IDurableRef{T}"/>

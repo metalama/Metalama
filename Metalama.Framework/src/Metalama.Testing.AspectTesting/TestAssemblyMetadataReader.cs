@@ -118,8 +118,8 @@ namespace Metalama.Testing.AspectTesting
                     .Where( s => !string.IsNullOrEmpty( s ) )
                     .ToImmutableArray() ?? ImmutableArray<string>.Empty;
 
-            // An unrecognized value leaves the choice to the execution scenario rather than failing the test run,
-            // which matches how MSBuildProjectOptions reads the same property in a production build.
+            // An unrecognized value lets the execution scenario select the representation, instead of failing the test
+            // run. MSBuildProjectOptions reads the same property in the same way in a production build.
             DurableRefKind GetDurableRefKind()
                 => Enum.TryParse<DurableRefKind>( GetOptionalAssemblyMetadataValue( "MetalamaDurableRefKind" ), ignoreCase: true, out var value )
                    && Enum.IsDefined( typeof(DurableRefKind), value )

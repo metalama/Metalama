@@ -112,13 +112,13 @@ public record TestContextOptions
     internal bool DiagnoseMemoryLeaks { get; init; }
 
     /// <summary>
-    /// Gets the kind of durable reference that the test project produces. The default lets the execution scenario
-    /// decide, which is what production does.
+    /// Gets the kind of durable reference that the test project produces. The default value lets the execution
+    /// scenario select the representation, as in a production build.
     /// </summary>
     /// <remarks>
-    /// A test sets this in order to exercise a kind of reference that its own scope would not select: a unit test runs
-    /// outside any pipeline and therefore gets identifier-based references, and an aspect test runs a batch compilation
-    /// and therefore gets live ones. See <see cref="DurableRefKind"/>.
+    /// A test sets this property to exercise a representation that its own execution scenario would not select. A unit
+    /// test runs outside a pipeline and therefore uses identifier-based references, and an aspect test runs a batch
+    /// compilation and therefore uses live references. See <see cref="DurableRefKind"/>.
     /// </remarks>
     internal DurableRefKind DurableRefKind { get; init; }
 

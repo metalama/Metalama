@@ -10,21 +10,18 @@ using System;
 namespace Metalama.Framework.Engine.CodeModel.References;
 
 /// <summary>
-/// The implementation of <see cref="IDurableRef{T}"/> used during a batch compilation, which holds the
-/// <see cref="FullRef{T}"/> it was made from instead of collapsing it to an identifier.
+/// The implementation of <see cref="IDurableRef{T}"/> used during a batch compilation. It stores the
+/// <see cref="IFullRef{T}"/> it was created from instead of an identifier.
 /// </summary>
 /// <remarks>
 /// <para>
-/// A durable reference exists so that an object outliving a single request does not keep a compilation in memory. A
-/// batch compilation has one compilation, which outlives every object the run produces, so this reference is durable in
-/// the only sense that matters there, and it costs neither the identifier that
-/// <see cref="SerializableDurableRefFactory"/> computes when the reference is made, nor the symbol table lookup that
-/// resolving that identifier costs afterwards. See issue #1811.
+/// A batch compilation processes a single compilation, which lives until the build ends. This class therefore avoids
+/// two operations: the computation of the identifier when the durable reference is created, and the resolution of that
+/// identifier through the symbol table when the reference is resolved. See issue #1811.
 /// </para>
 /// <para>
-/// The underlying reference is held strongly and is never null, which is what makes <see cref="Id"/> available at any
-/// time, including long after every other route to the compilation is gone. Nothing here reads the resolution cache of
-/// the base class.
+/// The field that stores the underlying reference is read-only and never <c>null</c>, so <see cref="Id"/> can always be
+/// computed. This class does not use the resolution cache of the base class.
 /// </para>
 /// </remarks>
 internal sealed class LiveDurableRef<T> : DurableRef<T>
@@ -39,14 +36,15 @@ internal sealed class LiveDurableRef<T> : DurableRef<T>
     }
 
     /// <summary>
-    /// Gets the identifier-based reference that this reference would have been had the project used
-    /// <see cref="SerializableDurableRefFactory"/>.
+    /// Gets the identifier-based reference that <see cref="SerializableDurableRefFactory"/> would have created for the
+    /// same declaration.
     /// </summary>
     /// <remarks>
-    /// Deriving the identifier from that reference rather than computing it here makes the two kinds agree by
-    /// construction rather than by resemblance. The distinction is not cosmetic: a named type is a declaration, so
-    /// asking <see cref="FullRef{T}.ToSerializableId"/> directly would answer with a declaration identifier and lose
-    /// the type arguments and the nullable annotation, which is the defect reported as issue #1797.
+    /// The identifier is obtained from that reference instead of being computed here, so that both representations
+    /// produce the same identifier. Computing it here would be error-prone: a named type is also a declaration, so
+    /// <see cref="FullRef{T}.ToSerializableId"/> returns a declaration identifier for a named type, and a declaration
+    /// identifier does not contain the type arguments or the nullable annotation. That loss is the defect reported as
+    /// issue #1797.
     /// </remarks>
     private IDurableRefImpl SerializableRef
         => this._serializableRef ??= (IDurableRefImpl) SerializableDurableRefFactory.Instance.FromFullRef( this._underlying );
@@ -71,9 +69,10 @@ internal sealed class LiveDurableRef<T> : DurableRef<T>
     {
         Invariant.Assert( genericContext.IsEmptyOrIdentity );
 
-        // The underlying reference answers only for the compilation model lineage it belongs to. A RefFactory is shared
-        // by every version of one lineage and by nothing else, so this single reference comparison establishes that.
-        // Any other compilation, in particular the one a consuming project builds, goes through the identifier.
+        // The underlying reference can be resolved only in the compilation model it belongs to. A RefFactory is shared
+        // by all versions of a single compilation model and by no other compilation, so comparing the instances is
+        // sufficient. Any other compilation, such as the one built by a consuming project, is resolved through the
+        // identifier.
         if ( ReferenceEquals( compilation.RefFactory, this._underlying.RefFactory ) )
         {
             return this._underlying.GetTargetInterface( compilation, interfaceType, null, throwIfMissing );

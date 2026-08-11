@@ -82,12 +82,13 @@ namespace Metalama.Testing.AspectTesting
         /// Resolves the type named by the <c>TestRunnerFactoryType</c> option.
         /// </summary>
         /// <remarks>
-        /// The assembly qualification of the name is treated as a hint rather than as part of the identity, because the
-        /// assemblies it can name are built once per supported Roslyn version and carry the version in their name. A
-        /// <c>metalamaTests.json</c> naming <c>Metalama.Testing.AspectTesting</c> therefore resolves nothing in the
-        /// project compiled against the older Roslyn, whose assembly is <c>Metalama.Testing.AspectTesting.4.12.0</c>.
-        /// Writing the version into the payload files is not an option, because the same payload is shared by every
-        /// variant, so the name is resolved against the assemblies actually running instead.
+        /// The assembly name in the type name is used as a hint and not as part of the identity of the type. The
+        /// assemblies that it can designate are compiled once per supported Roslyn version, and their name contains
+        /// that version. A <c>metalamaTests.json</c> file that names <c>Metalama.Testing.AspectTesting</c> therefore
+        /// designates no assembly in the test project compiled against Roslyn 4.12.0, whose assembly is named
+        /// <c>Metalama.Testing.AspectTesting.4.12.0</c>. The version cannot be written in the test payload files,
+        /// because the same files are compiled by every variant of the test project. The type name is therefore
+        /// resolved against the assemblies that are loaded.
         /// </remarks>
         private static Type ResolveTestRunnerFactoryType( string typeName, string? testAssemblyName )
         {

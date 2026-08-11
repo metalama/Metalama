@@ -183,9 +183,9 @@ public sealed class ExtensionContributorMemoryLeakTests : DesignTimeTestBase
     /// Creates a test context in which the given extension type is the only registered extension.
     /// </summary>
     /// <remarks>
-    /// The kind of durable reference is pinned rather than inherited from the scope, because it is precisely what these
-    /// tests vary and what decides their outcome. Leaving it to the default would make a change of default surface here
-    /// as an unexplained retention chain rather than as its own failure.
+    /// The kind of durable reference is set explicitly instead of being selected by the execution scenario, because it
+    /// determines the outcome of these tests. If it were left to the default value, a change of that default would
+    /// appear here as a retention chain without an explanation, instead of as a failure of its own.
     /// </remarks>
     private TestContext CreateTestContextWithExtension( Type extensionType, DurableRefKind durableRefKind = DurableRefKind.Serializable )
         => this.CreateTestContext(
@@ -262,15 +262,15 @@ public sealed class ExtensionContributorMemoryLeakTests : DesignTimeTestBase
     /// </summary>
     /// <remarks>
     /// <para>
-    /// This asserts that the retention happens, and it is not a defect. During a batch compilation a durable reference
-    /// holds the reference it was made from, because the one compilation of the build outlives every object the run
-    /// produces and the identifier round trip would buy nothing. See issue #1811.
+    /// This test asserts that the retention occurs, which is the expected behavior and not a defect. During a batch
+    /// compilation, a durable reference stores the reference it was created from, because the single compilation of
+    /// the build lives until the build ends. See issue #1811.
     /// </para>
     /// <para>
-    /// It is recorded as a test rather than as a comment because the difference between the two kinds is invisible at
-    /// every call site: both are <see cref="IDurableRef{T}"/>, and only what they hold differs. Should a design-time
-    /// path ever be given the batch-compilation factory by accident, the contributor tests above would start failing
-    /// with a retention chain, and this test is what names the cause.
+    /// This behavior is recorded as a test rather than as a comment because the two representations are not
+    /// distinguishable at the call sites: both implement <see cref="IDurableRef{T}"/>, and only the object they store
+    /// differs. If a design-time code path ever received the batch-compilation implementation, the two tests above
+    /// would fail with a retention chain, and this test identifies the cause.
     /// </para>
     /// </remarks>
     [Fact]

@@ -84,21 +84,21 @@ public abstract class AspectPipeline : IDisposable
     }
 
     /// <summary>
-    /// Returns the factory that decides what a durable reference of the project is.
+    /// Returns the factory that determines the representation of the durable references of the project.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// This is where the scenario makes the choice, because it is the first point that knows the scenario:
-    /// <c>ServiceProviderFactory.WithProjectScopedServices</c> runs before the scenario is registered, and only honours
-    /// an explicit <see cref="IProjectOptions.DurableRefKind"/>, which needs no scenario. The registration here is
-    /// conditional, so that such an explicit choice, and one made by a test through
-    /// <c>AdditionalServiceCollection</c>, wins. A compilation model built outside any pipeline reaches neither and
-    /// falls back on the identifier-based factory, which is what it has always used.
+    /// The selection is made here because this constructor is the first place that knows the execution scenario.
+    /// <c>ServiceProviderFactory.WithProjectScopedServices</c> runs before the scenario is registered, and applies only
+    /// an explicit <see cref="IProjectOptions.DurableRefKind"/>, which does not require the scenario. The registration
+    /// in this constructor is conditional, so that an explicit option, or a service registered by a test through
+    /// <c>AdditionalServiceCollection</c>, takes precedence. A compilation model created outside a pipeline reaches
+    /// neither registration and uses the identifier-based implementation.
     /// </para>
     /// <para>
-    /// The retention diagnostic is excluded deliberately. It exists to reproduce the design-time object graph inside a
-    /// build, so it has to analyse the graph that design time would produce rather than the one a batch compilation is
-    /// entitled to.
+    /// The condition on <see cref="IProjectOptions.DiagnoseMemoryLeaks"/> is required. That diagnostic reproduces the
+    /// design-time object graph during a build, so it must analyze the graph that design time produces, and not the
+    /// graph of a batch compilation.
     /// </para>
     /// </remarks>
     private static IDurableRefFactory ChooseDurableRefFactory( ExecutionScenario executionScenario, IProjectOptions projectOptions )

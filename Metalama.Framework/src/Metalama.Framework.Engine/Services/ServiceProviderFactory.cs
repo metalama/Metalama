@@ -169,10 +169,10 @@ public static class ServiceProviderFactory
             .WithService( provider => new AspectQueryService( provider ) )
             .WithServiceConditional<ILanguageVersionProvider>( provider => new LanguageVersionProvider( provider ) );
 
-        // An explicit DurableRefKind is honoured here rather than in AspectPipeline, because it names a factory on its
-        // own and therefore does not need the execution scenario, which is not known at this point. Registering it here
-        // is also what makes the option reach a compilation model built outside any pipeline, which is how the unit
-        // tests exercise a kind their own scope would not select.
+        // An explicit DurableRefKind is applied here rather than in AspectPipeline, because it designates an
+        // implementation by itself and does not require the execution scenario, which is not known at this point.
+        // Registering the service here also makes the option apply to a compilation model created outside a pipeline,
+        // which is how the unit tests exercise a representation that their own execution scenario would not select.
         if ( projectOptions.DurableRefKind != DurableRefKind.Default )
         {
             projectServiceProvider = projectServiceProvider.WithServiceConditional<IDurableRefFactory>(

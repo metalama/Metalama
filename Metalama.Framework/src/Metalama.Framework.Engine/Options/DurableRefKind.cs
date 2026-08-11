@@ -10,42 +10,45 @@ namespace Metalama.Framework.Engine.Options;
 /// </summary>
 /// <remarks>
 /// <para>
-/// A durable reference exists so that an object outliving a single request does not keep a compilation in memory,
-/// which is a design-time requirement: the analysis process is long-lived and Roslyn produces a new compilation on
-/// every keystroke. A batch compilation has one compilation that outlives everything the run produces, so the
-/// identifier round trip buys nothing there.
+/// A durable reference allows an object that outlives a single request to hold a reference to a declaration without
+/// keeping a compilation in memory. This requirement applies to design time, where the analysis process is long-lived
+/// and Roslyn creates a new compilation after each modification of the source code. A batch compilation processes a
+/// single compilation, which lives until the build ends, so the conversion to an identifier and the resolution of that
+/// identifier are unnecessary in that scenario.
 /// </para>
 /// <para>
-/// The default is therefore scope-dependent, and the other values exist to override that choice, mostly so that tests
-/// can exercise a kind that the scope would not select on its own.
+/// The default value therefore depends on the execution scenario. The other values override that selection, mainly so
+/// that the tests can exercise a representation that their own execution scenario would not select.
 /// </para>
 /// </remarks>
 public enum DurableRefKind
 {
     /// <summary>
-    /// The kind is chosen by the execution scenario: <see cref="Live"/> for a batch compilation and
-    /// <see cref="Serializable"/> everywhere else.
+    /// The representation is selected by the execution scenario: <see cref="Live"/> during a batch compilation, and
+    /// <see cref="Serializable"/> in every other scenario.
     /// </summary>
     Default = 0,
 
     /// <summary>
-    /// A durable reference holds the reference it was made from, and computes its identifier only when one is asked
-    /// for, such as when it is serialized.
+    /// A durable reference stores the reference it was created from, and computes its identifier only when the
+    /// identifier is requested, for instance during serialization.
     /// </summary>
     Live = 1,
 
     /// <summary>
-    /// A durable reference holds only its identifier, and caches the reference it last resolved to through a weak
-    /// reference, so that a repeated resolution against a live compilation does not walk the symbol table again.
+    /// A durable reference stores only its identifier. It also caches the reference returned by its last resolution,
+    /// through a weak reference, so that a second resolution in the same compilation does not resolve the identifier
+    /// through the symbol table again.
     /// </summary>
     Serializable = 2,
 
     /// <summary>
-    /// As <see cref="Serializable"/>, but without the cache, so that every resolution goes through the symbol table.
+    /// The same representation as <see cref="Serializable"/>, without the cache, so that every resolution goes through
+    /// the symbol table.
     /// </summary>
     /// <remarks>
-    /// This value exists for the test suites: it keeps the identifier resolution path covered by tests that would
-    /// otherwise answer from the cache.
+    /// This value is used by the test suites. It keeps the identifier resolution code covered by tests whose results
+    /// would otherwise come from the cache.
     /// </remarks>
     SerializableWithoutCache = 3
 }

@@ -14,13 +14,14 @@ using Xunit;
 namespace Metalama.Framework.Tests.UnitTests.LamaSerialization;
 
 /// <summary>
-/// Verifies that a durable reference of a batch compilation, which holds the reference it was made from rather than an
-/// identifier, is written to the compile-time stream as an identifier and read back as an identifier-based reference.
+/// Verifies that a durable reference of a batch compilation, which stores the reference it was created from instead of
+/// an identifier, is written to the compile-time stream as an identifier and is read back as an identifier-based
+/// reference.
 /// </summary>
 /// <remarks>
-/// Being durable for retention and being durable for serialization are two different requirements, and this is the
-/// boundary between them. A defect here would not fail near its cause: a reference written with the wrong identifier
-/// still deserializes, and surfaces only as a consuming project resolving it to the wrong declaration. See issue #1811.
+/// Retention and serialization are two distinct requirements, and these tests cover the boundary between them. A
+/// reference written with an incorrect identifier is still deserialized without error, and the defect appears only in
+/// the consuming project, which resolves the reference to a different declaration. See issue #1811.
 /// </remarks>
 public sealed class DurableRefSerializationTests : SerializationTestsBase
 {
@@ -65,12 +66,13 @@ public sealed class DurableRefSerializationTests : SerializationTestsBase
     }
 
     /// <summary>
-    /// Verifies that a deserialized durable reference is identifier-based whatever the project that wrote it, and that
-    /// it resolves to the same declaration.
+    /// Verifies that a deserialized durable reference is identifier-based, whichever project wrote it, and that it
+    /// resolves to the same declaration.
     /// </summary>
     /// <remarks>
-    /// A reference is read in a compilation other than the one that wrote it, so a reference that held the writing
-    /// compilation would be meaningless, and would keep that compilation alive for as long as the reader holds it.
+    /// A reference is read in a compilation other than the one that wrote it. A reference that stored the compilation
+    /// of the writing project would therefore be unusable, and would keep that compilation in memory for as long as
+    /// the reading project holds it.
     /// </remarks>
     [Theory]
     [InlineData( "Type" )]

@@ -9,40 +9,43 @@ namespace Metalama.Framework.Engine.CodeModel.References;
 
 /// <summary>
 /// The base implementation of <see cref="IDurableRef{T}"/>, that is, of a reference that may be stored in an object
-/// outliving the run that produced it.
+/// that outlives the run that produced it.
 /// </summary>
 /// <remarks>
 /// <para>
-/// This class stores nothing. Each derived class owns the storage its own <see cref="Id"/> comes from, because the two
-/// answers to "where does the identifier come from" have incompatible lifetimes:
-/// <see cref="DeclarationIdRef{T}"/> and <see cref="TypeIdRef{T}"/> hold the identifier itself and reach no
-/// compilation, whereas <see cref="LiveDurableRef{T}"/> holds the reference it was made from and computes the
-/// identifier from it on demand.
+/// <see cref="Id"/> is abstract, because the derived classes obtain it differently.
+/// <see cref="DeclarationIdRef{T}"/> and <see cref="TypeIdRef{T}"/> store the identifier and hold no reference to a
+/// compilation. <see cref="LiveDurableRef{T}"/> stores the <see cref="IFullRef{T}"/> it was created from, and computes
+/// the identifier from it when the identifier is requested.
 /// </para>
 /// <para>
-/// Equality and hashing are defined on the identifier for every derived class, so that a durable reference compares
-/// equal to another durable reference to the same declaration whatever the kind of either.
+/// Equality and hash codes are computed from <see cref="Id"/> in all derived classes, so that two durable references
+/// to the same declaration are equal even when they are of different derived classes.
 /// </para>
 /// </remarks>
 internal abstract class DurableRef<T> : BaseRef<T>, IDurableRef<T>, IDurableRefImpl
     where T : class, ICompilationElement
 {
     /// <summary>
-    /// The last reference this one resolved to, held weakly.
+    /// A weak reference to the <see cref="IFullRef"/> that the last resolution returned, or <c>null</c> when no
+    /// resolution has been cached.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// This is a cache and nothing else. No value that has to be available at any time is derived from it, and in
-    /// particular <see cref="Id"/> never is: a derived class whose identifier is computed rather than stored computes
-    /// it from a field it holds strongly. Losing this field to a collection therefore costs a symbol table lookup and
-    /// nothing more.
+    /// This field is a cache. No other member reads it to produce a value that must always be available. In
+    /// particular, <see cref="Id"/> does not: a derived class that computes the identifier computes it from a field
+    /// that it holds with a strong reference. When the garbage collector clears this field, the next resolution
+    /// resolves the identifier again.
     /// </para>
     /// <para>
-    /// The cached reference is itself reachable from <c>RefFactory</c>, which the compilation reaches, so it is alive
-    /// exactly while the compilation it belongs to is alive, and the cycle from that reference back to this one
-    /// through <c>FullRef.ToDurable</c> is broken here. Note that this is a plain <see cref="WeakReference{T}"/> rather
-    /// than a <c>WeakCache</c>, which <c>ObjectGraphWalker</c> cannot see through: the memory leak tests therefore do
-    /// not report what is cached here, which is the intended answer.
+    /// The cached reference is also reachable from the <see cref="RefFactory"/> of its compilation, so it remains
+    /// alive while that compilation is alive. The weak reference breaks the cycle that would otherwise exist between
+    /// this object and the full reference, which returns this object from <see cref="IRef.ToDurable"/>.
+    /// </para>
+    /// <para>
+    /// This field is a <see cref="WeakReference{T}"/> and not a <c>WeakCache</c>. <c>ObjectGraphWalker</c> does not
+    /// follow a <see cref="WeakReference{T}"/>, so the memory leak tests do not report the cached reference. That is
+    /// the intended behavior, because the cached reference does not extend the lifetime of the compilation.
     /// </para>
     /// </remarks>
     private WeakReference<IFullRef>? _resolvedRefCache;
@@ -53,8 +56,8 @@ internal abstract class DurableRef<T> : BaseRef<T>, IDurableRef<T>, IDurableRefI
     public abstract string Id { get; }
 
     /// <summary>
-    /// Gets a value indicating whether this reference reaches a compilation, which only
-    /// <see cref="LiveDurableRef{T}"/> does.
+    /// Gets a value indicating whether this reference holds a reference to a compilation. Only
+    /// <see cref="LiveDurableRef{T}"/> returns <c>true</c>.
     /// </summary>
     public virtual bool ReachesCompilation => false;
 
@@ -62,9 +65,8 @@ internal abstract class DurableRef<T> : BaseRef<T>, IDurableRef<T>, IDurableRefI
     /// Gets a value indicating whether the resolution cache currently holds a reference.
     /// </summary>
     /// <remarks>
-    /// This exists for the tests. Whether the cache answered a resolution is not otherwise observable, and must not be:
-    /// the cache is required to leave the result of every resolution unchanged, so a test of the results alone cannot
-    /// tell an implementation that consults it from one that ignores it.
+    /// This property is used by the unit tests. The cache is required to return the same result as a resolution that
+    /// does not use it, so a test that compares results cannot determine whether the cache was used.
     /// </remarks>
     internal bool IsResolutionCached => this._resolvedRefCache is { } cache && cache.TryGetTarget( out _ );
 
@@ -75,14 +77,13 @@ internal abstract class DurableRef<T> : BaseRef<T>, IDurableRef<T>, IDurableRefI
     public override bool IsDurable => true;
 
     /// <summary>
-    /// Returns the reference this one last resolved to, when it belongs to <paramref name="refFactory"/> and the
-    /// resolution cache is enabled for the project, and <c>null</c> otherwise.
+    /// Returns the cached reference when it belongs to <paramref name="refFactory"/> and the resolution cache is
+    /// enabled for the project, and <c>null</c> otherwise.
     /// </summary>
     /// <remarks>
-    /// The candidate is accepted only when it comes from the same <see cref="RefFactory"/> instance, not merely from an
-    /// equal compilation context. A <see cref="RefFactory"/> is shared by every version of a compilation model in one
-    /// lineage and by nothing else, so this single reference comparison establishes that the cached reference resolves
-    /// in the requested compilation.
+    /// The cached reference is accepted only when its <see cref="RefFactory"/> is the same instance. A
+    /// <see cref="RefFactory"/> is shared by all versions of one compilation model and by no other compilation, so
+    /// comparing the instances establishes that the cached reference resolves in the requested compilation.
     /// </remarks>
     private protected IFullRef? GetCachedRef( RefFactory refFactory )
     {
@@ -102,8 +103,8 @@ internal abstract class DurableRef<T> : BaseRef<T>, IDurableRef<T>, IDurableRefI
     }
 
     /// <summary>
-    /// Records the reference that a resolution produced, so that a later resolution against the same compilation does
-    /// not go through the symbol table again.
+    /// Stores the reference produced by a resolution, so that a later resolution against the same compilation does not
+    /// resolve the identifier again.
     /// </summary>
     private protected void SetCachedRef( RefFactory refFactory, ICompilationElement resolved )
     {
@@ -112,9 +113,9 @@ internal abstract class DurableRef<T> : BaseRef<T>, IDurableRef<T>, IDurableRefI
             return;
         }
 
-        // A reference to an introduced declaration is deliberately not cached. Its identity is not settled while the
-        // pipeline runs, so a reference obtained now may not describe the same declaration later, and the identifier
-        // is the only representation that resolves in every compilation.
+        // A reference to an introduced declaration is not cached. The identity of an introduced declaration is not
+        // final while the pipeline runs, so a reference obtained now may designate a different declaration later. The
+        // identifier is the only representation that resolves in every version of the compilation.
         var resolvedRef = resolved switch
         {
             IDeclaration declaration => declaration.ToRef() as IFullRef,

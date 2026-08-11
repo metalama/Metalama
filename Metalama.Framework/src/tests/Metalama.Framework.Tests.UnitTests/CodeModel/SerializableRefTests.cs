@@ -7,8 +7,8 @@ using Metalama.Framework.Engine.Options;
 namespace Metalama.Framework.Tests.UnitTests.CodeModel;
 
 /// <summary>
-/// Runs <see cref="RefTests"/> with the identifier-based durable references that every scope other than a batch
-/// compilation uses, and with the resolution cache enabled, which is what design time does.
+/// Runs <see cref="RefTests"/> with identifier-based durable references and with the resolution cache enabled. This is
+/// the configuration used at design time, and in every execution scenario that is not a batch compilation.
 /// </summary>
 public sealed class SerializableRefTests : RefTests
 {

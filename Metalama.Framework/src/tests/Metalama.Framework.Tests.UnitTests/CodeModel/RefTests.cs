@@ -21,35 +21,36 @@ using Xunit;
 namespace Metalama.Framework.Tests.UnitTests.CodeModel;
 
 /// <summary>
-/// The tests of <see cref="IRef.ToDurable"/> and <see cref="Code.RefExtensions.ToDurableRef{T}"/>, run once per kind of
-/// durable reference by each derived class.
+/// The tests of <see cref="IRef.ToDurable"/> and <see cref="Code.RefExtensions.ToDurableRef{T}"/>. Each derived class
+/// runs them with one kind of durable reference.
 /// </summary>
 /// <remarks>
 /// <para>
-/// What a durable reference is depends on the scope of the project: a batch compilation holds the reference it was made
-/// from, and every other scope holds an identifier (see <see cref="IDurableRefFactory"/>). Every property asserted here
-/// has to hold in each of them, because a call site asks for a durable reference without knowing which it will get, so
-/// the tests are written once and the derived classes vary only the kind.
+/// The representation of a durable reference depends on the execution scenario of the project. A batch compilation
+/// stores the reference the durable reference was created from, and every other scenario stores an identifier. See
+/// <see cref="IDurableRefFactory"/>. Every property asserted here must hold in both representations, because a call
+/// site requests a durable reference without knowing which representation it receives. The tests are therefore written
+/// once, and the derived classes differ only in the representation.
 /// </para>
 /// <para>
-/// <see cref="SerializableRefResolutionTests"/> holds the tests that resolve an identifier directly. They exercise the
-/// same resolution code, but they do not go through <see cref="IDurableRefFactory"/> at all, so running them three
-/// times would run identical code three times.
+/// <see cref="SerializableRefResolutionTests"/> contains the tests that resolve an identifier directly. They exercise
+/// the same resolution code, but they do not use <see cref="IDurableRefFactory"/>, so running them once per
+/// representation would run the same code three times.
 /// </para>
 /// </remarks>
 public abstract class RefTests : UnitTestClass
 {
     /// <summary>
-    /// Gets the kind of durable reference that the tests of the current class run with.
+    /// Gets the kind of durable reference used by the tests of the current class.
     /// </summary>
     protected abstract DurableRefKind DurableRefKind { get; }
 
     /// <summary>
-    /// Applies <see cref="DurableRefKind"/> to every test context of the class.
+    /// Applies <see cref="DurableRefKind"/> to every test context created by the class.
     /// </summary>
     /// <remarks>
-    /// This overrides <c>CreateTestContextCore</c> rather than <c>CreateDefaultTestContextOptions</c>, because the
-    /// latter is consulted only when the test passes no options of its own.
+    /// This method overrides <c>CreateTestContextCore</c> and not <c>CreateDefaultTestContextOptions</c>, because the
+    /// latter is called only when the test passes no options.
     /// </remarks>
     protected override TestContext CreateTestContextCore( TestContextOptions contextOptions, IAdditionalServiceCollection services )
         => base.CreateTestContextCore( contextOptions with { DurableRefKind = this.DurableRefKind }, services );
@@ -195,14 +196,14 @@ public abstract class RefTests : UnitTestClass
     }
 
     /// <summary>
-    /// Verifies that a durable reference produces the identifier that an identifier-based one would have carried,
-    /// whatever the kind of the project.
+    /// Verifies that a durable reference produces the identifier of the identifier-based representation, in every
+    /// execution scenario.
     /// </summary>
     /// <remarks>
-    /// This is the property the whole design rests on: a reference that holds the compilation still has to be written
-    /// to a transitive manifest that another project, built in another scope, reads. A divergence here would not fail
-    /// anywhere near its cause, because it would surface as a reference that resolves to the wrong declaration in the
-    /// consuming project. See issue #1811.
+    /// A reference that stores a compilation is also written to a transitive manifest, which is read by another
+    /// project built in another execution scenario. If the two representations produced different identifiers, the
+    /// failure would appear in the consuming project, as a reference that resolves to a different declaration, and not
+    /// at the place where the identifier is produced. See issue #1811.
     /// </remarks>
     [Theory]
     [InlineData( "Plain" )]
@@ -286,14 +287,14 @@ public abstract class RefTests : UnitTestClass
     }
 
     /// <summary>
-    /// A durable reference is never an <see cref="IFullRef"/>, and it still has to answer
-    /// <see cref="Engine.CodeModel.References.RefExtensions.GetPrimarySyntaxTree(IRef, CompilationContext)"/> with the same tree the equivalent
-    /// full reference gives (issue #1748).
+    /// Verifies that a durable reference is never an <see cref="IFullRef"/>, and that
+    /// <see cref="Engine.CodeModel.References.RefExtensions.GetPrimarySyntaxTree(IRef, CompilationContext)"/> returns
+    /// the same syntax tree as for the equivalent full reference. See issue #1748.
     /// </summary>
     /// <remarks>
-    /// A durable reference of a batch compilation holds a full reference, but is not one itself. The distinction is
-    /// what keeps <see cref="IDurableRef{T}"/> meaningful as the type of a field: a full reference cannot be assigned
-    /// to one in any scope.
+    /// A durable reference of a batch compilation stores a full reference but is not itself a full reference. This
+    /// distinction is what allows <see cref="IDurableRef{T}"/> to be used as the type of a field: a full reference
+    /// cannot be assigned to such a field in any execution scenario.
     /// </remarks>
     [Fact]
     public void GetPrimarySyntaxTreeOfDurableRefInSource()
@@ -493,8 +494,8 @@ public abstract class RefTests : UnitTestClass
     /// a type an aspect introduced.
     /// </para>
     /// <para>
-    /// A reference that holds the compilation preserves the type arguments trivially, so it is the identifier-based
-    /// derived classes that hold this property. That is the reason the derived classes exist.
+    /// A reference that stores the compilation preserves the type arguments without any conversion. This test is
+    /// therefore significant in the derived classes that use the identifier-based representation.
     /// </para>
     /// </remarks>
     [Fact]

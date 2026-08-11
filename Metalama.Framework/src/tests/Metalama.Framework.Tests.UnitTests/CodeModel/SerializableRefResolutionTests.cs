@@ -13,12 +13,13 @@ using Xunit;
 namespace Metalama.Framework.Tests.UnitTests.CodeModel;
 
 /// <summary>
-/// The tests that build a reference from an identifier and resolve it, rather than asking a declaration to be made
-/// durable.
+/// The tests that create a reference from an identifier and resolve it, instead of converting a declaration to a
+/// durable reference.
 /// </summary>
 /// <remarks>
-/// These do not go through <see cref="IDurableRefFactory"/>, so what a durable reference is for the project makes no
-/// difference to them and they run once. <see cref="RefTests"/> holds the tests that do, and runs them once per kind.
+/// These tests do not use <see cref="IDurableRefFactory"/>, so the representation selected for the project has no
+/// effect on them, and they run once. <see cref="RefTests"/> contains the tests that use that service, and runs them
+/// once per representation.
 /// </remarks>
 public sealed class SerializableRefResolutionTests : UnitTestClass
 {
@@ -58,12 +59,12 @@ public sealed class SerializableRefResolutionTests : UnitTestClass
     }
 
     /// <summary>
-    /// Verifies that the reference built from an identifier is identifier-based whatever the scope of the project.
+    /// Verifies that a reference created from an identifier is identifier-based in every execution scenario.
     /// </summary>
     /// <remarks>
-    /// These are the entry points the deserializer takes, and they start from an identifier rather than from a
-    /// declaration, so there is nothing live for the result to hold. A reference is also read in a compilation other
-    /// than the one that wrote it, so holding anything would be wrong even if there were something to hold.
+    /// These methods are the entry points used by the deserializer. Their argument is an identifier and not a
+    /// declaration, so there is no reference to store. A reference is also read in a compilation other than the one
+    /// that wrote it, so storing a reference would be incorrect.
     /// </remarks>
     [Fact]
     public void RefsBuiltFromAnIdentifierNeverReachACompilation()
