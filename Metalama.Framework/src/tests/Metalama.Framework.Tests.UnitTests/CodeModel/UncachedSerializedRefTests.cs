@@ -14,7 +14,7 @@ namespace Metalama.Framework.Tests.UnitTests.CodeModel;
 /// The cache returns the result of most resolutions performed in a single compilation. Without this class, the
 /// identifier resolution code would be covered only by the first resolution of each reference.
 /// </remarks>
-public sealed class UncachedSerializableRefTests : RefTests
+public sealed class UncachedSerializedRefTests : RefTests
 {
-    protected override DurableRefKind DurableRefKind => DurableRefKind.SerializableWithoutCache;
+    protected override DurableRefKind DurableRefKind => DurableRefKind.SerializedWithoutCache;
 }

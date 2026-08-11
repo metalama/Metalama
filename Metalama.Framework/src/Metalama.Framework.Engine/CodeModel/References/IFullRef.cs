@@ -52,7 +52,7 @@ internal interface IFullRef : ISdkRef
     /// declared here rather than in those implementations because it requires the symbol of the reference, and an
     /// introduced declaration has no symbol.
     /// </remarks>
-    SerializableTypeId? GetDurableTypeId();
+    SerializableTypeId? ToSerializableTypeId();
 
     /// <summary>
     /// Gets all <see cref="AttributeData"/> on the target of the reference without resolving the reference to

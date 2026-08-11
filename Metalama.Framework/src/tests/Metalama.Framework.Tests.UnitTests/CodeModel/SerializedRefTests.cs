@@ -10,7 +10,7 @@ namespace Metalama.Framework.Tests.UnitTests.CodeModel;
 /// Runs <see cref="RefTests"/> with identifier-based durable references and with the resolution cache enabled. This is
 /// the configuration used at design time, and in every execution scenario that is not a batch compilation.
 /// </summary>
-public sealed class SerializableRefTests : RefTests
+public sealed class SerializedRefTests : RefTests
 {
-    protected override DurableRefKind DurableRefKind => DurableRefKind.Serializable;
+    protected override DurableRefKind DurableRefKind => DurableRefKind.Serialized;
 }

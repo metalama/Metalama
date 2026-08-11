@@ -25,7 +25,7 @@ public enum DurableRefKind
 {
     /// <summary>
     /// The representation is selected by the execution scenario: <see cref="Bound"/> during a batch compilation, and
-    /// <see cref="Serializable"/> in every other scenario.
+    /// <see cref="Serialized"/> in every other scenario.
     /// </summary>
     Default = 0,
 
@@ -40,15 +40,15 @@ public enum DurableRefKind
     /// through a weak reference, so that a second resolution in the same compilation does not resolve the identifier
     /// through the symbol table again.
     /// </summary>
-    Serializable = 2,
+    Serialized = 2,
 
     /// <summary>
-    /// The same representation as <see cref="Serializable"/>, without the cache, so that every resolution goes through
+    /// The same representation as <see cref="Serialized"/>, without the cache, so that every resolution goes through
     /// the symbol table.
     /// </summary>
     /// <remarks>
     /// This value is used by the test suites. It keeps the identifier resolution code covered by tests whose results
     /// would otherwise come from the cache.
     /// </remarks>
-    SerializableWithoutCache = 3
+    SerializedWithoutCache = 3
 }

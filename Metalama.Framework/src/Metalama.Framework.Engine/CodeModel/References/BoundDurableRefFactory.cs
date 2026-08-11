@@ -27,7 +27,7 @@ internal sealed class BoundDurableRefFactory : IDurableRefFactory
         where T : class, ICompilationElement
         => new BoundDurableRef<T>( fullRef );
 
-    /// <inheritdoc cref="SerializableDurableRefFactory.FromDeclarationOrType{T}"/>
+    /// <inheritdoc cref="SerializedDurableRefFactory.FromDeclarationOrType{T}"/>
     /// <remarks>
     /// In this implementation, the order of the <see cref="IType"/> and <see cref="IDeclaration"/> cases has no effect,
     /// because storing the reference preserves the type arguments and the nullable annotation. Both cases are present

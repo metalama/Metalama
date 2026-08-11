@@ -36,7 +36,7 @@ internal sealed class BoundDurableRef<T> : DurableRef<T>
     }
 
     /// <summary>
-    /// Gets the identifier-based reference that <see cref="SerializableDurableRefFactory"/> would have created for the
+    /// Gets the identifier-based reference that <see cref="SerializedDurableRefFactory"/> would have created for the
     /// same declaration.
     /// </summary>
     /// <remarks>
@@ -47,7 +47,7 @@ internal sealed class BoundDurableRef<T> : DurableRef<T>
     /// issue #1797.
     /// </remarks>
     private IDurableRefImpl SerializableRef
-        => this._serializableRef ??= (IDurableRefImpl) SerializableDurableRefFactory.Instance.FromFullRef( this._underlying );
+        => this._serializableRef ??= (IDurableRefImpl) SerializedDurableRefFactory.Instance.FromFullRef( this._underlying );
 
     public override string Id => this.SerializableRef.Id;
 

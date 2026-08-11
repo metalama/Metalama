@@ -66,7 +66,7 @@ namespace Metalama.Framework.Engine.CodeModel.References
         public IDurableRefFactory DurableRefFactory
             => this._durableRefFactory ??=
                 this._canonicalCompilationModel?.Project.ServiceProvider.GetService<IDurableRefFactory>()
-                ?? SerializableDurableRefFactory.Instance;
+                ?? SerializedDurableRefFactory.Instance;
 
         /// <summary>
         /// Creates an <see cref="IRef{T}"/> from an <see cref="IDeclarationBuilder"/>.

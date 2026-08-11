@@ -125,7 +125,7 @@ internal sealed partial class IntroducedRef<T> : FullRef<T>, IIntroducedRef
     /// has no symbol. An introduced declaration is never a constructed generic type either, so the declaration
     /// identifier is the correct choice here.
     /// </remarks>
-    public override SerializableTypeId? GetDurableTypeId() => null;
+    public override SerializableTypeId? ToSerializableTypeId() => null;
 
     public override ISymbol GetClosestContainingSymbol()
     {

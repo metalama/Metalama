@@ -115,11 +115,11 @@ public sealed class MSBuildProjectOptionsTests
     /// Verifies that a known <c>MetalamaDurableRefKind</c> value is parsed whatever its casing.
     /// </summary>
     [Theory]
-    [InlineData( "SerializableWithoutCache", DurableRefKind.SerializableWithoutCache )]
-    [InlineData( "serializablewithoutcache", DurableRefKind.SerializableWithoutCache )]
-    [InlineData( "SERIALIZABLEWITHOUTCACHE", DurableRefKind.SerializableWithoutCache )]
+    [InlineData( "SerializedWithoutCache", DurableRefKind.SerializedWithoutCache )]
+    [InlineData( "serializedwithoutcache", DurableRefKind.SerializedWithoutCache )]
+    [InlineData( "SERIALIZEDWITHOUTCACHE", DurableRefKind.SerializedWithoutCache )]
     [InlineData( "Bound", DurableRefKind.Bound )]
-    [InlineData( "Serializable", DurableRefKind.Serializable )]
+    [InlineData( "Serialized", DurableRefKind.Serialized )]
     public void DurableRefKind_KnownValue_IsParsedCaseInsensitively( string value, DurableRefKind expected )
     {
         var source = new DictionaryOptionsSource( new() { [MSBuildPropertyNames.MetalamaDurableRefKind] = value } );

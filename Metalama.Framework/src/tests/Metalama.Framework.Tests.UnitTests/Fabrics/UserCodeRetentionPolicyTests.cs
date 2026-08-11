@@ -121,9 +121,9 @@ public sealed class UserCodeRetentionPolicyTests : UnitTestClass
     /// would be as inaccurate as one that reported none, and a single property distinguishes the two representations.
     /// </remarks>
     [Theory]
-    [InlineData( DurableRefKind.Serializable )]
-    [InlineData( DurableRefKind.SerializableWithoutCache )]
-    public void SerializableDurableRef_IsNotReported( DurableRefKind kind )
+    [InlineData( DurableRefKind.Serialized )]
+    [InlineData( DurableRefKind.SerializedWithoutCache )]
+    public void SerializedDurableRef_IsNotReported( DurableRefKind kind )
     {
         using var testContext = this.CreateTestContext( new TestContextOptions { DurableRefKind = kind } );
         var compilationModel = testContext.CreateCompilationModel( "class C { }" );

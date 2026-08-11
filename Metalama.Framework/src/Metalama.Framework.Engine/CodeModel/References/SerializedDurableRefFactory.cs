@@ -24,21 +24,21 @@ namespace Metalama.Framework.Engine.CodeModel.References;
 /// produces one of the two classes that this factory creates.
 /// </para>
 /// </remarks>
-internal sealed class SerializableDurableRefFactory : IDurableRefFactory
+internal sealed class SerializedDurableRefFactory : IDurableRefFactory
 {
     /// <summary>
     /// Gets the instance used by projects that have registered no <see cref="IDurableRefFactory"/>, and by call sites
     /// that have no service provider, such as the deserialization of a reference.
     /// </summary>
-    public static SerializableDurableRefFactory Instance { get; } = new( isResolutionCacheEnabled: true );
+    public static SerializedDurableRefFactory Instance { get; } = new( isResolutionCacheEnabled: true );
 
     /// <summary>
     /// Gets the instance whose references always resolve their identifier through the symbol table. The test suites
     /// use this instance to cover that code path.
     /// </summary>
-    public static SerializableDurableRefFactory InstanceWithoutResolutionCache { get; } = new( isResolutionCacheEnabled: false );
+    public static SerializedDurableRefFactory InstanceWithoutResolutionCache { get; } = new( isResolutionCacheEnabled: false );
 
-    private SerializableDurableRefFactory( bool isResolutionCacheEnabled )
+    private SerializedDurableRefFactory( bool isResolutionCacheEnabled )
     {
         this.IsResolutionCacheEnabled = isResolutionCacheEnabled;
     }
@@ -47,7 +47,7 @@ internal sealed class SerializableDurableRefFactory : IDurableRefFactory
 
     public IDurableRef<T> FromFullRef<T>( IFullRef<T> fullRef )
         where T : class, ICompilationElement
-        => fullRef.GetDurableTypeId() is { } typeId
+        => fullRef.ToSerializableTypeId() is { } typeId
             ? new TypeIdRef<T>( typeId )
             : new DeclarationIdRef<T>( fullRef.ToSerializableId() );
 

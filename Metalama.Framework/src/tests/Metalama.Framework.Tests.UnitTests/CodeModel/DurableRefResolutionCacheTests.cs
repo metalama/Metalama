@@ -19,7 +19,7 @@ namespace Metalama.Framework.Tests.UnitTests.CodeModel;
 /// <remarks>
 /// The cache exists because resolving an identifier requires a lookup in the symbol table, and references are resolved
 /// frequently. The cache must return the same result as a resolution that does not use it.
-/// <see cref="SerializableRefTests"/> and <see cref="UncachedSerializableRefTests"/> verify that requirement, by
+/// <see cref="SerializedRefTests"/> and <see cref="UncachedSerializedRefTests"/> verify that requirement, by
 /// running the same assertions with the cache enabled and disabled. The tests in this class verify that the cache is
 /// populated, that it is used, and that it is not used when it must not be. See issue #1811.
 /// </remarks>
@@ -37,7 +37,7 @@ public sealed class DurableRefResolutionCacheTests : UnitTestClass
     [Fact]
     public void ResolutionPopulatesTheCache()
     {
-        using var testContext = this.CreateTestContext( new TestContextOptions { DurableRefKind = DurableRefKind.Serializable } );
+        using var testContext = this.CreateTestContext( new TestContextOptions { DurableRefKind = DurableRefKind.Serialized } );
         var compilation = testContext.CreateCompilationModel( _code );
 
         var durableRef = GetDurableRef( compilation );
@@ -57,7 +57,7 @@ public sealed class DurableRefResolutionCacheTests : UnitTestClass
     [Fact]
     public void ResolutionDoesNotPopulateTheCacheWhenItIsDisabled()
     {
-        using var testContext = this.CreateTestContext( new TestContextOptions { DurableRefKind = DurableRefKind.SerializableWithoutCache } );
+        using var testContext = this.CreateTestContext( new TestContextOptions { DurableRefKind = DurableRefKind.SerializedWithoutCache } );
         var compilation = testContext.CreateCompilationModel( _code );
 
         var durableRef = GetDurableRef( compilation );
@@ -95,7 +95,7 @@ public sealed class DurableRefResolutionCacheTests : UnitTestClass
     [Fact]
     public void ACachedRefIsNotReusedAcrossCompilations()
     {
-        using var testContext = this.CreateTestContext( new TestContextOptions { DurableRefKind = DurableRefKind.Serializable } );
+        using var testContext = this.CreateTestContext( new TestContextOptions { DurableRefKind = DurableRefKind.Serialized } );
 
         var compilation = testContext.CreateCompilationModel( _code );
         var otherCompilation = testContext.CreateCompilationModel( _code );
@@ -114,7 +114,7 @@ public sealed class DurableRefResolutionCacheTests : UnitTestClass
     [Fact]
     public void ACachedRefIsReusedAcrossTheVersionsOfOneCompilation()
     {
-        using var testContext = this.CreateTestContext( new TestContextOptions { DurableRefKind = DurableRefKind.Serializable } );
+        using var testContext = this.CreateTestContext( new TestContextOptions { DurableRefKind = DurableRefKind.Serialized } );
 
         var compilation = testContext.CreateCompilationModel( _code );
         var derivedCompilation = compilation.CreateMutableClone();

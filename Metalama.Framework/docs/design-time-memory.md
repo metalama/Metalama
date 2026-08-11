@@ -82,7 +82,7 @@ ends. Converting a reference to an identifier, and then resolving that identifie
 reduce memory consumption in that scenario, and both operations have a cost. The service `IDurableRefFactory` selects
 the representation. `AspectPipeline` selects the implementation according to `ExecutionScenario.IsBatchCompilation`:
 
-- `SerializableDurableRefFactory` stores a `SerializableDeclarationId` or a `SerializableTypeId`. The reference then
+- `SerializedDurableRefFactory` stores a `SerializableDeclarationId` or a `SerializableTypeId`. The reference then
   holds no reference to a compilation. This implementation is used at design time and in every scenario that is not a
   batch compilation. Note that `ExecutionScenario.Introspection` is not a design-time scenario, but it is not a batch
   compilation either, because `Metalama.Framework.Workspaces` and the aspect explorer keep several compilations in
@@ -93,7 +93,7 @@ the representation. `AspectPipeline` selects the implementation according to `Ex
 Two properties of this design are relevant to the rest of this document.
 
 The first property concerns serialization. A `BoundDurableRef` writes the same identifier that
-`SerializableDurableRefFactory` would have produced, because it requests the identifier from that factory, and
+`SerializedDurableRefFactory` would have produced, because it requests the identifier from that factory, and
 deserialization always produces an identifier-based reference. Retention and serialization are two distinct
 requirements, and only serialization requires an identifier.
 
@@ -457,7 +457,7 @@ survives.
 Note that at compile time this route is no longer a retention to close but the documented behaviour: a durable
 reference of a batch compilation holds its compilation on purpose.
 `ExtensionContributorMemoryLeakTests.BoundDurableContributor_RetainsTheCompilationItWasProducedIn` records that. The
-open item concerns design time, where the serializable kind is used and the retention is real.
+open item concerns design time, where the serialized representation is used and the retention is real.
 
 ### Two requirements the framework cannot check
 

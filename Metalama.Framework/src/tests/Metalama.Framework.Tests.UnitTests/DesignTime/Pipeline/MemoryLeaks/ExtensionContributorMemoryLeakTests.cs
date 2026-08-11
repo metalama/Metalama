@@ -187,7 +187,7 @@ public sealed class ExtensionContributorMemoryLeakTests : DesignTimeTestBase
     /// determines the outcome of these tests. If it were left to the default value, a change of that default would
     /// appear here as a retention chain without an explanation, instead of as a failure of its own.
     /// </remarks>
-    private TestContext CreateTestContextWithExtension( Type extensionType, DurableRefKind durableRefKind = DurableRefKind.Serializable )
+    private TestContext CreateTestContextWithExtension( Type extensionType, DurableRefKind durableRefKind = DurableRefKind.Serialized )
         => this.CreateTestContext(
             this.CreateDefaultTestContextOptions() with
             {

@@ -60,7 +60,7 @@ public sealed class DurableRefSerializationTests : SerializationTestsBase
 
         Assert.True( durableRef.ReachesCompilation, "The project is a batch compilation, so its durable references hold the compilation." );
 
-        var expected = (IDurableRefImpl) SerializableDurableRefFactory.Instance.FromFullRef( (IFullRef<ICompilationElement>) reference );
+        var expected = (IDurableRefImpl) SerializedDurableRefFactory.Instance.FromFullRef( (IFullRef<ICompilationElement>) reference );
 
         Assert.Equal( expected.Id, durableRef.Id );
     }

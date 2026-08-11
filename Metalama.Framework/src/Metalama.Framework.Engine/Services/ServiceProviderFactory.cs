@@ -176,7 +176,13 @@ public static class ServiceProviderFactory
         if ( projectOptions.DurableRefKind != DurableRefKind.Default )
         {
             projectServiceProvider = projectServiceProvider.WithServiceConditional<IDurableRefFactory>(
-                _ => DurableRefFactory.GetFactory( projectOptions.DurableRefKind ) );
+                _ => projectOptions.DurableRefKind switch
+                {
+                    DurableRefKind.Bound => BoundDurableRefFactory.Instance,
+                    DurableRefKind.Serialized => SerializedDurableRefFactory.Instance,
+                    DurableRefKind.SerializedWithoutCache => SerializedDurableRefFactory.InstanceWithoutResolutionCache,
+                    _ => throw new AssertionFailedException( $"Unexpected DurableRefKind: {projectOptions.DurableRefKind}." )
+                } );
         }
 
         if ( projectOptions.FormatCompileTimeCode || projectOptions.CodeFormattingOptions == CodeFormattingOptions.Formatted || projectOptions.WriteHtml )

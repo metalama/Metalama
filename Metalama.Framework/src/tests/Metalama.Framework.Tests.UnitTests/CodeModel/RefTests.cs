@@ -218,7 +218,7 @@ public abstract class RefTests : UnitTestClass
 
         var fullRef = (IFullRef<INamedType>) RefTestFixtures.GetTestType( compilation, kind ).ToRef();
 
-        var expected = (IDurableRefImpl) SerializableDurableRefFactory.Instance.FromFullRef( fullRef );
+        var expected = (IDurableRefImpl) SerializedDurableRefFactory.Instance.FromFullRef( fullRef );
         var actual = (IDurableRefImpl) fullRef.ToDurable();
 
         Assert.Equal( expected.Id, actual.Id );

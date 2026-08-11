@@ -52,7 +52,7 @@ internal sealed class CompilationHelpers : ICompilationHelpers
     // The service is not always available in tests, so it is resolved lazily. When it is absent, the identifier-based
     // implementation is used.
     private IDurableRefFactory GetDurableRefFactory()
-        => this._durableRefFactory ??= this._serviceProvider.GetService<IDurableRefFactory>() ?? SerializableDurableRefFactory.Instance;
+        => this._durableRefFactory ??= this._serviceProvider.GetService<IDurableRefFactory>() ?? SerializedDurableRefFactory.Instance;
 
     public IDurableRef<T> ToDurableRef<T>( ICompilationElement declarationOrType )
         where T : class, ICompilationElement
