@@ -23,7 +23,6 @@
       "src\\Metalama.Tool\\Metalama.Tool.csproj",
       "src\\tests\\Metalama.AspectWorkbench\\Metalama.AspectWorkbench.csproj",
       "src\\tests\\Metalama.Framework.Tests.AspectTests\\Metalama.Framework.Tests.AspectTests.csproj",
-      "src\\tests\\Metalama.Framework.Tests.AspectTests.4.12.0\\Metalama.Framework.Tests.AspectTests.4.12.0.csproj",
       "src\\tests\\Metalama.Framework.Tests.Benchmarks\\Metalama.Framework.Tests.Benchmarks.csproj",
       "src\\tests\\Metalama.Framework.Tests.LinkerTests\\Metalama.Framework.Tests.LinkerTests.csproj",
       "src\\tests\\Metalama.Framework.Tests.TemplateTests\\Metalama.Framework.Tests.TemplateTests.csproj",
