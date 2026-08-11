@@ -26,8 +26,8 @@ Two supporting projects are not test suites themselves but underpin the above: [
 
 `Build.ps1` bootstraps `eng/src/Program.cs` (the `BuildMetalama` project), which constructs a PostSharp.Engineering `Product` and runs its engineering commands. `Build.ps1 test` clean-rebuilds each registered solution and runs its tests according to per-solution flags. The `Solutions` list (`eng/src/Program.cs`) is the source of truth. Key entries and flags:
 
-- `Metalama.Framework/Metalama.Framework.sln` — the full solution is **built but its tests are not run** (`TestMethod = BuildMethod.None`, "too slow and redundant"). It carries `SupportsTestCoverage = true`.
-- `Metalama.Framework/Metalama.Framework.LatestRoslyn.slnf` (`IsTestOnly = true`) — this **solution filter is what actually runs the Framework tests**, against the latest Roslyn only. It excludes the `.4.12.0` variant projects for speed.
+- `Metalama.Framework/Metalama.Framework.sln` — the full solution is built and **its tests are run** (`TestMethod = BuildMethod.Test`). This is what tests the projects built against the older supported Roslyn versions, because those projects belong to the solution and to no other registered entry. It carries `SupportsTestCoverage = true`.
+- `Metalama.Framework/Metalama.Framework.LatestRoslyn.slnf` — a solution filter for fast local builds, which includes only the projects built against the latest Roslyn version. It is not a registered solution, so `Build.ps1` neither builds nor tests it; it is used by developers and as the `SolutionFilterPathForInspectCode` of the solution above.
 - `Metalama.Framework.TestApp.sln` — registered **twice**, once as a `DotNetSolution` and once as a `MsbuildSolution`, both `TestMethod = BuildMethod.Build` (build-only). The MSBuild duplicate exists "because there can be different errors".
 - `ManyDotNetSolutions("…/Standalone")` and `ManyDesignTimeSolutions("…/DesignTimeStandalone")` — expand each scenario directory at run time (see below).
 - Other product solutions (`Metalama.Backstage`, `Metalama.Patterns`, `Metalama.Extensions`, `Metalama.Migration`, `Metalama.LinqPad`) each carry their own tests.

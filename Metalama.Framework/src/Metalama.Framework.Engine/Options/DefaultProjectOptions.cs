@@ -140,6 +140,8 @@ public class DefaultProjectOptions : IProjectOptions
 
     public virtual bool DiagnoseMemoryLeaks => false;
 
+    public virtual DurableRefKind DurableRefKind => DurableRefKind.Default;
+
     // IProjectOptions is currently not used as a dictionary key, so we can throw here.
     public sealed override int GetHashCode() => throw new NotImplementedException();
 

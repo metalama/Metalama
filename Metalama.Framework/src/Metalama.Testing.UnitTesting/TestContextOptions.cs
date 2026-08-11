@@ -5,6 +5,7 @@
 using JetBrains.Annotations;
 using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Formatting;
+using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Services;
 using Microsoft.CodeAnalysis;
@@ -109,6 +110,17 @@ public record TestContextOptions
     /// references that pin a compilation.
     /// </summary>
     internal bool DiagnoseMemoryLeaks { get; init; }
+
+    /// <summary>
+    /// Gets the kind of durable reference that the test project produces. The default value lets the execution
+    /// scenario select the representation, as in a production build.
+    /// </summary>
+    /// <remarks>
+    /// A test sets this property to exercise a representation that its own execution scenario would not select. A unit
+    /// test runs outside a pipeline and therefore uses identifier-based references, and an aspect test runs a batch
+    /// compilation and therefore uses bound references. See <see cref="DurableRefKind"/>.
+    /// </remarks>
+    internal DurableRefKind DurableRefKind { get; init; }
 
     /// <summary>
     /// Gets the list of extension types given explicitly as types using <see cref="ITestExtensionCollector"/>,

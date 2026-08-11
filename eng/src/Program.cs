@@ -64,8 +64,9 @@ var product = new Product( MetalamaDependencies.Metalama )
             SupportsTestCoverage = true,
             CanFormatCode = true,
 
-            // We don't run the tests for the whole solution because they are too slow and redundant. See #34277.
-            TestMethod = BuildMethod.None,
+            // The tests of the whole solution are run, so that the test projects built against the older supported
+            // Roslyn versions are tested as well. See issue #1811.
+            TestMethod = BuildMethod.Test,
             FormatExclusions =
             [
                 // Test payloads should not be formatted because it would break the test output comparison.
@@ -79,10 +80,6 @@ var product = new Product( MetalamaDependencies.Metalama )
                 // XML formatting seems to be conflicting.
                 "**\\*.props", "**\\*.targets", "**\\*.csproj", "**\\*.md", "**\\*.xml", "**\\*.config"
             ]
-        },
-        new DotNetSolution( "Metalama.Framework/Metalama.Framework.LatestRoslyn.slnf" )
-        {
-            SupportsTestCoverage = false, CanFormatCode = false, IsTestOnly = true
         },
         new DotNetSolution( "Metalama.Framework/src/tests/Metalama.Framework.TestApp\\Metalama.Framework.TestApp.sln" )
         {

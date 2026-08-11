@@ -78,7 +78,8 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
                 metadata.ParserSymbols,
                 metadata.TargetFramework,
                 metadata.TargetFrameworks ?? metadata.TargetFramework,
-                metadata.IgnoredWarnings );
+                metadata.IgnoredWarnings,
+                metadata.DurableRefKind );
         }
 
         public List<TestCase> Discover( string subDirectory, ImmutableHashSet<string> excludedDirectories )

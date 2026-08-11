@@ -144,7 +144,7 @@ internal sealed partial class IntroducedRef<T> : FullRef<T>, IIntroducedRef
     protected override ISymbol GetSymbolIgnoringRefKind( CompilationContext compilationContext ) => throw new NotSupportedException();
 
     /// <summary>
-    /// Creates the durable reference, always from the declaration identifier.
+    /// Returns <c>null</c>, so that an introduced declaration is always identified by its declaration identifier.
     /// </summary>
     /// <remarks>
     /// The base implementation inspects the symbol to detect a constructed generic type, and an introduced declaration
@@ -152,7 +152,7 @@ internal sealed partial class IntroducedRef<T> : FullRef<T>, IIntroducedRef
     /// identifier is the correct choice here. It carries the nullable annotation, which <see cref="ToSerializableId"/>
     /// appends, so nothing is lost by identifying the durable reference by that string alone.
     /// </remarks>
-    private protected override IDurableRef<T> CreateDurableRef() => new DeclarationIdRef<T>( this.ToSerializableId() );
+    public override SerializableTypeId? ToSerializableTypeId() => null;
 
     public override ISymbol GetClosestContainingSymbol()
     {

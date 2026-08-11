@@ -59,6 +59,7 @@ public static class MSBuildPropertyNames
     public const string MetalamaVerifyOutputCode = nameof(MetalamaVerifyOutputCode);
     public const string MetalamaCompilationScenario = nameof(MetalamaCompilationScenario);
     public const string MetalamaDiagnoseMemoryLeaks = nameof(MetalamaDiagnoseMemoryLeaks);
+    public const string MetalamaDurableRefKind = nameof(MetalamaDurableRefKind);
 
     public static ImmutableArray<string> All { get; } = ImmutableArray.Create(
         MetalamaBuildTouchFile,
@@ -104,5 +105,6 @@ public static class MSBuildPropertyNames
         TargetFrameworks,
         MetalamaVerifyOutputCode,
         MetalamaCompilationScenario,
-        MetalamaDiagnoseMemoryLeaks );
+        MetalamaDiagnoseMemoryLeaks,
+        MetalamaDurableRefKind );
 }

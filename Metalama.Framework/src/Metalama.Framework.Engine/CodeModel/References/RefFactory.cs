@@ -29,6 +29,7 @@ namespace Metalama.Framework.Engine.CodeModel.References
         private readonly CompilationModel? _canonicalCompilationModel;
         private readonly ConcurrentDictionary<SymbolCacheKey, ISymbolRef<ICompilationElement>> _symbolCache = new( new SymbolCacheKeyComparer() );
         private readonly ConcurrentDictionary<TupleTypeSymbolCacheKey, TupleTypeSymbolRef> _tupleTypeSymbolCache = new( new TupleTypeSymbolCacheKeyComparer() );
+        private IDurableRefFactory? _durableRefFactory;
 
         // There is no need for a cache of builder-based references because the unique instance of the reference is stored
         // inside DeclarationBuilderData.
@@ -46,6 +47,26 @@ namespace Metalama.Framework.Engine.CodeModel.References
 
         public CompilationModel CanonicalCompilation
             => this._canonicalCompilationModel ?? throw new InvalidOperationException( "The CanonicalCompilation is not available." );
+
+        /// <summary>
+        /// Gets the factory that determines the representation of the durable references of this project.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// The service is resolved lazily instead of being injected, because a reference can reach its project only
+        /// through the compilation model, and because a compilation model created outside a pipeline has no such
+        /// service. In that case, the identifier-based implementation is used.
+        /// </para>
+        /// <para>
+        /// Caching the result is safe. A <see cref="RefFactory"/> is shared by all versions of a single compilation
+        /// model, which belong to a single project, and the service provider of a project is immutable. A reference
+        /// can therefore never observe two different implementations.
+        /// </para>
+        /// </remarks>
+        public IDurableRefFactory DurableRefFactory
+            => this._durableRefFactory ??=
+                this._canonicalCompilationModel?.Project.ServiceProvider.GetService<IDurableRefFactory>()
+                ?? SerializedDurableRefFactory.Instance;
 
         /// <summary>
         /// Creates an <see cref="IRef{T}"/> from an <see cref="IDeclarationBuilder"/>.

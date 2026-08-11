@@ -328,8 +328,15 @@ public sealed class ConfigurationManagerLockingTests : TestsBase, IDisposable
     /// Verifies that a handler of <see cref="IConfigurationManager.ConfigurationFileChanged"/> holds no lock, and
     /// can therefore update another configuration file without deadlocking.
     /// </summary>
+    /// <returns>A task that completes when the test does.</returns>
+    /// <remarks>
+    /// The change of the first file is announced either by the thread that updated it or by the thread that processes
+    /// the notifications of the file system, whichever updates the cache first. This test therefore waits for the
+    /// handler instead of assuming that <see cref="ConfigurationManagerExtensions.Update{T}"/> has already invoked it
+    /// when it returns.
+    /// </remarks>
     [Fact]
-    public void AHandlerHoldsNoLockAndCanUpdateAnotherFile()
+    public async Task AHandlerHoldsNoLockAndCanUpdateAnotherFile()
     {
         using var configurationManager = this.CreateConfigurationManager();
 
@@ -337,17 +344,26 @@ public sealed class ConfigurationManagerLockingTests : TestsBase, IDisposable
         Assert.False( configurationManager.Get<TestConfigurationFile>().IsModified );
 
         var locksHeldInHandler = new ConcurrentQueue<IReadOnlyList<string>>();
+        var secondFileAnnounced = new TaskCompletionSource<bool>( TaskCreationOptions.RunContinuationsAsynchronously );
 
-        configurationManager.ConfigurationFileChanged += _ =>
+        configurationManager.ConfigurationFileChanged += file =>
         {
             locksHeldInHandler.Enqueue( this.Locks.GetLocksHeldByCurrentThread() );
             configurationManager.Update<SecondTestConfigurationFile>( c => c with { IsModified = true } );
+
+            if ( file is SecondTestConfigurationFile )
+            {
+                secondFileAnnounced.TrySetResult( true );
+            }
         };
 
         Assert.True( configurationManager.Update<TestConfigurationFile>( c => c with { IsModified = true } ) );
 
-        // The handler runs for the first file and again for the second one that it updated itself, and holds no
-        // lock either time.
+        // The handler runs for the first file and again for the second one that it updated itself. Waiting for the
+        // second announcement therefore also establishes that the update of the second file has completed.
+        await this.WithTimeout( secondFileAnnounced.Task );
+
+        // The handler holds no lock in any of its invocations.
         Assert.NotEmpty( locksHeldInHandler );
         Assert.All( locksHeldInHandler, Assert.Empty );
         Assert.True( configurationManager.Get<SecondTestConfigurationFile>().IsModified );

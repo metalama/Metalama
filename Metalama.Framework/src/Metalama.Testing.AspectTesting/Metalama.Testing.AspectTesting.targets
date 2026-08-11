@@ -121,6 +121,12 @@
                 <_Parameter1>IgnoredWarnings</_Parameter1>
                 <_Parameter2>$(NoWarn)</_Parameter2>
             </AssemblyAttribute>
+            <!-- Allows a test project to set the kind of durable reference used by its tests, instead of the kind
+                 selected by the execution scenario. See issue #1811. -->
+            <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute" Condition="'$(MetalamaDurableRefKind)'!=''">
+                <_Parameter1>MetalamaDurableRefKind</_Parameter1>
+                <_Parameter2>$(MetalamaDurableRefKind)</_Parameter2>
+            </AssemblyAttribute>
         </ItemGroup>
     </Target>
 

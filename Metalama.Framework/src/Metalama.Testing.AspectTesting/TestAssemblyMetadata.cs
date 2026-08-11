@@ -23,7 +23,8 @@ internal sealed record TestAssemblyMetadata(
     ImmutableArray<TargetedAssemblyReference> ExtensionReferences,
     ImmutableArray<string> PlugInTypes,
     string? GlobalUsingsFile,
-    ImmutableArray<string> IgnoredWarnings )
+    ImmutableArray<string> IgnoredWarnings,
+    DurableRefKind DurableRefKind = DurableRefKind.Default )
 {
     public TestProjectReferences ToProjectReferences()
         => new(

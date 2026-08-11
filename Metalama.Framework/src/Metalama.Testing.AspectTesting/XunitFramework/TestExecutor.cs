@@ -300,7 +300,8 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
                         ExtensionAssemblies = projectReferences.ExtensionReferences.SelectAsImmutableArray( r => r.Path.AssertNotNull() ),
                         CompileTimeAssemblies = [..projectReferences.CompileTimeAssemblyReferences.Select( x => x.Path ).WhereNotNull()],
                         TestPlugInTypes = projectReferences.PlugInTypes,
-                        AllTargetFrameworks = this._factory.ProjectProperties.AllTargetFrameworks
+                        AllTargetFrameworks = this._factory.ProjectProperties.AllTargetFrameworks,
+                        DurableRefKind = this._factory.ProjectProperties.DurableRefKind
                     };
 
                 testOptions = testInput.Options.ApplyToTestContextOptions( testOptions );
