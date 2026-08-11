@@ -72,9 +72,9 @@ public sealed class DurableRefResolutionCacheTests : UnitTestClass
     /// nothing to gain from it.
     /// </summary>
     [Fact]
-    public void ALiveRefDoesNotUseTheCache()
+    public void ABoundRefDoesNotUseTheCache()
     {
-        using var testContext = this.CreateTestContext( new TestContextOptions { DurableRefKind = DurableRefKind.Live } );
+        using var testContext = this.CreateTestContext( new TestContextOptions { DurableRefKind = DurableRefKind.Bound } );
         var compilation = testContext.CreateCompilationModel( _code );
 
         var durableRef = GetDurableRef( compilation );

@@ -20,7 +20,7 @@ namespace Metalama.Framework.Engine.CodeModel.References;
 /// </para>
 /// <para>
 /// It also determines the serialized form of every durable reference, which is the origin of its name.
-/// <see cref="LiveDurableRef{T}"/> obtains from this factory the identifier that it writes, and deserialization always
+/// <see cref="BoundDurableRef{T}"/> obtains from this factory the identifier that it writes, and deserialization always
 /// produces one of the two classes that this factory creates.
 /// </para>
 /// </remarks>

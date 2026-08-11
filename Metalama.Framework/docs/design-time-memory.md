@@ -87,12 +87,12 @@ the representation. `AspectPipeline` selects the implementation according to `Ex
   batch compilation. Note that `ExecutionScenario.Introspection` is not a design-time scenario, but it is not a batch
   compilation either, because `Metalama.Framework.Workspaces` and the aspect explorer keep several compilations in
   memory. The selection criterion is therefore `IsBatchCompilation`, and not the negation of `IsDesignTime`.
-- `LiveDurableRefFactory` creates a `LiveDurableRef`, which stores the `IFullRef` it was created from and computes the
+- `BoundDurableRefFactory` creates a `BoundDurableRef`, which stores the `IFullRef` it was created from and computes the
   identifier only when the identifier is requested. This reference holds a reference to its compilation.
 
 Two properties of this design are relevant to the rest of this document.
 
-The first property concerns serialization. A `LiveDurableRef` writes the same identifier that
+The first property concerns serialization. A `BoundDurableRef` writes the same identifier that
 `SerializableDurableRefFactory` would have produced, because it requests the identifier from that factory, and
 deserialization always produces an identifier-based reference. Retention and serialization are two distinct
 requirements, and only serialization requires an identifier.
@@ -456,7 +456,7 @@ survives.
 
 Note that at compile time this route is no longer a retention to close but the documented behaviour: a durable
 reference of a batch compilation holds its compilation on purpose.
-`ExtensionContributorMemoryLeakTests.LiveDurableContributor_RetainsTheCompilationItWasProducedIn` records that. The
+`ExtensionContributorMemoryLeakTests.BoundDurableContributor_RetainsTheCompilationItWasProducedIn` records that. The
 open item concerns design time, where the serializable kind is used and the retention is real.
 
 ### Two requirements the framework cannot check

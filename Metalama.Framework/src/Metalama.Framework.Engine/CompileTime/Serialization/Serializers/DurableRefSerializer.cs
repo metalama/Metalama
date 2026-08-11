@@ -9,7 +9,7 @@ using Metalama.Framework.Serialization;
 namespace Metalama.Framework.Engine.CompileTime.Serialization.Serializers;
 
 /// <summary>
-/// Serializes a <see cref="LiveDurableRef{T}"/>, which stores the reference it was created from instead of an
+/// Serializes a <see cref="BoundDurableRef{T}"/>, which stores the reference it was created from instead of an
 /// identifier.
 /// </summary>
 /// <remarks>

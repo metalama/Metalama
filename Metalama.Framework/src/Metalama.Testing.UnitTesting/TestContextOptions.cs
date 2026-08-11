@@ -118,7 +118,7 @@ public record TestContextOptions
     /// <remarks>
     /// A test sets this property to exercise a representation that its own execution scenario would not select. A unit
     /// test runs outside a pipeline and therefore uses identifier-based references, and an aspect test runs a batch
-    /// compilation and therefore uses live references. See <see cref="DurableRefKind"/>.
+    /// compilation and therefore uses bound references. See <see cref="DurableRefKind"/>.
     /// </remarks>
     internal DurableRefKind DurableRefKind { get; init; }
 

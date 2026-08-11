@@ -274,12 +274,12 @@ public sealed class ExtensionContributorMemoryLeakTests : DesignTimeTestBase
     /// </para>
     /// </remarks>
     [Fact]
-    public void LiveDurableContributor_RetainsTheCompilationItWasProducedIn()
+    public void BoundDurableContributor_RetainsTheCompilationItWasProducedIn()
     {
-        using var testContext = this.CreateTestContextWithExtension( typeof(DurableContributorExtension), DurableRefKind.Live );
+        using var testContext = this.CreateTestContextWithExtension( typeof(DurableContributorExtension), DurableRefKind.Bound );
         using var factory = new TestDesignTimeAspectPipelineFactory( testContext );
 
-        var initialCompilation = this.RunEditingSession( testContext, factory, "LiveDurableContributor", 10 );
+        var initialCompilation = this.RunEditingSession( testContext, factory, "BoundDurableContributor", 10 );
 
         MemoryLeakAssert.RetainedThrough(
             initialCompilation,

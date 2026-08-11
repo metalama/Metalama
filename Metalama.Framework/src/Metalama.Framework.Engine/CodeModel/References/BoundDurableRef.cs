@@ -24,13 +24,13 @@ namespace Metalama.Framework.Engine.CodeModel.References;
 /// computed. This class does not use the resolution cache of the base class.
 /// </para>
 /// </remarks>
-internal sealed class LiveDurableRef<T> : DurableRef<T>
+internal sealed class BoundDurableRef<T> : DurableRef<T>
     where T : class, ICompilationElement
 {
     private readonly IFullRef<T> _underlying;
     private IDurableRefImpl? _serializableRef;
 
-    public LiveDurableRef( IFullRef<T> underlying )
+    public BoundDurableRef( IFullRef<T> underlying )
     {
         this._underlying = underlying;
     }
@@ -82,7 +82,7 @@ internal sealed class LiveDurableRef<T> : DurableRef<T>
     }
 
     protected override IRef<TOut> CastAsRef<TOut>()
-        => this as IRef<TOut> ?? new LiveDurableRef<TOut>( this._underlying.As<TOut>() );
+        => this as IRef<TOut> ?? new BoundDurableRef<TOut>( this._underlying.As<TOut>() );
 
     public override IFullRef ToFullRef( RefFactory refFactory )
         => ReferenceEquals( refFactory, this._underlying.RefFactory )

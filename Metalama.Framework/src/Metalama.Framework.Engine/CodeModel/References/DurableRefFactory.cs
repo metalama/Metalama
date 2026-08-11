@@ -42,7 +42,7 @@ internal static class DurableRefFactory
     public static IDurableRefFactory GetFactory( DurableRefKind kind )
         => kind switch
         {
-            DurableRefKind.Live => LiveDurableRefFactory.Instance,
+            DurableRefKind.Bound => BoundDurableRefFactory.Instance,
             DurableRefKind.Serializable => SerializableDurableRefFactory.Instance,
             DurableRefKind.SerializableWithoutCache => SerializableDurableRefFactory.InstanceWithoutResolutionCache,
             _ => throw new ArgumentOutOfRangeException( nameof(kind), kind, null )

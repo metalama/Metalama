@@ -10,7 +10,7 @@ namespace Metalama.Framework.Tests.UnitTests.CodeModel;
 /// Runs <see cref="RefTests"/> with the durable references of a batch compilation. Those references store the
 /// reference they were created from instead of an identifier.
 /// </summary>
-public sealed class LiveRefTests : RefTests
+public sealed class BoundRefTests : RefTests
 {
-    protected override DurableRefKind DurableRefKind => DurableRefKind.Live;
+    protected override DurableRefKind DurableRefKind => DurableRefKind.Bound;
 }

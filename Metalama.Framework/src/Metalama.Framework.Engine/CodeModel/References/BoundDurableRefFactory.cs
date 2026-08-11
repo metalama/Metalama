@@ -9,23 +9,23 @@ namespace Metalama.Framework.Engine.CodeModel.References;
 
 /// <summary>
 /// The implementation of <see cref="IDurableRefFactory"/> used during a batch compilation. It creates a
-/// <see cref="LiveDurableRef{T}"/> instead of an identifier-based reference.
+/// <see cref="BoundDurableRef{T}"/> instead of an identifier-based reference.
 /// </summary>
-internal sealed class LiveDurableRefFactory : IDurableRefFactory
+internal sealed class BoundDurableRefFactory : IDurableRefFactory
 {
-    public static LiveDurableRefFactory Instance { get; } = new();
+    public static BoundDurableRefFactory Instance { get; } = new();
 
-    private LiveDurableRefFactory() { }
+    private BoundDurableRefFactory() { }
 
     /// <summary>
-    /// Gets <c>true</c>. A project that creates live references also deserializes identifier-based references, in
+    /// Gets <c>true</c>. A project that creates bound references also deserializes identifier-based references, in
     /// particular from the transitive manifest of a referenced project, and those references benefit from the cache.
     /// </summary>
     public bool IsResolutionCacheEnabled => true;
 
     public IDurableRef<T> FromFullRef<T>( IFullRef<T> fullRef )
         where T : class, ICompilationElement
-        => new LiveDurableRef<T>( fullRef );
+        => new BoundDurableRef<T>( fullRef );
 
     /// <inheritdoc cref="SerializableDurableRefFactory.FromDeclarationOrType{T}"/>
     /// <remarks>
@@ -45,6 +45,6 @@ internal sealed class LiveDurableRefFactory : IDurableRefFactory
                 $"Cannot create a durable reference to a '{declarationOrType.DeclarationKind}' because it is neither a declaration nor a type." )
         };
 
-        return new LiveDurableRef<T>( (IFullRef<T>) reference );
+        return new BoundDurableRef<T>( (IFullRef<T>) reference );
     }
 }

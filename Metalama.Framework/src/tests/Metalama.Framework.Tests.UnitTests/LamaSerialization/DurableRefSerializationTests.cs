@@ -40,7 +40,7 @@ public sealed class DurableRefSerializationTests : SerializationTestsBase
                                  """;
 
     protected override TestContext CreateTestContextCore( TestContextOptions contextOptions, IAdditionalServiceCollection services )
-        => base.CreateTestContextCore( contextOptions with { DurableRefKind = DurableRefKind.Live }, services );
+        => base.CreateTestContextCore( contextOptions with { DurableRefKind = DurableRefKind.Bound }, services );
 
     /// <summary>
     /// Verifies that a durable reference of a batch compilation writes the identifier that the identifier-based
@@ -51,7 +51,7 @@ public sealed class DurableRefSerializationTests : SerializationTestsBase
     [InlineData( "Method" )]
     [InlineData( "Parameter" )]
     [InlineData( "ConstructedType" )]
-    public void ALiveDurableRefWritesTheIdentifierOfItsIdentifierEquivalent( string kind )
+    public void ABoundDurableRefWritesTheIdentifierOfItsIdentifierEquivalent( string kind )
     {
         using var testContext = this.CreateTestContextWithCode( _code );
 

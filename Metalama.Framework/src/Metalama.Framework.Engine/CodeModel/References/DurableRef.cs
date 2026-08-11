@@ -15,7 +15,7 @@ namespace Metalama.Framework.Engine.CodeModel.References;
 /// <para>
 /// <see cref="Id"/> is abstract, because the derived classes obtain it differently.
 /// <see cref="DeclarationIdRef{T}"/> and <see cref="TypeIdRef{T}"/> store the identifier and hold no reference to a
-/// compilation. <see cref="LiveDurableRef{T}"/> stores the <see cref="IFullRef{T}"/> it was created from, and computes
+/// compilation. <see cref="BoundDurableRef{T}"/> stores the <see cref="IFullRef{T}"/> it was created from, and computes
 /// the identifier from it when the identifier is requested.
 /// </para>
 /// <para>
@@ -57,7 +57,7 @@ internal abstract class DurableRef<T> : BaseRef<T>, IDurableRef<T>, IDurableRefI
 
     /// <summary>
     /// Gets a value indicating whether this reference holds a reference to a compilation. Only
-    /// <see cref="LiveDurableRef{T}"/> returns <c>true</c>.
+    /// <see cref="BoundDurableRef{T}"/> returns <c>true</c>.
     /// </summary>
     public virtual bool ReachesCompilation => false;
 

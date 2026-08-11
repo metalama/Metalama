@@ -118,7 +118,7 @@ public sealed class MSBuildProjectOptionsTests
     [InlineData( "SerializableWithoutCache", DurableRefKind.SerializableWithoutCache )]
     [InlineData( "serializablewithoutcache", DurableRefKind.SerializableWithoutCache )]
     [InlineData( "SERIALIZABLEWITHOUTCACHE", DurableRefKind.SerializableWithoutCache )]
-    [InlineData( "Live", DurableRefKind.Live )]
+    [InlineData( "Bound", DurableRefKind.Bound )]
     [InlineData( "Serializable", DurableRefKind.Serializable )]
     public void DurableRefKind_KnownValue_IsParsedCaseInsensitively( string value, DurableRefKind expected )
     {

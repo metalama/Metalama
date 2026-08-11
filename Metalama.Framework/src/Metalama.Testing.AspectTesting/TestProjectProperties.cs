@@ -38,7 +38,7 @@ internal sealed class TestProjectProperties
     /// <summary>
     /// Gets the kind of durable reference used by the tests of the project, as set by the
     /// <c>MetalamaDurableRefKind</c> MSBuild property. The default value lets the execution scenario select the
-    /// representation. An aspect test is a batch compilation, so it then uses live references.
+    /// representation. An aspect test is a batch compilation, so it then uses bound references.
     /// </summary>
     public DurableRefKind DurableRefKind { get; }
 

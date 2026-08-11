@@ -103,7 +103,7 @@ public abstract class AspectPipeline : IDisposable
     /// </remarks>
     private static IDurableRefFactory ChooseDurableRefFactory( ExecutionScenario executionScenario, IProjectOptions projectOptions )
         => executionScenario.IsBatchCompilation && !projectOptions.DiagnoseMemoryLeaks
-            ? LiveDurableRefFactory.Instance
+            ? BoundDurableRefFactory.Instance
             : SerializableDurableRefFactory.Instance;
 
     internal int PipelineInitializationCount { get; private set; }

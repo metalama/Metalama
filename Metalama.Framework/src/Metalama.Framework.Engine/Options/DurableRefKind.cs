@@ -24,7 +24,7 @@ namespace Metalama.Framework.Engine.Options;
 public enum DurableRefKind
 {
     /// <summary>
-    /// The representation is selected by the execution scenario: <see cref="Live"/> during a batch compilation, and
+    /// The representation is selected by the execution scenario: <see cref="Bound"/> during a batch compilation, and
     /// <see cref="Serializable"/> in every other scenario.
     /// </summary>
     Default = 0,
@@ -33,7 +33,7 @@ public enum DurableRefKind
     /// A durable reference stores the reference it was created from, and computes its identifier only when the
     /// identifier is requested, for instance during serialization.
     /// </summary>
-    Live = 1,
+    Bound = 1,
 
     /// <summary>
     /// A durable reference stores only its identifier. It also caches the reference returned by its last resolution,
