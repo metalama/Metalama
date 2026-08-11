@@ -84,15 +84,6 @@ var product = new Product( MetalamaDependencies.Metalama )
         {
             SupportsTestCoverage = false, CanFormatCode = false, IsTestOnly = true
         },
-
-        // The aspect test suite is run a second time against the older supported Roslyn, and with the identifier-based
-        // durable references that a batch compilation would otherwise not use. Without this, the identifier resolution
-        // path would lose the coverage it had before the durable references became scope-dependent, and the .4.12.0
-        // projects would keep being built without any of their tests ever being run. See issue #1811.
-        new DotNetSolution( "Metalama.Framework/Metalama.Framework.Roslyn4120.slnf" )
-        {
-            SupportsTestCoverage = false, CanFormatCode = false, IsTestOnly = true
-        },
         new DotNetSolution( "Metalama.Framework/src/tests/Metalama.Framework.TestApp\\Metalama.Framework.TestApp.sln" )
         {
             IsTestOnly = true, TestMethod = BuildMethod.Build
