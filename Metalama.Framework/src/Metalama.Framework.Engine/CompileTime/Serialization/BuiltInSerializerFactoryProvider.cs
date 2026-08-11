@@ -68,6 +68,7 @@ internal sealed class BuiltInSerializerFactoryProvider : SerializerFactoryProvid
         this.AddSerializer( typeof(DeclarationIdRef<>), typeof(RefSerializer<>) );
         this.AddSerializer( typeof(TypeIdRef<>), typeof(TypeIdRefSerializer<>) );
         this.AddSerializer( typeof(IntroducedRef<>), typeof(RefSerializer<>) );
+        this.AddSerializer( typeof(LiveDurableRef<>), typeof(DurableRefSerializer<>) );
         this.AddSerializer<SerializableDeclarationId, SerializableDeclarationIdSerializer>();
         this.AddSerializer<SerializableTypeId, SerializableTypeIdSerializer>();
         this.AddSerializer<SymbolAttributeRef, AttributeRefSerializer>();

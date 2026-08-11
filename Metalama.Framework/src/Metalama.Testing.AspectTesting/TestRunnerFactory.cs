@@ -4,7 +4,6 @@
 
 using Metalama.Backstage.Diagnostics;
 using Metalama.Framework.Engine.Services;
-using Metalama.Framework.Engine.Utilities;
 using Metalama.Testing.UnitTesting;
 using System;
 using Xunit.Abstractions;
@@ -36,14 +35,7 @@ namespace Metalama.Testing.AspectTesting
 
                 try
                 {
-                    var typeName = testInput.Options.TestRunnerFactoryType!;
-
-                    if ( !typeName.ContainsOrdinal( ',' ) && testInput.ProjectProperties.AssemblyName != null )
-                    {
-                        typeName = $"{typeName}, {testInput.ProjectProperties.AssemblyName}";
-                    }
-
-                    factoryType = Type.GetType( typeName, true )!;
+                    factoryType = ResolveTestRunnerFactoryType( testInput.Options.TestRunnerFactoryType!, testInput.ProjectProperties.AssemblyName );
                 }
                 catch ( Exception e )
                 {
@@ -84,6 +76,41 @@ namespace Metalama.Testing.AspectTesting
                 testInput.ProjectDirectory,
                 references,
                 logger );
+        }
+
+        /// <summary>
+        /// Resolves the type named by the <c>TestRunnerFactoryType</c> option.
+        /// </summary>
+        /// <remarks>
+        /// The assembly qualification of the name is treated as a hint rather than as part of the identity, because the
+        /// assemblies it can name are built once per supported Roslyn version and carry the version in their name. A
+        /// <c>metalamaTests.json</c> naming <c>Metalama.Testing.AspectTesting</c> therefore resolves nothing in the
+        /// project compiled against the older Roslyn, whose assembly is <c>Metalama.Testing.AspectTesting.4.12.0</c>.
+        /// Writing the version into the payload files is not an option, because the same payload is shared by every
+        /// variant, so the name is resolved against the assemblies actually running instead.
+        /// </remarks>
+        private static Type ResolveTestRunnerFactoryType( string typeName, string? testAssemblyName )
+        {
+            var commaIndex = typeName.IndexOf( ",", StringComparison.Ordinal );
+            var unqualifiedTypeName = commaIndex < 0 ? typeName : typeName.Substring( 0, commaIndex ).Trim();
+
+            if ( commaIndex >= 0 )
+            {
+                var type = Type.GetType( typeName, false );
+
+                if ( type != null )
+                {
+                    return type;
+                }
+            }
+
+            // The factory lives either in this assembly, which is the case of every factory the framework provides, or
+            // in the test assembly itself.
+            return typeof(TestRunnerFactory).Assembly.GetType( unqualifiedTypeName, false )
+                   ?? (testAssemblyName == null
+                       ? null
+                       : Type.GetType( $"{unqualifiedTypeName}, {testAssemblyName}", false ))
+                   ?? throw new InvalidOperationException( $"The type '{unqualifiedTypeName}' was not found in any of the running test assemblies." );
         }
     }
 }

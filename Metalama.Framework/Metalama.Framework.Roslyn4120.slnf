@@ -1,0 +1,8 @@
+{
+  "solution": {
+    "path": "Metalama.Framework.sln",
+    "projects": [
+      "src\\tests\\Metalama.Framework.Tests.AspectTests.4.12.0\\Metalama.Framework.Tests.AspectTests.4.12.0.csproj"
+    ]
+  }
+}

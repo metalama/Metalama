@@ -308,4 +308,14 @@ public interface IProjectOptions : IProjectService, IEquatable<IProjectOptions>
     /// <c>design-time-memory.md</c> for what the analysis reports and why it matters.
     /// </remarks>
     bool DiagnoseMemoryLeaks { get; }
+
+    /// <summary>
+    /// Gets the kind of durable reference that the project produces. Defaults to
+    /// <see cref="Options.DurableRefKind.Default"/>, which lets the execution scenario decide.
+    /// </summary>
+    /// <remarks>
+    /// Setting this option overrides the choice the scenario would make, which is what the test suites do in order to
+    /// exercise a kind that their scope would not select on its own. See <see cref="Options.DurableRefKind"/>.
+    /// </remarks>
+    DurableRefKind DurableRefKind { get; }
 }

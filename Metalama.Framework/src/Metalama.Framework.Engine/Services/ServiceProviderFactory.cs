@@ -8,6 +8,7 @@ using Metalama.Backstage.Maintenance;
 using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel.Introductions.Helpers;
+using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.CompileTime.Manifest;
 using Metalama.Framework.Engine.CompileTime.Serialization;
@@ -167,6 +168,16 @@ public static class ServiceProviderFactory
             .WithService( _ => new OptionQueryService() )
             .WithService( provider => new AspectQueryService( provider ) )
             .WithServiceConditional<ILanguageVersionProvider>( provider => new LanguageVersionProvider( provider ) );
+
+        // An explicit DurableRefKind is honoured here rather than in AspectPipeline, because it names a factory on its
+        // own and therefore does not need the execution scenario, which is not known at this point. Registering it here
+        // is also what makes the option reach a compilation model built outside any pipeline, which is how the unit
+        // tests exercise a kind their own scope would not select.
+        if ( projectOptions.DurableRefKind != DurableRefKind.Default )
+        {
+            projectServiceProvider = projectServiceProvider.WithServiceConditional<IDurableRefFactory>(
+                _ => DurableRefFactory.GetFactory( projectOptions.DurableRefKind ) );
+        }
 
         if ( projectOptions.FormatCompileTimeCode || projectOptions.CodeFormattingOptions == CodeFormattingOptions.Formatted || projectOptions.WriteHtml )
         {

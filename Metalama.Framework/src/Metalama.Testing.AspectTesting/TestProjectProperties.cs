@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Engine.Options;
 using System;
 using System.Collections.Immutable;
 using System.IO;
@@ -34,6 +35,13 @@ internal sealed class TestProjectProperties
 
     public ImmutableArray<string> IgnoredWarnings { get; }
 
+    /// <summary>
+    /// Gets the kind of durable reference that the tests of the project run with, as set by the
+    /// <c>MetalamaDurableRefKind</c> MSBuild property. The default lets the execution scenario decide, which for an
+    /// aspect test means the kind a batch compilation uses.
+    /// </summary>
+    public DurableRefKind DurableRefKind { get; }
+
     internal TestProjectProperties(
         string? assemblyName,
         string? projectDirectory,
@@ -41,7 +49,8 @@ internal sealed class TestProjectProperties
         ImmutableArray<string> preprocessorSymbols,
         string targetFramework,
         string? allTargetFrameworks,
-        ImmutableArray<string> ignoredWarnings )
+        ImmutableArray<string> ignoredWarnings,
+        DurableRefKind durableRefKind = DurableRefKind.Default )
     {
         // Remove trailing separator from directory paths.
         if ( projectDirectory != null && projectDirectory[^1] == Path.DirectorySeparatorChar )
@@ -61,5 +70,6 @@ internal sealed class TestProjectProperties
         this.TargetFramework = targetFramework;
         this.AllTargetFrameworks = allTargetFrameworks;
         this.IgnoredWarnings = ignoredWarnings;
+        this.DurableRefKind = durableRefKind;
     }
 }

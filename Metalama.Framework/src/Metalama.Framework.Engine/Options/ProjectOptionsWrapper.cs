@@ -126,6 +126,8 @@ public abstract class ProjectOptionsWrapper : IProjectOptions
 
     public virtual bool DiagnoseMemoryLeaks => this.Wrapped.DiagnoseMemoryLeaks;
 
+    public virtual DurableRefKind DurableRefKind => this.Wrapped.DurableRefKind;
+
     public sealed override int GetHashCode() => throw new NotImplementedException();
 
     public sealed override bool Equals( object? obj ) => this.Equals( obj as IProjectOptions );

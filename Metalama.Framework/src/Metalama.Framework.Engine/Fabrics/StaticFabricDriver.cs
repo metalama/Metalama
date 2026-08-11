@@ -33,7 +33,8 @@ namespace Metalama.Framework.Engine.Fabrics
         {
             private readonly ImmutableArray<IPipelineContributor>.Builder _contributors = ImmutableArray.CreateBuilder<IPipelineContributor>();
 
-            // TODO PERF: ToDurable is useful only at design time.
+            // What ToDurable costs is now decided by the scope: a batch compilation keeps the reference it is given,
+            // because its single compilation outlives the amender. See IDurableRefFactory and issue #1811.
             protected StaticAmender(
                 IProject project,
                 FabricManager fabricManager,

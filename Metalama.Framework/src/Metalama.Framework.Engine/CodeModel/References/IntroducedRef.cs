@@ -118,14 +118,14 @@ internal sealed partial class IntroducedRef<T> : FullRef<T>, IIntroducedRef
     protected override ISymbol GetSymbolIgnoringRefKind( CompilationContext compilationContext ) => throw new NotSupportedException();
 
     /// <summary>
-    /// Creates the durable reference, always from the declaration identifier.
+    /// Returns <c>null</c>, so that an introduced declaration is always identified by its declaration identifier.
     /// </summary>
     /// <remarks>
     /// The base implementation inspects the symbol to detect a constructed generic type, and an introduced declaration
     /// has no symbol. An introduced declaration is never a constructed generic type either, so the declaration
     /// identifier is the correct choice here.
     /// </remarks>
-    private protected override IDurableRef<T> CreateDurableRef() => new DeclarationIdRef<T>( this.ToSerializableId() );
+    public override SerializableTypeId? GetDurableTypeId() => null;
 
     public override ISymbol GetClosestContainingSymbol()
     {

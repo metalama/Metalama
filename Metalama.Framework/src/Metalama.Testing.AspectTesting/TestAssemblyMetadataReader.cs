@@ -41,7 +41,8 @@ namespace Metalama.Testing.AspectTesting
                 GetAssemblyReferences( "ExtensionAssemblyList" ),
                 ReadStringsFromFile( "PlugInList" ),
                 GetGlobalUsingsFile(),
-                GetIgnoredWarnings() );
+                GetIgnoredWarnings(),
+                GetDurableRefKind() );
 
             IAttributeInfo? GetOptionalAssemblyMetadataAttribute( string key )
                 => assembly
@@ -116,6 +117,14 @@ namespace Metalama.Testing.AspectTesting
                     .Select( s => s.Trim() )
                     .Where( s => !string.IsNullOrEmpty( s ) )
                     .ToImmutableArray() ?? ImmutableArray<string>.Empty;
+
+            // An unrecognized value leaves the choice to the execution scenario rather than failing the test run,
+            // which matches how MSBuildProjectOptions reads the same property in a production build.
+            DurableRefKind GetDurableRefKind()
+                => Enum.TryParse<DurableRefKind>( GetOptionalAssemblyMetadataValue( "MetalamaDurableRefKind" ), ignoreCase: true, out var value )
+                   && Enum.IsDefined( typeof(DurableRefKind), value )
+                    ? value
+                    : DurableRefKind.Default;
         }
 
         private static string FindImplementationAssembly( string projectDirectory, string path )

@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CompileTime;
+using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Pipeline;
 using Metalama.Framework.Engine.Utilities.ObjectGraph;
 using Metalama.Testing.UnitTesting;
@@ -78,9 +79,12 @@ public sealed class UserCodeRetentionPolicyTests : UnitTestClass
     [InlineData( "namedType" )]
     [InlineData( "method" )]
     [InlineData( "fullRef" )]
+    [InlineData( "liveDurableRef" )]
     public void PinningObject_IsReported( string kind )
     {
-        using var testContext = this.CreateTestContext();
+        using var testContext = this.CreateTestContext(
+            new TestContextOptions { DurableRefKind = kind == "liveDurableRef" ? DurableRefKind.Live : DurableRefKind.Default } );
+
         var compilationModel = testContext.CreateCompilationModel( "class C { void M() { } }" );
         var type = compilationModel.Types.OfName( "C" ).Single();
 
@@ -96,10 +100,37 @@ public sealed class UserCodeRetentionPolicyTests : UnitTestClass
             "namedType" => type,
             "method" => type.Methods.OfName( "M" ).Single(),
             "fullRef" => type.ToRef(),
+
+            // A batch compilation makes a durable reference that holds the reference it was made from, because the
+            // compilation outlives the run. This analysis exists to reproduce the design-time object graph inside a
+            // build, so such a reference does pin a compilation as far as it is concerned. See issue #1811.
+            "liveDurableRef" => type.ToRef().ToDurable(),
             _ => throw new ArgumentOutOfRangeException( nameof(kind) )
         };
 
         Assert.True( UserCodeRetentionPolicy.IsPinning( pinning ), $"'{kind}' should have been reported as pinning." );
+    }
+
+    /// <summary>
+    /// Verifies that an identifier-based durable reference is not reported, which is the whole point of making a
+    /// reference durable.
+    /// </summary>
+    /// <remarks>
+    /// This is the negative counterpart of the <c>liveDurableRef</c> case of <see cref="PinningObject_IsReported"/>.
+    /// Both are needed: an analysis that reported every durable reference would be as useless as one that reported
+    /// none, and the two kinds are told apart by a single property.
+    /// </remarks>
+    [Theory]
+    [InlineData( DurableRefKind.Serializable )]
+    [InlineData( DurableRefKind.SerializableWithoutCache )]
+    public void SerializableDurableRef_IsNotReported( DurableRefKind kind )
+    {
+        using var testContext = this.CreateTestContext( new TestContextOptions { DurableRefKind = kind } );
+        var compilationModel = testContext.CreateCompilationModel( "class C { }" );
+
+        var durableRef = compilationModel.Types.OfName( "C" ).Single().ToRef().ToDurable();
+
+        Assert.False( UserCodeRetentionPolicy.IsPinning( durableRef ) );
     }
 
     [Fact]

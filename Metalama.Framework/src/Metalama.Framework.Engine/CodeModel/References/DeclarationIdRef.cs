@@ -16,9 +16,14 @@ namespace Metalama.Framework.Engine.CodeModel.References;
 internal sealed class DeclarationIdRef<T> : DurableRef<T>
     where T : class, ICompilationElement
 {
-    private DeclarationIdRef( string id ) : base( id ) { }
+    private DeclarationIdRef( string id )
+    {
+        this.Id = id;
+    }
 
-    public DeclarationIdRef( SerializableDeclarationId id ) : base( id.Id ) { }
+    public DeclarationIdRef( SerializableDeclarationId id ) : this( id.Id ) { }
+
+    public override string Id { get; }
 
     public override SerializableDeclarationId ToSerializableId() => new( this.Id );
 
@@ -33,12 +38,19 @@ internal sealed class DeclarationIdRef<T> : DurableRef<T>
     {
         Invariant.Assert( genericContext.IsEmptyOrIdentity );
 
+        if ( this.GetCachedRef( compilation.RefFactory ) is { } cachedRef )
+        {
+            return cachedRef.GetTargetInterface( compilation, interfaceType, null, throwIfMissing );
+        }
+
         var declaration = new SerializableDeclarationId( this.Id ).ResolveToDeclaration( compilation );
 
         if ( declaration == null )
         {
             return ReturnNullOrThrow( this.Id, throwIfMissing, compilation );
         }
+
+        this.SetCachedRef( compilation.RefFactory, declaration );
 
         return ConvertDeclarationOrThrow( declaration, compilation, interfaceType );
     }

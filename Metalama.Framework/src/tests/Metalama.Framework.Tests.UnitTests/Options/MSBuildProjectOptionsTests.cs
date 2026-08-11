@@ -100,6 +100,51 @@ public sealed class MSBuildProjectOptionsTests
         Assert.Equal( CompilationScenario.Default, options.CompilationScenario );
     }
 
+    /// <summary>
+    /// Verifies that an unset <c>MetalamaDurableRefKind</c> leaves the choice to the execution scenario.
+    /// </summary>
+    [Fact]
+    public void DurableRefKind_Unset_ReturnsDefault()
+    {
+        var options = new TestableMSBuildProjectOptions( new DictionaryOptionsSource( new() ) );
+
+        Assert.Equal( DurableRefKind.Default, options.DurableRefKind );
+    }
+
+    /// <summary>
+    /// Verifies that a known <c>MetalamaDurableRefKind</c> value is parsed whatever its casing.
+    /// </summary>
+    [Theory]
+    [InlineData( "SerializableWithoutCache", DurableRefKind.SerializableWithoutCache )]
+    [InlineData( "serializablewithoutcache", DurableRefKind.SerializableWithoutCache )]
+    [InlineData( "SERIALIZABLEWITHOUTCACHE", DurableRefKind.SerializableWithoutCache )]
+    [InlineData( "Live", DurableRefKind.Live )]
+    [InlineData( "Serializable", DurableRefKind.Serializable )]
+    public void DurableRefKind_KnownValue_IsParsedCaseInsensitively( string value, DurableRefKind expected )
+    {
+        var source = new DictionaryOptionsSource( new() { [MSBuildPropertyNames.MetalamaDurableRefKind] = value } );
+        var options = new TestableMSBuildProjectOptions( source );
+
+        Assert.Equal( expected, options.DurableRefKind );
+    }
+
+    /// <summary>
+    /// Verifies that an unrecognized <c>MetalamaDurableRefKind</c> value leaves the choice to the execution scenario
+    /// rather than failing the build.
+    /// </summary>
+    [Theory]
+    [InlineData( "" )]
+    [InlineData( "   " )]
+    [InlineData( "NotARealValue" )]
+    [InlineData( "999" )]
+    public void DurableRefKind_InvalidOrEmptyValue_FallsBackToDefault( string value )
+    {
+        var source = new DictionaryOptionsSource( new() { [MSBuildPropertyNames.MetalamaDurableRefKind] = value } );
+        var options = new TestableMSBuildProjectOptions( source );
+
+        Assert.Equal( DurableRefKind.Default, options.DurableRefKind );
+    }
+
     private sealed class TestableMSBuildProjectOptions : MSBuildProjectOptions
     {
         public TestableMSBuildProjectOptions( IProjectOptionsSource source ) : base( source ) { }

@@ -13,12 +13,16 @@ namespace Metalama.Framework.Engine.CodeModel.References;
 internal sealed class TypeIdRef<T> : DurableRef<T>
     where T : class, ICompilationElement
 {
-    private TypeIdRef( string id ) : base( id )
+    private TypeIdRef( string id )
     {
         Invariant.Assert( SerializableTypeId.IsTypeId( id ) );
+
+        this.Id = id;
     }
 
-    public TypeIdRef( SerializableTypeId id ) : base( id.Id ) { }
+    public TypeIdRef( SerializableTypeId id ) : this( id.Id ) { }
+
+    public override string Id { get; }
 
     /// <summary>
     /// Returns the type identifier wrapped in a <see cref="SerializableDeclarationId"/>.
@@ -49,6 +53,11 @@ internal sealed class TypeIdRef<T> : DurableRef<T>
     {
         Invariant.Assert( genericContext.IsEmptyOrIdentity );
 
+        if ( this.GetCachedRef( compilation.RefFactory ) is { } cachedRef )
+        {
+            return cachedRef.GetTargetInterface( compilation, interfaceType, null, throwIfMissing );
+        }
+
         // The resolution looks a name up through the namespaces, which BuildAspect rejects at design time because
         // design-time cache invalidation cannot track such a query. This is framework machinery and not a user code
         // model query: the identifier names a single type, and the dependency on the project that declares it is
@@ -61,6 +70,8 @@ internal sealed class TypeIdRef<T> : DurableRef<T>
             {
                 return ReturnNullOrThrow( this.Id, throwIfMissing, compilation );
             }
+
+            this.SetCachedRef( compilation.RefFactory, type );
 
             return ConvertDeclarationOrThrow( type, compilation, interfaceType );
         }

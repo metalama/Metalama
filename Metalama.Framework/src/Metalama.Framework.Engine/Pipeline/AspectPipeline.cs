@@ -11,6 +11,7 @@ using Metalama.Framework.Engine.AspectOrdering;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.AspectWeavers;
 using Metalama.Framework.Engine.CodeModel;
+using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Extensibility;
@@ -71,12 +72,39 @@ public abstract class AspectPipeline : IDisposable
 
         // Set the execution scenario. In cases where we re-use the design-time pipeline for preview or introspection,
         // we replace the execution scenario for future services in the current pipeline.
+        var projectOptions = this.ProjectOptions;
+
         this.ServiceProvider = serviceProvider
-            .WithService( executionScenario, true );
+            .WithService( executionScenario, true )
+            .Underlying
+            .WithServiceConditional<IDurableRefFactory>( _ => ChooseDurableRefFactory( executionScenario, projectOptions ) );
 
         this.DomainFactory = serviceProvider.Global.GetRequiredService<ICompileTimeDomainFactory>();
         this.ApplicationExitingToken = serviceProvider.Global.GetRequiredService<ApplicationExitManager>().Token;
     }
+
+    /// <summary>
+    /// Returns the factory that decides what a durable reference of the project is.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This is where the scenario makes the choice, because it is the first point that knows the scenario:
+    /// <c>ServiceProviderFactory.WithProjectScopedServices</c> runs before the scenario is registered, and only honours
+    /// an explicit <see cref="IProjectOptions.DurableRefKind"/>, which needs no scenario. The registration here is
+    /// conditional, so that such an explicit choice, and one made by a test through
+    /// <c>AdditionalServiceCollection</c>, wins. A compilation model built outside any pipeline reaches neither and
+    /// falls back on the identifier-based factory, which is what it has always used.
+    /// </para>
+    /// <para>
+    /// The retention diagnostic is excluded deliberately. It exists to reproduce the design-time object graph inside a
+    /// build, so it has to analyse the graph that design time would produce rather than the one a batch compilation is
+    /// entitled to.
+    /// </para>
+    /// </remarks>
+    private static IDurableRefFactory ChooseDurableRefFactory( ExecutionScenario executionScenario, IProjectOptions projectOptions )
+        => executionScenario.IsBatchCompilation && !projectOptions.DiagnoseMemoryLeaks
+            ? LiveDurableRefFactory.Instance
+            : SerializableDurableRefFactory.Instance;
 
     internal int PipelineInitializationCount { get; private set; }
 

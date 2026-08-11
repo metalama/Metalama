@@ -1,4 +1,5 @@
 {
+  "ForbiddenConstants": [ "ROSLYN_4_12_0" ],
   "WriteInputHtml": true,
   "WriteOutputHtml": true,
   "FormatOutput": true,

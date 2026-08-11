@@ -15,5 +15,16 @@ internal interface IDurableRefImpl : ISdkRef, IDurableRef
 {
     string Id { get; }
 
+    /// <summary>
+    /// Gets a value indicating whether the current reference reaches a compilation.
+    /// </summary>
+    /// <remarks>
+    /// A durable reference is normally backed by an identifier and reaches nothing, which is what makes it safe to
+    /// store in an object outliving a single request. During a batch compilation it may instead hold the reference it
+    /// was made from, because the compilation outlives every object the run produces. The distinction matters to
+    /// whatever reasons about retention, in particular to <c>UserCodeRetentionPolicy</c>.
+    /// </remarks>
+    bool ReachesCompilation { get; }
+
     IFullRef ToFullRef( RefFactory refFactory );
 }

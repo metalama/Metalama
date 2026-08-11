@@ -23,6 +23,7 @@ internal sealed class CompilationHelpers : ICompilationHelpers
     private readonly ProjectServiceProvider _serviceProvider;
     private readonly CompilationContext _compilationContext;
     private AttributeDeserializer? _attributeDeserializer;
+    private IDurableRefFactory? _durableRefFactory;
     private bool? _hasAnyInternalsVisibleToAttribute;
 
     public CompilationHelpers( in ProjectServiceProvider serviceProvider, CompilationContext compilationContext )
@@ -48,9 +49,14 @@ internal sealed class CompilationHelpers : ICompilationHelpers
 
     public SerializableTypeId GetSerializableId( IType type ) => type.GetSerializableTypeId();
 
+    // The service is not always available in tests, so we get it lazily and fall back on the identifier-based factory,
+    // which is what a project that declares nothing has always used.
+    private IDurableRefFactory GetDurableRefFactory()
+        => this._durableRefFactory ??= this._serviceProvider.GetService<IDurableRefFactory>() ?? SerializableDurableRefFactory.Instance;
+
     public IDurableRef<T> ToDurableRef<T>( ICompilationElement declarationOrType )
         where T : class, ICompilationElement
-        => DurableRefFactory.FromDeclarationOrType<T>( declarationOrType );
+        => this.GetDurableRefFactory().FromDeclarationOrType<T>( declarationOrType );
 
     public IExpression ToTypeOfExpression( IType type, bool preferConstructedType = false ) => new TypeOfUserExpression( type, preferConstructedType );
 

@@ -66,10 +66,37 @@ A reference obtained from the code model is bound to the compilation it came fro
 holds the `RefFactory`, which reaches `CompilationContext.Compilation`. Such a reference is correct and fast inside a
 request, and is a retention as soon as it is stored.
 
-`IRef<T>.ToDurable()` converts it to an `IDurableRef<T>`, backed by a `SerializableDeclarationId` or a
-`SerializableTypeId`, which reaches nothing. Resolve it later with `GetTarget( compilation )` against whichever
-compilation is current. When what is at hand is the declaration rather than a reference, call
-`declaration.ToDurableRef()`: it produces an equal reference and never allocates the compilation-bound one.
+`IRef<T>.ToDurable()` converts it to an `IDurableRef<T>`, which may be held for as long as its holder lives. Resolve it
+later with `GetTarget( compilation )` against whichever compilation is current. When what is at hand is the declaration
+rather than a reference, call `declaration.ToDurableRef()`: it produces an equal reference and never allocates the
+compilation-bound one.
+
+**What a durable reference stores depends on the scope, and only the guarantee is common to both.** The rule above is a
+design-time rule, and at compile time it costs something for nothing: a batch build has one compilation, which outlives
+every object the build produces, so collapsing a reference to an identifier and resolving it again through the symbol
+table buys no retention and is not free. `IDurableRefFactory` is the service that decides, with one implementation per
+scope, and `AspectPipeline` chooses between them from `ExecutionScenario.IsBatchCompilation`:
+
+- `SerializableDurableRefFactory` backs the reference with a `SerializableDeclarationId` or a `SerializableTypeId`,
+  which reaches nothing. This is what design time gets, and what every scope other than a batch compilation gets.
+  Note that `ExecutionScenario.Introspection` is *not* a design-time scenario but is not a batch compilation either,
+  because `Metalama.Framework.Workspaces` and the aspect explorer keep many compilations alive; the discriminator is
+  therefore `IsBatchCompilation` and never `!IsDesignTime`.
+- `LiveDurableRefFactory` produces a `LiveDurableRef`, which holds the reference it was made from and computes its
+  identifier only when one is asked for. It does retain its compilation, deliberately.
+
+Two consequences are worth knowing before reading anything else in this document:
+
+- **Serialization is unaffected.** A `LiveDurableRef` writes exactly the identifier the serializable kind would have
+  carried, because it asks `SerializableDurableRefFactory` for it, and a deserialized reference is always
+  identifier-based. Being durable for retention and being durable for serialization are different requirements, and
+  only the second one needs an identifier.
+- **The retention diagnostic still analyses the design-time graph.** `MetalamaDiagnoseMemoryLeaks` forces the
+  serializable kind, and `UserCodeRetentionPolicy.IsPinning` reports a durable reference that holds a compilation.
+  Without both, the analysis would answer that a graph is clean in precisely the scenario it runs in.
+
+The `MetalamaDurableRefKind` MSBuild property overrides the choice, which is what the test suites use to exercise a
+kind their own scope would not select. See issue [#1811](https://github.com/metalama/Metalama/issues/1811).
 
 **Declare the requirement in the type, do not leave it to the caller.** A field, property or constructor parameter that
 must hold a durable reference is typed `IDurableRef<T>`, not `IRef<T>`. The conversion then cannot be forgotten,
@@ -407,14 +434,22 @@ remains. Why the parameter reference is not also durable is specific, and worth 
   handles explicitly and `ConstructorParameterIdResolutionTests` covers;
 - calling `ToDurable()` on it therefore compiles, and does close this retention;
 - but it breaks the cross-project case. `PullParameterTests.CrossProjectIntegration` then fails: the consuming project
-  resolves nothing and the transitive aspect silently does not apply. That test runs on `net48` only, so a `net8.0` run
-  stays green and hides it.
+  resolves nothing and the transitive aspect silently does not apply.
 
 The identity of an introduced declaration is not settled at the moment the advice runs. Making the reference durable
 has to happen later in the pipeline, which is a change of design rather than a change of call.
 
-`TransitiveContributorMemoryLeakTests` holds a control that asserts the compilation is *still* retained. It fails when
-this is fixed, which is the signal to replace it with the ordinary assertion.
+The control that asserts a compilation is *still* retained is
+`ExtensionContributorMemoryLeakTests.NonDurableContributor_RetainsTheCompilationItWasProducedIn`, paired with
+`DurableContributor_DoesNotRetainTheCompilationItWasProducedIn`. Two earlier statements recorded here were wrong and
+are corrected: `PullParameterTests.CrossProjectIntegration` has no `#if` and runs on both target frameworks, not on
+`net48` alone; and `TransitiveContributorMemoryLeakTests` holds no such control, only an assertion that a contributor
+survives.
+
+Note that at compile time this route is no longer a retention to close but the documented behaviour: a durable
+reference of a batch compilation holds its compilation on purpose.
+`ExtensionContributorMemoryLeakTests.LiveDurableContributor_RetainsTheCompilationItWasProducedIn` records that. The
+open item concerns design time, where the serializable kind is used and the retention is real.
 
 ### Two requirements the framework cannot check
 

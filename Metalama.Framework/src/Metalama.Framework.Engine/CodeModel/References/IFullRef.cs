@@ -42,6 +42,18 @@ internal interface IFullRef : ISdkRef
     RefFactory RefFactory { get; }
 
     /// <summary>
+    /// Returns the <see cref="SerializableTypeId"/> that identifies the target of the current reference durably, or
+    /// <c>null</c> when the target is not a type and is therefore identified by a
+    /// <see cref="SerializableDeclarationId"/>.
+    /// </summary>
+    /// <remarks>
+    /// This is the single decision that keeps the kinds of durable reference produced by <see cref="IDurableRefFactory"/>
+    /// carrying the same identifier for the same target. It belongs here rather than to the factories because only the
+    /// reference can inspect its own symbol, which an introduced declaration does not have.
+    /// </remarks>
+    SerializableTypeId? GetDurableTypeId();
+
+    /// <summary>
     /// Gets all <see cref="AttributeData"/> on the target of the reference without resolving the reference to
     /// the code model.
     /// </summary>

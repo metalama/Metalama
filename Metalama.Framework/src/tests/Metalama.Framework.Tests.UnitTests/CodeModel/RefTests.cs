@@ -1,13 +1,12 @@
-﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine;
-using Metalama.Framework.Engine.AdviceImpl.Introduction;
 using Metalama.Framework.Engine.CodeModel;
-using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 using Metalama.Framework.Engine.CodeModel.References;
+using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.SerializableIds;
 using Metalama.Framework.Engine.Services;
 using Metalama.Testing.UnitTesting;
@@ -21,42 +20,39 @@ using Xunit;
 
 namespace Metalama.Framework.Tests.UnitTests.CodeModel;
 
-public sealed class RefTests : UnitTestClass
+/// <summary>
+/// The tests of <see cref="IRef.ToDurable"/> and <see cref="Code.RefExtensions.ToDurableRef{T}"/>, run once per kind of
+/// durable reference by each derived class.
+/// </summary>
+/// <remarks>
+/// <para>
+/// What a durable reference is depends on the scope of the project: a batch compilation holds the reference it was made
+/// from, and every other scope holds an identifier (see <see cref="IDurableRefFactory"/>). Every property asserted here
+/// has to hold in each of them, because a call site asks for a durable reference without knowing which it will get, so
+/// the tests are written once and the derived classes vary only the kind.
+/// </para>
+/// <para>
+/// <see cref="SerializableRefResolutionTests"/> holds the tests that resolve an identifier directly. They exercise the
+/// same resolution code, but they do not go through <see cref="IDurableRefFactory"/> at all, so running them three
+/// times would run identical code three times.
+/// </para>
+/// </remarks>
+public abstract class RefTests : UnitTestClass
 {
-    [Fact]
-    public void CompilationRef()
-    {
-        using var testContext = this.CreateTestContext();
-        var compilation = testContext.CreateCompilationModel( "/* nothing */" );
+    /// <summary>
+    /// Gets the kind of durable reference that the tests of the current class run with.
+    /// </summary>
+    protected abstract DurableRefKind DurableRefKind { get; }
 
-        var compilationRef = compilation.ToRef();
-        var resolved = compilationRef.GetTarget( compilation );
-
-        Assert.Same( compilation, resolved );
-    }
-
-    [Fact]
-    public void CompilationSymbolId()
-    {
-        using var testContext = this.CreateTestContext();
-        var compilation = testContext.CreateCompilationModel( "/* nothing */" );
-        var symbolId = SymbolId.Create( compilation.Symbol );
-        var resolvedSymbol = symbolId.Resolve( compilation.RoslynCompilation ).AssertNotNull();
-        var resolvedDeclaration = compilation.Factory.GetCompilationElement( resolvedSymbol );
-
-        Assert.Same( compilation, resolvedDeclaration );
-    }
-
-    [Fact]
-    public void ReferencedAssemblySymbol()
-    {
-        using var testContext = this.CreateTestContext();
-        var compilation = testContext.CreateCompilationModel( "/* nothing */" );
-
-        var assemblyRefSymbol = compilation.Factory.GetTypeByReflectionType( typeof(string) ).GetSymbol();
-        var assemblyRefRef = SymbolId.Create( assemblyRefSymbol );
-        _ = assemblyRefRef.Resolve( compilation.RoslynCompilation );
-    }
+    /// <summary>
+    /// Applies <see cref="DurableRefKind"/> to every test context of the class.
+    /// </summary>
+    /// <remarks>
+    /// This overrides <c>CreateTestContextCore</c> rather than <c>CreateDefaultTestContextOptions</c>, because the
+    /// latter is consulted only when the test passes no options of its own.
+    /// </remarks>
+    protected override TestContext CreateTestContextCore( TestContextOptions contextOptions, IAdditionalServiceCollection services )
+        => base.CreateTestContextCore( contextOptions with { DurableRefKind = this.DurableRefKind }, services );
 
     /// <summary>
     /// <see cref="IRef{T}.ToDurable"/> is public, and it returns the strongly-typed <see cref="IDurableRef{T}"/> so that
@@ -151,10 +147,18 @@ public sealed class RefTests : UnitTestClass
     /// <c>ToRef().ToDurable()</c> for every kind of declaration whose identifier is computed by a dedicated code path.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// <see cref="Code.RefExtensions.ToDurableRef{T}"/> computes the identifier from the declaration instead of from the
     /// symbol of an intermediate <c>IFullRef</c>, so the two routes go through different code. A parameter, a return
     /// parameter and a type parameter are included because their identifiers are built from the identifier of the
     /// containing declaration rather than by the general case.
+    /// </para>
+    /// <para>
+    /// This is also what holds the two kinds of durable reference to the same identifier. A named type is a
+    /// declaration, so a reference that answered <see cref="IRef.ToSerializableId"/> from the declaration alone would
+    /// lose the type arguments and the nullable annotation, which is the defect reported as issue #1797. The failure is
+    /// silent everywhere else, because such a reference still resolves to a usable type.
+    /// </para>
     /// </remarks>
     [Theory]
     [InlineData( "Type" )]
@@ -188,6 +192,36 @@ public sealed class RefTests : UnitTestClass
         Assert.Equal( throughRef.ToSerializableId(), direct.ToSerializableId() );
         Assert.True( direct.Equals( throughRef, RefComparison.Default ) );
         Assert.Same( declaration, direct.GetTarget( compilation ) );
+    }
+
+    /// <summary>
+    /// Verifies that a durable reference produces the identifier that an identifier-based one would have carried,
+    /// whatever the kind of the project.
+    /// </summary>
+    /// <remarks>
+    /// This is the property the whole design rests on: a reference that holds the compilation still has to be written
+    /// to a transitive manifest that another project, built in another scope, reads. A divergence here would not fail
+    /// anywhere near its cause, because it would surface as a reference that resolves to the wrong declaration in the
+    /// consuming project. See issue #1811.
+    /// </remarks>
+    [Theory]
+    [InlineData( "Plain" )]
+    [InlineData( "Generic" )]
+    [InlineData( "Nested" )]
+    [InlineData( "Constructed" )]
+    [InlineData( "External" )]
+    public void DurableRefCarriesTheSameIdentifierWhateverItsKind( string kind )
+    {
+        using var testContext = this.CreateTestContext();
+        var compilation = testContext.CreateCompilationModel( RefTestFixtures.GenericTypesCode );
+
+        var fullRef = (IFullRef<INamedType>) RefTestFixtures.GetTestType( compilation, kind ).ToRef();
+
+        var expected = (IDurableRefImpl) SerializableDurableRefFactory.Instance.FromFullRef( fullRef );
+        var actual = (IDurableRefImpl) fullRef.ToDurable();
+
+        Assert.Equal( expected.Id, actual.Id );
+        Assert.Equal( expected.ToSerializableId(), actual.ToSerializableId() );
     }
 
     /// <summary>
@@ -228,9 +262,9 @@ public sealed class RefTests : UnitTestClass
     public void ToDurableRefToConstructedGenericTypeKeepsTheTypeArguments()
     {
         using var testContext = this.CreateTestContext();
-        var compilation = testContext.CreateCompilationModel( _genericTypesCode );
+        var compilation = testContext.CreateCompilationModel( RefTestFixtures.GenericTypesCode );
 
-        var type = GetTestType( compilation, "Constructed" );
+        var type = RefTestFixtures.GetTestType( compilation, "Constructed" );
         Assert.Equal( "Generic<int>", type.ToDisplayString() );
 
         Assert.Equal( "Generic<int>", type.ToDurableRef().GetTarget( compilation ).ToDisplayString() );
@@ -252,10 +286,15 @@ public sealed class RefTests : UnitTestClass
     }
 
     /// <summary>
-    /// A durable reference is not bound to a compilation, but it still has to answer
+    /// A durable reference is never an <see cref="IFullRef"/>, and it still has to answer
     /// <see cref="Engine.CodeModel.References.RefExtensions.GetPrimarySyntaxTree(IRef, CompilationContext)"/> with the same tree the equivalent
     /// full reference gives (issue #1748).
     /// </summary>
+    /// <remarks>
+    /// A durable reference of a batch compilation holds a full reference, but is not one itself. The distinction is
+    /// what keeps <see cref="IDurableRef{T}"/> meaningful as the type of a field: a full reference cannot be assigned
+    /// to one in any scope.
+    /// </remarks>
     [Fact]
     public void GetPrimarySyntaxTreeOfDurableRefInSource()
     {
@@ -265,7 +304,7 @@ public sealed class RefTests : UnitTestClass
         var fullRef = compilation.Types.OfName( "C" ).Single().ToRef();
         var durableRef = fullRef.ToDurable();
 
-        Assert.False( durableRef is IFullRef, "The reference is expected not to be bound to a compilation." );
+        Assert.False( durableRef is IFullRef, "A durable reference is expected never to be a full reference." );
 
         var expected = fullRef.GetPrimarySyntaxTree( compilation.CompilationContext );
         Assert.NotNull( expected );
@@ -287,87 +326,6 @@ public sealed class RefTests : UnitTestClass
         var durableRef = compilation.Factory.GetTypeByReflectionType( typeof(string) ).ToRef().ToDurable();
 
         Assert.Null( durableRef.GetPrimarySyntaxTree( compilation.CompilationContext ) );
-    }
-
-    /// <summary>
-    /// A durable reference whose id resolves to nothing in the current compilation, which happens when the referenced
-    /// project changed since its manifest was written, must not throw either (issue #1748).
-    /// </summary>
-    [Fact]
-    public void GetPrimarySyntaxTreeOfUnresolvableDurableRef()
-    {
-        using var testContext = this.CreateTestContext();
-        var compilation = testContext.CreateCompilationModel( "/* nothing */" );
-
-        var durableRef = new DeclarationIdRef<INamedType>( new SerializableDeclarationId( "T:ThereIsNoSuchType" ) );
-
-        Assert.Null( durableRef.GetPrimarySyntaxTree( compilation.CompilationContext ) );
-    }
-
-    /// <summary>
-    /// The code that <see cref="OldFormatIdentifiersStillResolve"/> resolves its hardcoded identifiers against.
-    /// </summary>
-    private const string _backwardCompatibilityCode = """
-                                                      namespace Ns
-                                                      {
-                                                          public class C<T>
-                                                          {
-                                                              public int Field;
-
-                                                              public int M( string p ) => 0;
-                                                          }
-
-                                                          public class Plain { }
-                                                      }
-                                                      """;
-
-    /// <summary>
-    /// Verifies that the identifiers written by an earlier version still resolve.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// A durable reference to a type is now written as a <see cref="SerializableTypeId"/>, so the identifier of a named
-    /// type changed from the documentation form <c>T:Ns.Plain</c> to the type form <c>Y:global::Ns.Plain!</c>. These
-    /// identifiers are written into the transitive manifest, which one version of Metalama writes and another reads,
-    /// so the old form has to keep resolving. The literals below are hardcoded on purpose: computing them from the
-    /// current code would test nothing, because it would produce the new form.
-    /// </para>
-    /// <para>
-    /// The identifiers of declarations that are not types are unchanged, and are included so that a future change to
-    /// the format is measured against all of them rather than against types alone. See issue #1797.
-    /// </para>
-    /// </remarks>
-    [Theory]
-    [InlineData( "T:Ns.Plain", "Plain" )]
-    [InlineData( "T:Ns.C`1", "C<T>" )]
-    [InlineData( "M:Ns.C`1.M(System.String)", "M" )]
-    [InlineData( "F:Ns.C`1.Field", "Field" )]
-    [InlineData( "M:Ns.C`1.M(System.String);Parameter;0", "p" )]
-    [InlineData( "T:Ns.C`1;TypeParameter;0", "T" )]
-    public void OldFormatIdentifiersStillResolve( string id, string expectedName )
-    {
-        using var testContext = this.CreateTestContext();
-        var compilation = testContext.CreateCompilationModel( _backwardCompatibilityCode );
-
-        var resolved = new SerializableDeclarationId( id ).ResolveToDeclaration( compilation );
-
-        Assert.NotNull( resolved );
-        Assert.Equal( expectedName, resolved is INamedType namedType ? namedType.ToDisplayString() : ((INamedDeclaration) resolved!).Name );
-    }
-
-    /// <summary>
-    /// Verifies that a durable reference built from an identifier of the old form resolves, which is the route the
-    /// deserializer takes when it reads a manifest written by an earlier version.
-    /// </summary>
-    [Fact]
-    public void DurableRefFromAnOldFormatTypeIdentifierResolves()
-    {
-        using var testContext = this.CreateTestContext();
-        var compilation = testContext.CreateCompilationModel( _backwardCompatibilityCode );
-
-        var durableRef = DurableRefFactory.FromDeclarationId<INamedType>( new SerializableDeclarationId( "T:Ns.Plain" ) );
-
-        Assert.Equal( "Plain", durableRef.GetTarget( compilation ).ToDisplayString() );
     }
 
     /// <summary>
@@ -441,16 +399,16 @@ public sealed class RefTests : UnitTestClass
     /// A type whose fields give a nullable and a non-nullable form of the same named type.
     /// </summary>
     private const string _nullableTypesCode = """
-                                             #nullable enable
+                                              #nullable enable
 
-                                             interface IService { }
+                                              interface IService { }
 
-                                             class Container
-                                             {
-                                                 public IService? NullableField = null;
-                                                 public IService NonNullableField = null!;
-                                             }
-                                             """;
+                                              class Container
+                                              {
+                                                  public IService? NullableField = null;
+                                                  public IService NonNullableField = null!;
+                                              }
+                                              """;
 
     /// <summary>
     /// Returns the type of the named field of <c>Container</c> in a compilation of <see cref="_nullableTypesCode"/>.
@@ -491,32 +449,6 @@ public sealed class RefTests : UnitTestClass
         Assert.Equal( expectedIsNullable, throughToDurableRef.IsNullable );
     }
 
-    private const string _genericTypesCode = """
-                                             class Plain { }
-
-                                             class Generic<T>
-                                             {
-                                                 public class Nested { }
-                                             }
-
-                                             class Container
-                                             {
-                                                 public Generic<int> ConstructedField = null!;
-                                                 public Generic<string> OtherConstructedField = null!;
-                                             }
-                                             """;
-
-    private static INamedType GetTestType( CompilationModel compilation, string kind )
-        => kind switch
-        {
-            "Plain" => compilation.Types.OfName( "Plain" ).Single(),
-            "Generic" => compilation.Types.OfName( "Generic" ).Single(),
-            "Nested" => compilation.Types.OfName( "Generic" ).Single().Types.OfName( "Nested" ).Single(),
-            "Constructed" => (INamedType) compilation.Types.OfName( "Container" ).Single().Fields.OfName( "ConstructedField" ).Single().Type,
-            "External" => compilation.Factory.GetTypeByReflectionType( typeof(string) ).AssertCast<INamedType>(),
-            _ => throw new AssertionFailedException( $"Unknown kind '{kind}'." )
-        };
-
     /// <summary>
     /// Verifies that converting an <see cref="INamedType"/> to a durable reference with <c>ToDurable</c> and resolving
     /// it again yields an equivalent type, for every shape of type except a constructed generic one, which
@@ -530,9 +462,9 @@ public sealed class RefTests : UnitTestClass
     public void DurableRefToNamedTypeResolvesToAnEquivalentType( string kind )
     {
         using var testContext = this.CreateTestContext();
-        var compilation = testContext.CreateCompilationModel( _genericTypesCode );
+        var compilation = testContext.CreateCompilationModel( RefTestFixtures.GenericTypesCode );
 
-        var type = GetTestType( compilation, kind );
+        var type = RefTestFixtures.GetTestType( compilation, kind );
 
         var resolved = type.ToRef().ToDurable().GetTarget( compilation );
 
@@ -540,8 +472,8 @@ public sealed class RefTests : UnitTestClass
     }
 
     /// <summary>
-    /// Records that <c>ToDurable</c> does not preserve the type arguments of a constructed generic type, and that a
-    /// <see cref="SerializableTypeId"/> does.
+    /// Records that a durable reference preserves the type arguments of a constructed generic type, and that a
+    /// <see cref="SerializableTypeId"/> does too.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -560,14 +492,18 @@ public sealed class RefTests : UnitTestClass
     /// which is no longer needed to avoid the widening, but is still needed because that conversion does not throw for
     /// a type an aspect introduced.
     /// </para>
+    /// <para>
+    /// A reference that holds the compilation preserves the type arguments trivially, so it is the identifier-based
+    /// derived classes that hold this property. That is the reason the derived classes exist.
+    /// </para>
     /// </remarks>
     [Fact]
     public void DurableRefToConstructedGenericTypeKeepsTheTypeArguments()
     {
         using var testContext = this.CreateTestContext();
-        var compilation = testContext.CreateCompilationModel( _genericTypesCode );
+        var compilation = testContext.CreateCompilationModel( RefTestFixtures.GenericTypesCode );
 
-        var type = GetTestType( compilation, "Constructed" );
+        var type = RefTestFixtures.GetTestType( compilation, "Constructed" );
         Assert.Equal( "Generic<int>", type.ToDisplayString() );
 
         var throughToDurable = type.ToRef().ToDurable().GetTarget( compilation );
@@ -575,105 +511,6 @@ public sealed class RefTests : UnitTestClass
 
         var throughTypeId = DurableRefFactory.FromTypeId<INamedType>( type.GetSerializableTypeId() ).GetTarget( compilation );
         Assert.Equal( "Generic<int>", throughTypeId.ToDisplayString() );
-    }
-
-    /// <summary>
-    /// Verifies that the durable form used by <c>Query.CreateBaseTypeResolver</c> round-trips every shape of type that
-    /// <c>SelectTypesDerivedFrom( INamedType )</c> accepts.
-    /// </summary>
-    /// <remarks>
-    /// That method converts the type it is given to a durable reference so that the query, which may outlive the
-    /// compilation by an entire editing session, does not pin it (issue #1799). The type comes from user code, so the
-    /// conversion has to survive every shape the signature accepts, not only the plain named type that the first
-    /// version of the change was written against.
-    /// </remarks>
-    [Theory]
-    [InlineData( "Plain" )]
-    [InlineData( "Generic" )]
-    [InlineData( "Nested" )]
-    [InlineData( "Constructed" )]
-    [InlineData( "External" )]
-    public void DurableTypeIdRefResolvesToAnEquivalentType( string kind )
-    {
-        using var testContext = this.CreateTestContext();
-        var compilation = testContext.CreateCompilationModel( _genericTypesCode );
-
-        var type = GetTestType( compilation, kind );
-
-        var resolved = DurableRefFactory.FromTypeId<INamedType>( type.GetSerializableTypeId() ).GetTarget( compilation );
-
-        Assert.Equal( type.ToDisplayString(), resolved.ToDisplayString() );
-    }
-
-    /// <summary>
-    /// Verifies that a durable reference to a type that an aspect introduced into the global namespace resolves back
-    /// to that type.
-    /// </summary>
-    /// <remarks>
-    /// The resolution of an identifier starts in the namespace tree merged over the compilation and its references,
-    /// whereas an aspect introduces a type into the tree of <see cref="IAssembly.GlobalNamespace"/>. The global
-    /// namespace has a distinct declaration in each tree, so the introduced type is added to the collections of both.
-    /// See issue #1825.
-    /// </remarks>
-    [Fact]
-    public void DurableTypeIdRefToTypeIntroducedIntoGlobalNamespaceResolves()
-    {
-        using var testContext = this.CreateTestContext();
-        var compilation = testContext.CreateCompilationModel( "class Outer;" ).CreateMutableClone();
-
-        var introducedType = IntroduceType( compilation, compilation.GlobalNamespace, "Introduced" );
-
-        var durableRef = DurableRefFactory.FromTypeId<INamedType>( introducedType.GetSerializableTypeId() );
-
-        Assert.Same( introducedType, durableRef.GetTarget( compilation ) );
-    }
-
-    /// <summary>
-    /// Verifies that a durable reference to a type that an aspect introduced into a namespace that the aspect also
-    /// introduced resolves back to that type.
-    /// </summary>
-    /// <remarks>
-    /// This is the shape of the metrics sample, whose aspect introduces its type into a namespace of its own. The
-    /// introduced namespace is added to the global namespace of both trees, and the introduced type is added to the
-    /// single collection of that namespace, which has one declaration. See issue #1825.
-    /// </remarks>
-    [Fact]
-    public void DurableTypeIdRefToTypeIntroducedIntoIntroducedNamespaceResolves()
-    {
-        using var testContext = this.CreateTestContext();
-        var compilation = testContext.CreateCompilationModel( "class Outer;" ).CreateMutableClone();
-
-        var introducedNamespace = IntroduceNamespace( compilation, compilation.GlobalNamespace, "Introduced" );
-        var introducedType = IntroduceType( compilation, introducedNamespace, "Companion" );
-
-        var durableRef = DurableRefFactory.FromTypeId<INamedType>( introducedType.GetSerializableTypeId() );
-
-        Assert.Same( introducedType, durableRef.GetTarget( compilation ) );
-    }
-
-    /// <summary>
-    /// Verifies that a durable reference to a type that an aspect introduced into a namespace which a referenced
-    /// assembly declares as well resolves back to that type.
-    /// </summary>
-    /// <remarks>
-    /// The namespace has two constituents, so Roslyn creates a merged namespace, and that namespace has a declaration
-    /// in each tree. The type is introduced into the declaration of the tree of <see cref="IAssembly.GlobalNamespace"/>
-    /// and must also be added to the declaration of the merged tree. A namespace declared by this compilation alone
-    /// would not cover this case, because Roslyn then returns the single constituent and one declaration exists.
-    /// <c>System</c> is used because every compilation references an assembly that declares it. See issue #1825.
-    /// </remarks>
-    [Fact]
-    public void DurableTypeIdRefToTypeIntroducedIntoMergedNamespaceResolves()
-    {
-        using var testContext = this.CreateTestContext();
-        var compilation = testContext.CreateCompilationModel( "namespace System { class Outer; }" ).CreateMutableClone();
-
-        var mergedNamespace = compilation.GlobalNamespace.GetDescendant( "System" ).AssertNotNull();
-        var introducedType = IntroduceType( compilation, mergedNamespace, "Companion" );
-
-        var durableRef = DurableRefFactory.FromTypeId<INamedType>( introducedType.GetSerializableTypeId() );
-
-        Assert.Same( introducedType, durableRef.GetTarget( compilation ) );
     }
 
     /// <summary>
@@ -692,34 +529,11 @@ public sealed class RefTests : UnitTestClass
         using var testContext = this.CreateTestContext();
         var compilation = testContext.CreateCompilationModel( "class Outer;" ).CreateMutableClone();
 
-        var introducedNamespace = IntroduceNamespace( compilation, compilation.GlobalNamespace, "Introduced" );
-        var introducedType = IntroduceType( compilation, introducedNamespace, "Companion" );
+        var introducedNamespace = RefTestFixtures.IntroduceNamespace( compilation, compilation.GlobalNamespace, "Introduced" );
+        var introducedType = RefTestFixtures.IntroduceType( compilation, introducedNamespace, "Companion" );
 
         IDurableRef<INamedType> durableRef = introducedType.ToRef().ToDurable();
 
         Assert.Same( introducedType, durableRef.GetTarget( compilation ) );
-    }
-
-    /// <summary>
-    /// Introduces a namespace into a mutable compilation and returns the resulting declaration.
-    /// </summary>
-    private static INamespace IntroduceNamespace( CompilationModel compilation, INamespace containingNamespace, string name )
-    {
-        var namespaceBuilder = new NamespaceBuilder( null!, containingNamespace, name );
-        compilation.AddTransformation( namespaceBuilder.CreateTransformation() );
-
-        return containingNamespace.Namespaces.OfName( name ).AssertNotNull();
-    }
-
-    /// <summary>
-    /// Introduces a type into a mutable compilation and returns the resulting declaration.
-    /// </summary>
-    private static INamedType IntroduceType( CompilationModel compilation, INamespace containingNamespace, string name )
-    {
-        var typeBuilder = new NamedTypeBuilder( null!, containingNamespace, name, TypeKind.Class );
-        typeBuilder.Freeze();
-        compilation.AddTransformation( typeBuilder.CreateTransformation() );
-
-        return containingNamespace.Types.OfName( name ).Single();
     }
 }

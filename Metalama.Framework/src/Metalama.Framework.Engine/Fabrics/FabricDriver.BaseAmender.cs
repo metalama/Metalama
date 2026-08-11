@@ -80,7 +80,9 @@ internal abstract partial class FabricDriver
             // is compilation-neutral.
             this._userCodeDescription = userCodeDescription;
 
-            this.TargetDeclaration = targetDeclaration.ToDurable(); // TODO PERF: ToDurable is useful only at design time.
+            // What ToDurable costs is now decided by the scope: a batch compilation keeps the reference it is given,
+            // because its single compilation outlives the amender. See IDurableRefFactory and issue #1811.
+            this.TargetDeclaration = targetDeclaration.ToDurable();
             this._fabricManager = fabricManager;
         }
 

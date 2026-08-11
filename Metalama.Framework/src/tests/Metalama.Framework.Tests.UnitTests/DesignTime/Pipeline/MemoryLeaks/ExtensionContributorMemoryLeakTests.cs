@@ -9,6 +9,7 @@ using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Extensibility;
+using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Pipeline;
 using Metalama.Framework.Tests.UnitTestHelpers.Mocks;
 using Metalama.Framework.Tests.UnitTestHelpers.TestClasses;
@@ -181,9 +182,17 @@ public sealed class ExtensionContributorMemoryLeakTests : DesignTimeTestBase
     /// <summary>
     /// Creates a test context in which the given extension type is the only registered extension.
     /// </summary>
-    private TestContext CreateTestContextWithExtension( Type extensionType )
+    /// <remarks>
+    /// The kind of durable reference is pinned rather than inherited from the scope, because it is precisely what these
+    /// tests vary and what decides their outcome. Leaving it to the default would make a change of default surface here
+    /// as an unexplained retention chain rather than as its own failure.
+    /// </remarks>
+    private TestContext CreateTestContextWithExtension( Type extensionType, DurableRefKind durableRefKind = DurableRefKind.Serializable )
         => this.CreateTestContext(
-            this.CreateDefaultTestContextOptions() with { ExtensionTypes = ImmutableArray.Create( extensionType ) } );
+            this.CreateDefaultTestContextOptions() with
+            {
+                ExtensionTypes = ImmutableArray.Create( extensionType ), DurableRefKind = durableRefKind
+            } );
 
     /// <summary>
     /// Verifies that a contributor holding a durable reference does not retain the version of the project in which it
@@ -244,6 +253,38 @@ public sealed class ExtensionContributorMemoryLeakTests : DesignTimeTestBase
             initialCompilation,
             nameof(TestContributor),
             "The compilation in which a non-durable contributor was produced",
+            ("pipelineFactory", factory) );
+    }
+
+    /// <summary>
+    /// Verifies that a contributor holding a durable reference produced by a batch compilation does retain the version
+    /// of the project in which it was produced.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This asserts that the retention happens, and it is not a defect. During a batch compilation a durable reference
+    /// holds the reference it was made from, because the one compilation of the build outlives every object the run
+    /// produces and the identifier round trip would buy nothing. See issue #1811.
+    /// </para>
+    /// <para>
+    /// It is recorded as a test rather than as a comment because the difference between the two kinds is invisible at
+    /// every call site: both are <see cref="IDurableRef{T}"/>, and only what they hold differs. Should a design-time
+    /// path ever be given the batch-compilation factory by accident, the contributor tests above would start failing
+    /// with a retention chain, and this test is what names the cause.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void LiveDurableContributor_RetainsTheCompilationItWasProducedIn()
+    {
+        using var testContext = this.CreateTestContextWithExtension( typeof(DurableContributorExtension), DurableRefKind.Live );
+        using var factory = new TestDesignTimeAspectPipelineFactory( testContext );
+
+        var initialCompilation = this.RunEditingSession( testContext, factory, "LiveDurableContributor", 10 );
+
+        MemoryLeakAssert.RetainedThrough(
+            initialCompilation,
+            nameof(TestContributor),
+            "The compilation in which a durable contributor of a batch compilation was produced",
             ("pipelineFactory", factory) );
     }
 

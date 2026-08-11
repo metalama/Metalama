@@ -23,17 +23,29 @@ namespace Metalama.Framework.Engine.CodeModel
 
         public bool IsTest { get; private set; }
 
+        /// <summary>
+        /// Gets a value indicating whether the run processes exactly one compilation and ends with it, so that the
+        /// compilation outlives every object the run produces.
+        /// </summary>
+        /// <remarks>
+        /// This is not the negation of <see cref="IsDesignTime"/>. <see cref="Introspection"/> is not a design-time
+        /// scenario, but <c>Metalama.Framework.Workspaces</c> and the aspect explorer keep many compilations alive for
+        /// the lifetime of their host, so it is not a batch compilation either. The distinction decides what a durable
+        /// reference is for the project: see <see cref="References.IDurableRefFactory"/>.
+        /// </remarks>
+        internal bool IsBatchCompilation { get; }
+
         public static ExecutionScenario DesignTime { get; } = new( nameof(DesignTime), true, false, true, false );
 
         public static ExecutionScenario Preview { get; } = new( nameof(Preview), true, true, false, false );
 
         public static ExecutionScenario LiveTemplate { get; } = new( nameof(LiveTemplate), true, true, false, false );
 
-        public static ExecutionScenario CompileTime { get; } = new( nameof(CompileTime), false, true, false, false );
+        public static ExecutionScenario CompileTime { get; } = new( nameof(CompileTime), false, true, false, false, isBatchCompilation: true );
 
         // Real batch compile, but emits design-time-style signature stubs instead of running the linker.
         // Used by the WPF MarkupCompilePass1 temporary assembly, whose only consumer is the XAML type resolver.
-        public static ExecutionScenario WpfPrecompile { get; } = new( nameof(WpfPrecompile), false, false, false, false );
+        public static ExecutionScenario WpfPrecompile { get; } = new( nameof(WpfPrecompile), false, false, false, false, isBatchCompilation: true );
 
         public static ExecutionScenario CodeFix { get; } = new( nameof(CodeFix), true, false, true, true );
 
@@ -44,13 +56,15 @@ namespace Metalama.Framework.Engine.CodeModel
             bool isDesignTime,
             bool capturesNonObservableTransformations,
             bool capturesCodeFixTitles,
-            bool capturesCodeFixImplementations )
+            bool capturesCodeFixImplementations,
+            bool isBatchCompilation = false )
         {
             this.Name = name;
             this.IsDesignTime = isDesignTime;
             this.CapturesNonObservableTransformations = capturesNonObservableTransformations;
             this.CapturesCodeFixImplementations = capturesCodeFixImplementations;
             this.CapturesCodeFixTitles = capturesCodeFixTitles;
+            this.IsBatchCompilation = isBatchCompilation;
         }
 
         // Resharper disable once UnusedMember.Global
