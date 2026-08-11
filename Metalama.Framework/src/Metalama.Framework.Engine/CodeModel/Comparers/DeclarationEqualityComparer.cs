@@ -24,13 +24,27 @@ internal sealed partial class DeclarationEqualityComparer : IDeclarationComparer
     private readonly Compilation _compilation;
     private readonly Conversions _conversions;
     private readonly StructuralDeclarationComparer _structuralDeclarationComparer;
+    private readonly bool _includeNullability;
 
     public DeclarationEqualityComparer( Compilation compilation, bool includeNullability )
     {
         this._compilation = compilation;
         this._conversions = new Conversions( this );
+        this._includeNullability = includeNullability;
         this._structuralDeclarationComparer = includeNullability ? StructuralDeclarationComparer.IncludeNullability : StructuralDeclarationComparer.Default;
     }
+
+    /// <summary>
+    /// Determines whether the language defines an identity conversion between two types, without using their symbols.
+    /// </summary>
+    /// <remarks>
+    /// The identity conversion ignores the nullability of a reference type and the names of the elements of a tuple,
+    /// so it is not the equality of this comparer, which takes both into account since issues #1844 and #1846. Both are
+    /// ignored at any depth, so this cannot delegate a nested pair of types to a comparer that answers the equality,
+    /// and the comparison bypasses the symbols throughout.
+    /// </remarks>
+    internal static bool HasIdentityConversionWithoutSymbols( IType left, IType right )
+        => StructuralDeclarationComparer.IdentityConversion.Equals( left, right );
 
     public bool Equals( IDeclaration? x, IDeclaration? y )
     {
@@ -122,9 +136,23 @@ internal sealed partial class DeclarationEqualityComparer : IDeclarationComparer
             return true;
         }
 
-        if ( kind == ConversionKind.Identical )
+        if ( kind == ConversionKind.Equal )
         {
             return this.Equals( left, right );
+        }
+
+        if ( kind == ConversionKind.Identical )
+        {
+            // The identity conversion of the language ignores the nullability of a reference type and the names of the
+            // elements of a tuple, so it is not the equality of this comparer, which takes both into account. Answering
+            // it with the equality made ConversionKind.Identical refuse 'object' and 'object?' whenever the comparer
+            // that includes nullability was used, where the language accepts them. See issue #1846.
+            if ( !bypassSymbols && left.GetSymbol() is { } leftTypeSymbol && right.GetSymbol() is { } rightTypeSymbol )
+            {
+                return this.IsConvertibleTo( leftTypeSymbol, rightTypeSymbol, kind );
+            }
+
+            return HasIdentityConversionWithoutSymbols( left, right );
         }
 
         if ( left.GetSymbol() is { } leftSymbol && right.GetSymbol() is { } rightSymbol && !bypassSymbols )
@@ -175,9 +203,11 @@ internal sealed partial class DeclarationEqualityComparer : IDeclarationComparer
 
         left.ThrowIfBelongsToDifferentCompilationThan( right );
 
-        if ( kind == ConversionKind.Identical )
+        if ( kind == ConversionKind.Equal )
         {
-            return SymbolEqualityComparer.Default.Equals( left, right );
+            return this._includeNullability
+                ? SymbolEqualityComparer.IncludeNullability.Equals( left, right )
+                : SymbolEqualityComparer.Default.Equals( left, right );
         }
 
         if ( kind == ConversionKind.TypeDefinition )
@@ -197,6 +227,12 @@ internal sealed partial class DeclarationEqualityComparer : IDeclarationComparer
 
         switch ( kind )
         {
+            // The identity conversion is what Roslyn classifies, and no comparer of symbols answers it: it ignores the
+            // nullability of a reference type and the names of the elements of a tuple, at any depth, and
+            // SymbolEqualityComparer keeps distinguishing the latter. See issues #1844 and #1846.
+            case ConversionKind.Identical:
+                return conversion.IsIdentity;
+
             case ConversionKind.Implicit:
                 return conversion is { IsIdentity: true } or { IsImplicit: true };
 

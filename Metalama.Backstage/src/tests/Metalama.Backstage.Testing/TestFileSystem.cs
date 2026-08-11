@@ -160,8 +160,6 @@ namespace Metalama.Backstage.Testing
             }
         }
 
-        public string SynchronizationPrefix { get; } = $"{Guid.NewGuid()}_";
-
         public DateTime GetFileLastWriteTime( string path ) => this._file.Execute( ExecutionKind.Manage, 0, path, f => f.GetLastWriteTime( path ) );
 
         public void SetFileLastWriteTime( string path, DateTime lastWriteTime )
@@ -342,6 +340,24 @@ namespace Metalama.Backstage.Testing
 
         public void WriteAllText( string path, string? contents, Encoding encoding )
             => this._file.Execute( ExecutionKind.Write, this.GetWriteChangeKind( path ), path, f => f.WriteAllText( path, contents, encoding ) );
+
+        /// <inheritdoc />
+        /// <remarks>
+        /// <para>
+        /// No temporary file is created. Every operation of this class runs under a lock on <see cref="Mock"/>, so a
+        /// plain write already has the property that this method is required to provide, and creating a temporary
+        /// file would only add one that tests enumerating the directory would have to disregard. What a test can
+        /// still observe is that the destination is written in a single operation, which is what the callers depend
+        /// on.
+        /// </para>
+        /// <para>
+        /// Neither is the failure retried. The only way this implementation can fail is <see cref="BlockWrite"/>,
+        /// which is a fault a test has deliberately injected and expects to observe, and which no number of retries
+        /// would clear.
+        /// </para>
+        /// </remarks>
+        public void WriteAllTextAtomically( string path, string? content )
+            => this._file.Execute( ExecutionKind.Write, this.GetWriteChangeKind( path ), path, f => f.WriteAllText( path, content ) );
 
         public string[] ReadAllLines( string path ) => this._file.Execute( ExecutionKind.Read, 0, path, f => f.ReadAllLines( path ) );
 

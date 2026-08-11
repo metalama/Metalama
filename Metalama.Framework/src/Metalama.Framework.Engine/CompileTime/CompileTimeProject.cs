@@ -4,6 +4,7 @@
 
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Maintenance;
+using Metalama.Backstage.Threading;
 using Metalama.Backstage.Utilities;
 using Metalama.Compiler;
 using Metalama.Framework.Aspects;
@@ -370,6 +371,7 @@ internal sealed class CompileTimeProject : IProjectService
         if ( assembly == null )
         {
             var tempFileManager = serviceProvider.Underlying.GetRequiredBackstageService<ITempFileManager>();
+            var lockService = serviceProvider.Underlying.GetRequiredBackstageService<INamedLockService>();
             var outputPathHelper = new OutputPathHelper( tempFileManager );
             var outputDirectory = outputPathHelper.GetOutputPaths( assemblyIdentity.Name, null, projectHash ).Directory;
 
@@ -380,7 +382,7 @@ internal sealed class CompileTimeProject : IProjectService
                 {
                     if ( !File.Exists( outputPath ) )
                     {
-                        using ( MutexHelper.WithGlobalLock( outputPath ) )
+                        using ( lockService.WithGlobalLock( outputPath ) )
                         {
                             File.Copy( assemblyPath, outputPath );
                         }

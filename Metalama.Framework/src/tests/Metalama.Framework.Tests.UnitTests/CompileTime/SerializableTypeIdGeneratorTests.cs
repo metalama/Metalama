@@ -56,10 +56,22 @@ public sealed class SerializableTypeIdGeneratorTests : UnitTestClass
         using var testContext = this.CreateTestContext();
         var compilation = testContext.CreateCompilationModel( "" );
 
+        // The nullability is removed before the comparison, because the two sides answer it differently on purpose. A
+        // reflection type is null-oblivious, a typeof expression not being able to name a nullable reference type,
+        // whereas GetTypeByReflectionType returns a non-nullable type, the annotated context having been the norm since
+        // before Metalama existed and being the more useful default. What this asserts is that the two agree on
+        // everything else: the qualification of names, the rendering of a generic type, of an array and of Nullable<T>.
         var codeModelType = compilation.Factory.GetTypeByReflectionType( type );
 
         var reflectionId = type.GetSerializableTypeId().Id;
-        var codeModelId = codeModelType.GetSerializableTypeId().Id;
+
+        // The nullability marker is removed before the comparison, because the two sides answer nullability
+        // differently on purpose. A reflection type is null-oblivious, a typeof expression not being able to name a
+        // nullable reference type, whereas GetTypeByReflectionType returns a non-nullable type, the annotated context
+        // having been the norm since before Metalama existed and being the more useful default. What this asserts is
+        // that the two agree on everything else: the qualification of names, the rendering of a generic type, of an
+        // array and of Nullable<T>.
+        var codeModelId = codeModelType.GetSerializableTypeId().Id.TrimEnd( '!' );
 
         Assert.Equal( codeModelId, reflectionId );
     }

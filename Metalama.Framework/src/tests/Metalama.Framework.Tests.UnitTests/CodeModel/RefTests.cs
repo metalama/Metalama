@@ -537,4 +537,112 @@ public abstract class RefTests : UnitTestClass
 
         Assert.Same( introducedType, durableRef.GetTarget( compilation ) );
     }
+
+    private const string _constrainedGenericTypesCode = """
+                                                        using System.Collections.Generic;
+
+                                                        class StructConstrained<T> where T : struct
+                                                        {
+                                                            public List<T> Field = null!;
+                                                        }
+
+                                                        class UnmanagedConstrained<T> where T : unmanaged { }
+
+                                                        class ClassConstrained<T> where T : class { }
+
+                                                        class NotNullConstrained<T> where T : notnull { }
+
+                                                        class Unconstrained<T> { }
+
+                                                        class ConstrainedContainer
+                                                        {
+                                                            public StructConstrained<int> ConstructedField = null!;
+
+                                                            public void Method<T>( List<T> parameter ) where T : struct { }
+                                                        }
+                                                        """;
+
+    /// <summary>
+    /// Verifies that a durable reference to a generic type definition resolves back to an equivalent type, whatever
+    /// constrains its type parameter.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The identifier of a named type carries the nullability of the outermost type as a trailing <c>!</c> and, when a
+    /// type parameter appears in it, the declaration that declares the parameter as a generic context. Resolving it
+    /// applies the nullability of the outermost type to every name in the identifier, so the type parameters of the
+    /// definition are annotated as well, and annotating a parameter constrained to be a value type threw. See issue
+    /// #1835, and issue #1837 for why the annotation is applied to them at all.
+    /// </para>
+    /// <para>
+    /// An unconstrained parameter does not reproduce the failure, because its nullability is unknown rather than
+    /// false, which the code model answers before it examines whether the type is a value type. The constraints are
+    /// therefore enumerated rather than represented by a single case.
+    /// </para>
+    /// </remarks>
+    [Theory]
+    [InlineData( "StructConstrained" )]
+    [InlineData( "UnmanagedConstrained" )]
+    [InlineData( "ClassConstrained" )]
+    [InlineData( "NotNullConstrained" )]
+    [InlineData( "Unconstrained" )]
+    public void DurableRefToGenericTypeDefinitionWithConstrainedTypeParameterResolves( string typeName )
+    {
+        using var testContext = this.CreateTestContext();
+        var compilation = testContext.CreateCompilationModel( _constrainedGenericTypesCode );
+
+        var type = compilation.Types.OfName( typeName ).Single();
+
+        Assert.Equal( type.ToDisplayString(), type.ToRef().ToDurable().GetTarget( compilation ).ToDisplayString() );
+        Assert.Equal( type.ToDisplayString(), type.ToDurableRef().GetTarget( compilation ).ToDisplayString() );
+    }
+
+    /// <summary>
+    /// Verifies that a durable reference to a constructed generic type whose definition constrains its type parameter
+    /// to be a value type resolves back to an equivalent type.
+    /// </summary>
+    /// <remarks>
+    /// This is the shape the derived type has in issue #1835: the constraint is on the definition, and the reference
+    /// that the referencing project resolves is a construction of it.
+    /// </remarks>
+    [Fact]
+    public void DurableRefToConstructedGenericTypeWithValueTypeConstraintResolves()
+    {
+        using var testContext = this.CreateTestContext();
+        var compilation = testContext.CreateCompilationModel( _constrainedGenericTypesCode );
+
+        var type = compilation.Types.OfName( "ConstrainedContainer" ).Single().Fields.OfName( "ConstructedField" ).Single().Type;
+        Assert.Equal( "StructConstrained<int>", type.ToDisplayString() );
+
+        Assert.Equal( type.ToDisplayString(), type.ToDurableRef().GetTarget( compilation ).ToDisplayString() );
+    }
+
+    /// <summary>
+    /// Verifies that a durable reference to a type that mentions a type parameter constrained to be a value type
+    /// resolves back to an equivalent type, whether the parameter is declared by a type or by a method.
+    /// </summary>
+    /// <remarks>
+    /// The parameter appears here as a type argument of another generic type rather than as a parameter of the
+    /// declaration being referenced, which is the position that the nullability of the outermost type reaches. The
+    /// generic context of the identifier is the declaration that declares the parameter, so both a type and a method
+    /// are covered: they are resolved by different branches of <c>GetGenericContext</c>.
+    /// </remarks>
+    [Theory]
+    [InlineData( "StructConstrained", "Field" )]
+    [InlineData( "ConstrainedContainer", "Method" )]
+    public void DurableRefToTypeMentioningAValueTypeConstrainedTypeParameterResolves( string typeName, string memberName )
+    {
+        using var testContext = this.CreateTestContext();
+        var compilation = testContext.CreateCompilationModel( _constrainedGenericTypesCode );
+
+        var declaringType = compilation.Types.OfName( typeName ).Single();
+
+        var type = memberName == "Field"
+            ? declaringType.Fields.OfName( memberName ).Single().Type
+            : declaringType.Methods.OfName( memberName ).Single().Parameters[0].Type;
+
+        Assert.Equal( "List<T>", type.ToDisplayString() );
+
+        Assert.Equal( type.ToDisplayString(), type.ToDurableRef().GetTarget( compilation ).ToDisplayString() );
+    }
 }

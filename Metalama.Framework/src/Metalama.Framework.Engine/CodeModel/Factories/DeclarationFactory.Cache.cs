@@ -21,15 +21,22 @@ public sealed partial class DeclarationFactory
             this._items = new ConcurrentDictionary<TKey, ConcurrentDictionary<ItemKey, TValue>>( comparer );
         }
 
+        /// <param name="isNullable">
+        /// The nullability that the declaration is requested with, which is part of the key because a declaration
+        /// requested with one nullability is not the declaration requested with another. Omitting it returned the
+        /// instance that happened to be created first, whatever nullability a later caller asked for, so the
+        /// nullability conversions had no effect on an introduced type. See issue #1840.
+        /// </param>
         public TValue GetOrAdd<TArg>(
             TKey item,
             GenericContext? genericContext,
             Type requiredInterface,
             Func<TKey, GenericContext?, TArg, TValue> factory,
-            TArg arg )
+            TArg arg,
+            bool? isNullable = false )
         {
             var bucket = this._items.GetOrAdd( item, _ => new ConcurrentDictionary<ItemKey, TValue>() );
-            var key = new ItemKey( genericContext ?? GenericContext.Empty, requiredInterface );
+            var key = new ItemKey( genericContext ?? GenericContext.Empty, requiredInterface, isNullable );
 
             if ( bucket.TryGetValue( key, out var value ) )
             {
@@ -54,15 +61,23 @@ public sealed partial class DeclarationFactory
 
             private readonly Type _interface;
 
-            public ItemKey( GenericContext genericContext, Type @interface )
+            private readonly bool? _isNullable;
+
+            public ItemKey( GenericContext genericContext, Type @interface, bool? isNullable )
             {
                 this._genericContext = genericContext;
                 this._interface = @interface;
+                this._isNullable = isNullable;
             }
 
             public bool Equals( ItemKey other )
             {
                 if ( this._interface != other._interface )
+                {
+                    return false;
+                }
+
+                if ( this._isNullable != other._isNullable )
                 {
                     return false;
                 }
@@ -77,7 +92,7 @@ public sealed partial class DeclarationFactory
 
             public override bool Equals( object? obj ) => obj is ItemKey other && this.Equals( other );
 
-            public override int GetHashCode() => HashCode.Combine( this._genericContext, this._interface );
+            public override int GetHashCode() => HashCode.Combine( this._genericContext, this._interface, this._isNullable );
         }
     }
 }

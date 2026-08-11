@@ -27,7 +27,7 @@ namespace Metalama.Framework.Tests.TemplateTests.Return.NestedLocalFunctionWithC
       templateSyntaxFactory.AddStatement(__s1, SyntaxFactory.LocalFunctionStatement(default(SyntaxList<AttributeListSyntax>), default(SyntaxTokenList), SyntaxFactory.NullableType(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.ObjectKeyword)), SyntaxFactory.Token(SyntaxKind.QuestionToken)), templateSyntaxFactory.EscapeIdentifier(OuterFuncName), null, SyntaxFactory.ParameterList(SyntaxFactory.SingletonSeparatedList<ParameterSyntax>(SyntaxFactory.Parameter(default(SyntaxList<AttributeListSyntax>), default(SyntaxTokenList), SyntaxFactory.NullableType(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.ObjectKeyword)), SyntaxFactory.Token(SyntaxKind.QuestionToken)), templateSyntaxFactory.EscapeIdentifier(inputName), null))), default(SyntaxList<TypeParameterConstraintClauseSyntax>), SyntaxFactory.Block(default, new Func<SyntaxList<StatementSyntax>>(delegate
       {
         List<StatementOrTrivia> __s2 = new List<StatementOrTrivia>();
-        ITemplateSyntaxFactory localTemplateSyntaxFactory1 = templateSyntaxFactory.ForLocalFunction("Y:global::System.Object?!", null, false);
+        ITemplateSyntaxFactory localTemplateSyntaxFactory1 = templateSyntaxFactory.ForLocalFunction("Y:global::System.Object?", null, false);
         SyntaxToken InnerFuncName = localTemplateSyntaxFactory1.GetUniqueIdentifier("InnerFunc");
         // return InnerFunc( input );
         localTemplateSyntaxFactory1.AddStatement(__s2, localTemplateSyntaxFactory1.AddSimplifierAnnotations(localTemplateSyntaxFactory1.ReturnStatement(localTemplateSyntaxFactory1.AddSimplifierAnnotations(SyntaxFactory.InvocationExpression(SyntaxFactory.IdentifierName(localTemplateSyntaxFactory1.EscapeIdentifier(InnerFuncName)), SyntaxFactory.ArgumentList(SyntaxFactory.SingletonSeparatedList<ArgumentSyntax>(SyntaxFactory.Argument(null, default, SyntaxFactory.IdentifierName(localTemplateSyntaxFactory1.EscapeIdentifier(inputName))))))))));
@@ -37,7 +37,7 @@ namespace Metalama.Framework.Tests.TemplateTests.Return.NestedLocalFunctionWithC
         {
           List<StatementOrTrivia> __s3 = new List<StatementOrTrivia>();
           bool __skip3 = false;
-          ITemplateSyntaxFactory localTemplateSyntaxFactory2 = localTemplateSyntaxFactory1.ForLocalFunction("Y:global::System.Object?!", null, false);
+          ITemplateSyntaxFactory localTemplateSyntaxFactory2 = localTemplateSyntaxFactory1.ForLocalFunction("Y:global::System.Object?", null, false);
           if (meta.Target.Method.Name == "Method")
           {
             // Console.WriteLine( "InnerFunc called" );

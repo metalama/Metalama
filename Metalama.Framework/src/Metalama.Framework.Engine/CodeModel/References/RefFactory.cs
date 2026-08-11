@@ -71,13 +71,21 @@ namespace Metalama.Framework.Engine.CodeModel.References
         /// <summary>
         /// Creates an <see cref="IRef{T}"/> from an <see cref="IDeclarationBuilder"/>.
         /// </summary>
-        public FullRef<T> FromBuilderData<T>( DeclarationBuilderData builder, GenericContext? genericContext = null )
+        public FullRef<T> FromBuilderData<T>( DeclarationBuilderData builder, GenericContext? genericContext = null, bool? isNullable = false )
             where T : class, IDeclaration
-            => new IntroducedRef<T>( builder, this, genericContext );
+            => new IntroducedRef<T>( builder, this, genericContext, isNullable );
 
+        /// <remarks>
+        /// The nullability of an introduced named type is carried by the reference, because it is part of the type and
+        /// not of the builder, and a reference that dropped it resolved the nullable form of the type to the
+        /// non-nullable one. See issue #1840.
+        /// </remarks>
         public FullRef<T> FromIntroducedDeclaration<T>( IntroducedDeclaration introducedDeclaration )
             where T : class, IDeclaration
-            => this.FromBuilderData<T>( introducedDeclaration.BuilderData, introducedDeclaration.GenericContext );
+            => this.FromBuilderData<T>(
+                introducedDeclaration.BuilderData,
+                introducedDeclaration.GenericContext,
+                (introducedDeclaration as IntroducedNamedType)?.IsNullable ?? false );
 
         public FullRef<T> FromConstructedType<T>( ConstructedType constructedType )
             where T : class, IType

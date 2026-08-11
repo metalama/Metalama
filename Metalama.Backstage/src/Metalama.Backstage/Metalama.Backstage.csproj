@@ -34,6 +34,17 @@
     <PropertyGroup>
         <RootNamespace>Metalama.Backstage</RootNamespace>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+
+        <!-- The files under Threading/ are also compiled into Metalama.Framework.CompilerExtensions and
+             Metalama.Framework.DesignTime.Contracts, which can reference nothing. This symbol marks the copy that
+             is part of Metalama.Backstage, and therefore the only one that takes part in dependency injection. -->
+        <DefineConstants>$(DefineConstants);METALAMA_BACKSTAGE</DefineConstants>
+
+        <!-- Marks a copy of those files that can reference Metalama.Testing.Hooks, and therefore has the test
+             synchronization points. This is deliberately a separate symbol, because whether an assembly is
+             Metalama.Backstage and whether it has the hooks are two independent questions: any project that
+             compiles these files and gains a reference to Metalama.Testing.Hooks should define this one too. -->
+        <DefineConstants>$(DefineConstants);HAS_METALAMA_TESTING_HOOKS</DefineConstants>
     </PropertyGroup>
 
     <ItemGroup>

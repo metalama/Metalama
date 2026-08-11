@@ -20,12 +20,6 @@ namespace Metalama.Backstage.Infrastructure
     public interface IFileSystem : IBackstageService
     {
         /// <summary>
-        /// Gets prefix for synchronization objects (mutexes) related to objects of the current file system.
-        /// Returns <see langword="null" /> for global file system.
-        /// </summary>
-        string? SynchronizationPrefix { get; }
-
-        /// <summary>
         /// Returns the date and time the specified file was last written to.
         /// </summary>
         /// <param name="path">The file for which to obtain write date and time information.</param>
@@ -510,6 +504,30 @@ namespace Metalama.Backstage.Infrastructure
         /// <param name="contents">The string to write to the file.</param>
         /// <param name="encoding">The encoding to apply to the string.</param>
         void WriteAllText( string path, string? contents, Encoding encoding );
+
+        /// <summary>
+        /// Writes the specified string to a file in such a way that a concurrent reader observes either the whole
+        /// previous content of the file or the whole new content, but never a partially written one.
+        /// </summary>
+        /// <param name="path">The file to write to.</param>
+        /// <param name="content">The string to write to the file.</param>
+        /// <remarks>
+        /// <para>
+        /// The content is written to a temporary file next to <paramref name="path"/>, which is then substituted for
+        /// the destination in a single operation. The temporary file is created in the same directory because the
+        /// substitution requires both files to be on the same volume, and it is removed even when the operation fails.
+        /// </para>
+        /// <para>
+        /// The substitution fails while a reader holds the destination open without allowing it to be deleted, which
+        /// is a race and not a durable condition, so the whole operation is retried for a short while before the
+        /// exception is allowed to escape. A caller therefore does not need to wrap this method in a retry of its own.
+        /// </para>
+        /// <para>
+        /// This method is not a substitute for mutual exclusion between writers. It guarantees that no reader sees a
+        /// truncated file, not that two concurrent writers do not overwrite each other.
+        /// </para>
+        /// </remarks>
+        void WriteAllTextAtomically( string path, string? content );
 
         /// <summary>
         /// Opens a text file, reads all lines of the file, and then closes the file.

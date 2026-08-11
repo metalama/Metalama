@@ -685,12 +685,25 @@ public sealed partial class DesignTimeAspectPipelineResult
         // Split options by syntax tree.
         foreach ( var optionItem in pipelineResults.InheritableOptions )
         {
-            SyntaxTreePipelineResult.Builder builder;
+            SyntaxTreePipelineResult.Builder? builder;
             var syntaxTreePath = optionItem.Key.SyntaxTreePath;
 
             if ( syntaxTreePath != null )
             {
-                builder = resultBuilders[DocumentKey.FromPath( syntaxTreePath )];
+                if ( !resultBuilders.TryGetValue( DocumentKey.FromPath( syntaxTreePath ), out builder ) )
+                {
+                    // An inheritable option is not bound to the trees the pipeline ran on. It is exported for the declaration that carries the
+                    // options, which is wherever the fabric or the attribute put them, and which is generally not the file being edited. That
+                    // declaration can therefore be in a tree that is not dirty, hence not a part of the PartialCompilation. The option is skipped
+                    // instead of being filed under that tree, because the tree keeps the result of the run that did include it, and that result
+                    // already carries the option: overwriting it would drop the diagnostics and introductions it holds. This is the treatment that
+                    // issue #1768 gave the inheritable aspects above. See issue #1848.
+                    Logger.DesignTime.Trace?.Log(
+                        $"SplitResultsByTree: skipping the inheritable option of type '{optionItem.Key.OptionType}' on '{optionItem.Key.DeclarationId}' "
+                        + $"because it belongs to syntax tree '{syntaxTreePath}', which is not a part of the partial compilation." );
+
+                    continue;
+                }
             }
             else
             {
@@ -717,15 +730,25 @@ public sealed partial class DesignTimeAspectPipelineResult
 
             var syntaxTree = annotationsOnDeclaration.Key.GetPrimarySyntaxTree( compilationContext );
 
-            SyntaxTreePipelineResult.Builder builder;
+            SyntaxTreePipelineResult.Builder? builder;
 
             if ( syntaxTree == null )
             {
                 builder = emptySyntaxTreeResult ??= new SyntaxTreePipelineResult.Builder( null );
             }
-            else
+            else if ( !resultBuilders.TryGetValue( syntaxTree.GetDocumentKey(), out builder ) )
             {
-                builder = resultBuilders[syntaxTree.GetDocumentKey()];
+                // An annotation is not bound to the trees the pipeline ran on either, because an aspect annotates the declaration it is given,
+                // which is generally not in the file being edited. The annotation is skipped for the reason given for the inheritable options
+                // above: the tree keeps the result of the run that did include it, and that result already carries the annotation. See issue #1848.
+                Logger.DesignTime.Trace?.Log(
+                    $"SplitResultsByTree: skipping {exportedAnnotations.Length} annotation(s) on '{annotationsOnDeclaration.Key}' because the "
+                    + $"declaration is in syntax tree '{syntaxTree.FilePath}', which "
+                    + (compilation.Compilation.ContainsSyntaxTree( syntaxTree )
+                        ? "is a tree of this project that is not a part of the partial compilation."
+                        : "belongs to another compilation.") );
+
+                continue;
             }
 
             builder.Annotations ??= ImmutableDictionaryOfArray<SerializableDeclarationId, IAnnotation>.CreateBuilder();

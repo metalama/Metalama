@@ -1,7 +1,7 @@
 [IntroducedTypeDependencyAspect]
 public class TargetClass
 {
-  public TargetClass([AspectGenerated] TargetClassCompanion targetClassCompanion = default !)
+  public TargetClass([AspectGenerated] TargetClassCompanion? targetClassCompanion = default)
   {
     this._targetClassCompanion = targetClassCompanion;
   }

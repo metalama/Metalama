@@ -71,7 +71,10 @@ internal partial class DeclarationEqualityComparer
 
         private bool HasIdentityOrImplicitReferenceConversion( IType left, IType right )
         {
-            if ( Comparer.Equals( left, right ) )
+            // The identity leg of the conversion is the identity conversion of the language, not the equality of the
+            // comparer: the names of the elements of a tuple and the nullability of a reference type do not take part.
+            // See issues #1844 and #1846.
+            if ( HasIdentityConversionWithoutSymbols( left, right ) )
             {
                 return true;
             }

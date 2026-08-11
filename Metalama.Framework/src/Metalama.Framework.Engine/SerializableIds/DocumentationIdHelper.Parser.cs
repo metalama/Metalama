@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Code;
-using Metalama.Framework.Code.Comparers;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Collections;
 using Metalama.Framework.Engine.Utilities;
@@ -674,7 +673,12 @@ internal static partial class DocumentationIdHelper
                             var memberReturnType = member.DeclarationKind == DeclarationKind.Method && member is IMethod method2 ? method2.ReturnType : null;
 
                             // if return type is specified, then it must match
-                            if ( returnType != null && returnType.Equals( memberReturnType, TypeComparison.Default ) )
+                            if ( returnType != null
+                                 && memberReturnType != null
+                                 && returnType.Compilation.Comparers.Default.IsConvertibleTo(
+                                     returnType,
+                                     memberReturnType,
+                                     ConversionKind.Identical ) )
                             {
                                 // return type matches
                                 results.Add( member );
@@ -852,7 +856,10 @@ internal static partial class DocumentationIdHelper
                 return false;
             }
 
-            return parameter.Type.Equals( parameterInfo.Type, TypeComparison.Default );
+            // A documentation identifier renders a tuple as the ValueTuple it is and cannot express the names of its
+            // elements, so the parameter is matched by the identity conversion of the language, which does not take
+            // them into account, rather than by equality, which does. See issue #1844.
+            return parameter.Type.Compilation.Comparers.Default.IsConvertibleTo( parameter.Type, parameterInfo.Type, ConversionKind.Identical );
         }
 
         private static ITypeParameter? GetNthTypeParameter( INamedType type, int n )
