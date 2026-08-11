@@ -49,8 +49,12 @@ public sealed class KindCheckOptimizationAnalyzerTests
         var parseOptions = new CSharpParseOptions( LanguageVersion.CSharp12 );
         var syntaxTree = CSharpSyntaxTree.ParseText( code, parseOptions );
 
+        // The analyzer examines only the assemblies of the product, which it recognizes by the prefix of their name,
+        // so the compilation of a test has to carry such a name as well. A name that the analyzer does not recognize
+        // disables it, which makes every test that expects a diagnostic fail and every test that expects none pass
+        // without exercising anything.
         var compilation = CSharpCompilation.Create(
-            "TestAssembly",
+            "Metalama.Framework.TestAssembly",
             new[] { syntaxTree },
             _references,
             new CSharpCompilationOptions( OutputKind.DynamicallyLinkedLibrary ) );
