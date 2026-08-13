@@ -92,6 +92,73 @@ public sealed class AspectSourceOutsidePartialCompilationTests : DesignTimePipel
         Assert.True( factory.TryExecute( testContext.ProjectOptions, compilation2, default, out _ ) );
     }
 
+    [Fact]
+    public void OnlyTheUnresolvedAspectInstanceIsSkipped()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var code = new Dictionary<string, string>
+        {
+            ["aspect.cs"] =
+                """
+                using Metalama.Framework.Aspects;
+
+                public class MyAspect : TypeAspect
+                {
+                    [Introduce]
+                    public void IntroducedMethod() { }
+                }
+                """,
+
+            // The query returns both the type it selected in the current compilation and the type the fabric
+            // captured in the compilation of the first run.
+            ["fabric.cs"] =
+                """
+                using System.Linq;
+                using Metalama.Framework.Aspects;
+                using Metalama.Framework.Code;
+                using Metalama.Framework.Fabrics;
+
+                internal class Fabric : ProjectFabric
+                {
+                    private INamedType? _capturedType;
+
+                    public override void AmendProject( IProjectAmender amender )
+                    {
+                        amender.SelectMany( c => c.Types )
+                            .Where( t => t.Name == "OtherClass" )
+                            .SelectMany(
+                                t =>
+                                {
+                                    this._capturedType ??= t.Compilation.Types.Single( x => x.Name == "TargetClass" );
+
+                                    return new[] { t, this._capturedType };
+                                } )
+                            .AddAspect<MyAspect>();
+                    }
+                }
+                """,
+            ["target.cs"] = "public partial class TargetClass { }",
+            ["other.cs"] = "public partial class OtherClass { }"
+        };
+
+        var compilation = testContext.CreateCSharpCompilation( code );
+
+        using TestDesignTimeAspectPipelineFactory factory = new( testContext );
+
+        Assert.True( factory.TryExecute( testContext.ProjectOptions, compilation, default, out var results1 ) );
+        Assert.Contains( "IntroducedMethod", DumpResults( results1 ), System.StringComparison.Ordinal );
+
+        var compilation2 = ReplaceFile( compilation, "target.cs", "public partial class SomethingElse { }" );
+        compilation2 = ReplaceFile( compilation2, "other.cs", "public partial class OtherClass { public int More() => 42; }" );
+
+        Assert.True( factory.TryExecute( testContext.ProjectOptions, compilation2, default, out var results2 ) );
+
+        // The aspect instance of the captured type is skipped, but the aspect instance of the type that resolves
+        // is still applied.
+        Assert.Contains( "IntroducedMethod", DumpResults( results2 ), System.StringComparison.Ordinal );
+    }
+
     private static CSharpCompilation ReplaceFile( CSharpCompilation compilation, string path, string newCode )
     {
         var originalTree = compilation.SyntaxTrees.Single( t => t.FilePath == path );

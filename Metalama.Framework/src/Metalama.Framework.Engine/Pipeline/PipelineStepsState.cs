@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Backstage.Diagnostics;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Collections;
@@ -16,6 +17,7 @@ using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.HierarchicalOptions;
 using Metalama.Framework.Engine.Introspection;
 using Metalama.Framework.Engine.Options;
+using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Microsoft.CodeAnalysis;
@@ -46,6 +48,7 @@ internal sealed class PipelineStepsState
     private readonly IntrospectionPipelineListener? _introspectionListener;
     private readonly bool _shouldDetectUnorderedAspects;
     private readonly IConcurrentTaskRunner _concurrentTaskRunner;
+    private readonly ILogger _logger;
 
     private PipelineStep? _currentStep;
 
@@ -67,6 +70,7 @@ internal sealed class PipelineStepsState
         this._concurrentTaskRunner = pipelineConfiguration.ServiceProvider.GetRequiredService<IConcurrentTaskRunner>();
         this._introspectionListener = pipelineConfiguration.ServiceProvider.GetService<IntrospectionPipelineListener>();
         this._shouldDetectUnorderedAspects = pipelineConfiguration.ServiceProvider.GetRequiredService<IProjectOptions>().RequireOrderedAspects;
+        this._logger = pipelineConfiguration.ServiceProvider.GetLoggerFactory().GetLogger( nameof(PipelineStepsState) );
 
         this.Diagnostics = new UserDiagnosticSink( pipelineConfiguration.ServiceProvider );
         this.LastCompilation = this.FirstCompilation = inputLastCompilation;
@@ -262,7 +266,26 @@ internal sealed class PipelineStepsState
             .SelectAsReadOnlyCollection(
                 x =>
                 {
-                    var target = (IDeclarationImpl) x.TargetDeclaration.GetTarget( compilation );
+                    // An aspect source can return an aspect instance whose target declaration belongs to another
+                    // compilation and does not resolve in the current one. The design-time pipeline reuses the pipeline
+                    // configuration across the versions of the project, so an aspect source that belongs to the
+                    // configuration outlives the compilation in which it was created, and an edit of the user can
+                    // remove the declaration it refers to. Skipping the instance is the only meaningful answer,
+                    // because the declaration is not in the current compilation and there is nothing to apply the
+                    // aspect to. See issue #1856.
+                    var target = (IDeclarationImpl?) x.TargetDeclaration.GetTargetOrNull( compilation );
+
+                    if ( target == null )
+                    {
+                        this._logger.Warning?.Log(
+                            $"The target declaration '{x.TargetDeclaration}' of an instance of the aspect '{aspectClass.ShortName}' "
+                            + "does not resolve in the current compilation. The aspect instance is skipped." );
+
+                        // We mark the instance as Skipped so that it is not included in licensing enforcement.
+                        x.Skip();
+
+                        return default;
+                    }
 
                     if ( !x.Predecessors.IsDefaultOrEmpty && x.Predecessors[0].Kind != AspectPredecessorKind.Attribute && IsExcluded( target ) )
                     {
