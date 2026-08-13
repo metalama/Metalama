@@ -6,6 +6,7 @@
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/metalama/Metalama/badge)](https://scorecard.dev/viewer/?uri=github.com/metalama/Metalama)
 [![NuGet Downloads](https://img.shields.io/nuget/dt/Metalama.Compiler)](https://www.nuget.org/packages?q=Metalama&includeComputedFrameworks=true&prerel=true&sortby=totalDownloads-desc)
 [![GitHub Release](https://img.shields.io/github/v/release/metalama/Metalama)](https://github.com/metalama/Metalama/releases)
+[![Discord](https://img.shields.io/badge/Discord-Join%20the%20chat-5865F2?logo=discord&logoColor=white)](https://postsharp.net/discord)
 
 
 **Metalama is an open-source patterns & architecture toolkit for C#.**
