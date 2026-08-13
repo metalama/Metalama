@@ -13,6 +13,9 @@
 
 Define your team's patterns once: the compiler writes the repetitive parts at build time and enforces your rules as you type.
 
+> [!TIP]
+> **Using an AI coding assistant or agent?** Install [Metalama.AI.Skills](https://github.com/metalama/Metalama.AI.Skills) so it generates correct aspects, fabrics, and architecture rules from the real API instead of inferring it from training data.
+
 ## Why Metalama?
 
 - **Write the pattern once, apply it everywhere**: Aspects generate the repetitive code at compile time; the boilerplate never lands in the repo, so it never needs review or maintenance.
