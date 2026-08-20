@@ -4,6 +4,7 @@
 
 using JetBrains.Annotations;
 using Metalama.Backstage.Diagnostics;
+using Metalama.Backstage.Infrastructure;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -159,15 +160,17 @@ public static class ProcessUtilities
     }
 
     /// <summary>
-    /// Gets the name of the environment variable that identifies a continuous integration server, or <c>null</c> if
-    /// no such variable is set.
+    /// Determines whether one of the environment variables of a continuous integration server is set.
     /// </summary>
-    /// <param name="getEnvironmentVariable">Reads an environment variable of the current process.</param>
-    internal static string? GetContinuousIntegrationVariable( Func<string, string?> getEnvironmentVariable )
+    /// <param name="environmentVariableProvider">Reads the environment variables, or <c>null</c> to read the
+    /// environment variables of the current process.</param>
+    internal static bool HasContinuousIntegrationEnvironmentVariable( IEnvironmentVariableProvider? environmentVariableProvider = null )
     {
+        environmentVariableProvider ??= new EnvironmentVariableProvider();
+
         foreach ( var variable in _continuousIntegrationVariables )
         {
-            var value = getEnvironmentVariable( variable );
+            var value = environmentVariableProvider.GetEnvironmentVariable( variable );
 
             // A tool that wants to deny the condition sets the variable to a negative value instead of removing it,
             // so a negative value counts as an absent variable.
@@ -175,11 +178,11 @@ public static class ProcessUtilities
                  && !string.Equals( value, "false", StringComparison.OrdinalIgnoreCase )
                  && !string.Equals( value, "0", StringComparison.Ordinal ) )
             {
-                return variable;
+                return true;
             }
         }
 
-        return null;
+        return false;
     }
 
     private static bool IsCurrentProcessUnattendedCore( ILoggerFactory loggerFactory )
@@ -197,11 +200,9 @@ public static class ProcessUtilities
         // whereas the chain of parent processes examined below is not always available: MSBuild reuses its worker
         // nodes across invocations, and a reused node is reparented to the init process when the invocation that
         // started it ends. See issue #1859.
-        var continuousIntegrationVariable = GetContinuousIntegrationVariable( Environment.GetEnvironmentVariable );
-
-        if ( continuousIntegrationVariable != null )
+        if ( HasContinuousIntegrationEnvironmentVariable() )
         {
-            logger.Trace?.Log( $"Unattended mode detected because the environment variable '{continuousIntegrationVariable}' is set." );
+            logger.Trace?.Log( "Unattended mode detected because an environment variable of a continuous integration server is set." );
 
             return true;
         }

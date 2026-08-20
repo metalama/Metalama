@@ -3,10 +3,9 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Backstage.Diagnostics;
+using Metalama.Backstage.Infrastructure;
 using Metalama.Backstage.Testing;
 using Metalama.Backstage.Utilities;
-using System;
-using System.Collections.Generic;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -48,7 +47,7 @@ public sealed class ProcessUtilitiesTests : TestsBase
     [InlineData( "bamboo_buildKey", "PROJ-PLAN-JOB1" )]
     [InlineData( "GO_PIPELINE_NAME", "my-pipeline" )]
     public void ContinuousIntegrationIsDetectedFromEnvironmentVariable( string variable, string value )
-        => Assert.Equal( variable, ProcessUtilities.GetContinuousIntegrationVariable( GetVariable( (variable, value) ) ) );
+        => Assert.True( ProcessUtilities.HasContinuousIntegrationEnvironmentVariable( GetEnvironment( (variable, value) ) ) );
 
     [Theory]
     [InlineData( "" )]
@@ -57,21 +56,24 @@ public sealed class ProcessUtilitiesTests : TestsBase
     [InlineData( "False" )]
     [InlineData( "0" )]
     public void ContinuousIntegrationIsNotDetectedFromNegativeEnvironmentVariable( string value )
-        => Assert.Null( ProcessUtilities.GetContinuousIntegrationVariable( GetVariable( ("CI", value) ) ) );
+        => Assert.False( ProcessUtilities.HasContinuousIntegrationEnvironmentVariable( GetEnvironment( ("CI", value) ) ) );
 
     [Fact]
     public void ContinuousIntegrationIsNotDetectedWithoutEnvironmentVariable()
-        => Assert.Null( ProcessUtilities.GetContinuousIntegrationVariable( GetVariable() ) );
+        => Assert.False( ProcessUtilities.HasContinuousIntegrationEnvironmentVariable( GetEnvironment() ) );
 
-    private static Func<string, string?> GetVariable( params (string Name, string Value)[] variables )
+    /// <summary>
+    /// Creates an <see cref="IEnvironmentVariableProvider"/> that exposes the given variables and nothing else.
+    /// </summary>
+    private static IEnvironmentVariableProvider GetEnvironment( params (string Name, string Value)[] variables )
     {
-        var dictionary = new Dictionary<string, string>( StringComparer.Ordinal );
+        var provider = new TestEnvironmentVariableProvider();
 
         foreach ( var variable in variables )
         {
-            dictionary.Add( variable.Name, variable.Value );
+            provider.Environment.Add( variable.Name, variable.Value );
         }
 
-        return name => dictionary.TryGetValue( name, out var value ) ? value : null;
+        return provider;
     }
 }
