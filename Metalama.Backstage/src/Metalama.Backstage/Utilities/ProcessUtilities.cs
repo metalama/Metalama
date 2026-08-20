@@ -19,19 +19,6 @@ public static class ProcessUtilities
     private static readonly bool _isCurrentProcessUnattended;
     private static readonly BufferingLoggerFactory _isCurrentProcessUnattendedLog = new();
 
-    /// <summary>
-    /// Environment variables that a continuous integration server sets for every process of a build.
-    /// </summary>
-    private static readonly string[] _continuousIntegrationVariables =
-    [
-        "CI",               // GitHub Actions, GitLab CI, CircleCI, Travis CI, AppVeyor, Buildkite, Bitbucket Pipelines, Woodpecker
-        "TF_BUILD",         // Azure Pipelines
-        "TEAMCITY_VERSION", // TeamCity
-        "JENKINS_URL",      // Jenkins
-        "bamboo_buildKey",  // Atlassian Bamboo
-        "GO_PIPELINE_NAME"  // GoCD
-    ];
-
     static ProcessUtilities()
     {
         // It is critical to perform this detection early when the process is started, and to remember the result,
@@ -159,32 +146,6 @@ public static class ProcessUtilities
         return _isCurrentProcessUnattended;
     }
 
-    /// <summary>
-    /// Determines whether one of the environment variables of a continuous integration server is set.
-    /// </summary>
-    /// <param name="environmentVariableProvider">Reads the environment variables, or <c>null</c> to read the
-    /// environment variables of the current process.</param>
-    internal static bool HasContinuousIntegrationEnvironmentVariable( IEnvironmentVariableProvider? environmentVariableProvider = null )
-    {
-        environmentVariableProvider ??= new EnvironmentVariableProvider();
-
-        foreach ( var variable in _continuousIntegrationVariables )
-        {
-            var value = environmentVariableProvider.GetEnvironmentVariable( variable );
-
-            // A tool that wants to deny the condition sets the variable to a negative value instead of removing it,
-            // so a negative value counts as an absent variable.
-            if ( !string.IsNullOrWhiteSpace( value )
-                 && !string.Equals( value, "false", StringComparison.OrdinalIgnoreCase )
-                 && !string.Equals( value, "0", StringComparison.Ordinal ) )
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     private static bool IsCurrentProcessUnattendedCore( ILoggerFactory loggerFactory )
     {
         var logger = loggerFactory.GetLogger( nameof(ProcessUtilities) );
@@ -195,31 +156,6 @@ public static class ProcessUtilities
 
             return true;
         }
-
-        // The environment variables of a continuous integration server are inherited by every process of the build,
-        // whereas the chain of parent processes examined below is not always available: MSBuild reuses its worker
-        // nodes across invocations, and a reused node is reparented to the init process when the invocation that
-        // started it ends. See issue #1859.
-        if ( HasContinuousIntegrationEnvironmentVariable() )
-        {
-            logger.Trace?.Log( "Unattended mode detected because an environment variable of a continuous integration server is set." );
-
-            return true;
-        }
-
-        // Check the parent processes.
-        var unattendedProcesses = new HashSet<string>
-        {
-            "services",
-            "java",               // TeamCity, Atlassian Bamboo (can also be "bamboo"), Jenkins, GoCD
-            "bamboo",             // Atlassian Bamboo
-            "agent.worker",       // Azure Pipelines
-            "runner.worker",      // GitHub Actions
-            "buildkite-agent",    // BuildKite
-            "circleci-agent",     // CircleCI (Docker, but has specific process name)
-            "agent",              // Semaphore CI (Linux)
-            "sshd: travis [priv]" // Travis CI (Linux)
-        };
 
         if ( RuntimeInformation.IsOSPlatform( OSPlatform.Linux ) )
         {
@@ -240,16 +176,26 @@ public static class ProcessUtilities
             }
         }
 
-        var notUnattendedProcesses = new HashSet<string>
+        // Processes that have no user interface and are not the agent of a continuous integration server. A
+        // continuous integration server is recognized by ContinuousIntegrationDetector below, which requires an
+        // environment variable in addition to the process.
+        var unattendedProcesses = new HashSet<string>( StringComparer.OrdinalIgnoreCase ) { "services" };
+
+        var notUnattendedProcesses = new HashSet<string>( StringComparer.OrdinalIgnoreCase )
         {
             "rider" // Rider needs to be checked, because it can have Java as its parent process.
         };
+
+        // The search of the parent processes stops at one of these processes, so that it does not walk the chain
+        // further than necessary.
+        var pivots = new HashSet<string>( unattendedProcesses, StringComparer.OrdinalIgnoreCase );
+        pivots.UnionWith( ContinuousIntegrationDetector.AgentProcessNames );
 
         IReadOnlyList<ProcessInfo> parentProcesses;
 
         try
         {
-            parentProcesses = GetParentProcesses( logger, unattendedProcesses );
+            parentProcesses = GetParentProcesses( logger, pivots );
         }
         catch ( Exception e )
         {
@@ -293,6 +239,16 @@ public static class ProcessUtilities
         if ( unattendedProcessName != null )
         {
             logger.Trace?.Log( $"Unattended mode detected because of parent process '{unattendedProcessName}'." );
+
+            return true;
+        }
+
+        var continuousIntegrationContext = new ContinuousIntegrationContext( new EnvironmentVariableProvider(), () => parentProcessNames, logger );
+        var continuousIntegrationServerName = ContinuousIntegrationDetector.GetServerName( continuousIntegrationContext );
+
+        if ( continuousIntegrationServerName != null )
+        {
+            logger.Trace?.Log( $"Unattended mode detected because the current process runs on {continuousIntegrationServerName}." );
 
             return true;
         }
