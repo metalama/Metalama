@@ -77,7 +77,20 @@ namespace Metalama.Backstage.Testing
 
         protected TestRuntimeInformation RuntimeInformation => this._defaultTestContext.Value.RuntimeInformation;
 
-        protected virtual LicensingAuthority LicensingAuthority { get; } = LicensingAuthority.GetTestAuthority();
+        /// <summary>
+        /// Gets the licensing authority provider registered in the service provider of the current test.
+        /// </summary>
+        protected ILicensingAuthorityProvider LicensingAuthorityProvider
+            => this.ServiceProvider.GetRequiredBackstageService<ILicensingAuthorityProvider>();
+
+        /// <summary>
+        /// Creates the licensing authority provider registered in the service provider of the current test. The
+        /// default implementation returns a provider of the test key, which signs and verifies a test license key.
+        /// </summary>
+        /// <param name="serviceProvider">The service provider under construction.</param>
+        /// <returns>The licensing authority provider of the current test.</returns>
+        protected virtual ILicensingAuthorityProvider CreateLicensingAuthorityProvider( IServiceProvider serviceProvider )
+            => new TestLicensingAuthorityProvider( serviceProvider );
 
         private TestFileSystem? _uniqueFileSystem;
 
@@ -263,7 +276,7 @@ namespace Metalama.Backstage.Testing
                 .AddSingleton<ITelemetryUploader>( serviceProvider => new TelemetryUploader( serviceProvider ) )
                 .AddSingleton<TelemetryLogger>( serviceProvider => new TelemetryLogger( serviceProvider ) )
                 .AddSingleton<IRssClient>( serviceProvider => new RssClient( serviceProvider ) )
-                .AddSingleton( this.LicensingAuthority );
+                .AddSingleton<ILicensingAuthorityProvider>( this.CreateLicensingAuthorityProvider );
 
             if ( options.OpenWelcomePage )
             {

@@ -186,8 +186,10 @@ public static class RegisterServiceExtensions
         LicensingInitializationOptions options,
         IApplicationInfo applicationInfo )
     {
-        var authority = options.UseTestAuthority ? LicensingAuthority.GetTestAuthority() : LicensingAuthority.GetProductionAuthority();
-        serviceProviderBuilder.AddSingleton( authority );
+        serviceProviderBuilder.AddSingleton<ILicensingAuthorityProvider>(
+            serviceProvider => options.UseTestAuthority
+                ? new TestLicensingAuthorityProvider( serviceProvider )
+                : new ProductionLicensingAuthorityProvider( serviceProvider ) );
 
         if ( applicationInfo.IsLicenseAuditEnabled )
         {
