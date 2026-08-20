@@ -24,7 +24,7 @@ public sealed class ExplicitLicensingAuthorityProvider : LicensingAuthorityProvi
     /// Initializes a new instance of the <see cref="ExplicitLicensingAuthorityProvider"/> class.
     /// </summary>
     /// <param name="keys">The identifier and the XML representation of each key of the new provider.</param>
-    public ExplicitLicensingAuthorityProvider( params IEnumerable<(int Id, string Key)> keys )
+    public ExplicitLicensingAuthorityProvider( params (int Id, string Key)[] keys )
         : this( keys.ToDictionary( x => checked((byte) x.Id), x => x.Key ) ) { }
 
     private ExplicitLicensingAuthorityProvider( IReadOnlyDictionary<byte, string> keys ) : base( null, keys.Keys )
