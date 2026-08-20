@@ -269,7 +269,7 @@ internal sealed class PipelineStepsState
                     // An aspect source can return an aspect instance whose target declaration belongs to another
                     // compilation and does not resolve in the current one. The design-time pipeline reuses the pipeline
                     // configuration across the versions of the project, so an aspect source that belongs to the
-                    // configuration outlives the compilation in which it was created, and an edit of the user can
+                    // configuration outlives the compilation in which it was created, and an edit by the user can
                     // remove the declaration it refers to. Skipping the instance is the only meaningful answer,
                     // because the declaration is not in the current compilation and there is nothing to apply the
                     // aspect to. See issue #1856.
@@ -281,7 +281,8 @@ internal sealed class PipelineStepsState
                             $"The target declaration '{x.TargetDeclaration}' of an instance of the aspect '{aspectClass.ShortName}' "
                             + "does not resolve in the current compilation. The aspect instance is skipped." );
 
-                        // We mark the instance as Skipped so that it is not included in licensing enforcement.
+                        // We mark the instance as skipped so that the aspect driver does not execute it and the
+                        // introspection API does not report the aspect as applied.
                         x.Skip();
 
                         return default;
@@ -289,7 +290,8 @@ internal sealed class PipelineStepsState
 
                     if ( !x.Predecessors.IsDefaultOrEmpty && x.Predecessors[0].Kind != AspectPredecessorKind.Attribute && IsExcluded( target ) )
                     {
-                        // We mark the instance as Skipped so that it is not included in licensing enforcement.
+                        // We mark the instance as skipped so that the aspect driver does not execute it and the
+                        // introspection API does not report the aspect as applied.
                         x.Skip();
 
                         return default;
@@ -342,7 +344,8 @@ internal sealed class PipelineStepsState
             }
             else
             {
-                // We mark the instance as Skipped so that it is not included in licensing enforcement.
+                // We mark the instance as skipped so that the aspect driver does not execute it and the introspection
+                // API does not report the aspect as applied.
                 aspectInstance.AspectInstance.Skip();
             }
         }
