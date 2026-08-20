@@ -281,8 +281,7 @@ internal sealed class PipelineStepsState
                             $"The target declaration '{x.TargetDeclaration}' of an instance of the aspect '{aspectClass.ShortName}' "
                             + "does not resolve in the current compilation. The aspect instance is skipped." );
 
-                        // We mark the instance as skipped so that the aspect driver does not execute it and the
-                        // introspection API does not report the aspect as applied.
+                        // We mark the instance as skipped so that the aspect is not reported as applied.
                         x.Skip();
 
                         return default;
@@ -290,8 +289,7 @@ internal sealed class PipelineStepsState
 
                     if ( !x.Predecessors.IsDefaultOrEmpty && x.Predecessors[0].Kind != AspectPredecessorKind.Attribute && IsExcluded( target ) )
                     {
-                        // We mark the instance as skipped so that the aspect driver does not execute it and the
-                        // introspection API does not report the aspect as applied.
+                        // We mark the instance as skipped so that the aspect is not reported as applied.
                         x.Skip();
 
                         return default;
@@ -344,8 +342,7 @@ internal sealed class PipelineStepsState
             }
             else
             {
-                // We mark the instance as skipped so that the aspect driver does not execute it and the introspection
-                // API does not report the aspect as applied.
+                // We mark the instance as skipped so that the aspect is not reported as applied.
                 aspectInstance.AspectInstance.Skip();
             }
         }
