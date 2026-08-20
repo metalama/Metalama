@@ -4,6 +4,7 @@
 
 using Metalama.Backstage.Licensing.Consumption;
 using Metalama.Backstage.Licensing.Licenses;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Xunit;
@@ -15,15 +16,16 @@ public sealed class LegacyLicenseKeyTests : LicensingTestsBase
 {
     public LegacyLicenseKeyTests( ITestOutputHelper logger ) : base( logger ) { }
 
-    protected override LicensingAuthority LicensingAuthority => LicensingAuthority.GetProductionAuthority();
+    protected override ILicensingAuthorityProvider CreateLicensingAuthorityProvider( IServiceProvider serviceProvider )
+        => new ProductionLicensingAuthorityProvider( serviceProvider );
 
     [Theory]
     [MemberData( nameof(GetLicenseKeys) )]
     public void CanReadRealLicenseKey( string licenseKey )
     {
-        var authority = LicensingAuthority.GetProductionAuthority();
+        var authorityProvider = new ProductionLicensingAuthorityProvider();
         Assert.True( LicenseKeyData.TryDeserialize( licenseKey, out var licenseKeyData, out _ ), "Cannot parse." );
-        Assert.True( licenseKeyData.VerifySignature( authority ), "Invalid signature." );
+        Assert.True( licenseKeyData.VerifySignature( authorityProvider ), "Invalid signature." );
     }
 
     [Theory]

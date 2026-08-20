@@ -10,7 +10,7 @@ namespace PostSharp.LicenseKeyGenerator
 {
     internal sealed partial class MainForm : Form
     {
-        private readonly LicensingAuthority _authority;
+        private readonly ExplicitLicensingAuthorityProvider _authorityProvider;
 
         public MainForm()
         {
@@ -22,20 +22,20 @@ namespace PostSharp.LicenseKeyGenerator
             const string keyVaultUri = "https://postsharpbusinesssystkv.vault.azure.net/";
             var client = new SecretClient( new Uri( keyVaultUri ), new DefaultAzureCredential() );
             var privateKey0 = client.GetSecret( "Licensing-PrivateKey0" ).Value.Value;
-            this._authority = new LicensingAuthority( (0, privateKey0) );
+            this._authorityProvider = new ExplicitLicensingAuthorityProvider( (0, privateKey0) );
         }
 
         private void OnSerializedButtonClicked( object sender, EventArgs e )
         {
             var licenseKeyBuilder = (LicenseKeyDataBuilder) this._propertyGrid.SelectedObject;
-            var licenseKey = licenseKeyBuilder.SignAndSerialize( this._authority );
+            var licenseKey = licenseKeyBuilder.SignAndSerialize( this._authorityProvider.GetAuthority( 0 ) );
 
             if ( !LicenseKeyData.TryDeserialize( licenseKey, out var deserializedLicenseKeyData, out var errorMessage ) )
             {
                 throw new InvalidOperationException( errorMessage );
             }
 
-            if ( !deserializedLicenseKeyData.VerifySignature( this._authority ) )
+            if ( !deserializedLicenseKeyData.VerifySignature( this._authorityProvider ) )
             {
                 throw new InvalidOperationException( "Failed to verify license signature." );
             }
