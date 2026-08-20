@@ -22,7 +22,7 @@ namespace Metalama.Backstage.Licensing.Licenses
         private readonly string _licenseKey;
 
         private readonly IDateTimeProvider _dateTimeProvider;
-        private readonly LicensingAuthority _licensingAuthority;
+        private readonly ILicensingAuthorityProvider _licensingAuthorityProvider;
         private readonly IApplicationInfo _applicationInfo;
 
         /// <summary>
@@ -34,7 +34,7 @@ namespace Metalama.Backstage.Licensing.Licenses
         {
             this._licenseKey = CleanLicenseKey( licenseKey );
             this._dateTimeProvider = services.GetRequiredBackstageService<IDateTimeProvider>();
-            this._licensingAuthority = services.GetRequiredBackstageService<LicensingAuthority>();
+            this._licensingAuthorityProvider = services.GetRequiredBackstageService<ILicensingAuthorityProvider>();
             this._applicationInfo = services.GetRequiredBackstageService<IApplicationInfoProvider>().CurrentApplication;
         }
 
@@ -105,7 +105,7 @@ namespace Metalama.Backstage.Licensing.Licenses
                 return false;
             }
 
-            if ( licenseKeyData.RequiresSignature() && !licenseKeyData.VerifySignature( this._licensingAuthority ) )
+            if ( licenseKeyData.RequiresSignature() && !licenseKeyData.VerifySignature( this._licensingAuthorityProvider ) )
             {
                 errorMessage = "the license key has an invalid signature";
 
@@ -249,7 +249,7 @@ namespace Metalama.Backstage.Licensing.Licenses
                 return false;
             }
 
-            if ( licenseKeyData.RequiresSignature() && !licenseKeyData.VerifySignature( this._licensingAuthority ) )
+            if ( licenseKeyData.RequiresSignature() && !licenseKeyData.VerifySignature( this._licensingAuthorityProvider ) )
             {
                 errorMessage = $"The license key {licenseKeyData.LicenseUniqueId} has an invalid signature.";
                 this.Logger.Warning?.Log( errorMessage );

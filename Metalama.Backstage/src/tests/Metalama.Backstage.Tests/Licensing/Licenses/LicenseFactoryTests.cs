@@ -106,7 +106,7 @@ namespace Metalama.Backstage.Tests.Licensing.Licenses
         {
             var licenseKey = new LicenseKeyDataBuilder
             {
-                Product = LicenseProduct.MetalamaProfessional, Signature = new byte[16], SignatureKeyId = this.LicensingAuthority.KeyIds.Single()
+                Product = LicenseProduct.MetalamaProfessional, Signature = new byte[16], SignatureKeyId = this.LicensingAuthorityProvider.KeyIds.Single()
             }.SerializeToLicenseString();
 
             Assert.True( this.LicenseFactory.TryCreate( licenseKey, out var license, out var errorMessage ) );

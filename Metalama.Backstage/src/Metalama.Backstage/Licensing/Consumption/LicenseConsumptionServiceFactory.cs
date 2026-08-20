@@ -31,7 +31,7 @@ internal static class LicenseConsumptionServiceFactory
         {
             var licenseBuilder = new LicenseKeyDataBuilder();
             options.BuildTestLicenseAction( licenseBuilder );
-            var licenseKey = licenseBuilder.SignAndSerialize( LicensingAuthority.GetTestAuthority() );
+            var licenseKey = licenseBuilder.SignAndSerialize( TestLicensingAuthorityProvider.TestAuthority );
             licenseSources.Add( new ExplicitLicenseSource( licenseKey, LicenseSourceKind.Test, serviceProvider ) );
         }
 
