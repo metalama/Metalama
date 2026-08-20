@@ -4,6 +4,8 @@
 
 using Metalama.Backstage.Licensing.Consumption;
 using Metalama.Backstage.Licensing.Consumption.Sources;
+using System;
+using System.Collections.Generic;
 using System.Linq;
 using Xunit;
 using Xunit.Abstractions;
@@ -30,7 +32,7 @@ namespace Metalama.Backstage.Tests.Licensing.LicenseSources
         }
 
         /// <summary>
-        /// Verifies that a malformed license string is reported as an invalid license instead of throwing. A
+        /// Verifies that a malformed license string is reported as an invalid license key instead of throwing. A
         /// continuous integration build usually reads the license string from a secret, so a mistyped value is a
         /// likely mistake and must be reported as such. See issue #1859.
         /// </summary>
@@ -39,14 +41,14 @@ namespace Metalama.Backstage.Tests.Licensing.LicenseSources
         {
             ExplicitLicenseSource source = new( "NOT-A-REAL-KEY", LicenseSourceKind.Test, this.ServiceProvider );
 
-            var license = source.GetLicenses( _ => { } ).Single();
-            Assert.NotNull( license );
+            var messages = new List<LicensingMessage>();
+            var licenses = source.GetLicenses( messages.Add ).ToList();
 
-            var dataParsed = license.TryGetConsumptionProperties( LicenseConsumptionOptions.Default, out var data, out var errorMessage );
-            Assert.False( dataParsed );
-            Assert.Null( data );
-            Assert.NotNull( errorMessage );
-            Assert.NotEmpty( errorMessage );
+            Assert.Empty( licenses );
+
+            var message = Assert.Single( messages );
+            Assert.False( message.IsError );
+            Assert.Contains( "is invalid", message.Text, StringComparison.Ordinal );
         }
     }
 }
