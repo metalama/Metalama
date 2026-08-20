@@ -22,7 +22,7 @@ public sealed class LicensingAuthority : IBackstageService
 {
     // Sharing DSA instances and locking is much faster than having several instances of the DSA object
     // for the same key.
-    private static readonly Lazy<LicensingAuthority> _testAuthority = new( () => new LicensingAuthority( (255, DSA.Create()) ) );
+    private static readonly Lazy<LicensingAuthority> _testAuthority = new( () => new LicensingAuthority( (255, () => DSA.Create()) ) );
 
     private static readonly Lazy<LicensingAuthority> _productionAuthority = new(
         () => new LicensingAuthority(
@@ -33,19 +33,67 @@ public sealed class LicensingAuthority : IBackstageService
 
     private static readonly SHA1 _sha1 = SHA1.Create();
 
-    private readonly Dictionary<byte, DSA> _keys;
+    private readonly IReadOnlyDictionary<byte, Func<DSA>> _keyFactories;
 
-    private LicensingAuthority( params (int Id, DSA Key)[] keys )
-    {
-        this._keys = keys.ToDictionary( x => checked((byte) x.Id), x => x.Key );
-    }
+    /// <summary>
+    /// The keys of the current authority, each of them instantiated on first use.
+    /// </summary>
+    /// <remarks>
+    /// A key is instantiated on first use and not in the constructor, because the constructor runs while the licensing
+    /// services are registered, whereas an unsigned license requires no signature verification and therefore no key at
+    /// all. Finite field DSA is not available on macOS since .NET 11, where instantiating a key throws
+    /// <see cref="PlatformNotSupportedException"/>.
+    /// </remarks>
+    private readonly Dictionary<byte, Lazy<DSA>> _keys;
+
+    private readonly Action? _keyInstantiationObserver;
+
+    private LicensingAuthority( params (int Id, Func<DSA> KeyFactory)[] keys )
+        : this( keys.ToDictionary( x => checked((byte) x.Id), x => x.KeyFactory ), null ) { }
 
     public LicensingAuthority( params IEnumerable<(int Id, string Key)> keys )
+        : this(
+            keys.ToDictionary(
+                x => checked((byte) x.Id),
+                x => (Func<DSA>) (() => CryptographyHelper.CreateDsaFromXml( x.Key )) ),
+            null ) { }
+
+    private LicensingAuthority( IReadOnlyDictionary<byte, Func<DSA>> keyFactories, Action? keyInstantiationObserver )
     {
-        this._keys = keys.ToDictionary(
-            x => checked((byte) x.Id),
-            x => CryptographyHelper.CreateDsaFromXml( x.Key ) );
+        this._keyFactories = keyFactories;
+        this._keyInstantiationObserver = keyInstantiationObserver;
+
+        this._keys = keyFactories.ToDictionary( x => x.Key, x => new Lazy<DSA>( () => this.InstantiateKey( x.Value ) ) );
     }
+
+    /// <summary>
+    /// Instantiates a key, after reporting the instantiation to the observer of the current authority, if there is one.
+    /// </summary>
+    /// <param name="keyFactory">The factory of the key to instantiate.</param>
+    /// <returns>The new key.</returns>
+    /// <remarks>
+    /// The observer is invoked before the instantiation and not after it, so that a test observes the attempt even on
+    /// a platform where the instantiation throws.
+    /// </remarks>
+    private DSA InstantiateKey( Func<DSA> keyFactory )
+    {
+        this._keyInstantiationObserver?.Invoke();
+
+        return keyFactory();
+    }
+
+    /// <summary>
+    /// Returns a copy of the current authority that has no instantiated key and that invokes
+    /// <paramref name="observer"/> each time it instantiates one.
+    /// </summary>
+    /// <param name="observer">A delegate invoked before each instantiation of a key.</param>
+    /// <returns>A new authority with the same keys as the current one.</returns>
+    /// <remarks>
+    /// A test uses this method to assert that a code path instantiates no key. That assertion cannot be replaced by
+    /// running the code path on a platform where DSA is unavailable, because the test suite does not run on such a
+    /// platform.
+    /// </remarks>
+    internal LicensingAuthority WithKeyInstantiationObserver( Action observer ) => new( this._keyFactories, observer );
 
     internal IEnumerable<byte> KeyIds => this._keys.Keys;
 
@@ -74,9 +122,11 @@ public sealed class LicensingAuthority : IBackstageService
             throw new KeyNotFoundException();
         }
 
-        lock ( key )
+        var dsa = key.Value;
+
+        lock ( dsa )
         {
-            return key.VerifySignature( GetHash( message ), signature );
+            return dsa.VerifySignature( GetHash( message ), signature );
         }
     }
 
@@ -90,7 +140,7 @@ public sealed class LicensingAuthority : IBackstageService
     /// </summary>
     internal void Sign( byte[] message, out byte[] signature )
     {
-        var dsa = this._keys.Single().Value;
+        var dsa = this._keys.Single().Value.Value;
 
         lock ( dsa )
         {
