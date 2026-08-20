@@ -3,7 +3,9 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Backstage.Licensing.Consumption;
+using Metalama.Backstage.Testing;
 using Metalama.Backstage.UserInterface.Toasts;
+using System;
 using System.Linq;
 using Xunit;
 using Xunit.Abstractions;
@@ -29,6 +31,31 @@ public sealed class LicenseUITests : LicenseConsumptionServiceTestsBase
     {
         var consumer = this.CreateConsumptionService( LicenseKeyProvider.MetalamaProfessionalBusiness ).CreateConsumer();
         Assert.True( consumer.TryConsume( LicenseRequirement.Any ) );
+        Assert.Empty( this.UserInterface.Notifications );
+    }
+}
+
+/// <summary>
+/// Verifies that an unattended process, such as a continuous integration build, does not request the
+/// <see cref="ToastNotificationKinds.RequiresLicense" /> notification. See issue #1859.
+/// </summary>
+// ReSharper disable once InconsistentNaming
+public sealed class UnattendedLicenseUITests : LicenseConsumptionServiceTestsBase
+{
+    public UnattendedLicenseUITests( ITestOutputHelper logger ) : base( logger )
+    {
+        this.ApplicationInfo = new TestApplicationInfo(
+            "Licensing Test App",
+            false,
+            "1.0",
+            new DateTime( 2021, 1, 1, 0, 0, 0, DateTimeKind.Utc ) ) { IsUnattendedProcess = true };
+    }
+
+    [Fact]
+    public void NotificationNotShownWhenProcessIsUnattended()
+    {
+        var consumer = this.CreateConsumptionService().CreateConsumer();
+        Assert.False( consumer.TryConsume( new DelegateLicenseRequirement( _ => false ) ) );
         Assert.Empty( this.UserInterface.Notifications );
     }
 }
