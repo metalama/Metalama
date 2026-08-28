@@ -18,6 +18,7 @@ namespace Metalama.Patterns.Contracts;
 /// <seealso href="@configuring-contracts"/>
 [Durable]
 [PublicAPI]
+[ImmutableType]
 public class ContractTemplates : ITemplateProvider, ICompileTimeSerializable
 {
     /// <summary>

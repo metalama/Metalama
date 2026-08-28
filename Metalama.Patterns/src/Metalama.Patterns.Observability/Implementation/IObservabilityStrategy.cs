@@ -9,6 +9,10 @@ using Metalama.Framework.Utilities;
 
 namespace Metalama.Patterns.Observability.Implementation;
 
+// Deliberately not [ImmutableType]. The interface is implemented both by the strategy that an options object holds,
+// which is stateless, and by ClassicObservabilityStrategyImpl, which is a per-target worker constructed for one
+// aspect application and holding the dictionaries, promises and code model references it needs while it runs. The
+// contract cannot bind both, and separating them is a design change of its own.
 [Durable]
 [CompileTime]
 public interface IObservabilityStrategy : ICompileTimeSerializable

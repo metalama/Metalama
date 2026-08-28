@@ -99,8 +99,12 @@ public sealed record DependencyPropertyNamingConvention : IDependencyPropertyNam
 
         if ( this.PropertyNamePattern != null )
         {
+            // A compiled-pattern cache, not state: its value is a function of the pattern above, so the convention
+            // behaves identically whether or not it has been populated.
+#pragma warning disable LAMA0887
             this._matchNameRegex ??= new Regex( this.PropertyNamePattern );
 
+#pragma warning restore LAMA0887
             var m = this._matchNameRegex.Match( targetProperty.Name );
 
             if ( m.Success )

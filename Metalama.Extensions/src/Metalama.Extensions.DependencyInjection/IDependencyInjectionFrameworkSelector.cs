@@ -29,6 +29,7 @@ namespace Metalama.Extensions.DependencyInjection;
 /// <seealso href="@dependency-injection"/>
 [Durable]
 [CompileTime]
+[ImmutableType]
 public interface IDependencyInjectionFrameworkSelector : ICompileTimeSerializable
 {
     /// <summary>

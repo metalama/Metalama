@@ -17,6 +17,7 @@ namespace Metalama.Extensions.DependencyInjection.Implementation;
 [Durable]
 [CompileTime]
 [PublicAPI]
+[ImmutableType]
 public interface IDependencyInjectionFramework
 {
     /// <summary>

@@ -15,9 +15,16 @@ namespace Metalama.Patterns.Wpf.Configuration;
 internal sealed record DependencyPropertyOptions : IHierarchicalOptions<ICompilation>, IHierarchicalOptions<INamespace>, IHierarchicalOptions<INamedType>,
                                                    IHierarchicalOptions<IProperty>
 {
+    // A cache, not state: its value is a function of NamingConventionRegistrations, and
+    // [NonCompileTimeSerialized] makes a deserialized instance recompute it rather than carry a stale one. The
+    // immutable-style rules cannot tell a memo from a mutation, so they are suppressed here. LAMA0884 is for
+    // IReadOnlyList<T>, which is an interface the analyzer cannot trust because the runtime value may be a List<T> --
+    // true in general, and not a reason to change the shape of a private cache.
     [NonCompileTimeSerialized]
 #pragma warning disable CS0169 // False positive
+#pragma warning disable LAMA0884
     private IReadOnlyList<IDependencyPropertyNamingConvention>? _namingConventions;
+#pragma warning restore LAMA0884
 #pragma warning restore CS0169
 
     /// <summary>
@@ -39,6 +46,7 @@ internal sealed record DependencyPropertyOptions : IHierarchicalOptions<ICompila
 
     internal IReadOnlyCollection<IDependencyPropertyNamingConvention> GetSortedNamingConventions()
     {
+#pragma warning disable LAMA0887
         this._namingConventions ??=
             this.NamingConventionRegistrations
                 .Where( r => r.NamingConvention != null )
@@ -46,6 +54,7 @@ internal sealed record DependencyPropertyOptions : IHierarchicalOptions<ICompila
                 .ThenBy( v => v.NamingConvention!.Name )
                 .Select( v => v.NamingConvention! )
                 .ToList();
+#pragma warning restore LAMA0887
 
         return this._namingConventions;
     }

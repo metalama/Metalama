@@ -56,7 +56,10 @@ public sealed record DependencyInjectionOptions : IHierarchicalOptions<ICompilat
         in ScopedDiagnosticSink diagnostics,
         [NotNullWhen( true )] out IDependencyInjectionFramework? framework )
     {
-        // Lazily instantiates the frameworks.
+        // Lazily instantiates the frameworks. The field is a cache and not state: its value is a function of
+        // FrameworkRegistrations, and [NonCompileTimeSerialized] makes a deserialized instance recompute it. The
+        // immutable-style rule cannot tell a memo from a mutation.
+#pragma warning disable LAMA0887
         if ( this._enabledFrameworks.IsDefault )
         {
             this._enabledFrameworks = this.FrameworkRegistrations
@@ -65,6 +68,7 @@ public sealed record DependencyInjectionOptions : IHierarchicalOptions<ICompilat
                 .Select( x => DependencyInjectionFrameworkFactory.GetInstance( x.Type ) )
                 .ToImmutableArray();
         }
+#pragma warning restore LAMA0887
 
         // Get eligible frameworks.
         var d = diagnostics;

@@ -23,6 +23,7 @@ namespace Metalama.Patterns.Observability.Configuration;
 /// <seealso href="@observability"/>
 [Durable]
 [CompileTime]
+[ImmutableType]
 public sealed class ObservabilityContract : ICompileTimeSerializable
 {
     private ObservabilityContract() { }

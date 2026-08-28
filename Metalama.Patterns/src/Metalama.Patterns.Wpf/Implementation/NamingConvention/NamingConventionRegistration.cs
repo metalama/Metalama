@@ -11,6 +11,7 @@ namespace Metalama.Patterns.Wpf.Implementation.NamingConvention;
 
 [Durable]
 [CompileTime]
+[ImmutableType]
 internal sealed class NamingConventionRegistration<T> : IIncrementalKeyedCollectionItem<string>
     where T : class, INamingConvention, ICompileTimeSerializable
 {

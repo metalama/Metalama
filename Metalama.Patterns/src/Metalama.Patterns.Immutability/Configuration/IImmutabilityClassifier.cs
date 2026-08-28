@@ -22,6 +22,7 @@ namespace Metalama.Patterns.Immutability.Configuration;
 /// <seealso cref="ImmutabilityConfigurationExtensions"/>
 /// <seealso href="@immutability"/>
 [Durable]
+[ImmutableType]
 public interface IImmutabilityClassifier : ICompileTimeSerializable
 {
     /// <summary>

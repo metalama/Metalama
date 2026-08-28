@@ -12,4 +12,5 @@ namespace Metalama.Patterns.Wpf.Implementation.DependencyPropertyNamingConventio
 // ReSharper disable once RedundantTypeDeclarationBody
 [Durable]
 [CompileTime]
+[ImmutableType]
 internal interface IDependencyPropertyNamingConvention : INamingConvention<IProperty, DependencyPropertyNamingConventionMatch> { }

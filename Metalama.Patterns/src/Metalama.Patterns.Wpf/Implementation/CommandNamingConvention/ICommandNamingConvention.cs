@@ -12,4 +12,5 @@ namespace Metalama.Patterns.Wpf.Implementation.CommandNamingConvention;
 // ReSharper disable once RedundantTypeDeclarationBody
 [Durable]
 [CompileTime]
+[ImmutableType]
 internal interface ICommandNamingConvention : INamingConvention<IMethod, CommandNamingConventionMatch> { }

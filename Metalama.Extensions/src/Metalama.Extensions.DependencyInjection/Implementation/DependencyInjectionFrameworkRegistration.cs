@@ -16,6 +16,7 @@ namespace Metalama.Extensions.DependencyInjection.Implementation;
 [Durable]
 [CompileTime]
 [PublicAPI]
+[ImmutableType]
 public sealed class DependencyInjectionFrameworkRegistration : IIncrementalKeyedCollectionItem<Type>
 {
     /// <summary>
