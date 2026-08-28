@@ -168,7 +168,6 @@ public sealed class ImmutableTableCorrespondenceTests : ImmutableAnalyzerTestBas
 
         Assert.Contains( "IsReferenceType: false", source, StringComparison.Ordinal );
         Assert.Contains( "ContainingNamespace.FullName: \"System\"", source, StringComparison.Ordinal );
-        Assert.Contains( "namedType.IsReadOnly", source, StringComparison.Ordinal );
     }
 
     /// <summary>
@@ -249,6 +248,26 @@ public sealed class ImmutableTableCorrespondenceTests : ImmutableAnalyzerTestBas
             "LAMA0882" );
 
         Assert.Contains( "wraps a mutable array", message, StringComparison.Ordinal );
+    }
+
+    /// <remarks>
+    /// The patterns implementation has a rule that calls a <c>readonly struct</c> shallowly immutable. It is
+    /// deliberately not ported: this contract is deep or nothing, and a field of such a struct typed as a mutable
+    /// class still reaches a mutable object. The type is reported as not marked instead, which is true and
+    /// actionable.
+    /// </remarks>
+    [Fact]
+    public async Task AReadOnlyStructIsNotTrusted_AlthoughPatternsCallsItShallow()
+    {
+        Assert.Contains( "namedType.IsReadOnly", ReadEmbeddedSource( "ImmutabilityExtensions.cs" ), StringComparison.Ordinal );
+
+        var message = await AssertSingleDiagnosticAsync(
+            _prologue
+            + "readonly struct Point { public readonly int X; } "
+            + "[ImmutableType] class C { private readonly Point _p; }",
+            "LAMA0882" );
+
+        Assert.Contains( "not marked [ImmutableType]", message, StringComparison.Ordinal );
     }
 
     /// <remarks>

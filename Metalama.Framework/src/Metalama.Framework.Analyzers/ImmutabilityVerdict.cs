@@ -60,13 +60,6 @@ namespace Metalama.Framework.Analyzers
             => new( ImmutabilityKind.NotImmutable, ImmutableArray.Create( typeName ), reason );
 
         /// <summary>
-        /// Creates the verdict of a type whose own value cannot change but which may reference something that can,
-        /// starting a new chain at that type.
-        /// </summary>
-        public static ImmutabilityVerdict ShallowOnly( string typeName, string? reason )
-            => new( ImmutabilityKind.ShallowOnly, ImmutableArray.Create( typeName ), reason );
-
-        /// <summary>
         /// Creates the verdict of an interface or abstract type that does not carry the attribute, starting a new
         /// chain at that type.
         /// </summary>

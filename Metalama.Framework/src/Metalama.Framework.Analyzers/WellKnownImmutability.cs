@@ -28,8 +28,8 @@ namespace Metalama.Framework.Analyzers
         /// This is what makes the contract deep. <c>Metalama.Patterns.Immutability</c> reaches the same result by a
         /// different route: its <c>ImmutableCollectionClassifier</c> recurses one level per call and demotes the
         /// collection to <c>Shallow</c> when an argument is not <c>Deep</c>, but since it calls the classifier again
-        /// on each argument, the composition is fully recursive. Here the recursion is direct, and anything short of
-        /// immutable is reported.
+        /// on each argument, the composition is fully recursive. Here the recursion is direct, and there is no
+        /// shallow kind at all: anything short of immutable is reported.
         /// </remarks>
         Transparent
     }

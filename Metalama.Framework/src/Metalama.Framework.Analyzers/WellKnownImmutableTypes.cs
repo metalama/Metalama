@@ -20,7 +20,7 @@ namespace Metalama.Framework.Analyzers
     /// by sharing the list.
     /// </para>
     /// <para>
-    /// Four divergences from the patterns implementation are deliberate.
+    /// Five divergences from the patterns implementation are deliberate.
     /// </para>
     /// <list type="number">
     /// <item>
@@ -42,6 +42,15 @@ namespace Metalama.Framework.Analyzers
     /// <description>
     /// <c>System.ArraySegment{T}</c> is mutable here. It is a <c>readonly struct</c> of namespace <c>System</c>, so
     /// the blanket rule would call it deeply immutable, but it wraps an array whose elements can be replaced.
+    /// </description>
+    /// </item>
+    /// <item>
+    /// <description>
+    /// The <c>Shallow</c> kind is not ported at all. This contract is deep or nothing. The patterns implementation
+    /// calls a <c>readonly struct</c> shallowly immutable, which is a useful distinction there and is not one this
+    /// analyzer can act on: a field of such a struct typed as a mutable class still reaches a mutable object. A
+    /// <c>readonly struct</c> therefore falls through to the last rule and is reported as not marked, which is true
+    /// and actionable, since marking it has its members verified.
     /// </description>
     /// </item>
     /// <item>

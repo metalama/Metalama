@@ -396,18 +396,13 @@ namespace Metalama.Framework.Analyzers
                 return ImmutabilityVerdict.Immutable;
             }
 
-            // Rule 16. A readonly struct cannot be reassigned through one of its own fields, but a field of it that
-            // is typed as a mutable class still reaches a mutable object. The contract is deep, so this is reported,
-            // with its own kind so that the message can explain the distinction.
-            if ( namedType.IsReadOnly )
-            {
-                return ImmutabilityVerdict.ShallowOnly(
-                    SymbolFacts.GetDisplayName( type ),
-                    "a readonly struct is only shallowly immutable; its fields may reference mutable objects. "
-                    + "Mark it [ImmutableType] to have that verified" );
-            }
+            // The patterns implementation has a rule here that calls a readonly struct Shallow. It is deliberately not
+            // ported. This contract is deep or nothing: a readonly struct cannot be reassigned through one of its own
+            // fields, but a field of it typed as a mutable class still reaches a mutable object, so being a readonly
+            // struct says nothing this rule can accept. Such a type falls through to the last rule and is reported as
+            // not marked, which is both true and actionable -- marking it has the members verified.
 
-            // Rule 17. An interface or an abstract type has no members of its own to examine, so marking it does not
+            // Rule 16. An interface or an abstract type has no members of its own to examine, so marking it does not
             // check anything here; it requires every implementation to be immutable, which the rule that walks the
             // members of a type bound by the contract then verifies. That is a different remedy from marking a class,
             // so it carries its own diagnostic.
@@ -418,7 +413,7 @@ namespace Metalama.Framework.Analyzers
                     "an interface or abstract type that is not marked [ImmutableType]" );
             }
 
-            // Rule 18. Immutability is opt-in.
+            // Rule 17. Immutability is opt-in.
             return ImmutabilityVerdict.NotImmutable(
                 SymbolFacts.GetDisplayName( type ),
                 "the type is not marked [ImmutableType]" );
