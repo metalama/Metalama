@@ -242,7 +242,7 @@ namespace Metalama.Backstage.Licensing.Licenses
         {
             // It's critical to set SignatureKeyId before getting the signed buffer
             // because the field is a part of the signed buffer.
-            this.SignatureKeyId = authority.SignKeyId;
+            this.SignatureKeyId = authority.KeyId;
             var signedBuffer = this.GetSignedBuffer();
             authority.Sign( signedBuffer, out var signature );
             this.Signature = signature;

@@ -4,6 +4,7 @@
 
 #if TEST_OPTIONS
 // @TestScenario(DesignTime)
+// @RequiredConstant(ROSLYN_5_0_0_OR_GREATER)
 #endif
 
 #if ROSLYN_5_0_0_OR_GREATER

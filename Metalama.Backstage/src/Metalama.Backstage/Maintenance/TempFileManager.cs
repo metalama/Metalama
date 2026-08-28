@@ -9,6 +9,7 @@ using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Infrastructure;
 using Metalama.Backstage.Licensing;
 using Metalama.Backstage.Telemetry;
+using Metalama.Backstage.Threading;
 using Metalama.Backstage.Utilities;
 using System;
 using System.Text.Json;
@@ -24,6 +25,7 @@ public sealed class TempFileManager : ITempFileManager
 
     private readonly CleanUpConfiguration _configuration;
     private readonly IFileSystem _fileSystem;
+    private readonly INamedLockService _lockService;
     private readonly ILogger _logger;
     private readonly IStandardDirectories _standardDirectories;
     private readonly IDateTimeProvider _time;
@@ -41,6 +43,7 @@ public sealed class TempFileManager : ITempFileManager
         this._time = serviceProvider.GetRequiredBackstageService<IDateTimeProvider>();
         this._standardDirectories = serviceProvider.GetRequiredBackstageService<IStandardDirectories>();
         this._backgroundTasksService = serviceProvider.GetRequiredBackstageService<BackstageBackgroundTasksService>();
+        this._lockService = serviceProvider.GetRequiredBackstageService<INamedLockService>();
 
         var application = serviceProvider.GetRequiredBackstageService<IApplicationInfoProvider>().CurrentApplication;
 
@@ -61,11 +64,10 @@ public sealed class TempFileManager : ITempFileManager
     /// <param name="force">Ignore last clean-up time.</param>
     public void CleanTempDirectories( bool force = false, bool all = false )
     {
-        var mutex = MutexHelper.WithLock(
-            this._standardDirectories.TempDirectory,
-            this._fileSystem.SynchronizationPrefix,
-            TimeSpan.FromMilliseconds( 1 ),
-            this._logger );
+        // This lock nests the configuration locks that CleanTelemetryDirectories takes below. The order is always
+        // this one and never the reverse: the update of cleanup.json happens in the finally clause, after this
+        // lock has been released.
+        var mutex = this._lockService.TryWithGlobalLock( this._standardDirectories.TempDirectory, TimeSpan.FromMilliseconds( 1 ) );
 
         if ( mutex == null )
         {
@@ -118,12 +120,8 @@ public sealed class TempFileManager : ITempFileManager
                 continue;
             }
 
-            // Use a mutex keyed on the legacy directory so we don't race an older Metalama version that may still be cleaning it.
-            var mutex = MutexHelper.WithLock(
-                legacyDirectory,
-                this._fileSystem.SynchronizationPrefix,
-                TimeSpan.FromMilliseconds( 1 ),
-                this._logger );
+            // Use a lock keyed on the legacy directory so we don't race an older Metalama version that may still be cleaning it.
+            var mutex = this._lockService.TryWithGlobalLock( legacyDirectory, TimeSpan.FromMilliseconds( 1 ) );
 
             if ( mutex == null )
             {
@@ -521,7 +519,7 @@ public sealed class TempFileManager : ITempFileManager
 
         if ( !this._fileSystem.DirectoryExists( directoryFullPath ) || !this._fileSystem.FileExists( cleanUpFilePath ) )
         {
-            using ( MutexHelper.WithGlobalLock( directoryFullPath ) )
+            using ( this._lockService.WithGlobalLock( directoryFullPath ) )
             {
                 if ( !this._fileSystem.DirectoryExists( directoryFullPath ) || !this._fileSystem.FileExists( cleanUpFilePath ) )
                 {
@@ -545,7 +543,7 @@ public sealed class TempFileManager : ITempFileManager
                 if ( cleanUpStrategy == CleanUpStrategy.WhenUnused
                      && this._fileSystem.GetFileLastWriteTime( cleanUpFilePath ).ToUniversalTime() > this._time.UtcNow.AddDays( -1 ) )
                 {
-                    using ( MutexHelper.WithGlobalLock( cleanUpFilePath ) )
+                    using ( this._lockService.WithGlobalLock( cleanUpFilePath ) )
                     {
                         RetryHelper.Retry( () => this._fileSystem.SetFileLastWriteTime( cleanUpFilePath, this._time.UtcNow.ToLocalTime() ) );
                     }

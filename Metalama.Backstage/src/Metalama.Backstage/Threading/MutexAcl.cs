@@ -17,13 +17,15 @@ using System.Threading;
 // ReSharper disable InconsistentNaming
 // ReSharper disable MemberHidesStaticFromOuterClass
 
-namespace Metalama.Framework.Threading;
+namespace Metalama.Backstage.Threading;
 
 // This code is mostly taken from https://github.com/dotnet/runtime/blob/770df102/src/libraries/System.Threading.AccessControl/src/System/Threading/MutexAcl.cs.
 // The main difference is that Create takes mutexSecurity as an SDDL string instead of a MutexSecurity object.
+// This file is compiled into several assemblies, including the ones that run before Metalama.Backstage has been
+// extracted and can therefore reference nothing. See the remarks of INamedLockService.
 internal static class MutexAcl
 {
-    // This SDDL form is created by creating the same MutexSecurity as used by MutexHelper
+    // This SDDL form is created by creating a MutexSecurity
     // (with .AddAccessRule(new(new SecurityIdentifier(WorldSid, null), Synchronize | Modify, Allow))
     // and then calling GetSecurityDescriptorSddlForm(All).
     public static string? AllowUsingMutexToEveryone => RuntimeInformation.IsOSPlatform( OSPlatform.Windows ) ? "D:(A;;0x100001;;;WD)" : null;
@@ -71,16 +73,33 @@ internal static class MutexAcl
                     case Interop.Errors.ERROR_INVALID_HANDLE:
                         throw new WaitHandleCannotBeOpenedException( $"Mutex {name} cannot be opened." );
 
+                    case Interop.Errors.ERROR_ACCESS_DENIED:
+                        throw new UnauthorizedAccessException( $"Access to the mutex '{name}' is denied." );
+
                     default:
-                        throw Marshal.GetExceptionForHR( errorCode ) ?? throw new Win32Exception(
-                            errorCode,
-                            $"CreateMutexEx failed with error code 0x{errorCode:x8}." );
+                        throw Marshal.GetExceptionForHR( GetHResultForWin32Error( errorCode ) )
+                              ?? new Win32Exception( errorCode, $"CreateMutexEx failed with error code 0x{errorCode:x8}." );
                 }
             }
 
             return CreateAndReplaceHandle( handle );
         }
     }
+
+    /// <summary>
+    /// Converts a Win32 error code into the corresponding <c>HRESULT</c>.
+    /// </summary>
+    /// <param name="errorCode">The Win32 error code.</param>
+    /// <returns>The <c>HRESULT</c>.</returns>
+    /// <remarks>
+    /// <see cref="Marshal.GetExceptionForHR(int)"/> expects an <c>HRESULT</c> and not a Win32 error code. A Win32
+    /// code has its severity bit clear, so it is read as a success code and the method returns
+    /// <see langword="null"/> instead of an exception. The upstream implementation from which this file is derived
+    /// does not have the problem, because it goes through <c>Win32Marshal.GetExceptionForWin32Error</c>, which is
+    /// internal to the runtime and performs this conversion along with a table of specific mappings.
+    /// </remarks>
+    internal static int GetHResultForWin32Error( int errorCode )
+        => errorCode <= 0 ? errorCode : unchecked((int) (((uint) errorCode & 0x0000FFFF) | 0x80070000));
 
     private static Mutex CreateAndReplaceHandle( SafeWaitHandle replacementHandle )
     {
@@ -248,6 +267,7 @@ internal static class MutexAcl
         internal static class Errors
         {
             internal const int ERROR_SUCCESS = 0x0;
+            internal const int ERROR_ACCESS_DENIED = 0x5;
             internal const int ERROR_INVALID_HANDLE = 0x6;
             internal const int ERROR_NOT_ENOUGH_MEMORY = 0x8;
             internal const int ERROR_INVALID_PARAMETER = 0x57;

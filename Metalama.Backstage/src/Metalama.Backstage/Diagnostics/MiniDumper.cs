@@ -7,6 +7,7 @@ using Metalama.Backstage.Configuration;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Infrastructure;
 using Metalama.Backstage.Maintenance;
+using Metalama.Backstage.Threading;
 using Metalama.Backstage.Utilities;
 using System;
 using System.Diagnostics;
@@ -30,9 +31,11 @@ internal sealed class MiniDumper : IMiniDumper
     private readonly ProcessKind _processKind;
     private readonly ITempFileManager _tempFileManager;
     private readonly IPlatformInfo _platformInfo;
+    private readonly INamedLockService _lockService;
 
     public MiniDumper( IServiceProvider serviceProvider )
     {
+        this._lockService = serviceProvider.GetRequiredBackstageService<INamedLockService>();
         this._logger = serviceProvider.GetLoggerFactory().GetLogger( "Dumper" );
         this._configuration = serviceProvider.GetRequiredBackstageService<IConfigurationManager>().Get<DiagnosticsConfiguration>().CrashDumps;
         this._tempFileManager = serviceProvider.GetRequiredBackstageService<ITempFileManager>();
@@ -81,7 +84,10 @@ internal sealed class MiniDumper : IMiniDumper
     {
         options ??= MiniDumpOptions.Default;
 
-        using ( MutexHelper.WithGlobalLock( "MiniDump" ) )
+        // This lock nests the one that ITempFileManager.GetTempDirectory takes below. The order is always this
+        // one and never the reverse, so it is safe, but it is the reason the lock service rejects only a
+        // reentrant acquisition and not a nested one.
+        using ( this._lockService.WithGlobalLock( "MiniDump" ) )
         {
             try
             {

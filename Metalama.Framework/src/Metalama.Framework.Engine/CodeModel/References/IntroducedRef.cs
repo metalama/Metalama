@@ -6,6 +6,7 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Code.DeclarationBuilders;
 using Metalama.Framework.Engine.CodeModel.GenericContexts;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
+using Metalama.Framework.Engine.SerializableIds;
 using Metalama.Framework.Engine.Services;
 using Microsoft.CodeAnalysis;
 using System;
@@ -22,6 +23,19 @@ internal sealed partial class IntroducedRef<T> : FullRef<T>, IIntroducedRef
     where T : class, IDeclaration
 {
     private readonly GenericContext _genericContext; // Gives the type arguments for the builder.
+
+    /// <summary>
+    /// The nullability of the referenced type, which is meaningful for a named type alone and is <c>false</c> for every
+    /// other kind of declaration.
+    /// </summary>
+    /// <remarks>
+    /// The annotation is part of the type and not of the declaration that the builder describes, so it cannot be read
+    /// from the builder and has to be carried here, as the generic context is. A reference that did not carry it
+    /// resolved the nullable form of an introduced type to the non-nullable one, so an aspect that introduced a member
+    /// of that type emitted it as non-nullable: the type of a member is carried as a reference from the advice that
+    /// builds it to the code that emits it. See issue #1840.
+    /// </remarks>
+    private readonly bool? _isNullable;
 
     // We use a StrongBox because:
     // (1) the DeclarationBuilderData may be assigned after the constructor is called, typically just after DeclarationBuilde.Freeze.
@@ -52,11 +66,16 @@ internal sealed partial class IntroducedRef<T> : FullRef<T>, IIntroducedRef
     /// Initializes a new instance of the <see cref="IntroducedRef{TInterface}"/> class when the <see cref="DeclarationBuilderData"/>
     /// is already known.
     /// </summary>
-    public IntroducedRef( DeclarationBuilderData builderData, RefFactory refFactory, GenericContext? genericContext = null ) : base( refFactory )
+    public IntroducedRef(
+        DeclarationBuilderData builderData,
+        RefFactory refFactory,
+        GenericContext? genericContext = null,
+        bool? isNullable = false ) : base( refFactory )
     {
         CheckBuilderData( builderData );
         this._builderData = new StrongBox<DeclarationBuilderData>( builderData );
         this._genericContext = genericContext ?? GenericContext.Empty;
+        this._isNullable = isNullable;
     }
 
     /// <summary>
@@ -68,12 +87,14 @@ internal sealed partial class IntroducedRef<T> : FullRef<T>, IIntroducedRef
     {
         this._builderData = new StrongBox<DeclarationBuilderData>();
         this._genericContext = GenericContext.Empty;
+        this._isNullable = false;
     }
 
     private IntroducedRef( IntroducedRef<T> prototype, GenericContext? genericContext ) : base( prototype.RefFactory )
     {
         this._builderData = prototype._builderData;
         this._genericContext = genericContext ?? GenericContext.Empty;
+        this._isNullable = prototype._isNullable;
     }
 
     [Conditional( "DEBUG" )]
@@ -112,20 +133,26 @@ internal sealed partial class IntroducedRef<T> : FullRef<T>, IIntroducedRef
             _ => null
         };
 
+    /// <remarks>
+    /// The nullable annotation is appended to the identifier, because it is part of the type and not of the declaration
+    /// that the documentation identifier names, and a durable reference is identified by its identifier alone. See
+    /// issue #1840.
+    /// </remarks>
     public override SerializableDeclarationId ToSerializableId()
-        => this.ConstructedDeclaration.ToSerializableId();
+        => this.ConstructedDeclaration.ToSerializableId().WithNullability( this._isNullable );
 
     protected override ISymbol GetSymbolIgnoringRefKind( CompilationContext compilationContext ) => throw new NotSupportedException();
 
     /// <summary>
-    /// Creates the durable reference, always from the declaration identifier.
+    /// Returns <c>null</c>, so that an introduced declaration is always identified by its declaration identifier.
     /// </summary>
     /// <remarks>
     /// The base implementation inspects the symbol to detect a constructed generic type, and an introduced declaration
     /// has no symbol. An introduced declaration is never a constructed generic type either, so the declaration
-    /// identifier is the correct choice here.
+    /// identifier is the correct choice here. It carries the nullable annotation, which <see cref="ToSerializableId"/>
+    /// appends, so nothing is lost by identifying the durable reference by that string alone.
     /// </remarks>
-    private protected override IDurableRef<T> CreateDurableRef() => new DeclarationIdRef<T>( this.ToSerializableId() );
+    public override SerializableTypeId? ToSerializableTypeId() => null;
 
     public override ISymbol GetClosestContainingSymbol()
     {
@@ -168,7 +195,7 @@ internal sealed partial class IntroducedRef<T> : FullRef<T>, IIntroducedRef
         IGenericContext genericContext,
         Type interfaceType )
         => ConvertDeclarationOrThrow(
-            compilation.Factory.GetDeclaration( this.BuilderData, this.SelectGenericContext( genericContext ), interfaceType ),
+            compilation.Factory.GetDeclaration( this.BuilderData, this.SelectGenericContext( genericContext ), interfaceType, this._isNullable ),
             compilation,
             interfaceType );
 
@@ -229,9 +256,18 @@ internal sealed partial class IntroducedRef<T> : FullRef<T>, IIntroducedRef
             return false;
         }
 
+        if ( comparison is RefComparison.IncludeNullability or RefComparison.StructuralIncludeNullability
+             && this._isNullable != otherRef._isNullable )
+        {
+            return false;
+        }
+
         return true;
     }
 
+    // The nullability is deliberately left out of the hash code, so that the same hash serves the comparisons that
+    // take it into account and those that do not. Two references differing only by it collide, which is what
+    // SymbolEqualityComparer does as well.
     public override int GetHashCode( RefComparison comparison ) => HashCode.Combine( this.BuilderData.GetHashCode(), this._genericContext );
 
     public override DeclarationKind DeclarationKind => this.BuilderData.DeclarationKind;

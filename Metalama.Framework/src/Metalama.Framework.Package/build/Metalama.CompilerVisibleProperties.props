@@ -45,6 +45,7 @@
         <CompilerVisibleProperty Include="MetalamaVerifyOutputCode"/>
         <CompilerVisibleProperty Include="MetalamaCompilationScenario"/>
         <CompilerVisibleProperty Include="MetalamaDiagnoseMemoryLeaks"/>
+        <CompilerVisibleProperty Include="MetalamaDurableRefKind"/>
         <CompilerVisibleProperty Include="MetalamaDurableTypes"/>
         <CompilerVisibleProperty Include="MetalamaNonDurableTypes"/>
     </ItemGroup>

@@ -1,0 +1,50 @@
+// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+// SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
+// Refer to LICENSE.md in the repository root for complete details.
+
+using Metalama.Framework.Code;
+using System;
+
+namespace Metalama.Framework.Engine.CodeModel.References;
+
+/// <summary>
+/// The implementation of <see cref="IDurableRefFactory"/> used during a batch compilation. It creates a
+/// <see cref="BoundDurableRef{T}"/> instead of an identifier-based reference.
+/// </summary>
+internal sealed class BoundDurableRefFactory : IDurableRefFactory
+{
+    public static BoundDurableRefFactory Instance { get; } = new();
+
+    private BoundDurableRefFactory() { }
+
+    /// <summary>
+    /// Gets <c>true</c>. A project that creates bound references also deserializes identifier-based references, in
+    /// particular from the transitive manifest of a referenced project, and those references benefit from the cache.
+    /// </summary>
+    public bool IsResolutionCacheEnabled => true;
+
+    public IDurableRef<T> FromFullRef<T>( IFullRef<T> fullRef )
+        where T : class, ICompilationElement
+        => new BoundDurableRef<T>( fullRef );
+
+    /// <inheritdoc cref="SerializedDurableRefFactory.FromDeclarationOrType{T}"/>
+    /// <remarks>
+    /// In this implementation, the order of the <see cref="IType"/> and <see cref="IDeclaration"/> cases has no effect,
+    /// because storing the reference preserves the type arguments and the nullable annotation. Both cases are present
+    /// so that the two implementations accept and reject the same arguments.
+    /// </remarks>
+    public IDurableRef<T> FromDeclarationOrType<T>( ICompilationElement declarationOrType )
+        where T : class, ICompilationElement
+    {
+        var reference = declarationOrType switch
+        {
+            IAttribute => throw new NotSupportedException( AttributeRef.CannotBeMadeDurableMessage ),
+            IType type => type.ToRef().As<T>(),
+            IDeclaration declaration => declaration.ToRef().As<T>(),
+            _ => throw new NotSupportedException(
+                $"Cannot create a durable reference to a '{declarationOrType.DeclarationKind}' because it is neither a declaration nor a type." )
+        };
+
+        return new BoundDurableRef<T>( (IFullRef<T>) reference );
+    }
+}

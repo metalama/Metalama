@@ -72,8 +72,8 @@ namespace Metalama.Framework.Code
             where TOut : class, ICompilationElement;
 
         /// <summary>
-        /// Gets a value indicating whether the reference stores only a string identifier rather than holding
-        /// a reference to the compilation state.
+        /// Gets a value indicating whether the reference may be stored in an object that outlives the run that produced
+        /// it, without keeping a version of the compilation in memory for as long as it is held.
         /// </summary>
         /// <remarks>
         /// <para>
@@ -83,10 +83,18 @@ namespace Metalama.Framework.Code
         /// References returned by <see cref="IDeclaration.ToRef"/> are always non-durable.
         /// </para>
         /// <para>
-        /// <b>Durable references</b> (when <c>IsDurable</c> is <c>true</c>) store only a string-based identifier.
-        /// They are slower to resolve but do not hold any reference to the compilation. Call <see cref="ToDurable"/>
-        /// or <see cref="RefExtensions.ToDurableRef{T}"/> to obtain one, and prefer the <see cref="IDurableRef"/> or
-        /// <see cref="IDurableRef{T}"/> type over this property when the requirement can be expressed in a signature.
+        /// <b>Durable references</b> (when <c>IsDurable</c> is <c>true</c>) may be held for as long as the object that
+        /// holds them lives. Call <see cref="ToDurable"/> or <see cref="RefExtensions.ToDurableRef{T}"/> to obtain one,
+        /// and prefer the <see cref="IDurableRef"/> or <see cref="IDurableRef{T}"/> type over this property when the
+        /// requirement can be expressed in a signature.
+        /// </para>
+        /// <para>
+        /// The representation of a durable reference depends on the kind of compilation. At design time, the analysis
+        /// process is long-lived and receives a new compilation after each modification of the source code. A durable
+        /// reference then stores only a string identifier and holds no other object, and resolving it costs a lookup in
+        /// the symbol table. A batch compilation processes a single compilation, which lives until the build ends. A
+        /// durable reference then stores the reference it was created from, and computes its identifier only when the
+        /// identifier is requested, for instance during serialization.
         /// </para>
         /// <para>
         /// A reference that is stored for longer than a single pipeline run must be durable. The design-time pipeline
@@ -99,14 +107,15 @@ namespace Metalama.Framework.Code
         bool IsDurable { get; }
 
         /// <summary>
-        /// Returns a reference to the same declaration that stores only a string identifier, and therefore does not keep
-        /// the compilation in memory. Returns the current instance when it is already durable.
+        /// Returns a reference to the same declaration that may be stored in an object outliving the current run
+        /// without keeping a version of the compilation in memory. Returns the current instance when it is already
+        /// durable.
         /// </summary>
         /// <remarks>
         /// <para>
         /// Call this method before storing a reference in an object that outlives the current pipeline run, such as a
-        /// field of a fabric or of an inheritable aspect. Resolving the result costs an identifier lookup, which is why
-        /// references are not durable by default. When the declaration itself is at hand, call
+        /// field of a fabric or of an inheritable aspect. Resolving the result may cost an identifier lookup, which is
+        /// why references are not durable by default. When the declaration itself is at hand, call
         /// <see cref="RefExtensions.ToDurableRef{T}"/> instead, which does not create the intermediate non-durable
         /// reference.
         /// </para>

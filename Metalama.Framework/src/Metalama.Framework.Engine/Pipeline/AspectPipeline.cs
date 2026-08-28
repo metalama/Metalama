@@ -11,6 +11,7 @@ using Metalama.Framework.Engine.AspectOrdering;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.AspectWeavers;
 using Metalama.Framework.Engine.CodeModel;
+using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Extensibility;
@@ -71,12 +72,39 @@ public abstract class AspectPipeline : IDisposable
 
         // Set the execution scenario. In cases where we re-use the design-time pipeline for preview or introspection,
         // we replace the execution scenario for future services in the current pipeline.
+        var projectOptions = this.ProjectOptions;
+
         this.ServiceProvider = serviceProvider
-            .WithService( executionScenario, true );
+            .WithService( executionScenario, true )
+            .Underlying
+            .WithServiceConditional<IDurableRefFactory>( _ => ChooseDurableRefFactory( executionScenario, projectOptions ) );
 
         this.DomainFactory = serviceProvider.Global.GetRequiredService<ICompileTimeDomainFactory>();
         this.ApplicationExitingToken = serviceProvider.Global.GetRequiredService<ApplicationExitManager>().Token;
     }
+
+    /// <summary>
+    /// Returns the factory that determines the representation of the durable references of the project.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The selection is made here because this constructor is the first place that knows the execution scenario.
+    /// <c>ServiceProviderFactory.WithProjectScopedServices</c> runs before the scenario is registered, and applies only
+    /// an explicit <see cref="IProjectOptions.DurableRefKind"/>, which does not require the scenario. The registration
+    /// in this constructor is conditional, so that an explicit option, or a service registered by a test through
+    /// <c>AdditionalServiceCollection</c>, takes precedence. A compilation model created outside a pipeline reaches
+    /// neither registration and uses the identifier-based implementation.
+    /// </para>
+    /// <para>
+    /// The condition on <see cref="IProjectOptions.DiagnoseMemoryLeaks"/> is required. That diagnostic reproduces the
+    /// design-time object graph during a build, so it must analyze the graph that design time produces, and not the
+    /// graph of a batch compilation.
+    /// </para>
+    /// </remarks>
+    private static IDurableRefFactory ChooseDurableRefFactory( ExecutionScenario executionScenario, IProjectOptions projectOptions )
+        => executionScenario.IsBatchCompilation && !projectOptions.DiagnoseMemoryLeaks
+            ? BoundDurableRefFactory.Instance
+            : SerializedDurableRefFactory.Instance;
 
     internal int PipelineInitializationCount { get; private set; }
 
@@ -111,6 +139,22 @@ public abstract class AspectPipeline : IDisposable
             // Metalama not installed.
 
             diagnosticAdder.Report( GeneralDiagnosticDescriptors.MetalamaNotInstalled.CreateRoslynDiagnostic( null, default ) );
+
+            configuration = null;
+
+            return false;
+        }
+
+        // Check that the core library can be resolved. When the .NET SDK of the project cannot be resolved, the
+        // compilation loses every reference contributed by the SDK, so no type of the core library can be resolved and
+        // no feature of Metalama can work. No diagnostic is reported, because the C# compiler already reports this
+        // condition itself (CS0518 and its cascade) and the condition is typically transient in an IDE. Without this
+        // check, the pipeline fails later with an InvalidOperationException thrown by ReflectionMapper while it
+        // resolves a well-known type, which the user sees as a crash of Metalama. See issue #1832.
+        if ( compilation.ObjectType.TypeKind == TypeKind.Error )
+        {
+            this.Logger.Warning?.Log(
+                $"TryInitialize('{this.ProjectOptions.AssemblyName}') failed: the compilation does not reference the core library." );
 
             configuration = null;
 

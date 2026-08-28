@@ -21,10 +21,15 @@ internal sealed class ExplicitLicenseSource : LicenseSourceBase
     {
         if ( !LicenseKeyData.TryDeserialize( this._licenseString, out var license, out var errorMessage ) )
         {
-            reportMessage( new LicensingMessage( errorMessage ) );
+            // The license string is typically supplied by a secret of a continuous integration server, so a mistyped
+            // value is a likely mistake. The message names the source instead of quoting the value, which may be a
+            // secret. The source provides no license, so the caller reports that no valid license was found.
+            reportMessage( new LicensingMessage( $"The license key set in {this.Description} is invalid. {errorMessage}" ) );
+
+            return [];
         }
 
-        return [license!.ToLicenseRegistrationProperties()];
+        return [license.ToLicenseRegistrationProperties()];
     }
 
     public ExplicitLicenseSource( string licenseString, LicenseSourceKind kind, IServiceProvider services )

@@ -511,9 +511,13 @@ public partial class DeclarationFactory
 
     internal ITupleType GetTupleTypeFromSymbol( INamedTypeSymbol symbol, ImmutableArray<string> elementNames, IGenericContext? genericContext = null )
     {
-        var (mappedSymbol, genericContextForSymbolMapping) = this.MapSymbolAndContext( symbol, genericContext );
-
         Invariant.Assert( symbol is { IsTupleType: true } );
+
+        // The tuple is keyed by its underlying type and by the names of its elements, so that a symbol that carries
+        // the names and one that does not resolve to the same instance. See issue #1844.
+        var symbolWithoutElementNames = symbol.TupleUnderlyingType ?? symbol;
+
+        var (mappedSymbol, genericContextForSymbolMapping) = this.MapSymbolAndContext( symbolWithoutElementNames, genericContext );
 
         if ( elementNames.IsDefault )
         {
@@ -533,9 +537,94 @@ public partial class DeclarationFactory
                 new TupleTypeKey( (INamedTypeSymbol) canonicalSymbolInfo.Symbol, elementNames ),
                 canonicalSymbolInfo.Context,
                 typeof(IType),
-                static ( key, _, x ) => new TupleType( key.Symbol, x.me._compilationModel, x.genericContextForSymbolMapping, key.ElementNames ),
+                static ( key, _, x ) => new TupleType(
+                    ApplyTupleElementNames( x.me._compilationModel.RoslynCompilation, key.Symbol, key.ElementNames ),
+                    x.me._compilationModel,
+                    x.genericContextForSymbolMapping,
+                    key.ElementNames ),
                 (me: this, symbol, genericContextForSymbolMapping) );
         }
+    }
+
+    /// <summary>
+    /// Returns the symbol of a tuple whose elements carry the given names.
+    /// </summary>
+    /// <remarks>
+    /// The names of the elements are part of the type and Roslyn records them on the symbol, where its comparers take
+    /// them into account. The code model recorded them beside the symbol instead, so the symbol of a named tuple was
+    /// the unnamed one. See issue #1844. This is safe because the identity conversion removes them again, in
+    /// <c>DeclarationEqualityComparer</c>, the language not taking them into account.
+    /// </remarks>
+    private static INamedTypeSymbol ApplyTupleElementNames( Compilation compilation, INamedTypeSymbol symbol, ImmutableArray<string> elementNames )
+    {
+        if ( elementNames.IsDefaultOrEmpty || !HasExplicitElementName( elementNames ) )
+        {
+            return symbol;
+        }
+
+        // CastArray reinterprets the array rather than copying it, string and string? being the same type at run time,
+        // and it is required because ImmutableArray<T> is invariant.
+        return compilation.CreateTupleTypeSymbol( symbol.TupleUnderlyingType ?? symbol, elementNames.CastArray<string?>() );
+    }
+
+    /// <summary>
+    /// Determines whether any element of a tuple is named, the default name that each unnamed position reports not
+    /// counting as a name of its own.
+    /// </summary>
+    /// <remarks>
+    /// A tuple whose elements are not named is left alone rather than rebuilt as one that names its elements
+    /// explicitly, which would print as <c>(int Item1, string Item2)</c>.
+    /// </remarks>
+    private static bool HasExplicitElementName( ImmutableArray<string> elementNames )
+    {
+        for ( var i = 0; i < elementNames.Length; i++ )
+        {
+            var name = elementNames[i];
+
+            if ( !string.IsNullOrEmpty( name ) && !IsDefaultElementName( name, i ) )
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Determines whether the given name is the default name of the element at the given index, which is
+    /// <c>Item</c> followed by the position of the element, counted from one.
+    /// </summary>
+    private static bool IsDefaultElementName( string name, int index )
+    {
+        const string prefix = "Item";
+
+        // The comparison is written out rather than made against an interpolated string, so that it allocates nothing.
+        if ( name.Length <= prefix.Length || !name.StartsWith( prefix, StringComparison.Ordinal ) )
+        {
+            return false;
+        }
+
+        var position = 0;
+
+        for ( var i = prefix.Length; i < name.Length; i++ )
+        {
+            var c = name[i];
+
+            if ( c is < '0' or > '9' )
+            {
+                return false;
+            }
+
+            position = (position * 10) + (c - '0');
+
+            if ( position > index + 1 )
+            {
+                // Leaves early rather than overflowing on a name such as "Item99999999999999999999".
+                return false;
+            }
+        }
+
+        return position == index + 1;
     }
 
     public IParameter GetReturnParameter( IMethodSymbol methodSymbol, GenericContext? genericContext = null )
@@ -602,12 +691,24 @@ public partial class DeclarationFactory
         {
             if ( isNullable == true )
             {
+                // Roslyn annotates the symbol of a value type written as 'T?' in source, whereas constructing
+                // Nullable<T> leaves the constructed type unannotated. The annotation is set so that a nullable value
+                // type built here is indistinguishable from the same type read from source, which the comparer that
+                // includes nullability would otherwise tell apart.
                 newTypeSymbol = this._compilationModel.RoslynCompilation.GetSpecialType( RoslynSpecialType.System_Nullable_T )
-                    .Construct( typeSymbol );
+                    .Construct( typeSymbol )
+                    .WithNullableAnnotation( NullableAnnotation.Annotated );
+            }
+            else if ( typeSymbol.OriginalDefinition.SpecialType == RoslynSpecialType.System_Nullable_T )
+            {
+                return ((INamedType) type).TypeArguments[0];
             }
             else
             {
-                return ((INamedType) type).TypeArguments[0];
+                // The type is a value type that is not a Nullable<T>, for instance a type parameter constrained to
+                // be a value type. Such a type carries no nullability annotation, therefore there is nothing to remove
+                // and the type is returned unchanged.
+                return type;
             }
         }
 

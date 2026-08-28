@@ -43,7 +43,7 @@ namespace Metalama.Backstage.Licensing.Licenses
             return true;
         }
 
-        public bool VerifySignature( LicensingAuthority licensingAuthority )
+        public bool VerifySignature( ILicensingAuthorityProvider licensingAuthorityProvider )
         {
             try
             {
@@ -59,7 +59,7 @@ namespace Metalama.Backstage.Licensing.Licenses
 
                 var buffer = this.GetSignedBuffer();
 
-                return licensingAuthority.VerifySignature( buffer, this.SignatureKeyId.Value, this.Signature );
+                return licensingAuthorityProvider.GetAuthority( this.SignatureKeyId.Value ).VerifySignature( buffer, this.Signature );
             }
             catch ( CryptographicException )
             {

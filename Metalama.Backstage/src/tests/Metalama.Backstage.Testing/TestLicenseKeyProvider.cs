@@ -20,7 +20,11 @@ public sealed class TestLicenseKeyProvider
 {
     private readonly ConcurrentDictionary<string, string> _cachedLicenses = new();
 
-    public LicensingAuthority Authority { get; } = LicensingAuthority.GetTestAuthority();
+    /// <summary>
+    /// Gets the authority that signs the license keys of the current provider. It is the same authority as the one
+    /// that a service provider of the current process uses to verify their signature.
+    /// </summary>
+    public LicensingAuthority Authority { get; } = TestLicensingAuthorityProvider.TestAuthority;
 
     public const string NamespaceConstraint = "TestNamespace";
 

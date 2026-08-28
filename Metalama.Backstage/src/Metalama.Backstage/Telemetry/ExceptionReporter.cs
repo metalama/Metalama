@@ -453,8 +453,8 @@ internal sealed class ExceptionReporter : IExceptionReportManager, IExceptionCap
 
     /// <summary>
     /// Determines, against the given <paramref name="configuration"/>, whether the user should be prompted about the
-    /// issue identified by <paramref name="hash"/>. Evaluated twice: once optimistically, then again inside the
-    /// optimistic-concurrency update, where a concurrent process may have prompted in the meantime.
+    /// issue identified by <paramref name="hash"/>. Evaluated twice: once as a filter that takes no lock, then
+    /// again inside the transaction, where a concurrent process may have prompted in the meantime.
     /// </summary>
     private bool ShouldPromptForIssue( TelemetryConfiguration configuration, string hash, DateTime now, bool logReason )
     {

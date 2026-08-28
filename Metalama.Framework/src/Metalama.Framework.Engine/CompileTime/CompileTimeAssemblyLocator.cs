@@ -4,7 +4,7 @@
 
 using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Maintenance;
-using Metalama.Backstage.Utilities;
+using Metalama.Backstage.Threading;
 using Metalama.Compiler;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.CompileTimeContracts;
@@ -89,6 +89,7 @@ internal sealed class CompileTimeAssemblyLocator
 
     private readonly string _cacheDirectory = null!;
     private readonly ILogger _logger;
+    private readonly INamedLockService _lockService;
     private readonly DotNetTool _dotNetTool;
     private readonly int _restoreTimeout;
     private readonly ImmutableArray<string> _targetFrameworks;
@@ -164,6 +165,7 @@ internal sealed class CompileTimeAssemblyLocator
         success = false;
 
         this._logger = serviceProvider.GetLoggerFactory().GetLogger( nameof(CompileTimeAssemblyLocator) );
+        this._lockService = serviceProvider.Global.GetRequiredBackstageService<INamedLockService>();
         this._sdkVersion = serviceProvider.GetRequiredService<IProjectOptions>().SdkVersion;
         this._msBuildBinPath = serviceProvider.GetRequiredService<IProjectOptions>().MSBuildBinPath;
 
@@ -604,7 +606,7 @@ internal sealed class CompileTimeAssemblyLocator
         IDiagnosticAdder diagnostics,
         [NotNullWhen( true )] out IReadOnlyList<string>? referencePaths )
     {
-        using ( MutexHelper.WithGlobalLock( this._cacheDirectory, this._logger ) )
+        using ( this._lockService.WithGlobalLock( this._cacheDirectory ) )
         {
             var assembliesListPath = Path.Combine( this._cacheDirectory, "assemblies-netstandard2.0.txt" );
 

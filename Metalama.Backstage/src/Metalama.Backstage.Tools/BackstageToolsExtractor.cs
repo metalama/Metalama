@@ -4,7 +4,7 @@
 
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Infrastructure;
-using Metalama.Backstage.Utilities;
+using Metalama.Backstage.Threading;
 using System;
 using System.IO;
 using System.IO.Compression;
@@ -15,11 +15,13 @@ internal sealed class BackstageToolsExtractor : IBackstageToolsExtractor
 {
     private readonly IFileSystem _fileSystem;
     private readonly IBackstageToolsLocator _locator;
+    private readonly INamedLockService _lockService;
 
     public BackstageToolsExtractor( IServiceProvider serviceProvider )
     {
         this._fileSystem = serviceProvider.GetRequiredBackstageService<IFileSystem>();
         this._locator = serviceProvider.GetRequiredBackstageService<IBackstageToolsLocator>();
+        this._lockService = serviceProvider.GetRequiredBackstageService<INamedLockService>();
     }
 
     private void Extract( BackstageTool tool )
@@ -30,7 +32,7 @@ internal sealed class BackstageToolsExtractor : IBackstageToolsExtractor
 
         if ( !this._fileSystem.FileExists( touchFile ) )
         {
-            using ( MutexHelper.WithGlobalLock( touchFile ) )
+            using ( this._lockService.WithGlobalLock( touchFile ) )
             {
                 if ( !this._fileSystem.FileExists( touchFile ) )
                 {

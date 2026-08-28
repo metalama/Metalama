@@ -34,9 +34,13 @@ public static partial class SerializableDeclarationIdProvider
     /// </remarks>
     internal static ICompilationElement? ResolveToDeclaration( this SerializableDeclarationId id, CompilationModel compilation )
     {
+        // The nullable annotation is carried by the identifier but is not part of the documentation identifier that
+        // names the declaration, so it is removed before the lookup and applied to its result.
+        var idWithoutNullability = id.StripNullability( out var isNullable );
+
         using ( UserCodeExecutionContext.CurrentOrNull?.WithoutDependencyCollection() ?? default )
         {
-            return ResolveToDeclarationCore( id, compilation );
+            return ApplyNullability( ResolveToDeclarationCore( idWithoutNullability, compilation ), isNullable );
         }
     }
 

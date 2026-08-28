@@ -24,9 +24,23 @@ internal class BrowserBasedUserInterfaceService : UserInterfaceService
         {
             this._logger.Trace?.Log( "Starting the setup UI." );
 
-            // We are waiting for the method to complete because we have no mechanism to ensure that the process does
-            // not end before the method completes.
-            Task.Run( () => this.OpenConfigurationWebPageAsync( "Setup" ) ).Wait();
+            try
+            {
+                // We are waiting for the method to complete because we have no mechanism to ensure that the process does
+                // not end before the method completes. GetResult rethrows the original exception, whereas Wait would
+                // wrap it in an AggregateException whose message does not name the failure.
+                Task.Run( () => this.OpenConfigurationWebPageAsync( "Setup" ) ).GetAwaiter().GetResult();
+            }
+            catch ( Exception e )
+            {
+                // A machine that has no Backstage Worker tool, typically a continuous integration agent, cannot open
+                // the setup page. The caller is usually an MSBuild task that has just reported a licensing diagnostic,
+                // and a failure to display a notification must not turn that diagnostic into a task failure. The
+                // exception is therefore logged and not rethrown, even when recoverable exceptions are not ignored.
+                // The whole exception is logged, including its stack trace, because this is the only record of it.
+                // See issue #1859.
+                this._logger.Error?.Log( $"Cannot open the setup web page: {e}" );
+            }
         }
         else
         {

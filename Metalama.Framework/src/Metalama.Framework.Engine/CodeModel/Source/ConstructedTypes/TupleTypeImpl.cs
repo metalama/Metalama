@@ -38,11 +38,20 @@ internal sealed partial class TupleTypeImpl : SourceNamedTypeImpl
     internal ImmutableArray<string> TupleElementNames
         => this._overridenElementNames.IsDefault ? this.NamedTypeSymbol.TupleElements.SelectAsImmutableArray( e => e.Name ) : this._overridenElementNames;
 
+    /// <summary>
+    /// Gets the fields of the tuple, which are the fields of the underlying <c>ValueTuple</c>.
+    /// </summary>
+    /// <remarks>
+    /// The symbol of a tuple whose elements are named exposes the named fields in addition to the positional ones of
+    /// the underlying type, so the fields are taken from the underlying type, which reports each position once. See
+    /// issue #1844.
+    /// </remarks>
     [Memo]
     public override IFieldCollection Fields
         => new FieldCollection(
             this.Facade,
-            this.Compilation.GetFieldCollection( this.NamedTypeSymbol.ToRef( this.RefFactory ) ) );
+            this.Compilation.GetFieldCollection(
+                (this.NamedTypeSymbol.TupleUnderlyingType ?? this.NamedTypeSymbol).ToRef( this.RefFactory ) ) );
 
     private ITupleElement GetTupleElement( IFieldSymbol symbol, int index )
     {

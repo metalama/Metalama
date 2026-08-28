@@ -29,6 +29,7 @@ namespace Metalama.Framework.Engine.CodeModel.References
         private readonly CompilationModel? _canonicalCompilationModel;
         private readonly ConcurrentDictionary<SymbolCacheKey, ISymbolRef<ICompilationElement>> _symbolCache = new( new SymbolCacheKeyComparer() );
         private readonly ConcurrentDictionary<TupleTypeSymbolCacheKey, TupleTypeSymbolRef> _tupleTypeSymbolCache = new( new TupleTypeSymbolCacheKeyComparer() );
+        private IDurableRefFactory? _durableRefFactory;
 
         // There is no need for a cache of builder-based references because the unique instance of the reference is stored
         // inside DeclarationBuilderData.
@@ -48,15 +49,43 @@ namespace Metalama.Framework.Engine.CodeModel.References
             => this._canonicalCompilationModel ?? throw new InvalidOperationException( "The CanonicalCompilation is not available." );
 
         /// <summary>
+        /// Gets the factory that determines the representation of the durable references of this project.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// The service is resolved lazily instead of being injected, because a reference can reach its project only
+        /// through the compilation model, and because a compilation model created outside a pipeline has no such
+        /// service. In that case, the identifier-based implementation is used.
+        /// </para>
+        /// <para>
+        /// Caching the result is safe. A <see cref="RefFactory"/> is shared by all versions of a single compilation
+        /// model, which belong to a single project, and the service provider of a project is immutable. A reference
+        /// can therefore never observe two different implementations.
+        /// </para>
+        /// </remarks>
+        public IDurableRefFactory DurableRefFactory
+            => this._durableRefFactory ??=
+                this._canonicalCompilationModel?.Project.ServiceProvider.GetService<IDurableRefFactory>()
+                ?? SerializedDurableRefFactory.Instance;
+
+        /// <summary>
         /// Creates an <see cref="IRef{T}"/> from an <see cref="IDeclarationBuilder"/>.
         /// </summary>
-        public FullRef<T> FromBuilderData<T>( DeclarationBuilderData builder, GenericContext? genericContext = null )
+        public FullRef<T> FromBuilderData<T>( DeclarationBuilderData builder, GenericContext? genericContext = null, bool? isNullable = false )
             where T : class, IDeclaration
-            => new IntroducedRef<T>( builder, this, genericContext );
+            => new IntroducedRef<T>( builder, this, genericContext, isNullable );
 
+        /// <remarks>
+        /// The nullability of an introduced named type is carried by the reference, because it is part of the type and
+        /// not of the builder, and a reference that dropped it resolved the nullable form of the type to the
+        /// non-nullable one. See issue #1840.
+        /// </remarks>
         public FullRef<T> FromIntroducedDeclaration<T>( IntroducedDeclaration introducedDeclaration )
             where T : class, IDeclaration
-            => this.FromBuilderData<T>( introducedDeclaration.BuilderData, introducedDeclaration.GenericContext );
+            => this.FromBuilderData<T>(
+                introducedDeclaration.BuilderData,
+                introducedDeclaration.GenericContext,
+                (introducedDeclaration as IntroducedNamedType)?.IsNullable ?? false );
 
         public FullRef<T> FromConstructedType<T>( ConstructedType constructedType )
             where T : class, IType

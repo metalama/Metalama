@@ -4,6 +4,7 @@
 
 using Metalama.Backstage.Diagnostics;
 using Metalama.Framework.Code;
+using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Services;
@@ -87,10 +88,16 @@ internal sealed class UserCodeRetentionPolicy
             CompilationModel or PartialCompilation or CompilationContext => true,
             IDeclaration or IType => true,
 
-            // A durable reference is backed by a serializable identifier and reaches nothing. Any other reference holds
-            // the symbol and the RefFactory, which reaches the compilation. The equivalent in the public API is
-            // SerializableDeclarationId, which is a string and is therefore never reported.
-            IRef => obj is not IDurableRef,
+            // A durable reference is usually identified by a serializable identifier and holds no reference to a
+            // compilation. Any other reference holds the symbol and the RefFactory, which holds the compilation. The
+            // equivalent in the public API is SerializableDeclarationId, which is a string and is therefore never
+            // reported.
+            //
+            // During a batch compilation, a durable reference stores instead the reference it was created from,
+            // because the compilation lives until the build ends. See IDurableRefFactory and issue #1811. Such a
+            // reference does hold a compilation and must be reported, because this analysis runs during a batch
+            // compilation.
+            IRef => obj is not IDurableRefImpl { ReachesCompilation: false },
             _ => false
         };
 

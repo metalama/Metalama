@@ -8,8 +8,9 @@ using Metalama.Framework.Utilities;
 namespace Metalama.Framework.Code;
 
 /// <summary>
-/// An <see cref="IRef"/> that stores only a string identifier and therefore does not keep the compilation it came
-/// from in memory. Its <see cref="IRef.IsDurable"/> property is always <c>true</c>.
+/// An <see cref="IRef"/> that may be stored in an object outliving the run that produced it, without keeping a version
+/// of the compilation in memory for as long as it is held. Its <see cref="IRef.IsDurable"/> property is always
+/// <c>true</c>.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -20,8 +21,15 @@ namespace Metalama.Framework.Code;
 /// </para>
 /// <para>
 /// Call <see cref="RefExtensions.ToDurableRef{T}"/> on a declaration or a type to obtain one, or
-/// <see cref="IRef.ToDurable"/> when a reference is already at hand. Resolving a durable reference costs an
+/// <see cref="IRef.ToDurable"/> when a reference is already at hand. Resolving a durable reference may cost an
 /// identifier lookup, which is why references are not durable by default.
+/// </para>
+/// <para>
+/// The representation of such a reference is not part of this contract and depends on the kind of compilation. At
+/// design time, where compilations succeed one another, the reference stores a string identifier. During a batch
+/// compilation, which processes a single compilation, the reference stores the reference it was created from. Both
+/// representations satisfy this contract, which is that the reference may be held for as long as its holder lives. See
+/// <see cref="IRef.IsDurable"/>.
 /// </para>
 /// </remarks>
 /// <seealso cref="IDurableRef{T}"/>

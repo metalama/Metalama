@@ -1,10 +1,10 @@
 internal class TargetCode
 {
-  private static readonly DelegateEventAdapter<EventHandler, (object? , EventArgs), TargetCode> EventFieldAdapter_0 = new(static (EventHandler handler, ref (object? sender, EventArgs e) args, TargetCode me) => me.EventField_Invoke_SafeEvent(handler, ref args), static b => (sender, e) => b.Invoke((sender, e)), static (handler, me) => me.EventField_SafeEvent += handler, static (handler, me) => me.EventField_SafeEvent -= handler);
-  private static readonly DelegateEventAdapter<EventHandler, (object? , EventArgs), TargetCode> EventAdapter_0 = new(static (EventHandler handler, ref (object? sender, EventArgs e) args, TargetCode me) => me.Event_Invoke_SafeEvent(handler, ref args), static b => (sender, e) => b.Invoke((sender, e)), static (handler, me) => me.Event_SafeEvent += handler, static (handler, me) => me.Event_SafeEvent -= handler);
+  private static readonly DelegateEventAdapter<EventHandler, (object? sender, EventArgs e), TargetCode> EventFieldAdapter_0 = new(static (EventHandler handler, ref (object? sender, EventArgs e) args, TargetCode me) => me.EventField_Invoke_SafeEvent(handler, ref args), static b => (sender, e) => b.Invoke((sender, e)), static (handler, me) => me.EventField_SafeEvent += handler, static (handler, me) => me.EventField_SafeEvent -= handler);
+  private static readonly DelegateEventAdapter<EventHandler, (object? sender, EventArgs e), TargetCode> EventAdapter_0 = new(static (EventHandler handler, ref (object? sender, EventArgs e) args, TargetCode me) => me.Event_Invoke_SafeEvent(handler, ref args), static b => (sender, e) => b.Invoke((sender, e)), static (handler, me) => me.Event_SafeEvent += handler, static (handler, me) => me.Event_SafeEvent -= handler);
   private List<EventHandler> _delegates = new List<EventHandler>();
   private event EventHandler _eventField = default !;
-  private volatile EventBroker<EventHandler, (object? , EventArgs), TargetCode>? _eventFieldBroker;
+  private volatile EventBroker<EventHandler, (object? sender, EventArgs e), TargetCode>? _eventFieldBroker;
   [SafeEvent]
   public event EventHandler EventField
   {
@@ -43,7 +43,7 @@ internal class TargetCode
       throw;
     }
   }
-  private volatile EventBroker<EventHandler, (object? , EventArgs), TargetCode>? _eventBroker;
+  private volatile EventBroker<EventHandler, (object? sender, EventArgs e), TargetCode>? _eventBroker;
   [SafeEvent]
   public event EventHandler Event
   {

@@ -1,8 +1,9 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Code;
+using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.SerializableIds;
 using Metalama.Testing.UnitTesting;
@@ -42,7 +43,7 @@ public sealed class SerializableTypeIdTests : UnitTestClass
 
         foreach ( var bypassSymbols in new[] { false, true } )
         {
-            var id = iType.GetSerializableTypeId( bypassSymbols );
+            var id = iType.GetSerializableTypeId( bypassSymbols: bypassSymbols );
             this.TestOutput.WriteLine( id.Id );
 
             var roundTripSymbol = compilation.CompilationContext.SerializableTypeIdResolver.ResolveId( id );
@@ -71,7 +72,7 @@ public sealed class SerializableTypeIdTests : UnitTestClass
 
         foreach ( var bypassSymbols in new[] { false, true } )
         {
-            var typeId = iType.GetSerializableTypeId( bypassSymbols );
+            var typeId = iType.GetSerializableTypeId( bypassSymbols: bypassSymbols );
 
             var roundTripSymbol = compilation.CompilationContext.SerializableTypeIdResolver.ResolveId( typeId );
             Assert.Equal( iType.GetSymbol(), roundTripSymbol, SymbolEqualityComparer.IncludeNullability );
@@ -79,6 +80,229 @@ public sealed class SerializableTypeIdTests : UnitTestClass
             var roundTripType = compilation.SerializableTypeIdResolver.ResolveId( typeId );
             Assert.Same( iType, roundTripType );
         }
+    }
+
+    private const string _constrainedGenericTypesCode = """
+                                                        using System.Collections.Generic;
+
+                                                        class StructConstrained<T> where T : struct
+                                                        {
+                                                            public List<T> Field = null!;
+                                                        }
+
+                                                        class UnmanagedConstrained<T> where T : unmanaged { }
+
+                                                        class ClassConstrained<T> where T : class
+                                                        {
+                                                            public List<T> Field = null!;
+                                                        }
+
+                                                        class NotNullConstrained<T> where T : notnull
+                                                        {
+                                                            public List<T> Field = null!;
+                                                        }
+
+                                                        class Unconstrained<T>
+                                                        {
+                                                            public List<T> Field = null!;
+                                                        }
+                                                        """;
+
+    /// <summary>
+    /// Verifies that the identifier of a generic type definition resolves to an equivalent type through both
+    /// resolvers, whatever constrains its type parameter.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The identifier is built the way <c>FullRef.CreateDurableRef</c> builds it, with its generic context, because
+    /// the context is what makes the type parameter resolve through the dictionary of generic arguments rather than
+    /// through the short circuit that recognizes a parameter of the declaration being resolved. Only the former path
+    /// applies the nullability of the outermost type to the parameter, which is what threw for a parameter
+    /// constrained to be a value type. See issue #1835.
+    /// </para>
+    /// <para>
+    /// Both resolvers are exercised on the same identifier, because a durable reference uses either depending on what
+    /// it is asked for: <c>TypeIdRef.GetSymbol</c> and <c>TypeIdRef.ToFullRef</c> resolve to a symbol and
+    /// <c>TypeIdRef.Resolve</c> to a type of the code model. They answered differently in issue #1835, the symbol
+    /// resolver accepting an identifier that the code model resolver rejected. See issue #1837.
+    /// </para>
+    /// </remarks>
+    [Theory]
+    [InlineData( "StructConstrained" )]
+    [InlineData( "UnmanagedConstrained" )]
+    [InlineData( "ClassConstrained" )]
+    [InlineData( "NotNullConstrained" )]
+    [InlineData( "Unconstrained" )]
+    public void TestGenericDefinitionWithConstrainedTypeParameter( string typeName )
+    {
+        using var testContext = this.CreateTestContext();
+        var compilation = testContext.CreateCompilationModel( _constrainedGenericTypesCode );
+
+        var type = compilation.Types.OfName( typeName ).Single();
+
+        this.AssertRoundTrip( compilation, type );
+    }
+
+    /// <summary>
+    /// Verifies that the identifier of a type that mentions a type parameter, in a position other than the parameter
+    /// list of the declaration being resolved, resolves to an equivalent type through both resolvers, whatever
+    /// constrains the parameter.
+    /// </summary>
+    /// <remarks>
+    /// The type argument here is annotated as non-nullable in the source, whatever the constraint, so the resolver
+    /// has to reproduce that annotation rather than remove it. Removing it is what the code model resolver did, which
+    /// only a parameter that is not constrained to be a value type revealed: the declaration of a value-type
+    /// constrained parameter is annotated already, so removing the annotation and setting it agreed. See issue #1839.
+    /// </remarks>
+    [Theory]
+    [InlineData( "StructConstrained" )]
+    [InlineData( "ClassConstrained" )]
+    [InlineData( "NotNullConstrained" )]
+    [InlineData( "Unconstrained" )]
+    public void TestTypeMentioningATypeParameter( string typeName )
+    {
+        using var testContext = this.CreateTestContext();
+        var compilation = testContext.CreateCompilationModel( _constrainedGenericTypesCode );
+
+        var fieldType = compilation.Types.OfName( typeName ).Single().Fields.OfName( "Field" ).Single().Type;
+        Assert.Equal( "List<T>", fieldType.ToDisplayString() );
+
+        this.AssertRoundTrip( compilation, fieldType );
+    }
+
+    /// <summary>
+    /// Verifies that the identifier of a type parameter itself resolves to an equivalent type through both resolvers,
+    /// whatever constrains it.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A type parameter has no identifier other than its name, so its generic context is the whole of what makes it
+    /// resolvable.
+    /// </para>
+    /// <para>
+    /// Whether the identifier carries the nullability marker depends on the annotation of the reference and not on the
+    /// constraint, so it is not asserted here: the declaration of a parameter constrained to a value type is annotated
+    /// and carries the marker, whereas the declaration of one constrained to <c>class</c> or to <c>notnull</c> is
+    /// oblivious and does not. What matters is that the round trip is exact, which is what is asserted.
+    /// </para>
+    /// <para>
+    /// The marker is derived from the annotation of the symbol rather than from <see cref="IType.IsNullable"/>, which
+    /// for a type parameter answers whether its constraint allows null. Deriving it from <see cref="IType.IsNullable"/>
+    /// made the identifier of a <c>class</c> or <c>notnull</c> constrained parameter differ from the one built from the
+    /// symbol of the same parameter. See <c>SerializableTypeIdGenerator.IsWrittenInAnnotatedContext</c>.
+    /// </para>
+    /// </remarks>
+    [Theory]
+    [InlineData( "StructConstrained" )]
+    [InlineData( "UnmanagedConstrained" )]
+    [InlineData( "ClassConstrained" )]
+    [InlineData( "NotNullConstrained" )]
+    [InlineData( "Unconstrained" )]
+    public void TestTypeParameter( string typeName )
+    {
+        using var testContext = this.CreateTestContext();
+        var compilation = testContext.CreateCompilationModel( _constrainedGenericTypesCode );
+
+        var typeParameter = compilation.Types.OfName( typeName ).Single().TypeParameters[0];
+
+        this.AssertRoundTrip( compilation, typeParameter );
+    }
+
+    /// <summary>
+    /// Verifies that the identifier of a value type that is not a <see cref="Nullable{T}"/>, and of the
+    /// <see cref="Nullable{T}"/> of it, resolve to equivalent types through both resolvers.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A value type declared in source is written into the identifier by name, and a name is where the nullability of
+    /// the outermost type is applied. A value type built into the language, which
+    /// <see cref="TestTypeOf(System.Type)"/> covers, is written as a keyword instead and takes a different branch of
+    /// the resolver, which annotates only <c>object</c> and <c>string</c>.
+    /// </para>
+    /// <para>
+    /// The type is covered both as the outermost type and as the type argument of a generic type. Only the latter is
+    /// annotated: the identifier carries the trailing <c>!</c> only when the outermost type is a reference type, so
+    /// the position in which a value type is annotated is the one it does not occupy itself.
+    /// </para>
+    /// <para>
+    /// The <see cref="Nullable{T}"/> of the type is covered in both positions as well, because Roslyn annotates the
+    /// symbol of a value type written as <c>T?</c> whereas constructing <see cref="Nullable{T}"/> does not, so the
+    /// resolver has to set the annotation itself.
+    /// </para>
+    /// </remarks>
+    [Theory]
+    [InlineData( "Struct" )]
+    [InlineData( "Struct?" )]
+    [InlineData( "System.Collections.Generic.List<Struct>" )]
+    [InlineData( "System.Collections.Generic.List<Struct?>" )]
+    public void TestValueTypeDeclaredInSource( string type )
+    {
+        using var testContext = this.CreateTestContext();
+
+        var compilation = testContext.CreateCompilationModel( $"struct Struct {{ }} class C {{ {type} F; }}" );
+
+        var fieldType = compilation.Types.OfName( "C" ).Single().Fields.OfName( "F" ).Single().Type;
+
+        this.AssertRoundTrip( compilation, fieldType );
+    }
+
+    /// <summary>
+    /// Asserts that the identifier of a type, built the way a durable reference builds it, resolves to an equivalent
+    /// type through the resolver of symbols and through the resolver of the code model alike.
+    /// </summary>
+    private void AssertRoundTrip( CompilationModel compilation, IType type )
+    {
+        foreach ( var bypassSymbols in new[] { false, true } )
+        {
+            var id = type.GetSerializableTypeId( includeGenericContext: true, bypassSymbols: bypassSymbols );
+            this.TestOutput.WriteLine( id.Id );
+
+            var roundTripSymbol = compilation.CompilationContext.SerializableTypeIdResolver.ResolveId( id );
+            Assert.Equal( type.GetSymbol(), roundTripSymbol, SymbolEqualityComparer.IncludeNullability );
+
+            var roundTripType = compilation.SerializableTypeIdResolver.ResolveId( id );
+            Assert.Equal( type, roundTripType, compilation.Comparers.IncludeNullability );
+        }
+    }
+
+    /// <summary>
+    /// Verifies that the overload of <c>GetSerializableTypeId</c> taking an <see cref="IType"/> and the overload
+    /// taking an <c>ITypeSymbol</c> produce the same identifier for the same type.
+    /// </summary>
+    /// <remarks>
+    /// They have to, because <c>CompileTimeType</c> equality and the cache of <c>CompileTimeTypeFactory</c> key on
+    /// the identifier, and the two overloads feed them from different places: the overload taking a symbol through
+    /// <c>TypeOfRewriter</c> and <c>CompileTimeTypeFactory</c>, and the overload taking a type through
+    /// <c>DurableRefFactory</c> and <c>TemplateCompilerRewriter</c>. They disagreed for every value type and for an
+    /// annotated reference type. See issue #1838.
+    /// </remarks>
+    [Theory]
+    [InlineData( "object" )]
+    [InlineData( "object?" )]
+    [InlineData( "int" )]
+    [InlineData( "int?" )]
+    [InlineData( "S" )]
+    [InlineData( "S?" )]
+    [InlineData( "string[]" )]
+    [InlineData( "int[]" )]
+    [InlineData( "System.Collections.Generic.List<object?>" )]
+    [InlineData( "System.Collections.Generic.List<int>" )]
+    [InlineData( "(int, string)" )]
+    [InlineData( "dynamic" )]
+    public void TestTheTwoOverloadsProduceTheSameId( string type )
+    {
+        using var testContext = this.CreateTestContext();
+
+        var compilation = testContext.CreateCompilationModel( $"struct S {{ }} class C {{ {type} F; }}" );
+
+        var fieldType = compilation.Types.OfName( "C" ).Single().Fields.OfName( "F" ).Single().Type;
+
+        var fromType = fieldType.GetSerializableTypeId().Id;
+        var fromSymbol = fieldType.GetSymbol().AssertNotNull().GetSerializableTypeId().Id;
+
+        this.TestOutput.WriteLine( $"{type}: '{fromType}'" );
+
+        Assert.Equal( fromType, fromSymbol );
     }
 
     [Theory]

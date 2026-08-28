@@ -8,6 +8,7 @@ using Metalama.Backstage.Maintenance;
 using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel.Introductions.Helpers;
+using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.CompileTime.Manifest;
 using Metalama.Framework.Engine.CompileTime.Serialization;
@@ -167,6 +168,22 @@ public static class ServiceProviderFactory
             .WithService( _ => new OptionQueryService() )
             .WithService( provider => new AspectQueryService( provider ) )
             .WithServiceConditional<ILanguageVersionProvider>( provider => new LanguageVersionProvider( provider ) );
+
+        // An explicit DurableRefKind is applied here rather than in AspectPipeline, because it designates an
+        // implementation by itself and does not require the execution scenario, which is not known at this point.
+        // Registering the service here also makes the option apply to a compilation model created outside a pipeline,
+        // which is how the unit tests exercise a representation that their own execution scenario would not select.
+        if ( projectOptions.DurableRefKind != DurableRefKind.Default )
+        {
+            projectServiceProvider = projectServiceProvider.WithServiceConditional<IDurableRefFactory>(
+                _ => projectOptions.DurableRefKind switch
+                {
+                    DurableRefKind.Bound => BoundDurableRefFactory.Instance,
+                    DurableRefKind.Serialized => SerializedDurableRefFactory.Instance,
+                    DurableRefKind.SerializedWithoutCache => SerializedDurableRefFactory.InstanceWithoutResolutionCache,
+                    _ => throw new AssertionFailedException( $"Unexpected DurableRefKind: {projectOptions.DurableRefKind}." )
+                } );
+        }
 
         if ( projectOptions.FormatCompileTimeCode || projectOptions.CodeFormattingOptions == CodeFormattingOptions.Formatted || projectOptions.WriteHtml )
         {

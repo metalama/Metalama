@@ -1480,20 +1480,41 @@ public class PublicClass
         Assert.Single( type.Types );
     }
 
+    /// <summary>
+    /// Tests the nullability of a value type, of the <see cref="Nullable{T}"/> of it, and of the conversions between
+    /// them.
+    /// </summary>
+    /// <remarks>
+    /// A value type that is not a <see cref="Nullable{T}"/> carries no nullability annotation, so removing one returns
+    /// the type itself, whereas removing the annotation of a <see cref="Nullable{T}"/> returns the type it wraps.
+    /// Both cases are covered for both entry points, because the code model distinguishes them by whether the type
+    /// really is a <see cref="Nullable{T}"/> rather than by whether it is a value type. See issue #1835, where
+    /// assuming the latter made the conversion throw. A type declared in source is covered as well as a type built
+    /// into the language, so that the assertions do not depend on the special type.
+    /// </remarks>
     [Fact]
     public void NullableValueTypes()
     {
         using var testContext = this.CreateTestContext();
 
-        var compilation = testContext.CreateCompilationModel( "" );
-        var intType = compilation.Factory.GetNamedTypeByReflectionType( typeof(int) );
-        Assert.False( intType.IsNullable );
-        Assert.Same( intType, intType.ToNonNullable() );
-        Assert.Same( intType, intType.UnderlyingType );
-        var nullableIntType = intType.ToNullable();
-        Assert.NotSame( intType, nullableIntType );
-        Assert.True( nullableIntType.IsNullable );
-        Assert.Same( intType, nullableIntType.ToNonNullable() );
+        var compilation = testContext.CreateCompilationModel( "struct S { }" );
+
+        foreach ( var valueType in new[]
+                 {
+                     compilation.Factory.GetNamedTypeByReflectionType( typeof(int) ), compilation.Types.OfName( "S" ).Single()
+                 } )
+        {
+            Assert.False( valueType.IsNullable );
+            Assert.Same( valueType, valueType.ToNonNullable() );
+            Assert.Same( valueType, valueType.StripNullabilityAnnotation() );
+            Assert.Same( valueType, valueType.UnderlyingType );
+
+            var nullableValueType = valueType.ToNullable();
+            Assert.NotSame( valueType, nullableValueType );
+            Assert.True( nullableValueType.IsNullable );
+            Assert.Same( valueType, nullableValueType.ToNonNullable() );
+            Assert.Same( valueType, nullableValueType.StripNullabilityAnnotation() );
+        }
     }
 
     [Fact]
@@ -1519,6 +1540,44 @@ public class PublicClass
         Assert.NotEqual( objectType, nullableObjectType, compilation.Comparers.IncludeNullability );
         Assert.NotEqual( objectType, nonNullableObjectType, compilation.Comparers.IncludeNullability );
         Assert.NotEqual( nullableObjectType, nonNullableObjectType, compilation.Comparers.IncludeNullability );
+    }
+
+    /// <summary>
+    /// Tests that removing the nullability annotation of a type parameter that is constrained to be a value type
+    /// returns the type parameter itself.
+    /// </summary>
+    /// <remarks>
+    /// Such a type parameter is a value type that is not a <see cref="Nullable{T}"/>, therefore it has no nullability
+    /// annotation to remove. See issue #1835.
+    /// </remarks>
+    [Fact]
+    public void NullabilityOfValueTypeConstrainedTypeParameters()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var compilation = testContext.CreateCompilationModel(
+            @"
+class C<TStruct, TUnmanaged, TUnconstrained>
+    where TStruct : struct
+    where TUnmanaged : unmanaged
+{
+}" );
+
+        var type = compilation.Types.Single();
+
+        foreach ( var typeParameter in new[] { type.TypeParameters[0], type.TypeParameters[1] } )
+        {
+            Assert.False( typeParameter.IsReferenceType );
+            Assert.False( typeParameter.IsNullable );
+            Assert.Same( typeParameter, typeParameter.ToNonNullable() );
+            Assert.Same( typeParameter, typeParameter.StripNullabilityAnnotation() );
+            Assert.True( typeParameter.ToNullable().IsNullable );
+        }
+
+        var unconstrainedTypeParameter = type.TypeParameters[2];
+        Assert.Null( unconstrainedTypeParameter.IsNullable );
+        Assert.Same( unconstrainedTypeParameter, unconstrainedTypeParameter.ToNonNullable() );
+        Assert.Same( unconstrainedTypeParameter, unconstrainedTypeParameter.StripNullabilityAnnotation() );
     }
 
     [Fact]

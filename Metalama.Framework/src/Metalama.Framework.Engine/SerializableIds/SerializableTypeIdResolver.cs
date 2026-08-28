@@ -169,9 +169,29 @@ public abstract class SerializableTypeIdResolver<TType, TTypeOrNamespace>
 
     protected abstract TType AddNonNullableAnnotation( TType referenceType );
 
+    /// <summary>
+    /// Makes a type oblivious to nullability, which is what an identifier that carries no marker denotes.
+    /// </summary>
+    /// <remarks>
+    /// This is the mirror of <see cref="AddNonNullableAnnotation"/>, and without it the resolver could produce only two
+    /// of the three states: a type looked up in the compilation is already not annotated, so an identifier written in
+    /// an unannotated context resolved to a non-nullable type rather than to an oblivious one. It applies to a
+    /// reference type and to a type parameter alone, a value type being not annotated in either context because it can
+    /// never be oblivious.
+    /// </remarks>
+    protected abstract TType AddNullObliviousAnnotation( TType type );
+
     protected abstract TType ConstructGenericType( TType genericType, TType[] typeArguments );
 
-    protected abstract TType CreateTupleType( ImmutableArray<TType> elementTypes );
+    /// <summary>
+    /// Creates a tuple type from its elements. An entry of <paramref name="elementNames"/> is <c>null</c> where the
+    /// element is not named.
+    /// </summary>
+    /// <remarks>
+    /// The names are part of the type and are written into the identifier, because it is written in tuple syntax, so
+    /// they are read from it and passed on. See issue #1841.
+    /// </remarks>
+    protected abstract TType CreateTupleType( ImmutableArray<TType> elementTypes, ImmutableArray<string?> elementNames );
 
     protected abstract TType DynamicType { get; }
 
@@ -323,7 +343,7 @@ public abstract class SerializableTypeIdResolver<TType, TTypeOrNamespace>
             }
             else
             {
-                return result;
+                return ResolverResult.Success( this._parent.AddNullObliviousAnnotation( result.Type ) );
             }
         }
 
@@ -409,7 +429,13 @@ public abstract class SerializableTypeIdResolver<TType, TTypeOrNamespace>
                 return results.FirstOrDefault( r => !r.IsSuccess );
             }
 
-            return ResolverResult.Success( this._parent.CreateTupleType( results.SelectAsImmutableArray( x => x.Type ) ) );
+            // Tuple syntax carries the name of each element, which is part of the type, so the names are read from the
+            // identifier rather than dropped. An element that is not named has no identifier token.
+            var elementNames = node.Elements.SelectAsImmutableArray(
+                e => e.Identifier.IsKind( SyntaxKind.None ) ? null : e.Identifier.ValueText );
+
+            return ResolverResult.Success(
+                this._parent.CreateTupleType( results.SelectAsImmutableArray( x => x.Type ), elementNames ) );
         }
 
         public override ResolverResult DefaultVisit( SyntaxNode node ) => throw new InvalidOperationException( $"Unexpected node {node.Kind()}." );
@@ -443,9 +469,11 @@ public abstract class SerializableTypeIdResolver<TType, TTypeOrNamespace>
 
             var result = this._parent.GetSpecialType( specialType );
 
-            if ( !this._isNullOblivious && node.Keyword.Kind() is SyntaxKind.ObjectKeyword or SyntaxKind.StringKeyword )
+            if ( node.Keyword.Kind() is SyntaxKind.ObjectKeyword or SyntaxKind.StringKeyword )
             {
-                result = this._parent.AddNonNullableAnnotation( result );
+                result = this._isNullOblivious
+                    ? this._parent.AddNullObliviousAnnotation( result )
+                    : this._parent.AddNonNullableAnnotation( result );
             }
 
             return ResolverResult.Success( result );

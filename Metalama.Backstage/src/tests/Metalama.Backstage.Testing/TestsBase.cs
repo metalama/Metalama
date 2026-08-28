@@ -18,6 +18,7 @@ using Metalama.Backstage.Maintenance;
 using Metalama.Backstage.Repositories;
 using Metalama.Backstage.Serialization;
 using Metalama.Backstage.Telemetry;
+using Metalama.Backstage.Threading;
 using Metalama.Backstage.Tools;
 using Metalama.Backstage.UserInterface;
 using Metalama.Backstage.UserInterface.Rss;
@@ -44,6 +45,17 @@ namespace Metalama.Backstage.Testing
 
         protected TestLoggerFactory Log { get; }
 
+        /// <summary>
+        /// Gets the substitute for the named locks, which uses no operating system object, records what the code
+        /// under test does with its locks, and fails the test when the code under test breaks the locking
+        /// discipline.
+        /// </summary>
+        /// <remarks>
+        /// One instance stands for one machine, and it is shared by every service provider this test builds, so
+        /// two components of the same test exclude each other exactly as two processes would.
+        /// </remarks>
+        protected TestNamedLockService Locks { get; }
+
         protected IServiceProvider ServiceProvider => this._defaultTestContext.Value.ServiceProvider;
 
         // May be null if the different implementation of IConfigurationManager is used.
@@ -65,7 +77,20 @@ namespace Metalama.Backstage.Testing
 
         protected TestRuntimeInformation RuntimeInformation => this._defaultTestContext.Value.RuntimeInformation;
 
-        protected virtual LicensingAuthority LicensingAuthority { get; } = LicensingAuthority.GetTestAuthority();
+        /// <summary>
+        /// Gets the licensing authority provider registered in the service provider of the current test.
+        /// </summary>
+        protected ILicensingAuthorityProvider LicensingAuthorityProvider
+            => this.ServiceProvider.GetRequiredBackstageService<ILicensingAuthorityProvider>();
+
+        /// <summary>
+        /// Creates the licensing authority provider registered in the service provider of the current test. The
+        /// default implementation returns a provider of the test key, which signs and verifies a test license key.
+        /// </summary>
+        /// <param name="serviceProvider">The service provider under construction.</param>
+        /// <returns>The licensing authority provider of the current test.</returns>
+        protected virtual ILicensingAuthorityProvider CreateLicensingAuthorityProvider( IServiceProvider serviceProvider )
+            => new TestLicensingAuthorityProvider( serviceProvider );
 
         private TestFileSystem? _uniqueFileSystem;
 
@@ -107,6 +132,7 @@ namespace Metalama.Backstage.Testing
             this.Logger = logger;
 
             this.Log = new TestLoggerFactory( logger );
+            this.Locks = new TestNamedLockService( logger.WriteLine );
 
             this._configureServicesAction = this.ConfigureServices;
             this._initializationOptions = options ?? new BackstageInitializationOptions( new TestApplicationInfo() );
@@ -219,6 +245,7 @@ namespace Metalama.Backstage.Testing
 
                 // We must always have a single instance of the file system even if we use CloneServiceCollection.
                 .AddSingleton<IFileSystem>( serviceProvider => this._uniqueFileSystem ??= new TestFileSystem( serviceProvider ) )
+                .AddSingleton<INamedLockService>( this.Locks )
                 .AddSingleton<IEnvironmentVariableProvider>( this.EnvironmentVariableProvider )
                 .AddSingleton<IRecoverableExceptionService>( new TestRecoverableExceptionService() )
                 .AddSingleton<IUserDeviceDetectionService>( this.UserDeviceDetection )
@@ -249,7 +276,7 @@ namespace Metalama.Backstage.Testing
                 .AddSingleton<ITelemetryUploader>( serviceProvider => new TelemetryUploader( serviceProvider ) )
                 .AddSingleton<TelemetryLogger>( serviceProvider => new TelemetryLogger( serviceProvider ) )
                 .AddSingleton<IRssClient>( serviceProvider => new RssClient( serviceProvider ) )
-                .AddSingleton( this.LicensingAuthority );
+                .AddSingleton<ILicensingAuthorityProvider>( this.CreateLicensingAuthorityProvider );
 
             if ( options.OpenWelcomePage )
             {

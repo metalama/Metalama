@@ -4,6 +4,7 @@
 
 using JetBrains.Annotations;
 using Metalama.Backstage.Diagnostics;
+using Metalama.Backstage.Infrastructure;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -156,20 +157,6 @@ public static class ProcessUtilities
             return true;
         }
 
-        // Check the parent processes.
-        var unattendedProcesses = new HashSet<string>
-        {
-            "services",
-            "java",               // TeamCity, Atlassian Bamboo (can also be "bamboo"), Jenkins, GoCD
-            "bamboo",             // Atlassian Bamboo
-            "agent.worker",       // Azure Pipelines
-            "runner.worker",      // GitHub Actions
-            "buildkite-agent",    // BuildKite
-            "circleci-agent",     // CircleCI (Docker, but has specific process name)
-            "agent",              // Semaphore CI (Linux)
-            "sshd: travis [priv]" // Travis CI (Linux)
-        };
-
         if ( RuntimeInformation.IsOSPlatform( OSPlatform.Linux ) )
         {
             if ( IsRunningInDockerContainer( logger ) )
@@ -189,16 +176,26 @@ public static class ProcessUtilities
             }
         }
 
-        var notUnattendedProcesses = new HashSet<string>
+        // Processes that have no user interface and are not the agent of a continuous integration server. A
+        // continuous integration server is recognized by ContinuousIntegrationDetector below, which requires an
+        // environment variable in addition to the process.
+        var unattendedProcesses = new HashSet<string>( StringComparer.OrdinalIgnoreCase ) { "services" };
+
+        var notUnattendedProcesses = new HashSet<string>( StringComparer.OrdinalIgnoreCase )
         {
             "rider" // Rider needs to be checked, because it can have Java as its parent process.
         };
+
+        // The search of the parent processes stops at one of these processes, so that it does not walk the chain
+        // further than necessary.
+        var pivots = new HashSet<string>( unattendedProcesses, StringComparer.OrdinalIgnoreCase );
+        pivots.UnionWith( ContinuousIntegrationDetector.AgentProcessNames );
 
         IReadOnlyList<ProcessInfo> parentProcesses;
 
         try
         {
-            parentProcesses = GetParentProcesses( logger, unattendedProcesses );
+            parentProcesses = GetParentProcesses( logger, pivots );
         }
         catch ( Exception e )
         {
@@ -242,6 +239,16 @@ public static class ProcessUtilities
         if ( unattendedProcessName != null )
         {
             logger.Trace?.Log( $"Unattended mode detected because of parent process '{unattendedProcessName}'." );
+
+            return true;
+        }
+
+        var continuousIntegrationContext = new ContinuousIntegrationContext( new EnvironmentVariableProvider(), () => parentProcessNames, logger );
+        var continuousIntegrationServerName = ContinuousIntegrationDetector.GetServerName( continuousIntegrationContext );
+
+        if ( continuousIntegrationServerName != null )
+        {
+            logger.Trace?.Log( $"Unattended mode detected because the current process runs on {continuousIntegrationServerName}." );
 
             return true;
         }

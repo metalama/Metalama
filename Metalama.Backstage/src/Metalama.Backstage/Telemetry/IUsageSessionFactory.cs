@@ -11,10 +11,5 @@ namespace Metalama.Backstage.Telemetry;
 /// </summary>
 internal interface IUsageSessionFactory : IBackstageService
 {
-    /// <summary>
-    /// Gets an object to lock on when deciding whether to call <see cref="CreateSession"/>.
-    /// </summary>
-    object Sync { get; }
-
     IUsageSession CreateSession( string kind, bool shouldCollectMetrics = true );
 }

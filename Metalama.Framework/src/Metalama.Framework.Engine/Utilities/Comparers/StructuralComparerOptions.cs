@@ -18,6 +18,12 @@ namespace Metalama.Framework.Engine.Utilities.Comparers
         ParameterModifiers = 1 << 6,
         Nullability = 1 << 7,
 
+        /// <summary>
+        /// Compares the names of the elements of a tuple, which Roslyn treats as part of the identity of the type but
+        /// which the identity conversion of the language ignores. See issue #1844.
+        /// </summary>
+        TupleElementNames = 1 << 8,
+
         MethodSignature = Name | GenericParameterCount | GenericArguments | ParameterTypes | ParameterModifiers,
         FunctionPointer = GenericParameterCount | GenericArguments | ParameterTypes | ParameterModifiers,
         Type = Name | GenericParameterCount | GenericArguments

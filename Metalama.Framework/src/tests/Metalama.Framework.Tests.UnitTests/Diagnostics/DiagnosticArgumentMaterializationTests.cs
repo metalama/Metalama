@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Code;
 using Metalama.Framework.Diagnostics;
+using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Testing.UnitTesting;
@@ -54,6 +55,21 @@ public sealed class DiagnosticArgumentMaterializationTests : UnitTestClass
     private static readonly DiagnosticDefinition<string[]> _strings = new( "MY006", Severity.Warning, _format, "Title", "Category" );
 
     private static readonly DiagnosticDefinition<IDeclaration> _declaration = new( "MY007", Severity.Warning, _format, "Title", "Category" );
+
+    /// <summary>
+    /// Installs the implementation of <see cref="MetalamaStringFormatter"/>.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="MetalamaStringFormatter.Instance"/> throws until the static constructor of
+    /// <see cref="MetalamaEngineModuleInitializer"/> has run, and no test of this class creates a
+    /// <see cref="TestContext"/>, which is what triggers that constructor in the other test classes. Without this
+    /// static constructor, the tests below pass only when another test class has already run in the same process,
+    /// which the test runner does not guarantee.
+    /// </remarks>
+    static DiagnosticArgumentMaterializationTests()
+    {
+        MetalamaEngineModuleInitializer.EnsureInitialized();
+    }
 
     /// <summary>
     /// Returns the message that the diagnostic produces, which is formatted when this method is called and not before.

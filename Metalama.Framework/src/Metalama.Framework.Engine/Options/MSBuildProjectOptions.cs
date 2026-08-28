@@ -206,6 +206,9 @@ public partial class MSBuildProjectOptions : DefaultProjectOptions
     public override bool DiagnoseMemoryLeaks => this.GetBooleanOption( MSBuildPropertyNames.MetalamaDiagnoseMemoryLeaks );
 
     [Memo]
+    public override DurableRefKind DurableRefKind => this.GetEnumOption<DurableRefKind>( MSBuildPropertyNames.MetalamaDurableRefKind );
+
+    [Memo]
     public override ImmutableArray<string> SourceGeneratorAttributes => this.GetListOption( MSBuildPropertyNames.MetalamaSourceGeneratorAttributes );
 
     public override bool AvoidLockingExtensionAssemblies => this.GetBooleanOption( MSBuildPropertyNames.MetalamaAvoidLockingExtensionAssemblies );

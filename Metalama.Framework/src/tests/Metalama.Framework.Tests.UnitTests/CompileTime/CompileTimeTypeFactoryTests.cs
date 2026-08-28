@@ -398,7 +398,7 @@ public sealed class CompileTimeTypeFactoryTests : UnitTestClass
         // only: emitting it again for the nested type would give `Ns.OuterNs.Nested`.
         var id = nested.GetSerializableTypeId().Id;
 
-        Assert.Equal( SerializableTypeId.Prefix + "global::Ns.Outer.Nested!", id );
+        Assert.Equal( SerializableTypeId.Prefix + "global::Ns.Outer.Nested", id );
     }
 
     [Fact]
@@ -409,7 +409,7 @@ public sealed class CompileTimeTypeFactoryTests : UnitTestClass
 
         var mock = GetFactory( compilation ).CreateNamedType( "Ns.Outer+Nested", "SomeAssembly", false, false );
 
-        Assert.Equal( SerializableTypeId.Prefix + "global::Ns.Outer.Nested!", mock.GetSerializableTypeId().Id );
+        Assert.Equal( SerializableTypeId.Prefix + "global::Ns.Outer.Nested", mock.GetSerializableTypeId().Id );
     }
 
     [Fact]

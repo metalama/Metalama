@@ -33,6 +33,12 @@ namespace Metalama.Testing.Hooks;
 [PublicAPI]
 public sealed class TestSynchronizationProvider : ITestSynchronizationProvider, IDisposable
 {
+    /// <summary>
+    /// The number of times the release signal of a synchronization point is raised when it is released wholesale,
+    /// chosen to exceed the number of threads a test is expected to have blocked at a single point.
+    /// </summary>
+    private const int _bulkReleaseCount = 10;
+
     private readonly ConcurrentDictionary<string, SyncPointSignals> _syncPoints = new( StringComparer.Ordinal );
     private readonly Action<string>? _log;
 
@@ -122,6 +128,33 @@ public sealed class TestSynchronizationProvider : ITestSynchronizationProvider, 
     }
 
     /// <summary>
+    /// Called by test code. Disables a synchronization point, so that the code under test no longer blocks when it
+    /// reaches it, and releases whatever is blocked there at this moment.
+    /// </summary>
+    /// <param name="syncPointName">The name of the synchronization point to disable.</param>
+    /// <remarks>
+    /// <para>
+    /// This is what a test uses once the interleaving it cared about has happened, when the code under test will
+    /// reach the same point again an unknown number of times. Calling <see cref="ReleaseSyncPoint"/> instead would
+    /// require the test to know exactly how many further times the point will be reached, because the release
+    /// signal counts, and a test that guesses too low hangs.
+    /// </para>
+    /// <para>
+    /// Removing the registration only affects the threads that reach the point afterwards, so this method also
+    /// releases the threads that are already blocked at it, which have passed that test already.
+    /// </para>
+    /// </remarks>
+    public void DisableSyncPoint( string syncPointName )
+    {
+        this.Log( $"DisableSyncPoint '{syncPointName}'." );
+
+        if ( this._syncPoints.TryRemove( syncPointName, out var syncPoint ) )
+        {
+            Release( syncPoint );
+        }
+    }
+
+    /// <summary>
     /// Releases all synchronization points. Called in test cleanup to avoid deadlocks if a test fails.
     /// </summary>
     public void ReleaseAll()
@@ -130,11 +163,20 @@ public sealed class TestSynchronizationProvider : ITestSynchronizationProvider, 
 
         foreach ( var syncPoint in this._syncPoints.Values )
         {
-            // Release several times in case several threads are waiting.
-            for ( var i = 0; i < 10; i++ )
-            {
-                syncPoint.ReleaseSignal.Release();
-            }
+            Release( syncPoint );
+        }
+    }
+
+    /// <summary>
+    /// Raises the release signal of a synchronization point enough times for every thread plausibly blocked at it
+    /// to continue.
+    /// </summary>
+    /// <param name="syncPoint">The signals of the synchronization point.</param>
+    private static void Release( SyncPointSignals syncPoint )
+    {
+        for ( var i = 0; i < _bulkReleaseCount; i++ )
+        {
+            syncPoint.ReleaseSignal.Release();
         }
     }
 

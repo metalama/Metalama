@@ -16,12 +16,12 @@ public sealed class LicensingAuthorityTests
         var key = DSA.Create();
         var privateKey = key.ToXmlString( true );
         var publicKey = key.ToXmlString( false );
-        var signingLicensingAuthority = new LicensingAuthority( (100, privateKey) );
-        var verifyingLicensingAuthority = new LicensingAuthority( (100, publicKey) );
+        var signingLicensingAuthority = new LicensingAuthority( 100, privateKey );
+        var verifyingLicensingAuthority = new LicensingAuthority( 100, publicKey );
 
         byte[] message = [1, 2, 3];
         signingLicensingAuthority.Sign( message, out var signature );
 
-        Assert.True( verifyingLicensingAuthority.VerifySignature( message, 100, signature ) );
+        Assert.True( verifyingLicensingAuthority.VerifySignature( message, signature ) );
     }
 }

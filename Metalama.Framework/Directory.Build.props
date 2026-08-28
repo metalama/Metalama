@@ -15,7 +15,11 @@
 
         <EnforceExtendedAnalyzerRules>True</EnforceExtendedAnalyzerRules>
 
-    
+        <!-- The directory holding the source files that Metalama.Backstage shares, by linked compilation rather
+             than by assembly reference, with the projects that run before Metalama.Backstage has been extracted
+             and that can therefore reference nothing. See the remarks of Metalama.Backstage.Threading.INamedLockService. -->
+        <MetalamaSharedThreadingSourceDirectory>$(MSBuildThisFileDirectory)..\Metalama.Backstage\src\Metalama.Backstage\Threading\</MetalamaSharedThreadingSourceDirectory>
+
     </PropertyGroup>
 
     <Import Project="../eng/Versions.props"/>
