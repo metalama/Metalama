@@ -54,19 +54,16 @@ namespace Metalama.Framework.Analyzers
         private readonly ConcurrentDictionary<INamedTypeSymbol, bool> _isSubjectToContract;
         private readonly ConcurrentDictionary<INamedTypeSymbol, ulong> _storedTypeParameters;
         private readonly ImmutableHashSet<string> _additionalImmutableTypes;
-        private readonly ImmutableHashSet<string> _additionalMutableTypes;
         private readonly ImmutableHashSet<string> _additionalContractTypes;
 
         private ImmutabilityContext(
             ImmutableHashSet<string> additionalImmutableTypes,
-            ImmutableHashSet<string> additionalMutableTypes,
             ImmutableHashSet<string> additionalContractTypes )
         {
             this._verdicts = new ConcurrentDictionary<ITypeSymbol, ImmutabilityVerdict>( SymbolEqualityComparer.Default );
             this._isSubjectToContract = new ConcurrentDictionary<INamedTypeSymbol, bool>( SymbolEqualityComparer.Default );
             this._storedTypeParameters = new ConcurrentDictionary<INamedTypeSymbol, ulong>( SymbolEqualityComparer.Default );
             this._additionalImmutableTypes = additionalImmutableTypes;
-            this._additionalMutableTypes = additionalMutableTypes;
             this._additionalContractTypes = additionalContractTypes;
         }
 
@@ -102,7 +99,6 @@ namespace Metalama.Framework.Analyzers
 
             return new ImmutabilityContext(
                 SymbolFacts.ReadTypeNameList( globalOptions, "build_property.MetalamaImmutableTypes" ),
-                SymbolFacts.ReadTypeNameList( globalOptions, "build_property.MetalamaMutableTypes" ),
                 SymbolFacts.ReadTypeNameList( globalOptions, "build_property.MetalamaImmutableContractTypes" ) );
         }
 
@@ -113,19 +109,14 @@ namespace Metalama.Framework.Analyzers
         public IEnumerable<string> ImmutableTypeNames => this._additionalImmutableTypes;
 
         /// <summary>
-        /// Gets the type names declared by the <c>MetalamaMutableType</c> item.
-        /// </summary>
-        public IEnumerable<string> MutableTypeNames => this._additionalMutableTypes;
-
-        /// <summary>
         /// Gets the type names declared by the <c>MetalamaImmutableContractType</c> item.
         /// </summary>
         public IEnumerable<string> ContractTypeNames => this._additionalContractTypes;
 
         /// <summary>
-        /// Reads the <c>bool</c> argument of the marker on a symbol, and indicates whether the marker is present.
+        /// Determines whether a symbol carries the marker.
         /// </summary>
-        public static bool TryGetImmutableTypeValue( ISymbol symbol, out bool value )
+        public static bool HasImmutableTypeAttribute( ISymbol symbol )
         {
             foreach ( var attribute in symbol.GetAttributes() )
             {
@@ -133,36 +124,21 @@ namespace Metalama.Framework.Analyzers
                      && attributeClass.Name == "ImmutableTypeAttribute"
                      && SymbolFacts.GetFullMetadataName( attributeClass ) == ImmutableTypeAttributeMetadataName )
                 {
-                    // The parameter is optional and defaults to true, so [ImmutableType] and [ImmutableType( true )]
-                    // must mean the same thing. An analyzer must not assume that the code it sees compiles, so an
-                    // argument list of any other shape is read as the default rather than trusted.
-                    value = attribute.ConstructorArguments.Length == 0
-                            || attribute.ConstructorArguments[0].Value is not false;
-
                     return true;
                 }
             }
-
-            value = false;
 
             return false;
         }
 
         /// <summary>
-        /// Determines whether a type declares that it waives the contract, that is, whether it carries
-        /// <c>[ImmutableType( false )]</c> directly.
-        /// </summary>
-        public static bool HasWaiver( INamedTypeSymbol type )
-            => TryGetImmutableTypeValue( type, out var value ) && !value;
-
-        /// <summary>
         /// Determines whether a type is bound by the immutability contract.
         /// </summary>
         /// <remarks>
-        /// The nearest declaration wins, so <c>[ImmutableType( false )]</c> on a class is the per-class opt-out even
-        /// though its base type or an interface it implements requires immutability. That is the natural reading of
-        /// the marker's own <c>bool</c> parameter, and unlike a <c>#pragma</c> it is greppable, survives refactoring
-        /// and appears in the declaration.
+        /// The contract propagates to implementations on purpose. <c>IAspect</c> states it on a public interface, and
+        /// an implementation that did not inherit the obligation would make the declaration worthless. There is no
+        /// per-type waiver: where the contract is genuinely not wanted on one declaration, the ordinary suppression
+        /// mechanisms apply.
         /// </remarks>
         public bool IsSubjectToContract( INamedTypeSymbol type )
         {
@@ -179,32 +155,24 @@ namespace Metalama.Framework.Analyzers
 
         private bool ComputeIsSubjectToContract( INamedTypeSymbol type )
         {
-            // 1. The declaration on the type itself decides, in both directions.
-            if ( TryGetImmutableTypeValue( type, out var own ) )
+            if ( HasImmutableTypeAttribute( type ) )
             {
-                return own;
+                return true;
             }
 
-            // 2. The nearest base type that declares anything decides.
             for ( var baseType = type.BaseType; baseType != null; baseType = baseType.BaseType )
             {
-                if ( TryGetImmutableTypeValue( baseType, out var inherited ) )
-                {
-                    return inherited;
-                }
-
-                if ( this.IsContractType( baseType ) )
+                if ( HasImmutableTypeAttribute( baseType ) || this.IsContractType( baseType ) )
                 {
                     return true;
                 }
             }
 
-            // 3. Any interface that requires immutability binds the implementation. This is what makes marking
-            //    IAspect sufficient to check every aspect that anyone writes.
+            // Any interface that requires immutability binds the implementation. This is what makes marking IAspect
+            // sufficient to check every aspect that anyone writes.
             foreach ( var interfaceType in type.AllInterfaces )
             {
-                if ( (TryGetImmutableTypeValue( interfaceType, out var fromInterface ) && fromInterface)
-                     || this.IsContractType( interfaceType ) )
+                if ( HasImmutableTypeAttribute( interfaceType ) || this.IsContractType( interfaceType ) )
                 {
                     return true;
                 }
@@ -355,14 +323,7 @@ namespace Metalama.Framework.Analyzers
             var definition = namedType.OriginalDefinition;
             var metadataName = SymbolFacts.GetFullMetadataName( definition );
 
-            // Rules 9 and 10. The project may override the verdict of a type it does not own. The mutable list wins.
-            if ( this._additionalMutableTypes.Contains( metadataName ) )
-            {
-                return ImmutabilityVerdict.NotImmutable(
-                    SymbolFacts.GetDisplayName( type ),
-                    "the project declares this type in MetalamaMutableType" );
-            }
-
+            // Rule 9. The project may declare a type it does not own to be immutable.
             if ( this._additionalImmutableTypes.Contains( metadataName ) )
             {
                 return ImmutabilityVerdict.Immutable;
@@ -383,16 +344,6 @@ namespace Metalama.Framework.Analyzers
                     case WellKnownImmutability.Transparent:
                         return this.GetTransparentVerdict( namedType, entry, depth );
                 }
-            }
-
-            // Rule 12. A type that waives the contract is mutable wherever it is used, which is the point of the
-            // waiver. Stated explicitly so that the message says so, rather than falling through to rule 17 and
-            // reporting that the type is not marked when in fact it is.
-            if ( HasWaiver( definition ) )
-            {
-                return ImmutabilityVerdict.NotImmutable(
-                    SymbolFacts.GetDisplayName( type ),
-                    "the type waives the contract with [ImmutableType( false )]" );
             }
 
             // Rule 13. The declaration is trusted here. It is verified separately, by the rule that walks the members

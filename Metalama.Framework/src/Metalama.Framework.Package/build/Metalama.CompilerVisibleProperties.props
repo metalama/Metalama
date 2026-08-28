@@ -49,7 +49,6 @@
         <CompilerVisibleProperty Include="MetalamaDurableTypes"/>
         <CompilerVisibleProperty Include="MetalamaNonDurableTypes"/>
         <CompilerVisibleProperty Include="MetalamaImmutableTypes"/>
-        <CompilerVisibleProperty Include="MetalamaMutableTypes"/>
         <CompilerVisibleProperty Include="MetalamaImmutableContractTypes"/>
         <CompilerVisibleProperty Include="MetalamaEnforceImmutabilityContract"/>
     </ItemGroup>
@@ -80,16 +79,20 @@
     </Target>
 
     <!--
-        Declares the immutability of types that a project does not own, for the [ImmutableObject] analyzer, which
+        Declares the immutability of types that a project does not own, for the [ImmutableType] analyzer, which
         requires aspects, fabrics and validators to be written in an immutable style. A project writes:
 
             <ItemGroup>
                 <MetalamaImmutableType Include="Contoso.Money" />
-                <MetalamaMutableType Include="Contoso.Analysis.SymbolCache" />
             </ItemGroup>
 
-        The rules and the name syntax are the same as for the durable lists above: full metadata names without an
-        assembly name, so a generic type carries its arity, and the mutable list wins over the immutable one.
+        The name syntax is the same as for the durable lists above: full metadata names without an assembly name, so
+        a generic type carries its arity.
+
+        There is deliberately no negative list and no per-type waiver. Immutability is opt-in, so a type is already
+        not immutable unless something says otherwise, and where a warning is genuinely unwanted on one declaration
+        the ordinary suppression mechanisms apply. The durable lists need a negative one because durability has
+        built-in verdicts a project may have to override.
 
         MetalamaImmutableContractType names a base type or an interface whose implementations must be immutable, for
         the case that Metalama.Extensions.Validation covers: the validator base types live in a package that the
@@ -111,7 +114,6 @@
     <Target Name="MetalamaComputeImmutableTypeLists" BeforeTargets="GenerateMSBuildEditorConfigFileCore">
         <PropertyGroup>
             <MetalamaImmutableTypes>@(MetalamaImmutableType)</MetalamaImmutableTypes>
-            <MetalamaMutableTypes>@(MetalamaMutableType)</MetalamaMutableTypes>
             <MetalamaImmutableContractTypes>@(MetalamaImmutableContractType)</MetalamaImmutableContractTypes>
         </PropertyGroup>
     </Target>

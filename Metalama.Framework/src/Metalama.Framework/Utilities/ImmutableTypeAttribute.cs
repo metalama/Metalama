@@ -10,7 +10,7 @@ namespace Metalama.Framework.Utilities
     /// <summary>
     /// Declares that a type must be written in an immutable style, and requires every type that derives from it or
     /// implements it to be written that way too. An analyzer verifies the declaration and reports a warning when it
-    /// does not hold. Apply <c>[ImmutableType( false )]</c> to waive the requirement on one type.
+    /// does not hold.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -61,32 +61,15 @@ namespace Metalama.Framework.Utilities
     /// and may be imported in the same file.
     /// </para>
     /// <para>
-    /// A project that implements the framework itself, rather than using it, sets the
-    /// <c>MetalamaEnforceImmutabilityContract</c> MSBuild property to <c>false</c> to turn the contract off entirely.
+    /// There is deliberately no per-type waiver. Where the contract is genuinely not wanted on one declaration, the
+    /// ordinary suppression mechanisms apply: <c>#pragma warning disable</c>, <c>[SuppressMessage]</c> with a
+    /// justification, or a severity in an <c>.editorconfig</c>. A project that implements the framework itself,
+    /// rather than using it, sets the <c>MetalamaEnforceImmutabilityContract</c> MSBuild property to <c>false</c> to
+    /// turn the contract off entirely.
     /// </para>
     /// </remarks>
     /// <seealso cref="DurableAttribute"/>
     [AttributeUsage( AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Interface, Inherited = false )]
     [PublicAPI]
-    public sealed class ImmutableTypeAttribute : Attribute
-    {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ImmutableTypeAttribute"/> class.
-        /// </summary>
-        /// <param name="isImmutable">
-        /// <c>true</c> to require the type to be written in an immutable style, which is the default; <c>false</c> to
-        /// waive that requirement on a type that would otherwise inherit it. The waiver is greppable and appears in
-        /// the declaration, which a <c>#pragma</c> does not, and the analyzer reports it so that a review can find
-        /// every one of them.
-        /// </param>
-        public ImmutableTypeAttribute( bool isImmutable = true )
-        {
-            this.IsImmutable = isImmutable;
-        }
-
-        /// <summary>
-        /// Gets a value indicating whether the type must be written in an immutable style.
-        /// </summary>
-        public bool IsImmutable { get; }
-    }
+    public sealed class ImmutableTypeAttribute : Attribute;
 }

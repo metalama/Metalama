@@ -238,40 +238,8 @@ public sealed class ImmutableTypeAnalyzerTests : ImmutableAnalyzerTestBase
             + "[ImmutableType] class C { private readonly Tag<System.Text.StringBuilder> _v = null!; }" );
 
     // ------------------------------------------------------------------------------------------------------------
-    // The waiver, the gate, and broken code.
+    // The gate, and broken code.
     // ------------------------------------------------------------------------------------------------------------
-
-    [Fact]
-    public async Task Waiver_SilencesTheRulesAndIsReportedAsInfo()
-    {
-        var diagnostics = await GetDiagnosticsAsync(
-            _prologue
-            + "[ImmutableType] interface IThing { } "
-            + "[ImmutableType(false)] class Impl : IThing { private int _x; private List<int> _y = null!; }" );
-
-        var diagnostic = Assert.Single( diagnostics );
-
-        Assert.Equal( "LAMA0886", diagnostic.Id );
-    }
-
-    /// <remarks>
-    /// The attribute on a type that no contract reaches is not the author's business, so it is not reported.
-    /// </remarks>
-    [Fact]
-    public async Task WaiverOnAnUnboundType_IsNotReported()
-        => await AssertNoDiagnosticAsync( _prologue + "[ImmutableType(false)] class C { private int _x; }" );
-
-    [Fact]
-    public async Task WaivingTypeUsedAsAMemberType_IsReported()
-    {
-        var message = await AssertSingleDiagnosticAsync(
-            _prologue
-            + "[ImmutableType(false)] class Other { public int X; } "
-            + "[ImmutableType] class C { private readonly Other _v = null!; }",
-            "LAMA0882" );
-
-        Assert.Contains( "waives the contract", message, StringComparison.Ordinal );
-    }
 
     /// <remarks>
     /// The gate. A project that does not reference Metalama must pay one failed symbol lookup and produce nothing.

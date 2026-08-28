@@ -13,8 +13,8 @@ using Xunit;
 namespace Metalama.Framework.Analyzers.Tests;
 
 /// <summary>
-/// Tests of the <c>MetalamaImmutableType</c>, <c>MetalamaMutableType</c> and <c>MetalamaImmutableContractType</c>
-/// MSBuild items, by which a project declares the immutability of a type it does not own.
+/// Tests of the <c>MetalamaImmutableType</c> and <c>MetalamaImmutableContractType</c> MSBuild items, by which a
+/// project declares the immutability of a type it does not own.
 /// </summary>
 /// <remarks>
 /// These tests cover the side the analyzer owns, that is, reading the three compiler-visible properties. They cannot
@@ -59,7 +59,6 @@ public sealed class ImmutableMsBuildTypeListTests
 
     private static async Task<ImmutableArray<Diagnostic>> GetDiagnosticsAsync(
         string? immutableTypes,
-        string? mutableTypes,
         string? contractTypes = null,
         string? code = null,
         string? enforce = null )
@@ -72,7 +71,7 @@ public sealed class ImmutableMsBuildTypeListTests
 
         var options = new AnalyzerOptions(
             ImmutableArray<AdditionalText>.Empty,
-            new TestOptionsProvider( immutableTypes, mutableTypes, contractTypes, enforce ) );
+            new TestOptionsProvider( immutableTypes, contractTypes, enforce ) );
 
         var diagnostics = await compilation
             .WithAnalyzers( ImmutableArray.Create<DiagnosticAnalyzer>( new ImmutableContractAnalyzer() ), options )
@@ -84,7 +83,7 @@ public sealed class ImmutableMsBuildTypeListTests
     [Fact]
     public async Task WithoutTheItem_AnUnknownTypeIsMutable()
     {
-        var diagnostics = await GetDiagnosticsAsync( null, null );
+        var diagnostics = await GetDiagnosticsAsync( null );
 
         Assert.Single( diagnostics );
         Assert.Contains( "Opaque", diagnostics[0].GetMessage(), StringComparison.Ordinal );
@@ -93,7 +92,7 @@ public sealed class ImmutableMsBuildTypeListTests
     [Fact]
     public async Task MetalamaImmutableType_MakesTheTypeImmutable()
     {
-        var diagnostics = await GetDiagnosticsAsync( "Opaque", null );
+        var diagnostics = await GetDiagnosticsAsync( "Opaque" );
 
         Assert.Empty( diagnostics.Select( d => d.GetMessage() ) );
     }
@@ -101,31 +100,9 @@ public sealed class ImmutableMsBuildTypeListTests
     [Fact]
     public async Task TheListIsSemicolonSeparatedAndTrimmed()
     {
-        var diagnostics = await GetDiagnosticsAsync( " System.String ; Opaque ; ", null );
+        var diagnostics = await GetDiagnosticsAsync( " System.String ; Opaque ; " );
 
         Assert.Empty( diagnostics.Select( d => d.GetMessage() ) );
-    }
-
-    /// <remarks>
-    /// The mutable list wins, so that a project can override a verdict of the built-in table or of its own immutable
-    /// list rather than only add to it.
-    /// </remarks>
-    [Fact]
-    public async Task MetalamaMutableType_WinsOverTheImmutableList()
-    {
-        var diagnostics = await GetDiagnosticsAsync( "Opaque", "Opaque" );
-
-        Assert.Single( diagnostics );
-        Assert.Contains( "MetalamaMutableType", diagnostics[0].GetMessage(), StringComparison.Ordinal );
-    }
-
-    [Fact]
-    public async Task MetalamaMutableType_OverridesAMarkedType()
-    {
-        var diagnostics = await GetDiagnosticsAsync( null, "Marked" );
-
-        Assert.Equal( 2, diagnostics.Length );
-        Assert.Contains( diagnostics, d => d.GetMessage().Contains( "Marked", StringComparison.Ordinal ) );
     }
 
     /// <remarks>
@@ -135,7 +112,7 @@ public sealed class ImmutableMsBuildTypeListTests
     [Fact]
     public async Task AMistypedTypeName_IsReported()
     {
-        var diagnostics = await GetDiagnosticsAsync( "System.Text.RegularExpressions.Regexx", null );
+        var diagnostics = await GetDiagnosticsAsync( "System.Text.RegularExpressions.Regexx" );
 
         Assert.Contains( diagnostics, d => d.Id == "LAMA0885" );
         Assert.Contains( diagnostics, d => d.GetMessage().Contains( "MetalamaImmutableType", StringComparison.Ordinal ) );
@@ -144,7 +121,7 @@ public sealed class ImmutableMsBuildTypeListTests
     [Fact]
     public async Task AGenericNameWithoutItsArity_IsReported()
     {
-        var diagnostics = await GetDiagnosticsAsync( "System.Collections.Generic.List", null );
+        var diagnostics = await GetDiagnosticsAsync( "System.Collections.Generic.List" );
 
         Assert.Contains( diagnostics, d => d.Id == "LAMA0885" );
     }
@@ -152,7 +129,7 @@ public sealed class ImmutableMsBuildTypeListTests
     [Fact]
     public async Task AGenericNameWithItsArity_IsNotReported()
     {
-        var diagnostics = await GetDiagnosticsAsync( "System.Collections.Generic.List`1", null );
+        var diagnostics = await GetDiagnosticsAsync( "System.Collections.Generic.List`1" );
 
         Assert.DoesNotContain( diagnostics, d => d.Id == "LAMA0885" );
     }
@@ -173,11 +150,11 @@ public sealed class ImmutableMsBuildTypeListTests
                             }
                             """;
 
-        var withoutTheItem = await GetDiagnosticsAsync( null, null, null, code );
+        var withoutTheItem = await GetDiagnosticsAsync( null, null, code );
 
         Assert.Empty( withoutTheItem.Select( d => d.GetMessage() ) );
 
-        var withTheItem = await GetDiagnosticsAsync( null, null, "IValidator", code );
+        var withTheItem = await GetDiagnosticsAsync( null, "IValidator", code );
 
         Assert.Single( withTheItem );
         Assert.Equal( "LAMA0880", withTheItem[0].Id );
@@ -195,11 +172,11 @@ public sealed class ImmutableMsBuildTypeListTests
     [Fact]
     public async Task MetalamaEnforceImmutabilityContractFalse_SilencesEverything()
     {
-        var enforced = await GetDiagnosticsAsync( null, null );
+        var enforced = await GetDiagnosticsAsync( null );
 
         Assert.NotEmpty( enforced );
 
-        var notEnforced = await GetDiagnosticsAsync( null, null, null, null, "false" );
+        var notEnforced = await GetDiagnosticsAsync( null, null, null, "false" );
 
         Assert.Empty( notEnforced.Select( d => d.GetMessage() ) );
     }
@@ -211,7 +188,7 @@ public sealed class ImmutableMsBuildTypeListTests
     [InlineData( "not-a-boolean" )]
     public async Task AnyOtherValueOfTheSwitch_LeavesTheContractEnforced( string value )
     {
-        var diagnostics = await GetDiagnosticsAsync( null, null, null, null, value );
+        var diagnostics = await GetDiagnosticsAsync( null, null, null, value );
 
         Assert.NotEmpty( diagnostics );
     }
@@ -221,11 +198,10 @@ public sealed class ImmutableMsBuildTypeListTests
     /// </summary>
     private sealed class TestOptionsProvider(
         string? immutableTypes,
-        string? mutableTypes,
         string? contractTypes,
         string? enforce ) : AnalyzerConfigOptionsProvider
     {
-        public override AnalyzerConfigOptions GlobalOptions { get; } = new TestOptions( immutableTypes, mutableTypes, contractTypes, enforce );
+        public override AnalyzerConfigOptions GlobalOptions { get; } = new TestOptions( immutableTypes, contractTypes, enforce );
 
         public override AnalyzerConfigOptions GetOptions( SyntaxTree tree ) => TestOptions.Empty;
 
@@ -233,18 +209,16 @@ public sealed class ImmutableMsBuildTypeListTests
 
         private sealed class TestOptions(
             string? immutableTypes,
-            string? mutableTypes,
             string? contractTypes,
             string? enforce ) : AnalyzerConfigOptions
         {
-            public static readonly TestOptions Empty = new( null, null, null, null );
+            public static readonly TestOptions Empty = new( null, null, null );
 
             public override bool TryGetValue( string key, [NotNullWhen( true )] out string? value )
             {
                 value = key switch
                 {
                     "build_property.MetalamaImmutableTypes" => immutableTypes,
-                    "build_property.MetalamaMutableTypes" => mutableTypes,
                     "build_property.MetalamaImmutableContractTypes" => contractTypes,
                     "build_property.MetalamaEnforceImmutabilityContract" => enforce,
                     _ => null

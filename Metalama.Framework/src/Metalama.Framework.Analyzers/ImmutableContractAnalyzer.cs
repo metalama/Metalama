@@ -24,7 +24,8 @@ namespace Metalama.Framework.Analyzers
     /// <para>
     /// The contract is declared with <c>ImmutableTypeAttribute</c> and propagates to every
     /// type that derives from or implements a type carrying it, which is what makes marking <c>IAspect</c> enough to
-    /// check every aspect anyone writes. <c>[ImmutableType( false )]</c> on a class is the per-class opt-out.
+    /// check every aspect anyone writes. There is no per-type waiver: where the contract is genuinely not wanted on
+    /// one declaration, the ordinary suppression mechanisms apply.
     /// </para>
     /// </remarks>
     [DiagnosticAnalyzer( LanguageNames.CSharp )]
@@ -109,18 +110,6 @@ namespace Metalama.Framework.Analyzers
             true,
             customTags: WellKnownDiagnosticTags.CompilationEnd );
 
-        /// <remarks>
-        /// Reported so that every waiver is visible to a review without reading every file, which is the property
-        /// that makes the attribute a better escape hatch than a <c>#pragma</c>.
-        /// </remarks>
-        internal static readonly DiagnosticDescriptor ContractIsWaived = new(
-            "LAMA0886",
-            "The immutable-style requirement is waived",
-            "'{0}' waives the immutable-style requirement with [ImmutableType( false )]",
-            _category,
-            DiagnosticSeverity.Info,
-            true );
-
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =
             ImmutableArray.Create(
                 FieldIsNotReadOnly,
@@ -129,7 +118,6 @@ namespace Metalama.Framework.Analyzers
                 BaseTypeIsNotImmutable,
                 InterfaceIsNotImmutable,
                 UnknownDeclaredTypeName,
-                ContractIsWaived,
                 MemberIsWrittenOutsideConstructor,
                 MemberIsPassedByReference );
 
@@ -168,58 +156,11 @@ namespace Metalama.Framework.Analyzers
 
             if ( !immutabilityContext.IsSubjectToContract( type ) )
             {
-                ReportWaiver( context, immutabilityContext, type );
-
                 return;
             }
 
             AnalyzeBaseType( context, immutabilityContext, type );
             AnalyzeMembers( context, immutabilityContext, type );
-        }
-
-        /// <summary>
-        /// Reports a type that waives the contract, but only when it would otherwise have been bound by it, so that
-        /// the attribute on an ordinary type that no rule reaches is not reported.
-        /// </summary>
-        private static void ReportWaiver( SymbolAnalysisContext context, ImmutabilityContext immutabilityContext, INamedTypeSymbol type )
-        {
-            if ( !ImmutabilityContext.HasWaiver( type ) )
-            {
-                return;
-            }
-
-            var wouldBeBound = false;
-
-            for ( var baseType = type.BaseType; baseType != null && !wouldBeBound; baseType = baseType.BaseType )
-            {
-                wouldBeBound = immutabilityContext.IsSubjectToContract( baseType );
-            }
-
-            if ( !wouldBeBound )
-            {
-                foreach ( var interfaceType in type.AllInterfaces )
-                {
-                    if ( immutabilityContext.IsSubjectToContract( interfaceType ) )
-                    {
-                        wouldBeBound = true;
-
-                        break;
-                    }
-                }
-            }
-
-            if ( !wouldBeBound )
-            {
-                return;
-            }
-
-            var location = type.Locations.FirstOrDefault( l => l.IsInSource );
-
-            if ( location != null )
-            {
-                context.ReportDiagnostic(
-                    Diagnostic.Create( ContractIsWaived, location, SymbolFacts.GetDisplayName( type ) ) );
-            }
         }
 
         private static void AnalyzeBaseType( SymbolAnalysisContext context, ImmutabilityContext immutabilityContext, INamedTypeSymbol type )
@@ -390,11 +331,6 @@ namespace Metalama.Framework.Analyzers
             foreach ( var name in immutabilityContext.ImmutableTypeNames )
             {
                 ReportIfUnknown( name, "MetalamaImmutableType" );
-            }
-
-            foreach ( var name in immutabilityContext.MutableTypeNames )
-            {
-                ReportIfUnknown( name, "MetalamaMutableType" );
             }
 
             foreach ( var name in immutabilityContext.ContractTypeNames )
