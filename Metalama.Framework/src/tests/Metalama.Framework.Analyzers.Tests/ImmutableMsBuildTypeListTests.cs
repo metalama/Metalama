@@ -61,7 +61,8 @@ public sealed class ImmutableMsBuildTypeListTests
         string? immutableTypes,
         string? mutableTypes,
         string? contractTypes = null,
-        string? code = null )
+        string? code = null,
+        string? enforce = null )
     {
         var compilation = CSharpCompilation.Create(
             "TestAssembly",
@@ -71,7 +72,7 @@ public sealed class ImmutableMsBuildTypeListTests
 
         var options = new AnalyzerOptions(
             ImmutableArray<AdditionalText>.Empty,
-            new TestOptionsProvider( immutableTypes, mutableTypes, contractTypes ) );
+            new TestOptionsProvider( immutableTypes, mutableTypes, contractTypes, enforce ) );
 
         var diagnostics = await compilation
             .WithAnalyzers( ImmutableArray.Create<DiagnosticAnalyzer>( new ImmutableContractAnalyzer() ), options )
@@ -168,7 +169,7 @@ public sealed class ImmutableMsBuildTypeListTests
 
                             class MyValidator : IValidator
                             {
-                                private int _count;
+                                public int Count;
                             }
                             """;
 
@@ -183,22 +184,60 @@ public sealed class ImmutableMsBuildTypeListTests
     }
 
     /// <summary>
+    /// The switch that turns the whole contract off for a project.
+    /// </summary>
+    /// <remarks>
+    /// The contract is written for user code. A project that implements the framework itself declares code-model
+    /// builders and other types whose mutability is deliberate, and verifies them by its own tests instead. The
+    /// durability contract deliberately has no equivalent switch, because durability is hardest to get right
+    /// precisely in framework code.
+    /// </remarks>
+    [Fact]
+    public async Task MetalamaEnforceImmutabilityContractFalse_SilencesEverything()
+    {
+        var enforced = await GetDiagnosticsAsync( null, null );
+
+        Assert.NotEmpty( enforced );
+
+        var notEnforced = await GetDiagnosticsAsync( null, null, null, null, "false" );
+
+        Assert.Empty( notEnforced.Select( d => d.GetMessage() ) );
+    }
+
+    [Theory]
+    [InlineData( "true" )]
+    [InlineData( "True" )]
+    [InlineData( "" )]
+    [InlineData( "not-a-boolean" )]
+    public async Task AnyOtherValueOfTheSwitch_LeavesTheContractEnforced( string value )
+    {
+        var diagnostics = await GetDiagnosticsAsync( null, null, null, null, value );
+
+        Assert.NotEmpty( diagnostics );
+    }
+
+    /// <summary>
     /// Supplies the compiler-visible properties that the build would otherwise compute.
     /// </summary>
     private sealed class TestOptionsProvider(
         string? immutableTypes,
         string? mutableTypes,
-        string? contractTypes ) : AnalyzerConfigOptionsProvider
+        string? contractTypes,
+        string? enforce ) : AnalyzerConfigOptionsProvider
     {
-        public override AnalyzerConfigOptions GlobalOptions { get; } = new TestOptions( immutableTypes, mutableTypes, contractTypes );
+        public override AnalyzerConfigOptions GlobalOptions { get; } = new TestOptions( immutableTypes, mutableTypes, contractTypes, enforce );
 
         public override AnalyzerConfigOptions GetOptions( SyntaxTree tree ) => TestOptions.Empty;
 
         public override AnalyzerConfigOptions GetOptions( AdditionalText textFile ) => TestOptions.Empty;
 
-        private sealed class TestOptions( string? immutableTypes, string? mutableTypes, string? contractTypes ) : AnalyzerConfigOptions
+        private sealed class TestOptions(
+            string? immutableTypes,
+            string? mutableTypes,
+            string? contractTypes,
+            string? enforce ) : AnalyzerConfigOptions
         {
-            public static readonly TestOptions Empty = new( null, null, null );
+            public static readonly TestOptions Empty = new( null, null, null, null );
 
             public override bool TryGetValue( string key, [NotNullWhen( true )] out string? value )
             {
@@ -207,6 +246,7 @@ public sealed class ImmutableMsBuildTypeListTests
                     "build_property.MetalamaImmutableTypes" => immutableTypes,
                     "build_property.MetalamaMutableTypes" => mutableTypes,
                     "build_property.MetalamaImmutableContractTypes" => contractTypes,
+                    "build_property.MetalamaEnforceImmutabilityContract" => enforce,
                     _ => null
                 };
 

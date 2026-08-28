@@ -50,7 +50,7 @@ public sealed class ImmutableAnalyzerSelfRetentionTests
                                  [ImmutableObject(true)]
                                  class Annotated
                                  {
-                                     private int _count;
+                                     public int Count;
                                      private readonly string? _name;
                                      private readonly List<int>? _items;
                                  }

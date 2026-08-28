@@ -239,13 +239,27 @@ namespace Metalama.Framework.Analyzers
             NotImmutable( "System.Collections.Concurrent.ConcurrentQueue`1", mutableCollection );
             NotImmutable( "System.Collections.Concurrent.ConcurrentStack`1", mutableCollection );
 
-            // The Roslyn roots. Naming them is not strictly necessary, since they would fall through to the default
-            // rule, but it makes the message useful, and the rule that walks base types and interfaces then covers
-            // every symbol, syntax and operation type without listing them.
-            NotImmutable( "Microsoft.CodeAnalysis.Compilation", "a compilation is rebuilt on every edit" );
-            NotImmutable( "Microsoft.CodeAnalysis.SemanticModel", "a semantic model belongs to one compilation" );
-            NotImmutable( "Microsoft.CodeAnalysis.SyntaxNode", "a syntax node belongs to one syntax tree" );
-            NotImmutable( "Microsoft.CodeAnalysis.Location", "a location may hold a syntax tree" );
+            // ----------------------------------------------------------------------------------------------------
+            // The Roslyn roots, which are immutable.
+            //
+            // This is the sharpest place where the two contracts of this assembly must not be confused, and an
+            // earlier version of this table got it wrong by importing the durability reasons wholesale. "A
+            // compilation is rebuilt on every edit" and "a syntax node belongs to one syntax tree" are statements
+            // about lifetime, which is what WellKnownDurableTypes is about. They say nothing about mutability, and
+            // Roslyn's public API is immutable by construction: the syntax trees are persistent, every With- method
+            // returns a new instance, and a symbol never changes.
+            //
+            // These stay firmly NotDurable in the sibling table. DurabilityImmutabilityDivergenceTests asserts both
+            // halves so that the distinction cannot quietly collapse again.
+            // ----------------------------------------------------------------------------------------------------
+
+            Immutable( "Microsoft.CodeAnalysis.Compilation" );
+            Immutable( "Microsoft.CodeAnalysis.SemanticModel" );
+            Immutable( "Microsoft.CodeAnalysis.SyntaxNode" );
+            Immutable( "Microsoft.CodeAnalysis.SyntaxTree" );
+            Immutable( "Microsoft.CodeAnalysis.ISymbol" );
+            Immutable( "Microsoft.CodeAnalysis.Location" );
+            Immutable( "Microsoft.CodeAnalysis.Text.SourceText" );
 
             return table;
         }

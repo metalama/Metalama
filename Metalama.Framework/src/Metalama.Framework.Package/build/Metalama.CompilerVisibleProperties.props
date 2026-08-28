@@ -1,4 +1,4 @@
-﻿<Project>
+<Project>
     <PropertyGroup>
         <MetalamaCompilerVisiblePropertiesTargetsImported>True</MetalamaCompilerVisiblePropertiesTargetsImported>
     </PropertyGroup>
@@ -51,6 +51,7 @@
         <CompilerVisibleProperty Include="MetalamaImmutableTypes"/>
         <CompilerVisibleProperty Include="MetalamaMutableTypes"/>
         <CompilerVisibleProperty Include="MetalamaImmutableContractTypes"/>
+        <CompilerVisibleProperty Include="MetalamaEnforceImmutabilityContract"/>
     </ItemGroup>
 
     <!-- More properties are already exported by Metalama.Compiler and don't need to be exported a second time. -->
@@ -97,6 +98,12 @@
         A verdict that holds in general belongs in the WellKnownImmutableTypes table of Metalama.Framework.Analyzers
         rather than in a project file, so that every project benefits from it and the reasoning is recorded in one
         place.
+
+        Setting MetalamaEnforceImmutabilityContract to false turns the whole contract off for a project. The contract
+        is written for user code: a project that implements the framework itself declares code-model builders and
+        other types whose mutability is deliberate, and verifies them by its own tests instead. The durability
+        contract deliberately has no such switch, because durability is hardest to get right precisely in framework
+        code.
 
         This is a separate target rather than an extension of the one above, so that nothing that hooks the durable
         target by name moves.

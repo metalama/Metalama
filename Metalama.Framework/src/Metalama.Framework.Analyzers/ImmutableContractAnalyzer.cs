@@ -36,24 +36,33 @@ namespace Metalama.Framework.Analyzers
             "'{0}' must be written in an immutable style because it is an aspect, a fabric or a validator";
 
         // Range: 0880-0889.
+
+        /// <remarks>
+        /// Reported only when the field is writeable from outside the type that declares it. A private field that is
+        /// not read-only is left to <see cref="MemberIsWrittenOutsideConstructor"/> instead, which reports the
+        /// assignment rather than the declaration. See the remark on <c>CanVerifyWrites</c>.
+        /// </remarks>
         internal static readonly DiagnosticDescriptor FieldIsNotReadOnly = new(
             "LAMA0880",
-            "A field of a type that must be immutable is not read-only",
-            _because + ", but the field '{1}' is not read-only. Add the 'readonly' modifier.",
+            "A field of a type that must be immutable is writeable from outside the type",
+            _because + ", but the field '{1}' is neither read-only nor private, so not every assignment to it can be "
+            + "seen. Add the 'readonly' modifier, or make the field private.",
             _category,
             DiagnosticSeverity.Warning,
             true );
 
         /// <remarks>
         /// Separate from <see cref="FieldIsNotReadOnly"/> although one predicate produces both, because the remedy is
-        /// written differently. Note that a positional <c>record struct</c> falls here, and that the location is then
-        /// the primary constructor parameter, which is why the message names <c>readonly record struct</c>.
+        /// written differently. Note that a positional <c>record struct</c> falls here, because its generated setters
+        /// are public, and that the location is then the primary constructor parameter, which is why the message
+        /// names <c>readonly record struct</c>.
         /// </remarks>
         internal static readonly DiagnosticDescriptor PropertyHasSetter = new(
             "LAMA0881",
-            "An automatic property of a type that must be immutable has a setter",
-            _because + ", but the automatic property '{1}' has a setter. Replace 'set' with 'init', or, for a "
-            + "positional record struct, declare it as a 'readonly record struct'.",
+            "An automatic property of a type that must be immutable has a setter that is not private",
+            _because + ", but the automatic property '{1}' has a setter that is not private, so not every assignment "
+            + "to it can be seen. Replace 'set' with 'init', make the setter private, or, for a positional record "
+            + "struct, declare it as a 'readonly record struct'.",
             _category,
             DiagnosticSeverity.Warning,
             true );
@@ -120,7 +129,9 @@ namespace Metalama.Framework.Analyzers
                 BaseTypeIsNotImmutable,
                 InterfaceIsNotImmutable,
                 UnknownDeclaredTypeName,
-                ContractIsWaived );
+                ContractIsWaived,
+                MemberIsWrittenOutsideConstructor,
+                MemberIsPassedByReference );
 
         public override void Initialize( AnalysisContext context )
         {
@@ -142,6 +153,7 @@ namespace Metalama.Framework.Analyzers
 
             context.RegisterSymbolAction( c => AnalyzeNamedType( c, immutabilityContext ), SymbolKind.NamedType );
             context.RegisterCompilationEndAction( c => AnalyzeDeclaredTypeNames( c, immutabilityContext ) );
+            RegisterWriteSiteActions( context, immutabilityContext );
         }
 
         /// <remarks>
@@ -277,7 +289,10 @@ namespace Metalama.Framework.Analyzers
                     continue;
                 }
 
-                if ( !field.IsReadOnly )
+                // A member that is not read-only is reported here only when the analyzer cannot see every assignment
+                // to it. When it can, the assignment itself is reported instead, by the write-site rules, which is
+                // both more precise and where the author can act.
+                if ( !field.IsReadOnly && !CanVerifyWrites( declaredMember ) )
                 {
                     // One diagnostic per member: a writeable member must be made read-only before the question of its
                     // type is worth asking, and reporting both at once would name two remedies for one edit.
@@ -302,7 +317,7 @@ namespace Metalama.Framework.Analyzers
                     continue;
                 }
 
-                if ( property.SetMethod is { IsInitOnly: false } )
+                if ( property.SetMethod is { IsInitOnly: false } && !CanVerifyWrites( property ) )
                 {
                     Report( context, property, PropertyHasSetter, type );
 

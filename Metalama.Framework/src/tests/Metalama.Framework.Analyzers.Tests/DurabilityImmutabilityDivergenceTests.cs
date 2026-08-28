@@ -125,16 +125,28 @@ public sealed class DurabilityImmutabilityDivergenceTests
     }
 
     /// <remarks>
-    /// The control. Where the two contracts agree, they must both fire, or the test above would pass for a type that
-    /// simply escapes one of the two analyzers.
+    /// <para>
+    /// The sharpest case, and the one an earlier version of the table got wrong by importing the durability reasons
+    /// wholesale. "A compilation is rebuilt on every edit" and "a syntax node belongs to one syntax tree" are
+    /// statements about lifetime, not about mutability. Roslyn's public API is immutable by construction: syntax
+    /// trees are persistent, every <c>With</c> method returns a new instance, and a symbol never changes.
+    /// </para>
+    /// <para>
+    /// So these are the clearest example of the two contracts disagreeing, not of them agreeing.
+    /// </para>
     /// </remarks>
-    [Fact]
-    public async Task ASyntaxTree_IsNeitherDurableNorImmutable()
+    [Theory]
+    [InlineData( "private readonly SyntaxTree? _tree;" )]
+    [InlineData( "private readonly SyntaxNode? _node;" )]
+    [InlineData( "private readonly Compilation? _compilation;" )]
+    [InlineData( "private readonly ISymbol? _symbol;" )]
+    [InlineData( "private readonly Location? _location;" )]
+    public async Task ARoslynObject_IsNotDurableButIsImmutable( string memberDeclaration )
     {
-        var (durability, immutability) = await GetVerdictsAsync( "private readonly SyntaxTree? _tree;" );
+        var (durability, immutability) = await GetVerdictsAsync( memberDeclaration );
 
-        Assert.True( durability, "A SyntaxTree should not be durable." );
-        Assert.True( immutability, "A SyntaxTree should not be immutable." );
+        Assert.True( durability, "A Roslyn object should not be durable." );
+        Assert.False( immutability, "A Roslyn object should be immutable." );
     }
 
     /// <remarks>

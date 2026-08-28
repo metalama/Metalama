@@ -89,6 +89,20 @@ namespace Metalama.Framework.Analyzers
 
             var globalOptions = options.AnalyzerConfigOptionsProvider.GlobalOptions;
 
+            // The contract is written for user code. A project that implements the framework itself declares aspects,
+            // fabrics and code-model types whose mutability is deliberate -- a builder is mutable because that is what
+            // a builder is -- and it is verified by its own tests rather than by this rule. Such a project sets
+            // MetalamaEnforceImmutabilityContract to false.
+            //
+            // Note that the durability contract has no equivalent switch, and should not: durability is hard to get
+            // right in framework code and that is exactly where it matters. Immutability is the opposite way round.
+            if ( globalOptions.TryGetValue( "build_property.MetalamaEnforceImmutabilityContract", out var enforce )
+                 && bool.TryParse( enforce, out var enforceValue )
+                 && !enforceValue )
+            {
+                return null;
+            }
+
             return new ImmutabilityContext(
                 SymbolFacts.ReadTypeNameList( globalOptions, "build_property.MetalamaImmutableTypes" ),
                 SymbolFacts.ReadTypeNameList( globalOptions, "build_property.MetalamaMutableTypes" ),

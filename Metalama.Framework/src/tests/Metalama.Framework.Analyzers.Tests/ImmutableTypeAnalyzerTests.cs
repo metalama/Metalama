@@ -15,17 +15,26 @@ public sealed class ImmutableTypeAnalyzerTests : ImmutableAnalyzerTestBase
     // LAMA0880 and LAMA0881: writeable members. One predicate produces both.
     // ------------------------------------------------------------------------------------------------------------
 
+/// <remarks>
+    /// Reported at the declaration only because the field is public, so the analyzer cannot see every assignment to
+    /// it. A private field that is not read-only is accepted here and checked at its write sites instead, which
+    /// <see cref="ImmutableWriteSiteTests"/> covers.
+    /// </remarks>
     [Fact]
-    public async Task WriteableField_IsReported()
+    public async Task PublicWriteableField_IsReported()
     {
         var message = await AssertSingleDiagnosticAsync(
-            _prologue + "[ImmutableObject(true)] class C { private int _count; }",
+            _prologue + "[ImmutableObject(true)] class C { public int Count; }",
             "LAMA0880" );
 
         Assert.Contains( "must be written in an immutable style", message, StringComparison.Ordinal );
-        Assert.Contains( "_count", message, StringComparison.Ordinal );
+        Assert.Contains( "Count", message, StringComparison.Ordinal );
         Assert.Contains( "readonly", message, StringComparison.Ordinal );
     }
+
+    [Fact]
+    public async Task PrivateWriteableFieldThatIsNeverWritten_IsNotReported()
+        => await AssertNoDiagnosticAsync( _prologue + "[ImmutableObject(true)] class C { private int _count; }" );
 
     [Fact]
     public async Task ReadOnlyField_IsNotReported()
@@ -197,7 +206,7 @@ public sealed class ImmutableTypeAnalyzerTests : ImmutableAnalyzerTestBase
     [Fact]
     public async Task ImplementationOfMarkedInterface_IsVerified()
         => await AssertSingleDiagnosticAsync(
-            _prologue + "[ImmutableObject(true)] interface IThing { } class Impl : IThing { private int _x; }",
+            _prologue + "[ImmutableObject(true)] interface IThing { } class Impl : IThing { public int X; }",
             "LAMA0880" );
 
     // ------------------------------------------------------------------------------------------------------------
