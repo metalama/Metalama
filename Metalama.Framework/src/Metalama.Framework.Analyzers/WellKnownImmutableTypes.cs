@@ -183,6 +183,18 @@ namespace Metalama.Framework.Analyzers
             // verifies the claim instead of taking it on trust.
             // ----------------------------------------------------------------------------------------------------
 
+            // Logically immutable: every mutator returns a new instance through Create, and the type is already
+            // [Durable]. It cannot be written in an immutable style, and the reason is structural rather than
+            // accidental. Its serializer derives from ReferenceTypeSerializer<T>, which splits construction from
+            // field assignment -- CreateInstance then DeserializeFields -- so that a cycle in an object graph can be
+            // broken. A field that DeserializeFields restores therefore cannot be readonly. The second writeable
+            // field is a memoized Count, marked [NonCompileTimeSerialized] for the same reason it exists.
+            //
+            // This is the general case, not one type: no ICompileTimeSerializable type with a hand-written
+            // ReferenceTypeSerializer can satisfy the read-only rule, and IAspect derives from
+            // ICompileTimeSerializable. See immutability-FINDINGS-TODO.md.
+            Transparent( "Metalama.Framework.Options.IncrementalKeyedCollection`2" );
+
             Immutable( "Metalama.Framework.Code.IRef" );
             Immutable( "Metalama.Framework.Code.IRef`1" );
             Immutable( "Metalama.Framework.Code.IDurableRef" );

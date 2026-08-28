@@ -7,6 +7,7 @@ using Metalama.Framework.Options;
 using Metalama.Framework.Utilities;
 using Metalama.Patterns.Caching.Aspects.Configuration;
 using Metalama.Patterns.Caching.Implementation;
+using System.ComponentModel;
 
 namespace Metalama.Patterns.Caching.Aspects;
 
@@ -25,9 +26,10 @@ namespace Metalama.Patterns.Caching.Aspects;
 /// <seealso href="@caching-configuration"/>
 [Durable]
 [RunTimeOrCompileTime]
+[ImmutableObject( true )]
 public abstract class CachingBaseAttribute : Attribute, IHierarchicalOptionsProvider
 {
-    private CachingOptions _options = new();
+    private readonly CachingOptions _options = new();
 
     /// <summary>
     /// Gets or sets the name of the <see cref="CachingProfile"/> that contains the configuration of the cached methods.
@@ -35,7 +37,7 @@ public abstract class CachingBaseAttribute : Attribute, IHierarchicalOptionsProv
     public string? ProfileName
     {
         get => this._options.ProfileName ?? CachingOptions.DefaultCompileTimeOptions.ProfileName;
-        set => this._options = this._options with { ProfileName = value };
+        init => this._options = this._options with { ProfileName = value };
     }
 
     /// <summary>
@@ -45,7 +47,7 @@ public abstract class CachingBaseAttribute : Attribute, IHierarchicalOptionsProv
     public bool AutoReload
     {
         get => this._options.AutoReload ?? CachingOptions.DefaultCompileTimeOptions.AutoReload!.Value;
-        set => this._options = this._options with { AutoReload = value };
+        init => this._options = this._options with { AutoReload = value };
     }
 
     /// <summary>
@@ -55,7 +57,7 @@ public abstract class CachingBaseAttribute : Attribute, IHierarchicalOptionsProv
     public double AbsoluteExpiration
     {
         get => (this._options.AbsoluteExpiration ?? CachingOptions.DefaultCompileTimeOptions.AbsoluteExpiration)?.TotalMinutes ?? 0;
-        set => this._options = this._options with { AbsoluteExpiration = TimeSpan.FromMinutes( value ) };
+        init => this._options = this._options with { AbsoluteExpiration = TimeSpan.FromMinutes( value ) };
     }
 
     /// <summary>
@@ -65,7 +67,7 @@ public abstract class CachingBaseAttribute : Attribute, IHierarchicalOptionsProv
     public double SlidingExpiration
     {
         get => (this._options.SlidingExpiration ?? CachingOptions.DefaultCompileTimeOptions.SlidingExpiration)?.TotalMinutes ?? 0;
-        set => this._options = this._options with { SlidingExpiration = TimeSpan.FromMinutes( value ) };
+        init => this._options = this._options with { SlidingExpiration = TimeSpan.FromMinutes( value ) };
     }
 
     /// <summary>
@@ -74,7 +76,7 @@ public abstract class CachingBaseAttribute : Attribute, IHierarchicalOptionsProv
     public CacheItemPriority Priority
     {
         get => this._options.Priority ?? CachingOptions.DefaultCompileTimeOptions.Priority!.Value;
-        set => this._options = this._options with { Priority = value };
+        init => this._options = this._options with { Priority = value };
     }
 
     /// <summary>
@@ -84,7 +86,7 @@ public abstract class CachingBaseAttribute : Attribute, IHierarchicalOptionsProv
     public bool IgnoreThisParameter
     {
         get => this._options.IgnoreThisParameter ?? CachingOptions.DefaultCompileTimeOptions.IgnoreThisParameter!.Value;
-        set => this._options = this._options with { IgnoreThisParameter = value };
+        init => this._options = this._options with { IgnoreThisParameter = value };
     }
 
     /// <summary>
@@ -99,7 +101,7 @@ public abstract class CachingBaseAttribute : Attribute, IHierarchicalOptionsProv
     public bool UseDependencyInjection
     {
         get => this._options.UseDependencyInjection ?? CachingOptions.DefaultCompileTimeOptions.UseDependencyInjection!.Value;
-        set => this._options = this._options with { UseDependencyInjection = value };
+        init => this._options = this._options with { UseDependencyInjection = value };
     }
 
     public IEnumerable<IHierarchicalOptions> GetOptions( in OptionsProviderContext context ) => new[] { this._options };

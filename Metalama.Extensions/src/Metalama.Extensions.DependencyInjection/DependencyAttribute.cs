@@ -25,8 +25,8 @@ namespace Metalama.Extensions.DependencyInjection;
 [PublicAPI]
 public class DependencyAttribute : FieldOrPropertyAspect
 {
-    private bool? _isLazy;
-    private bool? _isRequired;
+    private readonly bool? _isLazy;
+    private readonly bool? _isRequired;
 
     /// <summary>
     /// Gets or sets a value indicating whether the dependency should be pulled from the container lazily, i.e. upon first use.
@@ -34,7 +34,7 @@ public class DependencyAttribute : FieldOrPropertyAspect
     public bool IsLazy
     {
         get => this._isLazy.GetValueOrDefault();
-        set => this._isLazy = value;
+        init => this._isLazy = value;
     }
 
     /// <summary>
@@ -43,7 +43,7 @@ public class DependencyAttribute : FieldOrPropertyAspect
     public bool IsRequired
     {
         get => this._isRequired.GetValueOrDefault();
-        set => this._isRequired = value;
+        init => this._isRequired = value;
     }
 
     protected virtual DependencyProperties ToProperties( IFieldOrProperty target )

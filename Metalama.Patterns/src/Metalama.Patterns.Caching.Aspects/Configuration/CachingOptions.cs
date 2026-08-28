@@ -6,12 +6,14 @@ using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Options;
 using Metalama.Patterns.Caching.Implementation;
+using System.ComponentModel;
 
 namespace Metalama.Patterns.Caching.Aspects.Configuration;
 
 #pragma warning disable SA1623
 
 [RunTimeOrCompileTime]
+[ImmutableObject( true )]
 internal sealed record CachingOptions : IHierarchicalOptions<IMethod>, IHierarchicalOptions<INamedType>, IHierarchicalOptions<INamespace>,
                                         IHierarchicalOptions<ICompilation>, ICacheItemConfiguration
 {

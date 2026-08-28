@@ -5,6 +5,7 @@
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Serialization;
 using Metalama.Framework.Utilities;
+using System.ComponentModel;
 
 namespace Metalama.Framework.Fabrics
 {
@@ -41,6 +42,7 @@ namespace Metalama.Framework.Fabrics
     /// <seealso href="@validation"/>
     [Durable]
     [CompileTime]
+    [ImmutableObject( true )]
     public abstract class Fabric : ICompileTimeSerializable, ITemplateProvider
     {
         private protected Fabric() { }

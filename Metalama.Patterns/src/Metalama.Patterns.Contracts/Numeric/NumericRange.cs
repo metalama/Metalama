@@ -12,6 +12,7 @@ using Metalama.Framework.Utilities;
 using System.Numerics;
 #endif
 using System.Text;
+using System.ComponentModel;
 
 namespace Metalama.Patterns.Contracts.Numeric;
 
@@ -24,6 +25,7 @@ namespace Metalama.Patterns.Contracts.Numeric;
 [Durable]
 [PublicAPI]
 [RunTimeOrCompileTime]
+[ImmutableObject( true )]
 public readonly struct NumericRange : ICompileTimeSerializable
 {
     /// <summary>

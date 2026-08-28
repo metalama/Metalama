@@ -6,6 +6,7 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Eligibility;
 using Metalama.Framework.Serialization;
 using Metalama.Framework.Utilities;
+using System.ComponentModel;
 
 namespace Metalama.Framework.Aspects
 {
@@ -44,6 +45,7 @@ namespace Metalama.Framework.Aspects
     /// <seealso href="@aspect-design"/>
     [RunTimeOrCompileTime]
     [Durable]
+    [ImmutableObject( true )]
     public interface IAspect : ICompileTimeSerializable, ITemplateProvider;
 
     /// <summary>
