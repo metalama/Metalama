@@ -189,6 +189,11 @@ both follow from the analyzer seeing a declared type where the walker sees an in
   see.
 - Every `ISymbol` is not durable for the analyzer, whereas `IsPinning` reports only the symbols that belong to the
   source of a compilation. A declared type says nothing about where the value will come from.
+- An `IDurableRef` is durable for the analyzer, whereas `IsPinning` reports one that reaches a compilation. Since
+  [#1811](https://github.com/metalama/Metalama/issues/1811) a durable reference of a batch compilation stores the
+  reference it was created from, deliberately, and the walker runs during a batch compilation. The analyzer reasons
+  about the design-time lifetime, where the serialized representation is selected and the reference reaches nothing,
+  and where typing a member `IDurableRef<T>` is the remedy this document prescribes.
 
 Two limits of the analyzer are worth knowing, because both are invisible until they matter.
 

@@ -58,8 +58,10 @@ public sealed class DurableTableCorrespondenceTests : DurableAnalyzerTestBase
         ("IType", "Metalama.Framework.Code.IType", "a code model element reaches its CompilationModel"),
         ("IRef", "Metalama.Framework.Code.IRef", "holds the symbol and the reference factory"),
 
-        // Named by the pattern only to be excluded from it: `IRef => obj is not IDurableRef`.
-        ("IDurableRef", "Metalama.Framework.Code.IDurableRef", "")
+        // Named by the pattern only to be excluded from it, and only when it reaches no compilation:
+        // `IRef => obj is not IDurableRefImpl { ReachesCompilation: false }`. Internal to the engine, so the probe
+        // below cannot name it; the entry exists so that the set comparison is complete.
+        ("IDurableRefImpl", "Metalama.Framework.Engine.CodeModel.References.IDurableRefImpl", "")
     ];
 
     /// <summary>
@@ -148,6 +150,13 @@ public sealed class DurableTableCorrespondenceTests : DurableAnalyzerTestBase
 
                     break;
 
+                // 'IDurableRefImpl { ReachesCompilation: false }' names its type and then constrains a property, which
+                // the parser reads as a recursive pattern rather than a type pattern.
+                case RecursivePatternSyntax { Type: { } recursiveType }:
+                    names.Add( GetSimpleName( recursiveType.ToString() ) );
+
+                    break;
+
                 case ConstantPatternSyntax { Expression: IdentifierNameSyntax or QualifiedNameSyntax } constantPattern:
                     names.Add( GetSimpleName( constantPattern.Expression.ToString() ) );
 
@@ -228,7 +237,7 @@ public sealed class DurableTableCorrespondenceTests : DurableAnalyzerTestBase
 
         foreach ( var (patternName, metadataName, expectedReason) in _pinningTypes )
         {
-            if ( patternName != "IDurableRef" )
+            if ( patternName != "IDurableRefImpl" )
             {
                 data.Add( metadataName, expectedReason );
             }
@@ -322,8 +331,19 @@ public sealed class DurableTableCorrespondenceTests : DurableAnalyzerTestBase
     }
 
     /// <remarks>
-    /// The inverse of the rule above: <c>IsPinning</c> excludes a durable reference from the references it reports,
-    /// and the analyzer must accept one in a durable member.
+    /// <para>
+    /// The inverse of the rule above, and the third deliberate divergence. <c>IsPinning</c> excludes a durable
+    /// reference only when it reaches no compilation, because since issue #1811 a durable reference of a *batch*
+    /// compilation stores the reference it was created from and therefore holds that compilation, which is
+    /// deliberate: the compilation lives until the build ends. The run-time walker must report it, because it runs
+    /// during a batch compilation.
+    /// </para>
+    /// <para>
+    /// The analyzer must not. It reasons about a declared type and about the design-time lifetime the contract is
+    /// written for, where the serialized representation is selected and an <c>IDurableRef</c> reaches nothing.
+    /// Typing a member <c>IDurableRef&lt;T&gt;</c> is exactly what this document asks for, so reporting it would
+    /// contradict the remedy.
+    /// </para>
     /// </remarks>
     [Fact]
     public async Task ADurableReference_IsAcceptedByBoth()

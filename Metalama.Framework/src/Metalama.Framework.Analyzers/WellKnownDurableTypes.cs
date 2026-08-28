@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -174,9 +174,16 @@ namespace Metalama.Framework.Analyzers
             // to refer to a symbol durably. Splitting the type in two is the real fix.
             Durable( "Metalama.Framework.Engine.Utilities.Roslyn.SymbolDictionaryKey" );
 
-            // A durable reference stores only a serializable identifier. Its type argument is a phantom that exists
-            // for the compile-time contract, so it is deliberately not examined: requiring it to be durable would
-            // demand that IDeclaration be durable and would reject the most important durable type of the codebase.
+            // A durable reference stores only a serializable identifier at design time, which is the lifetime this
+            // contract is written for. Its type argument is a phantom that exists for the compile-time contract, so it
+            // is deliberately not examined: requiring it to be durable would demand that IDeclaration be durable and
+            // would reject the most important durable type of the codebase.
+            //
+            // Note that UserCodeRetentionPolicy.IsPinning does *not* exclude a durable reference unconditionally any
+            // more: since issue #1811 a durable reference of a batch compilation stores the reference it was created
+            // from and therefore holds that compilation, deliberately, because the compilation lives until the build
+            // ends. The walker runs during a batch compilation and must report it. This analyzer must not, because
+            // typing a member IDurableRef<T> is the remedy the document prescribes.
             Durable( "Metalama.Framework.Code.IDurableRef" );
             Durable( "Metalama.Framework.Code.IDurableRef`1" );
 
