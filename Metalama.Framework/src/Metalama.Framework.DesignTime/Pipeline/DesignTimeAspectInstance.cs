@@ -3,9 +3,11 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Code;
+using Metalama.Framework.Utilities;
 
 namespace Metalama.Framework.DesignTime.Pipeline;
 
+[Durable]
 internal readonly struct DesignTimeAspectInstance(
     SerializableDeclarationId targetDeclarationId,
     SerializableDeclarationId? predecessorDeclarationId,

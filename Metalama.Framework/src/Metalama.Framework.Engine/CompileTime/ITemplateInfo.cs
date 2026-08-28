@@ -3,9 +3,11 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Code;
+using Metalama.Framework.Utilities;
 
 namespace Metalama.Framework.Engine.CompileTime;
 
+[Durable]
 internal interface ITemplateInfo
 {
     SerializableDeclarationId Id { get; }

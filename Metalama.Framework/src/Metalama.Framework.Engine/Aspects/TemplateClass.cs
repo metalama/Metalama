@@ -15,6 +15,7 @@ using Metalama.Framework.Engine.SerializableIds;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Templating;
 using Metalama.Framework.Engine.Utilities.Roslyn;
+using Metalama.Framework.Utilities;
 using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Concurrent;
@@ -30,6 +31,7 @@ namespace Metalama.Framework.Engine.Aspects;
 /// A base class for <see cref="AspectClass"/> and <see cref="FabricTemplateClass"/>. Represents an aspect, but does not
 /// assume the class implements the <see cref="IAspect"/> semantic.
 /// </summary>
+[Durable]
 public abstract class TemplateClass : IDiagnosticSource
 {
     protected ProjectServiceProvider ServiceProvider { get; }

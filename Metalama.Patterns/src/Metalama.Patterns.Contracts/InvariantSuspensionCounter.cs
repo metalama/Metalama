@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using JetBrains.Annotations;
+using Metalama.Framework.Utilities;
 
 namespace Metalama.Patterns.Contracts;
 
@@ -13,6 +14,7 @@ namespace Metalama.Patterns.Contracts;
 /// <seealso cref="InvariantAttribute"/>
 /// <seealso cref="SuspendInvariantsCookie"/>
 /// <seealso href="@invariants"/>
+[Durable]
 [PublicAPI]
 public sealed class InvariantSuspensionCounter
 {

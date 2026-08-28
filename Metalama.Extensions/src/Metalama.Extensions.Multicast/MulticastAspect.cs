@@ -50,9 +50,6 @@ public abstract class MulticastAspect : Aspect, IMulticastAttribute, IAspect<ICo
     private readonly MulticastTargets _targets;
     private readonly bool _multicastOnInheritance;
 
-    [NonCompileTimeSerialized]
-    private MulticastImplementation? _implementation;
-
     /// <summary>
     /// Initializes a new instance of the <see cref="MulticastAspect"/> class.
     /// </summary>
@@ -67,54 +64,60 @@ public abstract class MulticastAspect : Aspect, IMulticastAttribute, IAspect<ICo
         this._multicastOnInheritance = multicastOnInheritance;
     }
 
-    protected MulticastImplementation Implementation => this._implementation ??= new MulticastImplementation( this._targets, this._multicastOnInheritance );
+    /// <remarks>
+    /// Constructed on each read rather than cached in a field. The constructor assigns two fields, the property is
+    /// read twice per aspect, and the cache could not be read-only, because the field it assigned had to survive
+    /// compile-time deserialization -- which is exactly what [NonCompileTimeSerialized] on it used to say. Computing
+    /// it removes that hazard instead of moving it.
+    /// </remarks>
+    protected MulticastImplementation Implementation => new( this._targets, this._multicastOnInheritance );
 
     /// <inheritdoc />
-    public MulticastTargets AttributeTargetElements { get; set; }
+    public MulticastTargets AttributeTargetElements { get; init; }
 
     /// <inheritdoc />
     [Obsolete]
-    public string? AttributeTargetAssemblies { get; set; }
+    public string? AttributeTargetAssemblies { get; init; }
 
     /// <inheritdoc />
-    public string? AttributeTargetTypes { get; set; }
+    public string? AttributeTargetTypes { get; init; }
 
     /// <inheritdoc />
-    public MulticastAttributes AttributeTargetTypeAttributes { get; set; }
-
-    /// <inheritdoc />
-    [Obsolete( ObsoleteMessages.ExternalAssemblies, ObsoleteMessages.Error )]
-    public MulticastAttributes AttributeTargetExternalTypeAttributes { get; set; }
-
-    /// <inheritdoc />
-    public string? AttributeTargetMembers { get; set; }
-
-    /// <inheritdoc />
-    public MulticastAttributes AttributeTargetMemberAttributes { get; set; }
+    public MulticastAttributes AttributeTargetTypeAttributes { get; init; }
 
     /// <inheritdoc />
     [Obsolete( ObsoleteMessages.ExternalAssemblies, ObsoleteMessages.Error )]
-    public MulticastAttributes AttributeTargetExternalMemberAttributes { get; set; }
+    public MulticastAttributes AttributeTargetExternalTypeAttributes { get; init; }
 
     /// <inheritdoc />
-    public string? AttributeTargetParameters { get; set; }
+    public string? AttributeTargetMembers { get; init; }
 
     /// <inheritdoc />
-    public MulticastAttributes AttributeTargetParameterAttributes { get; set; }
+    public MulticastAttributes AttributeTargetMemberAttributes { get; init; }
 
     /// <inheritdoc />
-    public bool AttributeExclude { get; set; }
+    [Obsolete( ObsoleteMessages.ExternalAssemblies, ObsoleteMessages.Error )]
+    public MulticastAttributes AttributeTargetExternalMemberAttributes { get; init; }
 
     /// <inheritdoc />
-    public int AttributePriority { get; set; }
+    public string? AttributeTargetParameters { get; init; }
+
+    /// <inheritdoc />
+    public MulticastAttributes AttributeTargetParameterAttributes { get; init; }
+
+    /// <inheritdoc />
+    public bool AttributeExclude { get; init; }
+
+    /// <inheritdoc />
+    public int AttributePriority { get; init; }
 
     /// <inheritdoc />
     [Obsolete( ObsoleteMessages.AttributeReplace, ObsoleteMessages.Error )]
-    public bool AttributeReplace { get; set; }
+    public bool AttributeReplace { get; init; }
 
     /// <inheritdoc />
     [Obsolete( ObsoleteMessages.Inheritance, ObsoleteMessages.Error )]
-    public MulticastInheritance AttributeInheritance { get; set; }
+    public MulticastInheritance AttributeInheritance { get; init; }
 
     /// <inheritdoc />
     public virtual void BuildEligibility( IEligibilityBuilder<ICompilation> builder ) { }

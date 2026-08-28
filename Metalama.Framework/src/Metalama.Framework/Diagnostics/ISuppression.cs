@@ -28,6 +28,7 @@ namespace Metalama.Framework.Diagnostics;
 /// <seealso href="@diagnostics"/>
 [CompileTime]
 [InternalImplement]
+[Durable]
 public interface ISuppression
 {
     /// <summary>

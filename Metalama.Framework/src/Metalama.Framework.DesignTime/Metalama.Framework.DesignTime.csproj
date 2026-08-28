@@ -21,6 +21,13 @@
         <ProjectReference Include="../Metalama.Framework.DesignTime.Contracts/Metalama.Framework.DesignTime.Contracts.csproj" />
         <ProjectReference Include="../Metalama.Framework.DesignTime.Rpc/Metalama.Framework.DesignTime.Rpc.csproj" />
         <ProjectReference Include="../Metalama.Framework.Engine$(ThisRoslynVersionProjectSuffix)/Metalama.Framework.Engine$(ThisRoslynVersionProjectSuffix).csproj" />
+
+        <!-- This project is the one the design-time memory rules are about, and no analyzer was applied to it before.
+
+             Only Metalama.Framework.Analyzers is added here. Adding Metalama.Framework.Engine.Analyzers as well
+             surfaces 36 pre-existing findings in this project (LAMA0832, LAMA0840 and LAMA0860), which are worth
+             fixing but belong to their own change rather than to the one that introduces the [Durable] contract. -->
+        <ProjectReference Include="../Metalama.Framework.Analyzers/Metalama.Framework.Analyzers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     </ItemGroup>
 
     <ItemGroup>

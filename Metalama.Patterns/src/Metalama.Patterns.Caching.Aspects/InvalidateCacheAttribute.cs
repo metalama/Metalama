@@ -14,6 +14,7 @@ using Metalama.Framework.Diagnostics;
 using Metalama.Framework.Eligibility;
 using Metalama.Patterns.Caching.Aspects.Helpers;
 using System.Collections;
+using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
@@ -42,14 +43,14 @@ public sealed class InvalidateCacheAttribute : MethodAspect
 {
     private readonly Type? _invalidatedMethodsDeclaringType;
 
-    private readonly string[]? _invalidatedMethodNames;
+    private readonly ImmutableArray<string> _invalidatedMethodNames;
 
     /// <summary>
     /// Gets or sets a value indicating whether the current <see cref="InvalidateCacheAttribute"/> can match several overloads of the methods.
     /// The default value is <c>false</c>, which means that an error will be emitted if the current <see cref="InvalidateCacheAttribute"/> matches
     /// several methods of the same name.
     /// </summary>
-    public bool AllowMultipleOverloads { get; set; }
+    public bool AllowMultipleOverloads { get; init; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="InvalidateCacheAttribute"/> class that invalidates method of the same type as the
@@ -71,7 +72,7 @@ public sealed class InvalidateCacheAttribute : MethodAspect
     public InvalidateCacheAttribute( Type declaringType, params string[] methodNames )
     {
         this._invalidatedMethodsDeclaringType = declaringType;
-        this._invalidatedMethodNames = methodNames;
+        this._invalidatedMethodNames = methodNames.ToImmutableArray();
     }
 
     public override void BuildEligibility( IEligibilityBuilder<IMethod> builder )
@@ -310,7 +311,7 @@ public sealed class InvalidateCacheAttribute : MethodAspect
         InvalidateCacheAttribute attribute,
         Dictionary<IMethod, InvalidatedMethodInfo> invalidatedMethods )
     {
-        if ( attribute._invalidatedMethodNames == null || attribute._invalidatedMethodNames.Length == 0 )
+        if ( attribute._invalidatedMethodNames.IsDefaultOrEmpty )
         {
             builder.Diagnostics.Report(
                 CachingDiagnosticDescriptors.InvalidateCache.ErrorInvalidAspectConstructorNoMethodName.WithArguments( builder.Target ) );
@@ -342,7 +343,7 @@ public sealed class InvalidateCacheAttribute : MethodAspect
 
         foreach ( var invalidatedMethod in candidateInvalidatedMethods )
         {
-            if ( Array.IndexOf( attribute._invalidatedMethodNames, invalidatedMethod.Name ) == -1 )
+            if ( !attribute._invalidatedMethodNames.Contains( invalidatedMethod.Name ) )
             {
                 continue;
             }

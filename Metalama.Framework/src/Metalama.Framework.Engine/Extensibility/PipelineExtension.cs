@@ -7,6 +7,7 @@ using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Pipeline;
+using Metalama.Framework.Utilities;
 using Microsoft.CodeAnalysis;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -18,6 +19,7 @@ namespace Metalama.Framework.Engine.Extensibility;
 /// <summary>
 /// Represents something that extends the Metalama pipeline.
 /// </summary>
+[Durable]
 [PublicAPI]
 public abstract class PipelineExtension
 {

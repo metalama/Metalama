@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Aspects;
+using Metalama.Framework.Utilities;
 
 namespace Metalama.Framework.Advising;
 
@@ -14,5 +15,6 @@ namespace Metalama.Framework.Advising;
 /// <seealso cref="ITemplateAttribute"/>
 /// <seealso cref="TemplateAttribute"/>
 /// <seealso cref="DeclarativeAdviceAttribute"/>
+[Durable]
 [RunTimeOrCompileTime]
 public interface IAdviceAttribute;

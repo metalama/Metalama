@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Utilities;
 using Microsoft.CodeAnalysis;
 using System.Globalization;
 
@@ -10,6 +11,7 @@ namespace Metalama.Framework.DesignTime.Pipeline.Dependencies;
 /// <summary>
 /// A weak equality key to identify types, where some collisions are acceptable.
 /// </summary>
+[Durable]
 public readonly struct TypeDependencyKey : IEquatable<TypeDependencyKey>
 {
     private readonly int _hashCode;

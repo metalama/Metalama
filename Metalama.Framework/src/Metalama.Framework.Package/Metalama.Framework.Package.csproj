@@ -58,6 +58,13 @@
         <ProjectReference Include="../Metalama.Framework.EditorExtensions/Metalama.Framework.EditorExtensions.csproj" PrivateAssets="all" />
         <ProjectReference Include="../Metalama.Framework.CompilerExtensions/Metalama.Framework.CompilerExtensions.csproj" PrivateAssets="all" />
 
+        <!-- The analyzer that verifies the [Durable] contract. It is deliberately a different assembly than
+             Metalama.Framework.Engine.Analyzers, which is internal hygiene for this repository and is shipped only in
+             Metalama.Framework.Implementation: that assembly carries MetalamaInternalsAnalyzer, whose UserProject
+             branch would start reporting LAMA0820 in every customer project, and MetalamaPerformanceAnalyzer, which
+             resolves engine-internal types and would risk AD0001 outside this repository. -->
+        <ProjectReference Include="../Metalama.Framework.Analyzers/Metalama.Framework.Analyzers.csproj" PrivateAssets="all" />
+
         <!-- Adding PrivateAssets="none" here below is important otherwise PrivateAssets="all" will be transitively inherited from the ProjectReference above -->
 
         <ProjectReference Include="../Metalama.Framework/Metalama.Framework.csproj" PrivateAssets="none" />
@@ -70,6 +77,7 @@
         <ItemGroup>
             <TfmSpecificPackageFile Include="$(OutputPath)/Metalama.Framework.CompilerExtensions.dll" PackagePath="analyzers/dotnet/cs" />
             <TfmSpecificPackageFile Include="$(OutputPath)/Metalama.Framework.EditorExtensions.dll" PackagePath="analyzers/dotnet/cs" />
+            <TfmSpecificPackageFile Include="$(OutputPath)/Metalama.Framework.Analyzers.dll" PackagePath="analyzers/dotnet/cs" />
         </ItemGroup>
     </Target>
 

@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Aspects;
+using Metalama.Framework.Utilities;
 using System;
 using System.Collections.Generic;
 
@@ -53,6 +54,7 @@ namespace Metalama.Framework.Code;
 /// </para>
 /// </remarks>
 [CompileTime]
+[Durable]
 public readonly struct SerializableTypeId : IEquatable<SerializableTypeId>
 {
     internal const string LegacyPrefix = "typeof";

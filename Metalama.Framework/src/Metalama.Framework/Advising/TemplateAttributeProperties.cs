@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
+using Metalama.Framework.Utilities;
 
 namespace Metalama.Framework.Advising;
 
@@ -30,6 +31,7 @@ namespace Metalama.Framework.Advising;
 /// </remarks>
 /// <seealso cref="ITemplateAttribute"/>
 /// <seealso cref="TemplateAttribute"/>
+[Durable]
 [CompileTime]
 public sealed record TemplateAttributeProperties(
     string? Name = null,

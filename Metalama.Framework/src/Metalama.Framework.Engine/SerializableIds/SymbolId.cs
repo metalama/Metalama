@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Engine.Utilities.Caching;
+using Metalama.Framework.Utilities;
 using Microsoft.CodeAnalysis;
 using Newtonsoft.Json;
 using System;
@@ -16,6 +17,7 @@ namespace Metalama.Framework.Engine.SerializableIds
     /// An identifier of an <see cref="ISymbol"/> that works across compilations, but not across different versions of Roslyn.
     /// It should never be persisted into a file. 
     /// </summary>
+    [Durable]
     [JsonObject]
     public readonly struct SymbolId : IEquatable<SymbolId>
     {
@@ -27,6 +29,12 @@ namespace Metalama.Framework.Engine.SerializableIds
         private static readonly Func<object, Compilation, bool, CancellationToken, ISymbol> _resolveSymbolKeyFunc;
         private static readonly Func<ISymbol, CancellationToken, object> _getSymbolKeyFunc;
 
+        /// <remarks>
+        /// Typed <see cref="object"/> because it holds a Roslyn <c>SymbolKey</c>, which is internal to the compiler.
+        /// A symbol key is a serialized identifier and reaches no compilation, which is the whole reason this type
+        /// exists, so the attribute waives the check on the declared type.
+        /// </remarks>
+        [Durable]
         private readonly object _symbolKey;
 
         [JsonProperty]
@@ -90,7 +98,7 @@ namespace Metalama.Framework.Engine.SerializableIds
             this._symbolKey = _newSymbolKeyFunc( id );
         }
 
-        private SymbolId( object symbolKey )
+        private SymbolId( [Durable] object symbolKey )
         {
             this._symbolKey = symbolKey;
         }

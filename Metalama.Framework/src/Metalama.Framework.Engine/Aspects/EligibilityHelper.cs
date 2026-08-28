@@ -9,6 +9,7 @@ using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.UserCode;
+using Metalama.Framework.Utilities;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -19,10 +20,24 @@ using System.Reflection;
 
 namespace Metalama.Framework.Engine.Aspects;
 
+[Durable]
 internal sealed partial class EligibilityHelper
 {
+    /// <remarks>
+    /// Typed <see cref="object"/> for layering rather than because anything may be stored: it holds the prototype
+    /// aspect, which is scoped to the pipeline configuration. The attribute waives the check on the declared type and
+    /// requires the assignments to be durable instead.
+    /// </remarks>
+    [Durable]
     private readonly object _prototype;
+
     private readonly ProjectServiceProvider _serviceProvider;
+
+    /// <remarks>
+    /// As for <see cref="_prototype"/>: the requester is the aspect class or the fabric that asked for the check, and
+    /// is scoped to the pipeline configuration.
+    /// </remarks>
+    [Durable]
     private readonly object _requester;
     private readonly UserCodeInvoker _userCodeInvoker;
     private readonly List<KeyValuePair<Type, IEligibilityRule<IDeclaration>>> _eligibilityRules = new();
@@ -30,7 +45,7 @@ internal sealed partial class EligibilityHelper
     private readonly ConcurrentDictionary<Type, Func<EligibilityHelper, IDiagnosticAdder, CompilationContext, bool>>
         _tryInitializeEligibilityMethods = new();
 
-    public EligibilityHelper( object prototype, in ProjectServiceProvider serviceProvider, object requester )
+    public EligibilityHelper( [Durable] object prototype, in ProjectServiceProvider serviceProvider, [Durable] object requester )
     {
         this._prototype = prototype;
         this._serviceProvider = serviceProvider;

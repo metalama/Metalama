@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Engine.CodeModel;
+using Metalama.Framework.Utilities;
 
 namespace Metalama.Framework.DesignTime.Pipeline.Dependencies;
 
@@ -10,4 +11,5 @@ namespace Metalama.Framework.DesignTime.Pipeline.Dependencies;
 /// <summary>
 /// Represents a single dependency edge between a master syntax tree and a dependent syntax tree. This object is used for test only.
 /// </summary>
+[Durable]
 internal record struct SyntaxTreeDependency( DocumentKey MasterDocumentKey, DocumentKey DependentDocumentKey );

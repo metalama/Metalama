@@ -2,7 +2,6 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using System.IO.Hashing;
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel;
@@ -10,8 +9,10 @@ using Metalama.Framework.Engine.Collections;
 using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Pipeline;
 using Metalama.Framework.Engine.Utilities;
+using Metalama.Framework.Utilities;
 using Microsoft.CodeAnalysis;
 using System.Collections.Immutable;
+using System.IO.Hashing;
 
 namespace Metalama.Framework.DesignTime.Pipeline
 {
@@ -19,6 +20,7 @@ namespace Metalama.Framework.DesignTime.Pipeline
     /// Represents the content of <see cref="DesignTimePipelineExecutionResult"/>, but only the items that relate to a single <see cref="Microsoft.CodeAnalysis.SyntaxTree"/>.
     /// This class is compilation-independent and cacheable.
     /// </summary>
+    [Durable]
     internal sealed partial class SyntaxTreePipelineResult
     {
         /// <summary>
@@ -27,6 +29,14 @@ namespace Metalama.Framework.DesignTime.Pipeline
         /// </summary>
         public DocumentKey SyntaxTreePath { get; }
 
+        /// <remarks>
+        /// This member reports LAMA0870, deliberately left unsuppressed as a problem to be solved. A
+        /// <see cref="Diagnostic"/> holds a <see cref="Location"/>, which holds its source tree, and its lazily
+        /// formatted arguments are held with it, so this result pins the version of the project it was produced in.
+        /// The repair is a durable diagnostic record: an identifier, a severity, a document key with a text span, and
+        /// an eagerly formatted message. See "The per-file result holds three Roslyn objects" in
+        /// <c>design-time-memory.md</c>.
+        /// </remarks>
         public ImmutableArray<Diagnostic> Diagnostics { get; }
 
         public ImmutableArray<CacheableScopedSuppression> Suppressions { get; }

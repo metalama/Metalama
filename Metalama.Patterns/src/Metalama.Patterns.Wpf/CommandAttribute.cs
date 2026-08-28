@@ -52,7 +52,7 @@ public sealed partial class CommandAttribute : Attribute, IAspect<IMethod>
     /// <summary>
     /// Gets or sets the name of the <see cref="ICommand"/> property that is introduced.
     /// </summary>
-    public string? CommandPropertyName { get; set; }
+    public string? CommandPropertyName { get; init; }
 
     /// <summary>
     /// Gets or sets the name of the method that is called to determine whether the command can be executed.
@@ -69,7 +69,7 @@ public sealed partial class CommandAttribute : Attribute, IAspect<IMethod>
     /// At most one of the <see cref="CanExecuteMethod"/> and <see cref="CanExecuteProperty"/> properties may be set.
     /// </para>
     /// </remarks>
-    public string? CanExecuteMethod { get; set; }
+    public string? CanExecuteMethod { get; init; }
 
     /// <summary>
     /// Gets or sets the name of the property that is evaluated to determine whether the command can be executed.
@@ -86,7 +86,7 @@ public sealed partial class CommandAttribute : Attribute, IAspect<IMethod>
     /// At most one of the <see cref="CanExecuteMethod"/> and <see cref="CanExecuteProperty"/> properties may be set.
     /// </para>
     /// </remarks>
-    public string? CanExecuteProperty { get; set; }
+    public string? CanExecuteProperty { get; init; }
 
     /// <summary>
     /// Gets or sets a value indicating whether integration with <see cref="INotifyPropertyChanged"/> is enabled. The default is <see langword="true"/>.
@@ -99,7 +99,7 @@ public sealed partial class CommandAttribute : Attribute, IAspect<IMethod>
     /// implementations typically only notify changes to public properties.
     /// </para>
     /// </remarks>
-    public bool? EnableINotifyPropertyChangedIntegration { get; set; }
+    public bool? EnableINotifyPropertyChangedIntegration { get; init; }
 
     /// <summary>
     /// Gets or sets a value indicating whether several executions of the command can run concurrently. This property is only considered for asynchronous methods.
@@ -111,14 +111,14 @@ public sealed partial class CommandAttribute : Attribute, IAspect<IMethod>
     /// to the last started task, and the <see cref="BaseAsyncDelegateCommand.Cancel"/> only cancels the last started task. To track or cancel individual executions,
     /// use the <see cref="DelegateCommandExecution"/> returned by the <see cref="AsyncDelegateCommand.Execute"/> method.</para>
     /// </remarks>
-    public bool SupportsConcurrentExecution { get; set; }
+    public bool SupportsConcurrentExecution { get; init; }
 
     /// <summary>
     /// Gets or sets a value indicating whether the command will execute in a background thread. The default value is <c>false</c>, meaning that the command will be
     /// executed in the UI thread. If this property is set to <c>true</c>, a property of type <see cref="AsyncDelegateCommand"/> is generated,
     /// even for non-<see cref="Task"/> execution methods.
     /// </summary>
-    public bool Background { get; set; }
+    public bool Background { get; init; }
 
     void IEligible<IMethod>.BuildEligibility( IEligibilityBuilder<IMethod> builder )
     {

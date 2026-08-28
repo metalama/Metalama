@@ -33,7 +33,7 @@ namespace Metalama.Patterns.Wpf;
 [AttributeUsage( AttributeTargets.Property )]
 public sealed class DependencyPropertyAttribute : Attribute, IAspect<IProperty>, IHierarchicalOptionsProvider
 {
-    private bool? _isReadOnly;
+    private readonly bool? _isReadOnly;
 
     /// <summary>
     /// Gets or sets a value indicating whether the property should be registered as a read-only property.
@@ -41,10 +41,10 @@ public sealed class DependencyPropertyAttribute : Attribute, IAspect<IProperty>,
     public bool IsReadOnly
     {
         get => this._isReadOnly ?? false;
-        set => this._isReadOnly = value;
+        init => this._isReadOnly = value;
     }
 
-    private bool? _initializerProvidesDefaultValue;
+    private readonly bool? _initializerProvidesDefaultValue;
 
     /// <summary>
     /// Gets or sets a value indicating whether the property initializer (if present) should be used to for <see cref="PropertyMetadata.DefaultValue"/>.
@@ -53,7 +53,7 @@ public sealed class DependencyPropertyAttribute : Attribute, IAspect<IProperty>,
     public bool InitializerProvidesDefaultValue
     {
         get => this._initializerProvidesDefaultValue ?? true;
-        set => this._initializerProvidesDefaultValue = value;
+        init => this._initializerProvidesDefaultValue = value;
     }
 
     IEnumerable<IHierarchicalOptions> IHierarchicalOptionsProvider.GetOptions( in OptionsProviderContext context )
@@ -72,7 +72,7 @@ public sealed class DependencyPropertyAttribute : Attribute, IAspect<IProperty>,
     /// If this property is not set then the default <c>OnFooChanged</c> value is used, where <c>Foo</c> is the name of the target property.
     /// </para>
     /// </remarks>
-    public string? PropertyChangedMethod { get; set; }
+    public string? PropertyChangedMethod { get; init; }
 
     /// <summary>
     /// Gets or sets the name of the method that validates the value of the property.
@@ -85,7 +85,7 @@ public sealed class DependencyPropertyAttribute : Attribute, IAspect<IProperty>,
     /// If this property is not set then the default <c>ValidateFoo</c> value is used, where <c>Foo</c> is the name of the target property.
     /// </para>
     /// </remarks>
-    public string? ValidateMethod { get; set; }
+    public string? ValidateMethod { get; init; }
 
     /// <summary>
     /// Gets or sets the name of the static readonly field that will be generated to expose the instance of the registered <see cref="DependencyProperty"/>.
@@ -95,7 +95,7 @@ public sealed class DependencyPropertyAttribute : Attribute, IAspect<IProperty>,
     /// If this property is not set then the default <c>FooProperty</c> value is used, where <c>Foo</c> is the name of the target property.
     /// </para>
     /// </remarks>
-    public string? RegistrationField { get; set; }
+    public string? RegistrationField { get; init; }
 
     void IEligible<IProperty>.BuildEligibility( IEligibilityBuilder<IProperty> builder )
     {

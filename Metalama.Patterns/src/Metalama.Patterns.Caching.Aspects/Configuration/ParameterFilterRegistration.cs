@@ -3,9 +3,12 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Options;
+using Metalama.Framework.Utilities;
 
 namespace Metalama.Patterns.Caching.Aspects.Configuration;
 
+[Durable]
+[ImmutableType]
 internal sealed class ParameterFilterRegistration : IIncrementalKeyedCollectionItem<string>
 {
     private readonly string _name;

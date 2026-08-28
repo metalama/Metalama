@@ -22,7 +22,14 @@ namespace Metalama.Framework.Engine.Fabrics
 
         public ImmutableArray<AspectPredecessor> Predecessors => ImmutableArray<AspectPredecessor>.Empty;
 
-        public IRef<IDeclaration> TargetDeclaration { get; }
+        /// <remarks>
+        /// Typed <see cref="IDurableRef{T}"/> rather than <see cref="IRef{T}"/> so that the requirement is stated in
+        /// the type rather than left to the constructor, which already performed the conversion. A fabric instance is
+        /// reachable from the pipeline configuration, which is reused across every version of the project, so a
+        /// compilation-bound reference here would pin the version the configuration was built from for the whole
+        /// session. See issue #1799.
+        /// </remarks>
+        public IDurableRef<IDeclaration> TargetDeclaration { get; }
 
         public int TargetDeclarationDepth { get; }
 

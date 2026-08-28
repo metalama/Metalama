@@ -3,10 +3,12 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Engine.Aspects;
+using Metalama.Framework.Utilities;
 using System;
 
 namespace Metalama.Framework.Engine.AspectOrdering
 {
+    [Durable]
     internal class AspectLayer : IEquatable<AspectLayerId>
     {
         private readonly IBoundAspectClass? _aspectClass;

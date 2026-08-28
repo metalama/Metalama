@@ -6,6 +6,7 @@ using JetBrains.Annotations;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Diagnostics;
+using Metalama.Framework.Utilities;
 
 namespace Metalama.Extensions.DependencyInjection.Implementation;
 
@@ -13,6 +14,7 @@ namespace Metalama.Extensions.DependencyInjection.Implementation;
 /// Interface that dependency injection framework adapters must implement to handle the <see cref="IntroduceDependencyAttribute"/> advice.
 /// An implementation typically also implements <see cref="IDependencyPullStrategy"/>.
 /// </summary>
+[Durable]
 [CompileTime]
 [PublicAPI]
 public interface IDependencyInjectionFramework

@@ -31,6 +31,7 @@
 
         <!-- Validate that we do not expose internal APIs -->
         <ProjectReference Include="../Metalama.Framework.Engine.Analyzers/Metalama.Framework.Engine.Analyzers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="../Metalama.Framework.Analyzers/Metalama.Framework.Analyzers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 
         <ProjectReference Include="../Metalama.Framework.Implementation.Package/Metalama.Framework.Implementation.Package.csproj"/>
     </ItemGroup>

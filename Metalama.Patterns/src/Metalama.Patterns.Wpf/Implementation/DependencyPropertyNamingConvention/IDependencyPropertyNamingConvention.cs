@@ -4,10 +4,12 @@
 
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
+using Metalama.Framework.Utilities;
 using Metalama.Patterns.Wpf.Implementation.NamingConvention;
 
 namespace Metalama.Patterns.Wpf.Implementation.DependencyPropertyNamingConvention;
 
 // ReSharper disable once RedundantTypeDeclarationBody
+[Durable]
 [CompileTime]
 internal interface IDependencyPropertyNamingConvention : INamingConvention<IProperty, DependencyPropertyNamingConventionMatch> { }

@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Code;
 using Metalama.Framework.Serialization;
+using Metalama.Framework.Utilities;
 
 namespace Metalama.Patterns.Caching.Aspects.Configuration;
 
@@ -22,6 +23,8 @@ namespace Metalama.Patterns.Caching.Aspects.Configuration;
 /// <seealso cref="CacheParameterClassification"/>
 /// <seealso cref="CachingOptionsBuilder.AddParameterClassifier"/>
 /// <seealso href="@caching-exclude-parameters"/>
+[Durable]
+[ImmutableType]
 public interface ICacheParameterClassifier : ICompileTimeSerializable
 {
     /// <summary>

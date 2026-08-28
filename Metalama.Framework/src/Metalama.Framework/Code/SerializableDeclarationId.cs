@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Aspects;
+using Metalama.Framework.Utilities;
 using System;
 
 namespace Metalama.Framework.Code;
@@ -32,6 +33,7 @@ namespace Metalama.Framework.Code;
 /// <seealso cref="IDeclaration.ToSerializableId"/>
 /// <seealso href="@aspect-serialization"/>
 [CompileTime]
+[Durable]
 public readonly struct SerializableDeclarationId : IEquatable<SerializableDeclarationId>
 {
     /// <summary>

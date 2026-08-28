@@ -5,9 +5,11 @@
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Serialization;
+using Metalama.Framework.Utilities;
 
 namespace Metalama.Patterns.Observability.Implementation;
 
+[Durable]
 [CompileTime]
 public interface IObservabilityStrategy : ICompileTimeSerializable
 {

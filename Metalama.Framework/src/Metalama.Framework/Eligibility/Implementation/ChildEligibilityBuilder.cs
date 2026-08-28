@@ -3,10 +3,12 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Code;
+using Metalama.Framework.Utilities;
 using System;
 
 namespace Metalama.Framework.Eligibility.Implementation
 {
+    [Durable]
     internal sealed class ChildEligibilityBuilder<TParent, TChild> : IEligibilityBuilder<TChild>
         where TChild : class
         where TParent : class
