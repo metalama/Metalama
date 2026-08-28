@@ -31,6 +31,14 @@
              itself the signal that the test needs attention. -->
         <EmbeddedResource Include="../../Metalama.Framework.Engine/Pipeline/UserCodeRetentionPolicy.cs"
                           LogicalName="UserCodeRetentionPolicy.cs" />
+
+        <!-- Likewise for the immutability classification, whose rules and type lists WellKnownImmutableTypes ports.
+             The analyzer cannot reference Metalama.Patterns.Immutability, because that assembly needs the engine's
+             options system, so the two lists can only be held together by reading the source. -->
+        <EmbeddedResource Include="../../../../Metalama.Patterns/src/Metalama.Patterns.Immutability/ImmutabilityExtensions.cs"
+                          LogicalName="ImmutabilityExtensions.cs" />
+        <EmbeddedResource Include="../../../../Metalama.Patterns/src/Metalama.Patterns.Immutability/Fabric.cs"
+                          LogicalName="ImmutabilityFabric.cs" />
     </ItemGroup>
 
 </Project>

@@ -48,6 +48,9 @@
         <CompilerVisibleProperty Include="MetalamaDurableRefKind"/>
         <CompilerVisibleProperty Include="MetalamaDurableTypes"/>
         <CompilerVisibleProperty Include="MetalamaNonDurableTypes"/>
+        <CompilerVisibleProperty Include="MetalamaImmutableTypes"/>
+        <CompilerVisibleProperty Include="MetalamaMutableTypes"/>
+        <CompilerVisibleProperty Include="MetalamaImmutableContractTypes"/>
     </ItemGroup>
 
     <!-- More properties are already exported by Metalama.Compiler and don't need to be exported a second time. -->
@@ -72,6 +75,37 @@
         <PropertyGroup>
             <MetalamaDurableTypes>@(MetalamaDurableType)</MetalamaDurableTypes>
             <MetalamaNonDurableTypes>@(MetalamaNonDurableType)</MetalamaNonDurableTypes>
+        </PropertyGroup>
+    </Target>
+
+    <!--
+        Declares the immutability of types that a project does not own, for the [ImmutableObject] analyzer, which
+        requires aspects, fabrics and validators to be written in an immutable style. A project writes:
+
+            <ItemGroup>
+                <MetalamaImmutableType Include="Contoso.Money" />
+                <MetalamaMutableType Include="Contoso.Analysis.SymbolCache" />
+            </ItemGroup>
+
+        The rules and the name syntax are the same as for the durable lists above: full metadata names without an
+        assembly name, so a generic type carries its arity, and the mutable list wins over the immutable one.
+
+        MetalamaImmutableContractType names a base type or an interface whose implementations must be immutable, for
+        the case that Metalama.Extensions.Validation covers: the validator base types live in a package that the
+        analyzer cannot reference, and the analyzer's own table of them may be older than the package installed here.
+
+        A verdict that holds in general belongs in the WellKnownImmutableTypes table of Metalama.Framework.Analyzers
+        rather than in a project file, so that every project benefits from it and the reasoning is recorded in one
+        place.
+
+        This is a separate target rather than an extension of the one above, so that nothing that hooks the durable
+        target by name moves.
+    -->
+    <Target Name="MetalamaComputeImmutableTypeLists" BeforeTargets="GenerateMSBuildEditorConfigFileCore">
+        <PropertyGroup>
+            <MetalamaImmutableTypes>@(MetalamaImmutableType)</MetalamaImmutableTypes>
+            <MetalamaMutableTypes>@(MetalamaMutableType)</MetalamaMutableTypes>
+            <MetalamaImmutableContractTypes>@(MetalamaImmutableContractType)</MetalamaImmutableContractTypes>
         </PropertyGroup>
     </Target>
 

@@ -22,5 +22,15 @@
              build. Remove this line once the findings are resolved, so that a new one cannot be introduced silently. -->
         <WarningsNotAsErrors>$(WarningsNotAsErrors);LAMA0870;LAMA0871;LAMA0872;LAMA0873;LAMA0874;LAMA0875;LAMA0876;LAMA0877;LAMA0878;LAMA0879</WarningsNotAsErrors>
 
+        <!-- The rules of the [ImmutableObject] contract, LAMA0880 to LAMA0889, report aspects, fabrics and validators
+             that are not written in an immutable style. An aspect is instantiated once and reused for every target it
+             applies to, so state kept on it leaks from one target to the next.
+
+             They are kept as warnings for the same reason as the durability rules above: CodeQuality.targets sets
+             TreatWarningsAsErrors when ContinuousIntegrationBuild is true, and the campaign that resolves these
+             findings is not finished. Remove this line once they are resolved, so that a new one cannot be introduced
+             silently. -->
+        <WarningsNotAsErrors>$(WarningsNotAsErrors);LAMA0880;LAMA0881;LAMA0882;LAMA0883;LAMA0884;LAMA0885;LAMA0886;LAMA0887;LAMA0888;LAMA0889</WarningsNotAsErrors>
+
     </PropertyGroup>
 </Project>

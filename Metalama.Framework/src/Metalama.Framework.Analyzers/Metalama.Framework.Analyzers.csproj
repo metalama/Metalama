@@ -26,4 +26,11 @@
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
     </ItemGroup>
 
+    <ItemGroup>
+        <!-- By convention, we use InternalsVisibleTo only for test projects that must have access to internals.
+             ImmutableTableCorrespondenceTests reads the well-known tables directly, because asserting the list itself
+             is what keeps it from drifting away from Metalama.Patterns.Immutability. -->
+        <InternalsVisibleTo Include="Metalama.Framework.Analyzers.Tests" />
+    </ItemGroup>
+
 </Project>

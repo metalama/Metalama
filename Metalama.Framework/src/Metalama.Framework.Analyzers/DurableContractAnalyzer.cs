@@ -183,7 +183,7 @@ namespace Metalama.Framework.Analyzers
             {
                 if ( member is not IPropertySymbol { IsStatic: false, IsAbstract: false, IsExtern: false } property
                      || reportedProperties.Contains( property )
-                     || !IsAutomaticallyImplemented( property ) )
+                     || !SymbolFacts.IsAutomaticallyImplemented( property ) )
                 {
                     continue;
                 }
@@ -268,28 +268,5 @@ namespace Metalama.Framework.Analyzers
             }
         }
 
-        /// <summary>
-        /// Determines whether a property is automatically implemented, that is, whether its accessors have no body.
-        /// </summary>
-        private static bool IsAutomaticallyImplemented( IPropertySymbol property )
-        {
-            var accessor = property.GetMethod ?? property.SetMethod;
-
-            if ( accessor == null || accessor.DeclaringSyntaxReferences.IsDefaultOrEmpty )
-            {
-                return false;
-            }
-
-            foreach ( var reference in accessor.DeclaringSyntaxReferences )
-            {
-                if ( reference.GetSyntax() is Microsoft.CodeAnalysis.CSharp.Syntax.AccessorDeclarationSyntax
-                    { Body: null, ExpressionBody: null } )
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
     }
 }

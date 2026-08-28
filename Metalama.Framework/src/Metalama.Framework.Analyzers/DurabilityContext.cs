@@ -4,11 +4,9 @@
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
-using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Text;
 
 namespace Metalama.Framework.Analyzers
 {
@@ -74,34 +72,8 @@ namespace Metalama.Framework.Analyzers
             var globalOptions = options.AnalyzerConfigOptionsProvider.GlobalOptions;
 
             return new DurabilityContext(
-                ReadTypeNameList( globalOptions, "build_property.MetalamaDurableTypes" ),
-                ReadTypeNameList( globalOptions, "build_property.MetalamaNonDurableTypes" ) );
-        }
-
-        /// <summary>
-        /// Reads one of the semicolon-separated lists that the <c>MetalamaDurableType</c> and
-        /// <c>MetalamaNonDurableType</c> items are joined into by the build.
-        /// </summary>
-        private static ImmutableHashSet<string> ReadTypeNameList( AnalyzerConfigOptions options, string key )
-        {
-            if ( !options.TryGetValue( key, out var value ) || string.IsNullOrWhiteSpace( value ) )
-            {
-                return ImmutableHashSet<string>.Empty;
-            }
-
-            var builder = ImmutableHashSet.CreateBuilder( StringComparer.Ordinal );
-
-            foreach ( var name in value.Split( ';' ) )
-            {
-                var trimmed = name.Trim();
-
-                if ( trimmed.Length > 0 )
-                {
-                    builder.Add( trimmed );
-                }
-            }
-
-            return builder.ToImmutable();
+                SymbolFacts.ReadTypeNameList( globalOptions, "build_property.MetalamaDurableTypes" ),
+                SymbolFacts.ReadTypeNameList( globalOptions, "build_property.MetalamaNonDurableTypes" ) );
         }
 
         /// <summary>
@@ -438,33 +410,13 @@ namespace Metalama.Framework.Analyzers
         }
 
         /// <summary>
-        /// The format of a type name in a diagnostic message.
-        /// </summary>
-        /// <remarks>
-        /// The nullable annotation is omitted deliberately. Durability does not depend on it, and the verdict cache
-        /// is keyed by <see cref="SymbolEqualityComparer.Default"/>, which does not distinguish <c>string</c> from
-        /// <c>string?</c>. A message that mentioned the annotation could therefore name the annotation of whichever
-        /// of the two happened to be evaluated first.
-        /// </remarks>
-        private static readonly SymbolDisplayFormat _displayFormat =
-            SymbolDisplayFormat.MinimallyQualifiedFormat.WithMiscellaneousOptions(
-                SymbolDisplayFormat.MinimallyQualifiedFormat.MiscellaneousOptions
-                & ~SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier );
-
-        /// <summary>
         /// Returns, as a bit per ordinal, the type parameters of a generic definition that appear in the type of one
         /// of its instance fields, and which a construction of that type must therefore supply durably.
         /// </summary>
         /// <remarks>
-        /// <para>
-        /// Requiring every type argument to be durable would be simpler and is wrong, because the first exception
-        /// would be the most important durable type of the codebase: <c>IDurableRef&lt;T&gt;</c> stores a serializable
-        /// identifier and never a <c>T</c>, so its type argument is a phantom. Requiring only the parameters that are
-        /// actually stored drops that case with no special rule.
-        /// </para>
-        /// <para>
-        /// An interface or an abstract type has no fields to examine, so every parameter is assumed stored.
-        /// </para>
+        /// The computation is in <see cref="SymbolFacts.ComputeStoredTypeParameters"/>, which the immutability
+        /// contract of this same assembly needs for the same reason. The cache stays here, because it holds symbols
+        /// and must therefore die with the compilation.
         /// </remarks>
         private ulong GetStoredTypeParameters( INamedTypeSymbol definition )
         {
@@ -473,115 +425,23 @@ namespace Metalama.Framework.Analyzers
                 return cached;
             }
 
-            ulong result;
-
-            // An interface or an abstract type has no fields to examine.
-            //
-            // A type that comes from another assembly has none that can be seen either: a compilation is created with
-            // MetadataImportOptions.Public by default, so Roslyn does not expose the private fields of a referenced
-            // assembly at all. Reading the empty field list as "this type stores nothing" would silently exempt every
-            // durable generic type outside the compilation, DurableLazy<T> first among them. Assuming instead that
-            // every parameter is stored is the conservative answer, and the remedy for a metadata type that genuinely
-            // has a phantom parameter is an entry in WellKnownDurableTypes or in MetalamaDurableType.
-            if ( definition.TypeKind == TypeKind.Interface
-                 || definition.IsAbstract
-                 || definition.DeclaringSyntaxReferences.IsDefaultOrEmpty )
-            {
-                result = definition.TypeParameters.Length >= 64 ? ulong.MaxValue : (1UL << definition.TypeParameters.Length) - 1;
-
-                // A contravariant parameter appears only in input position, so an implementation cannot store a value
-                // of that type: it never receives one to store. Without this, IEligibilityRule<in T> and
-                // IAnnotation<in T> would demand that their argument be durable, and IEligibilityRule<IDeclaration>
-                // would be reported although the rule stores no declaration.
-                for ( var i = 0; i < definition.TypeParameters.Length && i < 64; i++ )
-                {
-                    if ( definition.TypeParameters[i].Variance == VarianceKind.In )
-                    {
-                        result &= ~(1UL << i);
-                    }
-                }
-            }
-            else
-            {
-                result = 0;
-
-                foreach ( var member in definition.GetMembers() )
-                {
-                    if ( member is IFieldSymbol { IsStatic: false, IsConst: false } field )
-                    {
-                        CollectTypeParameters( field.Type, definition, ref result, 0 );
-                    }
-                }
-            }
+            var result = SymbolFacts.ComputeStoredTypeParameters( definition, _maxDepth );
 
             this._storedTypeParameters.TryAdd( definition, result );
 
             return result;
         }
 
-        private static void CollectTypeParameters( ITypeSymbol type, INamedTypeSymbol owner, ref ulong result, int depth )
-        {
-            if ( depth > _maxDepth )
-            {
-                return;
-            }
-
-            switch ( type )
-            {
-                case ITypeParameterSymbol typeParameter
-                    when typeParameter.Ordinal < 64
-                         && SymbolEqualityComparer.Default.Equals( typeParameter.ContainingType?.OriginalDefinition, owner ):
-                    result |= 1UL << typeParameter.Ordinal;
-
-                    break;
-
-                case IArrayTypeSymbol array:
-                    CollectTypeParameters( array.ElementType, owner, ref result, depth + 1 );
-
-                    break;
-
-                case INamedTypeSymbol { IsGenericType: true } namedType:
-                    foreach ( var argument in namedType.TypeArguments )
-                    {
-                        CollectTypeParameters( argument, owner, ref result, depth + 1 );
-                    }
-
-                    break;
-            }
-        }
-
         /// <summary>
         /// Returns the name of a type as it appears in a diagnostic message.
         /// </summary>
-        public static string GetDisplayName( ITypeSymbol type ) => type.ToDisplayString( _displayFormat );
+        public static string GetDisplayName( ITypeSymbol type ) => SymbolFacts.GetDisplayName( type );
 
         /// <summary>
         /// Returns the full metadata name of a type, that is, the name by which the tables and the
         /// <c>MetalamaDurableType</c> items refer to it: the namespace, the chain of containing types separated by
         /// <c>+</c>, and the name of the type with its arity.
         /// </summary>
-        public static string GetFullMetadataName( INamedTypeSymbol type )
-        {
-            var builder = new StringBuilder();
-            AppendFullMetadataName( builder, type );
-
-            return builder.ToString();
-        }
-
-        private static void AppendFullMetadataName( StringBuilder builder, INamedTypeSymbol type )
-        {
-            if ( type.ContainingType != null )
-            {
-                AppendFullMetadataName( builder, type.ContainingType );
-                builder.Append( '+' );
-            }
-            else if ( type.ContainingNamespace is { IsGlobalNamespace: false } containingNamespace )
-            {
-                builder.Append( containingNamespace.ToDisplayString() );
-                builder.Append( '.' );
-            }
-
-            builder.Append( type.MetadataName );
-        }
+        public static string GetFullMetadataName( INamedTypeSymbol type ) => SymbolFacts.GetFullMetadataName( type );
     }
 }
