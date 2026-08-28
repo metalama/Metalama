@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -13,6 +13,12 @@ using Metalama.Framework.Utilities;
 
 namespace Metalama.Framework.Engine.Introspection;
 
+/// <remarks>
+/// Marked so that <c>FabricManager</c>, which is durable and holds one, may hold it. What this listener itself
+/// holds is not verified: the introspection layer opts out of the contract in the .editorconfig of this folder,
+/// because it exists to keep the results of a pipeline run for a tool to examine. The pair reads as "may be held,
+/// and what it holds is not this contract's business".
+/// </remarks>
 [Durable]
 internal sealed class IntrospectionPipelineListener : IProjectService
 {
