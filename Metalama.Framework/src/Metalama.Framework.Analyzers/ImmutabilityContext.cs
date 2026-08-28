@@ -2,13 +2,13 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Analyzers;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 
-namespace Metalama.Framework.Analyzers
+namespace Metalama.Framework.Analyzers.Immutability
 {
     /// <summary>
     /// Decides whether a type is immutable, for one compilation.
@@ -52,17 +52,17 @@ namespace Metalama.Framework.Analyzers
 
         private readonly ConcurrentDictionary<ITypeSymbol, ImmutabilityVerdict> _verdicts;
         private readonly ConcurrentDictionary<INamedTypeSymbol, bool> _isSubjectToContract;
-        private readonly ConcurrentDictionary<INamedTypeSymbol, ulong> _storedTypeParameters;
-        private readonly ImmutableHashSet<string> _additionalImmutableTypes;
-        private readonly ImmutableHashSet<string> _additionalContractTypes;
+        private readonly ConcurrentDictionary<INamedTypeSymbol, StoredTypeParameters> _storedTypeParameters;
+        private readonly HashSet<string> _additionalImmutableTypes;
+        private readonly HashSet<string> _additionalContractTypes;
 
         private ImmutabilityContext(
-            ImmutableHashSet<string> additionalImmutableTypes,
-            ImmutableHashSet<string> additionalContractTypes )
+            HashSet<string> additionalImmutableTypes,
+            HashSet<string> additionalContractTypes )
         {
             this._verdicts = new ConcurrentDictionary<ITypeSymbol, ImmutabilityVerdict>( SymbolEqualityComparer.Default );
             this._isSubjectToContract = new ConcurrentDictionary<INamedTypeSymbol, bool>( SymbolEqualityComparer.Default );
-            this._storedTypeParameters = new ConcurrentDictionary<INamedTypeSymbol, ulong>( SymbolEqualityComparer.Default );
+            this._storedTypeParameters = new ConcurrentDictionary<INamedTypeSymbol, StoredTypeParameters>( SymbolEqualityComparer.Default );
             this._additionalImmutableTypes = additionalImmutableTypes;
             this._additionalContractTypes = additionalContractTypes;
         }
@@ -356,9 +356,9 @@ namespace Metalama.Framework.Analyzers
                 {
                     var storedParameters = this.GetStoredTypeParameters( definition );
 
-                    for ( var i = 0; i < namedType.TypeArguments.Length && i < 64; i++ )
+                    for ( var i = 0; i < namedType.TypeArguments.Length; i++ )
                     {
-                        if ( (storedParameters & (1UL << i)) == 0 )
+                        if ( !storedParameters.IsStored( i ) )
                         {
                             continue;
                         }
@@ -472,7 +472,7 @@ namespace Metalama.Framework.Analyzers
             return null;
         }
 
-        private ulong GetStoredTypeParameters( INamedTypeSymbol definition )
+        private StoredTypeParameters GetStoredTypeParameters( INamedTypeSymbol definition )
         {
             if ( this._storedTypeParameters.TryGetValue( definition, out var cached ) )
             {

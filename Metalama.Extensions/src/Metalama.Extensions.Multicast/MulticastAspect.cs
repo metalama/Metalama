@@ -65,12 +65,21 @@ public abstract class MulticastAspect : Aspect, IMulticastAttribute, IAspect<ICo
     }
 
     /// <remarks>
-    /// Constructed on each read rather than cached in a field. The constructor assigns two fields, the property is
-    /// read twice per aspect, and the cache could not be read-only, because the field it assigned had to survive
-    /// compile-time deserialization -- which is exactly what [NonCompileTimeSerialized] on it used to say. Computing
-    /// it removes that hazard instead of moving it.
+    /// A cache, not state. Its value is a pure function of the two read-only fields above, so the aspect behaves
+    /// identically whether or not it has been populated, and <see cref="NonCompileTimeSerializedAttribute"/> makes a
+    /// deserialized instance recompute it rather than carry a stale one. The immutable-style rules cannot tell a memo
+    /// from a mutation, so they are suppressed here rather than the cache being removed: LAMA0882 because the cached
+    /// type is not itself declared immutable, and LAMA0887 because the assignment is not in a constructor.
     /// </remarks>
-    protected MulticastImplementation Implementation => new( this._targets, this._multicastOnInheritance );
+#pragma warning disable LAMA0882
+    [NonCompileTimeSerialized]
+    private MulticastImplementation? _implementation;
+#pragma warning restore LAMA0882
+
+    protected MulticastImplementation Implementation
+#pragma warning disable LAMA0887
+        => this._implementation ??= new MulticastImplementation( this._targets, this._multicastOnInheritance );
+#pragma warning restore LAMA0887
 
     /// <inheritdoc />
     public MulticastTargets AttributeTargetElements { get; init; }

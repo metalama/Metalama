@@ -65,6 +65,7 @@ namespace Metalama.Framework.Options;
 /// <seealso href="@exposing-options"/>
 /// <seealso href="@aspect-configuration"/>
 [Durable]
+[ImmutableType]
 public interface IHierarchicalOptions : IIncrementalObject, ICompileTimeSerializable
 {
     /// <summary>

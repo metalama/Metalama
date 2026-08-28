@@ -2,13 +2,13 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Analyzers;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 
-namespace Metalama.Framework.Analyzers
+namespace Metalama.Framework.Analyzers.Durability
 {
     /// <summary>
     /// Decides whether a type is durable, for one compilation.
@@ -40,19 +40,19 @@ namespace Metalama.Framework.Analyzers
         /// </summary>
         public const string DurableAttributeMetadataName = "Metalama.Framework.Utilities.DurableAttribute";
 
-        private readonly ConcurrentDictionary<ITypeSymbol, Verdict> _verdicts;
+        private readonly ConcurrentDictionary<ITypeSymbol, DurabilityVerdict> _verdicts;
         private readonly ConcurrentDictionary<INamedTypeSymbol, bool> _isSubjectToContract;
-        private readonly ConcurrentDictionary<INamedTypeSymbol, ulong> _storedTypeParameters;
-        private readonly ImmutableHashSet<string> _additionalDurableTypes;
-        private readonly ImmutableHashSet<string> _additionalNonDurableTypes;
+        private readonly ConcurrentDictionary<INamedTypeSymbol, StoredTypeParameters> _storedTypeParameters;
+        private readonly HashSet<string> _additionalDurableTypes;
+        private readonly HashSet<string> _additionalNonDurableTypes;
 
         private DurabilityContext(
-            ImmutableHashSet<string> additionalDurableTypes,
-            ImmutableHashSet<string> additionalNonDurableTypes )
+            HashSet<string> additionalDurableTypes,
+            HashSet<string> additionalNonDurableTypes )
         {
-            this._verdicts = new ConcurrentDictionary<ITypeSymbol, Verdict>( SymbolEqualityComparer.Default );
+            this._verdicts = new ConcurrentDictionary<ITypeSymbol, DurabilityVerdict>( SymbolEqualityComparer.Default );
             this._isSubjectToContract = new ConcurrentDictionary<INamedTypeSymbol, bool>( SymbolEqualityComparer.Default );
-            this._storedTypeParameters = new ConcurrentDictionary<INamedTypeSymbol, ulong>( SymbolEqualityComparer.Default );
+            this._storedTypeParameters = new ConcurrentDictionary<INamedTypeSymbol, StoredTypeParameters>( SymbolEqualityComparer.Default );
             this._additionalDurableTypes = additionalDurableTypes;
             this._additionalNonDurableTypes = additionalNonDurableTypes;
         }
@@ -152,11 +152,11 @@ namespace Metalama.Framework.Analyzers
         /// <summary>
         /// Evaluates the durability of a type.
         /// </summary>
-        public Verdict GetVerdict( ITypeSymbol? type )
+        public DurabilityVerdict GetVerdict( ITypeSymbol? type )
         {
             if ( type == null )
             {
-                return Verdict.Durable;
+                return DurabilityVerdict.Durable;
             }
 
             if ( this._verdicts.TryGetValue( type, out var cached ) )
@@ -173,18 +173,18 @@ namespace Metalama.Framework.Analyzers
             return verdict;
         }
 
-        private Verdict GetVerdictCore( ITypeSymbol type, int depth )
+        private DurabilityVerdict GetVerdictCore( ITypeSymbol type, int depth )
         {
             if ( depth > _maxDepth )
             {
                 // Silence is preferable to a chain that was cut short and would mislead.
-                return Verdict.Durable;
+                return DurabilityVerdict.Durable;
             }
 
             // Rule 0. Never report on code that does not compile.
             if ( type.TypeKind == TypeKind.Error || type is IErrorTypeSymbol )
             {
-                return Verdict.Durable;
+                return DurabilityVerdict.Durable;
             }
 
             // Rules 1 to 3. Intrinsics, enumerations and pointers reach nothing.
@@ -208,12 +208,12 @@ namespace Metalama.Framework.Analyzers
                 case SpecialType.System_UInt64:
                 case SpecialType.System_UIntPtr:
                 case SpecialType.System_Void:
-                    return Verdict.Durable;
+                    return DurabilityVerdict.Durable;
             }
 
             if ( type.TypeKind is TypeKind.Enum or TypeKind.Pointer or TypeKind.FunctionPointer )
             {
-                return Verdict.Durable;
+                return DurabilityVerdict.Durable;
             }
 
             // Rule 4. A nullable value type is exactly its underlying type, and adds no step to the chain.
@@ -232,7 +232,7 @@ namespace Metalama.Framework.Analyzers
             // site, where the type argument is known.
             if ( type.TypeKind == TypeKind.TypeParameter )
             {
-                return Verdict.Durable;
+                return DurabilityVerdict.Durable;
             }
 
             // Rule 7. A tuple is durable when each of its elements is.
@@ -248,13 +248,13 @@ namespace Metalama.Framework.Analyzers
                     }
                 }
 
-                return Verdict.Durable;
+                return DurabilityVerdict.Durable;
             }
 
             // Rule 8. The static type says nothing about what may be stored.
             if ( type.SpecialType == SpecialType.System_Object || type is IDynamicTypeSymbol )
             {
-                return Verdict.NotDurable(
+                return DurabilityVerdict.NotDurable(
                     type.Name.Length > 0 ? type.Name : "dynamic",
                     "the static type does not constrain what may be stored" );
             }
@@ -262,14 +262,14 @@ namespace Metalama.Framework.Analyzers
             // Rule 9. A delegate holds its target and its closure, and the closure is invisible in the source.
             if ( type.TypeKind == TypeKind.Delegate )
             {
-                return Verdict.NotDurable(
+                return DurabilityVerdict.NotDurable(
                     GetDisplayName( type ),
                     "a delegate holds its target and everything its closure captured" );
             }
 
             if ( type is not INamedTypeSymbol namedType )
             {
-                return Verdict.Durable;
+                return DurabilityVerdict.Durable;
             }
 
             var definition = namedType.OriginalDefinition;
@@ -278,12 +278,12 @@ namespace Metalama.Framework.Analyzers
             // Rule 10. The project may override the verdict of a type it does not own. The non-durable list wins.
             if ( this._additionalNonDurableTypes.Contains( metadataName ) )
             {
-                return Verdict.NotDurable( GetDisplayName( type ), "the project declares this type in MetalamaNonDurableType" );
+                return DurabilityVerdict.NotDurable( GetDisplayName( type ), "the project declares this type in MetalamaNonDurableType" );
             }
 
             if ( this._additionalDurableTypes.Contains( metadataName ) )
             {
-                return Verdict.Durable;
+                return DurabilityVerdict.Durable;
             }
 
             // Rule 11. An exact match in the built-in tables. This is tested before the walk of the base types below,
@@ -294,10 +294,10 @@ namespace Metalama.Framework.Analyzers
                 switch ( entry.Durability )
                 {
                     case WellKnownDurability.Durable:
-                        return Verdict.Durable;
+                        return DurabilityVerdict.Durable;
 
                     case WellKnownDurability.NotDurable:
-                        return Verdict.NotDurable( GetDisplayName( type ), entry.Reason );
+                        return DurabilityVerdict.NotDurable( GetDisplayName( type ), entry.Reason );
 
                     case WellKnownDurability.Transparent:
                         return this.GetTransparentVerdict( namedType, entry, depth );
@@ -324,9 +324,9 @@ namespace Metalama.Framework.Analyzers
                 {
                     var storedParameters = this.GetStoredTypeParameters( definition );
 
-                    for ( var i = 0; i < namedType.TypeArguments.Length && i < 64; i++ )
+                    for ( var i = 0; i < namedType.TypeArguments.Length; i++ )
                     {
-                        if ( (storedParameters & (1UL << i)) == 0 )
+                        if ( !storedParameters.IsStored( i ) )
                         {
                             continue;
                         }
@@ -340,7 +340,7 @@ namespace Metalama.Framework.Analyzers
                     }
                 }
 
-                return Verdict.Durable;
+                return DurabilityVerdict.Durable;
             }
 
             // Rule 14. An interface or an abstract type has no members of its own to examine, so marking it does not
@@ -349,19 +349,19 @@ namespace Metalama.Framework.Analyzers
             // so it carries its own diagnostic.
             if ( namedType.TypeKind == TypeKind.Interface || namedType.IsAbstract )
             {
-                return Verdict.NotAnnotated(
+                return DurabilityVerdict.NotAnnotated(
                     GetDisplayName( type ),
                     "an interface or abstract type that is not marked [Durable]" );
             }
 
             // Rule 15. Durability is opt-in.
-            return Verdict.NotDurable( GetDisplayName( type ), "the type is not marked [Durable]" );
+            return DurabilityVerdict.NotDurable( GetDisplayName( type ), "the type is not marked [Durable]" );
         }
 
         /// <summary>
         /// Evaluates a type whose durability follows that of the type arguments selected by its mask.
         /// </summary>
-        private Verdict GetTransparentVerdict( INamedTypeSymbol type, WellKnownEntry entry, int depth )
+        private DurabilityVerdict GetTransparentVerdict( INamedTypeSymbol type, WellKnownEntry entry, int depth )
         {
             var typeArguments = type.TypeArguments;
 
@@ -380,20 +380,20 @@ namespace Metalama.Framework.Analyzers
                 }
             }
 
-            return Verdict.Durable;
+            return DurabilityVerdict.Durable;
         }
 
         /// <summary>
         /// Returns the verdict of the first well-known non-durable base type or interface of a type, or <c>null</c>.
         /// </summary>
-        private Verdict? GetInheritedNonDurableVerdict( INamedTypeSymbol type, ITypeSymbol reported )
+        private DurabilityVerdict? GetInheritedNonDurableVerdict( INamedTypeSymbol type, ITypeSymbol reported )
         {
             for ( var baseType = type.BaseType; baseType != null; baseType = baseType.BaseType )
             {
                 if ( WellKnownDurableTypes.TryGet( GetFullMetadataName( baseType.OriginalDefinition ), out var baseEntry )
                      && baseEntry.Durability == WellKnownDurability.NotDurable )
                 {
-                    return Verdict.NotDurable( GetDisplayName( reported ), baseEntry.Reason );
+                    return DurabilityVerdict.NotDurable( GetDisplayName( reported ), baseEntry.Reason );
                 }
             }
 
@@ -402,7 +402,7 @@ namespace Metalama.Framework.Analyzers
                 if ( WellKnownDurableTypes.TryGet( GetFullMetadataName( interfaceType.OriginalDefinition ), out var interfaceEntry )
                      && interfaceEntry.Durability == WellKnownDurability.NotDurable )
                 {
-                    return Verdict.NotDurable( GetDisplayName( reported ), interfaceEntry.Reason );
+                    return DurabilityVerdict.NotDurable( GetDisplayName( reported ), interfaceEntry.Reason );
                 }
             }
 
@@ -418,7 +418,7 @@ namespace Metalama.Framework.Analyzers
         /// contract of this same assembly needs for the same reason. The cache stays here, because it holds symbols
         /// and must therefore die with the compilation.
         /// </remarks>
-        private ulong GetStoredTypeParameters( INamedTypeSymbol definition )
+        private StoredTypeParameters GetStoredTypeParameters( INamedTypeSymbol definition )
         {
             if ( this._storedTypeParameters.TryGetValue( definition, out var cached ) )
             {

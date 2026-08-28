@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <TargetFrameworks>netstandard2.0;net8.0</TargetFrameworks>
@@ -37,8 +37,9 @@
     </ItemGroup>
     
     <ItemGroup>
-        <!-- The contract assembly declares DurableLazy<T>, which is itself marked [Durable], so the analyzer verifies
-             that type against its own contract. -->
+        <!-- The contract assembly declares both markers and several of the types they bind. DurableLazy<T> is itself
+             marked [Durable], and IAspect, Fabric, IExpression, IType and the strategy interfaces are marked
+             [ImmutableType], so the analyzer verifies this assembly against the two contracts it defines. -->
         <ProjectReference Include="../Metalama.Framework.Analyzers/Metalama.Framework.Analyzers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     </ItemGroup>
 

@@ -3,9 +3,10 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 using System;
-using System.Collections.Immutable;
+using System.Collections.Generic;
 using System.Text;
 
 namespace Metalama.Framework.Analyzers
@@ -73,14 +74,21 @@ namespace Metalama.Framework.Analyzers
         /// Reads one of the semicolon-separated lists that an MSBuild item is joined into by the build, because an
         /// analyzer can read a property but not an item.
         /// </summary>
-        public static ImmutableHashSet<string> ReadTypeNameList( AnalyzerConfigOptions options, string key )
+        /// <remarks>
+        /// A <see cref="HashSet{T}"/> and not an immutable hash set, because this set is read on a hot
+        /// path -- once per named type of the compilation -- and an immutable hash set pays a tree walk per lookup.
+        /// It is built once and never mutated afterwards, and the field that holds it is private and read-only.
+        /// <c>IReadOnlySet{T}</c> would state that better but does not exist in <c>netstandard2.0</c>, which this
+        /// assembly targets.
+        /// </remarks>
+        public static HashSet<string> ReadTypeNameList( AnalyzerConfigOptions options, string key )
         {
+            var result = new HashSet<string>( StringComparer.Ordinal );
+
             if ( !options.TryGetValue( key, out var value ) || string.IsNullOrWhiteSpace( value ) )
             {
-                return ImmutableHashSet<string>.Empty;
+                return result;
             }
-
-            var builder = ImmutableHashSet.CreateBuilder( StringComparer.Ordinal );
 
             foreach ( var name in value.Split( ';' ) )
             {
@@ -88,31 +96,52 @@ namespace Metalama.Framework.Analyzers
 
                 if ( trimmed.Length > 0 )
                 {
-                    builder.Add( trimmed );
+                    result.Add( trimmed );
                 }
             }
 
-            return builder.ToImmutable();
+            return result;
         }
 
         /// <summary>
-        /// Determines whether a property is automatically implemented, that is, whether its accessors have no body.
+        /// Determines whether a property is automatically implemented, that is, whether it has an accessor list in
+        /// which no accessor has a body.
         /// </summary>
+        /// <remarks>
+        /// <c>DeclarationExtensions.IsAutoProperty</c> in <c>Metalama.Framework.Engine</c> answers the same question
+        /// over the same Roslyn symbol, and this is deliberately shaped like its <c>HasExplicitAccessorBody</c>. It
+        /// cannot be reused: this assembly references only Roslyn, because it ships to customers and must carry the
+        /// smallest possible closure. The engine's version also classifies the C# 13 semi-automatic property, which
+        /// matters there and not here, because a semi-automatic property has a backing field and is therefore already
+        /// covered by the loop over fields; this method is only the safety net for the shapes where Roslyn exposes no
+        /// backing field.
+        /// </remarks>
         public static bool IsAutomaticallyImplemented( IPropertySymbol property )
         {
-            var accessor = property.GetMethod ?? property.SetMethod;
-
-            if ( accessor == null || accessor.DeclaringSyntaxReferences.IsDefaultOrEmpty )
+            // An abstract or extern property has no backing field and no body to inspect.
+            if ( property.IsAbstract || property.IsExtern || property.DeclaringSyntaxReferences.IsDefaultOrEmpty )
             {
                 return false;
             }
 
-            foreach ( var reference in accessor.DeclaringSyntaxReferences )
+            foreach ( var reference in property.DeclaringSyntaxReferences )
             {
-                if ( reference.GetSyntax() is Microsoft.CodeAnalysis.CSharp.Syntax.AccessorDeclarationSyntax
-                    { Body: null, ExpressionBody: null } )
+                switch ( reference.GetSyntax() )
                 {
-                    return true;
+                    // An expression-bodied property computes its value and holds no state of its own.
+                    case PropertyDeclarationSyntax { ExpressionBody: not null }:
+                        return false;
+
+                    case BasePropertyDeclarationSyntax { AccessorList.Accessors: { Count: > 0 } accessors }:
+                        foreach ( var accessor in accessors )
+                        {
+                            if ( accessor.Body != null || accessor.ExpressionBody != null )
+                            {
+                                return false;
+                            }
+                        }
+
+                        return true;
                 }
             }
 
@@ -120,9 +149,9 @@ namespace Metalama.Framework.Analyzers
         }
 
         /// <summary>
-        /// Returns, as a bit per ordinal, the type parameters of a generic definition that appear in the type of one
-        /// of its instance fields, and which a construction of that type must therefore supply as satisfying whatever
-        /// contract the definition carries.
+        /// Computes which type parameters of a generic definition appear in the type of one of its instance fields,
+        /// and which a construction of that type must therefore supply as satisfying whatever contract the definition
+        /// carries.
         /// </summary>
         /// <remarks>
         /// <para>
@@ -135,7 +164,7 @@ namespace Metalama.Framework.Analyzers
         /// An interface or an abstract type has no fields to examine, so every parameter is assumed stored.
         /// </para>
         /// </remarks>
-        public static ulong ComputeStoredTypeParameters( INamedTypeSymbol definition, int maxDepth )
+        public static StoredTypeParameters ComputeStoredTypeParameters( INamedTypeSymbol definition, int maxDepth )
         {
             // An interface or an abstract type has no fields to examine.
             //
@@ -149,13 +178,13 @@ namespace Metalama.Framework.Analyzers
                  || definition.IsAbstract
                  || definition.DeclaringSyntaxReferences.IsDefaultOrEmpty )
             {
-                var result = definition.TypeParameters.Length >= 64 ? ulong.MaxValue : (1UL << definition.TypeParameters.Length) - 1;
+                var result = definition.TypeParameters.Length >= StoredTypeParameters.MaxOrdinal ? ulong.MaxValue : (1UL << definition.TypeParameters.Length) - 1;
 
                 // A contravariant parameter appears only in input position, so an implementation cannot store a value
                 // of that type: it never receives one to store. Without this, IEligibilityRule<in T> and
                 // IAnnotation<in T> would demand that their argument satisfy the contract, and
                 // IEligibilityRule<IDeclaration> would be reported although the rule stores no declaration.
-                for ( var i = 0; i < definition.TypeParameters.Length && i < 64; i++ )
+                for ( var i = 0; i < definition.TypeParameters.Length && i < StoredTypeParameters.MaxOrdinal; i++ )
                 {
                     if ( definition.TypeParameters[i].Variance == VarianceKind.In )
                     {
@@ -163,7 +192,7 @@ namespace Metalama.Framework.Analyzers
                     }
                 }
 
-                return result;
+                return new StoredTypeParameters( result );
             }
             else
             {
@@ -177,7 +206,7 @@ namespace Metalama.Framework.Analyzers
                     }
                 }
 
-                return result;
+                return new StoredTypeParameters( result );
             }
         }
 
@@ -191,7 +220,7 @@ namespace Metalama.Framework.Analyzers
             switch ( type )
             {
                 case ITypeParameterSymbol typeParameter
-                    when typeParameter.Ordinal < 64
+                    when typeParameter.Ordinal < StoredTypeParameters.MaxOrdinal
                          && SymbolEqualityComparer.Default.Equals( typeParameter.ContainingType?.OriginalDefinition, owner ):
                     result |= 1UL << typeParameter.Ordinal;
 

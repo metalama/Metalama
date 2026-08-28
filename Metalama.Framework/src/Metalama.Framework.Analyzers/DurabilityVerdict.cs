@@ -2,9 +2,10 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Analyzers;
 using System.Collections.Immutable;
 
-namespace Metalama.Framework.Analyzers
+namespace Metalama.Framework.Analyzers.Durability
 {
     /// <summary>
     /// The result of evaluating the durability of a type, with the chain of members and types that explains a
@@ -15,13 +16,13 @@ namespace Metalama.Framework.Analyzers
     /// that produced it, so an analyzer that reported a symbol as a message argument would keep that symbol alive.
     /// That is the discipline this analyzer exists to enforce, and it applies to the analyzer itself.
     /// </remarks>
-    internal sealed class Verdict
+    internal sealed class DurabilityVerdict
     {
         /// <summary>
         /// The verdict of a type that is durable. A singleton, because it is by far the most frequent result and it
         /// carries no chain.
         /// </summary>
-        public static readonly Verdict Durable = new( DurabilityKind.Durable, ImmutableArray<string>.Empty, null );
+        public static readonly DurabilityVerdict Durable = new( DurabilityKind.Durable, ImmutableArray<string>.Empty, null );
 
         /// <summary>
         /// Gets the kind of the verdict.
@@ -44,7 +45,7 @@ namespace Metalama.Framework.Analyzers
         /// </summary>
         public bool IsDurable => this.Kind == DurabilityKind.Durable;
 
-        private Verdict( DurabilityKind kind, ImmutableArray<string> chain, string? reason )
+        private DurabilityVerdict( DurabilityKind kind, ImmutableArray<string> chain, string? reason )
         {
             this.Kind = kind;
             this.Chain = chain;
@@ -54,14 +55,14 @@ namespace Metalama.Framework.Analyzers
         /// <summary>
         /// Creates the verdict of a type that is not durable, starting a new chain at that type.
         /// </summary>
-        public static Verdict NotDurable( string typeName, string? reason )
+        public static DurabilityVerdict NotDurable( string typeName, string? reason )
             => new( DurabilityKind.NotDurable, ImmutableArray.Create( typeName ), reason );
 
         /// <summary>
         /// Creates the verdict of an interface or abstract type that does not carry the attribute, starting a new
         /// chain at that type.
         /// </summary>
-        public static Verdict NotAnnotated( string typeName, string? reason )
+        public static DurabilityVerdict NotAnnotated( string typeName, string? reason )
             => new( DurabilityKind.NotAnnotated, ImmutableArray.Create( typeName ), reason );
 
         /// <summary>
@@ -71,8 +72,8 @@ namespace Metalama.Framework.Analyzers
         /// The chain is built as the recursion unwinds, so the cost is proportional to the length of the failing path
         /// rather than to the size of the graph that was searched.
         /// </remarks>
-        public Verdict Prepend( string step )
-            => this.IsDurable ? this : new Verdict( this.Kind, this.Chain.Insert( 0, step ), this.Reason );
+        public DurabilityVerdict Prepend( string step )
+            => this.IsDurable ? this : new DurabilityVerdict( this.Kind, this.Chain.Insert( 0, step ), this.Reason );
 
         /// <summary>
         /// Formats the chain for a diagnostic message.

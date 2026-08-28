@@ -2,12 +2,13 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Analyzers;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Operations;
 using System.Linq;
 
-namespace Metalama.Framework.Analyzers
+namespace Metalama.Framework.Analyzers.Durability
 {
     /// <summary>
     /// The rules that apply where a value is stored or passed, rather than where a type is declared.
@@ -195,7 +196,7 @@ namespace Metalama.Framework.Analyzers
                         CapturedValueIsNotDurable,
                         verdict.Location,
                         verdict.CapturedSymbol?.Name ?? "this",
-                        verdict.Verdict.FormatChain() ) );
+                        verdict.DurabilityVerdict.FormatChain() ) );
 
                 return;
             }
@@ -213,7 +214,7 @@ namespace Metalama.Framework.Analyzers
                     location,
                     targetName,
                     value.Type == null ? "?" : DurabilityContext.GetDisplayName( value.Type ),
-                    verdict.Verdict.FormatChain() ) );
+                    verdict.DurabilityVerdict.FormatChain() ) );
         }
     }
 }

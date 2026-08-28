@@ -2,12 +2,13 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Analyzers;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Operations;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Metalama.Framework.Analyzers
+namespace Metalama.Framework.Analyzers.Durability
 {
     /// <summary>
     /// Evaluates the durability of an <i>expression</i>, which is what the rules on assignments and arguments need.
@@ -24,7 +25,7 @@ namespace Metalama.Framework.Analyzers
         /// </summary>
         public readonly struct ExpressionVerdict
         {
-            public Verdict Verdict { get; }
+            public DurabilityVerdict DurabilityVerdict { get; }
 
             /// <summary>
             /// Gets the variable captured by a lambda that makes the expression not durable, or <c>null</c> when the
@@ -38,16 +39,16 @@ namespace Metalama.Framework.Analyzers
             /// </summary>
             public Location? Location { get; }
 
-            public bool IsDurable => this.Verdict.IsDurable;
+            public bool IsDurable => this.DurabilityVerdict.IsDurable;
 
-            public ExpressionVerdict( Verdict verdict, ISymbol? capturedSymbol = null, Location? location = null )
+            public ExpressionVerdict( DurabilityVerdict verdict, ISymbol? capturedSymbol = null, Location? location = null )
             {
-                this.Verdict = verdict;
+                this.DurabilityVerdict = verdict;
                 this.CapturedSymbol = capturedSymbol;
                 this.Location = location;
             }
 
-            public static readonly ExpressionVerdict Durable = new( Verdict.Durable );
+            public static readonly ExpressionVerdict Durable = new( DurabilityVerdict.Durable );
         }
 
         /// <summary>
