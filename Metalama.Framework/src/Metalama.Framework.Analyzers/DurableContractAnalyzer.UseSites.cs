@@ -78,7 +78,8 @@ namespace Metalama.Framework.Analyzers.Durability
             context.RegisterOperationAction(
                 c => AnalyzeAssignment( c, durabilityContext ),
                 OperationKind.SimpleAssignment,
-                OperationKind.CoalesceAssignment );
+                OperationKind.CoalesceAssignment,
+                OperationKind.DeconstructionAssignment );
 
             context.RegisterOperationAction(
                 c => AnalyzeInitializer( c, durabilityContext ),
@@ -117,6 +118,17 @@ namespace Metalama.Framework.Analyzers.Durability
         {
             var assignment = (IAssignmentOperation) context.Operation;
 
+            // A deconstruction assigns every element of a tuple target, so the elements have to be paired with the
+            // elements of the value. Without this, (this._value, _) = (tree, 0) stores a syntax tree in a durable
+            // member and reports nothing.
+            if ( assignment is IDeconstructionAssignmentOperation
+                 && assignment.Target is ITupleOperation targetTuple )
+            {
+                AnalyzeDeconstruction( context, durabilityContext, targetTuple, assignment.Value );
+
+                return;
+            }
+
             var target = assignment.Target switch
             {
                 IFieldReferenceOperation field => (ISymbol) field.Field,
@@ -132,6 +144,64 @@ namespace Metalama.Framework.Analyzers.Durability
             }
 
             ReportIfNotDurable( context, durabilityContext, assignment.Value, AssignedValueIsNotDurable, target.Name );
+        }
+
+        /// <summary>
+        /// Checks each element of a deconstruction target against the element of the value that supplies it.
+        /// </summary>
+        /// <remarks>
+        /// The elements are paired positionally, which is what a deconstruction into a tuple literal does. When the
+        /// value is not a tuple literal of the same arity, as when it is a call to a Deconstruct method, the elements
+        /// cannot be paired and the durability of each target is judged from the type of the whole value instead,
+        /// which is the conservative reading.
+        /// </remarks>
+        private static void AnalyzeDeconstruction(
+            OperationAnalysisContext context,
+            DurabilityContext durabilityContext,
+            ITupleOperation targetTuple,
+            IOperation value )
+        {
+            var valueTuple = value as ITupleOperation;
+
+            if ( valueTuple != null && valueTuple.Elements.Length != targetTuple.Elements.Length )
+            {
+                valueTuple = null;
+            }
+
+            for ( var i = 0; i < targetTuple.Elements.Length; i++ )
+            {
+                var element = targetTuple.Elements[i];
+
+                if ( element is ITupleOperation nestedTuple )
+                {
+                    AnalyzeDeconstruction(
+                        context,
+                        durabilityContext,
+                        nestedTuple,
+                        valueTuple != null ? valueTuple.Elements[i] : value );
+
+                    continue;
+                }
+
+                var target = element switch
+                {
+                    IFieldReferenceOperation field => (ISymbol) field.Field,
+                    IPropertyReferenceOperation property => property.Property,
+                    _ => null
+                };
+
+                if ( target == null || !DurabilityContext.HasDurableAttribute( target ) )
+                {
+                    continue;
+                }
+
+                ReportIfNotDurable(
+                    context,
+                    durabilityContext,
+                    valueTuple != null ? valueTuple.Elements[i] : value,
+                    AssignedValueIsNotDurable,
+                    target.Name );
+            }
         }
 
         private static void AnalyzeInitializer( OperationAnalysisContext context, DurabilityContext durabilityContext )
@@ -160,13 +230,59 @@ namespace Metalama.Framework.Analyzers.Durability
             // IArgumentOperation.Parameter resolves the target of a named, optional or params argument, and covers an
             // object creation as well as an invocation, which is why the rule is registered on the argument rather
             // than on each of the operations that can carry one.
-            if ( argument.Parameter is not { } parameter || !DurabilityContext.HasDurableAttribute( parameter ) )
+            if ( argument.Parameter is not { } parameter )
             {
                 return;
             }
 
-            ReportIfNotDurable( context, durabilityContext, argument.Value, ArgumentIsNotDurable, parameter.Name );
+            if ( DurabilityContext.HasDurableAttribute( parameter ) )
+            {
+                ReportIfNotDurable( context, durabilityContext, argument.Value, ArgumentIsNotDurable, parameter.Name );
+
+                return;
+            }
+
+            // An out argument writes the member it is given, so Set( out this._value ) stores whatever the callee
+            // produces into a durable member without any assignment appearing here. The declared type of the
+            // parameter is what the member receives, so it is what has to be durable.
+            //
+            // A ref argument is deliberately not reported. It may only read: Volatile.Read( ref this._factory ) in
+            // DurableLazy passes a durable member by reference and stores nothing, and judging it by the parameter
+            // type reported it as though it did. Distinguishing Volatile.Read from Interlocked.Exchange is beyond
+            // what a declared signature says, so the choice here is silence rather than a wrong finding.
+            if ( parameter.RefKind == RefKind.Out
+                 && GetDurableMember( argument.Value ) is { } member )
+            {
+                var verdict = durabilityContext.GetVerdict( parameter.Type );
+
+                if ( !verdict.IsDurable )
+                {
+                    var location = argument.Value.Syntax.GetLocation();
+
+                    context.ReportDiagnostic(
+                        Diagnostic.Create(
+                            AssignedValueIsNotDurable,
+                            location,
+                            member.Name,
+                            DurabilityContext.GetDisplayName( parameter.Type ),
+                            verdict.FormatChain() ) );
+                }
+            }
         }
+
+        /// <summary>
+        /// Returns the field or automatically implemented property that an expression refers to, when it carries the
+        /// attribute, or <c>null</c>.
+        /// </summary>
+        private static ISymbol? GetDurableMember( IOperation value )
+            => value switch
+            {
+                IFieldReferenceOperation field when DurabilityContext.HasDurableAttribute( field.Field )
+                    => field.Field,
+                IPropertyReferenceOperation property when DurabilityContext.HasDurableAttribute( property.Property )
+                    => property.Property,
+                _ => null
+            };
 
         private static void ReportIfNotDurable(
             OperationAnalysisContext context,

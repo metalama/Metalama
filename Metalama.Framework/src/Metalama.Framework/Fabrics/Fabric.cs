@@ -15,7 +15,7 @@ namespace Metalama.Framework.Fabrics
     /// <remarks>
     /// <para>
     /// Fabrics are unique classes that execute at compile time and design time. Unlike aspects, fabrics do not need to be applied
-    /// to any declaration or called from anywhere—they are invoked automatically simply because they exist in your code.
+    /// to any declaration or called from anywhere-they are invoked automatically simply because they exist in your code.
     /// Think of fabrics as compile-time entry points.
     /// </para>
     /// <para>

@@ -21,9 +21,10 @@ namespace Metalama.Framework.Analyzers.Immutability
     /// referencing <c>Metalama.Framework</c>.
     /// </para>
     /// <para>
-    /// <b>These names are unverified.</b> They must be confirmed against Metalama.Premium, and the analyzer reports
-    /// <c>LAMA0885</c> at the end of a compilation for any of them that matches no type, so that a stale name is
-    /// visible rather than silently inert. The intended end state is that the premium base types carry the attribute
+    /// <b>These names are unverified, and nothing here can verify them.</b> They must be confirmed against
+    /// Metalama.Premium by hand. Reporting the ones that match no type, as is done for the names a project declares,
+    /// is not available: most compilations legitimately do not reference that package, so the report would fire
+    /// everywhere. A stale name is therefore silently inert. The intended end state is that the premium base types carry the attribute
     /// themselves and this table survives only as a fallback for a premium build older than that change.
     /// </para>
     /// </remarks>

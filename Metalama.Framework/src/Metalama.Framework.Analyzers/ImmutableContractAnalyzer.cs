@@ -323,9 +323,11 @@ namespace Metalama.Framework.Analyzers.Immutability
         /// matches no type, so that a typo is not silently a rule that never applies.
         /// </summary>
         /// <remarks>
-        /// The built-in contract names are checked too, and not only the items, because those names refer to types of
-        /// Metalama.Premium that this repository cannot see. A stale one would otherwise be a rule that never fires
-        /// and that nothing reports.
+        /// Only the names a project declares are checked. The built-in contract names cannot be: they refer to types
+        /// of Metalama.Premium, which most compilations legitimately do not reference, so reporting the ones that
+        /// match nothing would fire in every project that does not use that package. A stale built-in name is
+        /// therefore a rule that never fires and that nothing reports, which is a real limitation and the reason
+        /// those names have to be confirmed against Metalama.Premium rather than trusted.
         /// </remarks>
         private static void AnalyzeDeclaredTypeNames( CompilationAnalysisContext context, ImmutabilityContext immutabilityContext )
         {

@@ -6,7 +6,6 @@ using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Options;
 using Metalama.Patterns.Caching.Implementation;
-using Metalama.Framework.Utilities;
 
 namespace Metalama.Patterns.Caching.Aspects.Configuration;
 

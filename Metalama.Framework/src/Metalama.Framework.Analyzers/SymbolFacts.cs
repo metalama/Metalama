@@ -180,10 +180,14 @@ namespace Metalama.Framework.Analyzers
             {
                 var result = definition.TypeParameters.Length >= StoredTypeParameters.MaxOrdinal ? ulong.MaxValue : (1UL << definition.TypeParameters.Length) - 1;
 
-                // A contravariant parameter appears only in input position, so an implementation cannot store a value
-                // of that type: it never receives one to store. Without this, IEligibilityRule<in T> and
-                // IAnnotation<in T> would demand that their argument satisfy the contract, and
-                // IEligibilityRule<IDeclaration> would be reported although the rule stores no declaration.
+                // A contravariant parameter is dropped, and this is a heuristic rather than a proof. Contravariance
+                // puts T in input position, which means an implementation does receive a T and could retain it:
+                // ISink<in T>.Accept( T value ) is free to store what it is given. What contravariance does say is
+                // that such an interface is written to consume, and in this codebase they do consume:
+                // IEligibilityRule<in T> and IAnnotation<in T> evaluate their argument and keep nothing. Requiring
+                // the argument anyway reported IEligibilityRule<IDeclaration> and every rule built on it, which was
+                // noise rather than a finding. The exchange is deliberate, and it is unsound in the direction of
+                // silence: an implementation that does retain its input is not reported here.
                 for ( var i = 0; i < definition.TypeParameters.Length && i < StoredTypeParameters.MaxOrdinal; i++ )
                 {
                     if ( definition.TypeParameters[i].Variance == VarianceKind.In )
@@ -198,16 +202,89 @@ namespace Metalama.Framework.Analyzers
             {
                 ulong result = 0;
 
-                foreach ( var member in definition.GetMembers() )
+                // The fields of the type itself, and then those it inherits. A type parameter stored by a base class
+                // is stored by the derived one just as surely: for Derived<T> : Base<T> where Base<T> holds a T,
+                // Derived<Compilation> holds a Compilation, and reading only the fields declared here would accept it.
+                for ( var current = definition; current != null; current = current.BaseType?.OriginalDefinition )
                 {
-                    if ( member is IFieldSymbol { IsStatic: false, IsConst: false } field )
+                    foreach ( var member in current.GetMembers() )
                     {
-                        CollectTypeParameters( field.Type, definition, ref result, 0, maxDepth );
+                        if ( member is IFieldSymbol { IsStatic: false, IsConst: false } field )
+                        {
+                            // The field type is written in terms of the base type's own parameters, so it is mapped
+                            // back to the parameters of the definition being asked about before the bits are set.
+                            CollectTypeParameters(
+                                MapToDefinition( field.Type, definition, current ),
+                                definition,
+                                ref result,
+                                0,
+                                maxDepth );
+                        }
                     }
                 }
 
                 return new StoredTypeParameters( result );
             }
+        }
+
+        /// <summary>
+        /// Substitutes the type arguments that a definition passes to one of its base definitions, so that a field
+        /// declared on the base is read in terms of the parameters of the definition being asked about.
+        /// </summary>
+        /// <remarks>
+        /// For <c>Derived{T} : Base{T}</c> the field <c>Base{T}._value</c> is typed with the <c>T</c> of
+        /// <c>Base</c>. Walking from <c>Derived</c> up to <c>Base</c> and substituting at each step turns it into the
+        /// <c>T</c> of <c>Derived</c>, which is the parameter whose bit has to be set. When the substitution cannot
+        /// be performed, the field type is returned unchanged and its parameters simply do not match the owner, which
+        /// loses the bit rather than setting a wrong one.
+        /// </remarks>
+        private static ITypeSymbol MapToDefinition( ITypeSymbol fieldType, INamedTypeSymbol definition, INamedTypeSymbol declaringDefinition )
+        {
+            if ( SymbolEqualityComparer.Default.Equals( definition, declaringDefinition ) )
+            {
+                return fieldType;
+            }
+
+            // Find the constructed base that leads from the definition to the declaring one, and read the field type
+            // through its type arguments.
+            for ( var baseType = definition.BaseType; baseType != null; baseType = baseType.BaseType )
+            {
+                if ( SymbolEqualityComparer.Default.Equals( baseType.OriginalDefinition, declaringDefinition ) )
+                {
+                    return Substitute( fieldType, declaringDefinition, baseType );
+                }
+            }
+
+            return fieldType;
+        }
+
+        private static ITypeSymbol Substitute( ITypeSymbol type, INamedTypeSymbol definition, INamedTypeSymbol constructed )
+        {
+            if ( type is ITypeParameterSymbol typeParameter
+                 && SymbolEqualityComparer.Default.Equals( typeParameter.ContainingType?.OriginalDefinition, definition )
+                 && typeParameter.Ordinal < constructed.TypeArguments.Length )
+            {
+                return constructed.TypeArguments[typeParameter.Ordinal];
+            }
+
+            if ( type is INamedTypeSymbol { IsGenericType: true } namedType )
+            {
+                var arguments = new ITypeSymbol[namedType.TypeArguments.Length];
+                var changed = false;
+
+                for ( var i = 0; i < arguments.Length; i++ )
+                {
+                    arguments[i] = Substitute( namedType.TypeArguments[i], definition, constructed );
+                    changed |= !SymbolEqualityComparer.Default.Equals( arguments[i], namedType.TypeArguments[i] );
+                }
+
+                if ( changed )
+                {
+                    return namedType.OriginalDefinition.Construct( arguments );
+                }
+            }
+
+            return type;
         }
 
         private static void CollectTypeParameters( ITypeSymbol type, INamedTypeSymbol owner, ref ulong result, int depth, int maxDepth )

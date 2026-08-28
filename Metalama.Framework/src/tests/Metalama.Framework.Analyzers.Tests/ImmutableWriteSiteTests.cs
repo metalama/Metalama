@@ -2,8 +2,6 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Framework.Analyzers.Durability;
-using Metalama.Framework.Analyzers.Immutability;
 using Xunit;
 
 namespace Metalama.Framework.Analyzers.Tests;
@@ -114,6 +112,35 @@ public sealed class ImmutableWriteSiteTests : ImmutableAnalyzerTestBase
             Code( "private int _count; public void M(C other) { other._count = 1; }" ),
             "LAMA0887" );
 
+    /// <remarks>
+    /// A deconstruction assigns every element of its target, and none of those assignments is a simple assignment.
+    /// </remarks>
+    [Fact]
+    public async Task DeconstructionIntoMembers_IsReported()
+    {
+        var diagnostics = await GetDiagnosticsAsync(
+            Code( "private int _x; private int _y; public void M() { (this._x, this._y) = (1, 2); }" ) );
+
+        Assert.Equal( 2, diagnostics.Length );
+        Assert.All( diagnostics, d => Assert.Equal( "LAMA0887", d.Id ) );
+    }
+
+    [Fact]
+    public async Task DeconstructionWithADiscard_ReportsOnlyTheMember()
+        => await AssertSingleDiagnosticAsync(
+            Code( "private int _x; public void M() { (this._x, _) = (1, 2); }" ),
+            "LAMA0887" );
+
+    [Fact]
+    public async Task DeconstructionInAConstructor_IsNotReported()
+        => await AssertNoDiagnosticAsync(
+            Code( "private int _x; private int _y; public C() { (this._x, this._y) = (1, 2); }" ) );
+
+    [Fact]
+    public async Task DeconstructionIntoLocals_IsNotReported()
+        => await AssertNoDiagnosticAsync(
+            Code( "private readonly int _x; public void M() { var (a, b) = (1, 2); }" ) );
+
     // ------------------------------------------------------------------------------------------------------------
     // ref and out, which are writes that do not look like assignments.
     // ------------------------------------------------------------------------------------------------------------
@@ -129,15 +156,15 @@ public sealed class ImmutableWriteSiteTests : ImmutableAnalyzerTestBase
         Assert.Contains( "which writes it", message, StringComparison.Ordinal );
     }
 
+    /// <remarks>
+    /// A ref argument may only read. Volatile.Read( ref field ) passes a member by reference and stores nothing, and
+    /// a declared signature does not say which of the two a call does, so silence is preferred to a finding that is
+    /// wrong wherever that idiom appears. DurableLazy is the concrete case that made this necessary.
+    /// </remarks>
     [Fact]
-    public async Task PassingAMemberAsRef_IsReported()
-    {
-        var message = await AssertSingleDiagnosticAsync(
-            Code( "private int _count; public void M() { Set(ref this._count); } static void Set(ref int x) => x = 1;" ),
-            "LAMA0888" );
-
-        Assert.Contains( "'ref' argument", message, StringComparison.Ordinal );
-    }
+    public async Task PassingAMemberAsRef_IsNotReported()
+        => await AssertNoDiagnosticAsync(
+            Code( "private int _count; public void M() { Set(ref this._count); } static void Set(ref int x) => x = 1;" ) );
 
     [Fact]
     public async Task PassingAMemberByValue_IsNotReported()

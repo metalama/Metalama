@@ -94,7 +94,7 @@
 
 
     <PropertyGroup>
-        <!-- The [ImmutableObject] contract is written for user code. This project implements the code model itself,
+        <!-- The [ImmutableType] contract is written for user code. This project implements the code model itself,
              whose builders are mutable because that is what a builder is, and it is verified by its own tests rather
              than by that rule. Note that the [Durable] contract deliberately has no equivalent switch and is enforced
              here: durability is hardest to get right precisely in this project, which is where it matters most. -->

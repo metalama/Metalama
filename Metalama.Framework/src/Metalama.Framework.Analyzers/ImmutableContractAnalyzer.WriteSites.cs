@@ -43,13 +43,15 @@ namespace Metalama.Framework.Analyzers.Immutability
             true );
 
         /// <remarks>
-        /// A <c>ref</c> or <c>out</c> argument is a write, and one that is easy to miss because it does not look like
-        /// an assignment. <c>out</c> always writes; <c>ref</c> may.
+        /// An <c>out</c> argument is a write, and one that is easy to miss because it does not look like an
+        /// assignment. A <c>ref</c> argument is deliberately not reported: it may only read, as
+        /// <c>Volatile.Read( ref field )</c> does, and a declared signature does not say which. Silence is preferred
+        /// to a finding that is wrong wherever that idiom appears.
         /// </remarks>
         internal static readonly DiagnosticDescriptor MemberIsPassedByReference = new(
             "LAMA0888",
-            "A member of a type that must be immutable is passed as a 'ref' or 'out' argument",
-            _because + ", but '{1}' is passed as a '{2}' argument here, which writes it. Pass a local instead, and "
+            "A member of a type that must be immutable is passed as an 'out' argument",
+            _because + ", but '{1}' is passed as an 'out' argument here, which writes it. Pass a local instead, and "
             + "assign the member in a constructor.",
             _category,
             DiagnosticSeverity.Warning,
@@ -62,6 +64,7 @@ namespace Metalama.Framework.Analyzers.Immutability
                 OperationKind.SimpleAssignment,
                 OperationKind.CompoundAssignment,
                 OperationKind.CoalesceAssignment,
+                OperationKind.DeconstructionAssignment,
                 OperationKind.Increment,
                 OperationKind.Decrement );
 
@@ -82,7 +85,49 @@ namespace Metalama.Framework.Analyzers.Immutability
                 return;
             }
 
+            // A deconstruction assigns every element of a tuple target, so each one has to be examined. Without this,
+            // (this._x, this._y) = pair writes two members and reports neither.
+            if ( context.Operation.Kind == OperationKind.DeconstructionAssignment )
+            {
+                ReportDeconstructionTargets( context, immutabilityContext, target );
+
+                return;
+            }
+
             Report( context, immutabilityContext, target, MemberIsWrittenOutsideConstructor, null );
+        }
+
+        /// <summary>
+        /// Reports every member written by the target of a deconstruction, descending through nested tuples.
+        /// </summary>
+        private static void ReportDeconstructionTargets(
+            OperationAnalysisContext context,
+            ImmutabilityContext immutabilityContext,
+            IOperation target )
+        {
+            switch ( target )
+            {
+                case ITupleOperation tuple:
+                    foreach ( var element in tuple.Elements )
+                    {
+                        ReportDeconstructionTargets( context, immutabilityContext, element );
+                    }
+
+                    break;
+
+                // A discard writes nothing.
+                case IDiscardOperation:
+                    break;
+
+                // A deconstruction element may be declared inline, as in (var x, this._y) = pair.
+                case IDeclarationExpressionOperation:
+                    break;
+
+                default:
+                    Report( context, immutabilityContext, target, MemberIsWrittenOutsideConstructor, null );
+
+                    break;
+            }
         }
 
         private static void AnalyzeArgument( OperationAnalysisContext context, ImmutabilityContext immutabilityContext )
@@ -91,17 +136,12 @@ namespace Metalama.Framework.Analyzers.Immutability
 
             // The cheapest possible test first: this action runs on every argument of every project that references
             // Metalama, and all but a few are passed by value.
-            if ( argument.Parameter is not { RefKind: RefKind.Ref or RefKind.Out } parameter )
+            if ( argument.Parameter is not { RefKind: RefKind.Out } )
             {
                 return;
             }
 
-            Report(
-                context,
-                immutabilityContext,
-                argument.Value,
-                MemberIsPassedByReference,
-                parameter.RefKind == RefKind.Out ? "out" : "ref" );
+            Report( context, immutabilityContext, argument.Value, MemberIsPassedByReference, null );
         }
 
         private static void Report(
@@ -206,8 +246,8 @@ namespace Metalama.Framework.Analyzers.Immutability
         /// </summary>
         /// <remarks>
         /// Private write access confines every assignment to the declaring type, and therefore to this compilation,
-        /// including from a nested type and from another part of a partial declaration. Anything wider — internal,
-        /// protected, public — can be written by code the analyzer never sees, so for those the declaration rules
+        /// including from a nested type and from another part of a partial declaration. Anything wider (internal,
+        /// protected, public) can be written by code the analyzer never sees, so for those the declaration rules
         /// still demand <c>readonly</c> or <c>init</c>.
         /// </remarks>
         private static bool CanVerifyWrites( ISymbol declaredMember )

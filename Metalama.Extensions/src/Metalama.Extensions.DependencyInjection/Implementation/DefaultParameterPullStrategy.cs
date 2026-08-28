@@ -127,7 +127,7 @@ public class DefaultParameterPullStrategy : IParameterPullStrategy
         var parameterName = CleanParameterName( this.DependencyName );
 
         // Deduplicate against source-defined parameters only. Aspect-introduced parameters
-        // with the same name should not be avoided — IntroduceParameter will detect them and
+        // with the same name should not be avoided - IntroduceParameter will detect them and
         // replace their type if the new type is more specific (e.g. ILogger<Derived> replacing
         // ILogger<Base>). If we dedup here, IntroduceParameter never sees the name match and
         // creates a duplicate.
