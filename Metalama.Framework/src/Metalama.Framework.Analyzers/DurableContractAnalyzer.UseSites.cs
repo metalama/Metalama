@@ -6,7 +6,6 @@ using Metalama.Framework.Analyzers;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Operations;
-using System.Linq;
 
 namespace Metalama.Framework.Analyzers.Durability
 {
