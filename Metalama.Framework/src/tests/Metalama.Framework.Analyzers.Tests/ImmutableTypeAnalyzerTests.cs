@@ -24,7 +24,7 @@ public sealed class ImmutableTypeAnalyzerTests : ImmutableAnalyzerTestBase
     public async Task PublicWriteableField_IsReported()
     {
         var message = await AssertSingleDiagnosticAsync(
-            _prologue + "[ImmutableObject(true)] class C { public int Count; }",
+            _prologue + "[ImmutableType] class C { public int Count; }",
             "LAMA0880" );
 
         Assert.Contains( "must be written in an immutable style", message, StringComparison.Ordinal );
@@ -34,25 +34,25 @@ public sealed class ImmutableTypeAnalyzerTests : ImmutableAnalyzerTestBase
 
     [Fact]
     public async Task PrivateWriteableFieldThatIsNeverWritten_IsNotReported()
-        => await AssertNoDiagnosticAsync( _prologue + "[ImmutableObject(true)] class C { private int _count; }" );
+        => await AssertNoDiagnosticAsync( _prologue + "[ImmutableType] class C { private int _count; }" );
 
     [Fact]
     public async Task ReadOnlyField_IsNotReported()
-        => await AssertNoDiagnosticAsync( _prologue + "[ImmutableObject(true)] class C { private readonly int _count; }" );
+        => await AssertNoDiagnosticAsync( _prologue + "[ImmutableType] class C { private readonly int _count; }" );
 
     [Fact]
     public async Task StaticField_IsNotReported()
-        => await AssertNoDiagnosticAsync( _prologue + "[ImmutableObject(true)] class C { private static int _count; }" );
+        => await AssertNoDiagnosticAsync( _prologue + "[ImmutableType] class C { private static int _count; }" );
 
     [Fact]
     public async Task ConstField_IsNotReported()
-        => await AssertNoDiagnosticAsync( _prologue + "[ImmutableObject(true)] class C { private const int Count = 1; }" );
+        => await AssertNoDiagnosticAsync( _prologue + "[ImmutableType] class C { private const int Count = 1; }" );
 
     [Fact]
     public async Task AutomaticPropertyWithSetter_IsReported()
     {
         var message = await AssertSingleDiagnosticAsync(
-            _prologue + "[ImmutableObject(true)] class C { public int Count { get; set; } }",
+            _prologue + "[ImmutableType] class C { public int Count { get; set; } }",
             "LAMA0881" );
 
         Assert.Contains( "must be written in an immutable style", message, StringComparison.Ordinal );
@@ -62,11 +62,11 @@ public sealed class ImmutableTypeAnalyzerTests : ImmutableAnalyzerTestBase
 
     [Fact]
     public async Task AutomaticPropertyWithInit_IsNotReported()
-        => await AssertNoDiagnosticAsync( _prologue + "[ImmutableObject(true)] class C { public int Count { get; init; } }" );
+        => await AssertNoDiagnosticAsync( _prologue + "[ImmutableType] class C { public int Count { get; init; } }" );
 
     [Fact]
     public async Task GetOnlyProperty_IsNotReported()
-        => await AssertNoDiagnosticAsync( _prologue + "[ImmutableObject(true)] class C { public int Count { get; } }" );
+        => await AssertNoDiagnosticAsync( _prologue + "[ImmutableType] class C { public int Count { get; } }" );
 
     /// <remarks>
     /// The diagnostic must land on the property that the author wrote, not on the compiler-generated backing field,
@@ -75,7 +75,7 @@ public sealed class ImmutableTypeAnalyzerTests : ImmutableAnalyzerTestBase
     [Fact]
     public async Task PropertyDiagnostic_IsReportedOnTheProperty()
     {
-        var code = _prologue + "[ImmutableObject(true)] class C { public int Count { get; set; } }";
+        var code = _prologue + "[ImmutableType] class C { public int Count { get; set; } }";
         var diagnostics = await GetDiagnosticsAsync( code );
 
         var span = Assert.Single( diagnostics ).Location.SourceSpan;
@@ -98,7 +98,7 @@ public sealed class ImmutableTypeAnalyzerTests : ImmutableAnalyzerTestBase
     [InlineData( "System.Collections.Concurrent.ConcurrentDictionary<string, int>" )]
     public async Task MutableMemberType_IsReported( string type )
         => await AssertSingleDiagnosticAsync(
-            _prologue + $"[ImmutableObject(true)] class C {{ private readonly {type} _value = null!; }}",
+            _prologue + $"[ImmutableType] class C {{ private readonly {type} _value = null!; }}",
             "LAMA0882" );
 
     [Theory]
@@ -122,12 +122,12 @@ public sealed class ImmutableTypeAnalyzerTests : ImmutableAnalyzerTestBase
     [InlineData( "decimal" )]
     public async Task ImmutableMemberType_IsNotReported( string type )
         => await AssertNoDiagnosticAsync(
-            _prologue + $"[ImmutableObject(true)] class C {{ private readonly {type} _value = default!; }}" );
+            _prologue + $"[ImmutableType] class C {{ private readonly {type} _value = default!; }}" );
 
     [Fact]
     public async Task EnumMemberType_IsNotReported()
         => await AssertNoDiagnosticAsync(
-            _prologue + "enum E { A } [ImmutableObject(true)] class C { private readonly E _value; }" );
+            _prologue + "enum E { A } [ImmutableType] class C { private readonly E _value; }" );
 
     /// <remarks>
     /// The point of requiring deep rather than shallow immutability: the collection itself cannot change, but every
@@ -137,7 +137,7 @@ public sealed class ImmutableTypeAnalyzerTests : ImmutableAnalyzerTestBase
     public async Task ImmutableCollectionOfMutableElement_IsReported()
     {
         var message = await AssertSingleDiagnosticAsync(
-            _prologue + "[ImmutableObject(true)] class C { private readonly ImmutableArray<System.Text.StringBuilder> _v; }",
+            _prologue + "[ImmutableType] class C { private readonly ImmutableArray<System.Text.StringBuilder> _v; }",
             "LAMA0882" );
 
         Assert.Contains( "StringBuilder", message, StringComparison.Ordinal );
@@ -147,23 +147,23 @@ public sealed class ImmutableTypeAnalyzerTests : ImmutableAnalyzerTestBase
     public async Task UnmarkedClassMemberType_IsReported()
     {
         var message = await AssertSingleDiagnosticAsync(
-            _prologue + "class Other { public int X; } [ImmutableObject(true)] class C { private readonly Other _v = null!; }",
+            _prologue + "class Other { public int X; } [ImmutableType] class C { private readonly Other _v = null!; }",
             "LAMA0882" );
 
-        Assert.Contains( "not marked [ImmutableObject(true)]", message, StringComparison.Ordinal );
+        Assert.Contains( "not marked [ImmutableType]", message, StringComparison.Ordinal );
     }
 
     [Fact]
     public async Task MarkedClassMemberType_IsNotReported()
         => await AssertNoDiagnosticAsync(
             _prologue
-            + "[ImmutableObject(true)] class Other { public readonly int X; } "
-            + "[ImmutableObject(true)] class C { private readonly Other _v = null!; }" );
+            + "[ImmutableType] class Other { public readonly int X; } "
+            + "[ImmutableType] class C { private readonly Other _v = null!; }" );
 
     [Fact]
     public async Task TupleOfMutableElement_IsReported()
         => await AssertSingleDiagnosticAsync(
-            _prologue + "[ImmutableObject(true)] class C { private readonly (string Name, List<int> Items) _v; }",
+            _prologue + "[ImmutableType] class C { private readonly (string Name, List<int> Items) _v; }",
             "LAMA0882" );
 
     // ------------------------------------------------------------------------------------------------------------
@@ -173,12 +173,12 @@ public sealed class ImmutableTypeAnalyzerTests : ImmutableAnalyzerTestBase
     [Fact]
     public async Task MutableBaseType_IsReported()
         => await AssertSingleDiagnosticAsync(
-            _prologue + "class Base { public int X; } [ImmutableObject(true)] class C : Base { }",
+            _prologue + "class Base { public int X; } [ImmutableType] class C : Base { }",
             "LAMA0883" );
 
     [Fact]
     public async Task AttributeBaseType_IsNotReported()
-        => await AssertNoDiagnosticAsync( _prologue + "[ImmutableObject(true)] class C : Attribute { }" );
+        => await AssertNoDiagnosticAsync( _prologue + "[ImmutableType] class C : Attribute { }" );
 
     [Theory]
     [InlineData( "IEnumerable<int>" )]
@@ -186,7 +186,7 @@ public sealed class ImmutableTypeAnalyzerTests : ImmutableAnalyzerTestBase
     public async Task UnannotatedInterfaceMemberType_IsReported( string type )
     {
         var message = await AssertSingleDiagnosticAsync(
-            _prologue + $"[ImmutableObject(true)] class C {{ private readonly {type} _v = null!; }}",
+            _prologue + $"[ImmutableType] class C {{ private readonly {type} _v = null!; }}",
             "LAMA0884" );
 
         Assert.Contains( "every implementation to be immutable", message, StringComparison.Ordinal );
@@ -196,8 +196,8 @@ public sealed class ImmutableTypeAnalyzerTests : ImmutableAnalyzerTestBase
     public async Task MarkedInterfaceMemberType_IsNotReported()
         => await AssertNoDiagnosticAsync(
             _prologue
-            + "[ImmutableObject(true)] interface IThing { } "
-            + "[ImmutableObject(true)] class C { private readonly IThing _v = null!; }" );
+            + "[ImmutableType] interface IThing { } "
+            + "[ImmutableType] class C { private readonly IThing _v = null!; }" );
 
     /// <remarks>
     /// The obligation an interface exports is verified on the implementation, which is what makes marking an
@@ -206,7 +206,7 @@ public sealed class ImmutableTypeAnalyzerTests : ImmutableAnalyzerTestBase
     [Fact]
     public async Task ImplementationOfMarkedInterface_IsVerified()
         => await AssertSingleDiagnosticAsync(
-            _prologue + "[ImmutableObject(true)] interface IThing { } class Impl : IThing { public int X; }",
+            _prologue + "[ImmutableType] interface IThing { } class Impl : IThing { public int X; }",
             "LAMA0880" );
 
     // ------------------------------------------------------------------------------------------------------------
@@ -216,14 +216,14 @@ public sealed class ImmutableTypeAnalyzerTests : ImmutableAnalyzerTestBase
     [Fact]
     public async Task GenericDefinition_IsCleanAtItsDeclaration()
         => await AssertNoDiagnosticAsync(
-            _prologue + "[ImmutableObject(true)] class Box<T> { private readonly T _value = default!; }" );
+            _prologue + "[ImmutableType] class Box<T> { private readonly T _value = default!; }" );
 
     [Fact]
     public async Task GenericConstructedWithMutableArgument_IsReported()
         => await AssertSingleDiagnosticAsync(
             _prologue
-            + "[ImmutableObject(true)] class Box<T> { private readonly T _value = default!; } "
-            + "[ImmutableObject(true)] class C { private readonly Box<System.Text.StringBuilder> _v = null!; }",
+            + "[ImmutableType] class Box<T> { private readonly T _value = default!; } "
+            + "[ImmutableType] class C { private readonly Box<System.Text.StringBuilder> _v = null!; }",
             "LAMA0882" );
 
     /// <remarks>
@@ -234,8 +234,8 @@ public sealed class ImmutableTypeAnalyzerTests : ImmutableAnalyzerTestBase
     public async Task GenericWithPhantomArgument_IsNotReported()
         => await AssertNoDiagnosticAsync(
             _prologue
-            + "[ImmutableObject(true)] class Tag<T> { private readonly string _id = \"\"; } "
-            + "[ImmutableObject(true)] class C { private readonly Tag<System.Text.StringBuilder> _v = null!; }" );
+            + "[ImmutableType] class Tag<T> { private readonly string _id = \"\"; } "
+            + "[ImmutableType] class C { private readonly Tag<System.Text.StringBuilder> _v = null!; }" );
 
     // ------------------------------------------------------------------------------------------------------------
     // The waiver, the gate, and broken code.
@@ -246,8 +246,8 @@ public sealed class ImmutableTypeAnalyzerTests : ImmutableAnalyzerTestBase
     {
         var diagnostics = await GetDiagnosticsAsync(
             _prologue
-            + "[ImmutableObject(true)] interface IThing { } "
-            + "[ImmutableObject(false)] class Impl : IThing { private int _x; private List<int> _y = null!; }" );
+            + "[ImmutableType] interface IThing { } "
+            + "[ImmutableType(false)] class Impl : IThing { private int _x; private List<int> _y = null!; }" );
 
         var diagnostic = Assert.Single( diagnostics );
 
@@ -259,15 +259,15 @@ public sealed class ImmutableTypeAnalyzerTests : ImmutableAnalyzerTestBase
     /// </remarks>
     [Fact]
     public async Task WaiverOnAnUnboundType_IsNotReported()
-        => await AssertNoDiagnosticAsync( _prologue + "[ImmutableObject(false)] class C { private int _x; }" );
+        => await AssertNoDiagnosticAsync( _prologue + "[ImmutableType(false)] class C { private int _x; }" );
 
     [Fact]
     public async Task WaivingTypeUsedAsAMemberType_IsReported()
     {
         var message = await AssertSingleDiagnosticAsync(
             _prologue
-            + "[ImmutableObject(false)] class Other { public int X; } "
-            + "[ImmutableObject(true)] class C { private readonly Other _v = null!; }",
+            + "[ImmutableType(false)] class Other { public int X; } "
+            + "[ImmutableType] class C { private readonly Other _v = null!; }",
             "LAMA0882" );
 
         Assert.Contains( "waives the contract", message, StringComparison.Ordinal );
@@ -279,13 +279,13 @@ public sealed class ImmutableTypeAnalyzerTests : ImmutableAnalyzerTestBase
     [Fact]
     public async Task WithoutMetalamaReference_NothingIsReported()
         => await AssertNoDiagnosticAsync(
-            _prologue + "[ImmutableObject(true)] class C { private int _count; }",
+            _prologue + "[ImmutableType] class C { private int _count; }",
             withMetalamaReference: false );
 
     [Fact]
     public async Task CodeThatDoesNotCompile_IsNotReported()
         => await AssertNoDiagnosticAsync(
-            _prologue + "[ImmutableObject(true)] class C { private readonly NoSuchType _v; }" );
+            _prologue + "[ImmutableType] class C { private readonly NoSuchType _v; }" );
 
     [Fact]
     public async Task TypeWithoutTheAttribute_IsNotReported()
@@ -298,12 +298,12 @@ public sealed class ImmutableTypeAnalyzerTests : ImmutableAnalyzerTestBase
     [Fact]
     public async Task SelfReferencingType_Terminates()
         => await AssertNoDiagnosticAsync(
-            _prologue + "[ImmutableObject(true)] class Node { private readonly Node? _next; }" );
+            _prologue + "[ImmutableType] class Node { private readonly Node? _next; }" );
 
     [Fact]
     public async Task MutuallyRecursiveTypes_Terminate()
         => await AssertNoDiagnosticAsync(
             _prologue
-            + "[ImmutableObject(true)] class A { private readonly B? _b; } "
-            + "[ImmutableObject(true)] class B { private readonly A? _a; }" );
+            + "[ImmutableType] class A { private readonly B? _b; } "
+            + "[ImmutableType] class B { private readonly A? _a; }" );
 }

@@ -22,9 +22,9 @@ namespace Metalama.Framework.Analyzers
     /// control. <c>IAspect{T}.BuildAspect</c> already says so in its documentation; this analyzer checks it.
     /// </para>
     /// <para>
-    /// The contract is declared with <c>System.ComponentModel.ImmutableObjectAttribute</c> and propagates to every
+    /// The contract is declared with <c>ImmutableTypeAttribute</c> and propagates to every
     /// type that derives from or implements a type carrying it, which is what makes marking <c>IAspect</c> enough to
-    /// check every aspect anyone writes. <c>[ImmutableObject(false)]</c> on a class is the per-class opt-out.
+    /// check every aspect anyone writes. <c>[ImmutableType( false )]</c> on a class is the per-class opt-out.
     /// </para>
     /// </remarks>
     [DiagnosticAnalyzer( LanguageNames.CSharp )]
@@ -93,7 +93,7 @@ namespace Metalama.Framework.Analyzers
         internal static readonly DiagnosticDescriptor InterfaceIsNotImmutable = new(
             "LAMA0884",
             "A member of a type that must be immutable is typed as an interface that is not marked immutable",
-            _because + ", but '{1}' is not marked [ImmutableObject(true)]. Marking it requires every implementation "
+            _because + ", but '{1}' is not marked [ImmutableType]. Marking it requires every implementation "
             + "to be immutable, which this analyzer verifies. Path: {2}.",
             _category,
             DiagnosticSeverity.Warning,
@@ -116,7 +116,7 @@ namespace Metalama.Framework.Analyzers
         internal static readonly DiagnosticDescriptor ContractIsWaived = new(
             "LAMA0886",
             "The immutable-style requirement is waived",
-            "'{0}' waives the immutable-style requirement with [ImmutableObject(false)]",
+            "'{0}' waives the immutable-style requirement with [ImmutableType( false )]",
             _category,
             DiagnosticSeverity.Info,
             true );

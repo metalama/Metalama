@@ -26,14 +26,14 @@ public sealed class ImmutableTemplateExemptionTests : ImmutableAnalyzerTestBase
     [InlineData( "InterfaceMember" )]
     public async Task AdviceProperty_IsExempt( string attribute )
         => await AssertNoDiagnosticAsync(
-            _aspectPrologue + $"[ImmutableObject(true)] class C {{ [{attribute}] public int Value {{ get; set; }} }}" );
+            _aspectPrologue + $"[ImmutableType] class C {{ [{attribute}] public int Value {{ get; set; }} }}" );
 
     [Theory]
     [InlineData( "Template" )]
     [InlineData( "Introduce" )]
     public async Task AdviceField_IsExempt( string attribute )
         => await AssertNoDiagnosticAsync(
-            _aspectPrologue + $"[ImmutableObject(true)] class C {{ [{attribute}] public int _value; }}" );
+            _aspectPrologue + $"[ImmutableType] class C {{ [{attribute}] public int _value; }}" );
 
     /// <remarks>
     /// The exemption is keyed on the interface that every advice attribute implements, so an attribute a user writes
@@ -44,7 +44,7 @@ public sealed class ImmutableTemplateExemptionTests : ImmutableAnalyzerTestBase
         => await AssertNoDiagnosticAsync(
             _aspectPrologue
             + "class MyAdviceAttribute : DeclarativeAdviceAttribute { } "
-            + "[ImmutableObject(true)] class C { [MyAdvice] public int Value { get; set; } }" );
+            + "[ImmutableType] class C { [MyAdvice] public int Value { get; set; } }" );
 
     /// <remarks>
     /// The exemption must not leak from one member to the whole type.
@@ -53,7 +53,7 @@ public sealed class ImmutableTemplateExemptionTests : ImmutableAnalyzerTestBase
     public async Task OrdinaryMemberBesideAnAdviceMember_IsStillReported()
         => await AssertSingleDiagnosticAsync(
             _aspectPrologue
-            + "[ImmutableObject(true)] class C { [Template] public int Injected { get; set; } public int State { get; set; } }",
+            + "[ImmutableType] class C { [Template] public int Injected { get; set; } public int State { get; set; } }",
             "LAMA0881" );
 
     /// <remarks>
@@ -65,21 +65,21 @@ public sealed class ImmutableTemplateExemptionTests : ImmutableAnalyzerTestBase
     public async Task UnattributedOverrideOfAnAdviceMember_IsExempt()
         => await AssertNoDiagnosticAsync(
             _aspectPrologue
-            + "[ImmutableObject(true)] abstract class Base { [Template] public abstract int Value { get; set; } } "
+            + "[ImmutableType] abstract class Base { [Template] public abstract int Value { get; set; } } "
             + "class Derived : Base { public override int Value { get; set; } }" );
 
     [Fact]
     public async Task ImplicitImplementationOfAnAdviceMember_IsExempt()
         => await AssertNoDiagnosticAsync(
             _aspectPrologue
-            + "[ImmutableObject(true)] interface IHasTemplate { [Template] int Value { get; set; } } "
+            + "[ImmutableType] interface IHasTemplate { [Template] int Value { get; set; } } "
             + "class Impl : IHasTemplate { public int Value { get; set; } }" );
 
     [Fact]
     public async Task ExplicitImplementationOfAnAdviceMember_IsExempt()
         => await AssertNoDiagnosticAsync(
             _aspectPrologue
-            + "[ImmutableObject(true)] interface IHasTemplate { [Template] int Value { get; set; } } "
+            + "[ImmutableType] interface IHasTemplate { [Template] int Value { get; set; } } "
             + "class Impl : IHasTemplate { int IHasTemplate.Value { get; set; } }" );
 
     /// <summary>

@@ -6,7 +6,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
 using System.Collections.Immutable;
-using System.ComponentModel;
+using Metalama.Framework.Utilities;
 using System.Runtime.CompilerServices;
 using Xunit;
 
@@ -39,15 +39,15 @@ public sealed class ImmutableAnalyzerSelfRetentionTests
             Path.Combine( Path.GetDirectoryName( typeof(object).Assembly.Location )!, "System.Runtime.dll" ) ),
         MetadataReference.CreateFromFile(
             Path.Combine( Path.GetDirectoryName( typeof(object).Assembly.Location )!, "System.Collections.dll" ) ),
-        MetadataReference.CreateFromFile( typeof(ImmutableObjectAttribute).Assembly.Location ),
+        MetadataReference.CreateFromFile( typeof(ImmutableTypeAttribute).Assembly.Location ),
         MetadataReference.CreateFromFile( typeof(Metalama.Framework.Aspects.IAspect).Assembly.Location )
     ];
 
     private const string _code = """
                                  using System.Collections.Generic;
-                                 using System.ComponentModel;
+                                 using Metalama.Framework.Utilities;
 
-                                 [ImmutableObject(true)]
+                                 [ImmutableType]
                                  class Annotated
                                  {
                                      public int Count;

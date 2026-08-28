@@ -43,18 +43,12 @@ namespace Metalama.Framework.Analyzers
         /// The full metadata name of the marker, matched by name because this project deliberately references only
         /// Roslyn.
         /// </summary>
-        public const string ImmutableObjectAttributeMetadataName = "System.ComponentModel.ImmutableObjectAttribute";
-
-        /// <summary>
-        /// The full metadata name of the type whose presence gates the whole analyzer.
-        /// </summary>
         /// <remarks>
-        /// The sibling contract gates on its own attribute, which makes it free for a project that does not reference
-        /// Metalama. That does not work here: <see cref="ImmutableObjectAttributeMetadataName"/> lives in
-        /// <c>System.ComponentModel.Primitives</c> and resolves in every compilation, so gating on the marker would
-        /// gate on nothing. Gating on the subject of the contract costs the same one failed lookup.
+        /// Deliberately not <c>System.ComponentModel.ImmutableObjectAttribute</c>. That attribute exists to tell a
+        /// designer that an object has no editable sub-properties, it is applied in the wild for that reason, and it
+        /// says nothing about this contract. Matching it would check code whose author never opted in.
         /// </remarks>
-        public const string AspectInterfaceMetadataName = "Metalama.Framework.Aspects.IAspect";
+        public const string ImmutableTypeAttributeMetadataName = "Metalama.Framework.Utilities.ImmutableTypeAttribute";
 
         private readonly ConcurrentDictionary<ITypeSymbol, ImmutabilityVerdict> _verdicts;
         private readonly ConcurrentDictionary<INamedTypeSymbol, bool> _isSubjectToContract;
@@ -77,12 +71,15 @@ namespace Metalama.Framework.Analyzers
         }
 
         /// <summary>
-        /// Creates the context of a compilation, or returns <c>null</c> when the compilation does not know
-        /// <c>IAspect</c>, in which case no action is registered and the analyzer costs one failed symbol lookup.
+        /// Creates the context of a compilation, or returns <c>null</c> when the compilation does not know the
+        /// attribute, or when the project turns the contract off, in which case no action is registered.
         /// </summary>
         public static ImmutabilityContext? TryCreate( Compilation compilation, AnalyzerOptions options )
         {
-            if ( compilation.GetTypeByMetadataName( AspectInterfaceMetadataName ) == null )
+            // The compilation does not know the attribute, so nothing in it can be bound by the contract. This is the
+            // gate that makes the analyzer free for a project that does not reference Metalama, and it is the same
+            // gate the sibling durability contract uses.
+            if ( compilation.GetTypeByMetadataName( ImmutableTypeAttributeMetadataName ) == null )
             {
                 return null;
             }
@@ -128,18 +125,19 @@ namespace Metalama.Framework.Analyzers
         /// <summary>
         /// Reads the <c>bool</c> argument of the marker on a symbol, and indicates whether the marker is present.
         /// </summary>
-        public static bool TryGetImmutableObjectValue( ISymbol symbol, out bool value )
+        public static bool TryGetImmutableTypeValue( ISymbol symbol, out bool value )
         {
             foreach ( var attribute in symbol.GetAttributes() )
             {
                 if ( attribute.AttributeClass is { } attributeClass
-                     && attributeClass.Name == "ImmutableObjectAttribute"
-                     && SymbolFacts.GetFullMetadataName( attributeClass ) == ImmutableObjectAttributeMetadataName )
+                     && attributeClass.Name == "ImmutableTypeAttribute"
+                     && SymbolFacts.GetFullMetadataName( attributeClass ) == ImmutableTypeAttributeMetadataName )
                 {
-                    // The single constructor takes the bool. A call with anything else does not compile, but an
-                    // analyzer must not assume that the code it sees does.
-                    value = attribute.ConstructorArguments.Length == 1
-                            && attribute.ConstructorArguments[0].Value is true;
+                    // The parameter is optional and defaults to true, so [ImmutableType] and [ImmutableType( true )]
+                    // must mean the same thing. An analyzer must not assume that the code it sees compiles, so an
+                    // argument list of any other shape is read as the default rather than trusted.
+                    value = attribute.ConstructorArguments.Length == 0
+                            || attribute.ConstructorArguments[0].Value is not false;
 
                     return true;
                 }
@@ -152,16 +150,16 @@ namespace Metalama.Framework.Analyzers
 
         /// <summary>
         /// Determines whether a type declares that it waives the contract, that is, whether it carries
-        /// <c>[ImmutableObject(false)]</c> directly.
+        /// <c>[ImmutableType( false )]</c> directly.
         /// </summary>
         public static bool HasWaiver( INamedTypeSymbol type )
-            => TryGetImmutableObjectValue( type, out var value ) && !value;
+            => TryGetImmutableTypeValue( type, out var value ) && !value;
 
         /// <summary>
         /// Determines whether a type is bound by the immutability contract.
         /// </summary>
         /// <remarks>
-        /// The nearest declaration wins, so <c>[ImmutableObject(false)]</c> on a class is the per-class opt-out even
+        /// The nearest declaration wins, so <c>[ImmutableType( false )]</c> on a class is the per-class opt-out even
         /// though its base type or an interface it implements requires immutability. That is the natural reading of
         /// the marker's own <c>bool</c> parameter, and unlike a <c>#pragma</c> it is greppable, survives refactoring
         /// and appears in the declaration.
@@ -182,7 +180,7 @@ namespace Metalama.Framework.Analyzers
         private bool ComputeIsSubjectToContract( INamedTypeSymbol type )
         {
             // 1. The declaration on the type itself decides, in both directions.
-            if ( TryGetImmutableObjectValue( type, out var own ) )
+            if ( TryGetImmutableTypeValue( type, out var own ) )
             {
                 return own;
             }
@@ -190,7 +188,7 @@ namespace Metalama.Framework.Analyzers
             // 2. The nearest base type that declares anything decides.
             for ( var baseType = type.BaseType; baseType != null; baseType = baseType.BaseType )
             {
-                if ( TryGetImmutableObjectValue( baseType, out var inherited ) )
+                if ( TryGetImmutableTypeValue( baseType, out var inherited ) )
                 {
                     return inherited;
                 }
@@ -205,7 +203,7 @@ namespace Metalama.Framework.Analyzers
             //    IAspect sufficient to check every aspect that anyone writes.
             foreach ( var interfaceType in type.AllInterfaces )
             {
-                if ( (TryGetImmutableObjectValue( interfaceType, out var fromInterface ) && fromInterface)
+                if ( (TryGetImmutableTypeValue( interfaceType, out var fromInterface ) && fromInterface)
                      || this.IsContractType( interfaceType ) )
                 {
                     return true;
@@ -394,7 +392,7 @@ namespace Metalama.Framework.Analyzers
             {
                 return ImmutabilityVerdict.NotImmutable(
                     SymbolFacts.GetDisplayName( type ),
-                    "the type waives the contract with [ImmutableObject(false)]" );
+                    "the type waives the contract with [ImmutableType( false )]" );
             }
 
             // Rule 13. The declaration is trusted here. It is verified separately, by the rule that walks the members
@@ -455,7 +453,7 @@ namespace Metalama.Framework.Analyzers
                 return ImmutabilityVerdict.ShallowOnly(
                     SymbolFacts.GetDisplayName( type ),
                     "a readonly struct is only shallowly immutable; its fields may reference mutable objects. "
-                    + "Mark it [ImmutableObject(true)] to have that verified" );
+                    + "Mark it [ImmutableType] to have that verified" );
             }
 
             // Rule 17. An interface or an abstract type has no members of its own to examine, so marking it does not
@@ -466,13 +464,13 @@ namespace Metalama.Framework.Analyzers
             {
                 return ImmutabilityVerdict.NotAnnotated(
                     SymbolFacts.GetDisplayName( type ),
-                    "an interface or abstract type that is not marked [ImmutableObject(true)]" );
+                    "an interface or abstract type that is not marked [ImmutableType]" );
             }
 
             // Rule 18. Immutability is opt-in.
             return ImmutabilityVerdict.NotImmutable(
                 SymbolFacts.GetDisplayName( type ),
-                "the type is not marked [ImmutableObject(true)]" );
+                "the type is not marked [ImmutableType]" );
         }
 
         /// <summary>

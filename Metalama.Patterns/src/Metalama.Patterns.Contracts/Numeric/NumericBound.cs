@@ -9,7 +9,6 @@ using Metalama.Framework.Code.SyntaxBuilders;
 using Metalama.Framework.Serialization;
 using Metalama.Framework.Utilities;
 using System.Diagnostics.CodeAnalysis;
-using System.ComponentModel;
 
 namespace Metalama.Patterns.Contracts.Numeric;
 
@@ -20,7 +19,7 @@ namespace Metalama.Patterns.Contracts.Numeric;
 /// <seealso cref="RangeAttribute"/>
 [Durable]
 [RunTimeOrCompileTime]
-[ImmutableObject( true )]
+[ImmutableType]
 public abstract record NumericBound : ICompileTimeSerializable
 {
     /// <summary>

@@ -6,7 +6,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
 using System.Collections.Immutable;
-using System.ComponentModel;
+using Metalama.Framework.Utilities;
 using System.Diagnostics.CodeAnalysis;
 using Xunit;
 
@@ -35,14 +35,14 @@ public sealed class ImmutableMsBuildTypeListTests
             Path.Combine( Path.GetDirectoryName( typeof(object).Assembly.Location )!, "System.Collections.dll" ) ),
         MetadataReference.CreateFromFile(
             Path.Combine( Path.GetDirectoryName( typeof(object).Assembly.Location )!, "System.Text.RegularExpressions.dll" ) ),
-        MetadataReference.CreateFromFile( typeof(ImmutableObjectAttribute).Assembly.Location ),
+        MetadataReference.CreateFromFile( typeof(ImmutableTypeAttribute).Assembly.Location ),
         MetadataReference.CreateFromFile( typeof(Metalama.Framework.Aspects.IAspect).Assembly.Location )
     ];
 
     private const string _code = """
-                                 using System.ComponentModel;
+                                 using Metalama.Framework.Utilities;
 
-                                 [ImmutableObject(true)]
+                                 [ImmutableType]
                                  class A
                                  {
                                      private readonly Opaque? _opaque;
@@ -53,7 +53,7 @@ public sealed class ImmutableMsBuildTypeListTests
                                  // the test does not depend on a type being absent from WellKnownImmutableTypes.
                                  class Opaque { }
 
-                                 [ImmutableObject(true)]
+                                 [ImmutableType]
                                  class Marked { }
                                  """;
 

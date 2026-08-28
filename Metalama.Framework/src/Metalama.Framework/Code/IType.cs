@@ -6,7 +6,7 @@ using Metalama.Framework.Aspects;
 using Metalama.Framework.Code.Comparers;
 using Metalama.Framework.Code.Types;
 using System;
-using System.ComponentModel;
+using Metalama.Framework.Utilities;
 
 namespace Metalama.Framework.Code
 {
@@ -38,7 +38,7 @@ namespace Metalama.Framework.Code
     /// <seealso cref="TypeFactory"/>
     /// <seealso href="@type-system"/>
     [CompileTime]
-    [ImmutableObject( true )]
+    [ImmutableType]
     public interface IType : ICompilationElement, IDisplayable, IEquatable<IType>
     {
         /// <summary>

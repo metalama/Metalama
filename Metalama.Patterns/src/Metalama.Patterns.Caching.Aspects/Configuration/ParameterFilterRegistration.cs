@@ -4,12 +4,11 @@
 
 using Metalama.Framework.Options;
 using Metalama.Framework.Utilities;
-using System.ComponentModel;
 
 namespace Metalama.Patterns.Caching.Aspects.Configuration;
 
 [Durable]
-[ImmutableObject( true )]
+[ImmutableType]
 internal sealed class ParameterFilterRegistration : IIncrementalKeyedCollectionItem<string>
 {
     private readonly string _name;

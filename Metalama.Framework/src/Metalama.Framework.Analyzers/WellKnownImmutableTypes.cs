@@ -179,7 +179,7 @@ namespace Metalama.Framework.Analyzers
             // Metalama types that an aspect routinely stores.
             //
             // SerializableDeclarationId, SerializableTypeId and DocumentKey are deliberately absent: they live in the
-            // contract assembly and should carry [ImmutableObject(true)] at their declaration, where the analyzer
+            // contract assembly and should carry [ImmutableType] at their declaration, where the analyzer
             // verifies the claim instead of taking it on trust.
             // ----------------------------------------------------------------------------------------------------
 

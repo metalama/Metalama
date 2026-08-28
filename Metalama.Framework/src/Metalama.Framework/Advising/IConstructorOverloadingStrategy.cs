@@ -5,7 +5,6 @@
 using Metalama.Framework.Code;
 using Metalama.Framework.Serialization;
 using Metalama.Framework.Utilities;
-using System.ComponentModel;
 
 namespace Metalama.Framework.Advising;
 
@@ -30,7 +29,7 @@ namespace Metalama.Framework.Advising;
 /// <seealso cref="ConstructorOverloadingStrategy"/>
 /// <seealso cref="PullStrategy.IntroduceParameterAndPull"/>
 [Durable]
-[ImmutableObject( true )]
+[ImmutableType]
 public interface IConstructorOverloadingStrategy : ICompileTimeSerializable
 {
     /// <summary>

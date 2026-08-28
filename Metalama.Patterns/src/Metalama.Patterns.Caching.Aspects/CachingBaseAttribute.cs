@@ -7,7 +7,6 @@ using Metalama.Framework.Options;
 using Metalama.Framework.Utilities;
 using Metalama.Patterns.Caching.Aspects.Configuration;
 using Metalama.Patterns.Caching.Implementation;
-using System.ComponentModel;
 
 namespace Metalama.Patterns.Caching.Aspects;
 
@@ -26,7 +25,7 @@ namespace Metalama.Patterns.Caching.Aspects;
 /// <seealso href="@caching-configuration"/>
 [Durable]
 [RunTimeOrCompileTime]
-[ImmutableObject( true )]
+[ImmutableType]
 public abstract class CachingBaseAttribute : Attribute, IHierarchicalOptionsProvider
 {
     private readonly CachingOptions _options = new();

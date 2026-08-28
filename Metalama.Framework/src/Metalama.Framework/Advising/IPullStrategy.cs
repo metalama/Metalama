@@ -6,7 +6,6 @@ using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Serialization;
 using Metalama.Framework.Utilities;
-using System.ComponentModel;
 
 namespace Metalama.Framework.Advising;
 
@@ -38,7 +37,7 @@ namespace Metalama.Framework.Advising;
 /// <seealso cref="AdviserExtensions.IntroduceParameter(IAdviser{IConstructor}, string, IType, Metalama.Framework.Advising.IPullStrategy?, System.Collections.Immutable.ImmutableArray{Metalama.Framework.Code.DeclarationBuilders.AttributeConstruction}, Metalama.Framework.Advising.IConstructorOverloadingStrategy?)"/>
 /// <seealso href="@introducing-constructor-parameters"/>
 [Durable]
-[ImmutableObject( true )]
+[ImmutableType]
 public interface IPullStrategy : ICompileTimeSerializable
 {
     /// <summary>

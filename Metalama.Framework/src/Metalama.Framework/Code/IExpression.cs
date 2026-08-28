@@ -5,7 +5,6 @@
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code.SyntaxBuilders;
 using Metalama.Framework.Utilities;
-using System.ComponentModel;
 
 namespace Metalama.Framework.Code
 {
@@ -43,7 +42,7 @@ namespace Metalama.Framework.Code
     [CompileTime]
     [InternalImplement]
     [Hidden]
-    [ImmutableObject( true )]
+    [ImmutableType]
     public interface IExpression : IHasType
     {
         /// <summary>

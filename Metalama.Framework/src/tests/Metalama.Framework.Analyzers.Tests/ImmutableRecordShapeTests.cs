@@ -15,11 +15,11 @@ public sealed class ImmutableRecordShapeTests : ImmutableAnalyzerTestBase
 {
     [Fact]
     public async Task PositionalRecordClass_IsNotReported()
-        => await AssertNoDiagnosticAsync( _prologue + "[ImmutableObject(true)] record class RC(int X);" );
+        => await AssertNoDiagnosticAsync( _prologue + "[ImmutableType] record class RC(int X);" );
 
     [Fact]
     public async Task ReadOnlyRecordStruct_IsNotReported()
-        => await AssertNoDiagnosticAsync( _prologue + "[ImmutableObject(true)] readonly record struct RRS(int Z);" );
+        => await AssertNoDiagnosticAsync( _prologue + "[ImmutableType] readonly record struct RRS(int Z);" );
 
     /// <remarks>
     /// The trap. A positional <c>record struct</c> generates settable properties, so it violates the contract while
@@ -30,7 +30,7 @@ public sealed class ImmutableRecordShapeTests : ImmutableAnalyzerTestBase
     public async Task PositionalRecordStruct_IsReported()
     {
         var message = await AssertSingleDiagnosticAsync(
-            _prologue + "[ImmutableObject(true)] record struct RS(int Y);",
+            _prologue + "[ImmutableType] record struct RS(int Y);",
             "LAMA0881" );
 
         Assert.Contains( "readonly record struct", message, StringComparison.Ordinal );
@@ -44,7 +44,7 @@ public sealed class ImmutableRecordShapeTests : ImmutableAnalyzerTestBase
     [Fact]
     public async Task PositionalRecordStruct_IsReportedOnTheParameter()
     {
-        var code = _prologue + "[ImmutableObject(true)] record struct RS(int Y);";
+        var code = _prologue + "[ImmutableType] record struct RS(int Y);";
         var diagnostics = await GetDiagnosticsAsync( code );
 
         var span = Assert.Single( diagnostics ).Location.SourceSpan;

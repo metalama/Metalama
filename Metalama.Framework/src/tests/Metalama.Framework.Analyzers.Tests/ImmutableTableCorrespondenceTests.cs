@@ -215,12 +215,12 @@ public sealed class ImmutableTableCorrespondenceTests : ImmutableAnalyzerTestBas
     [Fact]
     public async Task NullableIsInspected_AlthoughPatternsTrustsIt()
     {
-        await AssertNoDiagnosticAsync( _prologue + "[ImmutableObject(true)] class C { private readonly int? _v; }" );
+        await AssertNoDiagnosticAsync( _prologue + "[ImmutableType] class C { private readonly int? _v; }" );
 
         await AssertSingleDiagnosticAsync(
             _prologue
             + "struct S { public List<int> Items; } "
-            + "[ImmutableObject(true)] class C { private readonly S? _v; }",
+            + "[ImmutableType] class C { private readonly S? _v; }",
             "LAMA0882" );
     }
 
@@ -234,7 +234,7 @@ public sealed class ImmutableTableCorrespondenceTests : ImmutableAnalyzerTestBas
     {
         Assert.Contains( "ValueTuple", WellKnownImmutableTypes.NonImmutableSystemValueTypeNames );
 
-        await AssertNoDiagnosticAsync( _prologue + "[ImmutableObject(true)] class C { private readonly (string, int) _v; }" );
+        await AssertNoDiagnosticAsync( _prologue + "[ImmutableType] class C { private readonly (string, int) _v; }" );
     }
 
     /// <remarks>
@@ -245,7 +245,7 @@ public sealed class ImmutableTableCorrespondenceTests : ImmutableAnalyzerTestBas
     public async Task ArraySegmentIsMutable_AlthoughTheBlanketRuleWouldTrustIt()
     {
         var message = await AssertSingleDiagnosticAsync(
-            _prologue + "[ImmutableObject(true)] class C { private readonly ArraySegment<int> _v; }",
+            _prologue + "[ImmutableType] class C { private readonly ArraySegment<int> _v; }",
             "LAMA0882" );
 
         Assert.Contains( "wraps a mutable array", message, StringComparison.Ordinal );
@@ -259,7 +259,7 @@ public sealed class ImmutableTableCorrespondenceTests : ImmutableAnalyzerTestBas
     [Fact]
     public async Task DelegatesAreImmutable_AlthoughTheyAreNotDurable()
         => await AssertNoDiagnosticAsync(
-            _prologue + "[ImmutableObject(true)] class C { private readonly Func<int, int> _f = x => x; }" );
+            _prologue + "[ImmutableType] class C { private readonly Func<int, int> _f = x => x; }" );
 
     private static string Between( string source, string start, string end )
     {

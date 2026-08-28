@@ -6,7 +6,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
 using System.Collections.Immutable;
-using System.ComponentModel;
+using Metalama.Framework.Utilities;
 using Xunit;
 
 namespace Metalama.Framework.Analyzers.Tests;
@@ -44,8 +44,8 @@ public abstract class ImmutableAnalyzerTestBase
             // an unresolved type is an error type, which rule 0 reports as immutable.
             MetadataReference.CreateFromFile( typeof(Uri).Assembly.Location ),
 
-            // For ImmutableObjectAttribute, which is the marker of the contract.
-            MetadataReference.CreateFromFile( typeof(ImmutableObjectAttribute).Assembly.Location ),
+            // For ImmutableTypeAttribute, which is the marker of the contract.
+            MetadataReference.CreateFromFile( typeof(ImmutableTypeAttribute).Assembly.Location ),
 
             MetadataReference.CreateFromFile( typeof(ImmutableArray).Assembly.Location ),
 
@@ -131,7 +131,7 @@ public abstract class ImmutableAnalyzerTestBase
                                              using System;
                                              using System.Collections.Generic;
                                              using System.Collections.Immutable;
-                                             using System.ComponentModel;
+                                             using Metalama.Framework.Utilities;
 
                                              """;
 }

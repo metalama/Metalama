@@ -12,7 +12,7 @@ namespace Metalama.Framework.Analyzers.Tests;
 /// </summary>
 public sealed class ImmutableWriteSiteTests : ImmutableAnalyzerTestBase
 {
-    private const string _wrap = "[ImmutableObject(true)] class C {{ {0} }}";
+    private const string _wrap = "[ImmutableType] class C {{ {0} }}";
 
     private static string Code( string body ) => _prologue + string.Format( _wrap, body );
 
@@ -172,7 +172,7 @@ public sealed class ImmutableWriteSiteTests : ImmutableAnalyzerTestBase
         => await AssertNoDiagnosticAsync(
             _prologue
             + "using Metalama.Framework.Aspects;\n"
-            + "[ImmutableObject(true)] class C { [Introduce] private int _count; public void M() { this._count = 1; } }" );
+            + "[ImmutableType] class C { [Introduce] private int _count; public void M() { this._count = 1; } }" );
 
     /// <remarks>
     /// A property with a body is not state of its own. What it assigns is a field, and that assignment is reported

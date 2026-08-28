@@ -14,7 +14,7 @@ namespace Metalama.Framework.Analyzers
     /// The facts about symbols that both contracts of this assembly need, and that carry no policy of their own.
     /// </summary>
     /// <remarks>
-    /// The <c>Durable</c> and the <c>ImmutableObject</c> contracts answer different questions and disagree on several
+    /// The <c>Durable</c> and the <c>ImmutableType</c> contracts answer different questions and disagree on several
     /// types, so they keep separate classifiers and separate tables. What they share is the plumbing: how a type is
     /// named in a message, how a name is written in a table, how a semicolon-separated build property is read, and
     /// which type parameters of a generic definition are actually stored. That is what lives here.

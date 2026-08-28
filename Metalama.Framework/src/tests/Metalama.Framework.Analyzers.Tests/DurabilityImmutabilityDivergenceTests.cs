@@ -7,7 +7,6 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
 using System.Collections.Immutable;
-using System.ComponentModel;
 using Xunit;
 
 namespace Metalama.Framework.Analyzers.Tests;
@@ -17,7 +16,7 @@ namespace Metalama.Framework.Analyzers.Tests;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <c>Durable</c> asks whether an object may be held across compilations. <c>ImmutableObject</c> asks whether it can
+/// <c>Durable</c> asks whether an object may be held across compilations. <c>ImmutableType</c> asks whether it can
 /// change. Those are different questions, and on four kinds of type they have opposite answers. Two warnings with
 /// opposite verdicts on one field read as a bug unless something says otherwise, so each disagreement is asserted
 /// here and explained in the header of both tables.
@@ -39,7 +38,7 @@ public sealed class DurabilityImmutabilityDivergenceTests
             Path.Combine( Path.GetDirectoryName( typeof(object).Assembly.Location )!, "System.Runtime.dll" ) ),
         MetadataReference.CreateFromFile(
             Path.Combine( Path.GetDirectoryName( typeof(object).Assembly.Location )!, "System.Collections.dll" ) ),
-        MetadataReference.CreateFromFile( typeof(ImmutableObjectAttribute).Assembly.Location ),
+        MetadataReference.CreateFromFile( typeof(ImmutableTypeAttribute).Assembly.Location ),
         MetadataReference.CreateFromFile( typeof(SyntaxNode).Assembly.Location ),
         MetadataReference.CreateFromFile( typeof(DurableAttribute).Assembly.Location )
     ];
@@ -52,12 +51,11 @@ public sealed class DurabilityImmutabilityDivergenceTests
         var code = $$"""
                      using System;
                      using System.Collections.Generic;
-                     using System.ComponentModel;
                      using Metalama.Framework.Utilities;
                      using Microsoft.CodeAnalysis;
 
                      [Durable]
-                     [ImmutableObject(true)]
+                     [ImmutableType]
                      class C
                      {
                          {{memberDeclaration}}

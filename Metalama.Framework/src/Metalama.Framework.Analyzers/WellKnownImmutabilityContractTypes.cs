@@ -13,7 +13,7 @@ namespace Metalama.Framework.Analyzers
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <c>IAspect</c> and <c>Fabric</c> declare <c>[ImmutableObject(true)]</c> themselves and do not appear here.
+    /// <c>IAspect</c> and <c>Fabric</c> declare <c>[ImmutableType]</c> themselves and do not appear here.
     /// Validators do, because they no longer live in this repository: validation was extracted into the
     /// <c>Metalama.Extensions.Validation</c> package of Metalama.Premium, which this assembly neither references nor
     /// can see. Naming them is the same technique the sibling contract uses to match its own attribute without
