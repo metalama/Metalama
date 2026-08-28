@@ -64,7 +64,7 @@ public class DefaultParameterPullStrategy : IParameterPullStrategy
         get;
 
         [UsedImplicitly]
-        private set;
+        private init;
     }
 
     /// <summary>
@@ -75,7 +75,7 @@ public class DefaultParameterPullStrategy : IParameterPullStrategy
         get;
 
         [UsedImplicitly]
-        private set;
+        private init;
     }
 
     /// <inheritdoc />
