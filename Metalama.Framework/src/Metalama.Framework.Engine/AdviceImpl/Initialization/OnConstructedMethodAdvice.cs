@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -8,6 +8,7 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.AdviceImpl.Introduction;
 using Metalama.Framework.Engine.Aspects;
+using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 using Metalama.Framework.Engine.CodeModel.References;
@@ -174,7 +175,7 @@ internal sealed class OnConstructedMethodAdvice : Advice<AddInitializerAdviceRes
                     (IAspectClassImpl) context.AspectClassResolver.GetAspectClass( typeof(AddConstructorEpilogueTransitiveAspect) ),
                     this.AspectLayerInstance.AspectInstance.AspectState,
                     this.AspectLayerInstance.AspectInstance.PredecessorDegree + 1,
-                    targetType.GetPrimarySyntaxTree() ) );
+                    targetType.GetPrimarySyntaxTree()?.GetDocumentKey() ?? default ) );
         }
 
         return new AddInitializerAdviceResult( AdviceOutcome.Success, this.AdviceFactory );

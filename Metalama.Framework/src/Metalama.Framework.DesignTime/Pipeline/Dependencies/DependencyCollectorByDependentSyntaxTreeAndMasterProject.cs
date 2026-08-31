@@ -4,12 +4,14 @@
 
 using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.CodeModel;
+using Metalama.Framework.Utilities;
 
 namespace Metalama.Framework.DesignTime.Pipeline.Dependencies;
 
 /// <summary>
 /// Collects the dependencies of a given dependent syntax tree in a given compilation.
 /// </summary>
+[Durable]
 internal sealed class DependencyCollectorByDependentSyntaxTreeAndMasterProject
 {
     private readonly Dictionary<DocumentKey, ulong> _masterDocumentKeysAndHashes = new();

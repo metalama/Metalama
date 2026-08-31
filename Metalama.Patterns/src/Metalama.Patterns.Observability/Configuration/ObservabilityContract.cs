@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Serialization;
+using Metalama.Framework.Utilities;
 
 namespace Metalama.Patterns.Observability.Configuration;
 
@@ -20,7 +21,9 @@ namespace Metalama.Patterns.Observability.Configuration;
 /// <seealso cref="ConstantAttribute"/>
 /// <seealso cref="ObservabilityTypeOptionsBuilder.ObservabilityContract"/>
 /// <seealso href="@observability"/>
+[Durable]
 [CompileTime]
+[ImmutableType]
 public sealed class ObservabilityContract : ICompileTimeSerializable
 {
     private ObservabilityContract() { }

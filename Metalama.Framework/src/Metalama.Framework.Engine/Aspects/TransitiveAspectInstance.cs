@@ -1,15 +1,20 @@
-﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
+using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Extensibility;
-using Microsoft.CodeAnalysis;
 
 namespace Metalama.Framework.Engine.Aspects;
 
-internal sealed class TransitiveAspectInstance : ITransitivePipelineContributor, IExtensionPipelineContributor, IDesignTimePipelineResultExtension
+/// <remarks>
+/// A contributor, produced by one run of the pipeline and discarded with it, so it is under no durability constraint.
+/// Its design-time form is <see cref="DesignTimeTransitiveAspectInstance"/>, which is a separate object because that
+/// one is stored per file and carried forward across edits.
+/// </remarks>
+internal sealed class TransitiveAspectInstance : ITransitivePipelineContributor, IExtensionPipelineContributor
 {
     internal TransitiveAspectInstance(
         IAspect aspect,
@@ -18,7 +23,7 @@ internal sealed class TransitiveAspectInstance : ITransitivePipelineContributor,
         IAspectClassImpl aspectClass,
         IAspectState? aspectState,
         int predecessorDegree,
-        SyntaxTree? syntaxTree )
+        DocumentKey documentKey )
     {
         this.Aspect = aspect;
         this.TargetDeclaration = targetDeclaration;
@@ -26,7 +31,7 @@ internal sealed class TransitiveAspectInstance : ITransitivePipelineContributor,
         this.TargetDeclarationDepth = targetDeclarationDepth;
         this.PredecessorDegree = predecessorDegree;
         this.AspectState = aspectState;
-        this.SyntaxTree = syntaxTree;
+        this.DocumentKey = documentKey;
     }
 
     public int PredecessorDegree { get; }
@@ -35,11 +40,9 @@ internal sealed class TransitiveAspectInstance : ITransitivePipelineContributor,
     /// Gets the declaration this aspect instance applies to.
     /// </summary>
     /// <remarks>
-    /// Typed as <see cref="IDurableRef{T}"/> rather than <see cref="IRef{T}"/> on purpose. An instance of this class is
-    /// stored in the design-time result of the file declaring its target, and the pipeline carries that result forward
-    /// to every later version of the project, so a compilation-bound reference here would pin the version it was
-    /// produced in for the whole editing session. Declaring the requirement in the type makes it the compiler's
-    /// business rather than the caller's discipline. See issue #1797.
+    /// Durable although this class no longer has to be, because the value is copied into
+    /// <see cref="DesignTimeTransitiveAspectInstance"/>, which does. Converting where the reference is created rather
+    /// than at the boundary keeps the requirement next to the call that has the declaration. See issue #1797.
     /// </remarks>
     public IDurableRef<IDeclaration> TargetDeclaration { get; }
 
@@ -51,12 +54,9 @@ internal sealed class TransitiveAspectInstance : ITransitivePipelineContributor,
 
     public int TargetDeclarationDepth { get; }
 
-    public SyntaxTree? SyntaxTree { get; }
+    public DocumentKey DocumentKey { get; }
 
-    public IDesignTimePipelineResultExtension ToDesignTime() => this;
+    public IDesignTimePipelineResultExtension ToDesignTime() => new DesignTimeTransitiveAspectInstance( this );
 
     public ContributorKind ContributorKind => ContributorKind.TransitiveAspectInstance;
-
-    ITransitiveAspectsManifestExtension IDesignTimePipelineResultExtension.ToTransitiveAspectManifestExtension()
-        => new SerializableTransitiveAspectInstance( this );
 }

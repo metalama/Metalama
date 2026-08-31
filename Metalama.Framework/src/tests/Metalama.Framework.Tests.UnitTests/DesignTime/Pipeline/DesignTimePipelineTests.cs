@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -942,7 +942,7 @@ class D{version}
         Assert.True( pipeline.TryExecute( compilation2, default, out var compilationResult ) );
 
         // Note that LAMA0118 is no longer reported by the pipeline but by the analyzer.
-        Assert.Empty( compilationResult.GetDiagnosticsOnSyntaxTree( DocumentKey.FromPath( "Aspect.cs" ) ) );
+        Assert.Empty( compilationResult.GetDiagnosticsOnSyntaxTree( DocumentKey.FromPath( "Aspect.cs" ), null ) );
 
         Assert.Equal( DesignTimeAspectPipelineStatus.Paused, pipeline.Status );
 
@@ -1720,7 +1720,7 @@ class D{version}
         {
             ["options.cs"] = options,
             ["aspect.cs"] = aspect,
-            ["optionsAttribute.cs"] = "", 
+            ["optionsAttribute.cs"] = "",
             ["target.cs"] = target,
 #if NETFRAMEWORK
             ["isexternalinit.cs"] = "namespace System.Runtime.CompilerServices { internal static class IsExternalInit; }"

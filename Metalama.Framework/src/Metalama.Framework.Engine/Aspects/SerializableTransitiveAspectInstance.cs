@@ -19,6 +19,14 @@ internal sealed class SerializableTransitiveAspectInstance : ICompileTimeSeriali
 
     public IAspectState? AspectState { get; }
 
+    /// <remarks>
+    /// Deliberately <see cref="IRef{T}"/> and not <see cref="IDurableRef{T}"/>, unlike
+    /// <c>TransitiveAspectInstance.TargetDeclaration</c> from which it is copied. This class is the shape that crosses
+    /// the serializer into the transitive manifest, and <c>design-time-memory.md</c> prescribes keeping
+    /// <see cref="IRef{T}"/> as the wire shape, because that is what the serialization framework resolves, and
+    /// converting on the boundary instead. Narrowing it here would make the deserializer, which produces an
+    /// <see cref="IRef{T}"/>, fail to compile against its own output.
+    /// </remarks>
     public IRef<IDeclaration> TargetDeclaration { get; }
 
     public int TargetDeclarationDepth { get; }

@@ -238,7 +238,7 @@ internal sealed class PullConstructorParameterAdviceImpl
                         (IAspectClassImpl) this._context.AspectClassResolver.GetAspectClass( typeof(PullConstructorParameterTransitiveAspect) ),
                         this._aspectLayerInstance.AspectInstance.AspectState,
                         this._aspectLayerInstance.AspectInstance.PredecessorDegree + 1,
-                        baseParameter.GetPrimarySyntaxTree() ) );
+                        baseParameter.GetPrimarySyntaxTree()?.GetDocumentKey() ?? default ) );
             }
         }
 
@@ -315,6 +315,7 @@ internal sealed class PullConstructorParameterAdviceImpl
                         // the base or the caller first.
                         parameterValue =
                             pullParameterAction.Expression.AssertNotNull()
+                                .ToExpression( this.Compilation )
                                 .ToExpressionSyntax(
                                     new SyntaxSerializationContext(
                                         this.Compilation,

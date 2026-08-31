@@ -5,6 +5,7 @@
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.AspectOrdering;
 using Metalama.Framework.Engine.Utilities;
+using Metalama.Framework.Utilities;
 using System;
 using System.Linq;
 
@@ -13,6 +14,7 @@ namespace Metalama.Framework.Engine.Aspects
     /// <summary>
     /// Represents the identity of an aspect layer.
     /// </summary>
+    [Durable]
     internal readonly struct AspectLayerId : IEquatable<AspectLayerId>, IEquatable<AspectLayer>
     {
         private static readonly char[] _separators = [':'];

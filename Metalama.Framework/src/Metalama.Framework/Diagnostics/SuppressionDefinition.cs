@@ -4,6 +4,7 @@
 
 using JetBrains.Annotations;
 using Metalama.Framework.Aspects;
+using Metalama.Framework.Utilities;
 using System;
 
 namespace Metalama.Framework.Diagnostics;
@@ -81,7 +82,7 @@ public sealed class SuppressionDefinition : ISuppression
     /// Use this method to selectively suppress diagnostics based on their message text, arguments, or other properties,
     /// rather than suppressing all diagnostics with the same ID.
     /// </remarks>
-    public ISuppression WithFilter( Func<ISuppressibleDiagnostic, bool> filter ) => new SuppressionImpl( this, filter );
+    public ISuppression WithFilter( [Durable] Func<ISuppressibleDiagnostic, bool> filter ) => new SuppressionImpl( this, filter );
 
     public override string ToString() => $"suppress {this.SuppressedDiagnosticId}";
 }

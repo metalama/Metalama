@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Engine.CodeModel;
+using Metalama.Framework.Utilities;
 
 namespace Metalama.Framework.DesignTime.Pipeline.Dependencies;
 
@@ -10,4 +11,5 @@ namespace Metalama.Framework.DesignTime.Pipeline.Dependencies;
 /// <summary>
 /// Represents a dependency between a master partial type and a dependent syntax tree. Used in tests only.
 /// </summary>
+[Durable]
 internal record struct PartialTypeDependency( TypeDependencyKey MasterType, DocumentKey DependentDocumentKey );

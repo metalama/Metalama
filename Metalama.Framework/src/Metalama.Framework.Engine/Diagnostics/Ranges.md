@@ -18,7 +18,9 @@
 | 0701-0749 | Extensions.DependencyInjection
 | 0750-0799 | Metalama.Framework
 | 0800-0819 | Licensing
-| 0820-0859 | Engine.Analyzers
+| 0820-0869 | Engine.Analyzers
+| 0870-0879 | Framework.Analyzers (the [Durable] contract)
+| 0880-0889 | Framework.Analyzers (the [ImmutableType] contract)
 | 0900-0999 | Extensions.Architecture
 | 5000-5019 | Metalama.Patterns.Contracts
 | 5020-5039 | Metalama.Patterns.Immutability

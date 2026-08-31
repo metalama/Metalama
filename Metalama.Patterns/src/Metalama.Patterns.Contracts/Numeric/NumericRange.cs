@@ -7,6 +7,7 @@ using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.SyntaxBuilders;
 using Metalama.Framework.Serialization;
+using Metalama.Framework.Utilities;
 #if NET8_0_OR_GREATER
 using System.Numerics;
 #endif
@@ -20,8 +21,10 @@ namespace Metalama.Patterns.Contracts.Numeric;
 /// Describes a numeric range. Used by <see cref="RangeAttribute"/>.
 /// </summary>
 /// <seealso cref="RangeAttribute"/>
+[Durable]
 [PublicAPI]
 [RunTimeOrCompileTime]
+[ImmutableType]
 public readonly struct NumericRange : ICompileTimeSerializable
 {
     /// <summary>

@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Utilities;
 using System;
 
 namespace Metalama.Framework.Eligibility.Implementation
@@ -10,10 +11,14 @@ namespace Metalama.Framework.Eligibility.Implementation
         where T : class
     {
         private readonly EligibleScenarios _ineligibility;
+        
+        [Durable]
         private readonly Predicate<T> _predicate;
+        
+        [Durable]
         private readonly Func<IDescribedObject<T>, FormattableString> _getJustification;
 
-        public EligibilityRule( EligibleScenarios ineligibility, Predicate<T> predicate, Func<IDescribedObject<T>, FormattableString> getJustification )
+        public EligibilityRule( EligibleScenarios ineligibility, [Durable] Predicate<T> predicate, [Durable] Func<IDescribedObject<T>, FormattableString> getJustification )
         {
             this._ineligibility = ineligibility;
             this._predicate = predicate;

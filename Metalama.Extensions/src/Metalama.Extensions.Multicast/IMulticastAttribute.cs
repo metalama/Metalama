@@ -32,13 +32,13 @@ public interface IMulticastAttribute : IAspect
     /// <summary>
     /// Gets or sets the kind of elements to which this custom attributes applies.
     /// </summary>
-    MulticastTargets AttributeTargetElements { get; set; }
+    MulticastTargets AttributeTargetElements { get; init; }
 
     /// <summary>
     /// Multicasting to external assemblies is not supported in Metalama.
     /// </summary>
     [Obsolete( ObsoleteMessages.ExternalAssemblies, true )]
-    string? AttributeTargetAssemblies { get; set; }
+    string? AttributeTargetAssemblies { get; init; }
 
     /// <summary>
     /// Gets or sets the expression specifying to which types
@@ -63,19 +63,19 @@ public interface IMulticastAttribute : IAspect
     /// </list>
     /// </para>
     /// </remarks>
-    string? AttributeTargetTypes { get; set; }
+    string? AttributeTargetTypes { get; init; }
 
     /// <summary>
     /// Gets or sets the attributes of types to which this attribute applies. Visibility, scope (<see cref="MulticastAttributes.Instance"/> or <see cref="MulticastAttributes.Static"/>)
     ///   and generation are the only categories that are taken into account; attributes of other categories are ignored.
     /// </summary>
-    MulticastAttributes AttributeTargetTypeAttributes { get; set; }
+    MulticastAttributes AttributeTargetTypeAttributes { get; init; }
 
     /// <summary>
     /// Multicasting to external types is not supported in Metalama.
     /// </summary>
     [Obsolete( ObsoleteMessages.ExternalAssemblies, true )]
-    MulticastAttributes AttributeTargetExternalTypeAttributes { get; set; }
+    MulticastAttributes AttributeTargetExternalTypeAttributes { get; init; }
 
     /// <summary>
     /// Gets or sets the expression specifying to which members 
@@ -91,7 +91,7 @@ public interface IMulticastAttribute : IAspect
     /// <para>Ignored if the only <see cref="AttributeTargetElements"/> are only types.
     /// </para>
     /// </remarks>
-    string? AttributeTargetMembers { get; set; }
+    string? AttributeTargetMembers { get; init; }
 
     /// <summary>
     /// Gets or sets the visibilities, scopes, virtualities, and other characteristics 
@@ -111,13 +111,13 @@ public interface IMulticastAttribute : IAspect
     /// to 'enlarge' the set of possible targets.
     /// </para>
     /// </remarks>
-    MulticastAttributes AttributeTargetMemberAttributes { get; set; }
+    MulticastAttributes AttributeTargetMemberAttributes { get; init; }
 
     /// <summary>
     /// Multicasting to external types is not supported in Metalama.
     /// </summary>
     [Obsolete( ObsoleteMessages.ExternalAssemblies, true )]
-    MulticastAttributes AttributeTargetExternalMemberAttributes { get; set; }
+    MulticastAttributes AttributeTargetExternalMemberAttributes { get; init; }
 
     /// <summary>
     /// Gets or sets the expression specifying to which parameters 
@@ -134,7 +134,7 @@ public interface IMulticastAttribute : IAspect
     /// <para>Ignored if the only <see cref="AttributeTargetElements"/> are only types.
     /// </para>
     /// </remarks>
-    string? AttributeTargetParameters { get; set; }
+    string? AttributeTargetParameters { get; init; }
 
     /// <summary>
     /// Gets or sets the passing style (by value, <b>out</b> or <b>ref</b>)
@@ -144,13 +144,13 @@ public interface IMulticastAttribute : IAspect
     /// <para>Ignored if the <see cref="AttributeTargetElements"/> do not include parameters.
     /// </para>
     /// </remarks>
-    MulticastAttributes AttributeTargetParameterAttributes { get; set; }
+    MulticastAttributes AttributeTargetParameterAttributes { get; init; }
 
     /// <summary>
     /// If true, indicates that this attribute <i>removes</i> all other instances of the
     /// same attribute type from the set of elements defined by the current instance.
     /// </summary>
-    bool AttributeExclude { get; set; }
+    bool AttributeExclude { get; init; }
 
     /// <summary>
     /// Gets or sets the priority of the current attribute in case that multiple 
@@ -159,13 +159,13 @@ public interface IMulticastAttribute : IAspect
     /// <remarks>
     /// You should use only 16-bit values in user code. Top 16 bits are reserved for the system.
     /// </remarks>
-    int AttributePriority { get; set; }
+    int AttributePriority { get; init; }
 
     /// <summary>
     /// This property not supported in Metalama. Metalama always behaves as if this property were <c>true</c>.
     /// </summary>
     [Obsolete( ObsoleteMessages.AttributeReplace, true )]
-    bool AttributeReplace { get; set; }
+    bool AttributeReplace { get; init; }
 
     /// <summary>
     /// Determines whether this attribute is inherited.
@@ -185,5 +185,5 @@ public interface IMulticastAttribute : IAspect
     /// </list>
     /// </remarks>
     [Obsolete( ObsoleteMessages.Inheritance, true )]
-    MulticastInheritance AttributeInheritance { get; set; }
+    MulticastInheritance AttributeInheritance { get; init; }
 }

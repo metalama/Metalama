@@ -42,6 +42,7 @@ namespace Metalama.Framework.Code
     [CompileTime]
     [InternalImplement]
     [Hidden]
+    [ImmutableType]
     public interface IExpression : IHasType
     {
         /// <summary>

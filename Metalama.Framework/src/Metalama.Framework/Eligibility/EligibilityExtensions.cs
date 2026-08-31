@@ -9,6 +9,7 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Eligibility.Implementation;
 using Metalama.Framework.Project;
 using Metalama.Framework.Services;
+using Metalama.Framework.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -390,7 +391,7 @@ public static partial class EligibilityExtensions
     /// If the declaration is not X, the Y requirement is ignored.
     /// </para>
     /// </remarks>
-    public static IEligibilityBuilder<T> If<T>( this IEligibilityBuilder<T> eligibilityBuilder, Predicate<T> condition )
+    public static IEligibilityBuilder<T> If<T>( this IEligibilityBuilder<T> eligibilityBuilder, [Durable] Predicate<T> condition )
         where T : class
         => new ConditionalEligibilityBuilder<T>( eligibilityBuilder, condition );
 
@@ -417,8 +418,8 @@ public static partial class EligibilityExtensions
     /// </remarks>
     public static void MustSatisfy<T>(
         this IEligibilityBuilder<T> eligibilityBuilder,
-        Predicate<T> predicate,
-        Func<IDescribedObject<T>, FormattableString> getJustification )
+        [Durable] Predicate<T> predicate,
+        [Durable] Func<IDescribedObject<T>, FormattableString> getJustification )
         where T : class
         => eligibilityBuilder.AddRule( new EligibilityRule<T>( eligibilityBuilder.IneligibleScenarios, predicate, getJustification ) );
 
@@ -827,9 +828,14 @@ public static partial class EligibilityExtensions
         this IEligibilityBuilder<IType> eligibilityBuilder,
         IType type,
         ConversionKind conversionKind = ConversionKind.Default )
-        => eligibilityBuilder.MustSatisfy(
-            t => t.IsConvertibleTo( type, conversionKind ),
-            t => $"{t} must be convertible to '{type}'" );
+    {
+        // Avoid capturing non-durable objects in the closure.
+        var typeRef = type.ToDurableRef();
+
+        eligibilityBuilder.MustSatisfy(
+            t => t.IsConvertibleTo( typeRef.GetTarget( t.Compilation ), conversionKind ),
+            t => $"{t} must be convertible to '{typeRef.GetTarget( t.Object.Compilation )}'" );
+    }
 
     [Obsolete( "This method has been renamed MustBeConvertibleTo or MustEqual." )]
     public static void MustBe<T>( this IEligibilityBuilder<IType> eligibilityBuilder, ConversionKind conversionKind = ConversionKind.Default )

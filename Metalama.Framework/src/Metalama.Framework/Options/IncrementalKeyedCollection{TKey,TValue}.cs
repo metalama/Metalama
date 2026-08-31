@@ -4,6 +4,7 @@
 
 using JetBrains.Annotations;
 using Metalama.Framework.Serialization;
+using Metalama.Framework.Utilities;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -44,6 +45,7 @@ namespace Metalama.Framework.Options;
 /// <seealso cref="IIncrementalKeyedCollectionItem{TKey}"/>
 /// <seealso href="@exposing-options"/>
 [PublicAPI]
+[Durable]
 public partial class IncrementalKeyedCollection<TKey, TValue> : IIncrementalObject, IReadOnlyCollection<TValue>, ICompileTimeSerializable
     where TKey : notnull
     where TValue : class, IIncrementalKeyedCollectionItem<TKey>

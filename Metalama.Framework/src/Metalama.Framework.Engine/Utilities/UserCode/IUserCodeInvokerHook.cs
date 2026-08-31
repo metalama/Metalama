@@ -4,6 +4,7 @@
 
 using JetBrains.Annotations;
 using Metalama.Framework.Services;
+using Metalama.Framework.Utilities;
 using System;
 using System.Threading.Tasks;
 
@@ -12,6 +13,7 @@ namespace Metalama.Framework.Engine.Utilities.UserCode
     /// <summary>
     /// Defines a method <see cref="Invoke{TResult,TPayload}"/> that is invoked when user-written code must be invoked.
     /// </summary>
+    [Durable]
     [PublicAPI] // Implemented by Metalama.Try.
     public interface IUserCodeInvokerHook : IGlobalService
     {

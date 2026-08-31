@@ -1,4 +1,4 @@
-﻿<Project>
+<Project>
     <PropertyGroup>
         <MetalamaCompilerVisiblePropertiesTargetsImported>True</MetalamaCompilerVisiblePropertiesTargetsImported>
     </PropertyGroup>
@@ -46,8 +46,76 @@
         <CompilerVisibleProperty Include="MetalamaCompilationScenario"/>
         <CompilerVisibleProperty Include="MetalamaDiagnoseMemoryLeaks"/>
         <CompilerVisibleProperty Include="MetalamaDurableRefKind"/>
+        <CompilerVisibleProperty Include="MetalamaDurableTypes"/>
+        <CompilerVisibleProperty Include="MetalamaNonDurableTypes"/>
+        <CompilerVisibleProperty Include="MetalamaImmutableTypes"/>
+        <CompilerVisibleProperty Include="MetalamaImmutableContractTypes"/>
+        <CompilerVisibleProperty Include="MetalamaEnforceImmutabilityContract"/>
     </ItemGroup>
 
     <!-- More properties are already exported by Metalama.Compiler and don't need to be exported a second time. -->
+
+    <!--
+        Declares the durability of types that a project does not own, for the [Durable] analyzer. A project writes:
+
+            <ItemGroup>
+                <MetalamaDurableType Include="System.Text.RegularExpressions.Regex" />
+                <MetalamaNonDurableType Include="Contoso.Analysis.SymbolCache" />
+            </ItemGroup>
+
+        Names are full metadata names without an assembly name, so a generic type carries its arity, as in
+        System.Collections.Generic.List`1. The non-durable list wins over the durable one.
+
+        An analyzer can read an MSBuild property but not an MSBuild item, so each list is joined into a property
+        before the compiler-visible options are generated. A verdict that holds in general belongs in the
+        WellKnownDurableTypes table of Metalama.Framework.Analyzers rather than in a project file, so that every
+        project benefits from it and the reasoning is recorded in one place.
+    -->
+    <Target Name="MetalamaComputeDurableTypeLists" BeforeTargets="GenerateMSBuildEditorConfigFileCore">
+        <PropertyGroup>
+            <MetalamaDurableTypes>@(MetalamaDurableType)</MetalamaDurableTypes>
+            <MetalamaNonDurableTypes>@(MetalamaNonDurableType)</MetalamaNonDurableTypes>
+        </PropertyGroup>
+    </Target>
+
+    <!--
+        Declares the immutability of types that a project does not own, for the [ImmutableType] analyzer, which
+        requires aspects, fabrics and validators to be written in an immutable style. A project writes:
+
+            <ItemGroup>
+                <MetalamaImmutableType Include="Contoso.Money" />
+            </ItemGroup>
+
+        The name syntax is the same as for the durable lists above: full metadata names without an assembly name, so
+        a generic type carries its arity.
+
+        There is deliberately no negative list and no per-type waiver. Immutability is opt-in, so a type is already
+        not immutable unless something says otherwise, and where a warning is genuinely unwanted on one declaration
+        the ordinary suppression mechanisms apply. The durable lists need a negative one because durability has
+        built-in verdicts a project may have to override.
+
+        MetalamaImmutableContractType names a base type or an interface whose implementations must be immutable, for
+        the case that Metalama.Extensions.Validation covers: the validator base types live in a package that the
+        analyzer cannot reference, and the analyzer's own table of them may be older than the package installed here.
+
+        A verdict that holds in general belongs in the WellKnownImmutableTypes table of Metalama.Framework.Analyzers
+        rather than in a project file, so that every project benefits from it and the reasoning is recorded in one
+        place.
+
+        Setting MetalamaEnforceImmutabilityContract to false turns the whole contract off for a project. The contract
+        is written for user code: a project that implements the framework itself declares code-model builders and
+        other types whose mutability is deliberate, and verifies them by its own tests instead. The durability
+        contract deliberately has no such switch, because durability is hardest to get right precisely in framework
+        code.
+
+        This is a separate target rather than an extension of the one above, so that nothing that hooks the durable
+        target by name moves.
+    -->
+    <Target Name="MetalamaComputeImmutableTypeLists" BeforeTargets="GenerateMSBuildEditorConfigFileCore">
+        <PropertyGroup>
+            <MetalamaImmutableTypes>@(MetalamaImmutableType)</MetalamaImmutableTypes>
+            <MetalamaImmutableContractTypes>@(MetalamaImmutableContractType)</MetalamaImmutableContractTypes>
+        </PropertyGroup>
+    </Target>
 
 </Project>

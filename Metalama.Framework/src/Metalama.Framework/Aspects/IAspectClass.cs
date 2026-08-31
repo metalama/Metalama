@@ -30,6 +30,7 @@ namespace Metalama.Framework.Aspects
     /// <seealso href="@aspect-design"/>
     [InternalImplement]
     [CompileTime]
+    [Durable]
     public interface IAspectClass
     {
         /// <summary>

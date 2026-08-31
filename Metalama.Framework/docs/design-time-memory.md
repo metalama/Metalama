@@ -122,18 +122,94 @@ When adding a member to a type that is stored in a `SyntaxTreePipelineResult`, t
 convenient to keep" but "does this reach a `Compilation`". Note that a `Microsoft.CodeAnalysis.Diagnostic` does: it
 holds a `Location`, which holds its source tree.
 
-**A type is not a declaration, and `ToDurable()` treats it as one.** `ToDurable()` is backed by a
-`SerializableDeclarationId`, which names a *declaration*, so converting `Base<int>` yields a reference that resolves
-to `Base<T>`: the type arguments are lost, silently, and the result is a usable type rather than an error.
-`ToDurableRef()` behaves identically here, deliberately: it takes the declaration route for everything that is a
-declaration, and a named type is one. Where the value is an `IType`, and above all where it comes from user code and
-its shape is therefore not known, use `DurableRefFactory.FromTypeId( type.GetSerializableTypeId() )` instead.
-`Query.CreateBaseTypeResolver` does, and `RefTests.DurableRefToConstructedGenericTypeLosesTheTypeArguments` records
-the difference.
+**`ToDurable()` preserves the type arguments of a constructed generic type.** It did not always: it was backed by a
+`SerializableDeclarationId`, which names a *declaration* and therefore names the generic definition, so converting
+`Generic<int>` yielded a reference that resolved to `Generic<T>`, silently and with no diagnostic. That was a trap,
+because the result was a usable type rather than an error, and it broke the constructor parameter pull, which
+compares the type of the parameter it introduced against the type it is asked to introduce (issue #1797). A
+constructed generic type is now identified by its `SerializableTypeId` instead, and
+`RefTests.DurableRefToConstructedGenericTypeKeepsTheTypeArguments` holds both routes side by side.
+
+`DurableRefFactory.FromTypeId( type.GetSerializableTypeId() )` is therefore no longer needed to avoid that widening.
+`Query.CreateBaseTypeResolver` still builds one explicitly, for the separate reason given below: that conversion does
+not throw for a type an aspect introduced.
 
 Neither identifier can denote a type an aspect introduced, because resolving one goes through the symbol table. Where
 such a type can reach the conversion, verify it rather than assume it: converting unconditionally replaces a query
 that works with one that throws `SymbolNotFoundException` when it runs, far from the call site.
+
+### Declare durability with `[Durable]`, and let the analyzer check it
+
+The rule above says what a type may hold. `Metalama.Framework.Utilities.DurableAttribute` says that a type, a member
+or a parameter obeys it, and `DurableContractAnalyzer` verifies the claim and reports a warning when it does not
+hold. The attribute and the analyzer ship to customers in the `Metalama.Framework` package, because a fabric and an
+implementation of `IDesignTimePipelineResultExtension` are subject to the same rule as our own code.
+
+| Applied to | Means | Diagnostic |
+|---|---|---|
+| a type | every instance field and auto-property of the type is durable, recursively | `LAMA0870` |
+| a field or auto-property whose declared type is not durable | the check on the declared type is waived, and every assignment to the member must instead have a durable type | `LAMA0871` |
+| a parameter | every argument at every call site is durable, and a lambda argument's captures are analysed | `LAMA0872`, `LAMA0878` |
+
+Durability is **opt-in**: intrinsics are durable, a system collection is durable when its type arguments are, and a
+type that is neither marked nor in the analyzer's tables is not durable. Marking a type therefore propagates the
+obligation to the types of all of its members, which is the point.
+
+**An interface may be marked, and that is how a member typed as an interface is made durable.** The attribute then
+means two things at once, and both are checked: a consumer of the interface may assume that any implementation is
+durable, and every implementation is required to be durable, which the analyzer verifies member by member exactly as
+it does for a marked class. An unmarked interface or abstract type therefore yields `LAMA0876` rather than `LAMA0870`
+only because the remedy differs in kind, not because anything is undecidable: marking a class is verified against its
+own members, whereas marking an interface exports the obligation to its implementations. The one caveat is reach.
+An implementation compiled without this analyzer is not verified, which is the boundary at which
+`MetalamaDiagnoseMemoryLeaks` takes over.
+
+Where the declaration cannot be satisfied directly, prefer in this order:
+
+1. make the member genuinely durable, by typing it `IDurableRef<T>` or by storing a `SerializableDeclarationId`, a
+   `SymbolDictionaryKey.CreatePersistentKey` or a document path;
+2. apply `[Durable]` to the member, when its declared type is an interface or `object` but every assignment is
+   durable;
+3. add the type to `WellKnownDurableTypes` in `Metalama.Framework.Analyzers`, when the verdict holds in general. This
+   is the default destination for a verdict established once;
+4. list it in the `MetalamaDurableType` or `MetalamaNonDurableType` MSBuild item, for a type about which this
+   repository has no general opinion;
+5. use `DurableLazy<T>` rather than `System.Lazy<T>`, which holds its factory delegate and therefore that delegate's
+   closure, and `DurableDangerous<T>` where durability holds at one member but cannot be established;
+6. suppress the warning with a justification naming an issue, where the retention is real, known and not yet
+   fixable. The suppression is then the record, in the same way as `MemoryLeakAssert.RetainedThrough`.
+
+**The tables of the analyzer mirror `UserCodeRetentionPolicy.IsPinning`**, which decides the same question at run time
+for the diagnostic described below, and the two must be kept in correspondence: a user who sees a warning from one and
+nothing from the other on the same object learns only that one of them is wrong. Two divergences are deliberate, and
+both follow from the analyzer seeing a declared type where the walker sees an instance.
+
+- `Diagnostic` and `Location` are not durable for the analyzer and are absent from `IsPinning`. The walker descends
+  into them and reports the syntax tree it actually finds; the analyzer cannot descend into an instance it will never
+  see.
+- Every `ISymbol` is not durable for the analyzer, whereas `IsPinning` reports only the symbols that belong to the
+  source of a compilation. A declared type says nothing about where the value will come from.
+- An `IDurableRef` is durable for the analyzer, whereas `IsPinning` reports one that reaches a compilation. Since
+  [#1811](https://github.com/metalama/Metalama/issues/1811) a durable reference of a batch compilation stores the
+  reference it was created from, deliberately, and the walker runs during a batch compilation. The analyzer reasons
+  about the design-time lifetime, where the serialized representation is selected and the reference reaches nothing,
+  and where typing a member `IDurableRef<T>` is the remedy this document prescribes.
+
+Two limits of the analyzer are worth knowing, because both are invisible until they matter.
+
+**A lambda is analysed only where it is written.** `LAMA0878` runs `AnalyzeDataFlow` on a lambda that appears
+directly at a durable parameter or in an assignment to a durable member, and reports the captured variable rather
+than the lambda, so that the squiggle lands on the thing to remove. A delegate that arrives through a local, a
+factory or another assembly is not visible there, so the declared type is the only evidence and the delegate rule
+applies instead. That gap is what `MetalamaDiagnoseMemoryLeaks` covers at run time.
+
+**The private fields of a referenced assembly are invisible.** A compilation is created with
+`MetadataImportOptions.Public` by default, so Roslyn does not expose them at all. The analyzer therefore verifies the
+members of types declared in the compilation being analysed, and trusts `[Durable]` on a type that comes from
+metadata, which was verified where it was compiled. The one place this changes an answer is the set of type
+parameters a generic type stores: it cannot be computed from metadata, so every parameter of a metadata generic type
+is assumed stored. That is conservative, and the remedy for a metadata type with a genuinely unused parameter is an
+entry in `WellKnownDurableTypes` or in `MetalamaDurableType`.
 
 ### Understand `ConditionalWeakTable` before relying on it
 
@@ -459,6 +535,45 @@ reference of a batch compilation holds its compilation on purpose.
 `ExtensionContributorMemoryLeakTests.BoundDurableContributor_RetainsTheCompilationItWasProducedIn` records that. The
 open item concerns design time, where the serialized representation is used and the retention is real.
 
+### The per-file result holds three Roslyn objects
+
+Measured, by marking `SyntaxTreePipelineResult` and `IntroducedSyntaxTree` `[Durable]`. Each member below carries a
+suppression naming this entry.
+
+- **`IntroducedSyntaxTree.SourceSyntaxTree`.** `DesignTimeAspectPipelineResult.SplitResultsByTree` already converts
+  this tree to a `DocumentKey` in order to file the introduction under the right document, and then stores the
+  introduction with the tree still in it. Every consumer outside the pipeline reads only `.FilePath`. Replacing the
+  member with a `DocumentKey` therefore looks local. This is the same shape as `TransitiveAspectInstance.SyntaxTree`.
+- **`IntroducedSyntaxTree.GeneratedSyntaxTree`.** The introduced code itself, and a tree Metalama produced rather
+  than one belonging to the source compilation, so it cannot simply be dropped. Whether it reaches a source
+  compilation at all has **not** been measured. Measure it before changing anything.
+- **`SyntaxTreePipelineResult.Diagnostics`.** The hazard this document already describes: a `Diagnostic` holds a
+  `Location`, which holds its source tree, and its lazily formatted arguments are held with it. The fix is a durable
+  diagnostic record, that is, an identifier, a severity, a `DocumentKey` with a `TextSpan`, and an eagerly formatted
+  message. Note that `UserCodeRetentionPolicy.IsPinning` deliberately does not classify a `Diagnostic` as pinning,
+  because the run-time walker can descend into one; the analyzer cannot, so it is conservative here, and this warning
+  is expected rather than surprising.
+
+### Should the contract propagate to the user-implementable interfaces?
+
+Reasoned, and phrased as a question because it is a decision about the public contract rather than a defect. Marking
+the design-time result revealed that what remains, once the three Roslyn objects above are set aside, is seven
+interfaces reached from objects the pipeline stores per file: `IAspect`, `IAspectState`, `IAspectClass`,
+`IAspectInstance`, `IHierarchicalOptions`, `IAnnotation` and `ISuppression`.
+
+Marking an interface is a real remedy rather than a workaround: a consumer may then assume that an implementation is
+durable, and every implementation is verified. The question is what that would cost. `IAspectClass`,
+`IAspectInstance` and `IAspectClassImpl` are internal, so marking them is bounded work. `IAspect`, `IAspectState`,
+`IHierarchicalOptions` and `IAnnotation` are implemented by users, so marking them would require every aspect, aspect
+state, options class and annotation to be durable. That is defensible, since those objects really are kept across
+compilations, but it is a visible tightening of what Metalama asks of its users and should be a release decision.
+
+One of the seven is a concrete risk rather than a hypothetical, and is worth measuring first:
+`ISuppression.Filter` is a `Func<ISuppressibleDiagnostic, bool>?`, and `SuppressionDefinition.WithFilter` produces an
+implementation that captures the user's lambda. A `CacheableScopedSuppression` is stored in the per-file result, so a
+filter that captures a declaration pins a compilation for the session. `SuppressionDefinition` itself returns `null`
+and is fine.
+
 ### Two requirements the framework cannot check
 
 Structural, and open by nature. Both are contracts stated in documentation, because what is stored is opaque to the
@@ -470,6 +585,15 @@ code that stores it:
 
 A DEBUG invariant in `DesignTimeAspectPipelineResult.Update`, walking a stored extension for a non-durable `IFullRef`,
 would make the first of these detectable. It has not been written.
+
+Both have since been narrowed, and neither has been closed. `[Durable]` on
+`IDesignTimePipelineResultExtension` makes an implementation *whose source the analyzer sees* checkable, which covers
+this repository and any customer project that compiles against the shipped analyzer, but not an implementation
+compiled without it or one that suppresses the warning. `LAMA0878` analyses what a lambda captures at the sites the
+analyzer can see, which covers a lambda written inline at a durable parameter, but not one that arrives through a
+local, a factory or another assembly. What remains uncovered by both is what
+`MetalamaDiagnoseMemoryLeaks` reports, which is why the static and the runtime diagnostic are complementary rather
+than alternatives.
 
 ## Established as clean
 

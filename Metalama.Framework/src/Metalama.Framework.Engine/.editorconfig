@@ -5,3 +5,19 @@ dotnet_diagnostic.LAMA0830.severity = suggestion
 dotnet_diagnostic.LAMA0831.severity = suggestion
 # LAMA0831: "Avoid WithLeadingTrivia and WithTrailingTrivia calls.
 dotnet_diagnostic.LAMA0832.severity = suggestion
+
+[Introspection/**.cs]
+# The introspection layer does not participate in the [Durable] contract by design. It exists to hold the results of
+# a pipeline run so that a tool can examine them, so it keeps the code model on purpose, and Metalama.Framework.Workspaces
+# and the aspect explorer keep several compilations in memory at once. The rules of the contract, LAMA0870 to LAMA0879,
+# would report that intent as a defect on every member.
+dotnet_diagnostic.LAMA0870.severity = none
+dotnet_diagnostic.LAMA0871.severity = none
+dotnet_diagnostic.LAMA0872.severity = none
+dotnet_diagnostic.LAMA0873.severity = none
+dotnet_diagnostic.LAMA0874.severity = none
+dotnet_diagnostic.LAMA0875.severity = none
+dotnet_diagnostic.LAMA0876.severity = none
+dotnet_diagnostic.LAMA0877.severity = none
+dotnet_diagnostic.LAMA0878.severity = none
+dotnet_diagnostic.LAMA0879.severity = none

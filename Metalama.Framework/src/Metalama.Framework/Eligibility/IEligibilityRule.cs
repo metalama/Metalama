@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
+using Metalama.Framework.Utilities;
 using System;
 
 namespace Metalama.Framework.Eligibility
@@ -25,6 +26,8 @@ namespace Metalama.Framework.Eligibility
     /// <seealso cref="EligibilityExtensions"/>
     /// <seealso cref="IEligibilityBuilder{T}"/>
     /// <seealso href="@eligibility"/>
+    [Durable]
+    [ImmutableType]
     [CompileTime]
     public interface IEligibilityRule<in T>
         where T : class

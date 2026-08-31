@@ -5,6 +5,7 @@
 using JetBrains.Annotations;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Options;
+using Metalama.Framework.Utilities;
 using System;
 
 namespace Metalama.Extensions.DependencyInjection.Implementation;
@@ -12,8 +13,10 @@ namespace Metalama.Extensions.DependencyInjection.Implementation;
 /// <summary>
 /// Represents a registration of a <see cref="IDependencyInjectionFramework"/>.
 /// </summary>
+[Durable]
 [CompileTime]
 [PublicAPI]
+[ImmutableType]
 public sealed class DependencyInjectionFrameworkRegistration : IIncrementalKeyedCollectionItem<Type>
 {
     /// <summary>

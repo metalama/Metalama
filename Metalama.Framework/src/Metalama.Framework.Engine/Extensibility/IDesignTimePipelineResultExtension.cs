@@ -5,6 +5,7 @@
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.ReferenceGraph;
 using Metalama.Framework.Engine.Utilities.Roslyn;
+using Metalama.Framework.Utilities;
 
 namespace Metalama.Framework.Engine.Extensibility;
 
@@ -33,7 +34,14 @@ namespace Metalama.Framework.Engine.Extensibility;
 /// <c>Metalama.Framework/docs/design-time-memory.md</c>, and issue #1799 for what the absence of this requirement
 /// cost.
 /// </para>
+/// <para>
+/// The <see cref="DurableAttribute"/> on this interface makes that requirement checkable: an implementation whose
+/// source the analyzer sees is verified member by member, and reports LAMA0870 or LAMA0876 when it is not durable.
+/// What the analyzer cannot see, such as an implementation compiled without it, remains the subject of
+/// <c>MetalamaDiagnoseMemoryLeaks</c>.
+/// </para>
 /// </remarks>
+[Durable]
 public interface IDesignTimePipelineResultExtension : IContributor
 {
     ITransitiveAspectsManifestExtension ToTransitiveAspectManifestExtension();

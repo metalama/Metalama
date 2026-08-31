@@ -12,6 +12,7 @@ using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Pipeline;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Services;
+using Metalama.Framework.Utilities;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Text;
@@ -30,6 +31,7 @@ namespace Metalama.Framework.Engine.Utilities.UserCode;
 /// Invokes some user code, handles exceptions, switches the <see cref="UserCodeExecutionContext"/>,
 /// and optionally invokes an <see cref="IUserCodeInvokerHook"/> (this hook is used by Try Metalama).
 /// </summary>
+[Durable]
 [PublicAPI]
 public sealed class UserCodeInvoker : IProjectService, IGlobalService
 {

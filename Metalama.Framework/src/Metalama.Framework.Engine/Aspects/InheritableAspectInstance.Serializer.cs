@@ -30,7 +30,9 @@ public sealed partial class InheritableAspectInstance
         public override void DeserializeFields( object obj, IArgumentsReader initializationArguments )
         {
             var instance = (InheritableAspectInstance) obj;
-            instance.TargetDeclaration = initializationArguments.GetValue<IRef<IDeclaration>>( nameof(instance.TargetDeclaration) )!;
+            // The wire shape stays IRef<T>, which is what the serialization framework resolves, and the conversion
+            // happens on this boundary. See "Make persisted references durable" in design-time-memory.md.
+            instance.TargetDeclaration = initializationArguments.GetValue<IRef<IDeclaration>>( nameof(instance.TargetDeclaration) )!.ToDurable();
             instance.Aspect = initializationArguments.GetValue<IAspect>( nameof(instance.Aspect) )!;
             instance.SecondaryInstances = initializationArguments.GetValue<ImmutableArray<IAspectInstance>>( nameof(instance.SecondaryInstances) );
             instance.AspectState = initializationArguments.GetValue<IAspectState>( nameof(instance.AspectState) );

@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -9,6 +9,7 @@ using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.Collections;
+using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Fabrics;
 using Metalama.Framework.Engine.HierarchicalOptions;
@@ -18,6 +19,7 @@ using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Diagnostics;
+using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Framework.Fabrics;
 using Metalama.Framework.Options;
 using Microsoft.CodeAnalysis;
@@ -267,11 +269,11 @@ public sealed partial class DesignTimeAspectPipelineResult
                     // and the stale result of the old file is corrected when that file is next analysed. See issue
                     // #1742.
                     if ( introducedSyntaxTreeBuilder.TryGetValue( introducedTree.Name, out var existingIntroducedTree )
-                         && existingIntroducedTree.SourceSyntaxTree?.FilePath != introducedTree.SourceSyntaxTree?.FilePath )
+                         && existingIntroducedTree.SourceDocumentKey != introducedTree.SourceDocumentKey )
                     {
                         Logger.DesignTime.Trace?.Log(
                             $"CompilationPipelineResult.Update( id = {this._id} ): the introduced syntax tree '{introducedTree.Name}' moves from "
-                            + $"'{existingIntroducedTree.SourceSyntaxTree?.FilePath ?? "(none)"}' to '{introducedTree.SourceSyntaxTree?.FilePath ?? "(none)"}'." );
+                            + $"'{existingIntroducedTree.SourceDocumentKey}' to '{introducedTree.SourceDocumentKey}'." );
                     }
 
                     introducedSyntaxTreeBuilder[introducedTree.Name] = introducedTree;
@@ -432,8 +434,8 @@ public sealed partial class DesignTimeAspectPipelineResult
                 builder = emptySyntaxTreeResult ??= new SyntaxTreePipelineResult.Builder( null );
             }
 
-            builder.Diagnostics ??= ImmutableArray.CreateBuilder<Diagnostic>();
-            builder.Diagnostics.Add( diagnostic );
+            builder.Diagnostics ??= ImmutableArray.CreateBuilder<DurableDiagnostic>();
+            builder.Diagnostics.Add( DurableDiagnostic.Create( diagnostic ) );
         }
 
         // Split suppressions by syntax tree.
@@ -482,13 +484,18 @@ public sealed partial class DesignTimeAspectPipelineResult
         {
             SyntaxTreePipelineResult.Builder? builder;
 
-            if ( introduction.SourceSyntaxTree is { } syntaxTree )
+            if ( !introduction.SourceDocumentKey.IsDefault )
             {
-                var documentKey = syntaxTree.GetDocumentKey();
+                var documentKey = introduction.SourceDocumentKey;
 
                 if ( !resultBuilders.TryGetValue( documentKey, out builder ) )
                 {
-                    // This happens when the source tree is not dirty, so it's not part of the PartialCompilation.
+                    // This happens when the source tree is not dirty, so it's not part of the PartialCompilation. The
+                    // tree is resolved against the compilation the builder will take a semantic model from, rather
+                    // than carried here from the run that produced the introduction, so it cannot be a tree of an
+                    // earlier compilation.
+                    compilation.Compilation.GetIndexedSyntaxTrees().TryGetValue( documentKey, out var syntaxTree );
+
                     builder = resultBuilders[documentKey] = new SyntaxTreePipelineResult.Builder( syntaxTree );
                 }
             }
@@ -498,9 +505,7 @@ public sealed partial class DesignTimeAspectPipelineResult
             }
 
             builder.Introductions ??= ImmutableArray.CreateBuilder<IntroducedSyntaxTree>();
-
-            builder.Introductions.Add(
-                introduction.SourceSyntaxTree == null ? new IntroducedSyntaxTree( introduction.Name, null, introduction.GeneratedSyntaxTree ) : introduction );
+            builder.Introductions.Add( introduction );
         }
 
         var compilationContext = compilation.CompilationContext;
@@ -539,9 +544,9 @@ public sealed partial class DesignTimeAspectPipelineResult
         // Split extensions by syntax tree.
         foreach ( var extension in pipelineResults.Extensions )
         {
-            var syntaxTree = extension.SyntaxTree;
+            var documentKey = extension.DocumentKey;
 
-            if ( syntaxTree == null && !resultBuilders.ContainsKey( default ) )
+            if ( documentKey.IsDefault && !resultBuilders.ContainsKey( default ) )
             {
                 resultBuilders.Add( default, new SyntaxTreePipelineResult.Builder( null ) );
             }
@@ -561,16 +566,15 @@ public sealed partial class DesignTimeAspectPipelineResult
                 extension.Granularity,
                 compilation.CompilationContext ); */
 
-                var documentKey = syntaxTree?.GetDocumentKey() ?? default;
-
                 if ( resultBuilders.TryGetValue( documentKey, out var builder ) )
                 {
                     builder.Extensions ??= ImmutableArray.CreateBuilder<IDesignTimePipelineResultExtension>();
                     builder.Extensions.Add( designTimeExtension );
                 }
-                else if ( syntaxTree != null && compilation.Compilation.ContainsSyntaxTree( syntaxTree ) )
+                else if ( !documentKey.IsDefault && compilation.Compilation.GetIndexedSyntaxTrees().ContainsKey( documentKey ) )
                 {
-                    // The tree belongs to this project but is not dirty, so it is not part of the partial compilation.
+                    // The document belongs to this project but is not dirty, so it is not part of the partial
+                    // compilation.
                     // This is the same situation as for an inheritable aspect instance above: an aspect can export a
                     // contributor onto a declaration it did not itself target, such as the declaring type of a base
                     // constructor. The contributor is skipped rather than filed under that tree, because the tree
@@ -583,7 +587,7 @@ public sealed partial class DesignTimeAspectPipelineResult
                 }
                 else
                 {
-                    // The tree belongs to another compilation, or the contributor reports none and the result keyed by
+                    // The document belongs to another compilation, or the contributor reports none and the result keyed by
                     // the default DocumentKey was not created, which the branch above normally guarantees. The case
                     // that matters is the first: with cross-project validators the syntax tree a reference validator
                     // reports is that of the validated declaration, and a fabric of this project can validate

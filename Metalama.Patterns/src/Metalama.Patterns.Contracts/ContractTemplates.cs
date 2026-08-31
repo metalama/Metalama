@@ -5,6 +5,7 @@
 using JetBrains.Annotations;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Serialization;
+using Metalama.Framework.Utilities;
 using Metalama.Patterns.Contracts.Numeric;
 
 namespace Metalama.Patterns.Contracts;
@@ -15,7 +16,9 @@ namespace Metalama.Patterns.Contracts;
 /// contract options.
 /// </summary>
 /// <seealso href="@configuring-contracts"/>
+[Durable]
 [PublicAPI]
+[ImmutableType]
 public class ContractTemplates : ITemplateProvider, ICompileTimeSerializable
 {
     /// <summary>

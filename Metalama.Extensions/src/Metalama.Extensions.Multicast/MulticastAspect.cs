@@ -50,9 +50,6 @@ public abstract class MulticastAspect : Aspect, IMulticastAttribute, IAspect<ICo
     private readonly MulticastTargets _targets;
     private readonly bool _multicastOnInheritance;
 
-    [NonCompileTimeSerialized]
-    private MulticastImplementation? _implementation;
-
     /// <summary>
     /// Initializes a new instance of the <see cref="MulticastAspect"/> class.
     /// </summary>
@@ -67,54 +64,69 @@ public abstract class MulticastAspect : Aspect, IMulticastAttribute, IAspect<ICo
         this._multicastOnInheritance = multicastOnInheritance;
     }
 
-    protected MulticastImplementation Implementation => this._implementation ??= new MulticastImplementation( this._targets, this._multicastOnInheritance );
+    /// <remarks>
+    /// A cache, not state. Its value is a pure function of the two read-only fields above, so the aspect behaves
+    /// identically whether or not it has been populated, and <see cref="NonCompileTimeSerializedAttribute"/> makes a
+    /// deserialized instance recompute it rather than carry a stale one. The immutable-style rules cannot tell a memo
+    /// from a mutation, so they are suppressed here rather than the cache being removed: LAMA0882 because the cached
+    /// type is not itself declared immutable, and LAMA0887 because the assignment is not in a constructor.
+    /// </remarks>
+#pragma warning disable LAMA0882
+    [NonCompileTimeSerialized]
+    private MulticastImplementation? _implementation;
+#pragma warning restore LAMA0882
+
+    protected MulticastImplementation Implementation
+#pragma warning disable LAMA0887
+        => this._implementation ??= new MulticastImplementation( this._targets, this._multicastOnInheritance );
+#pragma warning restore LAMA0887
 
     /// <inheritdoc />
-    public MulticastTargets AttributeTargetElements { get; set; }
+    public MulticastTargets AttributeTargetElements { get; init; }
 
     /// <inheritdoc />
     [Obsolete]
-    public string? AttributeTargetAssemblies { get; set; }
+    public string? AttributeTargetAssemblies { get; init; }
 
     /// <inheritdoc />
-    public string? AttributeTargetTypes { get; set; }
+    public string? AttributeTargetTypes { get; init; }
 
     /// <inheritdoc />
-    public MulticastAttributes AttributeTargetTypeAttributes { get; set; }
-
-    /// <inheritdoc />
-    [Obsolete( ObsoleteMessages.ExternalAssemblies, ObsoleteMessages.Error )]
-    public MulticastAttributes AttributeTargetExternalTypeAttributes { get; set; }
-
-    /// <inheritdoc />
-    public string? AttributeTargetMembers { get; set; }
-
-    /// <inheritdoc />
-    public MulticastAttributes AttributeTargetMemberAttributes { get; set; }
+    public MulticastAttributes AttributeTargetTypeAttributes { get; init; }
 
     /// <inheritdoc />
     [Obsolete( ObsoleteMessages.ExternalAssemblies, ObsoleteMessages.Error )]
-    public MulticastAttributes AttributeTargetExternalMemberAttributes { get; set; }
+    public MulticastAttributes AttributeTargetExternalTypeAttributes { get; init; }
 
     /// <inheritdoc />
-    public string? AttributeTargetParameters { get; set; }
+    public string? AttributeTargetMembers { get; init; }
 
     /// <inheritdoc />
-    public MulticastAttributes AttributeTargetParameterAttributes { get; set; }
+    public MulticastAttributes AttributeTargetMemberAttributes { get; init; }
 
     /// <inheritdoc />
-    public bool AttributeExclude { get; set; }
+    [Obsolete( ObsoleteMessages.ExternalAssemblies, ObsoleteMessages.Error )]
+    public MulticastAttributes AttributeTargetExternalMemberAttributes { get; init; }
 
     /// <inheritdoc />
-    public int AttributePriority { get; set; }
+    public string? AttributeTargetParameters { get; init; }
+
+    /// <inheritdoc />
+    public MulticastAttributes AttributeTargetParameterAttributes { get; init; }
+
+    /// <inheritdoc />
+    public bool AttributeExclude { get; init; }
+
+    /// <inheritdoc />
+    public int AttributePriority { get; init; }
 
     /// <inheritdoc />
     [Obsolete( ObsoleteMessages.AttributeReplace, ObsoleteMessages.Error )]
-    public bool AttributeReplace { get; set; }
+    public bool AttributeReplace { get; init; }
 
     /// <inheritdoc />
     [Obsolete( ObsoleteMessages.Inheritance, ObsoleteMessages.Error )]
-    public MulticastInheritance AttributeInheritance { get; set; }
+    public MulticastInheritance AttributeInheritance { get; init; }
 
     /// <inheritdoc />
     public virtual void BuildEligibility( IEligibilityBuilder<ICompilation> builder ) { }

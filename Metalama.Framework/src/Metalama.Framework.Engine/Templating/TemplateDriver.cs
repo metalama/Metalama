@@ -18,6 +18,7 @@ using System.Reflection;
 
 namespace Metalama.Framework.Engine.Templating
 {
+    [Durable]
     internal sealed class TemplateDriver
     {
         private readonly UserCodeInvoker _userCodeInvoker;
@@ -100,7 +101,7 @@ namespace Metalama.Framework.Engine.Templating
         {
             // Pre-flight: if the target instance isn't assignable to the method's declaring type, the upcoming
             // MethodBase.Invoke will throw "Object does not match target type" with no diagnostic detail. That
-            // almost always means two physically distinct copies of the same logical assembly are loaded — the
+            // almost always means two physically distinct copies of the same logical assembly are loaded - the
             // declaring type and the runtime type carry the same name but different assembly identity. Surface
             // the assembly identity and location of both sides so the load-context conflict can be diagnosed.
             var declaringType = this._templateMethod.DeclaringType;

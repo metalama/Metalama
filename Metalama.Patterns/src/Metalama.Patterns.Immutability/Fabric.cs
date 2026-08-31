@@ -26,6 +26,8 @@ internal class Fabric : TransitiveProjectFabric
                 typeof(ImmutableDictionary<,>),
                 typeof(ImmutableHashSet<>),
                 typeof(ImmutableList<>),
+                typeof(ImmutableQueue<>),
+                typeof(ImmutableSortedDictionary<,>),
                 typeof(ImmutableSortedSet<>),
                 typeof(ImmutableStack<>) )
             .ConfigureImmutability( classifier );

@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Serialization;
+using Metalama.Framework.Utilities;
 
 namespace Metalama.Framework.Fabrics
 {
@@ -14,7 +15,7 @@ namespace Metalama.Framework.Fabrics
     /// <remarks>
     /// <para>
     /// Fabrics are unique classes that execute at compile time and design time. Unlike aspects, fabrics do not need to be applied
-    /// to any declaration or called from anywhere—they are invoked automatically simply because they exist in your code.
+    /// to any declaration or called from anywhere-they are invoked automatically simply because they exist in your code.
     /// Think of fabrics as compile-time entry points.
     /// </para>
     /// <para>
@@ -38,7 +39,9 @@ namespace Metalama.Framework.Fabrics
     /// <seealso href="@fabrics-adding-aspects"/>
     /// <seealso href="@aspect-configuration"/>
     /// <seealso href="@validation"/>
+    [Durable]
     [CompileTime]
+    [ImmutableType]
     public abstract class Fabric : ICompileTimeSerializable, ITemplateProvider
     {
         private protected Fabric() { }

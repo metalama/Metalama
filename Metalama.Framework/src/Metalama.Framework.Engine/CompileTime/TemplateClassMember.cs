@@ -5,6 +5,7 @@
 using Metalama.Framework.Advising;
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Aspects;
+using Metalama.Framework.Utilities;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -12,6 +13,7 @@ using MethodKind = Microsoft.CodeAnalysis.MethodKind;
 
 namespace Metalama.Framework.Engine.CompileTime
 {
+    [Durable]
     internal sealed record TemplateClassMember(
         string Name,
         string Key,

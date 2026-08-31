@@ -4,6 +4,7 @@
 
 using Metalama.Framework.DesignTime.Rpc;
 using Metalama.Framework.Engine.CodeModel;
+using Metalama.Framework.Utilities;
 using System.Collections.Concurrent;
 
 namespace Metalama.Framework.DesignTime.Pipeline.Dependencies;
@@ -11,6 +12,7 @@ namespace Metalama.Framework.DesignTime.Pipeline.Dependencies;
 /// <summary>
 /// Collects the dependencies of a given dependent syntax tree.
 /// </summary>
+[Durable]
 internal sealed class DependencyCollectorByDependentSyntaxTree
 {
     private readonly ConcurrentDictionary<ProjectKey, DependencyCollectorByDependentSyntaxTreeAndMasterProject> _dependenciesByMasterProject = new();

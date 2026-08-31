@@ -5,6 +5,7 @@
 using Metalama.Framework.Code;
 using Metalama.Framework.Fabrics;
 using Metalama.Framework.Serialization;
+using Metalama.Framework.Utilities;
 
 namespace Metalama.Framework.Options;
 
@@ -63,6 +64,8 @@ namespace Metalama.Framework.Options;
 /// <seealso cref="IIncrementalObject"/>
 /// <seealso href="@exposing-options"/>
 /// <seealso href="@aspect-configuration"/>
+[Durable]
+[ImmutableType]
 public interface IHierarchicalOptions : IIncrementalObject, ICompileTimeSerializable
 {
     /// <summary>

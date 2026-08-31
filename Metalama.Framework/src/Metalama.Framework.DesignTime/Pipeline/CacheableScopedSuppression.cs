@@ -7,6 +7,7 @@ using Metalama.Framework.Diagnostics;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.SerializableIds;
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Utilities;
 using Microsoft.CodeAnalysis;
 
 namespace Metalama.Framework.DesignTime.Pipeline;
@@ -14,8 +15,15 @@ namespace Metalama.Framework.DesignTime.Pipeline;
 /// <summary>
 /// A compilation-independent version of <see cref="ScopedSuppression"/>, which stores the symbol id instead of the <see cref="ISymbol"/> itself.
 /// </summary>
+[Durable]
 internal sealed class CacheableScopedSuppression : IScopedSuppression
 {
+    /// <remarks>
+    /// <see cref="ISuppression"/> is marked <see cref="DurableAttribute"/>, so every implementation is verified. That
+    /// matters here more than for the other interfaces of this surface: <see cref="ISuppression.Filter"/> is a
+    /// delegate, and <c>SuppressionDefinition.WithFilter</c> produces an implementation that captures the user's
+    /// lambda, which a per-file result would then hold for the session.
+    /// </remarks>
     public ISuppression Suppression { get; }
 
     ISymbol? IScopedSuppression.GetScopeSymbolOrNull( CompilationContext compilationContext ) => this.DeclarationId.ResolveToSymbolOrNull( compilationContext );

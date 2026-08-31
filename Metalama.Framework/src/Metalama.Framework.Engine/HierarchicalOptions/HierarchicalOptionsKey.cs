@@ -5,9 +5,11 @@
 using JetBrains.Annotations;
 using Metalama.Framework.Code;
 using Metalama.Framework.Serialization;
+using Metalama.Framework.Utilities;
 
 namespace Metalama.Framework.Engine.HierarchicalOptions;
 
+[Durable]
 public record struct HierarchicalOptionsKey( string OptionType, SerializableDeclarationId DeclarationId, string? SyntaxTreePath = null )
 {
     // It is convenient for the design-time scenario to store the syntax tree path here, but it is not serialized.

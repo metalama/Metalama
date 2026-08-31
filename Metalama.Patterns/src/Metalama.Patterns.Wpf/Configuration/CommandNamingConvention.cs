@@ -63,7 +63,12 @@ public sealed record CommandNamingConvention : ICommandNamingConvention
     /// In this pattern, all occurrences of the substring <c>{CommandName}</c> will be replaced with the command name
     /// determined according to <see cref="CommandNamePattern"/> before the expression is evaluated.
     /// </summary>
+    // An array rather than an ImmutableArray because this is user-facing configuration, set with a collection
+    // expression, and changing the type would break every project that sets it for no gain the user can observe:
+    // the property is init-only and the convention never writes through it.
+#pragma warning disable LAMA0882
     public string[]? CanExecutePatterns { get; init; }
+#pragma warning restore LAMA0882
 
     /// <summary>
     /// Gets or sets a value indicating whether a matching valid unambiguous can-execute method or property must be found for a match to be considered successful.
@@ -99,8 +104,12 @@ public sealed record CommandNamingConvention : ICommandNamingConvention
 
         if ( this.CommandNamePattern != null )
         {
+            // A compiled-pattern cache, not state: its value is a function of the pattern above, so the convention
+            // behaves identically whether or not it has been populated.
+#pragma warning disable LAMA0887
             this._commandNameRegex ??= new Regex( this.CommandNamePattern );
 
+#pragma warning restore LAMA0887
             var m = this._commandNameRegex.Match( executeMethod.Name );
 
             if ( m.Success )

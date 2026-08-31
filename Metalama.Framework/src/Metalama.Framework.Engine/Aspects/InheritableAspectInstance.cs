@@ -1,9 +1,10 @@
-﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
+using Metalama.Framework.Utilities;
 using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Immutable;
@@ -11,11 +12,21 @@ using System.Linq;
 
 namespace Metalama.Framework.Engine.Aspects;
 
+[Durable]
 public sealed partial class InheritableAspectInstance : IAspectInstance, IAspectPredecessorImpl
 {
     private readonly IAspectClass? _aspectClass;
 
-    public IRef<IDeclaration> TargetDeclaration { get; private set; }
+    /// <summary>
+    /// Gets the declaration to which the inherited aspect applies.
+    /// </summary>
+    /// <remarks>
+    /// Typed <see cref="IDurableRef{T}"/> rather than <see cref="IRef{T}"/> so that the requirement is stated in the
+    /// type instead of being left to the caller, as <c>design-time-memory.md</c> prescribes and as
+    /// <c>TransitiveAspectInstance.TargetDeclaration</c> already does. The conversion then cannot be forgotten,
+    /// because the compiler asks for it at every assignment, including the one in the deserializer.
+    /// </remarks>
+    public IDurableRef<IDeclaration> TargetDeclaration { get; private set; }
 
     IRef<IDeclaration> IAspectPredecessor.TargetDeclaration => this.TargetDeclaration;
 
@@ -27,7 +38,9 @@ public sealed partial class InheritableAspectInstance : IAspectInstance, IAspect
 
     public bool IsInheritable => true;
 
+#pragma warning disable LAMA0876 // Assigned to InheritableAspectInstance instances.
     public ImmutableArray<IAspectInstance> SecondaryInstances { get; private set; }
+#pragma warning restore LAMA0876
 
     ImmutableArray<AspectPredecessor> IAspectPredecessor.Predecessors => ImmutableArray<AspectPredecessor>.Empty;
 

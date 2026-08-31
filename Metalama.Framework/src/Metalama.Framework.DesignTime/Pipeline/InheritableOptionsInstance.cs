@@ -4,7 +4,9 @@
 
 using Metalama.Framework.Engine.HierarchicalOptions;
 using Metalama.Framework.Options;
+using Metalama.Framework.Utilities;
 
 namespace Metalama.Framework.DesignTime.Pipeline;
 
+[Durable]
 internal sealed record InheritableOptionsInstance( HierarchicalOptionsKey Key, IHierarchicalOptions Options );

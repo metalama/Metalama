@@ -2,6 +2,8 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Utilities;
+
 namespace Metalama.Framework.Aspects;
 
 /// <summary>
@@ -36,6 +38,7 @@ namespace Metalama.Framework.Aspects;
 /// <seealso cref="IAspectClass.EditorExperienceOptions"/>
 /// <seealso href="@live-template"/>
 /// <seealso href="@building-ide-interactions"/>
+[Durable]
 [CompileTime]
 public sealed record EditorExperienceOptions(
     bool? SuggestAsAddAttribute = null,
