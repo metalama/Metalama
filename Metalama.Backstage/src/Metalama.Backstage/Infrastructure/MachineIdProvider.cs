@@ -24,8 +24,13 @@ namespace Metalama.Backstage.Infrastructure;
 /// </para>
 /// <para>
 /// The other operating systems have no PostSharp implementation to be compatible with, so this class reads the
-/// identifier that the operating system itself considers stable: <c>/etc/machine-id</c> on Linux and
-/// <c>IOPlatformUUID</c> on macOS.
+/// identifier that the operating system itself considers stable: <c>/etc/machine-id</c>, and then
+/// <c>/var/lib/dbus/machine-id</c>, on Linux, and <c>IOPlatformUUID</c> on macOS.
+/// </para>
+/// <para>
+/// When none of these values can be read, the class falls back to <see cref="Environment.MachineName"/>. That name
+/// is stable, but it is not guaranteed to be unique, so a device count that includes such a machine is a lower
+/// bound. A normally installed operating system never reaches this case.
 /// </para>
 /// </remarks>
 internal sealed class MachineIdProvider : IMachineIdProvider
