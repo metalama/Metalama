@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -18,6 +18,7 @@ using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Diagnostics;
+using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Framework.Fabrics;
 using Metalama.Framework.Options;
 using Microsoft.CodeAnalysis;
@@ -267,11 +268,11 @@ public sealed partial class DesignTimeAspectPipelineResult
                     // and the stale result of the old file is corrected when that file is next analysed. See issue
                     // #1742.
                     if ( introducedSyntaxTreeBuilder.TryGetValue( introducedTree.Name, out var existingIntroducedTree )
-                         && existingIntroducedTree.SourceSyntaxTree?.FilePath != introducedTree.SourceSyntaxTree?.FilePath )
+                         && existingIntroducedTree.SourceDocumentKey != introducedTree.SourceDocumentKey )
                     {
                         Logger.DesignTime.Trace?.Log(
                             $"CompilationPipelineResult.Update( id = {this._id} ): the introduced syntax tree '{introducedTree.Name}' moves from "
-                            + $"'{existingIntroducedTree.SourceSyntaxTree?.FilePath ?? "(none)"}' to '{introducedTree.SourceSyntaxTree?.FilePath ?? "(none)"}'." );
+                            + $"'{existingIntroducedTree.SourceDocumentKey}' to '{introducedTree.SourceDocumentKey}'." );
                     }
 
                     introducedSyntaxTreeBuilder[introducedTree.Name] = introducedTree;
@@ -482,13 +483,18 @@ public sealed partial class DesignTimeAspectPipelineResult
         {
             SyntaxTreePipelineResult.Builder? builder;
 
-            if ( introduction.SourceSyntaxTree is { } syntaxTree )
+            if ( !introduction.SourceDocumentKey.IsDefault )
             {
-                var documentKey = syntaxTree.GetDocumentKey();
+                var documentKey = introduction.SourceDocumentKey;
 
                 if ( !resultBuilders.TryGetValue( documentKey, out builder ) )
                 {
-                    // This happens when the source tree is not dirty, so it's not part of the PartialCompilation.
+                    // This happens when the source tree is not dirty, so it's not part of the PartialCompilation. The
+                    // tree is resolved against the compilation the builder will take a semantic model from, rather
+                    // than carried here from the run that produced the introduction, so it cannot be a tree of an
+                    // earlier compilation.
+                    compilation.Compilation.GetIndexedSyntaxTrees().TryGetValue( documentKey, out var syntaxTree );
+
                     builder = resultBuilders[documentKey] = new SyntaxTreePipelineResult.Builder( syntaxTree );
                 }
             }
@@ -498,9 +504,7 @@ public sealed partial class DesignTimeAspectPipelineResult
             }
 
             builder.Introductions ??= ImmutableArray.CreateBuilder<IntroducedSyntaxTree>();
-
-            builder.Introductions.Add(
-                introduction.SourceSyntaxTree == null ? new IntroducedSyntaxTree( introduction.Name, null, introduction.GeneratedSyntaxTree ) : introduction );
+            builder.Introductions.Add( introduction );
         }
 
         var compilationContext = compilation.CompilationContext;
