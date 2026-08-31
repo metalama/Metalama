@@ -26,7 +26,9 @@ public partial class IncrementalHashSet<T>
 
         public override void DeserializeFields( IncrementalHashSet<T> obj, IArgumentsReader initializationArguments )
         {
+#pragma warning disable LAMA0887
             obj._dictionary = initializationArguments.GetValue<ImmutableDictionary<T, bool>>( "items" )!;
+#pragma warning restore LAMA0887
         }
     }
 }

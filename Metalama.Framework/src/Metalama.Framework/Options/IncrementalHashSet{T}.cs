@@ -170,7 +170,9 @@ public partial class IncrementalHashSet<T> : IIncrementalObject, IReadOnlyCollec
     /// <value>
     /// The count of items that are marked as added (not removed) in this incremental hash set layer.
     /// </value>
+#pragma warning disable LAMA0887
     public int Count => this._count ??= this._dictionary.Count( x => x.Value );
+#pragma warning restore LAMA0887
 
     /// <summary>
     /// Gets a value indicating whether this collection layer is empty.

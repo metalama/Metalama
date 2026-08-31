@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Aspects;
+using Metalama.Framework.Utilities;
 
 namespace Metalama.Framework.Options;
 
@@ -34,6 +35,8 @@ namespace Metalama.Framework.Options;
 /// <seealso href="@exposing-options"/>
 /// <seealso href="@configuration-custom-merge"/>
 [CompileTime]
+[Durable]
+[ImmutableType]
 public interface IIncrementalObject
 {
     /// <summary>
