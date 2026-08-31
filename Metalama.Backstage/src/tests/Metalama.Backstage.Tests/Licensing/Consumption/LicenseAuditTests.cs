@@ -10,11 +10,16 @@ using Metalama.Backstage.Serialization;
 using Metalama.Backstage.Telemetry;
 using Metalama.Backstage.Testing;
 using Metalama.Backstage.Tests.Licensing.Licenses;
+using Metalama.Backstage.Utilities;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
@@ -283,5 +288,125 @@ public sealed class LicenseAuditTests : LicenseConsumptionServiceTestsBase
         Assert.True( telemetryConfigurationService.IsActivated );
         Assert.NotEqual( Guid.Empty, telemetryConfigurationService.DeviceId );
         Assert.NotEqual( 0L, telemetryConfigurationService.GetSalt( TelemetrySaltKind.LicenseAudit ) );
+    }
+
+
+    /// <summary>
+    /// Computes the user hash the way the <c>CryptoUtilities.ComputeStringHash64</c> method of PostSharp computes it,
+    /// and formats it the way the license audit report formats a 64-bit hash.
+    /// </summary>
+    /// <remarks>
+    /// This method is an oracle written from the specification given in issue #1873, and is deliberately independent
+    /// of the implementation under test. The steps are: trim the string, convert it to lower case, normalize it,
+    /// encode it as UTF-8, compute the MD5 hash, read the first eight bytes as a little-endian <see cref="long"/>,
+    /// and replace the value zero by the value minus one.
+    /// </remarks>
+    private static string ComputeExpectedPostSharpUserHash( string userName )
+    {
+        var normalized = userName.Trim().ToLowerInvariant().Normalize();
+        var bytes = Encoding.UTF8.GetBytes( normalized );
+
+#pragma warning disable CA5351 // MD5 is required to produce the same values as PostSharp.
+        using var md5 = MD5.Create();
+        var hash = md5.ComputeHash( bytes );
+#pragma warning restore CA5351
+
+        long value = 0;
+
+        for ( var i = 7; i >= 0; i-- )
+        {
+            value = (value << 8) | hash[i];
+        }
+
+        if ( value == 0 )
+        {
+            value = -1;
+        }
+
+        return value.ToString( "x16", CultureInfo.InvariantCulture );
+    }
+
+    /// <summary>
+    /// Returns the value of the given field of a license audit report line.
+    /// </summary>
+    private static string GetReportField( string report, string fieldName )
+    {
+        var match = Regex.Match( report, $@"(?:^|;){Regex.Escape( fieldName )}=(?<value>[^;]*)" );
+        Assert.True( match.Success, $"The report does not contain a field named '{fieldName}'. The report is '{report}'." );
+
+        return match.Groups["value"].Value;
+    }
+
+    /// <summary>
+    /// Verifies that the license audit report identifies the user by the hash that PostSharp computes.
+    /// </summary>
+    /// <remarks>
+    /// The two products must report the same value for the same account name, so that a person who works with both of
+    /// them is counted once instead of twice. See issue #1873.
+    /// </remarks>
+    [Fact]
+    public void LicenseAuditReportsPostSharpCompatibleUserHash()
+    {
+        this.CreateAndConsumeLicense( _auditedLicenseKey );
+
+        var report = Assert.Single( this.GetReports() );
+        this.Logger.WriteLine( report );
+
+        Assert.Equal( ComputeExpectedPostSharpUserHash( Environment.UserName ), GetReportField( report, "User" ) );
+    }
+
+    /// <summary>
+    /// Verifies that the user hash reported in the license audit does not depend on the value of the license audit
+    /// salt.
+    /// </summary>
+    /// <remarks>
+    /// The salt is stored in <c>telemetry.json</c> under the local application data directory, which means once per
+    /// user profile per machine. A salted user hash therefore reports one developer who uses a laptop and a desktop
+    /// as two users, which over-states the usage of the customer. See issue #1873.
+    /// </remarks>
+    [Theory]
+    [InlineData( 0x0123456789ABCDEF )]
+    [InlineData( 0x7EDCBA9876543210 )]
+    public void LicenseAuditUserHashDoesNotDependOnLicenseAuditSalt( long licenseAuditSalt )
+    {
+        this.ConfigurationManager!.Update<TelemetryConfiguration>( c => c with { LicenseAuditSalt = licenseAuditSalt } );
+
+        this.CreateAndConsumeLicense( _auditedLicenseKey );
+
+        var report = Assert.Single( this.GetReports() );
+        this.Logger.WriteLine( report );
+
+        Assert.Equal( ComputeExpectedPostSharpUserHash( Environment.UserName ), GetReportField( report, "User" ) );
+    }
+
+    /// <summary>
+    /// Verifies that the license audit user hash is not the salted hash that the other telemetry channels use.
+    /// </summary>
+    /// <remarks>
+    /// The Matomo channel and the exception reporting channel keep their salted and monthly rotated identifiers, and
+    /// must stay unjoinable to the license audit channel. See issues #1873 and #1668.
+    /// </remarks>
+    [Fact]
+    public void LicenseAuditUserHashIsNotTheSaltedHash()
+    {
+        this.CreateAndConsumeLicense( _auditedLicenseKey );
+
+        var report = Assert.Single( this.GetReports() );
+        this.Logger.WriteLine( report );
+
+        var telemetryConfigurationService = this.ServiceProvider.GetRequiredBackstageService<ITelemetryConfigurationService>();
+
+        foreach ( var saltKind in new[]
+                 {
+                     TelemetrySaltKind.LicenseAudit, TelemetrySaltKind.Matomo, TelemetrySaltKind.UsageTracking,
+                     TelemetrySaltKind.ExceptionReport
+                 } )
+        {
+            var saltedUserHash = HashUtilities
+                .ComputeInt64Hmac( Environment.UserName, telemetryConfigurationService.GetSalt( saltKind ) )
+                .ToString( "x16", CultureInfo.InvariantCulture );
+
+            Assert.NotEqual( saltedUserHash, GetReportField( report, "User" ) );
+        }
     }
 }
