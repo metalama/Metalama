@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -221,4 +221,22 @@ public sealed class ImmutableWriteSiteTests : ImmutableAnalyzerTestBase
         Assert.Equal( "LAMA0887", diagnostic.Id );
         Assert.Contains( "_count", diagnostic.GetMessage(), StringComparison.Ordinal );
     }
+
+    /// <remarks>
+    /// A constructor may hold a second instance of its own type. Writing a member of that one mutates an object whose
+    /// construction is over, which is what the contract forbids, so being inside a constructor is not enough.
+    /// </remarks>
+    [Fact]
+    public async Task WritingAMemberOfAnotherInstanceInAConstructor_IsReported()
+        => await AssertSingleDiagnosticAsync(
+            _prologue + "[ImmutableType] class C { private int _value; public C( C other ) { other._value = 1; } }",
+            "LAMA0887" );
+
+    /// <remarks>
+    /// The control: writing the instance being constructed stays allowed.
+    /// </remarks>
+    [Fact]
+    public async Task WritingAMemberOfTheCurrentInstanceInAConstructor_IsNotReported()
+        => await AssertNoDiagnosticAsync(
+            _prologue + "[ImmutableType] class C { private int _value; public C() { this._value = 1; } }" );
 }

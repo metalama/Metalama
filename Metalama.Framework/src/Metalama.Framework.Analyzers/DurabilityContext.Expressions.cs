@@ -2,7 +2,6 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Framework.Analyzers;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Operations;
 using System.Collections.Generic;
@@ -123,7 +122,10 @@ namespace Metalama.Framework.Analyzers.Durability
             {
                 switch ( value )
                 {
-                    case IConversionOperation conversion:
+                    // Only a conversion the compiler performs. A conversion with an operator method produces an object
+                    // of the target type, which the operand says nothing about: a durable operand can be converted to
+                    // a type that is not durable, and the verdict has to be read from the result.
+                    case IConversionOperation { OperatorMethod: null } conversion:
                         value = conversion.Operand;
 
                         break;

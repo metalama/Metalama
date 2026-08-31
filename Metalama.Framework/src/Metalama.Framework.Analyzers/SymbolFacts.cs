@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -251,18 +251,15 @@ namespace Metalama.Framework.Analyzers
                 // Derived<Compilation> holds a Compilation, and reading only the fields declared here would accept it.
                 for ( var current = definition; current != null; current = current.BaseType?.OriginalDefinition )
                 {
+                    // The base as the definition constructs it, which is what maps a parameter of the base to a
+                    // parameter of the definition. Null when the fields being read are the definition's own.
+                    var constructedBase = FindConstructedBase( definition, current );
+
                     foreach ( var member in current.GetMembers() )
                     {
                         if ( member is IFieldSymbol { IsStatic: false, IsConst: false } field )
                         {
-                            // The field type is written in terms of the base type's own parameters, so it is mapped
-                            // back to the parameters of the definition being asked about before the bits are set.
-                            CollectTypeParameters(
-                                MapToDefinition( field.Type, definition, current ),
-                                definition,
-                                ref result,
-                                0,
-                                maxDepth );
+                            CollectTypeParameters( field.Type, definition, current, constructedBase, ref result, 0, maxDepth );
                         }
                     }
                 }
@@ -272,66 +269,46 @@ namespace Metalama.Framework.Analyzers
         }
 
         /// <summary>
-        /// Substitutes the type arguments that a definition passes to one of its base definitions, so that a field
-        /// declared on the base is read in terms of the parameters of the definition being asked about.
+        /// Returns the base type, as the definition constructs it, that leads from the definition to the one
+        /// declaring a field, or <c>null</c> when the field is declared by the definition itself.
         /// </summary>
         /// <remarks>
-        /// For <c>Derived{T} : Base{T}</c> the field <c>Base{T}._value</c> is typed with the <c>T</c> of
-        /// <c>Base</c>. Walking from <c>Derived</c> up to <c>Base</c> and substituting at each step turns it into the
-        /// <c>T</c> of <c>Derived</c>, which is the parameter whose bit has to be set. When the substitution cannot
-        /// be performed, the field type is returned unchanged and its parameters simply do not match the owner, which
-        /// loses the bit rather than setting a wrong one.
+        /// For <c>Derived{T} : Base{T}</c> a field declared on <c>Base</c> is typed with the <c>T</c> of
+        /// <c>Base</c>, and the bit to set is the one of the <c>T</c> of <c>Derived</c>. The constructed base
+        /// <c>Base{T}</c> carries that correspondence: the argument at the ordinal of the base parameter is the
+        /// derived parameter.
         /// </remarks>
-        private static ITypeSymbol MapToDefinition( ITypeSymbol fieldType, INamedTypeSymbol definition, INamedTypeSymbol declaringDefinition )
+        private static INamedTypeSymbol? FindConstructedBase( INamedTypeSymbol definition, INamedTypeSymbol declaringDefinition )
         {
             if ( SymbolEqualityComparer.Default.Equals( definition, declaringDefinition ) )
             {
-                return fieldType;
+                return null;
             }
 
-            // Find the constructed base that leads from the definition to the declaring one, and read the field type
-            // through its type arguments.
             for ( var baseType = definition.BaseType; baseType != null; baseType = baseType.BaseType )
             {
                 if ( SymbolEqualityComparer.Default.Equals( baseType.OriginalDefinition, declaringDefinition ) )
                 {
-                    return Substitute( fieldType, declaringDefinition, baseType );
+                    return baseType;
                 }
             }
 
-            return fieldType;
+            return null;
         }
 
-        private static ITypeSymbol Substitute( ITypeSymbol type, INamedTypeSymbol definition, INamedTypeSymbol constructed )
-        {
-            if ( type is ITypeParameterSymbol typeParameter
-                 && SymbolEqualityComparer.Default.Equals( typeParameter.ContainingType?.OriginalDefinition, definition )
-                 && typeParameter.Ordinal < constructed.TypeArguments.Length )
-            {
-                return constructed.TypeArguments[typeParameter.Ordinal];
-            }
-
-            if ( type is INamedTypeSymbol { IsGenericType: true } namedType )
-            {
-                var arguments = new ITypeSymbol[namedType.TypeArguments.Length];
-                var changed = false;
-
-                for ( var i = 0; i < arguments.Length; i++ )
-                {
-                    arguments[i] = Substitute( namedType.TypeArguments[i], definition, constructed );
-                    changed |= !SymbolEqualityComparer.Default.Equals( arguments[i], namedType.TypeArguments[i] );
-                }
-
-                if ( changed )
-                {
-                    return namedType.OriginalDefinition.Construct( arguments );
-                }
-            }
-
-            return type;
-        }
-
-        private static void CollectTypeParameters( ITypeSymbol type, INamedTypeSymbol owner, ref ulong result, int depth, int maxDepth )
+        /// <remarks>
+        /// A parameter of the definition being asked about sets its bit. A parameter of the base that declares the
+        /// field is read through <paramref name="constructedBase"/> and followed, which is what makes an inherited
+        /// field count and what makes it count through an array or a nested generic type.
+        /// </remarks>
+        private static void CollectTypeParameters(
+            ITypeSymbol type,
+            INamedTypeSymbol owner,
+            INamedTypeSymbol declaringDefinition,
+            INamedTypeSymbol? constructedBase,
+            ref ulong result,
+            int depth,
+            int maxDepth )
         {
             if ( depth > maxDepth )
             {
@@ -341,21 +318,38 @@ namespace Metalama.Framework.Analyzers
             switch ( type )
             {
                 case ITypeParameterSymbol typeParameter
-                    when typeParameter.Ordinal < StoredTypeParameters.MaxOrdinal
-                         && SymbolEqualityComparer.Default.Equals( typeParameter.ContainingType?.OriginalDefinition, owner ):
-                    result |= 1UL << typeParameter.Ordinal;
+                    when SymbolEqualityComparer.Default.Equals( typeParameter.ContainingType?.OriginalDefinition, owner ):
+                    if ( typeParameter.Ordinal < StoredTypeParameters.MaxOrdinal )
+                    {
+                        result |= 1UL << typeParameter.Ordinal;
+                    }
+
+                    break;
+
+                case ITypeParameterSymbol typeParameter
+                    when constructedBase != null
+                         && SymbolEqualityComparer.Default.Equals( typeParameter.ContainingType?.OriginalDefinition, declaringDefinition )
+                         && typeParameter.Ordinal < constructedBase.TypeArguments.Length:
+                    CollectTypeParameters(
+                        constructedBase.TypeArguments[typeParameter.Ordinal],
+                        owner,
+                        declaringDefinition,
+                        constructedBase,
+                        ref result,
+                        depth + 1,
+                        maxDepth );
 
                     break;
 
                 case IArrayTypeSymbol array:
-                    CollectTypeParameters( array.ElementType, owner, ref result, depth + 1, maxDepth );
+                    CollectTypeParameters( array.ElementType, owner, declaringDefinition, constructedBase, ref result, depth + 1, maxDepth );
 
                     break;
 
                 case INamedTypeSymbol { IsGenericType: true } namedType:
                     foreach ( var argument in namedType.TypeArguments )
                     {
-                        CollectTypeParameters( argument, owner, ref result, depth + 1, maxDepth );
+                        CollectTypeParameters( argument, owner, declaringDefinition, constructedBase, ref result, depth + 1, maxDepth );
                     }
 
                     break;

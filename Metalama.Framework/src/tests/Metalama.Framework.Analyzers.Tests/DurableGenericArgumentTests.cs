@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -94,4 +94,26 @@ public sealed class DurableGenericArgumentTests : DurableAnalyzerTestBase
         => await AssertSingleDiagnosticAsync(
             Code( "[Durable] interface IBox<T> { T Value { get; } } [Durable] class A { private IBox<ISymbol>? _box; }" ),
             "LAMA0870" );
+
+    /// <remarks>
+    /// The field of the base is an array of its own type parameter. Substituting the type failed to descend into the
+    /// array, so the parameter of the derived type was not recorded as stored and Derived&lt;Compilation&gt; was
+    /// accepted.
+    /// </remarks>
+    [Fact]
+    public async Task AnInheritedFieldOfArrayTypeMakesTheParameterStored()
+        => await AssertSingleDiagnosticAsync(
+            Code( "[Durable] class Base<U> { private readonly U[]? _items; } class Derived<T> : Base<T> { } "
+                  + "[Durable] class A { private readonly Derived<SyntaxTree>? _d; }" ),
+            "LAMA0870" );
+
+    /// <remarks>
+    /// The control: the same shape with a durable type argument is accepted, so the test above measures the argument
+    /// and not the array.
+    /// </remarks>
+    [Fact]
+    public async Task AnInheritedFieldOfArrayTypeWithADurableArgument_IsNotReported()
+        => await AssertNoDiagnosticAsync(
+            Code( "[Durable] class Base<U> { private readonly U[]? _items; } class Derived<T> : Base<T> { } "
+                  + "[Durable] class A { private readonly Derived<string>? _d; }" ) );
 }

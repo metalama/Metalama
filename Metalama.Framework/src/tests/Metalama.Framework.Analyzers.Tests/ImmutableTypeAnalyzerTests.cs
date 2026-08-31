@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -275,4 +275,45 @@ public sealed class ImmutableTypeAnalyzerTests : ImmutableAnalyzerTestBase
             _prologue
             + "[ImmutableType] class A { private readonly B? _b; } "
             + "[ImmutableType] class B { private readonly A? _a; }" );
+
+    /// <remarks>
+    /// <para>
+    /// The language allows an attribute argument to be a primitive, a string, a <c>Type</c>, an enumeration,
+    /// <c>object</c>, or a single-dimensional array of those. A collection-valued property of an attribute has to be
+    /// an array, and <c>ImmutableArray</c>, which the message of LAMA0882 names, does not compile there.
+    /// </para>
+    /// <para>
+    /// This is the shape of <c>BaseUsageValidationAttribute</c> in Metalama.Premium, which declares four such
+    /// properties.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public async Task AnArrayPropertyOfAnAttributeClass_IsNotReported()
+        => await AssertNoDiagnosticAsync(
+            _prologue + "[ImmutableType] class MyAttribute : Attribute { public string[] Names { get; init; } = Array.Empty<string>(); }" );
+
+    [Fact]
+    public async Task AnArrayFieldOfAnAttributeClass_IsNotReported()
+        => await AssertNoDiagnosticAsync(
+            _prologue + "[ImmutableType] class MyAttribute : Attribute { private readonly string[] _names = Array.Empty<string>(); }" );
+
+    /// <remarks>
+    /// The waiver is for arrays only. Every other rule still applies to an attribute class, and a mutable collection
+    /// is not a legal attribute argument in the first place, so nothing forces it.
+    /// </remarks>
+    [Fact]
+    public async Task AMutableCollectionOfAnAttributeClass_IsStillReported()
+        => await AssertSingleDiagnosticAsync(
+            _prologue + "[ImmutableType] class MyAttribute : Attribute { private readonly List<string> _names = new(); }",
+            "LAMA0882" );
+
+    /// <remarks>
+    /// The control: the same member on a type that is not an attribute is reported, so the waiver is what silences the
+    /// case above rather than something else.
+    /// </remarks>
+    [Fact]
+    public async Task AnArrayPropertyOfATypeThatIsNotAnAttribute_IsReported()
+        => await AssertSingleDiagnosticAsync(
+            _prologue + "[ImmutableType] class C { public string[] Names { get; init; } = Array.Empty<string>(); }",
+            "LAMA0882" );
 }

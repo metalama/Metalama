@@ -11,7 +11,6 @@ using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Pipeline;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Utilities;
-using Microsoft.CodeAnalysis;
 using System.Collections.Immutable;
 using System.IO.Hashing;
 

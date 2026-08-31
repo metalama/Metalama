@@ -7,8 +7,10 @@ using Metalama.Framework.Engine.Utilities.ObjectGraph;
 using Metalama.Framework.Utilities;
 using Microsoft.CodeAnalysis;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
+using System.Linq;
 
 namespace Metalama.Framework.Engine.Diagnostics;
 
@@ -114,15 +116,18 @@ public readonly struct DurableDiagnostic
 
     private static Diagnostic Detach( Diagnostic diagnostic )
     {
-        if ( diagnostic.Location.SourceTree == null )
+        var additionalLocations = DetachAll( diagnostic.AdditionalLocations );
+
+        if ( diagnostic.Location.SourceTree == null
+             && ReferenceEquals( additionalLocations, diagnostic.AdditionalLocations )
+             && diagnostic.Descriptor.MessageFormat is NonLocalizedString )
         {
-            // The location is already free of a tree, which is the case of a diagnostic that has no location and of
-            // one reported on an external file.
+            // Nothing holds a tree: the location is already free of one, so are the additional locations, and the
+            // arguments are held by a descriptor of Metalama, whose compilation-bound ones are already materialized.
             return diagnostic;
         }
 
-        var lineSpan = diagnostic.Location.GetLineSpan();
-        var detachedLocation = Location.Create( lineSpan.Path, diagnostic.Location.SourceSpan, lineSpan.Span );
+        var detachedLocation = DetachLocation( diagnostic.Location );
 
         if ( diagnostic.Descriptor.MessageFormat is NonLocalizedString )
         {
@@ -132,13 +137,13 @@ public readonly struct DurableDiagnostic
                 diagnostic.Descriptor,
                 detachedLocation,
                 diagnostic.Severity,
-                diagnostic.AdditionalLocations,
+                additionalLocations,
                 diagnostic.Properties );
         }
 
         // A diagnostic of the C# compiler or of another analyzer. Its arguments are held by the diagnostic itself,
         // where no public member exposes them, so the message is formatted now and the arguments are dropped with the
-        // original.
+        // original. This is done whatever the location holds, because an argument reaches a compilation on its own.
         var descriptor = new DiagnosticDescriptor(
             diagnostic.Id,
             new NonLocalizedString( diagnostic.Descriptor.Title.ToString( CultureInfo.InvariantCulture ) ),
@@ -154,8 +159,52 @@ public readonly struct DurableDiagnostic
             descriptor,
             detachedLocation,
             diagnostic.Severity,
-            diagnostic.AdditionalLocations,
+            additionalLocations,
             diagnostic.Properties );
+    }
+
+    /// <summary>
+    /// Returns a location that holds no syntax tree, which for a location in source is an external one over the same
+    /// file, span and line and column span.
+    /// </summary>
+    private static Location DetachLocation( Location location )
+    {
+        if ( location.SourceTree == null )
+        {
+            return location;
+        }
+
+        var lineSpan = location.GetLineSpan();
+
+        return Location.Create( lineSpan.Path, location.SourceSpan, lineSpan.Span );
+    }
+
+    /// <summary>
+    /// Detaches the additional locations of a diagnostic, returning the original list when none of them holds a tree.
+    /// </summary>
+    /// <remarks>
+    /// An additional location points at a second place the diagnostic is about, such as the other declaration of a
+    /// duplicate. It holds its syntax tree exactly as the primary location does, so leaving it alone would keep the
+    /// tree that detaching the primary location removed.
+    /// </remarks>
+    private static IReadOnlyList<Location> DetachAll( IReadOnlyList<Location> locations )
+    {
+        List<Location>? detached = null;
+
+        for ( var i = 0; i < locations.Count; i++ )
+        {
+            if ( locations[i].SourceTree == null )
+            {
+                detached?.Add( locations[i] );
+
+                continue;
+            }
+
+            detached ??= [..locations.Take( i )];
+            detached.Add( DetachLocation( locations[i] ) );
+        }
+
+        return detached ?? locations;
     }
 
     /// <summary>

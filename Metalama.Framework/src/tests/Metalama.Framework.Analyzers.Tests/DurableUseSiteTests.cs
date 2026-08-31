@@ -248,4 +248,16 @@ public sealed class DurableUseSiteTests : DurableAnalyzerTestBase
             "LAMA0872" );
 
     #endregion
+
+    /// <remarks>
+    /// A user-defined conversion produces an object of the target type, about which the operand says nothing. Erasing
+    /// the conversion read the verdict of the operand, so a durable operand hid a result that is not durable.
+    /// </remarks>
+    [Fact]
+    public async Task AUserDefinedConversionFromADurableOperand_IsReportedOnItsResult()
+        => await AssertSingleDiagnosticAsync(
+            Code(
+                "class Wrapper { public SyntaxTree? Tree; public static implicit operator Wrapper( string s ) => new(); } "
+                + "class A { [Durable] private Wrapper? _w; public void M() { this._w = \"x\"; } }" ),
+            "LAMA0871" );
 }

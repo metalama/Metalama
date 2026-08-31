@@ -1,8 +1,7 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Framework.Analyzers;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Operations;
@@ -185,7 +184,8 @@ namespace Metalama.Framework.Analyzers.Immutability
                 return;
             }
 
-            if ( IsInConstructorOrInitAccessor( context.Operation, context.ContainingSymbol, declaringType ) )
+            if ( IsInConstructorOrInitAccessor( context.Operation, context.ContainingSymbol, declaringType )
+                 && IsCurrentInstance( target ) )
             {
                 return;
             }
@@ -214,6 +214,26 @@ namespace Metalama.Framework.Analyzers.Immutability
         /// </remarks>
         private static bool IsInitializerAssignment( IOperation operation )
             => operation.Parent is IObjectOrCollectionInitializerOperation;
+
+        /// <summary>
+        /// Determines whether a member reference reads the instance being constructed rather than another one.
+        /// </summary>
+        /// <remarks>
+        /// A constructor may hold a second instance of its own type, as in <c>C( C other )</c>, and writing a member
+        /// of that one mutates an object whose construction is over. Being inside a constructor is therefore not
+        /// enough: the receiver has to be the current instance. A static member has no receiver and is written only
+        /// where the rules already allow it.
+        /// </remarks>
+        private static bool IsCurrentInstance( IOperation target )
+            => target switch
+            {
+                IFieldReferenceOperation { Instance: { } instance } => IsThis( instance ),
+                IPropertyReferenceOperation { Instance: { } instance } => IsThis( instance ),
+                _ => true
+            };
+
+        private static bool IsThis( IOperation instance )
+            => instance is IInstanceReferenceOperation { ReferenceKind: InstanceReferenceKind.ContainingTypeInstance };
 
         /// <summary>
         /// Determines whether an operation is in a place where writing a member of the type is legitimate, that is,

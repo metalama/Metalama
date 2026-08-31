@@ -1,8 +1,7 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Framework.Analyzers;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 using System.Collections.Generic;
@@ -294,7 +293,7 @@ namespace Metalama.Framework.Analyzers.Immutability
         {
             var verdict = immutabilityContext.GetVerdict( memberType );
 
-            if ( verdict.IsImmutable )
+            if ( verdict.IsImmutable || IsArrayOfAttributeClass( type, memberType ) )
             {
                 return;
             }
@@ -320,6 +319,33 @@ namespace Metalama.Framework.Analyzers.Immutability
                     SymbolFacts.GetDisplayName( type ),
                     SymbolFacts.GetDisplayName( memberType ),
                     chain ) );
+        }
+
+        /// <summary>
+        /// Determines whether a member is an array declared by an attribute class.
+        /// </summary>
+        /// <remarks>
+        /// The language allows an attribute argument to be a primitive, a string, a <c>Type</c>, an enumeration,
+        /// <c>object</c>, or a single-dimensional array of those, and nothing else. A collection-valued property of an
+        /// attribute therefore has to be an array, and <c>ImmutableArray</c>, which the message names, does not
+        /// compile in that position. The author cannot act on the report, so it is not made.
+        /// </remarks>
+        private static bool IsArrayOfAttributeClass( INamedTypeSymbol declaringType, ITypeSymbol memberType )
+        {
+            if ( memberType is not IArrayTypeSymbol )
+            {
+                return false;
+            }
+
+            for ( var baseType = declaringType.BaseType; baseType != null; baseType = baseType.BaseType )
+            {
+                if ( SymbolFacts.GetFullMetadataName( baseType ) == "System.Attribute" )
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>
