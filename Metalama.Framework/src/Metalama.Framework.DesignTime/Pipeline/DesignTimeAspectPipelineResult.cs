@@ -9,6 +9,7 @@ using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.Collections;
+using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Fabrics;
 using Metalama.Framework.Engine.HierarchicalOptions;
@@ -433,8 +434,8 @@ public sealed partial class DesignTimeAspectPipelineResult
                 builder = emptySyntaxTreeResult ??= new SyntaxTreePipelineResult.Builder( null );
             }
 
-            builder.Diagnostics ??= ImmutableArray.CreateBuilder<Diagnostic>();
-            builder.Diagnostics.Add( diagnostic );
+            builder.Diagnostics ??= ImmutableArray.CreateBuilder<DurableDiagnostic>();
+            builder.Diagnostics.Add( DurableDiagnostic.Create( diagnostic ) );
         }
 
         // Split suppressions by syntax tree.

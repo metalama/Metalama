@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -6,6 +6,7 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Collections;
+using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Pipeline;
 using Metalama.Framework.Engine.Utilities;
@@ -30,14 +31,10 @@ namespace Metalama.Framework.DesignTime.Pipeline
         public DocumentKey SyntaxTreePath { get; }
 
         /// <remarks>
-        /// This member reports LAMA0870, deliberately left unsuppressed as a problem to be solved. A
-        /// <see cref="Diagnostic"/> holds a <see cref="Location"/>, which holds its source tree, and its lazily
-        /// formatted arguments are held with it, so this result pins the version of the project it was produced in.
-        /// The repair is a durable diagnostic record: an identifier, a severity, a document key with a text span, and
-        /// an eagerly formatted message. See "The per-file result holds three Roslyn objects" in
-        /// <c>design-time-memory.md</c>.
+        /// The diagnostics hold no syntax tree. Call <see cref="DurableDiagnostic.ToDiagnostic"/> with the tree of the
+        /// document named by <see cref="SyntaxTreePath"/> to report one.
         /// </remarks>
-        public ImmutableArray<Diagnostic> Diagnostics { get; }
+        public ImmutableArray<DurableDiagnostic> Diagnostics { get; }
 
         public ImmutableArray<CacheableScopedSuppression> Suppressions { get; }
 
@@ -68,7 +65,7 @@ namespace Metalama.Framework.DesignTime.Pipeline
 
         private SyntaxTreePipelineResult(
             DocumentKey syntaxTreePath,
-            ImmutableArray<Diagnostic>? diagnostics,
+            ImmutableArray<DurableDiagnostic>? diagnostics,
             ImmutableArray<CacheableScopedSuppression>? suppressions,
             ImmutableArray<IntroducedSyntaxTree>? introductions,
             ImmutableArray<string>? dependencies,
@@ -84,7 +81,7 @@ namespace Metalama.Framework.DesignTime.Pipeline
             this.InheritableOptions = inheritableOptions ?? ImmutableArray<InheritableOptionsInstance>.Empty;
             this.Extensions = extensions ?? ImmutableArray<IDesignTimePipelineResultExtension>.Empty;
             this.InheritableAspects = inheritableAspects ?? ImmutableArray<InheritableAspectInstance>.Empty;
-            this.Diagnostics = diagnostics ?? ImmutableArray<Diagnostic>.Empty;
+            this.Diagnostics = diagnostics ?? ImmutableArray<DurableDiagnostic>.Empty;
             this.Suppressions = suppressions ?? ImmutableArray<CacheableScopedSuppression>.Empty;
             this.Introductions = introductions ?? ImmutableArray<IntroducedSyntaxTree>.Empty;
             this.Dependencies = dependencies ?? ImmutableArray<string>.Empty;

@@ -1,15 +1,17 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Code;
 using Metalama.Framework.Diagnostics;
+using Metalama.Framework.Eligibility;
 using Metalama.Framework.Engine.Collections;
 using Metalama.Framework.Engine.Utilities;
 using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq;
 
 namespace Metalama.Framework.Engine.Diagnostics;
 
@@ -269,12 +271,26 @@ public static class DiagnosticDescriptorExtensions
             // whole is faithful. It is worth doing only when an element requires it.
             Array array => AnyElementIsCompilationBound( array ),
 
+            // The described object of an eligibility justification holds the declaration it describes. It is matched
+            // before IFormattable, which it extends, and through IDescribedObject<object> rather than through a
+            // non-generic base, which the interface does not have; its type parameter is covariant, so every
+            // described object of a declaration matches. Its ToString ignores the format specifier.
+            IDescribedObject<object> => true,
+
+            // A composite format string holds arguments of its own, and one of them may be a declaration. It is
+            // matched before IFormattable, which it implements. Materializing it is faithful whatever specifier it
+            // was given, because FormattableString.ToString ignores the specifier and formats its own arguments.
+            FormattableString formattable => AnyArgumentIsCompilationBound( formattable ),
+
             // Numbers, dates and the like, whose format specifier must reach them. This case is deliberately after
-            // IDisplayable and ISymbol, which the formatter also matches first.
+            // IDisplayable and ISymbol, which the formatter also matches first, and after FormattableString.
             IFormattable => false,
 
             _ => true
         };
+
+    private static bool AnyArgumentIsCompilationBound( FormattableString formattable )
+        => formattable.GetArguments().Any( IsCompilationBound );
 
     /// <summary>
     /// Determines whether any element of <paramref name="array"/> is compilation-bound, without the delegate and the

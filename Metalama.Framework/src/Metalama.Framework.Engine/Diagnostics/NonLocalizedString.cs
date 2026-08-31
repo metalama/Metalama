@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -12,21 +12,30 @@ namespace Metalama.Framework.Engine.Diagnostics
     public sealed class NonLocalizedString : LocalizableString
     {
         private readonly string _message;
-        private readonly object?[] _arguments;
 
         public NonLocalizedString( string message, object?[]? arguments = null )
         {
             this._message = message;
-            this._arguments = arguments ?? [];
+            this.Arguments = arguments ?? [];
         }
+
+        /// <summary>
+        /// Gets the arguments that the message is formatted with, so that a caller can verify what they hold.
+        /// </summary>
+        /// <remarks>
+        /// A diagnostic formats its message lazily, so these arguments live as long as the diagnostic. The
+        /// design-time pipeline keeps a diagnostic for far longer than the run that reported it, which is why
+        /// <see cref="DurableDiagnostic"/> asserts in a debug build that they reach no compilation.
+        /// </remarks>
+        internal object?[] Arguments { get; }
 
         protected override string GetText( IFormatProvider? formatProvider )
         {
             try
             {
-                return this._arguments.Length == 0
+                return this.Arguments.Length == 0
                     ? this._message
-                    : string.Format( MetalamaStringFormatter.Instance, this._message, this._arguments );
+                    : string.Format( MetalamaStringFormatter.Instance, this._message, this.Arguments );
             }
             catch ( FormatException e )
             {
@@ -39,7 +48,7 @@ namespace Metalama.Framework.Engine.Diagnostics
             var hashCode = default(HashCode);
             hashCode.Add( this._message );
 
-            foreach ( var arg in this._arguments )
+            foreach ( var arg in this.Arguments )
             {
                 hashCode.Add( arg );
             }
@@ -60,15 +69,15 @@ namespace Metalama.Framework.Engine.Diagnostics
                 return false;
             }
 
-            if ( this._arguments.Length != otherLocalizedString._arguments.Length )
+            if ( this.Arguments.Length != otherLocalizedString.Arguments.Length )
             {
                 // Coverage: ignore.
                 return false;
             }
 
-            for ( var i = 0; i < this._arguments.Length; i++ )
+            for ( var i = 0; i < this.Arguments.Length; i++ )
             {
-                if ( !Equals( this._arguments[i], otherLocalizedString._arguments[i] ) )
+                if ( !Equals( this.Arguments[i], otherLocalizedString.Arguments[i] ) )
                 {
                     return false;
                 }

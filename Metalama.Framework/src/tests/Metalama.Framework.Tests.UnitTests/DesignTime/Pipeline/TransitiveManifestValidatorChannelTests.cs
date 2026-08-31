@@ -19,7 +19,6 @@ using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Framework.Options;
 using Metalama.Framework.Tests.UnitTestHelpers.Mocks;
 using Metalama.Testing.UnitTesting;
-using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -201,7 +200,7 @@ public sealed class TransitiveManifestValidatorChannelTests : UnitTestClass
         // the same; the fixture does not care which document it is attributed to.
         public DocumentKey DocumentKey => default;
 
-        public IDesignTimePipelineResultExtension? ToDesignTime() => this;
+        public IDesignTimePipelineResultExtension ToDesignTime() => this;
 
         public ITransitiveAspectsManifestExtension ToTransitiveAspectManifestExtension() => this.ManifestExtension;
 
