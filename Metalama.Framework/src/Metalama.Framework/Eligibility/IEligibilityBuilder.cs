@@ -17,6 +17,7 @@ namespace Metalama.Framework.Eligibility
     /// <seealso href="@eligibility"/> 
     [InternalImplement]
     [CompileTime]
+    [Durable]
     public interface IEligibilityBuilder
     {
         /// <summary>

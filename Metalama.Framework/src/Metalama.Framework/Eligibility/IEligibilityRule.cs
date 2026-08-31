@@ -27,6 +27,7 @@ namespace Metalama.Framework.Eligibility
     /// <seealso cref="IEligibilityBuilder{T}"/>
     /// <seealso href="@eligibility"/>
     [Durable]
+    [ImmutableType]
     [CompileTime]
     public interface IEligibilityRule<in T>
         where T : class

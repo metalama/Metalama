@@ -95,7 +95,9 @@ namespace Metalama.Framework.Engine.SerializableIds
         [JsonConstructor]
         public SymbolId( string id )
         {
+#pragma warning disable LAMA0871
             this._symbolKey = _newSymbolKeyFunc( id );
+#pragma warning restore LAMA0871
         }
 
         private SymbolId( [Durable] object symbolKey )
@@ -132,7 +134,9 @@ namespace Metalama.Framework.Engine.SerializableIds
                 // ReSharper disable once InvokeAsExtensionMethod
                 var symbolKey = _getSymbolKeyFunc( symbol, cancellationToken );
 
+#pragma warning disable LAMA0872
                 return new SymbolId( symbolKey );
+#pragma warning restore LAMA0872
             }
         }
 

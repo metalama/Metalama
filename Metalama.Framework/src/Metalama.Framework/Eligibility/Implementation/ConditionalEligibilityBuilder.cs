@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -8,14 +8,14 @@ using System;
 
 namespace Metalama.Framework.Eligibility.Implementation
 {
-    [Durable]
     internal sealed class ConditionalEligibilityBuilder<T> : IEligibilityBuilder<T>
         where T : class
     {
+        [Durable]
         private readonly Predicate<T> _condition;
         private readonly IEligibilityBuilder<T> _inner;
 
-        public ConditionalEligibilityBuilder( IEligibilityBuilder<T> inner, Predicate<T> condition )
+        public ConditionalEligibilityBuilder( IEligibilityBuilder<T> inner, [Durable] Predicate<T> condition )
         {
             this._condition = condition;
             this._inner = inner;
@@ -23,25 +23,31 @@ namespace Metalama.Framework.Eligibility.Implementation
 
         public EligibleScenarios IneligibleScenarios => this._inner.IneligibleScenarios;
 
-        public void AddRule( IEligibilityRule<T> rule ) => this._inner.AddRule( new ConditionalRule( this, rule ) );
+        /// <remarks>
+        /// The rule is given the condition rather than this builder, so that a rule, which outlives the builder that
+        /// produced it, does not keep the chain of builders alive nor hold a type that must not be immutable.
+        /// </remarks>
+        public void AddRule( IEligibilityRule<T> rule ) => this._inner.AddRule( new ConditionalRule( this._condition, rule ) );
 
         // This method is not supported because the predicates are added to the parent. This class is never used alone. 
         IEligibilityRule<IDeclaration> IEligibilityBuilder.Build() => throw new NotSupportedException();
 
         private sealed class ConditionalRule : IEligibilityRule<T>
         {
-            private readonly ConditionalEligibilityBuilder<T> _parent;
+            [Durable]
+            private readonly Predicate<T> _condition;
+
             private readonly IEligibilityRule<T> _conditionalRule;
 
-            public ConditionalRule( ConditionalEligibilityBuilder<T> parent, IEligibilityRule<T> conditionalRule )
+            public ConditionalRule( [Durable] Predicate<T> condition, IEligibilityRule<T> conditionalRule )
             {
-                this._parent = parent;
+                this._condition = condition;
                 this._conditionalRule = conditionalRule;
             }
 
             public EligibleScenarios GetEligibility( T obj )
             {
-                if ( this._parent._condition( obj ) )
+                if ( this._condition( obj ) )
                 {
                     return this._conditionalRule.GetEligibility( obj );
                 }
@@ -53,7 +59,7 @@ namespace Metalama.Framework.Eligibility.Implementation
 
             public FormattableString? GetIneligibilityJustification( EligibleScenarios requestedEligibility, IDescribedObject<T> describedObject )
             {
-                if ( this._parent._condition( describedObject.Object ) )
+                if ( this._condition( describedObject.Object ) )
                 {
                     var eligibility = this._conditionalRule.GetEligibility( describedObject.Object );
 

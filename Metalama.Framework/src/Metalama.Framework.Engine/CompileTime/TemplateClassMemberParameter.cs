@@ -40,7 +40,9 @@ internal sealed record TemplateClassMemberParameter(
     bool IsCompileTime,
     int? TemplateIndex,
     bool HasDefaultValue = false,
-    [property: Durable] object? DefaultValue = null )
+#pragma warning disable LAMA0870
+    object? DefaultValue = null )
+#pragma warning restore LAMA0870
 {
     public TemplateClassMemberParameter( IParameterSymbol parameterSymbol, bool isCompileTime, int? templateIndex )
         : this(

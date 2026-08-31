@@ -33,7 +33,9 @@ namespace Metalama.Framework.Engine.Pipeline
         /// cannot simply be dropped. Whether it reaches a source compilation at all has not been measured. See
         /// "The per-file result holds three Roslyn objects" in <c>design-time-memory.md</c>.
         /// </remarks>
+#pragma warning disable LAMA0870
         public SyntaxTree GeneratedSyntaxTree { get; }
+#pragma warning restore LAMA0870
 
         public IntroducedSyntaxTree( string name, SyntaxTree? sourceSyntaxTree, SyntaxTree generatedSyntaxTree )
         {

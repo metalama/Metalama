@@ -74,9 +74,14 @@ namespace Metalama.Framework.Analyzers.Durability
         {
             context.RegisterCompilationEndAction( c => AnalyzeDeclaredTypeNames( c, durabilityContext ) );
 
+            // A compound assignment is registered for the sake of a member of delegate type, where 'handler += lambda'
+            // is the idiomatic way to store one and retains the closure exactly as a simple assignment does. For every
+            // other operator the right operand has the type of the member itself, whose verdict is already known, so
+            // this widens the rule without widening what it reports.
             context.RegisterOperationAction(
                 c => AnalyzeAssignment( c, durabilityContext ),
                 OperationKind.SimpleAssignment,
+                OperationKind.CompoundAssignment,
                 OperationKind.CoalesceAssignment,
                 OperationKind.DeconstructionAssignment );
 

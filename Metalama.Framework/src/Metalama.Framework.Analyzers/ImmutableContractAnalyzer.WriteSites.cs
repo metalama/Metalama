@@ -245,18 +245,14 @@ namespace Metalama.Framework.Analyzers.Immutability
         /// member can only be written from the type that declares it.
         /// </summary>
         /// <remarks>
-        /// Private write access confines every assignment to the declaring type, and therefore to this compilation,
-        /// including from a nested type and from another part of a partial declaration. Anything wider (internal,
-        /// protected, public) can be written by code the analyzer never sees, so for those the declaration rules
-        /// still demand <c>readonly</c> or <c>init</c>.
+        /// The durability contract asks the same question for the same reason, so the predicate itself lives in
+        /// <see cref="SymbolFacts.IsWritableFromOutsideDeclaringType"/>, whose remark records why private write access
+        /// is the line and why an <c>init</c> accessor falls on the far side of it. Where write access is wider, the
+        /// declaration rules still demand <c>readonly</c> or <c>init</c>, and they reach this predicate only after
+        /// having accepted <c>init</c> themselves.
         /// </remarks>
         private static bool CanVerifyWrites( ISymbol declaredMember )
-            => declaredMember switch
-            {
-                IPropertySymbol { SetMethod: { } setMethod } => setMethod.DeclaredAccessibility == Accessibility.Private,
-                IPropertySymbol => true,
-                IFieldSymbol field => field.DeclaredAccessibility == Accessibility.Private,
-                _ => false
-            };
+            => declaredMember is IFieldSymbol or IPropertySymbol
+               && !SymbolFacts.IsWritableFromOutsideDeclaringType( declaredMember );
     }
 }

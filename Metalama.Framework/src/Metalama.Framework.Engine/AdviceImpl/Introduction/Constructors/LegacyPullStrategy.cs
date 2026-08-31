@@ -4,15 +4,17 @@
 
 using Metalama.Framework.Advising;
 using Metalama.Framework.Code;
+using Metalama.Framework.Utilities;
 using System;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Introduction.Constructors;
 
 internal sealed class LegacyPullStrategy : IPullStrategy
 {
+    [Durable]
     private readonly Func<IParameter, IConstructor, PullAction> _func;
 
-    private LegacyPullStrategy( Func<IParameter, IConstructor, PullAction> func )
+    private LegacyPullStrategy( [Durable] Func<IParameter, IConstructor, PullAction> func )
     {
         this._func = func;
     }

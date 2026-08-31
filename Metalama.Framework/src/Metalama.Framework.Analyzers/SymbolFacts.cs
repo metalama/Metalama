@@ -42,6 +42,50 @@ namespace Metalama.Framework.Analyzers
         public static string GetDisplayName( ITypeSymbol type ) => type.ToDisplayString( _displayFormat );
 
         /// <summary>
+        /// Returns the location of the application of an attribute, so that a diagnostic about the attribute itself
+        /// lands on the attribute rather than on the declaration that carries it.
+        /// </summary>
+        /// <remarks>
+        /// Returns <c>null</c> for an attribute that is not in source, which is the case for every type of a
+        /// referenced assembly. A rule whose only remedy is to delete a line of source has nothing to say about such a
+        /// type. The location is built from the syntax reference rather than from <c>GetSyntax</c>, which would parse
+        /// the tree to produce a node that is then only asked for its span.
+        /// </remarks>
+        public static Location? GetApplicationLocation( AttributeData attribute )
+            => attribute.ApplicationSyntaxReference is { } reference
+                ? Location.Create( reference.SyntaxTree, reference.Span )
+                : null;
+
+        /// <summary>
+        /// Determines whether a field or property can be assigned by code outside the type that declares it, and
+        /// therefore outside this compilation.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Both contracts need this, and for the same reason: a rule that judges a member by the values assigned to it
+        /// is sound only where the analyzer sees every assignment. Private write access confines every assignment to
+        /// the declaring type, including a nested type and another part of a partial declaration. Anything wider,
+        /// whether internal, protected or public, can be written by code the analyzer never sees.
+        /// </para>
+        /// <para>
+        /// An <c>init</c> accessor counts as writable here, which is where the two contracts part company. It confines
+        /// an assignment to construction, which is all that immutability asks, but the object initializer that
+        /// performs it may sit in any assembly, so it does not confine an assignment to anywhere the analyzer can
+        /// look. The immutability rules therefore accept <c>init</c> before they reach this predicate, and the
+        /// durability rules do not.
+        /// </para>
+        /// </remarks>
+        public static bool IsWritableFromOutsideDeclaringType( ISymbol member )
+            => member switch
+            {
+                IFieldSymbol { IsConst: true } => false,
+                IFieldSymbol field => !field.IsReadOnly && field.DeclaredAccessibility != Accessibility.Private,
+                IPropertySymbol { SetMethod: { } setMethod } => setMethod.DeclaredAccessibility != Accessibility.Private,
+                IPropertySymbol => false,
+                _ => false
+            };
+
+        /// <summary>
         /// Returns the full metadata name of a type, that is, the name by which the tables and the MSBuild items refer
         /// to it: the namespace, the chain of containing types separated by <c>+</c>, and the name of the type with
         /// its arity.

@@ -120,7 +120,8 @@ namespace Metalama.Framework.Analyzers.Immutability
                 InterfaceIsNotImmutable,
                 UnknownDeclaredTypeName,
                 MemberIsWrittenOutsideConstructor,
-                MemberIsPassedByReference );
+                MemberIsPassedByReference,
+                RedundantImmutableTypeAttribute );
 
         public override void Initialize( AnalysisContext context )
         {
@@ -148,8 +149,7 @@ namespace Metalama.Framework.Analyzers.Immutability
         /// <remarks>
         /// The action is registered on the type rather than on the member so that the question "is this type bound by
         /// the contract?" is asked once per type instead of once per member, and so that the base type and the members
-        /// are examined in one place. Unlike the sibling durability rules, this analyzer registers no operation
-        /// action, so nothing of it runs per assignment or per argument.
+        /// are examined in one place.
         /// </remarks>
         private static void AnalyzeNamedType( SymbolAnalysisContext context, ImmutabilityContext immutabilityContext )
         {
@@ -159,6 +159,10 @@ namespace Metalama.Framework.Analyzers.Immutability
             {
                 return;
             }
+
+            // A type that carries the marker is subject to the contract, so this is reached whenever there is a marker
+            // that could be redundant.
+            AnalyzeRedundantAttribute( context, immutabilityContext, type );
 
             AnalyzeBaseType( context, immutabilityContext, type );
             AnalyzeMembers( context, immutabilityContext, type );

@@ -33,7 +33,17 @@ namespace Metalama.Framework.Utilities
     /// <description>
     /// On a <b>field</b> or an automatically implemented <b>property</b> whose declared type is not durable, it waives
     /// the check on the declared type and requires instead that every value assigned to that member have a durable
-    /// type. This is the form to use for a member whose declared type is an interface or <see cref="object"/>.
+    /// type. This is the form to use for a member whose declared type is an interface, <see cref="object"/>, or a
+    /// delegate. A delegate type is never durable, because a delegate holds its target and everything its closure
+    /// captured, but an individual delegate may be: a static method group captures nothing, and a lambda is analyzed
+    /// for what it actually captures, so the assignment carries evidence the declared type cannot.
+    /// </description>
+    /// </item>
+    /// <item>
+    /// <description>
+    /// A member marked in this way must not be writable from outside the type that declares it, that is, it must be
+    /// read-only or private, or, for a property, have a private setter. The waiver replaces a check on the declared
+    /// type with a check on the assignments, so it holds only where every assignment can be seen.
     /// </description>
     /// </item>
     /// <item>

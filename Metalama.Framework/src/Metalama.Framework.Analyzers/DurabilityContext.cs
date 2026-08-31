@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -7,6 +7,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Metalama.Framework.Analyzers.Durability
 {
@@ -103,28 +104,7 @@ namespace Metalama.Framework.Analyzers.Durability
                 return result;
             }
 
-            result = HasDurableAttribute( type );
-
-            if ( !result )
-            {
-                for ( var baseType = type.BaseType; baseType != null && !result; baseType = baseType.BaseType )
-                {
-                    result = HasDurableAttribute( baseType );
-                }
-            }
-
-            if ( !result )
-            {
-                foreach ( var interfaceType in type.AllInterfaces )
-                {
-                    if ( HasDurableAttribute( interfaceType ) )
-                    {
-                        result = true;
-
-                        break;
-                    }
-                }
-            }
+            result = HasDurableAttribute( type ) || GetInheritedContractSource( type ) != null;
 
             this._isSubjectToContract.TryAdd( type, result );
 
@@ -132,19 +112,73 @@ namespace Metalama.Framework.Analyzers.Durability
         }
 
         /// <summary>
+        /// Returns the base type or interface that binds a type to the contract whatever the type itself declares, or
+        /// <c>null</c> when nothing does.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// This is the walk that <see cref="IsSubjectToContract"/> performs, factored out so that the rule reporting a
+        /// redundant attribute cannot drift from it. That rule is sound exactly when it names the reason the contract
+        /// would apply with the attribute deleted, so the two questions have to be answered by one piece of code.
+        /// </para>
+        /// <para>
+        /// The base types are searched before the interfaces, and the interfaces named in the declaration before the
+        /// ones inherited from them, so that the message names what the author wrote wherever it can.
+        /// </para>
+        /// </remarks>
+        public static INamedTypeSymbol? GetInheritedContractSource( INamedTypeSymbol type )
+        {
+            for ( var baseType = type.BaseType; baseType != null; baseType = baseType.BaseType )
+            {
+                if ( HasDurableAttribute( baseType ) )
+                {
+                    return baseType;
+                }
+            }
+
+            foreach ( var interfaceType in type.Interfaces )
+            {
+                if ( HasDurableAttribute( interfaceType ) )
+                {
+                    return interfaceType;
+                }
+            }
+
+            foreach ( var interfaceType in type.AllInterfaces )
+            {
+                if ( HasDurableAttribute( interfaceType ) )
+                {
+                    return interfaceType;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
         /// Determines whether a symbol carries the <c>Durable</c> attribute.
         /// </summary>
-        public static bool HasDurableAttribute( ISymbol symbol )
+        public static bool HasDurableAttribute( ISymbol symbol ) => TryGetDurableAttribute( symbol, out _ );
+
+        /// <summary>
+        /// Gets the application of the <c>Durable</c> attribute on a symbol, for a rule that needs to report on the
+        /// attribute itself rather than on the symbol.
+        /// </summary>
+        public static bool TryGetDurableAttribute( ISymbol symbol, [NotNullWhen( true )] out AttributeData? attribute )
         {
-            foreach ( var attribute in symbol.GetAttributes() )
+            foreach ( var candidate in symbol.GetAttributes() )
             {
-                if ( attribute.AttributeClass is { } attributeClass
+                if ( candidate.AttributeClass is { } attributeClass
                      && attributeClass.Name == "DurableAttribute"
                      && GetFullMetadataName( attributeClass ) == DurableAttributeMetadataName )
                 {
+                    attribute = candidate;
+
                     return true;
                 }
             }
+
+            attribute = null;
 
             return false;
         }

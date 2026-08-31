@@ -39,11 +39,14 @@ internal sealed partial class EligibilityHelper
     /// </remarks>
     [Durable]
     private readonly object _requester;
+    
     private readonly UserCodeInvoker _userCodeInvoker;
     private readonly List<KeyValuePair<Type, IEligibilityRule<IDeclaration>>> _eligibilityRules = new();
 
     private readonly ConcurrentDictionary<Type, Func<EligibilityHelper, IDiagnosticAdder, CompilationContext, bool>>
+#pragma warning disable LAMA0870
         _tryInitializeEligibilityMethods = new();
+#pragma warning restore LAMA0870
 
     public EligibilityHelper( [Durable] object prototype, in ProjectServiceProvider serviceProvider, [Durable] object requester )
     {

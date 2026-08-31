@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -17,7 +17,6 @@ using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Framework.Engine.Utilities.UserCode;
-using Metalama.Framework.Utilities;
 using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Generic;
@@ -39,7 +38,6 @@ namespace Metalama.Framework.Engine.Aspects;
 /// <summary>
 /// Represents the metadata of an aspect class. This class is compilation-independent. It is not used to represent a fabric class.
 /// </summary>
-[Durable]
 public sealed class AspectClass : TemplateClass, IBoundAspectClass
 {
     private readonly UserCodeInvoker _userCodeInvoker;

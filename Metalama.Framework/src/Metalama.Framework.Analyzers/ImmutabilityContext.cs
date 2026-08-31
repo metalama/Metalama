@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -7,6 +7,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Metalama.Framework.Analyzers.Immutability
 {
@@ -116,17 +117,27 @@ namespace Metalama.Framework.Analyzers.Immutability
         /// <summary>
         /// Determines whether a symbol carries the marker.
         /// </summary>
-        public static bool HasImmutableTypeAttribute( ISymbol symbol )
+        public static bool HasImmutableTypeAttribute( ISymbol symbol ) => TryGetImmutableTypeAttribute( symbol, out _ );
+
+        /// <summary>
+        /// Gets the application of the marker on a symbol, for a rule that needs to report on the attribute itself
+        /// rather than on the symbol.
+        /// </summary>
+        public static bool TryGetImmutableTypeAttribute( ISymbol symbol, [NotNullWhen( true )] out AttributeData? attribute )
         {
-            foreach ( var attribute in symbol.GetAttributes() )
+            foreach ( var candidate in symbol.GetAttributes() )
             {
-                if ( attribute.AttributeClass is { } attributeClass
+                if ( candidate.AttributeClass is { } attributeClass
                      && attributeClass.Name == "ImmutableTypeAttribute"
                      && SymbolFacts.GetFullMetadataName( attributeClass ) == ImmutableTypeAttributeMetadataName )
                 {
+                    attribute = candidate;
+
                     return true;
                 }
             }
+
+            attribute = null;
 
             return false;
         }
@@ -154,31 +165,52 @@ namespace Metalama.Framework.Analyzers.Immutability
         }
 
         private bool ComputeIsSubjectToContract( INamedTypeSymbol type )
-        {
-            if ( HasImmutableTypeAttribute( type ) )
-            {
-                return true;
-            }
+            => HasImmutableTypeAttribute( type ) || this.GetInheritedContractSource( type ) != null;
 
+        /// <summary>
+        /// Returns the base type or interface that binds a type to the contract whatever the type itself declares, or
+        /// <c>null</c> when nothing does.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// This is the walk that <see cref="IsSubjectToContract"/> performs, factored out so that the rule reporting a
+        /// redundant marker cannot drift from it. That rule is sound exactly when it names the reason the contract
+        /// would apply with the marker deleted, so the two questions have to be answered by one piece of code.
+        /// </para>
+        /// <para>
+        /// Any interface that requires immutability binds the implementation, which is what makes marking
+        /// <c>IAspect</c> sufficient to check every aspect that anyone writes. The base types are searched before the
+        /// interfaces, and the interfaces named in the declaration before the ones inherited from them, so that a
+        /// message names what the author wrote wherever it can.
+        /// </para>
+        /// </remarks>
+        public INamedTypeSymbol? GetInheritedContractSource( INamedTypeSymbol type )
+        {
             for ( var baseType = type.BaseType; baseType != null; baseType = baseType.BaseType )
             {
                 if ( HasImmutableTypeAttribute( baseType ) || this.IsContractType( baseType ) )
                 {
-                    return true;
+                    return baseType;
                 }
             }
 
-            // Any interface that requires immutability binds the implementation. This is what makes marking IAspect
-            // sufficient to check every aspect that anyone writes.
+            foreach ( var interfaceType in type.Interfaces )
+            {
+                if ( HasImmutableTypeAttribute( interfaceType ) || this.IsContractType( interfaceType ) )
+                {
+                    return interfaceType;
+                }
+            }
+
             foreach ( var interfaceType in type.AllInterfaces )
             {
                 if ( HasImmutableTypeAttribute( interfaceType ) || this.IsContractType( interfaceType ) )
                 {
-                    return true;
+                    return interfaceType;
                 }
             }
 
-            return false;
+            return null;
         }
 
         /// <summary>

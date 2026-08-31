@@ -76,7 +76,9 @@ namespace Metalama.Framework.Analyzers.Durability
                 WeakReferenceShouldBeNamedDangerous,
                 InterfaceIsNotDurable,
                 CapturedValueIsNotDurable,
-                UnknownDeclaredTypeName );
+                UnknownDeclaredTypeName,
+                RedundantDurableAttribute,
+                DurableMemberIsWritableFromOutside );
 
         public override void Initialize( AnalysisContext context )
         {
@@ -97,6 +99,7 @@ namespace Metalama.Framework.Analyzers.Durability
             }
 
             context.RegisterSymbolAction( c => AnalyzeNamedType( c, durabilityContext ), SymbolKind.NamedType );
+            context.RegisterSymbolAction( AnalyzeDurableMember, SymbolKind.Field, SymbolKind.Property );
             RegisterUseSiteActions( context, durabilityContext );
         }
 
@@ -113,6 +116,10 @@ namespace Metalama.Framework.Analyzers.Durability
             {
                 return;
             }
+
+            // A type that carries the attribute is subject to the contract, so this is reached whenever there is an
+            // attribute that could be redundant.
+            AnalyzeRedundantAttribute( context, type );
 
             AnalyzeBaseType( context, durabilityContext, type );
             AnalyzeMembers( context, durabilityContext, type );

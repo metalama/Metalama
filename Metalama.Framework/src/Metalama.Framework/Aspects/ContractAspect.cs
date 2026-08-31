@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -181,24 +181,29 @@ namespace Metalama.Framework.Aspects
 
             if ( !iter.MoveNext() )
             {
-                // ReSharper disable once RedundantSuppressNullableWarningExpression
-                return ParameterIsValid( first!.Parameter, targetType ) ? new[] { first.Parameter } : null;
+                var onlyParameter = ResolveParameter( first, targetType );
+
+                return ParameterIsValid( onlyParameter, targetType ) ? new[] { onlyParameter } : null;
             }
 
             var distinctByParameter = new HashSet<IParameter>();
 
-            // ReSharper disable once RedundantSuppressNullableWarningExpression
-            AddIfValid( distinctByParameter, first!.Parameter, targetType );
-
-            // ReSharper disable once RedundantSuppressNullableWarningExpression
-            AddIfValid( distinctByParameter, iter.Current!.Parameter, targetType );
+            AddIfValid( distinctByParameter, ResolveParameter( first, targetType ), targetType );
+            AddIfValid( distinctByParameter, ResolveParameter( iter.Current, targetType ), targetType );
 
             while ( iter.MoveNext() )
             {
-                AddIfValid( distinctByParameter, iter.Current?.Parameter, targetType );
+                AddIfValid( distinctByParameter, ResolveParameter( iter.Current, targetType ), targetType );
             }
 
             return distinctByParameter;
+
+            // The annotation holds a durable reference rather than the parameter itself, so that an annotation read in
+            // a later compilation does not retain the one that produced it. Resolving it needs a compilation, and the
+            // only one in scope here is the one the target type belongs to. A reference that does not resolve there is
+            // treated as no parameter at all, which is what the validation below already does with a null.
+            static IParameter? ResolveParameter( RedirectToProxyParameterAnnotation? annotation, IType targetType )
+                => annotation?.Parameter.GetTargetOrNull( targetType.Compilation );
 
             static void AddIfValid( HashSet<IParameter> set, IParameter? parameter, IType expectedType )
             {

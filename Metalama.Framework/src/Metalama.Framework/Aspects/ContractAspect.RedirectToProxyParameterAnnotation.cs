@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -19,9 +19,23 @@ public abstract partial class ContractAspect
     {
         public RedirectToProxyParameterAnnotation( IParameter parameter )
         {
-            this.Parameter = parameter ?? throw new ArgumentNullException( nameof(parameter) );
+            // The null check has to precede the conversion, which dereferences the compilation of its argument.
+            if ( parameter == null )
+            {
+                throw new ArgumentNullException( nameof(parameter) );
+            }
+
+            this.Parameter = parameter.ToDurableRef();
         }
 
-        public IParameter Parameter { get; }
+        /// <summary>
+        /// Gets a durable reference to the proxy parameter, resolved against the compilation of the target where the
+        /// annotation is consumed.
+        /// </summary>
+        /// <remarks>
+        /// An annotation may be read in a compilation later than the one that produced it, so holding the
+        /// <see cref="IParameter"/> itself would retain the earlier one.
+        /// </remarks>
+        public IDurableRef<IParameter> Parameter { get; }
     }
 }
