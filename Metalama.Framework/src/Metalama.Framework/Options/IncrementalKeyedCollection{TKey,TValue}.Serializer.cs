@@ -31,7 +31,9 @@ public partial class IncrementalKeyedCollection<TKey, TValue>
 
         public override void DeserializeFields( IncrementalKeyedCollection<TKey, TValue> obj, IArgumentsReader initializationArguments )
         {
+#pragma warning disable LAMA0887
             obj._dictionary = initializationArguments.GetValue<ImmutableDictionary<TKey, Item>>( "items" )!;
+#pragma warning restore LAMA0887
         }
     }
 }
