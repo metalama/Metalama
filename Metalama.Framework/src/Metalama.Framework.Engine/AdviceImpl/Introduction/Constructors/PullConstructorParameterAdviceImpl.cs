@@ -315,6 +315,7 @@ internal sealed class PullConstructorParameterAdviceImpl
                         // the base or the caller first.
                         parameterValue =
                             pullParameterAction.Expression.AssertNotNull()
+                                .ToExpression( this.Compilation )
                                 .ToExpressionSyntax(
                                     new SyntaxSerializationContext(
                                         this.Compilation,

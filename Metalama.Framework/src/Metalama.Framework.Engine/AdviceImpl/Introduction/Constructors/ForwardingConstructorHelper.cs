@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -286,7 +286,7 @@ internal sealed class ForwardingConstructorHelper
         switch ( pullAction.Kind )
         {
             case PullActionKind.UseExpression:
-                return pullAction.Expression;
+                return pullAction.Expression?.ToExpression( this._context.MutableCompilation );
 
             case PullActionKind.AppendParameterAndPull:
                 // A forwarder has a fixed signature (the pre-mutation signature), so we cannot append a

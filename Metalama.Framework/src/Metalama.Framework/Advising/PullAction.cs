@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -63,7 +63,11 @@ public readonly struct PullAction
     /// <summary>
     /// Gets the expression to use for pulling the dependency when <see cref="UseExpression"/> or <see cref="UseConstant"/> is used.
     /// </summary>
-    public IExpression? Expression { get; }
+    /// <remarks>
+    /// Durable, because a pull action is held by the pull strategy of an aspect, which must survive an edit. Call
+    /// <see cref="IDurableExpression.ToExpression"/> with the compilation in which the expression is to be used.
+    /// </remarks>
+    public IDurableExpression? Expression { get; }
 
     /// <summary>
     /// Gets the existing parameter to replace when <see cref="Kind"/> is <see cref="PullActionKind.ReplaceParameterTypeAndPull"/>.
@@ -72,7 +76,7 @@ public readonly struct PullAction
 
     private PullAction(
         PullActionKind kind,
-        IExpression? expression = null,
+        IDurableExpression? expression = null,
         string? parameterName = null,
         IType? parameterType = null,
         IExpression? parameterDefaultValue = null,
@@ -204,7 +208,7 @@ public readonly struct PullAction
     /// </para>
     /// </remarks>
     /// <seealso cref="UseExistingParameter"/>
-    public static PullAction UseExpression( IExpression expression ) => new( PullActionKind.UseExpression, expression );
+    public static PullAction UseExpression( IExpression expression ) => new( PullActionKind.UseExpression, expression.ToDurable() );
 
     /// <summary>
     /// Creates a <see cref="PullAction"/> that means that the dependency should be assigned to a given <see cref="TypedConstant"/>.
@@ -215,5 +219,10 @@ public readonly struct PullAction
     /// This is a convenience method for passing constant values. Use this when all child constructors should
     /// pass the same constant value to the introduced parameter (e.g., <c>UseConstant(TypedConstant.Create(true))</c>).
     /// </remarks>
-    public static PullAction UseConstant( TypedConstant constant ) => new( PullActionKind.UseExpression, constant );
+    public static PullAction UseConstant( TypedConstant constant ) => new( PullActionKind.UseExpression, constant.ToDurable() );
+
+    /// <remarks>
+    /// For a strategy that already holds a durable expression, so that it is not rendered a second time.
+    /// </remarks>
+    internal static PullAction UseDurableExpression( IDurableExpression expression ) => new( PullActionKind.UseExpression, expression );
 }

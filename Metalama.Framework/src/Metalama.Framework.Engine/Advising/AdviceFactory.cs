@@ -23,6 +23,7 @@ using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Roslyn;
+using Metalama.Framework.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -491,31 +492,30 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
             return;
         }
 
-        // Allow return value parameters of explicitly-declared members or `value` parameter of property setters.
-        if ( declaration.DeclarationKind == DeclarationKind.Parameter && declaration is IParameter { DeclaringMember.IsImplicitlyDeclared: false } parameter )
+        switch ( declaration.DeclarationKind )
         {
-            if ( parameter.IsReturnParameter )
-            {
+            // Allow return value parameters of explicitly-declared members or `value` parameter of property setters.
+            case DeclarationKind.Parameter when declaration is IParameter { DeclaringMember.IsImplicitlyDeclared: false } parameter:
+                {
+                    if ( parameter.IsReturnParameter )
+                    {
+                        return;
+                    }
+
+                    if ( parameter.DeclaringMember.DeclarationKind == DeclarationKind.Method
+                         && parameter.DeclaringMember is IMethod { MethodKind: MethodKind.PropertySet } )
+                    {
+                        return;
+                    }
+
+                    break;
+                }
+
+            // Allow default constructors (implicitly declared)
+            case DeclarationKind.Constructor when declaration is IConstructor { IsImplicitlyDeclared: true, Parameters.Count: 0 }:
+            // Allow backing fields of auto-properties (implicitly declared)
+            case DeclarationKind.Field when declaration is IField field && field.IsAutoPropertyBackingField():
                 return;
-            }
-
-            if ( parameter.DeclaringMember.DeclarationKind == DeclarationKind.Method
-                 && parameter.DeclaringMember is IMethod { MethodKind: MethodKind.PropertySet } )
-            {
-                return;
-            }
-        }
-
-        // Allow default constructors (implicitly declared)
-        if ( declaration.DeclarationKind == DeclarationKind.Constructor && declaration is IConstructor { IsImplicitlyDeclared: true, Parameters.Count: 0 } )
-        {
-            return;
-        }
-
-        // Allow backing fields of auto-properties (implicitly declared)
-        if ( declaration.DeclarationKind == DeclarationKind.Field && declaration is IField field && field.IsAutoPropertyBackingField() )
-        {
-            return;
         }
 
         // Reject all other implicitly-declared declarations (e.g., field pseudo-accessors)
@@ -1639,53 +1639,58 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
             var templateMember = this.ValidateRequiredTemplateName( template, TemplateKind.Default )
                 .GetTemplateMember<IMethod>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, this.GetTagsReader( tags ) );
 
-            if ( kind == InitializerKind.AfterObjectInitializer )
+            switch ( kind )
             {
-                var advice = new InitializeMethodAdvice(
-                    this.GetAdviceConstructorParameters( targetType ),
-                    templateMember,
-                    this.GetArgsReader( args ),
-                    slotFields,
-                    position );
+                case InitializerKind.AfterObjectInitializer:
+                    {
+                        var advice = new InitializeMethodAdvice(
+                            this.GetAdviceConstructorParameters( targetType ),
+                            templateMember,
+                            this.GetArgsReader( args ),
+                            slotFields,
+                            position );
 
-                return advice.Execute( this._state );
-            }
-            else if ( kind == InitializerKind.AfterLastInstanceConstructor )
-            {
-                var advice = new OnConstructedMethodAdvice(
-                    this.GetAdviceConstructorParameters( targetType ),
-                    templateMember,
-                    this.GetArgsReader( args ),
-                    slotFields,
-                    position );
+                        return advice.Execute( this._state );
+                    }
 
-                var result = advice.Execute( this._state );
+                case InitializerKind.AfterLastInstanceConstructor:
+                    {
+                        var advice = new OnConstructedMethodAdvice(
+                            this.GetAdviceConstructorParameters( targetType ),
+                            templateMember,
+                            this.GetArgsReader( args ),
+                            slotFields,
+                            position );
 
-                // After OnConstructedMethodAdvice's transformations (including parameter pulls into
-                // derived constructors in the same compilation) have been applied to MutableCompilation,
-                // walk same-compilation derived types and emit the epilogue + descend rewrite. This is
-                // the in-project counterpart of AddConstructorEpilogueTransitiveAspect, which only
-                // handles cross-project propagation. See issue #1580: without this, a derived class in
-                // the same compilation receives the pulled InitializationContext parameter but neither
-                // calls OnConstructed nor descends the context to its base call.
-                if ( result.Outcome == AdviceOutcome.Success
-                     && !targetType.IsSealed
-                     && targetType.TypeKind != TypeKind.Struct )
-                {
-                    this.EmitOnConstructedEpilogueOnDerivedTypes( targetType );
-                }
+                        var result = advice.Execute( this._state );
 
-                return result;
-            }
-            else
-            {
-                var advice = new TemplateBasedConstructorInitializeAdvice(
-                    this.GetAdviceConstructorParameters<IMemberOrNamedType>( targetType ),
-                    templateMember,
-                    this.GetArgsReader( args ),
-                    kind );
+                        // After OnConstructedMethodAdvice's transformations (including parameter pulls into
+                        // derived constructors in the same compilation) have been applied to MutableCompilation,
+                        // walk same-compilation derived types and emit the epilogue + descend rewrite. This is
+                        // the in-project counterpart of AddConstructorEpilogueTransitiveAspect, which only
+                        // handles cross-project propagation. See issue #1580: without this, a derived class in
+                        // the same compilation receives the pulled InitializationContext parameter but neither
+                        // calls OnConstructed nor descends the context to its base call.
+                        if ( result.Outcome == AdviceOutcome.Success
+                             && !targetType.IsSealed
+                             && targetType.TypeKind != TypeKind.Struct )
+                        {
+                            this.EmitOnConstructedEpilogueOnDerivedTypes( targetType );
+                        }
 
-                return advice.Execute( this._state );
+                        return result;
+                    }
+
+                default:
+                    {
+                        var advice = new TemplateBasedConstructorInitializeAdvice(
+                            this.GetAdviceConstructorParameters<IMemberOrNamedType>( targetType ),
+                            templateMember,
+                            this.GetArgsReader( args ),
+                            kind );
+
+                        return advice.Execute( this._state );
+                    }
             }
         }
     }
@@ -1903,7 +1908,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         string parameterName,
         IType parameterType,
         TypedConstant defaultValue,
-        Func<IParameter, IConstructor, PullAction>? pullAction,
+        [Durable] Func<IParameter, IConstructor, PullAction>? pullAction,
         ImmutableArray<AttributeConstruction> attributes = default )
         => this.IntroduceParameterCore(
             constructor,
@@ -1978,7 +1983,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         string parameterName,
         Type parameterType,
         TypedConstant defaultValue,
-        Func<IParameter, IConstructor, PullAction>? pullAction,
+        [Durable] Func<IParameter, IConstructor, PullAction>? pullAction,
         ImmutableArray<AttributeConstruction> attributes = default )
         => this.IntroduceParameter(
             constructor,

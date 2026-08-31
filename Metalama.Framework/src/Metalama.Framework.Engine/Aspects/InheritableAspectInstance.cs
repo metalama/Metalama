@@ -12,6 +12,7 @@ using System.Linq;
 
 namespace Metalama.Framework.Engine.Aspects;
 
+[Durable]
 public sealed partial class InheritableAspectInstance : IAspectInstance, IAspectPredecessorImpl
 {
     private readonly IAspectClass? _aspectClass;
@@ -37,7 +38,9 @@ public sealed partial class InheritableAspectInstance : IAspectInstance, IAspect
 
     public bool IsInheritable => true;
 
+#pragma warning disable LAMA0876 // Assigned to InheritableAspectInstance instances.
     public ImmutableArray<IAspectInstance> SecondaryInstances { get; private set; }
+#pragma warning restore LAMA0876
 
     ImmutableArray<AspectPredecessor> IAspectPredecessor.Predecessors => ImmutableArray<AspectPredecessor>.Empty;
 

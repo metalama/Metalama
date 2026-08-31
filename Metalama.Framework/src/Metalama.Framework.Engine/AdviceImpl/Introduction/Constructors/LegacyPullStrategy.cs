@@ -19,7 +19,7 @@ internal sealed class LegacyPullStrategy : IPullStrategy
         this._func = func;
     }
 
-    public static IPullStrategy? Create( Func<IParameter, IConstructor, PullAction>? func ) => func == null ? null : new LegacyPullStrategy( func );
+    public static IPullStrategy? Create( [Durable] Func<IParameter, IConstructor, PullAction>? func ) => func == null ? null : new LegacyPullStrategy( func );
 
     public PullAction GetPullAction( IParameter pulledParameter, IHasParameters targetMember ) => this._func( pulledParameter, (IConstructor) targetMember );
 }
