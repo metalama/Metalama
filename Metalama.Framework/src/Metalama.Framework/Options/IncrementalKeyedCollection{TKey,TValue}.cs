@@ -4,7 +4,6 @@
 
 using JetBrains.Annotations;
 using Metalama.Framework.Serialization;
-using Metalama.Framework.Utilities;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -45,7 +44,6 @@ namespace Metalama.Framework.Options;
 /// <seealso cref="IIncrementalKeyedCollectionItem{TKey}"/>
 /// <seealso href="@exposing-options"/>
 [PublicAPI]
-[Durable]
 public partial class IncrementalKeyedCollection<TKey, TValue> : IIncrementalObject, IReadOnlyCollection<TValue>, ICompileTimeSerializable
     where TKey : notnull
     where TValue : class, IIncrementalKeyedCollectionItem<TKey>
@@ -60,7 +58,10 @@ public partial class IncrementalKeyedCollection<TKey, TValue> : IIncrementalObje
     public static IncrementalKeyedCollection<TKey, TValue> Empty { get; } = new( ImmutableDictionary<TKey, Item>.Empty );
 
     private readonly bool _clear;
+    
+#pragma warning disable LAMA0882
     private ImmutableDictionary<TKey, Item> _dictionary;
+#pragma warning restore LAMA0882
 
     [NonCompileTimeSerialized]
     private int? _count;
@@ -212,7 +213,9 @@ public partial class IncrementalKeyedCollection<TKey, TValue> : IIncrementalObje
     /// <value>
     /// The count of items that are enabled (not removed) in this incremental keyed collection layer.
     /// </value>
+#pragma warning disable LAMA0887
     public int Count => this._count ??= this._dictionary.Count( i => i.Value.IsEnabled );
+#pragma warning restore LAMA0887
 
     /// <summary>
     /// Gets a value indicating whether this collection layer is empty.
