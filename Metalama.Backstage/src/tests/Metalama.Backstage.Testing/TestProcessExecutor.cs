@@ -7,6 +7,7 @@ using Metalama.Backstage.Infrastructure;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Metalama.Backstage.Testing;
 
@@ -21,6 +22,17 @@ public class TestProcessExecutor : IProcessExecutor
     /// </summary>
     public Exception? ExceptionToThrow { get; set; }
 
+    /// <summary>
+    /// Gets or sets the function that returns the standard output of a process started by
+    /// <see cref="TryReadStandardOutput"/>, or <c>null</c> when the process is expected to fail. The default value
+    /// returns <c>null</c> for every process.
+    /// </summary>
+    /// <remarks>
+    /// A test of a command that runs on another operating system than the one that runs the test sets this property,
+    /// so that the code under test observes the output of that command without the command being executed.
+    /// </remarks>
+    public Func<ProcessStartInfo, string?> StandardOutputProvider { get; set; } = _ => null;
+
     public IProcess Start( ProcessStartInfo startInfo )
     {
         if ( this.ExceptionToThrow != null )
@@ -31,6 +43,20 @@ public class TestProcessExecutor : IProcessExecutor
         this.StartedProcesses.Add( startInfo );
 
         return new TestProcess();
+    }
+
+    public bool TryReadStandardOutput( ProcessStartInfo startInfo, TimeSpan timeout, [NotNullWhen( true )] out string? standardOutput )
+    {
+        if ( this.ExceptionToThrow != null )
+        {
+            throw this.ExceptionToThrow;
+        }
+
+        this.StartedProcesses.Add( startInfo );
+
+        standardOutput = this.StandardOutputProvider( startInfo );
+
+        return standardOutput != null;
     }
 
     private sealed class TestProcess : IProcess

@@ -125,6 +125,7 @@ public static class RegisterServiceExtensions
             .AddSingleton( _ => new RandomNumberGenerator() )
             .AddSingleton<IEnvironmentVariableProvider>( new EnvironmentVariableProvider() )
             .AddSingleton<IRuntimeInformation>( _ => new RuntimeInformationProvider() )
+            .AddSingleton<IMachineIdProvider>( CreateMachineIdProvider )
             .AddSingleton<IRecoverableExceptionService>( serviceProvider => new RecoverableExceptionService( serviceProvider ) )
             .AddSingleton<IApplicationInfoProvider>( new ApplicationInfoProvider( applicationInfo ) )
             .AddSingleton<IUserDeviceDetectionService>( serviceProvider => new WindowsUserDeviceDetectionService( serviceProvider ) )
@@ -141,6 +142,32 @@ public static class RegisterServiceExtensions
             .AddSingleton<WebLinks>( _ => new WebLinks() )
             .AddSingleton<ITempFileManager>( serviceProvider => new TempFileManager( serviceProvider ) )
             .AddSingleton( serviceProvider => new ShutdownService( serviceProvider ) );
+
+    /// <summary>
+    /// Creates the implementation of <see cref="IMachineIdProvider"/> that reads the identifier of the machine on the
+    /// current operating system.
+    /// </summary>
+    /// <param name="serviceProvider">The service provider.</param>
+    /// <returns>The service.</returns>
+    private static IMachineIdProvider CreateMachineIdProvider( IServiceProvider serviceProvider )
+    {
+        if ( RuntimeInformation.IsOSPlatform( OSPlatform.Windows ) )
+        {
+            return new WindowsMachineIdProvider( serviceProvider );
+        }
+        else if ( RuntimeInformation.IsOSPlatform( OSPlatform.Linux ) )
+        {
+            return new LinuxMachineIdProvider( serviceProvider );
+        }
+        else if ( RuntimeInformation.IsOSPlatform( OSPlatform.OSX ) )
+        {
+            return new MacMachineIdProvider( serviceProvider );
+        }
+        else
+        {
+            return new MachineNameMachineIdProvider( serviceProvider );
+        }
+    }
 
     /// <summary>
     /// Creates the named lock service and routes its events to the log.

@@ -65,6 +65,12 @@ namespace Metalama.Backstage.Testing
 
         protected TestUserDeviceDetectionService UserDeviceDetection { get; } = new();
 
+        /// <summary>
+        /// Gets the substitute for the machine identifier, so that a test observes a pinned value instead of the
+        /// identifier of the machine that runs the test.
+        /// </summary>
+        protected TestMachineIdProvider MachineIdProvider { get; } = new();
+
         protected TestUserInterfaceService UserInterface => this._defaultTestContext.Value.UserInterface;
 
         protected BackstageBackgroundTasksService BackgroundTasks { get; } = new();
@@ -237,6 +243,7 @@ namespace Metalama.Backstage.Testing
                 .AddSingleton<IDateTimeProvider>( this.Time )
                 .AddSingleton<IProcessExecutor>( this.ProcessExecutor )
                 .AddSingleton<IRuntimeInformation>( _ => new TestRuntimeInformation() )
+                .AddSingleton<IMachineIdProvider>( this.MachineIdProvider )
                 .AddSingleton<IPlatformInfo>( serviceProvider => new PlatformInfo( serviceProvider ) )
                 .AddSingleton( this.BackgroundTasks )
                 .AddSingleton<IHttpClientFactory>( serviceProvider => new TestHttpClientFactory( serviceProvider ) )
