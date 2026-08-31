@@ -35,9 +35,12 @@ namespace Metalama.Framework.Analyzers.Immutability
         public static readonly ImmutableHashSet<string> Names =
             ImmutableHashSet.Create(
                 StringComparer.Ordinal,
-                "Metalama.Extensions.Validation.ReferenceValidator",
+                // BaseReferenceValidator is the root of the hierarchy, and InboundReferenceValidator and
+                // ReferenceValidator derive from it, so naming the root covers all three. The names were checked
+                // against Metalama.Premium; an interface named IReferenceValidator was listed here and does not
+                // exist, so it matched nothing.
                 "Metalama.Extensions.Validation.BaseReferenceValidator",
-                "Metalama.Extensions.Validation.IReferenceValidator" );
+                "Metalama.Extensions.Validation.ReferenceValidator" );
 
         /// <summary>
         /// Determines whether a full metadata name binds its implementations to the contract.
