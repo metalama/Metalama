@@ -15,9 +15,16 @@ namespace Metalama.Framework.Tests.UnitTests.CodeModel;
 /// design time while a <c>using</c> directive is missing, a package is restoring, or an identifier is half typed.
 /// </summary>
 /// <remarks>
+/// <para>
 /// A declaration whose signature directly names an unresolved type is excluded from the code model, so the
 /// unresolved type reaches the code model as the type argument of a type that binds, as in
 /// <c>List&lt;Unresolved&gt;</c>. That is the shape reported in issue #1867.
+/// </para>
+/// <para>
+/// The code model substitutes an unresolved type by <c>object</c>. That substitution is the pre-existing
+/// behaviour of <c>DeclarationFactory.GetNamedType</c>; what issue #1867 adds is that
+/// <c>DeclarationFactory.GetIType</c> reaches it instead of throwing.
+/// </para>
 /// </remarks>
 public sealed class ErrorTypeTests : UnitTestClass
 {
@@ -33,7 +40,7 @@ public sealed class ErrorTypeTests : UnitTestClass
                                  """;
 
     [Fact]
-    public void TypeArgumentIsErrorType()
+    public void TypeArgumentIsSubstituted()
     {
         using var testContext = this.CreateTestContext();
         var compilation = testContext.CreateCompilationModel( _code, ignoreErrors: true );
@@ -42,32 +49,31 @@ public sealed class ErrorTypeTests : UnitTestClass
 
         var typeArgument = Assert.Single( fieldType.TypeArguments );
 
-        Assert.Equal( TypeKind.Error, typeArgument.TypeKind );
-        Assert.Equal( "Unresolved", Assert.IsAssignableFrom<INamedType>( typeArgument ).Name );
+        Assert.Equal( SpecialType.Object, typeArgument.SpecialType );
     }
 
     [Fact]
-    public void SecondTypeArgumentIsErrorType()
+    public void SecondTypeArgumentIsSubstituted()
     {
         using var testContext = this.CreateTestContext();
         var compilation = testContext.CreateCompilationModel( _code, ignoreErrors: true );
 
         var fieldType = (INamedType) compilation.Types.OfName( "C" ).Single().Fields.OfName( "NestedField" ).Single().Type;
 
-        Assert.Equal( TypeKind.Class, fieldType.TypeArguments[0].TypeKind );
-        Assert.Equal( TypeKind.Error, fieldType.TypeArguments[1].TypeKind );
+        Assert.Equal( SpecialType.String, fieldType.TypeArguments[0].SpecialType );
+        Assert.Equal( SpecialType.Object, fieldType.TypeArguments[1].SpecialType );
     }
 
     [Fact]
-    public void ReturnTypeAndParameterTypeHaveErrorTypeArgument()
+    public void ReturnTypeAndParameterTypeAreRead()
     {
         using var testContext = this.CreateTestContext();
         var compilation = testContext.CreateCompilationModel( _code, ignoreErrors: true );
 
         var method = compilation.Types.OfName( "C" ).Single().Methods.OfName( "Method" ).Single();
 
-        Assert.Equal( TypeKind.Error, ((INamedType) method.ReturnType).TypeArguments.Single().TypeKind );
-        Assert.Equal( TypeKind.Error, ((INamedType) method.Parameters.Single().Type).TypeArguments.Single().TypeKind );
+        Assert.Equal( SpecialType.Object, ((INamedType) method.ReturnType).TypeArguments.Single().SpecialType );
+        Assert.Equal( SpecialType.Object, ((INamedType) method.Parameters.Single().Type).TypeArguments.Single().SpecialType );
     }
 
     /// <summary>
@@ -75,9 +81,9 @@ public sealed class ErrorTypeTests : UnitTestClass
     /// named type, and one of them is an error type.
     /// </summary>
     [Theory]
-    [InlineData( "Field", "List<Unresolved>" )]
-    [InlineData( "NestedField", "Dictionary<string, Unresolved>" )]
-    public void ErrorTypeArgumentIsFormatted( string fieldName, string expectedDisplayString )
+    [InlineData( "Field", "List<object>" )]
+    [InlineData( "NestedField", "Dictionary<string, object>" )]
+    public void UnresolvedTypeArgumentIsFormatted( string fieldName, string expectedDisplayString )
     {
         using var testContext = this.CreateTestContext();
         var compilation = testContext.CreateCompilationModel( _code, ignoreErrors: true );
@@ -92,13 +98,13 @@ public sealed class ErrorTypeTests : UnitTestClass
     /// list instead of a type.
     /// </summary>
     [Fact]
-    public void ErrorTypeArgumentIsFormattedInParameterList()
+    public void UnresolvedTypeArgumentIsFormattedInParameterList()
     {
         using var testContext = this.CreateTestContext();
         var compilation = testContext.CreateCompilationModel( _code, ignoreErrors: true );
 
         var method = compilation.Types.OfName( "C" ).Single().Methods.OfName( "Method" ).Single();
 
-        Assert.Equal( "C.Method(List<Unresolved>)", method.ToDisplayString() );
+        Assert.Equal( "C.Method(List<object>)", method.ToDisplayString() );
     }
 }
