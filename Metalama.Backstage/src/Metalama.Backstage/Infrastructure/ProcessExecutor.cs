@@ -4,12 +4,55 @@
 
 using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Metalama.Backstage.Infrastructure;
 
 internal sealed class ProcessExecutor : IProcessExecutor
 {
     public IProcess Start( ProcessStartInfo startInfo )
+    {
+        ResetInheritedEnvironment( startInfo );
+
+        return new ProcessWrapper( Process.Start( startInfo ) ?? throw new InvalidOperationException( "The process could not be started." ) );
+    }
+
+    public bool TryReadStandardOutput( ProcessStartInfo startInfo, TimeSpan timeout, [NotNullWhen( true )] out string? standardOutput )
+    {
+        startInfo.UseShellExecute = false;
+        startInfo.RedirectStandardOutput = true;
+        startInfo.RedirectStandardError = true;
+        startInfo.CreateNoWindow = true;
+
+        ResetInheritedEnvironment( startInfo );
+
+        standardOutput = null;
+
+        using var process = Process.Start( startInfo );
+
+        if ( process == null )
+        {
+            return false;
+        }
+
+        // The error stream is drained, otherwise a full error buffer would block the child process while this method
+        // reads its output stream.
+        process.ErrorDataReceived += ( _, _ ) => { };
+        process.BeginErrorReadLine();
+
+        var output = process.StandardOutput.ReadToEnd();
+
+        if ( !process.WaitForExit( (int) timeout.TotalMilliseconds ) || process.ExitCode != 0 )
+        {
+            return false;
+        }
+
+        standardOutput = output;
+
+        return true;
+    }
+
+    private static void ResetInheritedEnvironment( ProcessStartInfo startInfo )
     {
         if ( !startInfo.UseShellExecute )
         {
@@ -23,8 +66,6 @@ internal sealed class ProcessExecutor : IProcessExecutor
         {
             // We can't set environment variables with ShellExecute=true and this is also probably useless.
         }
-
-        return new ProcessWrapper( Process.Start( startInfo ) ?? throw new InvalidOperationException( "The process could not be started." ) );
     }
 
     private sealed class ProcessWrapper : IProcess

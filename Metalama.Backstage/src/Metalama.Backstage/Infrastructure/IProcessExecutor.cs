@@ -4,7 +4,9 @@
 
 using JetBrains.Annotations;
 using Metalama.Backstage.Extensibility;
+using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Metalama.Backstage.Infrastructure;
 
@@ -12,4 +14,15 @@ namespace Metalama.Backstage.Infrastructure;
 public interface IProcessExecutor : IBackstageService
 {
     IProcess Start( ProcessStartInfo startInfo );
+
+    /// <summary>
+    /// Starts a process, waits for its completion, and gets the text that the process has written to its standard
+    /// output.
+    /// </summary>
+    /// <param name="startInfo">The process to start. This method redirects its standard streams.</param>
+    /// <param name="timeout">The time after which the method stops waiting for the completion of the process.</param>
+    /// <param name="standardOutput">At output, the text written by the process to its standard output.</param>
+    /// <returns><c>true</c> if the process completed within <paramref name="timeout"/> and returned the exit code
+    /// zero, otherwise <c>false</c>.</returns>
+    bool TryReadStandardOutput( ProcessStartInfo startInfo, TimeSpan timeout, [NotNullWhen( true )] out string? standardOutput );
 }

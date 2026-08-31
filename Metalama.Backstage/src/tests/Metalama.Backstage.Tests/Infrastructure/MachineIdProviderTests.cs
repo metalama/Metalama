@@ -4,87 +4,118 @@
 
 using Metalama.Backstage.Infrastructure;
 using Metalama.Backstage.Testing;
-using Microsoft.Win32;
 using System;
-using System.Runtime.InteropServices;
 using Xunit;
 using Xunit.Abstractions;
 
 namespace Metalama.Backstage.Tests.Infrastructure;
 
 /// <summary>
-/// Tests of <see cref="MachineIdProvider"/>, which reads the identifier of the machine that runs the test. The other
-/// tests substitute this service (see <see cref="TestMachineIdProvider"/>), so this class is the only one that
-/// exercises the real implementation.
+/// Tests of <see cref="MachineIdProvider"/>, the base class that every operating system implementation shares. The
+/// implementation under test reports a value that the test chooses, so that these tests do not depend on the
+/// operating system that runs them.
 /// </summary>
 public sealed class MachineIdProviderTests : TestsBase
 {
     public MachineIdProviderTests( ITestOutputHelper logger ) : base( logger ) { }
 
-    private MachineIdProvider CreateProvider() => new( this.ServiceProvider );
-
     /// <summary>
-    /// Verifies that the provider reports a non-empty identifier on every operating system. The license audit hashes
-    /// this value, so an empty value would make every machine the same device.
+    /// Verifies that the identifier is the value read by the implementation.
     /// </summary>
     [Fact]
-    public void MachineIdIsNotEmpty()
+    public void MachineIdIsTheValueReadByTheImplementation()
     {
-        var machineId = this.CreateProvider().MachineId;
-        this.Logger.WriteLine( machineId );
+        var provider = new StubMachineIdProvider( this.ServiceProvider, () => "the-machine-id" );
 
-        Assert.False( string.IsNullOrWhiteSpace( machineId ) );
+        Assert.Equal( "the-machine-id", provider.GetUncachedMachineId() );
     }
 
     /// <summary>
-    /// Verifies that the identifier does not change between two reads, and that two instances of the provider report
-    /// the same value.
+    /// Verifies that the surrounding white space of the value read by the implementation is removed.
     /// </summary>
     /// <remarks>
-    /// The license audit counts the devices of one user over a period longer than a single process, so an identifier
-    /// that changes between two processes would count one machine several times. See issue #1873.
+    /// The license audit hashes the value, so a trailing end of line would make the same machine two devices, one for
+    /// each implementation that happens to keep it.
     /// </remarks>
     [Fact]
-    public void MachineIdIsStable()
+    public void MachineIdIsTrimmed()
     {
-        var provider = this.CreateProvider();
+        var provider = new StubMachineIdProvider( this.ServiceProvider, () => "  the-machine-id\r\n" );
 
-        Assert.Equal( provider.MachineId, provider.MachineId );
-        Assert.Equal( provider.MachineId, this.CreateProvider().MachineId );
+        Assert.Equal( "the-machine-id", provider.GetUncachedMachineId() );
     }
 
     /// <summary>
-    /// Verifies that the identifier reported on Windows is the <c>MachineGuid</c> value of the 32-bit view of the
-    /// registry, which is the value that PostSharp reads.
+    /// Verifies that the machine name is reported when the operating system reports no identifier.
+    /// </summary>
+    [Theory]
+    [InlineData( null )]
+    [InlineData( "" )]
+    [InlineData( "   " )]
+    public void MachineIdFallsBackToTheMachineNameWhenTheImplementationReadsNothing( string? machineId )
+    {
+        var provider = new StubMachineIdProvider( this.ServiceProvider, () => machineId );
+
+        Assert.Equal( Environment.MachineName, provider.GetUncachedMachineId() );
+    }
+
+    /// <summary>
+    /// Verifies that the machine name is reported when the implementation throws.
     /// </summary>
     /// <remarks>
-    /// The key is subject to registry redirection, so the 32-bit view and the 64-bit view can hold different values
-    /// on the same machine, and only the 32-bit view is comparable with the values that PostSharp reports. See issue
-    /// #1873.
+    /// The identifier is only reported by telemetry, so no failure to read it may prevent the product from working.
     /// </remarks>
     [Fact]
-    public void MachineIdIsTheMachineGuidOfTheThirtyTwoBitRegistryViewOnWindows()
+    public void MachineIdFallsBackToTheMachineNameWhenTheImplementationThrows()
     {
-        if ( !System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform( OSPlatform.Windows ) )
+        var provider = new StubMachineIdProvider( this.ServiceProvider, () => throw new InvalidOperationException( "The test throws." ) );
+
+        Assert.Equal( Environment.MachineName, provider.GetUncachedMachineId() );
+    }
+
+    /// <summary>
+    /// Verifies that the identifier is read at most once in the process, and not once per instance of the provider.
+    /// </summary>
+    /// <remarks>
+    /// Reading the identifier costs a registry access, a file read or a child process, and the value cannot change
+    /// while the process runs. Several service providers can be built in one process, and each of them creates its
+    /// own instance of the provider.
+    /// </remarks>
+    [Fact]
+    public void MachineIdIsCachedForTheWholeProcess()
+    {
+        var firstProvider = new StubMachineIdProvider( this.ServiceProvider, () => "the-first-machine-id" );
+        var secondProvider = new StubMachineIdProvider( this.ServiceProvider, () => "the-second-machine-id" );
+
+        var firstMachineId = firstProvider.MachineId;
+
+        Assert.Equal( firstMachineId, secondProvider.MachineId );
+        Assert.Equal( 0, secondProvider.ReadCount );
+    }
+
+    /// <summary>
+    /// An implementation of <see cref="MachineIdProvider"/> that reads the value the test gives it, and counts the
+    /// reads.
+    /// </summary>
+    private sealed class StubMachineIdProvider : MachineIdProvider
+    {
+        private readonly Func<string?> _read;
+
+        /// <summary>
+        /// Gets the number of times the identifier has been read from this instance.
+        /// </summary>
+        public int ReadCount { get; private set; }
+
+        public StubMachineIdProvider( IServiceProvider serviceProvider, Func<string?> read ) : base( serviceProvider )
         {
-            return;
+            this._read = read;
         }
 
-#pragma warning disable CA1416 // The code is guarded by a platform check.
-        using var hive = RegistryKey.OpenBaseKey( RegistryHive.LocalMachine, RegistryView.Registry32 );
-        using var key = hive.OpenSubKey( @"SOFTWARE\Microsoft\Cryptography" );
-        var expected = key?.GetValue( "MachineGuid" ) as string;
-#pragma warning restore CA1416
-
-        if ( expected == null )
+        protected override string? ReadMachineId()
         {
-            // The value is created by the operating system at installation time, so it is expected to be present.
-            // A machine that does not have it exercises the fallback instead, which the assertion below covers.
-            Assert.Equal( Environment.MachineName, this.CreateProvider().MachineId );
+            this.ReadCount++;
 
-            return;
+            return this._read();
         }
-
-        Assert.Equal( expected, this.CreateProvider().MachineId );
     }
 }

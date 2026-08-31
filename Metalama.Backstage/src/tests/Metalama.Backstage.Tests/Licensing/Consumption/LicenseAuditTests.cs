@@ -290,7 +290,6 @@ public sealed class LicenseAuditTests : LicenseConsumptionServiceTestsBase
         Assert.NotEqual( 0L, telemetryConfigurationService.GetSalt( TelemetrySaltKind.LicenseAudit ) );
     }
 
-
     /// <summary>
     /// Computes the hash of the given value the way the <c>CryptoUtilities.ComputeStringHash64</c> method of PostSharp
     /// computes it, and formats it the way the license audit report formats a 64-bit hash.

@@ -3,157 +3,75 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Backstage.Diagnostics;
-using Microsoft.Win32;
 using System;
-using System.Diagnostics;
-using System.IO;
-using System.Runtime.InteropServices;
-using System.Text.RegularExpressions;
 
 namespace Metalama.Backstage.Infrastructure;
 
 /// <summary>
-/// Reads the identifier of the current machine from the operating system.
+/// Base implementation of <see cref="IMachineIdProvider"/>. One derived class reads the identifier of one operating
+/// system, and the service registration chooses the one that matches the current operating system.
 /// </summary>
 /// <remarks>
-/// <para>
-/// On Windows the value is the <c>MachineGuid</c> value of the <c>SOFTWARE\Microsoft\Cryptography</c> key of the
-/// 32-bit view of the local machine registry hive. This is the value that PostSharp reads, and the 32-bit view is
-/// part of the specification: the key is subject to registry redirection, so the 32-bit view and the 64-bit view can
-/// hold different values on the same machine.
-/// </para>
-/// <para>
-/// The other operating systems have no PostSharp implementation to be compatible with, so this class reads the
-/// identifier that the operating system itself considers stable: <c>/etc/machine-id</c>, and then
-/// <c>/var/lib/dbus/machine-id</c>, on Linux, and <c>IOPlatformUUID</c> on macOS.
-/// </para>
-/// <para>
-/// When none of these values can be read, the class falls back to <see cref="Environment.MachineName"/>. That name
-/// is stable, but it is not guaranteed to be unique, so a device count that includes such a machine is a lower
-/// bound. A normally installed operating system never reaches this case.
-/// </para>
+/// This class caches the identifier for the whole process, adds the error handling that every implementation needs,
+/// and falls back to <see cref="Environment.MachineName"/> when the operating system reports no identifier.
 /// </remarks>
-internal sealed class MachineIdProvider : IMachineIdProvider
+internal abstract class MachineIdProvider : IMachineIdProvider
 {
-    private const string _windowsRegistryKeyName = @"SOFTWARE\Microsoft\Cryptography";
-    private const string _windowsRegistryValueName = "MachineGuid";
-    private const string _linuxMachineIdPath = "/etc/machine-id";
-    private const string _linuxDBusMachineIdPath = "/var/lib/dbus/machine-id";
+    // Reading the identifier costs a registry access, a file read or a child process, and its value cannot change
+    // while the process runs, so it is read at most once per process even when several service providers are built.
+    private static readonly object _sync = new();
 
-    private static readonly TimeSpan _macCommandTimeout = TimeSpan.FromSeconds( 10 );
+    private static string? _cachedMachineId;
 
-    private readonly ILogger _logger;
-    private readonly object _sync = new();
+    protected ILogger Logger { get; }
 
-    private string? _machineId;
-
-    public MachineIdProvider( IServiceProvider serviceProvider )
+    protected MachineIdProvider( IServiceProvider serviceProvider )
     {
-        this._logger = serviceProvider.GetLoggerFactory().GetLogger( nameof(MachineIdProvider) );
+        this.Logger = serviceProvider.GetLoggerFactory().GetLogger( this.GetType().Name );
     }
 
     public string MachineId
     {
         get
         {
-            // The value is read from the operating system, so it cannot change while the process runs, and reading it
-            // costs a registry access or a child process. It is therefore read once per process.
-            lock ( this._sync )
+            lock ( _sync )
             {
-                return this._machineId ??= this.ReadMachineId();
+                return _cachedMachineId ??= this.GetUncachedMachineId();
             }
         }
     }
 
-    private string ReadMachineId()
+    /// <summary>
+    /// Reads the identifier from the operating system, bypassing the cache. Tests call this method instead of
+    /// <see cref="MachineId"/>, because the cache is shared by every instance in the process.
+    /// </summary>
+    internal string GetUncachedMachineId()
     {
-        string? machineId = null;
-
         try
         {
-            if ( RuntimeInformation.IsOSPlatform( OSPlatform.Windows ) )
+            var machineId = this.ReadMachineId();
+
+            if ( !string.IsNullOrWhiteSpace( machineId ) )
             {
-                machineId = ReadWindowsMachineGuid();
+                return machineId!.Trim();
             }
-            else if ( RuntimeInformation.IsOSPlatform( OSPlatform.Linux ) )
-            {
-                machineId = ReadFirstLine( _linuxMachineIdPath ) ?? ReadFirstLine( _linuxDBusMachineIdPath );
-            }
-            else if ( RuntimeInformation.IsOSPlatform( OSPlatform.OSX ) )
-            {
-                machineId = this.ReadMacPlatformUuid();
-            }
+
+            this.Logger.Warning?.Log( "The operating system reports no machine identifier. Falling back to the machine name." );
         }
         catch ( Exception e )
         {
-            // The identifier is reported by telemetry, so no failure to read it may prevent the product from working.
-            this._logger.Warning?.Log( $"Cannot read the machine identifier from the operating system: {e.Message}" );
+            // The identifier is only reported by telemetry, so no failure to read it may prevent the product from working.
+            this.Logger.Warning?.Log( $"Cannot read the machine identifier from the operating system: {e.Message}" );
         }
 
-        if ( string.IsNullOrWhiteSpace( machineId ) )
-        {
-            // The machine name is stable, and it is the only value left that identifies the machine. It is not
-            // guaranteed to be unique, so a device count computed from it is a lower bound.
-            this._logger.Warning?.Log( "The operating system reports no machine identifier. Falling back to the machine name." );
-
-            return Environment.MachineName;
-        }
-
-        return machineId!;
+        // The machine name is stable, and it is the only value left that identifies the machine. It is not guaranteed
+        // to be unique, so a device count that includes such a machine is a lower bound.
+        return Environment.MachineName;
     }
 
-    private static string? ReadWindowsMachineGuid()
-    {
-#pragma warning disable CA1416 // The call is guarded by a platform check.
-        using var hive = RegistryKey.OpenBaseKey( RegistryHive.LocalMachine, RegistryView.Registry32 );
-        using var key = hive.OpenSubKey( _windowsRegistryKeyName );
-
-        return key?.GetValue( _windowsRegistryValueName ) as string;
-#pragma warning restore CA1416
-    }
-
-    private static string? ReadFirstLine( string path )
-    {
-        if ( !File.Exists( path ) )
-        {
-            return null;
-        }
-
-        using var reader = new StreamReader( path );
-
-        return reader.ReadLine()?.Trim();
-    }
-
-    private string? ReadMacPlatformUuid()
-    {
-        var startInfo = new ProcessStartInfo( "ioreg", "-rd1 -c IOPlatformExpertDevice" )
-        {
-            RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false, CreateNoWindow = true
-        };
-
-        using var process = Process.Start( startInfo );
-
-        if ( process == null )
-        {
-            return null;
-        }
-
-        // The error stream is drained asynchronously, otherwise a full error buffer would block the child process
-        // while this method reads its output stream.
-        process.ErrorDataReceived += ( _, _ ) => { };
-        process.BeginErrorReadLine();
-
-        var output = process.StandardOutput.ReadToEnd();
-
-        if ( !process.WaitForExit( (int) _macCommandTimeout.TotalMilliseconds ) )
-        {
-            this._logger.Warning?.Log( "The 'ioreg' command did not complete in time." );
-
-            return null;
-        }
-
-        var match = Regex.Match( output, @"""IOPlatformUUID""\s*=\s*""(?<uuid>[^""]+)""" );
-
-        return match.Success ? match.Groups["uuid"].Value : null;
-    }
+    /// <summary>
+    /// Reads the identifier that the current operating system gives to the machine, or returns <c>null</c> when the
+    /// operating system reports none. Exceptions do not have to be handled by the implementation.
+    /// </summary>
+    protected abstract string? ReadMachineId();
 }
