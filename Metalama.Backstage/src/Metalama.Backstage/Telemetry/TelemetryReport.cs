@@ -63,11 +63,23 @@ internal abstract class TelemetryReport
 
 #pragma warning disable CA1822
 
-    // The user hash is only ever sent to the first-party diagnostic store (bits) by the usage-tracking
-    // channel (the license-audit report), never to Matomo, so it is keyed by UsageTrackingSalt to keep it
-    // unjoinable to both the Matomo dataset and the exception-reporting data. See #1668.
-    public long DetailedTrackingUserHash
-        => HashUtilities.ComputeInt64Hmac( Environment.UserName, this._telemetryConfigurationService.GetSalt( this.DetailedTrackingHashKind ) );
+    /// <summary>
+    /// Gets the identifier of the current user reported by the license audit.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The value is computed by <see cref="HashUtilities.ComputeStringHash64"/>, which is the algorithm PostSharp
+    /// uses. It is unkeyed, so the same account name gives the same value on every machine and in both products.
+    /// The license audit therefore counts one person once, whatever the number of machines that person uses and
+    /// whatever the mixture of the two products. See issue #1873.
+    /// </para>
+    /// <para>
+    /// This value is only ever sent to the first-party store, by the license audit report, and never to Matomo. The
+    /// Matomo channel and the exception reporting channel keep their salted and monthly rotated identifiers, which
+    /// stay unjoinable to this one. See issue #1668.
+    /// </para>
+    /// </remarks>
+    public long CrossProductUserHash => HashUtilities.ComputeStringHash64( Environment.UserName );
 #pragma warning restore CA1822
 
     // The device hash sent to the third-party analytics platform (Matomo). Keyed by MatomoSalt.

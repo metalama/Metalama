@@ -55,9 +55,12 @@ internal sealed class LicenseAuditTelemetryReport : TelemetryReport
         AddToMetricsAndHashCode( new LicenseAuditDateMetric( "BuildDate", buildDate ) );
         AddToMetricsAndHashCode( new StringMetric( "License", this.License.LicenseString ) );
 
-        // This is a first-party (bits) usage-tracking report, so identifiers are keyed by UsageTrackingSalt and
+        // The user is identified the way PostSharp identifies it: an unkeyed hash of the account name, which is the
+        // same value on every machine and in both products, so that one person is counted once. See #1873.
+        AddToMetricsAndHashCode( new LicenseAuditHashMetric( "User", this.CrossProductUserHash ) );
+
+        // This is a first-party (bits) usage-tracking report, so the device hash is keyed by LicenseAuditSalt and
         // cannot be correlated with the Matomo dataset nor with the exception-reporting data. See #1668.
-        AddToMetricsAndHashCode( new LicenseAuditHashMetric( "User", this.DetailedTrackingUserHash ) );
         AddToMetricsAndHashCode( new LicenseAuditHashMetric( "Machine", this.DetailedTrackingDeviceHash ) );
         AddToMetricsAndHashCode( new BoolMetric( "CEIP", isUsageReportingEnabled ) );
         AddToMetricsAndHashCode( new StringMetric( "ApplicationName", this.ApplicationName ) );

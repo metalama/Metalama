@@ -323,7 +323,7 @@ public sealed class LicenseAuditTests : LicenseConsumptionServiceTestsBase
             value = -1;
         }
 
-        return value.ToString( "x16", CultureInfo.InvariantCulture );
+        return value.ToString( "x", CultureInfo.InvariantCulture );
     }
 
     /// <summary>
@@ -404,7 +404,7 @@ public sealed class LicenseAuditTests : LicenseConsumptionServiceTestsBase
         {
             var saltedUserHash = HashUtilities
                 .ComputeInt64Hmac( Environment.UserName, telemetryConfigurationService.GetSalt( saltKind ) )
-                .ToString( "x16", CultureInfo.InvariantCulture );
+                .ToString( "x", CultureInfo.InvariantCulture );
 
             Assert.NotEqual( saltedUserHash, GetReportField( report, "User" ) );
         }
