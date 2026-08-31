@@ -2,14 +2,19 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Backstage.Diagnostics;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Comparers;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.Collections;
+using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System;
+using System.Diagnostics.CodeAnalysis;
+using System.Threading.Tasks;
 
 namespace Metalama.Framework.Engine.CodeModel
 {
@@ -36,9 +41,8 @@ namespace Metalama.Framework.Engine.CodeModel
                 // the syntax may not correspond to the class name because of `using xx = yy` directives.
 
                 var semanticModel = this._compilation.CompilationContext.SemanticModelProvider.GetSemanticModel( node.SyntaxTree );
-                var attributeConstructor = semanticModel.GetSymbolInfo( node ).Symbol;
 
-                if ( attributeConstructor == null )
+                if ( !this.TryGetAttributeConstructor( semanticModel, node, out var attributeConstructor ) )
                 {
                     return;
                 }
@@ -159,6 +163,40 @@ namespace Metalama.Framework.Engine.CodeModel
                 }
 
                 base.VisitAttribute( node );
+            }
+
+            /// <summary>
+            /// Attempts to resolve the constructor of the given attribute through the given semantic model, and
+            /// returns <c>false</c> when the attribute cannot be bound.
+            /// </summary>
+            /// <remarks>
+            /// The semantic model can throw while it binds an attribute at design time, because the text of the
+            /// document can have a line index that disagrees with its content, and Roslyn maps the span of the
+            /// attribute to a line position while it resolves the caller-information arguments of the constructor.
+            /// See issue #1858. Skipping the attribute costs the aspects that the attribute represents, while
+            /// letting the exception escape aborts the construction of the code model and therefore costs every
+            /// design-time service of the whole project.
+            /// </remarks>
+            private bool TryGetAttributeConstructor(
+                SemanticModel semanticModel,
+                AttributeSyntax node,
+                [NotNullWhen( true )] out ISymbol? attributeConstructor )
+            {
+                try
+                {
+                    attributeConstructor = semanticModel.GetSymbolInfo( node ).Symbol;
+                }
+                catch ( Exception e ) when ( e is not (OperationCanceledException or TaskCanceledException) )
+                {
+                    this._compilation.Project.ServiceProvider.GetLoggerFactory()
+                        .GetLogger( nameof(AttributeDiscoveryVisitor) )
+                        .Warning?.Log(
+                            $"The attribute '{node}' of '{node.SyntaxTree.FilePath}' has been ignored because the semantic model could not bind it: {e.Message}" );
+
+                    attributeConstructor = null;
+                }
+
+                return attributeConstructor != null;
             }
 
             public ImmutableDictionaryOfArray<IRef<INamedType>, AttributeRef> GetDiscoveredAttributes() => this._builder.ToImmutable();

@@ -122,6 +122,11 @@ class C< [MyAttribute(4)]T>
 
             var compilation = testContext.CreateCompilationModel( roslynCompilation );
 
+            // The types of the tree that cannot be bound are still part of the code model.
+            Assert.Equal(
+                ["Broken", "Healthy", "MyAttribute"],
+                compilation.Types.SelectAsArray( t => t.Name ).OrderBy( name => name, StringComparer.Ordinal ) );
+
             var myAttribute = compilation.Types.OfName( "MyAttribute" ).Single();
 
             var targets = compilation.GetAllAttributesOfType( myAttribute )

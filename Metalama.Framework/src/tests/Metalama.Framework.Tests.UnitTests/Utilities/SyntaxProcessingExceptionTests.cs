@@ -47,6 +47,7 @@ namespace Metalama.Framework.Tests.UnitTests.Utilities
             var exception = GetExceptionForAttributeOf( InconsistentLineIndexSourceText.Create( _code ), expectNoPosition: true );
 
             AssertMessageDescribesTheNode( exception.Message );
+            Assert.Contains( "the position is not available", exception.Message, StringComparison.Ordinal );
         }
 
         private static void AssertMessageDescribesTheNode( string message )
