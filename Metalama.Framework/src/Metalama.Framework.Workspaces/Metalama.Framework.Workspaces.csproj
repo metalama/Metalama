@@ -4,7 +4,7 @@
     <PropertyGroup>
         <!-- We must target several versions because the MSBuild version and therefore the .NET runtime version
              must match the version of the .NET SDK used for the project. -->
-        <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+        <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
         <RootNamespace>Metalama.Framework.Workspaces</RootNamespace>
         <UseMetalamaCompiler>Private</UseMetalamaCompiler>
         <!-- Packaging -->
@@ -58,13 +58,22 @@
         <None Include="README.md" Pack="true" PackagePath="/"/>
     </ItemGroup>
 
+    <PropertyGroup>
+        <!-- The folder of Microsoft.CodeAnalysis.Workspaces.MSBuild whose assets this project packs. That package ships
+             net472, net8.0 and net9.0 assets up to version 5.0.0, so it has no folder named after our net10.0 target and
+             NuGet resolves its net9.0 asset instead. Set this property to $(TargetFramework) again once the version
+             given by RoslynMaxVersion ships a net10.0 asset. -->
+        <_WorkspacesMSBuildAssetTargetFramework>$(TargetFramework)</_WorkspacesMSBuildAssetTargetFramework>
+        <_WorkspacesMSBuildAssetTargetFramework Condition="'$(TargetFramework)'=='net10.0'">net9.0</_WorkspacesMSBuildAssetTargetFramework>
+    </PropertyGroup>
+
     <Target Name="_AddPackageContent">
         <ItemGroup>
 
             <!-- We include the libs of Microsoft.CodeAnalysis.Workspaces.MSBuild so we can make the dependency on Microsoft.CodeAnalysis.Workspaces.MSBuild
                  completely private, which de facto removes the transitive dependency on Microsoft.Build packages, which confuse LinqPad. -->
 
-            <TfmSpecificPackageFile Include="$(PkgMicrosoft_CodeAnalysis_Workspaces_MSBuild)/lib/$(TargetFramework)/**/*.dll" PackagePath="lib/$(TargetFramework)"/>
+            <TfmSpecificPackageFile Include="$(PkgMicrosoft_CodeAnalysis_Workspaces_MSBuild)/lib/$(_WorkspacesMSBuildAssetTargetFramework)/**/*.dll" PackagePath="lib/$(TargetFramework)"/>
 
             
             <!-- We include the build hosts (included by Microsoft.CodeAnalysis.Workspaces.MSBuild) so that users don't have 

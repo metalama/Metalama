@@ -30,7 +30,7 @@ var product = new Product( MetalamaDependencies.Metalama )
             // The SDK is required by the Workspace tests.
             new DotNetComponent( PreferredVersions.DotNetSdk.V_8_0, DotNetComponentKind.Sdk ),
 
-            // Required by eng and to provide net9.0 targeting pack.
+            // Required by eng, which targets net9.0. No product project targets net9.0 any more.
             new DotNetComponent( PreferredVersions.DotNetSdk.V_9_0, DotNetComponentKind.Sdk ),
 
             // Required by some tests.

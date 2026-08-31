@@ -3,14 +3,14 @@
         <!-- Load DiffEngine dependencies first -->
         <MetalamaExtensionAssembly Include="$(MSBuildThisFileDirectory)../metalama/net472/EmptyFiles.dll" TargetFramework="net472" />
         <MetalamaExtensionAssembly Include="$(MSBuildThisFileDirectory)../metalama/net8.0/EmptyFiles.dll" TargetFramework="net8.0" />
-        <MetalamaExtensionAssembly Include="$(MSBuildThisFileDirectory)../metalama/net9.0/EmptyFiles.dll" TargetFramework="net9.0" />
+        <MetalamaExtensionAssembly Include="$(MSBuildThisFileDirectory)../metalama/net10.0/EmptyFiles.dll" TargetFramework="net10.0" />
         <MetalamaExtensionAssembly Include="$(MSBuildThisFileDirectory)../metalama/net472/DiffEngine.dll" TargetFramework="net472" />
         <MetalamaExtensionAssembly Include="$(MSBuildThisFileDirectory)../metalama/net8.0/DiffEngine.dll" TargetFramework="net8.0" />
-        <MetalamaExtensionAssembly Include="$(MSBuildThisFileDirectory)../metalama/net9.0/DiffEngine.dll" TargetFramework="net9.0" />
+        <MetalamaExtensionAssembly Include="$(MSBuildThisFileDirectory)../metalama/net10.0/DiffEngine.dll" TargetFramework="net10.0" />
         <!-- Then load the extension assembly -->
         <MetalamaExtensionAssembly Include="$(MSBuildThisFileDirectory)../metalama/net472/Metalama.Extensions.DiffEngine.dll" TargetFramework="net472" />
         <MetalamaExtensionAssembly Include="$(MSBuildThisFileDirectory)../metalama/net8.0/Metalama.Extensions.DiffEngine.dll" TargetFramework="net8.0" />
-        <MetalamaExtensionAssembly Include="$(MSBuildThisFileDirectory)../metalama/net9.0/Metalama.Extensions.DiffEngine.dll" TargetFramework="net9.0" />
+        <MetalamaExtensionAssembly Include="$(MSBuildThisFileDirectory)../metalama/net10.0/Metalama.Extensions.DiffEngine.dll" TargetFramework="net10.0" />
         <!-- Register the test plugin -->
         <MetalamaTestPlugIn Include="Metalama.Extensions.DiffEngine.DiffEngineRunner, Metalama.Extensions.DiffEngine" />
     </ItemGroup>
