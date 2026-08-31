@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Code;
-using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Formatting;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Microsoft.CodeAnalysis;
@@ -44,8 +43,6 @@ internal sealed class DurableExpression : IDurableExpression
     private readonly ExpressionSyntax _syntax;
 #pragma warning restore LAMA0870
 
-    private readonly bool? _isReferenceable;
-
     public DurableExpression( ExpressionSyntax syntax, IType type, bool? isReferenceable, bool isAssignable )
         : this( syntax, type.ToDurableRef(), isReferenceable, isAssignable ) { }
 
@@ -53,7 +50,7 @@ internal sealed class DurableExpression : IDurableExpression
     {
         this._syntax = Detach( syntax );
         this.Type = type;
-        this._isReferenceable = isReferenceable;
+        this.IsReferenceable = isReferenceable;
         this.IsAssignable = isAssignable;
     }
 
@@ -81,14 +78,14 @@ internal sealed class DurableExpression : IDurableExpression
     /// <remarks>
     /// Not on <see cref="IDurableExpression"/>, because <see cref="IExpression"/> does not expose it either.
     /// </remarks>
-    internal bool? IsReferenceable => this._isReferenceable;
+    internal bool? IsReferenceable { get; }
 
     public bool IsAssignable { get; }
 
     public string Text => this._syntax.ToString();
 
     public IExpression ToExpression( ICompilation compilation )
-        => new SyntaxUserExpression( this._syntax, this.Type.GetTarget( compilation ), this._isReferenceable, this.IsAssignable );
+        => new SyntaxUserExpression( this._syntax, this.Type.GetTarget( compilation ), this.IsReferenceable, this.IsAssignable );
 
     /// <summary>
     /// Returns a node that belongs to no tree, re-parsing it if necessary.

@@ -4,7 +4,6 @@
 
 using JetBrains.Annotations;
 using Metalama.Framework.Code;
-using Metalama.Framework.Code.SyntaxBuilders;
 using Metalama.Framework.Serialization;
 
 namespace Metalama.Framework.Advising.PullStrategies;

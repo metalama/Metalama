@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -362,11 +362,15 @@ public sealed class ExtensionContributorMemoryLeakTests : DesignTimeTestBase
 
         public TestContributor( SyntaxTree? syntaxTree, object payload )
         {
-            this.SyntaxTree = syntaxTree;
+            this.DocumentKey = syntaxTree?.GetDocumentKey() ?? default;
             this._payload = payload;
         }
 
-        public SyntaxTree? SyntaxTree { get; }
+        /// <remarks>
+        /// A key, so that the payload is the only thing this contributor retains. That is what the two sessions are
+        /// meant to differ by.
+        /// </remarks>
+        public DocumentKey DocumentKey { get; }
 
         public ContributorKind ContributorKind => _kind;
 

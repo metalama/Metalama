@@ -238,7 +238,7 @@ internal sealed class PullConstructorParameterAdviceImpl
                         (IAspectClassImpl) this._context.AspectClassResolver.GetAspectClass( typeof(PullConstructorParameterTransitiveAspect) ),
                         this._aspectLayerInstance.AspectInstance.AspectState,
                         this._aspectLayerInstance.AspectInstance.PredecessorDegree + 1,
-                        baseParameter.GetPrimarySyntaxTree() ) );
+                        baseParameter.GetPrimarySyntaxTree()?.GetDocumentKey() ?? default ) );
             }
         }
 

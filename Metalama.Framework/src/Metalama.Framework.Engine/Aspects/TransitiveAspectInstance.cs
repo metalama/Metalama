@@ -4,12 +4,17 @@
 
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
+using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Extensibility;
-using Microsoft.CodeAnalysis;
 
 namespace Metalama.Framework.Engine.Aspects;
 
-internal sealed class TransitiveAspectInstance : ITransitivePipelineContributor, IExtensionPipelineContributor, IDesignTimePipelineResultExtension
+/// <remarks>
+/// A contributor, produced by one run of the pipeline and discarded with it, so it is under no durability constraint.
+/// Its design-time form is <see cref="DesignTimeTransitiveAspectInstance"/>, which is a separate object because that
+/// one is stored per file and carried forward across edits.
+/// </remarks>
+internal sealed class TransitiveAspectInstance : ITransitivePipelineContributor, IExtensionPipelineContributor
 {
     internal TransitiveAspectInstance(
         IAspect aspect,
@@ -18,7 +23,7 @@ internal sealed class TransitiveAspectInstance : ITransitivePipelineContributor,
         IAspectClassImpl aspectClass,
         IAspectState? aspectState,
         int predecessorDegree,
-        SyntaxTree? syntaxTree )
+        DocumentKey documentKey )
     {
         this.Aspect = aspect;
         this.TargetDeclaration = targetDeclaration;
@@ -26,7 +31,7 @@ internal sealed class TransitiveAspectInstance : ITransitivePipelineContributor,
         this.TargetDeclarationDepth = targetDeclarationDepth;
         this.PredecessorDegree = predecessorDegree;
         this.AspectState = aspectState;
-        this.SyntaxTree = syntaxTree;
+        this.DocumentKey = documentKey;
     }
 
     public int PredecessorDegree { get; }
@@ -35,11 +40,9 @@ internal sealed class TransitiveAspectInstance : ITransitivePipelineContributor,
     /// Gets the declaration this aspect instance applies to.
     /// </summary>
     /// <remarks>
-    /// Typed as <see cref="IDurableRef{T}"/> rather than <see cref="IRef{T}"/> on purpose. An instance of this class is
-    /// stored in the design-time result of the file declaring its target, and the pipeline carries that result forward
-    /// to every later version of the project, so a compilation-bound reference here would pin the version it was
-    /// produced in for the whole editing session. Declaring the requirement in the type makes it the compiler's
-    /// business rather than the caller's discipline. See issue #1797.
+    /// Durable although this class no longer has to be, because the value is copied into
+    /// <see cref="DesignTimeTransitiveAspectInstance"/>, which does. Converting where the reference is created rather
+    /// than at the boundary keeps the requirement next to the call that has the declaration. See issue #1797.
     /// </remarks>
     public IDurableRef<IDeclaration> TargetDeclaration { get; }
 
@@ -51,21 +54,9 @@ internal sealed class TransitiveAspectInstance : ITransitivePipelineContributor,
 
     public int TargetDeclarationDepth { get; }
 
-    /// <remarks>
-    /// This member reports LAMA0870, deliberately left unsuppressed as a problem to be solved. It belongs to
-    /// <see cref="ITransitivePipelineContributor"/>, which is under no durability constraint, but
-    /// <see cref="ToDesignTime"/> returns <c>this</c>, so the tree survives into the object that the design-time
-    /// pipeline stores per file and carries forward. <c>SplitResultsByTree</c> converts it to a
-    /// <c>DocumentKey</c> before calling <see cref="ToDesignTime"/>, so the design-time form never needs it. The
-    /// repair has to keep the transitive manifest working and flips a control in
-    /// <c>TransitiveContributorMemoryLeakTests</c>. See #1830.
-    /// </remarks>
-    public SyntaxTree? SyntaxTree { get; }
+    public DocumentKey DocumentKey { get; }
 
-    public IDesignTimePipelineResultExtension ToDesignTime() => this;
+    public IDesignTimePipelineResultExtension ToDesignTime() => new DesignTimeTransitiveAspectInstance( this );
 
     public ContributorKind ContributorKind => ContributorKind.TransitiveAspectInstance;
-
-    ITransitiveAspectsManifestExtension IDesignTimePipelineResultExtension.ToTransitiveAspectManifestExtension()
-        => new SerializableTransitiveAspectInstance( this );
 }

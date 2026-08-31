@@ -543,9 +543,9 @@ public sealed partial class DesignTimeAspectPipelineResult
         // Split extensions by syntax tree.
         foreach ( var extension in pipelineResults.Extensions )
         {
-            var syntaxTree = extension.SyntaxTree;
+            var documentKey = extension.DocumentKey;
 
-            if ( syntaxTree == null && !resultBuilders.ContainsKey( default ) )
+            if ( documentKey.IsDefault && !resultBuilders.ContainsKey( default ) )
             {
                 resultBuilders.Add( default, new SyntaxTreePipelineResult.Builder( null ) );
             }
@@ -565,16 +565,15 @@ public sealed partial class DesignTimeAspectPipelineResult
                 extension.Granularity,
                 compilation.CompilationContext ); */
 
-                var documentKey = syntaxTree?.GetDocumentKey() ?? default;
-
                 if ( resultBuilders.TryGetValue( documentKey, out var builder ) )
                 {
                     builder.Extensions ??= ImmutableArray.CreateBuilder<IDesignTimePipelineResultExtension>();
                     builder.Extensions.Add( designTimeExtension );
                 }
-                else if ( syntaxTree != null && compilation.Compilation.ContainsSyntaxTree( syntaxTree ) )
+                else if ( !documentKey.IsDefault && compilation.Compilation.GetIndexedSyntaxTrees().ContainsKey( documentKey ) )
                 {
-                    // The tree belongs to this project but is not dirty, so it is not part of the partial compilation.
+                    // The document belongs to this project but is not dirty, so it is not part of the partial
+                    // compilation.
                     // This is the same situation as for an inheritable aspect instance above: an aspect can export a
                     // contributor onto a declaration it did not itself target, such as the declaring type of a base
                     // constructor. The contributor is skipped rather than filed under that tree, because the tree
@@ -587,7 +586,7 @@ public sealed partial class DesignTimeAspectPipelineResult
                 }
                 else
                 {
-                    // The tree belongs to another compilation, or the contributor reports none and the result keyed by
+                    // The document belongs to another compilation, or the contributor reports none and the result keyed by
                     // the default DocumentKey was not created, which the branch above normally guarantees. The case
                     // that matters is the first: with cross-project validators the syntax tree a reference validator
                     // reports is that of the validated declaration, and a fabric of this project can validate
