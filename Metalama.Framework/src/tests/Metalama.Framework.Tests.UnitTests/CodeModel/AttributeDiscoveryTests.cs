@@ -3,7 +3,9 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Code;
+using Metalama.Framework.Tests.UnitTests.Utilities;
 using Metalama.Testing.UnitTesting;
+using Microsoft.CodeAnalysis.CSharp;
 using System;
 using System.Linq;
 using Xunit;
@@ -78,6 +80,58 @@ class C< [MyAttribute(4)]T>
                     "C<T>.ff:13"
                 ],
                 targets );
+        }
+
+        /// <summary>
+        /// Verifies that an attribute that the semantic model cannot bind does not abort the construction of the
+        /// code model, and that the attributes of the other syntax trees are still discovered.
+        /// </summary>
+        /// <remarks>
+        /// Issue #1858 reports that a single attribute of a single file was costing the user every design-time
+        /// service of the project.
+        /// </remarks>
+        [Fact]
+        public void AttributeThatCannotBeBoundDoesNotAbortTheCodeModel()
+        {
+            using var testContext = this.CreateTestContext();
+
+            // The caller-information parameter makes Roslyn map the span of the attribute to a line while it binds
+            // the attribute, and that mapping is the operation that fails on a text with an inconsistent line index.
+            const string brokenCode = "using System.Runtime.CompilerServices;\r\n"
+                                      + "\r\n"
+                                      + "public class MyAttribute : System.Attribute\r\n"
+                                      + "{\r\n"
+                                      + "    public MyAttribute( [CallerLineNumber] int line = 0 ) { }\r\n"
+                                      + "}\r\n"
+                                      + "\r\n"
+                                      + "[MyAttribute]\r\n"
+                                      + "public class Broken { }\r\n";
+
+            const string healthyCode = "[MyAttribute]\r\npublic class Healthy { }\r\n";
+
+            var parseOptions = testContext.GetCompilationParseOptions();
+
+            var brokenTree = CSharpSyntaxTree.ParseText(
+                InconsistentLineIndexSourceText.Create( brokenCode ),
+                parseOptions,
+                "Broken.cs" );
+
+            var healthyTree = CSharpSyntaxTree.ParseText( healthyCode, parseOptions, "Healthy.cs" );
+
+            var roslynCompilation = testContext.CreateEmptyCSharpCompilation( "test" ).AddSyntaxTrees( brokenTree, healthyTree );
+
+            var compilation = testContext.CreateCompilationModel( roslynCompilation );
+
+            var myAttribute = compilation.Types.OfName( "MyAttribute" ).Single();
+
+            var targets = compilation.GetAllAttributesOfType( myAttribute )
+                .Select( a => a.ContainingDeclaration.ToDisplayString() )
+                .OrderBy( name => name, StringComparer.Ordinal )
+                .ToArray();
+
+            // The attribute of the tree that cannot be bound is not discovered, but the attribute of the other
+            // tree is.
+            Assert.Equal( ["Healthy"], targets );
         }
 
         [Fact]
