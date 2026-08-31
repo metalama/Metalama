@@ -46,6 +46,38 @@ public sealed class DurableUseSiteTests : DurableAnalyzerTestBase
             Code( "class A { [Durable] private object? _value = Holder.Tree; } static class Holder { public static SyntaxTree? Tree; }" ),
             "LAMA0871" );
 
+    /// <remarks>
+    /// <para>
+    /// A lambda that mentions nothing of its surroundings holds nothing, and the compiler gives it a cached static
+    /// delegate. The rule used to report one anyway when it was written inside a local function that captured a
+    /// variable, because <c>DataFlowAnalysis.Captured</c> names every variable captured by a closure the region takes
+    /// part in, including the closure of the enclosing local function.
+    /// </para>
+    /// <para>
+    /// This is the shape that produced the false positive, in <c>MulticastImplementation</c>: a list of rules built by
+    /// local functions, with lambdas passed to a durable parameter from inside them.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public async Task ALambdaInALocalFunctionThatCapturesNothingItself_IsNotReported()
+        => await AssertNoDiagnosticAsync(
+            Code(
+                "using System.Collections.Generic; class A { public static void Take( [Durable] Func<int, bool> f ) { } "
+                + "public void M() { var rules = new List<Action<SyntaxTree>>(); "
+                + "void Accept() { rules.Add( t => { } ); Take( x => x > 0 ); } Accept(); } }" ) );
+
+    /// <remarks>
+    /// The control for the test above: the same shape, but the lambda does mention the captured variable.
+    /// </remarks>
+    [Fact]
+    public async Task ALambdaInALocalFunctionThatCapturesTheVariableItself_IsReported()
+        => await AssertSingleDiagnosticAsync(
+            Code(
+                "using System.Collections.Generic; class A { public static void Take( [Durable] Func<int, bool> f ) { } "
+                + "public void M() { var rules = new List<Action<SyntaxTree>>(); "
+                + "void Accept() { rules.Add( t => { } ); Take( x => rules.Count > x ); } Accept(); } }" ),
+            "LAMA0878" );
+
     [Fact]
     public async Task AssigningADurableValue_IsNotReported()
         => await AssertNoDiagnosticAsync(

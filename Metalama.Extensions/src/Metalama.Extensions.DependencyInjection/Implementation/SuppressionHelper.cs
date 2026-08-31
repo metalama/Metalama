@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -22,11 +22,15 @@ public static class SuppressionHelper
     {
         if ( introducedMember.Type.IsNullable != true )
         {
+            // The name is read into a local because the filter below is stored in the suppression, which outlives
+            // this run. Capturing the declaration would make the filter reach its CompilationModel.
+            var introducedMemberName = introducedMember.Name;
+
             foreach ( var constructor in constructors )
             {
                 adviser.Diagnostics.Suppress(
                     DiagnosticDescriptors.NonNullableFieldMustContainValue.WithFilter(
-                        diag => diag.Arguments.Any( arg => arg is string s && s == introducedMember.Name ) ),
+                        diag => diag.Arguments.Any( arg => arg is string s && s == introducedMemberName ) ),
                     constructor );
             }
         }

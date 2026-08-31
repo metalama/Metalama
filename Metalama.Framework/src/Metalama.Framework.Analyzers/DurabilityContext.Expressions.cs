@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -229,8 +229,30 @@ namespace Metalama.Framework.Analyzers.Durability
                 return ExpressionVerdict.Durable;
             }
 
+            // Captured names every variable captured by a closure that the region takes part in, which includes the
+            // closure of an enclosing local function or lambda. A lambda written inside a local function that captures
+            // a variable is therefore reported as capturing that variable even when it never mentions it, and the
+            // compiler gives such a lambda a cached static delegate that holds nothing. Intersecting with what the
+            // region reads and writes keeps only what this lambda actually uses.
+            var used = new HashSet<ISymbol>( SymbolEqualityComparer.Default );
+
+            foreach ( var symbol in dataFlow.ReadInside )
+            {
+                used.Add( symbol );
+            }
+
+            foreach ( var symbol in dataFlow.WrittenInside )
+            {
+                used.Add( symbol );
+            }
+
             foreach ( var captured in dataFlow.Captured )
             {
+                if ( !used.Contains( captured ) )
+                {
+                    continue;
+                }
+
                 var capturedType = captured switch
                 {
                     ILocalSymbol local => local.Type,

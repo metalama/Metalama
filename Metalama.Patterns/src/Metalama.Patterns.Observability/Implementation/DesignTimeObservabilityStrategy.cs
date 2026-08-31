@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -12,7 +12,7 @@ namespace Metalama.Patterns.Observability.Implementation;
 /// Introduces the minimum set of observable members, without bodies, to suit the Metalama design-time execution scenario.
 /// </summary>
 [CompileTime]
-internal class DesignTimeObservabilityStrategy : IObservabilityStrategy, ITemplateProvider
+internal class DesignTimeObservabilityStrategy : IObservabilityStrategyImplementation, ITemplateProvider
 {
     public virtual void BuildAspect( IAspectBuilder<INamedType> builder )
     {
