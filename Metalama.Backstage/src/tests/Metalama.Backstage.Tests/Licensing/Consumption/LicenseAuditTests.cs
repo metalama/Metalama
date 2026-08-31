@@ -292,8 +292,8 @@ public sealed class LicenseAuditTests : LicenseConsumptionServiceTestsBase
 
 
     /// <summary>
-    /// Computes the user hash the way the <c>CryptoUtilities.ComputeStringHash64</c> method of PostSharp computes it,
-    /// and formats it the way the license audit report formats a 64-bit hash.
+    /// Computes the hash of the given value the way the <c>CryptoUtilities.ComputeStringHash64</c> method of PostSharp
+    /// computes it, and formats it the way the license audit report formats a 64-bit hash.
     /// </summary>
     /// <remarks>
     /// This method is an oracle written from the specification given in issue #1873, and is deliberately independent
@@ -301,9 +301,9 @@ public sealed class LicenseAuditTests : LicenseConsumptionServiceTestsBase
     /// encode it as UTF-8, compute the MD5 hash, read the first eight bytes as a little-endian <see cref="long"/>,
     /// and replace the value zero by the value minus one.
     /// </remarks>
-    private static string ComputeExpectedPostSharpUserHash( string userName )
+    private static string ComputeExpectedPostSharpHash( string text )
     {
-        var normalized = userName.Trim().ToLowerInvariant().Normalize();
+        var normalized = text.Trim().ToLowerInvariant().Normalize();
         var bytes = Encoding.UTF8.GetBytes( normalized );
 
 #pragma warning disable CA5351 // MD5 is required to produce the same values as PostSharp.
@@ -352,7 +352,7 @@ public sealed class LicenseAuditTests : LicenseConsumptionServiceTestsBase
         var report = Assert.Single( this.GetReports() );
         this.Logger.WriteLine( report );
 
-        Assert.Equal( ComputeExpectedPostSharpUserHash( Environment.UserName ), GetReportField( report, "User" ) );
+        Assert.Equal( ComputeExpectedPostSharpHash( Environment.UserName ), GetReportField( report, "User" ) );
     }
 
     /// <summary>
@@ -376,7 +376,7 @@ public sealed class LicenseAuditTests : LicenseConsumptionServiceTestsBase
         var report = Assert.Single( this.GetReports() );
         this.Logger.WriteLine( report );
 
-        Assert.Equal( ComputeExpectedPostSharpUserHash( Environment.UserName ), GetReportField( report, "User" ) );
+        Assert.Equal( ComputeExpectedPostSharpHash( Environment.UserName ), GetReportField( report, "User" ) );
     }
 
     /// <summary>
@@ -408,5 +408,95 @@ public sealed class LicenseAuditTests : LicenseConsumptionServiceTestsBase
 
             Assert.NotEqual( saltedUserHash, GetReportField( report, "User" ) );
         }
+    }
+
+    /// <summary>
+    /// Verifies that the license audit report identifies the machine by the hash that PostSharp computes, applied to
+    /// the identifier that the operating system gives to the machine.
+    /// </summary>
+    /// <remarks>
+    /// The end-user license agreement grants two devices per user, so the devices of one user must be countable. The
+    /// two products must therefore report the same value for the same machine, and that value must not depend on the
+    /// user profile under which the build runs. See issue #1873.
+    /// </remarks>
+    [Fact]
+    public void LicenseAuditReportsPostSharpCompatibleDeviceHash()
+    {
+        this.CreateAndConsumeLicense( _auditedLicenseKey );
+
+        var report = Assert.Single( this.GetReports() );
+        this.Logger.WriteLine( report );
+
+        Assert.Equal( ComputeExpectedPostSharpHash( this.MachineIdProvider.MachineId ), GetReportField( report, "Machine" ) );
+    }
+
+    /// <summary>
+    /// Verifies that the device hash reported in the license audit follows the machine, and not the installation.
+    /// </summary>
+    /// <remarks>
+    /// Two user profiles of the same machine, and the same profile before and after a monthly rotation, must report
+    /// the same device. See issue #1873.
+    /// </remarks>
+    [Theory]
+    [InlineData( 0x0123456789ABCDEF )]
+    [InlineData( 0x7EDCBA9876543210 )]
+    public void LicenseAuditDeviceHashDependsOnlyOnTheMachineIdentifier( long licenseAuditSalt )
+    {
+        this.ConfigurationManager!.Update<TelemetryConfiguration>(
+            c => c with { LicenseAuditSalt = licenseAuditSalt, DeviceId = new Guid( "1e0f9a8b-7c6d-5e4f-3a2b-1c0d9e8f7a6b" ) } );
+
+        this.CreateAndConsumeLicense( _auditedLicenseKey );
+
+        var report = Assert.Single( this.GetReports() );
+        this.Logger.WriteLine( report );
+
+        Assert.Equal( ComputeExpectedPostSharpHash( this.MachineIdProvider.MachineId ), GetReportField( report, "Machine" ) );
+    }
+
+    /// <summary>
+    /// Verifies that the license audit device hash is not the salted hash of the rotated device identifier that the
+    /// other telemetry channels use.
+    /// </summary>
+    /// <remarks>
+    /// The Matomo channel and the exception reporting channel keep their salted and monthly rotated identifiers, and
+    /// must stay unjoinable to the license audit channel. See issues #1873 and #1668.
+    /// </remarks>
+    [Fact]
+    public void LicenseAuditDeviceHashIsNotTheSaltedHash()
+    {
+        this.CreateAndConsumeLicense( _auditedLicenseKey );
+
+        var report = Assert.Single( this.GetReports() );
+        this.Logger.WriteLine( report );
+
+        var telemetryConfigurationService = this.ServiceProvider.GetRequiredBackstageService<ITelemetryConfigurationService>();
+
+        foreach ( var saltKind in new[]
+                 {
+                     TelemetrySaltKind.LicenseAudit, TelemetrySaltKind.Matomo, TelemetrySaltKind.UsageTracking,
+                     TelemetrySaltKind.ExceptionReport
+                 } )
+        {
+            var saltedDeviceHash = HashUtilities
+                .ComputeInt64Hmac( telemetryConfigurationService.DeviceId.ToString(), telemetryConfigurationService.GetSalt( saltKind ) )
+                .ToString( "x", CultureInfo.InvariantCulture );
+
+            Assert.NotEqual( saltedDeviceHash, GetReportField( report, "Machine" ) );
+        }
+    }
+
+    /// <summary>
+    /// Verifies that the user hash and the device hash reported in the license audit are two different values, so
+    /// that the report identifies the person and the machine separately.
+    /// </summary>
+    [Fact]
+    public void LicenseAuditReportsDistinctUserAndDeviceHashes()
+    {
+        this.CreateAndConsumeLicense( _auditedLicenseKey );
+
+        var report = Assert.Single( this.GetReports() );
+        this.Logger.WriteLine( report );
+
+        Assert.NotEqual( GetReportField( report, "User" ), GetReportField( report, "Machine" ) );
     }
 }

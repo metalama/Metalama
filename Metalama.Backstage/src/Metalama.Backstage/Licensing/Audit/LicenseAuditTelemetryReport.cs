@@ -20,8 +20,6 @@ internal sealed class LicenseAuditTelemetryReport : TelemetryReport
 
     public override string Kind => "LicenseAudit";
 
-    protected override TelemetrySaltKind DetailedTrackingHashKind => TelemetrySaltKind.LicenseAudit;
-
     public long AuditHashCode { get; }
 
     public LicenseAuditTelemetryReport(
@@ -59,9 +57,10 @@ internal sealed class LicenseAuditTelemetryReport : TelemetryReport
         // same value on every machine and in both products, so that one person is counted once. See #1873.
         AddToMetricsAndHashCode( new LicenseAuditHashMetric( "User", this.CrossProductUserHash ) );
 
-        // This is a first-party (bits) usage-tracking report, so the device hash is keyed by LicenseAuditSalt and
-        // cannot be correlated with the Matomo dataset nor with the exception-reporting data. See #1668.
-        AddToMetricsAndHashCode( new LicenseAuditHashMetric( "Machine", this.DetailedTrackingDeviceHash ) );
+        // The machine is identified the way PostSharp identifies it: an unkeyed hash of the identifier that the
+        // operating system gives to the machine, which is the same value in every user profile and in both products,
+        // so that the devices of one user can be counted. See #1873.
+        AddToMetricsAndHashCode( new LicenseAuditHashMetric( "Machine", this.CrossProductDeviceHash ) );
         AddToMetricsAndHashCode( new BoolMetric( "CEIP", isUsageReportingEnabled ) );
         AddToMetricsAndHashCode( new StringMetric( "ApplicationName", this.ApplicationName ) );
 

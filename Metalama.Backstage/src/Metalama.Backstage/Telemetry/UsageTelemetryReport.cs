@@ -10,8 +10,6 @@ namespace Metalama.Backstage.Telemetry
     {
         public override string Kind => "Usage";
 
-        protected override TelemetrySaltKind DetailedTrackingHashKind => TelemetrySaltKind.UsageTracking;
-
         internal UsageTelemetryReport( IServiceProvider serviceProvider, MetricCollection metrics ) : base( serviceProvider, metrics ) { }
     }
 }
