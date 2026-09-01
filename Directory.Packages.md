@@ -79,6 +79,12 @@ A project that consumes `Microsoft.Build` must also reference `Microsoft.Build.F
 
 ### The Out-of-band family
 
+> The caps in this section, and the split-version routing that depends on them, are derived from the binding
+> redirects of `devenv.exe` in Visual Studio 2022, which PB-2027.0 no longer includes. They must be re-derived
+> against the Visual Studio 2026 long-term servicing channel baseline once it ships on 2026-11-10, and most of
+> them are expected to disappear. Tracked by #1897. Do not carry a pin forward on the strength of the text
+> below without checking it against the new floor.
+
 A repeatedly relevant cluster of packages: **`System.Memory`**, **`System.Buffers`**, **`System.Numerics.Vectors`**, **`System.Runtime.CompilerServices.Unsafe`** (and sometimes `System.Threading.Tasks.Extensions`). These are called "Out-of-band" because they ship as standalone NuGet packages outside the .NET runtime release cycle — even though their types live in the `System.*` namespace. Originally back-ports of types added to .NET Core 2.1+ (`Span<T>`, `Memory<T>`, `ArrayPool<T>`, `Vector<T>`, the `Unsafe` API, `ValueTask`) for `netstandard2.0` and `net4x` consumers.
 
 Three properties make them a recurring source of trouble:
