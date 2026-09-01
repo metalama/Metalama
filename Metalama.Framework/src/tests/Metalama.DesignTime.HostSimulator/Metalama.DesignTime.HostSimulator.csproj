@@ -1,9 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <!-- Several target frameworks, because the MSBuild version, and therefore the .NET runtime version, must
-             match the .NET SDK that builds the simulated solution. Same reason as Metalama.Framework.Workspaces. -->
-        <TargetFrameworks>net10.0</TargetFrameworks>
+        <!-- .NET 10, because the MSBuild version, and therefore the .NET runtime version, must match the .NET SDK
+             that builds the simulated solution. Same reason as Metalama.Framework.Workspaces. -->
+        <TargetFramework>net10.0</TargetFramework>
         <OutputType>Exe</OutputType>
         <Nullable>enable</Nullable>
         <ImplicitUsings>disable</ImplicitUsings>
@@ -22,8 +22,13 @@
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" VersionOverride="$(RoslynMaxVersion)" />
         <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" VersionOverride="$(RoslynMaxVersion)" />
 
-        <!-- Microsoft.Build must not be copied to the output directory: its location is resolved by Microsoft.Build.Locator. -->
+        <!-- The MSBuild assemblies must not be copied to the output directory, for the reason given in
+             Metalama.Framework.Workspaces.csproj. Microsoft.Build.Framework and Microsoft.NET.StringTools arrive
+             transitively through the reference to Microsoft.CodeAnalysis.Workspaces.MSBuild above, so they have to
+             be excluded here as well as Microsoft.Build. -->
         <PackageReference Include="Microsoft.Build" PrivateAssets="all" ExcludeAssets="runtime" />
+        <PackageReference Include="Microsoft.Build.Framework" PrivateAssets="all" ExcludeAssets="runtime" />
+        <PackageReference Include="Microsoft.NET.StringTools" PrivateAssets="all" ExcludeAssets="runtime" />
         <PackageReference Include="Microsoft.Build.Locator" />
 
         <PackageReference Include="Spectre.Console" />

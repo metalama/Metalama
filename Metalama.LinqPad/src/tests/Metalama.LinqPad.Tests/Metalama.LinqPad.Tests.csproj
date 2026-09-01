@@ -27,6 +27,13 @@
         <!-- Must include explicitly because the package has content.
              Use RoslynMaxVersion to match Metalama.Framework.Workspaces dependency. -->
         <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" VersionOverride="$(RoslynMaxVersion)" />
+
+        <!-- The MSBuild assemblies must not be copied to the output directory, for the reason given in
+             Metalama.Framework.Workspaces.csproj. The exclusion has to be repeated here, because the reference to
+             Microsoft.CodeAnalysis.Workspaces.MSBuild above brings them in transitively and this project registers
+             Microsoft.Build.Locator in Initializer.cs. -->
+        <PackageReference Include="Microsoft.Build.Framework" PrivateAssets="all" ExcludeAssets="runtime" />
+        <PackageReference Include="Microsoft.NET.StringTools" PrivateAssets="all" ExcludeAssets="runtime" />
     </ItemGroup>
 
 </Project>

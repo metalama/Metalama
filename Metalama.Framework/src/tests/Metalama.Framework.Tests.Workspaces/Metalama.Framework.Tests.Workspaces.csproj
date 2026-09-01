@@ -3,11 +3,8 @@
 
 
     <PropertyGroup>
-        <!-- TargetFrameworks, in the plural, even though there is a single framework: MicrosoftBuildVersion in
-             Directory.Packages.props is conditional on TargetFramework, and that property is only set in the inner
-             build that a project with TargetFrameworks produces. With TargetFramework in the singular the version of
-             Microsoft.Build.Framework resolves to the empty string and restore fails with NU1604. -->
-        <TargetFrameworks>net10.0</TargetFrameworks>
+        <!-- .NET 10, to match Metalama.Framework.Workspaces. -->
+        <TargetFramework>net10.0</TargetFramework>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <RootNamespace>Metalama.Framework.Tests.Workspaces</RootNamespace>
     </PropertyGroup>

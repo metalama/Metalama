@@ -32,13 +32,17 @@
     <!-- xUnitApiVersion is the version of xUnit against which we build the testing framework -->
     <xUnitApiVersion>2.9.3</xUnitApiVersion>
 
-    <!-- MicrosoftBuildVersion: pinned per TFM to match the lowest VS we support (17.14) for net9.0;
-         older 17.10 retained for net8.0. Note: FileVersion of VS-shipped Microsoft.Build.dll (e.g. 17.14.40)
+    <!-- MicrosoftBuildVersion: 17.14.28 matches the lowest Visual Studio we support (17.14); the older 17.10 is
+         retained for net8.0. Note: FileVersion of VS-shipped Microsoft.Build.dll (e.g. 17.14.40)
          is NOT the NuGet version — the highest published 17.14.x NuGet on nuget.org is 17.14.28. Always
          verify the NuGet exists before pinning. -->
     <MicrosoftBuildVersion Condition="'$(TargetFramework)'=='net8.0'">17.10.46</MicrosoftBuildVersion>
-    <MicrosoftBuildVersion Condition="'$(TargetFramework)'=='net9.0'">17.14.28</MicrosoftBuildVersion>
-    <MicrosoftBuildVersion Condition="'$(TargetFramework)'=='net10.0'">17.14.28</MicrosoftBuildVersion>
+    <!-- The default covers every other target framework, including the ones with a platform suffix such as
+         net10.0-windows. It also covers the evaluation of a project that declares TargetFramework in the singular:
+         this file is imported before the body of the project file, so TargetFramework is not yet defined there and
+         no condition above can match. Without a default the version resolves to the empty string and restore fails
+         with NU1604. -->
+    <MicrosoftBuildVersion Condition="'$(MicrosoftBuildVersion)'==''">17.14.28</MicrosoftBuildVersion>
 
     <!-- These are the latest versions of dependencies, which we use in test projects to avoid vulnerability warnings -->
     <MicrosoftVisualStudioThreadingLatestVersion>17.14.15</MicrosoftVisualStudioThreadingLatestVersion>
