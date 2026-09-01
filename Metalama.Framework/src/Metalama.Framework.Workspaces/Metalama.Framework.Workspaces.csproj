@@ -1,10 +1,10 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 
     <PropertyGroup>
-        <!-- We must target several versions because the MSBuild version and therefore the .NET runtime version
-             must match the version of the .NET SDK used for the project. -->
-        <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+        <!-- Only .NET 10. Microsoft.CodeAnalysis.Workspaces.MSBuild 5.10 ships assets for net10.0 and net472 only,
+             so a net8.0 or net9.0 build of this project cannot reference MSBuildWorkspace at all. See Directory.Packages.md. -->
+        <TargetFrameworks>net10.0</TargetFrameworks>
         <RootNamespace>Metalama.Framework.Workspaces</RootNamespace>
         <UseMetalamaCompiler>Private</UseMetalamaCompiler>
         <!-- Packaging -->

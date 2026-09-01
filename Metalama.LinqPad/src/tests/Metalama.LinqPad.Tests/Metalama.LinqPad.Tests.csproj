@@ -2,7 +2,7 @@
     <Import Project="..\..\..\..\eng\Coverage.props" />
 
     <PropertyGroup>
-        <TargetFramework>net8.0-windows</TargetFramework>
+        <TargetFramework>net10.0-windows</TargetFramework>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <RootNamespace>Metalama.LinqPad.Tests</RootNamespace>
     </PropertyGroup>

@@ -38,6 +38,7 @@
          verify the NuGet exists before pinning. -->
     <MicrosoftBuildVersion Condition="'$(TargetFramework)'=='net8.0'">17.10.46</MicrosoftBuildVersion>
     <MicrosoftBuildVersion Condition="'$(TargetFramework)'=='net9.0'">17.14.28</MicrosoftBuildVersion>
+    <MicrosoftBuildVersion Condition="'$(TargetFramework)'=='net10.0'">17.14.28</MicrosoftBuildVersion>
 
     <!-- These are the latest versions of dependencies, which we use in test projects to avoid vulnerability warnings -->
     <MicrosoftVisualStudioThreadingLatestVersion>17.14.15</MicrosoftVisualStudioThreadingLatestVersion>
