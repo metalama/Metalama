@@ -213,7 +213,10 @@
     <PackageVersion Include="Catglobe.ResXFileCodeGenerator" Version="4.1.2" />
     <PackageVersion Include="Microsoft.Azure.Functions.Worker" Version="1.23.0" />
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.Http" Version="3.3.0" />
-    <PackageVersion Include="Microsoft.Azure.Functions.Worker.Sdk" Version="1.18.1" />
+    <!-- Version 1.18.1 maps a target framework to a tooling suffix up to net8.0 only, and reports "Invalid
+         combination of TargetFramework and AzureFunctionsVersion is set." on anything newer. Version 2.1.0 is the
+         first that maps net10.0. This is needed by the AdditionalCompileTimePackage standalone test. -->
+    <PackageVersion Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.1.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="8.0.0" />
     <PackageVersion Include="Roslynator.Analyzers" Version="4.15.0" />
     

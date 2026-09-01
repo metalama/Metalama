@@ -3,8 +3,17 @@
 
     <PropertyGroup>
         <!-- The MSBuild version, and therefore the .NET runtime version, must match the version of the .NET SDK
-             used for the project. Only .NET 10 is supported, so there is a single target framework. -->
-        <TargetFramework>net10.0</TargetFramework>
+             used for the project. Only .NET 10 is supported, so there is a single target framework.
+
+             TargetFrameworks is used in the plural even for a single value, and must stay that way. This project
+             both consumes Microsoft.CodeAnalysis.Workspaces.MSBuild and packs its contentFiles, which are the
+             MSBuild build hosts. NuGet materialises the contentFiles of a consumed package as Content items
+             carrying Pack="false", on the same absolute paths that the _AddPackageContent target below packs.
+             In a single target framework build the pack task sees both lists in the same evaluation and drops
+             the files, so the package ships without the build hosts and nothing reports it. In a plural build
+             the outer evaluation has no TargetFramework, the Content items are not materialised there, and only
+             the files returned by the inner build reach the pack task. -->
+        <TargetFrameworks>net10.0</TargetFrameworks>
         <RootNamespace>Metalama.Framework.Workspaces</RootNamespace>
         <UseMetalamaCompiler>Private</UseMetalamaCompiler>
         <!-- Packaging -->
