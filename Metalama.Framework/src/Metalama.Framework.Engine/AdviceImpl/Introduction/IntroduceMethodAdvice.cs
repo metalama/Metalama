@@ -12,6 +12,7 @@ using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.Diagnostics;
+using Metalama.Framework.Engine.Linking;
 using Metalama.Framework.Engine.Utilities;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -267,6 +268,16 @@ internal sealed class IntroduceMethodAdvice : IntroduceMemberAdvice<IMethod, IMe
                     }
                     else if ( targetDeclaration.Equals( existingMethod.DeclaringType ) )
                     {
+                        if ( IsNonDeclarableRecordMember( existingMethod ) )
+                        {
+                            return
+                                this.CreateFailedResult(
+                                    AdviceDiagnosticDescriptors.CannotOverrideNonDeclarableRecordMember.CreateRoslynDiagnostic(
+                                        targetDeclaration.GetDiagnosticLocation(),
+                                        (this.AspectInstance.AspectClass.ShortName, existingMethod, existingMethod.DeclaringType),
+                                        this ) );
+                        }
+
                         var overriddenMethod = new OverrideMethodTransformation(
                             this.AspectLayerInstance,
                             existingMethod.ToFullRef(),
@@ -310,4 +321,19 @@ internal sealed class IntroduceMethodAdvice : IntroduceMemberAdvice<IMethod, IMe
             }
         }
     }
+
+    /// <summary>
+    /// Determines whether a method is a compiler-synthesized record member that the C# compiler adds unconditionally,
+    /// so that no explicit declaration of it can exist.
+    /// </summary>
+    /// <remarks>
+    /// The members concerned are <c>Equals(object)</c>, the <c>Equals</c> overload that takes the base record, the
+    /// equality operators and the clone method. Overriding one of them requires an explicit declaration, which the
+    /// C# compiler rejects with CS0111. The members that the compiler suppresses when an explicit declaration exists
+    /// are overridable, and the linker reproduces the body that the compiler would have synthesized for them.
+    /// </remarks>
+    private static bool IsNonDeclarableRecordMember( IMethod method )
+        => method.IsImplicitlyDeclared
+           && method.GetSymbol( method.Compilation.GetCompilationModel().CompilationContext ) is IMethodSymbol { ContainingType.IsRecord: true } symbol
+           && SynthesizedRecordMemberBodyGenerator.GetMemberKind( symbol ) == SynthesizedRecordMemberKind.None;
 }

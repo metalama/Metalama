@@ -1,1 +1,9 @@
-// TODO: Replace this file with the correct transformed code. See the test output for the actual transformed code.
+[Override]
+internal record struct Target
+{
+  public override readonly global::System.Int32 GetHashCode()
+  {
+    // <target>
+    return 0;
+  }
+}

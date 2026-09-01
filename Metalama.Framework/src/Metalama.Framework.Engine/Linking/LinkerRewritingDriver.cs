@@ -802,6 +802,17 @@ internal sealed partial class LinkerRewritingDriver
         }
     }
 
+    /// <summary>
+    /// Determines whether the linker emits an explicit backing field for an auto-property, in which case the field can be
+    /// read from generated source under the name returned by <see cref="GetBackingFieldName"/>. When it does not, the
+    /// backing field has no name that can be written in source and the property itself has to be read instead.
+    /// </summary>
+    public bool HasMaterializedBackingField( IPropertySymbol property )
+        => this.InjectionRegistry.IsOverrideTarget( property )
+           && (property.GetBackingField() != null
+               || (property.GetPrimaryDeclarationSyntax() as PropertyDeclarationSyntax)?.IsAutoPropertyDeclaration() == true)
+           && this.AnalysisRegistry.IsReachable( property.ToSemantic( IntermediateSymbolSemanticKind.Default ) );
+
     public string GetBackingFieldName( ISymbol symbol )
     {
         return this._backingFieldNameCache.GetOrAdd( symbol, this.ComputeBackingFieldName );

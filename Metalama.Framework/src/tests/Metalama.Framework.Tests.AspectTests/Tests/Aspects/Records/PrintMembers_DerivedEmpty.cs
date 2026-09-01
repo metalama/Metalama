@@ -23,9 +23,9 @@ public class OverrideAttribute : TypeAspect
     }
 }
 
-// <target>
 internal record BaseRecord( int X );
 
+// <target>
 [Override]
 internal record DerivedRecord : BaseRecord
 {

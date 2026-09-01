@@ -908,6 +908,17 @@ internal sealed partial class LinkerAnalysisStep
                 SyntaxKind.Parameter when root is ParameterSyntax { Parent: ParameterListSyntax { Parent: RecordDeclarationSyntax } } recordParameter
                     => new RecordParameterSubstitution( this._intermediateCompilationContext, recordParameter, targetSymbol, returnVariableIdentifier ),
 
+                // A compiler-synthesized record member has no syntax of its own, so its primary declaration syntax is
+                // the record declaration. The body that the compiler would have synthesized is generated from the symbol.
+                SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration
+                    when SynthesizedRecordMemberBodyGenerator.GetMemberKind( targetSymbol ) != SynthesizedRecordMemberKind.None
+                    => new SynthesizedRecordMemberSubstitution(
+                        this._intermediateCompilationContext,
+                        root,
+                        targetSymbol,
+                        usingSimpleInlining,
+                        returnVariableIdentifier ),
+
                 SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration
                     => throw AspectLinkerDiagnosticDescriptors.CannotUseProceedWithSynthesizedRecordMember.CreateException( targetSymbol ),
 

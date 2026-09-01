@@ -334,5 +334,14 @@ namespace Metalama.Framework.Engine.Advising
                 "The aspect '{0}' targets type '{1}' whose base type '{2}' defines an 'OnConstructed(InitializationContext)' method but has no instance constructor accepting an 'InitializationContext' parameter. The base type must provide such a constructor (and call 'OnConstructed' from it, guarded by 'IsHandled(InitializationSlot.OnConstructed)') so that derived types can pass 'context.Descend(InitializationSlot.OnConstructed)' and skip the base's OnConstructed call.",
                 _category,
                 Error );
+
+        internal static readonly DiagnosticDefinition<(string AspectType, IDeclaration Member, IDeclaration DeclaringType)>
+            CannotOverrideNonDeclarableRecordMember = new(
+                "LAMA0552",
+                "Cannot override a compiler-synthesized record member that cannot be declared explicitly.",
+                "The aspect '{0}' cannot override '{1}' because the C# compiler adds this member to record '{2}' unconditionally, so it cannot be declared explicitly. " +
+                "Override the strongly typed 'Equals' overload instead. The equality operators and 'Equals(object)' both call it.",
+                _category,
+                Error );
     }
 }

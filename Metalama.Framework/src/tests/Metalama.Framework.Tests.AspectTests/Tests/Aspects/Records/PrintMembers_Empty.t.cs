@@ -1,1 +1,9 @@
-// TODO: Replace this file with the correct transformed code. See the test output for the actual transformed code.
+[Override]
+internal record Target
+{
+  protected virtual global::System.Boolean PrintMembers(global::System.Text.StringBuilder builder)
+  {
+    // <target>
+    return false;
+  }
+}
