@@ -22,13 +22,13 @@
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" VersionOverride="$(RoslynMaxVersion)" />
         <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" VersionOverride="$(RoslynMaxVersion)" />
 
-        <!-- The MSBuild assemblies must not be copied to the output directory, for the reason given in
-             Metalama.Framework.Workspaces.csproj. Microsoft.Build.Framework and Microsoft.NET.StringTools arrive
-             transitively through the reference to Microsoft.CodeAnalysis.Workspaces.MSBuild above, so they have to
-             be excluded here as well as Microsoft.Build. -->
+        <!-- Microsoft.Build must not be copied to the output directory: its location is resolved by Microsoft.Build.Locator.
+             Microsoft.Build.Framework and Microsoft.NET.StringTools must stay, unlike in Metalama.Framework.Workspaces.
+             This project registers Microsoft.Build.Locator only when the msbuild-locator option is passed, which is
+             off by default, so usually no assembly resolver is installed and these two are loaded from this directory.
+             They cannot shadow the MSBuild of the .NET SDK either, because the workspace evaluates projects in an
+             out-of-process build host. -->
         <PackageReference Include="Microsoft.Build" PrivateAssets="all" ExcludeAssets="runtime" />
-        <PackageReference Include="Microsoft.Build.Framework" PrivateAssets="all" ExcludeAssets="runtime" />
-        <PackageReference Include="Microsoft.NET.StringTools" PrivateAssets="all" ExcludeAssets="runtime" />
         <PackageReference Include="Microsoft.Build.Locator" />
 
         <PackageReference Include="Spectre.Console" />
