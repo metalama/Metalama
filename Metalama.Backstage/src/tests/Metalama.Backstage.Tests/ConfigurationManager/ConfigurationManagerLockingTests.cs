@@ -402,12 +402,13 @@ public sealed class ConfigurationManagerLockingTests : TestsBase, IDisposable
     /// Verifies that a handler that throws neither fails the update nor deprives the handlers registered after it
     /// of the notification.
     /// </summary>
+    /// <returns>A task that completes when the test does.</returns>
     /// <remarks>
     /// A multicast invocation stops at the first handler that throws. The implementation this one replaces invoked
     /// the delegate that way, so one faulty subscriber silently suppressed every subsequent one.
     /// </remarks>
     [Fact]
-    public void AThrowingHandlerDoesNotPreventTheFollowingOnes()
+    public async Task AThrowingHandlerDoesNotPreventTheFollowingOnes()
     {
         using var configurationManager = this.CreateConfigurationManager();
 
@@ -418,7 +419,18 @@ public sealed class ConfigurationManagerLockingTests : TestsBase, IDisposable
         configurationManager.ConfigurationFileChanged += _ => throw new InvalidOperationException( "Injected by a test." );
         configurationManager.ConfigurationFileChanged += _ => Interlocked.Increment( ref secondHandlerInvocations );
 
-        Assert.True( configurationManager.Update<TestConfigurationFile>( c => c with { IsModified = true } ) );
+        var syncPointName = Configuration.ConfigurationManager.GetSyncPointName(
+            Configuration.ConfigurationManager.RaiseChangedBeforeInvokeLocation,
+            configurationManager.GetFilePath<TestConfigurationFile>() );
+
+        this._syncProvider.EnableSyncPoint( syncPointName );
+
+        // The notification is dispatched by whichever thread updates the cache first, which can be the thread that
+        // calls Update, so the update runs on a thread of its own and the test thread stays free to drive the point.
+        _ = RunOnDedicatedThreadAsync(
+            () => Assert.True( configurationManager.Update<TestConfigurationFile>( c => c with { IsModified = true } ) ) );
+
+        await this.WithTimeout( this._syncProvider.WaitForSyncPointReachedAsync( syncPointName, this._timeout.Token ) );
 
         Assert.Equal( 1, secondHandlerInvocations );
         Assert.Contains( this.Log.Entries, e => e.Severity == TestLoggerFactory.Severity.Error );
