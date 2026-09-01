@@ -19,8 +19,11 @@ namespace Metalama.Framework.Tests.UnitTests.Utilities
     /// </summary>
     public sealed class SyntaxProcessingExceptionTests : UnitTestClass
     {
-        // The attribute is on the second line because only the positions after the edited line ending have no line
-        // mapping in the text returned by InconsistentLineIndexSourceText.
+        /// <summary>
+        /// The code that the tests parse. The attribute is on the second line because only the positions after the
+        /// edited line ending have no line mapping in the text returned by
+        /// <see cref="InconsistentLineIndexSourceText"/>.
+        /// </summary>
         private const string _code = "// The attribute is on the next line.\r\n[My]\r\nclass Target { }\r\n";
 
         /// <summary>
@@ -50,6 +53,11 @@ namespace Metalama.Framework.Tests.UnitTests.Utilities
             Assert.Contains( "the position is not available", exception.Message, StringComparison.Ordinal );
         }
 
+        /// <summary>
+        /// Asserts that the given message names the kind of the node, the code of the node, the path of the node in
+        /// the syntax tree, the file, and the type and the message of the inner exception. These are the details that
+        /// both tests expect, whether the position of the node is available or not.
+        /// </summary>
         private static void AssertMessageDescribesTheNode( string message )
         {
             Assert.Contains( nameof(SyntaxKind.Attribute), message, StringComparison.Ordinal );
@@ -60,6 +68,13 @@ namespace Metalama.Framework.Tests.UnitTests.Utilities
             Assert.Contains( ThrowOnAttributeWalker.ExceptionMessage, message, StringComparison.Ordinal );
         }
 
+        /// <summary>
+        /// Parses the given text as the file <c>Target.cs</c>, visits it with a <see cref="ThrowOnAttributeWalker"/>,
+        /// and returns the <see cref="SyntaxProcessingException"/> into which the walker wraps the failure. When
+        /// <paramref name="expectNoPosition"/> is <c>true</c>, the method first asserts that the position of the
+        /// attribute cannot be computed, so that a test that relies on that state fails instead of passing without
+        /// covering it.
+        /// </summary>
         private static SyntaxProcessingException GetExceptionForAttributeOf( SourceText text, bool expectNoPosition = false )
         {
             var tree = CSharpSyntaxTree.ParseText( text, path: "Target.cs" );
@@ -74,10 +89,18 @@ namespace Metalama.Framework.Tests.UnitTests.Utilities
             return Assert.Throws<SyntaxProcessingException>( () => new ThrowOnAttributeWalker().Visit( tree.GetRoot() ) );
         }
 
+        /// <summary>
+        /// A <see cref="SafeSyntaxWalker"/> that throws an <see cref="InvalidOperationException"/> when it visits an
+        /// attribute, so that the message rendered by <see cref="SyntaxProcessingException"/> can be tested.
+        /// </summary>
         private sealed class ThrowOnAttributeWalker : SafeSyntaxWalker
         {
+            /// <summary>
+            /// The message of the <see cref="InvalidOperationException"/> that this walker throws.
+            /// </summary>
             public const string ExceptionMessage = "Simulated failure of attribute processing.";
 
+            /// <inheritdoc />
             protected override void VisitCore( SyntaxNode? node )
             {
                 if ( node is AttributeSyntax )
