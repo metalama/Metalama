@@ -64,12 +64,10 @@
             <CoreAssemblyToEmbed Include="../Metalama.Framework.CompilerExtensions.Resources/bin/$(Configuration)/net10.0/System.IO.Hashing.dll" />
             <!-- For .NET Core, System.Text.Json is provided by the parent ALC (Roslyn) - do not embed to avoid dependency cascades -->
             
+            <!-- System.Threading.AccessControl is not in the .NET Framework, so it is embedded for the desktop
+                 flavour. It is part of the shared framework of .NET 10, which is why there is no counterpart for
+                 the core flavour: NuGet prunes the asset of the package, and the runtime provides the assembly. -->
             <DesktopAssemblyToEmbed Include="../Metalama.Framework.CompilerExtensions.Resources/bin/$(Configuration)/net472/System.Threading.AccessControl.dll" />
-            <!-- The second net8.0 segment is the asset folder inside the System.Threading.AccessControl package,
-                 which ships net6.0, net7.0 and net8.0 assets at version 8.0.0. It is not our target framework and
-                 must not be renamed with the first segment. Update it when that package version is raised to one
-                 that ships a net10.0 asset. -->
-            <CoreAssemblyToEmbed Include="../Metalama.Framework.CompilerExtensions.Resources/bin/$(Configuration)/net10.0/runtimes/win/lib/net8.0/System.Threading.AccessControl.dll" />
         </ItemGroup>
     </Target>
     
@@ -87,8 +85,8 @@
         <ZipDirectory SourceDirectory="$(MSBuildThisFileDirectory)$(IntermediateOutputPath)DesktopSignable" DestinationFile="$(MSBuildThisFileDirectory)$(IntermediateOutputPath)DesktopSignable.zip" Overwrite="true" /> 
         <ZipDirectory SourceDirectory="$(MSBuildThisFileDirectory)$(IntermediateOutputPath)CoreSignable" DestinationFile="$(MSBuildThisFileDirectory)$(IntermediateOutputPath)CoreSignable.zip" Overwrite="true" /> 
         
-        <Exec Command="dotnet BuildMetalama.dll tools sign &quot;sign -i $(MSBuildThisFileDirectory)$(IntermediateOutputPath)DesktopSignable.zip -o $(MSBuildThisFileDirectory)$(IntermediateOutputPath)DesktopSigned&quot; --nologo" WorkingDirectory="$(MSBuildThisFileDirectory)../../../eng/src/bin/Debug/net10.0" />
-        <Exec Command="dotnet BuildMetalama.dll tools sign &quot;sign -i $(MSBuildThisFileDirectory)$(IntermediateOutputPath)CoreSignable.zip -o $(MSBuildThisFileDirectory)$(IntermediateOutputPath)CoreSigned&quot; --nologo" WorkingDirectory="$(MSBuildThisFileDirectory)../../../eng/src/bin/Debug/net10.0" />
+        <Exec Command="dotnet BuildMetalama.dll tools sign &quot;sign -i $(MSBuildThisFileDirectory)$(IntermediateOutputPath)DesktopSignable.zip -o $(MSBuildThisFileDirectory)$(IntermediateOutputPath)DesktopSigned&quot; --nologo" WorkingDirectory="$(MSBuildThisFileDirectory)../../../eng/src/bin/Debug/net9.0" />
+        <Exec Command="dotnet BuildMetalama.dll tools sign &quot;sign -i $(MSBuildThisFileDirectory)$(IntermediateOutputPath)CoreSignable.zip -o $(MSBuildThisFileDirectory)$(IntermediateOutputPath)CoreSigned&quot; --nologo" WorkingDirectory="$(MSBuildThisFileDirectory)../../../eng/src/bin/Debug/net9.0" />
         
         <Unzip DestinationFolder="$(MSBuildThisFileDirectory)$(IntermediateOutputPath)DesktopSigned" SourceFiles="$(MSBuildThisFileDirectory)$(IntermediateOutputPath)DesktopSigned/DesktopSignable.zip" />
         <Unzip DestinationFolder="$(MSBuildThisFileDirectory)$(IntermediateOutputPath)CoreSigned" SourceFiles="$(MSBuildThisFileDirectory)$(IntermediateOutputPath)CoreSigned/CoreSignable.zip" />

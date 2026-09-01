@@ -8,6 +8,18 @@
         -->
         <NoWarn>$(NoWarn);IDE0032;IDE0031</NoWarn>
 
+        <!-- AnalysisLevel defaults to the version of the target framework, so dropping net8.0 in favour of
+             net10.0 (issue #1876) raised it from 8.0 to 10.0 and turned on rules that were previously off by
+             default. They report existing code that this repository has never been asked to change, and
+             CodeQuality.targets sets TreatWarningsAsErrors when ContinuousIntegrationBuild is true, which would
+             turn a target framework change into a broken build.
+           - IDE0270: replace a null check followed by a throw with the ?? operator
+           - IDE0074: use a compound assignment
+           - IDE0033: prefer an explicitly provided tuple element name
+             Remove these entries once the findings are resolved, so that a new one cannot be introduced
+             silently. -->
+        <NoWarn>$(NoWarn);IDE0270;IDE0074;IDE0033</NoWarn>
+
 
         <!-- Metalama.Extensions and Metalama.Patterns must be compatible with VS 2022,
              so we can't use C# 14 in templates and build-time code. -->
