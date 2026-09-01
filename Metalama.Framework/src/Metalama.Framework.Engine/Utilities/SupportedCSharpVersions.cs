@@ -66,6 +66,14 @@ public static class SupportedCSharpVersions
             _ => throw new AssertionFailedException( $"Unexpected Roslyn API version {apiVersion}." )
         };
 
+    /// <summary>
+    /// Gets the version string under which the packages of a given Roslyn version are published, which is the version
+    /// that the reference-assembly project of <see cref="CompileTimeAssemblyLocator"/> requests.
+    /// </summary>
+    /// <remarks>
+    /// This method and <see cref="ToPrereleasePackageSourceUrl"/> are edited together, because a prerelease version
+    /// string is served by a prerelease feed and not by nuget.org. See issue #1885.
+    /// </remarks>
     internal static string ToNuGetVersionString( this RoslynApiVersion roslynVersion )
         => roslynVersion switch
         {
@@ -74,6 +82,41 @@ public static class SupportedCSharpVersions
             RoslynApiVersion.V4_8_0 => "4.8.0",
             RoslynApiVersion.V4_12_0 => "4.12.0",
             RoslynApiVersion.V5_0_0 => "5.0.0",
+            _ => throw new AssertionFailedException( $"Unexpected Roslyn version {roslynVersion}." )
+        };
+
+    /// <summary>
+    /// The key under which <see cref="RoslynPrereleaseSourceUrl"/> is declared in the <c>nuget.config</c> that
+    /// <see cref="CompileTimeAssemblyLocator"/> writes beside the reference-assembly project.
+    /// </summary>
+    internal const string RoslynPrereleaseSourceKey = "roslyn-consolidated";
+
+    /// <summary>
+    /// The address of the package source that consolidates the Roslyn packages of every branch, including the
+    /// prerelease ones, which nuget.org does not serve.
+    /// </summary>
+    internal const string RoslynPrereleaseSourceUrl = "https://proget.postsharp.net/nuget/roslyn-consolidated/v3/index.json";
+
+    /// <summary>
+    /// The package source mapping pattern that covers the Roslyn packages requested by the reference-assembly project.
+    /// </summary>
+    internal const string RoslynPackagePattern = "Microsoft.CodeAnalysis.*";
+
+    /// <summary>
+    /// Gets the address of the package source that serves the packages of a given Roslyn version, or <c>null</c> when
+    /// nuget.org serves them.
+    /// </summary>
+    /// <remarks>
+    /// This method and <see cref="ToNuGetVersionString"/> are edited together, and they are the whole of the switch
+    /// between a released Roslyn and a prerelease one. A version branch enters a prerelease Roslyn by giving the
+    /// version a prerelease version string in <see cref="ToNuGetVersionString"/> and by moving it out of the group
+    /// that returns <c>null</c> here. It leaves the prerelease by the reverse edit. See issue #1885.
+    /// </remarks>
+    internal static string? ToPrereleasePackageSourceUrl( this RoslynApiVersion roslynVersion )
+        => roslynVersion switch
+        {
+            RoslynApiVersion.V4_0_1 or RoslynApiVersion.V4_4_0 or RoslynApiVersion.V4_8_0
+                or RoslynApiVersion.V4_12_0 or RoslynApiVersion.V5_0_0 => null,
             _ => throw new AssertionFailedException( $"Unexpected Roslyn version {roslynVersion}." )
         };
 

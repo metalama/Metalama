@@ -12,6 +12,11 @@ namespace Metalama.Framework.Engine.Utilities;
 
 internal static class NuGetHelper
 {
+    /// <summary>
+    /// A package source of a <c>packageSourceMapping</c> section, with the patterns mapped to it.
+    /// </summary>
+    private readonly record struct MappedPackageSource( string Key, IReadOnlyList<string> Patterns );
+
     // Sections in nuget.config where the "value" attribute of <add> elements is a local path.
     private static readonly HashSet<string> _pathSections =
         new( StringComparer.OrdinalIgnoreCase ) { "fallbackPackageFolders" };
@@ -23,6 +28,75 @@ internal static class NuGetHelper
     // Keys in the <config> section whose values are local paths.
     private static readonly HashSet<string> _configPathKeys =
         new( StringComparer.OrdinalIgnoreCase ) { "repositoryPath", "globalPackagesFolder" };
+
+    /// <summary>
+    /// Returns the path of the user-level NuGet configuration file, or <c>null</c> when none exists.
+    /// </summary>
+    /// <remarks>
+    /// NuGet reads this file for every project, including the reference-assembly project, because the file is not tied
+    /// to a directory tree and is therefore not among the files returned by <see cref="GetConfigFiles"/>. It is read to
+    /// decide whether a package source mapping section exists and whether a pattern is already mapped. It is not merged
+    /// into the generated configuration. See issue #1885.
+    /// </remarks>
+    public static string? GetUserConfigFile()
+    {
+        // The order follows the order in which NuGet probes: the application data directory, which is %AppData% on
+        // Windows and $XDG_CONFIG_HOME or ~/.config on Unix, and then the legacy location under the home directory.
+        var candidateDirectories = new List<string>();
+
+        AddCandidate( Environment.GetFolderPath( Environment.SpecialFolder.ApplicationData ), "NuGet" );
+        AddCandidate( Environment.GetEnvironmentVariable( "XDG_CONFIG_HOME" ), "NuGet" );
+        AddCandidate( Environment.GetFolderPath( Environment.SpecialFolder.UserProfile ), ".nuget", "NuGet" );
+
+        foreach ( var candidateDirectory in candidateDirectories )
+        {
+            var configFile = FindConfigFileInDirectory( candidateDirectory );
+
+            if ( configFile != null )
+            {
+                return configFile;
+            }
+        }
+
+        return null;
+
+        void AddCandidate( string? root, params string[] parts )
+        {
+            if ( string.IsNullOrEmpty( root ) )
+            {
+                return;
+            }
+
+            var directory = root!;
+
+            foreach ( var part in parts )
+            {
+                directory = Path.Combine( directory, part );
+            }
+
+            candidateDirectories.Add( directory );
+        }
+    }
+
+    /// <summary>
+    /// Returns the path of the file named <c>nuget.config</c> in a given directory, whatever the case of its name, or
+    /// <c>null</c> when the directory holds no such file or does not exist.
+    /// </summary>
+    /// <remarks>
+    /// The directory is enumerated instead of a single name being probed, because the tools that create the file spell
+    /// it <c>NuGet.Config</c> while NuGet itself matches the name without regard to case, and a file system that
+    /// distinguishes case would otherwise hide the file.
+    /// </remarks>
+    private static string? FindConfigFileInDirectory( string directory )
+    {
+        if ( !Directory.Exists( directory ) )
+        {
+            return null;
+        }
+
+        return Directory.EnumerateFiles( directory )
+            .FirstOrDefault( f => string.Equals( Path.GetFileName( f ), "nuget.config", StringComparison.OrdinalIgnoreCase ) );
+    }
 
     public static List<string> GetConfigFiles( string projectPath )
     {
@@ -78,6 +152,232 @@ internal static class NuGetHelper
         }
 
         return mergedDocument;
+    }
+
+    /// <summary>
+    /// Adds a package source to a merged NuGet configuration, and maps a package pattern to it when the effective
+    /// configuration uses package source mapping and does not already map that pattern.
+    /// </summary>
+    /// <param name="document">The merged configuration, modified in place.</param>
+    /// <param name="key">The key under which the source is declared.</param>
+    /// <param name="url">The address of the source.</param>
+    /// <param name="packagePattern">The pattern mapped to the source, such as <c>Microsoft.CodeAnalysis.*</c>.</param>
+    /// <param name="decisionConfigFiles">
+    /// The configuration files that NuGet applies to the project without their being merged into
+    /// <paramref name="document"/>, in the order in which NuGet applies them, that is, the user-level configuration
+    /// file. They take part in the decision and are not reproduced in <paramref name="document"/>, except for the
+    /// package source mapping entries that this method has to modify.
+    /// </param>
+    /// <remarks>
+    /// <para>
+    /// No mapping is written when the effective configuration declares no package source mapping, because writing one
+    /// would activate mapping for every package, nor when the effective configuration already maps
+    /// <paramref name="packagePattern"/> or a more specific pattern to another source, because that expresses an
+    /// intention about these packages which this method does not override.
+    /// </para>
+    /// <para>
+    /// When a mapping is written, every source that covers <paramref name="packagePattern"/> today through a shorter
+    /// pattern receives <paramref name="packagePattern"/> as well. NuGet resolves a package identifier through the
+    /// longest matching pattern and consults only the sources that declare that pattern, so mapping the pattern to the
+    /// added source alone would make that source the only candidate, and the restore would fail on every matching
+    /// package that the added source does not carry. Such a source is reproduced with every pattern it declares,
+    /// because a <c>packageSource</c> element replaces the inherited element of the same key instead of adding to it.
+    /// </para>
+    /// <para>
+    /// No file read by this method is modified. See issue #1885.
+    /// </para>
+    /// </remarks>
+    public static AddPackageSourceResult AddPackageSource(
+        XDocument document,
+        string key,
+        string url,
+        string packagePattern,
+        IReadOnlyList<string> decisionConfigFiles )
+    {
+        var root = document.Root.AssertNotNull();
+
+        var packageSources = GetOrAddSection( root, "packageSources" );
+
+        var existingSource = packageSources.Elements( "add" )
+            .FirstOrDefault( e => string.Equals( e.Attribute( "key" )?.Value, key, StringComparison.OrdinalIgnoreCase ) );
+
+        if ( existingSource != null )
+        {
+            existingSource.SetAttributeValue( "value", url );
+        }
+        else
+        {
+            // The element is appended last so that it comes after any clear element, which removes every source
+            // declared before it.
+            packageSources.Add( new XElement( "add", new XAttribute( "key", key ), new XAttribute( "value", url ) ) );
+        }
+
+        var effectiveMapping = GetEffectivePackageSourceMapping( document, decisionConfigFiles );
+
+        if ( effectiveMapping.Count == 0 )
+        {
+            return default;
+        }
+
+        var patternPrefix = GetPatternPrefix( packagePattern );
+
+        foreach ( var mappedSource in effectiveMapping )
+        {
+            if ( string.Equals( mappedSource.Key, key, StringComparison.OrdinalIgnoreCase ) )
+            {
+                continue;
+            }
+
+            foreach ( var pattern in mappedSource.Patterns )
+            {
+                if ( GetPatternPrefix( pattern ).StartsWith( patternPrefix, StringComparison.OrdinalIgnoreCase ) )
+                {
+                    return new AddPackageSourceResult( false, mappedSource.Key, pattern );
+                }
+            }
+        }
+
+        var mappingSection = GetOrAddSection( root, "packageSourceMapping" );
+
+        foreach ( var mappedSource in effectiveMapping )
+        {
+            if ( mappedSource.Patterns.Any( p => CoversThroughShorterPattern( p, patternPrefix ) ) )
+            {
+                SetMappedPatterns( mappingSection, mappedSource.Key, mappedSource.Patterns.Concat( new[] { packagePattern } ) );
+            }
+        }
+
+        SetMappedPatterns( mappingSection, key, new[] { packagePattern } );
+
+        return new AddPackageSourceResult( true, null, null );
+    }
+
+    /// <summary>
+    /// Returns the package source mapping that NuGet applies to the project, that is, the mapping of
+    /// <paramref name="document"/> applied on top of the mapping of <paramref name="decisionConfigFiles"/>.
+    /// </summary>
+    /// <remarks>
+    /// A copy of the root element is merged, because <see cref="MergeChildrenNodes"/> moves the elements of the
+    /// increment into the target and would otherwise empty the document that the caller is modifying.
+    /// </remarks>
+    private static IReadOnlyList<MappedPackageSource> GetEffectivePackageSourceMapping(
+        XDocument document,
+        IReadOnlyList<string> decisionConfigFiles )
+    {
+        var root = document.Root.AssertNotNull();
+
+        var effectiveRoot = MergeConfigFiles( decisionConfigFiles )?.Root;
+
+        if ( effectiveRoot != null )
+        {
+            MergeChildrenNodes( effectiveRoot, new XElement( root ) );
+        }
+        else
+        {
+            effectiveRoot = root;
+        }
+
+        var mappingSection = effectiveRoot.Element( "packageSourceMapping" );
+
+        if ( mappingSection == null )
+        {
+            return Array.Empty<MappedPackageSource>();
+        }
+
+        var mappedSources = new List<MappedPackageSource>();
+
+        foreach ( var packageSource in mappingSection.Elements( "packageSource" ) )
+        {
+            var sourceKey = packageSource.Attribute( "key" )?.Value;
+
+            if ( string.IsNullOrEmpty( sourceKey ) )
+            {
+                continue;
+            }
+
+            var patterns = packageSource.Elements( "package" )
+                .Select( p => p.Attribute( "pattern" )?.Value )
+                .Where( p => !string.IsNullOrEmpty( p ) )
+                .Select( p => p! )
+                .ToList();
+
+            if ( patterns.Count > 0 )
+            {
+                mappedSources.Add( new MappedPackageSource( sourceKey!, patterns ) );
+            }
+        }
+
+        return mappedSources;
+    }
+
+    /// <summary>
+    /// Returns the literal part of a package source mapping pattern, that is, the pattern itself when it is a package
+    /// identifier, or the part that precedes the wildcard when it ends with one.
+    /// </summary>
+    /// <remarks>
+    /// A pattern is either a package identifier or a prefix followed by <c>*</c>, and the length of the literal part is
+    /// what NuGet compares to determine which pattern is the longest match, so the literal part is what tells whether
+    /// one pattern is more specific than another.
+    /// </remarks>
+    private static string GetPatternPrefix( string pattern )
+        => pattern.EndsWith( "*", StringComparison.Ordinal ) ? pattern.Substring( 0, pattern.Length - 1 ) : pattern;
+
+    /// <summary>
+    /// Determines whether a pattern matches every package identifier matched by the pattern whose literal part is
+    /// <paramref name="patternPrefix"/>, while being less specific than it.
+    /// </summary>
+    /// <remarks>
+    /// Only a pattern that ends with a wildcard qualifies. A pattern that is a package identifier matches that
+    /// identifier alone, so it covers no other package even when it is shorter, as <c>Microsoft.CodeAnalysis</c> is
+    /// shorter than <c>Microsoft.CodeAnalysis.</c> and matches no package that the latter matches.
+    /// </remarks>
+    private static bool CoversThroughShorterPattern( string pattern, string patternPrefix )
+    {
+        if ( !pattern.EndsWith( "*", StringComparison.Ordinal ) )
+        {
+            return false;
+        }
+
+        var prefix = GetPatternPrefix( pattern );
+
+        return prefix.Length < patternPrefix.Length && patternPrefix.StartsWith( prefix, StringComparison.OrdinalIgnoreCase );
+    }
+
+    /// <summary>
+    /// Sets the patterns mapped to a package source in the given <c>packageSourceMapping</c> section, replacing the
+    /// patterns of an existing element of the same key.
+    /// </summary>
+    private static void SetMappedPatterns( XElement mappingSection, string sourceKey, IEnumerable<string> patterns )
+    {
+        var packageElements = patterns
+            .Select( p => new XElement( "package", new XAttribute( "pattern", p ) ) )
+            .ToArray();
+
+        var existing = mappingSection.Elements( "packageSource" )
+            .FirstOrDefault( e => string.Equals( e.Attribute( "key" )?.Value, sourceKey, StringComparison.OrdinalIgnoreCase ) );
+
+        if ( existing != null )
+        {
+            existing.RemoveNodes();
+            existing.Add( packageElements );
+        }
+        else
+        {
+            mappingSection.Add( new XElement( "packageSource", new XAttribute( "key", sourceKey ), packageElements ) );
+        }
+    }
+
+    private static XElement GetOrAddSection( XElement root, string name )
+    {
+        var section = root.Element( name );
+
+        if ( section == null )
+        {
+            section = new XElement( name );
+            root.Add( section );
+        }
+
+        return section;
     }
 
     private static void ResolveRelativePaths( XElement root, string configDirectory )

@@ -88,11 +88,20 @@ internal static class ReferenceAssemblyBuildFailureClassifier
     /// The version of the .NET SDK that Metalama pinned in the <c>global.json</c> that it wrote beside the
     /// reference-assembly project, or <c>null</c> when it pinned none.
     /// </param>
+    /// <param name="unmappedPrereleasePackageSource">
+    /// The address of the package source that Metalama declared for the prerelease Roslyn packages without a package
+    /// source mapping, because the configuration already maps these packages to another source, or <c>null</c> when
+    /// Metalama declared no such source or mapped it. See issue #1885.
+    /// </param>
     /// <remarks>
     /// The rules are ordered by decreasing confidence: a message identifier identifies a condition exactly, whereas the
     /// presence of an HTTP status code or of a file name is circumstantial, so the former must win when both are present.
     /// </remarks>
-    public static string GetProbableCause( ImmutableArray<string> output, string projectDirectory, string? requestedSdkVersion )
+    public static string GetProbableCause(
+        ImmutableArray<string> output,
+        string projectDirectory,
+        string? requestedSdkVersion,
+        string? unmappedPrereleasePackageSource = null )
     {
         var text = string.Join( "\n", output );
 
@@ -107,6 +116,19 @@ internal static class ReferenceAssemblyBuildFailureClassifier
         // Microsoft.CodeAnalysis.* pattern is more specific than a * pattern. See issue #1747.
         if ( ContainsMessageId( text, "NU1101" ) )
         {
+            // This build of Metalama requires Roslyn packages that nuget.org does not serve, and the mapping that would
+            // have made them resolvable was skipped silently because the user had already mapped these packages. The
+            // failure of the restore is the only point at which that decision becomes visible. See issue #1885.
+            if ( unmappedPrereleasePackageSource != null )
+            {
+                return
+                    "A package that is required to resolve the compile-time reference assemblies was not found on the configured NuGet sources. "
+                    + $"This build of Metalama requires Roslyn packages that are served by '{unmappedPrereleasePackageSource}' and not by nuget.org. "
+                    + "That source was added to the NuGet configuration of this build, but no package source mapping was added for it, because "
+                    + "nuget.config already maps the Microsoft.CodeAnalysis.* pattern, or a more specific one, to another source. Map the "
+                    + "Microsoft.CodeAnalysis.* pattern to that source as well.";
+            }
+
             return
                 "A package that is required to resolve the compile-time reference assemblies was not found on the configured NuGet sources. "
                 + "When nuget.config maps the Microsoft.CodeAnalysis.* pattern to a private feed through packageSourceMapping, this build is "

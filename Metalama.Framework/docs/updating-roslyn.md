@@ -18,6 +18,28 @@
     3. `JsonSerializationBinder`
 11. Update `Metalama.Framework.CompilerExtensions.Resources.csproj` to include the new assemblies.
 
+## Entering and leaving a prerelease Roslyn
+
+A prerelease Roslyn package is published on the `roslyn-consolidated` feed and not on nuget.org, and the project that
+`CompileTimeAssemblyLocator` restores on a user machine references `Microsoft.CodeAnalysis.CSharp` at that version. The
+generated `nuget.config` therefore has to declare that feed, and it does so on its own, because a user of a prerelease
+Metalama has no reason to declare it.
+
+The whole switch is `SupportedCSharpVersions.cs`, in the two methods `ToNuGetVersionString` and
+`ToPrereleasePackageSourceUrl`, which are edited together:
+
+1. To enter a prerelease Roslyn, give the version its prerelease version string in `ToNuGetVersionString`, and move the
+   version out of the group that returns `null` in `ToPrereleasePackageSourceUrl`, so that it returns
+   `RoslynPrereleaseSourceUrl`.
+2. To leave it, apply the reverse edit: give the version its released version string, and move it back into the group
+   that returns `null`.
+
+The unit test `NuGetHelperTests.CurrentRoslynVersionHasNoPrereleasePackageSource` fails while a branch is on a
+prerelease Roslyn. It is the reminder that the switch has to be reversed before the branch is released, and it is
+updated together with the two methods.
+
+See issue #1885.
+
 The testing should include:
 * normal compile-time testing,
 * basic design-time testing with the new VS version,
