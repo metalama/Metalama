@@ -12,7 +12,6 @@ using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.Diagnostics;
-using Metalama.Framework.Engine.Linking;
 using Metalama.Framework.Engine.Utilities;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -268,7 +267,7 @@ internal sealed class IntroduceMethodAdvice : IntroduceMemberAdvice<IMethod, IMe
                     }
                     else if ( targetDeclaration.Equals( existingMethod.DeclaringType ) )
                     {
-                        if ( IsNonDeclarableRecordMember( existingMethod ) )
+                        if ( !existingMethod.CanBeDeclaredExplicitly() )
                         {
                             return
                                 this.CreateFailedResult(
@@ -320,29 +319,5 @@ internal sealed class IntroduceMethodAdvice : IntroduceMemberAdvice<IMethod, IMe
                     throw new AssertionFailedException( $"Unexpected OverrideStrategy: {this.OverrideStrategy}." );
             }
         }
-    }
-
-    /// <summary>
-    /// Determines whether a method is a compiler-synthesized record member that the C# compiler adds unconditionally,
-    /// so that no explicit declaration of it can exist.
-    /// </summary>
-    /// <remarks>
-    /// The members concerned are <c>Equals(object)</c>, the <c>Equals</c> overload that takes the base record, the
-    /// equality operators and the clone method. Overriding one of them requires an explicit declaration, which the
-    /// C# compiler rejects with CS0111. The members that the compiler suppresses when an explicit declaration exists
-    /// are overridable, and the linker reproduces the body that the compiler would have synthesized for them.
-    /// </remarks>
-    private static bool IsNonDeclarableRecordMember( IMethod method )
-    {
-        if ( !method.IsImplicitlyDeclared )
-        {
-            return false;
-        }
-
-        var symbol = method.GetSymbol( method.Compilation.GetCompilationModel().CompilationContext );
-
-        return symbol is { Kind: SymbolKind.Method }
-               && symbol is IMethodSymbol { ContainingType.IsRecord: true } methodSymbol
-               && SynthesizedRecordMemberBodyGenerator.GetMemberKind( methodSymbol ) == SynthesizedRecordMemberKind.None;
     }
 }

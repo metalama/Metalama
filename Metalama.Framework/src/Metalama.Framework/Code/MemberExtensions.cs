@@ -2,6 +2,9 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Aspects;
+using Metalama.Framework.Code.Comparers;
+using Metalama.Framework.Eligibility;
 using System.Linq;
 
 namespace Metalama.Framework.Code;
@@ -22,6 +25,69 @@ public static class MemberExtensions
     public static bool IsOverridable( this IMember member )
         => (member.IsVirtual || member.IsAbstract || member.IsOverride)
            && member is { IsSealed: false, DeclaringType: { IsReferenceType: true, IsSealed: false } };
+
+    /// <summary>
+    /// Determines whether an explicit declaration of a member can be written in source code, which is a condition for
+    /// an aspect to override the member.
+    /// </summary>
+    /// <param name="member">The member to check.</param>
+    /// <returns><c>true</c> if an explicit declaration of the member can be written in source code; otherwise, <c>false</c>.</returns>
+    /// <remarks>
+    /// <para>
+    /// The method returns <c>false</c> in two cases. The first case is a member that the C# compiler adds to a record
+    /// even when the record declares this member itself: <c>Equals(object)</c>, the <c>Equals</c> overload whose
+    /// parameter is a base record, and the <c>==</c> and <c>!=</c> operators. A declaration of one of these members is
+    /// a duplicate, which the C# compiler reports as an error. The second case is a compiler-generated field, such as
+    /// the backing field of an auto-property or the field that captures a primary constructor parameter, because the
+    /// name of such a field is not a valid C# identifier. For an accessor, the method returns the same value as for
+    /// the property or the event that contains the accessor.
+    /// </para>
+    /// <para>
+    /// The method returns <c>true</c> for any other member. In particular, it returns <c>true</c> for the record
+    /// members that the C# compiler generates only when the record does not declare them: the <c>Equals</c> overload
+    /// whose parameter is the declaring record, <c>GetHashCode</c>, <c>ToString</c>, <c>PrintMembers</c>,
+    /// <c>Deconstruct</c>, <c>EqualityContract</c> and the copy constructor. When an aspect overrides one of these
+    /// members, <see cref="meta.Proceed"/> runs the implementation that the C# compiler would have generated. The copy
+    /// constructor is the exception: no advice can target it, because <see cref="EligibilityExtensions.MustNotBeRecordCopyConstructor"/>
+    /// excludes it from every advice that could.
+    /// </para>
+    /// </remarks>
+    public static bool CanBeDeclaredExplicitly( this IMember member )
+    {
+        if ( !member.IsImplicitlyDeclared )
+        {
+            return true;
+        }
+
+        return member switch
+        {
+            // The name of a compiler-generated field is not a valid C# identifier.
+            IField => false,
+
+            // An accessor can be declared explicitly if, and only if, the property or the event that contains it can.
+            IMethod { ContainingDeclaration: IMember containingMember } => containingMember.CanBeDeclaredExplicitly(),
+            IMethod method => !IsRecordMemberAddedUnconditionally( method ),
+            _ => true
+        };
+    }
+
+    private static bool IsRecordMemberAddedUnconditionally( IMethod method )
+    {
+        if ( method.DeclaringType is not { IsRecord: true } )
+        {
+            return false;
+        }
+
+        return method switch
+        {
+            // Equals(object) and, in a derived record, the Equals overload whose parameter is the base record.
+            { Name: nameof(object.Equals), Parameters: [var parameter] } => !parameter.Type.Equals(
+                method.DeclaringType,
+                TypeComparison.Default ),
+            { OperatorKind: OperatorKind.Equality or OperatorKind.Inequality } => true,
+            _ => false
+        };
+    }
 
     /// <summary>
     /// Determines whether a member or type can be accessed from a given type.
