@@ -1,8 +1,10 @@
 # The supported platform check
 
 End-to-end tests of the diagnostics that report a target framework, a .NET SDK or a Visual Studio version outside
-the configuration matrix that Metalama is tested with (issue
-[#1884](https://github.com/metalama/Metalama/issues/1884)).
+the configuration matrix that Metalama supports (issue
+[#1884](https://github.com/metalama/Metalama/issues/1884)). That matrix is the PB-2027.0 platform baseline of
+[`platform-support.md`](../../../../docs/platform-support.md), which
+`Metalama.Framework.Package/build/Metalama.Framework.props` declares as a `MetalamaPlatformRequirement` item.
 
 The check is a set of MSBuild targets in `Metalama.Framework.Package/build/Metalama.Framework.targets`. Nothing
 about it is visible to a unit test, because it reads MSBuild properties that only a real build sets, and it reports
@@ -13,8 +15,8 @@ it.
 
 | Scenario | What it asserts |
 | --- | --- |
-| `SupportedPlatform.UntestedTargetFramework` | A target framework older than the tested range reports `LAMA0600` and the build succeeds. |
-| `SupportedPlatform.TestedTargetFrameworks` | Every target framework of the tested matrix, including `net10.0-windows`, reports nothing. |
+| `SupportedPlatform.UntestedTargetFramework` | A target framework older than the supported range reports `LAMA0600` and the build succeeds. |
+| `SupportedPlatform.TestedTargetFrameworks` | Every target framework of the supported matrix, including `net10.0-windows`, reports nothing. |
 | `SupportedPlatform.ContributedRequirements` | A requirement contributed by another package is evaluated on its own and names its own package. |
 | `SupportedPlatform.MultiTargeting` | A cross-targeting project reports the target framework diagnostic in each inner build and the .NET SDK diagnostic in the first one. |
 | `SupportedPlatform.CheckDisabled` | `MetalamaCheckSupportedPlatform` set to `False` suppresses every diagnostic. |
