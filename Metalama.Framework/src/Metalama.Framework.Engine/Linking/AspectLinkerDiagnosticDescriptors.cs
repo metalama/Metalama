@@ -22,6 +22,16 @@ public static class AspectLinkerDiagnosticDescriptors
             _category,
             Error );
 
+    internal static readonly DiagnosticDefinition<(ISymbol Member, ISymbol RecordType, ISymbol Property)>
+        SynthesizedRecordMemberReadsPropertyVirtually = new(
+            "LAMA0652",
+            "The original implementation of a compiler-synthesized record member reads an overridable property.",
+            "The original implementation of '{0}' generated for record '{1}' reads the property '{2}', whereas the C# compiler reads its "
+            + "backing field. The backing field of an auto-property cannot be read from source code. The two implementations differ when a "
+            + "derived type overrides the property. Declare the property explicitly with a backing field, or make it non-overridable.",
+            _category,
+            Warning );
+
     internal static readonly DiagnosticDefinition<(string AspectType, ISymbol TargetDeclaration)>
         DeclarationMustBeInlined = new(
             "LAMA0699",

@@ -182,6 +182,12 @@ namespace Metalama.Framework.Engine.Linking
                 nonInlinedSemantics,
                 out var overrideTargetsWithUnsupportedNonInlinedOverrides );
 
+            VerifyRecordMemberMaterialization(
+                input.InjectionRegistry,
+                input.SourceCompilationModel.CompilationContext,
+                input.DiagnosticSink,
+                reachableSemantics );
+
             var forcefullyInitializedSymbols = GetForcefullyInitializedSymbols( input.InjectionRegistry, reachableSemantics );
             var forcefullyInitializedTypes = GetForcefullyInitializedTypes( input.IntermediateCompilation, forcefullyInitializedSymbols );
 
@@ -911,6 +917,62 @@ namespace Metalama.Framework.Engine.Linking
             }
 
             overrideTargetsWithUnsupportedNonInlinedOverrides = overrideTargets;
+        }
+
+        /// <summary>
+        /// Reports the compiler-synthesized record members whose original implementation the linker materializes, and whose
+        /// generated body reads an overridable auto-property instead of its backing field.
+        /// </summary>
+        /// <remarks>
+        /// The backing field of an auto-property has no name that can be written in source code, so the generated body reads
+        /// the property, unless the linker emits an explicit backing field for it. The generated body and the body that the
+        /// C# compiler synthesizes then differ when a derived type overrides the property. C# offers no way to read one's own
+        /// property non-virtually, so the divergence is reported rather than corrected.
+        /// </remarks>
+        private static void VerifyRecordMemberMaterialization(
+            LinkerInjectionRegistry injectionRegistry,
+            CompilationContext sourceCompilationContext,
+            UserDiagnosticSink diagnosticSink,
+            HashSet<IntermediateSymbolSemantic> reachableSemantics )
+        {
+            foreach ( var semantic in reachableSemantics )
+            {
+                if ( semantic.Kind != IntermediateSymbolSemanticKind.Default
+                     || semantic.Symbol.Kind != SymbolKind.Method
+                     || semantic.Symbol is not IMethodSymbol { IsImplicitlyDeclared: true } method )
+                {
+                    continue;
+                }
+
+                // Only Equals and GetHashCode read the fields of the record. PrintMembers reads the properties, which is
+                // what the C# compiler does as well.
+                if ( SynthesizedRecordMemberBodyGenerator.GetMemberKind( method )
+                     is not (SynthesizedRecordMemberKind.Equals or SynthesizedRecordMemberKind.GetHashCode) )
+                {
+                    continue;
+                }
+
+                var properties = SynthesizedRecordMemberBodyGenerator.GetVirtuallyReadAutoProperties(
+                    method.ContainingType,
+                    HasMaterializedBackingField );
+
+                foreach ( var property in properties )
+                {
+                    // Map the diagnostic location from the intermediate compilation to the source compilation (#818).
+                    var diagnosticLocation = LinkerDiagnosticMapper.GetSourceLocation( property, sourceCompilationContext )
+                                             ?? property.GetDiagnosticLocation();
+
+                    diagnosticSink.Report(
+                        AspectLinkerDiagnosticDescriptors.SynthesizedRecordMemberReadsPropertyVirtually.CreateRoslynDiagnostic(
+                            diagnosticLocation,
+                            (method, method.ContainingType, property) ) );
+                }
+            }
+
+            // Mirrors LinkerRewritingDriver.HasMaterializedBackingField, which is not reachable from the analysis step.
+            bool HasMaterializedBackingField( IPropertySymbol property )
+                => injectionRegistry.IsOverrideTarget( property )
+                   && reachableSemantics.Contains( property.ToSemantic( IntermediateSymbolSemanticKind.Default ) );
         }
 
         private static IReadOnlyList<ISymbol> GetForcefullyInitializedSymbols(

@@ -24,14 +24,18 @@ internal record Transformed(int X, string Y)
   public override global::System.String ToString()
   {
     // <target>
-    global::System.Text.StringBuilder __recordStringBuilder = new global::System.Text.StringBuilder();
-    __recordStringBuilder.Append("Transformed");
-    __recordStringBuilder.Append(" { ");
-    if (this.PrintMembers(__recordStringBuilder))
+    return this.ToString_Source();
+  }
+  private global::System.String ToString_Source()
+  {
+    global::System.Text.StringBuilder builder = new global::System.Text.StringBuilder();
+    builder.Append("Transformed");
+    builder.Append(" { ");
+    if (this.PrintMembers(builder))
     {
-      __recordStringBuilder.Append(' ');
+      builder.Append(' ');
     }
-    __recordStringBuilder.Append('}');
-    return __recordStringBuilder.ToString();
+    builder.Append('}');
+    return builder.ToString();
   }
 }

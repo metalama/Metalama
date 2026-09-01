@@ -266,8 +266,10 @@ namespace Metalama.Framework.Engine.Linking
         {
             var returnType = AsyncHelper.GetIntermediateMethodReturnType( symbol, method.ReturnType, generationContext );
 
+            // The ReadOnly modifier is copied because CS8656 is reported when a readonly member of a struct calls a member
+            // that is not readonly.
             var modifiers = symbol
-                .GetSyntaxModifierList( ModifierCategories.Static | ModifierCategories.Unsafe | ModifierCategories.Async )
+                .GetSyntaxModifierList( ModifierCategories.Static | ModifierCategories.Unsafe | ModifierCategories.Async | ModifierCategories.ReadOnly )
                 .Insert( 0, TokenWithTrailingSpace( SyntaxKind.PrivateKeyword ) );
 
             var constraints = method.ConstraintClauses;

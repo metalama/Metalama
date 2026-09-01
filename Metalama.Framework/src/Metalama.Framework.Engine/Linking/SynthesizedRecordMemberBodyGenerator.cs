@@ -2,11 +2,13 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -72,10 +74,23 @@ internal static class SynthesizedRecordMemberBodyGenerator
     private const int _hashCombineMultiplier = 1521134295;
 
     /// <summary>
-    /// The name of the local variable that the generated <c>ToString</c> body declares. The name is unusual on purpose,
-    /// because the body can be inlined into the scope of a template that has its own local variables.
+    /// The name of the local variable that the generated <c>ToString</c> body declares. The body is never inlined, as
+    /// <see cref="BodyDeclaresLocalVariable"/> explains, so the name is only ever declared in a body of its own.
     /// </summary>
-    private const string _stringBuilderLocalName = "__recordStringBuilder";
+    private const string _stringBuilderLocalName = "builder";
+
+    /// <summary>
+    /// Determines whether the body generated for a member declares a local variable.
+    /// </summary>
+    /// <remarks>
+    /// Such a body must not be inlined. The linker does not know which identifiers are in scope at the inlining site,
+    /// and C# rejects a local variable that has the same name as one of an enclosing scope, so the body is emitted as
+    /// a separate method instead. Only <c>ToString</c> is concerned.
+    /// </remarks>
+    public static bool BodyDeclaresLocalVariable( ISymbol symbol )
+        => symbol.Kind == SymbolKind.Method
+           && symbol is IMethodSymbol { IsImplicitlyDeclared: true } method
+           && GetMemberKind( method ) == SynthesizedRecordMemberKind.ToString;
 
     /// <summary>
     /// Determines which compiler-synthesized record member a method is, if any.
@@ -555,15 +570,64 @@ internal static class SynthesizedRecordMemberBodyGenerator
 
                     break;
 
-                case SymbolKind.Event when member is IEventSymbol { IsStatic: false } @event && @event.GetBackingField() != null:
-                    // Inside the declaring type, the name of a field-like event binds to its backing field.
-                    fields.Add( new RecordField( @event.Name, @event.Type ) );
+                case SymbolKind.Event when member is IEventSymbol { IsStatic: false, ExplicitInterfaceImplementations.IsEmpty: true } @event
+                                           && @event.IsEventField() == true:
+                    fields.Add( CreateFieldForEvent( @event, rewritingDriver ) );
 
                     break;
             }
         }
 
         return fields;
+    }
+
+    /// <summary>
+    /// Gets the auto-properties of a record whose value the generated body of <c>Equals</c> and <c>GetHashCode</c> reads
+    /// through the property, where the C# compiler reads the backing field.
+    /// </summary>
+    /// <param name="type">The record type.</param>
+    /// <param name="hasMaterializedBackingField">
+    /// Determines whether the linker emits an explicit backing field for a property, in which case the generated body reads
+    /// that field and the property is not returned.
+    /// </param>
+    /// <remarks>
+    /// The backing field of an auto-property has no name that can be written in source code, so the generated body reads the
+    /// property instead. The two are equivalent, except when the property can be overridden: a derived type then changes the
+    /// result of the generated body, but not the result of the body that the compiler synthesizes.
+    /// </remarks>
+    public static IReadOnlyList<IPropertySymbol> GetVirtuallyReadAutoProperties(
+        INamedTypeSymbol type,
+        Predicate<IPropertySymbol> hasMaterializedBackingField )
+    {
+        List<IPropertySymbol>? properties = null;
+
+        foreach ( var member in type.GetMembers() )
+        {
+            if ( member.Kind == SymbolKind.Field
+                 && member is IFieldSymbol { IsStatic: false, IsConst: false, AssociatedSymbol.Kind: SymbolKind.Property } field
+                 && field.AssociatedSymbol is IPropertySymbol property
+                 && (property.IsVirtual || (property.IsOverride && !property.IsSealed))
+                 && !hasMaterializedBackingField( property ) )
+            {
+                properties ??= [];
+                properties.Add( property );
+            }
+        }
+
+        return (IReadOnlyList<IPropertySymbol>?) properties ?? [];
+    }
+
+    /// <summary>
+    /// Creates the description of the backing field of a field-like event. Inside the declaring type, the name of the event
+    /// binds to that field, unless the linker replaces the event by a private event that carries the field.
+    /// </summary>
+    private static RecordField CreateFieldForEvent( IEventSymbol @event, LinkerRewritingDriver rewritingDriver )
+    {
+        var name = rewritingDriver.HasMaterializedBackingField( @event )
+            ? rewritingDriver.GetBackingFieldName( @event )
+            : @event.Name;
+
+        return new RecordField( name, @event.Type );
     }
 
     private static RecordField CreateFieldFor( IFieldSymbol field, LinkerRewritingDriver rewritingDriver )

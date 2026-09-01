@@ -5,14 +5,18 @@ internal record Target(int X)
   {
     // <target>
     global::System.Console.WriteLine("Overridden!");
-    global::System.Text.StringBuilder __recordStringBuilder = new global::System.Text.StringBuilder();
-    __recordStringBuilder.Append("Target");
-    __recordStringBuilder.Append(" { ");
-    if (this.PrintMembers(__recordStringBuilder))
+    return this.ToString_Source();
+  }
+  private global::System.String ToString_Source()
+  {
+    global::System.Text.StringBuilder builder = new global::System.Text.StringBuilder();
+    builder.Append("Target");
+    builder.Append(" { ");
+    if (this.PrintMembers(builder))
     {
-      __recordStringBuilder.Append(' ');
+      builder.Append(' ');
     }
-    __recordStringBuilder.Append('}');
-    return __recordStringBuilder.ToString();
+    builder.Append('}');
+    return builder.ToString();
   }
 }

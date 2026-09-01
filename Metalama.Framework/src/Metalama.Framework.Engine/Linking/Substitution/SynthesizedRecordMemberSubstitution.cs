@@ -67,9 +67,14 @@ internal sealed class SynthesizedRecordMemberSubstitution : SyntaxNodeSubstituti
                         result,
                         substitutionContext.SyntaxGenerationContext ) );
             }
-
-            // When there is neither simple inlining nor a return variable, the value of the original implementation
-            // is not used by the inlining context and the result expression is dropped.
+            else
+            {
+                // The inlining context does not use the value of the original implementation, but the result expression
+                // is not necessarily free of side effects. The body of PrintMembers of an empty derived record is the
+                // call to the base PrintMembers, which appends to the builder, and the comparisons in Equals call the
+                // members of the record. The expression is therefore discarded rather than dropped.
+                allStatements.Add( SyntaxFactoryEx.DiscardStatement( result ) );
+            }
         }
 
         return substitutionContext.SyntaxGenerationContext.SyntaxGenerator.FormattedBlock( allStatements )

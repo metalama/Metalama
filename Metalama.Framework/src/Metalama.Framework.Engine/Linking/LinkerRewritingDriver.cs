@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.Introductions.Helpers;
 using Metalama.Framework.Engine.Formatting;
 using Metalama.Framework.Engine.Linking.Substitution;
@@ -812,6 +813,16 @@ internal sealed partial class LinkerRewritingDriver
            && (property.GetBackingField() != null
                || (property.GetPrimaryDeclarationSyntax() as PropertyDeclarationSyntax)?.IsAutoPropertyDeclaration() == true)
            && this.AnalysisRegistry.IsReachable( property.ToSemantic( IntermediateSymbolSemanticKind.Default ) );
+
+    /// <summary>
+    /// Determines whether the linker emits an explicit backing field for a field-like event, in which case the field can be
+    /// read from generated source under the name returned by <see cref="GetBackingFieldName"/>. When it does not, the name
+    /// of the event itself binds to its backing field inside the declaring type.
+    /// </summary>
+    public bool HasMaterializedBackingField( IEventSymbol @event )
+        => this.InjectionRegistry.IsOverrideTarget( @event )
+           && @event.IsEventField() == true
+           && this.AnalysisRegistry.IsReachable( @event.ToSemantic( IntermediateSymbolSemanticKind.Default ) );
 
     public string GetBackingFieldName( ISymbol symbol )
     {
