@@ -38,14 +38,6 @@ internal sealed class SyntaxProcessingException : Exception
             {
                 if ( this.SyntaxNode != null )
                 {
-                    // Get the node text. We need to remove CR and LF otherwise it is not well parsed by MSBuild.
-                    var nodeText = this.SyntaxNode.NormalizeWhitespace().ToString().Replace( "\r\n", " " ).Replace( "\n", " " ).Replace( "\n", " " );
-
-                    if ( nodeText.Length > 40 )
-                    {
-                        nodeText = nodeText.Substring( 0, 37 ) + "...";
-                    }
-
                     // Get the node path.
                     var nodePath = "";
 
@@ -71,7 +63,7 @@ internal sealed class SyntaxProcessingException : Exception
                     var location = this.SyntaxNode.GetLocation();
 
                     return
-                        $"{this.InnerException!.GetType().Name} while processing the {this.SyntaxNode.Kind()} with code `{nodeText}` at '{nodePath}' in '{location.SourceTree?.FilePath}' ({FormatLinePosition( location.GetMappedLineSpan().StartLinePosition )}-{FormatLinePosition( location.GetMappedLineSpan().EndLinePosition )}): {this.InnerException.Message}";
+                        $"{this.InnerException!.GetType().Name} while processing the {this.SyntaxNode.Kind()} with code `{GetNodeText( this.SyntaxNode )}` at '{nodePath}' in '{location.SourceTree?.FilePath}' {FormatLineSpan( location )}: {this.InnerException.Message}";
                 }
                 else
                 {
@@ -83,6 +75,53 @@ internal sealed class SyntaxProcessingException : Exception
             {
                 return "An exception occurred while attempting to generate a full error message.";
             }
+        }
+    }
+
+    /// <summary>
+    /// Returns the code of the given node, on a single line and truncated, or a description of the failure when the
+    /// code cannot be rendered.
+    /// </summary>
+    private static string GetNodeText( SyntaxNode node )
+    {
+        try
+        {
+            // We need to remove CR and LF otherwise the text is not well parsed by MSBuild.
+            var nodeText = node.NormalizeWhitespace().ToString().Replace( "\r\n", " " ).Replace( "\n", " " );
+
+            if ( nodeText.Length > 40 )
+            {
+                nodeText = nodeText.Substring( 0, 37 ) + "...";
+            }
+
+            return nodeText;
+        }
+        catch ( Exception e )
+        {
+            return $"<the code is not available: {e.Message}>";
+        }
+    }
+
+    /// <summary>
+    /// Returns the position of the given location in its file, or a description of the failure when the position
+    /// cannot be computed.
+    /// </summary>
+    /// <remarks>
+    /// Mapping a span to a line position throws when the line index of the text of the syntax tree disagrees with
+    /// the content of that text, which is the state reported by issue #1858. The whole message used to be lost in
+    /// that case, so the crash reports carried no information about the code that caused them.
+    /// </remarks>
+    private static string FormatLineSpan( Location location )
+    {
+        try
+        {
+            var lineSpan = location.GetMappedLineSpan();
+
+            return $"({FormatLinePosition( lineSpan.StartLinePosition )}-{FormatLinePosition( lineSpan.EndLinePosition )})";
+        }
+        catch ( Exception e )
+        {
+            return $"(the position is not available: {e.Message})";
         }
     }
 
