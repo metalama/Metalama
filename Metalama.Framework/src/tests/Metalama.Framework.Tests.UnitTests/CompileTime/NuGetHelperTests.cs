@@ -2,8 +2,11 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Backstage.Infrastructure;
+using Metalama.Backstage.Testing;
 using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.CompileTime;
+using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Testing.UnitTesting;
 using System;
@@ -37,7 +40,7 @@ public sealed class NuGetHelperTests : UnitTestClass
         var configPath = Path.Combine( testContext.BaseDirectory, "nuget.config" );
         File.WriteAllText( configPath, content );
 
-        var mergedConfig = NuGetHelper.MergeConfigFiles( NuGetHelper.GetConfigFiles( configPath ) ).AssertNotNull();
+        var mergedConfig = MergeConfigFiles( testContext, configPath );
 
         // The relative path "nuget/fallback" should be resolved to an absolute path
         // relative to the directory containing the nuget.config file.
@@ -72,7 +75,7 @@ public sealed class NuGetHelperTests : UnitTestClass
         var configPath = Path.Combine( testContext.BaseDirectory, "nuget.config" );
         File.WriteAllText( configPath, content );
 
-        var mergedConfig = NuGetHelper.MergeConfigFiles( NuGetHelper.GetConfigFiles( configPath ) ).AssertNotNull();
+        var mergedConfig = MergeConfigFiles( testContext, configPath );
 
         var localSourceElement = mergedConfig.Root.AssertNotNull()
             .Element( "packageSources" )
@@ -108,7 +111,7 @@ public sealed class NuGetHelperTests : UnitTestClass
         var configPath = Path.Combine( testContext.BaseDirectory, "nuget.config" );
         File.WriteAllText( configPath, content );
 
-        var mergedConfig = NuGetHelper.MergeConfigFiles( NuGetHelper.GetConfigFiles( configPath ) ).AssertNotNull();
+        var mergedConfig = MergeConfigFiles( testContext, configPath );
 
         var fallbackElement = mergedConfig.Root.AssertNotNull()
             .Element( "fallbackPackageFolders" )
@@ -138,7 +141,7 @@ public sealed class NuGetHelperTests : UnitTestClass
         var configPath = Path.Combine( testContext.BaseDirectory, "nuget.config" );
         File.WriteAllText( configPath, content );
 
-        var mergedConfig = NuGetHelper.MergeConfigFiles( NuGetHelper.GetConfigFiles( configPath ) ).AssertNotNull();
+        var mergedConfig = MergeConfigFiles( testContext, configPath );
 
         var nugetOrgElement = mergedConfig.Root.AssertNotNull()
             .Element( "packageSources" )
@@ -168,7 +171,7 @@ public sealed class NuGetHelperTests : UnitTestClass
         var configPath = Path.Combine( testContext.BaseDirectory, "nuget.config" );
         File.WriteAllText( configPath, content );
 
-        var mergedConfig = NuGetHelper.MergeConfigFiles( NuGetHelper.GetConfigFiles( configPath ) ).AssertNotNull();
+        var mergedConfig = MergeConfigFiles( testContext, configPath );
 
         var localElement = mergedConfig.Root.AssertNotNull()
             .Element( "packageSources" )
@@ -201,7 +204,7 @@ public sealed class NuGetHelperTests : UnitTestClass
         var configPath = Path.Combine( testContext.BaseDirectory, "nuget.config" );
         File.WriteAllText( configPath, content );
 
-        var mergedConfig = NuGetHelper.MergeConfigFiles( NuGetHelper.GetConfigFiles( configPath ) ).AssertNotNull();
+        var mergedConfig = MergeConfigFiles( testContext, configPath );
 
         var envSourceElement = mergedConfig.Root.AssertNotNull()
             .Element( "packageSources" )
@@ -236,7 +239,7 @@ public sealed class NuGetHelperTests : UnitTestClass
         var configPath = Path.Combine( testContext.BaseDirectory, "nuget.config" );
         File.WriteAllText( configPath, content );
 
-        var mergedConfig = NuGetHelper.MergeConfigFiles( NuGetHelper.GetConfigFiles( configPath ) ).AssertNotNull();
+        var mergedConfig = MergeConfigFiles( testContext, configPath );
 
         var repoPathElement = mergedConfig.Root.AssertNotNull()
             .Element( "config" )
@@ -266,7 +269,7 @@ public sealed class NuGetHelperTests : UnitTestClass
         var configPath = Path.Combine( testContext.BaseDirectory, "nuget.config" );
         File.WriteAllText( configPath, content );
 
-        var mergedConfig = NuGetHelper.MergeConfigFiles( NuGetHelper.GetConfigFiles( configPath ) ).AssertNotNull();
+        var mergedConfig = MergeConfigFiles( testContext, configPath );
 
         var element = mergedConfig.Root.AssertNotNull()
             .Element( "config" )
@@ -297,7 +300,7 @@ public sealed class NuGetHelperTests : UnitTestClass
         var configPath = Path.Combine( testContext.BaseDirectory, "nuget.config" );
         File.WriteAllText( configPath, content );
 
-        var mergedConfig = NuGetHelper.MergeConfigFiles( NuGetHelper.GetConfigFiles( configPath ) ).AssertNotNull();
+        var mergedConfig = MergeConfigFiles( testContext, configPath );
 
         var pushSourceElement = mergedConfig.Root.AssertNotNull()
             .Element( "config" )
@@ -364,7 +367,7 @@ public sealed class NuGetHelperTests : UnitTestClass
         var childPath = Path.Combine( subdir, "nuget.config" );
         File.WriteAllText( childPath, childConfig );
 
-        var mergedConfig = NuGetHelper.MergeConfigFiles( NuGetHelper.GetConfigFiles( childPath ) ).AssertNotNull();
+        var mergedConfig = MergeConfigFiles( testContext, childPath );
 
         // There should be exactly 3 packageSource entries: nuget.org (from child, replacing parent),
         // MyFeed (from parent), and LocalFeed (from child).
@@ -473,7 +476,7 @@ public sealed class NuGetHelperTests : UnitTestClass
         var path2 = Path.Combine( subdir, "nuget.config" );
         File.WriteAllText( path2, content2 );
 
-        var mergedConfig = NuGetHelper.MergeConfigFiles( NuGetHelper.GetConfigFiles( path2 ) ).AssertNotNull().ToString();
+        var mergedConfig = MergeConfigFiles( testContext, path2 ).ToString();
 
         const string expectedMergedConfig =
             """
@@ -566,7 +569,7 @@ public sealed class NuGetHelperTests : UnitTestClass
         var path2 = Path.Combine( subdir, "nuget.config" );
         File.WriteAllText( path2, childConfig );
 
-        var mergedConfig = NuGetHelper.MergeConfigFiles( NuGetHelper.GetConfigFiles( path2 ) ).AssertNotNull().ToString();
+        var mergedConfig = MergeConfigFiles( testContext, path2 ).ToString();
 
         const string expectedMergedConfig =
             """
@@ -620,7 +623,7 @@ public sealed class NuGetHelperTests : UnitTestClass
         var path2 = Path.Combine( subdir, "nuget.config" );
         File.WriteAllText( path2, childConfig );
 
-        var mergedConfig = NuGetHelper.MergeConfigFiles( NuGetHelper.GetConfigFiles( path2 ) ).AssertNotNull().ToString();
+        var mergedConfig = MergeConfigFiles( testContext, path2 ).ToString();
 
         // Relative paths should be resolved to absolute paths based on each config file's directory.
         var resolvedParentPath = Path.GetFullPath( Path.Combine( testContext.BaseDirectory, "packages/local" ) );
@@ -710,7 +713,7 @@ public sealed class NuGetHelperTests : UnitTestClass
         var path2 = Path.Combine( subdir, "nuget.config" );
         File.WriteAllText( path2, childConfig );
 
-        var mergedConfig = NuGetHelper.MergeConfigFiles( NuGetHelper.GetConfigFiles( path2 ) ).AssertNotNull().ToString();
+        var mergedConfig = MergeConfigFiles( testContext, path2 ).ToString();
 
         // After <clear/>, only the child's entries should be present.
         // Relative paths are resolved to absolute paths based on the config file's directory.
@@ -748,7 +751,18 @@ public sealed class NuGetHelperTests : UnitTestClass
     private const string _prereleaseSourceUrl = "https://proget.postsharp.net/nuget/roslyn-consolidated/v3/index.json";
     private const string _codeAnalysisPattern = "Microsoft.CodeAnalysis.*";
 
-    private static XDocument MergeConfigFiles( string path ) => NuGetHelper.MergeConfigFiles( NuGetHelper.GetConfigFiles( path ) ).AssertNotNull();
+    /// <summary>
+    /// Creates the <see cref="NuGetHelper"/> under test, which reads the file system and the environment through the
+    /// services of the test context.
+    /// </summary>
+    private static NuGetHelper CreateNuGetHelper( TestContext testContext ) => new( testContext.ServiceProvider.Global );
+
+    private static XDocument MergeConfigFiles( TestContext testContext, string path )
+    {
+        var nuGetHelper = CreateNuGetHelper( testContext );
+
+        return nuGetHelper.MergeConfigFiles( nuGetHelper.GetConfigFiles( path ) ).AssertNotNull();
+    }
 
     private static string WriteConfigFile( string directory, string content )
     {
@@ -763,9 +777,11 @@ public sealed class NuGetHelperTests : UnitTestClass
     {
         // Issue #1885: when the user project has no nuget.config at all, the generated configuration must still
         // declare the package source that serves the prerelease Roslyn packages.
+        using var testContext = this.CreateTestContext();
+
         var document = new XDocument( new XElement( "configuration" ) );
 
-        var result = NuGetHelper.AddPackageSource(
+        var result = CreateNuGetHelper( testContext ).AddPackageSource(
             document,
             _prereleaseSourceKey,
             _prereleaseSourceUrl,
@@ -802,9 +818,9 @@ public sealed class NuGetHelperTests : UnitTestClass
             </configuration>
             """ );
 
-        var document = MergeConfigFiles( configPath );
+        var document = MergeConfigFiles( testContext, configPath );
 
-        NuGetHelper.AddPackageSource( document, _prereleaseSourceKey, _prereleaseSourceUrl, _codeAnalysisPattern, Array.Empty<string>() );
+        CreateNuGetHelper( testContext ).AddPackageSource( document, _prereleaseSourceKey, _prereleaseSourceUrl, _codeAnalysisPattern, Array.Empty<string>() );
 
         var packageSources = document.Root.AssertNotNull().Element( "packageSources" ).AssertNotNull();
         var elementNames = packageSources.Elements().Select( e => e.Name.LocalName ).ToList();
@@ -832,9 +848,9 @@ public sealed class NuGetHelperTests : UnitTestClass
             </configuration>
             """ );
 
-        var document = MergeConfigFiles( configPath );
+        var document = MergeConfigFiles( testContext, configPath );
 
-        var result = NuGetHelper.AddPackageSource(
+        var result = CreateNuGetHelper( testContext ).AddPackageSource(
             document,
             _prereleaseSourceKey,
             _prereleaseSourceUrl,
@@ -869,9 +885,9 @@ public sealed class NuGetHelperTests : UnitTestClass
             </configuration>
             """ );
 
-        var document = MergeConfigFiles( configPath );
+        var document = MergeConfigFiles( testContext, configPath );
 
-        var result = NuGetHelper.AddPackageSource(
+        var result = CreateNuGetHelper( testContext ).AddPackageSource(
             document,
             _prereleaseSourceKey,
             _prereleaseSourceUrl,
@@ -924,9 +940,9 @@ public sealed class NuGetHelperTests : UnitTestClass
             </configuration>
             """ );
 
-        var document = MergeConfigFiles( configPath );
+        var document = MergeConfigFiles( testContext, configPath );
 
-        var result = NuGetHelper.AddPackageSource(
+        var result = CreateNuGetHelper( testContext ).AddPackageSource(
             document,
             _prereleaseSourceKey,
             _prereleaseSourceUrl,
@@ -982,9 +998,9 @@ public sealed class NuGetHelperTests : UnitTestClass
             </configuration>
             """ );
 
-        var document = MergeConfigFiles( configPath );
+        var document = MergeConfigFiles( testContext, configPath );
 
-        var result = NuGetHelper.AddPackageSource(
+        var result = CreateNuGetHelper( testContext ).AddPackageSource(
             document,
             _prereleaseSourceKey,
             _prereleaseSourceUrl,
@@ -1034,11 +1050,11 @@ public sealed class NuGetHelperTests : UnitTestClass
             </configuration>
             """ );
 
-        var document = MergeConfigFiles( configPath );
+        var document = MergeConfigFiles( testContext, configPath );
 
         Assert.Null( document.Root.AssertNotNull().Element( "packageSourceMapping" ) );
 
-        var result = NuGetHelper.AddPackageSource(
+        var result = CreateNuGetHelper( testContext ).AddPackageSource(
             document,
             _prereleaseSourceKey,
             _prereleaseSourceUrl,
@@ -1073,5 +1089,114 @@ public sealed class NuGetHelperTests : UnitTestClass
         // generated nuget.config is what it was before. This test fails when a version branch moves onto a prerelease
         // Roslyn, which is the point at which the switch has to be reviewed.
         Assert.Null( RoslynApiVersion.Current.ToPrereleasePackageSourceUrl() );
+    }
+
+    /// <summary>
+    /// Creates the <see cref="NuGetHelper"/> under test with a given environment, so that the resolution of the
+    /// user-level configuration file does not depend on the machine that runs the test.
+    /// </summary>
+    private static NuGetHelper CreateNuGetHelper( TestContext testContext, IEnvironmentVariableProvider environmentVariables )
+        => new( testContext.ServiceProvider.Global.GetRequiredBackstageService<IFileSystem>(), environmentVariables );
+
+    /// <summary>
+    /// Creates a directory under the base directory of the test context and writes a NuGet configuration file into it,
+    /// under the name that the NuGet tools give it, and returns the path of that file.
+    /// </summary>
+    private static string WriteUserConfigFile( TestContext testContext, params string[] directoryParts )
+    {
+        var directory = Path.Combine( new[] { testContext.BaseDirectory }.Concat( directoryParts ).ToArray() );
+        Directory.CreateDirectory( directory );
+
+        var path = Path.Combine( directory, "NuGet.Config" );
+        File.WriteAllText( path, "<configuration />" );
+
+        return path;
+    }
+
+    [Fact]
+    public void NoUserConfigFileIsFoundWhenTheEnvironmentDefinesNoDirectory()
+    {
+        // Issue #1885: an environment in which no candidate directory exists yields no file, and the mapping decision
+        // is then taken from the discovered configuration files alone.
+        using var testContext = this.CreateTestContext();
+
+        var environmentVariables = new TestEnvironmentVariableProvider();
+
+        Assert.Null( CreateNuGetHelper( testContext, environmentVariables ).GetUserConfigFile() );
+    }
+
+    [Fact]
+    public void UserConfigFileIsFoundInTheApplicationDataDirectory()
+    {
+        // Issue #1885: on Windows the user-level configuration file is under %APPDATA%\NuGet, and its name is spelled
+        // NuGet.Config, which the lookup has to match without regard to case.
+        using var testContext = this.CreateTestContext();
+
+        var expectedPath = WriteUserConfigFile( testContext, "AppData", "NuGet" );
+
+        var environmentVariables = new TestEnvironmentVariableProvider();
+        environmentVariables.Environment["APPDATA"] = Path.Combine( testContext.BaseDirectory, "AppData" );
+
+        Assert.Equal( expectedPath, CreateNuGetHelper( testContext, environmentVariables ).GetUserConfigFile() );
+    }
+
+    [Fact]
+    public void UserConfigFileIsFoundUnderTheConfigurationHomeDirectory()
+    {
+        // Issue #1885: on Unix the application data directory is $XDG_CONFIG_HOME when that variable is defined.
+        using var testContext = this.CreateTestContext();
+
+        var expectedPath = WriteUserConfigFile( testContext, "config", "NuGet" );
+
+        var environmentVariables = new TestEnvironmentVariableProvider();
+        environmentVariables.Environment["XDG_CONFIG_HOME"] = Path.Combine( testContext.BaseDirectory, "config" );
+
+        Assert.Equal( expectedPath, CreateNuGetHelper( testContext, environmentVariables ).GetUserConfigFile() );
+    }
+
+    [Fact]
+    public void UserConfigFileIsFoundUnderTheHomeDirectoryWhenNoConfigurationHomeIsDefined()
+    {
+        // Issue #1885: on Unix the application data directory is $HOME/.config when $XDG_CONFIG_HOME is not defined.
+        using var testContext = this.CreateTestContext();
+
+        var expectedPath = WriteUserConfigFile( testContext, "home", ".config", "NuGet" );
+
+        var environmentVariables = new TestEnvironmentVariableProvider();
+        environmentVariables.Environment["HOME"] = Path.Combine( testContext.BaseDirectory, "home" );
+
+        Assert.Equal( expectedPath, CreateNuGetHelper( testContext, environmentVariables ).GetUserConfigFile() );
+    }
+
+    [Fact]
+    public void UserConfigFileIsFoundInTheLegacyDirectory()
+    {
+        // Issue #1885: NuGet also reads the file under the home directory of the user, which is the location it used
+        // before the application data directory.
+        using var testContext = this.CreateTestContext();
+
+        var expectedPath = WriteUserConfigFile( testContext, "profile", ".nuget", "NuGet" );
+
+        var environmentVariables = new TestEnvironmentVariableProvider();
+        environmentVariables.Environment["USERPROFILE"] = Path.Combine( testContext.BaseDirectory, "profile" );
+
+        Assert.Equal( expectedPath, CreateNuGetHelper( testContext, environmentVariables ).GetUserConfigFile() );
+    }
+
+    [Fact]
+    public void TheApplicationDataDirectoryIsProbedBeforeTheLegacyDirectory()
+    {
+        // Issue #1885: NuGet probes the application data directory first, so a file in the legacy directory is read
+        // only when the application data directory holds none.
+        using var testContext = this.CreateTestContext();
+
+        var expectedPath = WriteUserConfigFile( testContext, "AppData", "NuGet" );
+        WriteUserConfigFile( testContext, "profile", ".nuget", "NuGet" );
+
+        var environmentVariables = new TestEnvironmentVariableProvider();
+        environmentVariables.Environment["APPDATA"] = Path.Combine( testContext.BaseDirectory, "AppData" );
+        environmentVariables.Environment["USERPROFILE"] = Path.Combine( testContext.BaseDirectory, "profile" );
+
+        Assert.Equal( expectedPath, CreateNuGetHelper( testContext, environmentVariables ).GetUserConfigFile() );
     }
 }

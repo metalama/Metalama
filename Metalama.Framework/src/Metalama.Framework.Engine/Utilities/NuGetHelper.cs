@@ -2,15 +2,27 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Backstage.Infrastructure;
+using Metalama.Framework.Engine.Services;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Xml.Linq;
 
 namespace Metalama.Framework.Engine.Utilities;
 
-internal static class NuGetHelper
+/// <summary>
+/// Reads the <c>nuget.config</c> files that apply to a project, merges them into the configuration written beside the
+/// reference-assembly project, and adds package sources to that copy.
+/// </summary>
+/// <remarks>
+/// Every access to the file system and to the environment goes through <see cref="IFileSystem"/> and
+/// <see cref="IEnvironmentVariableProvider"/>, so that the rules implemented here can be exercised by a test without
+/// the machine that runs it taking part in the outcome.
+/// </remarks>
+internal sealed class NuGetHelper
 {
     /// <summary>
     /// A package source of a <c>packageSourceMapping</c> section, with the patterns mapped to it.
@@ -29,6 +41,22 @@ internal static class NuGetHelper
     private static readonly HashSet<string> _configPathKeys =
         new( StringComparer.OrdinalIgnoreCase ) { "repositoryPath", "globalPackagesFolder" };
 
+    // A %NAME% token of a nuget.config value, which NuGet expands before it uses the value.
+    private static readonly Regex _environmentVariableRegex = new( "%([^%]+)%", RegexOptions.CultureInvariant );
+
+    private readonly IFileSystem _fileSystem;
+    private readonly IEnvironmentVariableProvider _environmentVariables;
+
+    public NuGetHelper( GlobalServiceProvider serviceProvider ) : this(
+        serviceProvider.GetRequiredBackstageService<IFileSystem>(),
+        serviceProvider.GetRequiredBackstageService<IEnvironmentVariableProvider>() ) { }
+
+    public NuGetHelper( IFileSystem fileSystem, IEnvironmentVariableProvider environmentVariables )
+    {
+        this._fileSystem = fileSystem;
+        this._environmentVariables = environmentVariables;
+    }
+
     /// <summary>
     /// Returns the path of the user-level NuGet configuration file, or <c>null</c> when none exists.
     /// </summary>
@@ -38,19 +66,11 @@ internal static class NuGetHelper
     /// decide whether a package source mapping section exists and whether a pattern is already mapped. It is not merged
     /// into the generated configuration. See issue #1885.
     /// </remarks>
-    public static string? GetUserConfigFile()
+    public string? GetUserConfigFile()
     {
-        // The order follows the order in which NuGet probes: the application data directory, which is %AppData% on
-        // Windows and $XDG_CONFIG_HOME or ~/.config on Unix, and then the legacy location under the home directory.
-        var candidateDirectories = new List<string>();
-
-        AddCandidate( Environment.GetFolderPath( Environment.SpecialFolder.ApplicationData ), "NuGet" );
-        AddCandidate( Environment.GetEnvironmentVariable( "XDG_CONFIG_HOME" ), "NuGet" );
-        AddCandidate( Environment.GetFolderPath( Environment.SpecialFolder.UserProfile ), ".nuget", "NuGet" );
-
-        foreach ( var candidateDirectory in candidateDirectories )
+        foreach ( var candidateDirectory in this.GetUserConfigDirectories() )
         {
-            var configFile = FindConfigFileInDirectory( candidateDirectory );
+            var configFile = this.FindConfigFileInDirectory( candidateDirectory );
 
             if ( configFile != null )
             {
@@ -59,22 +79,54 @@ internal static class NuGetHelper
         }
 
         return null;
+    }
 
-        void AddCandidate( string? root, params string[] parts )
+    /// <summary>
+    /// Returns the directories in which NuGet looks for the user-level configuration file, in the order in which NuGet
+    /// probes them.
+    /// </summary>
+    /// <remarks>
+    /// The directories are formed from environment variables instead of from
+    /// <see cref="Environment.GetFolderPath(Environment.SpecialFolder)"/>, so that a test decides what they are. The
+    /// variables of both families of operating systems are read on every one of them, because a variable that the
+    /// current one does not define yields no candidate.
+    /// </remarks>
+    private IEnumerable<string> GetUserConfigDirectories()
+    {
+        // The application data directory, which is %APPDATA% on Windows.
+        var applicationData = this._environmentVariables.GetEnvironmentVariable( "APPDATA" );
+
+        if ( !string.IsNullOrEmpty( applicationData ) )
         {
-            if ( string.IsNullOrEmpty( root ) )
-            {
-                return;
-            }
+            yield return Path.Combine( applicationData!, "NuGet" );
+        }
 
-            var directory = root!;
+        // The same directory on Unix, which is $XDG_CONFIG_HOME when that variable is defined and $HOME/.config
+        // otherwise.
+        var xdgConfigHome = this._environmentVariables.GetEnvironmentVariable( "XDG_CONFIG_HOME" );
+        var home = this._environmentVariables.GetEnvironmentVariable( "HOME" );
 
-            foreach ( var part in parts )
-            {
-                directory = Path.Combine( directory, part );
-            }
+        if ( !string.IsNullOrEmpty( xdgConfigHome ) )
+        {
+            yield return Path.Combine( xdgConfigHome!, "NuGet" );
+        }
+        else if ( !string.IsNullOrEmpty( home ) )
+        {
+            yield return Path.Combine( home!, ".config", "NuGet" );
+        }
 
-            candidateDirectories.Add( directory );
+        // The legacy location under the home directory of the user, which is %USERPROFILE% on Windows and $HOME on
+        // Unix.
+        var userProfile = this._environmentVariables.GetEnvironmentVariable( "USERPROFILE" );
+
+        if ( !string.IsNullOrEmpty( userProfile ) )
+        {
+            yield return Path.Combine( userProfile!, ".nuget", "NuGet" );
+        }
+
+        if ( !string.IsNullOrEmpty( home ) )
+        {
+            yield return Path.Combine( home!, ".nuget", "NuGet" );
         }
     }
 
@@ -87,45 +139,45 @@ internal static class NuGetHelper
     /// it <c>NuGet.Config</c> while NuGet itself matches the name without regard to case, and a file system that
     /// distinguishes case would otherwise hide the file.
     /// </remarks>
-    private static string? FindConfigFileInDirectory( string directory )
+    private string? FindConfigFileInDirectory( string directory )
     {
-        if ( !Directory.Exists( directory ) )
+        if ( !this._fileSystem.DirectoryExists( directory ) )
         {
             return null;
         }
 
-        return Directory.EnumerateFiles( directory )
+        return this._fileSystem.EnumerateFiles( directory )
             .FirstOrDefault( f => string.Equals( Path.GetFileName( f ), "nuget.config", StringComparison.OrdinalIgnoreCase ) );
     }
 
-    public static List<string> GetConfigFiles( string projectPath )
+    public List<string> GetConfigFiles( string projectPath )
     {
         List<string> configFiles = new();
-        DiscoverConfigFiles( Path.GetDirectoryName( projectPath ).AssertNotNull() );
-
-        void DiscoverConfigFiles( string directory )
-        {
-            var parentDirectory = Path.GetDirectoryName( directory );
-
-            // Parent first.
-            if ( parentDirectory != null )
-            {
-                DiscoverConfigFiles( parentDirectory );
-            }
-
-            // Add one file.
-            var path = Path.Combine( directory, "nuget.config" );
-
-            if ( File.Exists( path ) )
-            {
-                configFiles.Add( path );
-            }
-        }
+        this.DiscoverConfigFiles( Path.GetDirectoryName( projectPath ).AssertNotNull(), configFiles );
 
         return configFiles;
     }
 
-    public static XDocument? MergeConfigFiles( IReadOnlyList<string> configFiles )
+    private void DiscoverConfigFiles( string directory, List<string> configFiles )
+    {
+        var parentDirectory = Path.GetDirectoryName( directory );
+
+        // Parent first.
+        if ( parentDirectory != null )
+        {
+            this.DiscoverConfigFiles( parentDirectory, configFiles );
+        }
+
+        // Add one file.
+        var path = Path.Combine( directory, "nuget.config" );
+
+        if ( this._fileSystem.FileExists( path ) )
+        {
+            configFiles.Add( path );
+        }
+    }
+
+    public XDocument? MergeConfigFiles( IReadOnlyList<string> configFiles )
     {
         if ( configFiles.Count == 0 )
         {
@@ -137,7 +189,7 @@ internal static class NuGetHelper
 
         foreach ( var configFile in configFiles )
         {
-            var document = XDocument.Load( configFile );
+            var document = this.LoadConfigFile( configFile );
 
             if ( document.Root == null )
             {
@@ -146,12 +198,19 @@ internal static class NuGetHelper
 
             var configDirectory = Path.GetDirectoryName( Path.GetFullPath( configFile ) ).AssertNotNull();
 
-            ResolveRelativePaths( document.Root, configDirectory );
+            this.ResolveRelativePaths( document.Root, configDirectory );
 
             MergeChildrenNodes( mergedDocument.Root!, document.Root );
         }
 
         return mergedDocument;
+    }
+
+    private XDocument LoadConfigFile( string configFile )
+    {
+        using var stream = this._fileSystem.OpenRead( configFile );
+
+        return XDocument.Load( stream );
     }
 
     /// <summary>
@@ -187,7 +246,7 @@ internal static class NuGetHelper
     /// No file read by this method is modified. See issue #1885.
     /// </para>
     /// </remarks>
-    public static AddPackageSourceResult AddPackageSource(
+    public AddPackageSourceResult AddPackageSource(
         XDocument document,
         string key,
         string url,
@@ -212,7 +271,7 @@ internal static class NuGetHelper
             packageSources.Add( new XElement( "add", new XAttribute( "key", key ), new XAttribute( "value", url ) ) );
         }
 
-        var effectiveMapping = GetEffectivePackageSourceMapping( document, decisionConfigFiles );
+        var effectiveMapping = this.GetEffectivePackageSourceMapping( document, decisionConfigFiles );
 
         if ( effectiveMapping.Count == 0 )
         {
@@ -260,13 +319,13 @@ internal static class NuGetHelper
     /// A copy of the root element is merged, because <see cref="MergeChildrenNodes"/> moves the elements of the
     /// increment into the target and would otherwise empty the document that the caller is modifying.
     /// </remarks>
-    private static IReadOnlyList<MappedPackageSource> GetEffectivePackageSourceMapping(
+    private IReadOnlyList<MappedPackageSource> GetEffectivePackageSourceMapping(
         XDocument document,
         IReadOnlyList<string> decisionConfigFiles )
     {
         var root = document.Root.AssertNotNull();
 
-        var effectiveRoot = MergeConfigFiles( decisionConfigFiles )?.Root;
+        var effectiveRoot = this.MergeConfigFiles( decisionConfigFiles )?.Root;
 
         if ( effectiveRoot != null )
         {
@@ -380,7 +439,7 @@ internal static class NuGetHelper
         return section;
     }
 
-    private static void ResolveRelativePaths( XElement root, string configDirectory )
+    private void ResolveRelativePaths( XElement root, string configDirectory )
     {
         foreach ( var section in root.Elements() )
         {
@@ -388,16 +447,25 @@ internal static class NuGetHelper
 
             if ( _pathSections.Contains( sectionName ) || _mixedPathSections.Contains( sectionName ) )
             {
-                ResolvePathsInSection( section, configDirectory );
+                this.ResolvePathsInSection( section, configDirectory );
             }
             else if ( string.Equals( sectionName, "config", StringComparison.OrdinalIgnoreCase ) )
             {
-                ResolvePathsInConfigSection( section, configDirectory );
+                this.ResolvePathsInConfigSection( section, configDirectory );
             }
         }
     }
 
-    private static bool TryResolveRelativePath( string value, string configDirectory, out string resolvedPath )
+    /// <summary>
+    /// Expands the <c>%NAME%</c> tokens of a value, leaving a token in place when the variable is not defined, which is
+    /// what <see cref="Environment.ExpandEnvironmentVariables"/> does.
+    /// </summary>
+    private string ExpandEnvironmentVariables( string value )
+        => _environmentVariableRegex.Replace(
+            value,
+            match => this._environmentVariables.GetEnvironmentVariable( match.Groups[1].Value ) ?? match.Value );
+
+    private bool TryResolveRelativePath( string value, string configDirectory, out string resolvedPath )
     {
         resolvedPath = value;
 
@@ -423,7 +491,7 @@ internal static class NuGetHelper
         // Handle environment variable references (%VAR%).
         // Expand to check whether the result is absolute. If the variable is undefined,
         // ExpandEnvironmentVariables leaves the %VAR% token as-is — we must not resolve it.
-        var expandedValue = Environment.ExpandEnvironmentVariables( value );
+        var expandedValue = this.ExpandEnvironmentVariables( value );
 
         if ( expandedValue.IndexOf( "%", StringComparison.Ordinal ) >= 0 )
         {
@@ -453,7 +521,7 @@ internal static class NuGetHelper
         return true;
     }
 
-    private static void ResolvePathsInSection( XElement section, string configDirectory )
+    private void ResolvePathsInSection( XElement section, string configDirectory )
     {
         foreach ( var element in section.Elements( "add" ) )
         {
@@ -464,14 +532,14 @@ internal static class NuGetHelper
                 continue;
             }
 
-            if ( TryResolveRelativePath( valueAttribute.Value, configDirectory, out var resolvedPath ) )
+            if ( this.TryResolveRelativePath( valueAttribute.Value, configDirectory, out var resolvedPath ) )
             {
                 valueAttribute.Value = resolvedPath;
             }
         }
     }
 
-    private static void ResolvePathsInConfigSection( XElement configSection, string configDirectory )
+    private void ResolvePathsInConfigSection( XElement configSection, string configDirectory )
     {
         foreach ( var element in configSection.Elements( "add" ) )
         {
@@ -488,7 +556,7 @@ internal static class NuGetHelper
                 continue;
             }
 
-            if ( TryResolveRelativePath( valueAttribute.Value, configDirectory, out var resolvedPath ) )
+            if ( this.TryResolveRelativePath( valueAttribute.Value, configDirectory, out var resolvedPath ) )
             {
                 valueAttribute.Value = resolvedPath;
             }

@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Backstage.Diagnostics;
+using Metalama.Backstage.Infrastructure;
 using Metalama.Backstage.Maintenance;
 using Metalama.Backstage.Threading;
 using Metalama.Compiler;
@@ -104,6 +105,8 @@ internal sealed class CompileTimeAssemblyLocator
     private readonly Compilation _referenceCompilation = null!;
 
     private readonly CompilationContext _referenceCompilationContext = null!;
+    private readonly IFileSystem _fileSystem;
+    private readonly NuGetHelper _nuGetHelper;
     private readonly IReadOnlyList<string>? _nugetConfigFiles;
 
     /// <summary>
@@ -186,6 +189,8 @@ internal sealed class CompileTimeAssemblyLocator
 
         this._logger = serviceProvider.GetLoggerFactory().GetLogger( nameof(CompileTimeAssemblyLocator) );
         this._lockService = serviceProvider.Global.GetRequiredBackstageService<INamedLockService>();
+        this._fileSystem = serviceProvider.Global.GetRequiredBackstageService<IFileSystem>();
+        this._nuGetHelper = new NuGetHelper( serviceProvider.Global );
         this._sdkVersion = serviceProvider.GetRequiredService<IProjectOptions>().SdkVersion;
         this._msBuildBinPath = serviceProvider.GetRequiredService<IProjectOptions>().MSBuildBinPath;
 
@@ -221,7 +226,7 @@ internal sealed class CompileTimeAssemblyLocator
         // Load nuget.config.
         if ( projectOptions.ProjectPath != null )
         {
-            this._nugetConfigFiles = NuGetHelper.GetConfigFiles( projectOptions.ProjectPath );
+            this._nugetConfigFiles = this._nuGetHelper.GetConfigFiles( projectOptions.ProjectPath );
         }
 
         // On a version branch that compiles against a prerelease Roslyn, the requested Roslyn packages are served by a
@@ -230,7 +235,7 @@ internal sealed class CompileTimeAssemblyLocator
 
         if ( this._prereleasePackageSourceUrl != null )
         {
-            var userConfigFile = NuGetHelper.GetUserConfigFile();
+            var userConfigFile = this._nuGetHelper.GetUserConfigFile();
 
             if ( userConfigFile != null )
             {
@@ -264,7 +269,7 @@ internal sealed class CompileTimeAssemblyLocator
 
         foreach ( var nugetConfigFile in this._nugetConfigFiles ?? [] )
         {
-            var nugetConfigContent = File.ReadAllText( nugetConfigFile );
+            var nugetConfigContent = this._fileSystem.ReadAllText( nugetConfigFile );
             hashBuilder.Append( nugetConfigContent );
         }
 
@@ -278,7 +283,7 @@ internal sealed class CompileTimeAssemblyLocator
 
             foreach ( var userConfigFile in this._userNuGetConfigFiles )
             {
-                hashBuilder.Append( File.ReadAllText( userConfigFile ) );
+                hashBuilder.Append( this._fileSystem.ReadAllText( userConfigFile ) );
             }
         }
 
@@ -775,7 +780,7 @@ internal sealed class CompileTimeAssemblyLocator
             {
                 var discoveredConfigFiles = this._nugetConfigFiles ?? Array.Empty<string>();
 
-                var nugetConfigDocument = NuGetHelper.MergeConfigFiles( discoveredConfigFiles )
+                var nugetConfigDocument = this._nuGetHelper.MergeConfigFiles( discoveredConfigFiles )
                                           ?? new XDocument( new XElement( "configuration" ) );
 
                 var log = new List<string>( discoveredConfigFiles );
@@ -784,7 +789,7 @@ internal sealed class CompileTimeAssemblyLocator
                 {
                     log.AddRange( this._userNuGetConfigFiles );
 
-                    var addPackageSourceResult = NuGetHelper.AddPackageSource(
+                    var addPackageSourceResult = this._nuGetHelper.AddPackageSource(
                         nugetConfigDocument,
                         SupportedCSharpVersions.RoslynPrereleaseSourceKey,
                         this._prereleasePackageSourceUrl,
@@ -816,8 +821,8 @@ internal sealed class CompileTimeAssemblyLocator
 
                 var nuGetConfigPath = Path.Combine( this._cacheDirectory, "nuget.config" );
                 this._logger.Trace?.Log( $"Writing '{nuGetConfigPath}'." );
-                File.WriteAllText( nuGetConfigPath, nugetConfigDocument.ToString() );
-                File.WriteAllText( nuGetConfigPath + ".log", string.Join( Environment.NewLine, log ) );
+                this._fileSystem.WriteAllText( nuGetConfigPath, nugetConfigDocument.ToString() );
+                this._fileSystem.WriteAllText( nuGetConfigPath + ".log", string.Join( Environment.NewLine, log ) );
             }
 
             this._logger.Trace?.Log( $"Building with restore timeout {this._restoreTimeout}." );
