@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <!-- A requirement contributed by a package other than Metalama.Framework, or declared by the project itself, is
-         evaluated on its own and reports its own package. The three requirements below cover the three rules that the
+         evaluated on its own and reports its own package. The four requirements below cover the four rules that the
          requirement of Metalama.Framework does not exercise on this build agent: a target framework newer than the
          tested range, a required target platform, a .NET SDK older than the required one, and a .NET SDK newer than
          the tested range.
