@@ -2,17 +2,20 @@
 
 The authoritative source for how we choose versions in `Directory.Packages.props`. The props file carries short inline rationales; the why and how live here.
 
-## Current floors (Metalama 2026.1 LTS, GA target 2026-07-01)
+This document governs the versions of NuGet packages we may reference. The platforms those packages must load into are governed by [`Metalama.Framework/docs/platform-support.md`](Metalama.Framework/docs/platform-support.md), which defines the supported set of Visual Studio, other design-time hosts, .NET SDK, .NET runtime, .NET Framework and Roslyn versions, and names it a platform baseline. The floors stated there are inputs to this document, not restatements of it.
 
-| Floor                  | Version                                  | Source                       |
+## Current floors
+
+The floors are defined by the platform baseline of the release, in
+[`Metalama.Framework/docs/platform-support.md`](Metalama.Framework/docs/platform-support.md). Read them there.
+This file previously carried its own copy of the floor table, which went stale; there is now one place to change.
+
+Two values are derived here rather than there, because they are package versions and not platform versions:
+
+| Value | Where it lives | How it is derived |
 | ---------------------- | ---------------------------------------- | ---------------------------- |
-| Visual Studio 2022     | 17.14 Current Channel, latest patch      | Support policy below         |
-| Visual Studio 2026     | Latest Stable patch (currently 18.5.x)   | No 2026-LTSC channel until ~2026-11 |
-| .NET SDK (build)       | Any in-MS-support .NET 8/9/10 SDK        | `Metalama.Compiler.exe` replaces the SDK's Roslyn |
-| Runtime TFMs           | `net472`, `net8.0`, `net9.0`             | Project files                |
-| Roslyn API min         | 4.12.0 (`RoslynApiMinVersion`)           | Lowest design-time analyzer host in MS support |
-| Roslyn API max         | 5.0.0 (`RoslynApiMaxVersion`)            | Optional bump to 5.5 to match VS 2026 18.5 |
-| MSBuild                | `MicrosoftBuildVersion` per TFM          | VS-shipped                   |
+| `RoslynApiMinVersion` / `RoslynApiMaxVersion` | `Directory.Packages.props` | The lowest and highest Roslyn version presented by a host in the baseline, per *Roslyn variant coverage* below |
+| `MicrosoftBuildVersion` | `Directory.Packages.props`, per TFM | The MSBuild version shipped by the floor Visual Studio and the floor .NET SDK, per *TFM constraints* below |
 
 ## Why versioning is constrained
 
@@ -40,31 +43,16 @@ While we still support .NET 8 SDK as a build target (.NET 8 LTS through 2026-11)
 
 Within the chosen .NET line we still take the **highest available patch** (e.g., `System.Drawing.Common` 8.0.x → latest 8.0.26 for security fixes); the rule only freezes the *major.minor*, not the patch level.
 
-## Support policy (rules for choosing the VS floor)
+## Support policy
 
-A Visual Studio version is eligible as a floor for a Metalama release if all of the following hold:
+The rules that choose the Visual Studio floor, and the floor of every other platform axis, are in
+[`Metalama.Framework/docs/platform-support.md`](Metalama.Framework/docs/platform-support.md). They used to be
+stated here as four rules about Visual Studio alone. They are now eight rules that apply to every axis, together
+with the worked evaluation for the current release and the rule that governs how a long-term support branch
+follows the vendor calendar on the way out.
 
-1. In MS support today.
-2. In MS support at our GA date.
-3. At least ~1 month of MS runway from GA.
-4. When MS supports only the latest patch of a channel, our floor tracks that latest patch.
-
-The chosen floor is the lowest version satisfying all four rules.
-
-### Worked example: Metalama 2026.1 LTS, GA 2026-07-01
-
-| VS channel / version          | EOL          | Eligible? | Reason |
-| ----------------------------- | ------------ | --------- | ------ |
-| VS 2022 17.10 LTSC            | 2026-01-13   | No        | Already EOL (rule 1) |
-| VS 2022 17.12 LTSC            | 2026-07-14   | No        | Only 13 days runway from GA (rule 3) |
-| VS 2022 17.14 Current Channel | 2032-01-13   | Yes       | Latest patch tracks the channel |
-| VS 2026 Stable                | rolling      | Yes       | Only VS 2026 channel currently shipping |
-
-VS 2022 floor = 17.14 Current Channel (latest patch); VS 2026 floor = latest Stable patch at GA. After VS 2022 17.12 LTSC ends (2026-07-14), no further VS 2022 LTSCs are planned — Microsoft moved the LTSC model to VS 2026. The first 2026-LTSC ships ~2026-11-10; until then, only Stable is supported.
-
-### LTS lifetime
-
-LTS branches don't freeze their declared floor: as Microsoft drops a VS version from support, our supported set drops with it. We test against the floor that was current at LTS GA.
+Consult that document before changing a floor. Consult this one for what the chosen floor implies about the
+package versions we may reference.
 
 ## TFM constraints
 
@@ -100,6 +88,8 @@ Add a one-line inline comment in the props file when a version is pinned for a n
 ## Roslyn variant coverage
 
 We ship per-Roslyn-version variants of our analyzer/source-generator NuGet payload. NuGet auto-selects the highest-compatible variant for the consumer's Roslyn host.
+
+Which variants we ship follows from the hosts in the platform baseline, so re-derive this table whenever the baseline changes. The Roslyn API section of [`Metalama.Framework/docs/platform-support.md`](Metalama.Framework/docs/platform-support.md) records the state of that derivation for the release in preparation, including the conditions under which `Roslyn.4.12.0` can be dropped.
 
 | Variant (`eng\RoslynVersions\`) | Roslyn range it satisfies | Serves (in-MS-support hosts at GA 2026-07-01) |
 | --- | --- | --- |
@@ -271,6 +261,6 @@ The current example is `SystemMemoryVersion` / `SystemMemoryLatestVersion`; the 
 
 Time-bounded policy items that affect future bumps. PR-specific work in flight is tracked in the corresponding PR / GitHub issues, not here.
 
-- VS 2022 17.14 Current Channel auto-updates feature bands; re-derive caps when MS ships a Current-Channel feature update that rotates VS-shipped assemblies.
-- VS 2026 floor is currently latest Stable patch. When 2026-LTSC ships (~2026-11-10), revisit whether to pin the VS 2026 floor to LTSC for future Metalama LTS releases.
+- VS 2022 17.14 Current Channel auto-updates feature bands; re-derive caps when MS ships a Current-Channel feature update that rotates VS-shipped assemblies, for as long as 17.14 is in the baseline.
+- The Visual Studio floor itself is tracked in [`Metalama.Framework/docs/platform-support.md`](Metalama.Framework/docs/platform-support.md), together with the checklist of measurements that must be taken against real machines before the floor moves.
 - The flowed-dep pins on `Metalama.Framework.DesignTime.Rpc` (`StreamJsonRpc`, `System.Diagnostics.DiagnosticSource`, `System.Threading.Tasks.Extensions`, `System.IO.Pipelines`, `Microsoft.Bcl.AsyncInterfaces`) are constrained by the lowest currently-installed Metalama.Vsx version's CPM ceiling. They become free to bump only after VSX migrates off direct `Metalama.Framework.DesignTime.Rpc` consumption (metalama/Metalama#1605, metalama/Metalama.Vsx.Public#18) AND the older VSX exits support.
