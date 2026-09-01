@@ -44,6 +44,20 @@
 
         <!-- Microsoft.Build must not be copied to the application directory because its location is resolved by Microsoft.Build.Locator. -->
         <PackageReference Include="Microsoft.Build" PrivateAssets="all" ExcludeAssets="runtime" />
+
+        <!-- The same holds for Microsoft.Build.Framework, which Microsoft.CodeAnalysis.Workspaces.MSBuild brings in
+             as a 17.x dependency. Copied to the application directory it shadows the one of the MSBuild that the
+             locator resolves, and the two then disagree: a .NET 10 SDK host loads Microsoft.Build 18.0 beside
+             Microsoft.Build.Framework 17.11 and fails with a TypeLoadException on IEventSource5. VersionOverride
+             names the version that Microsoft.CodeAnalysis.Workspaces.MSBuild requires, because a direct reference
+             below it would be a package downgrade. -->
+        <PackageReference Include="Microsoft.Build.Framework" VersionOverride="17.11.31" PrivateAssets="all" ExcludeAssets="runtime" />
+
+        <!-- And for Microsoft.NET.StringTools, a dependency of Microsoft.Build. Excluding the run-time assets of a
+             package does not exclude those of its dependencies, so this one reached the application directory and
+             shadowed the copy of the resolved MSBuild, which fails with a MissingMethodException on
+             SpanBasedStringBuilder.Equals. -->
+        <PackageReference Include="Microsoft.NET.StringTools" PrivateAssets="all" ExcludeAssets="runtime" />
         <PackageReference Include="Microsoft.Build.Locator"/>
         <PackageReference Include="Microsoft.VisualStudio.SolutionPersistence"/>
 
