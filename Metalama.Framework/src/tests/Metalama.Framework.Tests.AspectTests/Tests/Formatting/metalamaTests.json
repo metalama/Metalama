@@ -1,5 +1,5 @@
 {
-  "ForbiddenConstants": [ "ROSLYN_4_12_0" ],
+  "RequiredConstants": [ "ROSLYN_5_0_0_OR_GREATER" ],
   "TestRunnerFactoryType": "Metalama.Testing.AspectTesting.HtmlGenerationTestRunnerFactory, Metalama.Testing.AspectTesting",
   "WriteInputHtml": true,
   "FormatOutput": true,

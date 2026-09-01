@@ -11,7 +11,7 @@ The authoritative source for how we choose versions in `Directory.Packages.props
 | .NET SDK (build)       | Any in-MS-support .NET 8/9/10 SDK        | `Metalama.Compiler.exe` replaces the SDK's Roslyn |
 | Runtime TFMs           | `net472`, `net8.0`, `net9.0`             | Project files                |
 | Roslyn API min         | 4.12.0 (`RoslynApiMinVersion`)           | Lowest design-time analyzer host in MS support |
-| Roslyn API max         | 5.0.0 (`RoslynApiMaxVersion`)            | Optional bump to 5.5 to match VS 2026 18.5 |
+| Roslyn API max         | 5.10.0-1.26365.3 (`RoslynApiMaxVersion`)  | The Roslyn version that `Metalama.Compiler` builds on |
 | MSBuild                | `MicrosoftBuildVersion` per TFM          | VS-shipped                   |
 
 ## Why versioning is constrained
@@ -99,15 +99,39 @@ Add a one-line inline comment in the props file when a version is pinned for a n
 
 ## Roslyn variant coverage
 
-We ship per-Roslyn-version variants of our analyzer/source-generator NuGet payload. NuGet auto-selects the highest-compatible variant for the consumer's Roslyn host.
+We ship per-Roslyn-version variants of our analyzer/source-generator NuGet payload. `ResourceExtractor.GetRoslynVersion` reads the `AssemblyVersion` of the Roslyn assembly loaded in the host process and selects the highest variant whose identity does not exceed it.
 
-| Variant (`eng\RoslynVersions\`) | Roslyn range it satisfies | Serves (in-MS-support hosts at GA 2026-07-01) |
+| Variant (`eng\RoslynVersions\`) | Roslyn range it satisfies | Serves |
 | --- | --- | --- |
 | ~~`Roslyn.4.8.0.props`~~ | ~~4.8 – 4.11~~ | Dropped — no in-support design-time host below 4.12, and the .NET 8 SDK's bundled Roslyn 4.11 is irrelevant at build time (Metalama.Compiler replaces it) |
-| `Roslyn.4.12.0.props` | 4.12 – 4.x | VS 2022 17.14 (Roslyn 4.14), .NET 9 SDK 9.0.3xx (Roslyn 4.14), Rider / VS Code design-time hosts |
-| `Roslyn.5.0.0.props` | 5.0+ | VS 2026 18.5 (Roslyn 5.5), .NET 10 SDK 10.0.x |
+| `Roslyn.4.12.0.props` | 4.12 – 5.9 | VS 2022 17.14 (Roslyn 4.14), .NET 9 SDK 9.0.3xx (Roslyn 4.14), VS 2026 18.5 (Roslyn 5.5), Rider / VS Code design-time hosts |
+| `Roslyn.5.10.0.props` | 5.10+ | VS 2026 with Roslyn 5.10 or later, .NET 11 SDK |
 
 Public Roslyn API surface didn't change between 4.8 and 4.11 for the API set we use; the first additions we depend on (`AllowsConstraintClause`, partial property symbols, etc.) shipped in 4.12. Once no in-support host remained below 4.12, the 4.8 variant added no coverage over 4.12.
+
+### Why the latest variant is numbered after the Roslyn version it binds against
+
+The latest variant was renumbered from `5.0.0` to `5.10.0` when `RoslynApiMaxVersion` was raised to `5.10.0-1.26365.3`. The alternative was to keep the identity `5.0.0` and let `ThisRoslynVersion` follow `RoslynApiMaxVersion`, so that only the referenced package version changed. That alternative is unsound, for two reasons that combine:
+
+1. `Microsoft.CodeAnalysis` carries `AssemblyVersion` `major.minor.0.0`, so Roslyn 5.0 is `5.0.0.0` and Roslyn 5.10 is `5.10.0.0`. These are distinct binding identities. `Metalama.Framework.Engine` references `Microsoft.CodeAnalysis.CSharp.Workspaces` at `$(ThisRoslynVersion)`, which transitively raises `Microsoft.CodeAnalysis.CSharp` to the same version, so the payload of the latest variant binds against `5.10.0.0`.
+2. Assembly binding rolls forward, never back. A payload that binds against `5.10.0.0` loads in a host that provides Roslyn 5.10 or later, and fails to load in a host that provides Roslyn 5.0 through 5.9.
+
+Naming the variant `5.0.0` would therefore make `GetRoslynVersion` hand a Roslyn 5.5 host a payload that host cannot load. Naming it `5.10.0` makes the same host fall back to the Roslyn 4.12 variant, which binds against `4.12.0.0` and loads correctly. The variant identity must never understate the Roslyn version that the payload binds against.
+
+The cost of the renumbering is that hosts between Roslyn 5.0 and Roslyn 5.9 lose the code paths guarded by `ROSLYN_5_0_0_OR_GREATER` and fall back to the Roslyn 4.12 payload. Those hosts are the ones the 4.12 variant already serves outside Visual Studio. If that coverage gap has to be closed, the remedy is to add a separate Roslyn 5.0 variant by the procedure in `Metalama.Framework/docs/updating-roslyn.md`, not to understate the identity of the latest variant.
+
+The latest variant carries no project-name suffix (`ThisRoslynVersionProjectSuffix` is empty), so the renumbering renames no project directory. It renames the assemblies and packages built from `ThisRoslynVersionNoPreview`, in particular `Metalama.Framework.Engine.5.10.0`, `Metalama.Framework.DesignTime.5.10.0` and `Metalama.Framework.Implementation.5.10.0`, and the generated-code directory `.generated/5.10.0`.
+
+### Preprocessor symbols defined by the variants
+
+The variant props files define one symbol, `ROSLYN_5_0_0_OR_GREATER`, defined by the latest variant only. The Roslyn 4.12 variant defines no symbol: the source expresses it through the `#else` branch of `ROSLYN_5_0_0_OR_GREATER`.
+
+The name keeps the `5_0_0` floor rather than following the variant number, because the distinction the source makes is between the Roslyn 4 and the Roslyn 5 API generations, and that boundary is still Roslyn 5.0. Renaming the symbol to match every renumbering of the latest variant would rewrite hundreds of `#if` sites for no change in meaning.
+
+`ROSLYN_4_4_0_OR_GREATER`, `ROSLYN_4_8_0_OR_GREATER` and `ROSLYN_4_12_0_OR_GREATER` were removed because both variants defined them, so they were always true. `ROSLYN_4_12_0` and `ROSLYN_4_12_0_OR_EARLIER` were removed because no source branched on them; the two test option files that excluded a test suite from the Roslyn 4.12 variant through `ForbiddenConstants` now require `ROSLYN_5_0_0_OR_GREATER` instead. `ROSLYN_5_0_0` was removed for the same reason: it named an exact variant that no longer exists, and the two aspect tests that required it require `ROSLYN_5_0_0_OR_GREATER` instead.
+
+A new symbol is warranted only when the source has to branch on a distinction that no existing symbol expresses.
+
 
 ## Adding or upgrading a package
 

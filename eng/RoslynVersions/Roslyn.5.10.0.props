@@ -2,10 +2,11 @@
 	<PropertyGroup>
 		<ThisRoslynVersion>$(RoslynApiMaxVersion)</ThisRoslynVersion>
 		<!-- This should be non-empty only when using preview version of Roslyn. Then it should be the Roslyn version without the preview part. -->
-		<ThisRoslynVersionNoPreview>5.0.0</ThisRoslynVersionNoPreview>
+		<ThisRoslynVersionNoPreview>5.10.0</ThisRoslynVersionNoPreview>
 		<!-- ThisRoslynVersionProjectSuffix should be empty for the latest version, otherwise it should be a dot followed by ThisRoslynVersion -->
 		<ThisRoslynVersionProjectSuffix></ThisRoslynVersionProjectSuffix>
-		<DefineConstants>$(DefineConstants);ROSLYN_5_0_0;ROSLYN_4_4_0_OR_GREATER;ROSLYN_4_8_0_OR_GREATER;ROSLYN_4_12_0_OR_GREATER;ROSLYN_5_0_0_OR_GREATER</DefineConstants>
+		<!-- ROSLYN_5_0_0_OR_GREATER is the only constant the source branches on. See Directory.Packages.md. -->
+		<DefineConstants>$(DefineConstants);ROSLYN_5_0_0_OR_GREATER</DefineConstants>
 		<SystemTextJsonVersion>9.0.0</SystemTextJsonVersion>
 		<!-- Roslyn 5.0 transitively requires System.Memory ≥ 4.6.0; this variant runs outside VS, so the
 		     net472 BR cap doesn't apply. Track the highest patch in the 4.6.x line ($(SystemMemoryLatestVersion)). -->

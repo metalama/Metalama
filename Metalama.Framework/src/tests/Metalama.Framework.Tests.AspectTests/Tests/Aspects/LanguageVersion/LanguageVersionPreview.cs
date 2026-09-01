@@ -4,7 +4,7 @@
 
 #if TEST_OPTIONS
 // @LanguageVersion(preview)
-// @RequiredConstant(ROSLYN_5_0_0)
+// @RequiredConstant(ROSLYN_5_0_0_OR_GREATER)
 #endif
 
 using Metalama.Framework.Aspects;

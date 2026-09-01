@@ -115,14 +115,13 @@ MyExtension.Engine.4.12.0/            # 4.12.0-specific build
     <Import Project="../MyExtension.Engine/MyExtension.Engine.csproj" />
 </Project>
 ```
-
-**Roslyn version props file** (`eng/RoslynVersions/Roslyn.X.X.X.props`): the `_OR_GREATER` symbols form a stack — each variant defines every `_OR_GREATER` symbol up to and including its own version, plus `_OR_EARLIER` only for the latest version it can be the latest one of. Match the existing `eng/RoslynVersions/Roslyn.<v>.props` files for the exact set:
+**Roslyn version props file** (`eng/RoslynVersions/Roslyn.X.X.X.props`): define a symbol only for a distinction that the source actually branches on. In Metalama the only such distinction is between the Roslyn 4 and the Roslyn 5 API generations, so the latest variant defines `ROSLYN_5_0_0_OR_GREATER` and the Roslyn 4.12 variant defines nothing. Match the existing `eng/RoslynVersions/Roslyn.<v>.props` files for the exact set:
 ```xml
 <Project>
     <PropertyGroup>
         <ThisRoslynVersion>4.12.0</ThisRoslynVersion>
         <ThisRoslynVersionProjectSuffix>.4.12.0</ThisRoslynVersionProjectSuffix>
-        <DefineConstants>$(DefineConstants);ROSLYN_4_12_0;ROSLYN_4_4_0_OR_GREATER;ROSLYN_4_8_0_OR_GREATER;ROSLYN_4_12_0_OR_GREATER;ROSLYN_4_12_0_OR_EARLIER</DefineConstants>
+        <!-- No DefineConstants: this variant is the #else branch of ROSLYN_5_0_0_OR_GREATER. -->
     </PropertyGroup>
 </Project>
 ```
@@ -130,9 +129,9 @@ MyExtension.Engine.4.12.0/            # 4.12.0-specific build
 **Props file registration** (use `TargetRoslynVersion` metadata):
 ```xml
 <MetalamaExtensionAssembly
-    Include="...MyExtension.Engine.5.0.0.dll"
+    Include="...MyExtension.Engine.5.10.0.dll"
     TargetFramework="net472"
-    TargetRoslynVersion="5.0.0"/>
+    TargetRoslynVersion="5.10.0"/>
 <MetalamaExtensionAssembly
     Include="...MyExtension.Engine.4.12.0.dll"
     TargetFramework="net472"
@@ -148,7 +147,7 @@ MyExtension.Engine.4.12.0/            # 4.12.0-specific build
 #endif
 ```
 
-**Example:** `Metalama.Extensions.Validation` in Metalama.Premium uses this pattern with builds for Roslyn 4.12.0 and 5.0.0. The Roslyn 4.8.0 build variant was retired with Metalama 2026.1 (see `Directory.Packages.md`); historical references to `Roslyn.4.8.0.props` in extension repos should be migrated to `Roslyn.4.12.0.props`.
+**Example:** `Metalama.Extensions.Validation` in Metalama.Premium uses this pattern with builds for Roslyn 4.12.0 and 5.10.0. The Roslyn 4.8.0 build variant was retired with Metalama 2026.1 (see `Directory.Packages.md`); historical references to `Roslyn.4.8.0.props` in extension repos should be migrated to `Roslyn.4.12.0.props`.
 
 ### Simple Extension Pattern (HtmlWriter)
 
@@ -563,7 +562,7 @@ Location: `Metalama.Framework/src/Metalama.Extensions.DiffEngine/`
 Location: `Metalama.Premium/src/Metalama.Extensions.Validation*/`
 
 - Three-tier structure: API + Engine + Package
-- Multiple Roslyn version builds (4.8.0, 4.12.0, 5.0.0)
+- Multiple Roslyn version builds (4.12.0, 5.10.0)
 - Uses `PipelineExtension` for pipeline integration
 - Registers services via `context.ServiceBuilder.Add()`
 

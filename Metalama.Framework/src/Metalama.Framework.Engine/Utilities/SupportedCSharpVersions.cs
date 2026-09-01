@@ -62,7 +62,7 @@ public static class SupportedCSharpVersions
             RoslynApiVersion.V4_4_0 => AllLanguageVersions.CSharp11,
             RoslynApiVersion.V4_8_0 => AllLanguageVersions.CSharp12,
             RoslynApiVersion.V4_12_0 => AllLanguageVersions.CSharp13,
-            RoslynApiVersion.V5_0_0 => AllLanguageVersions.CSharp14,
+            RoslynApiVersion.V5_10_0 => AllLanguageVersions.CSharp14,
             _ => throw new AssertionFailedException( $"Unexpected Roslyn API version {apiVersion}." )
         };
 
@@ -73,7 +73,7 @@ public static class SupportedCSharpVersions
             RoslynApiVersion.V4_4_0 => "4.4.0",
             RoslynApiVersion.V4_8_0 => "4.8.0",
             RoslynApiVersion.V4_12_0 => "4.12.0",
-            RoslynApiVersion.V5_0_0 => "5.0.0",
+            RoslynApiVersion.V5_10_0 => "5.10.0",
             _ => throw new AssertionFailedException( $"Unexpected Roslyn version {roslynVersion}." )
         };
 
@@ -84,7 +84,7 @@ public static class SupportedCSharpVersions
             RoslynApiVersion.V4_4_0 => new Version( 4, 4, 0 ),
             RoslynApiVersion.V4_8_0 => new Version( 4, 8, 0 ),
             RoslynApiVersion.V4_12_0 => new Version( 4, 12, 0 ),
-            RoslynApiVersion.V5_0_0 => new Version( 5, 0, 0 ),
+            RoslynApiVersion.V5_10_0 => new Version( 5, 10, 0 ),
             _ => throw new AssertionFailedException( $"Unexpected Roslyn version {roslynApiVersion}." )
         };
 

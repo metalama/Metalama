@@ -38,7 +38,7 @@ Flag semantics: `IsTestOnly` = built only in the test phase (not packaged); `Tes
 
 ## Roslyn-version variants (the `.4.12.0` pattern)
 
-Metalama is loaded *inside* host processes (Visual Studio, the compiler) that provide a specific Roslyn version, so the engine ships per Roslyn API generation and its tests must run against each. Most test projects therefore have a `.4.12.0` sibling (`UnitTests`, `AspectTests`, `TemplateTests`, `LinkerTests`, `Benchmarks`, `UnitTestHelpers`) that recompiles the **same source** against Roslyn 4.12.0, while the un-suffixed project targets the latest (currently 5.0.0).
+Metalama is loaded *inside* host processes (Visual Studio, the compiler) that provide a specific Roslyn version, so the engine ships per Roslyn API generation and its tests must run against each. Most test projects therefore have a `.4.12.0` sibling (`UnitTests`, `AspectTests`, `TemplateTests`, `LinkerTests`, `Benchmarks`, `UnitTestHelpers`) that recompiles the **same source** against Roslyn 4.12.0, while the un-suffixed project targets the latest (currently 5.10.0).
 
 The variant shares source by globbing, not copying or a shared project. The entire `.4.12.0` csproj is a three-line shim:
 
@@ -53,9 +53,9 @@ The variant shares source by globbing, not copying or a shared project. The enti
 </Project>
 ```
 
-`eng/RoslynVersions/Roslyn.4.12.0.props` sets `ThisRoslynVersion = 4.12.0`, `ThisRoslynVersionProjectSuffix = .4.12.0` (the leading period is required), and the `DefineConstants` `ROSLYN_4_12_0;ROSLYN_4_4_0_OR_GREATER;ROSLYN_4_8_0_OR_GREATER;ROSLYN_4_12_0_OR_GREATER;ROSLYN_4_12_0_OR_EARLIER`. The base csproj imports `eng/RoslynVersions/Latest.props` (which resolves to `Roslyn.5.0.0.props`, empty suffix) and is written entirely in terms of those variables: its `AssemblyName`, its `VersionOverride` on Roslyn packages, and its `ProjectReference`s (`Metalama.Framework.Engine$(ThisRoslynVersionProjectSuffix)`, etc.) all pick up the suffix. So importing the base csproj *from* the `.4.12.0` shim wires up the 4.12.0 engine; building it directly wires up the latest.
+`eng/RoslynVersions/Roslyn.4.12.0.props` sets `ThisRoslynVersion = 4.12.0`, `ThisRoslynVersionProjectSuffix = .4.12.0` (the leading period is required), and no `DefineConstants`. The base csproj imports `eng/RoslynVersions/Latest.props` (which resolves to `Roslyn.5.10.0.props`, empty suffix) and is written entirely in terms of those variables: its `AssemblyName`, its `VersionOverride` on Roslyn packages, and its `ProjectReference`s (`Metalama.Framework.Engine$(ThisRoslynVersionProjectSuffix)`, etc.) all pick up the suffix. So importing the base csproj *from* the `.4.12.0` shim wires up the 4.12.0 engine; building it directly wires up the latest.
 
-Source that must differ across Roslyn API levels uses the cumulative `ROSLYN_*_OR_GREATER` / `ROSLYN_4_12_0_OR_EARLIER` constants (hundreds of uses across the engine). Unit-test projects deliberately do **not** override `LangVersion` per variant, so assertions can use the latest language and tests branch on `ROSLYN_*_OR_GREATER` instead. The process for adding a new Roslyn version is documented in [updating-roslyn.md](updating-roslyn.md).
+Source that must differ across Roslyn API levels uses `ROSLYN_5_0_0_OR_GREATER`, the only constant that the variant props files define (hundreds of uses across the engine). The Roslyn 4.12 variant is the `#else` branch of that constant. Unit-test projects deliberately do **not** override `LangVersion` per variant, so assertions can use the latest language and tests branch on `ROSLYN_5_0_0_OR_GREATER` instead. The process for adding a new Roslyn version is documented in [updating-roslyn.md](updating-roslyn.md).
 
 ## Unit tests
 

@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project>
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
@@ -49,9 +49,9 @@
     <!-- SystemTextJsonVersion depends on the Roslyn version; here is the fallback. -->
     <SystemTextJsonVersion Condition="'$(SystemTextJsonVersion)'==''">8.0.6</SystemTextJsonVersion>
     <!-- SystemMemoryVersion is variant-conditional. The Roslyn 4.12 variant runs in the VS analyzer host (devenv.exe),
-         where the binding-redirect ceiling caps System.Memory at AsmVer 4.0.2.0 (NuGet 4.5.5). The Roslyn 5.0 variant
-         runs only outside VS (CLI / MSBuild) where Microsoft.CodeAnalysis.CSharp 5.0 transitively requires
-         System.Memory ≥ 4.6.0. eng\RoslynVersions\Roslyn.5.0.0.props overrides this default. -->
+         where the binding-redirect ceiling caps System.Memory at AsmVer 4.0.2.0 (NuGet 4.5.5). The latest variant
+         runs only outside VS (CLI / MSBuild) where Microsoft.CodeAnalysis.CSharp 5.x transitively requires
+         System.Memory ≥ 4.6.0. eng\RoslynVersions\Roslyn.5.10.0.props overrides this default. -->
     <SystemMemoryVersion Condition="'$(SystemMemoryVersion)'==''">4.5.5</SystemMemoryVersion>
     <!-- SystemTextJsonMinVersion is the API floor used by user-surfacing libraries (Metalama.Backstage etc.)
          that need to remain on the .NET 8 line while we support .NET 8 SDK as a build target. -->
@@ -106,7 +106,7 @@
     <PackageVersion Include="MessagePack" Version="$(MessagePackLatestVersion)" />
     <!-- Out-of-band family is capped by VS 17.14 devenv.exe.config binding redirects (System.Memory ≤ 4.0.2.0,
          System.Buffers ≤ 4.0.4.0, System.Numerics.Vectors ≤ 4.1.5.0) for the Roslyn 4.12 variant
-         (loaded in devenv). The Roslyn 5.0 variant runs outside VS and uses 4.6.x via $(SystemMemoryVersion). -->
+         (loaded in devenv). The latest variant runs outside VS and uses 4.6.x via $(SystemMemoryVersion). -->
     <PackageVersion Include="System.Memory" Version="$(SystemMemoryVersion)" />
     <PackageVersion Include="System.Runtime.Serialization.Xml" Version="4.3.0" />
     <PackageVersion Include="System.Text.RegularExpressions" Version="$(SystemTextRegularExpressionsLatestVersion)" />
