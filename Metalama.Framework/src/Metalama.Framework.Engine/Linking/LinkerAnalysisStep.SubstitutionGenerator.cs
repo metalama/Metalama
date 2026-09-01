@@ -4,7 +4,6 @@
 
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel.Helpers;
-using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Linking.Inlining;
 using Metalama.Framework.Engine.Linking.Substitution;
 using Metalama.Framework.Engine.Services;
@@ -910,6 +909,8 @@ internal sealed partial class LinkerAnalysisStep
 
                 // A compiler-synthesized record member has no syntax of its own, so its primary declaration syntax is
                 // the record declaration. The body that the compiler would have synthesized is generated from the symbol.
+                // The record members for which no body can be generated are reported by LAMA0552 when the advice runs,
+                // so they never reach this point.
                 SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration
                     when SynthesizedRecordMemberBodyGenerator.GetMemberKind( targetSymbol ) != SynthesizedRecordMemberKind.None
                     => new SynthesizedRecordMemberSubstitution(
@@ -918,9 +919,6 @@ internal sealed partial class LinkerAnalysisStep
                         targetSymbol,
                         usingSimpleInlining,
                         returnVariableIdentifier ),
-
-                SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration
-                    => throw AspectLinkerDiagnosticDescriptors.CannotUseProceedWithSynthesizedRecordMember.CreateException( targetSymbol ),
 
                 _ => throw new AssertionFailedException( $"Unexpected syntax: '{root}'." )
             };
