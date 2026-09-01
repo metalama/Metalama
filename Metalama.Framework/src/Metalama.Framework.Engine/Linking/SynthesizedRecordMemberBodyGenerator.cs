@@ -320,7 +320,7 @@ internal static class SynthesizedRecordMemberBodyGenerator
         {
             LocalDeclarationStatement(
                 VariableDeclaration(
-                    stringBuilderTypeSyntax.WithTrailingTrivia( ElasticSpace ),
+                    stringBuilderTypeSyntax.WithOptionalTrailingTrivia( ElasticSpace, generationContext.Options ),
                     SingletonSeparatedList(
                         VariableDeclarator( SyntaxFactoryEx.SafeIdentifier( _stringBuilderLocalName ) )
                             .WithInitializer(
@@ -504,7 +504,7 @@ internal static class SynthesizedRecordMemberBodyGenerator
 
     /// <summary>
     /// Gets the name and type of the members that the synthesized <c>PrintMembers</c> prints, in the order of
-    /// <see cref="INamedTypeSymbol.GetMembers()"/>. That order is lexical, so the positional properties of a record
+    /// <c>INamedTypeSymbol.GetMembers</c>. That order is lexical, so the positional properties of a record
     /// precede the members declared in its body.
     /// </summary>
     private static IReadOnlyList<(string Name, ITypeSymbol Type)> GetPrintableMembers( INamedTypeSymbol type )
@@ -518,14 +518,14 @@ internal static class SynthesizedRecordMemberBodyGenerator
                 continue;
             }
 
-            switch ( member )
+            switch ( member.Kind )
             {
-                case IFieldSymbol field:
+                case SymbolKind.Field when member is IFieldSymbol field:
                     members.Add( (field.Name, field.Type) );
 
                     break;
 
-                case IPropertySymbol { IsIndexer: false, IsOverride: false, GetMethod: not null } property:
+                case SymbolKind.Property when member is IPropertySymbol { IsIndexer: false, IsOverride: false, GetMethod: not null } property:
                     members.Add( (property.Name, property.Type) );
 
                     break;
@@ -539,7 +539,7 @@ internal static class SynthesizedRecordMemberBodyGenerator
     /// Gets the instance fields that the synthesized <c>Equals</c> and <c>GetHashCode</c> iterate, in the order of
     /// <c>SourceMemberContainerSymbol.GetFieldsToEmit</c>. The order is observable in <c>GetHashCode</c>, so it is
     /// reproduced rather than re-derived. The backing field of a field-like event is deliberately absent from
-    /// <see cref="INamedTypeSymbol.GetMembers()"/>, so the event stands for it in its own position.
+    /// <c>INamedTypeSymbol.GetMembers</c>, so the event stands for it in its own position.
     /// </summary>
     private static IReadOnlyList<RecordField> GetFieldsToEmit( INamedTypeSymbol type, LinkerRewritingDriver rewritingDriver )
     {
@@ -547,14 +547,15 @@ internal static class SynthesizedRecordMemberBodyGenerator
 
         foreach ( var member in type.GetMembers() )
         {
-            switch ( member )
+            switch ( member.Kind )
             {
-                case IFieldSymbol { IsStatic: false, IsConst: false, AssociatedSymbol: not IEventSymbol } field:
+                case SymbolKind.Field when member is IFieldSymbol { IsStatic: false, IsConst: false } field
+                                           && field.AssociatedSymbol?.Kind != SymbolKind.Event:
                     fields.Add( CreateFieldFor( field, rewritingDriver ) );
 
                     break;
 
-                case IEventSymbol { IsStatic: false } @event when @event.GetBackingField() != null:
+                case SymbolKind.Event when member is IEventSymbol { IsStatic: false } @event && @event.GetBackingField() != null:
                     // Inside the declaring type, the name of a field-like event binds to its backing field.
                     fields.Add( new RecordField( @event.Name, @event.Type ) );
 
@@ -567,7 +568,7 @@ internal static class SynthesizedRecordMemberBodyGenerator
 
     private static RecordField CreateFieldFor( IFieldSymbol field, LinkerRewritingDriver rewritingDriver )
     {
-        if ( field.AssociatedSymbol is IPropertySymbol property )
+        if ( field.AssociatedSymbol?.Kind == SymbolKind.Property && field.AssociatedSymbol is IPropertySymbol property )
         {
             // The backing field of an auto-property has no name that can be written in source. The linker emits an
             // explicit backing field when it rewrites the property; otherwise the property name is the only way to read it.

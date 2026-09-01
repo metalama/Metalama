@@ -35,7 +35,7 @@ public class OverrideAttribute : TypeAspect
     [Template( Name = "ToString" )]
     public string IntroducedToString()
     {
-        return meta.Proceed();
+        return meta.Proceed()!;
     }
 
     [Template( Name = "PrintMembers" )]
@@ -64,7 +64,6 @@ internal static class Program
         Console.WriteLine( $"ToStringMatchesCompiler: {a.ToString().Replace( "Transformed", "Twin" ) == twin.ToString()}" );
         Console.WriteLine( $"Equals(same): {a.Equals( b )}" );
         Console.WriteLine( $"Equals(different): {a.Equals( c )}" );
-        Console.WriteLine( $"Equals(null): {a.Equals( null )}" );
         Console.WriteLine( $"ObjectEquals: {a.Equals( (object) b )}" );
         Console.WriteLine( $"Operator==: {a == b}" );
         Console.WriteLine( $"Operator!=: {a != c}" );
@@ -76,5 +75,9 @@ internal static class Program
 
         a.Deconstruct( out var x, out var y );
         Console.WriteLine( $"Deconstruct: {x}, {y}" );
+
+        // This is the last use of the variable, because the nullable analysis of a comparison with null
+        // makes the compiler treat the receiver as possibly null afterwards.
+        Console.WriteLine( $"Equals(null): {a.Equals( null )}" );
     }
 }

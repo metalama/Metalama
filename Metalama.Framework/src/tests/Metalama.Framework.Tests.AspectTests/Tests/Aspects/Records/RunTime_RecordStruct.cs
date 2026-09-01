@@ -33,7 +33,7 @@ public class OverrideAttribute : TypeAspect
     [Template( Name = "ToString" )]
     public string IntroducedToString()
     {
-        return meta.Proceed();
+        return meta.Proceed()!;
     }
 }
 

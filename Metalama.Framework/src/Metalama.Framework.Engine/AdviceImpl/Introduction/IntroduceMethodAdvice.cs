@@ -333,7 +333,16 @@ internal sealed class IntroduceMethodAdvice : IntroduceMemberAdvice<IMethod, IMe
     /// are overridable, and the linker reproduces the body that the compiler would have synthesized for them.
     /// </remarks>
     private static bool IsNonDeclarableRecordMember( IMethod method )
-        => method.IsImplicitlyDeclared
-           && method.GetSymbol( method.Compilation.GetCompilationModel().CompilationContext ) is IMethodSymbol { ContainingType.IsRecord: true } symbol
-           && SynthesizedRecordMemberBodyGenerator.GetMemberKind( symbol ) == SynthesizedRecordMemberKind.None;
+    {
+        if ( !method.IsImplicitlyDeclared )
+        {
+            return false;
+        }
+
+        var symbol = method.GetSymbol( method.Compilation.GetCompilationModel().CompilationContext );
+
+        return symbol is { Kind: SymbolKind.Method }
+               && symbol is IMethodSymbol { ContainingType.IsRecord: true } methodSymbol
+               && SynthesizedRecordMemberBodyGenerator.GetMemberKind( methodSymbol ) == SynthesizedRecordMemberKind.None;
+    }
 }

@@ -2,7 +2,6 @@ Transformed { X = 1, Y = x }
 ToStringMatchesCompiler: True
 Equals(same): True
 Equals(different): False
-Equals(null): False
 ObjectEquals: True
 Operator==: True
 Operator!=: True
@@ -10,3 +9,4 @@ HashEqual: True
 HashDifferent: True
 With: Transformed { X = 3, Y = x }
 Deconstruct: 1, x
+Equals(null): False
