@@ -66,6 +66,11 @@ public static class SupportedCSharpVersions
             _ => throw new AssertionFailedException( $"Unexpected Roslyn API version {apiVersion}." )
         };
 
+    /// <summary>
+    /// Gets the version of the <c>Microsoft.CodeAnalysis.CSharp</c> package that the reference project of
+    /// <c>CompileTimeAssemblyLocator</c> references. The value must name a stable release published on nuget.org,
+    /// because that project is restored on end-user machines, which have no access to our package feeds.
+    /// </summary>
     internal static string ToNuGetVersionString( this RoslynApiVersion roslynVersion )
         => roslynVersion switch
         {
@@ -73,7 +78,8 @@ public static class SupportedCSharpVersions
             RoslynApiVersion.V4_4_0 => "4.4.0",
             RoslynApiVersion.V4_8_0 => "4.8.0",
             RoslynApiVersion.V4_12_0 => "4.12.0",
-            RoslynApiVersion.V5_10_0 => "5.10.0",
+            // Roslyn 5.10 has no stable release; 5.9.0 is the highest stable version on nuget.org.
+            RoslynApiVersion.V5_10_0 => "5.9.0",
             _ => throw new AssertionFailedException( $"Unexpected Roslyn version {roslynVersion}." )
         };
 
