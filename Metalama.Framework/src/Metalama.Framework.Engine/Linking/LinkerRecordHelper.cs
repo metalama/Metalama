@@ -6,11 +6,11 @@ using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.Formatting;
 using Metalama.Framework.Engine.Linking.Substitution;
 using Metalama.Framework.Engine.SyntaxGeneration;
+using Metalama.Framework.Engine.Utilities.Comparers;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using static Metalama.Framework.Engine.SyntaxGeneration.SyntaxFactoryEx;
@@ -53,7 +53,9 @@ internal sealed class LinkerRecordHelper
 
         // The overridden members are not enumerated in a stable order, and these members have no declaration in source
         // whose position could order them, so they are sorted by signature to keep the output of the compilation deterministic.
-        return methods.OrderBy( m => m.ToDisplayString(), StringComparer.Ordinal );
+        methods.Sort( StructuralSymbolComparer.Default );
+
+        return methods;
     }
 
     /// <summary>
@@ -78,7 +80,9 @@ internal sealed class LinkerRecordHelper
         }
 
         // See the comment in GetSynthesizedMethodOverrideTargets about the order.
-        return properties.OrderBy( p => p.ToDisplayString(), StringComparer.Ordinal );
+        properties.Sort( StructuralSymbolComparer.Default );
+
+        return properties;
     }
 
     /// <summary>
@@ -231,7 +235,7 @@ internal sealed class LinkerRecordHelper
     {
         var body = SynthesizedRecordMemberBodyGenerator.GetMemberKind( symbol ) != SynthesizedRecordMemberKind.None
             ? this.GetMaterializedBody( symbol, generationContext )
-            : GetNotSupportedBody( generationContext );
+            : GetNotSupportedBody( symbol, generationContext );
 
         return this._rewritingDriver.GetSpecialImplMethod(
             method,
@@ -263,26 +267,39 @@ internal sealed class LinkerRecordHelper
         return generationContext.SyntaxGenerator.FormattedBlock( allStatements );
     }
 
-    private static BlockSyntax GetNotSupportedBody( SyntaxGenerationContext generationContext )
-        => generationContext.SyntaxGenerator.FormattedBlock(
-                ThrowStatement(
-                    TokenWithTrailingSpace( SyntaxKind.ThrowKeyword ),
-                    ObjectCreationExpression(
-                        TokenWithTrailingSpace( SyntaxKind.NewKeyword ),
-                        QualifiedName(
-                            AliasQualifiedName(
-                                WellKnownIdentifierName( Token( SyntaxKind.GlobalKeyword ) ),
-                                WellKnownIdentifierName( "System" ) ),
-                            WellKnownIdentifierName( "NotSupportedException" ) ),
-                        ArgumentList(
-                            SingletonSeparatedList(
-                                Argument(
-                                    LiteralExpression(
-                                        SyntaxKind.StringLiteralExpression,
-                                        Literal(
-                                            "Calling the original implementation of this compiler-synthesized record member is not supported, because the member cannot be declared explicitly. Override Equals(R) instead, which the equality operators and Equals(object) both call." ) ) ) ) ),
-                        null ),
-                    Token( SyntaxKind.SemicolonToken ) ) );
+    /// <summary>
+    /// Generates a body that throws <see cref="System.NotSupportedException"/>, for the compiler-synthesized record members
+    /// whose implementation cannot be reproduced in source code.
+    /// </summary>
+    /// <param name="symbol">The member whose original implementation cannot be reproduced. The record type is read from its containing type.</param>
+    /// <param name="generationContext">The syntax generation context.</param>
+    private static BlockSyntax GetNotSupportedBody( ISymbol symbol, SyntaxGenerationContext generationContext )
+    {
+        var recordTypeName = symbol.ContainingType.ToDisplayString();
+
+        var message =
+            $"Calling the original implementation of this compiler-synthesized record member is not supported, because the member cannot be declared explicitly. "
+            + $"Override Equals({recordTypeName}) instead, which the equality operators and Equals(object) both call.";
+
+        return generationContext.SyntaxGenerator.FormattedBlock(
+            ThrowStatement(
+                TokenWithTrailingSpace( SyntaxKind.ThrowKeyword ),
+                ObjectCreationExpression(
+                    TokenWithTrailingSpace( SyntaxKind.NewKeyword ),
+                    QualifiedName(
+                        AliasQualifiedName(
+                            WellKnownIdentifierName( Token( SyntaxKind.GlobalKeyword ) ),
+                            WellKnownIdentifierName( "System" ) ),
+                        WellKnownIdentifierName( "NotSupportedException" ) ),
+                    ArgumentList(
+                        SingletonSeparatedList(
+                            Argument(
+                                LiteralExpression(
+                                    SyntaxKind.StringLiteralExpression,
+                                    Literal( message ) ) ) ) ),
+                    null ),
+                Token( SyntaxKind.SemicolonToken ) ) );
+    }
 
     private MethodDeclarationSyntax GetTrampolineForSynthesizedMethod(
         MethodDeclarationSyntax method,
@@ -567,7 +584,7 @@ internal sealed class LinkerRecordHelper
         {
             var getterBody = SynthesizedRecordMemberBodyGenerator.GetMemberKind( symbol.GetMethod ) != SynthesizedRecordMemberKind.None
                 ? this.GetMaterializedBody( symbol.GetMethod, context )
-                : GetNotSupportedBody( context );
+                : GetNotSupportedBody( symbol, context );
 
             accessors.Add(
                 AccessorDeclaration(
@@ -585,7 +602,7 @@ internal sealed class LinkerRecordHelper
             accessors.Add(
                 AccessorDeclaration(
                     setKind,
-                    GetNotSupportedBody( context ) ) );
+                    GetNotSupportedBody( symbol, context ) ) );
         }
 
         return this._rewritingDriver.GetSpecialImplProperty(

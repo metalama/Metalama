@@ -59,16 +59,27 @@ public static class MemberExtensions
             return true;
         }
 
-        return member switch
+        switch ( member.DeclarationKind )
         {
             // The name of a compiler-generated field is not a valid C# identifier.
-            IField => false,
+            case DeclarationKind.Field:
+                return false;
 
-            // An accessor can be declared explicitly if, and only if, the property or the event that contains it can.
-            IMethod { ContainingDeclaration: IMember containingMember } => containingMember.CanBeDeclaredExplicitly(),
-            IMethod method => !IsRecordMemberAddedUnconditionally( method ),
-            _ => true
-        };
+            case DeclarationKind.Method:
+                var method = (IMethod) member;
+
+                // An accessor can be declared explicitly if, and only if, the property or the event that contains it can.
+                if ( method.MethodKind is MethodKind.PropertyGet or MethodKind.PropertySet
+                    or MethodKind.EventAdd or MethodKind.EventRemove or MethodKind.EventRaise )
+                {
+                    return ((IMember) method.ContainingDeclaration!).CanBeDeclaredExplicitly();
+                }
+
+                return !IsRecordMemberAddedUnconditionally( method );
+
+            default:
+                return true;
+        }
     }
 
     private static bool IsRecordMemberAddedUnconditionally( IMethod method )
