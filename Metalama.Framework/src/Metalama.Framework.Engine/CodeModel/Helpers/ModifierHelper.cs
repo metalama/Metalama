@@ -232,6 +232,12 @@ internal static class ModifierHelper
             }
         }
 
+        // The partial modifier must be the last one, immediately before the type keyword.
+        if ( namedType.IsPartial && (categories & ModifierCategories.Partial) != 0 )
+        {
+            AddToken( SyntaxKind.PartialKeyword );
+        }
+
         return TokenList( tokens );
     }
 
