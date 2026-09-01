@@ -7,7 +7,8 @@
 		<ThisRoslynVersionProjectSuffix></ThisRoslynVersionProjectSuffix>
 		<!-- ROSLYN_5_0_0_OR_GREATER is the only constant the source branches on. See Directory.Packages.md. -->
 		<DefineConstants>$(DefineConstants);ROSLYN_5_0_0_OR_GREATER</DefineConstants>
-		<SystemTextJsonVersion>9.0.0</SystemTextJsonVersion>
+		<!-- Microsoft.CodeAnalysis.CSharp.Features 5.10 requires System.Text.Json >= 10.0.8. -->
+		<SystemTextJsonVersion>10.0.11</SystemTextJsonVersion>
 		<!-- Roslyn 5.0 transitively requires System.Memory ≥ 4.6.0; this variant runs outside VS, so the
 		     net472 BR cap doesn't apply. Track the highest patch in the 4.6.x line ($(SystemMemoryLatestVersion)). -->
 		<SystemMemoryVersion>$(SystemMemoryLatestVersion)</SystemMemoryVersion>

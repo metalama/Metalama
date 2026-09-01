@@ -43,8 +43,11 @@
     <MicrosoftVisualStudioThreadingLatestVersion>17.14.15</MicrosoftVisualStudioThreadingLatestVersion>
     <!-- MessagePack 2.x is required for compatibility with StreamJsonRpc (3.x is incompatible). -->
     <MessagePackLatestVersion>2.5.198</MessagePackLatestVersion>
-    <SystemTextJsonLatestVersion>9.0.10</SystemTextJsonLatestVersion>
-    <MicrosoftBclAsyncInterfacesLatestVersion>9.0.10</MicrosoftBclAsyncInterfacesLatestVersion>
+    <!-- Microsoft.CodeAnalysis 5.10 requires the .NET 10 line of System.Text.Json, Microsoft.Bcl.AsyncInterfaces
+         and System.IO.Pipelines. The *LatestVersion properties feed the projects that host themselves, so they
+         follow that floor. The central pins that flow to Metalama.Vsx are unchanged; see the StreamJsonRpc note below. -->
+    <SystemTextJsonLatestVersion>10.0.11</SystemTextJsonLatestVersion>
+    <MicrosoftBclAsyncInterfacesLatestVersion>10.0.11</MicrosoftBclAsyncInterfacesLatestVersion>
 
     <!-- SystemTextJsonVersion depends on the Roslyn version; here is the fallback. -->
     <SystemTextJsonVersion Condition="'$(SystemTextJsonVersion)'==''">8.0.6</SystemTextJsonVersion>
@@ -59,7 +62,7 @@
     <SystemNetHttpLatestVersion>4.3.4</SystemNetHttpLatestVersion>
     <SystemTextRegularExpressionsLatestVersion>4.3.1</SystemTextRegularExpressionsLatestVersion>
     <SystemFormatsAsn1LatestVersion>9.0.10</SystemFormatsAsn1LatestVersion>
-    <SystemIOPipelinesLatestVersion>9.0.10</SystemIOPipelinesLatestVersion>
+    <SystemIOPipelinesLatestVersion>10.0.11</SystemIOPipelinesLatestVersion>
     <SystemBuffersLatestVersion>4.6.1</SystemBuffersLatestVersion>
     <!-- "Latest" Out-of-band versions for projects that don't deploy into the VS analyzer host (tests,
          HtmlWriter, CLI tools). Runtime-deployed assemblies use the central pin (SystemMemoryVersion = 4.5.5)
