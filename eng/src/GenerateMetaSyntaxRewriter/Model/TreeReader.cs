@@ -42,6 +42,16 @@ internal static class TreeReader
         }
     }
 
+    /// <summary>
+    /// Removes the fields that belong to an experimental Roslyn feature from a list of children, and from the
+    /// children of every <see cref="Choice"/> and <see cref="Sequence"/> that the list contains.
+    /// </summary>
+    /// <remarks>
+    /// The children of a node form a tree, because a <see cref="Choice"/> and a <see cref="Sequence"/> hold children
+    /// of their own. An experimental field can appear at any depth of that tree, so the removal is recursive. The
+    /// <see cref="Choice"/> and <see cref="Sequence"/> nodes themselves are never removed: they carry no
+    /// <c>ExperimentalUrl</c> attribute, and one that becomes empty generates no code.
+    /// </remarks>
     private static void RemoveExperimentalChildren( List<TreeTypeChild> children )
     {
         children.RemoveAll( c => c is Field { IsExperimental: true } );

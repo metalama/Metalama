@@ -2,17 +2,19 @@
 
 The authoritative source for how we choose versions in `Directory.Packages.props`. The props file carries short inline rationales; the why and how live here.
 
-## Current floors (Metalama 2026.1 LTS, GA target 2026-07-01)
+## Current floors (Metalama 2027.0, GA target 2027-01-01)
 
 | Floor                  | Version                                  | Source                       |
 | ---------------------- | ---------------------------------------- | ---------------------------- |
 | Visual Studio 2022     | 17.14 Current Channel, latest patch      | Support policy below         |
-| Visual Studio 2026     | Latest Stable patch (currently 18.5.x)   | No 2026-LTSC channel until ~2026-11 |
+| Visual Studio 2026     | Latest Stable patch                      | Only the latest Stable release is serviced |
 | .NET SDK (build)       | Any in-MS-support .NET 8/9/10 SDK        | `Metalama.Compiler.exe` replaces the SDK's Roslyn |
-| Runtime TFMs           | `net472`, `net8.0`, `net9.0`             | Project files                |
+| Runtime TFMs           | `net472`, `net48`, `net8.0`, `net9.0`, `net10.0` | Project files. `net10.0` is required by the projects that host `MSBuildWorkspace`, because Roslyn 5.10 ships no other .NET asset for `Microsoft.CodeAnalysis.Workspaces.MSBuild` |
 | Roslyn API min         | 4.12.0 (`RoslynApiMinVersion`)           | Lowest design-time analyzer host in MS support |
 | Roslyn API max         | 5.10.0-1.26365.3 (`RoslynApiMaxVersion`)  | The Roslyn version that `Metalama.Compiler` builds on |
 | MSBuild                | `MicrosoftBuildVersion` per TFM          | VS-shipped                   |
+
+The floors of the Metalama 2026.1 LTS release, whose GA target was 2026-07-01, are not repeated here. The *Worked example* below derives its Visual Studio floor and is kept as the illustration of the support policy.
 
 ## Why versioning is constrained
 
@@ -68,12 +70,14 @@ LTS branches don't freeze their declared floor: as Microsoft drops a VS version 
 
 ## TFM constraints
 
-`net472` limits us to packages that retain a `netstandard2.0` (or `net4x`) asset — many modern System.* packages have dropped `netstandard2.0`. `net8.0` / `net9.0` are generally permissive, but per-TFM caps are still required when the consuming process ships a specific .NET runtime. Use the conditional version pattern:
+`net472` limits us to packages that retain a `netstandard2.0` (or `net4x`) asset — many modern System.* packages have dropped `netstandard2.0`. `net8.0` and later are generally permissive, but per-TFM caps are still required when the consuming process ships a specific .NET runtime. Use the conditional version pattern, and always end it with an unconditional default:
 
 ```xml
 <MicrosoftBuildVersion Condition="'$(TargetFramework)'=='net8.0'">17.10.46</MicrosoftBuildVersion>
-<MicrosoftBuildVersion Condition="'$(TargetFramework)'=='net9.0'">17.14.28</MicrosoftBuildVersion>
+<MicrosoftBuildVersion Condition="'$(MicrosoftBuildVersion)'==''">17.14.28</MicrosoftBuildVersion>
 ```
+
+The default is not optional. `Directory.Packages.props` is imported before the body of the project file, so `TargetFramework` is not yet defined when the conditions are evaluated, unless the project declares `TargetFrameworks` in the plural and MSBuild passes `TargetFramework` to the inner build as a global property. Without a default, the version of a project that declares `TargetFramework` in the singular, or that targets a framework with a platform suffix such as `net10.0-windows`, resolves to the empty string and restore fails with `NU1604`.
 
 ### The Out-of-band family
 
