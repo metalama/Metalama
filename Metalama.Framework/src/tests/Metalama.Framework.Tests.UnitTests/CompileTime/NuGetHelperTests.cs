@@ -12,6 +12,7 @@ using Metalama.Testing.UnitTesting;
 using System;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Xml.Linq;
 using Xunit;
 
@@ -863,6 +864,44 @@ public sealed class NuGetHelperTests : UnitTestClass
     }
 
     [Fact]
+    public void NoMappingIsWrittenWhenThePackageSourceMappingSectionDeclaresNoPattern()
+    {
+        // Issue #1885: NuGet applies package source mapping when the configuration declares at least one pattern, so a
+        // section that a clear element has emptied leaves mapping inactive. Writing a mapping into it would activate
+        // mapping, and every package other than the Roslyn packages would then have no candidate source.
+        using var testContext = this.CreateTestContext();
+
+        var configPath = WriteConfigFile(
+            testContext.BaseDirectory,
+            """
+            <configuration>
+                <packageSources>
+                    <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+                </packageSources>
+                <packageSourceMapping>
+                    <clear />
+                </packageSourceMapping>
+            </configuration>
+            """ );
+
+        var document = MergeConfigFiles( testContext, configPath );
+
+        var result = CreateNuGetHelper( testContext ).AddPackageSource(
+            document,
+            _prereleaseSourceKey,
+            _prereleaseSourceUrl,
+            _codeAnalysisPattern,
+            Array.Empty<string>() );
+
+        Assert.False( result.IsMappingWritten );
+        Assert.Null( result.ConflictingPattern );
+
+        var mapping = document.Root.AssertNotNull().Element( "packageSourceMapping" ).AssertNotNull();
+
+        Assert.Empty( mapping.Elements( "packageSource" ) );
+    }
+
+    [Fact]
     public void MappingIsWrittenAndTheStarSourceKeepsServingTheCodeAnalysisPackages()
     {
         // Issue #1885: NuGet resolves a package identifier through the longest matching pattern. Adding
@@ -1092,11 +1131,17 @@ public sealed class NuGetHelperTests : UnitTestClass
     }
 
     /// <summary>
-    /// Creates the <see cref="NuGetHelper"/> under test with a given environment, so that the resolution of the
-    /// user-level configuration file does not depend on the machine that runs the test.
+    /// Creates the <see cref="NuGetHelper"/> under test with a given environment and a given operating system, so that
+    /// the resolution of the user-level configuration file does not depend on the machine that runs the test.
     /// </summary>
-    private static NuGetHelper CreateNuGetHelper( TestContext testContext, IEnvironmentVariableProvider environmentVariables )
-        => new( testContext.ServiceProvider.Global.GetRequiredBackstageService<IFileSystem>(), environmentVariables );
+    private static NuGetHelper CreateNuGetHelper(
+        TestContext testContext,
+        IEnvironmentVariableProvider environmentVariables,
+        OSPlatform platform )
+        => new(
+            testContext.ServiceProvider.Global.GetRequiredBackstageService<IFileSystem>(),
+            environmentVariables,
+            new TestRuntimeInformation { Platform = platform } );
 
     /// <summary>
     /// Creates a directory under the base directory of the test context and writes a NuGet configuration file into it,
@@ -1116,17 +1161,18 @@ public sealed class NuGetHelperTests : UnitTestClass
     [Fact]
     public void NoUserConfigFileIsFoundWhenTheEnvironmentDefinesNoDirectory()
     {
-        // Issue #1885: an environment in which no candidate directory exists yields no file, and the mapping decision
+        // Issue #1885: an environment in which the directory cannot be formed yields no file, and the mapping decision
         // is then taken from the discovered configuration files alone.
         using var testContext = this.CreateTestContext();
 
         var environmentVariables = new TestEnvironmentVariableProvider();
 
-        Assert.Null( CreateNuGetHelper( testContext, environmentVariables ).GetUserConfigFile() );
+        Assert.Null( CreateNuGetHelper( testContext, environmentVariables, OSPlatform.Windows ).GetUserConfigFile() );
+        Assert.Null( CreateNuGetHelper( testContext, environmentVariables, OSPlatform.Linux ).GetUserConfigFile() );
     }
 
     [Fact]
-    public void UserConfigFileIsFoundInTheApplicationDataDirectory()
+    public void UserConfigFileIsFoundInTheApplicationDataDirectoryOnWindows()
     {
         // Issue #1885: on Windows the user-level configuration file is under %APPDATA%\NuGet, and its name is spelled
         // NuGet.Config, which the lookup has to match without regard to case.
@@ -1137,66 +1183,70 @@ public sealed class NuGetHelperTests : UnitTestClass
         var environmentVariables = new TestEnvironmentVariableProvider();
         environmentVariables.Environment["APPDATA"] = Path.Combine( testContext.BaseDirectory, "AppData" );
 
-        Assert.Equal( expectedPath, CreateNuGetHelper( testContext, environmentVariables ).GetUserConfigFile() );
+        Assert.Equal( expectedPath, CreateNuGetHelper( testContext, environmentVariables, OSPlatform.Windows ).GetUserConfigFile() );
     }
 
     [Fact]
-    public void UserConfigFileIsFoundUnderTheConfigurationHomeDirectory()
+    public void UserConfigFileIsFoundUnderTheHomeDirectoryOnUnix()
     {
-        // Issue #1885: on Unix the application data directory is $XDG_CONFIG_HOME when that variable is defined.
+        // Issue #1885: on every operating system other than Windows, the user-level configuration file is under
+        // $HOME/.nuget/NuGet.
         using var testContext = this.CreateTestContext();
 
-        var expectedPath = WriteUserConfigFile( testContext, "config", "NuGet" );
-
-        var environmentVariables = new TestEnvironmentVariableProvider();
-        environmentVariables.Environment["XDG_CONFIG_HOME"] = Path.Combine( testContext.BaseDirectory, "config" );
-
-        Assert.Equal( expectedPath, CreateNuGetHelper( testContext, environmentVariables ).GetUserConfigFile() );
-    }
-
-    [Fact]
-    public void UserConfigFileIsFoundUnderTheHomeDirectoryWhenNoConfigurationHomeIsDefined()
-    {
-        // Issue #1885: on Unix the application data directory is $HOME/.config when $XDG_CONFIG_HOME is not defined.
-        using var testContext = this.CreateTestContext();
-
-        var expectedPath = WriteUserConfigFile( testContext, "home", ".config", "NuGet" );
+        var expectedPath = WriteUserConfigFile( testContext, "home", ".nuget", "NuGet" );
 
         var environmentVariables = new TestEnvironmentVariableProvider();
         environmentVariables.Environment["HOME"] = Path.Combine( testContext.BaseDirectory, "home" );
 
-        Assert.Equal( expectedPath, CreateNuGetHelper( testContext, environmentVariables ).GetUserConfigFile() );
+        Assert.Equal( expectedPath, CreateNuGetHelper( testContext, environmentVariables, OSPlatform.Linux ).GetUserConfigFile() );
     }
 
     [Fact]
-    public void UserConfigFileIsFoundInTheLegacyDirectory()
+    public void TheHomeDirectoryOfTheDotNetCommandLineIsPreferredOnUnix()
     {
-        // Issue #1885: NuGet also reads the file under the home directory of the user, which is the location it used
-        // before the application data directory.
+        // Issue #1885: NuGet takes the home directory from DOTNET_CLI_HOME when that variable is defined, so a build
+        // that redirects the home directory of the .NET command line reads the file of the redirected directory.
         using var testContext = this.CreateTestContext();
 
-        var expectedPath = WriteUserConfigFile( testContext, "profile", ".nuget", "NuGet" );
+        var expectedPath = WriteUserConfigFile( testContext, "cliHome", ".nuget", "NuGet" );
+        WriteUserConfigFile( testContext, "home", ".nuget", "NuGet" );
 
         var environmentVariables = new TestEnvironmentVariableProvider();
-        environmentVariables.Environment["USERPROFILE"] = Path.Combine( testContext.BaseDirectory, "profile" );
+        environmentVariables.Environment["DOTNET_CLI_HOME"] = Path.Combine( testContext.BaseDirectory, "cliHome" );
+        environmentVariables.Environment["HOME"] = Path.Combine( testContext.BaseDirectory, "home" );
 
-        Assert.Equal( expectedPath, CreateNuGetHelper( testContext, environmentVariables ).GetUserConfigFile() );
+        Assert.Equal( expectedPath, CreateNuGetHelper( testContext, environmentVariables, OSPlatform.Linux ).GetUserConfigFile() );
     }
 
     [Fact]
-    public void TheApplicationDataDirectoryIsProbedBeforeTheLegacyDirectory()
+    public void TheUnixDirectoryIsNotProbedOnWindows()
     {
-        // Issue #1885: NuGet probes the application data directory first, so a file in the legacy directory is read
-        // only when the application data directory holds none.
+        // Issue #1885: NuGet reads one user-level configuration file, the one of the operating system it runs on. A
+        // file left under the home directory on Windows, by a tool that ports a Unix layout, is not read by NuGet and
+        // must not take part in the mapping decision.
         using var testContext = this.CreateTestContext();
 
-        var expectedPath = WriteUserConfigFile( testContext, "AppData", "NuGet" );
-        WriteUserConfigFile( testContext, "profile", ".nuget", "NuGet" );
+        WriteUserConfigFile( testContext, "home", ".nuget", "NuGet" );
+
+        var environmentVariables = new TestEnvironmentVariableProvider();
+        environmentVariables.Environment["HOME"] = Path.Combine( testContext.BaseDirectory, "home" );
+        environmentVariables.Environment["DOTNET_CLI_HOME"] = Path.Combine( testContext.BaseDirectory, "home" );
+
+        Assert.Null( CreateNuGetHelper( testContext, environmentVariables, OSPlatform.Windows ).GetUserConfigFile() );
+    }
+
+    [Fact]
+    public void TheWindowsDirectoryIsNotProbedOnUnix()
+    {
+        // Issue #1885: the counterpart of the previous test. An application data directory defined on Unix, which some
+        // compatibility layers define, does not carry the file that NuGet reads.
+        using var testContext = this.CreateTestContext();
+
+        WriteUserConfigFile( testContext, "AppData", "NuGet" );
 
         var environmentVariables = new TestEnvironmentVariableProvider();
         environmentVariables.Environment["APPDATA"] = Path.Combine( testContext.BaseDirectory, "AppData" );
-        environmentVariables.Environment["USERPROFILE"] = Path.Combine( testContext.BaseDirectory, "profile" );
 
-        Assert.Equal( expectedPath, CreateNuGetHelper( testContext, environmentVariables ).GetUserConfigFile() );
+        Assert.Null( CreateNuGetHelper( testContext, environmentVariables, OSPlatform.Linux ).GetUserConfigFile() );
     }
 }

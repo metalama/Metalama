@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 
@@ -18,9 +19,9 @@ namespace Metalama.Framework.Engine.Utilities;
 /// reference-assembly project, and adds package sources to that copy.
 /// </summary>
 /// <remarks>
-/// Every access to the file system and to the environment goes through <see cref="IFileSystem"/> and
-/// <see cref="IEnvironmentVariableProvider"/>, so that the rules implemented here can be exercised by a test without
-/// the machine that runs it taking part in the outcome.
+/// Every access to the file system, to the environment and to the identity of the operating system goes through
+/// <see cref="IFileSystem"/>, <see cref="IEnvironmentVariableProvider"/> and <see cref="IRuntimeInformation"/>, so that
+/// the rules implemented here can be exercised by a test without the machine that runs it taking part in the outcome.
 /// </remarks>
 internal sealed class NuGetHelper
 {
@@ -46,15 +47,18 @@ internal sealed class NuGetHelper
 
     private readonly IFileSystem _fileSystem;
     private readonly IEnvironmentVariableProvider _environmentVariables;
+    private readonly IRuntimeInformation _runtimeInformation;
 
     public NuGetHelper( GlobalServiceProvider serviceProvider ) : this(
         serviceProvider.GetRequiredBackstageService<IFileSystem>(),
-        serviceProvider.GetRequiredBackstageService<IEnvironmentVariableProvider>() ) { }
+        serviceProvider.GetRequiredBackstageService<IEnvironmentVariableProvider>(),
+        serviceProvider.GetRequiredBackstageService<IRuntimeInformation>() ) { }
 
-    public NuGetHelper( IFileSystem fileSystem, IEnvironmentVariableProvider environmentVariables )
+    public NuGetHelper( IFileSystem fileSystem, IEnvironmentVariableProvider environmentVariables, IRuntimeInformation runtimeInformation )
     {
         this._fileSystem = fileSystem;
         this._environmentVariables = environmentVariables;
+        this._runtimeInformation = runtimeInformation;
     }
 
     /// <summary>
@@ -63,71 +67,54 @@ internal sealed class NuGetHelper
     /// <remarks>
     /// NuGet reads this file for every project, including the reference-assembly project, because the file is not tied
     /// to a directory tree and is therefore not among the files returned by <see cref="GetConfigFiles"/>. It is read to
-    /// decide whether a package source mapping section exists and whether a pattern is already mapped. It is not merged
-    /// into the generated configuration. See issue #1885.
+    /// decide whether the configuration declares a package source mapping and whether a pattern is already mapped. It
+    /// is not merged into the generated configuration. See issue #1885.
     /// </remarks>
     public string? GetUserConfigFile()
     {
-        foreach ( var candidateDirectory in this.GetUserConfigDirectories() )
-        {
-            var configFile = this.FindConfigFileInDirectory( candidateDirectory );
+        var directory = this.GetUserConfigDirectory();
 
-            if ( configFile != null )
-            {
-                return configFile;
-            }
-        }
-
-        return null;
+        return directory == null ? null : this.FindConfigFileInDirectory( directory );
     }
 
     /// <summary>
-    /// Returns the directories in which NuGet looks for the user-level configuration file, in the order in which NuGet
-    /// probes them.
+    /// Returns the directory in which NuGet looks for the user-level configuration file on the current operating
+    /// system, or <c>null</c> when the environment does not define the variable from which that directory is formed.
     /// </summary>
     /// <remarks>
-    /// The directories are formed from environment variables instead of from
-    /// <see cref="Environment.GetFolderPath(Environment.SpecialFolder)"/>, so that a test decides what they are. The
-    /// variables of both families of operating systems are read on every one of them, because a variable that the
-    /// current one does not define yields no candidate.
+    /// <para>
+    /// NuGet forms this directory as the application data directory followed by <c>NuGet</c>, and its application data
+    /// directory is <c>%APPDATA%</c> on Windows and the <c>.nuget</c> directory of the home directory of the user on
+    /// every other operating system. NuGet takes the home directory from <c>DOTNET_CLI_HOME</c> when that variable is
+    /// defined and from <c>$HOME</c> otherwise. See <c>NuGetEnvironment</c> in the NuGet client.
+    /// </para>
+    /// <para>
+    /// Only the directory of the current operating system is returned. A file in the directory of the other one is not
+    /// read by NuGet, so letting it take part in the mapping decision would take that decision from a file that does
+    /// not apply, and could add a mapping that NuGet then applies to a configuration which declares none.
+    /// </para>
+    /// <para>
+    /// The directory is formed from environment variables instead of from
+    /// <see cref="Environment.GetFolderPath(Environment.SpecialFolder)"/>, so that a test decides what it is.
+    /// </para>
     /// </remarks>
-    private IEnumerable<string> GetUserConfigDirectories()
+    private string? GetUserConfigDirectory()
     {
-        // The application data directory, which is %APPDATA% on Windows.
-        var applicationData = this._environmentVariables.GetEnvironmentVariable( "APPDATA" );
-
-        if ( !string.IsNullOrEmpty( applicationData ) )
+        if ( this._runtimeInformation.IsOSPlatform( OSPlatform.Windows ) )
         {
-            yield return Path.Combine( applicationData!, "NuGet" );
+            var applicationData = this._environmentVariables.GetEnvironmentVariable( "APPDATA" );
+
+            return string.IsNullOrEmpty( applicationData ) ? null : Path.Combine( applicationData!, "NuGet" );
         }
 
-        // The same directory on Unix, which is $XDG_CONFIG_HOME when that variable is defined and $HOME/.config
-        // otherwise.
-        var xdgConfigHome = this._environmentVariables.GetEnvironmentVariable( "XDG_CONFIG_HOME" );
-        var home = this._environmentVariables.GetEnvironmentVariable( "HOME" );
+        var home = this._environmentVariables.GetEnvironmentVariable( "DOTNET_CLI_HOME" );
 
-        if ( !string.IsNullOrEmpty( xdgConfigHome ) )
+        if ( string.IsNullOrEmpty( home ) )
         {
-            yield return Path.Combine( xdgConfigHome!, "NuGet" );
-        }
-        else if ( !string.IsNullOrEmpty( home ) )
-        {
-            yield return Path.Combine( home!, ".config", "NuGet" );
+            home = this._environmentVariables.GetEnvironmentVariable( "HOME" );
         }
 
-        // The legacy location under the home directory of the user, which is %USERPROFILE% on Windows and $HOME on
-        // Unix.
-        var userProfile = this._environmentVariables.GetEnvironmentVariable( "USERPROFILE" );
-
-        if ( !string.IsNullOrEmpty( userProfile ) )
-        {
-            yield return Path.Combine( userProfile!, ".nuget", "NuGet" );
-        }
-
-        if ( !string.IsNullOrEmpty( home ) )
-        {
-            yield return Path.Combine( home!, ".nuget", "NuGet" );
-        }
+        return string.IsNullOrEmpty( home ) ? null : Path.Combine( home!, ".nuget", "NuGet" );
     }
 
     /// <summary>
@@ -229,10 +216,10 @@ internal sealed class NuGetHelper
     /// </param>
     /// <remarks>
     /// <para>
-    /// No mapping is written when the effective configuration declares no package source mapping, because writing one
-    /// would activate mapping for every package, nor when the effective configuration already maps
-    /// <paramref name="packagePattern"/> or a more specific pattern to another source, because that expresses an
-    /// intention about these packages which this method does not override.
+    /// No mapping is written when the effective configuration declares no package source mapping, that is, when it
+    /// declares no pattern at all, because writing one would activate mapping for every package, nor when the effective
+    /// configuration already maps <paramref name="packagePattern"/> or a more specific pattern to another source,
+    /// because that expresses an intention about these packages which this method does not override.
     /// </para>
     /// <para>
     /// When a mapping is written, every source that covers <paramref name="packagePattern"/> today through a shorter
@@ -273,6 +260,10 @@ internal sealed class NuGetHelper
 
         var effectiveMapping = this.GetEffectivePackageSourceMapping( document, decisionConfigFiles );
 
+        // NuGet applies package source mapping when the effective configuration declares at least one pattern, and not
+        // when it declares a packageSourceMapping section: an empty section, and a section that a clear element has
+        // emptied, both leave mapping inactive. Writing a mapping into such a section would activate mapping, and every
+        // package other than the ones matched by packagePattern would then have no candidate source at all.
         if ( effectiveMapping.Count == 0 )
         {
             return default;
