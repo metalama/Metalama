@@ -3,7 +3,11 @@
 
 
     <PropertyGroup>
-        <TargetFramework>net10.0</TargetFramework>
+        <!-- TargetFrameworks, in the plural, even though there is a single framework: MicrosoftBuildVersion in
+             Directory.Packages.props is conditional on TargetFramework, and that property is only set in the inner
+             build that a project with TargetFrameworks produces. With TargetFramework in the singular the version of
+             Microsoft.Build.Framework resolves to the empty string and restore fails with NU1604. -->
+        <TargetFrameworks>net10.0</TargetFrameworks>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <RootNamespace>Metalama.Framework.Tests.Workspaces</RootNamespace>
     </PropertyGroup>
@@ -18,6 +22,12 @@
 
         <!-- This reference must be repeated in this project because it is marked as private in Metalama.Framework.Workspaces -->
         <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" VersionOverride="$(RoslynMaxVersion)"  />
+
+        <!-- Microsoft.Build.Framework must not be copied to the output directory, for the reason given in
+             Metalama.Framework.Workspaces.csproj. The exclusion has to be repeated here because this project references
+             Microsoft.CodeAnalysis.Workspaces.MSBuild directly. -->
+        <PackageReference Include="Microsoft.Build.Framework" PrivateAssets="all" ExcludeAssets="runtime" />
+        <PackageReference Include="Microsoft.NET.StringTools" PrivateAssets="all" ExcludeAssets="runtime" />
     </ItemGroup>
 
 

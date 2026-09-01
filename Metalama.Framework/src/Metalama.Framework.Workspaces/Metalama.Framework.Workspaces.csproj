@@ -42,8 +42,14 @@
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" VersionOverride="$(RoslynMaxVersion)"/>
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" VersionOverride="$(RoslynMaxVersion)"/>
 
-        <!-- Microsoft.Build must not be copied to the application directory because its location is resolved by Microsoft.Build.Locator. -->
+        <!-- The MSBuild assemblies must not be copied to the application directory, because Microsoft.Build.Locator
+             resolves them from the .NET SDK. Microsoft.Build.Framework and Microsoft.NET.StringTools arrive as
+             transitive dependencies of Microsoft.CodeAnalysis.Workspaces.MSBuild, at versions older than the MSBuild
+             of the SDK that Microsoft.Build.Locator selects. A copy in the application directory is found before the
+             resolver runs, and the MSBuild of the SDK then fails to load its own types. -->
         <PackageReference Include="Microsoft.Build" PrivateAssets="all" ExcludeAssets="runtime" />
+        <PackageReference Include="Microsoft.Build.Framework" PrivateAssets="all" ExcludeAssets="runtime" />
+        <PackageReference Include="Microsoft.NET.StringTools" PrivateAssets="all" ExcludeAssets="runtime" />
         <PackageReference Include="Microsoft.Build.Locator"/>
         <PackageReference Include="Microsoft.VisualStudio.SolutionPersistence"/>
 

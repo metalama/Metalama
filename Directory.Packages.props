@@ -137,6 +137,11 @@
     <PackageVersion Include="Microsoft.Build" Version="$(MicrosoftBuildVersion)" />
     <PackageVersion Include="Microsoft.Build.Framework" Version="$(MicrosoftBuildVersion)" />
     <PackageVersion Include="Microsoft.Build.Tasks.Core" Version="$(MicrosoftBuildVersion)" />
+    <!-- Microsoft.NET.StringTools is referenced only so that its runtime asset can be excluded, because the MSBuild
+         assemblies are resolved from the .NET SDK by Microsoft.Build.Locator. The pin is a literal rather than
+         MicrosoftBuildVersion, which is conditional on TargetFramework and is therefore empty in a project that
+         declares TargetFramework in the singular. Microsoft.Build 17.14.28 requires this package at 17.14.28. -->
+    <PackageVersion Include="Microsoft.NET.StringTools" Version="17.14.28" />
     <PackageVersion Include="Microsoft.Build.Locator" Version="1.7.8" />
     <PackageVersion Include="Microsoft.VisualStudio.SolutionPersistence" Version="1.0.52" />
     <PackageVersion Include="Microsoft.CSharp" Version="4.7.0" />
