@@ -1,4 +1,5 @@
 {
+  "RequiredConstants": [ "METALAMA_HTML_WRITER" ],
   "WriteInputHtml": true,
   "WriteOutputHtml": true,
   "FormatOutput": true,

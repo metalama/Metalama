@@ -5,8 +5,9 @@
 		<ThisRoslynVersionNoPreview>5.10.0</ThisRoslynVersionNoPreview>
 		<!-- ThisRoslynVersionProjectSuffix should be empty for the latest version, otherwise it should be a dot followed by ThisRoslynVersion -->
 		<ThisRoslynVersionProjectSuffix></ThisRoslynVersionProjectSuffix>
-		<!-- No variant defines a ROSLYN_* constant. Both variants are Roslyn 5, so the source makes no distinction
-		     between them. See Directory.Packages.md. -->
+		<!-- ROSLYN_5_10_0_OR_GREATER is defined by this variant only. No production source branches on it. It exists
+		     for the aspect tests whose expected output differs between Roslyn 5.0 and Roslyn 5.10. See Directory.Packages.md. -->
+		<DefineConstants>$(DefineConstants);ROSLYN_5_10_0_OR_GREATER</DefineConstants>
 		<!-- Microsoft.CodeAnalysis.CSharp.Features 5.10 requires System.Text.Json >= 10.0.8. -->
 		<SystemTextJsonVersion>10.0.11</SystemTextJsonVersion>
 		<!-- Roslyn 5.10 transitively requires System.Memory >= 4.6.0. No variant is loaded into devenv.exe any more,

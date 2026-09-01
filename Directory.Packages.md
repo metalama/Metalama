@@ -154,7 +154,11 @@ The Roslyn version of Rider and of the Visual Studio Code C# Dev Kit is the only
 
 ### Preprocessor symbols defined by the variants
 
-No variant defines a `ROSLYN_*` symbol. Both variants are Roslyn 5, so the source makes no distinction between them: they differ only in the Roslyn version their payload binds against.
+No production source branches on a variant symbol. Both variants are Roslyn 5, so the engine treats them alike: they differ only in the Roslyn version their payload binds against.
+
+The latest variant defines `ROSLYN_5_10_0_OR_GREATER`, and three aspect tests use it. `UnknownAccessorInTemplate` and its `_Roslyn5_0` counterpart split the same scenario in two, because Roslyn 5.0 reports `CS1014` on an empty span and Roslyn 5.10 reports it on the `setx` token. `ExtensionMembers_Introduce_DesignTime` requires it, because the two variants emit the same two introduced extension blocks in a different order and the test framework compares one expected file per index.
+
+`Metalama.Framework.Tests.AspectTests` defines `METALAMA_HTML_WRITER` in its latest-variant evaluation. `Metalama.Extensions.HtmlWriter` and `Metalama.Extensions.DiffEngine` are built against the latest Roslyn, so they are referenced by the latest variant only, and the test suites that request HTML output require that symbol. The condition is the presence of the extension, not the Roslyn version, so the symbol is not named after Roslyn.
 
 `ROSLYN_5_0_0_OR_GREATER` was the last symbol, and it named the boundary between the Roslyn 4 and the Roslyn 5 API generations. Dropping the `Roslyn.4.12.0` variant put every variant on the Roslyn 5 side of that boundary, which made the symbol true in every build. It was removed together with its 177 conditional blocks, whose `#else` branches no build compiled any more, its 69 `@RequiredConstant` and `@ForbiddenConstant` test directives, and the `RequiredConstants` entries of three `metalamaTests.json` files. `ROSLYN_4_4_0_OR_GREATER`, `ROSLYN_4_8_0_OR_GREATER`, `ROSLYN_4_12_0_OR_GREATER`, `ROSLYN_4_12_0`, `ROSLYN_4_12_0_OR_EARLIER` and `ROSLYN_5_0_0` had been removed earlier in the same release, each because it was either always true or never read.
 

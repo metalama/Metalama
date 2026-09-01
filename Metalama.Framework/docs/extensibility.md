@@ -115,7 +115,7 @@ MyExtension.Engine.5.0.0/             # 5.0.0-specific build
     <Import Project="../MyExtension.Engine/MyExtension.Engine.csproj" />
 </Project>
 ```
-**Roslyn version props file** (`eng/RoslynVersions/Roslyn.X.X.X.props`): define a symbol only for a distinction that the source actually branches on. Metalama defines none: both of its variants are Roslyn 5 and its source treats them alike. Match the existing `eng/RoslynVersions/Roslyn.<v>.props` files for the exact set:
+**Roslyn version props file** (`eng/RoslynVersions/Roslyn.X.X.X.props`): define a symbol only for a distinction that the source actually branches on. Metalama defines only `ROSLYN_5_10_0_OR_GREATER`, and only its aspect tests use it: both variants are Roslyn 5 and the engine source treats them alike. Match the existing `eng/RoslynVersions/Roslyn.<v>.props` files for the exact set:
 ```xml
 <Project>
     <PropertyGroup>
