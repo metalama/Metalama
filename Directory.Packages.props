@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project>
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
@@ -34,7 +34,7 @@
 
     <!-- MicrosoftBuildVersion: 17.14.28 matches the lowest Visual Studio we support (17.14); the older 17.10 is
          retained for net8.0. Note: FileVersion of VS-shipped Microsoft.Build.dll (e.g. 17.14.40)
-         is NOT the NuGet version — the highest published 17.14.x NuGet on nuget.org is 17.14.28. Always
+         is NOT the NuGet version: the highest published 17.14.x NuGet on nuget.org is 17.14.28. Always
          verify the NuGet exists before pinning. -->
     <MicrosoftBuildVersion Condition="'$(TargetFramework)'=='net8.0'">17.10.46</MicrosoftBuildVersion>
     <!-- The default covers every other target framework, including the ones with a platform suffix such as
@@ -143,8 +143,8 @@
     <PackageVersion Include="Microsoft.Build.Tasks.Core" Version="$(MicrosoftBuildVersion)" />
     <!-- Microsoft.NET.StringTools is referenced only so that its runtime asset can be excluded, because the MSBuild
          assemblies are resolved from the .NET SDK by Microsoft.Build.Locator. The pin is a literal rather than
-         MicrosoftBuildVersion, which is conditional on TargetFramework and is therefore empty in a project that
-         declares TargetFramework in the singular. Microsoft.Build 17.14.28 requires this package at 17.14.28. -->
+         MicrosoftBuildVersion, because Microsoft.Build 17.14.28 requires exactly this version and a lower one fails
+         restore with NU1605. -->
     <PackageVersion Include="Microsoft.NET.StringTools" Version="17.14.28" />
     <PackageVersion Include="Microsoft.Build.Locator" Version="1.7.8" />
     <PackageVersion Include="Microsoft.VisualStudio.SolutionPersistence" Version="1.0.52" />

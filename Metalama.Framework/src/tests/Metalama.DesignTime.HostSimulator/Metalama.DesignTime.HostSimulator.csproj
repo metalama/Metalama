@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <!-- .NET 10, because the MSBuild version, and therefore the .NET runtime version, must match the .NET SDK
