@@ -6,8 +6,7 @@ The authoritative source for how we choose versions in `Directory.Packages.props
 
 | Floor                  | Version                                  | Source                       |
 | ---------------------- | ---------------------------------------- | ---------------------------- |
-| Visual Studio 2022     | 17.14 Current Channel, latest patch      | Support policy below         |
-| Visual Studio 2026     | Latest Stable patch (currently 18.5.x)   | No 2026-LTSC channel until ~2026-11 |
+| Visual Studio 2026     | LTSC baseline of November 2026           | PB-2027.0, in `Metalama.Framework/docs/platform-support.md` |
 | .NET SDK (build)       | .NET 10 SDK or later                     | `Metalama.Compiler.exe` replaces the SDK's Roslyn |
 | Runtime TFMs           | `net472`, `net10.0`                      | Project files                |
 | Roslyn API min         | 4.12.0 (`RoslynApiMinVersion`)           | Lowest design-time analyzer host in MS support |
@@ -68,11 +67,13 @@ LTS branches don't freeze their declared floor: as Microsoft drops a VS version 
 
 ## TFM constraints
 
-`net472` limits us to packages that retain a `netstandard2.0` (or `net4x`) asset — many modern System.* packages have dropped `netstandard2.0`. `net10.0` is generally permissive, but a cap is still required when the consuming process ships a specific version of a library, as it is for `Microsoft.Build`. There the cap follows the lowest MSBuild that can host us, which is the one of Visual Studio 2022 version 17.14 rather than the one of the .NET 10 SDK:
+`net472` limits us to packages that retain a `netstandard2.0` (or `net4x`) asset — many modern System.* packages have dropped `netstandard2.0`. `net10.0` is generally permissive, but a cap is still required when the consuming process ships a specific version of a library, as it is for `Microsoft.Build`. There the cap follows the lowest MSBuild that can host us. Under PB-2027.0 Visual Studio 2022 is out of the supported set, so that lowest host is the .NET 10 SDK, which ships MSBuild 18.0:
 
 ```xml
-<MicrosoftBuildVersion>17.10.46</MicrosoftBuildVersion>
+<MicrosoftBuildVersion>18.0.2</MicrosoftBuildVersion>
 ```
+
+A project that consumes `Microsoft.Build` must also reference `Microsoft.Build.Framework` and `Microsoft.NET.StringTools` with `ExcludeAssets="runtime"`. Excluding the run-time assets of a package does not exclude those of its dependencies, so without that reference a transitive copy of either one lands beside the application and shadows the MSBuild that `Microsoft.Build.Locator` resolved.
 
 ### The Out-of-band family
 

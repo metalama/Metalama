@@ -14,7 +14,7 @@
              this repository has never been asked to change, and CodeQuality.targets sets TreatWarningsAsErrors
              when ContinuousIntegrationBuild is true, so a change of target framework would have become a broken
              build. Pinning the level keeps the analysis exactly where it was. Raising it, and resolving what it
-             then reports, is separate work. -->
+             then reports, is tracked by issue #1893 and must not outlive the 2027.0 milestone. -->
         <AnalysisLevel>8.0</AnalysisLevel>
 
 
