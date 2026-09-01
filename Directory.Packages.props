@@ -30,12 +30,15 @@
     <!-- xUnitApiVersion is the version of xUnit against which we build the testing framework -->
     <xUnitApiVersion>2.9.3</xUnitApiVersion>
 
-    <!-- MicrosoftBuildVersion is pinned to the lowest MSBuild version shipped by the .NET SDK that runs our
-         only modern target framework, because Microsoft.Build.Locator binds to the MSBuild of the host at run
-         time. The .NET 10 SDK ships MSBuild 18.0, and 18.0.2 is the lowest 18.0 published on nuget.org. Note
-         that the FileVersion of the Microsoft.Build.dll shipped by Visual Studio (for example 17.14.40) is not
-         the NuGet version. Always verify that the NuGet package exists before pinning. -->
-    <MicrosoftBuildVersion>18.0.2</MicrosoftBuildVersion>
+    <!-- MicrosoftBuildVersion must not exceed the lowest MSBuild that can host us, because
+         Microsoft.Build.Locator binds to the MSBuild of the host at run time and the API compiled against is
+         then resolved there. That floor is Visual Studio 2022 version 17.14, which is supported until January
+         2032 and ships MSBuild 17.14, not the .NET 10 SDK, which ships MSBuild 18.0. Raising this to 18.0.2
+         makes Metalama.Framework.Workspaces throw TypeLoadException on Microsoft.Build.Framework.IEventSource5
+         as soon as the locator resolves a 17.x host. Note that the FileVersion of the Microsoft.Build.dll
+         shipped by Visual Studio (for example 17.14.40) is not the NuGet version. Always verify that the NuGet
+         package exists before pinning. -->
+    <MicrosoftBuildVersion>17.10.46</MicrosoftBuildVersion>
 
     <!-- These are the latest versions of dependencies, which we use in test projects to avoid vulnerability warnings -->
     <MicrosoftVisualStudioThreadingLatestVersion>17.14.15</MicrosoftVisualStudioThreadingLatestVersion>

@@ -68,10 +68,10 @@ LTS branches don't freeze their declared floor: as Microsoft drops a VS version 
 
 ## TFM constraints
 
-`net472` limits us to packages that retain a `netstandard2.0` (or `net4x`) asset — many modern System.* packages have dropped `netstandard2.0`. `net10.0` is generally permissive, but a cap is still required when the consuming process ships a specific .NET runtime, as it is for `Microsoft.Build`:
+`net472` limits us to packages that retain a `netstandard2.0` (or `net4x`) asset — many modern System.* packages have dropped `netstandard2.0`. `net10.0` is generally permissive, but a cap is still required when the consuming process ships a specific version of a library, as it is for `Microsoft.Build`. There the cap follows the lowest MSBuild that can host us, which is the one of Visual Studio 2022 version 17.14 rather than the one of the .NET 10 SDK:
 
 ```xml
-<MicrosoftBuildVersion>18.0.2</MicrosoftBuildVersion>
+<MicrosoftBuildVersion>17.10.46</MicrosoftBuildVersion>
 ```
 
 ### The Out-of-band family
