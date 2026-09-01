@@ -164,14 +164,29 @@ turns out to be .NET 8, the Core flavour must stay `net8.0` for 2027.0.
 
 | Host | Runtime | Roslyn | In set |
 | --- | --- | --- | --- |
-| Visual Studio Code with the C# Dev Kit | Ships its own runtime; Roslyn's `$(NetVSCode)` is `net10.0` on `release/dev18.3` and `main` | `roslyn-language-server` 5.8 and later | Yes, the current version |
-| JetBrains Rider | Backend runtime, to be measured | Reports `42.42.42.42`; the real version is in `AssemblyInformationalVersionAttribute` | Yes, the current version |
+| JetBrains Rider 2026.2.0.2 | .NET 10.0.5, measured | 5.0.0, measured | Yes, the current version |
+| Visual Studio Code with the C# Dev Kit | Ships its own runtime; Roslyn's `$(NetVSCode)` is `net10.0` on `release/dev18.3` and `main` | `roslyn-language-server` 5.8 and later, not measured | Yes, the current version |
 | OmniSharp | not applicable | not applicable | No: deprecated and untested |
 | Visual Studio for Mac | not applicable | not applicable | No: sunset by Microsoft |
 
 We support the current release of Rider and of the C# Dev Kit, not a named floor. JetBrains and the C# extension
-both update continuously and neither publishes a support calendar we can apply rules 1 to 3 to. The Rider backend
-runtime is the one unmeasured input to the `net10.0` decision, and it is on the checklist below.
+both update continuously and neither publishes a support calendar we can apply rules 1 to 3 to. The rule for this
+axis is therefore: take the current release as it stands when the baseline is written, and measure it again at the
+release candidate. For 2027.0 that second measurement is due on 2026-11-20.
+
+The measurement of 2026-09-01, on Rider 2026.2.0.2, gave both values.
+
+The backend runtime is .NET 10.0.5. Every `Rider.Backend*.runtimeconfig.json` under `lib/ReSharperHost` declares
+`net8.0` with `rollForward` set to `LatestMajor`, and the only shared frameworks Rider bundles, under
+`lib/ReSharperHost/windows-x64/dotnet/shared`, are `Microsoft.NETCore.App`, `Microsoft.AspNetCore.App` and
+`Microsoft.WindowsDesktop.App`, all at 10.0.5. The declared `net8.0` is therefore not the runtime the backend
+executes on. `Core=net10.0` is safe for Rider.
+
+The backend Roslyn is 5.0.0. `lib/ReSharperHost/Microsoft.CodeAnalysis.dll` carries assembly version
+`42.42.42.42`, which is the JetBrains build marker, and product version `5.0.0-dev`, which is what
+`ResourceExtractor.GetRoslynVersion` parses. Rider therefore presents Roslyn 5.0, not Roslyn 4.x and not Roslyn
+5.10. The other copies of `Microsoft.CodeAnalysis.dll` in the Rider layout belong to the bundled .NET SDK
+(Roslyn 5.3) and to the bundled MSBuild (Roslyn 5.7); neither is loaded into the process that hosts our analyzer.
 
 ### .NET SDK, at build time
 
@@ -197,13 +212,52 @@ the binding-redirect ceilings on the out-of-band package family documented in
 
 ### Roslyn API
 
-`RoslynApiMinVersion` is the lowest Roslyn version that any host in the set presents. With Visual Studio 2022
-17.14, which carries Roslyn 4.14, out of the set, the remaining hosts are Visual Studio 2026 long-term servicing
-channel and Visual Studio 2027, which carry Roslyn 5.11 and later, the .NET 10 and .NET 11 SDKs, and the C# Dev
-Kit, which carries Roslyn 5.8 and later. All of these are Roslyn 5. The `Roslyn.4.12.0` variant therefore has no
-remaining host except possibly Rider, and it can be dropped, raising `RoslynApiMinVersion` to `5.0.0` and
-collapsing the payload to a single variant, if and only if Rider's Roslyn is measured at 5.0 or above. That
-measurement is on the checklist below. Until it is made, keep the 4.12 variant.
+`RoslynApiMinVersion` is the lowest Roslyn version that any host in the set presents, and a payload variant may
+exist only if it serves a host in the set, by rule 8. The variant set is therefore derived, and each variant must
+name the host it covers.
+
+Two sub-axes feed this floor, and they are settled differently.
+
+The Visual Studio sub-axis is settled by the calendar. With Visual Studio 2022 17.14, which carries Roslyn 4.14,
+out of the set, the lowest Visual Studio in the set is the Visual Studio 2026 long-term servicing channel baseline
+of November 2026. Roslyn minor versions track Visual Studio minor versions, so that baseline carries Roslyn 5.11
+or thereabouts. No Visual Studio in the set presents a Roslyn version between 5.0 and 5.9. This inference rests on
+the release cadence rather than on a measurement, which is why checklist item 1 below records the Roslyn version
+of that baseline as well as its private runtime.
+
+The other-design-time-host sub-axis is not settled by a calendar, because Rider and the C# Dev Kit publish none,
+and the doctrine substitutes the current release for rules 1 to 3. Their Roslyn version is therefore a
+measurement, and it is the only input that can place a host below the Visual Studio floor. The .NET SDK does not
+feed this axis: the SDK's Roslyn governs a design-time host only when that host bundles no Roslyn of its own, and
+Visual Studio, Rider and the C# Dev Kit all bundle their own. `Metalama.Compiler` always selects the latest
+variant, so it does not feed it either.
+
+The consequence is that one measurement decides the whole variant set. A variant identity binds against the Roslyn
+version the payload references, and assembly binding rolls forward but never back, so a host below a variant's
+identity falls back to the next lower variant, or to nothing at all when none exists.
+
+| Rider and C# Dev Kit Roslyn, measured at general availability | Variants to ship | `RoslynApiMinVersion` |
+| --- | --- | --- |
+| 5.10 or above | the latest variant alone | 5.10 |
+| 5.0 to 5.9 | a Roslyn 5.0 variant and the latest variant | 5.0 |
+| below 5.0 | the Roslyn 4.12 variant and the latest variant | 4.12 |
+
+The default is a single variant, and the failure of getting this wrong is the silent one described at the top of
+this document: a host with no loadable variant reports nothing, and a host that falls back to an older variant
+loses the features guarded by the newer variant's preprocessor symbols without reporting anything either.
+
+The measurement of 2026-09-01 puts Rider 2026.2.0.2 at Roslyn 5.0.0, which is the middle row. For PB-2027.0
+therefore:
+
+- Ship a Roslyn 5.0 variant alongside the latest variant. The 5.0 to 5.9 range is not empty: Rider sits at its
+  lower bound, so without that variant every Rider user falls back to a Roslyn 4 payload.
+- Drop the `Roslyn.4.12.0` variant. No host in the set is below Roslyn 5.0 once Visual Studio 2022 and the .NET 8
+  and .NET 9 SDKs are out.
+- Set `RoslynApiMinVersion` to `5.0.0`.
+
+The C# Dev Kit is not measured, because it is not installed on the machine the measurement was taken on. It does
+not change the outcome unless it is below Roslyn 5.0, which `roslyn-language-server` has not been for several
+releases. Confirm it at the release candidate, together with the second Rider measurement.
 
 `RoslynApiMaxVersion` follows Visual Studio 2027 and the .NET 11 SDK, within three weeks of their stable release,
 by rule 7. The procedure for taking on a new Roslyn version is in
@@ -230,7 +284,7 @@ in [`extensibility.md`](extensibility.md); that list is derived from this table 
 - The .NET 8 and .NET 9 SDKs at build time, and the corresponding toolset and build-task directories.
 - The `net8.0` and `net9.0` user target frameworks.
 - The `net8.0` embedded Core flavour.
-- The `Roslyn.4.12.0` variant, conditionally, pending the Rider measurement.
+- The `Roslyn.4.12.0` variant, replaced by a Roslyn 5.0 variant, which is what Rider presents.
 
 ## What this means in this repository
 
@@ -290,13 +344,18 @@ The companion change for PB-2027.0 in that repository is
 Rules 1 to 8 are applied against calendars. These three items are applied against machines, and no removal of
 `net8.0` should ship without them.
 
-1. The Visual Studio 2026 long-term servicing channel baseline private runtime. After 2026-11-10, install the
-   baseline and confirm that `ServiceHub.RoslynCodeAnalysisService` runs on .NET 10, either from the Visual Studio
-   installation layout, under `Microsoft Visual Studio\<year>\<sku>\dotnet\net10.0\runtime\`, or from Roslyn's
+1. The Visual Studio 2026 long-term servicing channel baseline private runtime and Roslyn version. After
+   2026-11-10, install the baseline and record both. Confirm that `ServiceHub.RoslynCodeAnalysisService` runs on
+   .NET 10, either from the Visual Studio installation layout, under
+   `Microsoft Visual Studio\<year>\<sku>\dotnet\net10.0\runtime\`, or from Roslyn's
    `docs/contributing/target-framework-strategy.md` on the branch that shipped it. If it is .NET 8, the Core
-   flavour stays `net8.0` for 2027.0.
-2. The Rider backend runtime and Roslyn version. Measure both on the current Rider. The runtime decides whether
-   `Core=net10.0` is safe. The Roslyn version decides whether `Roslyn.4.12.0` can be dropped.
+   flavour stays `net8.0` for 2027.0. Read the Roslyn version from the same installation: the Visual Studio floor
+   of the Roslyn axis is inferred from the release cadence until this is measured, and a baseline below Roslyn
+   5.10 puts a Visual Studio host in the 5.0 to 5.9 range and makes a Roslyn 5.0 variant mandatory.
+2. The Rider and C# Dev Kit backend runtime and Roslyn version. Done for Rider on 2026-09-01: .NET 10.0.5 and
+   Roslyn 5.0.0, recorded in the "Other design-time hosts" section above. Outstanding for the C# Dev Kit, which
+   was not installed on that machine. Repeat both at the release candidate on 2026-11-20, because this axis
+   follows the current release rather than a calendar.
 3. A design-time smoke test on the floor. Run the design-time verification protocol of
    [`Directory.Packages.md`](../../Directory.Packages.md) on the floor Visual Studio and on the previous one. A
    mismatch between `net8.0` and `net10.0` does not surface in the integrated development environment: check the
