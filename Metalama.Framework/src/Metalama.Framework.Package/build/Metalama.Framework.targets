@@ -272,7 +272,7 @@
 
   <!--
        Reports a target framework, a .NET SDK or a Visual Studio version that is outside the platform matrix that
-       Metalama is tested with. The matrix is the set of MetalamaPlatformRequirement items, which
+       Metalama supports. The matrix is the set of MetalamaPlatformRequirement items, which
        Metalama.Framework.props seeds and which any other package, or the project itself, can extend.
 
        One warning code per dimension, so that NoWarn can silence one dimension only: LAMA0600 for the target
@@ -316,7 +316,7 @@
       <!-- $(TargetFrameworkVersion) is written 'v10.0', and the comparison functions need '10.0'. -->
       <_MetalamaTargetFrameworkVersion>$(TargetFrameworkVersion.TrimStart('vV'))</_MetalamaTargetFrameworkVersion>
 
-      <_MetalamaSuppressionHint0600>The build continues, but this platform is not officially supported, so a problem that is specific to it will not be fixed. To suppress this warning, set the 'MetalamaCheckSupportedPlatform' property to 'False', or add 'LAMA0600' to the 'NoWarn' property.</_MetalamaSuppressionHint0600>
+      <_MetalamaSuppressionHint0600>The build continues, but a problem that is specific to this platform will not be fixed. To suppress this warning, set the 'MetalamaCheckSupportedPlatform' property to 'False', or add 'LAMA0600' to the 'NoWarn' property.</_MetalamaSuppressionHint0600>
     </PropertyGroup>
 
     <!-- A target framework identifier outside the declared list, for example MonoAndroid or UAP. The separators added
@@ -324,37 +324,37 @@
     <Warning Code="LAMA0600"
              HelpLink="%(_MetalamaPlatformRequirement.HelpLink)"
              Condition="'%(_MetalamaPlatformRequirement.TargetFrameworkIdentifiers)'!='' AND !$([System.String]::Copy(';%(_MetalamaPlatformRequirement.TargetFrameworkIdentifiers);').Contains(';$(TargetFrameworkIdentifier);'))"
-             Text="'%(_MetalamaPlatformRequirement.Identity)' is not tested with the target framework '$(TargetFramework)'.%(_MetalamaPlatformRequirement.TargetFrameworksSentence) $(_MetalamaSuppressionHint0600)"/>
+             Text="'%(_MetalamaPlatformRequirement.Identity)' does not support the target framework '$(TargetFramework)'.%(_MetalamaPlatformRequirement.TargetFrameworksSentence) $(_MetalamaSuppressionHint0600)"/>
 
     <Warning Code="LAMA0600"
              HelpLink="%(_MetalamaPlatformRequirement.HelpLink)"
              Condition="'$(TargetFrameworkIdentifier)'=='.NETFramework' AND '%(_MetalamaPlatformRequirement.MinimumNETFrameworkVersion)'!='' AND $([MSBuild]::VersionLessThan($(_MetalamaTargetFrameworkVersion), %(_MetalamaPlatformRequirement.MinimumNETFrameworkVersion)))"
-             Text="'%(_MetalamaPlatformRequirement.Identity)' is not tested with the target framework '$(TargetFramework)', which is older than .NET Framework %(_MetalamaPlatformRequirement.MinimumNETFrameworkVersion).%(_MetalamaPlatformRequirement.TargetFrameworksSentence) $(_MetalamaSuppressionHint0600)"/>
+             Text="'%(_MetalamaPlatformRequirement.Identity)' does not support the target framework '$(TargetFramework)', which is older than .NET Framework %(_MetalamaPlatformRequirement.MinimumNETFrameworkVersion).%(_MetalamaPlatformRequirement.TargetFrameworksSentence) $(_MetalamaSuppressionHint0600)"/>
 
     <Warning Code="LAMA0600"
              HelpLink="%(_MetalamaPlatformRequirement.HelpLink)"
              Condition="'$(TargetFrameworkIdentifier)'=='.NETFramework' AND '%(_MetalamaPlatformRequirement.MaximumNETFrameworkVersion)'!='' AND $([MSBuild]::VersionGreaterThan($(_MetalamaTargetFrameworkVersion), %(_MetalamaPlatformRequirement.MaximumNETFrameworkVersion)))"
-             Text="'%(_MetalamaPlatformRequirement.Identity)' is not tested with the target framework '$(TargetFramework)', which is newer than .NET Framework %(_MetalamaPlatformRequirement.MaximumNETFrameworkVersion). Check whether a newer version of '%(_MetalamaPlatformRequirement.Identity)' is available.%(_MetalamaPlatformRequirement.TargetFrameworksSentence) $(_MetalamaSuppressionHint0600)"/>
+             Text="'%(_MetalamaPlatformRequirement.Identity)' does not support the target framework '$(TargetFramework)', which is newer than .NET Framework %(_MetalamaPlatformRequirement.MaximumNETFrameworkVersion). Check whether a newer version of '%(_MetalamaPlatformRequirement.Identity)' is available.%(_MetalamaPlatformRequirement.TargetFrameworksSentence) $(_MetalamaSuppressionHint0600)"/>
 
     <Warning Code="LAMA0600"
              HelpLink="%(_MetalamaPlatformRequirement.HelpLink)"
              Condition="'$(TargetFrameworkIdentifier)'=='.NETCoreApp' AND '%(_MetalamaPlatformRequirement.MinimumNETCoreAppVersion)'!='' AND $([MSBuild]::VersionLessThan($(_MetalamaTargetFrameworkVersion), %(_MetalamaPlatformRequirement.MinimumNETCoreAppVersion)))"
-             Text="'%(_MetalamaPlatformRequirement.Identity)' is not tested with the target framework '$(TargetFramework)', which is older than .NET %(_MetalamaPlatformRequirement.MinimumNETCoreAppVersion).%(_MetalamaPlatformRequirement.TargetFrameworksSentence) $(_MetalamaSuppressionHint0600)"/>
+             Text="'%(_MetalamaPlatformRequirement.Identity)' does not support the target framework '$(TargetFramework)', which is older than .NET %(_MetalamaPlatformRequirement.MinimumNETCoreAppVersion).%(_MetalamaPlatformRequirement.TargetFrameworksSentence) $(_MetalamaSuppressionHint0600)"/>
 
     <Warning Code="LAMA0600"
              HelpLink="%(_MetalamaPlatformRequirement.HelpLink)"
              Condition="'$(TargetFrameworkIdentifier)'=='.NETCoreApp' AND '%(_MetalamaPlatformRequirement.MaximumNETCoreAppVersion)'!='' AND $([MSBuild]::VersionGreaterThan($(_MetalamaTargetFrameworkVersion), %(_MetalamaPlatformRequirement.MaximumNETCoreAppVersion)))"
-             Text="'%(_MetalamaPlatformRequirement.Identity)' is not tested with the target framework '$(TargetFramework)', which is newer than .NET %(_MetalamaPlatformRequirement.MaximumNETCoreAppVersion). Check whether a newer version of '%(_MetalamaPlatformRequirement.Identity)' is available.%(_MetalamaPlatformRequirement.TargetFrameworksSentence) $(_MetalamaSuppressionHint0600)"/>
+             Text="'%(_MetalamaPlatformRequirement.Identity)' does not support the target framework '$(TargetFramework)', which is newer than .NET %(_MetalamaPlatformRequirement.MaximumNETCoreAppVersion). Check whether a newer version of '%(_MetalamaPlatformRequirement.Identity)' is available.%(_MetalamaPlatformRequirement.TargetFrameworksSentence) $(_MetalamaSuppressionHint0600)"/>
 
     <Warning Code="LAMA0600"
              HelpLink="%(_MetalamaPlatformRequirement.HelpLink)"
              Condition="'$(TargetFrameworkIdentifier)'=='.NETStandard' AND '%(_MetalamaPlatformRequirement.MinimumNETStandardVersion)'!='' AND $([MSBuild]::VersionLessThan($(_MetalamaTargetFrameworkVersion), %(_MetalamaPlatformRequirement.MinimumNETStandardVersion)))"
-             Text="'%(_MetalamaPlatformRequirement.Identity)' is not tested with the target framework '$(TargetFramework)', which is older than .NET Standard %(_MetalamaPlatformRequirement.MinimumNETStandardVersion).%(_MetalamaPlatformRequirement.TargetFrameworksSentence) $(_MetalamaSuppressionHint0600)"/>
+             Text="'%(_MetalamaPlatformRequirement.Identity)' does not support the target framework '$(TargetFramework)', which is older than .NET Standard %(_MetalamaPlatformRequirement.MinimumNETStandardVersion).%(_MetalamaPlatformRequirement.TargetFrameworksSentence) $(_MetalamaSuppressionHint0600)"/>
 
     <Warning Code="LAMA0600"
              HelpLink="%(_MetalamaPlatformRequirement.HelpLink)"
              Condition="'$(TargetFrameworkIdentifier)'=='.NETStandard' AND '%(_MetalamaPlatformRequirement.MaximumNETStandardVersion)'!='' AND $([MSBuild]::VersionGreaterThan($(_MetalamaTargetFrameworkVersion), %(_MetalamaPlatformRequirement.MaximumNETStandardVersion)))"
-             Text="'%(_MetalamaPlatformRequirement.Identity)' is not tested with the target framework '$(TargetFramework)', which is newer than .NET Standard %(_MetalamaPlatformRequirement.MaximumNETStandardVersion). Check whether a newer version of '%(_MetalamaPlatformRequirement.Identity)' is available.%(_MetalamaPlatformRequirement.TargetFrameworksSentence) $(_MetalamaSuppressionHint0600)"/>
+             Text="'%(_MetalamaPlatformRequirement.Identity)' does not support the target framework '$(TargetFramework)', which is newer than .NET Standard %(_MetalamaPlatformRequirement.MaximumNETStandardVersion). Check whether a newer version of '%(_MetalamaPlatformRequirement.Identity)' is available.%(_MetalamaPlatformRequirement.TargetFrameworksSentence) $(_MetalamaSuppressionHint0600)"/>
 
     <!-- The comparison is case-insensitive, as every string comparison in an MSBuild condition is, so 'windows'
          matches the 'Windows' that the .NET SDK writes into $(TargetPlatformIdentifier). -->
@@ -393,24 +393,24 @@
            to be removed before the version is compared. -->
       <_MetalamaSdkVersion Condition="'$(NETCoreSdkVersion)'!=''">$(NETCoreSdkVersion.Split('-')[0])</_MetalamaSdkVersion>
 
-      <_MetalamaSuppressionHint0601>The build continues, but this .NET SDK is not officially supported, so a problem that is specific to it will not be fixed. To suppress this warning, set the 'MetalamaCheckSupportedPlatform' property to 'False', or add 'LAMA0601' to the 'NoWarn' property.</_MetalamaSuppressionHint0601>
-      <_MetalamaSuppressionHint0602>The build continues, but this version of Visual Studio is not officially supported, so a problem that is specific to it will not be fixed. To suppress this warning, set the 'MetalamaCheckSupportedPlatform' property to 'False', or add 'LAMA0602' to the 'NoWarn' property.</_MetalamaSuppressionHint0602>
+      <_MetalamaSuppressionHint0601>The build continues, but a problem that is specific to this .NET SDK will not be fixed. To suppress this warning, set the 'MetalamaCheckSupportedPlatform' property to 'False', or add 'LAMA0601' to the 'NoWarn' property.</_MetalamaSuppressionHint0601>
+      <_MetalamaSuppressionHint0602>The build continues, but a problem that is specific to this version of Visual Studio will not be fixed. To suppress this warning, set the 'MetalamaCheckSupportedPlatform' property to 'False', or add 'LAMA0602' to the 'NoWarn' property.</_MetalamaSuppressionHint0602>
     </PropertyGroup>
 
     <Warning Code="LAMA0601"
              HelpLink="%(_MetalamaPlatformRequirement.HelpLink)"
              Condition="'$(_MetalamaSdkVersion)'!='' AND '%(_MetalamaPlatformRequirement.MinimumSdkVersion)'!='' AND $([MSBuild]::VersionLessThan($(_MetalamaSdkVersion), %(_MetalamaPlatformRequirement.MinimumSdkVersion)))"
-             Text="'%(_MetalamaPlatformRequirement.Identity)' is not tested with the .NET SDK $(NETCoreSdkVersion), which is older than %(_MetalamaPlatformRequirement.MinimumSdkVersion).%(_MetalamaPlatformRequirement.SdkVersionsSentence)%(_MetalamaPlatformRequirement.SdkUpgradeSentence) $(_MetalamaSuppressionHint0601)"/>
+             Text="'%(_MetalamaPlatformRequirement.Identity)' does not support the .NET SDK $(NETCoreSdkVersion), which is older than %(_MetalamaPlatformRequirement.MinimumSdkVersion).%(_MetalamaPlatformRequirement.SdkVersionsSentence)%(_MetalamaPlatformRequirement.SdkUpgradeSentence) $(_MetalamaSuppressionHint0601)"/>
 
     <Warning Code="LAMA0601"
              HelpLink="%(_MetalamaPlatformRequirement.HelpLink)"
              Condition="'$(_MetalamaSdkVersion)'!='' AND '%(_MetalamaPlatformRequirement.MaximumSdkVersion)'!='' AND $([MSBuild]::VersionGreaterThan($(_MetalamaSdkVersion), %(_MetalamaPlatformRequirement.MaximumSdkVersion)))"
-             Text="'%(_MetalamaPlatformRequirement.Identity)' is not tested with the .NET SDK $(NETCoreSdkVersion), which is newer than %(_MetalamaPlatformRequirement.MaximumSdkVersion). Check whether a newer version of '%(_MetalamaPlatformRequirement.Identity)' is available.%(_MetalamaPlatformRequirement.SdkVersionsSentence) $(_MetalamaSuppressionHint0601)"/>
+             Text="'%(_MetalamaPlatformRequirement.Identity)' does not support the .NET SDK $(NETCoreSdkVersion), which is newer than %(_MetalamaPlatformRequirement.MaximumSdkVersion). Check whether a newer version of '%(_MetalamaPlatformRequirement.Identity)' is available.%(_MetalamaPlatformRequirement.SdkVersionsSentence) $(_MetalamaSuppressionHint0601)"/>
 
     <Warning Code="LAMA0602"
              HelpLink="%(_MetalamaPlatformRequirement.HelpLink)"
              Condition="'$(MSBuildRuntimeType)'=='Full' AND '$(MSBuildVersion)'!='' AND '%(_MetalamaPlatformRequirement.MinimumVisualStudioVersion)'!='' AND $([MSBuild]::VersionLessThan($(MSBuildVersion), %(_MetalamaPlatformRequirement.MinimumVisualStudioVersion)))"
-             Text="'%(_MetalamaPlatformRequirement.Identity)' is not tested with MSBuild $(MSBuildVersion), which is older than %(_MetalamaPlatformRequirement.MinimumVisualStudioVersion) and therefore belongs to a version of Visual Studio older than the oldest tested one.%(_MetalamaPlatformRequirement.VisualStudioVersionsSentence) $(_MetalamaSuppressionHint0602)"/>
+             Text="'%(_MetalamaPlatformRequirement.Identity)' does not support MSBuild $(MSBuildVersion), which is older than %(_MetalamaPlatformRequirement.MinimumVisualStudioVersion) and therefore belongs to a version of Visual Studio older than the oldest supported one.%(_MetalamaPlatformRequirement.VisualStudioVersionsSentence) $(_MetalamaSuppressionHint0602)"/>
 
   </Target>
 

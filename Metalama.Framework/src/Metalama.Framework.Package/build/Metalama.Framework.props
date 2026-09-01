@@ -13,12 +13,13 @@
     </PropertyGroup>
 
     <!--
-        The platform matrix that Metalama.Framework is tested with. Any other package, or the project itself, can
+        The platform matrix that Metalama.Framework supports. Any other package, or the project itself, can
         declare its own MetalamaPlatformRequirement item in a .props file. Every metadata entry is optional, an absent
         entry means no constraint, and unknown metadata is ignored. See
         https://doc.metalama.net/conceptual/configuration/msbuild-properties.
 
-        Maintainers: keep these values in sync with the "Current floors" table of Directory.Packages.md.
+        Maintainers: these values are the PB-2027.0 platform baseline. Keep them in sync with
+        Metalama.Framework/docs/platform-support.md, which is where that baseline is defined.
     -->
     <ItemGroup>
         <MetalamaPlatformRequirement Include="Metalama.Framework">
@@ -30,11 +31,14 @@
             <MaximumNETCoreAppVersion>11.0</MaximumNETCoreAppVersion>
             <MinimumSdkVersion>10.0</MinimumSdkVersion>
             <MaximumSdkVersion>11.0</MaximumSdkVersion>
-            <MinimumVisualStudioVersion>17.14</MinimumVisualStudioVersion>
-            <SupportedTargetFrameworksDescription>The tested target frameworks are .NET Framework 4.7.2 and later, .NET Standard 2.0 and 2.1, .NET 10 and .NET 11.</SupportedTargetFrameworksDescription>
-            <SupportedSdkVersionsDescription>The tested .NET SDK versions are 10.0 and 11.0.</SupportedSdkVersionsDescription>
-            <SdkUpgradeDescription>The .NET 10 SDK can be installed beside Visual Studio 2022 version 17.14, which is the minimum Visual Studio version for the .NET 10 SDK, so the existing Visual Studio installation does not have to be replaced. A 'global.json' file may also pin an older SDK after a newer one has been installed.</SdkUpgradeDescription>
-            <SupportedVisualStudioVersionsDescription>The tested versions are Visual Studio 2022 version 17.14 and later, and Visual Studio 2026.</SupportedVisualStudioVersionsDescription>
+            <!-- PB-2027.0 excludes Visual Studio 2022 entirely, so the floor is Visual Studio 2026, whose MSBuild is
+                 18.0. The baseline names the November 2026 long-term servicing channel as the floor; its feature band
+                 is measured after 2026-11-10, per the checklist of platform-support.md, and raises this value then. -->
+            <MinimumVisualStudioVersion>18.0</MinimumVisualStudioVersion>
+            <SupportedTargetFrameworksDescription>The supported target frameworks are .NET Framework 4.7.2 and later, .NET Standard 2.0 and 2.1, .NET 10 and .NET 11.</SupportedTargetFrameworksDescription>
+            <SupportedSdkVersionsDescription>The supported .NET SDK versions are 10.0 and 11.0.</SupportedSdkVersionsDescription>
+            <SdkUpgradeDescription>Install the .NET 10 SDK or a later one, which Visual Studio 2026 also carries. A 'global.json' file may pin an older SDK after a newer one has been installed.</SdkUpgradeDescription>
+            <SupportedVisualStudioVersionsDescription>The supported versions are Visual Studio 2026 and later. Visual Studio 2022 is not supported.</SupportedVisualStudioVersionsDescription>
             <HelpLink>https://doc.metalama.net/conceptual/configuration/msbuild-properties</HelpLink>
         </MetalamaPlatformRequirement>
     </ItemGroup>

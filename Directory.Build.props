@@ -13,7 +13,8 @@
              of Metalama.Framework.Package/build/Metalama.Framework.props. That matrix starts at net10.0, and the
              projects of this repository still target net8.0 until
              https://github.com/metalama/Metalama/issues/1876 raises them, so every one of them would report the
-             warning. Remove this property when #1876 is done. The SupportedPlatform scenarios under
+             warning. Removing this property once that is done is tracked by
+             https://github.com/metalama/Metalama/issues/1894. The SupportedPlatform scenarios under
              Metalama.Framework/src/tests/Standalone set the property back to 'True', because the check is what they
              test. -->
         <MetalamaCheckSupportedPlatform>False</MetalamaCheckSupportedPlatform>
