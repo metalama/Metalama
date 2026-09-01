@@ -41,6 +41,8 @@ Within the chosen .NET line we still take the **highest available patch** (e.g.,
 
 ## Support policy (rules for choosing the VS floor)
 
+These rules and the worked example below are generalised to every platform axis by [`Metalama.Framework/docs/platform-support.md`](Metalama.Framework/docs/platform-support.md), which is the authoritative source for the supported set of a release. Under PB-2027.0, recorded there, Visual Studio 2022 is out of the supported set, so the floor derived in the worked example belongs to Metalama 2026.1 and not to the current release. The rules are kept here because the cap-derivation procedure below reads them.
+
 A Visual Studio version is eligible as a floor for a Metalama release if all of the following hold:
 
 1. In MS support today.
