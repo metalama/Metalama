@@ -15,7 +15,17 @@ namespace Metalama.Framework.Tests.UnitTests.CodeModel
     /// </summary>
     public sealed class CanBeDeclaredExplicitlyTests : UnitTestClass
     {
-        private const string _code = @"
+        /// <summary>
+        /// Gets the code of the compilation under test.
+        /// </summary>
+        /// <remarks>
+        /// The reference assemblies of .NET Framework do not define <c>IsExternalInit</c>, which the <c>init</c>
+        /// accessor of a positional record requires, so the type is declared in the code itself.
+        /// </remarks>
+        private static string GetCode()
+        {
+            // ReSharper disable once ConvertToConstant.Local
+            var code = @"
 record BaseRecord(int X);
 
 record DerivedRecord(int X, int Y) : BaseRecord(X);
@@ -30,12 +40,19 @@ class PlainClass
 }
 ";
 
+#if !NET5_0_OR_GREATER
+            code += "namespace System.Runtime.CompilerServices { internal static class IsExternalInit {} }";
+#endif
+
+            return code;
+        }
+
         [Fact]
         public void RecordMembersThatTheCompilerOmitsWhenDeclared()
         {
             using var testContext = this.CreateTestContext();
 
-            var compilation = testContext.CreateCompilationModel( _code );
+            var compilation = testContext.CreateCompilationModel( GetCode() );
             var record = compilation.Types.OfName( "BaseRecord" ).Single();
 
             Assert.True( GetTypedEquals( record ).CanBeDeclaredExplicitly() );
@@ -52,7 +69,7 @@ class PlainClass
         {
             using var testContext = this.CreateTestContext();
 
-            var compilation = testContext.CreateCompilationModel( _code );
+            var compilation = testContext.CreateCompilationModel( GetCode() );
             var baseRecord = compilation.Types.OfName( "BaseRecord" ).Single();
             var derivedRecord = compilation.Types.OfName( "DerivedRecord" ).Single();
 
@@ -72,7 +89,7 @@ class PlainClass
         {
             using var testContext = this.CreateTestContext();
 
-            var compilation = testContext.CreateCompilationModel( _code );
+            var compilation = testContext.CreateCompilationModel( GetCode() );
             var recordStruct = compilation.Types.OfName( "RecordStruct" ).Single();
 
             Assert.True( GetTypedEquals( recordStruct ).CanBeDeclaredExplicitly() );
@@ -87,7 +104,7 @@ class PlainClass
         {
             using var testContext = this.CreateTestContext();
 
-            var compilation = testContext.CreateCompilationModel( _code );
+            var compilation = testContext.CreateCompilationModel( GetCode() );
             var type = compilation.Types.OfName( "PlainClass" ).Single();
             var property = type.Properties.OfName( "P" ).Single();
             var backingField = type.Fields.Single( f => f.IsAutoPropertyBackingField() );
