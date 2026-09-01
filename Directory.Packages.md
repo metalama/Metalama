@@ -2,7 +2,7 @@
 
 The authoritative source for how we choose versions in `Directory.Packages.props`. The props file carries short inline rationales; the why and how live here.
 
-## Current floors (Metalama 2026.1 LTS, GA target 2026-07-01)
+## Current floors (Metalama 2027.0, GA target 2027-01-01)
 
 | Floor                  | Version                                  | Source                       |
 | ---------------------- | ---------------------------------------- | ---------------------------- |
@@ -11,7 +11,7 @@ The authoritative source for how we choose versions in `Directory.Packages.props
 | Runtime TFMs           | `net472`, `net10.0`                      | Project files                |
 | Roslyn API min         | 4.12.0 (`RoslynApiMinVersion`)           | Lowest design-time analyzer host in MS support |
 | Roslyn API max         | 5.0.0 (`RoslynApiMaxVersion`)            | Optional bump to 5.5 to match VS 2026 18.5 |
-| MSBuild                | `MicrosoftBuildVersion`                  | VS-shipped                   |
+| MSBuild                | 18.0.2 (`MicrosoftBuildVersion`)         | The MSBuild of the .NET 10 SDK, the lowest host in PB-2027.0 |
 
 ## Why versioning is constrained
 
