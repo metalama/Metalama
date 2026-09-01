@@ -3,7 +3,7 @@
 1. Update Metalama.Compiler first. 
 2. Update `RoslynMaxVersion` and `RoslynApiMaxVersion` in `Directory.packages.props` and possibly `ThisRoslynVersion` in `eng/RoslynVersions/Roslyn.<LAST_VERSION>.props` (when updating between pre-release versions of Roslyn).
 3. Study the new C# syntax features. We IGNORE any experimental feature. They are not supported. If the new Roslyn only has new experimental features, there is nothing to do in this repo.
-4. Add the `Syntax.xml` file from Roslyn to `eng/src/GenerateMetaSyntaxRewriter`
+4. Add the `Syntax.xml` file of the new Roslyn version to `eng/src/GenerateMetaSyntaxRewriter`, under the name `Syntax-<NEW_VERSION>.xml`. Copy it from `src/Compilers/CSharp/Portable/Syntax/Syntax.xml` in the `Metalama.Compiler` branch that targets that Roslyn version, because that is the grammar of the Roslyn build we consume. Do not rename the previous version's file instead: the grammar is specific to the Roslyn version, and the generated code and the version checker both derive from it. Keep the experimental nodes that the file declares. The generator only needs them to be present in the referenced `Microsoft.CodeAnalysis.CSharp` assembly, which they are; whether a node is reachable from a supported `LanguageVersion` is a separate question, decided in step 3.
 5. Edit `eng/src/GenerateMetaSyntaxRewriter/GenerateMetaSyntaxRewriter.cs` to include this file.
 6. Run `build.ps1 prepare`.
 7. Decide whether the new Roslyn version needs a variant of its own, or whether the latest variant is renumbered to it.

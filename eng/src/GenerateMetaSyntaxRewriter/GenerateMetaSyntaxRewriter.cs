@@ -15,9 +15,6 @@ internal static class GenerateMetaSyntaxRewriter
     {
         var deprecatedVersionNames = Array.Empty<string>();
         string[] legacyVersionNames = ["4.0.1", "4.4.0", "4.8.0"]; // versions that should be considered when generating code, but not have their own generated code
-        // Syntax-5.10.0.xml holds the Roslyn 5.10 grammar restricted to the non-experimental nodes. It is identical to
-        // the Roslyn 5.0 grammar: the nodes that Roslyn 5.10 adds (UnionDeclarationSyntax, UnsafeExpressionSyntax and
-        // WithElementSyntax) are all behind LanguageVersion.Preview, and preview features are not supported.
         string[] versionNames = [.. legacyVersionNames, "4.12.0", "5.10.0"];
 
         var syntaxDocuments = new SyntaxDocument[versionNames.Length];
