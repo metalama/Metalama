@@ -29,11 +29,18 @@
 
     <ItemGroup>
         <!-- It is essential that the package version remains constant.-->
-        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" VersionOverride="4.0.1" PrivateAssets="all" NoWarn="NU1903" />
-        <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.Common" VersionOverride="4.0.1" PrivateAssets="all" NoWarn="NU1903" />
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" VersionOverride="4.0.1" PrivateAssets="all" />
+        <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.Common" VersionOverride="4.0.1" PrivateAssets="all" />
 
         <!-- We must match the version used by the lowest version of Visual Studion supported by the VSX. -->
         <PackageReference Include="Newtonsoft.Json" NoWarn="NU1903" />
+
+        <!-- Microsoft.CodeAnalysis.Workspaces.Common 4.0.1 is pinned to the version of the lowest supported Visual
+             Studio, and it depends on System.Net.Http 4.3.0 and System.Text.RegularExpressions 4.3.0. Raising it is
+             not an option, and NoWarn on the reference itself does not apply to a transitive dependency. Both
+             assemblies are provided by the runtime that hosts us, so the vulnerable package is never loaded. -->
+        <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-7jgj-8wvc-jh57" />
+        <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-cmhx-cq75-c4mj" />
     </ItemGroup>
 
 </Project>
