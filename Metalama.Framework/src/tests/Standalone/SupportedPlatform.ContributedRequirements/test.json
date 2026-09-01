@@ -1,0 +1,9 @@
+{
+    "BuildOnly": true,
+    "ExpectedDiagnosticsRegexes": [
+        "warning LAMA0600.*'Test\.NewerFramework'.*newer",
+        "warning LAMA0600.*'Test\.WindowsOnly'.*windows",
+        "warning LAMA0601.*'Test\.FutureSdk'.*99\.0"
+    ],
+    "ForbiddenDiagnosticsRegexes": [ "warning LAMA0600.*'Metalama\.Framework'", "warning LAMA0602" ]
+}

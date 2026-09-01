@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!-- MetalamaEnabled set to 'False' suppresses every diagnostic of the check, like every other check of
+         Metalama.Framework.targets. Both the target framework and the contributed requirement below would otherwise
+         report one.
+         See https://github.com/metalama/Metalama/issues/1884. -->
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <OutputType>Library</OutputType>
+        <MetalamaEnabled>False</MetalamaEnabled>
+        <MetalamaCheckSupportedPlatform>True</MetalamaCheckSupportedPlatform>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Metalama.Framework" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <MetalamaPlatformRequirement Include="Test.FutureSdk">
+            <MinimumSdkVersion>99.0</MinimumSdkVersion>
+        </MetalamaPlatformRequirement>
+    </ItemGroup>
+
+</Project>
