@@ -4,15 +4,20 @@
 
 #if TEST_OPTIONS
 // @TestScenario(DesignTime)
-// @RequiredConstant(ROSLYN_5_0_0_OR_GREATER)
+// @ForbiddenConstant(ROSLYN_5_0_0_OR_GREATER)
 #endif
 
 using Metalama.Framework.Aspects;
 
-namespace Metalama.Framework.Tests.PublicPipeline.Aspects.DesignTimeInvalidCode.UnknownAccessorInTemplate;
+namespace Metalama.Framework.Tests.PublicPipeline.Aspects.DesignTimeInvalidCode.UnknownAccessorInTemplate_Roslyn4;
 
 /*
  * Tests that invalid accessor declarations in a template do not crash.
+ *
+ * This is the Roslyn 4 counterpart of UnknownAccessorInTemplate. The two files differ only in the
+ * expected output: Roslyn 4.12 reports CS1014 on an empty span, and Roslyn 5.10 reports it on the
+ * `setx` token. The test framework compares a single expected file per test, so the scenario needs
+ * one file per Roslyn variant.
  */
 
 internal class Aspect : PropertyAspect
