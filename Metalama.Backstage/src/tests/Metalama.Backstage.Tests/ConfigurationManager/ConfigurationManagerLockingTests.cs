@@ -126,6 +126,27 @@ public sealed class ConfigurationManagerLockingTests : TestsBase, IDisposable
     }
 
     /// <summary>
+    /// Awaits a task, failing with the error of <paramref name="concurrent"/> rather than with a timeout when that
+    /// task fails first.
+    /// </summary>
+    /// <param name="task">The task to await.</param>
+    /// <param name="concurrent">
+    /// A task that runs concurrently and whose failure would leave <paramref name="task"/> incomplete. That error is
+    /// the one that explains the test, so it must not be masked by the timeout.
+    /// </param>
+    /// <returns>A task that completes when <paramref name="task"/> does.</returns>
+    private async Task WithTimeout( Task task, Task concurrent )
+    {
+        if ( await Task.WhenAny( task, concurrent ) == concurrent )
+        {
+            // Rethrows the error of the concurrent task if it has one. If it succeeded, the wait simply goes on.
+            await concurrent;
+        }
+
+        await this.WithTimeout( task );
+    }
+
+    /// <summary>
     /// Verifies that reading a configuration file takes no lock whatsoever, which is what keeps a read off the
     /// critical path of every other operation.
     /// </summary>
@@ -445,7 +466,9 @@ public sealed class ConfigurationManagerLockingTests : TestsBase, IDisposable
         var update = RunOnDedicatedThreadAsync(
             () => Assert.True( configurationManager.Update<TestConfigurationFile>( c => c with { IsModified = true } ) ) );
 
-        await this.WithTimeout( this._syncProvider.WaitForSyncPointReachedAsync( syncPointName, this._timeout.Token ) );
+        // Every wait below also observes the update, so that an update that fails before it reaches the point is
+        // reported with its own error instead of as a timeout.
+        await this.WithTimeout( this._syncProvider.WaitForSyncPointReachedAsync( syncPointName, this._timeout.Token ), update );
 
         // The dispatching thread is held before the first handler, so no handler has run at this moment.
         Assert.Equal( 0, secondHandlerInvocations );
@@ -454,7 +477,7 @@ public sealed class ConfigurationManagerLockingTests : TestsBase, IDisposable
         // same change, and a test that guesses how many releases are needed hangs when it guesses too low.
         this._syncProvider.DisableSyncPoint( syncPointName );
 
-        await this.WithTimeout( secondHandlerNotified.Task );
+        await this.WithTimeout( secondHandlerNotified.Task, update );
         await this.WithTimeout( update );
 
         Assert.Equal( 1, secondHandlerInvocations );
