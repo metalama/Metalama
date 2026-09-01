@@ -23,15 +23,9 @@ var product = new Product( MetalamaDependencies.Metalama )
     {
         Components =
         [
-            // Must match global.json.
+            // Must match global.json. Since .NET 8 and .NET 9 were dropped, this is the only .NET SDK that the
+            // product, the tests and the engineering build tool require.
             new DotNetComponent( PreferredVersions.DotNetSdk.V_10_0, DotNetComponentKind.Sdk ),
-
-            // The runtime is required by all tests.
-            // The SDK is required by the Workspace tests.
-            new DotNetComponent( PreferredVersions.DotNetSdk.V_8_0, DotNetComponentKind.Sdk ),
-
-            // Required by eng, which targets net9.0. No product project targets net9.0 any more.
-            new DotNetComponent( PreferredVersions.DotNetSdk.V_9_0, DotNetComponentKind.Sdk ),
 
             // Required by some tests.
             new VisualStudioBuildToolsComponent(

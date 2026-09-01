@@ -81,5 +81,4 @@ relies on the default solution order, in which `Consumer` comes last.
 dotnet <repo>\Metalama.Framework\src\tests\Metalama.DesignTime.HostSimulator\bin\Debug\net10.0\Metalama.DesignTime.HostSimulator.dll Issue1749.UpstreamReuse.sln --timeout 300
 ```
 
-Use the **net10.0** build; the net8.0 one fails to load `Metalama.Framework.CompilerExtensions` in this environment, on
-the existing scenarios too.
+The host simulator has a single build, net10.0.

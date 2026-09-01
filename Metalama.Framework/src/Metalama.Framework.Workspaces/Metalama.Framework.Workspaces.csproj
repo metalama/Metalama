@@ -2,9 +2,9 @@
 
 
     <PropertyGroup>
-        <!-- We must target several versions because the MSBuild version and therefore the .NET runtime version
-             must match the version of the .NET SDK used for the project. -->
-        <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+        <!-- The MSBuild version, and therefore the .NET runtime version, must match the version of the .NET SDK
+             used for the project. Only .NET 10 is supported, so there is a single target framework. -->
+        <TargetFramework>net10.0</TargetFramework>
         <RootNamespace>Metalama.Framework.Workspaces</RootNamespace>
         <UseMetalamaCompiler>Private</UseMetalamaCompiler>
         <!-- Packaging -->
@@ -59,12 +59,13 @@
     </ItemGroup>
 
     <PropertyGroup>
-        <!-- The folder of Microsoft.CodeAnalysis.Workspaces.MSBuild whose assets this project packs. That package ships
-             net472, net8.0 and net9.0 assets up to version 5.0.0, so it has no folder named after our net10.0 target and
-             NuGet resolves its net9.0 asset instead. Set this property to $(TargetFramework) again once the version
-             given by RoslynMaxVersion ships a net10.0 asset. -->
+        <!-- The folder of Microsoft.CodeAnalysis.Workspaces.MSBuild whose assets this project packs. Up to version
+             5.0.0 that package ships net472, net8.0 and net9.0 assets, so it has no folder named after our net10.0
+             target framework and NuGet resolves its net9.0 asset instead. The condition tests the layout of the
+             restored package rather than naming a version, so raising RoslynMaxVersion to a version that ships a
+             net10.0 asset selects that asset with no further change here. -->
         <_WorkspacesMSBuildAssetTargetFramework>$(TargetFramework)</_WorkspacesMSBuildAssetTargetFramework>
-        <_WorkspacesMSBuildAssetTargetFramework Condition="'$(TargetFramework)'=='net10.0'">net9.0</_WorkspacesMSBuildAssetTargetFramework>
+        <_WorkspacesMSBuildAssetTargetFramework Condition="!Exists('$(PkgMicrosoft_CodeAnalysis_Workspaces_MSBuild)/lib/$(TargetFramework)')">net9.0</_WorkspacesMSBuildAssetTargetFramework>
     </PropertyGroup>
 
     <Target Name="_AddPackageContent">
@@ -81,6 +82,11 @@
 
             <TfmSpecificPackageFile Include="$(PkgMicrosoft_CodeAnalysis_Workspaces_MSBuild)/contentFiles/any/any/**" PackagePath="contentFiles/any/$(TargetFramework)" BuildAction="None"  CopyToOutput="true" />
         </ItemGroup>
+
+        <!-- A folder name that matches nothing would produce a lib folder without the MSBuild build hosts, and the
+             package would ship in that state without any error. -->
+        <Error Condition="!Exists('$(PkgMicrosoft_CodeAnalysis_Workspaces_MSBuild)/lib/$(_WorkspacesMSBuildAssetTargetFramework)')"
+               Text="The Microsoft.CodeAnalysis.Workspaces.MSBuild package has no lib/$(_WorkspacesMSBuildAssetTargetFramework) folder. Update _WorkspacesMSBuildAssetTargetFramework in this project." />
     </Target>
 
     <Target Name="_FixPackageFiles" BeforeTargets="GenerateNuspec">

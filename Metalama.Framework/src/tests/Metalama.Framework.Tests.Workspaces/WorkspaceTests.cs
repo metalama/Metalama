@@ -40,7 +40,7 @@ namespace Metalama.Framework.Tests.Workspaces
                 @"
 <Project Sdk=""Microsoft.NET.Sdk"">
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>net10.0</TargetFramework>
     </PropertyGroup>
 </Project>
 " );
@@ -73,7 +73,7 @@ namespace Metalama.Framework.Tests.Workspaces
                 @"
 <Project Sdk=""Microsoft.NET.Sdk"">
     <PropertyGroup>
-        <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+        <TargetFrameworks>netstandard2.0;net10.0</TargetFrameworks>
     </PropertyGroup>
 </Project>
 " );
@@ -145,7 +145,7 @@ namespace Metalama.Framework.Tests.Workspaces
                 $@"
 <Project Sdk=""Microsoft.NET.Sdk"">
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>net10.0</TargetFramework>
         <DefineConstants>METALAMA</DefineConstants>
         <Nullable>enable</Nullable>
     </PropertyGroup>
@@ -189,7 +189,7 @@ class MyClass {}" );
             Assert.Equal( 4, workspace.AspectClasses.Length );
             Assert.Single( workspace.AspectInstances );
             var targetFramework = Assert.Single( workspace.SourceCode.TargetFrameworks );
-            Assert.Equal( "net8.0", targetFramework );
+            Assert.Equal( "net10.0", targetFramework );
         }
 
         [Fact]

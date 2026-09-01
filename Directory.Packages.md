@@ -8,11 +8,11 @@ The authoritative source for how we choose versions in `Directory.Packages.props
 | ---------------------- | ---------------------------------------- | ---------------------------- |
 | Visual Studio 2022     | 17.14 Current Channel, latest patch      | Support policy below         |
 | Visual Studio 2026     | Latest Stable patch (currently 18.5.x)   | No 2026-LTSC channel until ~2026-11 |
-| .NET SDK (build)       | Any in-MS-support .NET 8/9/10 SDK        | `Metalama.Compiler.exe` replaces the SDK's Roslyn |
-| Runtime TFMs           | `net472`, `net8.0`, `net10.0`            | Project files                |
+| .NET SDK (build)       | .NET 10 SDK or later                     | `Metalama.Compiler.exe` replaces the SDK's Roslyn |
+| Runtime TFMs           | `net472`, `net10.0`                      | Project files                |
 | Roslyn API min         | 4.12.0 (`RoslynApiMinVersion`)           | Lowest design-time analyzer host in MS support |
 | Roslyn API max         | 5.0.0 (`RoslynApiMaxVersion`)            | Optional bump to 5.5 to match VS 2026 18.5 |
-| MSBuild                | `MicrosoftBuildVersion` per TFM          | VS-shipped                   |
+| MSBuild                | `MicrosoftBuildVersion`                  | VS-shipped                   |
 
 ## Why versioning is constrained
 
@@ -36,7 +36,7 @@ Independent of the bucket model, every dependency is also classified by *audienc
 - **User-surfacing**: the package ends up in NuGets that user code references (`Metalama.Framework`, `Metalama.Backstage`, `Metalama.Patterns.*`, `Flashtrace*`). When a user adds our NuGet, transitive resolution may pull these into their project.
 - **Internal**: the package is only consumed by projects we host ourselves — `Metalama.Framework.Engine` (compile-time), `Metalama.Framework.DesignTime*` (loaded into VS as our analyzer payload), `Metalama.Compiler.exe`, `Metalama.Tool` (CLI), tests.
 
-While we still support .NET 8 SDK as a build target (.NET 8 LTS through 2026-11), **user-surfacing packages stay on the .NET 8.0 line** (`System.*` 8.0.x, `Microsoft.Extensions.*` 8.0.x). Bumping a user-surfacing dependency to a higher .NET major forces transitive upgrades on consumers that still target net8.0 and partially erodes the "we support .NET 8 SDK" promise. Internal packages are free to bump up to the VS-shipped cap regardless.
+Our own projects no longer target `net8.0`, but a user application still may, and it resolves the `netstandard2.0` asset of our user-surfacing packages. **User-surfacing packages therefore stay on the .NET 8.0 line** (`System.*` 8.0.x, `Microsoft.Extensions.*` 8.0.x). Bumping a user-surfacing dependency to a higher .NET major forces transitive upgrades on consumers that still target `net8.0`. Internal packages are free to bump up to the VS-shipped cap regardless.
 
 Within the chosen .NET line we still take the **highest available patch** (e.g., `System.Drawing.Common` 8.0.x → latest 8.0.26 for security fixes); the rule only freezes the *major.minor*, not the patch level.
 
@@ -68,11 +68,10 @@ LTS branches don't freeze their declared floor: as Microsoft drops a VS version 
 
 ## TFM constraints
 
-`net472` limits us to packages that retain a `netstandard2.0` (or `net4x`) asset — many modern System.* packages have dropped `netstandard2.0`. `net8.0` / `net10.0` are generally permissive, but per-TFM caps are still required when the consuming process ships a specific .NET runtime. Use the conditional version pattern:
+`net472` limits us to packages that retain a `netstandard2.0` (or `net4x`) asset — many modern System.* packages have dropped `netstandard2.0`. `net10.0` is generally permissive, but a cap is still required when the consuming process ships a specific .NET runtime, as it is for `Microsoft.Build`:
 
 ```xml
-<MicrosoftBuildVersion Condition="'$(TargetFramework)'=='net8.0'">17.10.46</MicrosoftBuildVersion>
-<MicrosoftBuildVersion Condition="'$(TargetFramework)'=='net10.0'">18.0.2</MicrosoftBuildVersion>
+<MicrosoftBuildVersion>18.0.2</MicrosoftBuildVersion>
 ```
 
 ### The Out-of-band family

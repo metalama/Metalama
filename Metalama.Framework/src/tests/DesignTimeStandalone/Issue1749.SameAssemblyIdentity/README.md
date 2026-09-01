@@ -63,9 +63,8 @@ different place, which made the two symptoms difficult to relate.
 dotnet <repo>\Metalama.Framework\src\tests\Metalama.DesignTime.HostSimulator\bin\Debug\net10.0\Metalama.DesignTime.HostSimulator.dll Issue1749.SameAssemblyIdentity.sln --timeout 300
 ```
 
-Use the **net10.0** build. The net8.0 one fails to load `Metalama.Framework.CompilerExtensions`, on the existing
-scenarios as well, and `eng/src/DesignTimeSolution.cs` invokes net10.0 in any case. Add `--trace "*"` to obtain the trace
-of Metalama itself.
+The host simulator has a single build, net10.0, which is the one `eng/src/DesignTimeSolution.cs` invokes.
+Add `--trace "*"` to obtain the trace of Metalama itself.
 
 `test.json` matches on the message of the exception rather than on a diagnostic identifier or a key, so it holds for
 this site and for the compile-time counterpart alike.
