@@ -5,9 +5,6 @@
 #if TEST_OPTIONS
 // @TestScenario(DesignTime)
 // @RequiredConstant(NET8_0_OR_GREATER)
-// The two introduced partial files carry the same two extension blocks in either variant, but Roslyn 5.0 and
-// Roslyn 5.10 order them differently, and the test framework compares one expected file per index.
-// @RequiredConstant(ROSLYN_5_10_0_OR_GREATER)
 #endif
 
 #pragma warning disable CS0618 // Obsolete

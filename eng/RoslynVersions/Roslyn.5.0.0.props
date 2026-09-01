@@ -5,7 +5,7 @@
 		<ThisRoslynVersionNoPreview>5.0.0</ThisRoslynVersionNoPreview>
 		<!-- ThisRoslynVersionProjectSuffix should be empty for the latest version, otherwise it should be a dot followed by ThisRoslynVersion -->
 		<ThisRoslynVersionProjectSuffix>.5.0.0</ThisRoslynVersionProjectSuffix>
-		<!-- This variant defines no constant. No production source branches on the variant. The three aspect tests
+		<!-- This variant defines no constant. No production source branches on the variant. The two aspect tests
 		     whose expected output differs between the variants use ROSLYN_5_10_0_OR_GREATER, which the latest variant
 		     defines. See Directory.Packages.md. -->
 		<!-- Microsoft.CodeAnalysis.CSharp.Features 5.0 requires System.Text.Json >= 9.0.0. -->
