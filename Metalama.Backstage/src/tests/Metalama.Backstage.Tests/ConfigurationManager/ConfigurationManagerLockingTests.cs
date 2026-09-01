@@ -126,6 +126,27 @@ public sealed class ConfigurationManagerLockingTests : TestsBase, IDisposable
     }
 
     /// <summary>
+    /// Awaits a task, failing with the error of <paramref name="concurrent"/> rather than with a timeout when that
+    /// task fails first.
+    /// </summary>
+    /// <param name="task">The task to await.</param>
+    /// <param name="concurrent">
+    /// A task that runs concurrently and whose failure would leave <paramref name="task"/> incomplete. That error is
+    /// the one that explains the test, so it must not be masked by the timeout.
+    /// </param>
+    /// <returns>A task that completes when <paramref name="task"/> does.</returns>
+    private async Task WithTimeout( Task task, Task concurrent )
+    {
+        if ( await Task.WhenAny( task, concurrent ) == concurrent )
+        {
+            // Rethrows the error of the concurrent task if it has one. If it succeeded, the wait simply goes on.
+            await concurrent;
+        }
+
+        await this.WithTimeout( task );
+    }
+
+    /// <summary>
     /// Verifies that reading a configuration file takes no lock whatsoever, which is what keeps a read off the
     /// critical path of every other operation.
     /// </summary>
@@ -402,23 +423,62 @@ public sealed class ConfigurationManagerLockingTests : TestsBase, IDisposable
     /// Verifies that a handler that throws neither fails the update nor deprives the handlers registered after it
     /// of the notification.
     /// </summary>
+    /// <returns>A task that completes when the test does.</returns>
     /// <remarks>
+    /// <para>
     /// A multicast invocation stops at the first handler that throws. The implementation this one replaces invoked
     /// the delegate that way, so one faulty subscriber silently suppressed every subsequent one.
+    /// </para>
+    /// <para>
+    /// The notification is dispatched once every lock has been released, by whichever thread updates the cache
+    /// first, so it is not necessarily complete when <see cref="ConfigurationManagerExtensions.Update{T}"/> returns.
+    /// The synchronization point holds the dispatching thread before the first handler is invoked, which makes that
+    /// interleaving the one the test always exercises, and the test then waits for the second handler instead of
+    /// assuming that it has already run. Asserting immediately after the update is issue 1888 as it was reported.
+    /// </para>
     /// </remarks>
     [Fact]
-    public void AThrowingHandlerDoesNotPreventTheFollowingOnes()
+    public async Task AThrowingHandlerDoesNotPreventTheFollowingOnes()
     {
         using var configurationManager = this.CreateConfigurationManager();
 
         Assert.False( configurationManager.Get<TestConfigurationFile>().IsModified );
 
         var secondHandlerInvocations = 0;
+        var secondHandlerNotified = new TaskCompletionSource<bool>( TaskCreationOptions.RunContinuationsAsynchronously );
 
         configurationManager.ConfigurationFileChanged += _ => throw new InvalidOperationException( "Injected by a test." );
-        configurationManager.ConfigurationFileChanged += _ => Interlocked.Increment( ref secondHandlerInvocations );
 
-        Assert.True( configurationManager.Update<TestConfigurationFile>( c => c with { IsModified = true } ) );
+        configurationManager.ConfigurationFileChanged += _ =>
+        {
+            Interlocked.Increment( ref secondHandlerInvocations );
+            secondHandlerNotified.TrySetResult( true );
+        };
+
+        var syncPointName = Configuration.ConfigurationManager.GetSyncPointName(
+            Configuration.ConfigurationManager.RaiseChangedBeforeInvokeLocation,
+            configurationManager.GetFilePath<TestConfigurationFile>() );
+
+        this._syncProvider.EnableSyncPoint( syncPointName );
+
+        // The notification is dispatched by whichever thread updates the cache first, which can be the thread that
+        // calls Update, so the update runs on a thread of its own and the test thread stays free to drive the point.
+        var update = RunOnDedicatedThreadAsync(
+            () => Assert.True( configurationManager.Update<TestConfigurationFile>( c => c with { IsModified = true } ) ) );
+
+        // Every wait below also observes the update, so that an update that fails before it reaches the point is
+        // reported with its own error instead of as a timeout.
+        await this.WithTimeout( this._syncProvider.WaitForSyncPointReachedAsync( syncPointName, this._timeout.Token ), update );
+
+        // The dispatching thread is held before the first handler, so no handler has run at this moment.
+        Assert.Equal( 0, secondHandlerInvocations );
+
+        // The point is disabled rather than released, because the file system watcher can reach it again for the
+        // same change, and a test that guesses how many releases are needed hangs when it guesses too low.
+        this._syncProvider.DisableSyncPoint( syncPointName );
+
+        await this.WithTimeout( secondHandlerNotified.Task, update );
+        await this.WithTimeout( update );
 
         Assert.Equal( 1, secondHandlerInvocations );
         Assert.Contains( this.Log.Entries, e => e.Severity == TestLoggerFactory.Severity.Error );
