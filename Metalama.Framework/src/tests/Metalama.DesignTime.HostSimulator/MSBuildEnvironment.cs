@@ -59,14 +59,11 @@ internal static class MSBuildEnvironment
         }
 
         // VisualStudioInstance has no public constructor, and MSBuildLocator offers no way to register a directory.
-        var constructor = typeof(VisualStudioInstance).GetConstructor(
-            BindingFlags.NonPublic | BindingFlags.Instance,
-            [typeof(string), typeof(string), typeof(Version), typeof(DiscoveryType)] );
-
-        if ( constructor == null )
-        {
-            throw new InvalidOperationException( $"Cannot find the internal constructor of {nameof(VisualStudioInstance)}." );
-        }
+        var constructor =
+            typeof(VisualStudioInstance).GetConstructor(
+                BindingFlags.NonPublic | BindingFlags.Instance,
+                [typeof(string), typeof(string), typeof(Version), typeof(DiscoveryType)] )
+            ?? throw new InvalidOperationException( $"Cannot find the internal constructor of {nameof(VisualStudioInstance)}." );
 
         var instance = (VisualStudioInstance) constructor.Invoke(
             [$".NET SDK {selected.RawVersion}", selected.Directory, selected.Version, DiscoveryType.DotNetSdk] );
