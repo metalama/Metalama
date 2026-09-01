@@ -422,12 +422,8 @@ namespace Metalama.Framework.Code
         /// <exception cref="ArgumentException">Thrown when <paramref name="memberName"/> does not correspond to a constant member of the type.</exception>
         public static TypedConstant NamedConstant( INamedType declaringType, string memberName )
         {
-            var field = declaringType.Fields.OfName( memberName ).FirstOrDefault();
-
-            if ( field == null )
-            {
-                throw new ArgumentException( $"The type '{declaringType}' does not have a member named '{memberName}'.", nameof(memberName) );
-            }
+            var field = declaringType.Fields.OfName( memberName ).FirstOrDefault()
+                        ?? throw new ArgumentException( $"The type '{declaringType}' does not have a member named '{memberName}'.", nameof(memberName) );
 
             if ( field.ConstantValue == null )
             {

@@ -62,12 +62,8 @@ namespace Metalama.Patterns.Caching.TestHelpers
         /// <exception cref="InvalidOperationException">The asynchronous methods are not suspended.</exception>
         public void ResumeAsyncMethods()
         {
-            var suspension = Interlocked.Exchange( ref this._suspension, null );
-
-            if ( suspension == null )
-            {
-                throw new InvalidOperationException( "The asynchronous methods are not suspended." );
-            }
+            var suspension = Interlocked.Exchange( ref this._suspension, null )
+                             ?? throw new InvalidOperationException( "The asynchronous methods are not suspended." );
 
             suspension.SetResult( true );
         }

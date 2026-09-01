@@ -305,11 +305,8 @@ public sealed partial class RpcServiceRaiseEventTests : RpcUnitTestClass
             promotingReleaseTcs.Task.GetAwaiter().GetResult();
         };
 
-        service.OnRpcDisconnectingHook = () =>
-        {
-            // Signal that a disconnect is being processed (fires before any dictionary cleanup).
-            disconnectAttemptedTcs.TrySetResult( true );
-        };
+        // Signal that a disconnect is being processed (fires before any dictionary cleanup).
+        service.OnRpcDisconnectingHook = () => disconnectAttemptedTcs.TrySetResult( true );
 
         // Pin client2 at AfterGetsServer: the pipe stream is created and OS-connected to the server,
         // but client2 has not yet created its rpc or added itself to _connectionByStream. This is
@@ -792,10 +789,7 @@ public sealed partial class RpcServiceRaiseEventTests : RpcUnitTestClass
             }
         };
 
-        serverEndpoint.ClientDisconnected += () =>
-        {
-            clientDisconnectedTcs.TrySetResult( true );
-        };
+        serverEndpoint.ClientDisconnected += () => clientDisconnectedTcs.TrySetResult( true );
 
         serverEndpoint.Start();
 

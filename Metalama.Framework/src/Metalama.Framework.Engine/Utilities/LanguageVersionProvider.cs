@@ -106,13 +106,9 @@ internal sealed class LanguageVersionProvider : ILanguageVersionProvider
                 $"Cannot determine the compile-time language version: could not find Roslyn in '{msBuildBinPath}' or its parent directory." );
         }
 
-        var roslynVersion = AssemblyName.GetAssemblyName( roslynDllPath ).Version;
-
-        if ( roslynVersion == null )
-        {
-            throw new InvalidOperationException(
-                $"Cannot determine the compile-time language version: could not read assembly version from '{roslynDllPath}'." );
-        }
+        var roslynVersion = AssemblyName.GetAssemblyName( roslynDllPath ).Version
+                            ?? throw new InvalidOperationException(
+                                $"Cannot determine the compile-time language version: could not read assembly version from '{roslynDllPath}'." );
 
         var msBuildSupportedVersion = SupportedCSharpVersions.GetMaxLanguageVersion( roslynVersion );
 
