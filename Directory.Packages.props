@@ -22,10 +22,12 @@
          and Metalama.Compiler.exe replaces the SDK's Roslyn at build time. See Directory.Packages.md. -->
     <RoslynApiMinVersion>4.12.0</RoslynApiMinVersion>
 
-    <!-- RoslynApiMaxVersion is the maximum version of the Roslyn API we support. -->
-    <RoslynApiMaxVersion>5.0.0</RoslynApiMaxVersion>
+    <!-- RoslynApiMaxVersion is the maximum version of the Roslyn API we support. It matches the Roslyn version
+         that Metalama.Compiler builds on. Roslyn 5.10 is a preview and is restored from the roslyn-consolidated
+         feed declared in nuget.base.config. -->
+    <RoslynApiMaxVersion>5.10.0-1.26365.3</RoslynApiMaxVersion>
     <!-- RoslynMaxVersion is the version of Roslyn that should be referenced by the Workspaces package. -->
-    <RoslynMaxVersion>5.0.0</RoslynMaxVersion>
+    <RoslynMaxVersion>5.10.0-1.26365.3</RoslynMaxVersion>
 
     <!-- xUnitApiVersion is the version of xUnit against which we build the testing framework -->
     <xUnitApiVersion>2.9.3</xUnitApiVersion>
