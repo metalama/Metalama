@@ -8,38 +8,17 @@
     <PropertyGroup>
         <MetalamaEnabled Condition="'$(MetalamaEnabled)'==''">True</MetalamaEnabled>
 
-        <!-- Enables the diagnostics that report a target framework, a .NET SDK or a Visual Studio version outside the
-             configuration matrix that Metalama is tested with. Set it to 'False' to turn all of them off. -->
+        <!-- Set to 'False' to turn off the checks of the target framework, the .NET SDK and the Visual Studio version. -->
         <MetalamaCheckSupportedPlatform Condition="'$(MetalamaCheckSupportedPlatform)'==''">True</MetalamaCheckSupportedPlatform>
     </PropertyGroup>
 
     <!--
-        The configuration matrix that Metalama.Framework is tested with. It is read by the
-        MetalamaCheckSupportedTargetFramework and MetalamaCheckSupportedToolchain targets of Metalama.Framework.targets.
-        The values come from the "Current floors" table of Directory.Packages.md, which is the documented source of the
-        matrix. Change that table first.
+        The platform matrix that Metalama.Framework is tested with. Any other package, or the project itself, can
+        declare its own MetalamaPlatformRequirement item in a .props file. Every metadata entry is optional, an absent
+        entry means no constraint, and unknown metadata is ignored. See
+        https://doc.metalama.net/conceptual/configuration/msbuild-properties.
 
-        A package that has a stricter requirement than Metalama.Framework declares its own MetalamaPlatformRequirement
-        item in its own build/<PackageId>.props, and in the same file under buildTransitive. A project can also declare
-        one directly. Each requirement is evaluated on its own and reports its own package, so a requirement can only
-        add a diagnostic and can never remove one that another requirement reports.
-
-        The item must be declared in a .props file rather than in a .targets file. NuGet imports the build props of
-        every package before any targets file, so the check sees every contribution whatever the order in which NuGet
-        imports the packages, and whether the contributing package is referenced directly or transitively.
-
-        Every metadata entry is optional, and an absent entry means that the package places no constraint on that
-        dimension. Metadata that the reader does not know is ignored. Those two rules are what allow an older
-        Metalama.Framework with a newer contributing package, and the reverse, to work without special handling.
-
-        The four entries whose name ends with Description are complete sentences that the diagnostic quotes verbatim. A
-        requirement that omits one produces a diagnostic without that sentence, which still names the observed value and
-        the violated constraint.
-
-        There is no maximum Visual Studio version. The Current Channel of Visual Studio 2022 updates its own feature
-        band, and the Visual Studio 2026 floor is the latest Stable patch, so a maximum would report a diagnostic to
-        every user who installs a routine update. A new major version of Visual Studio brings a new .NET SDK, which
-        MaximumSdkVersion already covers.
+        Maintainers: keep these values in sync with the "Current floors" table of Directory.Packages.md.
     -->
     <ItemGroup>
         <MetalamaPlatformRequirement Include="Metalama.Framework">

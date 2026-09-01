@@ -9,12 +9,13 @@
         <NoWarn>$(NoWarn);IDE0032;IDE0031</NoWarn>
 
 
-        <!-- LAMA0600 reports a target framework outside the matrix that Metalama is tested with, which the "Current
-             floors" table of Directory.Packages.md defines. The projects of this repository still target net8.0, which
-             https://github.com/metalama/Metalama/issues/1876 removes from that matrix, so every one of them would
-             report the warning. Remove this property when #1876 has raised the target frameworks of this repository.
-             The scenarios of the SupportedPlatform family under Metalama.Framework/src/tests/Standalone set the
-             property back to 'True', because the check is what they test. -->
+        <!-- LAMA0600 reports a target framework outside the matrix declared by the MetalamaPlatformRequirement items
+             of Metalama.Framework.Package/build/Metalama.Framework.props. That matrix starts at net10.0, and the
+             projects of this repository still target net8.0 until
+             https://github.com/metalama/Metalama/issues/1876 raises them, so every one of them would report the
+             warning. Remove this property when #1876 is done. The SupportedPlatform scenarios under
+             Metalama.Framework/src/tests/Standalone set the property back to 'True', because the check is what they
+             test. -->
         <MetalamaCheckSupportedPlatform>False</MetalamaCheckSupportedPlatform>
 
         <!-- Metalama.Extensions and Metalama.Patterns must be compatible with VS 2022,
