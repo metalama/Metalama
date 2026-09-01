@@ -28,80 +28,115 @@ namespace Metalama.Framework.Tests.UnitTests.CompileTime;
 /// </remarks>
 public sealed class CompileTimeProjectTypeLoadTests : UnitTestClass
 {
-    private const string _missingAssemblyName = "Metalama.Tests.MissingReference";
-    private const string _compileTimeAssemblyName = "Metalama.Tests.PartiallyLoadable";
-
+    /// <summary>
+    /// The code of the assembly that is deleted before the compile-time assembly is loaded.
+    /// </summary>
     private const string _missingAssemblyCode = "public class MissingBase { }";
 
-    private const string _compileTimeAssemblyCode = """
-                                                    using Metalama.Framework.Diagnostics;
+    /// <summary>
+    /// The code of a compile-time assembly of which one type can be loaded and the other one cannot.
+    /// </summary>
+    private const string _partiallyLoadableCode = """
+                                                  using Metalama.Framework.Diagnostics;
 
-                                                    // This type cannot be loaded once the assembly of its base type has been deleted.
-                                                    public class DerivedFromMissingBase : MissingBase { }
+                                                  // This type cannot be loaded once the assembly of its base type has been deleted.
+                                                  public class DerivedFromMissingBase : MissingBase { }
 
-                                                    // This type has no unresolvable reference, so the loader returns it in ReflectionTypeLoadException.Types.
-                                                    public static class Definitions
-                                                    {
-                                                        public static readonly DiagnosticDefinition<string> Warning = new( "MY001", Severity.Warning, "Warning: {0}." );
+                                                  // This type has no unresolvable reference, so the loader returns it in ReflectionTypeLoadException.Types.
+                                                  public static class Definitions
+                                                  {
+                                                      public static readonly DiagnosticDefinition<string> Warning = new( "MY001", Severity.Warning, "Warning: {0}." );
 
-                                                        public static readonly SuppressionDefinition Suppression = new( "CS0169" );
-                                                    }
-                                                    """;
+                                                      public static readonly SuppressionDefinition Suppression = new( "CS0169" );
+                                                  }
+                                                  """;
+
+    /// <summary>
+    /// The code of a compile-time assembly of which no type can be loaded.
+    /// </summary>
+    private const string _notLoadableCode = "public class DerivedFromMissingBase : MissingBase { }";
 
     /// <summary>
     /// Verifies that a <see cref="CompileTimeProject"/> is created when a type of the compile-time assembly cannot be
-    /// loaded, and that its diagnostic manifest contains the definitions declared by the types that did load.
+    /// loaded, and that its diagnostic manifest contains the definitions declared by the type that did load.
     /// </summary>
     [Fact]
-    public void ProjectIsCreatedWhenATypeCannotBeLoaded()
+    public void ProjectIsCreatedWhenSomeTypesCannotBeLoaded()
     {
         using var testContext = this.CreateTestContext();
         using var domain = testContext.Domain;
 
-        var directory = Path.Combine( Path.GetTempPath(), "Metalama.Tests", Guid.NewGuid().ToString() );
-        Directory.CreateDirectory( directory );
+        var project = CreateProjectWithUnloadableTypes( testContext, domain, "Metalama.Tests.PartiallyLoadable", _partiallyLoadableCode );
 
-        try
-        {
-            var missingAssemblyPath = EmitAssembly( testContext, directory, _missingAssemblyName, _missingAssemblyCode );
-
-            var compileTimeAssemblyPath = EmitAssembly(
-                testContext,
-                directory,
-                _compileTimeAssemblyName,
-                _compileTimeAssemblyCode,
-                MetadataReference.CreateFromFile( missingAssemblyPath ) );
-
-            // The base type of one of the two types is now unresolvable.
-            File.Delete( missingAssemblyPath );
-
-            // The assembly must really fail to enumerate its types, otherwise the test does not cover the intended path.
-            var assembly = domain.LoadAssembly( compileTimeAssemblyPath );
-            var typeLoadException = Assert.Throws<ReflectionTypeLoadException>( () => assembly.GetTypes() );
-            Assert.Contains( typeLoadException.Types, type => type == null );
-
-            var project = CompileTimeProject.Create(
-                testContext.ServiceProvider,
-                domain,
-                new AssemblyIdentity( _compileTimeAssemblyName ),
-                new AssemblyIdentity( _compileTimeAssemblyName ),
-                Array.Empty<CompileTimeProject>(),
-                CreateManifest(),
-                compileTimeAssemblyPath,
-                directory,
-                null,
-                null );
-
-            // The definitions of the type that did load must be in the manifest.
-            Assert.Contains( "MY001", project.ClosureDiagnosticManifest.DiagnosticDefinitions.Keys );
-            Assert.Contains( "CS0169", project.ClosureDiagnosticManifest.SuppressionDefinitions.Keys );
-        }
-        finally
-        {
-            TryDeleteDirectory( directory );
-        }
+        Assert.Contains( "MY001", project.ClosureDiagnosticManifest.DiagnosticDefinitions.Keys );
+        Assert.Contains( "CS0169", project.ClosureDiagnosticManifest.SuppressionDefinitions.Keys );
     }
 
+    /// <summary>
+    /// Verifies that a <see cref="CompileTimeProject"/> is created when no type of the compile-time assembly can be
+    /// loaded, in which case its diagnostic manifest is empty.
+    /// </summary>
+    [Fact]
+    public void ProjectIsCreatedWhenNoTypeCanBeLoaded()
+    {
+        using var testContext = this.CreateTestContext();
+        using var domain = testContext.Domain;
+
+        var project = CreateProjectWithUnloadableTypes( testContext, domain, "Metalama.Tests.NotLoadable", _notLoadableCode );
+
+        Assert.True( project.ClosureDiagnosticManifest.IsEmpty );
+    }
+
+    /// <summary>
+    /// Emits an assembly that declares the base type, then a compile-time assembly that references it, deletes the first
+    /// one so that the types of the second one cannot all be loaded, and creates a <see cref="CompileTimeProject"/> for
+    /// the second one.
+    /// </summary>
+    private static CompileTimeProject CreateProjectWithUnloadableTypes(
+        TestContext testContext,
+        CompileTimeDomain domain,
+        string compileTimeAssemblyName,
+        string compileTimeAssemblyCode )
+    {
+        // The base directory of the test context is deleted when the context is disposed, and the deletion waits for
+        // the compile-time domain to be unloaded, so the assemblies emitted here need no explicit cleanup.
+        var directory = Path.Combine( testContext.BaseDirectory, compileTimeAssemblyName );
+        Directory.CreateDirectory( directory );
+
+        var missingAssemblyPath = EmitAssembly( testContext, directory, compileTimeAssemblyName + ".MissingReference", _missingAssemblyCode );
+
+        var compileTimeAssemblyPath = EmitAssembly(
+            testContext,
+            directory,
+            compileTimeAssemblyName,
+            compileTimeAssemblyCode,
+            MetadataReference.CreateFromFile( missingAssemblyPath ) );
+
+        // The base type of one of the types of the compile-time assembly is now unresolvable.
+        File.Delete( missingAssemblyPath );
+
+        // The assembly must really fail to enumerate its types, otherwise the test does not cover the intended path.
+        var assembly = domain.LoadAssembly( compileTimeAssemblyPath );
+        var typeLoadException = Assert.Throws<ReflectionTypeLoadException>( () => assembly.GetTypes() );
+        Assert.Contains( typeLoadException.Types, type => type == null );
+
+        return CompileTimeProject.Create(
+            testContext.ServiceProvider,
+            domain,
+            new AssemblyIdentity( compileTimeAssemblyName ),
+            new AssemblyIdentity( compileTimeAssemblyName ),
+            Array.Empty<CompileTimeProject>(),
+            CreateManifest(),
+            compileTimeAssemblyPath,
+            directory,
+            null,
+            null );
+    }
+
+    /// <summary>
+    /// Creates a manifest that declares no compile-time code file, because the assembly of these tests is emitted by the
+    /// test itself instead of being built by the compile-time compilation builder.
+    /// </summary>
     private static CompileTimeProjectManifest CreateManifest()
         => new(
             "test",
@@ -121,6 +156,9 @@ public sealed class CompileTimeProjectTypeLoadTests : UnitTestClass
             0,
             LanguageVersion.Latest );
 
+    /// <summary>
+    /// Compiles <paramref name="code"/> into an assembly written to <paramref name="directory"/> and returns its path.
+    /// </summary>
     private static string EmitAssembly(
         TestContext testContext,
         string directory,
@@ -147,21 +185,5 @@ public sealed class CompileTimeProjectTypeLoadTests : UnitTestClass
         }
 
         return path;
-    }
-
-    private static void TryDeleteDirectory( string path )
-    {
-        try
-        {
-            Directory.Delete( path, true );
-        }
-        catch ( IOException )
-        {
-            // The assembly is loaded in the compile-time domain, so the file may still be locked.
-        }
-        catch ( UnauthorizedAccessException )
-        {
-            // The assembly is loaded in the compile-time domain, so the file may still be locked.
-        }
     }
 }
