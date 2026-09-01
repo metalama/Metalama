@@ -1,7 +1,7 @@
 {
     "BuildOnly": true,
     "ExpectedDiagnosticsRegexes": [
-        "warning LAMA0600.*'net8\.0'",
+        "warning LAMA0600.*'net8[.]0'",
         "warning LAMA0600.*MetalamaCheckSupportedPlatform"
     ],
     "ForbiddenDiagnosticsRegexes": [ "warning LAMA0601", "warning LAMA0602" ]

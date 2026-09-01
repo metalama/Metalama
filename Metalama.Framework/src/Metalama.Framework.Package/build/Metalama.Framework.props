@@ -7,7 +7,58 @@
 
     <PropertyGroup>
         <MetalamaEnabled Condition="'$(MetalamaEnabled)'==''">True</MetalamaEnabled>
+
+        <!-- Enables the diagnostics that report a target framework, a .NET SDK or a Visual Studio version outside the
+             configuration matrix that Metalama is tested with. Set it to 'False' to turn all of them off. -->
+        <MetalamaCheckSupportedPlatform Condition="'$(MetalamaCheckSupportedPlatform)'==''">True</MetalamaCheckSupportedPlatform>
     </PropertyGroup>
+
+    <!--
+        The configuration matrix that Metalama.Framework is tested with. It is read by the
+        MetalamaCheckSupportedTargetFramework and MetalamaCheckSupportedToolchain targets of Metalama.Framework.targets.
+        The values come from the "Current floors" table of Directory.Packages.md, which is the documented source of the
+        matrix. Change that table first.
+
+        A package that has a stricter requirement than Metalama.Framework declares its own MetalamaPlatformRequirement
+        item in its own build/<PackageId>.props, and in the same file under buildTransitive. A project can also declare
+        one directly. Each requirement is evaluated on its own and reports its own package, so a requirement can only
+        add a diagnostic and can never remove one that another requirement reports.
+
+        The item must be declared in a .props file rather than in a .targets file. NuGet imports the build props of
+        every package before any targets file, so the check sees every contribution whatever the order in which NuGet
+        imports the packages, and whether the contributing package is referenced directly or transitively.
+
+        Every metadata entry is optional, and an absent entry means that the package places no constraint on that
+        dimension. Metadata that the reader does not know is ignored. Those two rules are what allow an older
+        Metalama.Framework with a newer contributing package, and the reverse, to work without special handling.
+
+        The four entries whose name ends with Description are complete sentences that the diagnostic quotes verbatim. A
+        requirement that omits one produces a diagnostic without that sentence, which still names the observed value and
+        the violated constraint.
+
+        There is no maximum Visual Studio version. The Current Channel of Visual Studio 2022 updates its own feature
+        band, and the Visual Studio 2026 floor is the latest Stable patch, so a maximum would report a diagnostic to
+        every user who installs a routine update. A new major version of Visual Studio brings a new .NET SDK, which
+        MaximumSdkVersion already covers.
+    -->
+    <ItemGroup>
+        <MetalamaPlatformRequirement Include="Metalama.Framework">
+            <TargetFrameworkIdentifiers>.NETFramework;.NETCoreApp;.NETStandard</TargetFrameworkIdentifiers>
+            <MinimumNETFrameworkVersion>4.7.2</MinimumNETFrameworkVersion>
+            <MinimumNETStandardVersion>2.0</MinimumNETStandardVersion>
+            <MaximumNETStandardVersion>2.1</MaximumNETStandardVersion>
+            <MinimumNETCoreAppVersion>10.0</MinimumNETCoreAppVersion>
+            <MaximumNETCoreAppVersion>11.0</MaximumNETCoreAppVersion>
+            <MinimumSdkVersion>10.0</MinimumSdkVersion>
+            <MaximumSdkVersion>11.0</MaximumSdkVersion>
+            <MinimumVisualStudioVersion>17.14</MinimumVisualStudioVersion>
+            <SupportedTargetFrameworksDescription>The tested target frameworks are .NET Framework 4.7.2 and later, .NET Standard 2.0 and 2.1, .NET 10 and .NET 11.</SupportedTargetFrameworksDescription>
+            <SupportedSdkVersionsDescription>The tested .NET SDK versions are 10.0 and 11.0.</SupportedSdkVersionsDescription>
+            <SdkUpgradeDescription>The .NET 10 SDK can be installed beside Visual Studio 2022 version 17.14, which is the minimum Visual Studio version for the .NET 10 SDK, so the existing Visual Studio installation does not have to be replaced. A 'global.json' file may also pin an older SDK after a newer one has been installed.</SdkUpgradeDescription>
+            <SupportedVisualStudioVersionsDescription>The tested versions are Visual Studio 2022 version 17.14 and later, and Visual Studio 2026.</SupportedVisualStudioVersionsDescription>
+            <HelpLink>https://doc.metalama.net/conceptual/configuration/msbuild-properties</HelpLink>
+        </MetalamaPlatformRequirement>
+    </ItemGroup>
 
     <Import Project="Metalama.CompilerVisibleProperties.props"
             Condition="'$(MetalamaCompilerVisiblePropertiesTargetsImported)'==''"/>

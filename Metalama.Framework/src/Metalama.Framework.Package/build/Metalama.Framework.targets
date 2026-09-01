@@ -270,4 +270,167 @@
       Text="Metalama does not support the legacy Razor build that runs when the 'UseRazorSourceGenerator' property is set to 'false'. The 'RazorCompileComponentDeclaration' compilation pass does not provide Metalama with its configuration, so aspects cannot be applied reliably. Remove the 'UseRazorSourceGenerator' property (or set it to 'true') to use the Razor source generator, which is the default and is fully supported by Metalama." />
   </Target>
 
+  <!--
+       Report a configuration that is outside the matrix that Metalama is tested with, so that the user learns about an
+       untested configuration from a message at build time rather than from an obscure failure later. The .NET SDK
+       behaves in the same way with NETSDK1138 for an out-of-support target framework and CheckEolTargetFramework to
+       turn the message off. See https://github.com/metalama/Metalama/issues/1884.
+
+       The matrix itself is not written here. It is the set of MetalamaPlatformRequirement items, which
+       Metalama.Framework.props seeds for Metalama.Framework and which any other package, or the project itself, can
+       extend. The contract of that item is documented in that file.
+
+       Three warning codes are used, one per dimension, so that NoWarn can silence one dimension and leave the others in
+       place: LAMA0600 for the target framework, LAMA0601 for the .NET SDK, and LAMA0602 for the Visual Studio version.
+       Every requirement of one dimension shares the code of that dimension, which is the reason
+       MetalamaSupportedPlatformExclusion exists as well: it names a single requirement, which a code cannot.
+
+       NoWarn reaches these diagnostics through MSBuildWarningsAsMessages, which Microsoft.Common.targets defaults to the
+       value of NoWarn. The code has to be given in its full prefixed form, 'LAMA0600' rather than '600'.
+
+       The two targets are hooked before _CheckForInvalidConfigurationAndPlatform rather than before CoreCompile so that
+       the diagnostics also appear in a design-time build, and therefore in the error list of the development
+       environment, as NETSDK1138 does.
+  -->
+  <Target Name="_MetalamaComputePlatformRequirements">
+
+    <ItemGroup>
+      <!-- MetalamaSupportedPlatformExclusion names the requirements to skip. Exclude matches on the identity of the
+           item, which is the name of the package that the requirement speaks for. -->
+      <_MetalamaPlatformRequirement Include="@(MetalamaPlatformRequirement)" Exclude="@(MetalamaSupportedPlatformExclusion)"/>
+    </ItemGroup>
+
+  </Target>
+
+  <!--
+       The target framework dimension. The comparison uses $(TargetFrameworkIdentifier) and $(TargetFrameworkVersion)
+       rather than a string comparison on $(TargetFramework), for two reasons. A string comparison does not recognize a
+       platform-specific target framework such as 'net10.0-windows', which is supported to exactly the same extent as
+       'net10.0'. A string comparison also reports that 'v9.0' is greater than 'v10.0', whereas
+       [MSBuild]::VersionGreaterThan compares the two as versions.
+
+       This target runs in the inner build, once per target framework, which is the correct behaviour: each inner build
+       has its own target framework and deserves its own diagnostic.
+  -->
+  <Target Name="MetalamaCheckSupportedTargetFramework"
+          BeforeTargets="_CheckForInvalidConfigurationAndPlatform"
+          DependsOnTargets="_MetalamaComputePlatformRequirements"
+          Condition="'$(MetalamaEnabled)'!='False' AND '$(MetalamaCheckSupportedPlatform)'!='False' AND '$(TargetFrameworkIdentifier)'!=''">
+
+    <PropertyGroup>
+      <!-- $(TargetFrameworkVersion) is written 'v10.0', and the comparison functions need '10.0'. -->
+      <_MetalamaTargetFrameworkVersion>$(TargetFrameworkVersion.TrimStart('vV'))</_MetalamaTargetFrameworkVersion>
+
+      <_MetalamaSuppressionHint0600>The build continues, but the result is not covered by the test matrix of Metalama. To suppress this warning, set the 'MetalamaCheckSupportedPlatform' property to 'False', or add 'LAMA0600' to the 'NoWarn' property.</_MetalamaSuppressionHint0600>
+    </PropertyGroup>
+
+    <!-- A target framework identifier outside the declared list, for example MonoAndroid, Xamarin.iOS, UAP or
+         .NETPortable. The separators added on both sides make the search match a whole identifier rather than a prefix
+         of one. -->
+    <Warning Code="LAMA0600"
+             HelpLink="%(_MetalamaPlatformRequirement.HelpLink)"
+             Condition="'%(_MetalamaPlatformRequirement.TargetFrameworkIdentifiers)'!='' AND !$([System.String]::Copy(';%(_MetalamaPlatformRequirement.TargetFrameworkIdentifiers);').Contains(';$(TargetFrameworkIdentifier);'))"
+             Text="'%(_MetalamaPlatformRequirement.Identity)' is not tested with the target framework '$(TargetFramework)'. %(_MetalamaPlatformRequirement.SupportedTargetFrameworksDescription) $(_MetalamaSuppressionHint0600)"/>
+
+    <Warning Code="LAMA0600"
+             HelpLink="%(_MetalamaPlatformRequirement.HelpLink)"
+             Condition="'$(TargetFrameworkIdentifier)'=='.NETFramework' AND '%(_MetalamaPlatformRequirement.MinimumNETFrameworkVersion)'!='' AND $([MSBuild]::VersionLessThan($(_MetalamaTargetFrameworkVersion), %(_MetalamaPlatformRequirement.MinimumNETFrameworkVersion)))"
+             Text="'%(_MetalamaPlatformRequirement.Identity)' is not tested with the target framework '$(TargetFramework)', which is older than .NET Framework %(_MetalamaPlatformRequirement.MinimumNETFrameworkVersion). %(_MetalamaPlatformRequirement.SupportedTargetFrameworksDescription) $(_MetalamaSuppressionHint0600)"/>
+
+    <Warning Code="LAMA0600"
+             HelpLink="%(_MetalamaPlatformRequirement.HelpLink)"
+             Condition="'$(TargetFrameworkIdentifier)'=='.NETFramework' AND '%(_MetalamaPlatformRequirement.MaximumNETFrameworkVersion)'!='' AND $([MSBuild]::VersionGreaterThan($(_MetalamaTargetFrameworkVersion), %(_MetalamaPlatformRequirement.MaximumNETFrameworkVersion)))"
+             Text="'%(_MetalamaPlatformRequirement.Identity)' is not tested with the target framework '$(TargetFramework)', which is newer than .NET Framework %(_MetalamaPlatformRequirement.MaximumNETFrameworkVersion). Check whether a newer version of '%(_MetalamaPlatformRequirement.Identity)' is available. %(_MetalamaPlatformRequirement.SupportedTargetFrameworksDescription) $(_MetalamaSuppressionHint0600)"/>
+
+    <Warning Code="LAMA0600"
+             HelpLink="%(_MetalamaPlatformRequirement.HelpLink)"
+             Condition="'$(TargetFrameworkIdentifier)'=='.NETCoreApp' AND '%(_MetalamaPlatformRequirement.MinimumNETCoreAppVersion)'!='' AND $([MSBuild]::VersionLessThan($(_MetalamaTargetFrameworkVersion), %(_MetalamaPlatformRequirement.MinimumNETCoreAppVersion)))"
+             Text="'%(_MetalamaPlatformRequirement.Identity)' is not tested with the target framework '$(TargetFramework)', which is older than .NET %(_MetalamaPlatformRequirement.MinimumNETCoreAppVersion). %(_MetalamaPlatformRequirement.SupportedTargetFrameworksDescription) $(_MetalamaSuppressionHint0600)"/>
+
+    <Warning Code="LAMA0600"
+             HelpLink="%(_MetalamaPlatformRequirement.HelpLink)"
+             Condition="'$(TargetFrameworkIdentifier)'=='.NETCoreApp' AND '%(_MetalamaPlatformRequirement.MaximumNETCoreAppVersion)'!='' AND $([MSBuild]::VersionGreaterThan($(_MetalamaTargetFrameworkVersion), %(_MetalamaPlatformRequirement.MaximumNETCoreAppVersion)))"
+             Text="'%(_MetalamaPlatformRequirement.Identity)' is not tested with the target framework '$(TargetFramework)', which is newer than .NET %(_MetalamaPlatformRequirement.MaximumNETCoreAppVersion). Check whether a newer version of '%(_MetalamaPlatformRequirement.Identity)' is available. %(_MetalamaPlatformRequirement.SupportedTargetFrameworksDescription) $(_MetalamaSuppressionHint0600)"/>
+
+    <Warning Code="LAMA0600"
+             HelpLink="%(_MetalamaPlatformRequirement.HelpLink)"
+             Condition="'$(TargetFrameworkIdentifier)'=='.NETStandard' AND '%(_MetalamaPlatformRequirement.MinimumNETStandardVersion)'!='' AND $([MSBuild]::VersionLessThan($(_MetalamaTargetFrameworkVersion), %(_MetalamaPlatformRequirement.MinimumNETStandardVersion)))"
+             Text="'%(_MetalamaPlatformRequirement.Identity)' is not tested with the target framework '$(TargetFramework)', which is older than .NET Standard %(_MetalamaPlatformRequirement.MinimumNETStandardVersion). %(_MetalamaPlatformRequirement.SupportedTargetFrameworksDescription) $(_MetalamaSuppressionHint0600)"/>
+
+    <Warning Code="LAMA0600"
+             HelpLink="%(_MetalamaPlatformRequirement.HelpLink)"
+             Condition="'$(TargetFrameworkIdentifier)'=='.NETStandard' AND '%(_MetalamaPlatformRequirement.MaximumNETStandardVersion)'!='' AND $([MSBuild]::VersionGreaterThan($(_MetalamaTargetFrameworkVersion), %(_MetalamaPlatformRequirement.MaximumNETStandardVersion)))"
+             Text="'%(_MetalamaPlatformRequirement.Identity)' is not tested with the target framework '$(TargetFramework)', which is newer than .NET Standard %(_MetalamaPlatformRequirement.MaximumNETStandardVersion). Check whether a newer version of '%(_MetalamaPlatformRequirement.Identity)' is available. %(_MetalamaPlatformRequirement.SupportedTargetFrameworksDescription) $(_MetalamaSuppressionHint0600)"/>
+
+    <!-- A package such as Metalama.Patterns.Wpf ships no asset that is independent of the platform. The comparison is
+         case-insensitive, as every string comparison in an MSBuild condition is, so 'windows' matches the 'Windows'
+         that the .NET SDK writes into $(TargetPlatformIdentifier). -->
+    <Warning Code="LAMA0600"
+             HelpLink="%(_MetalamaPlatformRequirement.HelpLink)"
+             Condition="'%(_MetalamaPlatformRequirement.RequiredTargetPlatformIdentifier)'!='' AND '$(TargetPlatformIdentifier)'!='%(_MetalamaPlatformRequirement.RequiredTargetPlatformIdentifier)'"
+             Text="'%(_MetalamaPlatformRequirement.Identity)' requires a target framework of the '%(_MetalamaPlatformRequirement.RequiredTargetPlatformIdentifier)' platform, but this project targets '$(TargetFramework)'. %(_MetalamaPlatformRequirement.SupportedTargetFrameworksDescription) $(_MetalamaSuppressionHint0600)"/>
+
+  </Target>
+
+  <!--
+       The first target framework of a cross-targeting project. The .NET SDK and Visual Studio rules below report one
+       diagnostic for that inner build alone, so that one .NET SDK and one Visual Studio produce one diagnostic each
+       rather than one per target framework. Which inner build reports is arbitrary, and the first one is the
+       predictable choice.
+
+       The outer build cannot report it instead. NuGet imports the build folder of a package into the inner builds
+       only, and imports a buildMultiTargeting folder into the outer build, which this package does not have and which
+       would not apply to a transitive package reference in any case.
+  -->
+  <PropertyGroup>
+    <_MetalamaFirstTargetFramework Condition="'$(TargetFrameworks)'!=''">$(TargetFrameworks.Split(';')[0].Trim())</_MetalamaFirstTargetFramework>
+  </PropertyGroup>
+
+  <!--
+       The .NET SDK and Visual Studio dimensions. Both describe the toolchain rather than the project, so the condition
+       lets this target run for a project that has a single target framework, and for the first inner build of a
+       cross-targeting project.
+
+       $(NETCoreSdkVersion) is empty in an old-style .NET Framework project built by msbuild.exe, where
+       Microsoft.NETCoreSdk.BundledVersions.props is not imported. That configuration is covered by the Visual Studio
+       rule below, so the .NET SDK rules report nothing.
+
+       $(MSBuildVersion), and not $(VisualStudioVersion), carries the Visual Studio feature band.
+       $(VisualStudioVersion) is '17.0' or '18.0' and therefore cannot distinguish Visual Studio 2022 version 17.12,
+       which left Microsoft support on 14 July 2026, from version 17.14, which is the floor. The rule applies only when
+       $(MSBuildRuntimeType) is 'Full', which is msbuild.exe, whether it is run by devenv.exe, by the design-time build,
+       by the Build Tools, or by the VSBuild task of Azure Pipelines. When it is 'Core', MSBuild comes from the .NET SDK
+       and says nothing about Visual Studio, and the .NET SDK rules cover the configuration instead.
+  -->
+  <Target Name="MetalamaCheckSupportedToolchain"
+          BeforeTargets="_CheckForInvalidConfigurationAndPlatform"
+          DependsOnTargets="_MetalamaComputePlatformRequirements"
+          Condition="'$(MetalamaEnabled)'!='False' AND '$(MetalamaCheckSupportedPlatform)'!='False' AND ('$(_MetalamaFirstTargetFramework)'=='' OR '$(TargetFramework)'=='$(_MetalamaFirstTargetFramework)')">
+
+    <PropertyGroup>
+      <!-- The version of a preview SDK carries a prerelease suffix, for example '11.0.100-preview.1.26073.1', which has
+           to be removed before the version is compared. -->
+      <_MetalamaSdkVersion Condition="'$(NETCoreSdkVersion)'!=''">$(NETCoreSdkVersion.Split('-')[0])</_MetalamaSdkVersion>
+
+      <_MetalamaSuppressionHint0601>The build continues, but the result is not covered by the test matrix of Metalama. To suppress this warning, set the 'MetalamaCheckSupportedPlatform' property to 'False', or add 'LAMA0601' to the 'NoWarn' property.</_MetalamaSuppressionHint0601>
+      <_MetalamaSuppressionHint0602>The build continues, but the result is not covered by the test matrix of Metalama. To suppress this warning, set the 'MetalamaCheckSupportedPlatform' property to 'False', or add 'LAMA0602' to the 'NoWarn' property.</_MetalamaSuppressionHint0602>
+    </PropertyGroup>
+
+    <Warning Code="LAMA0601"
+             HelpLink="%(_MetalamaPlatformRequirement.HelpLink)"
+             Condition="'$(_MetalamaSdkVersion)'!='' AND '%(_MetalamaPlatformRequirement.MinimumSdkVersion)'!='' AND $([MSBuild]::VersionLessThan($(_MetalamaSdkVersion), %(_MetalamaPlatformRequirement.MinimumSdkVersion)))"
+             Text="'%(_MetalamaPlatformRequirement.Identity)' is not tested with the .NET SDK $(NETCoreSdkVersion), which is older than %(_MetalamaPlatformRequirement.MinimumSdkVersion). %(_MetalamaPlatformRequirement.SupportedSdkVersionsDescription) %(_MetalamaPlatformRequirement.SdkUpgradeDescription) $(_MetalamaSuppressionHint0601)"/>
+
+    <Warning Code="LAMA0601"
+             HelpLink="%(_MetalamaPlatformRequirement.HelpLink)"
+             Condition="'$(_MetalamaSdkVersion)'!='' AND '%(_MetalamaPlatformRequirement.MaximumSdkVersion)'!='' AND $([MSBuild]::VersionGreaterThan($(_MetalamaSdkVersion), %(_MetalamaPlatformRequirement.MaximumSdkVersion)))"
+             Text="'%(_MetalamaPlatformRequirement.Identity)' is not tested with the .NET SDK $(NETCoreSdkVersion), which is newer than %(_MetalamaPlatformRequirement.MaximumSdkVersion). Check whether a newer version of '%(_MetalamaPlatformRequirement.Identity)' is available. %(_MetalamaPlatformRequirement.SupportedSdkVersionsDescription) $(_MetalamaSuppressionHint0601)"/>
+
+    <Warning Code="LAMA0602"
+             HelpLink="%(_MetalamaPlatformRequirement.HelpLink)"
+             Condition="'$(MSBuildRuntimeType)'=='Full' AND '$(MSBuildVersion)'!='' AND '%(_MetalamaPlatformRequirement.MinimumVisualStudioVersion)'!='' AND $([MSBuild]::VersionLessThan($(MSBuildVersion), %(_MetalamaPlatformRequirement.MinimumVisualStudioVersion)))"
+             Text="'%(_MetalamaPlatformRequirement.Identity)' is not tested with MSBuild $(MSBuildVersion), which is older than %(_MetalamaPlatformRequirement.MinimumVisualStudioVersion) and therefore belongs to a version of Visual Studio older than the oldest tested one. %(_MetalamaPlatformRequirement.SupportedVisualStudioVersionsDescription) $(_MetalamaSuppressionHint0602)"/>
+
+  </Target>
+
 </Project>

@@ -16,6 +16,7 @@ it.
 | `SupportedPlatform.UntestedTargetFramework` | A target framework older than the tested range reports `LAMA0600` and the build succeeds. |
 | `SupportedPlatform.TestedTargetFrameworks` | Every target framework of the tested matrix, including `net10.0-windows`, reports nothing. |
 | `SupportedPlatform.ContributedRequirements` | A requirement contributed by another package is evaluated on its own and names its own package. |
+| `SupportedPlatform.MultiTargeting` | A cross-targeting project reports the target framework diagnostic in each inner build and the .NET SDK diagnostic in the first one. |
 | `SupportedPlatform.CheckDisabled` | `MetalamaCheckSupportedPlatform` set to `False` suppresses every diagnostic. |
 | `SupportedPlatform.NoWarn` | A code in `NoWarn` suppresses one dimension and leaves the others in place. |
 | `SupportedPlatform.MetalamaDisabled` | `MetalamaEnabled` set to `False` suppresses every diagnostic. |

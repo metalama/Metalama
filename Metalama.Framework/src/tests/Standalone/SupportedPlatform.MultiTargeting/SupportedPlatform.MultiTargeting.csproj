@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!-- A cross-targeting project reports the target framework diagnostic once per target framework, because each
+         inner build has its own target framework, and reports the .NET SDK and Visual Studio diagnostics once,
+         because one .NET SDK and one Visual Studio drive the whole build.
+
+         The .NET SDK rule is what this scenario guards. NuGet imports the build folder of a package into the inner
+         builds only, so a target hooked into the outer build of a cross-targeting project never runs, and the rule
+         silently reported nothing until it was moved to the first inner build.
+         See https://github.com/metalama/Metalama/issues/1884. -->
+
+    <PropertyGroup>
+        <TargetFrameworks>net462;net8.0;net9.0</TargetFrameworks>
+        <OutputType>Library</OutputType>
+        <MetalamaCheckSupportedPlatform>True</MetalamaCheckSupportedPlatform>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Metalama.Framework" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <MetalamaPlatformRequirement Include="Test.FutureSdk">
+            <MinimumSdkVersion>99.0</MinimumSdkVersion>
+        </MetalamaPlatformRequirement>
+    </ItemGroup>
+
+</Project>
