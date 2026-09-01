@@ -5,12 +5,13 @@
 		<ThisRoslynVersionNoPreview>5.10.0</ThisRoslynVersionNoPreview>
 		<!-- ThisRoslynVersionProjectSuffix should be empty for the latest version, otherwise it should be a dot followed by ThisRoslynVersion -->
 		<ThisRoslynVersionProjectSuffix></ThisRoslynVersionProjectSuffix>
-		<!-- ROSLYN_5_0_0_OR_GREATER is the only constant the source branches on. See Directory.Packages.md. -->
-		<DefineConstants>$(DefineConstants);ROSLYN_5_0_0_OR_GREATER</DefineConstants>
+		<!-- No variant defines a ROSLYN_* constant. Both variants are Roslyn 5, so the source makes no distinction
+		     between them. See Directory.Packages.md. -->
 		<!-- Microsoft.CodeAnalysis.CSharp.Features 5.10 requires System.Text.Json >= 10.0.8. -->
 		<SystemTextJsonVersion>10.0.11</SystemTextJsonVersion>
-		<!-- Roslyn 5.0 transitively requires System.Memory ≥ 4.6.0; this variant runs outside VS, so the
-		     net472 BR cap doesn't apply. Track the highest patch in the 4.6.x line ($(SystemMemoryLatestVersion)). -->
+		<!-- Roslyn 5.10 transitively requires System.Memory >= 4.6.0. No variant is loaded into devenv.exe any more,
+		     so the net472 binding-redirect ceiling of Visual Studio 2022 does not apply. Track the highest patch in
+		     the 4.6.x line ($(SystemMemoryLatestVersion)). -->
 		<SystemMemoryVersion>$(SystemMemoryLatestVersion)</SystemMemoryVersion>
 	</PropertyGroup>
 </Project>

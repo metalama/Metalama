@@ -4,7 +4,6 @@
 
 #if TEST_OPTIONS
 // @TestScenario(DesignTime)
-// @RequiredConstant(ROSLYN_5_0_0_OR_GREATER)
 #endif
 
 using Metalama.Framework.Aspects;
@@ -14,10 +13,6 @@ namespace Metalama.Framework.Tests.PublicPipeline.Aspects.DesignTimeInvalidCode.
 /// <summary>
 /// Tests that an invalid accessor declaration in a template does not crash the design-time pipeline.
 /// </summary>
-/// <remarks>
-/// This test runs on the latest Roslyn variant only. <c>UnknownAccessorInTemplate_Roslyn4</c> is its counterpart
-/// for the Roslyn 4.12 variant, which reports the same error on a different span.
-/// </remarks>
 internal class Aspect : PropertyAspect
 {
     [Template]

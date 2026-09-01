@@ -184,13 +184,11 @@ public partial class DeclarationFactory
             genericContext.AsGenericContext(),
             static ( in args ) =>
             {
-#if ROSLYN_5_0_0_OR_GREATER
                 if ( args.Symbol.IsExtensionSafe() )
                 {
                     return new ExtensionBlock( args.Symbol, args.Compilation );
                 }
 
-#endif
                 if ( args.Symbol.IsTupleType )
                 {
                     return new TupleType( args.Symbol, args.Compilation, args.GenericContext );
@@ -269,12 +267,9 @@ public partial class DeclarationFactory
 
     public IEvent GetEvent( IEventSymbol eventSymbol, GenericContext? genericContext = null )
     {
-#if ROSLYN_5_0_0_OR_GREATER
 
         // Standardize on the partial definition part for partial events.
         eventSymbol = eventSymbol.PartialDefinitionPart ?? eventSymbol;
-
-#endif
 
         return
             this.GetDeclarationFromSymbol<IEvent, IEventSymbol>(
@@ -661,7 +656,6 @@ public partial class DeclarationFactory
             return type;
         }
 
-#if ROSLYN_5_0_0_OR_GREATER
         if ( typeSymbol.Kind == SymbolKind.NamedType && typeSymbol is INamedTypeSymbol { IsExtension: true } )
         {
             if ( isNullable == true )
@@ -672,7 +666,6 @@ public partial class DeclarationFactory
 
             return type;
         }
-#endif
 
         ITypeSymbol newTypeSymbol;
 

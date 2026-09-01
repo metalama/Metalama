@@ -2,6 +2,6 @@
   <ItemGroup>
     <Compile Include="../Metalama.Framework.Tests.LinkerTests/**/*.cs" Exclude="../Metalama.Framework.Tests.LinkerTests/bin/**/*.cs;../Metalama.Framework.Tests.LinkerTests/obj/**/*.cs" />
   </ItemGroup>
-  <Import Project="../../../../eng/RoslynVersions/Roslyn.4.12.0.props" />
+  <Import Project="../../../../eng/RoslynVersions/Roslyn.5.0.0.props" />
   <Import Project="../Metalama.Framework.Tests.LinkerTests/Metalama.Framework.Tests.LinkerTests.csproj" />
 </Project>

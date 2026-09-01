@@ -84,12 +84,10 @@ internal static class SymbolNormalizer
         IEventSymbol eventSymbol,
         GenericContext genericContext )
     {
-#if ROSLYN_5_0_0_OR_GREATER
         if ( eventSymbol.PartialImplementationPart != null )
         {
             eventSymbol = eventSymbol.PartialImplementationPart;
         }
-#endif
 
         return new CanonicalSymbolInfo( eventSymbol, genericContext );
     }

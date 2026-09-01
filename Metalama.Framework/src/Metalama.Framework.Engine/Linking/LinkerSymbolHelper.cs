@@ -27,12 +27,10 @@ internal static class LinkerSymbolHelper
             symbol = propertyPartialDefinition;
         }
 
-#if ROSLYN_5_0_0_OR_GREATER
         if ( symbol?.Kind == SymbolKind.Event && symbol is IEventSymbol { PartialDefinitionPart: { } eventPartialDefinition } )
         {
             symbol = eventPartialDefinition;
         }
-#endif
 
         return symbol;
     }

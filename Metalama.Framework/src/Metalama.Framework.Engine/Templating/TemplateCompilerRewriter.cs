@@ -307,8 +307,6 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
         }
     }
 
-#if ROSLYN_5_0_0_OR_GREATER
-
     public override SyntaxNode VisitFieldExpression( FieldExpressionSyntax node )
     {
         // Handle the C# 14 'field' keyword in property accessors.
@@ -316,7 +314,6 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
         return InvocationExpression( this._templateMetaSyntaxFactory.TemplateSyntaxFactoryMember( nameof(ITemplateSyntaxFactory.GetPropertyBackingField) ) )
             .WithAdditionalAnnotations( _userExpressionAnnotation );
     }
-#endif
 
     public override SyntaxNode? VisitTupleExpression( TupleExpressionSyntax node )
     {

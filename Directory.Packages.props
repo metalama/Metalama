@@ -17,10 +17,10 @@
     <!-- This is the version used in the programs (not in libraries) and it should be the latest. -->
     <NewtonsoftJsonVersion>13.0.4</NewtonsoftJsonVersion>
 
-     <!-- RoslynApiMinVersion is the minimal version of the Roslyn API we support. The 4.8 build variant
-         was dropped for 2026.1: no in-MS-support design-time analyzer host below Roslyn 4.12 remains,
+     <!-- RoslynApiMinVersion is the minimal version of the Roslyn API we support. The 4.12 build variant was
+         dropped for 2027.0: no design-time analyzer host in the supported platform baseline is below Roslyn 5.0,
          and Metalama.Compiler.exe replaces the SDK's Roslyn at build time. See Directory.Packages.md. -->
-    <RoslynApiMinVersion>4.12.0</RoslynApiMinVersion>
+    <RoslynApiMinVersion>5.0.0</RoslynApiMinVersion>
 
     <!-- RoslynApiMaxVersion is the maximum version of the Roslyn API we support. It matches the Roslyn version
          that Metalama.Compiler builds on. Roslyn 5.10 is a preview and is restored from the roslyn-consolidated
@@ -32,17 +32,14 @@
     <!-- xUnitApiVersion is the version of xUnit against which we build the testing framework -->
     <xUnitApiVersion>2.9.3</xUnitApiVersion>
 
-    <!-- MicrosoftBuildVersion: 17.14.28 matches the lowest Visual Studio we support (17.14); the older 17.10 is
-         retained for net8.0. Note: FileVersion of VS-shipped Microsoft.Build.dll (e.g. 17.14.40)
-         is NOT the NuGet version: the highest published 17.14.x NuGet on nuget.org is 17.14.28. Always
-         verify the NuGet exists before pinning. -->
-    <MicrosoftBuildVersion Condition="'$(TargetFramework)'=='net8.0'">17.10.46</MicrosoftBuildVersion>
-    <!-- The default covers every other target framework, including the ones with a platform suffix such as
-         net10.0-windows. It also covers the evaluation of a project that declares TargetFramework in the singular:
-         this file is imported before the body of the project file, so TargetFramework is not yet defined there and
-         no condition above can match. Without a default the version resolves to the empty string and restore fails
-         with NU1604. -->
-    <MicrosoftBuildVersion Condition="'$(MicrosoftBuildVersion)'==''">17.14.28</MicrosoftBuildVersion>
+    <!-- MicrosoftBuildVersion matches the lowest MSBuild in the supported platform baseline. That is MSBuild 18.0,
+         which is the one of Visual Studio 2026 and of the .NET 10 SDK; Visual Studio 2022 is out of the baseline.
+         The value is unconditional, because every project that references the Microsoft.Build packages targets
+         net10.0, and because this file is imported before the body of the project file, so a condition on
+         TargetFramework cannot match in the outer evaluation of a project that declares TargetFramework in the
+         singular. Note: the FileVersion of the Microsoft.Build.dll shipped by an integrated development environment
+         is not the NuGet version. Always verify that the NuGet package exists before pinning. -->
+    <MicrosoftBuildVersion>18.0.2</MicrosoftBuildVersion>
 
     <!-- These are the latest versions of dependencies, which we use in test projects to avoid vulnerability warnings -->
     <MicrosoftVisualStudioThreadingLatestVersion>17.14.15</MicrosoftVisualStudioThreadingLatestVersion>
@@ -56,10 +53,10 @@
 
     <!-- SystemTextJsonVersion depends on the Roslyn version; here is the fallback. -->
     <SystemTextJsonVersion Condition="'$(SystemTextJsonVersion)'==''">8.0.6</SystemTextJsonVersion>
-    <!-- SystemMemoryVersion is variant-conditional. The Roslyn 4.12 variant runs in the VS analyzer host (devenv.exe),
-         where the binding-redirect ceiling caps System.Memory at AsmVer 4.0.2.0 (NuGet 4.5.5). The latest variant
-         runs only outside VS (CLI / MSBuild) where Microsoft.CodeAnalysis.CSharp 5.x transitively requires
-         System.Memory ≥ 4.6.0. eng\RoslynVersions\Roslyn.5.10.0.props overrides this default. -->
+    <!-- SystemMemoryVersion is the default for the assemblies that ship in the net472 payload, where the
+         binding-redirect ceiling of MSBuild.exe caps System.Memory at AsmVer 4.0.2.0 (NuGet 4.5.5). Both Roslyn
+         variants override it, because Microsoft.CodeAnalysis.CSharp 5.x transitively requires System.Memory 4.6.0
+         or later and neither variant is loaded into a .NET Framework analyzer host. -->
     <SystemMemoryVersion Condition="'$(SystemMemoryVersion)'==''">4.5.5</SystemMemoryVersion>
     <!-- SystemTextJsonMinVersion is the API floor used by user-surfacing libraries (Metalama.Backstage etc.)
          that need to remain on the .NET 8 line while we support .NET 8 SDK as a build target. -->
@@ -112,9 +109,9 @@
          NuGet 6.1.0 stays under the cap; 6.1.2+ may not. -->
     <PackageVersion Include="System.Runtime.CompilerServices.Unsafe" Version="6.1.0" />
     <PackageVersion Include="MessagePack" Version="$(MessagePackLatestVersion)" />
-    <!-- Out-of-band family is capped by VS 17.14 devenv.exe.config binding redirects (System.Memory ≤ 4.0.2.0,
-         System.Buffers ≤ 4.0.4.0, System.Numerics.Vectors ≤ 4.1.5.0) for the Roslyn 4.12 variant
-         (loaded in devenv). The latest variant runs outside VS and uses 4.6.x via $(SystemMemoryVersion). -->
+    <!-- Out-of-band family is capped by the .NET Framework binding redirects of MSBuild.exe for the assemblies
+         that ship in the net472 payload. Both Roslyn variants run on .NET and use 4.6.x through
+         $(SystemMemoryVersion). -->
     <PackageVersion Include="System.Memory" Version="$(SystemMemoryVersion)" />
     <PackageVersion Include="System.Runtime.Serialization.Xml" Version="4.3.0" />
     <PackageVersion Include="System.Text.RegularExpressions" Version="$(SystemTextRegularExpressionsLatestVersion)" />
@@ -142,10 +139,9 @@
     <PackageVersion Include="Microsoft.Build.Framework" Version="$(MicrosoftBuildVersion)" />
     <PackageVersion Include="Microsoft.Build.Tasks.Core" Version="$(MicrosoftBuildVersion)" />
     <!-- Microsoft.NET.StringTools is referenced only so that its runtime asset can be excluded, because the MSBuild
-         assemblies are resolved from the .NET SDK by Microsoft.Build.Locator. The pin is a literal rather than
-         MicrosoftBuildVersion, because Microsoft.Build 17.14.28 requires exactly this version and a lower one fails
-         restore with NU1605. -->
-    <PackageVersion Include="Microsoft.NET.StringTools" Version="17.14.28" />
+         assemblies are resolved from the .NET SDK by Microsoft.Build.Locator. The version must be the one that
+         Microsoft.Build requires exactly, otherwise restore fails with NU1605. -->
+    <PackageVersion Include="Microsoft.NET.StringTools" Version="$(MicrosoftBuildVersion)" />
     <PackageVersion Include="Microsoft.Build.Locator" Version="1.7.8" />
     <PackageVersion Include="Microsoft.VisualStudio.SolutionPersistence" Version="1.0.52" />
     <PackageVersion Include="Microsoft.CSharp" Version="4.7.0" />

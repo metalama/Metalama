@@ -53,9 +53,7 @@ internal sealed class LanguageVersionProvider : ILanguageVersionProvider
 
         var sdkSupportedVersion = version.Major switch
         {
-#if ROSLYN_5_0_0_OR_GREATER
             >= 10 => LanguageVersion.CSharp14,
-#endif
             >= 9 => LanguageVersion.CSharp13,
             >= 8 => LanguageVersion.CSharp12,
             _ => throw new PlatformNotSupportedException( $"Unsupported .NET SDK version: {version}." )

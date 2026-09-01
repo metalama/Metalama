@@ -1,5 +1,4 @@
 {
-  "RequiredConstants": [ "ROSLYN_5_0_0_OR_GREATER" ],
   "WriteInputHtml": true,
   "WriteOutputHtml": true,
   "FormatOutput": true,

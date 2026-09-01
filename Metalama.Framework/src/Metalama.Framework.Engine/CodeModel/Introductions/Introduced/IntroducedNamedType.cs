@@ -171,13 +171,9 @@ internal sealed class IntroducedNamedType : IntroducedMemberOrNamedType, INamedT
 
     private IExtensionBlockCollection GetExtensionBlocksCore()
     {
-#if ROSLYN_5_0_0_OR_GREATER
         var collection = this.Compilation.GetExtensionBlockCollection( this.Ref );
 
         return new ExtensionBlockCollection( this, collection.ToImmutableArray() );
-#else
-        return new ExtensionBlockCollection( this, [] );
-#endif
     }
 
     public INamedType TypeDefinition => this.Definition;

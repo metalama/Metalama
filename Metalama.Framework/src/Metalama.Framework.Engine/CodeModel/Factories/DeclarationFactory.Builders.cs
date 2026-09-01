@@ -185,7 +185,6 @@ public partial class DeclarationFactory
             genericContext,
             static ( in args ) => new IntroducedNamespace( args.Builder, args.Compilation ) );
 
-#if ROSLYN_5_0_0_OR_GREATER
     internal IExtensionBlock GetExtensionBlock(
         ExtensionBlockBuilderData extensionBlockBuilder,
         IGenericContext? genericContext = null )
@@ -196,7 +195,6 @@ public partial class DeclarationFactory
                 args.Builder,
                 args.Compilation,
                 args.GenericContext ) );
-#endif
 
     /// <param name="isNullable">
     /// The nullability of the resulting type, which applies to a named type alone. A reference to an introduced type
@@ -250,9 +248,7 @@ public partial class DeclarationFactory
                 genericContext,
                 isNullable ),
             DeclarationKind.Namespace when builder is NamespaceBuilderData namespaceBuilder => this.GetNamespace( namespaceBuilder, genericContext ),
-#if ROSLYN_5_0_0_OR_GREATER
             DeclarationKind.ExtensionBlock when builder is ExtensionBlockBuilderData extensionBlockBuilder => this.GetExtensionBlock( extensionBlockBuilder, genericContext ),
-#endif
 
             // This is for linker tests (fake builders), which resolve to themselves.
             // ReSharper disable once SuspiciousTypeConversion.Global
