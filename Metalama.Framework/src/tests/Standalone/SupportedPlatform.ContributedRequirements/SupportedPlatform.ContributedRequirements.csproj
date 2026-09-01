@@ -3,7 +3,8 @@
     <!-- A requirement contributed by a package other than Metalama.Framework, or declared by the project itself, is
          evaluated on its own and reports its own package. The three requirements below cover the three rules that the
          requirement of Metalama.Framework does not exercise on this build agent: a target framework newer than the
-         tested range, a required target platform, and a .NET SDK older than the required one.
+         tested range, a required target platform, a .NET SDK older than the required one, and a .NET SDK newer than
+         the tested range.
 
          The target framework of the project is in the tested matrix of Metalama.Framework, so no diagnostic may name
          'Metalama.Framework'. That is what makes this scenario an assertion about independent evaluation rather than
@@ -32,6 +33,11 @@
 
         <MetalamaPlatformRequirement Include="Test.FutureSdk">
             <MinimumSdkVersion>99.0</MinimumSdkVersion>
+            <SdkUpgradeDescription>A 'global.json' file may pin an older SDK after a newer one has been installed.</SdkUpgradeDescription>
+        </MetalamaPlatformRequirement>
+
+        <MetalamaPlatformRequirement Include="Test.LegacySdk">
+            <MaximumSdkVersion>1.0</MaximumSdkVersion>
         </MetalamaPlatformRequirement>
     </ItemGroup>
 
