@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!-- Every target framework in the tested matrix must build without any of the diagnostics of the platform check,
+         including the platform-specific form 'net10.0-windows', which a string comparison on $(TargetFramework) would
+         reject. The build runs through 'dotnet build', so $(MSBuildRuntimeType) is 'Core' and LAMA0602 must not be
+         reported whatever the version of MSBuild.
+
+         'net481', 'net11.0' and 'net11.0-windows' are also in the tested matrix but are not listed here, because the
+         build agents do not have their targeting packs.
+         See https://github.com/metalama/Metalama/issues/1884. -->
+
+    <PropertyGroup>
+        <TargetFrameworks>net472;net48;netstandard2.0;netstandard2.1;net10.0;net10.0-windows</TargetFrameworks>
+        <OutputType>Library</OutputType>
+        <MetalamaCheckSupportedPlatform>True</MetalamaCheckSupportedPlatform>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Metalama.Framework" />
+    </ItemGroup>
+
+</Project>

@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!-- A project whose target framework is older than the oldest one that Metalama is tested with must build
+         successfully and report LAMA0600 once, naming the target framework and the suppression property.
+         See https://github.com/metalama/Metalama/issues/1884. -->
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <OutputType>Library</OutputType>
+
+        <!-- The root Directory.Build.props of this repository turns the check off while the repository itself still
+             targets .NET 8. Every scenario of this family turns it back on explicitly. -->
+        <MetalamaCheckSupportedPlatform>True</MetalamaCheckSupportedPlatform>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Metalama.Framework" />
+    </ItemGroup>
+
+</Project>
