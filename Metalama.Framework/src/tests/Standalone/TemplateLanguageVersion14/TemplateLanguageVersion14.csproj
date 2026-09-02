@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+
+    <!-- The language version of the source is set here so that the scenario asserts the template language version
+         alone. Without it, the only version in play would be the one that the repository sets, and a change to that
+         value would silently change what the scenario tests. See README.md. -->
+    <LangVersion>14.0</LangVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Metalama.Framework" />
+  </ItemGroup>
+
+</Project>
