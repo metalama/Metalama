@@ -3,10 +3,9 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Patterns.Caching.Backends;
-using System.Collections.Concurrent;
 using Metalama.Patterns.Caching.Implementation;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Time.Testing;
+using Metalama.Patterns.Caching.TestHelpers;
+using System.Collections.Concurrent;
 using Xunit;
 
 namespace Metalama.Patterns.Caching.Tests.Backends;
@@ -27,22 +26,12 @@ public sealed partial class LayeredCachingBackendEnhancerTests
     private static readonly DateTimeOffset _timeTestOrigin = new( 2026, 1, 1, 0, 0, 0, TimeSpan.Zero );
 
     /// <summary>
-    /// Creates a service provider that supplies the given <paramref name="timeProvider"/> as the clock.
-    /// </summary>
-    private static ServiceProvider CreateServiceProviderWithClock( TimeProvider timeProvider )
-    {
-        var services = new ServiceCollection();
-        services.AddSingleton( timeProvider );
-
-        return services.BuildServiceProvider();
-    }
-
-    /// <summary>
-    /// Creates a layered backend over the given second layer, without a configuration and without a custom first layer.
+    /// Creates a layered backend over the given second layer. The tombstone path of the enhancer is the one taken
+    /// when the underlying backend is not blocking, so the wrapper reports that it is not.
     /// </summary>
     private static LayeredCachingBackendEnhancer CreateLayeredBackendOver( CachingBackend secondLayer )
     {
-        var wrapper = new ConfigurableFeaturesBackend( secondLayer );
+        var wrapper = new ConfigurableFeaturesBackend( secondLayer, blocking: false );
         var layered = new LayeredCachingBackendEnhancer( wrapper, null, null );
         layered.Initialize();
 
@@ -54,19 +43,19 @@ public sealed partial class LayeredCachingBackendEnhancerTests
     /// the second layer once the transition period has elapsed.
     /// </summary>
     [Fact]
-    public void RemovedItemTombstone_ExpiresAfterTransitionPeriod()
+    public async Task RemovedItemTombstone_ExpiresAfterTransitionPeriod()
     {
-        var timeProvider = new FakeTimeProvider( _timeTestOrigin );
-        using var serviceProvider = CreateServiceProviderWithClock( timeProvider );
+        using var fakes = new FakeCachingServices( _timeTestOrigin );
+        using var cancellationTokenSource = new CancellationTokenSource();
 
-        var secondLayer = new TypePreservingBackend( serviceProvider: serviceProvider );
+        var secondLayer = new TypePreservingBackend( serviceProvider: fakes.ServiceProvider );
         using var layered = CreateLayeredBackendOver( secondLayer );
 
         layered.SetItem( _timeTestKey, new CacheItem( "value" ) );
         var secondLayerItem = secondLayer.GetItem( _timeTestKey );
         Assert.NotNull( secondLayerItem );
 
-        timeProvider.Advance( TimeSpan.FromSeconds( 5 ) );
+        await fakes.AdvanceAsync( TimeSpan.FromSeconds( 5 ), cancellationTokenSource.Token );
         layered.RemoveItem( _timeTestKey );
 
         // Write the value back into the second layer, as another node of the cluster would. The tombstone is newer,
@@ -75,7 +64,7 @@ public sealed partial class LayeredCachingBackendEnhancerTests
         Assert.Null( layered.GetItem( _timeTestKey ) );
 
         // The transition period is one minute.
-        timeProvider.Advance( TimeSpan.FromMinutes( 2 ) );
+        await fakes.AdvanceAsync( TimeSpan.FromMinutes( 2 ), cancellationTokenSource.Token );
 
         var retrieved = layered.GetItem( _timeTestKey );
         Assert.NotNull( retrieved );
@@ -94,15 +83,13 @@ public sealed partial class LayeredCachingBackendEnhancerTests
     [Fact]
     public void GetItem_WhenSecondLayerValueIsNewerThanTombstone_ReturnsSecondLayerValue()
     {
-        var writerTimeProvider = new FakeTimeProvider( _timeTestOrigin + TimeSpan.FromMinutes( 10 ) );
-        var removerTimeProvider = new FakeTimeProvider( _timeTestOrigin );
-        using var writerServiceProvider = CreateServiceProviderWithClock( writerTimeProvider );
-        using var removerServiceProvider = CreateServiceProviderWithClock( removerTimeProvider );
+        using var writerFakes = new FakeCachingServices( _timeTestOrigin + TimeSpan.FromMinutes( 10 ) );
+        using var removerFakes = new FakeCachingServices( _timeTestOrigin );
 
         // The two nodes reach the same store, but each has its own clock.
         var store = new ConcurrentDictionary<string, CacheItem>();
-        var writerSecondLayer = new TypePreservingBackend( serviceProvider: writerServiceProvider, store: store );
-        var removerSecondLayer = new TypePreservingBackend( serviceProvider: removerServiceProvider, store: store );
+        var writerSecondLayer = new TypePreservingBackend( serviceProvider: writerFakes.ServiceProvider, store: store );
+        var removerSecondLayer = new TypePreservingBackend( serviceProvider: removerFakes.ServiceProvider, store: store );
         using var writer = CreateLayeredBackendOver( writerSecondLayer );
         using var remover = CreateLayeredBackendOver( removerSecondLayer );
 
@@ -127,12 +114,12 @@ public sealed partial class LayeredCachingBackendEnhancerTests
     /// timestamp of the value is older than the timestamp of the tombstone.
     /// </summary>
     [Fact]
-    public void GetItem_WhenTombstoneIsNewerThanSecondLayerValue_ReturnsNull()
+    public async Task GetItem_WhenTombstoneIsNewerThanSecondLayerValue_ReturnsNull()
     {
-        var timeProvider = new FakeTimeProvider( _timeTestOrigin );
-        using var serviceProvider = CreateServiceProviderWithClock( timeProvider );
+        using var fakes = new FakeCachingServices( _timeTestOrigin );
+        using var cancellationTokenSource = new CancellationTokenSource();
 
-        var secondLayer = new TypePreservingBackend( serviceProvider: serviceProvider );
+        var secondLayer = new TypePreservingBackend( serviceProvider: fakes.ServiceProvider );
         using var layered = CreateLayeredBackendOver( secondLayer );
 
         layered.SetItem( _timeTestKey, new CacheItem( "second-layer-value" ) );
@@ -140,7 +127,7 @@ public sealed partial class LayeredCachingBackendEnhancerTests
         Assert.NotNull( secondLayerItem );
 
         // Move the clock forward, then remove the item, so that the tombstone is stamped after the value.
-        timeProvider.Advance( TimeSpan.FromSeconds( 5 ) );
+        await fakes.AdvanceAsync( TimeSpan.FromSeconds( 5 ), cancellationTokenSource.Token );
         layered.RemoveItem( _timeTestKey );
 
         // Write the value back into the second layer, as another node of the cluster would.

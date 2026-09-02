@@ -14,8 +14,16 @@ namespace Metalama.Patterns.Caching.Implementation;
 /// </summary>
 internal sealed record MaterializedCacheItem : CacheItem, ICacheItemConfiguration
 {
-    public MaterializedCacheItem( BinaryReader reader, ImmutableArray<string> dependencies, ICachingSerializer serializer )
+    private readonly TimeProvider _timeProvider;
+
+    public MaterializedCacheItem(
+        BinaryReader reader,
+        ImmutableArray<string> dependencies,
+        ICachingSerializer serializer,
+        TimeProvider? timeProvider = null )
     {
+        this._timeProvider = timeProvider ?? TimeProvider.System;
+
         var absoluteExpiration = reader.ReadInt64();
 
         if ( absoluteExpiration != 0 )
@@ -43,18 +51,20 @@ internal sealed record MaterializedCacheItem : CacheItem, ICacheItemConfiguratio
         this.Configuration = this;
     }
 
-    public MaterializedCacheItem( CacheItem cacheItem ) : base( cacheItem.Value, cacheItem.Dependencies, cacheItem.Configuration )
+    public MaterializedCacheItem( CacheItem cacheItem, TimeProvider timeProvider ) : base( cacheItem.Value, cacheItem.Dependencies, cacheItem.Configuration )
     {
+        this._timeProvider = timeProvider;
+
         var absoluteExpiration = cacheItem.Configuration?.AbsoluteExpiration;
 
         if ( absoluteExpiration != null )
         {
-            this.AbsoluteExpiration = DateTime.UtcNow + absoluteExpiration;
+            this.AbsoluteExpiration = timeProvider.GetUtcNow().UtcDateTime + absoluteExpiration;
         }
 
         this.SlidingExpiration = cacheItem.Configuration?.SlidingExpiration;
         this.Priority = cacheItem.Configuration?.Priority;
-        this.Timestamp = LayeredCachingBackendEnhancer.GetTimestamp();
+        this.Timestamp = timeProvider.GetUtcNow().UtcTicks;
     }
 
     /// <summary>
@@ -70,7 +80,7 @@ internal sealed record MaterializedCacheItem : CacheItem, ICacheItemConfiguratio
 
     bool? ICacheItemConfiguration.AutoReload => false;
 
-    TimeSpan? ICacheItemConfiguration.AbsoluteExpiration => this.AbsoluteExpiration?.Subtract( DateTime.UtcNow );
+    TimeSpan? ICacheItemConfiguration.AbsoluteExpiration => this.AbsoluteExpiration?.Subtract( this._timeProvider.GetUtcNow().UtcDateTime );
 
     string? ICacheItemConfiguration.ProfileName => null;
 

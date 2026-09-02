@@ -49,6 +49,8 @@ public abstract class CachingBackend : IDisposable, IAsyncDisposable
     protected CachingBackend( CachingBackendConfiguration? configuration = null, IServiceProvider? serviceProvider = null )
     {
         this.ServiceProvider = serviceProvider ?? NullServiceProvider.Instance;
+        this.TimeProvider = serviceProvider.GetTimeProvider();
+        this.WorkItemDispatcher = serviceProvider.GetWorkItemDispatcher();
         this._exceptionObserver = serviceProvider?.GetService<ICachingExceptionObserver>();
         this.Configuration = configuration ?? new MemoryCachingBackendConfiguration();
         this.LogSource = serviceProvider.GetFlashtraceSource( this.GetType(), FlashtraceRole.Caching );
@@ -56,6 +58,19 @@ public abstract class CachingBackend : IDisposable, IAsyncDisposable
     }
 
     public IServiceProvider ServiceProvider { get; }
+
+    /// <summary>
+    /// Gets the clock of the backend. It is <see cref="System.TimeProvider.System"/> unless the service provider
+    /// supplies another <see cref="System.TimeProvider"/>.
+    /// </summary>
+    protected internal TimeProvider TimeProvider { get; }
+
+    /// <summary>
+    /// Gets the object that dispatches the work items of the backend, in particular the events that the backend
+    /// raises. It is <see cref="ThreadPoolWorkItemDispatcher"/> unless the service provider supplies another
+    /// <see cref="ICachingWorkItemDispatcher"/>.
+    /// </summary>
+    protected internal ICachingWorkItemDispatcher WorkItemDispatcher { get; }
 
     protected CachingBackendConfiguration Configuration { get; }
 
@@ -974,7 +989,7 @@ public abstract class CachingBackend : IDisposable, IAsyncDisposable
         }
     }
 
-    private static void RaiseEvent( WaitCallback action ) => ThreadPool.QueueUserWorkItem( action );
+    private void RaiseEvent( WaitCallback action ) => this.WorkItemDispatcher.Dispatch( action, null );
 
     /// <summary>
     /// Raises the <see cref="ItemRemoved"/> event given a <see cref="CacheItemRemovedEventArgs"/>.
@@ -986,7 +1001,7 @@ public abstract class CachingBackend : IDisposable, IAsyncDisposable
 
         if ( this._itemRemoved != null )
         {
-            RaiseEvent( _ => this._itemRemoved?.Invoke( this, args ) );
+            this.RaiseEvent( _ => this._itemRemoved?.Invoke( this, args ) );
         }
     }
 
@@ -1004,7 +1019,7 @@ public abstract class CachingBackend : IDisposable, IAsyncDisposable
 
         if ( this._itemRemoved != null )
         {
-            RaiseEvent( _ => this._itemRemoved?.Invoke( this, new CacheItemRemovedEventArgs( key, reason, sourceId ) ) );
+            this.RaiseEvent( _ => this._itemRemoved?.Invoke( this, new CacheItemRemovedEventArgs( key, reason, sourceId ) ) );
         }
     }
 
@@ -1021,7 +1036,7 @@ public abstract class CachingBackend : IDisposable, IAsyncDisposable
 
         if ( this._dependencyInvalidated != null )
         {
-            RaiseEvent( _ => this._dependencyInvalidated?.Invoke( this, new CacheDependencyInvalidatedEventArgs( key, sourceId ) ) );
+            this.RaiseEvent( _ => this._dependencyInvalidated?.Invoke( this, new CacheDependencyInvalidatedEventArgs( key, sourceId ) ) );
         }
     }
 
@@ -1036,7 +1051,7 @@ public abstract class CachingBackend : IDisposable, IAsyncDisposable
 
         if ( this._dependencyInvalidated != null )
         {
-            RaiseEvent( _ => this._dependencyInvalidated?.Invoke( this, args ) );
+            this.RaiseEvent( _ => this._dependencyInvalidated?.Invoke( this, args ) );
         }
     }
 

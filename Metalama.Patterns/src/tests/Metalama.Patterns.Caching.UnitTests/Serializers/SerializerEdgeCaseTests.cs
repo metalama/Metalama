@@ -65,7 +65,7 @@ public sealed class SerializerEdgeCaseTests
             SlidingExpiration = TimeSpan.FromMinutes( 30 ), AbsoluteExpiration = TimeSpan.FromHours( 2 ), Priority = CacheItemPriority.High
         };
 
-        var originalItem = new MaterializedCacheItem( new CacheItem( originalValue, ImmutableArray<string>.Empty, config ) );
+        var originalItem = new MaterializedCacheItem( new CacheItem( originalValue, ImmutableArray<string>.Empty, config ), TimeProvider.System );
 
         using var memoryStream = new MemoryStream();
         using var writer = new BinaryWriter( memoryStream );
@@ -264,7 +264,7 @@ public sealed class SerializerEdgeCaseTests
 
         // Create item with no expiration configured
         var config = new CacheItemConfiguration();
-        var originalItem = new MaterializedCacheItem( new CacheItem( originalValue, ImmutableArray<string>.Empty, config ) );
+        var originalItem = new MaterializedCacheItem( new CacheItem( originalValue, ImmutableArray<string>.Empty, config ), TimeProvider.System );
 
         using var memoryStream = new MemoryStream();
         using var writer = new BinaryWriter( memoryStream );
@@ -289,7 +289,7 @@ public sealed class SerializerEdgeCaseTests
         foreach ( CacheItemPriority priority in Enum.GetValues( typeof(CacheItemPriority) ) )
         {
             var config = new CacheItemConfiguration { Priority = priority };
-            var originalItem = new MaterializedCacheItem( new CacheItem( "value", ImmutableArray<string>.Empty, config ) );
+            var originalItem = new MaterializedCacheItem( new CacheItem( "value", ImmutableArray<string>.Empty, config ), TimeProvider.System );
 
             using var memoryStream = new MemoryStream();
             using var writer = new BinaryWriter( memoryStream );
@@ -314,7 +314,7 @@ public sealed class SerializerEdgeCaseTests
         // Zero sliding expiration is serialized as 0 milliseconds, which deserializes as null
         // This is expected behavior - zero sliding expiration is treated as "no sliding expiration"
         var config = new CacheItemConfiguration { SlidingExpiration = TimeSpan.Zero };
-        var originalItem = new MaterializedCacheItem( new CacheItem( "value", ImmutableArray<string>.Empty, config ) );
+        var originalItem = new MaterializedCacheItem( new CacheItem( "value", ImmutableArray<string>.Empty, config ), TimeProvider.System );
 
         using var memoryStream = new MemoryStream();
         using var writer = new BinaryWriter( memoryStream );
@@ -338,7 +338,7 @@ public sealed class SerializerEdgeCaseTests
 
         var longExpiration = TimeSpan.FromDays( 365 );
         var config = new CacheItemConfiguration { SlidingExpiration = longExpiration };
-        var originalItem = new MaterializedCacheItem( new CacheItem( "value", ImmutableArray<string>.Empty, config ) );
+        var originalItem = new MaterializedCacheItem( new CacheItem( "value", ImmutableArray<string>.Empty, config ), TimeProvider.System );
 
         using var memoryStream = new MemoryStream();
         using var writer = new BinaryWriter( memoryStream );

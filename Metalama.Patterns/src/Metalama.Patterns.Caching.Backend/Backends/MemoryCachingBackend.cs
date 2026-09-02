@@ -424,20 +424,31 @@ internal class MemoryCachingBackend : CachingBackend
     /// <inheritdoc />
     protected override void ClearCore( ClearCacheOptions options )
     {
-        if ( this._cache is MemoryCache classicMemoryCache )
+        switch ( this._cache )
         {
-            if ( (options & ClearCacheOptions.Compact) != 0 )
-            {
+            case MemoryCache classicMemoryCache when (options & ClearCacheOptions.Compact) != 0:
                 classicMemoryCache.Compact( 1 );
-            }
-            else
-            {
+
+                break;
+
+            case MemoryCache classicMemoryCache:
                 classicMemoryCache.Clear();
-            }
-        }
-        else
-        {
-            throw new NotSupportedException( "IMemoryCache implementations other than MemoryCache don't support clearing." );
+
+                break;
+
+            case IClearableMemoryCache clearableMemoryCache when (options & ClearCacheOptions.Compact) != 0:
+                clearableMemoryCache.Compact( 1 );
+
+                break;
+
+            case IClearableMemoryCache clearableMemoryCache:
+                clearableMemoryCache.Clear();
+
+                break;
+
+            default:
+                throw new NotSupportedException(
+                    "IMemoryCache implementations other than MemoryCache and IClearableMemoryCache don't support clearing." );
         }
     }
 
@@ -453,7 +464,7 @@ internal class MemoryCachingBackend : CachingBackend
     /// <inheritdoc />
     protected override CachingBackendFeatures CreateFeatures()
     {
-        return new Features( this._cache is MemoryCache );
+        return new Features( this._cache is MemoryCache or IClearableMemoryCache );
     }
 
     /// <inheritdoc />

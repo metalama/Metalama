@@ -6,6 +6,7 @@ using Metalama.Patterns.Caching.Backends;
 using Metalama.Patterns.Caching.Implementation;
 using Metalama.Patterns.Caching.TestHelpers;
 using Microsoft.Extensions.DependencyInjection;
+
 using Xunit;
 using Xunit.Abstractions;
 
@@ -23,6 +24,7 @@ public sealed partial class LayeredCachingBackendEnhancerTests : IDisposable
     private const int _timeout = 30_000;
 
     private readonly ServiceProvider _serviceProvider;
+    private readonly CancellationTokenSource _cancellationTokenSource = new();
 
     public LayeredCachingBackendEnhancerTests( ITestOutputHelper testOutputHelper )
     {
@@ -31,8 +33,15 @@ public sealed partial class LayeredCachingBackendEnhancerTests : IDisposable
         this._serviceProvider = services.BuildServiceProvider();
     }
 
+    /// <summary>
+    /// Gets the token that cancels the waits of the tests when the test class is disposed.
+    /// </summary>
+    private CancellationToken CancellationToken => this._cancellationTokenSource.Token;
+
     public void Dispose()
     {
+        this._cancellationTokenSource.Cancel();
+        this._cancellationTokenSource.Dispose();
         this._serviceProvider.Dispose();
     }
 
@@ -251,10 +260,11 @@ public sealed partial class LayeredCachingBackendEnhancerTests : IDisposable
 
     #region Invalidation Propagation
 
-    [Fact( Timeout = _timeout )]
+    [Fact]
     public async Task OnBackendDependencyInvalidated_FromL2_InvalidatesL1()
     {
-        using var l2 = MemoryCacheFactory.CreateBackend( this._serviceProvider, "L2" );
+        using var fakes = new FakeCachingServices();
+        using var l2 = MemoryCacheFactory.CreateBackend( fakes.ServiceProvider, "L2" );
         l2.Initialize();
 
         // Create layered backend - this subscribes to L2's events via the wrapper
@@ -271,25 +281,26 @@ public sealed partial class LayeredCachingBackendEnhancerTests : IDisposable
             layered.SetItem( key, item );
 
             // Set up event tracking
-            var eventReceived = new TaskCompletionSource<bool>();
+            var eventReceived = false;
 
             layered.DependencyInvalidated += ( _, args ) =>
             {
                 if ( args.Key == dependency )
                 {
-                    eventReceived.TrySetResult( true );
+                    eventReceived = true;
                 }
             };
 
             // Invalidate the dependency through the wrapper (which triggers the L2 invalidation)
             wrapper.InvalidateDependency( dependency );
 
-            // Wait for event propagation
-            using var cts = new CancellationTokenSource( TimeSpan.FromSeconds( 30 ) );
-            await eventReceived.Task.WaitWithTimeoutAsync();
+            // Both hops of the event go through the work-item dispatcher, so waiting for the pending work items is
+            // a complete wait.
+            await fakes.WhenPendingWorkItemsCompletedAsync( this.CancellationToken );
+
+            Assert.True( eventReceived );
 
             // The item should be removed from L1 as well
-            await Task.Delay( 100, cts.Token );
             var retrieved = layered.LocalCache.GetItem( key );
             Assert.Null( retrieved );
         }
@@ -299,10 +310,11 @@ public sealed partial class LayeredCachingBackendEnhancerTests : IDisposable
         }
     }
 
-    [Fact( Timeout = _timeout )]
+    [Fact]
     public async Task OnBackendItemRemoved_FromL2_RemovesFromL1()
     {
-        using var l2 = MemoryCacheFactory.CreateBackend( this._serviceProvider, "L2" );
+        using var fakes = new FakeCachingServices();
+        using var l2 = MemoryCacheFactory.CreateBackend( fakes.ServiceProvider, "L2" );
         l2.Initialize();
 
         // Create layered backend
@@ -318,25 +330,24 @@ public sealed partial class LayeredCachingBackendEnhancerTests : IDisposable
             layered.SetItem( key, item );
 
             // Set up event tracking
-            var eventReceived = new TaskCompletionSource<bool>();
+            var eventReceived = false;
 
             layered.ItemRemoved += ( _, args ) =>
             {
                 if ( args.Key == key )
                 {
-                    eventReceived.TrySetResult( true );
+                    eventReceived = true;
                 }
             };
 
             // Remove the item through the wrapper (which triggers the L2 removal)
             wrapper.RemoveItem( key );
 
-            // Wait for event propagation
-            using var cts = new CancellationTokenSource( TimeSpan.FromSeconds( 30 ) );
-            await eventReceived.Task.WaitWithTimeoutAsync();
+            await fakes.WhenPendingWorkItemsCompletedAsync( this.CancellationToken );
+
+            Assert.True( eventReceived );
 
             // The item should be removed from L1 as well
-            await Task.Delay( 100, cts.Token );
             var retrieved = layered.LocalCache.GetItem( key );
             Assert.Null( retrieved );
         }
@@ -346,33 +357,33 @@ public sealed partial class LayeredCachingBackendEnhancerTests : IDisposable
         }
     }
 
-    [Fact( Timeout = _timeout )]
+    [Fact]
     public async Task Events_PropagatedToExternalListeners()
     {
-        using var layered = this.CreateLayeredBackend();
+        using var fakes = new FakeCachingServices();
+        using var layered = this.CreateLayeredBackend( customL2: MemoryCacheFactory.CreateBackend( fakes.ServiceProvider, "L2" ) );
 
         const string key = "test-key";
         var item = new CacheItem( "test-value" );
 
-        var itemRemovedReceived = new TaskCompletionSource<CacheItemRemovedEventArgs>();
+        CacheItemRemovedEventArgs? itemRemovedArgs = null;
 
         layered.ItemRemoved += ( _, args ) =>
         {
             if ( args.Key == key )
             {
-                itemRemovedReceived.TrySetResult( args );
+                itemRemovedArgs = args;
             }
         };
 
         layered.SetItem( key, item );
         layered.RemoveItem( key );
 
-        using var cts = new CancellationTokenSource( TimeSpan.FromSeconds( 30 ) );
-        await itemRemovedReceived.Task.WaitWithTimeoutAsync();
+        await fakes.WhenPendingWorkItemsCompletedAsync( this.CancellationToken );
 
-        var args = await itemRemovedReceived.Task;
-        Assert.Equal( key, args.Key );
-        Assert.Equal( CacheItemRemovedReason.Removed, args.RemovedReason );
+        Assert.NotNull( itemRemovedArgs );
+        Assert.Equal( key, itemRemovedArgs.Key );
+        Assert.Equal( CacheItemRemovedReason.Removed, itemRemovedArgs.RemovedReason );
     }
 
     #endregion
@@ -675,7 +686,8 @@ public sealed partial class LayeredCachingBackendEnhancerTests : IDisposable
     [Fact]
     public void GetItem_WithMarker_AndL2HasNewerItem_ReturnsL2Item()
     {
-        using var l2 = new TypePreservingBackend();
+        using var fakes = new FakeCachingServices( _timeTestOrigin );
+        using var l2 = new TypePreservingBackend( serviceProvider: fakes.ServiceProvider );
         var wrapper = new ConfigurableFeaturesBackend( l2, blocking: false );
         var layered = new LayeredCachingBackendEnhancer( wrapper, null, null );
         layered.Initialize();
@@ -687,15 +699,12 @@ public sealed partial class LayeredCachingBackendEnhancerTests : IDisposable
             layered.SetItem( "test-key", item );
             layered.RemoveItem( "test-key" ); // Creates marker with current timestamp
 
-            // Ensure the clock has advanced so the newer item gets a strictly greater timestamp
-            // than the RemovedValue marker. Without this, both timestamps can be identical
-            // (same tick), causing the test to be flaky.
-            var timestampAfterRemove = LayeredCachingBackendEnhancer.GetTimestamp();
-
-            SpinWait.SpinUntil( () => LayeredCachingBackendEnhancer.GetTimestamp() > timestampAfterRemove );
+            // Advance the clock so that the newer item gets a strictly greater timestamp than the RemovedValue
+            // marker.
+            fakes.TimeProvider.Advance( TimeSpan.FromSeconds( 1 ) );
 
             // Now set a newer item directly in L2 (simulating another node updating cache)
-            var newerItem = new MaterializedCacheItem( new CacheItem( "newer-value" ) );
+            var newerItem = new MaterializedCacheItem( new CacheItem( "newer-value" ), fakes.TimeProvider );
             l2.SetItem( "test-key", newerItem );
 
             // The L2 item has a newer timestamp than the marker, so should return the L2 item
