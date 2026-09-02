@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFrameworks>net472;net8.0;netstandard2.0</TargetFrameworks>
+        <TargetFrameworks>net472;net10.0;netstandard2.0</TargetFrameworks>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <Configurations>Debug;Release;LamaDebug</Configurations>
@@ -25,6 +25,17 @@
     <ItemGroup>
         <PackageReference Include="Metalama.Framework" />
         <PackageReference Include="Metalama.Framework.Sdk" PrivateAssets="all" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- Microsoft.CodeAnalysis.Features 4.12.0, reached through the private Metalama.Framework.Sdk reference,
+             depends on System.Text.Json 8.0.4. On net8.0 the shared framework pruned that package and the audit
+             never saw it; on net10.0 it stays in the restore graph. The dependency is compile-time only and does
+             not reach the user, and Metalama.Framework.Package suppresses the same advisory for the same reason. -->
+        <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-8g4q-xg66-9fp4" />
+    </ItemGroup>
+
+    <ItemGroup>
         <PackageReference Include="JetBrains.Annotations" PrivateAssets="all" />
     </ItemGroup>
     

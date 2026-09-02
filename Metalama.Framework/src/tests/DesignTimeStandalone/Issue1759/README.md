@@ -101,9 +101,9 @@ The current outcome is thus a failure by exit code. Once the defect is fixed, th
 ## Running it by hand
 
 ```powershell
-dotnet <repo>\Metalama.Framework\src\tests\Metalama.DesignTime.HostSimulator\bin\Debug\net9.0\Metalama.DesignTime.HostSimulator.dll Issue1759.sln --timeout 300
+dotnet <repo>\Metalama.Framework\src\tests\Metalama.DesignTime.HostSimulator\bin\Debug\net10.0\Metalama.DesignTime.HostSimulator.dll Issue1759.sln --timeout 300
 ```
 
-Use the **net9.0** build, as `eng/src/DesignTimeSolution.cs` does. Add `--trace "*"` to obtain the trace of Metalama
+Use the **net10.0** build, as `eng/src/DesignTimeSolution.cs` does. Add `--trace "*"` to obtain the trace of Metalama
 itself. The host simulator is a test project, so `Build.ps1 build` does not build it; build it with `dotnet build`
 first.

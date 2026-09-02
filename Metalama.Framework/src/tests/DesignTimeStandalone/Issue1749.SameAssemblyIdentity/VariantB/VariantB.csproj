@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>net10.0</TargetFramework>
         <Nullable>enable</Nullable>
         <!-- The same assembly name and the same version as VariantA, so the two AssemblyIdentity values are equal. -->
         <AssemblyName>Aspects</AssemblyName>

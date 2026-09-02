@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>net10.0</TargetFramework>
         <Nullable>enable</Nullable>
         <!-- The Metalama.Compiler shipping with this version predates the language version the current SDK defaults to. -->
         <LangVersion>12.0</LangVersion>

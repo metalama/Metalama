@@ -2,7 +2,7 @@
     <Import Project="..\..\..\..\eng\Coverage.props" />
 
     <PropertyGroup>
-        <TargetFramework>net8.0-windows</TargetFramework>
+        <TargetFramework>net10.0-windows</TargetFramework>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <RootNamespace>Metalama.LinqPad.Tests</RootNamespace>
     </PropertyGroup>
@@ -27,6 +27,15 @@
         <!-- Must include explicitly because the package has content.
              Use RoslynMaxVersion to match Metalama.Framework.Workspaces dependency. -->
         <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" VersionOverride="$(RoslynMaxVersion)" />
+
+        <!-- The reference above brings in a 17.x Microsoft.Build.Framework. Copied beside the test assembly it
+             shadows the one of the MSBuild that Microsoft.Build.Locator resolves, which on a .NET 10 SDK host is
+             MSBuild 18.0, and loading Microsoft.Build 18.0 beside Microsoft.Build.Framework 17.11 fails with a
+             TypeLoadException on IEventSource5. The same reference exists in Metalama.Framework.Workspaces and in
+             its test project, for the same reason. Microsoft.NET.StringTools is excluded as well, because
+             excluding the run-time assets of a package does not exclude those of its dependencies. -->
+        <PackageReference Include="Microsoft.Build.Framework" PrivateAssets="all" ExcludeAssets="runtime" />
+        <PackageReference Include="Microsoft.NET.StringTools" PrivateAssets="all" ExcludeAssets="runtime" />
     </ItemGroup>
 
 </Project>
