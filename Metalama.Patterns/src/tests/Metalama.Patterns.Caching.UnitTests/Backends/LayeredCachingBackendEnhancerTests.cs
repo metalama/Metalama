@@ -686,7 +686,7 @@ public sealed partial class LayeredCachingBackendEnhancerTests : IDisposable
     public void GetItem_WithMarker_AndL2HasNewerItem_ReturnsL2Item()
     {
         using var fakes = new FakeCachingServices( _timeTestOrigin );
-        using var l2 = new TypePreservingBackend( serviceProvider: fakes.ServiceProvider, raiseRemovalEvents: false );
+        using var l2 = new TypePreservingBackend( serviceProvider: fakes.ServiceProvider, raiseInvalidationEvents: false );
         var wrapper = new ConfigurableFeaturesBackend( l2, blocking: false );
         var layered = new LayeredCachingBackendEnhancer( wrapper, null, null );
         layered.Initialize();

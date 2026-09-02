@@ -75,7 +75,7 @@ public sealed class FakeMemoryCache : IClearableMemoryCache
 
             var now = this._timeProvider.GetUtcNow();
 
-            if ( entry.GetExpirationInstant() <= now )
+            if ( entry.IsExpired( now ) )
             {
                 this._entries.Remove( key );
                 expiredEntry = entry;
@@ -125,17 +125,7 @@ public sealed class FakeMemoryCache : IClearableMemoryCache
     /// As with <see cref="MemoryCache.Clear"/>, the entries whose priority is
     /// <see cref="CacheItemPriority.NeverRemove"/> are removed as well.
     /// </remarks>
-    public void Clear() => this.RemoveAll( EvictionReason.Removed, includeNeverRemove: true );
-
-    /// <inheritdoc />
-    /// <remarks>
-    /// As with <see cref="MemoryCache.Compact"/>, the entries whose priority is
-    /// <see cref="CacheItemPriority.NeverRemove"/> are kept. The fake cache has no size limit, so every other entry
-    /// is removed whatever the percentage.
-    /// </remarks>
-    public void Compact( double percentage ) => this.RemoveAll( EvictionReason.Capacity, includeNeverRemove: false );
-
-    private void RemoveAll( EvictionReason reason, bool includeNeverRemove )
+    public void Clear()
     {
         this.ThrowIfDisposed();
 
@@ -143,17 +133,63 @@ public sealed class FakeMemoryCache : IClearableMemoryCache
 
         lock ( this._sync )
         {
-            removedEntries = this._entries.Values
-                .Where( e => includeNeverRemove || e.Priority != CacheItemPriority.NeverRemove )
+            removedEntries = this._entries.Values.ToList();
+            this._entries.Clear();
+        }
+
+        this.NotifyEvicted( removedEntries, EvictionReason.Removed );
+    }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// The implementation follows <see cref="MemoryCache.Compact"/>. The number of entries to remove is
+    /// <paramref name="percentage"/> of the current number of entries, rounded down. The expired entries are removed
+    /// first and count towards that number. The remaining entries are then removed by ascending
+    /// <see cref="CacheItemPriority"/> and, within a priority, from the least recently accessed. An entry whose
+    /// priority is <see cref="CacheItemPriority.NeverRemove"/> is kept unless it has expired.
+    /// </remarks>
+    public void Compact( double percentage )
+    {
+        if ( percentage is < 0 or > 1 )
+        {
+            throw new ArgumentOutOfRangeException( nameof(percentage), percentage, "The percentage must be between 0 and 1." );
+        }
+
+        this.ThrowIfDisposed();
+
+        List<Entry> expiredEntries;
+        List<Entry> compactedEntries;
+
+        lock ( this._sync )
+        {
+            var now = this._timeProvider.GetUtcNow();
+            var removalCountTarget = (int) (this._entries.Count * percentage);
+
+            expiredEntries = this._entries.Values.Where( e => e.IsExpired( now ) ).ToList();
+
+            compactedEntries = this._entries.Values
+                .Where( e => !e.IsExpired( now ) && e.Priority != CacheItemPriority.NeverRemove )
+                .OrderBy( e => e.Priority )
+                .ThenBy( e => e.LastAccess )
+                .Take( Math.Max( removalCountTarget - expiredEntries.Count, 0 ) )
                 .ToList();
 
-            foreach ( var entry in removedEntries )
+            foreach ( var entry in expiredEntries.Concat( compactedEntries ) )
             {
                 this._entries.Remove( entry.Key );
             }
         }
 
-        foreach ( var entry in removedEntries )
+        this.NotifyEvicted( expiredEntries, EvictionReason.Expired );
+        this.NotifyEvicted( compactedEntries, EvictionReason.Capacity );
+    }
+
+    /// <summary>
+    /// Invokes the post-eviction callbacks of the given entries and reschedules the timer.
+    /// </summary>
+    private void NotifyEvicted( List<Entry> entries, EvictionReason reason )
+    {
+        foreach ( var entry in entries )
         {
             entry.NotifyEvicted( reason );
         }
@@ -182,7 +218,7 @@ public sealed class FakeMemoryCache : IClearableMemoryCache
         lock ( this._sync )
         {
             var now = this._timeProvider.GetUtcNow();
-            expiredEntries = this._entries.Values.Where( e => e.GetExpirationInstant() <= now ).ToList();
+            expiredEntries = this._entries.Values.Where( e => e.IsExpired( now ) ).ToList();
 
             foreach ( var entry in expiredEntries )
             {
@@ -190,12 +226,7 @@ public sealed class FakeMemoryCache : IClearableMemoryCache
             }
         }
 
-        foreach ( var entry in expiredEntries )
-        {
-            entry.NotifyEvicted( EvictionReason.Expired );
-        }
-
-        this.RescheduleTimer();
+        this.NotifyEvicted( expiredEntries, EvictionReason.Expired );
     }
 
     /// <summary>
@@ -301,9 +332,20 @@ public sealed class FakeMemoryCache : IClearableMemoryCache
         public long? Size { get; set; }
 
         /// <summary>
+        /// Gets the instant at which the entry has last been read, or at which it has been created when it has never
+        /// been read.
+        /// </summary>
+        public DateTimeOffset LastAccess => this._lastAccess;
+
+        /// <summary>
         /// Records that the entry has been read, which restarts the sliding expiration.
         /// </summary>
         public void OnAccessed( DateTimeOffset now ) => this._lastAccess = now;
+
+        /// <summary>
+        /// Determines whether the entry has expired at the given instant.
+        /// </summary>
+        public bool IsExpired( DateTimeOffset now ) => this.GetExpirationInstant() <= now;
 
         /// <summary>
         /// Gets the instant at which the entry expires, or <see langword="null"/> when it does not expire.

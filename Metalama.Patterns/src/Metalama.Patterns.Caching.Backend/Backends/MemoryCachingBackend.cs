@@ -448,7 +448,7 @@ internal class MemoryCachingBackend : CachingBackend
 
             default:
                 throw new NotSupportedException(
-                    "IMemoryCache implementations other than MemoryCache and IClearableMemoryCache don't support clearing." );
+                    "IMemoryCache implementations other than MemoryCache and IClearableMemoryCache do not support clearing." );
         }
     }
 

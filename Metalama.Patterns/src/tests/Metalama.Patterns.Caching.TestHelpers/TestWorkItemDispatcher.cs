@@ -119,14 +119,27 @@ public sealed class TestWorkItemDispatcher : IWorkItemDispatcher
             return idleTaskSource.Task;
         }
 
-        return WaitAsync( idleTaskSource, cancellationToken );
+        return WaitAsync( idleTaskSource.Task, cancellationToken );
     }
 
-    private static async Task WaitAsync( TaskCompletionSource<bool> idleTaskSource, CancellationToken cancellationToken )
+    /// <summary>
+    /// Awaits the completion of the pending work items, or the cancellation of <paramref name="cancellationToken"/>,
+    /// whichever comes first.
+    /// </summary>
+    /// <remarks>
+    /// The cancellation completes a task of its own instead of the idle task. The idle task is shared by every
+    /// caller that waits for the same period of activity, and it is reused until the count of pending work items
+    /// reaches zero, so cancelling it would cancel the wait of the other callers as well.
+    /// </remarks>
+    private static async Task WaitAsync( Task idleTask, CancellationToken cancellationToken )
     {
-        using ( cancellationToken.Register( static state => ((TaskCompletionSource<bool>) state!).TrySetCanceled(), idleTaskSource ) )
+        var cancellationTaskSource = new TaskCompletionSource<bool>( TaskCreationOptions.RunContinuationsAsynchronously );
+
+        using ( cancellationToken.Register( () => cancellationTaskSource.TrySetCanceled( cancellationToken ) ) )
         {
-            await idleTaskSource.Task;
+            var completedTask = await Task.WhenAny( idleTask, cancellationTaskSource.Task );
+
+            await completedTask;
         }
     }
 

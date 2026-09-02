@@ -48,7 +48,7 @@ public sealed partial class LayeredCachingBackendEnhancerTests
         using var fakes = new FakeCachingServices( _timeTestOrigin );
         using var cancellationTokenSource = new CancellationTokenSource();
 
-        var secondLayer = new TypePreservingBackend( serviceProvider: fakes.ServiceProvider, raiseRemovalEvents: false );
+        var secondLayer = new TypePreservingBackend( serviceProvider: fakes.ServiceProvider, raiseInvalidationEvents: false );
         using var layered = CreateLayeredBackendOver( secondLayer );
 
         layered.SetItem( _timeTestKey, new CacheItem( "value" ) );
@@ -88,8 +88,8 @@ public sealed partial class LayeredCachingBackendEnhancerTests
 
         // The two nodes reach the same store, but each has its own clock.
         var store = new ConcurrentDictionary<string, CacheItem>();
-        var writerSecondLayer = new TypePreservingBackend( serviceProvider: writerFakes.ServiceProvider, store: store, raiseRemovalEvents: false );
-        var removerSecondLayer = new TypePreservingBackend( serviceProvider: removerFakes.ServiceProvider, store: store, raiseRemovalEvents: false );
+        var writerSecondLayer = new TypePreservingBackend( serviceProvider: writerFakes.ServiceProvider, store: store, raiseInvalidationEvents: false );
+        var removerSecondLayer = new TypePreservingBackend( serviceProvider: removerFakes.ServiceProvider, store: store, raiseInvalidationEvents: false );
         using var writer = CreateLayeredBackendOver( writerSecondLayer );
         using var remover = CreateLayeredBackendOver( removerSecondLayer );
 
@@ -119,7 +119,7 @@ public sealed partial class LayeredCachingBackendEnhancerTests
         using var fakes = new FakeCachingServices( _timeTestOrigin );
         using var cancellationTokenSource = new CancellationTokenSource();
 
-        var secondLayer = new TypePreservingBackend( serviceProvider: fakes.ServiceProvider, raiseRemovalEvents: false );
+        var secondLayer = new TypePreservingBackend( serviceProvider: fakes.ServiceProvider, raiseInvalidationEvents: false );
         using var layered = CreateLayeredBackendOver( secondLayer );
 
         layered.SetItem( _timeTestKey, new CacheItem( "second-layer-value" ) );
