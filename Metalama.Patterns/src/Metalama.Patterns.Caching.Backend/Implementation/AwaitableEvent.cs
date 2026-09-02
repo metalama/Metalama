@@ -52,7 +52,7 @@ internal sealed class AwaitableEvent
     /// The object that dispatches the continuation of a wait operation when the operation completes on a thread
     /// other than the one that awaits it. It is the thread pool unless the service provider supplies another one.
     /// </summary>
-    private readonly ICachingWorkItemDispatcher _workItemDispatcher;
+    private readonly IWorkItemDispatcher _workItemDispatcher;
 
     internal volatile int SignalState;
 
@@ -1020,7 +1020,7 @@ internal sealed class AwaitableEvent
         public ITestSynchronizationProvider? TestSynchronizationProvider;
 
         // Copied from the owning AwaitableEvent for the same reason as TestSynchronizationProvider.
-        public ICachingWorkItemDispatcher WorkItemDispatcher = ThreadPoolWorkItemDispatcher.Instance;
+        public IWorkItemDispatcher WorkItemDispatcher = ThreadPoolWorkItemDispatcher.Instance;
 
         /// <inheritdoc cref="AwaitableEvent.SyncPoint"/>
         protected void SyncPoint( string name ) => this.TestSynchronizationProvider?.SyncPoint( name );

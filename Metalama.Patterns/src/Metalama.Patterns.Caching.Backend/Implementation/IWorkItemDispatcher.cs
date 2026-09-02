@@ -18,7 +18,7 @@ namespace Metalama.Patterns.Caching.Implementation;
 /// implementation that a test substitutes, not to this interface.
 /// </para>
 /// </remarks>
-public interface ICachingWorkItemDispatcher
+public interface IWorkItemDispatcher
 {
     /// <summary>
     /// Queues a work item.

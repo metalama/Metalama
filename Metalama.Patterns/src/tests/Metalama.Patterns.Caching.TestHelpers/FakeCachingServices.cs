@@ -40,7 +40,7 @@ public sealed class FakeCachingServices : IDisposable
 
         var services = new ServiceCollection();
         services.AddSingleton<TimeProvider>( this.TimeProvider );
-        services.AddSingleton<ICachingWorkItemDispatcher>( this.WorkItemDispatcher );
+        services.AddSingleton<IWorkItemDispatcher>( this.WorkItemDispatcher );
         services.AddSingleton<IMemoryCache>( this.MemoryCache );
         configureServices?.Invoke( services );
 

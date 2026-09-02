@@ -7,7 +7,7 @@ using Metalama.Patterns.Caching.Implementation;
 namespace Metalama.Patterns.Caching.TestHelpers;
 
 /// <summary>
-/// An implementation of <see cref="ICachingWorkItemDispatcher"/> that runs the work items on the thread pool and
+/// An implementation of <see cref="IWorkItemDispatcher"/> that runs the work items on the thread pool and
 /// lets a test wait for the completion of the work items that are pending.
 /// </summary>
 /// <remarks>
@@ -21,7 +21,7 @@ namespace Metalama.Patterns.Caching.TestHelpers;
 /// reach zero between the two, so <see cref="WhenPendingWorkItemsCompletedAsync"/> observes the whole chain.
 /// </para>
 /// </remarks>
-public sealed class TestWorkItemDispatcher : ICachingWorkItemDispatcher
+public sealed class TestWorkItemDispatcher : IWorkItemDispatcher
 {
     private readonly object _sync = new();
 

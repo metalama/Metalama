@@ -22,7 +22,7 @@ namespace Metalama.Patterns.Caching.TestHelpers;
 /// </para>
 /// <para>
 /// The post-eviction callbacks run on the thread that causes the eviction. The caching backend then queues its own
-/// work item through its <see cref="ICachingWorkItemDispatcher"/>, which is where a test observes the completion.
+/// work item through its <see cref="IWorkItemDispatcher"/>, which is where a test observes the completion.
 /// </para>
 /// </remarks>
 public sealed class FakeMemoryCache : IClearableMemoryCache

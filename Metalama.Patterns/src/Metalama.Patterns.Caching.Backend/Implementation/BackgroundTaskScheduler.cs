@@ -80,7 +80,7 @@ public sealed class BackgroundTaskScheduler : IAsyncDisposable, ITestableCaching
     /// The object through which the background tasks are dispatched. It is the thread pool unless the service
     /// provider supplies another one.
     /// </summary>
-    private readonly ICachingWorkItemDispatcher _workItemDispatcher;
+    private readonly IWorkItemDispatcher _workItemDispatcher;
     private readonly int _maxConcurrency;
     private readonly int _overloadThreshold;
     private readonly SemaphoreSlim _semaphore;

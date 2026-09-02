@@ -68,9 +68,9 @@ public abstract class CachingBackend : IDisposable, IAsyncDisposable
     /// <summary>
     /// Gets the object that dispatches the work items of the backend, in particular the events that the backend
     /// raises. It is <see cref="ThreadPoolWorkItemDispatcher"/> unless the service provider supplies another
-    /// <see cref="ICachingWorkItemDispatcher"/>.
+    /// <see cref="IWorkItemDispatcher"/>.
     /// </summary>
-    protected internal ICachingWorkItemDispatcher WorkItemDispatcher { get; }
+    protected internal IWorkItemDispatcher WorkItemDispatcher { get; }
 
     protected CachingBackendConfiguration Configuration { get; }
 

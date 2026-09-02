@@ -5,10 +5,10 @@
 namespace Metalama.Patterns.Caching.Implementation;
 
 /// <summary>
-/// The implementation of <see cref="ICachingWorkItemDispatcher"/> that queues the work item to the thread pool.
+/// The implementation of <see cref="IWorkItemDispatcher"/> that queues the work item to the thread pool.
 /// This is the implementation used when the service provider of the backend supplies no other one.
 /// </summary>
-public sealed class ThreadPoolWorkItemDispatcher : ICachingWorkItemDispatcher
+public sealed class ThreadPoolWorkItemDispatcher : IWorkItemDispatcher
 {
     /// <summary>
     /// Gets the single instance of the <see cref="ThreadPoolWorkItemDispatcher"/> class.
