@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Engine.Options;
+using Metalama.Framework.Engine.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -76,6 +77,12 @@ internal static class ReferenceAssemblyBuildFailureClassifier
     private static readonly Regex _whitespaceRegex = new( @"\s+", RegexOptions.CultureInvariant );
 
     /// <summary>
+    /// The literal part of <see cref="SupportedCSharpVersions.RoslynPackagePattern"/>, that is, the prefix of the
+    /// identifier of every Roslyn package that the reference-assembly project requests.
+    /// </summary>
+    private static readonly string _roslynPackagePrefix = SupportedCSharpVersions.RoslynPackagePattern.TrimEnd( '*' );
+
+    /// <summary>
     /// Returns the sentence that describes the probable cause of the failure and the action that resolves it, or the
     /// generic sentence when the output carries no signal that identifies a known condition.
     /// </summary>
@@ -88,11 +95,20 @@ internal static class ReferenceAssemblyBuildFailureClassifier
     /// The version of the .NET SDK that Metalama pinned in the <c>global.json</c> that it wrote beside the
     /// reference-assembly project, or <c>null</c> when it pinned none.
     /// </param>
+    /// <param name="unmappedPrereleasePackageSource">
+    /// The address of the package source that Metalama declared for the prerelease Roslyn packages without a package
+    /// source mapping, because the configuration already maps these packages to another source, or <c>null</c> when
+    /// Metalama declared no such source or mapped it. See issue #1885.
+    /// </param>
     /// <remarks>
     /// The rules are ordered by decreasing confidence: a message identifier identifies a condition exactly, whereas the
     /// presence of an HTTP status code or of a file name is circumstantial, so the former must win when both are present.
     /// </remarks>
-    public static string GetProbableCause( ImmutableArray<string> output, string projectDirectory, string? requestedSdkVersion )
+    public static string GetProbableCause(
+        ImmutableArray<string> output,
+        string projectDirectory,
+        string? requestedSdkVersion,
+        string? unmappedPrereleasePackageSource = null )
     {
         var text = string.Join( "\n", output );
 
@@ -107,6 +123,21 @@ internal static class ReferenceAssemblyBuildFailureClassifier
         // Microsoft.CodeAnalysis.* pattern is more specific than a * pattern. See issue #1747.
         if ( ContainsMessageId( text, "NU1101" ) )
         {
+            // This build of Metalama requires Roslyn packages that nuget.org does not serve, and the mapping that would
+            // have made them resolvable was skipped silently because the user had already mapped these packages. The
+            // failure of the restore is the only point at which that decision becomes visible. See issue #1885. The
+            // temporary project also references the compile-time packages of the user project, so this cause applies
+            // only when the package that was not found is one of the Roslyn packages.
+            if ( unmappedPrereleasePackageSource != null && ContainsUnresolvedRoslynPackage( output ) )
+            {
+                return
+                    "A package that is required to resolve the compile-time reference assemblies was not found on the configured NuGet sources. "
+                    + $"This build of Metalama requires Roslyn packages that are served by '{unmappedPrereleasePackageSource}' and not by nuget.org. "
+                    + "That source was added to the NuGet configuration of this build, but no package source mapping was added for it, because "
+                    + "nuget.config already maps the Microsoft.CodeAnalysis.* pattern, or a more specific one, to another source. Map the "
+                    + "Microsoft.CodeAnalysis.* pattern to that source as well.";
+            }
+
             return
                 "A package that is required to resolve the compile-time reference assemblies was not found on the configured NuGet sources. "
                 + "When nuget.config maps the Microsoft.CodeAnalysis.* pattern to a private feed through packageSourceMapping, this build is "
@@ -258,6 +289,20 @@ internal static class ReferenceAssemblyBuildFailureClassifier
 
         return index > 0 && line.EndsWith( "]", StringComparison.Ordinal ) ? line.Substring( 0, index ) : line;
     }
+
+    /// <summary>
+    /// Determines whether a line that reports an unresolved package names a Roslyn package.
+    /// </summary>
+    /// <remarks>
+    /// A package identifier is invariant across languages, as a message identifier is, so this test holds in a
+    /// localized toolchain. The identifier is looked for in the lines that carry <c>NU1101</c> and in no other, so that
+    /// an occurrence of the prefix elsewhere in the output, such as in the name of a reference of the project, does not
+    /// match.
+    /// </remarks>
+    private static bool ContainsUnresolvedRoslynPackage( ImmutableArray<string> output )
+        => output.Any(
+            line => ContainsMessageId( line, "NU1101" )
+                    && line.IndexOf( _roslynPackagePrefix, StringComparison.OrdinalIgnoreCase ) >= 0 );
 
     /// <summary>
     /// Determines whether the output contains the given message identifier, which must be followed by a colon so that an

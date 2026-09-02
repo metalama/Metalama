@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Backstage.Diagnostics;
+using Metalama.Backstage.Infrastructure;
 using Metalama.Backstage.Maintenance;
 using Metalama.Backstage.Threading;
 using Metalama.Compiler;
@@ -26,6 +27,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Xml.Linq;
 using IMethodSymbol = Microsoft.CodeAnalysis.IMethodSymbol;
 
 namespace Metalama.Framework.Engine.CompileTime;
@@ -103,7 +105,28 @@ internal sealed class CompileTimeAssemblyLocator
     private readonly Compilation _referenceCompilation = null!;
 
     private readonly CompilationContext _referenceCompilationContext = null!;
+    private readonly IFileSystem _fileSystem;
+    private readonly NuGetHelper _nuGetHelper;
     private readonly IReadOnlyList<string>? _nugetConfigFiles;
+
+    /// <summary>
+    /// The address of the package source that serves the Roslyn packages of the current build, or <c>null</c> when
+    /// nuget.org serves them, which is the ordinary case. See issue #1885.
+    /// </summary>
+    private readonly string? _prereleasePackageSourceUrl;
+
+    /// <summary>
+    /// The configuration files that NuGet applies to the reference-assembly project without their being found by
+    /// <see cref="NuGetHelper.GetConfigFiles"/>, that is, the user-level configuration file. It is resolved only when
+    /// <see cref="_prereleasePackageSourceUrl"/> is not <c>null</c>, because it is read only to decide the mapping.
+    /// </summary>
+    private readonly ImmutableArray<string> _userNuGetConfigFiles = ImmutableArray<string>.Empty;
+
+    /// <summary>
+    /// The address of the package source that was declared without a package source mapping, which is what the failure
+    /// classifier needs to explain a package resolution failure. See issue #1885.
+    /// </summary>
+    private string? _unmappedPrereleasePackageSourceUrl;
 
     /// <summary>
     /// Gets the name (without path and extension) of all compile-time assemblies, including Metalama, Roslyn and .NET standard.
@@ -166,6 +189,8 @@ internal sealed class CompileTimeAssemblyLocator
 
         this._logger = serviceProvider.GetLoggerFactory().GetLogger( nameof(CompileTimeAssemblyLocator) );
         this._lockService = serviceProvider.Global.GetRequiredBackstageService<INamedLockService>();
+        this._fileSystem = serviceProvider.Global.GetRequiredBackstageService<IFileSystem>();
+        this._nuGetHelper = new NuGetHelper( serviceProvider.Global );
         this._sdkVersion = serviceProvider.GetRequiredService<IProjectOptions>().SdkVersion;
         this._msBuildBinPath = serviceProvider.GetRequiredService<IProjectOptions>().MSBuildBinPath;
 
@@ -201,7 +226,21 @@ internal sealed class CompileTimeAssemblyLocator
         // Load nuget.config.
         if ( projectOptions.ProjectPath != null )
         {
-            this._nugetConfigFiles = NuGetHelper.GetConfigFiles( projectOptions.ProjectPath );
+            this._nugetConfigFiles = this._nuGetHelper.GetConfigFiles( projectOptions.ProjectPath );
+        }
+
+        // On a version branch that compiles against a prerelease Roslyn, the requested Roslyn packages are served by a
+        // package source that the user has no reason to declare, so the generated nuget.config declares it. See #1885.
+        this._prereleasePackageSourceUrl = RoslynApiVersion.Current.ToPrereleasePackageSourceUrl();
+
+        if ( this._prereleasePackageSourceUrl != null )
+        {
+            var userConfigFile = this._nuGetHelper.GetUserConfigFile();
+
+            if ( userConfigFile != null )
+            {
+                this._userNuGetConfigFiles = ImmutableArray.Create( userConfigFile );
+            }
         }
 
         // Get additional NuGet source through the legacy RestoreSources project option.
@@ -230,8 +269,22 @@ internal sealed class CompileTimeAssemblyLocator
 
         foreach ( var nugetConfigFile in this._nugetConfigFiles ?? [] )
         {
-            var nugetConfigContent = File.ReadAllText( nugetConfigFile );
+            var nugetConfigContent = this._fileSystem.ReadAllText( nugetConfigFile );
             hashBuilder.Append( nugetConfigContent );
+        }
+
+        // The prerelease package source, and the user-level configuration file that decides how it is mapped, both
+        // change the generated nuget.config, so a directory built without them must not be reused. Nothing is appended
+        // when there is no such source, so that a branch that compiles against a released Roslyn keeps the hash it has
+        // today and its cache directories stay valid. See #1885.
+        if ( this._prereleasePackageSourceUrl != null )
+        {
+            hashBuilder.Append( this._prereleasePackageSourceUrl );
+
+            foreach ( var userConfigFile in this._userNuGetConfigFiles )
+            {
+                hashBuilder.Append( this._fileSystem.ReadAllText( userConfigFile ) );
+            }
         }
 
         // Include optional salt for cache invalidation (useful for testing).
@@ -721,14 +774,55 @@ internal sealed class CompileTimeAssemblyLocator
 
             File.WriteAllText( programFilePath, "System.Console.WriteLine(\"Hello, world.\");" );
 
-            // Writing nuget.config.
-            if ( this._nugetConfigFiles is { Count: > 0 } )
+            // Writing nuget.config. A file is written even when none was discovered, when there is a prerelease package
+            // source to declare, because that source is then the whole content of the file. See #1885.
+            if ( this._nugetConfigFiles is { Count: > 0 } || this._prereleasePackageSourceUrl != null )
             {
-                var nugetConfig = NuGetHelper.MergeConfigFiles( this._nugetConfigFiles ).AssertNotNull().ToString();
+                var discoveredConfigFiles = this._nugetConfigFiles ?? Array.Empty<string>();
+
+                var nugetConfigDocument = this._nuGetHelper.MergeConfigFiles( discoveredConfigFiles )
+                                          ?? new XDocument( new XElement( "configuration" ) );
+
+                var log = new List<string>( discoveredConfigFiles );
+
+                if ( this._prereleasePackageSourceUrl != null )
+                {
+                    log.AddRange( this._userNuGetConfigFiles );
+
+                    var addPackageSourceResult = this._nuGetHelper.AddPackageSource(
+                        nugetConfigDocument,
+                        SupportedCSharpVersions.RoslynPrereleaseSourceKey,
+                        this._prereleasePackageSourceUrl,
+                        SupportedCSharpVersions.RoslynPackagePattern,
+                        this._userNuGetConfigFiles );
+
+                    log.Add(
+                        $"Added the package source '{SupportedCSharpVersions.RoslynPrereleaseSourceKey}' at '{this._prereleasePackageSourceUrl}'." );
+
+                    if ( addPackageSourceResult.IsMappingWritten )
+                    {
+                        log.Add( $"Mapped the pattern '{SupportedCSharpVersions.RoslynPackagePattern}' to that source." );
+                    }
+                    else if ( addPackageSourceResult.ConflictingPattern != null )
+                    {
+                        this._unmappedPrereleasePackageSourceUrl = this._prereleasePackageSourceUrl;
+
+                        log.Add(
+                            $"Did not map the pattern '{SupportedCSharpVersions.RoslynPackagePattern}' to that source, because the package source "
+                            + $"'{addPackageSourceResult.ConflictingSourceKey}' already declares the pattern '{addPackageSourceResult.ConflictingPattern}'." );
+                    }
+                    else
+                    {
+                        log.Add(
+                            $"Did not map the pattern '{SupportedCSharpVersions.RoslynPackagePattern}' to that source, because the configuration "
+                            + "declares no packageSourceMapping section." );
+                    }
+                }
+
                 var nuGetConfigPath = Path.Combine( this._cacheDirectory, "nuget.config" );
                 this._logger.Trace?.Log( $"Writing '{nuGetConfigPath}'." );
-                File.WriteAllText( nuGetConfigPath, nugetConfig );
-                File.WriteAllText( nuGetConfigPath + ".log", string.Join( Environment.NewLine, this._nugetConfigFiles ) );
+                this._fileSystem.WriteAllText( nuGetConfigPath, nugetConfigDocument.ToString() );
+                this._fileSystem.WriteAllText( nuGetConfigPath + ".log", string.Join( Environment.NewLine, log ) );
             }
 
             this._logger.Trace?.Log( $"Building with restore timeout {this._restoreTimeout}." );
@@ -807,7 +901,11 @@ internal sealed class CompileTimeAssemblyLocator
                 : GeneralDiagnosticDescriptors.ReferenceAssemblyBuildFailed.CreateRoslynDiagnostic(
                     null,
                     (projectFilePath, exception.ExitCode!.Value, ReferenceAssemblyBuildFailureClassifier.GetReportedErrors( exception.Output ),
-                     ReferenceAssemblyBuildFailureClassifier.GetProbableCause( exception.Output, this._cacheDirectory, this._sdkVersion ), binaryLogPath) );
+                     ReferenceAssemblyBuildFailureClassifier.GetProbableCause(
+                         exception.Output,
+                         this._cacheDirectory,
+                         this._sdkVersion,
+                         this._unmappedPrereleasePackageSourceUrl), binaryLogPath) );
 
         diagnostics.Report( diagnostic );
     }

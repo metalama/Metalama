@@ -2,11 +2,18 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Backstage.Infrastructure;
+using Metalama.Backstage.Testing;
 using Metalama.Framework.Engine;
+using Metalama.Framework.Engine.CompileTime;
+using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Testing.UnitTesting;
+using System;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
+using System.Xml.Linq;
 using Xunit;
 
 namespace Metalama.Framework.Tests.UnitTests.CompileTime;
@@ -34,7 +41,7 @@ public sealed class NuGetHelperTests : UnitTestClass
         var configPath = Path.Combine( testContext.BaseDirectory, "nuget.config" );
         File.WriteAllText( configPath, content );
 
-        var mergedConfig = NuGetHelper.MergeConfigFiles( NuGetHelper.GetConfigFiles( configPath ) ).AssertNotNull();
+        var mergedConfig = MergeConfigFiles( testContext, configPath );
 
         // The relative path "nuget/fallback" should be resolved to an absolute path
         // relative to the directory containing the nuget.config file.
@@ -69,7 +76,7 @@ public sealed class NuGetHelperTests : UnitTestClass
         var configPath = Path.Combine( testContext.BaseDirectory, "nuget.config" );
         File.WriteAllText( configPath, content );
 
-        var mergedConfig = NuGetHelper.MergeConfigFiles( NuGetHelper.GetConfigFiles( configPath ) ).AssertNotNull();
+        var mergedConfig = MergeConfigFiles( testContext, configPath );
 
         var localSourceElement = mergedConfig.Root.AssertNotNull()
             .Element( "packageSources" )
@@ -105,7 +112,7 @@ public sealed class NuGetHelperTests : UnitTestClass
         var configPath = Path.Combine( testContext.BaseDirectory, "nuget.config" );
         File.WriteAllText( configPath, content );
 
-        var mergedConfig = NuGetHelper.MergeConfigFiles( NuGetHelper.GetConfigFiles( configPath ) ).AssertNotNull();
+        var mergedConfig = MergeConfigFiles( testContext, configPath );
 
         var fallbackElement = mergedConfig.Root.AssertNotNull()
             .Element( "fallbackPackageFolders" )
@@ -135,7 +142,7 @@ public sealed class NuGetHelperTests : UnitTestClass
         var configPath = Path.Combine( testContext.BaseDirectory, "nuget.config" );
         File.WriteAllText( configPath, content );
 
-        var mergedConfig = NuGetHelper.MergeConfigFiles( NuGetHelper.GetConfigFiles( configPath ) ).AssertNotNull();
+        var mergedConfig = MergeConfigFiles( testContext, configPath );
 
         var nugetOrgElement = mergedConfig.Root.AssertNotNull()
             .Element( "packageSources" )
@@ -165,7 +172,7 @@ public sealed class NuGetHelperTests : UnitTestClass
         var configPath = Path.Combine( testContext.BaseDirectory, "nuget.config" );
         File.WriteAllText( configPath, content );
 
-        var mergedConfig = NuGetHelper.MergeConfigFiles( NuGetHelper.GetConfigFiles( configPath ) ).AssertNotNull();
+        var mergedConfig = MergeConfigFiles( testContext, configPath );
 
         var localElement = mergedConfig.Root.AssertNotNull()
             .Element( "packageSources" )
@@ -198,7 +205,7 @@ public sealed class NuGetHelperTests : UnitTestClass
         var configPath = Path.Combine( testContext.BaseDirectory, "nuget.config" );
         File.WriteAllText( configPath, content );
 
-        var mergedConfig = NuGetHelper.MergeConfigFiles( NuGetHelper.GetConfigFiles( configPath ) ).AssertNotNull();
+        var mergedConfig = MergeConfigFiles( testContext, configPath );
 
         var envSourceElement = mergedConfig.Root.AssertNotNull()
             .Element( "packageSources" )
@@ -233,7 +240,7 @@ public sealed class NuGetHelperTests : UnitTestClass
         var configPath = Path.Combine( testContext.BaseDirectory, "nuget.config" );
         File.WriteAllText( configPath, content );
 
-        var mergedConfig = NuGetHelper.MergeConfigFiles( NuGetHelper.GetConfigFiles( configPath ) ).AssertNotNull();
+        var mergedConfig = MergeConfigFiles( testContext, configPath );
 
         var repoPathElement = mergedConfig.Root.AssertNotNull()
             .Element( "config" )
@@ -263,7 +270,7 @@ public sealed class NuGetHelperTests : UnitTestClass
         var configPath = Path.Combine( testContext.BaseDirectory, "nuget.config" );
         File.WriteAllText( configPath, content );
 
-        var mergedConfig = NuGetHelper.MergeConfigFiles( NuGetHelper.GetConfigFiles( configPath ) ).AssertNotNull();
+        var mergedConfig = MergeConfigFiles( testContext, configPath );
 
         var element = mergedConfig.Root.AssertNotNull()
             .Element( "config" )
@@ -294,7 +301,7 @@ public sealed class NuGetHelperTests : UnitTestClass
         var configPath = Path.Combine( testContext.BaseDirectory, "nuget.config" );
         File.WriteAllText( configPath, content );
 
-        var mergedConfig = NuGetHelper.MergeConfigFiles( NuGetHelper.GetConfigFiles( configPath ) ).AssertNotNull();
+        var mergedConfig = MergeConfigFiles( testContext, configPath );
 
         var pushSourceElement = mergedConfig.Root.AssertNotNull()
             .Element( "config" )
@@ -361,7 +368,7 @@ public sealed class NuGetHelperTests : UnitTestClass
         var childPath = Path.Combine( subdir, "nuget.config" );
         File.WriteAllText( childPath, childConfig );
 
-        var mergedConfig = NuGetHelper.MergeConfigFiles( NuGetHelper.GetConfigFiles( childPath ) ).AssertNotNull();
+        var mergedConfig = MergeConfigFiles( testContext, childPath );
 
         // There should be exactly 3 packageSource entries: nuget.org (from child, replacing parent),
         // MyFeed (from parent), and LocalFeed (from child).
@@ -470,7 +477,7 @@ public sealed class NuGetHelperTests : UnitTestClass
         var path2 = Path.Combine( subdir, "nuget.config" );
         File.WriteAllText( path2, content2 );
 
-        var mergedConfig = NuGetHelper.MergeConfigFiles( NuGetHelper.GetConfigFiles( path2 ) ).AssertNotNull().ToString();
+        var mergedConfig = MergeConfigFiles( testContext, path2 ).ToString();
 
         const string expectedMergedConfig =
             """
@@ -563,7 +570,7 @@ public sealed class NuGetHelperTests : UnitTestClass
         var path2 = Path.Combine( subdir, "nuget.config" );
         File.WriteAllText( path2, childConfig );
 
-        var mergedConfig = NuGetHelper.MergeConfigFiles( NuGetHelper.GetConfigFiles( path2 ) ).AssertNotNull().ToString();
+        var mergedConfig = MergeConfigFiles( testContext, path2 ).ToString();
 
         const string expectedMergedConfig =
             """
@@ -617,7 +624,7 @@ public sealed class NuGetHelperTests : UnitTestClass
         var path2 = Path.Combine( subdir, "nuget.config" );
         File.WriteAllText( path2, childConfig );
 
-        var mergedConfig = NuGetHelper.MergeConfigFiles( NuGetHelper.GetConfigFiles( path2 ) ).AssertNotNull().ToString();
+        var mergedConfig = MergeConfigFiles( testContext, path2 ).ToString();
 
         // Relative paths should be resolved to absolute paths based on each config file's directory.
         var resolvedParentPath = Path.GetFullPath( Path.Combine( testContext.BaseDirectory, "packages/local" ) );
@@ -707,7 +714,7 @@ public sealed class NuGetHelperTests : UnitTestClass
         var path2 = Path.Combine( subdir, "nuget.config" );
         File.WriteAllText( path2, childConfig );
 
-        var mergedConfig = NuGetHelper.MergeConfigFiles( NuGetHelper.GetConfigFiles( path2 ) ).AssertNotNull().ToString();
+        var mergedConfig = MergeConfigFiles( testContext, path2 ).ToString();
 
         // After <clear/>, only the child's entries should be present.
         // Relative paths are resolved to absolute paths based on the config file's directory.
@@ -737,5 +744,636 @@ public sealed class NuGetHelperTests : UnitTestClass
              """;
 
         AssertEx.WhitespaceInvariantEqual( expectedMergedConfig, mergedConfig );
+    }
+
+    // Constants of issue #1885: the package source that serves the prerelease Roslyn packages, and the pattern
+    // under which it is mapped.
+    private const string _prereleaseSourceKey = "roslyn-consolidated";
+    private const string _prereleaseSourceUrl = "https://proget.postsharp.net/nuget/roslyn-consolidated/v3/index.json";
+    private const string _codeAnalysisPattern = "Microsoft.CodeAnalysis.*";
+
+    /// <summary>
+    /// Creates the <see cref="NuGetHelper"/> under test, which reads the file system and the environment through the
+    /// services of the test context.
+    /// </summary>
+    private static NuGetHelper CreateNuGetHelper( TestContext testContext ) => new( testContext.ServiceProvider.Global );
+
+    private static XDocument MergeConfigFiles( TestContext testContext, string path )
+    {
+        var nuGetHelper = CreateNuGetHelper( testContext );
+
+        return nuGetHelper.MergeConfigFiles( nuGetHelper.GetConfigFiles( path ) ).AssertNotNull();
+    }
+
+    private static string WriteConfigFile( string directory, string content )
+    {
+        var path = Path.Combine( directory, "nuget.config" );
+        File.WriteAllText( path, content );
+
+        return path;
+    }
+
+    [Fact]
+    public void PackageSourceIsAddedWhenNoConfigFileExists()
+    {
+        // Issue #1885: when the user project has no nuget.config at all, the generated configuration must still
+        // declare the package source that serves the prerelease Roslyn packages.
+        using var testContext = this.CreateTestContext();
+
+        var document = new XDocument( new XElement( "configuration" ) );
+
+        var result = CreateNuGetHelper( testContext ).AddPackageSource(
+            document,
+            _prereleaseSourceKey,
+            _prereleaseSourceUrl,
+            _codeAnalysisPattern,
+            Array.Empty<string>() );
+
+        Assert.False( result.IsMappingWritten );
+
+        const string expected = """
+                                <configuration>
+                                  <packageSources>
+                                    <add key="roslyn-consolidated" value="https://proget.postsharp.net/nuget/roslyn-consolidated/v3/index.json" />
+                                  </packageSources>
+                                </configuration>
+                                """;
+
+        AssertEx.WhitespaceInvariantEqual( expected, document.ToString() );
+    }
+
+    [Fact]
+    public void PackageSourceIsAddedAfterClearElement()
+    {
+        // Issue #1885: a clear element removes every source declared before it, so the added source must come after it.
+        using var testContext = this.CreateTestContext();
+
+        var configPath = WriteConfigFile(
+            testContext.BaseDirectory,
+            """
+            <configuration>
+                <packageSources>
+                    <clear />
+                    <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+                </packageSources>
+            </configuration>
+            """ );
+
+        var document = MergeConfigFiles( testContext, configPath );
+
+        CreateNuGetHelper( testContext ).AddPackageSource( document, _prereleaseSourceKey, _prereleaseSourceUrl, _codeAnalysisPattern, Array.Empty<string>() );
+
+        var packageSources = document.Root.AssertNotNull().Element( "packageSources" ).AssertNotNull();
+        var elementNames = packageSources.Elements().Select( e => e.Name.LocalName ).ToList();
+
+        Assert.Equal( new[] { "clear", "add", "add" }, elementNames );
+
+        var addedElement = packageSources.Elements( "add" ).First( e => e.Attribute( "key" )?.Value == _prereleaseSourceKey );
+
+        Assert.Equal( _prereleaseSourceUrl, addedElement.Attribute( "value" ).AssertNotNull().Value );
+    }
+
+    [Fact]
+    public void NoMappingIsWrittenWhenTheConfigurationHasNoPackageSourceMapping()
+    {
+        // Issue #1885: writing a mapping when none exists would activate package source mapping for every package.
+        using var testContext = this.CreateTestContext();
+
+        var configPath = WriteConfigFile(
+            testContext.BaseDirectory,
+            """
+            <configuration>
+                <packageSources>
+                    <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+                </packageSources>
+            </configuration>
+            """ );
+
+        var document = MergeConfigFiles( testContext, configPath );
+
+        var result = CreateNuGetHelper( testContext ).AddPackageSource(
+            document,
+            _prereleaseSourceKey,
+            _prereleaseSourceUrl,
+            _codeAnalysisPattern,
+            Array.Empty<string>() );
+
+        Assert.False( result.IsMappingWritten );
+        Assert.Null( result.ConflictingPattern );
+        Assert.Null( document.Root.AssertNotNull().Element( "packageSourceMapping" ) );
+    }
+
+    [Fact]
+    public void NoMappingIsWrittenWhenThePackageSourceMappingSectionDeclaresNoPattern()
+    {
+        // Issue #1885: NuGet applies package source mapping when the configuration declares at least one pattern, so a
+        // section that a clear element has emptied leaves mapping inactive. Writing a mapping into it would activate
+        // mapping, and every package other than the Roslyn packages would then have no candidate source.
+        using var testContext = this.CreateTestContext();
+
+        var configPath = WriteConfigFile(
+            testContext.BaseDirectory,
+            """
+            <configuration>
+                <packageSources>
+                    <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+                </packageSources>
+                <packageSourceMapping>
+                    <clear />
+                </packageSourceMapping>
+            </configuration>
+            """ );
+
+        var document = MergeConfigFiles( testContext, configPath );
+
+        var result = CreateNuGetHelper( testContext ).AddPackageSource(
+            document,
+            _prereleaseSourceKey,
+            _prereleaseSourceUrl,
+            _codeAnalysisPattern,
+            Array.Empty<string>() );
+
+        Assert.False( result.IsMappingWritten );
+        Assert.Null( result.ConflictingPattern );
+
+        var mapping = document.Root.AssertNotNull().Element( "packageSourceMapping" ).AssertNotNull();
+
+        Assert.Empty( mapping.Elements( "packageSource" ) );
+    }
+
+    [Fact]
+    public void MappingIsWrittenAndTheStarSourceKeepsServingTheCodeAnalysisPackages()
+    {
+        // Issue #1885: NuGet resolves a package identifier through the longest matching pattern. Adding
+        // Microsoft.CodeAnalysis.* under the prerelease source alone would make that source the only candidate,
+        // so every source that covers the pattern today through a shorter one receives it as well.
+        using var testContext = this.CreateTestContext();
+
+        var configPath = WriteConfigFile(
+            testContext.BaseDirectory,
+            """
+            <configuration>
+                <packageSources>
+                    <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+                </packageSources>
+                <packageSourceMapping>
+                    <packageSource key="nuget.org">
+                        <package pattern="*" />
+                    </packageSource>
+                </packageSourceMapping>
+            </configuration>
+            """ );
+
+        var document = MergeConfigFiles( testContext, configPath );
+
+        var result = CreateNuGetHelper( testContext ).AddPackageSource(
+            document,
+            _prereleaseSourceKey,
+            _prereleaseSourceUrl,
+            _codeAnalysisPattern,
+            Array.Empty<string>() );
+
+        Assert.True( result.IsMappingWritten );
+
+        var mapping = document.Root.AssertNotNull().Element( "packageSourceMapping" ).AssertNotNull();
+
+        var nugetOrgPatterns = mapping.Elements( "packageSource" )
+            .First( e => e.Attribute( "key" )?.Value == "nuget.org" )
+            .Elements( "package" )
+            .Select( e => e.Attribute( "pattern" )?.Value )
+            .ToList();
+
+        Assert.Equal( new[] { "*", _codeAnalysisPattern }, nugetOrgPatterns );
+
+        var prereleasePatterns = mapping.Elements( "packageSource" )
+            .First( e => e.Attribute( "key" )?.Value == _prereleaseSourceKey )
+            .Elements( "package" )
+            .Select( e => e.Attribute( "pattern" )?.Value )
+            .ToList();
+
+        Assert.Equal( new[] { _codeAnalysisPattern }, prereleasePatterns );
+    }
+
+    [Fact]
+    public void ThePatternsAlreadyMappedToTheAddedSourceAreKept()
+    {
+        // Issue #1885: a machine that declares the package source itself, which is the machine of a contributor, may
+        // also map packages of its own to it. The packageSource element written into the generated copy replaces the
+        // inherited element of the same key instead of adding to it, as issue #1560 established, so the patterns that
+        // the effective configuration maps to that source have to be kept, or the packages they cover lose their only
+        // candidate source.
+        using var testContext = this.CreateTestContext();
+
+        var configPath = WriteConfigFile(
+            testContext.BaseDirectory,
+            $"""
+             <configuration>
+                 <packageSources>
+                     <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+                     <add key="{_prereleaseSourceKey}" value="{_prereleaseSourceUrl}" />
+                 </packageSources>
+                 <packageSourceMapping>
+                     <packageSource key="nuget.org">
+                         <package pattern="*" />
+                     </packageSource>
+                     <packageSource key="{_prereleaseSourceKey}">
+                         <package pattern="Microsoft.Net.Compilers.*" />
+                     </packageSource>
+                 </packageSourceMapping>
+             </configuration>
+             """ );
+
+        var document = MergeConfigFiles( testContext, configPath );
+
+        var result = CreateNuGetHelper( testContext ).AddPackageSource(
+            document,
+            _prereleaseSourceKey,
+            _prereleaseSourceUrl,
+            _codeAnalysisPattern,
+            Array.Empty<string>() );
+
+        Assert.True( result.IsMappingWritten );
+
+        var mapping = document.Root.AssertNotNull().Element( "packageSourceMapping" ).AssertNotNull();
+
+        var prereleasePatterns = mapping.Elements( "packageSource" )
+            .First( e => e.Attribute( "key" )?.Value == _prereleaseSourceKey )
+            .Elements( "package" )
+            .Select( e => e.Attribute( "pattern" )?.Value )
+            .ToList();
+
+        Assert.Equal( new[] { "Microsoft.Net.Compilers.*", _codeAnalysisPattern }, prereleasePatterns );
+    }
+
+    [Fact]
+    public void TheAddedPatternIsNotDuplicatedWhenTheAddedSourceAlreadyDeclaresIt()
+    {
+        // Issue #1885: the counterpart of the previous test. A configuration that already maps the pattern to the
+        // added source is what this method would write, so nothing changes and the pattern appears once.
+        using var testContext = this.CreateTestContext();
+
+        var configPath = WriteConfigFile(
+            testContext.BaseDirectory,
+            $"""
+             <configuration>
+                 <packageSources>
+                     <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+                     <add key="{_prereleaseSourceKey}" value="{_prereleaseSourceUrl}" />
+                 </packageSources>
+                 <packageSourceMapping>
+                     <packageSource key="nuget.org">
+                         <package pattern="*" />
+                     </packageSource>
+                     <packageSource key="{_prereleaseSourceKey}">
+                         <package pattern="{_codeAnalysisPattern}" />
+                     </packageSource>
+                 </packageSourceMapping>
+             </configuration>
+             """ );
+
+        var document = MergeConfigFiles( testContext, configPath );
+
+        var result = CreateNuGetHelper( testContext ).AddPackageSource(
+            document,
+            _prereleaseSourceKey,
+            _prereleaseSourceUrl,
+            _codeAnalysisPattern,
+            Array.Empty<string>() );
+
+        Assert.True( result.IsMappingWritten );
+
+        var mapping = document.Root.AssertNotNull().Element( "packageSourceMapping" ).AssertNotNull();
+
+        var prereleasePatterns = mapping.Elements( "packageSource" )
+            .First( e => e.Attribute( "key" )?.Value == _prereleaseSourceKey )
+            .Elements( "package" )
+            .Select( e => e.Attribute( "pattern" )?.Value )
+            .ToList();
+
+        Assert.Equal( new[] { _codeAnalysisPattern }, prereleasePatterns );
+
+        // The source that serves these packages through the * pattern keeps serving them.
+        var nugetOrgPatterns = mapping.Elements( "packageSource" )
+            .First( e => e.Attribute( "key" )?.Value == "nuget.org" )
+            .Elements( "package" )
+            .Select( e => e.Attribute( "pattern" )?.Value )
+            .ToList();
+
+        Assert.Equal( new[] { "*", _codeAnalysisPattern }, nugetOrgPatterns );
+    }
+
+    [Fact]
+    public void NoMappingIsWrittenWhenTheUserAlreadyMapsTheSamePattern()
+    {
+        // Issue #1885: the user has expressed an intention about these packages, and Metalama does not override it.
+        using var testContext = this.CreateTestContext();
+
+        var configPath = WriteConfigFile(
+            testContext.BaseDirectory,
+            """
+            <configuration>
+                <packageSources>
+                    <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+                    <add key="MyFeed" value="https://myfeed.example.com/index.json" />
+                </packageSources>
+                <packageSourceMapping>
+                    <packageSource key="nuget.org">
+                        <package pattern="*" />
+                    </packageSource>
+                    <packageSource key="MyFeed">
+                        <package pattern="Microsoft.CodeAnalysis.*" />
+                    </packageSource>
+                </packageSourceMapping>
+            </configuration>
+            """ );
+
+        var document = MergeConfigFiles( testContext, configPath );
+
+        var result = CreateNuGetHelper( testContext ).AddPackageSource(
+            document,
+            _prereleaseSourceKey,
+            _prereleaseSourceUrl,
+            _codeAnalysisPattern,
+            Array.Empty<string>() );
+
+        Assert.False( result.IsMappingWritten );
+        Assert.Equal( "Microsoft.CodeAnalysis.*", result.ConflictingPattern );
+        Assert.Equal( "MyFeed", result.ConflictingSourceKey );
+
+        var mapping = document.Root.AssertNotNull().Element( "packageSourceMapping" ).AssertNotNull();
+
+        Assert.DoesNotContain( mapping.Elements( "packageSource" ), e => e.Attribute( "key" )?.Value == _prereleaseSourceKey );
+
+        var nugetOrgPatterns = mapping.Elements( "packageSource" )
+            .First( e => e.Attribute( "key" )?.Value == "nuget.org" )
+            .Elements( "package" )
+            .Select( e => e.Attribute( "pattern" )?.Value )
+            .ToList();
+
+        Assert.Equal( new[] { "*" }, nugetOrgPatterns );
+
+        // The source itself is still declared, because the user may serve the packages from the same address under
+        // another key.
+        Assert.Contains(
+            document.Root.AssertNotNull().Element( "packageSources" ).AssertNotNull().Elements( "add" ),
+            e => e.Attribute( "key" )?.Value == _prereleaseSourceKey );
+    }
+
+    [Fact]
+    public void NoMappingIsWrittenWhenTheUserAlreadyMapsAMoreSpecificPattern()
+    {
+        // Issue #1885: a pattern whose literal prefix starts with the literal prefix of Microsoft.CodeAnalysis.* is
+        // more specific, so it also expresses an intention about these packages.
+        using var testContext = this.CreateTestContext();
+
+        var configPath = WriteConfigFile(
+            testContext.BaseDirectory,
+            """
+            <configuration>
+                <packageSources>
+                    <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+                    <add key="MyFeed" value="https://myfeed.example.com/index.json" />
+                </packageSources>
+                <packageSourceMapping>
+                    <packageSource key="nuget.org">
+                        <package pattern="*" />
+                    </packageSource>
+                    <packageSource key="MyFeed">
+                        <package pattern="Microsoft.CodeAnalysis.CSharp" />
+                    </packageSource>
+                </packageSourceMapping>
+            </configuration>
+            """ );
+
+        var document = MergeConfigFiles( testContext, configPath );
+
+        var result = CreateNuGetHelper( testContext ).AddPackageSource(
+            document,
+            _prereleaseSourceKey,
+            _prereleaseSourceUrl,
+            _codeAnalysisPattern,
+            Array.Empty<string>() );
+
+        Assert.False( result.IsMappingWritten );
+        Assert.Equal( "Microsoft.CodeAnalysis.CSharp", result.ConflictingPattern );
+        Assert.Equal( "MyFeed", result.ConflictingSourceKey );
+    }
+
+    [Fact]
+    public void MappingDecisionAccountsForTheUserLevelConfigFile()
+    {
+        // Issue #1885: NuGet reads the user-level configuration file for the temporary project as well, because that
+        // file is not tied to a directory tree. A packageSourceMapping section declared only there must therefore take
+        // part in the decision, and the source that covers the pattern through a shorter one must keep every pattern
+        // it declares, because a packageSource element of the same key replaces the inherited one.
+        using var testContext = this.CreateTestContext();
+
+        var projectDirectory = Path.Combine( testContext.BaseDirectory, "project" );
+        Directory.CreateDirectory( projectDirectory );
+
+        var configPath = WriteConfigFile(
+            projectDirectory,
+            """
+            <configuration>
+                <packageSources>
+                    <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+                </packageSources>
+            </configuration>
+            """ );
+
+        var userDirectory = Path.Combine( testContext.BaseDirectory, "user" );
+        Directory.CreateDirectory( userDirectory );
+
+        var userConfigPath = WriteConfigFile(
+            userDirectory,
+            """
+            <configuration>
+                <packageSourceMapping>
+                    <packageSource key="nuget.org">
+                        <package pattern="*" />
+                        <package pattern="System.*" />
+                    </packageSource>
+                </packageSourceMapping>
+            </configuration>
+            """ );
+
+        var document = MergeConfigFiles( testContext, configPath );
+
+        Assert.Null( document.Root.AssertNotNull().Element( "packageSourceMapping" ) );
+
+        var result = CreateNuGetHelper( testContext ).AddPackageSource(
+            document,
+            _prereleaseSourceKey,
+            _prereleaseSourceUrl,
+            _codeAnalysisPattern,
+            new[] { userConfigPath } );
+
+        Assert.True( result.IsMappingWritten );
+
+        var mapping = document.Root.AssertNotNull().Element( "packageSourceMapping" ).AssertNotNull();
+
+        var nugetOrgPatterns = mapping.Elements( "packageSource" )
+            .First( e => e.Attribute( "key" )?.Value == "nuget.org" )
+            .Elements( "package" )
+            .Select( e => e.Attribute( "pattern" )?.Value )
+            .ToList();
+
+        Assert.Equal( new[] { "*", "System.*", _codeAnalysisPattern }, nugetOrgPatterns );
+
+        var prereleasePatterns = mapping.Elements( "packageSource" )
+            .First( e => e.Attribute( "key" )?.Value == _prereleaseSourceKey )
+            .Elements( "package" )
+            .Select( e => e.Attribute( "pattern" )?.Value )
+            .ToList();
+
+        Assert.Equal( new[] { _codeAnalysisPattern }, prereleasePatterns );
+    }
+
+    [Fact]
+    public void NoPackageSourceIsDeclaredForAReleasedRoslynVersion()
+    {
+        // Issue #1885: nuget.org serves the released Roslyn packages, so a branch that compiles against a released
+        // Roslyn declares no package source and generates the nuget.config that it generated before this issue.
+        Assert.Null( SupportedCSharpVersions.GetPrereleasePackageSourceUrl( "5.0.0" ) );
+    }
+
+    [Fact]
+    public void ThePackageSourceIsDeclaredForAPrereleaseRoslynVersion()
+    {
+        // Issue #1885: a version string that carries a prerelease label belongs to a build published on the feeds
+        // that the consolidated source serves and not on nuget.org. The version string used here is the one of
+        // Roslyn 5.10, taken from pull request #1883.
+        Assert.Equal( _prereleaseSourceUrl, SupportedCSharpVersions.GetPrereleasePackageSourceUrl( "5.10.0-1.26365.3" ) );
+    }
+
+    [Fact]
+    public void TheCurrentRoslynVersionAgreesWithItsVersionString()
+    {
+        // Issue #1885: the reference-assembly project requests the version string of the current Roslyn version, and
+        // the package source it needs follows from that string alone, whichever version the branch compiles against.
+        var versionString = RoslynApiVersion.Current.ToNuGetVersionString();
+        var expected = versionString.IndexOf( "-", StringComparison.Ordinal ) >= 0 ? _prereleaseSourceUrl : null;
+
+        Assert.Equal( expected, RoslynApiVersion.Current.ToPrereleasePackageSourceUrl() );
+    }
+
+    /// <summary>
+    /// Creates the <see cref="NuGetHelper"/> under test with a given environment and a given operating system, so that
+    /// the resolution of the user-level configuration file does not depend on the machine that runs the test.
+    /// </summary>
+    private static NuGetHelper CreateNuGetHelper(
+        TestContext testContext,
+        IEnvironmentVariableProvider environmentVariables,
+        OSPlatform platform )
+        => new(
+            testContext.ServiceProvider.Global.GetRequiredBackstageService<IFileSystem>(),
+            environmentVariables,
+            new TestRuntimeInformation { Platform = platform } );
+
+    /// <summary>
+    /// Creates a directory under the base directory of the test context and writes a NuGet configuration file into it,
+    /// under the name that the NuGet tools give it, and returns the path of that file.
+    /// </summary>
+    private static string WriteUserConfigFile( TestContext testContext, params string[] directoryParts )
+    {
+        var directory = Path.Combine( new[] { testContext.BaseDirectory }.Concat( directoryParts ).ToArray() );
+        Directory.CreateDirectory( directory );
+
+        var path = Path.Combine( directory, "NuGet.Config" );
+        File.WriteAllText( path, "<configuration />" );
+
+        return path;
+    }
+
+    [Fact]
+    public void NoUserConfigFileIsFoundWhenTheEnvironmentDefinesNoDirectory()
+    {
+        // Issue #1885: an environment in which the directory cannot be formed yields no file, and the mapping decision
+        // is then taken from the discovered configuration files alone.
+        using var testContext = this.CreateTestContext();
+
+        var environmentVariables = new TestEnvironmentVariableProvider();
+
+        Assert.Null( CreateNuGetHelper( testContext, environmentVariables, OSPlatform.Windows ).GetUserConfigFile() );
+        Assert.Null( CreateNuGetHelper( testContext, environmentVariables, OSPlatform.Linux ).GetUserConfigFile() );
+    }
+
+    [Fact]
+    public void UserConfigFileIsFoundInTheApplicationDataDirectoryOnWindows()
+    {
+        // Issue #1885: on Windows the user-level configuration file is under %APPDATA%\NuGet, and its name is spelled
+        // NuGet.Config, which the lookup has to match without regard to case.
+        using var testContext = this.CreateTestContext();
+
+        var expectedPath = WriteUserConfigFile( testContext, "AppData", "NuGet" );
+
+        var environmentVariables = new TestEnvironmentVariableProvider();
+        environmentVariables.Environment["APPDATA"] = Path.Combine( testContext.BaseDirectory, "AppData" );
+
+        Assert.Equal( expectedPath, CreateNuGetHelper( testContext, environmentVariables, OSPlatform.Windows ).GetUserConfigFile() );
+    }
+
+    [Fact]
+    public void UserConfigFileIsFoundUnderTheHomeDirectoryOnUnix()
+    {
+        // Issue #1885: on every operating system other than Windows, the user-level configuration file is under
+        // $HOME/.nuget/NuGet.
+        using var testContext = this.CreateTestContext();
+
+        var expectedPath = WriteUserConfigFile( testContext, "home", ".nuget", "NuGet" );
+
+        var environmentVariables = new TestEnvironmentVariableProvider();
+        environmentVariables.Environment["HOME"] = Path.Combine( testContext.BaseDirectory, "home" );
+
+        Assert.Equal( expectedPath, CreateNuGetHelper( testContext, environmentVariables, OSPlatform.Linux ).GetUserConfigFile() );
+    }
+
+    [Fact]
+    public void TheHomeDirectoryOfTheDotNetCommandLineIsPreferredOnUnix()
+    {
+        // Issue #1885: NuGet takes the home directory from DOTNET_CLI_HOME when that variable is defined, so a build
+        // that redirects the home directory of the .NET command line reads the file of the redirected directory.
+        using var testContext = this.CreateTestContext();
+
+        var expectedPath = WriteUserConfigFile( testContext, "cliHome", ".nuget", "NuGet" );
+        WriteUserConfigFile( testContext, "home", ".nuget", "NuGet" );
+
+        var environmentVariables = new TestEnvironmentVariableProvider();
+        environmentVariables.Environment["DOTNET_CLI_HOME"] = Path.Combine( testContext.BaseDirectory, "cliHome" );
+        environmentVariables.Environment["HOME"] = Path.Combine( testContext.BaseDirectory, "home" );
+
+        Assert.Equal( expectedPath, CreateNuGetHelper( testContext, environmentVariables, OSPlatform.Linux ).GetUserConfigFile() );
+    }
+
+    [Fact]
+    public void TheUnixDirectoryIsNotProbedOnWindows()
+    {
+        // Issue #1885: NuGet reads one user-level configuration file, the one of the operating system it runs on. A
+        // file left under the home directory on Windows, by a tool that ports a Unix layout, is not read by NuGet and
+        // must not take part in the mapping decision.
+        using var testContext = this.CreateTestContext();
+
+        WriteUserConfigFile( testContext, "home", ".nuget", "NuGet" );
+
+        var environmentVariables = new TestEnvironmentVariableProvider();
+        environmentVariables.Environment["HOME"] = Path.Combine( testContext.BaseDirectory, "home" );
+        environmentVariables.Environment["DOTNET_CLI_HOME"] = Path.Combine( testContext.BaseDirectory, "home" );
+
+        Assert.Null( CreateNuGetHelper( testContext, environmentVariables, OSPlatform.Windows ).GetUserConfigFile() );
+    }
+
+    [Fact]
+    public void TheWindowsDirectoryIsNotProbedOnUnix()
+    {
+        // Issue #1885: the counterpart of the previous test. An application data directory defined on Unix, which some
+        // compatibility layers define, does not carry the file that NuGet reads.
+        using var testContext = this.CreateTestContext();
+
+        WriteUserConfigFile( testContext, "AppData", "NuGet" );
+
+        var environmentVariables = new TestEnvironmentVariableProvider();
+        environmentVariables.Environment["APPDATA"] = Path.Combine( testContext.BaseDirectory, "AppData" );
+
+        Assert.Null( CreateNuGetHelper( testContext, environmentVariables, OSPlatform.Linux ).GetUserConfigFile() );
     }
 }
