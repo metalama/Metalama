@@ -4,6 +4,8 @@
     <PropertyGroup>
         <!-- The MSBuild version, and therefore the .NET runtime version, must match the version of the .NET SDK
              used for the project. Only .NET 10 is supported, so there is a single target framework.
+             Microsoft.CodeAnalysis.Workspaces.MSBuild 5.10 ships assets for net10.0 and net472 only, so a net8.0
+             or net9.0 build of this project could not reference MSBuildWorkspace at all. See Directory.Packages.md.
 
              TargetFrameworks is used in the plural even for a single value, and must stay that way. This project
              both consumes Microsoft.CodeAnalysis.Workspaces.MSBuild and packs its contentFiles, which are the
@@ -51,7 +53,11 @@
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" VersionOverride="$(RoslynMaxVersion)"/>
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" VersionOverride="$(RoslynMaxVersion)"/>
 
-        <!-- Microsoft.Build must not be copied to the application directory because its location is resolved by Microsoft.Build.Locator. -->
+        <!-- The MSBuild assemblies must not be copied to the application directory, because Microsoft.Build.Locator
+             resolves them from the .NET SDK. Microsoft.Build.Framework and Microsoft.NET.StringTools arrive as
+             transitive dependencies of Microsoft.CodeAnalysis.Workspaces.MSBuild, at versions older than the MSBuild
+             of the SDK that Microsoft.Build.Locator selects. A copy in the application directory is found before the
+             resolver runs, and the MSBuild of the SDK then fails to load its own types. -->
         <PackageReference Include="Microsoft.Build" PrivateAssets="all" ExcludeAssets="runtime" />
 
         <!-- The same holds for Microsoft.Build.Framework, which Microsoft.CodeAnalysis.Workspaces.MSBuild brings in

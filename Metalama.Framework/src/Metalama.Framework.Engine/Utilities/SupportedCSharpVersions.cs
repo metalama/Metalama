@@ -29,20 +29,14 @@ public static class SupportedCSharpVersions
     /// This C# version might not be supported by the .NET SDK. See also <see cref="LanguageVersionProvider"/>.
     /// </remarks>
     public static LanguageVersion Latest
-#if ROSLYN_5_0_0_OR_GREATER
         => LanguageVersion.CSharp14;
-#else
-        => LanguageVersion.CSharp13;
-#endif
 
 #pragma warning disable SA1114 // Parameter list should follow declaration
     /// <summary>
     /// Gets all supported language versions.
     /// </summary>
     public static ImmutableHashSet<LanguageVersion> All { get; } = ImmutableHashSet.Create(
-#if ROSLYN_5_0_0_OR_GREATER
         LanguageVersion.CSharp14,
-#endif
         LanguageVersion.CSharp13,
         LanguageVersion.CSharp12,
         LanguageVersion.CSharp11,
@@ -63,9 +57,18 @@ public static class SupportedCSharpVersions
             RoslynApiVersion.V4_8_0 => AllLanguageVersions.CSharp12,
             RoslynApiVersion.V4_12_0 => AllLanguageVersions.CSharp13,
             RoslynApiVersion.V5_0_0 => AllLanguageVersions.CSharp14,
+            RoslynApiVersion.V5_10_0 => AllLanguageVersions.CSharp14,
             _ => throw new AssertionFailedException( $"Unexpected Roslyn API version {apiVersion}." )
         };
 
+    /// <summary>
+    /// Gets the version of the <c>Microsoft.CodeAnalysis.CSharp</c> package that the reference project of
+    /// <c>CompileTimeAssemblyLocator</c> references. The value must be the exact package version that the variant is
+    /// built against, that is, <c>RoslynApiMaxVersion</c> of <c>Directory.Packages.props</c> for the latest variant,
+    /// so that compile-time code is compiled against the same API as the one it runs against. A lower version would
+    /// hide the members that the running Roslyn exposes. When the version is a preview, it is restored from the feed
+    /// declared in <c>nuget.base.config</c>, as the rest of the build is.
+    /// </summary>
     internal static string ToNuGetVersionString( this RoslynApiVersion roslynVersion )
         => roslynVersion switch
         {
@@ -74,6 +77,7 @@ public static class SupportedCSharpVersions
             RoslynApiVersion.V4_8_0 => "4.8.0",
             RoslynApiVersion.V4_12_0 => "4.12.0",
             RoslynApiVersion.V5_0_0 => "5.0.0",
+            RoslynApiVersion.V5_10_0 => "5.10.0-1.26365.3",
             _ => throw new AssertionFailedException( $"Unexpected Roslyn version {roslynVersion}." )
         };
 
@@ -85,6 +89,7 @@ public static class SupportedCSharpVersions
             RoslynApiVersion.V4_8_0 => new Version( 4, 8, 0 ),
             RoslynApiVersion.V4_12_0 => new Version( 4, 12, 0 ),
             RoslynApiVersion.V5_0_0 => new Version( 5, 0, 0 ),
+            RoslynApiVersion.V5_10_0 => new Version( 5, 10, 0 ),
             _ => throw new AssertionFailedException( $"Unexpected Roslyn version {roslynApiVersion}." )
         };
 

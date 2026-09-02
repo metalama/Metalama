@@ -17,7 +17,7 @@ Two values are derived here rather than there, because they are package versions
 | `RoslynApiMinVersion` / `RoslynApiMaxVersion` | `Directory.Packages.props` | The lowest and highest Roslyn version presented by a host in the baseline, per *Roslyn variant coverage* below |
 | `MicrosoftBuildVersion` | `Directory.Packages.props`, unconditional | The MSBuild version shipped by the lowest host in the baseline, which is presently the .NET 10 SDK, per *TFM constraints* below |
 
-Both Roslyn values are presently below the PB-2027.0 Roslyn floor: 4.12.0 is below Roslyn 5.0, the version Rider presents, and 5.0.0 is below the version `Metalama.Compiler` builds on. Issue #1881 raises both.
+Both Roslyn values now agree with PB-2027.0. `RoslynApiMinVersion` is `5.0.0`, which is the Roslyn version that Rider presents and the lowest of any host in the baseline. `RoslynApiMaxVersion` is `5.10.0-1.26365.3`, which is the Roslyn version that `Metalama.Compiler` builds on. `MicrosoftBuildVersion` is `18.0.2`, the MSBuild of Visual Studio 2026 and of the .NET 10 SDK.
 
 ## Why versioning is constrained
 
@@ -28,7 +28,7 @@ Metalama runs in three host types we don't control: Visual Studio, third-party d
 | Bucket | Where | Version constraint |
 | --- | --- | --- |
 | VS-loaded | devenv.exe, OOP analyzer host, design-time MSBuild in VS | ≤ what VS floor ships |
-| Design-time analyzer (non-VS) | VS Code C# Dev Kit, Rider, OmniSharp | ≤ what that IDE's Roslyn LSP ships (≥ 4.12 across major IDEs today) |
+| Design-time analyzer (non-VS) | VS Code C# Dev Kit, Rider, OmniSharp | ≤ what that IDE's Roslyn LSP ships (Roslyn 5.0 or later across major IDEs today) |
 | Compiler-loaded | `Metalama.Compiler.exe`, replacing the SDK's Roslyn at build time | Latest compatible with our hosted Roslyn fork |
 | End-user runtime | The user's app process | Latest compatible with the user's TFM |
 
@@ -98,17 +98,65 @@ Add a one-line inline comment in the props file when a version is pinned for a n
 
 ## Roslyn variant coverage
 
-We ship per-Roslyn-version variants of our analyzer/source-generator NuGet payload. NuGet auto-selects the highest-compatible variant for the consumer's Roslyn host.
+We ship per-Roslyn-version variants of our analyzer/source-generator NuGet payload. `ResourceExtractor.GetRoslynVersion` reads the `AssemblyVersion` of the Roslyn assembly loaded in the host process and selects the highest variant whose identity does not exceed it.
 
-Which variants we ship follows from the hosts in the platform baseline, so re-derive this table whenever the baseline changes. The Roslyn API section of [`Metalama.Framework/docs/platform-support.md`](Metalama.Framework/docs/platform-support.md) records the state of that derivation for the release in preparation, including the conditions under which `Roslyn.4.12.0` can be dropped.
+Which variants we ship follows from the hosts in the platform baseline, so re-derive this table whenever the baseline changes. The Roslyn API section of [`Metalama.Framework/docs/platform-support.md`](Metalama.Framework/docs/platform-support.md) records the state of that derivation for the release in preparation.
 
-| Variant (`eng\RoslynVersions\`) | Roslyn range it satisfies | Serves (in-MS-support hosts at GA 2026-07-01) |
+| Variant (`eng\RoslynVersions\`) | Roslyn range it satisfies | Serves |
 | --- | --- | --- |
-| ~~`Roslyn.4.8.0.props`~~ | ~~4.8 – 4.11~~ | Dropped — no in-support design-time host below 4.12, and the .NET 8 SDK's bundled Roslyn 4.11 is irrelevant at build time (Metalama.Compiler replaces it) |
-| `Roslyn.4.12.0.props` | 4.12 – 4.x | VS 2022 17.14 (Roslyn 4.14), .NET 9 SDK 9.0.3xx (Roslyn 4.14), Rider / VS Code design-time hosts |
-| `Roslyn.5.0.0.props` | 5.0+ | VS 2026 18.5 (Roslyn 5.5), .NET 10 SDK 10.0.x |
+| ~~`Roslyn.4.8.0.props`~~ | ~~4.8 – 4.11~~ | Dropped for 2026.1 — no in-support design-time host below 4.12 |
+| ~~`Roslyn.4.12.0.props`~~ | ~~4.12 – 4.14~~ | Dropped for 2027.0 — its only host was Visual Studio 2022, which is out of the platform baseline |
+| `Roslyn.5.0.0.props` | 5.0 – 5.9 | Rider 2026.2 (Roslyn 5.0), the Visual Studio Code C# Dev Kit |
+| `Roslyn.5.10.0.props` | 5.10+ | VS 2026 long-term servicing channel, VS 2027, the .NET 10 and .NET 11 SDKs, `Metalama.Compiler` |
 
-Public Roslyn API surface didn't change between 4.8 and 4.11 for the API set we use; the first additions we depend on (`AllowsConstraintClause`, partial property symbols, etc.) shipped in 4.12. Once no in-support host remained below 4.12, the 4.8 variant added no coverage over 4.12.
+### Why the latest variant is numbered after the Roslyn version it binds against
+
+The latest variant was renumbered from `5.0.0` to `5.10.0` when `RoslynApiMaxVersion` was raised to `5.10.0-1.26365.3`. The alternative was to keep the identity `5.0.0` and let `ThisRoslynVersion` follow `RoslynApiMaxVersion`, so that only the referenced package version changed. That alternative is unsound, for two reasons that combine:
+
+1. `Microsoft.CodeAnalysis` carries `AssemblyVersion` `major.minor.0.0`, so Roslyn 5.0 is `5.0.0.0` and Roslyn 5.10 is `5.10.0.0`. These are distinct binding identities. `Metalama.Framework.Engine` references `Microsoft.CodeAnalysis.CSharp.Workspaces` at `$(ThisRoslynVersion)`, which transitively raises `Microsoft.CodeAnalysis.CSharp` to the same version, so the payload of the latest variant binds against `5.10.0.0`.
+2. Assembly binding rolls forward, never back. A payload that binds against `5.10.0.0` loads in a host that provides Roslyn 5.10 or later, and fails to load in a host that provides Roslyn 5.0 through 5.9.
+
+Naming the variant `5.0.0` would therefore make `GetRoslynVersion` hand a Roslyn 5.5 host a payload that host cannot load. Naming it `5.10.0` makes the same host fall back to the `Roslyn.5.0.0` variant, which binds against `5.0.0.0` and loads correctly. The variant identity must never understate the Roslyn version that the payload binds against.
+
+The latest variant carries no project-name suffix (`ThisRoslynVersionProjectSuffix` is empty), so the renumbering renames no project directory. It renames the assemblies and packages built from `ThisRoslynVersionNoPreview`, in particular `Metalama.Framework.Engine.5.10.0`, `Metalama.Framework.DesignTime.5.10.0` and `Metalama.Framework.Implementation.5.10.0`, and the generated-code directory `.generated/5.10.0`.
+
+### The variant floor is set by design-time analyzer hosts
+
+The set of variants is determined by the design-time analyzer hosts we support, not by the set of supported .NET SDK versions. Two mechanisms make the SDK irrelevant here. At build time `Metalama.Compiler.exe` replaces the SDK's Roslyn, so the compilation runs against Roslyn 5.10 whichever SDK invokes it. At design time every supported integrated development environment carries its own Roslyn payload, so the SDK's Roslyn is not the one loaded. A supported SDK whose bundled Roslyn falls between two variant identities therefore imposes no requirement on the variant set.
+
+State the policy this way round when reading the *Execution buckets* table. Read as "any supported .NET SDK", the build-time bucket would appear to require a variant for every SDK feature band, which it does not.
+
+A variant exists only when it serves a host in the supported set, and each variant must name that host. The set is therefore derived from one measurement, taken on the design-time hosts that publish no support calendar.
+
+### Why the lower variant is Roslyn 5.0 and not Roslyn 4.12
+
+Measured on 2026-09-01, Rider 2026.2.0.2 presents Roslyn 5.0. Its `lib/ReSharperHost/Microsoft.CodeAnalysis.dll` carries assembly version `42.42.42.42`, the JetBrains build marker, and product version `5.0.0-dev`, which is what the JetBrains branch of `ResourceExtractor.GetRoslynVersion` parses. The other copies of that assembly in the Rider layout belong to the bundled .NET SDK and to the bundled MSBuild, and neither is loaded into the process that hosts our analyzer.
+
+| Host | Roslyn | Variant that serves it |
+| --- | --- | --- |
+| Rider 2026.2 | 5.0 | `Roslyn.5.0.0` |
+| Visual Studio Code C# Dev Kit | 5.8 or later, not measured | `Roslyn.5.0.0` |
+| VS 2026 long-term servicing channel, baseline of 2026-11 | about 5.11 | `Roslyn.5.10.0` |
+| VS 2027 Stable | 5.10 or later | `Roslyn.5.10.0` |
+| The .NET 10 and .NET 11 SDKs, and `Metalama.Compiler` | 5.0 and later | `Roslyn.5.10.0`, always the latest |
+
+Without the `Roslyn.5.0.0` variant, every Rider user would fall back to a Roslyn 4 payload and lose C# 14 extension member support at design time, with no diagnostic. That is the silent degradation the variant set exists to prevent.
+
+The `Roslyn.4.12.0` variant is dropped in the same change. Its only host was Visual Studio 2022 17.14, which leaves mainstream support on 2027-01-13, twelve days after the general availability date of Metalama 2027.0, and whose remaining lifetime to 2032 is security-only. No host in the supported set is below Roslyn 5.0, so `RoslynApiMinVersion` is `5.0.0`.
+
+The Roslyn version of Rider and of the Visual Studio Code C# Dev Kit is the only input that can place a host below the Visual Studio floor, so it must be measured again at each release candidate. The C# Dev Kit is unmeasured here, because it is not installed on the machine the Rider measurement was taken on; it changes the outcome only if it is below Roslyn 5.0, which `roslyn-language-server` has not been for several releases.
+
+### Preprocessor symbols defined by the variants
+
+No production source branches on a variant symbol. Both variants are Roslyn 5, so the engine treats them alike: they differ only in the Roslyn version their payload binds against.
+
+The latest variant defines `ROSLYN_5_10_0_OR_GREATER`, and two aspect tests use it. `UnknownAccessorInTemplate` and its `_Roslyn5_0` counterpart split one scenario in two, because Roslyn 5.0 reports `CS1014` on an empty span and Roslyn 5.10 reports it on the `setx` token. Name a new symbol after the Roslyn version at which the distinction appears, so that renumbering a variant does not rewrite the sites that use it.
+
+`Metalama.Framework.Tests.AspectTests` defines `METALAMA_HTML_WRITER` in its latest-variant evaluation. `Metalama.Extensions.HtmlWriter` and `Metalama.Extensions.DiffEngine` are built against the latest Roslyn, so they are referenced by the latest variant only, and the test suites that request HTML output require that symbol. The condition is the presence of the extension, not the Roslyn version, so the symbol is not named after Roslyn.
+
+`ROSLYN_5_0_0_OR_GREATER` was the last symbol, and it named the boundary between the Roslyn 4 and the Roslyn 5 API generations. Dropping the `Roslyn.4.12.0` variant put every variant on the Roslyn 5 side of that boundary, which made the symbol true in every build. It was removed together with its 177 conditional blocks, whose `#else` branches no build compiled any more, its 69 `@RequiredConstant` and `@ForbiddenConstant` test directives, and the `RequiredConstants` entries of three `metalamaTests.json` files. `ROSLYN_4_4_0_OR_GREATER`, `ROSLYN_4_8_0_OR_GREATER`, `ROSLYN_4_12_0_OR_GREATER`, `ROSLYN_4_12_0`, `ROSLYN_4_12_0_OR_EARLIER` and `ROSLYN_5_0_0` had been removed earlier in the same release, each because it was either always true or never read.
+
+A symbol is warranted again only when the source has to branch on a distinction between two variants that no existing symbol expresses. Name it after the Roslyn version at which the distinction appears, not after a variant number, so that renumbering a variant does not rewrite the `#if` sites.
 
 ## Adding or upgrading a package
 

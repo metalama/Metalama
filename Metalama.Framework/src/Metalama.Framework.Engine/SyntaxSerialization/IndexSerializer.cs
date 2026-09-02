@@ -18,7 +18,9 @@ internal sealed class IndexSerializer : ObjectSerializer<Index>
             .NormalizeWhitespaceIfNecessary( serializationContext.SyntaxGenerationContext );
 
     /// <summary>
-    /// Serializes an <see cref="Index"/> to its C# expression form without whitespace normalization.
+    /// Serializes an <see cref="T:System.Index"/> to its C# expression form without whitespace normalization.
+    /// The documentation identifier is used because both the runtime and System.Memory expose System.Index,
+    /// which makes the short reference ambiguous.
     /// Used by <see cref="RangeSerializer"/> to compose range expressions.
     /// </summary>
     internal static ExpressionSyntax SerializeIndex( Index obj, SyntaxSerializationContext serializationContext )

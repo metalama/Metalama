@@ -164,7 +164,6 @@ internal sealed class IntroducedAccessor : IntroducedDeclaration, IMethodImpl
 
     public bool? IsIteratorMethod => this._builderData.IsIteratorMethod;
 
-#if ROSLYN_5_0_0_OR_GREATER
     [Memo]
     public IMethod? ExtensionImplementationMethod => this.GetExtensionImplementationMethod();
 
@@ -191,9 +190,6 @@ internal sealed class IntroducedAccessor : IntroducedDeclaration, IMethodImpl
             this._builderData.IsStatic,
             this.Parameters );
     }
-#else
-    IMethod? IMethod.ExtensionImplementationMethod => null;
-#endif
 
     public override bool CanBeInherited => this._introducedMember.CanBeInherited;
 

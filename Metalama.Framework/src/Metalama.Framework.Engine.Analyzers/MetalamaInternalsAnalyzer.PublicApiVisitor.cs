@@ -44,7 +44,11 @@ public partial class MetalamaInternalsAnalyzer
 
         private void VisitDeclaration<T>( T node, Action<T> visitDeeper ) where T : SyntaxNode
         {
+            // RS1039 reports that the call always returns null. It reads the static type of the argument, which is the
+            // type parameter, and cannot see that every call site passes a node kind that does declare a symbol.
+#pragma warning disable RS1039
             var symbol = this._context.SemanticModel.GetDeclaredSymbol( node );
+#pragma warning restore RS1039
 
             if ( symbol is { DeclaredAccessibility: Accessibility.Public or Accessibility.Protected or Accessibility.ProtectedOrInternal } )
             {

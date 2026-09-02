@@ -36,11 +36,9 @@ namespace Metalama.Framework.Engine.CodeModel.Source
             compilation,
             genericContextForSymbolMapping )
         {
-#if ROSLYN_5_0_0_OR_GREATER
             Invariant.Assert(
                 symbol.PartialDefinitionPart == null,
                 "Cannot use partial implementation to instantiate the SourceEvent class." );
-#endif
 
             this._symbol = symbol;
         }
@@ -94,9 +92,7 @@ namespace Metalama.Framework.Engine.CodeModel.Source
         public IEvent Definition
             => ReferenceEquals( this._symbol, this._symbol.OriginalDefinition ) ? this : this.Compilation.Factory.GetEvent( this._symbol.OriginalDefinition );
 
-#if ROSLYN_5_0_0_OR_GREATER
         public override bool IsPartial => this._symbol.IsPartialDefinition || this._symbol.PartialDefinitionPart != null;
-#endif
 
         protected override IMemberOrNamedType GetDefinitionMemberOrNamedType() => this.Definition;
 
@@ -164,7 +160,6 @@ namespace Metalama.Framework.Engine.CodeModel.Source
 
         private ImmutableArray<SourceReference> GetSourcesImpl()
         {
-#if ROSLYN_5_0_0_OR_GREATER
             if ( this._symbol.PartialImplementationPart != null )
             {
                 return
@@ -175,11 +170,8 @@ namespace Metalama.Framework.Engine.CodeModel.Source
             }
             else
             {
-#endif
                 return base.Sources;
-#if ROSLYN_5_0_0_OR_GREATER
             }
-#endif
         }
 
         [Memo]

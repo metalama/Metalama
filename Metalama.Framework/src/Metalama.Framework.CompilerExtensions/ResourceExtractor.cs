@@ -570,17 +570,20 @@ public static class ResourceExtractor
             }
         }
 
-        if ( version >= new Version( 5, 0 ) )
+        if ( version >= new Version( 5, 10 ) )
+        {
+            return "5.10.0";
+        }
+        else if ( version >= new Version( 5, 0 ) )
         {
             return "5.0.0";
         }
-        else if ( version >= new Version( 4, 12 ) )
-        {
-            return "4.12.0";
-        }
         else
         {
-            return "4.8.0";
+            // No payload is embedded for a Roslyn version below 5.0. Such a host is outside the supported
+            // platform baseline, and naming a version that has no payload makes the extraction fail instead of
+            // loading a payload that cannot bind.
+            return "4.12.0";
         }
     }
 }

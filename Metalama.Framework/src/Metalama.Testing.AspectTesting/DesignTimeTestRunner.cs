@@ -50,12 +50,14 @@ namespace Metalama.Testing.AspectTesting
 
                 if ( introducedSyntaxTrees.Length > 0 )
                 {
-                    // Sort syntax trees by name.
-                    // Since the syntax tree name includes the full name of the type, we must index them to avoid too long test result file names.
-                    // TODO: Underlying names may not be deterministic, which makes this non-deterministic too.
+                    // Sort the syntax trees by their generated content, and index them so that the test result file
+                    // names stay short. The name is not usable as the sort key: the name of an introduced extension
+                    // block is a hash of the path of the source file and of the position of the declaration in it, so
+                    // it differs between the variant projects and between a deterministic and a non-deterministic
+                    // build, which would make the index of each expected file differ as well.
                     var outputCompilation =
                         testResult.InputCompilation!.AddSyntaxTrees(
-                            introducedSyntaxTrees.OrderBy( x => x.Name, StringComparer.Ordinal )
+                            introducedSyntaxTrees.OrderBy( x => x.GeneratedSyntaxTree.ToString(), StringComparer.Ordinal )
                                 .Select( ( x, i ) => x.GeneratedSyntaxTree.WithFilePath( $"{i}.cs" ) ) );
 
                     testResult.OutputCompilation = outputCompilation;

@@ -118,14 +118,12 @@ internal sealed partial class SymbolTranslator
 
         public override ISymbol? VisitEvent( IEventSymbol symbol )
         {
-#if ROSLYN_5_0_0_OR_GREATER
             if ( symbol.PartialImplementationPart != null )
             {
                 var partialImplementation = this.Translate( symbol.PartialImplementationPart );
 
                 return partialImplementation?.PartialDefinitionPart;
             }
-#endif
 
             var translated = this.TranslateNonUniquelyNamedTypeMember( symbol );
 
@@ -134,12 +132,10 @@ internal sealed partial class SymbolTranslator
                 return null;
             }
 
-#if ROSLYN_5_0_0_OR_GREATER
             if ( symbol.PartialDefinitionPart != null )
             {
                 return ((IEventSymbol) translated).PartialImplementationPart;
             }
-#endif
 
             return translated;
         }

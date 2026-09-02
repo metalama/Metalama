@@ -1973,7 +1973,6 @@ class C {}
         Assert.Same( compilation.Factory.GetProperty( partialDefinition ), compilation.Factory.GetProperty( partialImplementation ) );
     }
 
-#if ROSLYN_5_0_0_OR_GREATER
     [Fact]
     public void PartialConstructors()
     {
@@ -2049,7 +2048,6 @@ class C {}
         // Ensure declarations of both parts are the same.
         Assert.Same( compilation.Factory.GetEvent( partialDefinition ), compilation.Factory.GetEvent( partialImplementation ) );
     }
-#endif
 
     [Fact]
     public void HasImplementation()
@@ -2216,7 +2214,6 @@ public partial class B
         Assert.Single( partialProperty.Sources, s => s.IsImplementationPart );
     }
 
-#if ROSLYN_5_0_0_OR_GREATER
     [Fact]
     private void SourceReferencesToEvents()
     {
@@ -2264,7 +2261,6 @@ public partial class B
         Assert.True( partialConstructor.HasImplementation );
         Assert.Single( partialConstructor.Sources, s => s.IsImplementationPart );
     }
-#endif
 
     [Fact]
     public void RecordImplicitPropertyInitializer()

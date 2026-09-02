@@ -93,7 +93,6 @@ public sealed class SymbolExtensionsTests : UnitTestClass
         Assert.Contains( "=> 42", syntaxRef.GetSyntax().ToString(), StringComparison.Ordinal );
     }
 
-#if ROSLYN_5_0_0_OR_GREATER
     [Fact]
     public void GetPrimarySyntaxReference_PartialEvent_ReturnsImplementation()
     {
@@ -128,7 +127,6 @@ public sealed class SymbolExtensionsTests : UnitTestClass
         // The implementation part contains the accessors
         Assert.Contains( "add { }", syntaxRef.GetSyntax().ToString(), StringComparison.Ordinal );
     }
-#endif
 
     [Fact]
     public void GetPrimarySyntaxReference_NullSymbol_ReturnsNull()
