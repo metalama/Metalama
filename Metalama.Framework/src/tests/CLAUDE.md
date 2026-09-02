@@ -5,7 +5,7 @@
 Redirect the whole output of `dotnet test` to a file and inspect the file:
 
 ```powershell
-dotnet test <project> -c Debug -f net8.0 --no-build > run.log 2>&1
+dotnet test <project> -c Debug -f net10.0 --no-build > run.log 2>&1
 ```
 
 Then read `run.log`: the summary line is at the end, and the names of the failing tests are the lines

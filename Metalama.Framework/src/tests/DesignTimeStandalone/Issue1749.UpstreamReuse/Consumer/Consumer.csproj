@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>net10.0</TargetFramework>
         <Nullable>enable</Nullable>
         <!-- MSB3243: reference resolution cannot unify two 'Shared' assemblies of different versions and warns that it
              chose one arbitrarily. It only affects the preparatory build, whose result the harness ignores. -->

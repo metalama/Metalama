@@ -8,6 +8,7 @@ using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Testing.UnitTesting;
 using System;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -15,6 +16,19 @@ namespace Metalama.Framework.Tests.UnitTests.CodeModel
 {
     public sealed class CompileTimeTypeTests : UnitTestClass
     {
+        /// <summary>
+        /// Matches the assembly qualification that <see cref="Type.FullName"/> appends to each generic type
+        /// argument, for instance
+        /// <c>, System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e</c>.
+        /// </summary>
+        /// <remarks>
+        /// The name and the version of the assembly are part of the pattern rather than of a literal, because both
+        /// follow the runtime that executes the test: <c>mscorlib</c> on .NET Framework, <c>System.Private.CoreLib</c>
+        /// on .NET, and a version that changes with every major release.
+        /// </remarks>
+        private static readonly Regex _assemblyQualification =
+            new( @", [\w.]+, Version=[\d.]+, Culture=\w+, PublicKeyToken=\w+" );
+
         [Theory]
         [InlineData( typeof(Task) )]
         [InlineData( typeof(Task<>) )]
@@ -33,12 +47,7 @@ namespace Metalama.Framework.Tests.UnitTests.CodeModel
 
             var compileTimeType = compilationServices.CompileTimeTypeFactory.Get( typeSymbol );
 
-            var expectedTypeName = type.FullName.AssertNotNull()
-#if NET5_0_OR_GREATER
-                .ReplaceOrdinal( ", System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e", "" )
-#else
-                .ReplaceOrdinal( ", mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089", "" )
-#endif
+            var expectedTypeName = _assemblyQualification.Replace( type.FullName.AssertNotNull(), "" )
                 .ReplaceOrdinal( "[[", "[" )
                 .ReplaceOrdinal( "]]", "]" );
 
