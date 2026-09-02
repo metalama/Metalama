@@ -1,5 +1,11 @@
 # Updating Roslyn
 
+Which Roslyn versions we must support, and therefore which variants we ship, is decided by the platform baseline
+in [`platform-support.md`](platform-support.md). Rule 7 of that doctrine requires a new stable Roslyn version to
+be supported within three weeks of its stable release. This document is the procedure for doing so; the decision
+of whether a variant is still needed, and which Visual Studio versions the testing below must cover, belongs
+there.
+
 1. Update Metalama.Compiler first. 
 2. Update `RoslynMaxVersion` and `RoslynApiMaxVersion` in `Directory.packages.props` and possibly `ThisRoslynVersion` in `eng/RoslynVersions/Roslyn.<LAST_VERSION>.props` (when updating between pre-release versions of Roslyn).
 3. Study the new C# syntax features. We IGNORE any experimental feature. They are not supported. If the new Roslyn only has new experimental features, there is nothing to do in this repo.
