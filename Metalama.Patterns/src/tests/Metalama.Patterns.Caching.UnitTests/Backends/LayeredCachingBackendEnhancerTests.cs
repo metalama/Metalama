@@ -251,6 +251,20 @@ public sealed partial class LayeredCachingBackendEnhancerTests : IDisposable
 
     #region Invalidation Propagation
 
+    /// <summary>
+    /// Verifies that a wait for a backend event that is not raised reports which event was awaited, and that it
+    /// reports it before the xUnit timeout of the test aborts the test. See issue #1904.
+    /// </summary>
+    [Fact( Timeout = _timeout )]
+    public async Task WaitForBackendEvent_WhenTheEventIsNotRaised_ReportsTheAwaitedEvent()
+    {
+        var neverRaised = new TaskCompletionSource<bool>();
+
+        var exception = await Assert.ThrowsAsync<TimeoutException>( () => neverRaised.Task.WaitWithTimeoutAsync() );
+
+        Assert.Contains( nameof(CachingBackend.DependencyInvalidated), exception.Message, StringComparison.Ordinal );
+    }
+
     [Fact( Timeout = _timeout )]
     public async Task OnBackendDependencyInvalidated_FromL2_InvalidatesL1()
     {
