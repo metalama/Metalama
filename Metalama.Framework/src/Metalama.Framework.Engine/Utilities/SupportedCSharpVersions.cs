@@ -71,8 +71,10 @@ public static class SupportedCSharpVersions
     /// that the reference-assembly project of <see cref="CompileTimeAssemblyLocator"/> requests.
     /// </summary>
     /// <remarks>
-    /// This method and <see cref="ToPrereleasePackageSourceUrl"/> are edited together, because a prerelease version
-    /// string is served by a prerelease feed and not by nuget.org. See issue #1885.
+    /// This method is the whole of the switch between a released Roslyn and a prerelease one. A prerelease version
+    /// string is served by the package source of <see cref="RoslynPrereleaseSourceUrl"/> and not by nuget.org, and
+    /// <see cref="ToPrereleasePackageSourceUrl"/> derives that source from the version string returned here, so
+    /// entering or leaving a prerelease Roslyn is the edit of the version string alone. See issue #1885.
     /// </remarks>
     internal static string ToNuGetVersionString( this RoslynApiVersion roslynVersion )
         => roslynVersion switch
@@ -107,18 +109,28 @@ public static class SupportedCSharpVersions
     /// nuget.org serves them.
     /// </summary>
     /// <remarks>
-    /// This method and <see cref="ToNuGetVersionString"/> are edited together, and they are the whole of the switch
-    /// between a released Roslyn and a prerelease one. A version branch enters a prerelease Roslyn by giving the
-    /// version a prerelease version string in <see cref="ToNuGetVersionString"/> and by moving it out of the group
-    /// that returns <c>null</c> here. It leaves the prerelease by the reverse edit. See issue #1885.
+    /// The answer is derived from the version string of <see cref="ToNuGetVersionString"/>, so that a version branch
+    /// enters or leaves a prerelease Roslyn by editing that version string and nothing else. A method that enumerated
+    /// the versions here would have to be edited in step with it, and a version added without that edit would either
+    /// request a package that nuget.org does not serve or declare a package source that nothing needs.
+    /// See issue #1885.
     /// </remarks>
     internal static string? ToPrereleasePackageSourceUrl( this RoslynApiVersion roslynVersion )
-        => roslynVersion switch
-        {
-            RoslynApiVersion.V4_0_1 or RoslynApiVersion.V4_4_0 or RoslynApiVersion.V4_8_0
-                or RoslynApiVersion.V4_12_0 or RoslynApiVersion.V5_0_0 => null,
-            _ => throw new AssertionFailedException( $"Unexpected Roslyn version {roslynVersion}." )
-        };
+        => GetPrereleasePackageSourceUrl( roslynVersion.ToNuGetVersionString() );
+
+    /// <summary>
+    /// Gets the address of the package source that serves the packages published under a given version string, or
+    /// <c>null</c> when nuget.org serves them.
+    /// </summary>
+    /// <remarks>
+    /// A version string that carries a prerelease label, that is, a hyphen, belongs to a build that is published on
+    /// the feeds consolidated by <see cref="RoslynPrereleaseSourceUrl"/> and not on nuget.org. Declaring the source
+    /// for a prerelease that nuget.org happens to serve as well costs one more candidate source and nothing else,
+    /// whereas omitting it for a prerelease that nuget.org does not serve fails the restore of the
+    /// reference-assembly project on every user machine.
+    /// </remarks>
+    internal static string? GetPrereleasePackageSourceUrl( string nuGetVersionString )
+        => nuGetVersionString.IndexOf( "-", StringComparison.Ordinal ) >= 0 ? RoslynPrereleaseSourceUrl : null;
 
     internal static Version ToVersion( this RoslynApiVersion roslynApiVersion )
         => roslynApiVersion switch

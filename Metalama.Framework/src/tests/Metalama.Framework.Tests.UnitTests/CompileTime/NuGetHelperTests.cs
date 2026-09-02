@@ -1230,12 +1230,31 @@ public sealed class NuGetHelperTests : UnitTestClass
     }
 
     [Fact]
-    public void CurrentRoslynVersionHasNoPrereleasePackageSource()
+    public void NoPackageSourceIsDeclaredForAReleasedRoslynVersion()
     {
-        // Issue #1885: this branch compiles against a released Roslyn, so no package source is declared and the
-        // generated nuget.config is what it was before. This test fails when a version branch moves onto a prerelease
-        // Roslyn, which is the point at which the switch has to be reviewed.
-        Assert.Null( RoslynApiVersion.Current.ToPrereleasePackageSourceUrl() );
+        // Issue #1885: nuget.org serves the released Roslyn packages, so a branch that compiles against a released
+        // Roslyn declares no package source and generates the nuget.config that it generated before this issue.
+        Assert.Null( SupportedCSharpVersions.GetPrereleasePackageSourceUrl( "5.0.0" ) );
+    }
+
+    [Fact]
+    public void ThePackageSourceIsDeclaredForAPrereleaseRoslynVersion()
+    {
+        // Issue #1885: a version string that carries a prerelease label belongs to a build published on the feeds
+        // that the consolidated source serves and not on nuget.org. The version string used here is the one of
+        // Roslyn 5.10, taken from pull request #1883.
+        Assert.Equal( _prereleaseSourceUrl, SupportedCSharpVersions.GetPrereleasePackageSourceUrl( "5.10.0-1.26365.3" ) );
+    }
+
+    [Fact]
+    public void TheCurrentRoslynVersionAgreesWithItsVersionString()
+    {
+        // Issue #1885: the reference-assembly project requests the version string of the current Roslyn version, and
+        // the package source it needs follows from that string alone, whichever version the branch compiles against.
+        var versionString = RoslynApiVersion.Current.ToNuGetVersionString();
+        var expected = versionString.IndexOf( "-", StringComparison.Ordinal ) >= 0 ? _prereleaseSourceUrl : null;
+
+        Assert.Equal( expected, RoslynApiVersion.Current.ToPrereleasePackageSourceUrl() );
     }
 
     /// <summary>

@@ -7,7 +7,7 @@ of whether a variant is still needed, and which Visual Studio versions the testi
 there.
 
 1. Update Metalama.Compiler first. 
-2. Update `RoslynMaxVersion` and `RoslynApiMaxVersion` in `Directory.packages.props` and possibly `ThisRoslynVersion` in `eng/RoslynVersions/Roslyn.<LAST_VERSION>.props` (when updating between pre-release versions of Roslyn). When the new version is a prerelease, also apply the switch described in [Entering and leaving a prerelease Roslyn](#entering-and-leaving-a-prerelease-roslyn) below.
+2. Update `RoslynMaxVersion` and `RoslynApiMaxVersion` in `Directory.packages.props` and possibly `ThisRoslynVersion` in `eng/RoslynVersions/Roslyn.<LAST_VERSION>.props` (when updating between pre-release versions of Roslyn). When the new version is a prerelease, its version string in `SupportedCSharpVersions.ToNuGetVersionString` also declares the package source that serves it, as described in [Entering and leaving a prerelease Roslyn](#entering-and-leaving-a-prerelease-roslyn) below.
 3. Study the new C# syntax features. We IGNORE any experimental feature. They are not supported. If the new Roslyn only has new experimental features, there is nothing to do in this repo.
 4. Add the `Syntax.xml` file from Roslyn to `eng/src/GenerateMetaSyntaxRewriter`
 5. Edit `eng/src/GenerateMetaSyntaxRewriter/GenerateMetaSyntaxRewriter.cs` to include this file.
@@ -31,18 +31,14 @@ A prerelease Roslyn package is published on the `roslyn-consolidated` feed and n
 generated `nuget.config` therefore has to declare that feed, and it does so on its own, because a user of a prerelease
 Metalama has no reason to declare it.
 
-The whole switch is `SupportedCSharpVersions.cs`, in the two methods `ToNuGetVersionString` and
-`ToPrereleasePackageSourceUrl`, which are edited together:
+The whole switch is the version string of `SupportedCSharpVersions.ToNuGetVersionString`. A version string that
+carries a prerelease label, such as `5.10.0-1.26365.3`, makes `ToPrereleasePackageSourceUrl` return
+`RoslynPrereleaseSourceUrl`, and a released version string, such as `5.0.0`, makes it return `null`. Entering a
+prerelease Roslyn is therefore the edit of that version string alone, and leaving it is the reverse edit.
+Nothing else has to be remembered.
 
-1. To enter a prerelease Roslyn, give the version its prerelease version string in `ToNuGetVersionString`, and move the
-   version out of the group that returns `null` in `ToPrereleasePackageSourceUrl`, so that it returns
-   `RoslynPrereleaseSourceUrl`.
-2. To leave it, apply the reverse edit: give the version its released version string, and move it back into the group
-   that returns `null`.
-
-The unit test `NuGetHelperTests.CurrentRoslynVersionHasNoPrereleasePackageSource` fails while a branch is on a
-prerelease Roslyn. It is the reminder that the switch has to be reversed before the branch is released, and it is
-updated together with the two methods.
+The address of the feed and the pattern under which it is mapped are the constants `RoslynPrereleaseSourceUrl`,
+`RoslynPrereleaseSourceKey` and `RoslynPackagePattern` of the same file.
 
 See issue #1885.
 
