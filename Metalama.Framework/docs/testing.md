@@ -59,7 +59,7 @@ Source that must differ across Roslyn API levels uses the cumulative `ROSLYN_*_O
 
 ## Unit tests
 
-**Projects.** [`Metalama.Framework.Tests.UnitTests`](../src/tests/Metalama.Framework.Tests.UnitTests) is the main xUnit assembly for the engine (hundreds of files mirroring the engine's areas: `CodeModel`, `CompileTime`, `DesignTime`, `Collections`, `Aspects`, …). [`Metalama.Framework.Tests.UnitTestHelpers`](../src/tests/Metalama.Framework.Tests.UnitTestHelpers) is a packable helper library of shared base classes (`DesignTimeTestBase`, `DiagnosticAnalyzerTestsBase`, `PreviewTestsBase`, `SerializationTestsBase`, …) and mocks (`TestWorkspaceProvider`, `TestDesignTimeAspectPipelineFactory`, …); it contains no `[Fact]`s. TFMs: `net48;net8.0` (framework `Metalama.Testing.UnitTesting`: `net472;net8.0`).
+**Projects.** [`Metalama.Framework.Tests.UnitTests`](../src/tests/Metalama.Framework.Tests.UnitTests) is the main xUnit assembly for the engine (hundreds of files mirroring the engine's areas: `CodeModel`, `CompileTime`, `DesignTime`, `Collections`, `Aspects`, …). [`Metalama.Framework.Tests.UnitTestHelpers`](../src/tests/Metalama.Framework.Tests.UnitTestHelpers) is a packable helper library of shared base classes (`DesignTimeTestBase`, `DiagnosticAnalyzerTestsBase`, `PreviewTestsBase`, `SerializationTestsBase`, …) and mocks (`TestWorkspaceProvider`, `TestDesignTimeAspectPipelineFactory`, …); it contains no `[Fact]`s. TFMs: `net48;net10.0` (framework `Metalama.Testing.UnitTesting`: `net472;net10.0`).
 
 **Framework.** Unit tests inherit `UnitTestClass` ([`Metalama.Testing.UnitTesting/UnitTestClass.cs`](../src/Metalama.Testing.UnitTesting/UnitTestClass.cs)). It bootstraps Backstage once with a test license, routes xUnit output, and exposes `CreateTestContext()` (named from `[CallerFilePath]`/`[CallerMemberName]`). A [`TestContext`](../src/Metalama.Testing.UnitTesting/TestContext.cs) provides:
 
@@ -95,7 +95,7 @@ Some unit tests do run the real pipeline — e.g. `Aspects/AspectTestBase.cs` ru
 - `AssertEx.DynamicEquals()` compares via the `IExpression.ToExpressionSyntax()` chain.
 - Resolve types with `compilation.Factory.GetTypeByReflectionType(typeof(int))` (built-in) or `compilation.Types.OfName("A").Single()` (user-defined); compare with `compilation.Comparers.Default.Equals(a, b)`.
 
-**Analyzer tests.** [`Metalama.Framework.Engine.Analyzers.Tests`](../src/tests/Metalama.Framework.Engine.Analyzers.Tests) (net8.0 only, no Roslyn variant) tests the internal Roslyn analyzers that police Metalama's own source (e.g. `KindCheckOptimizationAnalyzer`/`LAMA0860`). It does not use `UnitTestClass`; it builds raw `CSharpCompilation`s and runs `compilation.WithAnalyzers(...)`.
+**Analyzer tests.** [`Metalama.Framework.Engine.Analyzers.Tests`](../src/tests/Metalama.Framework.Engine.Analyzers.Tests) (net10.0 only, no Roslyn variant) tests the internal Roslyn analyzers that police Metalama's own source (e.g. `KindCheckOptimizationAnalyzer`/`LAMA0860`). It does not use `UnitTestClass`; it builds raw `CSharpCompilation`s and runs `compilation.WithAnalyzers(...)`.
 
 **Memory-retention tests.** `DesignTime/Pipeline/MemoryLeaks` holds the suite that asserts that a design-time editing session releases the versions of the project it has superseded. These tests simulate an editing session and assert on the liveness of weak references after a forced collection, so they follow conventions of their own: no compilation may reach a local of the test method, the collection must be forced in several rounds, and a failure reports the chain of fields that retains the object. The rules they enforce, and the reasons for those conventions, are in [`design-time-memory.md`](design-time-memory.md). Read it before extending the suite.
 
@@ -130,7 +130,7 @@ The aspect-test projects replace the default xUnit framework with `Metalama.Test
 **The test name is the file name without extension** (`TestCase.DisplayName`), and the synthetic xUnit "class" is the containing directory. This is why:
 
 ```bash
-dotnet test <project> -f net8.0 --filter "ReplaceParameter_Covariant"
+dotnet test <project> -f net10.0 --filter "ReplaceParameter_Covariant"
 ```
 
 works with the bare file name, while `--filter "Name~…"` partial matches are unreliable. Use `--list-tests` to confirm discovery, and rebuild after adding a new `.cs` test file.
@@ -144,7 +144,7 @@ Per-test configuration is expressed with `// @Directive(args)` comments; directo
 | Scenario | `@TestScenario(Default\|CodeFix\|LiveTemplate\|LiveTemplatePreview\|DesignTime\|Preview)` | Select the runner/scenario (see below). |
 | Scenario | `@AppliedCodeFixIndex(n)`, `@TargetSyntaxTreeSuffix(…)` | Pick the code fix / the preview tree. |
 | Gating | `@Skipped(reason)` | Skip the test. |
-| Gating | `@RequiredConstant(c)`, `@ForbiddenConstant(c)`, `@TargetFrameworks(net8.0;net472)` | Run only when a preprocessor symbol / TFM matches. |
+| Gating | `@RequiredConstant(c)`, `@ForbiddenConstant(c)`, `@TargetFrameworks(net10.0;net472)` | Run only when a preprocessor symbol / TFM matches. |
 | Diagnostics | `@IncludeAllSeverities` | Include hidden/info diagnostics, not just warnings and above. |
 | Diagnostics | `@IgnoredDiagnostic(id)`, `@ClearIgnoredDiagnostics`, `@ExpectedException(type)` | Suppress specific IDs; expect the pipeline to throw. |
 | Compilation | `@Include(path)`, `@AssemblyReference(name)`, `@DefinedConstant(c)` | Add another input file / reference / preprocessor symbol. |

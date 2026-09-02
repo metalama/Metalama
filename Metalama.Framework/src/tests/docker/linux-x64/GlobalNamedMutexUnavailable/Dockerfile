@@ -21,7 +21,7 @@ RUN wget -q https://packages.microsoft.com/config/ubuntu/24.04/packages-microsof
 # Install .NET SDK to default path.
 # The SDK must be 9.0 or later: earlier runtimes do not append the failing system call and its
 # errno to the exception message, which this test relies on for diagnostics.
-ARG DOTNET_VERSION=9.0.101
+ARG DOTNET_VERSION=10.0.302
 RUN curl -sSL https://dotnetcli.azureedge.net/dotnet/Sdk/$DOTNET_VERSION/dotnet-sdk-$DOTNET_VERSION-linux-x64.tar.gz \
     -o dotnet.tar.gz && \
     mkdir -p /usr/share/dotnet && \

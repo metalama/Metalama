@@ -3,7 +3,7 @@
     <!-- This project tests that C# 12 features can be used in a default .Net 8 project. I.e. that Metalama does not change the default C# version from 12 to something lower. -->
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>net10.0</TargetFramework>
         <OutputType>Library</OutputType>
 
         <!-- Reset properties from engineering. -->

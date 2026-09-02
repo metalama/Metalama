@@ -19,7 +19,7 @@ RUN wget -q https://packages.microsoft.com/config/ubuntu/24.04/packages-microsof
     rm -rf /var/lib/apt/lists/*
 
 # Install .NET SDK to default path
-ARG DOTNET_VERSION=9.0.101
+ARG DOTNET_VERSION=10.0.302
 RUN curl -sSL https://dotnetcli.azureedge.net/dotnet/Sdk/$DOTNET_VERSION/dotnet-sdk-$DOTNET_VERSION-linux-x64.tar.gz \
     -o dotnet.tar.gz && \
     mkdir -p /usr/share/dotnet && \
