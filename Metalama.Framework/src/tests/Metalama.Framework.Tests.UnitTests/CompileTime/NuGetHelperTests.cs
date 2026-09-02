@@ -955,6 +955,114 @@ public sealed class NuGetHelperTests : UnitTestClass
     }
 
     [Fact]
+    public void ThePatternsAlreadyMappedToTheAddedSourceAreKept()
+    {
+        // Issue #1885: a machine that declares the package source itself, which is the machine of a contributor, may
+        // also map packages of its own to it. The packageSource element written into the generated copy replaces the
+        // inherited element of the same key instead of adding to it, as issue #1560 established, so the patterns that
+        // the effective configuration maps to that source have to be kept, or the packages they cover lose their only
+        // candidate source.
+        using var testContext = this.CreateTestContext();
+
+        var configPath = WriteConfigFile(
+            testContext.BaseDirectory,
+            $"""
+             <configuration>
+                 <packageSources>
+                     <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+                     <add key="{_prereleaseSourceKey}" value="{_prereleaseSourceUrl}" />
+                 </packageSources>
+                 <packageSourceMapping>
+                     <packageSource key="nuget.org">
+                         <package pattern="*" />
+                     </packageSource>
+                     <packageSource key="{_prereleaseSourceKey}">
+                         <package pattern="Microsoft.Net.Compilers.*" />
+                     </packageSource>
+                 </packageSourceMapping>
+             </configuration>
+             """ );
+
+        var document = MergeConfigFiles( testContext, configPath );
+
+        var result = CreateNuGetHelper( testContext ).AddPackageSource(
+            document,
+            _prereleaseSourceKey,
+            _prereleaseSourceUrl,
+            _codeAnalysisPattern,
+            Array.Empty<string>() );
+
+        Assert.True( result.IsMappingWritten );
+
+        var mapping = document.Root.AssertNotNull().Element( "packageSourceMapping" ).AssertNotNull();
+
+        var prereleasePatterns = mapping.Elements( "packageSource" )
+            .First( e => e.Attribute( "key" )?.Value == _prereleaseSourceKey )
+            .Elements( "package" )
+            .Select( e => e.Attribute( "pattern" )?.Value )
+            .ToList();
+
+        Assert.Equal( new[] { "Microsoft.Net.Compilers.*", _codeAnalysisPattern }, prereleasePatterns );
+    }
+
+    [Fact]
+    public void TheAddedPatternIsNotDuplicatedWhenTheAddedSourceAlreadyDeclaresIt()
+    {
+        // Issue #1885: the counterpart of the previous test. A configuration that already maps the pattern to the
+        // added source is what this method would write, so nothing changes and the pattern appears once.
+        using var testContext = this.CreateTestContext();
+
+        var configPath = WriteConfigFile(
+            testContext.BaseDirectory,
+            $"""
+             <configuration>
+                 <packageSources>
+                     <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+                     <add key="{_prereleaseSourceKey}" value="{_prereleaseSourceUrl}" />
+                 </packageSources>
+                 <packageSourceMapping>
+                     <packageSource key="nuget.org">
+                         <package pattern="*" />
+                     </packageSource>
+                     <packageSource key="{_prereleaseSourceKey}">
+                         <package pattern="{_codeAnalysisPattern}" />
+                     </packageSource>
+                 </packageSourceMapping>
+             </configuration>
+             """ );
+
+        var document = MergeConfigFiles( testContext, configPath );
+
+        var result = CreateNuGetHelper( testContext ).AddPackageSource(
+            document,
+            _prereleaseSourceKey,
+            _prereleaseSourceUrl,
+            _codeAnalysisPattern,
+            Array.Empty<string>() );
+
+        Assert.True( result.IsMappingWritten );
+
+        var mapping = document.Root.AssertNotNull().Element( "packageSourceMapping" ).AssertNotNull();
+
+        var prereleasePatterns = mapping.Elements( "packageSource" )
+            .First( e => e.Attribute( "key" )?.Value == _prereleaseSourceKey )
+            .Elements( "package" )
+            .Select( e => e.Attribute( "pattern" )?.Value )
+            .ToList();
+
+        Assert.Equal( new[] { _codeAnalysisPattern }, prereleasePatterns );
+
+        // The source that serves these packages through the * pattern keeps serving them.
+        var nugetOrgPatterns = mapping.Elements( "packageSource" )
+            .First( e => e.Attribute( "key" )?.Value == "nuget.org" )
+            .Elements( "package" )
+            .Select( e => e.Attribute( "pattern" )?.Value )
+            .ToList();
+
+        Assert.Equal( new[] { "*", _codeAnalysisPattern }, nugetOrgPatterns );
+    }
+
+    [Fact]
     public void NoMappingIsWrittenWhenTheUserAlreadyMapsTheSamePattern()
     {
         // Issue #1885: the user has expressed an intention about these packages, and Metalama does not override it.

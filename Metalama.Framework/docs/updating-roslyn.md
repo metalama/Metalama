@@ -7,7 +7,7 @@ of whether a variant is still needed, and which Visual Studio versions the testi
 there.
 
 1. Update Metalama.Compiler first. 
-2. Update `RoslynMaxVersion` and `RoslynApiMaxVersion` in `Directory.packages.props` and possibly `ThisRoslynVersion` in `eng/RoslynVersions/Roslyn.<LAST_VERSION>.props` (when updating between pre-release versions of Roslyn).
+2. Update `RoslynMaxVersion` and `RoslynApiMaxVersion` in `Directory.packages.props` and possibly `ThisRoslynVersion` in `eng/RoslynVersions/Roslyn.<LAST_VERSION>.props` (when updating between pre-release versions of Roslyn). When the new version is a prerelease, also apply the switch described in [Entering and leaving a prerelease Roslyn](#entering-and-leaving-a-prerelease-roslyn) below.
 3. Study the new C# syntax features. We IGNORE any experimental feature. They are not supported. If the new Roslyn only has new experimental features, there is nothing to do in this repo.
 4. Add the `Syntax.xml` file from Roslyn to `eng/src/GenerateMetaSyntaxRewriter`
 5. Edit `eng/src/GenerateMetaSyntaxRewriter/GenerateMetaSyntaxRewriter.cs` to include this file.

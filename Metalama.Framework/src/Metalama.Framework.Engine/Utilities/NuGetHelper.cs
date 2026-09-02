@@ -228,6 +228,8 @@ internal sealed class NuGetHelper
     /// added source alone would make that source the only candidate, and the restore would fail on every matching
     /// package that the added source does not carry. Such a source is reproduced with every pattern it declares,
     /// because a <c>packageSource</c> element replaces the inherited element of the same key instead of adding to it.
+    /// The added source is reproduced in the same way when the effective configuration already maps patterns to it,
+    /// which happens on a machine that declares the source itself.
     /// </para>
     /// <para>
     /// No file read by this method is modified. See issue #1885.
@@ -291,13 +293,25 @@ internal sealed class NuGetHelper
 
         foreach ( var mappedSource in effectiveMapping )
         {
-            if ( mappedSource.Patterns.Any( p => CoversThroughShorterPattern( p, patternPrefix ) ) )
+            if ( !string.Equals( mappedSource.Key, key, StringComparison.OrdinalIgnoreCase )
+                 && mappedSource.Patterns.Any( p => CoversThroughShorterPattern( p, patternPrefix ) ) )
             {
                 SetMappedPatterns( mappingSection, mappedSource.Key, mappedSource.Patterns.Concat( new[] { packagePattern } ) );
             }
         }
 
-        SetMappedPatterns( mappingSection, key, new[] { packagePattern } );
+        // The patterns that the effective configuration already maps to the added source are kept, for the same reason
+        // that a source covering the pattern through a shorter one is reproduced with all of its patterns: the element
+        // written here replaces the inherited element of the same key instead of adding to it, so writing the added
+        // pattern alone would leave the packages of the other patterns with no candidate source.
+        var patternsOfAddedSource = effectiveMapping
+            .Where( s => string.Equals( s.Key, key, StringComparison.OrdinalIgnoreCase ) )
+            .SelectMany( s => s.Patterns );
+
+        SetMappedPatterns(
+            mappingSection,
+            key,
+            patternsOfAddedSource.Concat( new[] { packagePattern } ).Distinct( StringComparer.OrdinalIgnoreCase ) );
 
         return new AddPackageSourceResult( true, null, null );
     }
