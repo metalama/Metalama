@@ -20,6 +20,7 @@ public sealed partial class LayeredCachingBackendEnhancerTests
         private readonly ConcurrentDictionary<string, CacheItem> _items;
         private readonly ConcurrentDictionary<string, HashSet<string>> _dependencies = new();
         private readonly bool _blocking;
+        private readonly bool _raiseRemovalEvents;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="TypePreservingBackend"/> class.
@@ -28,14 +29,22 @@ public sealed partial class LayeredCachingBackendEnhancerTests
         /// The dictionary in which the items are stored. Two instances that share a dictionary represent two nodes
         /// that reach the same remote store. When <see langword="null"/>, the instance gets its own dictionary.
         /// </param>
+        /// <param name="raiseRemovalEvents">
+        /// <see langword="false"/> to suppress the <see cref="CachingBackend.ItemRemoved"/> event. A test of the
+        /// tombstone of <see cref="LayeredCachingBackendEnhancer"/> sets it to <see langword="false"/>, because the
+        /// enhancer deletes the tombstone when it receives the removal event back from the second layer, and the
+        /// event arrives on another thread.
+        /// </param>
         public TypePreservingBackend(
             bool blocking = true,
             IServiceProvider? serviceProvider = null,
-            ConcurrentDictionary<string, CacheItem>? store = null )
+            ConcurrentDictionary<string, CacheItem>? store = null,
+            bool raiseRemovalEvents = true )
             : base( serviceProvider: serviceProvider )
         {
             this._blocking = blocking;
             this._items = store ?? new ConcurrentDictionary<string, CacheItem>();
+            this._raiseRemovalEvents = raiseRemovalEvents;
         }
 
         protected override CachingBackendFeatures CreateFeatures() => new Features( this._blocking );
@@ -77,7 +86,7 @@ public sealed partial class LayeredCachingBackendEnhancerTests
 
         protected override void RemoveItemCore( string key )
         {
-            if ( this._items.TryRemove( key, out _ ) )
+            if ( this._items.TryRemove( key, out _ ) && this._raiseRemovalEvents )
             {
                 this.OnItemRemoved( key, CacheItemRemovedReason.Removed, this.Id );
             }
@@ -100,7 +109,10 @@ public sealed partial class LayeredCachingBackendEnhancerTests
                 }
             }
 
-            this.OnDependencyInvalidated( key, this.Id );
+            if ( this._raiseRemovalEvents )
+            {
+                this.OnDependencyInvalidated( key, this.Id );
+            }
         }
 
         protected override bool ContainsDependencyCore( string key )

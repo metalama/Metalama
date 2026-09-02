@@ -75,6 +75,12 @@ public sealed class BackgroundTaskScheduler : IAsyncDisposable, ITestableCaching
     private readonly ICachingExceptionObserver? _exceptionObserver;
     private readonly IBackgroundTaskSchedulerObserver? _backgroundTaskSchedulerObserver;
     private readonly IRetryPolicy? _retryPolicy;
+
+    /// <summary>
+    /// The object through which the background tasks are dispatched. It is the thread pool unless the service
+    /// provider supplies another one.
+    /// </summary>
+    private readonly ICachingWorkItemDispatcher _workItemDispatcher;
     private readonly int _maxConcurrency;
     private readonly int _overloadThreshold;
     private readonly SemaphoreSlim _semaphore;
@@ -119,6 +125,7 @@ public sealed class BackgroundTaskScheduler : IAsyncDisposable, ITestableCaching
         this._overloadThreshold = overloadThreshold;
         this._semaphore = new SemaphoreSlim( maxConcurrency );
         this._backgroundTasksFinishedEvent = new AwaitableEvent( EventResetMode.ManualReset, true, serviceProvider );
+        this._workItemDispatcher = serviceProvider.GetWorkItemDispatcher();
         this._exceptionObserver = serviceProvider?.GetService<ICachingExceptionObserver>();
         this._backgroundTaskSchedulerObserver = serviceProvider?.GetService<IBackgroundTaskSchedulerObserver>();
         this._logger = serviceProvider.GetFlashtraceSource( this.GetType(), FlashtraceRole.Caching );
@@ -180,7 +187,7 @@ public sealed class BackgroundTaskScheduler : IAsyncDisposable, ITestableCaching
             {
                 var previousTask = this._lastTask;
 
-                var createdTask = Task.Run(
+                var createdTask = this._workItemDispatcher.RunAsync(
                     () => this.RunTask( task, previousTask, stopwatch, observedTaskId, cancellationToken ),
                     cancellationToken );
 
@@ -189,7 +196,7 @@ public sealed class BackgroundTaskScheduler : IAsyncDisposable, ITestableCaching
         }
         else
         {
-            Task.Run(
+            _ = this._workItemDispatcher.RunAsync(
                 () => this.RunTask( task, null, stopwatch, observedTaskId, cancellationToken ),
                 cancellationToken );
         }
