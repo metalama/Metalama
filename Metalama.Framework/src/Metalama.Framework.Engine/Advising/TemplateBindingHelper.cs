@@ -250,14 +250,10 @@ internal static class TemplateBindingHelper
                     {
                         Name: nameof(InitializationContext),
                         ContainingNamespace.FullName: "Metalama.Framework.RunTime.Initialization"
-                    } );
-
-            if ( targetContextParameter == null )
-            {
-                throw new InvalidTemplateSignatureException(
+                    } )
+                ?? throw new InvalidTemplateSignatureException(
                     MetalamaStringFormatter.Format(
                         $"Cannot use the method '{template.Symbol}' as an initializer template for '{targetMember}': the target has no parameter of type InitializationContext to bind the template's run-time parameter '{parameterSymbol.Name}' to." ) );
-            }
 
             parameterMapping = parameterMapping.Add( runTimeParameter.Name, SyntaxFactoryEx.SafeIdentifierName( targetContextParameter.Name ) );
         }

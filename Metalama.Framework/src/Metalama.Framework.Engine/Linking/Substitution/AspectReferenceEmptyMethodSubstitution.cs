@@ -271,12 +271,8 @@ internal sealed class AspectReferenceEmptyMethodSubstitution : SyntaxNodeSubstit
     private ITypeSymbol GetAsyncEnumerableTypeFromEnumerator( ITypeSymbol asyncEnumeratorType )
     {
         var typeArg = GetTypeArgument( asyncEnumeratorType );
-        var asyncEnumerableType = this.CompilationContext.Compilation.GetTypeByMetadataName( "System.Collections.Generic.IAsyncEnumerable`1" );
-
-        if ( asyncEnumerableType == null )
-        {
-            throw new AssertionFailedException( "Could not find IAsyncEnumerable<T> in the compilation." );
-        }
+        var asyncEnumerableType = this.CompilationContext.Compilation.GetTypeByMetadataName( "System.Collections.Generic.IAsyncEnumerable`1" )
+                                  ?? throw new AssertionFailedException( "Could not find IAsyncEnumerable<T> in the compilation." );
 
         return asyncEnumerableType.Construct( typeArg );
     }

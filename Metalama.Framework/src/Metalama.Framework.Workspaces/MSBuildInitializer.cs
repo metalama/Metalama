@@ -94,17 +94,14 @@ internal static class MSBuildInitializer
                 "Consider installing a compatible SDK, or run the process with a different runtime." ) { HasArchitectureMismatch = sdks.Count > 0 };
         }
 
-        var constructor = typeof(VisualStudioInstance).GetConstructor(
-            BindingFlags.NonPublic | BindingFlags.Instance,
-            [
-                typeof(string), typeof(string), typeof(Version),
-                typeof(DiscoveryType)
-            ] );
-
-        if ( constructor == null )
-        {
-            throw new AssertionFailedException( $"Cannot find the internal constructor for {nameof(VisualStudioInstance)}." );
-        }
+        var constructor =
+            typeof(VisualStudioInstance).GetConstructor(
+                BindingFlags.NonPublic | BindingFlags.Instance,
+                [
+                    typeof(string), typeof(string), typeof(Version),
+                    typeof(DiscoveryType)
+                ] )
+            ?? throw new AssertionFailedException( $"Cannot find the internal constructor for {nameof(VisualStudioInstance)}." );
 
         _visualStudioInstance = (VisualStudioInstance) constructor.Invoke(
         [

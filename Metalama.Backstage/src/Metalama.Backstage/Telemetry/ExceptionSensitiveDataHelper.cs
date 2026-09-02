@@ -76,10 +76,7 @@ namespace Metalama.Backstage.Telemetry
 
             if ( enabled )
             {
-                if ( isWindows == null )
-                {
-                    isWindows = RuntimeInformation.IsOSPlatform( OSPlatform.Windows );
-                }
+                isWindows ??= RuntimeInformation.IsOSPlatform( OSPlatform.Windows );
 
                 this._pathRegex = new Regex( isWindows.Value ? _windowsPathRegex : _unixPathRegex );
             }

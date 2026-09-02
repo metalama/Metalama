@@ -940,14 +940,10 @@ internal abstract partial class BaseTestRunner
         CancellationToken cancellationToken )
     {
         var testContext = testResult.TestContext.AssertNotNull();
-        var htmlCodeWriter = testContext.CreateHtmlCodeWriter( testContext.ServiceProvider );
-
-        if ( htmlCodeWriter == null )
-        {
-            throw new InvalidOperationException(
-                "HTML output is requested but Metalama.Extensions.HtmlWriter package is not installed. " +
-                "Add a reference to Metalama.Extensions.HtmlWriter to use WriteInputHtml/WriteOutputHtml options." );
-        }
+        var htmlCodeWriter = testContext.CreateHtmlCodeWriter( testContext.ServiceProvider )
+                             ?? throw new InvalidOperationException(
+                                 "HTML output is requested but Metalama.Extensions.HtmlWriter package is not installed. " +
+                                 "Add a reference to Metalama.Extensions.HtmlWriter to use WriteInputHtml/WriteOutputHtml options." );
 
         var htmlDirectory = Path.Combine(
             this.ProjectDirectory!,

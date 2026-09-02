@@ -158,12 +158,8 @@ internal class AspectTestRunner : BaseTestRunner
             throw new AssertionFailedException( "Cannot find the code fix." );
         }
 
-        var runnerFactory = testContext.PlugIns.OfType<IStandaloneCodeFixRunnerFactory>().SingleOrDefault();
-
-        if ( runnerFactory == null )
-        {
-            throw new InvalidOperationException( "Cannot find the code fix runner." );
-        }
+        var runnerFactory = testContext.PlugIns.OfType<IStandaloneCodeFixRunnerFactory>().SingleOrDefault()
+                            ?? throw new InvalidOperationException( "Cannot find the code fix runner." );
 
         var codeFix = codeFixes[codeFixIndex];
         var codeFixRunner = runnerFactory.CreateCodeFixRunner( serviceProvider, domain );
