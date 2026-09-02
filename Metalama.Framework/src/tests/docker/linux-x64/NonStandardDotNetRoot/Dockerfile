@@ -18,7 +18,7 @@ RUN wget -q https://packages.microsoft.com/config/ubuntu/24.04/packages-microsof
     rm -rf /var/lib/apt/lists/*
 
 # Define .NET SDK version and custom installation path
-ARG DOTNET_VERSION=9.0.101
+ARG DOTNET_VERSION=10.0.302
 ARG CUSTOM_DOTNET_PATH=/opt/custom-dotnet
 
 # Create custom installation directory

@@ -88,7 +88,7 @@ same limitation, so this scenario has been verified in `Debug` only.
 ## Running it by hand
 
 ```powershell
-dotnet <repo>\Metalama.Framework\src\tests\Metalama.DesignTime.HostSimulator\bin\Debug\net9.0\Metalama.DesignTime.HostSimulator.dll Issue1749.SameProjectKey.sln --timeout 300
+dotnet <repo>\Metalama.Framework\src\tests\Metalama.DesignTime.HostSimulator\bin\Debug\net10.0\Metalama.DesignTime.HostSimulator.dll Issue1749.SameProjectKey.sln --timeout 300
 ```
 
-Use the **net9.0** build. Add `--trace "*"` to obtain the trace of Metalama itself.
+Use the **net10.0** build. Add `--trace "*"` to obtain the trace of Metalama itself.

@@ -30,12 +30,18 @@
     <!-- xUnitApiVersion is the version of xUnit against which we build the testing framework -->
     <xUnitApiVersion>2.9.3</xUnitApiVersion>
 
-    <!-- MicrosoftBuildVersion: pinned per TFM to match the lowest VS we support (17.14) for net9.0;
-         older 17.10 retained for net8.0. Note: FileVersion of VS-shipped Microsoft.Build.dll (e.g. 17.14.40)
-         is NOT the NuGet version — the highest published 17.14.x NuGet on nuget.org is 17.14.28. Always
-         verify the NuGet exists before pinning. -->
-    <MicrosoftBuildVersion Condition="'$(TargetFramework)'=='net8.0'">17.10.46</MicrosoftBuildVersion>
-    <MicrosoftBuildVersion Condition="'$(TargetFramework)'=='net9.0'">17.14.28</MicrosoftBuildVersion>
+    <!-- MicrosoftBuildVersion must not exceed the lowest MSBuild that can host us, because
+         Microsoft.Build.Locator binds to the MSBuild of the host at run time and the API compiled against is
+         then resolved there. The value is derived from the platform baseline recorded in
+         Metalama.Framework/docs/platform-support.md. Under PB-2027.0 Visual Studio 2022 is out of the
+         supported set, so the lowest host is the .NET 10 SDK, which ships MSBuild 18.0. 18.0.2 is the lowest
+         18.0 published on nuget.org, and it is below the 18.0.7 that .NET SDK 10.0.102 ships. Note that the
+         FileVersion of the Microsoft.Build.dll shipped by Visual Studio (for example 17.14.40) is not the
+         NuGet version. Always verify that the NuGet package exists before pinning.
+         A project that consumes Microsoft.Build must also reference Microsoft.Build.Framework and
+         Microsoft.NET.StringTools with ExcludeAssets="runtime". Without that, a transitive copy of either one
+         lands beside the application and shadows the MSBuild that the locator resolved. -->
+    <MicrosoftBuildVersion>18.0.2</MicrosoftBuildVersion>
 
     <!-- These are the latest versions of dependencies, which we use in test projects to avoid vulnerability warnings -->
     <MicrosoftVisualStudioThreadingLatestVersion>17.14.15</MicrosoftVisualStudioThreadingLatestVersion>
@@ -131,6 +137,7 @@
     <PackageVersion Include="Microsoft.Build" Version="$(MicrosoftBuildVersion)" />
     <PackageVersion Include="Microsoft.Build.Framework" Version="$(MicrosoftBuildVersion)" />
     <PackageVersion Include="Microsoft.Build.Tasks.Core" Version="$(MicrosoftBuildVersion)" />
+    <PackageVersion Include="Microsoft.NET.StringTools" Version="$(MicrosoftBuildVersion)" />
     <PackageVersion Include="Microsoft.Build.Locator" Version="1.7.8" />
     <PackageVersion Include="Microsoft.VisualStudio.SolutionPersistence" Version="1.0.52" />
     <PackageVersion Include="Microsoft.CSharp" Version="4.7.0" />
@@ -206,7 +213,10 @@
     <PackageVersion Include="Catglobe.ResXFileCodeGenerator" Version="4.1.2" />
     <PackageVersion Include="Microsoft.Azure.Functions.Worker" Version="1.23.0" />
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.Http" Version="3.3.0" />
-    <PackageVersion Include="Microsoft.Azure.Functions.Worker.Sdk" Version="1.18.1" />
+    <!-- Version 1.18.1 maps a target framework to a tooling suffix up to net8.0 only, and reports "Invalid
+         combination of TargetFramework and AzureFunctionsVersion is set." on anything newer. Version 2.1.0 is the
+         first that maps net10.0. This is needed by the AdditionalCompileTimePackage standalone test. -->
+    <PackageVersion Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.1.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="8.0.0" />
     <PackageVersion Include="Roslynator.Analyzers" Version="4.15.0" />
     

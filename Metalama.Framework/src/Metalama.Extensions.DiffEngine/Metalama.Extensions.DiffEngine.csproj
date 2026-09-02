@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFrameworks>net472;net8.0;net9.0</TargetFrameworks>
+        <TargetFrameworks>net472;net10.0</TargetFrameworks>
         <Description>Optional plugin for Metalama.Testing.AspectTesting that provides diff tool integration using DiffEngine. Reference this package to enable automatic diff tool launching when test output differs from expected output.</Description>
         <PackageId>Metalama.Extensions.DiffEngine</PackageId>
         <IncludeBuildOutput>false</IncludeBuildOutput>

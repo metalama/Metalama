@@ -5,7 +5,7 @@
     <Import Project="../../../../eng/RoslynVersions/Latest.props" />
 
     <PropertyGroup>
-        <TargetFrameworks>net48;net8.0</TargetFrameworks>
+        <TargetFrameworks>net48;net10.0</TargetFrameworks>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <IsPackable>true</IsPackable>
         <RootNamespace>Metalama.Framework.Tests.UnitTestHelpers</RootNamespace>

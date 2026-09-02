@@ -10,7 +10,7 @@
         LAMA0077 error declared in the test.json of the parent directory, so this project is expected NOT to build.
     -->
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>net10.0</TargetFramework>
         <Nullable>enable</Nullable>
     </PropertyGroup>
 

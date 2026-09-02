@@ -28,7 +28,7 @@ public class ExtensionLoaderBase
 
     public IEnumerable<string> GetExtensionAssemblyPaths( IEnumerable<TargetedAssemblyReference> assemblyReferences )
     {
-        var targetFramework = RuntimeInformation.FrameworkDescription.StartsWith( ".NET Framework", StringComparison.Ordinal ) ? "net472" : "net8.0";
+        var targetFramework = RuntimeInformation.FrameworkDescription.StartsWith( ".NET Framework", StringComparison.Ordinal ) ? "net472" : "net10.0";
 
         this._logger.Trace?.Log( $"Getting extension assemblies for target framework '{targetFramework}'." );
 

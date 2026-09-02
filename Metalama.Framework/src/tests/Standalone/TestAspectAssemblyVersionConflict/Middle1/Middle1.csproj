@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
     </PropertyGroup>
@@ -11,7 +11,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Reference Include="dependency, version=1.0.0.0" HintPath="..\Dependency1\bin\$(Configuration)\net8.0\dependency.dll" />
+        <Reference Include="dependency, version=1.0.0.0" HintPath="..\Dependency1\bin\$(Configuration)\net10.0\dependency.dll" />
     </ItemGroup>
 
 </Project>

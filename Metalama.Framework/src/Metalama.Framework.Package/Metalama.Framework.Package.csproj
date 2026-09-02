@@ -47,7 +47,7 @@
             <Pack>true</Pack>
             <PackagePath></PackagePath>
         </None>
-        <None Update="lib/net8.0/_._">
+        <None Update="lib/net10.0/_._">
             <Pack>true</Pack>
             <PackagePath></PackagePath>
         </None>

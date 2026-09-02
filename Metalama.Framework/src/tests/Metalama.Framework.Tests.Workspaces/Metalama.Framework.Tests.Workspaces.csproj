@@ -3,7 +3,7 @@
 
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>net10.0</TargetFramework>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <RootNamespace>Metalama.Framework.Tests.Workspaces</RootNamespace>
     </PropertyGroup>
@@ -18,6 +18,14 @@
 
         <!-- This reference must be repeated in this project because it is marked as private in Metalama.Framework.Workspaces -->
         <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" VersionOverride="$(RoslynMaxVersion)"  />
+
+        <!-- Repeated here for the same reason, and excluded from the run-time assets as in that project: the 17.x
+             Microsoft.Build.Framework that the reference above brings in would otherwise be copied beside the test
+             assembly and shadow the one of the MSBuild that Microsoft.Build.Locator resolves. On a .NET 10 SDK host
+             that means Microsoft.Build 18.0 loading Microsoft.Build.Framework 17.11, which fails with a
+             TypeLoadException on IEventSource5. -->
+        <PackageReference Include="Microsoft.Build.Framework" PrivateAssets="all" ExcludeAssets="runtime" />
+        <PackageReference Include="Microsoft.NET.StringTools" PrivateAssets="all" ExcludeAssets="runtime" />
     </ItemGroup>
 
 
