@@ -8,8 +8,12 @@
         -->
         <NoWarn>$(NoWarn);IDE0032;IDE0031</NoWarn>
 
-        <!-- Metalama.Extensions and Metalama.Patterns must be compatible with VS 2022,
-             so we can't use C# 14 in templates and build-time code. -->
+        <!-- A template is compiled by the Roslyn of the host, so the language version we may use in templates and
+             in build-time code is bounded by the lowest Roslyn in the supported set. C# 14 requires Roslyn 5.0.
+             The reason this value used to give, compatibility with VS 2022, no longer applies: PB-2027.0 excludes
+             Visual Studio 2022, per Metalama.Framework/docs/platform-support.md. The value stays at 13.0 only
+             until issue #1881 drops the Roslyn 4.12 variant and raises RoslynApiMinVersion to 5.0.0; raising it
+             before that would break that variant. Tracked by issue #1896. -->
         <MetalamaTemplateLanguageVersion>13.0</MetalamaTemplateLanguageVersion>
 
         <!-- The rules of the [Durable] contract, LAMA0870 to LAMA0879, report objects that the design-time pipeline

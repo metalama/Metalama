@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!-- MetalamaCheckSupportedPlatform set to 'False' suppresses every diagnostic of the check, including the ones
+         of a contributed requirement. The target framework and the contributed requirement below would each report a
+         diagnostic if the property were left at its default.
+         See https://github.com/metalama/Metalama/issues/1884. -->
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <OutputType>Library</OutputType>
+        <MetalamaCheckSupportedPlatform>False</MetalamaCheckSupportedPlatform>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Metalama.Framework" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <MetalamaPlatformRequirement Include="Test.FutureSdk">
+            <MinimumSdkVersion>99.0</MinimumSdkVersion>
+        </MetalamaPlatformRequirement>
+    </ItemGroup>
+
+</Project>

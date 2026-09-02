@@ -1,0 +1,4 @@
+{
+    "BuildOnly": true,
+    "ForbiddenDiagnosticsRegexes": [ "warning LAMA0600", "warning LAMA0601", "warning LAMA0602" ]
+}
