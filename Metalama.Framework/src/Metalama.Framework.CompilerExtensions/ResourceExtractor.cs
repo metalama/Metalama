@@ -173,8 +173,9 @@ public static class ResourceExtractor
 
     /// <summary>
     /// Writes a report naming the Roslyn version of the host and the lowest supported one. It is written once per
-    /// process. A design-time host has no other channel: the integrated development environment shows no diagnostic
-    /// for a payload that did not load, so a host that does nothing would otherwise also say nothing.
+    /// process, in the directory that holds the crash reports. A design-time host has no other channel: the integrated
+    /// development environment shows no diagnostic for a payload that did not load, so a host that does nothing would
+    /// otherwise also say nothing.
     /// </summary>
     private static void ReportUnsupportedHost()
     {
@@ -185,19 +186,7 @@ public static class ResourceExtractor
 
         try
         {
-            var directory = GetTempDirectory( "UnsupportedHost" );
-
-            if ( !Directory.Exists( directory ) )
-            {
-                Directory.CreateDirectory( directory );
-
-                try
-                {
-                    // Mark the directory for automatic clean up when unused.
-                    File.WriteAllText( Path.Combine( directory, "cleanup.json" ), "{\"Strategy\":1}" );
-                }
-                catch ( IOException ) { }
-            }
+            var directory = CreateCrashReportsDirectory();
 
             var report = new StringBuilder();
             var process = Process.GetCurrentProcess();
@@ -213,12 +202,35 @@ public static class ResourceExtractor
             report.AppendLine( $"Process Kind: {ProcessKindHelper.CurrentProcessKind}" );
             report.AppendLine( $"Command Line: {Environment.CommandLine}" );
 
-            File.WriteAllText( Path.Combine( directory, $"roslyn-{HostRoslynVersion}.txt" ), report.ToString() );
+            File.WriteAllText( Path.Combine( directory, $"unsupported-roslyn-{HostRoslynVersion}.txt" ), report.ToString() );
         }
         catch
         {
             // A failure to write the report must not fail the host, and there is no channel left to report it on.
         }
+    }
+
+    /// <summary>
+    /// Returns the path of the directory that holds the crash reports, and creates it if it does not exist.
+    /// </summary>
+    private static string CreateCrashReportsDirectory()
+    {
+        var directory = GetTempDirectory( "CrashReports" );
+
+        if ( !Directory.Exists( directory ) )
+        {
+            Directory.CreateDirectory( directory );
+
+            try
+            {
+                // Mark the directory for automatic clean up when unused.
+                var cleanupJsonFilePath = Path.Combine( directory, "cleanup.json" );
+                File.WriteAllText( cleanupJsonFilePath, "{\"Strategy\":1}" );
+            }
+            catch ( IOException ) { }
+        }
+
+        return directory;
     }
 
     private static object CreateInstance( string assemblyName, string typeName )
@@ -246,20 +258,7 @@ public static class ResourceExtractor
         }
         catch ( Exception e )
         {
-            var directory = GetTempDirectory( "CrashReports" );
-
-            if ( !Directory.Exists( directory ) )
-            {
-                Directory.CreateDirectory( directory );
-
-                try
-                {
-                    // Mark the directory for automatic clean up when unused.
-                    var cleanupJsonFilePath = Path.Combine( directory, "cleanup.json" );
-                    File.WriteAllText( cleanupJsonFilePath, "{\"Strategy\":1}" );
-                }
-                catch ( IOException ) { }
-            }
+            var directory = CreateCrashReportsDirectory();
 
             var path = Path.Combine( directory, Guid.NewGuid().ToString() + ".txt" );
 
