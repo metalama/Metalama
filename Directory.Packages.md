@@ -116,8 +116,8 @@ the `lib/netstandard2.0` asset of each package:
 
 So no member of the family carries a Visual Studio cap at present, and one central value serves every consumer.
 Properties 1 and 3 still bind: the family must move together, and it must keep a `netstandard2.0` asset.
-`System.Threading.Tasks.Extensions` is held at 4.5.4 for an unrelated reason, the currently installed
-`Metalama.Vsx` versions; see the gotcha on flowed dependencies below.
+The central pin of `System.Threading.Tasks.Extensions` is held at 4.5.4 for an unrelated reason, the currently
+installed `Metalama.Vsx` versions; see the gotcha on flowed dependencies below.
 
 Two claims that this document and `Directory.Packages.props` previously carried were wrong, and the error is the
 likely origin of the split that has now been removed. The `MSBuild.exe` ceiling for `System.Memory` is 4.0.5.0,
