@@ -78,7 +78,7 @@ Three properties make them a recurring source of trouble:
 2. **Visual Studio ships its own copies** in `Common7\IDE\PublicAssemblies` (because devenv.exe loads `net472`-targeting analyzers that need these back-ports), and `devenv.exe.config` declares binding redirects whose `oldVersion` upper bound caps what we can reference. The lowest cap among the family becomes the cap for the whole family. Whether that cap binds is a measurement, not an assumption; see the table below.
 3. **The `netstandard2.0` asset is the bright line.** The 4.5.x and 4.6.x lines retain `netstandard2.0`; the `8.x`+ packages on nuget.org are inbox copies from the .NET 8 runtime, repackaged for transitive resolution only — *not* the Out-of-band family. If `8.x` shows up in the resolution graph for an analyzer-loaded project, something is wrong.
 
-#### No cap in the family binds today
+#### The caps sit exactly on the current latest of each package
 
 The derivation of property 2 still applies under PB-2027.0. Visual Studio 2026 18.9 loads `net472` analyzers into
 .NET Framework hosts: `Common7\IDE\devenv.exe` has a `devenv.exe.config` with 495 `dependentAssembly` entries and
@@ -98,30 +98,48 @@ they are identical in the two releases:
 | `System.Runtime.CompilerServices.Unsafe` | 6.0.3.0 | 6.0.3.0 | 6.0.3.0 |
 | `System.Threading.Tasks.Extensions` | 4.2.4.0 | 4.2.4.0 | 4.2.4.0 |
 
-Every version of the family we might reference stays below those ceilings. The assembly versions were read from
-the `lib/netstandard2.0` asset of each package:
+The assembly version to compare against those ceilings is the one in the asset that a `net472` project resolves,
+which is `lib/net46x`, not `lib/netstandard2.0`. The two differ for this family, and only the `net46x` value is
+load-time-significant inside `devenv.exe`. For `System.Memory` 4.6.3 they are 4.0.5.0 and 4.0.2.0 respectively:
+reading the wrong one understates the assembly version by three revisions and makes a boundary fit look like
+comfortable headroom.
 
-| Package | NuGet version | AsmVer | Ceiling | Binds? |
-| --- | --- | --- | --- | --- |
-| `System.Memory` | 4.5.5 | 4.0.1.2 | 4.0.5.0 | no |
-| `System.Memory` | 4.6.3 | 4.0.2.0 | 4.0.5.0 | no |
-| `System.Buffers` | 4.5.1 | 4.0.3.0 | 4.0.5.0 | no |
-| `System.Buffers` | 4.6.1 | 4.0.2.0 | 4.0.5.0 | no |
-| `System.Numerics.Vectors` | 4.5.0 | 4.1.4.0 | 4.1.6.0 | no |
-| `System.Numerics.Vectors` | 4.6.1 | 4.1.3.0 | 4.1.6.0 | no |
-| `System.Runtime.CompilerServices.Unsafe` | 6.1.0 | 6.0.0.0 | 6.0.3.0 | no |
-| `System.Runtime.CompilerServices.Unsafe` | 6.1.2 | 6.0.0.0 | 6.0.3.0 | no |
-| `System.Threading.Tasks.Extensions` | 4.5.4 | 4.2.0.1 | 4.2.4.0 | no |
-| `System.Threading.Tasks.Extensions` | 4.6.3 | 4.2.1.0 | 4.2.4.0 | no |
+| Package | NuGet version | `net46x` AsmVer | `netstandard2.0` AsmVer | Ceiling | Fits? |
+| --- | --- | --- | --- | --- | --- |
+| `System.Memory` | 4.5.5 | 4.0.1.2 | 4.0.1.2 | 4.0.5.0 | yes |
+| `System.Memory` | 4.6.0 | 4.0.2.0 | 4.0.2.0 | 4.0.5.0 | yes |
+| `System.Memory` | 4.6.3 | 4.0.5.0 | 4.0.2.0 | 4.0.5.0 | exactly |
+| `System.Buffers` | 4.5.1 | 4.0.3.0 | 4.0.3.0 | 4.0.5.0 | yes |
+| `System.Buffers` | 4.6.1 | 4.0.5.0 | 4.0.2.0 | 4.0.5.0 | exactly |
+| `System.Numerics.Vectors` | 4.5.0 | 4.1.4.0 | 4.1.4.0 | 4.1.6.0 | yes |
+| `System.Numerics.Vectors` | 4.6.1 | 4.1.6.0 | 4.1.3.0 | 4.1.6.0 | exactly |
+| `System.Runtime.CompilerServices.Unsafe` | 6.1.0 | 6.0.1.0 | 6.0.0.0 | 6.0.3.0 | yes |
+| `System.Runtime.CompilerServices.Unsafe` | 6.1.2 | 6.0.3.0 | 6.0.0.0 | 6.0.3.0 | exactly |
+| `System.Threading.Tasks.Extensions` | 4.5.4 | 4.2.0.1 | 4.2.0.1 | 4.2.4.0 | yes |
+| `System.Threading.Tasks.Extensions` | 4.6.3 | 4.2.4.0 | 4.2.1.0 | 4.2.4.0 | exactly |
 
-So no member of the family carries a Visual Studio cap at present, and one central value serves every consumer.
-Properties 1 and 3 still bind: the family must move together, and it must keep a `netstandard2.0` asset.
-The central pin of `System.Threading.Tasks.Extensions` is held at 4.5.4 for an unrelated reason, the currently
+The pattern is the same for every member of the family: the ceiling equals the `net46x` assembly version of the
+current latest NuGet version. Visual Studio 2026 18.9 ships that latest version of each package, and its binding
+redirects target what it ships. So the cap is real and still governs, and there is no headroom above it. What the
+measurement changes is where the ceiling sits, not whether there is one.
+
+Two consequences follow. First, we may reference the current latest version of every member, and one central
+value therefore serves every consumer, including the `net472` payload; the split that used to route around a
+lower ceiling is gone. Second, the next release of any of these packages is not automatically safe. When one
+appears, re-read the ceiling before taking it: a bump lands above the ceiling until a Visual Studio release
+ships the new version and moves the redirect.
+
+Properties 1 and 3 still bind: the family must move together, and it must keep a `netstandard2.0` asset. The
+central pin of `System.Threading.Tasks.Extensions` is held at 4.5.4 for an unrelated reason, the currently
 installed `Metalama.Vsx` versions; see the gotcha on flowed dependencies below.
 
-Two claims that this document and `Directory.Packages.props` previously carried were wrong, and the error is the
-likely origin of the split that has now been removed. The `MSBuild.exe` ceiling for `System.Memory` is 4.0.5.0,
-not 4.0.2.0; and AsmVer 4.0.2.0 belongs to the 4.6.x line, not to 4.5.5, whose AsmVer is 4.0.1.2.
+The values this document and `Directory.Packages.props` previously carried were measured against an older
+Visual Studio patch, one that shipped the 4.6.0 line: the former ceilings of 4.0.2.0, 4.0.4.0, 4.1.5.0, 6.0.1.0
+and 4.2.1.0 are exactly the `net46x` assembly versions of `System.Memory` 4.6.0, `System.Buffers` 4.6.0,
+`System.Numerics.Vectors` 4.6.0, `System.Runtime.CompilerServices.Unsafe` 6.1.0 and
+`System.Threading.Tasks.Extensions` 4.6.0. One claim was wrong rather than merely stale, and is the likely origin
+of the split: AsmVer 4.0.2.0 belongs to `System.Memory` 4.6.0, not to 4.5.5, whose AsmVer is 4.0.1.2. Reading it
+as 4.5.5 put the pin a whole line lower than the ceiling of the day allowed.
 
 The ceilings are still to be re-read against the Visual Studio 2026 long-term servicing channel baseline once it
 ships on 2026-11-10, which is item 1 of the verification checklist of
@@ -273,23 +291,27 @@ $x.SelectNodes('//a:assemblyIdentity[@name="System.Memory" or @name="System.Buff
 # System.Threading.Tasks.Extensions      : oldVersion=0.0.0.0-4.2.4.0  newVersion=4.2.4.0
 ```
 
-Cross-reference each `oldVersion` upper bound against the AsmVer of the NuGet version you're considering. Read the AsmVer from the package itself rather than from memory, because it does not track the NuGet version:
+Cross-reference each `oldVersion` upper bound against the AsmVer of the NuGet version you're considering. Read the AsmVer from the package itself rather than from memory, because it does not track the NuGet version — and read it from **the asset the consuming project resolves**. A `net472` project resolves `lib/net46x`, and for this family that assembly carries a higher version than the `netstandard2.0` one in the same package:
 
 ```powershell
-[System.Reflection.AssemblyName]::GetAssemblyName(
-    "$env:NUGET_PACKAGES\system.memory\4.6.3\lib\netstandard2.0\System.Memory.dll").Version
-# 4.0.2.0, below the 4.0.5.0 upper bound above, so the reference loads.
+foreach ($tfm in 'net462','netstandard2.0') {
+    $dll = "$env:NUGET_PACKAGES\system.memory\4.6.3\lib\$tfm\System.Memory.dll"
+    "$tfm : $([System.Reflection.AssemblyName]::GetAssemblyName($dll).Version)"
+}
+# net462         : 4.0.5.0   <- the one that matters for the net472 payload
+# netstandard2.0 : 4.0.2.0   <- reading this one would understate the cap by three revisions
 ```
 
-The table in *The Out-of-band family* records the result of this cross-reference for the whole family. Every version listed there is below its ceiling, so no cap in the family binds under PB-2027.0.
+The table in *The Out-of-band family* records the result of this cross-reference for the whole family. Every version listed there fits its ceiling, and the current latest of each package fits it exactly.
 
 ### What NOT to use as the cap
 
-`AssemblyVersion` (the binding identity in the DLL header) is **not** the NuGet version, but it **is** load-time-significant. Some .NET libraries keep AsmVer frozen across NuGet patches (e.g., `Microsoft.Build` 17.x all expose AsmVer 15.1.0.0); others don't (`System.Memory` 4.5.5 = AsmVer 4.0.1.2, but 4.6.x = AsmVer 4.0.2.0 — a real bump). So:
+`AssemblyVersion` (the binding identity in the DLL header) is **not** the NuGet version, but it **is** load-time-significant. Some .NET libraries keep AsmVer frozen across NuGet patches (e.g., `Microsoft.Build` 17.x all expose AsmVer 15.1.0.0); others don't (`System.Memory` 4.5.5 = AsmVer 4.0.1.2, 4.6.0 = 4.0.2.0, 4.6.3 = 4.0.5.0 — real bumps within one line). So:
 
 - **Don't cap on AsmVer alone** — for many packages it's frozen and tells you nothing.
 - **Don't cap on the VS-shipped DLL version alone** — the `newVersion` in the binding redirect is the shipped DLL, but it's not the cap; the `oldVersion` *upper bound* is.
 - **Do cap on the BR `oldVersion` upper bound** for net472 / VS-loaded paths.
+- **Don't read the AsmVer from the wrong asset.** One package can carry several, with different assembly versions. Compare the ceiling against the asset the consuming project resolves: `lib/net46x` for a `net472` project, not `lib/netstandard2.0`.
 
 Refresh the cap derivation when the floor VS version changes, when MS releases a Current-Channel feature update that rotates shipped assemblies, or when a transitive dependency unexpectedly fails to load in VS. Before merging a `Directory.Packages.props` change that adds or upgrades a VS-loaded dependency, cross-reference each transitive's NuGet version against the values from the commands above, then smoke-test by loading the change in the floor Visual Studio at its latest patch and reproducing a representative design-time scenario.
 

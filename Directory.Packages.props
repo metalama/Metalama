@@ -106,16 +106,18 @@
     <PackageVersion Include="System.IO.Abstractions.TestingHelpers" Version="22.1.1" />
     <PackageVersion Include="System.IO.Hashing" Version="9.0.15" />
     <PackageVersion Include="System.IO.Packaging" Version="8.0.1" />
-    <!-- Out-of-band family. No binding-redirect ceiling binds this package: the oldVersion upper bound is
-         AsmVer 6.0.3.0 in devenv.exe.config of both Visual Studio 2022 17.14 and Visual Studio 2026 18.9, and
-         every NuGet version of the 6.x line, 6.1.2 included, has AsmVer 6.0.0.0. The value follows the floor
-         that System.Memory 4.6.3 requires. Measured for #1897. -->
+    <!-- Out-of-band family. The binding-redirect oldVersion upper bound is AsmVer 6.0.3.0 in devenv.exe.config
+         of both Visual Studio 2022 17.14 and Visual Studio 2026 18.9. The lib/net462 asset of NuGet 6.1.2, which
+         is what the net472 payload resolves, is exactly 6.0.3.0. The value is also the floor that System.Memory
+         4.6.3 requires. No headroom: do not take a version above 6.1.2 before a Visual Studio release ships it
+         and moves the redirect. Measured for #1897; see Directory.Packages.md. -->
     <PackageVersion Include="System.Runtime.CompilerServices.Unsafe" Version="6.1.2" />
     <PackageVersion Include="MessagePack" Version="$(MessagePackLatestVersion)" />
-    <!-- Out-of-band family. No binding-redirect ceiling binds this package: the oldVersion upper bound is
-         AsmVer 4.0.5.0 in devenv.exe.config and MSBuild.exe.config of both Visual Studio 2022 17.14 and
-         Visual Studio 2026 18.9, and NuGet 4.6.3 has AsmVer 4.0.2.0. One value therefore serves every consumer,
-         including the net472 payload. Measured for #1897. -->
+    <!-- Out-of-band family. The binding-redirect oldVersion upper bound is AsmVer 4.0.5.0 in devenv.exe.config
+         and MSBuild.exe.config of both Visual Studio 2022 17.14 and Visual Studio 2026 18.9. The lib/net462
+         asset of NuGet 4.6.3, which is what the net472 payload resolves, is exactly 4.0.5.0. One value therefore
+         serves every consumer, but there is no headroom: do not take a version above 4.6.3 before a Visual
+         Studio release ships it and moves the redirect. Measured for #1897; see Directory.Packages.md. -->
     <PackageVersion Include="System.Memory" Version="4.6.3" />
     <PackageVersion Include="System.Runtime.Serialization.Xml" Version="4.3.0" />
     <PackageVersion Include="System.Text.RegularExpressions" Version="$(SystemTextRegularExpressionsLatestVersion)" />
