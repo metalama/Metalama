@@ -32,9 +32,9 @@ Before starting work:
 
 ## Platform Support
 
-Which Visual Studio, other IDE, .NET SDK, .NET runtime, .NET Framework and Roslyn versions a release supports is decided by the doctrine in `Metalama.Framework/docs/platform-support.md`, which also names the resulting set a **platform baseline** (`PB-<release>`). Read it before changing any target framework, before adding or removing a Roslyn variant, and before answering a question of the form "can we drop `netX.0`?". Two rules that are misapplied most often:
+Which Visual Studio, other IDE, .NET SDK, .NET runtime, .NET Framework and Roslyn versions a release supports is decided by the doctrine in `Metalama.Framework/docs/platform-support.md`, which also names the resulting set a platform baseline (`PB-<release>`). Read it before changing any target framework, before adding or removing a Roslyn variant, and before answering a question of the form "can we drop `netX.0`?". Two rules that are misapplied most often:
 
-- **The host runtime, not the user target framework, sets the floor.** Metalama loads into `devenv.exe`, the Roslyn out-of-process analyzer host, the Rider backend and the C# Dev Kit language server. Dropping a TFM for user projects is a separate decision from dropping it as a host TFM, and only the latter is governed by the baseline.
+- **The host runtime, not the user target framework, sets the floor.** Metalama loads into `devenv.exe`, the Roslyn out-of-process analyzer host, the Rider backend and the C# Dev Kit language server. Dropping a TFM for user projects is a separate decision from dropping it as a host TFM. The baseline records both floors, and only the host one constrains the design-time payload.
 - **A wrong lower bound produces no visible error.** `ServiceHub.RoslynCodeAnalysisService` logs the load failure and Visual Studio shows no diagnostics, no code lens and no generated code, so this is derived from the vendor calendars up front rather than discovered from bug reports.
 
 `Directory.Packages.md` is the companion document: the baseline decides which platforms our packages must load into, and `Directory.Packages.md` decides which package versions that permits.

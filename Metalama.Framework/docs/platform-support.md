@@ -97,10 +97,12 @@ a separate concern from this baseline.
 ## Denomination
 
 Each release names its supported set a platform baseline, written `PB-<release>`, whose canonical short form
-lists the six floors in a fixed order:
+lists the floor of each of the six axes in a fixed order, followed by the shipped target frameworks derived
+from them:
 
 ```
-PB-<release> = <VS floor> · <other-IDE floor> · <SDK floor> · <.NET Framework floor> · Roslyn <min>–<max> · Core=<tfm> / Desktop=<tfm>
+PB-<release> = <VS floor> · <other-IDE floor> · <SDK floor> · User=<tfm> · <.NET Framework floor> ·
+               Roslyn <min>–<max> · Core=<tfm> / Desktop=<tfm>
 ```
 
 Cite the baseline by name in issues, release notes and pull request descriptions, for example "this drops below
@@ -109,8 +111,8 @@ PB-2027.0", and change its contents only through this document.
 ## PB-2027.0, for Metalama 2027.0, general availability 2027-01-01
 
 ```
-PB-2027.0 = VS 2026 LTSC · VS Code C# Dev Kit / Rider current · .NET 10 SDK · .NET Framework 4.7.2 ·
-            Roslyn 5.0–5.x · Core=net10.0 / Desktop=net472
+PB-2027.0 = VS 2026 LTSC · VS Code C# Dev Kit / Rider current · .NET 10 SDK · User=net10.0 ·
+            .NET Framework 4.7.2 · Roslyn 5.0–5.x · Core=net10.0 / Desktop=net472
 ```
 
 ### Visual Studio

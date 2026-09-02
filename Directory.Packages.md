@@ -15,7 +15,7 @@ Two values are derived here rather than there, because they are package versions
 | Value | Where it lives | How it is derived |
 | ---------------------- | ---------------------------------------- | ---------------------------- |
 | `RoslynApiMinVersion` / `RoslynApiMaxVersion` | `Directory.Packages.props` | The lowest and highest Roslyn version presented by a host in the baseline, per *Roslyn variant coverage* below |
-| `MicrosoftBuildVersion` | `Directory.Packages.props`, per TFM | The MSBuild version shipped by the floor Visual Studio and the floor .NET SDK, per *TFM constraints* below |
+| `MicrosoftBuildVersion` | `Directory.Packages.props`, unconditional | The MSBuild version shipped by the lowest host in the baseline, which is presently the .NET 10 SDK, per *TFM constraints* below |
 
 Both Roslyn values are presently below the PB-2027.0 Roslyn floor: 4.12.0 is below Roslyn 5.0, the version Rider presents, and 5.0.0 is below the version `Metalama.Compiler` builds on. Issue #1881 raises both.
 
