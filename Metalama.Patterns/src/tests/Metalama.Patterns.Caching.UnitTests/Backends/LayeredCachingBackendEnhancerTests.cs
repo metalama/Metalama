@@ -22,6 +22,18 @@ public sealed partial class LayeredCachingBackendEnhancerTests : IDisposable
 {
     private const int _timeout = 30_000;
 
+    /// <summary>
+    /// Timeout, in milliseconds, of the tests that wait for an event of a backend. It is longer than
+    /// <see cref="_eventTimeout"/>, so that the wait expires first and the failure names the event that was awaited.
+    /// </summary>
+    private const int _eventTestTimeout = 120_000;
+
+    /// <summary>
+    /// Time during which a test waits for an event of a backend. <see cref="CachingBackend"/> raises its events on the
+    /// thread pool, so a build agent that runs the whole test suite can delay them by much longer than an idle machine does.
+    /// </summary>
+    private static readonly TimeSpan _eventTimeout = TimeSpan.FromSeconds( 60 );
+
     private readonly ServiceProvider _serviceProvider;
 
     public LayeredCachingBackendEnhancerTests( ITestOutputHelper testOutputHelper )
@@ -252,20 +264,39 @@ public sealed partial class LayeredCachingBackendEnhancerTests : IDisposable
     #region Invalidation Propagation
 
     /// <summary>
+    /// Waits until an event of a backend has been raised. A wait that expires throws a <see cref="TimeoutException"/>
+    /// that names the event, and it throws it before the xUnit timeout of the test aborts the test with a message that
+    /// does not say which wait expired.
+    /// </summary>
+    private static Task WaitForEventAsync( Task eventRaised, string eventName, TimeSpan? timeout = null )
+    {
+        var actualTimeout = timeout ?? _eventTimeout;
+
+        return eventRaised.WaitWithTimeoutAsync(
+            $"The {eventName} event was not raised within {actualTimeout.TotalSeconds} seconds.",
+            actualTimeout );
+    }
+
+    /// <summary>
     /// Verifies that a wait for a backend event that is not raised reports which event was awaited, and that it
     /// reports it before the xUnit timeout of the test aborts the test. See issue #1904.
     /// </summary>
     [Fact( Timeout = _timeout )]
     public async Task WaitForBackendEvent_WhenTheEventIsNotRaised_ReportsTheAwaitedEvent()
     {
+        Assert.True(
+            _eventTimeout < TimeSpan.FromMilliseconds( _eventTestTimeout ),
+            "A wait for an event must expire before the xUnit timeout of the test that contains it." );
+
         var neverRaised = new TaskCompletionSource<bool>();
 
-        var exception = await Assert.ThrowsAsync<TimeoutException>( () => neverRaised.Task.WaitWithTimeoutAsync() );
+        var exception = await Assert.ThrowsAsync<TimeoutException>(
+            () => WaitForEventAsync( neverRaised.Task, nameof(CachingBackend.DependencyInvalidated), TimeSpan.FromMilliseconds( 200 ) ) );
 
         Assert.Contains( nameof(CachingBackend.DependencyInvalidated), exception.Message, StringComparison.Ordinal );
     }
 
-    [Fact( Timeout = _timeout )]
+    [Fact( Timeout = _eventTestTimeout )]
     public async Task OnBackendDependencyInvalidated_FromL2_InvalidatesL1()
     {
         using var l2 = MemoryCacheFactory.CreateBackend( this._serviceProvider, "L2" );
@@ -298,12 +329,11 @@ public sealed partial class LayeredCachingBackendEnhancerTests : IDisposable
             // Invalidate the dependency through the wrapper (which triggers the L2 invalidation)
             wrapper.InvalidateDependency( dependency );
 
-            // Wait for event propagation
-            using var cts = new CancellationTokenSource( TimeSpan.FromSeconds( 30 ) );
-            await eventReceived.Task.WaitWithTimeoutAsync();
+            // Wait for event propagation. LayeredCachingBackendEnhancer.OnBackendDependencyInvalidated invalidates L1
+            // before it re-raises the event, so L1 is already invalidated when this wait completes.
+            await WaitForEventAsync( eventReceived.Task, nameof(CachingBackend.DependencyInvalidated) );
 
             // The item should be removed from L1 as well
-            await Task.Delay( 100, cts.Token );
             var retrieved = layered.LocalCache.GetItem( key );
             Assert.Null( retrieved );
         }
@@ -313,7 +343,7 @@ public sealed partial class LayeredCachingBackendEnhancerTests : IDisposable
         }
     }
 
-    [Fact( Timeout = _timeout )]
+    [Fact( Timeout = _eventTestTimeout )]
     public async Task OnBackendItemRemoved_FromL2_RemovesFromL1()
     {
         using var l2 = MemoryCacheFactory.CreateBackend( this._serviceProvider, "L2" );
@@ -345,12 +375,11 @@ public sealed partial class LayeredCachingBackendEnhancerTests : IDisposable
             // Remove the item through the wrapper (which triggers the L2 removal)
             wrapper.RemoveItem( key );
 
-            // Wait for event propagation
-            using var cts = new CancellationTokenSource( TimeSpan.FromSeconds( 30 ) );
-            await eventReceived.Task.WaitWithTimeoutAsync();
+            // Wait for event propagation. LayeredCachingBackendEnhancer.OnBackendItemRemoved removes the item from L1
+            // before it re-raises the event, so L1 no longer contains the item when this wait completes.
+            await WaitForEventAsync( eventReceived.Task, nameof(CachingBackend.ItemRemoved) );
 
             // The item should be removed from L1 as well
-            await Task.Delay( 100, cts.Token );
             var retrieved = layered.LocalCache.GetItem( key );
             Assert.Null( retrieved );
         }
@@ -360,7 +389,7 @@ public sealed partial class LayeredCachingBackendEnhancerTests : IDisposable
         }
     }
 
-    [Fact( Timeout = _timeout )]
+    [Fact( Timeout = _eventTestTimeout )]
     public async Task Events_PropagatedToExternalListeners()
     {
         using var layered = this.CreateLayeredBackend();
@@ -381,8 +410,7 @@ public sealed partial class LayeredCachingBackendEnhancerTests : IDisposable
         layered.SetItem( key, item );
         layered.RemoveItem( key );
 
-        using var cts = new CancellationTokenSource( TimeSpan.FromSeconds( 30 ) );
-        await itemRemovedReceived.Task.WaitWithTimeoutAsync();
+        await WaitForEventAsync( itemRemovedReceived.Task, nameof(CachingBackend.ItemRemoved) );
 
         var args = await itemRemovedReceived.Task;
         Assert.Equal( key, args.Key );
