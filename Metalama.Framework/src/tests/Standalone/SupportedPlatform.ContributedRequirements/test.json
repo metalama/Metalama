@@ -3,8 +3,8 @@
     "ExpectedDiagnosticsRegexes": [
         "warning LAMA0600.*'Test[.]NewerFramework'.*newer",
         "warning LAMA0600.*'Test[.]WindowsOnly'.*windows",
-        "warning LAMA0601.*'Test[.]FutureSdk'.*older than 99[.]0.*global[.]json",
+        "warning LAMA0601.*'Test[.]FutureSdk'.*older than 99[.]0.*global[.]json.*earlier version of 'Test[.]FutureSdk'",
         "warning LAMA0601.*'Test[.]LegacySdk'.*newer than 1[.]0"
     ],
-    "ForbiddenDiagnosticsRegexes": [ "warning LAMA0600.*'Metalama[.]Framework'", "warning LAMA0602" ]
+    "ForbiddenDiagnosticsRegexes": [ "warning LAMA0600.*'Metalama[.]Framework'", "warning LAMA0602", "earlier version of 'Test[.]LegacySdk'", "earlier version of 'Test[.]NewerFramework'" ]
 }

@@ -288,13 +288,18 @@
       <!-- Exclude matches on the item identity, which is the name of the package that the requirement speaks for. -->
       <_MetalamaPlatformRequirement Include="@(MetalamaPlatformRequirement)" Exclude="@(MetalamaSupportedPlatformExclusion)"/>
 
-      <!-- The four sentences below are optional. Each one carries its own leading space, so that a requirement that
-           omits one does not produce a message with two consecutive spaces. -->
+      <!-- The four sentences taken from metadata are optional. Each sentence carries its own leading space, so that
+           a requirement that omits one does not produce a message with two consecutive spaces. -->
       <_MetalamaPlatformRequirement>
         <TargetFrameworksSentence Condition="'%(_MetalamaPlatformRequirement.SupportedTargetFrameworksDescription)'!=''"> %(_MetalamaPlatformRequirement.SupportedTargetFrameworksDescription)</TargetFrameworksSentence>
         <SdkVersionsSentence Condition="'%(_MetalamaPlatformRequirement.SupportedSdkVersionsDescription)'!=''"> %(_MetalamaPlatformRequirement.SupportedSdkVersionsDescription)</SdkVersionsSentence>
         <SdkUpgradeSentence Condition="'%(_MetalamaPlatformRequirement.SdkUpgradeDescription)'!=''"> %(_MetalamaPlatformRequirement.SdkUpgradeDescription)</SdkUpgradeSentence>
         <VisualStudioVersionsSentence Condition="'%(_MetalamaPlatformRequirement.SupportedVisualStudioVersionsDescription)'!=''"> %(_MetalamaPlatformRequirement.SupportedVisualStudioVersionsDescription)</VisualStudioVersionsSentence>
+
+        <!-- Added to every warning that reports a configuration older than the requirement. It is the counterpart of
+             the advice to look for a newer version of the package, which the warnings about a newer configuration
+             carry. -->
+        <LegacyVersionSentence> If you must keep this configuration, use an earlier version of '%(_MetalamaPlatformRequirement.Identity)' that supports it, typically a long-term support (LTS) version.</LegacyVersionSentence>
       </_MetalamaPlatformRequirement>
     </ItemGroup>
 
@@ -329,7 +334,7 @@
     <Warning Code="LAMA0600"
              HelpLink="%(_MetalamaPlatformRequirement.HelpLink)"
              Condition="'$(TargetFrameworkIdentifier)'=='.NETFramework' AND '%(_MetalamaPlatformRequirement.MinimumNETFrameworkVersion)'!='' AND $([MSBuild]::VersionLessThan($(_MetalamaTargetFrameworkVersion), %(_MetalamaPlatformRequirement.MinimumNETFrameworkVersion)))"
-             Text="'%(_MetalamaPlatformRequirement.Identity)' does not support the target framework '$(TargetFramework)', which is older than .NET Framework %(_MetalamaPlatformRequirement.MinimumNETFrameworkVersion).%(_MetalamaPlatformRequirement.TargetFrameworksSentence) $(_MetalamaSuppressionHint0600)"/>
+             Text="'%(_MetalamaPlatformRequirement.Identity)' does not support the target framework '$(TargetFramework)', which is older than .NET Framework %(_MetalamaPlatformRequirement.MinimumNETFrameworkVersion).%(_MetalamaPlatformRequirement.TargetFrameworksSentence)%(_MetalamaPlatformRequirement.LegacyVersionSentence) $(_MetalamaSuppressionHint0600)"/>
 
     <Warning Code="LAMA0600"
              HelpLink="%(_MetalamaPlatformRequirement.HelpLink)"
@@ -339,7 +344,7 @@
     <Warning Code="LAMA0600"
              HelpLink="%(_MetalamaPlatformRequirement.HelpLink)"
              Condition="'$(TargetFrameworkIdentifier)'=='.NETCoreApp' AND '%(_MetalamaPlatformRequirement.MinimumNETCoreAppVersion)'!='' AND $([MSBuild]::VersionLessThan($(_MetalamaTargetFrameworkVersion), %(_MetalamaPlatformRequirement.MinimumNETCoreAppVersion)))"
-             Text="'%(_MetalamaPlatformRequirement.Identity)' does not support the target framework '$(TargetFramework)', which is older than .NET %(_MetalamaPlatformRequirement.MinimumNETCoreAppVersion).%(_MetalamaPlatformRequirement.TargetFrameworksSentence) $(_MetalamaSuppressionHint0600)"/>
+             Text="'%(_MetalamaPlatformRequirement.Identity)' does not support the target framework '$(TargetFramework)', which is older than .NET %(_MetalamaPlatformRequirement.MinimumNETCoreAppVersion).%(_MetalamaPlatformRequirement.TargetFrameworksSentence)%(_MetalamaPlatformRequirement.LegacyVersionSentence) $(_MetalamaSuppressionHint0600)"/>
 
     <Warning Code="LAMA0600"
              HelpLink="%(_MetalamaPlatformRequirement.HelpLink)"
@@ -349,7 +354,7 @@
     <Warning Code="LAMA0600"
              HelpLink="%(_MetalamaPlatformRequirement.HelpLink)"
              Condition="'$(TargetFrameworkIdentifier)'=='.NETStandard' AND '%(_MetalamaPlatformRequirement.MinimumNETStandardVersion)'!='' AND $([MSBuild]::VersionLessThan($(_MetalamaTargetFrameworkVersion), %(_MetalamaPlatformRequirement.MinimumNETStandardVersion)))"
-             Text="'%(_MetalamaPlatformRequirement.Identity)' does not support the target framework '$(TargetFramework)', which is older than .NET Standard %(_MetalamaPlatformRequirement.MinimumNETStandardVersion).%(_MetalamaPlatformRequirement.TargetFrameworksSentence) $(_MetalamaSuppressionHint0600)"/>
+             Text="'%(_MetalamaPlatformRequirement.Identity)' does not support the target framework '$(TargetFramework)', which is older than .NET Standard %(_MetalamaPlatformRequirement.MinimumNETStandardVersion).%(_MetalamaPlatformRequirement.TargetFrameworksSentence)%(_MetalamaPlatformRequirement.LegacyVersionSentence) $(_MetalamaSuppressionHint0600)"/>
 
     <Warning Code="LAMA0600"
              HelpLink="%(_MetalamaPlatformRequirement.HelpLink)"
@@ -400,7 +405,7 @@
     <Warning Code="LAMA0601"
              HelpLink="%(_MetalamaPlatformRequirement.HelpLink)"
              Condition="'$(_MetalamaSdkVersion)'!='' AND '%(_MetalamaPlatformRequirement.MinimumSdkVersion)'!='' AND $([MSBuild]::VersionLessThan($(_MetalamaSdkVersion), %(_MetalamaPlatformRequirement.MinimumSdkVersion)))"
-             Text="'%(_MetalamaPlatformRequirement.Identity)' does not support the .NET SDK $(NETCoreSdkVersion), which is older than %(_MetalamaPlatformRequirement.MinimumSdkVersion).%(_MetalamaPlatformRequirement.SdkVersionsSentence)%(_MetalamaPlatformRequirement.SdkUpgradeSentence) $(_MetalamaSuppressionHint0601)"/>
+             Text="'%(_MetalamaPlatformRequirement.Identity)' does not support the .NET SDK $(NETCoreSdkVersion), which is older than %(_MetalamaPlatformRequirement.MinimumSdkVersion).%(_MetalamaPlatformRequirement.SdkVersionsSentence)%(_MetalamaPlatformRequirement.SdkUpgradeSentence)%(_MetalamaPlatformRequirement.LegacyVersionSentence) $(_MetalamaSuppressionHint0601)"/>
 
     <Warning Code="LAMA0601"
              HelpLink="%(_MetalamaPlatformRequirement.HelpLink)"
@@ -410,7 +415,7 @@
     <Warning Code="LAMA0602"
              HelpLink="%(_MetalamaPlatformRequirement.HelpLink)"
              Condition="'$(MSBuildRuntimeType)'=='Full' AND '$(MSBuildVersion)'!='' AND '%(_MetalamaPlatformRequirement.MinimumVisualStudioVersion)'!='' AND $([MSBuild]::VersionLessThan($(MSBuildVersion), %(_MetalamaPlatformRequirement.MinimumVisualStudioVersion)))"
-             Text="'%(_MetalamaPlatformRequirement.Identity)' does not support MSBuild $(MSBuildVersion), which is older than %(_MetalamaPlatformRequirement.MinimumVisualStudioVersion) and therefore belongs to a version of Visual Studio older than the oldest supported one.%(_MetalamaPlatformRequirement.VisualStudioVersionsSentence) $(_MetalamaSuppressionHint0602)"/>
+             Text="'%(_MetalamaPlatformRequirement.Identity)' does not support MSBuild $(MSBuildVersion), which is older than %(_MetalamaPlatformRequirement.MinimumVisualStudioVersion) and therefore belongs to a version of Visual Studio older than the oldest supported one.%(_MetalamaPlatformRequirement.VisualStudioVersionsSentence)%(_MetalamaPlatformRequirement.LegacyVersionSentence) $(_MetalamaSuppressionHint0602)"/>
 
   </Target>
 
