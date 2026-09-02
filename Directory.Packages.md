@@ -9,8 +9,8 @@ The authoritative source for how we choose versions in `Directory.Packages.props
 | Visual Studio 2026     | LTSC baseline of November 2026           | PB-2027.0, in `Metalama.Framework/docs/platform-support.md` |
 | .NET SDK (build)       | .NET 10 SDK or later                     | `Metalama.Compiler.exe` replaces the SDK's Roslyn |
 | Runtime TFMs           | `net472`, `net10.0`                      | Project files                |
-| Roslyn API min         | 4.12.0 (`RoslynApiMinVersion`)           | Not changed by this pull request. PB-2027.0 puts the floor at Roslyn 5.0, which is the version Rider presents; metalama/Metalama#1883 raises it |
-| Roslyn API max         | 5.0.0 (`RoslynApiMaxVersion`)            | Not changed by this pull request. metalama/Metalama#1883 raises it to the Roslyn version that `Metalama.Compiler` builds on |
+| Roslyn API min         | 4.12.0 (`RoslynApiMinVersion`)           | Below the PB-2027.0 floor of Roslyn 5.0, which is the version Rider presents. Issue #1881 raises it |
+| Roslyn API max         | 5.0.0 (`RoslynApiMaxVersion`)            | Issue #1881 raises it to the Roslyn version that `Metalama.Compiler` builds on |
 | MSBuild                | 18.0.2 (`MicrosoftBuildVersion`)         | The MSBuild of the .NET 10 SDK, the lowest host in PB-2027.0 |
 
 ## Why versioning is constrained
