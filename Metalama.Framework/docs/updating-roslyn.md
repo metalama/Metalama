@@ -23,7 +23,7 @@
 10. In both cases, do a find-in-files for the _previous_ latest version and see where things need to be changed or added. Both paths rename the assemblies, the packages and the generated-code directory that derive from `ThisRoslynVersionNoPreview`. This includes:
     1. Many `InternalsVisibleTo`
     2. `ResourceExtractor.GetRoslynVersion`
-    3. `RoslynApiVersion` and `SupportedCSharpVersions`
+    3. `RoslynApiVersion` and `SupportedCSharpVersions`. In `SupportedCSharpVersions.ToNuGetVersionString`, give the new version the exact `Microsoft.CodeAnalysis.CSharp` package version that the variant is built against, preview suffix included, and not a lower stable version. That value goes into the reference project of `CompileTimeAssemblyLocator`, so a lower version would compile compile-time code against an API older than the one it runs against.
     4. `JsonSerializationBinder`
     5. `Metalama.Framework.CompilerExtensions.Resources.csproj`, which must list the new assemblies
 11. Drop a variant when no host in the supported platform baseline still needs it. Delete its props file and its shim projects, remove them from `Metalama.Framework.sln`, and raise `RoslynApiMinVersion` to the identity of the lowest remaining variant. Then check every constant the remaining variants define: a constant that all of them define, or that none of them defines, is no longer a distinction, and it must be removed together with its `#if` sites and its `@RequiredConstant`, `@ForbiddenConstant`, `RequiredConstants` and `ForbiddenConstants` test directives. A test that exists only for the dropped variant goes with it.
