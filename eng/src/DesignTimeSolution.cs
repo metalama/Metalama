@@ -36,10 +36,10 @@ namespace BuildMetalama;
 internal sealed class DesignTimeSolution : TestableSolution
 {
     /// <summary>
-    /// The target framework of the simulator that is invoked. The simulator is multi-targeted so that its MSBuild
-    /// matches the .NET SDK, and the build engineering runs on the latest.
+    /// The target framework of the simulator that is invoked. The simulator targets a single framework, which must
+    /// be the one whose MSBuild matches the .NET SDK that builds the simulated solution.
     /// </summary>
-    private const string _simulatorTargetFramework = "net9.0";
+    private const string _simulatorTargetFramework = "net10.0";
 
     private const string _simulatorProjectDirectory = @"Metalama.Framework\src\tests\Metalama.DesignTime.HostSimulator";
 

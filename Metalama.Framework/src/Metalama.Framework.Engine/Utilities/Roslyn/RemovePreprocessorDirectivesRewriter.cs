@@ -91,8 +91,6 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
         public override SyntaxNode? VisitPragmaWarningDirectiveTrivia( PragmaWarningDirectiveTriviaSyntax node )
             => node.IsActive ? this.VisitPreprocessorDirective( node ) : null;
 
-#if ROSLYN_5_0_0_OR_GREATER
         public override SyntaxNode? VisitIgnoredDirectiveTrivia( IgnoredDirectiveTriviaSyntax node ) => null;
-#endif
     }
 }

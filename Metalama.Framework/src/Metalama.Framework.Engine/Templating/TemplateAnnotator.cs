@@ -2707,7 +2707,6 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
         return node.WithExpression( transformedExpression ).AddScopeAnnotation( RunTimeOnly );
     }
 
-#if ROSLYN_5_0_0_OR_GREATER
     public override SyntaxNode VisitFieldExpression( FieldExpressionSyntax node )
     {
         // The C# 14 'field' keyword in property accessors is supported in templates.
@@ -2716,7 +2715,6 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
         // that can be both read and written (as an lvalue).
         return node.AddScopeAnnotation( RunTimeOnly );
     }
-#endif
 
     #endregion
 

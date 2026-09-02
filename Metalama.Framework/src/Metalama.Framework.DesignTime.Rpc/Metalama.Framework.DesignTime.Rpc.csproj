@@ -46,8 +46,8 @@
   in the unit test project.-->
     <!--
     <ItemGroup>
-        <InternalsVisibleTo Include="Metalama.Framework.Tests.UnitTests.4.12.0" />
-        <InternalsVisibleTo Include="Metalama.Framework.Tests.UnitTestHelpers.4.12.0" />
+        <InternalsVisibleTo Include="Metalama.Framework.Tests.UnitTests.5.0.0" />
+        <InternalsVisibleTo Include="Metalama.Framework.Tests.UnitTestHelpers.5.0.0" />
     </ItemGroup>
     -->
 

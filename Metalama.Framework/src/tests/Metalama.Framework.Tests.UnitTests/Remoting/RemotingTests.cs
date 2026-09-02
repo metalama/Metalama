@@ -434,10 +434,10 @@ public sealed class RemotingTests : UnitTestClass
         var task1 = processServiceHubEndpoint.ConnectAsync( testContext.CancellationToken );
         var task2 = processServiceHubEndpoint.ConnectAsync( testContext.CancellationToken );
 
-        await Task.WhenAll( task1, task2 );
+        var results = await Task.WhenAll( task1, task2 );
 
-        Assert.True( task1.Result );
-        Assert.False( task2.Result );
+        Assert.True( results[0] );
+        Assert.False( results[1] );
     }
 
     [Fact]

@@ -688,7 +688,7 @@ class C
             }
         }
 
-#if ROSLYN_5_0_0_OR_GREATER && NET7_0_OR_GREATER
+#if NET7_0_OR_GREATER
         [Fact]
         public void ExtensionMethods()
         {

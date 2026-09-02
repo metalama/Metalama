@@ -1,12 +1,9 @@
-namespace Metalama.Framework.IntegrationTests.Aspects.DesignTime.FileNameConflict
+namespace Metalama.Framework.IntegrationTests.Aspects.DesignTime.FileNameConflict.X
 {
-  partial class X<T>
+  partial class Y<T>
   {
-    partial class Y<U>
+    public void Foo()
     {
-      public void Foo()
-      {
-      }
     }
   }
 }

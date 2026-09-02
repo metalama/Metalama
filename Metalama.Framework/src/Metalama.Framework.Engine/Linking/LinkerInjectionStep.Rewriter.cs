@@ -321,9 +321,7 @@ internal sealed partial class LinkerInjectionStep
 
         public override SyntaxNode VisitRecordDeclaration( RecordDeclarationSyntax node ) => this.VisitTypeDeclaration( node );
 
-#if ROSLYN_5_0_0_OR_GREATER
         public override SyntaxNode VisitExtensionBlockDeclaration( ExtensionBlockDeclarationSyntax node ) => this.VisitTypeDeclaration( node );
-#endif
 
         public override SyntaxNode VisitEnumDeclaration( EnumDeclarationSyntax node )
         {
@@ -621,7 +619,6 @@ internal sealed partial class LinkerInjectionStep
 
                         break;
 
-#if ROSLYN_5_0_0_OR_GREATER
                     case SyntaxKind.ExtensionBlockDeclaration when injectedNode is ExtensionBlockDeclarationSyntax extensionBlockDeclaration:
                         {
                             // Extension blocks need separate handling because their builder data is ExtensionBlockBuilderData, not NamedTypeBuilderData.
@@ -640,7 +637,6 @@ internal sealed partial class LinkerInjectionStep
 
                             break;
                         }
-#endif
 
                     case SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration or SyntaxKind.RecordDeclaration
                         or SyntaxKind.RecordStructDeclaration when injectedNode is TypeDeclarationSyntax typeDeclaration:
@@ -1496,18 +1492,15 @@ internal sealed partial class LinkerInjectionStep
             // For partial constructor definitions, transformations are stored under the implementation part's syntax,
             // so we need to look up using the implementation syntax instead.
             SyntaxNode lookupNode = originalNode;
-#if ROSLYN_5_0_0_OR_GREATER
             if ( symbol is { IsPartialDefinition: true, PartialImplementationPart: { } implementationPart } )
             {
                 lookupNode = implementationPart.GetPrimaryDeclarationSyntax()!;
             }
-#endif
 
             if ( this._transformationCollection.TryGetMemberLevelTransformations( lookupNode, out var memberLevelTransformations ) )
             {
                 var syntaxGenerationContext = this.CompilationContext.GetSyntaxGenerationContext( this.SyntaxGenerationOptions, node );
 
-#if ROSLYN_5_0_0_OR_GREATER
                 if ( symbol is { IsPartialDefinition: true } )
                 {
                     // For partial constructor definitions, only apply parameter transformations (not initializer arguments,
@@ -1516,17 +1509,12 @@ internal sealed partial class LinkerInjectionStep
                         this.AppendParameters( node.ParameterList, memberLevelTransformations.Parameters, syntaxGenerationContext ) );
                 }
                 else
-#endif
                 {
                     node = this.ApplyMemberLevelTransformations( node, memberLevelTransformations, syntaxGenerationContext );
                 }
             }
 
-#if ROSLYN_5_0_0_OR_GREATER
             if ( symbol is { PartialImplementationPart: null } )
-#else
-            if ( symbol is { } )
-#endif
             {
                 var constructor = this._compilation.RefFactory.FromSymbol<IConstructor>( symbol );
                 var entryStatements = this._transformationCollection.GetInjectedEntryStatements( constructor );

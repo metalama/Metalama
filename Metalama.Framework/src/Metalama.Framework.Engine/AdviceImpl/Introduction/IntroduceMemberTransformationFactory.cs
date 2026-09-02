@@ -43,10 +43,8 @@ internal static class IntroduceMemberTransformationFactory
     public static IntroduceNamespaceTransformation CreateTransformation( this NamespaceBuilder namespaceBuilder )
         => new( namespaceBuilder.AspectLayerInstance, namespaceBuilder.BuilderData );
 
-#if ROSLYN_5_0_0_OR_GREATER
     public static IntroduceExtensionBlockTransformation CreateTransformation( this ExtensionBlockBuilder extensionBlockBuilder )
         => new( extensionBlockBuilder.AspectLayerInstance, extensionBlockBuilder.BuilderData );
-#endif
 
     public static IInjectMemberTransformation ToTransformation( this MethodBuilder methodBuilder )
     {

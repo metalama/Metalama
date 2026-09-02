@@ -97,7 +97,7 @@ Use **Opus model** for fixing complex build errors.
 ### 5. Test and Validate
 
 ```bash
-dotnet test Metalama.Framework/src/tests/Metalama.Framework.Tests.UnitTests -f net8.0 --no-build -v q
+dotnet test Metalama.Framework/src/tests/Metalama.Framework.Tests.UnitTests -f net10.0 --no-build -v q
 ```
 
 If tests fail, analyze and fix. Common issues:

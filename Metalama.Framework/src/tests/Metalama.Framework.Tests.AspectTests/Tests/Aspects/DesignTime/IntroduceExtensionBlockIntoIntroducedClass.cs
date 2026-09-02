@@ -4,10 +4,8 @@
 
 #if TEST_OPTIONS
 // @TestScenario(DesignTime)
-// @RequiredConstant(ROSLYN_5_0_0_OR_GREATER)
 #endif
 
-#if ROSLYN_5_0_0_OR_GREATER
 using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
@@ -39,4 +37,3 @@ public class IntroductionAttribute : TypeAspect
 // <target>
 [Introduction]
 internal partial class TargetClass { }
-#endif

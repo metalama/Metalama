@@ -2,7 +2,8 @@
 
     <PropertyGroup>
         <OutputType>Exe</OutputType>
-        <TargetFramework>net8.0</TargetFramework>
+        <!-- .NET 10, because Microsoft.CodeAnalysis.Workspaces.MSBuild 5.10 ships assets for net10.0 and net472 only. -->
+        <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <LangVersion>12.0</LangVersion>
@@ -19,14 +20,19 @@
       <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" VersionOverride="$(BenchmarkRoslynVersion)" />
       <PackageReference Include="Microsoft.CodeAnalysis" VersionOverride="$(BenchmarkRoslynVersion)" />
       <PackageReference Include="Microsoft.Build.Locator" />
+
+      <!-- Microsoft.Build.Framework and Microsoft.NET.StringTools must not be copied to the output directory, for the
+           reason given in Metalama.Framework.Workspaces.csproj. This project registers Microsoft.Build.Locator in
+           Program.cs and loads a solution through MSBuildWorkspace, and it brings both packages in transitively
+           through its own reference to Microsoft.CodeAnalysis.Workspaces.MSBuild. -->
+      <PackageReference Include="Microsoft.Build.Framework" PrivateAssets="all" ExcludeAssets="runtime" />
+      <PackageReference Include="Microsoft.NET.StringTools" PrivateAssets="all" ExcludeAssets="runtime" />
     </ItemGroup>
 
     <ItemGroup>
       <ProjectReference Include="../../Metalama.Framework.Engine$(EngineProjectSuffix)/Metalama.Framework.Engine$(EngineProjectSuffix).csproj" />
       <ProjectReference Include="../../Metalama.Testing.UnitTesting$(EngineProjectSuffix)/Metalama.Testing.UnitTesting$(EngineProjectSuffix).csproj" />
 
-       <!-- Override dependencies to avoid vulnerability warnings. -->
-       <PackageReference Include="System.Text.Json" VersionOverride="$(SystemTextJsonLatestVersion)" />
 
     </ItemGroup>
 

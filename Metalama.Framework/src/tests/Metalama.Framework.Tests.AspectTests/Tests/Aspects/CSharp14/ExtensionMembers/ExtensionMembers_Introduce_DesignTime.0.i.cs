@@ -2,12 +2,13 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp14.ExtensionM
 {
   static partial class C
   {
-    extension(global::System.String)
+    extension(global::System.Int32 test)
     {
-      public static global::System.Int32 SomeStaticMethod(global::System.Int32 a, global::System.Int32 b)
+      public global::System.Int32 SomeMethod(global::System.Int32 a, global::System.Int32 b)
       {
         return default(global::System.Int32);
       }
+      public static global::System.Collections.Generic.IEnumerable<global::System.Int32> operator +(global::System.Collections.Generic.IEnumerable<global::System.Int32> a, global::System.Int32 b) => default(global::System.Collections.Generic.IEnumerable<global::System.Int32>);
     }
   }
 }

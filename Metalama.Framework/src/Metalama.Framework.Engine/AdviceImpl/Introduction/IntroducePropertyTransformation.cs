@@ -222,7 +222,6 @@ internal class IntroducePropertyTransformation : IntroduceMemberTransformation<P
         }
     }
 
-#if ROSLYN_5_0_0_OR_GREATER
     /// <inheritdoc />
     public override IEnumerable<DeclarationBuilderData> GetImplicitDeclarations()
     {
@@ -278,5 +277,4 @@ internal class IntroducePropertyTransformation : IntroduceMemberTransformation<P
 
         return result;
     }
-#endif
 }

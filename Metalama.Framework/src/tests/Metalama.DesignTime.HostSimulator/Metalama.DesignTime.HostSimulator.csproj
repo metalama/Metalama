@@ -1,9 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <!-- Several target frameworks, because the MSBuild version, and therefore the .NET runtime version, must
-             match the .NET SDK that builds the simulated solution. Same reason as Metalama.Framework.Workspaces. -->
-        <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+        <!-- .NET 10, because the MSBuild version, and therefore the .NET runtime version, must match the .NET SDK
+             that builds the simulated solution. Same reason as Metalama.Framework.Workspaces. -->
+        <TargetFramework>net10.0</TargetFramework>
         <OutputType>Exe</OutputType>
         <Nullable>enable</Nullable>
         <ImplicitUsings>disable</ImplicitUsings>
@@ -22,7 +22,12 @@
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" VersionOverride="$(RoslynMaxVersion)" />
         <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" VersionOverride="$(RoslynMaxVersion)" />
 
-        <!-- Microsoft.Build must not be copied to the output directory: its location is resolved by Microsoft.Build.Locator. -->
+        <!-- Microsoft.Build must not be copied to the output directory: its location is resolved by Microsoft.Build.Locator.
+             Microsoft.Build.Framework and Microsoft.NET.StringTools must stay, unlike in Metalama.Framework.Workspaces.
+             This project registers Microsoft.Build.Locator only when the msbuild-locator option is passed, which is
+             off by default, so usually no assembly resolver is installed and these two are loaded from this directory.
+             They cannot shadow the MSBuild of the .NET SDK either, because the workspace evaluates projects in an
+             out-of-process build host. -->
         <PackageReference Include="Microsoft.Build" PrivateAssets="all" ExcludeAssets="runtime" />
         <PackageReference Include="Microsoft.Build.Locator" />
 

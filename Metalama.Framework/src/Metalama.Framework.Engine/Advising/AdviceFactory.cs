@@ -2098,7 +2098,6 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         string? receiverParameterName = null,
         Action<IExtensionBlockBuilder>? buildExtensionBlock = null )
     {
-#if ROSLYN_5_0_0_OR_GREATER
         using ( this.WithNonUserCode() )
         {
             this.Validate( targetStaticClass, AdviceKind.IntroduceExtensionBlock );
@@ -2113,9 +2112,6 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                     buildExtensionBlock )
                 .Execute( this._state );
         }
-#else
-        throw new NotSupportedException( "Extension blocks require C# 14 and Roslyn 5.0 or later." );
-#endif
     }
 
     public IIntroductionAdviceResult<IExtensionBlock> IntroduceExtensionBlock(

@@ -146,7 +146,6 @@ internal sealed record OperatorData( OperatorKind Kind, string MemberName, Langu
         new OperatorData( OperatorKind.True, WellKnownMemberNames.TrueOperatorName, LanguageVersion.CSharp1, SyntaxKind.TrueKeyword, false ),
         new OperatorData( OperatorKind.False, WellKnownMemberNames.FalseOperatorName, LanguageVersion.CSharp1, SyntaxKind.FalseKeyword, false )
 
-#if ROSLYN_5_0_0_OR_GREATER
        ,
 
         // Compound assignment operators - user-definable since C# 14
@@ -266,7 +265,6 @@ internal sealed record OperatorData( OperatorKind Kind, string MemberName, Langu
             LanguageVersion.CSharp14,
             SyntaxKind.MinusMinusToken,
             true )
-#endif
 
     );
 

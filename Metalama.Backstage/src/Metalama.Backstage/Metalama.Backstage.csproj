@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFrameworks>netframework4.7.2;net8.0;netstandard2.0</TargetFrameworks>
+        <TargetFrameworks>netframework4.7.2;net10.0;netstandard2.0</TargetFrameworks>
 		<!-- Packaging -->
 		<PackageDescription>A Metalama package providing licensing, telemetry and other configuration settings for projects using Metalama.</PackageDescription>
         

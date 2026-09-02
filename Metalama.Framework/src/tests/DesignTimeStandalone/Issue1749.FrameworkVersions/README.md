@@ -4,7 +4,7 @@
 
 | Project | Compiled against | Referenced by the consumer as |
 |---|---|---|
-| `OldAspects` | `Metalama.Framework` 2025.1.18, from nuget.org | a **file reference** to the built assembly |
+| `OldAspects` | `Metalama.Framework` 2026.1.20, from nuget.org | a **file reference** to the built assembly |
 | `NewAspects` | the `Metalama.Framework` built by this repository | a `ProjectReference` |
 | `Consumer` | the `Metalama.Framework` built by this repository | — |
 
@@ -16,9 +16,11 @@ and therefore goes through `CompileTimeSerializationBinder.BindToName`.
 project reference, which would erase the conflict. A file reference, or equally a package reference to a prebuilt
 package, is what a consumer of an aspect library published against an older Metalama actually has.
 
-`nuget.config` clears the repository's package source mapping, which otherwise routes `Metalama.Framework*` to the
-local feed only and makes the publicly released version unresolvable. `OldAspects` pins `LangVersion` because the
-`Metalama.Compiler` shipping with 2025.1.18 predates the language version the current .NET SDK defaults to.
+`nuget.config` maps every inherited source to every package. The repository otherwise routes `Metalama.Framework*`
+to the local feed only, which makes the publicly released version unresolvable. The mapping cannot merely be
+cleared, because central package management requires one as soon as more than one source is defined. `OldAspects`
+pins `LangVersion` because the `Metalama.Compiler` shipping with the older `Metalama.Framework` predates the
+language version the current .NET SDK defaults to.
 
 ## How to build
 
@@ -31,7 +33,7 @@ dotnet build Issue1749.FrameworkVersions.sln /p:UseSharedCompilation=false
 The build **succeeds**, and the old aspect is applied: `Consumer` calls `GetOldMessage()`, which only exists
 because `OldAspect` introduced it.
 
-The compile-time project embedded in `OldAspects.dll` lists `Metalama.Framework, Version=2025.1.x` among its
+The compile-time project embedded in `OldAspects.dll` lists `Metalama.Framework, Version=2026.1.x` among its
 references, but that reference never becomes a second compile-time project:
 
 1. `Builder.TryGetCompileTimeProject(AssemblyIdentity, ...)` misses `_projects`, which holds the framework project

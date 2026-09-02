@@ -208,6 +208,16 @@ public partial class TestContext : ITempFileManager, IApplicationInfoProvider, I
                 .WithService( this._telemetryService )
                 .WithService( BackstageServiceFactory.ServiceProvider.GetRequiredBackstageService<IFileSystem>() )
 
+                // Forwarded from the real provider, because the environment of the test process is the environment
+                // that the code under test observes. A test that has to decide what a variable contains substitutes
+                // its own implementation instead of reading this one.
+                .WithService( BackstageServiceFactory.ServiceProvider.GetRequiredBackstageService<IEnvironmentVariableProvider>() )
+
+                // Forwarded for the same reason as the environment: the operating system that the code under test
+                // observes is the one that runs the test, and a test that has to decide which one it is substitutes
+                // its own implementation.
+                .WithService( BackstageServiceFactory.ServiceProvider.GetRequiredBackstageService<IRuntimeInformation>() )
+
                 // Forwarded from the real provider rather than substituted, so that the compile-time cache, which
                 // several test processes can share, is protected exactly as it is in production. Before this
                 // service existed the same call sites used a static helper, which needed no registration at all,

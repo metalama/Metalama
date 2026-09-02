@@ -5,6 +5,11 @@ assembly** of a project across target frameworks (TFMs), and the consequences fo
 and must be resolved at design time. It reflects the intended design, verified against the implementation in
 `Metalama.Framework.Engine.CompileTime`.
 
+It is not about which target frameworks Metalama supports. That question is answered by
+[`platform-support.md`](platform-support.md), which derives the supported set from the vendors' support calendars.
+The compile-time compilation always targets `netstandard2.0` and does not participate in that derivation; the
+run-time TFMs discussed here are declared by the user project.
+
 ## Background
 
 For every project that contains compile-time code (aspects, templates, fabrics, hierarchical options, etc.),

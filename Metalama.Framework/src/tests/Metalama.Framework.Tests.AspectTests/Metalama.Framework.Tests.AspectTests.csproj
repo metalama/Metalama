@@ -11,7 +11,7 @@
     <Import Project="../../../../eng/Coverage.props" />
 
     <PropertyGroup>
-        <TargetFrameworks>net48;net8.0</TargetFrameworks>
+        <TargetFrameworks>net48;net10.0</TargetFrameworks>
         <IsPackable>false</IsPackable>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <MetalamaTestAutoExclude>False</MetalamaTestAutoExclude>
@@ -62,6 +62,12 @@
         <ProjectReference Include="../../Metalama.Extensions.DiffEngine/Metalama.Extensions.DiffEngine.csproj" Condition="'$(ThisRoslynVersionProjectSuffix)' == ''" />
         <ProjectReference Include="../../Metalama.Extensions.HtmlWriter/Metalama.Extensions.HtmlWriter.csproj" Condition="'$(ThisRoslynVersionProjectSuffix)' == ''" />
     </ItemGroup>
+
+    <PropertyGroup Condition="'$(ThisRoslynVersionProjectSuffix)' == ''">
+        <!-- The HtmlWriter and DiffEngine extensions are built against the latest Roslyn only, so they are referenced
+             by the latest variant only. The test suites that request HTML output require this constant. -->
+        <DefineConstants>$(DefineConstants);METALAMA_HTML_WRITER</DefineConstants>
+    </PropertyGroup>
 
     <!-- Register extension assemblies from build output (for ProjectReference; PackageReference imports props automatically) -->
     <Import Project="../../Metalama.Extensions.HtmlWriter/MetalamaExtensionAssemblies.props" Condition="'$(ThisRoslynVersionProjectSuffix)' == ''" />

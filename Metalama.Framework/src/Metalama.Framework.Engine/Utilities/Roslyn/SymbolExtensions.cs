@@ -383,11 +383,7 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
 
         public static bool IsExtensionSafe( this INamedTypeSymbol namedType )
         {
-#if ROSLYN_5_0_0_OR_GREATER
             return namedType.IsExtension;
-#else
-            return false;
-#endif
         }
 
         /// <summary>
@@ -462,10 +458,8 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
                 }:
                     return GetReferenceOfShortestPath( partialImplementationSymbol );
 
-#if ROSLYN_5_0_0_OR_GREATER
                 case SymbolKind.Event when symbol is IEventSymbol { IsPartialDefinition: true, PartialImplementationPart: { } partialImplementationSymbol }:
                     return GetReferenceOfShortestPath( partialImplementationSymbol );
-#endif
 
                 default:
                     return GetReferenceOfShortestPath( symbol );
@@ -482,7 +476,6 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
         {
             if ( defaultNullability != null && type.NullableAnnotation == NullableAnnotation.None )
             {
-#if ROSLYN_5_0_0_OR_GREATER
                 if ( type.TypeKind == TypeKind.Extension )
                 {
                     if ( defaultNullability == true )
@@ -492,7 +485,6 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
 
                     return type;
                 }
-#endif
 
                 return (T) type.WithNullableAnnotation( defaultNullability == true ? NullableAnnotation.Annotated : NullableAnnotation.NotAnnotated );
             }

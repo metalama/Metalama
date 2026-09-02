@@ -18,13 +18,11 @@ MyExtension/
 └── metalama/
     ├── net472/
     │   └── MyExtension.dll        # Extension assembly for .NET Framework
-    ├── net8.0/
-    │   └── MyExtension.dll        # Extension assembly for .NET 8
-    └── net9.0/
-        └── MyExtension.dll        # Extension assembly for .NET 9
+    └── net10.0/
+        └── MyExtension.dll        # Extension assembly for .NET 10
 ```
 
-**Important:** Always target all three frameworks: `net472`, `net8.0`, and `net9.0`. This ensures compatibility with all supported runtime environments.
+**Important:** Always target both frameworks: `net472` and `net10.0`. This ensures compatibility with all supported runtime environments.
 
 ### Target Framework Selection
 
@@ -71,7 +69,7 @@ For extensions with dependencies that don't support netstandard2.0, or that need
 
 ```xml
 <PropertyGroup>
-    <TargetFrameworks>net472;net8.0;net9.0</TargetFrameworks>
+    <TargetFrameworks>net472;net10.0</TargetFrameworks>
 </PropertyGroup>
 ```
 
@@ -91,7 +89,7 @@ For extensions that use Roslyn internals which differ between versions, you need
 **Project structure:**
 ```
 MyExtension.Engine/                    # Main engine project (latest Roslyn)
-MyExtension.Engine.4.12.0/            # 4.12.0-specific build
+MyExtension.Engine.5.0.0/             # 5.0.0-specific build
 ```
 
 **Version-specific project pattern:**
@@ -109,20 +107,19 @@ MyExtension.Engine.4.12.0/            # 4.12.0-specific build
     </ItemGroup>
 
     <!-- Import Roslyn version configuration -->
-    <Import Project="../../eng/RoslynVersions/Roslyn.4.12.0.props" />
+    <Import Project="../../eng/RoslynVersions/Roslyn.5.0.0.props" />
 
     <!-- Import main project for other settings -->
     <Import Project="../MyExtension.Engine/MyExtension.Engine.csproj" />
 </Project>
 ```
-
-**Roslyn version props file** (`eng/RoslynVersions/Roslyn.X.X.X.props`): the `_OR_GREATER` symbols form a stack — each variant defines every `_OR_GREATER` symbol up to and including its own version, plus `_OR_EARLIER` only for the latest version it can be the latest one of. Match the existing `eng/RoslynVersions/Roslyn.<v>.props` files for the exact set:
+**Roslyn version props file** (`eng/RoslynVersions/Roslyn.X.X.X.props`): define a symbol only for a distinction that the source actually branches on. Metalama defines only `ROSLYN_5_10_0_OR_GREATER`, and only its aspect tests use it: both variants are Roslyn 5 and the engine source treats them alike. Match the existing `eng/RoslynVersions/Roslyn.<v>.props` files for the exact set:
 ```xml
 <Project>
     <PropertyGroup>
-        <ThisRoslynVersion>4.12.0</ThisRoslynVersion>
-        <ThisRoslynVersionProjectSuffix>.4.12.0</ThisRoslynVersionProjectSuffix>
-        <DefineConstants>$(DefineConstants);ROSLYN_4_12_0;ROSLYN_4_4_0_OR_GREATER;ROSLYN_4_8_0_OR_GREATER;ROSLYN_4_12_0_OR_GREATER;ROSLYN_4_12_0_OR_EARLIER</DefineConstants>
+        <ThisRoslynVersion>5.0.0</ThisRoslynVersion>
+        <ThisRoslynVersionProjectSuffix>.5.0.0</ThisRoslynVersionProjectSuffix>
+        <!-- No DefineConstants: the source does not branch on the variant. -->
     </PropertyGroup>
 </Project>
 ```
@@ -130,25 +127,18 @@ MyExtension.Engine.4.12.0/            # 4.12.0-specific build
 **Props file registration** (use `TargetRoslynVersion` metadata):
 ```xml
 <MetalamaExtensionAssembly
+    Include="...MyExtension.Engine.5.10.0.dll"
+    TargetFramework="net472"
+    TargetRoslynVersion="5.10.0"/>
+<MetalamaExtensionAssembly
     Include="...MyExtension.Engine.5.0.0.dll"
     TargetFramework="net472"
     TargetRoslynVersion="5.0.0"/>
-<MetalamaExtensionAssembly
-    Include="...MyExtension.Engine.4.12.0.dll"
-    TargetFramework="net472"
-    TargetRoslynVersion="4.12.0"/>
 ```
 
-**Conditional compilation in code:**
-```csharp
-#if ROSLYN_5_0_0_OR_GREATER
-    // Use Roslyn 5.x-only API
-#else
-    // Fall back for Roslyn 4.12.x
-#endif
-```
+**Conditional compilation in code:** define a constant in the props file of the variant that provides the newer API, and branch on it. Metalama itself needs no such constant today.
 
-**Example:** `Metalama.Extensions.Validation` in Metalama.Premium uses this pattern with builds for Roslyn 4.12.0 and 5.0.0. The Roslyn 4.8.0 build variant was retired with Metalama 2026.1 (see `Directory.Packages.md`); historical references to `Roslyn.4.8.0.props` in extension repos should be migrated to `Roslyn.4.12.0.props`.
+**Example:** `Metalama.Extensions.Validation` in Metalama.Premium uses this pattern with builds for Roslyn 5.0.0 and 5.10.0. The Roslyn 4.8.0 variant was retired with Metalama 2026.1 and the Roslyn 4.12.0 variant with Metalama 2027.0 (see `Directory.Packages.md`); historical references to either in extension repos should be migrated to `Roslyn.5.0.0.props`.
 
 ### Simple Extension Pattern (HtmlWriter)
 
@@ -157,7 +147,7 @@ For extensions with bundled dependencies, use this `.csproj` pattern:
 ```xml
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <TargetFrameworks>net472;net8.0;net9.0</TargetFrameworks>
+        <TargetFrameworks>net472;net10.0</TargetFrameworks>
         <IncludeBuildOutput>false</IncludeBuildOutput>
         <TargetsForTfmSpecificContentInPackage>
             $(TargetsForTfmSpecificContentInPackage);_AddAssembliesToOutput
@@ -234,22 +224,16 @@ Create `build/MyExtension.props`:
             Include="$(MSBuildThisFileDirectory)../metalama/net472/SomeDependency.dll"
             TargetFramework="net472" />
         <MetalamaExtensionAssembly
-            Include="$(MSBuildThisFileDirectory)../metalama/net8.0/SomeDependency.dll"
-            TargetFramework="net8.0" />
-        <MetalamaExtensionAssembly
-            Include="$(MSBuildThisFileDirectory)../metalama/net9.0/SomeDependency.dll"
-            TargetFramework="net9.0" />
+            Include="$(MSBuildThisFileDirectory)../metalama/net10.0/SomeDependency.dll"
+            TargetFramework="net10.0" />
 
         <!-- Then load the extension -->
         <MetalamaExtensionAssembly
             Include="$(MSBuildThisFileDirectory)../metalama/net472/MyExtension.dll"
             TargetFramework="net472" />
         <MetalamaExtensionAssembly
-            Include="$(MSBuildThisFileDirectory)../metalama/net8.0/MyExtension.dll"
-            TargetFramework="net8.0" />
-        <MetalamaExtensionAssembly
-            Include="$(MSBuildThisFileDirectory)../metalama/net9.0/MyExtension.dll"
-            TargetFramework="net9.0" />
+            Include="$(MSBuildThisFileDirectory)../metalama/net10.0/MyExtension.dll"
+            TargetFramework="net10.0" />
     </ItemGroup>
 </Project>
 ```
@@ -563,7 +547,7 @@ Location: `Metalama.Framework/src/Metalama.Extensions.DiffEngine/`
 Location: `Metalama.Premium/src/Metalama.Extensions.Validation*/`
 
 - Three-tier structure: API + Engine + Package
-- Multiple Roslyn version builds (4.8.0, 4.12.0, 5.0.0)
+- Multiple Roslyn version builds (5.0.0, 5.10.0)
 - Uses `PipelineExtension` for pipeline integration
 - Registers services via `context.ServiceBuilder.Add()`
 
@@ -586,7 +570,7 @@ Standalone tests **must use `PackageReference`** to reference Metalama packages 
 ```xml
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <TargetFrameworks>net472;net8.0;net9.0</TargetFrameworks>
+        <TargetFrameworks>net472;net10.0</TargetFrameworks>
         <Nullable>enable</Nullable>
         <OutputType>Library</OutputType>
     </PropertyGroup>
@@ -602,7 +586,7 @@ Standalone tests **must use `PackageReference`** to reference Metalama packages 
 </Project>
 ```
 
-**Multi-targeting:** Standalone tests should target all supported frameworks (`net472;net8.0;net9.0`) to validate extension loading across all runtime environments.
+**Multi-targeting:** Standalone tests should target all supported frameworks (`net472;net10.0`) to validate extension loading across all runtime environments.
 
 ### Debugging Extension Loading
 
@@ -646,16 +630,11 @@ When using `ProjectReference` (common in internal test projects during developme
 <ItemGroup>
     <!-- HtmlWriter extension and its dependency -->
     <MetalamaExtensionAssembly Include="../../Metalama.Extensions.HtmlWriter/bin/$(Configuration)/net472/DiffPlex.dll" TargetFramework="net472" />
-    <MetalamaExtensionAssembly Include="../../Metalama.Extensions.HtmlWriter/bin/$(Configuration)/net8.0/DiffPlex.dll" TargetFramework="net8.0" />
     <MetalamaExtensionAssembly Include="../../Metalama.Extensions.HtmlWriter/bin/$(Configuration)/net472/Metalama.Extensions.HtmlWriter.dll" TargetFramework="net472" />
-    <MetalamaExtensionAssembly Include="../../Metalama.Extensions.HtmlWriter/bin/$(Configuration)/net8.0/Metalama.Extensions.HtmlWriter.dll" TargetFramework="net8.0" />
     <!-- DiffEngine extension and its dependencies -->
     <MetalamaExtensionAssembly Include="../../Metalama.Extensions.DiffEngine/bin/$(Configuration)/net472/EmptyFiles.dll" TargetFramework="net472" />
-    <MetalamaExtensionAssembly Include="../../Metalama.Extensions.DiffEngine/bin/$(Configuration)/net8.0/EmptyFiles.dll" TargetFramework="net8.0" />
     <MetalamaExtensionAssembly Include="../../Metalama.Extensions.DiffEngine/bin/$(Configuration)/net472/DiffEngine.dll" TargetFramework="net472" />
-    <MetalamaExtensionAssembly Include="../../Metalama.Extensions.DiffEngine/bin/$(Configuration)/net8.0/DiffEngine.dll" TargetFramework="net8.0" />
     <MetalamaExtensionAssembly Include="../../Metalama.Extensions.DiffEngine/bin/$(Configuration)/net472/Metalama.Extensions.DiffEngine.dll" TargetFramework="net472" />
-    <MetalamaExtensionAssembly Include="../../Metalama.Extensions.DiffEngine/bin/$(Configuration)/net8.0/Metalama.Extensions.DiffEngine.dll" TargetFramework="net8.0" />
     <!-- DiffEngine test plugin registration -->
     <MetalamaTestPlugIn Include="Metalama.Extensions.DiffEngine.DiffEngineRunner, Metalama.Extensions.DiffEngine" />
 </ItemGroup>
@@ -669,7 +648,7 @@ When using `ProjectReference` (common in internal test projects during developme
 
 **Without proper registration:**
 - Extensions fail to load with `FileNotFoundException`
-- Errors like "Could not find a part of the path '...metalama/net8.0/DiffPlex.dll'"
+- Errors like "Could not find a part of the path '...metalama/net10.0/DiffPlex.dll'"
 
 ### Test Projects in Metalama.Framework
 
@@ -710,8 +689,7 @@ When adding new test projects that reference extension packages via `ProjectRefe
 **Fix:** Always specify `TargetFramework`:
 ```xml
 <MetalamaExtensionAssembly Include="...net472/MyExtension.dll" TargetFramework="net472" />
-<MetalamaExtensionAssembly Include="...net8.0/MyExtension.dll" TargetFramework="net8.0" />
-<MetalamaExtensionAssembly Include="...net9.0/MyExtension.dll" TargetFramework="net9.0" />
+<MetalamaExtensionAssembly Include="...net10.0/MyExtension.dll" TargetFramework="net10.0" />
 ```
 
 ### Service Not Resolved

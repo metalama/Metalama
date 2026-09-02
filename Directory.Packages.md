@@ -2,17 +2,22 @@
 
 The authoritative source for how we choose versions in `Directory.Packages.props`. The props file carries short inline rationales; the why and how live here.
 
-## Current floors (Metalama 2026.1 LTS, GA target 2026-07-01)
+This document governs the versions of NuGet packages we may reference. The platforms those packages must load into are governed by [`Metalama.Framework/docs/platform-support.md`](Metalama.Framework/docs/platform-support.md), which defines the supported set of Visual Studio, other design-time hosts, .NET SDK, .NET runtime, .NET Framework and Roslyn versions, and names it a platform baseline. The floors stated there are inputs to this document, not restatements of it.
 
-| Floor                  | Version                                  | Source                       |
+## Current floors
+
+The floors are defined by the platform baseline of the release, in
+[`Metalama.Framework/docs/platform-support.md`](Metalama.Framework/docs/platform-support.md). Read them there.
+This file previously carried its own copy of the floor table, which went stale; there is now one place to change.
+
+Two values are derived here rather than there, because they are package versions and not platform versions:
+
+| Value | Where it lives | How it is derived |
 | ---------------------- | ---------------------------------------- | ---------------------------- |
-| Visual Studio 2022     | 17.14 Current Channel, latest patch      | Support policy below         |
-| Visual Studio 2026     | Latest Stable patch (currently 18.5.x)   | No 2026-LTSC channel until ~2026-11 |
-| .NET SDK (build)       | Any in-MS-support .NET 8/9/10 SDK        | `Metalama.Compiler.exe` replaces the SDK's Roslyn |
-| Runtime TFMs           | `net472`, `net8.0`, `net9.0`             | Project files                |
-| Roslyn API min         | 4.12.0 (`RoslynApiMinVersion`)           | Lowest design-time analyzer host in MS support |
-| Roslyn API max         | 5.0.0 (`RoslynApiMaxVersion`)            | Optional bump to 5.5 to match VS 2026 18.5 |
-| MSBuild                | `MicrosoftBuildVersion` per TFM          | VS-shipped                   |
+| `RoslynApiMinVersion` / `RoslynApiMaxVersion` | `Directory.Packages.props` | The lowest and highest Roslyn version presented by a host in the baseline, per *Roslyn variant coverage* below |
+| `MicrosoftBuildVersion` | `Directory.Packages.props`, unconditional | The MSBuild version shipped by the lowest host in the baseline, which is presently the .NET 10 SDK, per *TFM constraints* below |
+
+Both Roslyn values now agree with PB-2027.0. `RoslynApiMinVersion` is `5.0.0`, which is the Roslyn version that Rider presents and the lowest of any host in the baseline. `RoslynApiMaxVersion` is `5.10.0-1.26365.3`, which is the Roslyn version that `Metalama.Compiler` builds on. `MicrosoftBuildVersion` is `18.0.2`, the MSBuild of Visual Studio 2026 and of the .NET 10 SDK.
 
 ## Why versioning is constrained
 
@@ -23,7 +28,7 @@ Metalama runs in three host types we don't control: Visual Studio, third-party d
 | Bucket | Where | Version constraint |
 | --- | --- | --- |
 | VS-loaded | devenv.exe, OOP analyzer host, design-time MSBuild in VS | ≤ what VS floor ships |
-| Design-time analyzer (non-VS) | VS Code C# Dev Kit, Rider, OmniSharp | ≤ what that IDE's Roslyn LSP ships (≥ 4.12 across major IDEs today) |
+| Design-time analyzer (non-VS) | VS Code C# Dev Kit, Rider, OmniSharp | ≤ what that IDE's Roslyn LSP ships (Roslyn 5.0 or later across major IDEs today) |
 | Compiler-loaded | `Metalama.Compiler.exe`, replacing the SDK's Roslyn at build time | Latest compatible with our hosted Roslyn fork |
 | End-user runtime | The user's app process | Latest compatible with the user's TFM |
 
@@ -36,46 +41,40 @@ Independent of the bucket model, every dependency is also classified by *audienc
 - **User-surfacing**: the package ends up in NuGets that user code references (`Metalama.Framework`, `Metalama.Backstage`, `Metalama.Patterns.*`, `Flashtrace*`). When a user adds our NuGet, transitive resolution may pull these into their project.
 - **Internal**: the package is only consumed by projects we host ourselves — `Metalama.Framework.Engine` (compile-time), `Metalama.Framework.DesignTime*` (loaded into VS as our analyzer payload), `Metalama.Compiler.exe`, `Metalama.Tool` (CLI), tests.
 
-While we still support .NET 8 SDK as a build target (.NET 8 LTS through 2026-11), **user-surfacing packages stay on the .NET 8.0 line** (`System.*` 8.0.x, `Microsoft.Extensions.*` 8.0.x). Bumping a user-surfacing dependency to a higher .NET major forces transitive upgrades on consumers that still target net8.0 and partially erodes the "we support .NET 8 SDK" promise. Internal packages are free to bump up to the VS-shipped cap regardless.
+Our own projects no longer target `net8.0`. A user application still may, and it then resolves the `netstandard2.0` asset of our user-surfacing packages. That configuration is outside the tested set of PB-2027.0, and issue #1884 adds a warning for it.
+
+The user-surfacing packages are still pinned to the .NET 8.0 line (`System.*` 8.0.x, `Microsoft.Extensions.*` 8.0.x). That pin no longer follows from the support policy, because the configuration it protects is no longer supported. It has to be re-derived against the .NET 10.0 line, as far as the design-time hosts allow, which issue #1903 tracks. Until then, do not raise a user-surfacing pin in isolation. Internal packages are free to bump up to the Visual-Studio-shipped cap regardless.
 
 Within the chosen .NET line we still take the **highest available patch** (e.g., `System.Drawing.Common` 8.0.x → latest 8.0.26 for security fixes); the rule only freezes the *major.minor*, not the patch level.
 
-## Support policy (rules for choosing the VS floor)
+## Support policy
 
-A Visual Studio version is eligible as a floor for a Metalama release if all of the following hold:
+The rules that choose the Visual Studio floor, and the floor of every other platform axis, are in
+[`Metalama.Framework/docs/platform-support.md`](Metalama.Framework/docs/platform-support.md). They used to be
+stated here as four rules about Visual Studio alone. They are now eight rules that apply to every axis, together
+with the worked evaluation for the current release and the rule that governs how a long-term support branch
+follows the vendor calendar on the way out.
 
-1. In MS support today.
-2. In MS support at our GA date.
-3. At least ~1 month of MS runway from GA.
-4. When MS supports only the latest patch of a channel, our floor tracks that latest patch.
-
-The chosen floor is the lowest version satisfying all four rules.
-
-### Worked example: Metalama 2026.1 LTS, GA 2026-07-01
-
-| VS channel / version          | EOL          | Eligible? | Reason |
-| ----------------------------- | ------------ | --------- | ------ |
-| VS 2022 17.10 LTSC            | 2026-01-13   | No        | Already EOL (rule 1) |
-| VS 2022 17.12 LTSC            | 2026-07-14   | No        | Only 13 days runway from GA (rule 3) |
-| VS 2022 17.14 Current Channel | 2032-01-13   | Yes       | Latest patch tracks the channel |
-| VS 2026 Stable                | rolling      | Yes       | Only VS 2026 channel currently shipping |
-
-VS 2022 floor = 17.14 Current Channel (latest patch); VS 2026 floor = latest Stable patch at GA. After VS 2022 17.12 LTSC ends (2026-07-14), no further VS 2022 LTSCs are planned — Microsoft moved the LTSC model to VS 2026. The first 2026-LTSC ships ~2026-11-10; until then, only Stable is supported.
-
-### LTS lifetime
-
-LTS branches don't freeze their declared floor: as Microsoft drops a VS version from support, our supported set drops with it. We test against the floor that was current at LTS GA.
+Consult that document before changing a floor. Consult this one for what the chosen floor implies about the
+package versions we may reference.
 
 ## TFM constraints
 
-`net472` limits us to packages that retain a `netstandard2.0` (or `net4x`) asset — many modern System.* packages have dropped `netstandard2.0`. `net8.0` / `net9.0` are generally permissive, but per-TFM caps are still required when the consuming process ships a specific .NET runtime. Use the conditional version pattern:
+`net472` limits us to packages that retain a `netstandard2.0` (or `net4x`) asset — many modern System.* packages have dropped `netstandard2.0`. `net10.0` is generally permissive, but a cap is still required when the consuming process ships a specific version of a library, as it is for `Microsoft.Build`. There the cap follows the lowest MSBuild that can host us. Under PB-2027.0 Visual Studio 2022 is out of the supported set, so that lowest host is the .NET 10 SDK, which ships MSBuild 18.0:
 
 ```xml
-<MicrosoftBuildVersion Condition="'$(TargetFramework)'=='net8.0'">17.10.46</MicrosoftBuildVersion>
-<MicrosoftBuildVersion Condition="'$(TargetFramework)'=='net9.0'">17.14.28</MicrosoftBuildVersion>
+<MicrosoftBuildVersion>18.0.2</MicrosoftBuildVersion>
 ```
 
+A project that consumes `Microsoft.Build` must also reference `Microsoft.Build.Framework` and `Microsoft.NET.StringTools` with `ExcludeAssets="runtime"`. Excluding the run-time assets of a package does not exclude those of its dependencies, so without that reference a transitive copy of either one lands beside the application and shadows the MSBuild that `Microsoft.Build.Locator` resolved.
+
 ### The Out-of-band family
+
+> The caps in this section, and the split-version routing that depends on them, are derived from the binding
+> redirects of `devenv.exe` in Visual Studio 2022, which PB-2027.0 no longer includes. They must be re-derived
+> against the Visual Studio 2026 long-term servicing channel baseline once it ships on 2026-11-10, and most of
+> them are expected to disappear. Tracked by #1897. Do not carry a pin forward on the strength of the text
+> below without checking it against the new floor.
 
 A repeatedly relevant cluster of packages: **`System.Memory`**, **`System.Buffers`**, **`System.Numerics.Vectors`**, **`System.Runtime.CompilerServices.Unsafe`** (and sometimes `System.Threading.Tasks.Extensions`). These are called "Out-of-band" because they ship as standalone NuGet packages outside the .NET runtime release cycle — even though their types live in the `System.*` namespace. Originally back-ports of types added to .NET Core 2.1+ (`Span<T>`, `Memory<T>`, `ArrayPool<T>`, `Vector<T>`, the `Unsafe` API, `ValueTask`) for `netstandard2.0` and `net4x` consumers.
 
@@ -99,15 +98,65 @@ Add a one-line inline comment in the props file when a version is pinned for a n
 
 ## Roslyn variant coverage
 
-We ship per-Roslyn-version variants of our analyzer/source-generator NuGet payload. NuGet auto-selects the highest-compatible variant for the consumer's Roslyn host.
+We ship per-Roslyn-version variants of our analyzer/source-generator NuGet payload. `ResourceExtractor.GetRoslynVersion` reads the `AssemblyVersion` of the Roslyn assembly loaded in the host process and selects the highest variant whose identity does not exceed it.
 
-| Variant (`eng\RoslynVersions\`) | Roslyn range it satisfies | Serves (in-MS-support hosts at GA 2026-07-01) |
+Which variants we ship follows from the hosts in the platform baseline, so re-derive this table whenever the baseline changes. The Roslyn API section of [`Metalama.Framework/docs/platform-support.md`](Metalama.Framework/docs/platform-support.md) records the state of that derivation for the release in preparation.
+
+| Variant (`eng\RoslynVersions\`) | Roslyn range it satisfies | Serves |
 | --- | --- | --- |
-| ~~`Roslyn.4.8.0.props`~~ | ~~4.8 – 4.11~~ | Dropped — no in-support design-time host below 4.12, and the .NET 8 SDK's bundled Roslyn 4.11 is irrelevant at build time (Metalama.Compiler replaces it) |
-| `Roslyn.4.12.0.props` | 4.12 – 4.x | VS 2022 17.14 (Roslyn 4.14), .NET 9 SDK 9.0.3xx (Roslyn 4.14), Rider / VS Code design-time hosts |
-| `Roslyn.5.0.0.props` | 5.0+ | VS 2026 18.5 (Roslyn 5.5), .NET 10 SDK 10.0.x |
+| ~~`Roslyn.4.8.0.props`~~ | ~~4.8 – 4.11~~ | Dropped for 2026.1 — no in-support design-time host below 4.12 |
+| ~~`Roslyn.4.12.0.props`~~ | ~~4.12 – 4.14~~ | Dropped for 2027.0 — its only host was Visual Studio 2022, which is out of the platform baseline |
+| `Roslyn.5.0.0.props` | 5.0 – 5.9 | Rider 2026.2 (Roslyn 5.0), the Visual Studio Code C# Dev Kit |
+| `Roslyn.5.10.0.props` | 5.10+ | VS 2026 long-term servicing channel, VS 2027, the .NET 10 and .NET 11 SDKs, `Metalama.Compiler` |
 
-Public Roslyn API surface didn't change between 4.8 and 4.11 for the API set we use; the first additions we depend on (`AllowsConstraintClause`, partial property symbols, etc.) shipped in 4.12. Once no in-support host remained below 4.12, the 4.8 variant added no coverage over 4.12.
+### Why the latest variant is numbered after the Roslyn version it binds against
+
+The latest variant was renumbered from `5.0.0` to `5.10.0` when `RoslynApiMaxVersion` was raised to `5.10.0-1.26365.3`. The alternative was to keep the identity `5.0.0` and let `ThisRoslynVersion` follow `RoslynApiMaxVersion`, so that only the referenced package version changed. That alternative is unsound, for two reasons that combine:
+
+1. `Microsoft.CodeAnalysis` carries `AssemblyVersion` `major.minor.0.0`, so Roslyn 5.0 is `5.0.0.0` and Roslyn 5.10 is `5.10.0.0`. These are distinct binding identities. `Metalama.Framework.Engine` references `Microsoft.CodeAnalysis.CSharp.Workspaces` at `$(ThisRoslynVersion)`, which transitively raises `Microsoft.CodeAnalysis.CSharp` to the same version, so the payload of the latest variant binds against `5.10.0.0`.
+2. Assembly binding rolls forward, never back. A payload that binds against `5.10.0.0` loads in a host that provides Roslyn 5.10 or later, and fails to load in a host that provides Roslyn 5.0 through 5.9.
+
+Naming the variant `5.0.0` would therefore make `GetRoslynVersion` hand a Roslyn 5.5 host a payload that host cannot load. Naming it `5.10.0` makes the same host fall back to the `Roslyn.5.0.0` variant, which binds against `5.0.0.0` and loads correctly. The variant identity must never understate the Roslyn version that the payload binds against.
+
+The latest variant carries no project-name suffix (`ThisRoslynVersionProjectSuffix` is empty), so the renumbering renames no project directory. It renames the assemblies and packages built from `ThisRoslynVersionNoPreview`, in particular `Metalama.Framework.Engine.5.10.0`, `Metalama.Framework.DesignTime.5.10.0` and `Metalama.Framework.Implementation.5.10.0`, and the generated-code directory `.generated/5.10.0`.
+
+### The variant floor is set by design-time analyzer hosts
+
+The set of variants is determined by the design-time analyzer hosts we support, not by the set of supported .NET SDK versions. Two mechanisms make the SDK irrelevant here. At build time `Metalama.Compiler.exe` replaces the SDK's Roslyn, so the compilation runs against Roslyn 5.10 whichever SDK invokes it. At design time every supported integrated development environment carries its own Roslyn payload, so the SDK's Roslyn is not the one loaded. A supported SDK whose bundled Roslyn falls between two variant identities therefore imposes no requirement on the variant set.
+
+State the policy this way round when reading the *Execution buckets* table. Read as "any supported .NET SDK", the build-time bucket would appear to require a variant for every SDK feature band, which it does not.
+
+A variant exists only when it serves a host in the supported set, and each variant must name that host. The set is therefore derived from one measurement, taken on the design-time hosts that publish no support calendar.
+
+### Why the lower variant is Roslyn 5.0 and not Roslyn 4.12
+
+Measured on 2026-09-01, Rider 2026.2.0.2 presents Roslyn 5.0. Its `lib/ReSharperHost/Microsoft.CodeAnalysis.dll` carries assembly version `42.42.42.42`, the JetBrains build marker, and product version `5.0.0-dev`, which is what the JetBrains branch of `ResourceExtractor.GetRoslynVersion` parses. The other copies of that assembly in the Rider layout belong to the bundled .NET SDK and to the bundled MSBuild, and neither is loaded into the process that hosts our analyzer.
+
+| Host | Roslyn | Variant that serves it |
+| --- | --- | --- |
+| Rider 2026.2 | 5.0 | `Roslyn.5.0.0` |
+| Visual Studio Code C# Dev Kit | 5.8 or later, not measured | `Roslyn.5.0.0` |
+| VS 2026 long-term servicing channel, baseline of 2026-11 | about 5.11 | `Roslyn.5.10.0` |
+| VS 2027 Stable | 5.10 or later | `Roslyn.5.10.0` |
+| The .NET 10 and .NET 11 SDKs, and `Metalama.Compiler` | 5.0 and later | `Roslyn.5.10.0`, always the latest |
+
+Without the `Roslyn.5.0.0` variant, every Rider user would fall back to a Roslyn 4 payload and lose C# 14 extension member support at design time, with no diagnostic. That is the silent degradation the variant set exists to prevent.
+
+The `Roslyn.4.12.0` variant is dropped in the same change. Its only host was Visual Studio 2022 17.14, which leaves mainstream support on 2027-01-13, twelve days after the general availability date of Metalama 2027.0, and whose remaining lifetime to 2032 is security-only. No host in the supported set is below Roslyn 5.0, so `RoslynApiMinVersion` is `5.0.0`.
+
+The Roslyn version of Rider and of the Visual Studio Code C# Dev Kit is the only input that can place a host below the Visual Studio floor, so it must be measured again at each release candidate. The C# Dev Kit is unmeasured here, because it is not installed on the machine the Rider measurement was taken on; it changes the outcome only if it is below Roslyn 5.0, which `roslyn-language-server` has not been for several releases.
+
+### Preprocessor symbols defined by the variants
+
+No production source branches on a variant symbol. Both variants are Roslyn 5, so the engine treats them alike: they differ only in the Roslyn version their payload binds against.
+
+The latest variant defines `ROSLYN_5_10_0_OR_GREATER`, and two aspect tests use it. `UnknownAccessorInTemplate` and its `_Roslyn5_0` counterpart split one scenario in two, because Roslyn 5.0 reports `CS1014` on an empty span and Roslyn 5.10 reports it on the `setx` token. Name a new symbol after the Roslyn version at which the distinction appears, so that renumbering a variant does not rewrite the sites that use it.
+
+`Metalama.Framework.Tests.AspectTests` defines `METALAMA_HTML_WRITER` in its latest-variant evaluation. `Metalama.Extensions.HtmlWriter` and `Metalama.Extensions.DiffEngine` are built against the latest Roslyn, so they are referenced by the latest variant only, and the test suites that request HTML output require that symbol. The condition is the presence of the extension, not the Roslyn version, so the symbol is not named after Roslyn.
+
+`ROSLYN_5_0_0_OR_GREATER` was the last symbol, and it named the boundary between the Roslyn 4 and the Roslyn 5 API generations. Dropping the `Roslyn.4.12.0` variant put every variant on the Roslyn 5 side of that boundary, which made the symbol true in every build. It was removed together with its 177 conditional blocks, whose `#else` branches no build compiled any more, its 69 `@RequiredConstant` and `@ForbiddenConstant` test directives, and the `RequiredConstants` entries of three `metalamaTests.json` files. `ROSLYN_4_4_0_OR_GREATER`, `ROSLYN_4_8_0_OR_GREATER`, `ROSLYN_4_12_0_OR_GREATER`, `ROSLYN_4_12_0`, `ROSLYN_4_12_0_OR_EARLIER` and `ROSLYN_5_0_0` had been removed earlier in the same release, each because it was either always true or never read.
+
+A symbol is warranted again only when the source has to branch on a distinction between two variants that no existing symbol expresses. Name it after the Roslyn version at which the distinction appears, not after a variant number, so that renumbering a variant does not rewrite the `#if` sites.
 
 ## Adding or upgrading a package
 
@@ -271,6 +320,6 @@ The current example is `SystemMemoryVersion` / `SystemMemoryLatestVersion`; the 
 
 Time-bounded policy items that affect future bumps. PR-specific work in flight is tracked in the corresponding PR / GitHub issues, not here.
 
-- VS 2022 17.14 Current Channel auto-updates feature bands; re-derive caps when MS ships a Current-Channel feature update that rotates VS-shipped assemblies.
-- VS 2026 floor is currently latest Stable patch. When 2026-LTSC ships (~2026-11-10), revisit whether to pin the VS 2026 floor to LTSC for future Metalama LTS releases.
+- VS 2022 17.14 Current Channel auto-updates feature bands; re-derive caps when MS ships a Current-Channel feature update that rotates VS-shipped assemblies, for as long as 17.14 is in the baseline.
+- The Visual Studio floor itself is tracked in [`Metalama.Framework/docs/platform-support.md`](Metalama.Framework/docs/platform-support.md), together with the checklist of measurements that must be taken against real machines before the floor moves.
 - The flowed-dep pins on `Metalama.Framework.DesignTime.Rpc` (`StreamJsonRpc`, `System.Diagnostics.DiagnosticSource`, `System.Threading.Tasks.Extensions`, `System.IO.Pipelines`, `Microsoft.Bcl.AsyncInterfaces`) are constrained by the lowest currently-installed Metalama.Vsx version's CPM ceiling. They become free to bump only after VSX migrates off direct `Metalama.Framework.DesignTime.Rpc` consumption (metalama/Metalama#1605, metalama/Metalama.Vsx.Public#18) AND the older VSX exits support.

@@ -166,7 +166,6 @@ internal sealed class SourceMethod : SourceMethodBase, IMethodImpl
             ? this.Compilation.Factory.GetDeclaration( this.MethodSymbol.AssociatedSymbol ) as IHasAccessors
             : null;
 
-#if ROSLYN_5_0_0_OR_GREATER
     public IMethod? ExtensionImplementationMethod
     {
         get
@@ -179,9 +178,6 @@ internal sealed class SourceMethod : SourceMethodBase, IMethodImpl
                 : null;
         }
     }
-#else
-    IMethod? IMethod.ExtensionImplementationMethod => null;
-#endif
 
     public override MethodBase ToMethodBase() => this.ToMethodInfo();
 

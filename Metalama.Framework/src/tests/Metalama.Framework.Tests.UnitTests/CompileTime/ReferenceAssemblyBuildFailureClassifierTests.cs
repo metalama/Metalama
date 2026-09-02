@@ -74,6 +74,50 @@ public sealed class ReferenceAssemblyBuildFailureClassifierTests
     }
 
     /// <summary>
+    /// Issue #1885: when Metalama declared the package source of a prerelease Roslyn without a package source mapping,
+    /// because the user had already mapped these packages, the failure of the restore is the only point at which that
+    /// decision becomes visible, so the probable cause has to name the source and the pattern.
+    /// </summary>
+    [Fact]
+    public void ProbableCause_PackageNotFoundWhilePrereleaseSourceIsUnmapped()
+    {
+        var output = ImmutableArray.Create(
+            "TempProject.csproj(5): error NU1101: Unable to find package Microsoft.CodeAnalysis.CSharp.",
+            "TempProject.csproj(5): error NU1101: No packages exist with this id in source(s): InternalFeed" );
+
+        var probableCause = ReferenceAssemblyBuildFailureClassifier.GetProbableCause(
+            output,
+            _projectDirectory,
+            null,
+            "https://proget.postsharp.net/nuget/roslyn-consolidated/v3/index.json" );
+
+        Assert.Contains( "https://proget.postsharp.net/nuget/roslyn-consolidated/v3/index.json", probableCause );
+        Assert.Contains( "Microsoft.CodeAnalysis.*", probableCause );
+    }
+
+    /// <summary>
+    /// Issue #1885: the reference-assembly project also references the compile-time packages of the user project, so a
+    /// package that is not found is not necessarily a Roslyn package. The cause that names the prerelease feed applies
+    /// only to the Roslyn packages, and the generic explanation of an unresolved package applies to the others.
+    /// </summary>
+    [Fact]
+    public void ProbableCause_PackageOfTheUserProjectNotFoundWhilePrereleaseSourceIsUnmapped()
+    {
+        var output = ImmutableArray.Create(
+            "TempProject.csproj(5): error NU1101: Unable to find package Contoso.Aspects.",
+            "TempProject.csproj(5): error NU1101: No packages exist with this id in source(s): nuget.org" );
+
+        var probableCause = ReferenceAssemblyBuildFailureClassifier.GetProbableCause(
+            output,
+            _projectDirectory,
+            null,
+            "https://proget.postsharp.net/nuget/roslyn-consolidated/v3/index.json" );
+
+        Assert.DoesNotContain( "roslyn-consolidated", probableCause );
+        Assert.Contains( "packageSourceMapping", probableCause );
+    }
+
+    /// <summary>
     /// The .NET host fails before MSBuild is loaded, so the output carries no message identifier and the file name
     /// <c>global.json</c> is the only invariant signal. The prose around it differs in a localized toolchain.
     /// </summary>

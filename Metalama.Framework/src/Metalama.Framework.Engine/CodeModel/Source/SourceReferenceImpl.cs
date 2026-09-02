@@ -88,7 +88,6 @@ public sealed class SourceReferenceImpl : ISourceReferenceImpl
                                                      && property.Modifiers.Any( SyntaxKind.PartialKeyword ):
                 return false;
 
-#if ROSLYN_5_0_0_OR_GREATER
             case SyntaxKind.ConstructorDeclaration when sourceReference.NodeOrTokenInternal is SyntaxNode nodeInternal
                                                         && nodeInternal.IsKind( SyntaxKind.ConstructorDeclaration )
                                                         && nodeInternal is ConstructorDeclarationSyntax { Body: null, ExpressionBody: null } constructor
@@ -103,7 +102,6 @@ public sealed class SourceReferenceImpl : ISourceReferenceImpl
                                                     }
                                                     && eventField.Modifiers.Any( SyntaxKind.PartialKeyword ):
                 return false;
-#endif
 
             default:
                 return true;

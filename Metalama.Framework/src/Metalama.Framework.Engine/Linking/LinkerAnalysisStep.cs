@@ -221,13 +221,9 @@ namespace Metalama.Framework.Engine.Linking
                 cancellationToken );
 
             var backingFieldReferences =
-#if ROSLYN_5_0_0_OR_GREATER
                 await this.GetPropertyBackingFieldReferencesAsync(
                     overriddenHybridAutoProperties,
                     cancellationToken );
-#else
-                Array.Empty<IntermediateSymbolSemanticReference>();
-#endif
 
             var callerAttributeReferences =
                 await GetCallerAttributeReferencesAsync(
@@ -1125,7 +1121,6 @@ namespace Metalama.Framework.Engine.Linking
             return list;
         }
 
-#if ROSLYN_5_0_0_OR_GREATER
         /// <summary>
         /// Finds all references to auto property backing fields.
         /// </summary>
@@ -1205,7 +1200,6 @@ namespace Metalama.Framework.Engine.Linking
 
             return list.ToList();
         }
-#endif
 
         /// <summary>
         /// Finds all references to overridden methods that have caller attributes and need to be fixed.
