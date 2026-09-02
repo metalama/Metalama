@@ -16,6 +16,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 
 // ReSharper disable NullableWarningSuppressionIsUsed
 // Resharper disable EmptyGeneralCatchClause
@@ -41,9 +42,16 @@ public static class ResourceExtractor
     private static readonly string _snapshotDirectory;
     private static readonly string _buildId;
     private static volatile bool _initialized;
-    private static string? _versionNumber;
     private static AssemblyLoader? _assemblyLoader;
     private static readonly string? _overriddenTempPath;
+    private static readonly string? _variantName;
+    private static int _unsupportedHostReported;
+
+    /// <summary>
+    /// Gets the Roslyn version of the host, which is the version of the assembly that contains
+    /// <see cref="SyntaxNode"/>.
+    /// </summary>
+    public static Version HostRoslynVersion { get; }
 
     static ResourceExtractor()
     {
@@ -65,6 +73,10 @@ public static class ResourceExtractor
         _overriddenTempPath = string.IsNullOrEmpty( overriddenTempPath ) ? null : overriddenTempPath;
 
         _snapshotDirectory = GetTempDirectory( "Extract" );
+
+        HostRoslynVersion = GetHostRoslynVersion();
+
+        _variantName = RoslynVariantPolicy.TryGetVariantName( HostRoslynVersion, out var variantName ) ? variantName : null;
     }
 
     private static string GetTempDirectory( string purpose )
@@ -121,8 +133,6 @@ public static class ResourceExtractor
                         _embeddedAssemblies[loadedAssemblyName.Name] = (file, loadedAssemblyName);
                     }
 
-                    _versionNumber = GetRoslynVersion();
-
                     // Since GetAssemblyCore loads the DesignTime.Contracts assembly outside of the AssemblyLoader ALC,
                     // we also need to handle loading its dependencies by specifying the globalResolveHandlerFilter.
                     _assemblyLoader = AssemblyLoaderFactory.CreateAssemblyLoader(
@@ -136,9 +146,82 @@ public static class ResourceExtractor
     }
 
     /// <summary>
-    /// Creates an instance of a type from a Roslyn-version-specific Metalama assembly.
+    /// Creates an instance of a type from the Roslyn-version-specific Metalama assembly that serves the host, unless
+    /// no embedded payload variant serves it.
     /// </summary>
-    public static object CreateInstance( string assemblyName, string typeName )
+    /// <param name="assemblyName">The name of the assembly, without the suffix that names the variant.</param>
+    /// <param name="typeName">The full name of the type to instantiate.</param>
+    /// <param name="instance">When this method returns <c>true</c>, the new instance.</param>
+    /// <returns><c>false</c> when the Roslyn version of the host is below the lowest supported one, in which case the
+    /// caller must hold no implementation and behave as if Metalama were not installed.</returns>
+    public static bool TryCreateInstance<T>( string assemblyName, string typeName, out T? instance )
+        where T : class
+    {
+        if ( _variantName == null )
+        {
+            ReportUnsupportedHost();
+
+            instance = null;
+
+            return false;
+        }
+
+        instance = (T) CreateInstance( assemblyName, typeName );
+
+        return true;
+    }
+
+    /// <summary>
+    /// Writes a report naming the Roslyn version of the host and the lowest supported one. It is written once per
+    /// process. A design-time host has no other channel: the integrated development environment shows no diagnostic
+    /// for a payload that did not load, so a host that does nothing would otherwise also say nothing.
+    /// </summary>
+    private static void ReportUnsupportedHost()
+    {
+        if ( Interlocked.CompareExchange( ref _unsupportedHostReported, 1, 0 ) != 0 )
+        {
+            return;
+        }
+
+        try
+        {
+            var directory = GetTempDirectory( "UnsupportedHost" );
+
+            if ( !Directory.Exists( directory ) )
+            {
+                Directory.CreateDirectory( directory );
+
+                try
+                {
+                    // Mark the directory for automatic clean up when unused.
+                    File.WriteAllText( Path.Combine( directory, "cleanup.json" ), "{\"Strategy\":1}" );
+                }
+                catch ( IOException ) { }
+            }
+
+            var report = new StringBuilder();
+            var process = Process.GetCurrentProcess();
+
+            report.AppendLine(
+                $"Metalama requires Roslyn {RoslynVariantPolicy.MinimumSupportedRoslynVersion} or later. This process runs Roslyn " +
+                $"{HostRoslynVersion}, for which this build of Metalama embeds no implementation, so Metalama is doing nothing here." );
+
+            report.AppendLine( $"Metalama Version: {typeof(ResourceExtractor).Assembly.GetName().Version}" );
+            report.AppendLine( $"Runtime: {RuntimeInformation.FrameworkDescription}" );
+            report.AppendLine( $"Process Name: {process.ProcessName}" );
+            report.AppendLine( $"Process Id: {process.Id}" );
+            report.AppendLine( $"Process Kind: {ProcessKindHelper.CurrentProcessKind}" );
+            report.AppendLine( $"Command Line: {Environment.CommandLine}" );
+
+            File.WriteAllText( Path.Combine( directory, $"roslyn-{HostRoslynVersion}.txt" ), report.ToString() );
+        }
+        catch
+        {
+            // A failure to write the report must not fail the host, and there is no channel left to report it on.
+        }
+    }
+
+    private static object CreateInstance( string assemblyName, string typeName )
     {
         var log = new StringBuilder();
 
@@ -146,7 +229,7 @@ public static class ResourceExtractor
         {
             Initialize();
 
-            assemblyName = assemblyName + "." + _versionNumber;
+            assemblyName = assemblyName + "." + _variantName;
 
             var assemblyQualifiedName = _embeddedAssemblies[assemblyName].Name.ToString();
             log.AppendLine( $"Creating an instance of '{typeName}' from '{assemblyQualifiedName}'." );
@@ -548,7 +631,7 @@ public static class ResourceExtractor
         return existingAssembly;
     }
 
-    private static string GetRoslynVersion()
+    private static Version GetHostRoslynVersion()
     {
         var assembly = typeof(SyntaxNode).Assembly;
         var version = assembly.GetName().Version;
@@ -570,20 +653,6 @@ public static class ResourceExtractor
             }
         }
 
-        if ( version >= new Version( 5, 10 ) )
-        {
-            return "5.10.0";
-        }
-        else if ( version >= new Version( 5, 0 ) )
-        {
-            return "5.0.0";
-        }
-        else
-        {
-            // No payload is embedded for a Roslyn version below 5.0. Such a host is outside the supported
-            // platform baseline, and naming a version that has no payload makes the extraction fail instead of
-            // loading a payload that cannot bind.
-            return "4.12.0";
-        }
+        return version;
     }
 }

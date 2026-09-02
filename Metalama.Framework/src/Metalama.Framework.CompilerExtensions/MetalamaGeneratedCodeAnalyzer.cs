@@ -25,9 +25,10 @@ public sealed class MetalamaGeneratedCodeAnalyzer : DiagnosticAnalyzer
                 break;
 
             default:
-                this._impl = (DiagnosticAnalyzer) ResourceExtractor.CreateInstance(
+                ResourceExtractor.TryCreateInstance<DiagnosticAnalyzer>(
                     "Metalama.Framework.Engine",
-                    "Metalama.Framework.Engine.GeneratedCodeAnalyzer" );
+                    "Metalama.Framework.Engine.GeneratedCodeAnalyzer",
+                    out this._impl );
 
                 break;
         }
