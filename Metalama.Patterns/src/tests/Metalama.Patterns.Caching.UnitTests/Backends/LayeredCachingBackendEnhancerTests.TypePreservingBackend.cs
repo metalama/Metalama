@@ -17,13 +17,25 @@ public sealed partial class LayeredCachingBackendEnhancerTests
     /// </summary>
     private sealed class TypePreservingBackend : CachingBackend
     {
-        private readonly ConcurrentDictionary<string, CacheItem> _items = new();
+        private readonly ConcurrentDictionary<string, CacheItem> _items;
         private readonly ConcurrentDictionary<string, HashSet<string>> _dependencies = new();
         private readonly bool _blocking;
 
-        public TypePreservingBackend( bool blocking = true )
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TypePreservingBackend"/> class.
+        /// </summary>
+        /// <param name="store">
+        /// The dictionary in which the items are stored. Two instances that share a dictionary represent two nodes
+        /// that reach the same remote store. When <see langword="null"/>, the instance gets its own dictionary.
+        /// </param>
+        public TypePreservingBackend(
+            bool blocking = true,
+            IServiceProvider? serviceProvider = null,
+            ConcurrentDictionary<string, CacheItem>? store = null )
+            : base( serviceProvider: serviceProvider )
         {
             this._blocking = blocking;
+            this._items = store ?? new ConcurrentDictionary<string, CacheItem>();
         }
 
         protected override CachingBackendFeatures CreateFeatures() => new Features( this._blocking );
