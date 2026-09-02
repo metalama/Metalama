@@ -20,6 +20,22 @@ namespace Metalama.Framework.GenerateMetaSyntaxRewriter.Model
         [XmlAttribute]
         public string SkipConvenienceFactories { get; set; }
 
+        /// <summary>
+        /// Gets or sets the address of the issue that tracks the experimental feature this node belongs to.
+        /// </summary>
+        /// <remarks>
+        /// Roslyn annotates the corresponding API with <c>ExperimentalAttribute</c>, so referring to it from generated
+        /// code raises an <c>RSEXPERIMENTAL</c> error. Experimental features are not supported, so <see cref="TreeReader"/>
+        /// removes every node that carries this attribute.
+        /// </remarks>
+        [XmlAttribute]
+        public string ExperimentalUrl { get; set; }
+
+        /// <summary>
+        /// Gets a value indicating whether the node belongs to an experimental feature.
+        /// </summary>
+        public bool IsExperimental => !string.IsNullOrEmpty( this.ExperimentalUrl );
+
         [XmlElement]
         public Comment TypeComment { get; set; }
 

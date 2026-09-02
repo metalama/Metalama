@@ -2,9 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-#if ROSLYN_5_0_0_OR_GREATER
 using Metalama.Framework.Engine.Utilities;
-#endif
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Comparers;
 using Metalama.Framework.Engine.AdviceImpl.Introduction;
@@ -27,9 +25,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-#if ROSLYN_5_0_0_OR_GREATER
 using System.Globalization;
-#endif
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -248,11 +244,7 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                     typeDepth++;
                 }
 
-#if ROSLYN_5_0_0_OR_GREATER
                 var hasExtensionBlock = extensionBlock != null;
-#else
-                const bool hasExtensionBlock = false;
-#endif
 
                 // When an extension block wraps the members, they are children of the extension block,
                 // which is itself a member of declaringType. Members therefore need an extra indent level.
@@ -273,8 +265,6 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
 
                 members = List( indentedMembers );
 
-#if ROSLYN_5_0_0_OR_GREATER
-
                 // Create the extension block. The block's own indent level matches the depth at which
                 // it appears (i.e., as a member of declaringType): typeDepth + 1.
                 if ( extensionBlock != null )
@@ -291,7 +281,6 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
 
                     members = List<MemberDeclarationSyntax>( [extensionBlockSyntax] );
                 }
-#endif
 
                 // Create a type. The wrapper tokens (keywords, braces) are constructed with explicit elastic
                 // trivia so the resulting tree's ToFullString is parseable C# without a per-type
@@ -389,7 +378,6 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                     sb.Append( "." );
                 }
 
-#if ROSLYN_5_0_0_OR_GREATER
                 if ( current.TypeKind == TypeKind.Extension )
                 {
                     var primarySyntax = current.GetPrimaryDeclarationSyntax();
@@ -411,7 +399,6 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                     }
                 }
                 else
-#endif
                 {
                     sb.Append( current.Name );
 
@@ -672,7 +659,6 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
             }
         }
 
-#if ROSLYN_5_0_0_OR_GREATER
         private static ExtensionBlockDeclarationSyntax CreateExtensionBlock(
             IExtensionBlock extensionBlock,
             SyntaxList<MemberDeclarationSyntax> members,
@@ -707,8 +693,6 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
         {
             return syntaxGenerationContext.SyntaxGenerator.ParameterList( [extensionBlock.ReceiverParameter], (CompilationModel) extensionBlock.Compilation );
         }
-
-#endif
 
         private static TypeDeclarationSyntax CreatePartialType(
             INamedType type,

@@ -65,29 +65,29 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Metalama.Framework.Tests.Un
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Metalama.Framework.Implementation.Package", "src\Metalama.Framework.Implementation.Package\Metalama.Framework.Implementation.Package.csproj", "{492E8704-0CF3-484F-8339-644EFE10954D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Metalama.Framework.DesignTime.4.12.0", "src\Metalama.Framework.DesignTime.4.12.0\Metalama.Framework.DesignTime.4.12.0.csproj", "{54820CC5-47E4-4500-A015-B9C62CDDD280}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Metalama.Framework.DesignTime.5.0.0", "src\Metalama.Framework.DesignTime.5.0.0\Metalama.Framework.DesignTime.5.0.0.csproj", "{54820CC5-47E4-4500-A015-B9C62CDDD280}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Metalama.Framework.Engine.4.12.0", "src\Metalama.Framework.Engine.4.12.0\Metalama.Framework.Engine.4.12.0.csproj", "{86A901C2-781B-4547-83B0-6440939E9361}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Metalama.Framework.Engine.5.0.0", "src\Metalama.Framework.Engine.5.0.0\Metalama.Framework.Engine.5.0.0.csproj", "{86A901C2-781B-4547-83B0-6440939E9361}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Metalama.Testing.AspectTesting.4.12.0", "src\Metalama.Testing.AspectTesting.4.12.0\Metalama.Testing.AspectTesting.4.12.0.csproj", "{0685C0E3-6718-4932-93D6-3FD5196731AC}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Metalama.Testing.AspectTesting.5.0.0", "src\Metalama.Testing.AspectTesting.5.0.0\Metalama.Testing.AspectTesting.5.0.0.csproj", "{0685C0E3-6718-4932-93D6-3FD5196731AC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Metalama.Testing.UnitTesting.4.12.0", "src\Metalama.Testing.UnitTesting.4.12.0\Metalama.Testing.UnitTesting.4.12.0.csproj", "{12599BB5-F4AA-4E2C-B5BE-FAB66342DBDB}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Metalama.Testing.UnitTesting.5.0.0", "src\Metalama.Testing.UnitTesting.5.0.0\Metalama.Testing.UnitTesting.5.0.0.csproj", "{12599BB5-F4AA-4E2C-B5BE-FAB66342DBDB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Metalama.Framework.Tests.AspectTests.4.12.0", "src\tests\Metalama.Framework.Tests.AspectTests.4.12.0\Metalama.Framework.Tests.AspectTests.4.12.0.csproj", "{2ED95B46-5B93-4E60-849F-5BBF03A63453}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Metalama.Framework.Tests.AspectTests.5.0.0", "src\tests\Metalama.Framework.Tests.AspectTests.5.0.0\Metalama.Framework.Tests.AspectTests.5.0.0.csproj", "{2ED95B46-5B93-4E60-849F-5BBF03A63453}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Metalama.Framework.Tests.LinkerTests.4.12.0", "src\tests\Metalama.Framework.Tests.LinkerTests.4.12.0\Metalama.Framework.Tests.LinkerTests.4.12.0.csproj", "{64E9AE90-7742-47D9-86CF-8513EF6EEB25}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Metalama.Framework.Tests.LinkerTests.5.0.0", "src\tests\Metalama.Framework.Tests.LinkerTests.5.0.0\Metalama.Framework.Tests.LinkerTests.5.0.0.csproj", "{64E9AE90-7742-47D9-86CF-8513EF6EEB25}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Metalama.Framework.Tests.TemplateTests.4.12.0", "src\tests\Metalama.Framework.Tests.TemplateTests.4.12.0\Metalama.Framework.Tests.TemplateTests.4.12.0.csproj", "{036604E2-1F64-44BD-9554-6F8FD26D2496}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Metalama.Framework.Tests.TemplateTests.5.0.0", "src\tests\Metalama.Framework.Tests.TemplateTests.5.0.0\Metalama.Framework.Tests.TemplateTests.5.0.0.csproj", "{036604E2-1F64-44BD-9554-6F8FD26D2496}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Metalama.Framework.Tests.UnitTestHelpers.4.12.0", "src\tests\Metalama.Framework.Tests.UnitTestHelpers.4.12.0\Metalama.Framework.Tests.UnitTestHelpers.4.12.0.csproj", "{BC59C1E7-F79A-4644-9445-8DD9F19CFD0A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Metalama.Framework.Tests.UnitTestHelpers.5.0.0", "src\tests\Metalama.Framework.Tests.UnitTestHelpers.5.0.0\Metalama.Framework.Tests.UnitTestHelpers.5.0.0.csproj", "{BC59C1E7-F79A-4644-9445-8DD9F19CFD0A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Metalama.Framework.Tests.UnitTests.4.12.0", "src\tests\Metalama.Framework.Tests.UnitTests.4.12.0\Metalama.Framework.Tests.UnitTests.4.12.0.csproj", "{D94DED38-E4F3-4FB6-A0F4-F482BEBC7124}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Metalama.Framework.Tests.UnitTests.5.0.0", "src\tests\Metalama.Framework.Tests.UnitTests.5.0.0\Metalama.Framework.Tests.UnitTests.5.0.0.csproj", "{D94DED38-E4F3-4FB6-A0F4-F482BEBC7124}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "4.8.12", "4.8.12", "{3818DB96-E67D-45DA-B861-E0E1D9FEAC11}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Metalama.Framework.ConfigurationFiles", "src\Metalama.Framework.ConfigurationFiles\Metalama.Framework.ConfigurationFiles.csproj", "{E76B39B5-C3A3-4E1C-8FB0-5B5E8B42486F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Metalama.Framework.Implementation.Package.4.12.0", "src\Metalama.Framework.Implementation.Package.4.12.0\Metalama.Framework.Implementation.Package.4.12.0.csproj", "{5CAC4A6D-B196-6DDC-8AB2-76DE5C188852}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Metalama.Framework.Implementation.Package.5.0.0", "src\Metalama.Framework.Implementation.Package.5.0.0\Metalama.Framework.Implementation.Package.5.0.0.csproj", "{5CAC4A6D-B196-6DDC-8AB2-76DE5C188852}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Metalama.Extensions.DiffEngine", "src\Metalama.Extensions.DiffEngine\Metalama.Extensions.DiffEngine.csproj", "{FA27FC8D-681A-4A1C-A0F6-ECCA23EEECA2}"
 EndProject

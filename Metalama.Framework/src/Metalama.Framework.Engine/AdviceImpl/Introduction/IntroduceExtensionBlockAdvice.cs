@@ -2,7 +2,6 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-#if ROSLYN_5_0_0_OR_GREATER
 using Metalama.Framework.Advising;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Code;
@@ -96,4 +95,3 @@ internal sealed class IntroduceExtensionBlockAdvice : IntroduceDeclarationAdvice
         return this.CreateSuccessResult( AdviceOutcome.Default, builder );
     }
 }
-#endif

@@ -92,11 +92,7 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
         /// </summary>
         public static bool ContainsFieldExpression( AccessorDeclarationSyntax accessor )
         {
-#if ROSLYN_5_0_0_OR_GREATER
             return accessor.DescendantNodesAndSelf().OfType<FieldExpressionSyntax>().Any();
-#else
-            return false;
-#endif
         }
 
         /// <summary>
@@ -106,14 +102,9 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
         /// </summary>
         public static bool ContainsFieldAssignment( AccessorDeclarationSyntax accessor )
         {
-#if ROSLYN_5_0_0_OR_GREATER
             return accessor.DescendantNodesAndSelf().Any( IsFieldAssignment );
-#else
-            return false;
-#endif
         }
 
-#if ROSLYN_5_0_0_OR_GREATER
         private static bool IsFieldAssignment( SyntaxNode node )
         {
             return node.Kind() switch
@@ -152,6 +143,5 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
                 _ => false
             };
         }
-#endif
     }
 }

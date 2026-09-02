@@ -14,9 +14,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
-#if ROSLYN_5_0_0_OR_GREATER
 using System;
-#endif
 
 namespace Metalama.Framework.Engine.CodeModel.Invokers;
 
@@ -34,14 +32,11 @@ internal class FieldOrPropertyInvoker : Invoker<IFieldOrProperty>, IFieldOrPrope
     {
         this.CheckInvocationOptionsAndTarget();
 
-#if ROSLYN_5_0_0_OR_GREATER
-
         // For extension properties, redirect to the implementation method.
         if ( this.IsExtensionMember && this.Member.DeclarationKind == DeclarationKind.Property && this.Member is IProperty property )
         {
             return this.CreateExtensionPropertyExpression( property, targetKind, context );
         }
-#endif
 
         var receiverInfo = this.GetReceiverInfo( context );
 
@@ -72,7 +67,6 @@ internal class FieldOrPropertyInvoker : Invoker<IFieldOrProperty>, IFieldOrPrope
         return expression;
     }
 
-#if ROSLYN_5_0_0_OR_GREATER
     private ExpressionSyntax CreateExtensionPropertyExpression( IProperty property, AspectReferenceTargetKind targetKind, SyntaxSerializationContext context )
     {
         // Get the appropriate accessor's implementation method.
@@ -115,7 +109,6 @@ internal class FieldOrPropertyInvoker : Invoker<IFieldOrProperty>, IFieldOrPrope
 
         return implInvoker.CreateInvokeExpression( args ).ToTypedExpressionSyntax( context ).Syntax;
     }
-#endif
 
     IType IHasType.Type => this.Member.Type;
 
@@ -125,14 +118,12 @@ internal class FieldOrPropertyInvoker : Invoker<IFieldOrProperty>, IFieldOrPrope
 
     public object SetValue( object? value )
     {
-#if ROSLYN_5_0_0_OR_GREATER
 
         // For extension properties, generate a call to the setter implementation method.
         if ( this.IsExtensionMember && this.Member.DeclarationKind == DeclarationKind.Property && this.Member is IProperty property )
         {
             return this.SetExtensionPropertyValue( property, value );
         }
-#endif
 
         return new DelegateUserExpression(
             context =>
@@ -147,7 +138,6 @@ internal class FieldOrPropertyInvoker : Invoker<IFieldOrProperty>, IFieldOrPrope
             this.Member.Type );
     }
 
-#if ROSLYN_5_0_0_OR_GREATER
     private DelegateUserExpression SetExtensionPropertyValue( IProperty property, object? value )
     {
         var setter = property.SetMethod;
@@ -189,7 +179,6 @@ internal class FieldOrPropertyInvoker : Invoker<IFieldOrProperty>, IFieldOrPrope
 
         return (DelegateUserExpression) implInvoker.CreateInvokeExpression( args );
     }
-#endif
 
     public ref object? Value
         => ref RefHelper.Wrap(

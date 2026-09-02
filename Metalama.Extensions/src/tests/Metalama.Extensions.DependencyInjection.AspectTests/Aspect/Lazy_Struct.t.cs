@@ -7,7 +7,7 @@ public readonly struct TargetStruct
   {
     get
     {
-      return (ILogger)(this._loggerCache ??= _loggerFunc.Invoke());
+      return this._loggerCache ??= _loggerFunc.Invoke();
     }
     init
     {

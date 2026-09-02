@@ -1,0 +1,10 @@
+<Project ToolsVersion="Current">
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../Metalama.Framework.DesignTime/**/*.cs" Exclude="../Metalama.Framework.DesignTime/bin/**/*.cs;../Metalama.Framework.DesignTime/obj/**/*.cs" />
+  </ItemGroup>
+  <Import Project="../../../eng/RoslynVersions/Roslyn.5.0.0.props" />
+  <Import Project="../Metalama.Framework.DesignTime/Metalama.Framework.DesignTime.csproj" />
+</Project>

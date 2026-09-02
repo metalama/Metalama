@@ -224,7 +224,6 @@ internal sealed class IntroduceMethodTransformation : IntroduceMemberTransformat
         }
     }
 
-#if ROSLYN_5_0_0_OR_GREATER
     /// <inheritdoc />
     public override IEnumerable<DeclarationBuilderData> GetImplicitDeclarations()
     {
@@ -263,5 +262,4 @@ internal sealed class IntroduceMethodTransformation : IntroduceMemberTransformat
 
         return [implicitMethodData];
     }
-#endif
 }

@@ -3,12 +3,9 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 #if TEST_OPTIONS
-// @RequiredConstant(ROSLYN_5_0_0_OR_GREATER)
 // @RequiredConstant(NET8_0_OR_GREATER)
 // @FormatOutput
 #endif
-
-#if ROSLYN_5_0_0_OR_GREATER
 
 using Metalama.Framework.Aspects;
 using System;
@@ -83,5 +80,3 @@ internal static class C
 }
 
 internal class TestClass { }
-
-#endif

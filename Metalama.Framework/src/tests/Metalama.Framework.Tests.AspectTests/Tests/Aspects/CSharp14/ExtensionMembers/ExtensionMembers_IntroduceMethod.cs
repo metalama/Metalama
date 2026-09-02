@@ -3,11 +3,8 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 #if TEST_OPTIONS
-// @RequiredConstant(ROSLYN_5_0_0_OR_GREATER)
 // @RequiredConstant(NET8_0_OR_GREATER)
 #endif
-
-#if ROSLYN_5_0_0_OR_GREATER
 
 #pragma warning disable CS0618 // Obsolete
 
@@ -68,6 +65,3 @@ internal static class C
     {
     }
 }
-
-
-#endif

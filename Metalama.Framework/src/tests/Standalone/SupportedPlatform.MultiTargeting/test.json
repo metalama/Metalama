@@ -1,0 +1,10 @@
+{
+    "BuildOnly": true,
+    "ExpectedDiagnosticsRegexes": [
+        "warning LAMA0600.*'net462'.*older than .NET Framework 4[.]7[.]2",
+        "warning LAMA0600.*'net8[.]0'",
+        "warning LAMA0600.*'net9[.]0'",
+        "warning LAMA0601.*'Test[.]FutureSdk'"
+    ],
+    "ForbiddenDiagnosticsRegexes": [ "warning LAMA0602" ]
+}

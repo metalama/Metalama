@@ -63,6 +63,12 @@
         <ProjectReference Include="../../Metalama.Extensions.HtmlWriter/Metalama.Extensions.HtmlWriter.csproj" Condition="'$(ThisRoslynVersionProjectSuffix)' == ''" />
     </ItemGroup>
 
+    <PropertyGroup Condition="'$(ThisRoslynVersionProjectSuffix)' == ''">
+        <!-- The HtmlWriter and DiffEngine extensions are built against the latest Roslyn only, so they are referenced
+             by the latest variant only. The test suites that request HTML output require this constant. -->
+        <DefineConstants>$(DefineConstants);METALAMA_HTML_WRITER</DefineConstants>
+    </PropertyGroup>
+
     <!-- Register extension assemblies from build output (for ProjectReference; PackageReference imports props automatically) -->
     <Import Project="../../Metalama.Extensions.HtmlWriter/MetalamaExtensionAssemblies.props" Condition="'$(ThisRoslynVersionProjectSuffix)' == ''" />
     <Import Project="../../Metalama.Extensions.DiffEngine/MetalamaExtensionAssemblies.props" Condition="'$(ThisRoslynVersionProjectSuffix)' == ''" />

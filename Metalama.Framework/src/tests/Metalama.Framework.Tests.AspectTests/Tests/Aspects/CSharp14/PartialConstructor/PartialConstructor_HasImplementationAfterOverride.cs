@@ -3,11 +3,8 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 #if TEST_OPTIONS
-// @RequiredConstant(ROSLYN_5_0_0_OR_GREATER)
 // @IncludeAllSeverities
 #endif
-
-#if ROSLYN_5_0_0_OR_GREATER
 
 using System;
 using Metalama.Framework.Aspects;
@@ -65,5 +62,3 @@ internal partial class C
     public partial C();
 #endif
 }
-
-#endif

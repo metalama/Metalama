@@ -48,11 +48,7 @@ public sealed class LocalWorkspaceProvider : WorkspaceProvider, IWorkspaceReceiv
         // Other entry points call DesignTimeExtensionManager.OnProjectDiscovered, but they are called by the
         // IDE on demand. We want to make sure they extensions are immediately available.
 
-#if ROSLYN_5_0_0_OR_GREATER
         workspace.RegisterWorkspaceChangedHandler( this.OnWorkspaceChanged );
-#else
-        workspace.WorkspaceChanged += ( _, args ) => this.OnWorkspaceChanged( args );
-#endif
 
         this.OnProjectsDiscovered( workspace.CurrentSolution.Projects );
 

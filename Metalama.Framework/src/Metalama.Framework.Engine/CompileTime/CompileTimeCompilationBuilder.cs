@@ -422,12 +422,10 @@ internal sealed partial class CompileTimeCompilationBuilder
         var preprocessorSymbols =
             (preprocessorServiceProvider?.PreprocessorSymbols ?? []).Concat( ["NETSTANDARD_2_0"] );
 
-#if ROSLYN_5_0_0_OR_GREATER
         if ( languageVersion >= LanguageVersion.CSharp14 )
         {
             preprocessorSymbols = preprocessorSymbols.Concat( ["EMBED_SYSTEM_TYPES"] );
         }
-#endif
 
         var parseOptions = new CSharpParseOptions(
             preprocessorSymbols: preprocessorSymbols,

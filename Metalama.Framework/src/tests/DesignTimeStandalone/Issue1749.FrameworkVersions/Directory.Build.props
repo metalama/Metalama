@@ -5,8 +5,12 @@
   <PropertyGroup>
     <NoWarn>$(NoWarn);MSB3277;CS1591;CA1822</NoWarn>
     <!-- The publicly released version of Metalama.Framework that OldAspects is compiled against. It must belong to
-         a different lineage than the version built by this repository, so that the two assembly versions differ. -->
-    <OldMetalamaVersion>2025.1.18</OldMetalamaVersion>
+         a different lineage than the version built by this repository, so that the two assembly versions differ.
+         Raised from 2025.1.18 when the design-time host simulator moved to .NET 10 for Roslyn 5.10. The analyzer of
+         2025.1.18 cannot be created in a .NET 10 host: its assembly loader requests Newtonsoft.Json 12.0.0.0 while
+         the package embeds 13.0.0.0, and the resolution fails. That is a defect of the released package, which this
+         repository cannot correct, so the pin moves to the oldest lineage whose analyzer loads. -->
+    <OldMetalamaVersion>2026.1.20</OldMetalamaVersion>
   </PropertyGroup>
 
 </Project>

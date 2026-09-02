@@ -41,9 +41,7 @@ public static class DeclarationExtensions
         => symbol.Kind switch
         {
             SymbolKind.Namespace => DeclarationKind.Namespace,
-#if ROSLYN_5_0_0_OR_GREATER
             SymbolKind.NamedType when symbol is INamedTypeSymbol { IsExtension: true } => DeclarationKind.ExtensionBlock,
-#endif
             SymbolKind.NamedType => DeclarationKind.NamedType,
 
             SymbolKind.Method when symbol is IMethodSymbol method =>
@@ -394,7 +392,6 @@ public static class DeclarationExtensions
 
     private static bool ContainsFieldKeyword( IPropertySymbol symbol )
     {
-#if ROSLYN_5_0_0_OR_GREATER
         foreach ( var syntaxRef in symbol.DeclaringSyntaxReferences )
         {
             var syntax = syntaxRef.GetSyntax();
@@ -411,7 +408,6 @@ public static class DeclarationExtensions
                 }
             }
         }
-#endif
 
         return false;
     }
@@ -464,9 +460,7 @@ public static class DeclarationExtensions
         => symbol switch
         {
             { IsAbstract: true } => false,
-#if ROSLYN_5_0_0_OR_GREATER
             { IsPartialDefinition: true } => false, // Partial event is not event field (and cannot be when implemented).
-#endif
             { DeclaringSyntaxReferences.Length: > 0 } =>
                 symbol.DeclaringSyntaxReferences.All(
                     sr => sr.GetSyntax().IsKind( SyntaxKind.VariableDeclarator ) && sr.GetSyntax() is VariableDeclaratorSyntax ),

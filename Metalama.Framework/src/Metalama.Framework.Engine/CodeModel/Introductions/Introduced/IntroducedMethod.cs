@@ -17,9 +17,7 @@ using System.Linq;
 using System.Reflection;
 using MethodInvoker = Metalama.Framework.Engine.CodeModel.Invokers.MethodInvoker;
 
-#if ROSLYN_5_0_0_OR_GREATER
 using Metalama.Framework.Engine.Utilities.Roslyn;
-#endif
 
 namespace Metalama.Framework.Engine.CodeModel.Introductions.Introduced;
 
@@ -129,7 +127,6 @@ internal sealed class IntroducedMethod : IntroducedMember, IMethodImpl
 
     public bool? IsIteratorMethod => this._methodBuilderData.IsIteratorMethod;
 
-#if ROSLYN_5_0_0_OR_GREATER
     [Memo]
     public IMethod? ExtensionImplementationMethod => this.GetExtensionImplementationMethod();
 
@@ -152,7 +149,4 @@ internal sealed class IntroducedMethod : IntroducedMember, IMethodImpl
             this._methodBuilderData.IsStatic,
             this.Parameters );
     }
-#else
-    IMethod? IMethod.ExtensionImplementationMethod => null;
-#endif
 }

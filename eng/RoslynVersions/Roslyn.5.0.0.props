@@ -1,14 +1,18 @@
 <Project>
 	<PropertyGroup>
-		<ThisRoslynVersion>$(RoslynApiMaxVersion)</ThisRoslynVersion>
+		<ThisRoslynVersion>5.0.0</ThisRoslynVersion>
 		<!-- This should be non-empty only when using preview version of Roslyn. Then it should be the Roslyn version without the preview part. -->
 		<ThisRoslynVersionNoPreview>5.0.0</ThisRoslynVersionNoPreview>
 		<!-- ThisRoslynVersionProjectSuffix should be empty for the latest version, otherwise it should be a dot followed by ThisRoslynVersion -->
-		<ThisRoslynVersionProjectSuffix></ThisRoslynVersionProjectSuffix>
-		<DefineConstants>$(DefineConstants);ROSLYN_5_0_0;ROSLYN_4_4_0_OR_GREATER;ROSLYN_4_8_0_OR_GREATER;ROSLYN_4_12_0_OR_GREATER;ROSLYN_5_0_0_OR_GREATER</DefineConstants>
+		<ThisRoslynVersionProjectSuffix>.5.0.0</ThisRoslynVersionProjectSuffix>
+		<!-- This variant defines no constant. No production source branches on the variant. The two aspect tests
+		     whose expected output differs between the variants use ROSLYN_5_10_0_OR_GREATER, which the latest variant
+		     defines. See Directory.Packages.md. -->
+		<!-- Microsoft.CodeAnalysis.CSharp.Features 5.0 requires System.Text.Json >= 9.0.0. -->
 		<SystemTextJsonVersion>9.0.0</SystemTextJsonVersion>
-		<!-- Roslyn 5.0 transitively requires System.Memory ≥ 4.6.0; this variant runs outside VS, so the
-		     net472 BR cap doesn't apply. Track the highest patch in the 4.6.x line ($(SystemMemoryLatestVersion)). -->
+		<!-- Roslyn 5.0 transitively requires System.Memory >= 4.6.0. No variant is loaded into devenv.exe any more,
+		     so the net472 binding-redirect ceiling of Visual Studio 2022 does not apply. Track the highest patch in
+		     the 4.6.x line ($(SystemMemoryLatestVersion)). -->
 		<SystemMemoryVersion>$(SystemMemoryLatestVersion)</SystemMemoryVersion>
 	</PropertyGroup>
 </Project>

@@ -4,6 +4,9 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Introductions.Class
   {
     partial class GeneratedClass
     {
+      public GeneratedClass()
+      {
+      }
     }
   }
 }

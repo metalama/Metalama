@@ -51,7 +51,7 @@
 
         <PropertyGroup>
             <!-- When this is referenced as a NuGet package, the latest version of Roslyn is used. -->
-            <ThisRoslynVersionNoPreview Condition="'$(ThisRoslynVersionNoPreview)'==''">4.12.0</ThisRoslynVersionNoPreview>
+            <ThisRoslynVersionNoPreview Condition="'$(ThisRoslynVersionNoPreview)'==''">5.0.0</ThisRoslynVersionNoPreview>
         </PropertyGroup>
         
         <ItemGroup>
