@@ -121,16 +121,21 @@ public sealed class FakeMemoryCache : IClearableMemoryCache
     }
 
     /// <inheritdoc />
-    public void Clear() => this.RemoveAll( EvictionReason.Removed );
+    /// <remarks>
+    /// As with <see cref="MemoryCache.Clear"/>, the entries whose priority is
+    /// <see cref="CacheItemPriority.NeverRemove"/> are removed as well.
+    /// </remarks>
+    public void Clear() => this.RemoveAll( EvictionReason.Removed, includeNeverRemove: true );
 
     /// <inheritdoc />
-    public void Compact( double percentage )
-    {
-        // The fake cache has no size limit, so compacting removes every entry that may be removed.
-        this.RemoveAll( EvictionReason.Capacity );
-    }
+    /// <remarks>
+    /// As with <see cref="MemoryCache.Compact"/>, the entries whose priority is
+    /// <see cref="CacheItemPriority.NeverRemove"/> are kept. The fake cache has no size limit, so every other entry
+    /// is removed whatever the percentage.
+    /// </remarks>
+    public void Compact( double percentage ) => this.RemoveAll( EvictionReason.Capacity, includeNeverRemove: false );
 
-    private void RemoveAll( EvictionReason reason )
+    private void RemoveAll( EvictionReason reason, bool includeNeverRemove )
     {
         this.ThrowIfDisposed();
 
@@ -138,7 +143,9 @@ public sealed class FakeMemoryCache : IClearableMemoryCache
 
         lock ( this._sync )
         {
-            removedEntries = this._entries.Values.Where( e => e.Priority != CacheItemPriority.NeverRemove ).ToList();
+            removedEntries = this._entries.Values
+                .Where( e => includeNeverRemove || e.Priority != CacheItemPriority.NeverRemove )
+                .ToList();
 
             foreach ( var entry in removedEntries )
             {
