@@ -21,14 +21,20 @@ public sealed class CacheItemSerializer
     private const byte _defaultCacheItemMarker = 0;
     private const byte _materializedCacheItemMarker = 1;
     private readonly ICachingSerializer _serializer;
+    private readonly TimeProvider _timeProvider;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CacheItemSerializer"/> class.
     /// </summary>
     /// <param name="serializer">The underlying serializer used for the cached value.</param>
-    public CacheItemSerializer( ICachingSerializer serializer )
+    /// <param name="timeProvider">
+    /// The clock used to convert the absolute expiration of a deserialized cache item back into a relative one,
+    /// or <see langword="null"/> to use <see cref="TimeProvider.System"/>.
+    /// </param>
+    public CacheItemSerializer( ICachingSerializer serializer, TimeProvider? timeProvider = null )
     {
         this._serializer = serializer;
+        this._timeProvider = timeProvider ?? TimeProvider.System;
     }
 
     /// <summary>
@@ -63,7 +69,7 @@ public sealed class CacheItemSerializer
         return marker switch
         {
             _defaultCacheItemMarker => new CacheItem( reader, dependencies, this._serializer ),
-            _materializedCacheItemMarker => new MaterializedCacheItem( reader, dependencies, this._serializer ),
+            _materializedCacheItemMarker => new MaterializedCacheItem( reader, dependencies, this._serializer, this._timeProvider ),
             _ => throw new InvalidCacheItemException()
         };
     }
