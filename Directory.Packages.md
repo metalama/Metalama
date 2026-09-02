@@ -35,7 +35,9 @@ Independent of the bucket model, every dependency is also classified by *audienc
 - **User-surfacing**: the package ends up in NuGets that user code references (`Metalama.Framework`, `Metalama.Backstage`, `Metalama.Patterns.*`, `Flashtrace*`). When a user adds our NuGet, transitive resolution may pull these into their project.
 - **Internal**: the package is only consumed by projects we host ourselves — `Metalama.Framework.Engine` (compile-time), `Metalama.Framework.DesignTime*` (loaded into VS as our analyzer payload), `Metalama.Compiler.exe`, `Metalama.Tool` (CLI), tests.
 
-Our own projects no longer target `net8.0`, but a user application still may, and it resolves the `netstandard2.0` asset of our user-surfacing packages. **User-surfacing packages therefore stay on the .NET 8.0 line** (`System.*` 8.0.x, `Microsoft.Extensions.*` 8.0.x). Bumping a user-surfacing dependency to a higher .NET major forces transitive upgrades on consumers that still target `net8.0`. Internal packages are free to bump up to the VS-shipped cap regardless.
+Our own projects no longer target `net8.0`. A user application still may, and it then resolves the `netstandard2.0` asset of our user-surfacing packages. That configuration is outside the tested set of PB-2027.0, and issue #1884 adds a warning for it.
+
+The user-surfacing packages are still pinned to the .NET 8.0 line (`System.*` 8.0.x, `Microsoft.Extensions.*` 8.0.x). That pin no longer follows from the support policy, because the configuration it protects is no longer supported. It has to be re-derived against the .NET 10.0 line, as far as the design-time hosts allow, which issue #1903 tracks. Until then, do not raise a user-surfacing pin in isolation. Internal packages are free to bump up to the Visual-Studio-shipped cap regardless.
 
 Within the chosen .NET line we still take the **highest available patch** (e.g., `System.Drawing.Common` 8.0.x → latest 8.0.26 for security fixes); the rule only freezes the *major.minor*, not the patch level.
 
