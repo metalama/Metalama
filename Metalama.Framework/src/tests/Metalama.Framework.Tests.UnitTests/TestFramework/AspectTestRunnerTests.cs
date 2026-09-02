@@ -149,8 +149,8 @@ public class Program
                     directory,
                     directory,
                     ImmutableArray<string>.Empty,
-                    "net8.0",
-                    "net8.0",
+                    "net10.0",
+                    "net10.0",
                     ImmutableArray<string>.Empty );
 
             var testDirectoryOptionsReader = new TestDirectoryOptionsReader( serviceProvider, directory );

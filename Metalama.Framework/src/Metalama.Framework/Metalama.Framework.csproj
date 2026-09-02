@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFrameworks>netstandard2.0;net8.0</TargetFrameworks>
+        <TargetFrameworks>netstandard2.0;net10.0</TargetFrameworks>
         <PackageId>Metalama.Framework.Redist</PackageId>
         <PackageDescription>
             Redistributable components for package 'Metalama.Framework'. This package should only be installed as a dependency.

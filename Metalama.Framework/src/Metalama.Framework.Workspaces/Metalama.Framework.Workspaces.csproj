@@ -2,8 +2,19 @@
 
 
     <PropertyGroup>
-        <!-- Only .NET 10. Microsoft.CodeAnalysis.Workspaces.MSBuild 5.10 ships assets for net10.0 and net472 only,
-             so a net8.0 or net9.0 build of this project cannot reference MSBuildWorkspace at all. See Directory.Packages.md. -->
+        <!-- The MSBuild version, and therefore the .NET runtime version, must match the version of the .NET SDK
+             used for the project. Only .NET 10 is supported, so there is a single target framework.
+             Microsoft.CodeAnalysis.Workspaces.MSBuild 5.10 ships assets for net10.0 and net472 only, so a net8.0
+             or net9.0 build of this project could not reference MSBuildWorkspace at all. See Directory.Packages.md.
+
+             TargetFrameworks is used in the plural even for a single value, and must stay that way. This project
+             both consumes Microsoft.CodeAnalysis.Workspaces.MSBuild and packs its contentFiles, which are the
+             MSBuild build hosts. NuGet materialises the contentFiles of a consumed package as Content items
+             carrying Pack="false", on the same absolute paths that the _AddPackageContent target below packs.
+             In a single target framework build the pack task sees both lists in the same evaluation and drops
+             the files, so the package ships without the build hosts and nothing reports it. In a plural build
+             the outer evaluation has no TargetFramework, the Content items are not materialised there, and only
+             the files returned by the inner build reach the pack task. -->
         <TargetFrameworks>net10.0</TargetFrameworks>
         <RootNamespace>Metalama.Framework.Workspaces</RootNamespace>
         <UseMetalamaCompiler>Private</UseMetalamaCompiler>
@@ -48,7 +59,19 @@
              of the SDK that Microsoft.Build.Locator selects. A copy in the application directory is found before the
              resolver runs, and the MSBuild of the SDK then fails to load its own types. -->
         <PackageReference Include="Microsoft.Build" PrivateAssets="all" ExcludeAssets="runtime" />
+
+        <!-- The same holds for Microsoft.Build.Framework, which Microsoft.CodeAnalysis.Workspaces.MSBuild brings in
+             as a 17.x dependency. Copied to the application directory it shadows the one of the MSBuild that the
+             locator resolves, and the two then disagree: a .NET 10 SDK host loads Microsoft.Build 18.0 beside
+             Microsoft.Build.Framework 17.11 and fails with a TypeLoadException on IEventSource5. The version is
+             $(MicrosoftBuildVersion), which must stay at or above the one that Microsoft.CodeAnalysis.Workspaces.MSBuild
+             requires, because a direct reference below it would be a package downgrade. -->
         <PackageReference Include="Microsoft.Build.Framework" PrivateAssets="all" ExcludeAssets="runtime" />
+
+        <!-- And for Microsoft.NET.StringTools, a dependency of Microsoft.Build. Excluding the run-time assets of a
+             package does not exclude those of its dependencies, so this one reached the application directory and
+             shadowed the copy of the resolved MSBuild, which fails with a MissingMethodException on
+             SpanBasedStringBuilder.Equals. -->
         <PackageReference Include="Microsoft.NET.StringTools" PrivateAssets="all" ExcludeAssets="runtime" />
         <PackageReference Include="Microsoft.Build.Locator"/>
         <PackageReference Include="Microsoft.VisualStudio.SolutionPersistence"/>
@@ -64,13 +87,23 @@
         <None Include="README.md" Pack="true" PackagePath="/"/>
     </ItemGroup>
 
+    <PropertyGroup>
+        <!-- The folder of Microsoft.CodeAnalysis.Workspaces.MSBuild whose assets this project packs. Up to version
+             5.0.0 that package ships net472, net8.0 and net9.0 assets, so it has no folder named after our net10.0
+             target framework and NuGet resolves its net9.0 asset instead. The condition tests the layout of the
+             restored package rather than naming a version, so raising RoslynMaxVersion to a version that ships a
+             net10.0 asset selects that asset with no further change here. -->
+        <_WorkspacesMSBuildAssetTargetFramework>$(TargetFramework)</_WorkspacesMSBuildAssetTargetFramework>
+        <_WorkspacesMSBuildAssetTargetFramework Condition="!Exists('$(PkgMicrosoft_CodeAnalysis_Workspaces_MSBuild)/lib/$(TargetFramework)')">net9.0</_WorkspacesMSBuildAssetTargetFramework>
+    </PropertyGroup>
+
     <Target Name="_AddPackageContent">
         <ItemGroup>
 
             <!-- We include the libs of Microsoft.CodeAnalysis.Workspaces.MSBuild so we can make the dependency on Microsoft.CodeAnalysis.Workspaces.MSBuild
                  completely private, which de facto removes the transitive dependency on Microsoft.Build packages, which confuse LinqPad. -->
 
-            <TfmSpecificPackageFile Include="$(PkgMicrosoft_CodeAnalysis_Workspaces_MSBuild)/lib/$(TargetFramework)/**/*.dll" PackagePath="lib/$(TargetFramework)"/>
+            <TfmSpecificPackageFile Include="$(PkgMicrosoft_CodeAnalysis_Workspaces_MSBuild)/lib/$(_WorkspacesMSBuildAssetTargetFramework)/**/*.dll" PackagePath="lib/$(TargetFramework)"/>
 
             
             <!-- We include the build hosts (included by Microsoft.CodeAnalysis.Workspaces.MSBuild) so that users don't have 
@@ -78,6 +111,11 @@
 
             <TfmSpecificPackageFile Include="$(PkgMicrosoft_CodeAnalysis_Workspaces_MSBuild)/contentFiles/any/any/**" PackagePath="contentFiles/any/$(TargetFramework)" BuildAction="None"  CopyToOutput="true" />
         </ItemGroup>
+
+        <!-- A folder name that matches nothing would produce a lib folder without the MSBuild build hosts, and the
+             package would ship in that state without any error. -->
+        <Error Condition="!Exists('$(PkgMicrosoft_CodeAnalysis_Workspaces_MSBuild)/lib/$(_WorkspacesMSBuildAssetTargetFramework)')"
+               Text="The Microsoft.CodeAnalysis.Workspaces.MSBuild package has no lib/$(_WorkspacesMSBuildAssetTargetFramework) folder. Update _WorkspacesMSBuildAssetTargetFramework in this project." />
     </Target>
 
     <Target Name="_FixPackageFiles" BeforeTargets="GenerateNuspec">

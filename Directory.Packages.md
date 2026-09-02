@@ -41,11 +41,15 @@ Independent of the bucket model, every dependency is also classified by *audienc
 - **User-surfacing**: the package ends up in NuGets that user code references (`Metalama.Framework`, `Metalama.Backstage`, `Metalama.Patterns.*`, `Flashtrace*`). When a user adds our NuGet, transitive resolution may pull these into their project.
 - **Internal**: the package is only consumed by projects we host ourselves — `Metalama.Framework.Engine` (compile-time), `Metalama.Framework.DesignTime*` (loaded into VS as our analyzer payload), `Metalama.Compiler.exe`, `Metalama.Tool` (CLI), tests.
 
-While we still support .NET 8 SDK as a build target (.NET 8 LTS through 2026-11), **user-surfacing packages stay on the .NET 8.0 line** (`System.*` 8.0.x, `Microsoft.Extensions.*` 8.0.x). Bumping a user-surfacing dependency to a higher .NET major forces transitive upgrades on consumers that still target net8.0 and partially erodes the "we support .NET 8 SDK" promise. Internal packages are free to bump up to the VS-shipped cap regardless.
+Our own projects no longer target `net8.0`. A user application still may, and it then resolves the `netstandard2.0` asset of our user-surfacing packages. That configuration is outside the tested set of PB-2027.0, and issue #1884 adds a warning for it.
+
+The user-surfacing packages are still pinned to the .NET 8.0 line (`System.*` 8.0.x, `Microsoft.Extensions.*` 8.0.x). That pin no longer follows from the support policy, because the configuration it protects is no longer supported. It has to be re-derived against the .NET 10.0 line, as far as the design-time hosts allow, which issue #1903 tracks. Until then, do not raise a user-surfacing pin in isolation. Internal packages are free to bump up to the Visual-Studio-shipped cap regardless.
 
 Within the chosen .NET line we still take the **highest available patch** (e.g., `System.Drawing.Common` 8.0.x → latest 8.0.26 for security fixes); the rule only freezes the *major.minor*, not the patch level.
 
 ## Support policy (rules for choosing the VS floor)
+
+These rules and the worked example below are generalised to every platform axis by [`Metalama.Framework/docs/platform-support.md`](Metalama.Framework/docs/platform-support.md), which is the authoritative source for the supported set of a release. Under PB-2027.0, recorded there, Visual Studio 2022 is out of the supported set, so the floor derived in the worked example belongs to Metalama 2026.1 and not to the current release. The rules are kept here because the cap-derivation procedure below reads them.
 
 A Visual Studio version is eligible as a floor for a Metalama release if all of the following hold:
 
@@ -73,16 +77,21 @@ LTS branches don't freeze their declared floor: as Microsoft drops a VS version 
 
 ## TFM constraints
 
-`net472` limits us to packages that retain a `netstandard2.0` (or `net4x`) asset — many modern System.* packages have dropped `netstandard2.0`. `net8.0` and later are generally permissive, but per-TFM caps are still required when the consuming process ships a specific .NET runtime. Use the conditional version pattern, and always end it with an unconditional default:
+`net472` limits us to packages that retain a `netstandard2.0` (or `net4x`) asset — many modern System.* packages have dropped `netstandard2.0`. `net10.0` is generally permissive, but a cap is still required when the consuming process ships a specific version of a library, as it is for `Microsoft.Build`. There the cap follows the lowest MSBuild that can host us. Under PB-2027.0 Visual Studio 2022 is out of the supported set, so that lowest host is the .NET 10 SDK, which ships MSBuild 18.0:
 
 ```xml
-<MicrosoftBuildVersion Condition="'$(TargetFramework)'=='net8.0'">17.10.46</MicrosoftBuildVersion>
-<MicrosoftBuildVersion Condition="'$(MicrosoftBuildVersion)'==''">17.14.28</MicrosoftBuildVersion>
+<MicrosoftBuildVersion>18.0.2</MicrosoftBuildVersion>
 ```
 
-The default is not optional. `Directory.Packages.props` is imported before the body of the project file, so `TargetFramework` is not yet defined when the conditions are evaluated, unless the project declares `TargetFrameworks` in the plural and MSBuild passes `TargetFramework` to the inner build as a global property. Without a default, the version of a project that declares `TargetFramework` in the singular, or that targets a framework with a platform suffix such as `net10.0-windows`, resolves to the empty string and restore fails with `NU1604`.
+A project that consumes `Microsoft.Build` must also reference `Microsoft.Build.Framework` and `Microsoft.NET.StringTools` with `ExcludeAssets="runtime"`. Excluding the run-time assets of a package does not exclude those of its dependencies, so without that reference a transitive copy of either one lands beside the application and shadows the MSBuild that `Microsoft.Build.Locator` resolved.
 
 ### The Out-of-band family
+
+> The caps in this section, and the split-version routing that depends on them, are derived from the binding
+> redirects of `devenv.exe` in Visual Studio 2022, which PB-2027.0 no longer includes. They must be re-derived
+> against the Visual Studio 2026 long-term servicing channel baseline once it ships on 2026-11-10, and most of
+> them are expected to disappear. Tracked by #1897. Do not carry a pin forward on the strength of the text
+> below without checking it against the new floor.
 
 A repeatedly relevant cluster of packages: **`System.Memory`**, **`System.Buffers`**, **`System.Numerics.Vectors`**, **`System.Runtime.CompilerServices.Unsafe`** (and sometimes `System.Threading.Tasks.Extensions`). These are called "Out-of-band" because they ship as standalone NuGet packages outside the .NET runtime release cycle — even though their types live in the `System.*` namespace. Originally back-ports of types added to .NET Core 2.1+ (`Span<T>`, `Memory<T>`, `ArrayPool<T>`, `Vector<T>`, the `Unsafe` API, `ValueTask`) for `netstandard2.0` and `net4x` consumers.
 

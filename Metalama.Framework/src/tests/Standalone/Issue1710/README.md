@@ -11,7 +11,7 @@ hierarchical `ContractOptions` that belong to two different TFM-specific compile
 | `Issue1710.Library` | `netstandard2.0` | `lib/netstandard2.0` → `ml!Metalama.Patterns.Contracts_<hashA>` |
 | `Issue1710.App` | `net472` | `lib/net472` → `ml!Metalama.Patterns.Contracts_<hashB>` |
 
-`Metalama.Patterns.Contracts` multi-targets `net472;net8.0;netstandard2.0`, so each consuming project resolves a
+`Metalama.Patterns.Contracts` multi-targets `net472;net10.0;netstandard2.0`, so each consuming project resolves a
 different `lib/<tfm>` assembly, each carrying its own embedded compile-time project. Because the compile-time
 assembly name embeds a hash of the target framework (`CompileTimeCompilationBuilder.ComputeSourceHash`), the two
 copies are **distinct CLR assemblies** whose `ContractOptions` types share a full name but not an identity.

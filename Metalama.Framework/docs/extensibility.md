@@ -18,13 +18,11 @@ MyExtension/
 └── metalama/
     ├── net472/
     │   └── MyExtension.dll        # Extension assembly for .NET Framework
-    ├── net8.0/
-    │   └── MyExtension.dll        # Extension assembly for .NET 8
-    └── net9.0/
-        └── MyExtension.dll        # Extension assembly for .NET 9
+    └── net10.0/
+        └── MyExtension.dll        # Extension assembly for .NET 10
 ```
 
-**Important:** Always target all three frameworks: `net472`, `net8.0`, and `net9.0`. This ensures compatibility with all supported runtime environments.
+**Important:** Always target both frameworks: `net472` and `net10.0`. This ensures compatibility with all supported runtime environments.
 
 ### Target Framework Selection
 
@@ -71,7 +69,7 @@ For extensions with dependencies that don't support netstandard2.0, or that need
 
 ```xml
 <PropertyGroup>
-    <TargetFrameworks>net472;net8.0;net9.0</TargetFrameworks>
+    <TargetFrameworks>net472;net10.0</TargetFrameworks>
 </PropertyGroup>
 ```
 
@@ -149,7 +147,7 @@ For extensions with bundled dependencies, use this `.csproj` pattern:
 ```xml
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <TargetFrameworks>net472;net8.0;net9.0</TargetFrameworks>
+        <TargetFrameworks>net472;net10.0</TargetFrameworks>
         <IncludeBuildOutput>false</IncludeBuildOutput>
         <TargetsForTfmSpecificContentInPackage>
             $(TargetsForTfmSpecificContentInPackage);_AddAssembliesToOutput
@@ -226,22 +224,16 @@ Create `build/MyExtension.props`:
             Include="$(MSBuildThisFileDirectory)../metalama/net472/SomeDependency.dll"
             TargetFramework="net472" />
         <MetalamaExtensionAssembly
-            Include="$(MSBuildThisFileDirectory)../metalama/net8.0/SomeDependency.dll"
-            TargetFramework="net8.0" />
-        <MetalamaExtensionAssembly
-            Include="$(MSBuildThisFileDirectory)../metalama/net9.0/SomeDependency.dll"
-            TargetFramework="net9.0" />
+            Include="$(MSBuildThisFileDirectory)../metalama/net10.0/SomeDependency.dll"
+            TargetFramework="net10.0" />
 
         <!-- Then load the extension -->
         <MetalamaExtensionAssembly
             Include="$(MSBuildThisFileDirectory)../metalama/net472/MyExtension.dll"
             TargetFramework="net472" />
         <MetalamaExtensionAssembly
-            Include="$(MSBuildThisFileDirectory)../metalama/net8.0/MyExtension.dll"
-            TargetFramework="net8.0" />
-        <MetalamaExtensionAssembly
-            Include="$(MSBuildThisFileDirectory)../metalama/net9.0/MyExtension.dll"
-            TargetFramework="net9.0" />
+            Include="$(MSBuildThisFileDirectory)../metalama/net10.0/MyExtension.dll"
+            TargetFramework="net10.0" />
     </ItemGroup>
 </Project>
 ```
@@ -578,7 +570,7 @@ Standalone tests **must use `PackageReference`** to reference Metalama packages 
 ```xml
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <TargetFrameworks>net472;net8.0;net9.0</TargetFrameworks>
+        <TargetFrameworks>net472;net10.0</TargetFrameworks>
         <Nullable>enable</Nullable>
         <OutputType>Library</OutputType>
     </PropertyGroup>
@@ -594,7 +586,7 @@ Standalone tests **must use `PackageReference`** to reference Metalama packages 
 </Project>
 ```
 
-**Multi-targeting:** Standalone tests should target all supported frameworks (`net472;net8.0;net9.0`) to validate extension loading across all runtime environments.
+**Multi-targeting:** Standalone tests should target all supported frameworks (`net472;net10.0`) to validate extension loading across all runtime environments.
 
 ### Debugging Extension Loading
 
@@ -638,16 +630,11 @@ When using `ProjectReference` (common in internal test projects during developme
 <ItemGroup>
     <!-- HtmlWriter extension and its dependency -->
     <MetalamaExtensionAssembly Include="../../Metalama.Extensions.HtmlWriter/bin/$(Configuration)/net472/DiffPlex.dll" TargetFramework="net472" />
-    <MetalamaExtensionAssembly Include="../../Metalama.Extensions.HtmlWriter/bin/$(Configuration)/net8.0/DiffPlex.dll" TargetFramework="net8.0" />
     <MetalamaExtensionAssembly Include="../../Metalama.Extensions.HtmlWriter/bin/$(Configuration)/net472/Metalama.Extensions.HtmlWriter.dll" TargetFramework="net472" />
-    <MetalamaExtensionAssembly Include="../../Metalama.Extensions.HtmlWriter/bin/$(Configuration)/net8.0/Metalama.Extensions.HtmlWriter.dll" TargetFramework="net8.0" />
     <!-- DiffEngine extension and its dependencies -->
     <MetalamaExtensionAssembly Include="../../Metalama.Extensions.DiffEngine/bin/$(Configuration)/net472/EmptyFiles.dll" TargetFramework="net472" />
-    <MetalamaExtensionAssembly Include="../../Metalama.Extensions.DiffEngine/bin/$(Configuration)/net8.0/EmptyFiles.dll" TargetFramework="net8.0" />
     <MetalamaExtensionAssembly Include="../../Metalama.Extensions.DiffEngine/bin/$(Configuration)/net472/DiffEngine.dll" TargetFramework="net472" />
-    <MetalamaExtensionAssembly Include="../../Metalama.Extensions.DiffEngine/bin/$(Configuration)/net8.0/DiffEngine.dll" TargetFramework="net8.0" />
     <MetalamaExtensionAssembly Include="../../Metalama.Extensions.DiffEngine/bin/$(Configuration)/net472/Metalama.Extensions.DiffEngine.dll" TargetFramework="net472" />
-    <MetalamaExtensionAssembly Include="../../Metalama.Extensions.DiffEngine/bin/$(Configuration)/net8.0/Metalama.Extensions.DiffEngine.dll" TargetFramework="net8.0" />
     <!-- DiffEngine test plugin registration -->
     <MetalamaTestPlugIn Include="Metalama.Extensions.DiffEngine.DiffEngineRunner, Metalama.Extensions.DiffEngine" />
 </ItemGroup>
@@ -661,7 +648,7 @@ When using `ProjectReference` (common in internal test projects during developme
 
 **Without proper registration:**
 - Extensions fail to load with `FileNotFoundException`
-- Errors like "Could not find a part of the path '...metalama/net8.0/DiffPlex.dll'"
+- Errors like "Could not find a part of the path '...metalama/net10.0/DiffPlex.dll'"
 
 ### Test Projects in Metalama.Framework
 
@@ -702,8 +689,7 @@ When adding new test projects that reference extension packages via `ProjectRefe
 **Fix:** Always specify `TargetFramework`:
 ```xml
 <MetalamaExtensionAssembly Include="...net472/MyExtension.dll" TargetFramework="net472" />
-<MetalamaExtensionAssembly Include="...net8.0/MyExtension.dll" TargetFramework="net8.0" />
-<MetalamaExtensionAssembly Include="...net9.0/MyExtension.dll" TargetFramework="net9.0" />
+<MetalamaExtensionAssembly Include="...net10.0/MyExtension.dll" TargetFramework="net10.0" />
 ```
 
 ### Service Not Resolved
