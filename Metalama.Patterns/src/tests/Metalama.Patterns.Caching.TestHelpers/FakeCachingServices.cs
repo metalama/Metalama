@@ -39,12 +39,27 @@ public sealed class FakeCachingServices : IDisposable
         this.MemoryCache = new FakeMemoryCache( this.TimeProvider );
 
         var services = new ServiceCollection();
-        services.AddSingleton<TimeProvider>( this.TimeProvider );
-        services.AddSingleton<IWorkItemDispatcher>( this.WorkItemDispatcher );
-        services.AddSingleton<IMemoryCache>( this.MemoryCache );
+        this.AddServices( services );
         configureServices?.Invoke( services );
 
         this.ServiceProvider = services.BuildServiceProvider();
+    }
+
+    /// <summary>
+    /// Registers the clock, the work-item dispatcher and the memory cache of this instance in a service collection
+    /// that the caller owns.
+    /// </summary>
+    /// <remarks>
+    /// A test class that already builds a service provider of its own, such as <c>BaseCachingTests</c>, calls this
+    /// method from its own registration method. The backends built on that service provider then resolve the same
+    /// three instances as the backends built on <see cref="ServiceProvider"/>.
+    /// </remarks>
+    /// <param name="services">The service collection in which the three services are registered.</param>
+    public void AddServices( IServiceCollection services )
+    {
+        services.AddSingleton<TimeProvider>( this.TimeProvider );
+        services.AddSingleton<IWorkItemDispatcher>( this.WorkItemDispatcher );
+        services.AddSingleton<IMemoryCache>( this.MemoryCache );
     }
 
     /// <summary>
