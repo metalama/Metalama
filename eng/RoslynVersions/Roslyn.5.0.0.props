@@ -10,9 +10,5 @@
 		     defines. See Directory.Packages.md. -->
 		<!-- Microsoft.CodeAnalysis.CSharp.Features 5.0 requires System.Text.Json >= 9.0.0. -->
 		<SystemTextJsonVersion>9.0.0</SystemTextJsonVersion>
-		<!-- Roslyn 5.0 transitively requires System.Memory >= 4.6.0. No variant is loaded into devenv.exe any more,
-		     so the net472 binding-redirect ceiling of Visual Studio 2022 does not apply. Track the highest patch in
-		     the 4.6.x line ($(SystemMemoryLatestVersion)). -->
-		<SystemMemoryVersion>$(SystemMemoryLatestVersion)</SystemMemoryVersion>
 	</PropertyGroup>
 </Project>

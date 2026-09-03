@@ -70,19 +70,81 @@ A project that consumes `Microsoft.Build` must also reference `Microsoft.Build.F
 
 ### The Out-of-band family
 
-> The caps in this section, and the split-version routing that depends on them, are derived from the binding
-> redirects of `devenv.exe` in Visual Studio 2022, which PB-2027.0 no longer includes. They must be re-derived
-> against the Visual Studio 2026 long-term servicing channel baseline once it ships on 2026-11-10, and most of
-> them are expected to disappear. Tracked by #1897. Do not carry a pin forward on the strength of the text
-> below without checking it against the new floor.
-
 A repeatedly relevant cluster of packages: **`System.Memory`**, **`System.Buffers`**, **`System.Numerics.Vectors`**, **`System.Runtime.CompilerServices.Unsafe`** (and sometimes `System.Threading.Tasks.Extensions`). These are called "Out-of-band" because they ship as standalone NuGet packages outside the .NET runtime release cycle — even though their types live in the `System.*` namespace. Originally back-ports of types added to .NET Core 2.1+ (`Span<T>`, `Memory<T>`, `ArrayPool<T>`, `Vector<T>`, the `Unsafe` API, `ValueTask`) for `netstandard2.0` and `net4x` consumers.
 
 Three properties make them a recurring source of trouble:
 
 1. **They reference each other internally** and must move together. A graph where `System.Memory` is on the 4.6.x line but `System.Buffers` is on 4.5.x compiles but fails at runtime with `MissingMethodException` / `TypeLoadException`.
-2. **Visual Studio ships its own copies** in `Common7\IDE\PublicAssemblies` (because devenv.exe loads `net472`-targeting analyzers that need these back-ports), and `devenv.exe.config` declares binding redirects whose `oldVersion` upper bound caps what we can reference. The lowest cap among the family becomes the cap for the whole family.
+2. **Visual Studio ships its own copies** in `Common7\IDE\PublicAssemblies` (because devenv.exe loads `net472`-targeting analyzers that need these back-ports), and `devenv.exe.config` declares binding redirects whose `oldVersion` upper bound caps what we can reference. The lowest cap among the family becomes the cap for the whole family. Whether that cap binds is a measurement, not an assumption; see the table below.
 3. **The `netstandard2.0` asset is the bright line.** The 4.5.x and 4.6.x lines retain `netstandard2.0`; the `8.x`+ packages on nuget.org are inbox copies from the .NET 8 runtime, repackaged for transitive resolution only — *not* the Out-of-band family. If `8.x` shows up in the resolution graph for an analyzer-loaded project, something is wrong.
+
+#### The caps sit exactly on the current latest of each package
+
+The derivation of property 2 still applies under PB-2027.0. Visual Studio 2026 18.9 loads `net472` analyzers into
+.NET Framework hosts: `Common7\IDE\devenv.exe` has a `devenv.exe.config` with 495 `dependentAssembly` entries and
+no `devenv.runtimeconfig.json`, and
+`Common7\ServiceHub\Hosts\ServiceHub.Host.AnyCPU\ServiceHub.RoslynCodeAnalysisService.exe` likewise has an
+`.exe.config` and no `.runtimeconfig.json`. The binding redirects continue to govern.
+
+What changed is the outcome. The ceilings were measured on a machine carrying both Visual Studio Professional
+2022 17.14.37614.0 and Visual Studio Professional 2026 18.9.12112.369 (channel `VisualStudio.18.Release`), and
+they are identical in the two releases:
+
+| Assembly | 17.14 `devenv.exe.config` | 18.9 `devenv.exe.config` | 18.9 `MSBuild.exe.config` |
+| --- | --- | --- | --- |
+| `System.Memory` | 4.0.5.0 | 4.0.5.0 | 4.0.5.0 |
+| `System.Buffers` | 4.0.5.0 | 4.0.5.0 | 4.0.5.0 |
+| `System.Numerics.Vectors` | 4.1.6.0 | 4.1.6.0 | 4.1.6.0 |
+| `System.Runtime.CompilerServices.Unsafe` | 6.0.3.0 | 6.0.3.0 | 6.0.3.0 |
+| `System.Threading.Tasks.Extensions` | 4.2.4.0 | 4.2.4.0 | 4.2.4.0 |
+
+The assembly version to compare against those ceilings is the one in the asset that a `net472` project resolves,
+which is `lib/net46x`, not `lib/netstandard2.0`. The two differ for this family, and only the `net46x` value is
+load-time-significant inside `devenv.exe`. For `System.Memory` 4.6.3 they are 4.0.5.0 and 4.0.2.0 respectively:
+reading the wrong one understates the assembly version by three revisions and makes a boundary fit look like
+comfortable headroom.
+
+| Package | NuGet version | `net46x` AsmVer | `netstandard2.0` AsmVer | Ceiling | Fits? |
+| --- | --- | --- | --- | --- | --- |
+| `System.Memory` | 4.5.5 | 4.0.1.2 | 4.0.1.2 | 4.0.5.0 | yes |
+| `System.Memory` | 4.6.0 | 4.0.2.0 | 4.0.2.0 | 4.0.5.0 | yes |
+| `System.Memory` | 4.6.3 | 4.0.5.0 | 4.0.2.0 | 4.0.5.0 | exactly |
+| `System.Buffers` | 4.5.1 | 4.0.3.0 | 4.0.3.0 | 4.0.5.0 | yes |
+| `System.Buffers` | 4.6.1 | 4.0.5.0 | 4.0.2.0 | 4.0.5.0 | exactly |
+| `System.Numerics.Vectors` | 4.5.0 | 4.1.4.0 | 4.1.4.0 | 4.1.6.0 | yes |
+| `System.Numerics.Vectors` | 4.6.1 | 4.1.6.0 | 4.1.3.0 | 4.1.6.0 | exactly |
+| `System.Runtime.CompilerServices.Unsafe` | 6.1.0 | 6.0.1.0 | 6.0.0.0 | 6.0.3.0 | yes |
+| `System.Runtime.CompilerServices.Unsafe` | 6.1.2 | 6.0.3.0 | 6.0.0.0 | 6.0.3.0 | exactly |
+| `System.Threading.Tasks.Extensions` | 4.5.4 | 4.2.0.1 | 4.2.0.1 | 4.2.4.0 | yes |
+| `System.Threading.Tasks.Extensions` | 4.6.3 | 4.2.4.0 | 4.2.1.0 | 4.2.4.0 | exactly |
+
+The pattern is the same for every member of the family: the ceiling equals the `net46x` assembly version of the
+current latest NuGet version. Visual Studio 2026 18.9 ships that latest version of each package, and its binding
+redirects target what it ships. So the cap is real and still governs, and there is no headroom above it. What the
+measurement changes is where the ceiling sits, not whether there is one.
+
+Two consequences follow. First, we may reference the current latest version of every member, and one central
+value therefore serves every consumer, including the `net472` payload; the split that used to route around a
+lower ceiling is gone. Second, the next release of any of these packages is not automatically safe. When one
+appears, re-read the ceiling before taking it: a bump lands above the ceiling until a Visual Studio release
+ships the new version and moves the redirect.
+
+Properties 1 and 3 still bind: the family must move together, and it must keep a `netstandard2.0` asset. The
+central pin of `System.Threading.Tasks.Extensions` is held at 4.5.4 for an unrelated reason, the currently
+installed `Metalama.Vsx` versions; see the gotcha on flowed dependencies below.
+
+The values this document and `Directory.Packages.props` previously carried were measured against an older
+Visual Studio patch, one that shipped the 4.6.0 line: the former ceilings of 4.0.2.0, 4.0.4.0, 4.1.5.0, 6.0.1.0
+and 4.2.1.0 are exactly the `net46x` assembly versions of `System.Memory` 4.6.0, `System.Buffers` 4.6.0,
+`System.Numerics.Vectors` 4.6.0, `System.Runtime.CompilerServices.Unsafe` 6.1.0 and
+`System.Threading.Tasks.Extensions` 4.6.0. One claim was wrong rather than merely stale, and is the likely origin
+of the split: AsmVer 4.0.2.0 belongs to `System.Memory` 4.6.0, not to 4.5.5, whose AsmVer is 4.0.1.2. Reading it
+as 4.5.5 put the pin a whole line lower than the ceiling of the day allowed.
+
+The ceilings are still to be re-read against the Visual Studio 2026 long-term servicing channel baseline once it
+ships on 2026-11-10, which is item 1 of the verification checklist of
+[`platform-support.md`](Metalama.Framework/docs/platform-support.md). Given that 17.14 and 18.9 agree exactly, a
+change is unlikely.
 
 ## Conventions in `Directory.Packages.props` and `eng\Versions.props`
 
@@ -192,7 +254,7 @@ function NugetVersionOf($path) {
         return $pv
     } catch { return $null }
 }
-$vsRoot = 'C:\Program Files\Microsoft Visual Studio\2022\Professional'  # or the 18.x equivalent
+$vsRoot = 'C:\Program Files\Microsoft Visual Studio\2026\Professional'
 foreach ($name in 'StreamJsonRpc.dll','MessagePack.dll','Microsoft.VisualStudio.Threading.dll',
                   'System.Text.Json.dll','System.Collections.Immutable.dll',
                   'Microsoft.Bcl.AsyncInterfaces.dll','System.IO.Pipelines.dll',
@@ -211,7 +273,7 @@ foreach ($name in 'StreamJsonRpc.dll','MessagePack.dll','Microsoft.VisualStudio.
 For any Out-of-band-family package that VS exposes to its `net472`-targeting analyzer host, the **actual** cap is the `oldVersion` upper bound in the matching `<bindingRedirect>` of `devenv.exe.config`. Anything we reference above that bound is *not* redirected; the CLR rejects the load with `System.IO.FileLoadException` because the located assembly's manifest doesn't match the assembly reference. This bound is often **lower** than the latest published NuGet version of the same package — and lower than the VS-shipped DLL's own `AssemblyVersion` in some cases.
 
 ```powershell
-$cfg = 'C:\Program Files\Microsoft Visual Studio\2022\Professional\Common7\IDE\devenv.exe.config'
+$cfg = 'C:\Program Files\Microsoft Visual Studio\2026\Professional\Common7\IDE\devenv.exe.config'
 [xml]$x = Get-Content $cfg
 $ns = New-Object System.Xml.XmlNamespaceManager $x.NameTable
 $ns.AddNamespace('a','urn:schemas-microsoft-com:asm.v1')
@@ -221,25 +283,37 @@ $x.SelectNodes('//a:assemblyIdentity[@name="System.Memory" or @name="System.Buff
     $br = $_.ParentNode.SelectSingleNode('a:bindingRedirect', $ns)
     "$($_.name) : oldVersion=$($br.oldVersion)  newVersion=$($br.newVersion)"
 }
-# Example output (VS 17.14 latest):
-# System.Memory                          : oldVersion=4.0.0.0-4.0.2.0  newVersion=4.0.2.0
-# System.Buffers                         : oldVersion=4.0.0.0-4.0.4.0  newVersion=4.0.4.0
-# System.Numerics.Vectors                : oldVersion=0.0.0.0-4.1.5.0  newVersion=4.1.5.0
-# System.Runtime.CompilerServices.Unsafe : oldVersion=0.0.0.0-6.0.1.0  newVersion=6.0.1.0
-# System.Threading.Tasks.Extensions      : oldVersion=0.0.0.0-4.2.1.0  newVersion=4.2.1.0
+# Example output (VS 2026 18.9.12112.369, identical to VS 2022 17.14.37614.0):
+# System.Memory                          : oldVersion=0.0.0.0-4.0.5.0  newVersion=4.0.5.0
+# System.Buffers                         : oldVersion=0.0.0.0-4.0.5.0  newVersion=4.0.5.0
+# System.Numerics.Vectors                : oldVersion=0.0.0.0-4.1.6.0  newVersion=4.1.6.0
+# System.Runtime.CompilerServices.Unsafe : oldVersion=0.0.0.0-6.0.3.0  newVersion=6.0.3.0
+# System.Threading.Tasks.Extensions      : oldVersion=0.0.0.0-4.2.4.0  newVersion=4.2.4.0
 ```
 
-Cross-reference each `oldVersion` upper bound against the AsmVer of the NuGet version you're considering. For `System.Memory`: NuGet 4.5.5 → AsmVer 4.0.2.0 (matches BR upper bound, OK); NuGet 4.6.x → AsmVer **4.0.5.0** (above BR upper bound, **breaks** in devenv).
+Cross-reference each `oldVersion` upper bound against the AsmVer of the NuGet version you're considering. Read the AsmVer from the package itself rather than from memory, because it does not track the NuGet version — and read it from **the asset the consuming project resolves**. A `net472` project resolves `lib/net46x`, and for this family that assembly carries a higher version than the `netstandard2.0` one in the same package:
+
+```powershell
+foreach ($tfm in 'net462','netstandard2.0') {
+    $dll = "$env:NUGET_PACKAGES\system.memory\4.6.3\lib\$tfm\System.Memory.dll"
+    "$tfm : $([System.Reflection.AssemblyName]::GetAssemblyName($dll).Version)"
+}
+# net462         : 4.0.5.0   <- the one that matters for the net472 payload
+# netstandard2.0 : 4.0.2.0   <- reading this one would understate the cap by three revisions
+```
+
+The table in *The Out-of-band family* records the result of this cross-reference for the whole family. Every version listed there fits its ceiling, and the current latest of each package fits it exactly.
 
 ### What NOT to use as the cap
 
-`AssemblyVersion` (the binding identity in the DLL header) is **not** the NuGet version, but it **is** load-time-significant. Some .NET libraries keep AsmVer frozen across NuGet patches (e.g., `Microsoft.Build` 17.x all expose AsmVer 15.1.0.0); others don't (`System.Memory` 4.5.5 = AsmVer 4.0.2.0, but 4.6.x = AsmVer 4.0.5.0 — a real bump). So:
+`AssemblyVersion` (the binding identity in the DLL header) is **not** the NuGet version, but it **is** load-time-significant. Some .NET libraries keep AsmVer frozen across NuGet patches (e.g., `Microsoft.Build` 17.x all expose AsmVer 15.1.0.0); others don't (`System.Memory` 4.5.5 = AsmVer 4.0.1.2, 4.6.0 = 4.0.2.0, 4.6.3 = 4.0.5.0 — real bumps within one line). So:
 
 - **Don't cap on AsmVer alone** — for many packages it's frozen and tells you nothing.
 - **Don't cap on the VS-shipped DLL version alone** — the `newVersion` in the binding redirect is the shipped DLL, but it's not the cap; the `oldVersion` *upper bound* is.
 - **Do cap on the BR `oldVersion` upper bound** for net472 / VS-loaded paths.
+- **Don't read the AsmVer from the wrong asset.** One package can carry several, with different assembly versions. Compare the ceiling against the asset the consuming project resolves: `lib/net46x` for a `net472` project, not `lib/netstandard2.0`.
 
-Refresh the cap derivation when the floor VS version changes, when MS releases a Current-Channel feature update that rotates shipped assemblies, or when a transitive dependency unexpectedly fails to load in VS. Before merging a `Directory.Packages.props` change that adds or upgrades a VS-loaded dependency, cross-reference each transitive's NuGet version against the values from the commands above, then smoke-test by loading the change in VS 17.14 latest patch and reproducing a representative design-time scenario.
+Refresh the cap derivation when the floor VS version changes, when MS releases a Current-Channel feature update that rotates shipped assemblies, or when a transitive dependency unexpectedly fails to load in VS. Before merging a `Directory.Packages.props` change that adds or upgrades a VS-loaded dependency, cross-reference each transitive's NuGet version against the values from the commands above, then smoke-test by loading the change in the floor Visual Studio at its latest patch and reproducing a representative design-time scenario.
 
 ## Iteration workflow when bumping versions
 
@@ -275,7 +349,7 @@ Refresh the cap derivation when the floor VS version changes, when MS releases a
 
 ### Step 2 — Mirror version changes into Metalama.Premium
 
-Premium has its own `..\Metalama.Premium\Directory.Packages.props` (and its own `eng\RoslynVersions\Roslyn.*.props`). Any change to Metalama's central pins — especially `RoslynApiMinVersion` / `RoslynApiMaxVersion`, the variant-conditional `SystemMemoryVersion`, the Out-of-band family, the `*LatestVersion` properties, and anything pinned for VS-shipped compatibility — must be mirrored into Premium **before** testing Premium. Otherwise restore mismatches will mask the actual scenario you're trying to verify, or worse, the Premium analyzer payload deployed into `devenv` will diverge from the Metalama analyzer payload alongside it.
+Premium has its own `..\Metalama.Premium\Directory.Packages.props` (and its own `eng\RoslynVersions\Roslyn.*.props`). Any change to Metalama's central pins — especially `RoslynApiMinVersion` / `RoslynApiMaxVersion`, the Out-of-band family, the `*LatestVersion` properties, and anything pinned for VS-shipped compatibility — must be mirrored into Premium **before** testing Premium. Otherwise restore mismatches will mask the actual scenario you're trying to verify, or worse, the Premium analyzer payload deployed into `devenv` will diverge from the Metalama analyzer payload alongside it.
 
 Workflow: edit Premium's props files to match, run `dotnet restore` on each top-level Premium `.sln`, then proceed to step 3.
 
@@ -299,27 +373,15 @@ Per-package rationales (why a specific version is pinned, what host shipped it, 
 - **Pre-1.0 packages can break in "minor" bumps.** `Spectre.Console.Cli` 0.53 → 0.55 changed `Command<T>.Execute` from `public` to `protected`, requiring CS0507 fixes in 6 files. Read changelogs before bumping any package whose major is `0`.
 - **ILMerged transitives still bind externally.** Even when `StreamJsonRpc` is ILMerged into Metalama, its non-merged transitive deps (`System.Threading.Tasks.Extensions`, `System.Diagnostics.DiagnosticSource`, etc.) still need their AsmVer to satisfy the merged code's binding. Bumping the ILMerged package may force bumps on its transitives.
 - **`netstandard2.0` is the Out-of-band-family bright line.** `System.Memory` / `System.Buffers` / `System.Runtime.CompilerServices.Unsafe` / `System.Numerics.Vectors` retain `netstandard2.0` only through their 4.6.x line. The `8.x`+ DLLs in modern VS payloads are inbox copies from the .NET 8 runtime, not standalone NuGets.
-- **VS's "Current Channel" auto-updates feature bands.** What's "latest 17.14.x" on day N may be "latest 17.16.x" on day N+30 if Microsoft ships a feature update. Re-derive caps when refreshing for a new GA.
-- **MSB3277 conflicts in `net472` packs are resolved by an explicit `<PackageReference>` in the consuming csproj.** When a transitive (e.g. `DiffPlex` 1.9 → `System.Memory` 8.x; `K4os.Hash.xxHash` 1.0.8 → `System.Memory` 4.5.x) drags a different Out-of-band-family version into a `net472` build, the central pin doesn't win unless something near the root has a direct `<PackageReference Include="System.Memory"/>`. The fix is a one-line pin in the project that triggers the warning. For projects that *do* deploy into VS use `<PackageReference Include="System.Memory"/>` (no version — central 4.5.5 wins, fits the BR cap). For projects that *don't* deploy into VS but pull a higher transitive (e.g. `Metalama.Extensions.HtmlWriter` → `Microsoft.CodeAnalysis.CSharp` 5.0 → `System.Memory ≥ 4.6.0`), use `<PackageReference Include="System.Memory" VersionOverride="$(SystemMemoryLatestVersion)" />` to pick the higher value. Both forms live under a `<!-- Resolve conflict -->` comment.
+- **Visual Studio's Stable channel auto-updates.** What is the latest 18.9.x on day N may be a later feature band on day N+30 if Microsoft ships a feature update, and a feature update can rotate the assemblies Visual Studio ships. Re-derive caps when refreshing for a new general availability date.
+- **MSB3277 conflicts in `net472` packs are resolved by an explicit `<PackageReference>` in the consuming csproj.** When a transitive (e.g. `DiffPlex` 1.9 → `System.Memory` 8.x; `K4os.Hash.xxHash` 1.0.8 → `System.Memory` 4.5.x) drags a different Out-of-band-family version into a `net472` build, the central pin doesn't win unless something near the root has a direct `<PackageReference Include="System.Memory"/>`. The fix is a one-line pin in the project that triggers the warning: `<PackageReference Include="System.Memory"/>`, with no version, so that the central pin wins. These pins live under a `<!-- Resolve conflict -->` comment. `System.Buffers` has no central pin and takes `VersionOverride="$(SystemBuffersLatestVersion)"` instead.
 - **Separately-deployed downstream consumers constrain shared Out-of-band transitive deps.** `Metalama.Vsx` is shipped to users on its own cadence. A given installed VSX has bundled, frozen-at-build-time dependency closures. Worse, it has `<CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>`, so transitives we declare in `Metalama.Framework.DesignTime.Rpc` (System.IO.Pipelines, DiagnosticSource, Microsoft.Bcl.AsyncInterfaces, Tasks.Extensions) get re-resolved at the VSX-installed user's machine to whatever VSX's central pins say — *not* what our package metadata requested. Bumping any of those flowed deps in Metalama can break already-deployed VSX even though our build is internally consistent. **Treat all flowed transitive deps of `Metalama.Framework.DesignTime.Rpc` as governed by the lowest currently-installed VSX version's CPM ceiling, not by what looks safe on our side.** The longer-term fix is to move VSX→Metalama traffic onto `Metalama.Framework.DesignTime.Contracts` (Guid-marked, COM type-equivalent — see `Metalama.Framework/docs/cross-process-communication.md` and metalama/Metalama#1605); until that lands, hold the line on flowed-dep versions.
 - **Why we don't enable `<CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>`.** That NuGet flag would auto-pin every transitive that has a `<PackageVersion>` entry — which would eliminate the explicit `<PackageReference>` pins above. We deliberately keep it off because the flag is per-**project**, not per-**package**: enabling it pins all ~120 centrally-versioned packages in every project's transitive closure, with high blast radius (silent uplifts in user-surfacing NuGets, hidden NU1605 risks) for low gain (3-4 conflict cases). The current explicit-`PackageReference` approach IS the per-package control we want — verbose for those few cases, but explicit and audit-able. If the conflict-pin count grows past ~10, re-evaluate.
-
-## Variant + audience routing for split-version packages
-
-A package has to be **split into multiple central values** when (a) one consumer in our build requires version ≥ X for restore correctness, and (b) another consumer would `FileLoadException`-fail at runtime in VS at any version ≥ X. If only one of those holds, a single central pin suffices.
-
-The standard shape:
-
-- `XxxVersion` — default. Used by VS-loaded paths (default = the safe ceiling for VS).
-- `XxxVersion` overridden in `eng\RoslynVersions\Roslyn.<v>.0.0.props` — variant-specific (e.g., the Roslyn 5.0 variant runs outside VS, so the BR ceiling doesn't apply).
-- `XxxLatestVersion` — used in csproj-level `VersionOverride` for projects that don't deploy into VS (tests, optional extensions like HtmlWriter, CLI tools).
-
-The current example is `SystemMemoryVersion` / `SystemMemoryLatestVersion`; the per-property values and the rationale live in inline comments on the property declarations in `Directory.Packages.props`. Document any new split package the same way (inline near the property, with a one-line summary; no per-package table here).
 
 ## Forward-looking constraints to track
 
 Time-bounded policy items that affect future bumps. PR-specific work in flight is tracked in the corresponding PR / GitHub issues, not here.
 
-- VS 2022 17.14 Current Channel auto-updates feature bands; re-derive caps when MS ships a Current-Channel feature update that rotates VS-shipped assemblies, for as long as 17.14 is in the baseline.
+- The Out-of-band-family ceilings are measured against Visual Studio 2026 18.9, which is a Stable-channel release and not the floor. Re-read them against the long-term servicing channel baseline once it ships on 2026-11-10, and again whenever Microsoft ships a Stable feature update that rotates the assemblies Visual Studio ships. The values are recorded in *The Out-of-band family* above.
 - The Visual Studio floor itself is tracked in [`Metalama.Framework/docs/platform-support.md`](Metalama.Framework/docs/platform-support.md), together with the checklist of measurements that must be taken against real machines before the floor moves.
 - The flowed-dep pins on `Metalama.Framework.DesignTime.Rpc` (`StreamJsonRpc`, `System.Diagnostics.DiagnosticSource`, `System.Threading.Tasks.Extensions`, `System.IO.Pipelines`, `Microsoft.Bcl.AsyncInterfaces`) are constrained by the lowest currently-installed Metalama.Vsx version's CPM ceiling. They become free to bump only after VSX migrates off direct `Metalama.Framework.DesignTime.Rpc` consumption (metalama/Metalama#1605, metalama/Metalama.Vsx.Public#18) AND the older VSX exits support.

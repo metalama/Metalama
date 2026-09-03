@@ -53,7 +53,7 @@
         <ProjectReference Include="..\Metalama.Framework.Tests.UnitTestHelpers$(ThisRoslynVersionProjectSuffix)\Metalama.Framework.Tests.UnitTestHelpers$(ThisRoslynVersionProjectSuffix).csproj" />
 
         <!-- Resolve conflicts -->
-        <PackageReference Include="System.Memory" VersionOverride="$(SystemMemoryLatestVersion)"/>
+        <PackageReference Include="System.Memory"/>
         <PackageReference Include="System.Buffers" VersionOverride="$(SystemBuffersLatestVersion)"/>
     </ItemGroup>
 

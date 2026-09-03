@@ -37,7 +37,7 @@
         <PackageReference Include="Microsoft.Win32.Registry" />
 
         <!-- Resolve conflicts -->
-        <PackageReference Include="System.Memory" VersionOverride="$(SystemMemoryLatestVersion)"/>
+        <PackageReference Include="System.Memory"/>
         <PackageReference Include="System.Buffers" VersionOverride="$(SystemBuffersLatestVersion)"/>
 
     </ItemGroup>
