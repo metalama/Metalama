@@ -63,8 +63,19 @@ internal enum SynthesizedRecordMemberKind
 /// source is the only way to let <c>meta.Proceed()</c> reach the original implementation.
 /// </summary>
 /// <remarks>
+/// <para>
 /// The body is returned as a list of statements plus an optional result expression, so that the caller can return the
 /// result, assign it to the return variable of an inlining context, or discard it.
+/// </para>
+/// <para>
+/// The generated body is the lowest layer of the member, so it reads the lowest layer of the members it refers to
+/// wherever the C# compiler does. <c>Equals</c> and <c>GetHashCode</c> read the fields of the record, so the generated
+/// body reads the backing field of an auto-property, which is the storage that no advice can replace, and not the
+/// property, whose accessors carry the advice. Where the C# compiler emits a call instead, the generated body emits a
+/// call as well, which reaches the layer that carries the advice: <c>PrintMembers</c> and <c>Deconstruct</c> call the
+/// getter of the property, <c>ToString</c> calls <c>PrintMembers</c>, and <c>Equals</c> and <c>GetHashCode</c> call
+/// <c>EqualityContract</c>. A member of the record written by hand behaves in the same way.
+/// </para>
 /// </remarks>
 internal static class SynthesizedRecordMemberBodyGenerator
 {
@@ -631,6 +642,8 @@ internal static class SynthesizedRecordMemberBodyGenerator
         {
             // The backing field of an auto-property has no name that can be written in source. The linker emits an
             // explicit backing field when it rewrites the property; otherwise the property name is the only way to read it.
+            // An auto-property has no separate source accessor, because the linker substitutes the backing field for a
+            // reference to the source semantic, so reading the field is reading the lowest layer of the property.
             var name = rewritingDriver.HasMaterializedBackingField( property )
                 ? rewritingDriver.GetBackingFieldName( property )
                 : property.Name;

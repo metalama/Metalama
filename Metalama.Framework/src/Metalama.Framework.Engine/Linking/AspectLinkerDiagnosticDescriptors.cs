@@ -38,8 +38,8 @@ public static class AspectLinkerDiagnosticDescriptors
             "The original implementation of a compiler-synthesized record member reads a property whose implementation an aspect has replaced.",
             "The original implementation of '{0}' generated for record '{1}' reads the property '{2}', whereas the C# compiler reads its "
             + "backing field. An aspect overrides the property with a template that does not call the original implementation, so the "
-            + "property no longer has a backing field and the generated implementation compares the value returned by the aspect. Call "
-            + "'meta.Proceed()' in the template that overrides the property.",
+            + "property has no backing field left and the generated body reads the value that the aspect returns instead of the value "
+            + "that the record stores. Call 'meta.Proceed()' in the template that overrides the property.",
             _category,
             Warning );
 
