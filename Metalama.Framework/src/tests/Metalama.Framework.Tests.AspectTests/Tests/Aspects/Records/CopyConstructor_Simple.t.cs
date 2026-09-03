@@ -1,2 +1,0 @@
-// CompileTimeAspectPipeline.ExecuteAsync failed.
-// Error LAMA0041 on `Target`: `'Exception of type 'System.InvalidOperationException' thrown while executing BuildAspect for aspect [OverrideAttribute] applied to 'Target': Cannot add an OverrideConstructor advice to 'Target.Target(Target)' because 'Target.Target(Target)' must not be the copy constructor of a record type. Check the IsAdviceEligible(AdviceKind.OverrideConstructor) method. Exception details are in '(none)'. To attach a debugger to the compiler, use the  '-p:MetalamaDebugCompiler=True' command-line option.`
