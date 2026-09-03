@@ -45,13 +45,16 @@ var product = new Product( MetalamaDependencies.Metalama )
                     // to resolve Microsoft.NET.Sdk with MSB4276. It installs the .NET SDK named by
                     // dotNetSdkVersion, which is why that version is pinned to the one Visual Studio ships.
                     "Microsoft.Component.MSBuild",
-                    "Microsoft.NetCore.Component.SDK",
+                    "Microsoft.NetCore.Component.SDK"
 
-                    // Required because we target these frameworks.
-                    "Microsoft.Net.Component.4.7.2.TargetingPack",
-                    "Microsoft.Net.Component.4.7.2.SDK",
-                    "Microsoft.Net.Component.4.8.TargetingPack",
-                    "Microsoft.Net.Component.4.8.SDK"
+                    // The .NET Framework targeting packs and developer packs are deliberately absent, which keeps
+                    // their payload out of the Visual Studio layer, the base of the image chain. The .NET SDK obtains
+                    // the reference assemblies of a .NET Framework target framework from the
+                    // Microsoft.NETFramework.ReferenceAssemblies packages, which is why net462 and net481 build
+                    // although no component installs their packs. No project and no build script uses a tool of the
+                    // developer packs, such as sn.exe or al.exe. The desktop MSBuild builds, which are the ones that
+                    // do not necessarily follow the .NET SDK, were compared with and without these components and
+                    // reported the same diagnostics.
                 ] ),
 
             // Required to download test license keys.
