@@ -16,14 +16,10 @@ using System;
 using System.IO;
 using MetalamaDependencies = PostSharp.Engineering.BuildTools.Dependencies.Definitions.MetalamaDependencies.V2027_0;
 
-// The .NET SDK of the build container. Visual Studio 2026 18.9 installs 10.0.400 through the
-// Microsoft.NetCore.Component.SDK component, so the container pins that same version. Two .NET 10 feature
-// bands under C:\Program Files\dotnet make MSBuildSDKsPath and MSBuildExtensionsPath resolve to different
-// SDK directories, and the solution restore then fails with MSB4062, because NuGet.Build.Tasks of one band
-// requires a newer Microsoft.Build.Framework than the other band provides. This departs from
-// PreferredVersions.DotNetSdk.V_10_0, which is 10.0.102 and is shared with the repositories that are still
-// on Visual Studio 2022, where the conflict cannot arise because Visual Studio 2022 ships no .NET 10 SDK.
-const string dotNetSdkVersion = "10.0.400";
+// The .NET SDK of the build container and of global.json. The product family is the source of truth, because
+// the version depends on the Visual Studio baseline that the family pins, and the family definition records why
+// this one differs from the default.
+var dotNetSdkVersion = MetalamaDependencies.Family.PreferredVersions.DotNetSdk.V_10_0;
 
 var product = new Product( MetalamaDependencies.Metalama )
 {
@@ -42,8 +38,8 @@ var product = new Product( MetalamaDependencies.Metalama )
                 [
                     // Required to test MSBuild. Microsoft.NetCore.Component.SDK cannot be omitted: without it
                     // the MSBuild.exe of the Build Tools has no C:\BuildTools\MSBuild\Sdks directory and fails
-                    // to resolve Microsoft.NET.Sdk with MSB4276. It installs the .NET SDK named by
-                    // dotNetSdkVersion, which is why that version is pinned to the one Visual Studio ships.
+                    // to resolve Microsoft.NET.Sdk with MSB4276. It installs the .NET SDK that the product family
+                    // names, which is why the family names the version that Visual Studio ships.
                     "Microsoft.Component.MSBuild",
                     "Microsoft.NetCore.Component.SDK"
 
