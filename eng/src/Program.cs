@@ -33,7 +33,15 @@ var product = new Product( MetalamaDependencies.Metalama )
                 [
                     // Required to test MSBuild.
                     "Microsoft.Component.MSBuild",
-                    "Microsoft.NetCore.Component.SDK",
+
+                    // Microsoft.NetCore.Component.SDK is deliberately absent. It installs the .NET SDK that
+                    // Visual Studio ships, which for Visual Studio 2026 18.9 is 10.0.400, into
+                    // C:\Program Files\dotnet, beside the SDK installed by the DotNetComponent above. MSBuild
+                    // then runs from one feature band while importing NuGet.targets from the other, because
+                    // MSBuildSDKsPath and MSBuildExtensionsPath resolve to different SDK directories, and the
+                    // solution restore fails with MSB4062: NuGet.Build.Tasks of 10.0.400 requires a newer
+                    // Microsoft.Build.Framework than 10.0.102 provides. Visual Studio 2022 17.14 ships no
+                    // .NET 10 SDK, so this conflict did not exist before the move to Visual Studio 2026.
 
                     // Required because we target these frameworks.
                     "Microsoft.Net.Component.4.7.2.TargetingPack",
