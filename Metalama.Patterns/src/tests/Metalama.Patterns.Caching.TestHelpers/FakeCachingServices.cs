@@ -20,9 +20,9 @@ namespace Metalama.Patterns.Caching.TestHelpers;
 /// test, advance the clock with <see cref="AdvanceAsync"/>, and assert.
 /// </para>
 /// <para>
-/// The <see cref="IMemoryCache"/> is registered as a single instance. Two backends that resolve it from this service
-/// provider therefore share one store, which is not what the two layers of a layered backend need. Give the second
-/// layer its own store in that case.
+/// The <see cref="IMemoryCache"/> is registered as a single instance, as <c>AddMemoryCache</c> does. Two backends
+/// that resolve it from this service provider therefore share one store, and each of them prefixes its keys with an
+/// identifier of its own, so they keep separate items and separate dependencies.
 /// </para>
 /// </remarks>
 public sealed class FakeCachingServices : IDisposable
