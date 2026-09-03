@@ -171,7 +171,7 @@ The interface only queues. The ability to wait for the completion of the pending
 
 `LayeredCachingBackendBuilder.WithMemoryCache` supplies the memory cache of the L1 layer. The L2 layer is the underlying backend and has a memory cache only if it is itself a `MemoryCachingBackend`.
 
-`IMemoryCache` declares no operation that removes every entry, although `MemoryCache` has one. `IClearableMemoryCache` is an `IMemoryCache` that declares `Clear` and `Compact`. `MemoryCachingBackend` reports the `Clear` feature when its `IMemoryCache` is a `MemoryCache` or implements `IClearableMemoryCache`, and throws otherwise.
+`IMemoryCache` declares no operation that removes every entry, although `MemoryCache` has one. `IClearableMemoryCache` is an `IMemoryCache` that declares `Clear` and `Compact`. `MemoryCachingBackend` reports the `Clear` feature when its `IMemoryCache` is a `MemoryCache` or implements `IClearableMemoryCache`. A call to `Clear` on a backend whose `IMemoryCache` is neither throws `NotSupportedException`.
 
 ### Substitution in tests
 
