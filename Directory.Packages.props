@@ -9,7 +9,7 @@
   <PropertyGroup>
     <!-- 2023.2.398 is the first version that exposes ManySolutions and TestableSolution, which the design-time
          scenarios under Metalama.Framework/src/tests/DesignTimeStandalone derive from. -->
-    <PostSharpEngineeringVersion Condition="'$(PostSharpEngineeringVersion)'==''">2023.2.412</PostSharpEngineeringVersion>
+    <PostSharpEngineeringVersion Condition="'$(PostSharpEngineeringVersion)'==''">2023.2.420</PostSharpEngineeringVersion>
 
 
     <!-- We must match the version used by the lowest version of Visual Studio supported by the VSX, i.e. VS 17.14. -->

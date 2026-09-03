@@ -23,16 +23,13 @@ var product = new Product( MetalamaDependencies.Metalama )
     {
         Components =
         [
-            // Must match global.json. Since .NET 8 and .NET 9 were dropped, this is the only .NET SDK that the
-            // product and the tests require.
+            // Must match global.json. Since .NET 8 and .NET 9 were dropped, this is the only .NET SDK required by
+            // the product, by the tests and by this project.
             new DotNetComponent( PreferredVersions.DotNetSdk.V_10_0, DotNetComponentKind.Sdk ),
-
-            // Required by this project, which targets net9.0. No product project targets net9.0 any more.
-            new DotNetComponent( PreferredVersions.DotNetSdk.V_9_0, DotNetComponentKind.Sdk ),
 
             // Required by some tests.
             new VisualStudioBuildToolsComponent(
-                VisualStudioBuildToolsComponentVersion.v17_14_15,
+                VisualStudioBuildToolsComponentVersion.v18_9_2,
                 [
                     // Required to test MSBuild.
                     "Microsoft.Component.MSBuild",
@@ -51,7 +48,7 @@ var product = new Product( MetalamaDependencies.Metalama )
     },
     DotNetSdkVersion = new DotNetSdkVersion( PreferredVersions.DotNetSdk.V_10_0 ) { AllowPrerelease = true },
     GenerateNuGetConfig = true,
-    MSBuildVersion = new Version( 17, 14 ),
+    MSBuildVersion = new Version( 18, 9 ),
     Solutions =
     [
         new DotNetSolution( "Metalama.Backstage/Metalama.Backstage.sln" ) { SupportsTestCoverage = true, CanFormatCode = true },
