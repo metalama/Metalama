@@ -166,6 +166,25 @@ if ($PSVersionTable.PSVersion -lt [Version]'7.5')
     exit 1
 }
 
+
+# A NuGet packages directory under C:\Windows\System32 is unsafe. 32-bit build tools restored there hit WOW64
+# file-system redirection, which rewrites C:\Windows\System32 -> C:\Windows\SysWOW64 for a 32-bit process - so
+# the tool's own image resolves to a non-existent SysWOW64 path and the CLR shim aborts with exit -2146232576
+# (0x80131700, CLR_E_SHIM_RUNTIMELOAD). This happens silently when the agent service runs as SYSTEM (whose profile
+# is under System32) and NUGET_PACKAGES is unset, so fail fast with the fix instead of a cryptic build failure.
+function Assert-NuGetPackagesPathSafe([string]$path)
+{
+    if ($IsUnix -or [string]::IsNullOrEmpty($path)) { return }
+    if (($path -replace '/', '\') -match '(?i)^[a-z]:\\windows\\system32(\\|$)')
+    {
+        Write-Host "NUGET_PACKAGES resolves to '$path', under C:\Windows\System32 - 32-bit build tools fail" -ForegroundColor Red
+        Write-Host "there via WOW64 System32->SysWOW64 redirection (exit 0x80131700, CLR_E_SHIM_RUNTIMELOAD)." -ForegroundColor Red
+        Write-Host "Set a machine-level NUGET_PACKAGES off System32, e.g.:" -ForegroundColor Red
+        Write-Host "  md C:\packages; [Environment]::SetEnvironmentVariable('NUGET_PACKAGES','C:\packages','Machine')" -ForegroundColor Red
+        exit 1
+    }
+}
+
 ####
 # These settings are replaced by the generate-scripts command.
 $EngPath = 'eng'
@@ -404,6 +423,7 @@ try
                 }
             }
             $envVariables["NUGET_PACKAGES"] = $nugetPackages
+    Assert-NuGetPackagesPathSafe ($envVariables["NUGET_PACKAGES"])
         }
 
         # Add secrets from the PostSharpBuildEnv key vault, on our development machines.
@@ -514,6 +534,7 @@ try
             }
         }
         $claudeEnv["NUGET_PACKAGES"] = $nugetPackages
+    Assert-NuGetPackagesPathSafe ($claudeEnv["NUGET_PACKAGES"])
 
         # Process additional environment variables from -Env parameter
         # Supports both "NAME" (read from host) and "NAME=VALUE" (literal value) forms

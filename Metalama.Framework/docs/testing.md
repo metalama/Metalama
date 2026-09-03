@@ -208,6 +208,14 @@ Standalone tests are **full builds of real projects** (`dotnet build`/`dotnet te
 
 Every scenario is built; those with `BuildMethod.Test` are additionally run. Scenarios run concurrently (a semaphore of `ProcessorCount`); any failure fails the set. Examples: `SingleFile` (single-file program, run), `CompileTimeContract` (the SDK-extension pattern: `[CompileTime]` contracts + `MetalamaExtensionAssembly` + `MetalamaCompileTimeAssembly`), `TestWeaver` (a custom weaver plug-in), `CodeCoverage` (a real xUnit project, run via `dotnet test`), `BlazorApp`, and regression scenarios like `Issue1743` / `Issue1749` / `Issue1741`.
 
+Some scenarios assert on the reason a build failed, not only on the fact that it failed. `Issue1744` plants an
+error in the nested reference-assembly build that Metalama runs through desktop MSBuild, and requires the
+diagnostics to contain both `LAMA0082` and the text of the planted error. A change to the build container can
+therefore fail it while the product is correct: the nested build stops for a different reason, `LAMA0082` still
+appears, and the planted text does not. Read the expected diagnostics of the scenario before treating such a
+failure as a product defect. The binary log of that nested build is written under the temporary directory of the
+agent and is not published, so the underlying errors cannot be read from the continuous integration log.
+
 ### `test.json`
 
 Place a `test.json` next to the scenario entry point to assert an outcome other than "builds and runs cleanly". The schema is `TestOptions` in PostSharp.Engineering; the diagnostic matching is in `TestableSolution.EvaluateOutput`. Fields:

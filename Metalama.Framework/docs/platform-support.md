@@ -196,6 +196,18 @@ The backend Roslyn is 5.0.0. `lib/ReSharperHost/Microsoft.CodeAnalysis.dll` carr
 in the set under rule 1. The floor is the .NET 10 SDK. The .NET 11 SDK, released in November 2026, is also in the
 set.
 
+The build container installs the SDK that the product family names, through
+`MetalamaDependencies.V2027_0.Family.PreferredVersions`, and `eng/src/Program.cs` reads the same value for the
+container component and for `global.json`, so the image and the pin cannot drift apart. The family names the version
+that Visual Studio installs through the `Microsoft.NetCore.Component.SDK` component, which is 10.0.400 for Visual
+Studio 2026 18.9. The preferred versions belong to the family and not to a single global set, because a family pins
+its own Visual Studio baseline: the families that are still on Visual Studio 2022 keep the default, since Visual
+Studio 2022 ships no .NET 10 SDK and has no version to match.
+
+Several feature bands are expected to coexist in one installation, and nothing in this doctrine requires the
+container to hold only one. A build that mixes two of them is a defect in the build tooling, not a reason to
+remove an SDK: see the note on `MSBuildExtensionsPath` in `CLAUDE.md`.
+
 ### .NET runtime, for user target frameworks
 
 The supported user target frameworks are `net10.0`, which is a long-term support release supported to 2028-11, and

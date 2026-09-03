@@ -90,6 +90,8 @@ public abstract class ProjectOptionsWrapper : IProjectOptions
 
     public virtual string? AssemblyLocatorHooksDirectory => this.Wrapped.AssemblyLocatorHooksDirectory;
 
+    public virtual string? AssemblyLocatorBinaryLogDirectory => this.Wrapped.AssemblyLocatorBinaryLogDirectory;
+
     public virtual bool RoslynIsCompileTimeOnly => this.Wrapped.RoslynIsCompileTimeOnly;
 
     public virtual string? CompileTimeTargetFrameworks => this.Wrapped.CompileTimeTargetFrameworks;

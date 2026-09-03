@@ -30,10 +30,10 @@ RUN Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem' -
 
 
 # Install VS Build Tools
-COPY VisualStudio.17.14.15.Release.chman /VisualStudio.17.14.15.Release.chman
-RUN Invoke-WebRequest -Uri https://aka.ms/vs/17/release/vs_buildtools.exe -OutFile vs_buildtools.exe; `
+COPY VisualStudio.18.9.2.Release.chman /VisualStudio.18.9.2.Release.chman
+RUN Invoke-WebRequest -Uri https://aka.ms/vs/18/stable/vs_buildtools.exe -OutFile vs_buildtools.exe; `
     $process = Start-Process .\vs_buildtools.exe -NoNewWindow -Wait -PassThru `
-        -ArgumentList  "--quiet", "--wait", "--norestart", "--nocache",  "--installPath", "C:\BuildTools", "--installChannelUri", "c:\VisualStudio.17.14.15.Release.chman", "--installCatalogUri", "https://download.visualstudio.microsoft.com/download/pr/eb5f7427-d28f-4e06-95cc-093f6c2070c8/3480d7a528bad877857c92843bb1e9ce8ebd48a2bffcee366a98a7343f4d32fb/VisualStudio.vsman", "--productId", "Microsoft.VisualStudio.Product.BuildTools", "--add", "Microsoft.Component.MSBuild", "--add", "Microsoft.NetCore.Component.SDK", "--add", "Microsoft.Net.Component.4.7.2.TargetingPack", "--add", "Microsoft.Net.Component.4.7.2.SDK", "--add", "Microsoft.Net.Component.4.8.TargetingPack", "--add", "Microsoft.Net.Component.4.8.SDK"; `        
+        -ArgumentList  "--quiet", "--wait", "--norestart", "--nocache",  "--installPath", "C:\BuildTools", "--installChannelUri", "c:\VisualStudio.18.9.2.Release.chman", "--installCatalogUri", "https://download.visualstudio.microsoft.com/download/pr/fe4fb3e6-ea32-4ae3-b154-72821a274f0d/29d05070615bd4bbe095bee9716d248be7661e516424fb9d06597ce4f3ab99ca/VisualStudio.vsman", "--productId", "Microsoft.VisualStudio.Product.BuildTools", "--add", "Microsoft.Component.MSBuild", "--add", "Microsoft.NetCore.Component.SDK"; `        
     if ($process.ExitCode -ne 0) { `
      Get-ChildItem "$env:TEMP\dd_*.log" -ErrorAction SilentlyContinue | ForEach-Object { `
         Write-Host "=== Contents of $($_.Name) ==="; `
