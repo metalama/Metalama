@@ -47,6 +47,7 @@ public static class MSBuildPropertyNames
     public const string MetalamaEmitCompilerTransformedFiles = nameof(MetalamaEmitCompilerTransformedFiles);
     public const string MetalamaCompilerVisiblePropertiesList = nameof(MetalamaCompilerVisiblePropertiesList);
     public const string MetalamaAssemblyLocatorHooksDirectory = nameof(MetalamaAssemblyLocatorHooksDirectory);
+    public const string MetalamaAssemblyLocatorBinaryLogDirectory = nameof(MetalamaAssemblyLocatorBinaryLogDirectory);
     public const string MetalamaSourceGeneratorAttributes = nameof(MetalamaSourceGeneratorAttributes);
     public const string MetalamaExtensionAssemblies = nameof(MetalamaExtensionAssemblies);
     public const string MetalamaDesignTimeExtensionAssemblies = nameof(MetalamaDesignTimeExtensionAssemblies);

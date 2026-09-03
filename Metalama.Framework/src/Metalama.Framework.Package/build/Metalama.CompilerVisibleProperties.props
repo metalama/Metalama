@@ -32,6 +32,7 @@
         <CompilerVisibleProperty Include="MetalamaTemplateLanguageVersion"/>
         <CompilerVisibleProperty Include="MetalamaIgnoreUserLicenses"/>
         <CompilerVisibleProperty Include="MetalamaAssemblyLocatorHooksDirectory"/>
+        <CompilerVisibleProperty Include="MetalamaAssemblyLocatorBinaryLogDirectory"/>
         <CompilerVisibleProperty Include="MetalamaSourceGeneratorAttributes"/>
         <CompilerVisibleProperty Include="MetalamaExtensionAssemblies"/>
         <CompilerVisibleProperty Include="MetalamaDesignTimeExtensionAssemblies"/>
