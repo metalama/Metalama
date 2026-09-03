@@ -446,12 +446,8 @@ internal static class SynthesizedRecordMemberBodyGenerator
 
         foreach ( var parameter in symbol.Parameters )
         {
-            var property = containingType.GetMembers( parameter.Name ).OfType<IPropertySymbol>().FirstOrDefault();
-
-            if ( property == null )
-            {
-                throw new AssertionFailedException( $"'{containingType}' has no positional property named '{parameter.Name}'." );
-            }
+            var property = containingType.GetMembers( parameter.Name ).OfType<IPropertySymbol>().FirstOrDefault()
+                           ?? throw new AssertionFailedException( $"'{containingType}' has no positional property named '{parameter.Name}'." );
 
             statements.Add(
                 ExpressionStatement(
@@ -592,10 +588,10 @@ internal static class SynthesizedRecordMemberBodyGenerator
     /// </param>
     /// <remarks>
     /// The backing field of an auto-property has no name that can be written in source code, so the generated body reads the
-    /// property instead. The two are equivalent, except when the property can be overridden: a derived type then changes the
-    /// result of the generated body, but not the result of the body that the compiler synthesizes.
+    /// property instead. The two are equivalent, unless the property can be overridden by a derived type, or an aspect has
+    /// replaced its implementation. The caller classifies the two cases and reports the corresponding warning.
     /// </remarks>
-    public static IReadOnlyList<IPropertySymbol> GetVirtuallyReadAutoProperties(
+    public static IReadOnlyList<IPropertySymbol> GetAutoPropertiesReadThroughProperty(
         INamedTypeSymbol type,
         Predicate<IPropertySymbol> hasMaterializedBackingField )
     {
@@ -606,7 +602,6 @@ internal static class SynthesizedRecordMemberBodyGenerator
             if ( member.Kind == SymbolKind.Field
                  && member is IFieldSymbol { IsStatic: false, IsConst: false, AssociatedSymbol.Kind: SymbolKind.Property } field
                  && field.AssociatedSymbol is IPropertySymbol property
-                 && (property.IsVirtual || (property.IsOverride && !property.IsSealed))
                  && !hasMaterializedBackingField( property ) )
             {
                 properties ??= [];

@@ -917,13 +917,15 @@ namespace Metalama.Framework.Engine.Linking
 
         /// <summary>
         /// Reports the compiler-synthesized record members whose original implementation the linker materializes, and whose
-        /// generated body reads an overridable auto-property instead of its backing field.
+        /// generated body reads an auto-property instead of its backing field in a case where the two differ.
         /// </summary>
         /// <remarks>
         /// The backing field of an auto-property has no name that can be written in source code, so the generated body reads
         /// the property, unless the linker emits an explicit backing field for it. The generated body and the body that the
-        /// C# compiler synthesizes then differ when a derived type overrides the property. C# offers no way to read one's own
-        /// property non-virtually, so the divergence is reported rather than corrected.
+        /// C# compiler synthesizes then differ in two cases. A derived type can override the property, and C# offers no way
+        /// to read one's own property non-virtually. An aspect can also replace the implementation of the property without
+        /// calling the original implementation, in which case the property has no backing field left to read. Neither case
+        /// can be corrected in generated source, so both are reported.
         /// </remarks>
         private static void VerifyRecordMemberMaterialization(
             LinkerInjectionRegistry injectionRegistry,
@@ -948,20 +950,33 @@ namespace Metalama.Framework.Engine.Linking
                     continue;
                 }
 
-                var properties = SynthesizedRecordMemberBodyGenerator.GetVirtuallyReadAutoProperties(
+                var properties = SynthesizedRecordMemberBodyGenerator.GetAutoPropertiesReadThroughProperty(
                     method.ContainingType,
                     HasMaterializedBackingField );
 
                 foreach ( var property in properties )
                 {
+                    // An aspect that overrides the property without calling the original implementation removes its backing
+                    // field, so the generated body compares the value that the aspect returns. Otherwise, the property and
+                    // its backing field hold the same value, and the two implementations differ only when a derived type
+                    // overrides the property.
+                    var descriptor =
+                        injectionRegistry.IsOverrideTarget( property )
+                            ? AspectLinkerDiagnosticDescriptors.SynthesizedRecordMemberReadsReplacedProperty
+                            : property.IsVirtual || (property.IsOverride && !property.IsSealed)
+                                ? AspectLinkerDiagnosticDescriptors.SynthesizedRecordMemberReadsPropertyVirtually
+                                : null;
+
+                    if ( descriptor == null )
+                    {
+                        continue;
+                    }
+
                     // Map the diagnostic location from the intermediate compilation to the source compilation (#818).
                     var diagnosticLocation = LinkerDiagnosticMapper.GetSourceLocation( property, sourceCompilationContext )
                                              ?? property.GetDiagnosticLocation();
 
-                    diagnosticSink.Report(
-                        AspectLinkerDiagnosticDescriptors.SynthesizedRecordMemberReadsPropertyVirtually.CreateRoslynDiagnostic(
-                            diagnosticLocation,
-                            (method, method.ContainingType, property) ) );
+                    diagnosticSink.Report( descriptor.CreateRoslynDiagnostic( diagnosticLocation, (method, method.ContainingType, property) ) );
                 }
             }
 
