@@ -4,12 +4,64 @@
 
 using JetBrains.Annotations;
 using Metalama.Patterns.Caching.TestHelpers;
+using Microsoft.Extensions.DependencyInjection;
+using Xunit;
 using Xunit.Abstractions;
 
 namespace Metalama.Patterns.Caching.Tests.Backends
 {
+    /// <summary>
+    /// Runs the suite of <see cref="BaseCacheBackendTests"/> against a backend that expires its items in this process,
+    /// on a substituted clock.
+    /// </summary>
+    /// <remarks>
+    /// The class registers the clock, the work-item dispatcher and the memory cache of a
+    /// <see cref="FakeCachingServices"/> in the service provider of the test. The expiration tests then advance the
+    /// clock and wait for the work items that the advance queues, instead of sleeping.
+    /// </remarks>
+    public abstract class BaseFakeTimeCacheBackendTests : BaseCacheBackendTests
+    {
+        private readonly FakeCachingServices _fakeServices = new();
+
+        protected BaseFakeTimeCacheBackendTests( CachingClassFixture cachingClassFixture, ITestOutputHelper testOutputHelper ) : base(
+            cachingClassFixture,
+            testOutputHelper ) { }
+
+        protected override FakeCachingServices FakeServices => this._fakeServices;
+
+        protected override void AddServices( ServiceCollection serviceCollection )
+        {
+            base.AddServices( serviceCollection );
+            this._fakeServices.AddServices( serviceCollection );
+        }
+
+        protected override void Cleanup()
+        {
+            base.Cleanup();
+            this._fakeServices.Dispose();
+        }
+
+        /// <summary>
+        /// Runs <see cref="BaseCacheBackendTests.TestSlidingExpiration"/>, which the base class skips.
+        /// </summary>
+        /// <remarks>
+        /// The test is skipped in the base class because it was flaky on the real clock: it had to store an unrelated
+        /// item in a loop to force the collection of the expired one, and it compared two readings of the wall clock.
+        /// Neither is done on the substituted clock, so the test is deterministic here.
+        /// </remarks>
+        [Fact( Timeout = Timeout )]
+        public override Task TestSlidingExpiration() => base.TestSlidingExpiration();
+
+        /// <summary>
+        /// Runs <see cref="BaseCacheBackendTests.TestSlidingExpirationAsync"/>, which the base class skips, for the
+        /// reason given on <see cref="TestSlidingExpiration"/>.
+        /// </summary>
+        [Fact( Timeout = Timeout )]
+        public override Task TestSlidingExpirationAsync() => base.TestSlidingExpirationAsync();
+    }
+
     [UsedImplicitly]
-    public sealed class MemoryCachingBackendTests : BaseCacheBackendTests
+    public sealed class MemoryCachingBackendTests : BaseFakeTimeCacheBackendTests
     {
         public MemoryCachingBackendTests( CachingClassFixture cachingClassFixture, ITestOutputHelper testOutputHelper ) : base(
             cachingClassFixture,
@@ -17,12 +69,13 @@ namespace Metalama.Patterns.Caching.Tests.Backends
 
         protected override CheckAfterDisposeCachingBackend CreateBackend()
         {
-            return new CheckAfterDisposeCachingBackend( MemoryCacheFactory.CreateBackend( this.ServiceProvider ) );
+            return new CheckAfterDisposeCachingBackend(
+                MemoryCacheFactory.CreateBackend( this.ServiceProvider, memoryCache: this.FakeServices.MemoryCache ) );
         }
     }
 
     [UsedImplicitly]
-    public sealed class SerializingMemoryCachingBackendTests : BaseCacheBackendTests
+    public sealed class SerializingMemoryCachingBackendTests : BaseFakeTimeCacheBackendTests
     {
         public SerializingMemoryCachingBackendTests( CachingClassFixture cachingClassFixture, ITestOutputHelper testOutputHelper ) : base(
             cachingClassFixture,
@@ -30,7 +83,8 @@ namespace Metalama.Patterns.Caching.Tests.Backends
 
         protected override CheckAfterDisposeCachingBackend CreateBackend()
         {
-            return new CheckAfterDisposeCachingBackend( MemoryCacheFactory.CreateBackend( this.ServiceProvider, withSerializer: true ) );
+            return new CheckAfterDisposeCachingBackend(
+                MemoryCacheFactory.CreateBackend( this.ServiceProvider, withSerializer: true, memoryCache: this.FakeServices.MemoryCache ) );
         }
     }
 }

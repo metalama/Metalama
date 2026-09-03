@@ -32,15 +32,136 @@ namespace Metalama.Patterns.Caching.TestHelpers
 
         protected virtual void GiveChanceToResetLocalCache( CachingBackend backend ) { }
 
+        /// <summary>
+        /// Gets the smallest duration that the expiration tests can measure on the real clock, multiplied by
+        /// <paramref name="multiplier"/>.
+        /// </summary>
+        /// <remarks>
+        /// The member is used only by the test classes whose backend expires its items outside of this process and
+        /// therefore returns <see langword="null"/> from <see cref="FakeServices"/>. Such a test class widens the
+        /// quantum when its backend needs more time. A test class that substitutes the clock does not read this member.
+        /// </remarks>
+        /// <param name="multiplier">The number by which the quantum is multiplied.</param>
         protected virtual TimeSpan GetExpirationQuantum( double multiplier = 1 )
         {
             return TimeSpan.FromSeconds( 0.05 * multiplier );
         }
 
-        private static Task RepeatUntilNullOrFailAsync<T>( Func<ValueTask<T?>> func )
-            where T : class
-            => RepeatUntilNullOrFailAsync( () => func().AsTask() );
+        /// <summary>
+        /// Gets the substitutable clock, work-item dispatcher and memory cache of the backends that
+        /// <see cref="CreateBackend"/> creates, or <see langword="null"/> when those backends run on the real clock.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// A test class whose backend expires its items in memory returns an instance and registers its services from
+        /// <see cref="BaseCachingTests.AddServices"/>. The expiration tests then advance the clock and wait for the
+        /// work items that the advance queues, instead of sleeping.
+        /// </para>
+        /// <para>
+        /// A test class whose backend expires its items in a remote store, such as Redis, returns
+        /// <see langword="null"/>. The remote store keeps a clock of its own that the test cannot substitute, so the
+        /// expiration tests of such a backend stay on real time and measure durations with
+        /// <see cref="GetExpirationQuantum"/>.
+        /// </para>
+        /// </remarks>
+        protected virtual FakeCachingServices? FakeServices => null;
 
+        /// <summary>
+        /// Gets the expiration set on the cache items of the expiration tests.
+        /// </summary>
+        /// <remarks>
+        /// On the substituted clock the value is arbitrary, because the test decides when the clock passes it. On the
+        /// real clock it is a multiple of <see cref="GetExpirationQuantum"/>.
+        /// </remarks>
+        protected TimeSpan ExpirationTimeout => this.FakeServices == null ? this.GetExpirationQuantum( 3 ) : TimeSpan.FromMinutes( 5 );
+
+        /// <summary>
+        /// Lets a part of <see cref="ExpirationTimeout"/> pass, then returns a value indicating whether the item that
+        /// was stored at <paramref name="setTime"/> is still expected to be in the cache.
+        /// </summary>
+        /// <remarks>
+        /// On the real clock the method sleeps and returns <see langword="false"/> when the machine was slow enough for
+        /// the expiration instant to have passed already, in which case the caller starts the test over. On the
+        /// substituted clock the advance is exact, so the method always returns <see langword="true"/>.
+        /// </remarks>
+        /// <param name="setTime">The instant of the real clock at which the item was stored.</param>
+        /// <param name="cancellationToken">A token that cancels the wait.</param>
+        protected async Task<bool> WaitWithinExpirationAsync( DateTime setTime, CancellationToken cancellationToken )
+        {
+            if ( this.FakeServices is { } fakeServices )
+            {
+                await fakeServices.AdvanceAsync( this.ExpirationTimeout.Multiply( 0.25 ), cancellationToken );
+
+                return true;
+            }
+
+            var expirationTimeout = this.ExpirationTimeout;
+            await Task.Delay( this.GetExpirationQuantum(), cancellationToken );
+
+            return DateTime.Now <= setTime + expirationTimeout;
+        }
+
+        /// <summary>
+        /// Waits until the items that were stored with an expiration of <see cref="ExpirationTimeout"/> have expired.
+        /// </summary>
+        /// <remarks>
+        /// On the substituted clock the advance evicts the entries of the memory cache and the method then waits for
+        /// the work items that the eviction queues, so the backend has raised its events when the method returns. On
+        /// the real clock the method sleeps and the caller still has to wait for the events.
+        /// </remarks>
+        /// <param name="cancellationToken">A token that cancels the wait.</param>
+        protected async Task WaitPastExpirationAsync( CancellationToken cancellationToken )
+        {
+            var delta = this.ExpirationTimeout.Multiply( 2 );
+
+            if ( this.FakeServices is { } fakeServices )
+            {
+                await fakeServices.AdvanceAsync( delta, cancellationToken );
+            }
+            else
+            {
+                await Task.Delay( delta, cancellationToken );
+            }
+        }
+
+        /// <summary>
+        /// Asserts that <paramref name="getItem"/> no longer returns the item.
+        /// </summary>
+        /// <remarks>
+        /// On the real clock the read is repeated until the item is gone or <see cref="TimeoutTimeSpan"/> elapses,
+        /// because some backends collect an expired item only when the item is read. On the substituted clock the item
+        /// is already gone when <see cref="WaitPastExpirationAsync"/> returns, so a single read is enough.
+        /// </remarks>
+        /// <param name="getItem">A function that reads the item from the cache.</param>
+        /// <typeparam name="T">The type of the item.</typeparam>
+        protected async Task AssertItemRemovedAsync<T>( Func<Task<T?>> getItem )
+            where T : class
+        {
+            if ( this.FakeServices == null )
+            {
+                await RepeatUntilNullOrFailAsync( getItem );
+            }
+            else
+            {
+                AssertEx.Null( await getItem(), "The item is still in the cache after its expiration." );
+            }
+        }
+
+        /// <summary>
+        /// Asserts that <paramref name="getItem"/> no longer returns the item.
+        /// </summary>
+        /// <param name="getItem">A function that reads the item from the cache.</param>
+        /// <typeparam name="T">The type of the item.</typeparam>
+        protected Task AssertItemRemovedAsync<T>( Func<ValueTask<T?>> getItem )
+            where T : class
+            => this.AssertItemRemovedAsync( () => getItem().AsTask() );
+
+        /// <summary>
+        /// Reads the item until it is gone or until <see cref="TimeoutTimeSpan"/> elapses, and fails the test when it
+        /// is still there at the end.
+        /// </summary>
+        /// <param name="func">A function that reads the item from the cache.</param>
+        /// <typeparam name="T">The type of the item.</typeparam>
         private static async Task RepeatUntilNullOrFailAsync<T>( Func<Task<T?>> func )
             where T : class
         {
@@ -54,24 +175,6 @@ namespace Metalama.Patterns.Caching.TestHelpers
                 }
 
                 await Task.Delay( 10 );
-            }
-
-            Assert.Fail( $"The item still exists in cache after the {TimeoutTimeSpan} timeout." );
-        }
-
-        private static void RepeatUntilNullOrFail<T>( Func<T?> func )
-            where T : class
-        {
-            var stopwatch = Stopwatch.StartNew();
-
-            while ( stopwatch.Elapsed < TimeoutTimeSpan )
-            {
-                if ( func() == null )
-                {
-                    return;
-                }
-
-                Thread.Sleep( 10 );
             }
 
             Assert.Fail( $"The item still exists in cache after the {TimeoutTimeSpan} timeout." );
@@ -218,9 +321,12 @@ namespace Metalama.Patterns.Caching.TestHelpers
             }
         }
 
-        [Fact]
-        public void TestAbsoluteExpiration()
+        [Fact( Timeout = Timeout )]
+        public async Task TestAbsoluteExpiration()
         {
+            using var cancellationTokenSource = new CancellationTokenSource( TimeoutTimeSpan );
+            var cancellationToken = cancellationTokenSource.Token;
+
             while ( true )
             {
                 using ( var cache = this.CreateBackend() )
@@ -228,7 +334,7 @@ namespace Metalama.Patterns.Caching.TestHelpers
                     var storedValue = new CachedValueClass( 0 );
                     const string key = "0";
 
-                    var offset = this.GetExpirationQuantum( 3 );
+                    var offset = this.ExpirationTimeout;
 
                     var cacheItem = new CacheItem(
                         storedValue,
@@ -241,10 +347,7 @@ namespace Metalama.Patterns.Caching.TestHelpers
 
                     cache.SetItem( key, cacheItem );
 
-                    Thread.Sleep( this.GetExpirationQuantum() );
-                    var retrievedItemBeforeTimeout = cache.GetItem( key, this.TestDependencies );
-
-                    if ( DateTime.Now > setTime + offset )
+                    if ( !await this.WaitWithinExpirationAsync( setTime, cancellationToken ) )
                     {
                         // Bad timing. Retry the test.
                         this.TestOutputHelper.WriteLine( "We waited too much." );
@@ -252,14 +355,14 @@ namespace Metalama.Patterns.Caching.TestHelpers
                         continue;
                     }
 
+                    var retrievedItemBeforeTimeout = cache.GetItem( key, this.TestDependencies );
+
                     AssertEx.NotNull( retrievedItemBeforeTimeout, "The item has been removed before expiration." );
 
-                    // This forces collection of the expired item on some backends.
-
-                    Thread.Sleep( offset.Multiply( 2 ) );
+                    await this.WaitPastExpirationAsync( cancellationToken );
 
                     // ReSharper disable once AccessToDisposedClosure
-                    RepeatUntilNullOrFail( () => cache.GetItem( key, this.TestDependencies ) );
+                    await this.AssertItemRemovedAsync( () => Task.FromResult( cache.GetItem( key, this.TestDependencies ) ) );
 
                     Assert.True( itemRemovedEvent.WaitOne( TimeoutTimeSpan ) );
 
@@ -281,7 +384,7 @@ namespace Metalama.Patterns.Caching.TestHelpers
         private static bool RunningOnWindows => _runningOnWindows ?? (_runningOnWindows = RuntimeInformation.IsOSPlatform( OSPlatform.Windows )).Value;
 
         [Fact( Timeout = Timeout, Skip = "#33668" )]
-        public void TestSlidingExpiration()
+        public virtual async Task TestSlidingExpiration()
         {
             if ( !RunningOnWindows )
             {
@@ -290,13 +393,16 @@ namespace Metalama.Patterns.Caching.TestHelpers
                 return;
             }
 
+            using var cancellationTokenSource = new CancellationTokenSource( TimeoutTimeSpan );
+            var cancellationToken = cancellationTokenSource.Token;
+
             while ( true )
             {
                 using ( var cache = this.CreateBackend() )
                 {
                     var storedValue = new CachedValueClass( 0 );
                     const string key = "0";
-                    var expiration = this.GetExpirationQuantum( 2 );
+                    var expiration = this.ExpirationTimeout;
 
                     var cacheItem = new CacheItem(
                         storedValue,
@@ -308,29 +414,38 @@ namespace Metalama.Patterns.Caching.TestHelpers
                     var timeWhenSet = DateTime.Now;
 
                     cache.SetItem( key, cacheItem );
-                    Thread.Sleep( this.GetExpirationQuantum() );
 
-                    var retrievedItemBeforeTimeout = cache.GetItem( key, this.TestDependencies );
-
-                    if ( DateTime.Now > timeWhenSet + expiration )
+                    if ( !await this.WaitWithinExpirationAsync( timeWhenSet, cancellationToken ) )
                     {
                         this.TestOutputHelper.WriteLine( "We slept too much time. Retry the test." );
 
                         continue;
                     }
 
+                    var retrievedItemBeforeTimeout = cache.GetItem( key, this.TestDependencies );
+
                     AssertEx.NotNull( retrievedItemBeforeTimeout, "There is not an item retrieved before the timeout." );
 
-                    while ( !itemRemoved.IsSet )
+                    if ( this.FakeServices == null )
                     {
-                        cache.SetItem( "cycle", new CacheItem( "value" ) );
-                        Thread.Yield();
+                        // Storing another item forces the collection of the expired item on the backends that collect
+                        // the expired items only when they are used.
+                        while ( !itemRemoved.IsSet )
+                        {
+                            cache.SetItem( "cycle", new CacheItem( "value" ) );
+                            Thread.Yield();
+                        }
+
+                        await Task.Delay( this.GetExpirationQuantum(), cancellationToken );
+                    }
+                    else
+                    {
+                        await this.WaitPastExpirationAsync( cancellationToken );
+                        Assert.True( itemRemoved.IsSet );
                     }
 
-                    Thread.Sleep( this.GetExpirationQuantum() );
-
                     // ReSharper disable once AccessToDisposedClosure
-                    RepeatUntilNullOrFail( () => cache.GetItem( key, this.TestDependencies ) );
+                    await this.AssertItemRemovedAsync( () => Task.FromResult( cache.GetItem( key, this.TestDependencies ) ) );
 
                     return;
                 }
@@ -338,7 +453,7 @@ namespace Metalama.Patterns.Caching.TestHelpers
         }
 
         [Fact( Timeout = Timeout, Skip = "#33668" )]
-        public async Task TestSlidingExpirationAsync()
+        public virtual async Task TestSlidingExpirationAsync()
         {
             if ( !RunningOnWindows )
             {
@@ -346,6 +461,9 @@ namespace Metalama.Patterns.Caching.TestHelpers
 
                 return;
             }
+
+            using var cancellationTokenSource = new CancellationTokenSource( TimeoutTimeSpan );
+            var cancellationToken = cancellationTokenSource.Token;
 
             while ( true )
             {
@@ -360,7 +478,7 @@ namespace Metalama.Patterns.Caching.TestHelpers
                 {
                     var storedValue = new CachedValueClass( 0 );
                     const string key = "0";
-                    var expiration = this.GetExpirationQuantum( 2 );
+                    var expiration = this.ExpirationTimeout;
 
                     var cacheItem = new CacheItem(
                         storedValue,
@@ -372,9 +490,7 @@ namespace Metalama.Patterns.Caching.TestHelpers
                     cache.ItemRemoved += ( _, _ ) => itemRemoved.SetResult( true );
                     await cache.SetItemAsync( key, cacheItem );
 
-                    Thread.Sleep( this.GetExpirationQuantum() );
-
-                    if ( DateTime.Now > timeWhenSet + expiration )
+                    if ( !await this.WaitWithinExpirationAsync( timeWhenSet, cancellationToken ) )
                     {
                         this.TestOutputHelper.WriteLine( "We slept too much time." );
 
@@ -384,13 +500,23 @@ namespace Metalama.Patterns.Caching.TestHelpers
                     var retrievedItemBeforeTimeout = await cache.GetItemAsync( key, this.TestDependencies );
                     AssertEx.NotNull( retrievedItemBeforeTimeout, "There is not an item retrieved before the timeout." );
 
-                    while ( !itemRemoved.Task.IsCompleted )
+                    if ( this.FakeServices == null )
                     {
-                        await cache.SetItemAsync( "cycle", new CacheItem( "value" ) );
-                        await Task.Delay( 50 );
+                        // Storing another item forces the collection of the expired item on the backends that collect
+                        // the expired items only when they are used.
+                        while ( !itemRemoved.Task.IsCompleted )
+                        {
+                            await cache.SetItemAsync( "cycle", new CacheItem( "value" ) );
+                            await Task.Delay( this.GetExpirationQuantum(), cancellationToken );
+                        }
+                    }
+                    else
+                    {
+                        await this.WaitPastExpirationAsync( cancellationToken );
+                        Assert.True( itemRemoved.Task.IsCompleted );
                     }
 
-                    await RepeatUntilNullOrFailAsync( () => cache.GetItemAsync( key, this.TestDependencies ) );
+                    await this.AssertItemRemovedAsync( () => cache.GetItemAsync( key, this.TestDependencies ) );
 
                     return;
                 }
@@ -405,9 +531,11 @@ namespace Metalama.Patterns.Caching.TestHelpers
             }
         }
 
-        [Fact]
-        public void TestRemovalEventByExpiration()
+        [Fact( Timeout = Timeout )]
+        public async Task TestRemovalEventByExpiration()
         {
+            using var cancellationTokenSource = new CancellationTokenSource( TimeoutTimeSpan );
+
             using ( var cache = this.CreateBackend() )
             {
                 if ( !cache.SupportedFeatures.Events )
@@ -428,16 +556,16 @@ namespace Metalama.Patterns.Caching.TestHelpers
 
                 var storedValue = new CachedValueClass( 0 );
                 const string key = "0";
-                var offset = this.GetExpirationQuantum();
+                var offset = this.ExpirationTimeout;
 
                 var cacheItem = new CacheItem( storedValue, configuration: new CacheItemConfiguration { AbsoluteExpiration = offset } );
 
                 cache.SetItem( key, cacheItem );
 
-                Thread.Sleep( offset.Multiply( 2 ) );
+                await this.WaitPastExpirationAsync( cancellationTokenSource.Token );
 
                 // ReSharper disable once AccessToDisposedClosure
-                RepeatUntilNullOrFail( () => cache.GetItem( key, this.TestDependencies ) );
+                await this.AssertItemRemovedAsync( () => Task.FromResult( cache.GetItem( key, this.TestDependencies ) ) );
 
                 Assert.True( eventRaised.WaitOne( TimeoutTimeSpan ) );
 
@@ -449,6 +577,8 @@ namespace Metalama.Patterns.Caching.TestHelpers
         [Fact( Timeout = Timeout )]
         public async Task TestRemovalEventByExpirationAsync()
         {
+            using var cancellationTokenSource = new CancellationTokenSource( TimeoutTimeSpan );
+
             // [Porting] Not fixing, can't be certain of original intent (twice).
             // ReSharper disable once UseAwaitUsing
             // ReSharper disable once MethodHasAsyncOverload
@@ -472,14 +602,14 @@ namespace Metalama.Patterns.Caching.TestHelpers
 
                 var storedValue = new CachedValueClass( 0 );
                 const string key = "0";
-                var offset = this.GetExpirationQuantum();
+                var offset = this.ExpirationTimeout;
 
                 var cacheItem = new CacheItem( storedValue, configuration: new CacheItemConfiguration { AbsoluteExpiration = offset } );
 
                 await cache.SetItemAsync( key, cacheItem );
 
-                Thread.Sleep( offset.Multiply( 2 ) );
-                await RepeatUntilNullOrFailAsync( () => cache.GetItemAsync( key, this.TestDependencies ) ); // Forces collection in some backends as well.
+                await this.WaitPastExpirationAsync( cancellationTokenSource.Token );
+                await this.AssertItemRemovedAsync( () => cache.GetItemAsync( key, this.TestDependencies ) );
 
                 Assert.True( eventRaised.WaitOne( TimeoutTimeSpan ) );
 
