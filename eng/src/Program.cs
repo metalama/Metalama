@@ -16,6 +16,15 @@ using System;
 using System.IO;
 using MetalamaDependencies = PostSharp.Engineering.BuildTools.Dependencies.Definitions.MetalamaDependencies.V2027_0;
 
+// The .NET SDK of the build container. Visual Studio 2026 18.9 installs 10.0.400 through the
+// Microsoft.NetCore.Component.SDK component, so the container pins that same version. Two .NET 10 feature
+// bands under C:\Program Files\dotnet make MSBuildSDKsPath and MSBuildExtensionsPath resolve to different
+// SDK directories, and the solution restore then fails with MSB4062, because NuGet.Build.Tasks of one band
+// requires a newer Microsoft.Build.Framework than the other band provides. This departs from
+// PreferredVersions.DotNetSdk.V_10_0, which is 10.0.102 and is shared with the repositories that are still
+// on Visual Studio 2022, where the conflict cannot arise because Visual Studio 2022 ships no .NET 10 SDK.
+const string dotNetSdkVersion = "10.0.400";
+
 var product = new Product( MetalamaDependencies.Metalama )
 {
     BuildTimeout = TimeSpan.FromMinutes( 60 ),
@@ -25,23 +34,18 @@ var product = new Product( MetalamaDependencies.Metalama )
         [
             // Must match global.json. Since .NET 8 and .NET 9 were dropped, this is the only .NET SDK required by
             // the product, by the tests and by this project.
-            new DotNetComponent( PreferredVersions.DotNetSdk.V_10_0, DotNetComponentKind.Sdk ),
+            new DotNetComponent( dotNetSdkVersion, DotNetComponentKind.Sdk ),
 
             // Required by some tests.
             new VisualStudioBuildToolsComponent(
                 VisualStudioBuildToolsComponentVersion.v18_9_2,
                 [
-                    // Required to test MSBuild.
+                    // Required to test MSBuild. Microsoft.NetCore.Component.SDK cannot be omitted: without it
+                    // the MSBuild.exe of the Build Tools has no C:\BuildTools\MSBuild\Sdks directory and fails
+                    // to resolve Microsoft.NET.Sdk with MSB4276. It installs the .NET SDK named by
+                    // dotNetSdkVersion, which is why that version is pinned to the one Visual Studio ships.
                     "Microsoft.Component.MSBuild",
-
-                    // Microsoft.NetCore.Component.SDK is deliberately absent. It installs the .NET SDK that
-                    // Visual Studio ships, which for Visual Studio 2026 18.9 is 10.0.400, into
-                    // C:\Program Files\dotnet, beside the SDK installed by the DotNetComponent above. MSBuild
-                    // then runs from one feature band while importing NuGet.targets from the other, because
-                    // MSBuildSDKsPath and MSBuildExtensionsPath resolve to different SDK directories, and the
-                    // solution restore fails with MSB4062: NuGet.Build.Tasks of 10.0.400 requires a newer
-                    // Microsoft.Build.Framework than 10.0.102 provides. Visual Studio 2022 17.14 ships no
-                    // .NET 10 SDK, so this conflict did not exist before the move to Visual Studio 2026.
+                    "Microsoft.NetCore.Component.SDK",
 
                     // Required because we target these frameworks.
                     "Microsoft.Net.Component.4.7.2.TargetingPack",
@@ -54,7 +58,7 @@ var product = new Product( MetalamaDependencies.Metalama )
             new AzureCliComponent()
         ]
     },
-    DotNetSdkVersion = new DotNetSdkVersion( PreferredVersions.DotNetSdk.V_10_0 ) { AllowPrerelease = true },
+    DotNetSdkVersion = new DotNetSdkVersion( dotNetSdkVersion ) { AllowPrerelease = true },
     GenerateNuGetConfig = true,
     MSBuildVersion = new Version( 18, 9 ),
     Solutions =
