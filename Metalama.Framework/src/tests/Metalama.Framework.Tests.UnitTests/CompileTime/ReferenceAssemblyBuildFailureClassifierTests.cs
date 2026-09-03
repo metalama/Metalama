@@ -282,6 +282,30 @@ public sealed class ReferenceAssemblyBuildFailureClassifierTests
         Assert.Contains( "Requested SDK version: 9.0.311", errors );
     }
 
+    /// <summary>
+    /// A diagnostic raised by the <c>Error</c> task without a code carries no message identifier, so it is recognized
+    /// by its position instead. It must be quoted rather than the epilogue of the build, whose number of lines depends
+    /// on the version of MSBuild. See issue #1744.
+    /// </summary>
+    [Fact]
+    public void ReportedErrors_ErrorWithoutMessageIdIsQuoted()
+    {
+        var output = ImmutableArray.Create(
+            "Build FAILED.",
+            "",
+            "Hooks.targets(14,9): error : The reference-assembly build is failed on purpose. [TempProject.csproj]",
+            "",
+            "    9 Warning(s)",
+            "    3 Error(s)",
+            "BinaryLogger wrote to: msbuild.binlog",
+            "",
+            "Time Elapsed 00:00:03.14" );
+
+        var errors = ReferenceAssemblyBuildFailureClassifier.GetReportedErrors( output );
+
+        Assert.Contains( "failed on purpose", errors );
+    }
+
     [Fact]
     public void ReportedErrors_EmptyOutput()
     {
