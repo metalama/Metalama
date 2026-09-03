@@ -27,17 +27,29 @@ Two consequences of the baseline drive this analysis.
 
 ### The Roslyn version consumed
 
-`RoslynApiMaxVersion` is `5.10.0-1.26365.3`, a prerelease build of July 2026 restored from the `roslyn-consolidated`
-feed. The stable Roslyn 5.10 ships with Visual Studio 2027 and the .NET 11 SDK in November 2026. The grammar and the
-public API of the stable version may differ from the prerelease that this analysis reads, so every finding that
-depends on the grammar must be re-checked when the stable `Syntax.xml` is imported, following
-[`updating-roslyn.md`](../updating-roslyn.md).
+`RoslynApiMaxVersion` is `5.10.0-1.26365.3`, a build of the `main` branch of `dotnet/roslyn` of 2026-07-15, restored
+from the `roslyn-consolidated` feed. That version will never have a stable counterpart. Roslyn publishes a stable
+version every third minor, in step with the quarterly Visual Studio 2026 releases: nuget.org serves 5.0.0, 5.3.0
+(2026-03-10), 5.6.0 (2026-07-02) and 5.9.0 (2026-08-17) and nothing above, and `eng/Versions.props` on `main` already
+reads 5.12. The November 2026 baseline, that is the Visual Studio 2026 long-term servicing channel, Visual Studio
+2027 and the .NET 11 SDK, is therefore expected to carry Roslyn 5.12. The transition from the prerelease is a
+renumbering of the latest variant from `5.10.0` to `5.12.0`, following step 7 of
+[`updating-roslyn.md`](../updating-roslyn.md), and it depends on `Metalama.Compiler` moving to Roslyn 5.12 first.
+
+The C# 15 language version does not exist in any Roslyn that Metalama consumes today. The stable 5.9.0 assemblies,
+inspected for this analysis, and the consumed 5.10 preview carry the union, closed-hierarchy, collection-argument
+and pre-compilation API under the `RSEXPERIMENTAL006` and `RSEXPERIMENTAL007` markers, and the C# 15 features are
+reachable only under `LanguageVersion.Preview`. On `main`, `LanguageVersion.CSharp15` exists, `default` and `latest`
+map to it, the six features below are gated on it, and the experimental markers of the new syntax are removed. The
+grammar and the public API of the stable 5.12 may still differ from `main` as read on 2026-09-03, so every finding
+that depends on them must be re-checked when the stable `Syntax.xml` is imported.
 
 ### The C# 15 feature set
 
 The list below is read from `MessageID.RequiredVersion` in `src/Compilers/CSharp/Portable/Errors/MessageID.cs` on
 the `main` branch of `dotnet/roslyn` on 2026-09-03, and from the grammar file
-`eng/src/GenerateMetaSyntaxRewriter/Syntax-5.10.0.xml` in this repository.
+`eng/src/GenerateMetaSyntaxRewriter/Syntax-5.10.0.xml` in this repository. The Roslyn gate column names the gate on
+`main`; in the consumed 5.10 preview every feature is gated on `LanguageVersion.Preview`.
 
 | Feature | Roslyn gate | New syntax in the 5.10 grammar | Proposal |
 | --- | --- | --- | --- |
