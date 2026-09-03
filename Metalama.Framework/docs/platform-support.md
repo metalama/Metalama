@@ -196,17 +196,15 @@ The backend Roslyn is 5.0.0. `lib/ReSharperHost/Microsoft.CodeAnalysis.dll` carr
 in the set under rule 1. The floor is the .NET 10 SDK. The .NET 11 SDK, released in November 2026, is also in the
 set.
 
-The build container carries a constraint that this floor does not express. Visual Studio installs a .NET SDK of its
-own through the `Microsoft.NetCore.Component.SDK` component, and Visual Studio 2026 18.9 installs 10.0.400. When
-the container installs a second SDK of a different feature band beside it, `C:\Program Files\dotnet` holds both,
-`MSBuildExtensionsPath` and `MSBuildSDKsPath` resolve to different SDK directories, and a solution restore fails
-with `MSB4062`, because `NuGet.Build.Tasks` of one band requires a newer `Microsoft.Build.Framework` than the other
-band provides. The `dotNetSdkVersion` constant in `eng/src/Program.cs` therefore names the version that Visual
-Studio installs, and the same constant feeds the container component and `global.json`, so the two cannot drift
-apart. It departs on purpose from `PreferredVersions.DotNetSdk.V_10_0` in PostSharp.Engineering, which is 10.0.102
-and is shared with the repositories that are still on Visual Studio 2022. Visual Studio 2022 17.14 ships no .NET 10
-SDK, so those repositories have no conflict to resolve, and this constraint appeared only with the move to Visual
-Studio 2026.
+The build container installs the SDK named by the `dotNetSdkVersion` constant in `eng/src/Program.cs`, and the same
+constant feeds the container component and `global.json`, so the image and the pin cannot drift apart. It is set to
+the version that Visual Studio installs through the `Microsoft.NetCore.Component.SDK` component, 10.0.400 for
+Visual Studio 2026 18.9, which departs on purpose from `PreferredVersions.DotNetSdk.V_10_0` in
+PostSharp.Engineering, currently 10.0.102 and shared with the repositories that are still on Visual Studio 2022.
+
+Several feature bands are expected to coexist in one installation, and nothing in this doctrine requires the
+container to hold only one. A build that mixes two of them is a defect in the build tooling, not a reason to
+remove an SDK: see the note on `MSBuildExtensionsPath` in `CLAUDE.md`.
 
 ### .NET runtime, for user target frameworks
 

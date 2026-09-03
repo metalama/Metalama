@@ -118,12 +118,19 @@ When starting work on a GitHub issue:
    `eng/src/Program.cs` by `Build.ps1 generate-scripts`. Three findings, each of which cost a continuous integration
    cycle to learn.
 
-   - **Only one .NET SDK feature band may be installed.** Visual Studio installs an SDK of its own through the
-     `Microsoft.NetCore.Component.SDK` component, and Visual Studio 2026 18.9 installs 10.0.400. When a second band
-     is installed beside it, `MSBuildExtensionsPath` and `MSBuildSDKsPath` resolve to different SDK directories and
-     a solution restore fails with `MSB4062`, because `NuGet.Build.Tasks` of one band requires a newer
-     `Microsoft.Build.Framework` than the other band provides. The `dotNetSdkVersion` constant in `Program.cs`
-     names the version that Visual Studio installs and feeds both the container component and `global.json`.
+   - **Several .NET SDK feature bands may be installed, and a stale `MSBuildExtensionsPath` is what makes them
+     conflict.** Visual Studio installs an SDK of its own through the `Microsoft.NetCore.Component.SDK` component,
+     and Visual Studio 2026 18.9 installs 10.0.400. On a fresh checkout `global.json` does not exist yet, because
+     it is generated and git-ignored, so `BuildMetalama` starts under the highest installed SDK and the .NET
+     command line interface exports `MSBuildExtensionsPath` for it. The `prepare` step then writes `global.json`,
+     and every child process resolves the pinned SDK for itself but inherits the stale `MSBuildExtensionsPath`.
+     A solution restore then imports `NuGet.targets` from one feature band into an MSBuild of another and fails
+     with `MSB4062`, because `NuGet.Build.Tasks` of the first requires a newer `Microsoft.Build.Framework` than the
+     second provides. The mitigation already exists and is incomplete by one entry:
+     `ToolInvocationOptions.BlockedEnvironmentVariables` in PostSharp.Engineering and `variablesToRemove` in
+     `MSBuildTool.cs` both remove `MSBUILD_EXE_PATH` and `MSBuildSDKsPath` from a child process, and neither
+     removes `MSBuildExtensionsPath`. Add the variable to those lists rather than reducing the image to a single
+     feature band.
    - **The desktop `MSBuild.exe` is a second, independent build surface, and it does not behave like
      `dotnet build`.** Two things use it: the `MsbuildSolution` entry for `Metalama.Framework.TestApp.sln`, and the
      nested reference-assembly build that Metalama itself runs (`CompileTimeAssemblyLocator`). A Visual Studio
