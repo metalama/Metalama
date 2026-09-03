@@ -43,7 +43,7 @@
         <PackageReference Include="System.Text.Json" VersionOverride="$(SystemTextJsonLatestVersion)" />
         
         <!-- Resolve conflicts -->
-        <PackageReference Include="System.Memory" VersionOverride="$(SystemMemoryLatestVersion)"/>
+        <PackageReference Include="System.Memory"/>
         <PackageReference Include="System.Buffers" VersionOverride="$(SystemBuffersLatestVersion)"/>
 
     </ItemGroup>

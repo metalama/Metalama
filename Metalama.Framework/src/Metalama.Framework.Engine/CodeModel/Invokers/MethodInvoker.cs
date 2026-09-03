@@ -285,12 +285,9 @@ internal sealed partial class MethodInvoker : Invoker<IMethod>, IMethodInvoker
 
     private DelegateUserExpression InvokeExtensionImplementationMethod( IReadOnlyList<IExpression> args )
     {
-        var implMethod = this.Member.ExtensionImplementationMethod;
-
-        if ( implMethod == null )
-        {
-            throw new InvalidOperationException( $"Cannot invoke extension member '{this.Member}' because its implementation method was not found." );
-        }
+        var implMethod = this.Member.ExtensionImplementationMethod
+                         ?? throw new InvalidOperationException(
+                             $"Cannot invoke extension member '{this.Member}' because its implementation method was not found." );
 
         // The implementation method is always static, so we pass null as target.
         // Skip type argument inference for extension implementation methods because

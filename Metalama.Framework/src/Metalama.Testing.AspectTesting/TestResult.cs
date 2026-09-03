@@ -106,7 +106,7 @@ internal class TestResult : IDisposable
                 .Concat( this.DependencyDiagnostics.Select( d => (d, DiagnosticOrigin.Dependency) ) )
                 .Where( d => this.ShouldDiagnosticBeReported( d.d ) )
                 .GroupBy(
-                    d => (d.Item1.Id, d.Item1.GetMessage( CultureInfo.InvariantCulture ), d.Item1.Location.SourceTree?.FilePath, d.Item1.Location.SourceSpan) )
+                    d => (d.d.Id, d.d.GetMessage( CultureInfo.InvariantCulture ), d.d.Location.SourceTree?.FilePath, d.d.Location.SourceSpan) )
                 .Select( g => g.OrderBy( item => item.Item2 ).First() );
 
             return allDiagnostics;

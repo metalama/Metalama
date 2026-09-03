@@ -32,23 +32,26 @@ namespace Metalama.Framework.CompilerExtensions
                     break;
 
                 case ProcessKind.DevEnv:
-                    this._impl = (DiagnosticAnalyzer) ResourceExtractor.CreateInstance(
+                    ResourceExtractor.TryCreateInstance<DiagnosticAnalyzer>(
                         RoslynEntryPointTypeNames.DesignTimeAssemblyName,
-                        RoslynEntryPointTypeNames.VsUserProcessDiagnosticAnalyzer );
+                        RoslynEntryPointTypeNames.VsUserProcessDiagnosticAnalyzer,
+                        out this._impl );
 
                     break;
 
                 case ProcessKind.RoslynCodeAnalysisService:
-                    this._impl = (DiagnosticAnalyzer) ResourceExtractor.CreateInstance(
+                    ResourceExtractor.TryCreateInstance<DiagnosticAnalyzer>(
                         RoslynEntryPointTypeNames.DesignTimeAssemblyName,
-                        RoslynEntryPointTypeNames.VsAnalysisProcessDiagnosticAnalyzer );
+                        RoslynEntryPointTypeNames.VsAnalysisProcessDiagnosticAnalyzer,
+                        out this._impl );
 
                     break;
 
                 default:
-                    this._impl = (DiagnosticAnalyzer) ResourceExtractor.CreateInstance(
+                    ResourceExtractor.TryCreateInstance<DiagnosticAnalyzer>(
                         RoslynEntryPointTypeNames.DesignTimeAssemblyName,
-                        RoslynEntryPointTypeNames.TheDiagnosticAnalyzer );
+                        RoslynEntryPointTypeNames.TheDiagnosticAnalyzer,
+                        out this._impl );
 
                     break;
             }

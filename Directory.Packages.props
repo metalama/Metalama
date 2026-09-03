@@ -61,11 +61,6 @@
 
     <!-- SystemTextJsonVersion depends on the Roslyn version; here is the fallback. -->
     <SystemTextJsonVersion Condition="'$(SystemTextJsonVersion)'==''">8.0.6</SystemTextJsonVersion>
-    <!-- SystemMemoryVersion is the default for the assemblies that ship in the net472 payload, where the
-         binding-redirect ceiling of MSBuild.exe caps System.Memory at AsmVer 4.0.2.0 (NuGet 4.5.5). Both Roslyn
-         variants override it, because Microsoft.CodeAnalysis.CSharp 5.x transitively requires System.Memory 4.6.0
-         or later and neither variant is loaded into a .NET Framework analyzer host. -->
-    <SystemMemoryVersion Condition="'$(SystemMemoryVersion)'==''">4.5.5</SystemMemoryVersion>
     <!-- SystemTextJsonMinVersion is the API floor used by user-surfacing libraries (Metalama.Backstage etc.)
          that need to remain on the .NET 8 line while we support .NET 8 SDK as a build target. -->
     <SystemTextJsonMinVersion>8.0.6</SystemTextJsonMinVersion>
@@ -73,11 +68,9 @@
     <SystemTextRegularExpressionsLatestVersion>4.3.1</SystemTextRegularExpressionsLatestVersion>
     <SystemFormatsAsn1LatestVersion>9.0.10</SystemFormatsAsn1LatestVersion>
     <SystemIOPipelinesLatestVersion>10.0.11</SystemIOPipelinesLatestVersion>
+    <!-- System.Buffers has no central pin, because only a few projects need a direct reference to resolve an
+         MSB3277 conflict. This property is the version those projects override to. -->
     <SystemBuffersLatestVersion>4.6.1</SystemBuffersLatestVersion>
-    <!-- "Latest" Out-of-band versions for projects that don't deploy into the VS analyzer host (tests,
-         HtmlWriter, CLI tools). Runtime-deployed assemblies use the central pin (SystemMemoryVersion = 4.5.5)
-         which fits the VS 17.14 devenv.exe.config binding-redirect ceiling. -->
-    <SystemMemoryLatestVersion>4.6.3</SystemMemoryLatestVersion>
 
   </PropertyGroup>
   <ItemGroup>
@@ -113,14 +106,19 @@
     <PackageVersion Include="System.IO.Abstractions.TestingHelpers" Version="22.1.1" />
     <PackageVersion Include="System.IO.Hashing" Version="9.0.15" />
     <PackageVersion Include="System.IO.Packaging" Version="8.0.1" />
-    <!-- Out-of-band family: capped by VS 17.14 devenv.exe.config binding redirect (oldVersion upper bound = 6.0.1.0).
-         NuGet 6.1.0 stays under the cap; 6.1.2+ may not. -->
-    <PackageVersion Include="System.Runtime.CompilerServices.Unsafe" Version="6.1.0" />
+    <!-- Out-of-band family. The binding-redirect oldVersion upper bound is AsmVer 6.0.3.0 in devenv.exe.config
+         of both Visual Studio 2022 17.14 and Visual Studio 2026 18.9. The lib/net462 asset of NuGet 6.1.2, which
+         is what the net472 payload resolves, is exactly 6.0.3.0. The value is also the floor that System.Memory
+         4.6.3 requires. No headroom: do not take a version above 6.1.2 before a Visual Studio release ships it
+         and moves the redirect. Measured for #1897; see Directory.Packages.md. -->
+    <PackageVersion Include="System.Runtime.CompilerServices.Unsafe" Version="6.1.2" />
     <PackageVersion Include="MessagePack" Version="$(MessagePackLatestVersion)" />
-    <!-- Out-of-band family is capped by the .NET Framework binding redirects of MSBuild.exe for the assemblies
-         that ship in the net472 payload. Both Roslyn variants run on .NET and use 4.6.x through
-         $(SystemMemoryVersion). -->
-    <PackageVersion Include="System.Memory" Version="$(SystemMemoryVersion)" />
+    <!-- Out-of-band family. The binding-redirect oldVersion upper bound is AsmVer 4.0.5.0 in devenv.exe.config
+         and MSBuild.exe.config of both Visual Studio 2022 17.14 and Visual Studio 2026 18.9. The lib/net462
+         asset of NuGet 4.6.3, which is what the net472 payload resolves, is exactly 4.0.5.0. One value therefore
+         serves every consumer, but there is no headroom: do not take a version above 4.6.3 before a Visual
+         Studio release ships it and moves the redirect. Measured for #1897; see Directory.Packages.md. -->
+    <PackageVersion Include="System.Memory" Version="4.6.3" />
     <PackageVersion Include="System.Runtime.Serialization.Xml" Version="4.3.0" />
     <PackageVersion Include="System.Text.RegularExpressions" Version="$(SystemTextRegularExpressionsLatestVersion)" />
     <PackageVersion Include="System.Threading" Version="4.3.0" />

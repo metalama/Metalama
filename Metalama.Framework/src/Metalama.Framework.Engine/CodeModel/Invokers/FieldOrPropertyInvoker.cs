@@ -70,21 +70,15 @@ internal class FieldOrPropertyInvoker : Invoker<IFieldOrProperty>, IFieldOrPrope
     private ExpressionSyntax CreateExtensionPropertyExpression( IProperty property, AspectReferenceTargetKind targetKind, SyntaxSerializationContext context )
     {
         // Get the appropriate accessor's implementation method.
-        var accessor = targetKind == AspectReferenceTargetKind.PropertySetAccessor
-            ? property.SetMethod
-            : property.GetMethod;
+        var accessor = (targetKind == AspectReferenceTargetKind.PropertySetAccessor
+                           ? property.SetMethod
+                           : property.GetMethod)
+                       ?? throw new InvalidOperationException(
+                           $"Cannot access extension property '{property}' because the required accessor is not available." );
 
-        if ( accessor == null )
-        {
-            throw new InvalidOperationException( $"Cannot access extension property '{property}' because the required accessor is not available." );
-        }
-
-        var implMethod = accessor.ExtensionImplementationMethod;
-
-        if ( implMethod == null )
-        {
-            throw new InvalidOperationException( $"Cannot access extension property '{property}' because its implementation method was not found." );
-        }
+        var implMethod = accessor.ExtensionImplementationMethod
+                         ?? throw new InvalidOperationException(
+                             $"Cannot access extension property '{property}' because its implementation method was not found." );
 
         // The implementation method is always static, so we pass null as target.
         var implInvoker = new MethodInvoker( implMethod, this.Options, target: null );
@@ -140,19 +134,12 @@ internal class FieldOrPropertyInvoker : Invoker<IFieldOrProperty>, IFieldOrPrope
 
     private DelegateUserExpression SetExtensionPropertyValue( IProperty property, object? value )
     {
-        var setter = property.SetMethod;
+        var setter = property.SetMethod
+                     ?? throw new InvalidOperationException( $"Cannot set extension property '{property}' because it has no setter." );
 
-        if ( setter == null )
-        {
-            throw new InvalidOperationException( $"Cannot set extension property '{property}' because it has no setter." );
-        }
-
-        var implMethod = setter.ExtensionImplementationMethod;
-
-        if ( implMethod == null )
-        {
-            throw new InvalidOperationException( $"Cannot set extension property '{property}' because its setter implementation method was not found." );
-        }
+        var implMethod = setter.ExtensionImplementationMethod
+                         ?? throw new InvalidOperationException(
+                             $"Cannot set extension property '{property}' because its setter implementation method was not found." );
 
         // The implementation method is always static, so we pass null as target.
         var implInvoker = new MethodInvoker( implMethod, this.Options, target: null );

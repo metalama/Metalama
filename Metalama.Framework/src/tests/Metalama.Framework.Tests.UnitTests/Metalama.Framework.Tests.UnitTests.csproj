@@ -24,6 +24,7 @@
         <!-- Metalama.Framework.CompilerExtensions is an analyzer assembly that no project can reference, so the assembly
              resolution rules are compiled into this project in order to be unit tested. -->
         <Compile Include="..\..\Metalama.Framework.CompilerExtensions\AssemblyResolutionPolicy.cs" Link="Utilities\AssemblyResolutionPolicy.cs" />
+        <Compile Include="..\..\Metalama.Framework.CompilerExtensions\RoslynVariantPolicy.cs" Link="Utilities\RoslynVariantPolicy.cs" />
     </ItemGroup>
 
     <ItemGroup>
@@ -52,7 +53,7 @@
         <ProjectReference Include="..\Metalama.Framework.Tests.UnitTestHelpers$(ThisRoslynVersionProjectSuffix)\Metalama.Framework.Tests.UnitTestHelpers$(ThisRoslynVersionProjectSuffix).csproj" />
 
         <!-- Resolve conflicts -->
-        <PackageReference Include="System.Memory" VersionOverride="$(SystemMemoryLatestVersion)"/>
+        <PackageReference Include="System.Memory"/>
         <PackageReference Include="System.Buffers" VersionOverride="$(SystemBuffersLatestVersion)"/>
     </ItemGroup>
 

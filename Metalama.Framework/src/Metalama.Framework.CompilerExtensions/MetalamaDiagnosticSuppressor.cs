@@ -24,9 +24,10 @@ namespace Metalama.Framework.CompilerExtensions
                     break;
 
                 case ProcessKind.RoslynCodeAnalysisService:
-                    this._impl = (DiagnosticSuppressor) ResourceExtractor.CreateInstance(
+                    ResourceExtractor.TryCreateInstance<DiagnosticSuppressor>(
                         RoslynEntryPointTypeNames.DesignTimeAssemblyName,
-                        RoslynEntryPointTypeNames.VsDiagnosticSuppressor );
+                        RoslynEntryPointTypeNames.VsDiagnosticSuppressor,
+                        out this._impl );
 
                     break;
 
@@ -40,9 +41,10 @@ namespace Metalama.Framework.CompilerExtensions
                     break;
 
                 default:
-                    this._impl = (DiagnosticSuppressor) ResourceExtractor.CreateInstance(
+                    ResourceExtractor.TryCreateInstance<DiagnosticSuppressor>(
                         RoslynEntryPointTypeNames.DesignTimeAssemblyName,
-                        RoslynEntryPointTypeNames.TheDiagnosticSuppressor );
+                        RoslynEntryPointTypeNames.TheDiagnosticSuppressor,
+                        out this._impl );
 
                     break;
             }

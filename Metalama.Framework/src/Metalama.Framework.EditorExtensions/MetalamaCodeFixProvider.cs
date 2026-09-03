@@ -32,23 +32,26 @@ namespace Metalama.Framework.CompilerExtensions
 
                 case ProcessKind.RoslynCodeAnalysisService:
                 case ProcessKind.DevEnv:
-                    this._impl = (CodeFixProvider) ResourceExtractor.CreateInstance(
+                    ResourceExtractor.TryCreateInstance<CodeFixProvider>(
                         RoslynEntryPointTypeNames.DesignTimeAssemblyName,
-                        RoslynEntryPointTypeNames.VsCodeFixProvider );
+                        RoslynEntryPointTypeNames.VsCodeFixProvider,
+                        out this._impl );
 
                     break;
 
                 case ProcessKind.Rider:
-                    this._impl = (CodeFixProvider) ResourceExtractor.CreateInstance(
+                    ResourceExtractor.TryCreateInstance<CodeFixProvider>(
                         RoslynEntryPointTypeNames.DesignTimeAssemblyName,
-                        RoslynEntryPointTypeNames.RiderCodeFixProvider );
+                        RoslynEntryPointTypeNames.RiderCodeFixProvider,
+                        out this._impl );
 
                     break;
 
                 default:
-                    this._impl = (CodeFixProvider) ResourceExtractor.CreateInstance(
+                    ResourceExtractor.TryCreateInstance<CodeFixProvider>(
                         RoslynEntryPointTypeNames.DesignTimeAssemblyName,
-                        RoslynEntryPointTypeNames.TheCodeFixProvider );
+                        RoslynEntryPointTypeNames.TheCodeFixProvider,
+                        out this._impl );
 
                     break;
             }

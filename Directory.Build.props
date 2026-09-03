@@ -8,23 +8,12 @@
         -->
         <NoWarn>$(NoWarn);IDE0032;IDE0031</NoWarn>
 
-        <!-- AnalysisLevel defaults to the version of the target framework. Dropping net8.0 in favour of net10.0
-             (issue #1876) would therefore have raised it from 8.0 to 10.0 and enabled rules that were off before,
-             among them IDE0270, IDE0074, IDE0033, IDE0053, IDE0040 and IDE0005. They report existing code that
-             this repository has never been asked to change, and CodeQuality.targets sets TreatWarningsAsErrors
-             when ContinuousIntegrationBuild is true, so a change of target framework would have become a broken
-             build. Pinning the level keeps the analysis exactly where it was. Raising it, and resolving what it
-             then reports, is tracked by issue #1893 and must not outlive the 2027.0 milestone. -->
-        <AnalysisLevel>8.0</AnalysisLevel>
-
-
         <!-- A template is compiled by the Roslyn of the host, so the language version we may use in templates and
-             in build-time code is bounded by the lowest Roslyn in the supported set. C# 14 requires Roslyn 5.0.
-             The reason this value used to give, compatibility with VS 2022, no longer applies: PB-2027.0 excludes
-             Visual Studio 2022, per Metalama.Framework/docs/platform-support.md. The value stays at 13.0 only
-             until issue #1881 drops the Roslyn 4.12 variant and raises RoslynApiMinVersion to 5.0.0; raising it
-             before that would break that variant. Tracked by issue #1896. -->
-        <MetalamaTemplateLanguageVersion>13.0</MetalamaTemplateLanguageVersion>
+             in build-time code is bounded by the lowest Roslyn version that a host in the supported set presents.
+             That version is RoslynApiMinVersion in Directory.Packages.props. It is 5.0.0, which supports C# 14.
+             Raise this value only together with that one, and read Metalama.Framework/docs/platform-support.md
+             first, because the platform baseline is what decides the floor. -->
+        <MetalamaTemplateLanguageVersion>14.0</MetalamaTemplateLanguageVersion>
 
         <!-- The rules of the [Durable] contract, LAMA0870 to LAMA0879, report objects that the design-time pipeline
              keeps beyond the run that produced them and that hold something which cannot be shown to be durable. They

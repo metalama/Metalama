@@ -14,11 +14,20 @@ namespace Metalama.Framework.CompilerExtensions;
 [DiagnosticAnalyzer( LanguageNames.CSharp )]
 public sealed class AdditionalDiagnosticAnalyzer : DiagnosticAnalyzer
 {
-    private readonly DiagnosticAnalyzer _impl = (DiagnosticAnalyzer) ResourceExtractor.CreateInstance(
-        "Metalama.Framework.Engine",
-        "Metalama.Framework.Engine.Analyzers.AdditionalDiagnosticAnalyzer" );
+    /// <summary>
+    /// The implementation, or <c>null</c> when the Roslyn version of the host is below the lowest supported one.
+    /// </summary>
+    private readonly DiagnosticAnalyzer? _impl;
 
-    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => this._impl.SupportedDiagnostics;
+    public AdditionalDiagnosticAnalyzer()
+    {
+        ResourceExtractor.TryCreateInstance<DiagnosticAnalyzer>(
+            "Metalama.Framework.Engine",
+            "Metalama.Framework.Engine.Analyzers.AdditionalDiagnosticAnalyzer",
+            out this._impl );
+    }
 
-    public override void Initialize( AnalysisContext context ) => this._impl.Initialize( context );
+    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => this._impl?.SupportedDiagnostics ?? ImmutableArray<DiagnosticDescriptor>.Empty;
+
+    public override void Initialize( AnalysisContext context ) => this._impl?.Initialize( context );
 }

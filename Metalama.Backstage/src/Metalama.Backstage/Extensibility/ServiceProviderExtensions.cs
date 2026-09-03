@@ -17,12 +17,8 @@ namespace Metalama.Backstage.Extensibility
         public static TService GetRequiredBackstageService<TService>( this IServiceProvider serviceProvider )
             where TService : class, IBackstageService
         {
-            var service = serviceProvider.GetBackstageService<TService>();
-
-            if ( service == null )
-            {
-                throw new InvalidOperationException( $"There is no service of type {typeof(TService).Name}" );
-            }
+            var service = serviceProvider.GetBackstageService<TService>()
+                          ?? throw new InvalidOperationException( $"There is no service of type {typeof(TService).Name}" );
 
             return service;
         }
