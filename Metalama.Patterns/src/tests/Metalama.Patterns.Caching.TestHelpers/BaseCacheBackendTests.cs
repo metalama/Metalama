@@ -76,30 +76,40 @@ namespace Metalama.Patterns.Caching.TestHelpers
         protected TimeSpan ExpirationTimeout => this.FakeServices == null ? this.GetExpirationQuantum( 3 ) : TimeSpan.FromMinutes( 5 );
 
         /// <summary>
-        /// Lets a part of <see cref="ExpirationTimeout"/> pass, then returns a value indicating whether the item that
-        /// was stored at <paramref name="setTime"/> is still expected to be in the cache.
+        /// Lets a part of <see cref="ExpirationTimeout"/> pass, so that the caller can then read an item that has not
+        /// expired yet.
         /// </summary>
         /// <remarks>
-        /// On the real clock the method sleeps and returns <see langword="false"/> when the machine was slow enough for
-        /// the expiration instant to have passed already, in which case the caller starts the test over. On the
-        /// substituted clock the advance is exact, so the method always returns <see langword="true"/>.
+        /// On the real clock the method sleeps, and the caller has to check with <see cref="IsWithinExpiration"/> that
+        /// the read was performed before the expiration instant. On the substituted clock the advance is exact.
         /// </remarks>
-        /// <param name="setTime">The instant of the real clock at which the item was stored.</param>
         /// <param name="cancellationToken">A token that cancels the wait.</param>
-        protected async Task<bool> WaitWithinExpirationAsync( DateTime setTime, CancellationToken cancellationToken )
+        protected async Task WaitWithinExpirationAsync( CancellationToken cancellationToken )
         {
             if ( this.FakeServices is { } fakeServices )
             {
                 await fakeServices.AdvanceAsync( this.ExpirationTimeout.Multiply( 0.25 ), cancellationToken );
-
-                return true;
             }
-
-            var expirationTimeout = this.ExpirationTimeout;
-            await Task.Delay( this.GetExpirationQuantum(), cancellationToken );
-
-            return DateTime.Now <= setTime + expirationTimeout;
+            else
+            {
+                await Task.Delay( this.GetExpirationQuantum(), cancellationToken );
+            }
         }
+
+        /// <summary>
+        /// Returns a value indicating whether an item that was stored at <paramref name="setTime"/> with an expiration
+        /// of <see cref="ExpirationTimeout"/> has not expired yet.
+        /// </summary>
+        /// <remarks>
+        /// The method is called after the item has been read, so that the reading and the assertion that the reading
+        /// was timely are in that order. On the real clock the method returns <see langword="false"/> when the machine
+        /// was slow enough for the expiration instant to have passed already, in which case the caller starts the test
+        /// over. On the substituted clock the test controls the clock, so the method always returns
+        /// <see langword="true"/>.
+        /// </remarks>
+        /// <param name="setTime">The instant of the real clock at which the item was stored.</param>
+        protected bool IsWithinExpiration( DateTime setTime )
+            => this.FakeServices != null || DateTime.Now <= setTime + this.ExpirationTimeout;
 
         /// <summary>
         /// Waits until the items that were stored with an expiration of <see cref="ExpirationTimeout"/> have expired.
@@ -347,15 +357,16 @@ namespace Metalama.Patterns.Caching.TestHelpers
 
                     cache.SetItem( key, cacheItem );
 
-                    if ( !await this.WaitWithinExpirationAsync( setTime, cancellationToken ) )
+                    await this.WaitWithinExpirationAsync( cancellationToken );
+                    var retrievedItemBeforeTimeout = cache.GetItem( key, this.TestDependencies );
+
+                    if ( !this.IsWithinExpiration( setTime ) )
                     {
                         // Bad timing. Retry the test.
                         this.TestOutputHelper.WriteLine( "We waited too much." );
 
                         continue;
                     }
-
-                    var retrievedItemBeforeTimeout = cache.GetItem( key, this.TestDependencies );
 
                     AssertEx.NotNull( retrievedItemBeforeTimeout, "The item has been removed before expiration." );
 
@@ -415,14 +426,15 @@ namespace Metalama.Patterns.Caching.TestHelpers
 
                     cache.SetItem( key, cacheItem );
 
-                    if ( !await this.WaitWithinExpirationAsync( timeWhenSet, cancellationToken ) )
+                    await this.WaitWithinExpirationAsync( cancellationToken );
+                    var retrievedItemBeforeTimeout = cache.GetItem( key, this.TestDependencies );
+
+                    if ( !this.IsWithinExpiration( timeWhenSet ) )
                     {
                         this.TestOutputHelper.WriteLine( "We slept too much time. Retry the test." );
 
                         continue;
                     }
-
-                    var retrievedItemBeforeTimeout = cache.GetItem( key, this.TestDependencies );
 
                     AssertEx.NotNull( retrievedItemBeforeTimeout, "There is not an item retrieved before the timeout." );
 
@@ -490,7 +502,9 @@ namespace Metalama.Patterns.Caching.TestHelpers
                     cache.ItemRemoved += ( _, _ ) => itemRemoved.SetResult( true );
                     await cache.SetItemAsync( key, cacheItem );
 
-                    if ( !await this.WaitWithinExpirationAsync( timeWhenSet, cancellationToken ) )
+                    await this.WaitWithinExpirationAsync( cancellationToken );
+
+                    if ( !this.IsWithinExpiration( timeWhenSet ) )
                     {
                         this.TestOutputHelper.WriteLine( "We slept too much time." );
 

@@ -11,13 +11,13 @@ using Xunit.Abstractions;
 namespace Metalama.Patterns.Caching.Tests.Backends
 {
     /// <summary>
-    /// Runs the suite of <see cref="BaseCacheBackendTests"/> against a backend that expires its items in this process,
-    /// on a substituted clock.
+    /// Substitutes the clock, the work-item dispatcher and the memory cache of the backend under test, for the test
+    /// classes whose backend expires its items in this process.
     /// </summary>
     /// <remarks>
-    /// The class registers the clock, the work-item dispatcher and the memory cache of a
-    /// <see cref="FakeCachingServices"/> in the service provider of the test. The expiration tests then advance the
-    /// clock and wait for the work items that the advance queues, instead of sleeping.
+    /// The class registers the three services of a <see cref="FakeCachingServices"/> in the service provider of the
+    /// test. The expiration tests of <see cref="BaseCacheBackendTests"/> then advance the clock and wait for the work
+    /// items that the advance queues, instead of sleeping.
     /// </remarks>
     public abstract class BaseFakeTimeCacheBackendTests : BaseCacheBackendTests
     {
