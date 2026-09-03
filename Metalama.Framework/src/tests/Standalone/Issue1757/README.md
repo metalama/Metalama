@@ -60,6 +60,8 @@ the build:
 `nuget.config` clears the repository's package source mapping, which otherwise routes `Metalama.*` to the local
 feed and makes the publicly released versions unresolvable. `OldAspects` pins `LangVersion` because the
 `Metalama.Compiler` shipping with 2025.1.18 predates the language version the current SDK defaults to.
+It pins `MetalamaTemplateLanguageVersion` for the same kind of reason: 2025.1.18 supports C# 13 at most, so it
+rejects with LAMA0052 the value that the repository sets in its own `Directory.Build.props`.
 
 ## Reading Metalama's trace while investigating this
 

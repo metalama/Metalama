@@ -5,6 +5,10 @@
         <Nullable>enable</Nullable>
         <!-- The Metalama.Compiler shipping with this version predates the language version the current SDK defaults to. -->
         <LangVersion>12.0</LangVersion>
+        <!-- This version of Metalama supports C# 13 at most, so it rejects the value that the repository sets with
+             LAMA0052. The value is set to the language version of this project, which is the highest one that a
+             template here could use anyway. -->
+        <MetalamaTemplateLanguageVersion>12.0</MetalamaTemplateLanguageVersion>
     </PropertyGroup>
 
     <ItemGroup>
