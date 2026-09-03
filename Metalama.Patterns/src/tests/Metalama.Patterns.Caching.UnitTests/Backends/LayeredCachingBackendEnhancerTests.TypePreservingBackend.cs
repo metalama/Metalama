@@ -17,13 +17,35 @@ public sealed partial class LayeredCachingBackendEnhancerTests
     /// </summary>
     private sealed class TypePreservingBackend : CachingBackend
     {
-        private readonly ConcurrentDictionary<string, CacheItem> _items = new();
+        private readonly ConcurrentDictionary<string, CacheItem> _items;
         private readonly ConcurrentDictionary<string, HashSet<string>> _dependencies = new();
         private readonly bool _blocking;
+        private readonly bool _raiseInvalidationEvents;
 
-        public TypePreservingBackend( bool blocking = true )
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TypePreservingBackend"/> class.
+        /// </summary>
+        /// <param name="store">
+        /// The dictionary in which the items are stored. Two instances that share a dictionary represent two nodes
+        /// that reach the same remote store. When <see langword="null"/>, the instance gets its own dictionary.
+        /// </param>
+        /// <param name="raiseInvalidationEvents">
+        /// <see langword="false"/> to suppress both the <see cref="CachingBackend.ItemRemoved"/> and the
+        /// <see cref="CachingBackend.DependencyInvalidated"/> events. A test of the tombstone of
+        /// <see cref="LayeredCachingBackendEnhancer"/> sets it to <see langword="false"/>, because the enhancer
+        /// deletes the tombstone when it receives the invalidation event back from the second layer, and the event
+        /// arrives on another thread.
+        /// </param>
+        public TypePreservingBackend(
+            bool blocking = true,
+            IServiceProvider? serviceProvider = null,
+            ConcurrentDictionary<string, CacheItem>? store = null,
+            bool raiseInvalidationEvents = true )
+            : base( serviceProvider: serviceProvider )
         {
             this._blocking = blocking;
+            this._items = store ?? new ConcurrentDictionary<string, CacheItem>();
+            this._raiseInvalidationEvents = raiseInvalidationEvents;
         }
 
         protected override CachingBackendFeatures CreateFeatures() => new Features( this._blocking );
@@ -65,7 +87,7 @@ public sealed partial class LayeredCachingBackendEnhancerTests
 
         protected override void RemoveItemCore( string key )
         {
-            if ( this._items.TryRemove( key, out _ ) )
+            if ( this._items.TryRemove( key, out _ ) && this._raiseInvalidationEvents )
             {
                 this.OnItemRemoved( key, CacheItemRemovedReason.Removed, this.Id );
             }
@@ -88,7 +110,10 @@ public sealed partial class LayeredCachingBackendEnhancerTests
                 }
             }
 
-            this.OnDependencyInvalidated( key, this.Id );
+            if ( this._raiseInvalidationEvents )
+            {
+                this.OnDependencyInvalidated( key, this.Id );
+            }
         }
 
         protected override bool ContainsDependencyCore( string key )
