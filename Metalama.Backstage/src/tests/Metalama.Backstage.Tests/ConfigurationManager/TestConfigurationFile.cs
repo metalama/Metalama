@@ -3,10 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Backstage.Configuration;
-using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace Metalama.Backstage.Tests.ConfigurationManager;
 
@@ -75,21 +72,10 @@ internal sealed record NestedTestConfigurationFile : ConfigurationFile
 /// An object nested in <see cref="NestedTestConfigurationFile"/>.
 /// </summary>
 /// <remarks>
-/// The type does not derive from <see cref="ConfigurationFile"/>, so it declares its own extension data, exactly as
-/// the nested types of the product do.
+/// The type does not derive from <see cref="ConfigurationFile"/>, so it derives from <see cref="ConfigurationObject"/>,
+/// exactly as the nested types of the product do.
 /// </remarks>
-internal sealed record TestNestedObject
+internal sealed record TestNestedObject : ConfigurationObject
 {
     public bool IsModified { get; init; }
-
-    /// <summary>
-    /// Gets or sets the members that the running version does not declare.
-    /// </summary>
-    /// <remarks>
-    /// The property has a setter and not an initializer, because the source generator of
-    /// <c>System.Text.Json</c> maps an initializer to a parameter of the deserialization constructor, and a
-    /// parameter cannot receive the extension data.
-    /// </remarks>
-    [JsonExtensionData]
-    public IDictionary<string, JsonElement>? UnknownMembers { get; set; }
 }

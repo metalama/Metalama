@@ -4,14 +4,12 @@
 
 using JetBrains.Annotations;
 using System;
-using System.Collections.Generic;
-using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace Metalama.Backstage.Configuration;
 
 [PublicAPI]
-public abstract record ConfigurationFile
+public abstract record ConfigurationFile : ConfigurationObject
 {
     private DateTime? _fileSystemTimestamp;
 
@@ -38,30 +36,6 @@ public abstract record ConfigurationFile
     /// </summary>
     [JsonPropertyName( "version" )]
     public int? Version { get; set; }
-
-    /// <summary>
-    /// Gets or sets the members of the configuration file that this version of Metalama does not declare.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// Several versions of Metalama share the same configuration files of the user profile, and a configuration file
-    /// is rewritten from the record that represents it. A version that did not store the members it does not declare
-    /// would therefore remove the content written by a newer version. The unmapped members are read into this
-    /// property and written back unchanged.
-    /// </para>
-    /// <para>
-    /// A type that is nested in a configuration file does not derive from <see cref="ConfigurationFile"/> and
-    /// declares its own property with the same purpose, because the extension data of an object is carried by the
-    /// object itself.
-    /// </para>
-    /// <para>
-    /// The property has a setter and not an initializer, because the source generator of <c>System.Text.Json</c>
-    /// maps a property declared with an initializer to a parameter of the deserialization constructor, and a
-    /// parameter cannot receive the extension data.
-    /// </para>
-    /// </remarks>
-    [JsonExtensionData]
-    public IDictionary<string, JsonElement>? UnknownMembers { get; set; }
 
     public virtual void Validate( Action<string> reportWarning ) { }
 }

@@ -8,6 +8,8 @@ using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Testing;
 using Metalama.Backstage.UserInterface.Toasts;
 using System;
+using System.Collections.Generic;
+using System.Text.Json;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -143,5 +145,48 @@ public sealed class ToastNotificationStatusServiceTests : TestsBase
 
         // We should have a single pause record and not 2 because we cleaned up.
         Assert.Single( this.ConfigurationManager!.Get<ToastNotificationsConfiguration>().Pauses );
+    }
+
+    [Fact]
+    public void UpdateOfANotificationKeepsTheMembersWrittenByANewerVersion()
+    {
+        // #1923: an update of a notification kind replaces the value stored for that kind by a new object, so the
+        // members that a newer version of Metalama wrote into the value have to be carried over. Otherwise this
+        // version removes them from toastNotifications.json.
+        var kind = ToastNotificationKinds.LicenseExpiring;
+
+        var unknownMembers = new Dictionary<string, JsonElement>
+        {
+            ["memberOfANewerVersion"] = JsonDocument.Parse( "\"a value\"" ).RootElement
+        };
+
+        this.ConfigurationManager!.Update<ToastNotificationsConfiguration>(
+            c => c with
+            {
+                Notifications = c.Notifications.SetItem( kind.Name, new ToastNotificationConfiguration { UnknownMembers = unknownMembers } )
+            } );
+
+        void AssertMemberOfNewerVersionPreserved( string operation )
+        {
+            var notifications = this.ConfigurationManager!.Get<ToastNotificationsConfiguration>().Notifications;
+
+            Assert.True( notifications.TryGetValue( kind.Name, out var notification ), $"The kind is not configured after {operation}." );
+            Assert.NotNull( notification!.UnknownMembers );
+
+            Assert.True(
+                notification.UnknownMembers!.TryGetValue( "memberOfANewerVersion", out var value ),
+                $"The member written by a newer version was removed by {operation}." );
+
+            Assert.Equal( "a value", value.GetString() );
+        }
+
+        Assert.True( this._toastService.TryAcquire( kind ) );
+        AssertMemberOfNewerVersionPreserved( nameof(IToastNotificationStatusService.TryAcquire) );
+
+        this._toastService.Snooze( kind );
+        AssertMemberOfNewerVersionPreserved( nameof(IToastNotificationStatusService.Snooze) );
+
+        this._toastService.Mute( kind );
+        AssertMemberOfNewerVersionPreserved( nameof(IToastNotificationStatusService.Mute) );
     }
 }

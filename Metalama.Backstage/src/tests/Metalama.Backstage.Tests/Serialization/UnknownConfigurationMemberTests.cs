@@ -63,9 +63,9 @@ public sealed class UnknownConfigurationMemberTests : JsonSerializationTestsBase
 
             if ( document == null )
             {
-                // The type has no parameterless constructor, so no default instance can be built to derive the
-                // document from. Such a type is covered by the guard test only.
-                this.Output.WriteLine( "Skipped " + type.FullName + ": no default instance." );
+                // No instance of the type could be created, or the serialization of the instance is not a JSON object, so
+                // no document can be derived from the type. Such a type is covered by the guard test only.
+                this.Output.WriteLine( "Skipped " + type.FullName + ": no document could be derived from the type." );
 
                 continue;
             }
