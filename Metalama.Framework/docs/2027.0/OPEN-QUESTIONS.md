@@ -57,12 +57,10 @@ drafts propose a warning with an opt-out for the first. Settled when the stories
 
 ### Q4. Does an aspect introduce a closed class?
 
-Not blocking, and currently answered as no.
-
-Section 5b puts the closed writer out of scope for 2027.0, and section 5c overrode that answer for unions only. The
-closed writer is small and every part of it is identified. It was deferred because of the divergence of Q2 and
-because no customer scenario is known that needs an aspect-generated closed hierarchy. A known scenario would
-reopen it.
+Answered on 2026-09-04 in section 5f of [`DECISIONS.md`](DECISIONS.md): yes. A closed class is an ordinary class
+with one more modifier, and the analysis had already found every part of the writer identified and cheap. The
+answer raises the stake of Q2, because an aspect that introduces a closed class emits the modifier at build time
+and nothing at design time on the hosts that the lower Roslyn variant serves.
 
 ## Measurements that the calendar settles
 

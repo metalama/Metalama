@@ -432,3 +432,32 @@ the two tests that must gain a union case.
 
 No impact. The caching pattern builds its cache key from `ToString` rather than from `Equals` or `GetHashCode`, so
 the value equality of a union struct does not reach it.
+
+### 5f. Closed type introduction is in scope
+
+Taken by the product owner on 2026-09-04, superseding the part of section 5b that put the closed writer out of
+scope, and answering question Q4. An aspect may introduce a closed class. The reasoning is that a closed class is
+an ordinary class with one more modifier, which is what the analysis found as well: it sized the closed writer at M
+and reported that every part of it is identified and cheap. It was deferred for the divergence of Q2 and for the
+absence of a known customer scenario, not for its cost.
+
+The parts are the settable property on `INamedTypeBuilder`, its validation, the storage in the builder data, the
+exposure on the introduced type, and the token emission. Three details of the emission are not free and must not be
+lost in the implementation.
+
+The `closed` token replaces `abstract` rather than joining it. Roslyn sets the abstract flag on a closed class
+implicitly and rejects a declaration that says both, so the modifier list must emit `closed` and suppress
+`abstract` when the type is closed, while `IsAbstract` keeps reporting true, which is what Roslyn reports.
+
+The token goes before `partial`, because `partial` must sit immediately before the type keyword. The order is
+`closed partial class`.
+
+The validation rejects a closed type that is not a class, and one that is sealed or static.
+
+This decision raises the stake of Q2 rather than depending on it. An aspect that introduces a closed class emits
+the modifier at build time and nothing at design time on the hosts that the lower Roslyn variant serves, so the
+editor and the build disagree about the exhaustiveness of the hierarchy. That is an argument for reporting the
+divergence rather than for withholding the feature.
+
+Introducing a union remains governed by section 5c and is a separate and much larger piece of work, because a union
+is not a class with one more modifier.
