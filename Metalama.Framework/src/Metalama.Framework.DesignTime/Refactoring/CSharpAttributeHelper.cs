@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -71,97 +71,19 @@ namespace Metalama.Framework.DesignTime.Refactoring
             var attributeList = CreateAttributeSyntax( attribute, forAssembly: oldNode.IsKind( SyntaxKind.CompilationUnit ) )
                 .WithAdditionalAnnotations( Formatter.Annotation );
 
-            switch ( oldNode.Kind() )
+            switch ( newNode )
             {
-                case SyntaxKind.MethodDeclaration:
-                    newNode = ((MethodDeclarationSyntax) newNode).AddAttributeLists( attributeList );
+                case ParameterSyntax parameter:
+                    newNode = parameter.AddAttributeLists( attributeList );
 
                     break;
 
-                case SyntaxKind.DestructorDeclaration:
-                    newNode = ((DestructorDeclarationSyntax) newNode).AddAttributeLists( attributeList );
+                case AccessorDeclarationSyntax accessor:
+                    newNode = accessor.AddAttributeLists( attributeList );
 
                     break;
 
-                case SyntaxKind.ConstructorDeclaration:
-                    newNode = ((ConstructorDeclarationSyntax) newNode).AddAttributeLists( attributeList );
-
-                    break;
-
-                case SyntaxKind.InterfaceDeclaration:
-                    newNode = ((InterfaceDeclarationSyntax) newNode).AddAttributeLists( attributeList );
-
-                    break;
-
-                case SyntaxKind.DelegateDeclaration:
-                    newNode = ((DelegateDeclarationSyntax) newNode).AddAttributeLists( attributeList );
-
-                    break;
-
-                case SyntaxKind.EnumDeclaration:
-                    newNode = ((EnumDeclarationSyntax) newNode).AddAttributeLists( attributeList );
-
-                    break;
-
-                case SyntaxKind.ClassDeclaration:
-                    newNode = ((ClassDeclarationSyntax) newNode).AddAttributeLists( attributeList );
-
-                    break;
-
-                case SyntaxKind.StructDeclaration:
-                    newNode = ((StructDeclarationSyntax) newNode).AddAttributeLists( attributeList );
-
-                    break;
-
-                case SyntaxKind.Parameter:
-                    newNode = ((ParameterSyntax) newNode).AddAttributeLists( attributeList );
-
-                    break;
-
-                case SyntaxKind.PropertyDeclaration:
-                    newNode = ((PropertyDeclarationSyntax) newNode).AddAttributeLists( attributeList );
-
-                    break;
-
-                case SyntaxKind.EventDeclaration:
-                    newNode = ((EventDeclarationSyntax) newNode).AddAttributeLists( attributeList );
-
-                    break;
-
-                case SyntaxKind.AddAccessorDeclaration:
-                case SyntaxKind.RemoveAccessorDeclaration:
-                case SyntaxKind.GetAccessorDeclaration:
-                case SyntaxKind.SetAccessorDeclaration:
-                    newNode = ((AccessorDeclarationSyntax) newNode).AddAttributeLists( attributeList );
-
-                    break;
-
-                case SyntaxKind.OperatorDeclaration:
-                    newNode = ((OperatorDeclarationSyntax) newNode).AddAttributeLists( attributeList );
-
-                    break;
-
-                case SyntaxKind.ConversionOperatorDeclaration:
-                    newNode = ((ConversionOperatorDeclarationSyntax) newNode).AddAttributeLists( attributeList );
-
-                    break;
-
-                case SyntaxKind.IndexerDeclaration:
-                    newNode = ((IndexerDeclarationSyntax) newNode).AddAttributeLists( attributeList );
-
-                    break;
-
-                case SyntaxKind.FieldDeclaration:
-                    newNode = ((FieldDeclarationSyntax) newNode).AddAttributeLists( attributeList );
-
-                    break;
-
-                case SyntaxKind.EventFieldDeclaration:
-                    newNode = ((EventFieldDeclarationSyntax) newNode).AddAttributeLists( attributeList );
-
-                    break;
-
-                case SyntaxKind.CompilationUnit:
+                case CompilationUnitSyntax:
                     // We use oldNode here, because we need to handle trivia differently.
                     var compilationUnit = (CompilationUnitSyntax) oldNode;
 
@@ -185,6 +107,22 @@ namespace Metalama.Framework.DesignTime.Refactoring
                     }
 
                     return compilationUnit.AddAttributeLists( attributeList );
+
+                // These nodes derive from MemberDeclarationSyntax, but an attribute list on them would not be valid
+                // code, so they are excluded before the general arm below.
+                case BaseNamespaceDeclarationSyntax:
+                case EnumMemberDeclarationSyntax:
+                case GlobalStatementSyntax:
+                case IncompleteMemberSyntax:
+                    return null;
+
+                // Every type declaration and every other member declaration, which includes the record, the record
+                // struct and the extension block. A declaration kind added by a later version of the language is
+                // covered without a new arm.
+                case MemberDeclarationSyntax member:
+                    newNode = member.AddAttributeLists( attributeList );
+
+                    break;
 
                 default:
                     return null;
