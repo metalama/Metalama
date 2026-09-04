@@ -4,6 +4,7 @@
 - Labels: `bug`, `Area-Framework`
 - Milestone: `2027.0`
 - Repositories: `metalama/Metalama`
+- Parent story: S-18, of which this is a sub-story
 - Size: M
 - Blocked by: S-18-1
 - Findings: [CM-3](../03-code-model-unions-closed.md), [DT-2](../05-design-time-workspaces-linqpad.md),

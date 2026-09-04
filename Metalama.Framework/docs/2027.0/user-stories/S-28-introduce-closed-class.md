@@ -34,8 +34,6 @@ that the lower Roslyn variant serves, so the editor and the build disagree about
   reporting true.
 - Emit the modifier before `partial`, because `partial` must sit immediately before the type keyword.
 - Gate the reference to `SyntaxKind.ClosedKeyword` on the latest Roslyn variant, per S-13.
-- Report a diagnostic rather than emitting the modifier when the target compilation provides neither
-  `System.Runtime.CompilerServices.IsClosedTypeAttribute` nor `CompilerFeatureRequiredAttribute`.
 
 #### Acceptance criteria
 

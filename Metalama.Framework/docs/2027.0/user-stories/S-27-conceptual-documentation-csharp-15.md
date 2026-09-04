@@ -5,7 +5,7 @@
 - Milestone: `2027.0`
 - Repositories: `metalama/Metalama.Documentation`
 - Size: L
-- Blocked by: S-15, S-29, S-16, S-19, S-21, S-24
+- Blocked by: S-15, S-16, S-19, S-21, S-24 and S-29
 - Findings: none. No theme document of this analysis produces a story for `metalama/Metalama.Documentation`, which is
   what question Q13 of [`OPEN-QUESTIONS.md`](../OPEN-QUESTIONS.md) records. The repository is not cloned in the session
   that produced this analysis, so no page was read, no page path was verified, and every statement below about the
@@ -13,11 +13,11 @@
 
 ---
 
-No story of this plan writes the user-facing documentation of the C# 15 work. S-29 asks, at
-`user-stories.md:1398-1399`, that its pull request description state which pages of `metalama/Metalama.Documentation`
-must follow. S-30 repeats the same sentence at `user-stories.md:2027-2028`. S-24 states, at
-`user-stories.md:1874-1876`, that it does not edit the conceptual documentation, because that is a separate repository
-and therefore a separate pull request, and that it lists the pages rather than editing them. Two stories therefore
+No story of this plan writes the user-facing documentation of the C# 15 work. S-29 asks, in its scope, that its pull
+request description state which pages of `metalama/Metalama.Documentation` must follow. S-30 repeats the same
+sentence. S-24 states, in the section that lists what it does not do, that it does not edit the conceptual
+documentation, because that is a separate repository and therefore a separate pull request, and that it lists the
+pages rather than editing them. Two stories therefore
 defer the page list, and the third excludes the pages. Nobody writes them. This story owns them.
 
 #### Context
@@ -62,8 +62,8 @@ declaration and a type carrying `System.Runtime.CompilerServices.UnionAttribute`
 and that the member restrictions apply to the first form only. A page that states a restriction has to say which of
 the two forms it concerns, which is the reader-facing half of question Q9.
 
-A case added to a `union` declaration is a build-time-only change, which S-30 states in its scope at
-`user-stories.md:2027-2028` and which the reader has to be told before using the feature.
+A case added to a `union` declaration is a build-time-only change, which S-30 states in its scope and which the
+reader has to be told before using the feature.
 
 #### Scope
 

@@ -4,6 +4,7 @@
 - Labels: `enhancement`, `Area-Patterns`, `Area-Extensions`, `Area-Framework`
 - Milestone: `2027.0`
 - Repositories: `metalama/Metalama`
+- Parent story: S-18, of which this is a sub-story
 - Size: L
 - Blocked by: S-18-1
 - Findings: [UT-14](../06-user-tfm-patterns-tests-docs.md), [UT-14a](../06-user-tfm-patterns-tests-docs.md),

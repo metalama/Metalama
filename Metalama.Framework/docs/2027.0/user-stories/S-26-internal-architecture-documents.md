@@ -108,13 +108,13 @@ of this document.
 - [`kind-check-optimization.md`](../../kind-check-optimization.md). The section "Golden Rule", the section "Pattern F:
   SyntaxNode Patterns" and entry 6 of the section "Edge Cases" instruct a contributor to test the discriminator kind
   before pattern matching, and entry 6 instructs a contributor to enumerate the two record kinds rather than to test
-  `RecordDeclarationSyntax`. S-18-1, S-08 and S-18-3 do the opposite wherever the intent is any type declaration: they
-  replace the enumeration of concrete kinds by a test on the abstract syntax type, because an enumeration silently
-  omits a kind that a later language version adds. `KindCheckOptimizationAnalyzer.cs:833-837` already exempts an
-  abstract syntax type from the rule, and neither S-18-1 nor S-24 records that exemption in the document that states
-  the doctrine. State the exemption, state the reason, and add the case as a further entry of the section "What NOT
-  to Optimize". Add the union declaration to the table "SyntaxKind to Syntax Types (Common)" of the section "Type
-  Mappings". State that no row is added to the table "DeclarationKind to IDeclaration Types" of the same section and
+  `RecordDeclarationSyntax`. S-18-1 and S-18-3 follow that instruction: they add the union kind to the enumerations
+  that exist rather than replacing them by a test on the abstract syntax type, and the addition sits inside the
+  latest variant block, because the lower Roslyn variant does not declare the kind. State that rule in the document,
+  with the variant block as its condition, so that a contributor who meets the same choice takes the same decision.
+  `KindCheckOptimizationAnalyzer.cs:833-837` exempts a test on an abstract syntax type from the discriminator rule,
+  and no document records that exemption; state it and state that it is an exemption rather than the preferred form.
+  Add the union declaration to the table "SyntaxKind to Syntax Types (Common)" of the section "Type Mappings". State that no row is added to the table "DeclarationKind to IDeclaration Types" of the same section and
   none to the multi-kind table of "Pitfall 1", because S-18-1 adds neither a `TypeKind` value nor a declaration kind
   for a union, and because S-16 exposes closedness as a flag and not as a kind.
 
@@ -122,9 +122,10 @@ of this document.
 
 - Every enumeration of type declarations in the five documents lists the union declaration, and none of them lists
   the class, the struct, the interface and the record alone.
-- [`kind-check-optimization.md`](../../kind-check-optimization.md) states that a test on an abstract syntax type is
-  exempt from the discriminator rule, names the analyzer code that implements the exemption, and states that this
-  release adds no `TypeKind` value and no declaration kind.
+- [`kind-check-optimization.md`](../../kind-check-optimization.md) states that a new type-declaration kind is added to
+  the existing kind enumerations inside the variant block, states that a test on an abstract syntax type is exempt
+  from the discriminator rule, names the analyzer code that implements the exemption, and states that this release
+  adds no `TypeKind` value and no declaration kind.
 - [`pipeline.md`](../../pipeline.md) states how the aspect instances of one type are ordered, and states the condition
   under which two targets that share a span are ordered by signature instead of throwing.
 - [`compilation-model.md`](../../compilation-model.md) states that a declaration may be registered as a builder with no

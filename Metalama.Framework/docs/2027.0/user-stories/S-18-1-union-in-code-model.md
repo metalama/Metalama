@@ -4,6 +4,7 @@
 - Labels: `enhancement`, `Area-Framework`
 - Milestone: `2027.0`
 - Repositories: `metalama/Metalama`
+- Parent story: S-18, of which this is a sub-story
 - Size: M
 - Blocked by: S-13, S-15
 - Findings: [CM-1](../03-code-model-unions-closed.md), [CM-2](../03-code-model-unions-closed.md),

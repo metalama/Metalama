@@ -1,4 +1,4 @@
-### S-30. C# 15 unions: introducing a case into a union declaration
+### S-30. C# 15 unions: introducing a case into a `union` declaration
 
 - Issue type: User Story
 - Labels: `enhancement`, `Area-Framework`

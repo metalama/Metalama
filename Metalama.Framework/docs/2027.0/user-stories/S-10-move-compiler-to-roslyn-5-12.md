@@ -122,5 +122,3 @@ left it out of scope deliberately. It does not change the target frameworks of t
 #211 already reduced to `net10.0` and `net472`.
 
 — Claude for @gfraiteur
-
-— Claude for @gfraiteur

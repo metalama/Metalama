@@ -17,9 +17,10 @@ the open pull requests of the two repositories. The platform baseline itself is 
 Each story is written as the issue body would be posted, preceded by the metadata that a person filing it has to
 choose. The issue type, the labels and the milestone are proposals and must be checked against the label set of the
 repository before an issue is created. Every story is a sub-issue of the meta-issue #1921, which groups the platform
-work of this release. The C# 15 stories, which are S-15 to S-18-6 and S-28, S-23, S-30 and S-17, are grouped under a
-new feature issue named C# 15, itself a sub-issue of #1921. The stories S-04 to S-09 are not C# 15 stories, and they
-are sub-issues of #1921 directly. That structure follows the previous release, in which the
+work of this release. The C# 15 stories, which are S-15 to S-21, S-23 and S-28 to S-30, are grouped under a new
+feature issue named C# 15, itself a sub-issue of #1921. The other stories are not C# 15 stories, and they are
+sub-issues of #1921 directly. S-18 is a meta-story with six sub-stories, which are sub-issues of it, and its
+sub-stories carry the identifiers S-18-1 to S-18-6. That structure follows the previous release, in which the
 closed issue #1039, named C# 14, grouped twenty sub-issues under the closed meta-issue #1045, named .NET 10 Support.
 The `Size` field is an estimate of the effort of the pull request, on the small, medium and large scale that the
 repository already uses.
@@ -48,7 +49,7 @@ Every C# 15 item is downstream of one external event, which is `Metalama.Compile
 that carries `LanguageVersion.CSharp15`. That Roslyn is expected to be 5.12, shipping in November 2026 with Visual
 Studio 2027 and the .NET 11 SDK, against a general availability date of 2027-01-01.
 
-- Option A, full support. Stories S-13 and S-15, and the dependent feature stories S-18-1 to S-18-6, must be written,
+- Option A, full support. Stories S-13 and S-15, and the dependent feature stories S-16 to S-21, must be written,
   reviewed and tested in roughly six weeks after the stable Roslyn exists. None of the feature work can be validated
   before it, because a test that requests C# 15 today is skipped and the suite still reports success.
 - Option B, the plumbing and a defensive subset of the work. A C# 15 project builds, reports the designed diagnostics
@@ -158,7 +159,9 @@ because the compile-time assembly of an aspect library must be compilable inside
 Answer: Option A, recorded in [`DECISIONS.md`](../DECISIONS.md) section 4. The same section adds a consequence that
 changes one story: a labeled `break` or `continue` inside a template is forbidden and is reported with a diagnostic,
 because the annotator cannot classify a label whose loop may be in a different scope than the statement that names
-it. Run-time code that an aspect transforms and that uses a label outside a template is not affected and must keep
+it. Section 4b extends the answer to the label itself, for the same reason and because before C# 15 the only use of a
+label was `goto`, which the annotator already reports, so a label in a template was already useless in practice.
+Run-time code that an aspect transforms and that uses a label outside a template is not affected and must keep
 working once the syntax model is regenerated. Story S-19 delivers the rejection and the run-time correctness, and no
 longer proposes support for labels in templates.
 
@@ -256,166 +259,174 @@ hand now that Visual Studio 2022 is dropped, so the risk rose this release rathe
 
 ### D-13. Is Roslyn 5.12 added beside Roslyn 5.10, or does it replace it?
 
-Answer: it replaces it, recorded in [`DECISIONS.md`](../DECISIONS.md) section 8. No supported Visual Studio presents
-Roslyn 5.10 or 5.11, because Roslyn publishes a stable package every third minor version and neither is published. A
-variant whose identity is 5.10.0 would serve no host that a 5.12.0 identity does not serve, and rule 8 of the
-doctrine forbids a variant that serves an empty set. The variant set of 2027.0 therefore stays at two. Two statements
-of [`platform-support.md`](../../platform-support.md) follow from this and are recorded as question Q10 rather than
+Answer: it replaces it, recorded in [`DECISIONS.md`](../DECISIONS.md) section 8. The variant set of 2027.0 therefore
+stays at two, and rule 8 of the doctrine forbids a variant that serves an empty set.
+
+Sections 8b and 8c correct the reasoning that section 8 used, and they must be read with it. Roslyn 5.10 is the
+current stable-track version rather than a version that never existed: the build that this repository consumes comes
+from the `release/stable` branch, whose `PreReleaseVersionLabel` is 1. What decides whether a 5.10 or 5.11 variant is
+needed is not the package index but the criterion of section 8c: a variant is needed for a Roslyn version only if a
+Visual Studio that presents it is still in support on 2027-01-31 and that Roslyn offers a C# 15 feature as a
+supported language feature. Roslyn 5.10 offers none, because every C# 15 feature is reachable there only under
+`LanguageVersion.Preview`; Roslyn 5.11 is the first version that offers them. Section 14.1 adds that a new
+enumeration member such as `SyntaxKind.ClosedKeyword` is a new Roslyn application programming interface, so a feature
+that adds no syntax node may still require a build against a newer Roslyn. The practical consequence for S-13 is that
+the latest variant must bind against a version no higher than the lowest Roslyn that offers C# 15 among the hosts in
+support, which is 5.11 if such a host exists and 5.12 otherwise, and the measurement that settles it is checklist
+item 1 of [`platform-support.md`](../../platform-support.md), performed by S-11. Two statements of
+[`platform-support.md`](../../platform-support.md) follow from section 8 and are recorded as question Q10 rather than
 applied, because the document belongs to the product owner; S-24 carries them once they are approved.
 
 ## Ordering
 
 The stories are ordered by three rules, applied in this order. A story never precedes a story it is blocked by. A
 cheap story that removes a large uncertainty comes early, because the cost of learning late is the whole plan. A
-large story comes late, with one exception that is named where it occurs.
+large story comes late, with two exceptions that are named where they occur.
 
 The order below is a reading order for planning. It is not a schedule, and stages 1 and 2 are meant to run at the
 same time.
 
 1. The cheap work that removes uncertainty or repairs a defect that users meet today. None of it is blocked by
-   anything. S-13, the variant gating, is first of all, because it is a decision, it costs little, and eight later
-   stories cannot start until it is taken. S-01 repairs the two MSBuild comparisons that misreport a supported .NET
-   SDK and silently downgrade the language version of a `net11.0` project, which users meet now. Then S-02, the
-   language version display mapping, S-03, the residue of the previous baseline, S-04, the untested refactoring
-   entry points, S-05, the host process classification, S-06, the `Metalama.Premium` build-file residuals, and
-   S-07, the change-visibility code action of `Metalama.Premium`. Then the two medium ones that remove a class of
-   silent failure rather than a single defect: S-18-1, the type-declaration predicate, and S-08, the declaration-kind
-   switches. S-09, the .NET 11 software development kit in the build container, also belongs
-   here: it is blocked by nothing, and without it no aspect test can exercise a C# 15 construct in compile-time
-   code, so it gates S-15.
-2. S-10, the move of `Metalama.Compiler` to the stable Roslyn 5.12. This is the exception to the rule that a large
-   story comes late. It is large, and it must start at once, because every C# 15 story is downstream of it and its
-   date is decided in another repository and by an external Roslyn release. It is a long pole, not a big task that
-   can be deferred.
+   anything. S-01 repairs the two MSBuild comparisons that misreport a supported .NET SDK and silently downgrade the
+   language version of a `net11.0` project, which users meet now. Then S-02, the language version display mapping,
+   S-03, the residue of the previous baseline, S-04, the untested refactoring entry points, S-05, the host process
+   classification, S-06, the `Metalama.Premium` build-file residuals, and S-07, the change-visibility code action of
+   `Metalama.Premium`. Then S-08, the declaration-kind switches, which removes a class of silent failure rather than
+   a single defect. S-09, the .NET 11 software development kit in the build container, also belongs here: it is
+   blocked by nothing, and without it no aspect test can exercise a C# 15 construct in compile-time code, so it gates
+   S-15.
+2. S-10, the move of `Metalama.Compiler` to Roslyn 5.12. This is the first exception to the rule that a large story
+   comes late. It is large, and it must start at once, because every C# 15 story is downstream of it and its date is
+   decided in another repository and by an external Roslyn release. It is a long pole, not a big task that can be
+   deferred.
 3. The calendar-gated work, which cannot be pulled earlier whatever the plan says. S-11, the November 2026
    measurement, and S-12, Visual Studio Tools for Metalama, which waits on the same Visual Studio releases.
-4. S-13, the renaming of the latest variant to Roslyn 5.12 and the regeneration of the syntax model. Blocked by
-   S-10 and S-11. It is the gate of the release. Then S-14, the `Metalama.Premium` mirror of it.
-5. S-15, C# 15 as a supported language version. Blocked by S-01, S-02, S-13 and S-09. After it, a 2027.0 preview accepts
-   a C# 15 project instead of reporting an unsupported version.
-6. The required feature work, smallest first. S-16, the reading of a closed hierarchy, and S-17, the tests of
-   non-virtual static interface members on the .NET Framework leg, are the two small ones. Then S-18-1, the union in
-   the public code model, which is the surface that the rest consume, followed by S-19, the rejection of labels in
-   templates, S-20, the experimental syntax guard, S-21, extension indexers, S-18-2, the compile-time and design-time
-   dispatch, S-18-4, the design-time partial part, and S-18-5, the comparer repairs.
-7. The required work that is large, and therefore last of the required set. S-18-3, the injection and linking of
-   advice applied to a union, and S-18-6, the pattern and extension libraries on unions. S-22, the execution of the
-   Roslyn 5.0.0 variant of the `Metalama.Premium` engines, is large and blocked by nothing, so it sits here rather
-   than earlier. S-23, the `Metalama.Premium` architecture rule tests, follows S-18-6 and S-14 and is small.
-8. The discretionary work, which section 13 of [`DECISIONS.md`](../DECISIONS.md) marks as nice to have for 2027.0 and
-   which slips to 2027.1 if the release runs short. S-28, the introduction of a closed class, is the smallest and
-   therefore the likeliest to survive a cut. Then S-29, the introduction of a union and of a case into a type
-   carrying the union attribute, and S-30, the introduction of a case into a `union` declaration, which follows
-   S-29 and is filed only if question Q1 chooses Option A. This is the cut line of the release.
-9. The documentation, last, because a document written before the code is a second thing to correct. S-24, the
-   platform, dependency and extensibility documentation, S-25, the sample solutions, S-26, the internal
-   architecture documents, and S-27, the conceptual documentation. Two of them name a discretionary story as a
-   blocker: S-26 is blocked by S-29, S-28 and S-30, and S-27 by S-29. They document what ships, so the sections
-   that describe an introduction interface slip with the story that delivers it, and the rest of each document does
-   not wait.
+4. S-13, the rename of the latest variant to Roslyn 5.12, the conditional compilation of the C# 15 Roslyn members and
+   the regeneration of the syntax model. Blocked by S-10 and S-11. It is the gate of the release. Then S-14, the
+   `Metalama.Premium` mirror of it.
+5. S-15, C# 15 as a supported language version. Blocked by S-01, S-02, S-09 and S-13. After it, a 2027.0 preview
+   accepts a C# 15 project instead of reporting an unsupported version.
+6. The required feature work, smallest first. S-16, the reading of the closed modifier, and S-17, the tests of
+   non-virtual static interface members on the .NET Framework leg, are the two small ones. Then S-18, the support of
+   unions in target code, which is a meta-story whose six sub-stories run in the order S-18-1 to S-18-6 and are
+   merged as one stack of pull requests. S-18 is the second exception to the rule that a large story comes late: it
+   is the largest required piece of the release, and its first sub-story is the surface that the rest consume, so it
+   cannot start late. Then S-19, the rejection of labels in templates, S-20, the experimental syntax guard, and S-21,
+   extension indexers, which are independent of the union work and can run beside it.
+7. The required work of `Metalama.Premium`. S-22, the execution of the Roslyn 5.0.0 variant of the `Metalama.Premium`
+   engines, is large and blocked by nothing, so it sits here rather than earlier. S-23, the `Metalama.Premium`
+   architecture rule tests, follows S-14 and S-18-6 and is small.
+8. The documentation and the samples, because a document written before the code is a second thing to correct. S-24,
+   the platform, dependency and extensibility documentation, S-25, the sample solutions, S-26, the internal
+   architecture documents, and S-27, the conceptual documentation.
+9. The discretionary work, last, which section 13 of [`DECISIONS.md`](../DECISIONS.md) marks as nice to have for
+   2027.0 and which slips to 2027.1 if the release runs short. S-28, the introduction of a closed class, is the
+   smallest and therefore the likeliest to survive a cut. Then S-29, the introduction of a union and of a case into a
+   type carrying the union attribute, and S-30, the introduction of a case into a `union` declaration, which follows
+   S-29 and is filed only if question Q1 chooses Option A. This is the cut line of the release, and it carries the
+   last three numbers of the set so that a reader sees at once what may be dropped.
+
+Stage 9 is the one place where a story precedes a story it is blocked by, and the exception is deliberate. S-26 names
+S-28 and S-29 as blockers, and S-27 names S-29. They document what ships, so the sections that describe an
+introduction interface slip with the story that delivers it, and the rest of each document does not wait.
 
 ```mermaid
 graph TD
-  S01["S-10 Metalama.Compiler on Roslyn 5.12"] --> S09["S-13 Rename the latest variant to 5.12"]
-  S09 --> S10["S-14 Premium renaming"]
-  S09 --> S11["S-15 Raise the language version ceiling"]
-  S04["S-01 LangVersion clamp and SDK ceiling"] --> S11
-  S06["S-02 Display mapping and manifest fallbacks"] --> S11
-  S02["S-13 Variant gating"] --> S12["S-18-1 Union in the code model"]
-  S03["S-18-1 Type-declaration predicate"] --> S12
-  S11 --> S12
-  S03 --> S13["S-18-2 Compile-time and classifier dispatch"]
-  S12 --> S13
-  S12 --> S14["S-18-3 Advice applied to a union"]
-  S12 --> S15["S-18-4 Design-time union partial part"]
-  S12 --> S16["S-18-5 Comparer defects a union exposes"]
-  S12 --> S22["S-18-6 Patterns and the reference graph"]
-  S16 --> S17["S-29 Introduce a union and a case"]
-  S12 --> S17
-  S03 --> S17
-  S17 --> S29["S-30 Introduce a case into a union declaration"]
-  S02 --> S18["S-16 Read closed hierarchies"]
-  S11 --> S18
-  S02 --> S26["S-28 Introduce a closed class"]
-  S18 --> S26
-  S02 --> S19["S-19 Labels in templates and in inlining"]
-  S09 --> S19
-  S11 --> S19
-  S09 --> S20["S-20 Experimental syntax guard"]
-  S11 --> S20
-  S11 --> S21["S-21 Extension indexers"]
-  S11 --> S30["S-17 Static interface members on the net48 leg"]
-  S10 --> S28["S-23 Premium union architecture rule tests"]
-  S22 --> S28
-  S09 --> S25["S-24 Documentation"]
-  S11 --> S25
-  S37["S-09 .NET 11 SDK in the container"] --> S11
-  S03 --> S36["S-26 Internal architecture documents"]
-  S12 --> S36
-  S14 --> S36
-  S16 --> S36
-  S17 --> S36
-  S26 --> S36
-  S29 --> S36
-  S11 --> S34["S-27 Conceptual documentation"]
-  S17 --> S34
-  S18 --> S34
-  S19 --> S34
-  S21 --> S34
-  S25 --> S34
-  S05["S-03 Residue of the previous baseline"]
-  S07["S-08 Declaration-kind switches"]
-  S08["S-11 November 2026 measurement"]
-  S23["S-22 Premium Roslyn 5.0.0 variant tests"]
-  S24["S-06 Premium build-file residuals"]
-  S27["S-07 Premium change-visibility code action"]
-  S31["S-04 Code refactoring provider entry points"]
-  S32["S-12 Visual Studio Tools and the flowed pins"]
-  S33["S-25 Sample solutions on PB-2027.0"]
-  S35["S-05 Host process classification"]
+  S10["S-10 Metalama.Compiler on Roslyn 5.12"] --> S13["S-13 Rename the variant to 5.12 and gate the C# 15 members"]
+  S11["S-11 November 2026 measurement"] --> S13
+  S13 --> S14["S-14 Premium renaming"]
+  S13 --> S15["S-15 Enable C# 15"]
+  S01["S-01 LangVersion clamp and SDK ceiling"] --> S15
+  S02["S-02 Display mapping and manifest fallbacks"] --> S15
+  S09["S-09 .NET 11 SDK in the container"] --> S15
+  S13 --> S16["S-16 Closed modifier in the code model"]
+  S15 --> S16
+  S15 --> S17["S-17 Static interface members on the net48 leg"]
+  S13 --> S181["S-18-1 Unions in the code model"]
+  S15 --> S181
+  S181 --> S182["S-18-2 Union rewriters and visitors"]
+  S181 --> S183["S-18-3 Union linker and advising"]
+  S181 --> S184["S-18-4 Union design-time partial part"]
+  S181 --> S185["S-18-5 Union declaration comparers"]
+  S181 --> S186["S-18-6 Unions in the pattern and extension libraries"]
+  S13 --> S19["S-19 Labels in templates and in inlining"]
+  S15 --> S19
+  S13 --> S20["S-20 Experimental syntax guard"]
+  S15 --> S20
+  S15 --> S21["S-21 Extension indexers"]
+  S14 --> S23["S-23 Premium union architecture rule tests"]
+  S186 --> S23
+  S13 --> S24["S-24 Platform and dependency documentation"]
+  S15 --> S24
+  S181 --> S26["S-26 Internal architecture documents"]
+  S183 --> S26
+  S185 --> S26
+  S28 --> S26
+  S29 --> S26
+  S30 --> S26
+  S15 --> S27["S-27 Conceptual documentation"]
+  S16 --> S27
+  S19 --> S27
+  S21 --> S27
+  S24 --> S27
+  S29 --> S27
+  S13 --> S28["S-28 Introduce a closed class"]
+  S16 --> S28
+  S181 --> S29["S-29 Introduce a union and a case"]
+  S185 --> S29
+  S29 --> S30["S-30 Introduce a case into a union declaration"]
+  S03["S-03 Residue of the previous baseline"]
+  S04["S-04 Code refactoring provider entry points"]
+  S05["S-05 Host process classification"]
+  S06["S-06 Premium build-file residuals"]
+  S07["S-07 Premium change-visibility code action"]
+  S08["S-08 Declaration-kind switches"]
+  S12["S-12 Visual Studio Tools and the flowed pins"]
+  S18["S-18 Unions in target code, the meta-story of S-18-1 to S-18-6"]
+  S22["S-22 Premium Roslyn 5.0.0 variant tests"]
+  S25["S-25 Sample solutions on PB-2027.0"]
 ```
 
 ## Stories
 
 | Story | Title | Size | Repositories | Blocked by |
 | --- | --- | --- | --- | --- |
-| [S-10](S-10-move-compiler-to-roslyn-5-12.md) | Move Metalama.Compiler to the stable Roslyn 5.12 | L | `metalama/Metalama.Compiler` | nothing in this repository |
-| [S-13](S-13-variant-gating-decision.md) | Apply the variant gating decision to the engine sources and to the doctrine | S | `metalama/Metalama` | nothing |
-| [S-18-1](S-18-1-type-declaration-by-type-test.md) | Recognise any type declaration by a type test instead of by an enumerated syntax kind | M | `metalama/Metalama` | nothing |
-| [S-01](S-01-langversion-clamp-and-sdk-ceiling.md) | Correct the `LangVersion` clamp and the .NET SDK ceiling comparison of the platform check | S | `metalama/Metalama` | nothing |
-| [S-03](S-03-remove-previous-baseline-residue.md) | Remove the residue of the previous platform baseline from the engine defaults and the test gates | S | `metalama/Metalama` | nothing |
-| [S-02](S-02-language-version-mapping-and-manifest.md) | Make the language version display mapping non-throwing and settle the compile-time manifest fallbacks | S | `metalama/Metalama` | nothing |
-| [S-08](S-08-declaration-kind-switches.md) | Repair the declaration-kind switches that silently fall through | M | `metalama/Metalama` | nothing |
-| [S-11](S-11-re-derive-november-2026-baseline.md) | Re-derive the November 2026 baseline: Visual Studio build tools, MSBuild and the host-capped pins | M | `metalama/Metalama` | the November 2026 releases, that is 2026-11-10 |
-| [S-13](S-13-rename-roslyn-variant-and-regenerate.md) | Rename the latest Roslyn variant to the stable 5.12 and regenerate the syntax model | L | `metalama/Metalama` | S-10, and the Roslyn version measured by S-11 |
-| [S-14](S-14-premium-mirror-roslyn-renaming.md) | Mirror the Roslyn 5.12 renaming in `Metalama.Premium` | M | `metalama/Metalama.Premium` | S-13 |
-| [S-15](S-15-enable-csharp-15-language-version.md) | Enable C# 15 as a supported language version across the engine, the targets and the test framework | M | `metalama/Metalama` | S-01, S-02, S-13 |
-| [S-18-1](S-18-1-union-in-code-model.md) | Expose the union in the public code model and add the syntax visitor overrides | M | `metalama/Metalama` | S-13, S-18-1, S-15 |
-| [S-18-2](S-18-2-union-dispatch-compile-time-design-time.md) | Give the compile-time path and the design-time classifier a union dispatch | M | `metalama/Metalama` | S-18-1, S-18-1 |
-| [S-18-3](S-18-3-advice-on-unions-inject-and-link.md) | Inject, link and validate advice applied to a union, and read its synthesized members | L | `metalama/Metalama` | S-18-1 |
-| [S-18-4](S-18-4-union-partial-part-design-time.md) | Emit a union partial part at design time instead of a struct partial part | M | `metalama/Metalama` | S-18-1 |
-| [S-18-5](S-18-5-union-comparer-defects.md) | Repair the two comparer defects that a union exposes | M | `metalama/Metalama` | S-18-1 |
-| [S-29](S-29-introduce-union-and-case-attribute-form.md) | Introduce a union type and introduce a case into a type carrying the union attribute | L | `metalama/Metalama` | S-18-1, S-18-1, S-18-5 |
-| [S-16](S-16-read-closed-hierarchies.md) | Read closed hierarchies in the code model | S | `metalama/Metalama` | S-13, S-15 |
-| [S-19](S-19-reject-labeled-break-in-templates.md) | Reject a labeled `break` or `continue` in a template, and keep run-time labels correct when inlining | M | `metalama/Metalama` | S-13, S-13, S-15 |
-| [S-20](S-20-experimental-syntax-guard-in-templates.md) | Guard experimental C# syntax in templates and add the with-element tests | M | `metalama/Metalama` | S-13, S-15 |
-| [S-21](S-21-extension-indexers.md) | Support extension indexers in advice, in overriding and in the contracts | M | `metalama/Metalama` | S-15 |
-| [S-18-6](S-18-6-unions-in-pattern-and-extension-libraries.md) | Make the pattern libraries, the extension libraries and the reference graph correct on unions | L | `metalama/Metalama` | S-18-1 |
-| [S-22](S-22-premium-roslyn-5-0-variant-tests.md) | Execute the Roslyn 5.0.0 variant of the `Metalama.Premium` engines in tests | L | `metalama/Metalama.Premium` | nothing |
-| [S-06](S-06-premium-build-file-residuals.md) | Clean up the `Metalama.Premium` build-file residuals | S | `metalama/Metalama.Premium` | metalama/Metalama.Premium#84, whose branch this story is based on |
-| [S-24](S-24-platform-and-dependency-documentation.md) | Bring the platform, dependency and extensibility documentation up to the shipped 2027.0 state | M | `metalama/Metalama` | S-13, S-15 |
-| [S-28](S-28-introduce-closed-class.md) | Introduce a closed class | M | `metalama/Metalama` | S-13, S-16 |
-| [S-07](S-07-premium-change-visibility-code-action.md) | Repair the change-visibility code action of `Metalama.Premium` | S | `metalama/Metalama.Premium` | nothing |
-| [S-23](S-23-premium-union-and-closed-architecture-tests.md) | Add the union and closed architecture rule tests of `Metalama.Premium` | S | `metalama/Metalama.Premium` | S-14, S-18-6 |
-| [S-30](S-30-introduce-case-into-union-declaration.md) | Introduce a case into a `union` declaration | M | `metalama/Metalama` | S-29, and question Q1 of [`OPEN-QUESTIONS.md`](../OPEN-QUESTIONS.md) |
-| [S-17](S-17-static-interface-members-net-framework-leg.md) | Cover non-virtual static interface members on the .NET Framework test leg | S | `metalama/Metalama` | S-15 |
-| [S-04](S-04-refactoring-provider-entry-points.md) | Bring the code refactoring provider entry points under the tested entry-point name list | S | `metalama/Metalama` | nothing |
-| [S-12](S-12-vsx-to-pb-2027-0-and-dependency-pins.md) | Bring Visual Studio Tools for Metalama to PB-2027.0 and release the flowed dependency pins | L | `metalama/Metalama.Vsx` | nothing. The story is calendar-gated by the November 2026 Visual Studio releases in the same way as S-11, and it is not gated by any story of this repository. |
-| [S-25](S-25-samples-target-frameworks.md) | Move the sample solutions to the target frameworks of PB-2027.0 | M | `metalama/Metalama.Samples` | nothing. The story needs a published 2027.0 package to build against, which S-10, S-13 and S-15 gate in time but not in dependency. A sample that demonstrates a C# 15 feature, if the scope decides to add one, is written after S-15. |
-| [S-27](S-27-conceptual-documentation-csharp-15.md) | Write the conceptual documentation of the C# 15 work and of the supported platforms of 2027.0 | L | `metalama/Metalama.Documentation` | S-15, S-29, S-16, S-19, S-21, S-24 |
-| [S-05](S-05-host-process-classification.md) | Derive the host process classification from one table and give the C# Dev Kit its own arm | S | `metalama/Metalama` | nothing |
-| [S-26](S-26-internal-architecture-documents.md) | Update the internal architecture documents that the C# 15 stories change | M | `metalama/Metalama` | S-18-1, S-18-1, S-18-3, S-18-5, S-29 and S-28, which are the stories whose result these documents describe, and S-30 if question Q1 of [`OPEN-QUESTIONS.md`](../OPEN-QUESTIONS.md) files it. A documentation story is normally blocked by the stories whose result it describes, because a document written before the code is a second thing to correct. |
-| [S-09](S-09-net-11-sdk-in-build-container.md) | Install the .NET 11 software development kit in the build container and settle what `global.json` pins | M | `metalama/Metalama`, `metalama/Metalama.Premium` | nothing. It gates S-15, because the compile-time language version is capped by the major version of the installed kit. |
+| [S-01](S-01-langversion-clamp-and-sdk-ceiling.md) | Build: LangVersion clamp and .NET SDK ceiling comparison | S | `metalama/Metalama` | nothing |
+| [S-02](S-02-language-version-mapping-and-manifest.md) | Language version: display mapping and compile-time manifest fallbacks | S | `metalama/Metalama` | nothing |
+| [S-03](S-03-remove-previous-baseline-residue.md) | Build: residue of the previous platform baseline | S | `metalama/Metalama` | nothing |
+| [S-04](S-04-refactoring-provider-entry-points.md) | Design time: code refactoring provider entry points | S | `metalama/Metalama` | nothing |
+| [S-05](S-05-host-process-classification.md) | Design time: host process classification | S | `metalama/Metalama` | nothing |
+| [S-06](S-06-premium-build-file-residuals.md) | Metalama.Premium: build-file residuals | S | `metalama/Metalama.Premium` | metalama/Metalama.Premium#84, whose branch this story is based on |
+| [S-07](S-07-premium-change-visibility-code-action.md) | Metalama.Premium: change-visibility code action | S | `metalama/Metalama.Premium` | nothing |
+| [S-08](S-08-declaration-kind-switches.md) | Engine: declaration-kind switches that silently fall through | M | `metalama/Metalama` | nothing |
+| [S-09](S-09-net-11-sdk-in-build-container.md) | Build: .NET 11 software development kit in the build container | M | `metalama/Metalama`, `metalama/Metalama.Premium` | nothing. It gates S-15, because the compile-time language version is capped by the major version of the installed kit. |
+| [S-10](S-10-move-compiler-to-roslyn-5-12.md) | Metalama.Compiler: move to Roslyn 5.12 | L | `metalama/Metalama.Compiler` | nothing in this repository |
+| [S-11](S-11-re-derive-november-2026-baseline.md) | Build: re-derive the November 2026 platform baseline | M | `metalama/Metalama` | the November 2026 releases, that is 2026-11-10 |
+| [S-12](S-12-vsx-to-pb-2027-0-and-dependency-pins.md) | Metalama.Vsx: PB-2027.0 and the flowed dependency pins | L | `metalama/Metalama.Vsx` | nothing. The story is calendar-gated by the November 2026 Visual Studio releases in the same way as S-11, and it is not gated by any story of this repository. |
+| [S-13](S-13-rename-roslyn-variant-and-regenerate.md) | Build: rename the latest Roslyn variant to 5.12 and regenerate the syntax model | L | `metalama/Metalama` | S-10, and the Roslyn version measured by S-11 |
+| [S-14](S-14-premium-mirror-roslyn-renaming.md) | Metalama.Premium: mirror the Roslyn 5.12 renaming | M | `metalama/Metalama.Premium` | S-13 |
+| [S-15](S-15-enable-csharp-15-language-version.md) | C# 15: enable the language version | M | `metalama/Metalama` | S-01, S-02, S-09, S-13 |
+| [S-16](S-16-closed-modifier-in-code-model.md) | Code model: support for the closed modifier | S | `metalama/Metalama` | S-13, S-15 |
+| [S-17](S-17-static-interface-members-net-framework-leg.md) | C# 15 static interface members: support in target code | S | `metalama/Metalama` | S-15 |
+| [S-18](S-18-unions-in-target-code.md) | C# 15 unions: support in target code | L | `metalama/Metalama` | S-13, S-15 |
+| [S-18-1](S-18-1-union-in-code-model.md) | C# 15 unions: code model | M | `metalama/Metalama` | S-13, S-15 |
+| [S-18-2](S-18-2-union-rewriters-and-visitors.md) | C# 15 unions: rewriters and visitors | M | `metalama/Metalama` | S-18-1 |
+| [S-18-3](S-18-3-union-linker-and-advising.md) | C# 15 unions: linker and advising | L | `metalama/Metalama` | S-18-1 |
+| [S-18-4](S-18-4-union-partial-part-design-time.md) | C# 15 unions: design-time partial part | M | `metalama/Metalama` | S-18-1 |
+| [S-18-5](S-18-5-union-comparers.md) | C# 15 unions: declaration comparers | M | `metalama/Metalama` | S-18-1 |
+| [S-18-6](S-18-6-unions-in-pattern-and-extension-libraries.md) | C# 15 unions: pattern and extension libraries | L | `metalama/Metalama` | S-18-1 |
+| [S-19](S-19-reject-labels-in-templates.md) | C# 15: raise errors when a label is used in a template | M | `metalama/Metalama` | S-13, S-15 |
+| [S-20](S-20-experimental-syntax-guard-in-templates.md) | Templates: raise errors when experimental syntax is used | M | `metalama/Metalama` | S-13, S-15 |
+| [S-21](S-21-extension-indexers.md) | C# 15 extension indexers: advising and introducing | M | `metalama/Metalama` | S-15 |
+| [S-22](S-22-premium-roslyn-5-0-variant-tests.md) | Metalama.Premium: execute the Roslyn 5.0.0 variant in tests | L | `metalama/Metalama.Premium` | nothing |
+| [S-23](S-23-premium-union-and-closed-architecture-tests.md) | Metalama.Premium: union and closed architecture rule tests | S | `metalama/Metalama.Premium` | S-14, S-18-6 |
+| [S-24](S-24-platform-and-dependency-documentation.md) | Documentation: platform, dependency and extensibility documents | M | `metalama/Metalama` | S-13, S-15 |
+| [S-25](S-25-samples-target-frameworks.md) | Metalama.Samples: target frameworks of PB-2027.0 | M | `metalama/Metalama.Samples` | nothing. The story needs a published 2027.0 package to build against, which S-10, S-13 and S-15 gate in time but not in dependency. A sample that demonstrates a C# 15 feature, if the scope decides to add one, is written after S-15. |
+| [S-26](S-26-internal-architecture-documents.md) | Documentation: internal architecture documents | M | `metalama/Metalama` | S-18-1, S-18-3, S-18-5, S-28 and S-29, which are the stories whose result these documents describe, and S-30 if question Q1 of [`OPEN-QUESTIONS.md`](../OPEN-QUESTIONS.md) files it. |
+| [S-27](S-27-conceptual-documentation-csharp-15.md) | Documentation: conceptual documentation of C# 15 and PB-2027.0 | L | `metalama/Metalama.Documentation` | S-15, S-16, S-19, S-21, S-24 and S-29 |
+| [S-28](S-28-introduce-closed-class.md) | C# 15 closed classes: introducing | M | `metalama/Metalama` | S-13, S-16 |
+| [S-29](S-29-introduce-union-and-case-attribute-form.md) | C# 15 unions: introducing a union and a case on the attribute form | L | `metalama/Metalama` | S-18-1, S-18-5 |
+| [S-30](S-30-introduce-case-into-union-declaration.md) | C# 15 unions: introducing a case into a `union` declaration | M | `metalama/Metalama` | S-29, and question Q1 of [`OPEN-QUESTIONS.md`](../OPEN-QUESTIONS.md) |
 
 ## Already in progress
 
@@ -476,14 +487,10 @@ document designs or builds the contract, because it is delivered.
 
 ## Findings not turned into a story
 
-Eleven verified findings produce no story. The reason is given for each.
+Nine verified findings produce no story. The reason is given for each. Two findings that an earlier draft listed
+here, which are LV-9 and UT-1, are owned by story S-09, because section 6d of [`DECISIONS.md`](../DECISIONS.md) puts
+the build container work back in scope.
 
-- [LV-9](../01-language-version-and-hosts.md), nothing builds or tests under the .NET 11 SDK. Out of scope for 2027.0:
-  section 6b of [`DECISIONS.md`](../DECISIONS.md) removes the build container work from the release. The .NET SDK
-  ceiling defect that this finding also names is carried by UT-2 in story S-01.
-- [UT-1](../06-user-tfm-patterns-tests-docs.md), the build container carries no .NET 11 SDK. Out of scope: section 6b
-  states that installing it and settling what `global.json` pins is not important for 2027.0, and that the two
-  defects it would have exposed are verified by a test of a comparison instead.
 - [UT-5](../06-user-tfm-patterns-tests-docs.md), no test project has a `net11.0` leg. Out of scope: section 6c records
   that no .NET 11 application programming interface justifies a `net11.0` asset or a `net11.0` test leg.
 - [UT-6](../06-user-tfm-patterns-tests-docs.md), the tested-target-framework scenario omits `net11.0`. Out of scope for

@@ -4,6 +4,7 @@
 - Labels: `bug`, `Area-Framework`, `Area-Framework-Templates`
 - Milestone: `2027.0`
 - Repositories: `metalama/Metalama`
+- Parent story: S-18, of which this is a sub-story
 - Size: M
 - Blocked by: S-18-1
 - Findings: [CM-9](../03-code-model-unions-closed.md), [TP-6](../02-syntax-generator-and-templates.md),
@@ -30,9 +31,11 @@ all three edit visitors that must agree.
 
 #### Scope
 
-- Give `ProduceCompileTimeCodeRewriter` a dispatch for a union declaration, either by an override or by a type test
-  that replaces the four kind-specific overrides and excludes extension blocks, and route it to the existing private
-  `VisitTypeDeclaration`, which classifies by templating scope.
+- Give `ProduceCompileTimeCodeRewriter` a dispatch for a union declaration, by adding the override for the union
+  kind beside the four kind-specific overrides that exist, inside the latest variant block, and route it to the
+  existing private `VisitTypeDeclaration`, which classifies by templating scope. The kind is added to the existing
+  dispatch rather than replaced by a test on the abstract type declaration, because the code base routes nodes by
+  kind and a type test would also admit the extension block, which must not be classified here.
 - Give `FindCompileTimeCodeVisitor` the same coverage, so that a union carrying a compile-time attribute is
   classified and reaches the manifest.
 - Give `TemplateAnnotator` a dispatch for a union declaration that annotates it with the scope its declaration

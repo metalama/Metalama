@@ -70,6 +70,6 @@ the same method for the .NET 11 SDK, so it must not change that failure path, an
 #### Not in scope
 
 This story does not raise the template language version, which section 4 of [`DECISIONS.md`](../DECISIONS.md) excludes,
-and it does not deliver the language features themselves, which are S-18-1 to S-18-6.
+and it does not deliver the language features themselves, which are S-16 to S-21 and S-28 to S-30.
 
 — Claude for @gfraiteur

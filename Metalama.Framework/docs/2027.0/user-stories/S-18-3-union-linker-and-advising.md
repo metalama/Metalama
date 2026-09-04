@@ -4,6 +4,7 @@
 - Labels: `enhancement`, `Area-Framework`
 - Milestone: `2027.0`
 - Repositories: `metalama/Metalama`
+- Parent story: S-18, of which this is a sub-story
 - Size: L
 - Blocked by: S-18-1
 - Findings: [LK-1](../04-linker-and-advice.md), [LK-2](../04-linker-and-advice.md), [LK-8](../04-linker-and-advice.md),
@@ -29,8 +30,10 @@ restrictions apply to the `union` declaration form and not to a type carrying th
 
 #### Scope
 
-- Replace the per-kind dispatch of the injection rewriter and of the linking rewriter by a version-neutral dispatch
-  over the abstract type declaration, which avoids naming a syntax type the lower variant lacks.
+- Add the union arm to the per-kind dispatch of the injection rewriter and of the linking rewriter, inside the
+  latest variant block that S-13 establishes. The kind is added to the existing dispatch rather than replaced by a
+  test on the abstract type declaration, because the code base routes nodes by kind, and the variant block is what
+  allows the arm to name a syntax type that the lower variant does not have.
 - Preserve the parameter list in the fallback path, because for a union that list holds the case types, and keep the
   fallback out of the record and struct paths, whose removed-primary-constructor branch would delete it and whose
   positional branch calls `GetDeclaredSymbol` on a parameter that has no declared symbol.

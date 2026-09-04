@@ -14,7 +14,7 @@
 `Metalama.Framework/src/Metalama.Framework.Engine/Advising/AdviceFactory.cs:1406` rejects the introduction of an
 indexer into an extension block by design, a restriction that #1587 recorded in the documentation rather than
 lifted. C# 15 adds extension indexers to the language, so that deliberate restriction becomes a gap. This story is
-self-contained and has no dependency on the union work, so it can run in parallel with S-18-1 to S-29.
+self-contained and has no dependency on the union work, so it can run in parallel with S-18.
 
 #### Context
 
