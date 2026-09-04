@@ -302,8 +302,11 @@ same time.
    decided in another repository and by an external Roslyn release. It is a long pole, not a big task that can be
    deferred. S-31 runs beside it and shortens the wait: the Roslyn that this repository already consumes carries the
    C# 15 members behind an experimental marker, so an opt-in flag lets the engine work of stage 6 start before S-10
-   and S-13 land. It is small, it is blocked by nothing, and S-13 deletes it. Its number is the last of the set
-   because it was added after the others were numbered, and not because it comes last.
+   and S-13 land. It is small, it is blocked by nothing, and S-13 turns it off. The harness itself is permanent and
+   ships disabled, because Roslyn publishes the interface of a feature behind an experimental marker one or more
+   releases before it declares the language version, so the same interval recurs at every language version. Its
+   number is the last of the set because it was added after the others were numbered, and not because it comes
+   last.
 3. The calendar-gated work, which cannot be pulled earlier whatever the plan says. S-11, the November 2026
    measurement, and S-12, Visual Studio Tools for Metalama, which waits on the same Visual Studio releases.
 4. S-13, the rename of the latest variant to Roslyn 5.12, the conditional compilation of the C# 15 Roslyn members and
@@ -433,7 +436,7 @@ graph TD
 | [S-28](S-28-introduce-closed-class.md) | C# 15 closed classes: introducing | M | `metalama/Metalama` | S-13, S-16 |
 | [S-29](S-29-introduce-union-and-case-attribute-form.md) | C# 15 unions: introducing a union and a case on the attribute form | L | `metalama/Metalama` | S-18-1, S-18-5 |
 | [S-30](S-30-introduce-case-into-union-declaration.md) | C# 15 unions: introducing a case into a `union` declaration | M | `metalama/Metalama` | S-29, and question Q1 of [`OPEN-QUESTIONS.md`](../OPEN-QUESTIONS.md) |
-| [S-31](S-31-preview-roslyn-api-opt-in-flag.md) | Build: an opt-in flag to compile against the experimental Roslyn C# 15 API | S | `metalama/Metalama` | nothing. It runs beside S-10 and is removed by S-13. |
+| [S-31](S-31-preview-roslyn-api-opt-in-flag.md) | Build: an opt-in flag to compile against the experimental Roslyn C# 15 API | S | `metalama/Metalama` | nothing. It runs beside S-10, and S-13 disables it without removing it. |
 
 ## Already in progress
 

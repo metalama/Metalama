@@ -19,6 +19,14 @@ build error. This story adds the opt-in that removes that error in this reposito
 work of S-16, S-18-1 and S-21 can begin before S-10 and S-13 deliver a Roslyn that carries the members without the
 marker.
 
+The opt-in is a permanent harness that ships disabled, not scaffolding that a later story deletes. The situation it
+answers recurs at every language version: Roslyn publishes the application programming interface of a feature behind
+an experimental marker one or more releases before it declares the language version that makes the feature
+supported, and the work that consumes it is blocked for that whole interval. S-13 turns the harness off when the
+renamed variant carries the C# 15 members unmarked. It stays in the repository, parameterised rather than written
+for C# 15, so that the next cycle enables it by naming the diagnostic identifiers and the grammar nodes of that
+cycle instead of by building it again.
+
 #### Context
 
 The flag is a development switch and never a product behaviour. It changes how Metalama is compiled, not what
@@ -26,7 +34,9 @@ Metalama permits a user to compile: the refusal of the preview language version 
 section 5 of [`DECISIONS.md`](../DECISIONS.md) keeps the template language at C# 14.
 
 Four gates stand between the engine and the C# 15 members, and they need four different remedies rather than one
-switch.
+switch. Each remedy is expressed as a list or a value that the harness reads, and never as a C# 15 constant in the
+build files, because the harness outlives this release. The empty list is the disabled state and reproduces the
+behaviour of the repository before this story.
 
 The first is the experimental marker. `[RSEXPERIMENTAL006]` is a diagnostic rather than a language construct, so
 `NoWarn` removes it and no conditional compilation is involved. The marker is safe to suppress for the union, closed
@@ -78,19 +88,24 @@ a commit where the flag was left on.
 
 #### Scope
 
-- Add `eng/RoslynPreview.props`, declaring `AllowRoslynPreviewFeatures` with a default of false, and defining
-  `ALLOW_PREVIEW_LANG_VERSION` and the `RSEXPERIMENTAL006` entry of `NoWarn` when it is true.
+- Add `eng/RoslynPreview.props`, declaring `AllowRoslynPreviewFeatures` with a default of false and defining
+  `ALLOW_PREVIEW_LANG_VERSION` when it is true. Declare beside it the list of experimental diagnostic identifiers
+  that the harness suppresses, as a property rather than a literal, so that a later cycle names its own; set it to
+  `RSEXPERIMENTAL006` for this one, and add its content to `NoWarn` only when the flag is true.
 - Import that file from `eng/RoslynVersions/Roslyn.5.10.0.props`, for the engine and the tests, and from
   `eng/src/Directory.Build.props`, for the syntax generator.
 - Fail the build with a clear message when `AllowRoslynPreviewFeatures` and `ContinuousIntegrationBuild` are both
-  true, so that a release cannot carry the flag.
-- Add `CSharp15` to `AllLanguageVersions`, as the numeric value 1500.
+  true, so that a release cannot carry the flag. This check is permanent and is not disabled by S-13.
+- Add `CSharp15` to `AllLanguageVersions`, as the numeric value 1500, following the entries that are already there
+  for C# 10 to C# 14.
 - Add the probe that yields `AllLanguageVersions.CSharp15` when the running Roslyn recognises it and
   `LanguageVersion.Preview` otherwise, and route the engine through it rather than through a conditional block.
-- Make `TreeReader.RemoveExperimentalDeclarations` keep the declarations of the four settled features when the flag
-  is set, and keep removing the unsafe expression in every case.
+- Give `TreeReader.RemoveExperimentalDeclarations` a list of the experimental features it must keep, identified by
+  the value of the `ExperimentalUrl` attribute that the grammar file carries, and pass the four settled features of
+  this cycle when the flag is set. An empty list keeps the behaviour the method has today, and the unsafe
+  expression is never in the list.
 - Add a test directive that sets `AllowPreviewLanguageFeatures` on a test project, and override the property in
-  `TestProjectOptions`.
+  `TestProjectOptions`. This is permanent and is independent of the flag.
 
 #### Acceptance criteria
 
@@ -101,6 +116,8 @@ a commit where the flag was left on.
 - With the flag set, an aspect test whose target code declares a union runs, subject to the reference assemblies
   named in the not-in-scope section below.
 - Both Roslyn variants build with the flag unset, and the latest variant builds with it set.
+- The suppressed diagnostic identifiers and the kept grammar nodes are read from properties, so that enabling the
+  harness for a later language version is a change of those values and not of the harness.
 - A build with `ContinuousIntegrationBuild` and the flag both set fails with the message this story adds.
 - Zero warnings under `-p:ContinuousIntegrationBuild=True` for every project touched.
 
@@ -113,10 +130,12 @@ or reports an error, decides whether the aspect test project needs a `net11.0` l
 question is narrower than the target framework decision of section 9 of [`DECISIONS.md`](../DECISIONS.md), which
 concerns the product assets and the product test matrix, and it is answered when this story is implemented.
 
-The removal of the flag, which belongs to S-13. That story renames the latest variant, moves the sources to the
-permanent `ROSLYN_5_12_0_OR_GREATER` gate and deletes `eng/RoslynPreview.props` together with its two imports and
-the conditional arm of the syntax generator. The probe of the language version value removes itself and may be
-deleted at leisure.
+Turning the harness off, which belongs to S-13. That story renames the latest variant and moves the sources from
+`ALLOW_PREVIEW_LANG_VERSION` to the permanent `ROSLYN_5_12_0_OR_GREATER` gate, then empties the list of suppressed
+diagnostic identifiers and the list of kept grammar nodes. `eng/RoslynPreview.props`, its two imports, the
+conditional arm of the syntax generator, the continuous integration check and the test directive all stay, so that
+the next cycle enables the harness rather than writing it again. The probe of the language version value needs no
+action at all: it stops taking the fallback when the Roslyn moves.
 
 Any change to what a user project may compile. The refusal of the preview language version, the value of
 `MetalamaTemplateLanguageVersion` and the supported language version list of a shipped build are unchanged.

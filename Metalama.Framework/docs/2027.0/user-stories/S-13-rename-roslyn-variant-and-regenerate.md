@@ -128,10 +128,12 @@ diagnostic, which section 6 also decides.
 
 #### Not in scope
 
-This story removes the temporary opt-in of S-31 rather than leaving it: it moves the sources from
-`ALLOW_PREVIEW_LANG_VERSION` to the permanent variant gate, and it deletes `eng/RoslynPreview.props`, its two
-imports and the conditional arm of the syntax generator, once the renamed variant carries the members without an
-experimental marker.
+This story disables the preview harness of S-31 rather than deleting it. It moves the sources from
+`ALLOW_PREVIEW_LANG_VERSION` to the permanent variant gate, then empties the list of suppressed experimental
+diagnostic identifiers and the list of grammar nodes that the syntax generator keeps. `eng/RoslynPreview.props`,
+its two imports, the conditional arm of the generator, the continuous integration check that forbids the flag in a
+release and the preview test directive all stay in place and disabled, so that the next language version enables
+the harness by naming its own identifiers rather than by building it again.
 
 This story does not add C# 15 to the supported language versions, which is S-15, and it does not mirror the
 renaming in `Metalama.Premium`, which is S-14. It does not deliver the union and closed features themselves: it
