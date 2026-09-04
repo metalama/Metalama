@@ -32,8 +32,9 @@ and it is a separate story because a pull request cannot span two repositories.
 
 - In `Metalama.Framework/src/Metalama.Framework.DesignTime/Refactoring/CSharpAttributeHelper.cs`, replace the per-kind
   arms for type and member declarations by one call to `MemberDeclarationSyntax.AddAttributeLists`, narrowed so that
-  namespaces, enum members, global statements and incomplete members keep returning null, and keep the special cases
-  for parameters, accessors and the compilation unit, which do not derive from that type.
+  namespaces, global statements and incomplete members keep returning null, and keep the special cases for
+  parameters, accessors and the compilation unit, which do not derive from that type. An enum member accepts an
+  attribute list, so it uses the general arm rather than returning null.
 - Keep the trivia behaviour that the tests of #779 pin, because the caller restores the leading trivia of the old
   node.
 - In `CompileTimeCompilationBuilder.ProduceCompileTimeCodeRewriter.TransformCompileTimeType`, decide between

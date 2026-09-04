@@ -350,7 +350,7 @@ public class Class
         }
 
         [Fact]
-        public async Task When_AttributeAppliedToEnumMember_Then_NothingIsAddedAsync()
+        public async Task Can_AddAttributeToEnumMemberAsync()
         {
             const string syntax = @"
 public enum Enum
@@ -363,9 +363,15 @@ public enum Enum
                 .OfType<EnumMemberDeclarationSyntax>()
                 .First();
 
-            var newRoot = await this.AddAttributeAsync( "TestAttribute", originalDeclaration );
+            var newRoot = await this.AddAttributeThroughSymbolAsync( "TestAttribute", originalDeclaration );
 
-            AssertEx.EolInvariantEqual( syntax, newRoot.ToFullString() );
+            var resultAttributes = newRoot.DescendantNodesAndSelf()
+                .OfType<EnumMemberDeclarationSyntax>()
+                .First()
+                .AttributeLists
+                .SelectMany( list => list.Attributes );
+
+            this.LogAndAssertContains( resultAttributes, "TestAttribute" );
         }
 
         [Fact]

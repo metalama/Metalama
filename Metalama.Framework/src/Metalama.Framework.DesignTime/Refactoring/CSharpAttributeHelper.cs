@@ -111,14 +111,13 @@ namespace Metalama.Framework.DesignTime.Refactoring
                 // These nodes derive from MemberDeclarationSyntax, but an attribute list on them would not be valid
                 // code, so they are excluded before the general arm below.
                 case BaseNamespaceDeclarationSyntax:
-                case EnumMemberDeclarationSyntax:
                 case GlobalStatementSyntax:
                 case IncompleteMemberSyntax:
                     return null;
 
                 // Every type declaration and every other member declaration, which includes the record, the record
-                // struct and the extension block. A declaration kind added by a later version of the language is
-                // covered without a new arm.
+                // struct, the extension block and the enum member. A declaration kind added by a later version of
+                // the language is covered without a new arm.
                 case MemberDeclarationSyntax member:
                     newNode = member.AddAttributeLists( attributeList );
 
