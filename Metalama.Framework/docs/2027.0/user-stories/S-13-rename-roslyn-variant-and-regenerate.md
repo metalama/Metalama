@@ -128,6 +128,11 @@ diagnostic, which section 6 also decides.
 
 #### Not in scope
 
+This story removes the temporary opt-in of S-31 rather than leaving it: it moves the sources from
+`ALLOW_PREVIEW_LANG_VERSION` to the permanent variant gate, and it deletes `eng/RoslynPreview.props`, its two
+imports and the conditional arm of the syntax generator, once the renamed variant carries the members without an
+experimental marker.
+
 This story does not add C# 15 to the supported language versions, which is S-15, and it does not mirror the
 renaming in `Metalama.Premium`, which is S-14. It does not deliver the union and closed features themselves: it
 delivers the conditional compilation mechanism and one worked example, and the features are S-16, S-18 and S-28. The open issue #875, which asks for a move to Roslyn 4.9, names a

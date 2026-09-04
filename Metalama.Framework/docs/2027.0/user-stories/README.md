@@ -300,7 +300,10 @@ same time.
 2. S-10, the move of `Metalama.Compiler` to Roslyn 5.12. This is the first exception to the rule that a large story
    comes late. It is large, and it must start at once, because every C# 15 story is downstream of it and its date is
    decided in another repository and by an external Roslyn release. It is a long pole, not a big task that can be
-   deferred.
+   deferred. S-31 runs beside it and shortens the wait: the Roslyn that this repository already consumes carries the
+   C# 15 members behind an experimental marker, so an opt-in flag lets the engine work of stage 6 start before S-10
+   and S-13 land. It is small, it is blocked by nothing, and S-13 deletes it. Its number is the last of the set
+   because it was added after the others were numbered, and not because it comes last.
 3. The calendar-gated work, which cannot be pulled earlier whatever the plan says. S-11, the November 2026
    measurement, and S-12, Visual Studio Tools for Metalama, which waits on the same Visual Studio releases.
 4. S-13, the rename of the latest variant to Roslyn 5.12, the conditional compilation of the C# 15 Roslyn members and
@@ -325,8 +328,8 @@ same time.
    2027.0 and which slips to 2027.1 if the release runs short. S-28, the introduction of a closed class, is the
    smallest and therefore the likeliest to survive a cut. Then S-29, the introduction of a union and of a case into a
    type carrying the union attribute, and S-30, the introduction of a case into a `union` declaration, which follows
-   S-29 and is filed only if question Q1 chooses Option A. This is the cut line of the release, and it carries the
-   last three numbers of the set so that a reader sees at once what may be dropped.
+   S-29 and is filed only if question Q1 chooses Option A. This is the cut line of the release, and S-28 to S-30 are
+   consecutive so that a reader sees at once what may be dropped.
 
 Stage 9 is the one place where a story precedes a story it is blocked by, and the exception is deliberate. S-26 names
 S-28 and S-29 as blockers, and S-27 names S-29. They document what ships, so the sections that describe an
@@ -387,6 +390,7 @@ graph TD
   S18["S-18 Unions in target code, the meta-story of S-18-1 to S-18-6"]
   S22["S-22 Premium Roslyn 5.0.0 variant tests"]
   S25["S-25 Sample solutions on PB-2027.0"]
+  S31["S-31 Opt-in flag for the experimental Roslyn API"] --> S13
 ```
 
 ## Stories
@@ -429,6 +433,7 @@ graph TD
 | [S-28](S-28-introduce-closed-class.md) | C# 15 closed classes: introducing | M | `metalama/Metalama` | S-13, S-16 |
 | [S-29](S-29-introduce-union-and-case-attribute-form.md) | C# 15 unions: introducing a union and a case on the attribute form | L | `metalama/Metalama` | S-18-1, S-18-5 |
 | [S-30](S-30-introduce-case-into-union-declaration.md) | C# 15 unions: introducing a case into a `union` declaration | M | `metalama/Metalama` | S-29, and question Q1 of [`OPEN-QUESTIONS.md`](../OPEN-QUESTIONS.md) |
+| [S-31](S-31-preview-roslyn-api-opt-in-flag.md) | Build: an opt-in flag to compile against the experimental Roslyn C# 15 API | S | `metalama/Metalama` | nothing. It runs beside S-10 and is removed by S-13. |
 
 ## Already in progress
 
