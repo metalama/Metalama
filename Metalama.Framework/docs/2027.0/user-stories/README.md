@@ -18,7 +18,7 @@ Each story is written as the issue body would be posted, preceded by the metadat
 choose. The issue type, the labels and the milestone are proposals and must be checked against the label set of the
 repository before an issue is created. Every story is a sub-issue of the meta-issue #1921, which groups the platform
 work of this release. The C# 15 stories, which are S-11 to S-22 and S-26, S-28, S-29 and S-30, are grouped under a
-new feature issue named C# 15, itself a sub-issue of #1921. The stories S-31 to S-36 are not C# 15 stories, and they
+new feature issue named C# 15, itself a sub-issue of #1921. The stories S-31 to S-37 are not C# 15 stories, and they
 are sub-issues of #1921 directly. That structure follows the previous release, in which the
 closed issue #1039, named C# 14, grouped twenty sub-issues under the closed meta-issue #1045, named .NET 10 Support.
 The `Size` field is an estimate of the effort of the pull request, on the small, medium and large scale that the
@@ -280,7 +280,9 @@ same time.
    entry points, S-35, the host process classification, S-24, the `Metalama.Premium` build-file residuals, and
    S-27, the change-visibility code action of `Metalama.Premium`. Then the two medium ones that remove a class of
    silent failure rather than a single defect: S-03, the type-declaration predicate, and S-07, the declaration-kind
-   switches.
+   switches. S-37, the .NET 11 software development kit in the build container, also belongs
+   here: it is blocked by nothing, and without it no aspect test can exercise a C# 15 construct in compile-time
+   code, so it gates S-11.
 2. S-01, the move of `Metalama.Compiler` to the stable Roslyn 5.12. This is the exception to the rule that a large
    story comes late. It is large, and it must start at once, because every C# 15 story is downstream of it and its
    date is decided in another repository and by an external Roslyn release. It is a long pole, not a big task that
@@ -289,7 +291,7 @@ same time.
    measurement, and S-32, Visual Studio Tools for Metalama, which waits on the same Visual Studio releases.
 4. S-09, the renumbering of the latest variant to Roslyn 5.12 and the regeneration of the syntax model. Blocked by
    S-01 and S-08. It is the gate of the release. Then S-10, the `Metalama.Premium` mirror of it.
-5. S-11, C# 15 as a supported language version. Blocked by S-04, S-06 and S-09. After it, a 2027.0 preview accepts
+5. S-11, C# 15 as a supported language version. Blocked by S-04, S-06, S-09 and S-37. After it, a 2027.0 preview accepts
    a C# 15 project instead of reporting an unsupported version.
 6. The required feature work, smallest first. S-18, the reading of a closed hierarchy, and S-30, the tests of
    non-virtual static interface members on the .NET Framework leg, are the two small ones. Then S-12, the union in
@@ -347,6 +349,7 @@ graph TD
   S22 --> S28
   S09 --> S25["S-25 Documentation"]
   S11 --> S25
+  S37["S-37 .NET 11 SDK in the container"] --> S11
   S03 --> S36["S-36 Internal architecture documents"]
   S12 --> S36
   S14 --> S36
@@ -412,6 +415,7 @@ graph TD
 | [S-34](S-34-conceptual-documentation-csharp-15.md) | Write the conceptual documentation of the C# 15 work and of the supported platforms of 2027.0 | L | `metalama/Metalama.Documentation` | S-11, S-17, S-18, S-19, S-21, S-25 |
 | [S-35](S-35-host-process-classification.md) | Derive the host process classification from one table and give the C# Dev Kit its own arm | S | `metalama/Metalama` | nothing |
 | [S-36](S-36-internal-architecture-documents.md) | Update the internal architecture documents that the C# 15 stories change | M | `metalama/Metalama` | S-03, S-12, S-14, S-16, S-17 and S-26, which are the stories whose result these documents describe, and S-29 if question Q1 of [`OPEN-QUESTIONS.md`](../OPEN-QUESTIONS.md) files it. A documentation story is normally blocked by the stories whose result it describes, because a document written before the code is a second thing to correct. |
+| [S-37](S-37-net-11-sdk-in-build-container.md) | Install the .NET 11 software development kit in the build container and settle what `global.json` pins | M | `metalama/Metalama`, `metalama/Metalama.Premium` | nothing. It gates S-11, because the compile-time language version is capped by the major version of the installed kit. |
 
 ## Already in progress
 
