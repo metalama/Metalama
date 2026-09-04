@@ -464,10 +464,16 @@ is not a class with one more modifier.
 
 ## 11. The stories are grouped under a new meta issue, "C# 15 Support"
 
-Stated by the product owner on 2026-09-04. The stories of this analysis become sub-issues of a new meta issue
-titled "C# 15 Support", which is created when the stories are approved. It is a sibling of the existing meta issue
-#1921, ".NET 11 Support", which groups the platform work and already carries sixteen sub-issues of which thirteen
+Stated by the product owner on 2026-09-04. The stories of this analysis become sub-issues of a new issue titled
+"C# 15", which is created when the stories are approved. It is a child of the existing meta issue #1921, ".NET 11
+Support", which groups the platform work of the release and already carries sixteen sub-issues of which thirteen
 are closed.
+
+The hierarchy repeats what the previous release did, which was found by checking the tracker rather than by
+assuming. Issue #1039, titled "C# 14", is of type Feature, its parent is issue #1045, ".NET 10 Support", and it
+carries twenty sub-issues, all closed. An earlier revision of this section proposed a sibling of #1921 instead; the
+precedent overrules it, and a language feature grouping under the release platform meta issue keeps one root per
+release.
 
 The division between the two follows the subject rather than the schedule. A story about the language, that is the
 C# 15 language version, unions, closed hierarchies, extension indexers, the template restrictions and the syntax

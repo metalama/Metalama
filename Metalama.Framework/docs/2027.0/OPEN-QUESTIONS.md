@@ -131,3 +131,53 @@ owner, so the corrections are recorded rather than applied.
 Not blocking. The document says that the `net10.0` toolset rolls forward to .NET 11. The analysis of the .NET 11
 interfaces found that `RollForward=Major` selects .NET 11 only when no .NET 10 runtime is installed, so the
 sentence should say when the roll-forward happens.
+
+## Coverage gaps found by the completeness review
+
+The synthesis ended with a review that asked what the analysis had missed. Twelve gaps were reported and are
+recorded here rather than silently closed. Each names where to look. None of them invalidates a finding or a story;
+they are places the analysis did not reach.
+
+### Q12. Static members in interfaces has no story
+
+It is one of the six features gated on `LanguageVersion.CSharp15`, and the only one that no story delivers. The
+Roslyn feature status row describes it as non-virtual static interface members on runtimes without default
+interface implementation support, which is why it matters here: the aspect test project has a `net48` leg. Either a
+story delivers it, following the test directory convention that the C# 15 language version story establishes, or
+the analysis records why none is needed.
+
+### Q13. Three neighbouring repositories are absent from the analysis
+
+`Metalama.Vsx` appears nowhere, although two package pinning rules of `Directory.Packages.md` are derived from the
+lowest installed version of it. `Metalama.Samples` appears nowhere, although the samples compile against the
+shipped packages and lose the `net8.0` and `net9.0` target frameworks with this release. `Metalama.Documentation`
+has no story, and two stories defer their user-facing documentation to a page list that no story writes.
+
+### Q14. Subsystems that no report examined
+
+`Metalama.Framework.EditorExtensions` is the only top-level directory of the framework sources that appears in no
+document, and it is a shipped assembly compiled once for every Roslyn variant against the minimum Roslyn version.
+Seven engine subsystems are likewise absent: syntax serialization, aspect ordering, hierarchical options,
+additional outputs, observers, queries and reflection mocks. Syntax serialization is the one that deserves a
+decision rather than a note, because it holds one serializer per supported type and turns a compile-time value into
+run-time syntax, which is a question for a union value.
+
+Host process detection is also unexamined, and its two copies have already diverged on the C# Dev Kit, which is one
+of the design-time hosts of the baseline.
+
+### Q15. A third option for the divergence of Q2 was never considered
+
+Q2 offers two options, silence and a diagnostic. Both take as given that the public members exist in every host and
+answer false where the engine cannot answer, which follows from the public assembly not being built per Roslyn
+version. Whether that assembly could carry a variant-specific part, or whether the members could be absent rather
+than false on the lower variant, was never examined.
+
+### Q16. The Metalama.Compiler story may understate its own scope
+
+The story that moves `Metalama.Compiler` to the stable Roslyn assumes that rebasing is the whole of the work. That
+repository is a Roslyn fork and was not cloned for this analysis, so the assumption is untested.
+
+### Q17. The internal architecture documents are outside the documentation story
+
+Nine documents of `Metalama.Framework/docs` are named nowhere, among them the compilation model, the pipeline, the
+three linker documents and the design-time memory rules. Several stories change what they describe.
