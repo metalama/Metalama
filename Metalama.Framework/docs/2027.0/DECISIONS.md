@@ -639,3 +639,79 @@ being below the version that the latest variant binds against.
 The practical consequence for story S-09 is unchanged in shape but clearer in purpose. The latest variant must bind
 against a version no higher than the lowest Roslyn that offers C# 15 among the hosts in support, which is 5.11 if
 such a host exists and 5.12 otherwise.
+
+## 14. Answers to the review of pull request #1925
+
+Thirteen review comments were left on 2026-09-04. The substantive ones are answered here, and the corrections they
+require are applied in the documents they name.
+
+### 14.1 The criterion is a new Roslyn application programming interface, not a new language feature
+
+Restated by the product owner: a new token type is an application programming interface addition from our point of
+view. If we need a new Roslyn interface in order to serve a feature, then we need a build of our projects against
+the Roslyn version that has it, even though `Metalama.Framework` does not care about the Roslyn implementation
+itself.
+
+This sharpens section 8c. That section asked whether a supported host presents a Roslyn with a non-experimental C#
+15 feature. The question is narrower: whether a supported host presents a Roslyn whose non-experimental features
+require an interface that an older Roslyn does not have. The `closed` modifier illustrates it. The feature adds no
+syntax node, so the earlier table recorded no new syntax, and yet `SyntaxKind.ClosedKeyword` is a new enumeration
+member and therefore a new interface. Reading or emitting the modifier requires a build against a Roslyn that
+declares it.
+
+### 14.2 Roslyn 5.0 probably serves a supported Visual Studio, not only Rider
+
+The product owner suspects that Roslyn 5.0 also serves an older long-term servicing channel of Visual Studio that
+is still supported on 2027-01-31, and asked for verification. The evidence supports the suspicion and contradicts
+what this analysis and `platform-support.md` assumed.
+
+The branch `release/dev18.0` of `dotnet/roslyn` exists, carries major version 5 and minor version 0, and was still
+receiving commits on 2026-08-25, which is nine months after Visual Studio 18.0 shipped in November 2025. Two
+dependency-flow branches for the same release were updated on 2026-08-26 and 2026-08-31. A release branch is not
+serviced for a channel that nobody can install, so a serviced Visual Studio 18.0 almost certainly exists.
+
+`platform-support.md` states that the Visual Studio 2026 long-term servicing channel opens in November 2026 and is
+therefore the first pinnable Visual Studio 2026 version. That statement is now doubtful. If a long-term servicing
+channel baseline exists at 18.0 and follows the eighteen-month pattern of the Visual Studio 2022 baselines, it is
+supported well past 2027-01-31, and it presents Roslyn 5.0.
+
+The consequence is that the `Roslyn.5.0.0` variant is required by a Visual Studio host rather than only by Rider
+and the Visual Studio Code C# Dev Kit. That makes the variant harder to drop, and it makes the divergence of
+question Q2 a Visual Studio problem as well.
+
+The measurement remains necessary, because this is inferred from branch activity rather than read from a support
+calendar. The Visual Studio 2026 servicing page states it directly, and the network policy of this session blocks
+that site.
+
+### 14.3 What the Roslyn move actually looks like
+
+Three comments correct the plan on this point, and together they replace the assumption that the work waits for a
+stable Roslyn.
+
+`Metalama.Compiler` must move to a preview Roslyn 5.12, because otherwise no progress is possible during the
+preview. Moving to the stable Roslyn branch is a release candidate requirement rather than a starting condition.
+
+The practice is to follow the .NET software development kit release candidate builds and to update the software
+development kit and Roslyn at each one, which means merging many times rather than once. After the software
+development kit reaches general availability, the wait is for Microsoft to publish the Roslyn public packages,
+which they are usually late in doing.
+
+There is no point in updating to a Roslyn version that no software development kit has shipped. This retires the
+question of whether to chase 5.10 or 5.11 for their own sake, and it replaces the single move of story S-01 with a
+sequence of merges paced by the release candidates.
+
+### 14.4 Points that need no work
+
+Metalama makes no guarantee that it generates valid C# code, and it does not verify every precondition of the
+language. That responsibility belongs to the aspect author. Question Q9, which warned that an eligibility rule
+keyed on the union flag would conflate the two forms of union, is therefore not important, and the blanket
+eligibility rule that earlier analysis proposed is not required for correctness.
+
+The introduction of a closed class, question Q4, is a simple feature of low priority.
+
+The .NET 11 software development kit is exercised through the external `Metalama.Tests.DotNetSdk` matrix rather
+than through a leg of this repository's own suite, which confirms the conclusion of section 6c from a different
+direction.
+
+The reporting mechanism that question Q2 would need has recently been implemented, so that question is a decision
+about whether to report rather than about how.
