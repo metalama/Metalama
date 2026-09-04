@@ -34,7 +34,7 @@ No project was built and no test was run for this analysis.
 4. Two engine defaults still name the previous baseline. The nested compile-time reference project restores a
    `net8.0` leg on every build (UT-3), and every unit, aspect, template and linker test observes
    `Project.TargetFramework == "net8.0"` whatever the test assembly targets (UT-4). Neither produces a failure, which
-   is why both survived the change that dropped .NET 8 and .NET 9.
+   is why the change that dropped .NET 8 and .NET 9 did not correct either of them.
 5. Runtime dependency pins do not have to move for .NET 11. The per-variant `System.Text.Json` pins are floors
    imposed by the Roslyn packages on their `netstandard2.0` assets and stay on the 10.0 line even after the
    renumbering to Roslyn 5.12, package pruning and the transitive audit default are .NET 10 SDK behaviours that the
@@ -47,9 +47,9 @@ No project was built and no test was run for this analysis.
 7. Closed classes, labeled `break` and `continue`, `with(...)` elements and extension indexers reach no
    pattern-specific code path that fails. The remaining work for them is test coverage and, for extension indexers,
    the contract advice that theme 04 owns (UT-15, UT-16, UT-17).
-8. Three test gates are dead and invisible: two facts of the Contracts unit tests are excluded on every leg because
-   their guard names `NET6_0` rather than `NET6_0_OR_GREATER`, and two aspect tests never run because their guard
-   names `ROSLYN4_4_OR_GREATER`, which no variant defines (UT-9, UT-10). The conventions that a C# 15 test suite
+8. Three test gates admit no test and report no diagnostic. Two facts of the Contracts unit tests are excluded on
+   every leg because their guard names `NET6_0` rather than `NET6_0_OR_GREATER`, and two aspect tests never run
+   because their guard names `ROSLYN4_4_OR_GREATER`, which no variant defines (UT-9, UT-10). The conventions that a C# 15 test suite
    needs are recorded in UT-19, and they cannot produce an executing test before the move to the stable Roslyn.
 
 ## Findings
@@ -102,8 +102,8 @@ No project was built and no test was run for this analysis.
   carries no per-target-framework language default; the implied `LangVersion` is computed by the compiler toolset in
   `Microsoft.CSharp.Core.targets`, which derives the maximum supported version from the project target framework,
   caps it at the maximum version the compiler itself knows, and assigns it only when the user has not set one. That
-  cap is 14.0 in Roslyn 5.0, 5.3, the 5.9.0 stable commit and the whole 5.10 window, and 15.0 only from the 5.11
-  window onward. With the Metalama.Compiler that the repository consumes today, a `net11.0` project that sets no
+  cap is 14.0 in Roslyn 5.0, 5.3, the 5.9.0 stable commit and the whole 5.10 line, and 15.0 only from the 5.11 line
+  onward. With the Metalama.Compiler that the repository consumes today, a `net11.0` project that sets no
   `LangVersion` receives 14.0, which the condition at `Metalama.Framework.targets:118` accepts, so neither the
   rewrite to 12.0 nor the `MetalamaCheckLangVersion` warning occurs. What `global.json` pins does not change that,
   and pinning an 11.0.x SDK is mandatory rather than optional as soon as any project targets `net11.0`.
@@ -143,7 +143,7 @@ No project was built and no test was run for this analysis.
   - `Metalama.Framework/src/Metalama.Framework.Package/build/Metalama.Framework.props:33` (`MaximumSdkVersion` 11.0),
     `:39` (the sentence naming 10.0 and 11.0 as the supported SDK versions)
   - `Metalama.Framework/src/Metalama.Framework.Package/build/Metalama.Framework.targets:399` (`_MetalamaSdkVersion`),
-    `:406-408` (the minimum rule, which shares the property), `:410-413` (the maximum rule), `:321-322` (the target
+    `:405-408` (the minimum rule, which shares the property), `:410-413` (the maximum rule), `:321-322` (the target
     framework version, which is not affected), `:392` (the target is hooked before
     `_CheckForInvalidConfigurationAndPlatform`)
   - `Metalama.Framework/src/tests/Standalone/SupportedPlatform.ContributedRequirements/SupportedPlatform.ContributedRequirements.csproj:39-41`
@@ -169,12 +169,12 @@ No project was built and no test was run for this analysis.
   `_CheckForInvalidConfigurationAndPlatform` so that it also appears in design-time builds.
 - Proposed change: compare the .NET SDK against `MaximumSdkVersion` on the major and minor components only, and do so
   in the maximum rule alone. Truncating `_MetalamaSdkVersion` itself at `:399` would also change the minimum rule at
-  `:406-408`, which shares that property, and would remove feature-band precision from `MinimumSdkVersion`, which a
+  `:405-408`, which shares that property, and would remove feature-band precision from `MinimumSdkVersion`, which a
   contributing package may legitimately set to a value such as 10.0.200. Introduce a second property, for example
   `_MetalamaSdkVersionMajorMinor` computed from the first two components of `$(NETCoreSdkVersion)`, and use it in the
   condition at `:412` only, with a comment stating that `MaximumSdkVersion` names the last supported major and minor
-  line. Writing `11.0.99999` in the props file is the alternative and is worse, because it leaves the same trap for
-  every requirement contributed by another package. Add a regression scenario that pins the boundary: the smallest
+  line. Writing `11.0.99999` in the props file is the alternative and is worse, because it leaves the same defect
+  available to every requirement contributed by another package. Add a regression scenario that pins the boundary: the smallest
   form is a fifth requirement in `SupportedPlatform.ContributedRequirements`, for example `Test.CurrentSdk`, whose
   `MaximumSdkVersion` is computed from the running SDK so that the scenario stays valid when the agent SDK moves,
   with `warning LAMA0601.*'Test[.]CurrentSdk'` added to the forbidden diagnostics of its `test.json`. The existing
@@ -202,7 +202,7 @@ No project was built and no test was run for this analysis.
   - `Metalama.Framework/src/Metalama.Framework.Engine/CompileTime/CompileTimeAssemblyLocator.cs:43` (the default
     value), `:209-212` (where it is used), `:219-224` (`netstandard2.0` is mandatory), `:266` (the framework list is
     appended to the cache key), `:415-417` (the selection of the additional compile-time assembly directory),
-    `:742-750` (the generated temporary project), `:757` (the package item group)
+    `:742-750` (the generated temporary project), `:755-758` (the package item group)
   - `Metalama.Framework/src/Metalama.Framework.Engine/Utilities/DotNetTool.cs:93-98,123-133`
   - `Metalama.Framework/src/Metalama.Framework.Engine/Options/DefaultProjectOptions.cs:103`
   - `Metalama.Framework/src/Metalama.Framework.Engine/Options/IProjectOptions.cs:203`
@@ -224,9 +224,9 @@ No project was built and no test was run for this analysis.
   `Microsoft.NET.EolTargetFrameworks.targets` stops at 7.0 and names `net8.0` as the minimum non-end-of-life target
   framework, on `main` and on `release/10.0.1xx` alike, so no `NETSDK1138` is emitted today. The entry may be added
   around 2026-11-10, when .NET 8 support ends, and it would then be a warning only, because the temporary project
-  sets no `TreatWarningsAsErrors` and imports no `Directory.Build.*` file (`:742-745`); it would also be invisible,
-  because `DotNetTool.Execute` keeps the child output only to build the exception of a failed run and discards it on
-  success (`DotNetTool.cs:93-98,123-133`). No restore error follows from the `net8.0` leg either: `netstandard2.0` is
+  sets no `TreatWarningsAsErrors` and imports no `Directory.Build.*` file (`:742-745`); it would also not be
+  displayed, because `DotNetTool.Execute` keeps the child output only to build the exception of a failed run and
+  discards it on success (`DotNetTool.cs:93-98,123-133`). No restore error follows from the `net8.0` leg either: `netstandard2.0` is
   mandatory in the same project and is compatible with `net8.0`, so a package that restores for the mandatory leg
   also restores for `net8.0`, and a package that does not already fails on the mandatory leg. The .NET 8 reference
   pack is downloaded from NuGet because the SDK layout bundles only its own version of `Microsoft.NETCore.App.Ref`,
@@ -243,7 +243,7 @@ No project was built and no test was run for this analysis.
   null, so no second default has to be changed. The framework list is appended to the cache key at `:266`, so
   existing cache directories are invalidated once, which is harmless.
 - Size: small.
-- Status: new work. The literal is a leftover of the closed issue #1876, whose scope enumerated build files and
+- Status: new work. The literal remains from the closed issue #1876, whose scope enumerated build files and
   package folders and never reached this C# constant. Related: #1789, the issue behind the standalone scenario and
   the unit test that repeat the value; #1885, the last change to the same temporary project, which declares the
   prerelease package source in the generated `nuget.config` and must not be disturbed; #725, closed as not planned,
@@ -302,7 +302,7 @@ No project was built and no test was run for this analysis.
   frameworks of the build files. Related: #1884, the other consumer of the target framework as seen by the pipeline.
 - Verification: the code pass confirmed the default, the absence of any test-side override and the snapshot that
   records it, and corrected the covariant-return claim, which holds for unit and linker tests only; the semantics
-  lens was not engaged, because the finding carries no external premise; the scope pass confirmed that no pull
+  pass was not engaged, because the finding carries no external premise; the scope pass confirmed that no pull
   request and no issue covers it.
 - Open questions: none.
 
@@ -427,7 +427,7 @@ No project was built and no test was run for this analysis.
   completed, and none of its nine comments defers these rows. Related: #1876, the source of the matrix values;
   #1902, the precedent for changing the build agent image.
 - Verification: the code pass confirmed the comment, the list, the `test.json` and the container component list, and
-  corrected the claim that the `LAMA0600` rule is unexercised; the semantics lens was not engaged, because the
+  corrected the claim that the `LAMA0600` rule is unexercised; the semantics pass was not engaged, because the
   finding carries no external premise; the scope pass confirmed that no issue tracks the omission and noted that the
   acceptance criteria of #1884 also name `net481`.
 - Open questions: none.
@@ -564,11 +564,9 @@ No project was built and no test was run for this analysis.
   - `Metalama.Patterns/src/tests/Metalama.Patterns.Contracts.UnitTests/Utilities/FloatingPointHelper.cs:15-25`
 - What happens today: `DoubleTests.cs:5,13` uses the exact symbol `#if NET6_0` while the project targets
   `net472;net10.0`. The .NET SDK defines `NET6_0` only for an exact `net6.0` target, and no property group defines it
-  artificially: the only `DefineConstants` in the repository are `DEBUG` in
-  `Metalama.Patterns.Caching.UnitTests.csproj:12` and `ROSLYN_5_10_0_OR_GREATER` in
-  `eng/RoslynVersions/Roslyn.5.10.0.props:10`. The guarded region `DoubleTests.cs:13-43` holds the only two `[Fact]`
-  methods of the class, so on both target frameworks the class compiles as an empty class, xunit discovers no test in
-  it, and no diagnostic is emitted. Within this repository the guard has never matched: the file entered the
+  artificially: no `DefineConstants` property in the repository adds `NET6_0`, in this project or anywhere else. The
+  guarded region `DoubleTests.cs:13-43` holds the only two `[Fact]` methods of the class, so on both target
+  frameworks the class compiles as an empty class, xunit discovers no test in it, and no diagnostic is emitted. Within this repository the guard has never matched: the file entered the
   repository in a commit where the project already targeted `net472;net8.0`, and the leg later moved to `net10.0`.
   Adding `net11.0` to the target framework list would not change this. The title of the finding is a simplification:
   the class compiles, and what never compiles is its body.
@@ -586,7 +584,7 @@ No project was built and no test was run for this analysis.
   the repository, and the change that moved the leg to `net10.0` did not revisit the guard. Related: #1876; #536.
 - Verification: the code pass confirmed the guard, the target frameworks, the absence of any artificial define and
   the two methods that the guard hides, and corrected the title and the alternative of removing the guard; the
-  semantics lens was not engaged, because the finding carries no external premise beyond the availability of two base
+  semantics pass was not engaged, because the finding carries no external premise beyond the availability of two base
   class library methods; the scope pass confirmed that no issue and no pull request covers it.
 - Open questions: none.
 
@@ -625,7 +623,7 @@ No project was built and no test was run for this analysis.
 - Status: new work. The gates are a residue of the closed issue #1881, whose cleanup searched for the `ROSLYN_*`
   naming convention and could not match a spelling without underscores.
 - Verification: the code pass confirmed the two files, the skip mechanism, the variant symbol set and the history of
-  the misspelling, and corrected the proposal to keep the target framework gate; the semantics lens was not engaged,
+  the misspelling, and corrected the proposal to keep the target framework gate; the semantics pass was not engaged,
   because the finding carries no external premise; the scope pass confirmed that no pull request and no issue covers
   it, and identified UT-9 as the sibling defect of the same class.
 - Open questions: none.
@@ -1278,7 +1276,7 @@ consumes exposes C# 15 as a non-preview language version and the supported langu
   language entry that `NOTES.md` needs.
 - Verification: the code pass opened every cited location, confirmed the text attributed to it, corrected two
   citations and established that the source generator attribute list is functional rather than prose; the semantics
-  lens was not engaged, because the finding carries no external premise; the scope pass confirmed that only the
+  pass was not engaged, because the finding carries no external premise; the scope pass confirmed that only the
   `Directory.Packages.md` paragraph is tracked and that this finding overlaps UT-11 and UT-12 on four
   `Directory.Packages.props` comments, which must be edited once.
 - Open questions: whether user-facing release notes live in `Metalama.Documentation` rather than in `NOTES.md`; the

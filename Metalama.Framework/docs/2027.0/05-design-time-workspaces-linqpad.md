@@ -10,7 +10,7 @@ change for Metalama 2027.0. The analysis reads the code as it stands on 2026-09-
 on `develop/2027.0`. Each finding was then re-checked by up to three verification passes: a code pass that re-read the
 cited code and tried to falsify the claim, a semantics pass that re-checked every external premise against
 `dotnet/roslyn`, `dotnet/csharplang`, `dotnet/msbuild`, `dotnet/arcade` and nuget.org, and a scope pass that
-established whether the proposed change is already implemented, in flight or tracked by an issue. The platform
+established whether the proposed change is already implemented, in progress or tracked by an issue. The platform
 baseline PB-2027.0 is decided by [`platform-support.md`](../platform-support.md), the permitted package versions by
 [`Directory.Packages.md`](../../../Directory.Packages.md), and the procedure for moving to a new Roslyn by
 [`updating-roslyn.md`](../updating-roslyn.md); this document cites them rather than restating them.
@@ -42,7 +42,7 @@ No project was built and no test was run for this analysis.
    compile-time scoped suppressions, so the gap is not confined to design time (DT-6).
 7. C# 15 cannot be requested by a test on any Roslyn variant that Metalama consumes today, and a test that requests
    it is marked skipped rather than failed, so a suite with no C# 15 test executed reports success (DT-7).
-8. Two release-level constraints close the theme. Every published package that depends on `Microsoft.CodeAnalysis.*`
+8. Two constraints of the release complete the theme. Every published package that depends on `Microsoft.CodeAnalysis.*`
    at the consumed prerelease version cannot be restored from nuget.org, which serves nothing above 5.9.0 (DT-8); and
    a .NET 10 host of the introspection packages cannot use a machine that carries only the .NET 11 SDK (DT-9).
 
@@ -63,8 +63,9 @@ No project was built and no test was run for this analysis.
   - `Metalama.Framework/src/Metalama.Framework.DesignTime/CodeFixes/TheCodeFixProvider.cs:57` (the identifier is
     registered as fixable), `:111-123` (the "Make partial" action), `:164-173` (the unconditional
     `AddModifiers(partial)`) and `:187-193` (`GetTypeDeclaration`, whose only match is `BaseTypeDeclarationSyntax`)
-  - `Metalama.Framework/src/Metalama.Framework.Engine/Utilities/Roslyn/SymbolExtensions.cs:288-291`
-    (`IsPrimaryConstructor`, which fails on a union primary constructor for the same reason)
+  - `Metalama.Framework/src/Metalama.Framework.Engine/Utilities/Roslyn/SymbolExtensions.cs:283-291`
+    (`IsPrimaryConstructor`, whose kind test is at `:289` and which fails on a union primary constructor for the same
+    reason)
   - `Metalama.Framework/src/Metalama.Framework.Engine/Pipeline/CompileTime/LinkerPipelineStage.cs:113-124` (the same
     generator runs during a build with a deliberately discarded diagnostic sink)
   - `Metalama.Framework/src/Metalama.Framework.Engine.Analyzers/KindCheckOptimizationAnalyzer.cs:722-727` (the
@@ -134,7 +135,7 @@ No project was built and no test was run for this analysis.
   predicate, the consumer and the code fix are unchanged on the working branch, that no open pull request touches
   them, and that no issue tracks the work.
 - Open questions: whether the code model should expose `INamedType.IsUnion`, which is owned by the code model theme
-  as CM-1. One residual risk is worth recording: the claim that a union symbol carries `TypeKind.Struct` rests on the
+  as CM-1. One residual risk remains: the claim that a union symbol carries `TypeKind.Struct` rests on the
   state of `dotnet/roslyn` main. If the stable Roslyn were to give unions a new `TypeKind`, the default arm of the
   mapping at `SourceNamedTypeImpl.cs:69-79` would throw and the consequence class would become a crash rather than a
   wrong warning.
@@ -222,16 +223,16 @@ No project was built and no test was run for this analysis.
   - `eng/src/GenerateMetaSyntaxRewriter/Model/TreeReader.cs:19`, `:35-43` (`RemoveExperimentalDeclarations`) and
     `:57`; `eng/src/GenerateMetaSyntaxRewriter/Model/TreeType.cs:37` and
     `eng/src/GenerateMetaSyntaxRewriter/Model/Field.cs:51` (the experimental predicates)
-  - `eng/src/GenerateMetaSyntaxRewriter/Generator.cs:615-708` (`GenerateHasher`, which emits one visit method per
-    surviving grammar node) and `:714-734` (the field-content and trivial-token rules)
-  - `eng/src/GenerateMetaSyntaxRewriter/GenerateMetaSyntaxRewriter.cs:19` (the version list) and `:46-47` (the two
+  - `eng/src/GenerateMetaSyntaxRewriter/Generator.cs:614-712` (`GenerateHasher`, which emits one visit method per
+    surviving grammar node) and `:714-735` (the field-content and trivial-token rules)
+  - `eng/src/GenerateMetaSyntaxRewriter/GenerateMetaSyntaxRewriter.cs:18` (the version list) and `:46-47` (the two
     generated hashers)
-  - `eng/src/GenerateMetaSyntaxRewriter/Syntax-5.10.0.xml:1290` and `:1301` (the experimental `Name` field of the
-    break and continue statements) and `:1954` (the experimental union node);
+  - `eng/src/GenerateMetaSyntaxRewriter/Syntax-5.10.0.xml:1296` and `:1307` (the experimental `Name` field of the
+    break statement and of the continue statement) and `:1954` (the experimental union node);
     `eng/src/GenerateMetaSyntaxRewriter/Syntax-5.0.0.xml` (no union node at all)
   - `Metalama.Framework/src/Metalama.Framework.DesignTime/Metalama.Framework.DesignTime.csproj:3` and `:33-35` (the
     variant properties and the inclusion of the generated files of that variant)
-  - `Metalama.Framework/src/Metalama.Framework.DesignTime/Pipeline/Diff/BaseCodeHasher.cs:19` and `:26`, and
+  - `Metalama.Framework/src/Metalama.Framework.DesignTime/Pipeline/Diff/BaseCodeHasher.cs:19` and `:27`, and
     `Metalama.Framework/src/Metalama.Framework.Sdk/Utilities/Roslyn/SafeSyntaxWalker.cs:39` (the walker depth is
     `SyntaxWalkerDepth.Node`)
   - `Metalama.Framework/src/Metalama.Framework.DesignTime/Pipeline/Diff/DiffStrategy.cs:73-93`, `:80-85` (an equal
@@ -249,8 +250,8 @@ No project was built and no test was run for this analysis.
   - `eng/RoslynVersions/Roslyn.5.10.0.props` and `eng/RoslynVersions/Latest.props` (the variant constant and its
     import), and [`updating-roslyn.md`](../updating-roslyn.md):11-13 and `:36`
 - What happens today: the two hashers are generated with one visit method per grammar node, and the generator strips
-  every node and every field that carries an experimental URL before generation. Two consequences follow. First, the
-  union node has no visit method, so the Roslyn default visit runs; the walker is constructed at
+  every node and every field that carries an experimental URL before generation. The stripping pass has two
+  consequences. First, the union node has no visit method, so the Roslyn default visit runs; the walker is constructed at
   `SyntaxWalkerDepth.Node`, which visits child nodes and skips tokens, so the union identifier, its modifiers and the
   `union` keyword contribute nothing to the hash, while the node-typed fields that the grammar declares, namely the
   attribute lists, the type parameter list, the parameter list, the base list, the constraint clauses and the
@@ -269,7 +270,7 @@ No project was built and no test was run for this analysis.
   whole mechanism lives in `Metalama.Framework.DesignTime`, so a batch compilation is not affected, and the defect is
   latent until C# 15 is reachable in a Metalama project.
 - Consequence: silent wrong output, in the form of design-time staleness. Nothing throws, nothing asserts and no
-  diagnostic is produced; the editor simply keeps showing the previous analysis.
+  diagnostic is produced; the editor keeps showing the previous analysis.
 - Proposed change: perform the correction as part of the move to the next stable Roslyn, which is 5.12 and not 5.10.
   Following [`updating-roslyn.md`](../updating-roslyn.md), add the stable grammar as a new file named after the new
   version and register it in the version list of the generator; the document explicitly forbids overwriting or
@@ -310,9 +311,9 @@ No project was built and no test was run for this analysis.
 ### DT-4. The design-time pipeline verifies no language version, and correctly so
 
 - Where:
-  - `Metalama.Framework/src/Metalama.Framework.Engine/Pipeline/CompileTime/CompileTimeAspectPipeline.cs:62-92`
+  - `Metalama.Framework/src/Metalama.Framework.Engine/Pipeline/CompileTime/CompileTimeAspectPipeline.cs:62-93`
     (`VerifyLanguageVersion`, whose comment at `:64-65` states that Roslyn does not set the language version properly
-    at design time), `:70-78` (the preview opt-in) and `:177` (the sole call site)
+    at design time), `:70-81` (the preview opt-in) and `:177` (the sole call site)
   - `Metalama.Framework/src/Metalama.Framework.Engine/Options/MSBuildProjectOptions.cs:108`
     (`AllowPreviewLanguageFeatures`) and `:167-181` (the language version getter, whose fallback at `:178` returns the
     latest supported version whenever the property does not parse)
@@ -398,9 +399,9 @@ No project was built and no test was run for this analysis.
     and `:189-190` (the default arm that returns `null`), with `:33-38` propagating that result out of the
     asynchronous entry point
   - In the `Metalama.Premium` repository,
-    `src/Metalama.Extensions.CodeFixes.DesignTime/AddAspectAttributeCodeActionModel.cs:94-99` (the null check, with
-    the empty result returned at `:98`, and the two preceding failure branches at `:71-73` and `:82-84`, which do log
-    a warning)
+    `src/Metalama.Extensions.CodeFixes.DesignTime/AddAspectAttributeCodeActionModel.cs:94-99` (the call to the helper
+    and the null check that follows, with the empty result returned at `:98`, and the two preceding failure branches
+    at `:70-75` and `:81-86`, which do log a warning)
   - In the `Metalama.Premium` repository, `src/Metalama.Extensions.CodeFixes.DesignTime/CodeFixService.cs:200-253`
     (the refactoring is offered for any declared symbol, with no filter on the syntax kind)
   - `Metalama.Framework/src/Metalama.Framework.Engine/DesignTime/CodeFixes/CodeActionResult.cs:26`, `:49` and
@@ -559,8 +560,9 @@ No project was built and no test was run for this analysis.
   integral value of 10 or more, the test is marked skipped with the reason that the version is not recognized by the
   current version of Roslyn, rather than failed, and the skip is reported to the test framework with that reason, so
   the run reports success. The absence of the C# 15 language version from the consumed build is established directly
-  rather than by dating: the stable Roslyn 5.9.0 assemblies contain the enumeration name for C# 14 and none for
-  C# 15, and the consumed build exposes the same public API. Consequently a test that requests C# 15 is skipped on
+  rather than by dating: the stable Roslyn 5.9.0 assemblies declare the enumeration member for C# 14 and declare no
+  member for C# 15, the only occurrence of the name `CSharp15` in them being the name of a test assembly in an
+  `InternalsVisibleTo` attribute, and the consumed build exposes the same public API. Consequently a test that requests C# 15 is skipped on
   both variants and the suite reports success with zero C# 15 tests executed. A test that requests the preview version
   parses, but the default scenario runs the compile-time pipeline, which rejects preview unless the preview opt-in is
   set, and neither the test options nor the test project options expose that option; that behaviour is pinned by an
@@ -616,7 +618,7 @@ No project was built and no test was run for this analysis.
      defined for the latest variant only, and the HTML writer contains no syntax kind switch, so no change is needed
      there.
 - Size: medium for the framework changes, plus the tests themselves. The variant-aware latest version of step 2 is
-  the part with a blast radius beyond the test framework, because every consumer of that value and of the default
+  the part whose effect reaches beyond the test framework, because every consumer of that value and of the default
   parse options then differs between the two variant assemblies. The gate of step 1 is a separate and larger piece of
   work that also depends on `Metalama.Compiler`.
 - Status: new work, gated by the move to the stable Roslyn. Nothing of the plan is implemented, no open pull request
@@ -703,7 +705,7 @@ No project was built and no test was run for this analysis.
   main, and not a published commitment by Microsoft.
 - Status: decision required. The decision is whether to renumber the latest variant now onto the stable 5.9.0, which
   exposes the same public API as the consumed prerelease and is available today, or to wait for the expected stable
-  5.12.0. The first option removes the restore failure immediately and loses no API that the code uses, but buys
+  5.12.0. The first option removes the restore failure immediately and loses no API that the code uses, but provides
   nothing for C# 15; the second is the target of PB-2027.0 but has an unverified date and an external prerequisite.
   Neither the gate nor the build check exists today, and no issue tracks either. The related issues are #1106, in
   which the same failure class already reached a user through a published preview pinned to a Roslyn version that
@@ -713,8 +715,8 @@ No project was built and no test was run for this analysis.
   meta-issue #1921, under which a story belongs; and #1913, because the Premium alignment mirrors the same pin into
   the second repository, so the gate has to cover both.
 - Verification: the code pass confirmed every reference, the private feed, the public artifact list and the absence
-  of any equivalent check in this repository, and it corrected the blast radius in both directions, adding the unit
-  testing package and removing the main user package. The semantics pass re-fetched the nuget.org indexes of all five
+  of any equivalent check in this repository, and it corrected the set of affected packages in both directions, adding
+  the unit testing package and removing the main user package. The semantics pass re-fetched the nuget.org indexes of all five
   packages, confirmed the restore failure, refuted the target version 5.10 and identified the stable 5.9.0 fallback.
   The scope pass confirmed that the pin is still the prerelease, that the documentation states the obligation without
   making it a gate, that the pre-release verification checklist does not contain it, and that no pull request or issue
@@ -891,12 +893,13 @@ passes unless a finding depends on them, so they are recorded as read on 2026-09
   (`DesignTimeTestRunner.cs:58-66`).
 - Workspaces packaging under PB-2027.0. The single .NET 10 target
   (`Metalama.Framework.Workspaces.csproj:18`) is what the baseline requires, and a .NET 11 consumer resolves that
-  asset. The fallback to a .NET 9 asset (`:96-98`) is dead once the consumed package ships a .NET 10 folder, and the
+  asset. The fallback to a .NET 9 asset (`:96-98`) is never selected once the consumed package contains a .NET 10
+  folder, and the
   error at `:117-118` guards the packing. The file `build/Metalama.Framework.Workspaces.targets` imports a path that
   does not exist, because the file name in the import is singular where the real file is plural; this has been so
   since the first public commit and has no effect, because NuGet drops from the build asset list every file whose name
-  also appears under the transitive build directory, so only the transitive file is ever imported. The file can be
-  deleted or corrected at leisure.
+  also appears under the transitive build directory, so only the transitive file is ever imported. The file may be
+  deleted or corrected in any later change.
 - Workspaces MSBuild versions. The MSBuild pin is 18.0.2 with its rationale at `Directory.Packages.props:35-52`, and
   the lowest supported host stays the .NET 10 SDK under PB-2027.0
   ([`Directory.Packages.md`](../../../Directory.Packages.md):18-20), so the pin is unchanged by .NET 11. The MSBuild
@@ -927,8 +930,8 @@ documentation, and PR for `Metalama.Premium`.
 - Hand-written type-declaration kind lists (cluster CL-01, owned by the code model theme). DT-1 and DT-6 are the
   design-time half of one edit that CM-2, CM-6 and LK-3 also report. The predicate at
   `Metalama.Framework/src/Metalama.Framework.Engine/Utilities/Roslyn/SyntaxKindExtensions.cs:33-35` and `:41` is the
-  single choke point, and the shape of the edit, a type test or an added kind, is one shared decision. It is one work
-  item and not five.
+  single place at which the kind is tested, and the shape of the edit, a type test or an added kind, is one shared
+  decision. It is one work item and not five.
 - The Roslyn variant gating strategy (cluster CL-09, owned by the code model theme as CM-10). DT-1, DT-2, DT-3, DT-5
   and DT-6 each state that their implementation depends on it. The engine is compiled twice from the same sources,
   once against a Roslyn that has none of the C# 15 API, production source carries no conditional compilation today,
