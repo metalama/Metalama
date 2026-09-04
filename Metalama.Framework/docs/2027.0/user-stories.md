@@ -17,8 +17,9 @@ the open pull requests of the two repositories. The platform baseline itself is 
 Each story is written as the issue body would be posted, preceded by the metadata that a person filing it has to
 choose. The issue type, the labels and the milestone are proposals and must be checked against the label set of the
 repository before an issue is created. Every story is a sub-issue of the meta-issue #1921, which groups the platform
-work of this release. The C# 15 stories, which are S-11 to S-22 and S-26, S-28 and S-29, are grouped under a new
-feature issue named C# 15, itself a sub-issue of #1921. That structure follows the previous release, in which the
+work of this release. The C# 15 stories, which are S-11 to S-22 and S-26, S-28, S-29 and S-30, are grouped under a
+new feature issue named C# 15, itself a sub-issue of #1921. The stories S-31 to S-36 are not C# 15 stories, and they
+are sub-issues of #1921 directly. That structure follows the previous release, in which the
 closed issue #1039, named C# 14, grouped twenty sub-issues under the closed meta-issue #1045, named .NET 10 Support.
 The `Size` field is an estimate of the effort of the pull request, on the small, medium and large scale that the
 repository already uses.
@@ -270,10 +271,12 @@ The list below reads as a dependency order. A story that names no blocker can st
    head of the critical path. Its schedule is the planning information on which most of 2027.0 depends.
 2. S-02, the variant gating, S-03, the type-declaration predicate, S-04, the two MSBuild comparisons, S-05, the
    residue of the previous baseline, S-06, the language version display mapping and the manifest fallbacks, S-07,
-   the declaration-kind switches, and S-27, the change-visibility code action of `Metalama.Premium`. All seven are
-   independent of the Roslyn gate and can be delivered before it.
+   the declaration-kind switches, S-27, the change-visibility code action of `Metalama.Premium`, S-31, the code
+   refactoring provider entry points, and S-35, the host process classification. All nine are independent of the
+   Roslyn gate and can be delivered before it.
 3. S-08, the November 2026 measurement. It is calendar-gated rather than dependency-gated, and it must not be
-   scheduled against the critical path.
+   scheduled against the critical path. S-32, Visual Studio Tools for Metalama and the flowed dependency pins, names
+   no blocker in this repository and is calendar-gated in the same way, by the November 2026 Visual Studio releases.
 4. S-09, the renumbering of the latest variant to Roslyn 5.12 and the regeneration of the syntax model. Blocked by
    S-01. It is the gate of the whole release.
 5. S-10, the Premium mirror of the renumbering. Blocked by S-09.
@@ -2367,12 +2370,24 @@ The supported route away from that coupling exists and its Metalama half is deli
 [`cross-process-communication.md`](../cross-process-communication.md), at lines 16 to 22, states that cross-process
 traffic between different Metalama versions is not allowed and that cross-version traffic uses
 `Metalama.Framework.DesignTime.Contracts`, whose types carry frozen `[Guid]` attributes and are unified by common
-language runtime type equivalence. Issue #1605 added the version-invariant notification contract that the extension
-needs; it was closed as completed on 2026-05-01 by pull request #1612. The extension half is tracked in the
-repository `metalama/Metalama.Vsx.Public`, as issues 17 and 18, which `Directory.Packages.md:387` cites and which this
-session could not read. It is an assumption that neither of them is delivered. `cross-process-communication.md:88`
-supports that assumption from this side: it records that the pipe-based delivery of `ServiceHubServerEndpoint` is
-retained so that older extension builds that still consume `Metalama.Framework.DesignTime.Rpc` keep working.
+language runtime type equivalence. Issue #1605, "Fix StreamJsonRpc.ConnectionLostException between VSX 2026.0.x and
+Metalama 2026.1.x by adding a version-invariant notification contract", was closed as completed on 2026-05-01, under
+the milestone 2026.1.11-preview, and was merged by pull request #1612, "Notification contract split and cross-binding
+fix". That pull request added the version-invariant notification subscription contract to
+`Metalama.Framework.DesignTime.Contracts`, with frozen `[Guid]` markers, and registered the implementation through the
+design-time entry point manager, so that a cross-version consumer no longer has to reference
+`Metalama.Framework.DesignTime.Rpc`. The contract therefore exists, and this story neither designs nor builds it.
+
+What remains is the consumption of that contract by the extension, and then the release of the flowed dependency
+pins. The body of issue #1605 states that it pairs with `metalama/Metalama.Vsx.Public` issue 17, which is the Visual
+Studio Tools side that consumes the new contract with a fallback to the previous path. The condition recorded at
+`Directory.Packages.md:387` names issue #1605 and `metalama/Metalama.Vsx.Public` issue 18. Whether the consumption
+has already happened is the fact that decides the size of this story, and it cannot be read from the session that
+produced this analysis, because that repository was not reachable from it. The story therefore states as an
+assumption that the consumption is still open, and it names issue 17 as the place to check.
+`cross-process-communication.md:88` supports that assumption from this side: it records that the pipe-based delivery
+of `ServiceHubServerEndpoint` is retained so that older extension builds that still consume
+`Metalama.Framework.DesignTime.Rpc` keep working.
 
 PB-2027.0 changes the other half of the condition. [`platform-support.md`](../platform-support.md), at lines 124 to
 134, removes Visual Studio 2022 from the supported set in its entirety and names the Visual Studio 2026 long-term
@@ -2389,9 +2404,10 @@ Metalama version present in one Visual Studio session, which the comment at `:17
 
 - State which Visual Studio versions Visual Studio Tools for Metalama supports for the 2027.0 release, and reconcile
   that set with PB-2027.0, which excludes Visual Studio 2022.
-- Complete the migration of the extension onto `Metalama.Framework.DesignTime.Contracts`, so that no code path of the
-  extension references `Metalama.Framework.DesignTime.Rpc`. This is the work that issues 17 and 18 of
-  `metalama/Metalama.Vsx.Public` describe, on the assumption that they are still open.
+- Consume, in the extension, the version-invariant notification contract that pull request #1612 added to
+  `Metalama.Framework.DesignTime.Contracts`, so that no code path of the extension references
+  `Metalama.Framework.DesignTime.Rpc`. The contract is delivered, so this bullet is consumption and not design. It is
+  the work that `metalama/Metalama.Vsx.Public` issue 17 describes, on the assumption that the issue is still open.
 - Report the lowest version of the extension that will still be installed on a user machine when 2027.0 ships, and
   the versions of the five flowed dependencies that this version pins. That measurement is what releases the pins,
   and nothing in `metalama/Metalama` can produce it.
@@ -2422,7 +2438,8 @@ Raising the five pins and rewriting the forward-looking item is a separate pull 
 is written once this story reports its measurement. It is also not part of S-08, which re-derives the pins that are
 capped by the Visual Studio installation of the build machine and not the pins that are capped by a separately
 deployed extension. This story does not change `Metalama.Framework.DesignTime.Contracts`, whose GUIDs are frozen
-forever by the rule at `cross-process-communication.md:57`.
+forever by the rule at `cross-process-communication.md:57`, and to which pull request #1612 has already added the
+notification contract that the extension has to consume.
 
 — Claude for @gfraiteur
 
