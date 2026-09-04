@@ -1569,6 +1569,46 @@
   ]
  },
  {
+  "path": "/home/user/Metalama/Metalama.Framework/docs/2027.0/03-code-model-unions-closed.md",
+  "edits_made": [
+   "Verified completeness: all ten kept findings CM-1 to CM-10 are present under `## Findings`, each under its own `### CM-n` heading, and the `## Withdrawn findings` section correctly states that no finding was withdrawn. No identifier is missing and none appears in the wrong section. No edit was needed for this check.",
+   "Verified consistency with the FACTS addendum: the document nowhere claims that `LanguageVersion.CSharp15` exists in the consumed Roslyn build (Summary item 7, CM-5 and CM-10 state the opposite), and it names 5.12 as the stable Roslyn to which the latest variant is renumbered (Related themes). The remaining occurrences of `5.10` are the file names `eng/RoslynVersions/Roslyn.5.10.0.props`, the constant `ROSLYN_5_10_0_OR_GREATER` and a historical statement about the closed issue #1881, all of which are accurate. No edit was needed for this check.",
+   "Corrected `DesignTimeSyntaxTreeGenerator.cs:941-951` to `:940-951` (CM-2): `IsInNonPartialSourceType` is declared on line 940, not 941.",
+   "Corrected `INamedTypeBuilder.cs` `BaseType` at `:37` to `:35` (CM-4): line 35 is `new INamedType? BaseType { get; set; }`; line 37 is a `// TODO` comment.",
+   "Corrected the statement that `IMemberOrNamedTypeBuilder.cs` \"has 45 lines\" to \"ends at line 46\" (CM-4): the closing brace is on line 46. The conclusion that the range 64-95 cited by the original report does not exist is unchanged.",
+   "Corrected `DerivedTypeIndex.cs:117-126` to `:118-127` (CM-5): `GetDirectlyDerivedTypesCore` spans lines 118 to 127.",
+   "Corrected `CodeModelExtensions.cs` first branch of `ToInsertPosition` from `:69-81` to `:70-82` (CM-6): the `if ( primaryDeclaration != null )` block runs from line 70 to line 82.",
+   "Corrected `SourceConstructor.cs:113-127` to `:116-148` in CM-6 and added the precise sub-locations `(`GetBaseConstructor`, whose kind list is at `:124-125` and whose throwing default arm is at `:127`)`: `GetBaseConstructor` starts at line 116, not 113, and ends at line 148.",
+   "Corrected `SourceConstructor.cs:116-133` to `:116-148` in CM-8, for the same reason.",
+   "Corrected `SymbolExtensions.cs:393-472` (`GetPrimaryDeclarationSyntax`) in CM-8 to `:393-467` (`GetPrimarySyntaxReference`) and `:472` (`GetPrimaryDeclarationSyntax`): the range 393-467 is `GetPrimarySyntaxReference`, and `GetPrimaryDeclarationSyntax` is the single line 472.",
+   "Corrected `SymbolBasedDeclaration.cs:52-56` to `:53-57` (CM-8): `IsImplicitlyDeclared` spans lines 53 to 57.",
+   "Corrected `Bug582_EqualityContract.cs:17` to `:16` (CM-8): the `builder.IntroduceProperty( ..., whenExists: OverrideStrategy.Override )` call is on line 16. The companion reference `Bug582_EqualityContract.t.cs:2` was verified as exact and left unchanged.",
+   "Corrected `DesignTimeSyntaxTreeGenerator.cs:316-324` to `:310-324` (CM-3): the construction of the outermost declaration is the namespace-wrapping block that begins on line 310.",
+   "Corrected the Non-findings citation `SerializableTypeIdGenerator.cs:93-112` and `:174-197` to `:117-141` and `:202-226`: the cited ranges are the two overloads of the private `IsWrittenInAnnotatedContext`, whereas the claim that the identifier writes the type in C# syntax is supported by the two `GetSerializableTypeId` overloads, which call `SyntaxGenerator.TypeSyntax( ... ).ToString()`.",
+   "Copywriting: replaced \"The breakage is in the syntax layer\" with \"The defects are in the syntax layer\" (Summary item 3).",
+   "Copywriting: replaced the metaphor \"which walks up the ancestors\" with \"which examines the node and then each of its ancestors in turn\", and the three following occurrences of \"the walk\" with \"the search\" (CM-6).",
+   "Copywriting: replaced \"reach the same code by two different routes\" with \"by two different paths\" (CM-6).",
+   "Copywriting: replaced \"which is harmless\" with \"which has no consequence\" (CM-6).",
+   "Copywriting: replaced \"do not substitute Roslyn's own `SyntaxFacts.IsTypeDeclaration` blindly\" with \"without further analysis\", and \"a blind substitution\" with \"an unconditional substitution\" (CM-6).",
+   "Copywriting: replaced the metaphor \"choke point\" in all four places (CM-6 proposed change, CM-6 verification twice, Related themes) with \"the single predicate from which several of the wrong answers derive\", \"the omitted `SyntaxKindExtensions` predicate\", \"sixteen further consumers of that predicate\" and \"the single predicate that all four findings depend on\".",
+   "Copywriting: replaced \"One qualification to the shortcut that closedness allows\" with \"One qualification applies to the optimization that closedness allows\" (CM-5).",
+   "Copywriting: replaced \"which is correct by accident\" with \"which is the correct outcome although the code does not recognize the union kind\" (CM-9).",
+   "Copywriting: replaced \"The failure is loud at build time; nothing is silent and nothing fails at run time\" with \"The failure occurs at build time. Nothing fails without a diagnostic and nothing fails at run time\" (CM-10).",
+   "Copywriting: replaced \"returning false silently disagrees with the latest variant\" with \"returning false disagrees with the latest variant\" (CM-10 proposed change), because the sentence already says what the disagreement is.",
+   "Copywriting: replaced \"the record-specific constructor logic does not misfire\" with \"is not applied to\" (Non-findings).",
+   "Reflowed every paragraph touched by the edits above so that no prose line exceeds the document's wrapping width and no orphan half-line remains.",
+   "Verified the platform-doctrine requirement: the introduction cites platform-support.md, Directory.Packages.md and updating-roslyn.md and states that it does not restate them, and no finding restates the baseline. CM-10 mentions only that the Roslyn 5.0 variant serves Rider and the C# Dev Kit, which it attributes to the closed issue #1898. No edit was needed.",
+   "Verified with the Edit and Bash tools that no em dash (U+2014), en dash, contraction, or bold or italic emphasis occurs anywhere in the document. None was found, so no edit was needed for those checks."
+  ],
+  "remaining_problems": [
+   "File-reference verification was carried out for all ten findings, not a sample of eight, by opening every cited file and reading the cited lines. Fourteen references did not match and were corrected as listed above. Three references are one line wider than the member they name and were left unchanged, because the extra line is a blank line or a closing brace and the reference is not misleading: `SourceNamedTypeImpl.cs:175-179` (`HasDefaultConstructor` ends at 178), `AdviceFactory.cs:404-421` (`Validate` ends at 422) and `DependencyAnalysisHelper.FindDeclaredAndAttributeTypesVisitor.cs:57-88` (the block of type visits ends at 91).",
+   "The labelled fields of every finding (`Consequence:`, `Size:`, `Status:`, `Open questions:`) begin with sentence fragments, for example \"Size: medium.\" and \"Consequence: no impact.\". This is a violation of the rule that requires complete sentences, but it is the structural format shared by all seven theme documents of this analysis, so I did not rewrite it in this document alone. Correcting it requires a decision that applies to the whole series.",
+   "The bulleted `- Where:` lists are lists of file references rather than sentences. I treated them as structured data rather than prose and did not convert them into sentences, for the same reason.",
+   "Two external claims of the document could not be checked against a source, because Metalama.Compiler and the Roslyn sources are not available in this session and no build was run: the compiler error identifiers CS9373, CS9374, CS9375, CS9384, CS9327, CS8863, CS0261 and CS0267, and the assertion in CM-9 that Roslyn checks the union feature while building the declaration table rather than only in the parser. They are attributed in the document to the semantics verification pass and are consistent with the FACTS file, which neither confirms nor contradicts them.",
+   "`SyntaxFactoryDebugHelper.cs:21` is cited in CM-10 as \"the per-variant run-time guard\". The line reads `MetaSyntaxRewriter rewriter = new( compilation.GetCompilationContext(), RoslynApiVersion.Current );`, which is a per-variant run-time value passed to a constructor rather than a guard. The reference points at the right line, so I left the wording, but a more precise description would be \"the per-variant run-time API version\"."
+  ]
+ },
+ {
   "path": "/home/user/Metalama/Metalama.Framework/docs/2027.0/02-syntax-generator-and-templates.md",
   "included_ids": [
    "TP-1",

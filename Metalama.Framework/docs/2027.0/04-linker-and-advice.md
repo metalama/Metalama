@@ -26,7 +26,7 @@ No project was built and no test was run for this analysis.
    the linker unless the project sets `AllowPreviewLanguageFeatures` on the latest variant. The failures become
    reachable with the move to the stable Roslyn 5.12 and the C# 15 language-version work, both owned by theme 01, and
    every repair that names a C# 15 API member depends on the variant gating strategy owned by theme 03.
-3. Repairing the dispatch is necessary and not sufficient. A union forbids instance fields, auto-properties and
+3. Repairing the dispatch is necessary and not sufficient. A union forbids instance fields, automatic properties and
    field-like events, forbids an explicitly declared public constructor with a single parameter, and requires every
    explicit constructor to chain to a synthesized or explicitly declared constructor. Several advice kinds emit
    exactly those shapes, so the injection has to be refused by eligibility or by a validation diagnostic (LK-8).
@@ -47,10 +47,10 @@ No project was built and no test was run for this analysis.
 7. Closed classes cause no failure. An aspect cannot introduce one, which is a feature gap bounded by four external
    constraints (LK-5); a class that an aspect introduces below a closed base type is admitted, and the one semantic
    consequence is that such an introduction can make a previously exhaustive user switch non-exhaustive.
-8. No linker rewrite is affected by labeled `break` and `continue`, because no rewriter reconstructs those statements. The
-   exposure is elsewhere: inlining copies user labels verbatim into one flattened statement list, so a labeled loop
-   in a template collides with a labeled loop in the target, and two overrides expanded from one template collide
-   with each other (LK-9).
+8. No linker rewrite is affected by labeled `break` and `continue`, because no rewriter reconstructs those
+   statements. The exposure is elsewhere: inlining copies user labels verbatim into one flattened statement list, so
+   a labeled loop in a template collides with a labeled loop in the target, and two overrides expanded from one
+   template collide with each other (LK-9).
 
 ## Findings
 
@@ -308,7 +308,7 @@ No project was built and no test was run for this analysis.
 - The two checks in `LinkerLateTransformationRegistry` remain unreachable, because they run only after a primary
   constructor was removed and a union has none. The record-only kind switches remain unreached for the `Value`
   property and for methods, because the override eligibility rules require an explicitly declared member
-  (`EligibilityRuleFactory.cs:88` and `:58-79`), but the code pass established one exception: the constructor rule
+  (`EligibilityRuleFactory.cs:88` and `:58-81`), but the code pass established one exception: the constructor rule
   (`:51-56`) requires only that the constructor is not a record copy constructor and that the declaring type passes
   the type rule, which admits a struct, so a union case constructor is eligible for an override-constructor advice.
   `LinkerRecordHelper.GetSynthesizedMethodOverrideTargets` (`:45`) filters on a record declaration kind and would
@@ -333,8 +333,8 @@ No project was built and no test was run for this analysis.
   working, and that the kind list of `GetDeclaringType` is not redundant even though its condition also requires the
   abstract node type, because the extension block declaration and the union declaration derive from that abstract type
   and the kind list is what excludes them.
-- Two constraints apply to the shape of that widening. The first comes from the scope pass and is the more important one:
-  the proposal to replace the kind lists by a bare type test contradicts a doctrine that this repository enforces
+- Two constraints apply to the shape of that widening. The first comes from the scope pass and is the more important
+  one: the proposal to replace the kind lists by a bare type test contradicts a doctrine that this repository enforces
   automatically. Issue #1307, completed by pull request #1309, converted such tests to a kind check followed by a
   type pattern, and `KindCheckOptimizationAnalyzer` reports LAMA0860 on a bare pattern match against a syntax node
   type in the Metalama assemblies, accepting `IsTypeDeclaration` as a valid preceding check (`:722-725`). Under the
@@ -452,7 +452,7 @@ No project was built and no test was run for this analysis.
   original node instead of regenerating it, and the design-time generator adds the partial keyword to the existing
   modifier list rather than rebuilding it.
 - Introducing a class derived from a closed class is permitted, with two precisions. The language requires the same
-  module and not only the same assembly, and an introduction always lands in the compilation being transformed, so
+  module and not only the same assembly, and an introduction is always made in the compilation being transformed, so
   both conditions hold. The compiler discovers the subtypes by walking the source module of the compilation, so an
   introduced derived type is included in the synthesized attribute that records the derived types.
 - Consequence: no impact for the missing ability to introduce a closed class or a union, because the aspect author has
@@ -547,7 +547,7 @@ No project was built and no test was run for this analysis.
   extension block declaring an indexer must provide a named receiver parameter, because an indexer is always an
   instance member. The rule must also reject an `init` accessor and the `abstract`, `virtual`, `override`, `new`,
   `sealed`, `partial` and `protected` modifiers, which the proposal forbids in the same sentence. Note that an
-  ineligible target still raises an invalid-operation exception from `AdviceFactory.Validate` (`:404-417`) and
+  ineligible target still raises an invalid-operation exception from `AdviceFactory.Validate` (`:404-422`) and
   therefore still surfaces as LAMA0041, so the consequence class does not change for a static extension block; only
   the message does.
 - Extend `ExtensionImplementationHelper.CreateImplicitAccessorMethod`, which today adds only the receiver parameter
@@ -566,10 +566,11 @@ No project was built and no test was run for this analysis.
   variant cannot parse an indexer inside an extension block. Delete or replace the test
   `Tests/Aspects/Introductions/ExtensionBlocks/ErrorIndexerIntoExtensionBlock.cs` and its expected output, and
   restore the word "indexers" in the two documentation summaries at `IAdviceFactory.cs:1039` and `:1061`.
-- Sequencing: this work cannot be tested before two prerequisites land, because the feature is gated on a message
-  identifier that resolves to `LanguageVersion.Preview` in the consumed Roslyn preview and in the stable 5.9.0, and
-  to C# 15 only from the Roslyn commit of 2026-08-11. The prerequisites are the move of the latest Roslyn variant to
-  the stable 5.12 and the addition of C# 15 to the supported versions and to the checks of `VerifyLanguageVersion`.
+- Sequencing: this work cannot be tested before two prerequisites are completed, because the feature is gated on a
+  message identifier that resolves to `LanguageVersion.Preview` in the consumed Roslyn preview and in the stable
+  5.9.0, and to C# 15 only from the Roslyn commit of 2026-08-11. The prerequisites are the move of the latest Roslyn
+  variant to the stable 5.12 and the addition of C# 15 to the supported versions and to the checks of
+  `VerifyLanguageVersion`.
 - Size: medium.
 - Status: new work. No open or merged pull request touches the advice factory for this purpose, and no issue proposes
   the change. The story must cite #1587, which is the opposite decision: it recorded that indexers are rejected and
@@ -832,14 +833,14 @@ No project was built and no test was run for this analysis.
   is labeled with that identifier, so the rewrite must not insert a statement or a block between a label and its
   loop; and dropping the label of a break or continue statement produces no diagnostic and silently retargets the
   jump to the innermost loop.
-- A smaller alternative is worth measuring first: leave the syntax unchanged and refuse the inlining when the inlined body
-  and the destination body declare a label of the same name, by treating the semantic as not inlineable in the
+- A smaller alternative is worth measuring first: leave the syntax unchanged and refuse the inlining when the inlined
+  body and the destination body declare a label of the same name, by treating the semantic as not inlineable in the
   inlineability analyzer. That produces a call instead of an error and needs no new rewriting.
 - Add linker tests under `Tests/Methods/Overrides/Labels` covering a labeled loop in the override only, in the target
   only, in both, and in two chained overrides expanded from the same template.
 - Size: medium.
 - Status: decision required. The decision is whether the labels of an inlined body are renamed or the inlining is
-  refused when the labels collide. The story is the linker half of a feature whose template half is finding TP-3 of
+  refused when the labels collide. The story is the linker part of a feature whose template part is finding TP-3 of
   theme 02, and it must cite #1896 as the precedent for raising the template language version and #985 as the open
   catch-all umbrella, which does not scope this work. The linker documentation issue #964 owns the section of
   [`linker-inlining.md`](../linker-inlining.md) that the proposal extends, and #966 places the work in the existing
@@ -919,7 +920,7 @@ No project was built and no test was run for this analysis.
 
 No finding of this theme was withdrawn. All ten findings of the original report survived the three verification
 passes, and none was refuted at its core. Several statements inside them were refuted and are corrected above; the
-five that most change the picture are recorded here so that a reader of the original report knows they were
+five most significant of those corrections are recorded here so that a reader of the original report knows they were
 considered.
 
 The original report described LK-1 as a defect observable today. No Roslyn that Metalama consumes exposes C# 15 as a
@@ -943,7 +944,7 @@ tests. Both parts of the LK-3 proposal are replaced above.
 The original report left open whether a partial declaration of a closed class must repeat the modifier, and proposed
 to copy the case list of a union into the generated partial part. The compiler unions the modifiers of all partial
 parts, so the generated part is correct as it stands; and it accepts the case list on at most one part and reports
-CS8863 on every further part that carries one, so copying it would trade one compilation error for another.
+CS8863 on every further part that carries one, so copying it would replace one compilation error with another.
 
 The original report treated the union member restrictions as a consequence of the epilogue emitter emitting
 forwarding constructors, and attributed a backing-field introduction to the struct-field helper. Neither mechanism
@@ -1022,8 +1023,8 @@ re-verified only where a finding above depends on them.
   (`Metalama.Framework/src/Metalama.Framework.Engine/CodeModel/Introductions/Builders/IndexerBuilder.cs:28-38`)
   accepts any named type including an extension block, so LK-6 needs no builder change, and the extension block
   builder already models the static-extension case that the LK-6 rule reads.
-- Tests that pin current behaviour and that a union or closed change must keep green: 82 record aspect tests, the
-  initialization tests for records, the record fabric tests, the 19 inputs of
+- Tests that pin current behaviour and that a union or closed change must keep passing: 82 record aspect tests, the
+  initialization tests for records, the record fabric tests, the 17 inputs of
   `Tests/Aspects/CSharp14/ExtensionMembers`, the 13 inputs of `Tests/Aspects/Overrides/Indexers` including
   `NotInlineable`, which pins LAMA0699, and the linker tests that pin the rewrite of a `return` into a `break` inside
   a switch section. No existing test contains `union` or `closed` as a keyword.
@@ -1040,8 +1041,8 @@ re-verified only where a finding above depends on them.
   06, which covers the contract advice and the not-null fabric over the same member shape. The three share one
   prerequisite, a compilation that accepts an extension indexer, so none of them can be validated separately.
 - The hand-written type-declaration kind lists are owned by theme 03, which carries LK-3 together with findings CM-2
-  and CM-6 of that theme and DT-1 and DT-6 of theme 05. It is one edit with one shared decision, and it must land
-  before LK-1, LK-2 and LK-8, because those call the predicates it repairs.
+  and CM-6 of that theme and DT-1 and DT-6 of theme 05. It is one edit with one shared decision, and it must be
+  completed before LK-1, LK-2 and LK-8, because those call the predicates it repairs.
 - The inventory of syntax visitors that inherit the Roslyn dispatch and therefore never observe a union declaration
   is finding CM-7 of theme 03, with LK-10 as one of its members. LK-10 cannot be corrected alone, because the
   template annotator has no union dispatch either.
@@ -1050,9 +1051,9 @@ re-verified only where a finding above depends on them.
   discriminator, which is one decision.
 - Closed hierarchies are owned by theme 03, which carries LK-5 with findings CM-4 and CM-5 of that theme, TP-10 of
   theme 02 and UT-15 of theme 06. Grouping them allows the closed feature to be deferred as a whole rather than
-  leaving a half-implemented modifier behind.
+  leaving a partially implemented modifier in the code base.
 - Labeled `break` and `continue` are owned by theme 02, which carries LK-9 with finding TP-3 of that theme and UT-17
-  of theme 06. Both halves read the label of a break or continue statement, which only the regenerated latest variant
+  of theme 06. Both parts read the label of a break or continue statement, which only the regenerated latest variant
   exposes, so writing them apart would duplicate the gating work.
 - The renumbering of the latest Roslyn variant to the stable 5.12 and the regeneration of the syntax model are owned
   by theme 01. Every union finding of this document and every test proposed for extension indexers depends on it.
