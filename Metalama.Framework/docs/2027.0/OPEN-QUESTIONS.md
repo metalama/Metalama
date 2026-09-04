@@ -46,7 +46,9 @@ a `closed` modifier that an aspect emits at build time is absent at design time.
   reported once per project, with an opt-out, from the diagnostic analyzer. It fires in an editor whose user can
   act on it only by changing the integrated development environment.
 
-The draft recommends Option B. One measurement could change the answer, which is Q6. Settled by the product owner.
+The draft recommends Option B. The review of pull request #1925 records that the reporting mechanism has recently
+been implemented, so the question is whether to report rather than how. One measurement could still change the
+answer, which is Q6. Settled by the product owner.
 
 ### Q3. Is the severity and the opt-out of each new design-time diagnostic right?
 
@@ -60,7 +62,9 @@ drafts propose a warning with an opt-out for the first. Settled when the stories
 Answered on 2026-09-04 in section 5f of [`DECISIONS.md`](DECISIONS.md): yes. A closed class is an ordinary class
 with one more modifier, and the analysis had already found every part of the writer identified and cheap. The
 answer raises the stake of Q2, because an aspect that introduces a closed class emits the modifier at build time
-and nothing at design time on the hosts that the lower Roslyn variant serves.
+and nothing at design time on the hosts that the lower Roslyn variant serves. The review of pull request #1925
+adds that the feature is simple and of low priority, which places it first among the discretionary stories of
+section 13 of [`DECISIONS.md`](DECISIONS.md) and therefore likeliest to survive a cut.
 
 ## Measurements that the calendar settles
 
@@ -81,9 +85,11 @@ Blocking, for the variant set, and already tracked as checklist item 2 of
 
 Rider was measured at Roslyn 5.0.0 on 2026-09-01 and the C# Dev Kit was not measured. Rider builds its own Roslyn
 rather than taking a published package, so it could in principle present a version that no Visual Studio presents.
-The measurement decides whether the `Roslyn.5.0.0` variant is still needed, and therefore whether Q2 exists at all:
-if every supported design-time host presented Roslyn 5.12, the divergence would disappear with the lower variant.
-Due at the release candidate, on 2026-11-20.
+The review of pull request #1925 narrows the question. It matters only if Rider relies on a Roslyn version that no
+supported Visual Studio uses on 2027-01-31 and whose non-experimental features require an interface that an older
+Roslyn does not have. Section 14.2 of [`DECISIONS.md`](DECISIONS.md) makes that less likely, because Roslyn 5.0
+appears to serve a serviced Visual Studio 18.0 as well, in which case the lower variant is required whatever Rider
+presents. Due at the release candidate, on 2026-11-20.
 
 ## Technical questions that an analysis settles
 
@@ -112,7 +118,11 @@ leave it open.
 
 ### Q9. Which eligibility rules must distinguish the two forms of union?
 
-Not blocking, and it is a trap rather than a question. `ITypeSymbol.IsUnion` is true both for a `union` declaration
+Answered by the review of pull request #1925: not important. Metalama makes no guarantee that it generates valid
+C# code and does not verify every precondition of the language, which remains the responsibility of the aspect
+author. The description of the trap follows, because the distinction is still worth knowing when a rule is written.
+
+`ITypeSymbol.IsUnion` is true both for a `union` declaration
 and for a type carrying the attribute, while the restrictions of a union declaration apply only to the first. A
 rule keyed on `IsUnion` alone would reject advice that is legal on the second. Every rule written for the union
 work must state which of the two it tests.
@@ -134,11 +144,16 @@ sentence should say when the roll-forward happens.
 
 ## Coverage gaps found by the completeness review
 
-The synthesis ended with a review that asked what the analysis had missed. Twelve gaps were reported and are
-recorded here rather than silently closed. Each names where to look. None of them invalidates a finding or a story;
-they are places the analysis did not reach.
+The synthesis ended with a review that asked what the analysis had missed. Twelve gaps were reported. Seven became
+stories after investigation, and the rest were cleared with a file reference each, so most of the entries below are
+answered. Each entry states its answer first and keeps the original question, because the question records why the
+story exists.
 
 ### Q12. Static members in interfaces has no story
+
+**Answered.** Story S-30 delivers it. The investigation found that the feature adds no syntax, appears in only two
+Roslyn files, and needs no product change in Metalama, so the story is test coverage on the .NET Framework leg.
+
 
 It is one of the six features gated on `LanguageVersion.CSharp15`, and the only one that no story delivers. The
 Roslyn feature status row describes it as non-virtual static interface members on runtimes without default
@@ -148,12 +163,22 @@ the analysis records why none is needed.
 
 ### Q13. Three neighbouring repositories are absent from the analysis
 
+**Answered.** Stories S-32, S-33 and S-34 cover Visual Studio Tools for Metalama, the samples and the conceptual
+documentation respectively.
+
+
 `Metalama.Vsx` appears nowhere, although two package pinning rules of `Directory.Packages.md` are derived from the
 lowest installed version of it. `Metalama.Samples` appears nowhere, although the samples compile against the
 shipped packages and lose the `net8.0` and `net9.0` target frameworks with this release. `Metalama.Documentation`
 has no story, and two stories defer their user-facing documentation to a page list that no story writes.
 
 ### Q14. Subsystems that no report examined
+
+**Answered.** Story S-31 covers the one defect found, which is the code refactoring provider entry points that no
+test pins, and story S-35 covers the host process classification. Syntax serialization, the editor extensions,
+aspect ordering, hierarchical options, additional outputs, observers, queries and reflection mocks were each
+examined and cleared, with a file reference in `analysis-reports/14-subsystem-coverage-notes.md`.
+
 
 `Metalama.Framework.EditorExtensions` is the only top-level directory of the framework sources that appears in no
 document, and it is a shipped assembly compiled once for every Roslyn variant against the minimum Roslyn version.
@@ -174,10 +199,18 @@ than false on the lower variant, was never examined.
 
 ### Q16. The Metalama.Compiler story may understate its own scope
 
+**Answered.** Story S-01 was amended against the tracker of that repository. The move is a merge from an upstream
+branch rather than a rebase, and section 14.3 of [`DECISIONS.md`](DECISIONS.md) records that it is a sequence of
+merges paced by the software development kit release candidates.
+
+
 The story that moves `Metalama.Compiler` to the stable Roslyn assumes that rebasing is the whole of the work. That
 repository is a Roslyn fork and was not cloned for this analysis, so the assumption is untested.
 
 ### Q17. The internal architecture documents are outside the documentation story
+
+**Answered.** Story S-36 covers the five documents that change, and names the four that need nothing.
+
 
 Nine documents of `Metalama.Framework/docs` are named nowhere, among them the compilation model, the pipeline, the
 three linker documents and the design-time memory rules. Several stories change what they describe.
