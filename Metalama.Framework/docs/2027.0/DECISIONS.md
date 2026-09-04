@@ -200,3 +200,18 @@ evidence for the estimate. It is not a specification, and a story must not quote
 
 This applies in particular to the union work of section 5c, where the natural temptation is to fix the signature of
 an introduction method in the story text.
+
+### 7b. Refinement: the interfaces are drafted, as material to think with
+
+Stated on 2026-09-04, refining section 7 rather than reversing it. The application programming interfaces are to be
+drafted now, because the concepts stay too abstract without them and a shape on the page is what makes a trade-off
+arguable.
+
+The distinction that section 7 draws is kept, and it is a distinction of authority rather than of content. A draft
+is written to be criticised and replaced. It is illustrative material, it lives in the analyses under
+`analysis-reports`, and a user story does not become a specification by citing one. What a story states remains the
+capability, the scope and the acceptance criteria.
+
+A draft is most useful when it is written the way an aspect author would meet it, which means the code an author
+writes, the code that the author's users write, and the code that Metalama produces, rather than an interface
+declaration on its own.
