@@ -106,3 +106,51 @@ This confirms decision 6b: with no interface wanted, the build container change 
 One documentation correction follows from the same analysis. The statement in `platform-support.md` that the
 `net10.0` toolset rolls forward to .NET 11 overstates `RollForward=Major`, which selects .NET 11 only when no .NET
 10 runtime is installed.
+
+## 5b. The answer to decision 5: both writers are out of scope for 2027.0
+
+Established on 2026-09-04 by the analysis in
+[`analysis-reports/10-introducing-closed-and-unions.md`](analysis-reports/10-introducing-closed-and-unions.md).
+
+An aspect may read a union and a closed class, through `INamedType.IsUnion` and `INamedType.IsClosed`, and may not
+introduce either. The reading half is in scope for 2027.0 and the writing half is not.
+
+The closed writer is size M and every part of it is identified and cheap: the property on `INamedTypeBuilder`, its
+validation, the storage in the builder data, the exposure on the introduced type, and the token emission in
+`ModifierHelper`. It is deferred for the reason in the next section rather than for its cost. An aspect can already
+introduce a class together with its subtypes in one run, which the existing tests `Recursive.cs`,
+`BaseType_Abstract.cs` and `IntroducedDerivedType.cs` prove, so the scenario is expressible.
+
+The union writer is size L and is blocked by two things that are not the absence of struct introduction. The
+grammar makes the case list mandatory and the type builder has no model for it, the primary constructor of a
+builder being an open item in `INamedTypeBuilder`. The compiler-synthesized members must be materialized as
+builders, because the introduction pipeline never re-reads the final model from Roslyn. That is the same blocker
+that keeps record introduction open in issue #867.
+
+Issues #865, #866, #867 and #869, which ask for the introduction of enums, delegates, records and structs, are all
+open user stories with no milestone, no assignee and no body, imported from the previous tracker. Union
+introduction belongs with them rather than with the C# 15 work.
+
+The one thing that would change this recommendation is a customer scenario that needs an aspect-generated closed
+hierarchy. None is known.
+
+## 2b. A consequence of decision 2 that needs a further decision
+
+The analysis of the writers surfaced a property of the variant mechanism that decision 2 does not settle, and that
+applies to the reading half as much as to the writing half.
+
+`Metalama.Framework`, the public application programming interface assembly, is not built per Roslyn version:
+only `Metalama.Framework.Engine`, `Metalama.Framework.DesignTime` and `Metalama.Framework.Implementation` carry
+the variant suffix. A member such as `INamedType.IsUnion` therefore exists in every host, while the engine code
+that answers it is compiled only in the latest variant.
+
+The consequence is a silent divergence between design time and build time on the hosts that the Roslyn 5.0 variant
+serves, which are Rider and the Visual Studio Code C# Dev Kit. There, `IsUnion` and `IsClosed` report false, an
+aspect sees a union as an ordinary struct, and an aspect that emits a `closed` modifier at build time emits nothing
+at design time. The editor and the command line then disagree, and nothing reports it. This is the same class of
+failure that the platform baseline document describes as the reason for deriving the Roslyn floor deliberately.
+
+The open question is what the lower variant does when it meets a C# 15 type that it cannot see: stay silent, or
+report a diagnostic that the design-time result is incomplete because the host Roslyn predates C# 15. A diagnostic
+is the safer answer and costs one descriptor and one call site, but it fires in an editor whose user cannot act on
+it other than by changing the integrated development environment.
