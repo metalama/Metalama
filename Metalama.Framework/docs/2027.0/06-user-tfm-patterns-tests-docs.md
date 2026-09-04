@@ -175,11 +175,11 @@ No project was built and no test was run for this analysis.
   `_MetalamaSdkVersionMajorMinor` computed from the first two components of `$(NETCoreSdkVersion)`, and use it in the
   condition at `:412` only, with a comment stating that `MaximumSdkVersion` names the last supported major and minor
   line. Writing `11.0.99999` in the props file is the alternative and is worse, because it leaves the same defect
-  available to every requirement contributed by another package. Add a regression scenario that pins the boundary: the smallest
-  form is a fifth requirement in `SupportedPlatform.ContributedRequirements`, for example `Test.CurrentSdk`, whose
-  `MaximumSdkVersion` is computed from the running SDK so that the scenario stays valid when the agent SDK moves,
-  with `warning LAMA0601.*'Test[.]CurrentSdk'` added to the forbidden diagnostics of its `test.json`. The existing
-  `Test.LegacySdk` requirement uses 1.0 and cannot catch the boundary.
+  available to every requirement contributed by another package. Add a regression scenario that pins the boundary:
+  the smallest form is a fifth requirement in `SupportedPlatform.ContributedRequirements`, for example
+  `Test.CurrentSdk`, whose `MaximumSdkVersion` is computed from the running SDK so that the scenario stays valid
+  when the agent SDK moves, with `warning LAMA0601.*'Test[.]CurrentSdk'` added to the forbidden diagnostics of its
+  `test.json`. The existing `Test.LegacySdk` requirement uses 1.0 and cannot detect the boundary.
 - Size: small.
 - Status: new work. Not implemented, not in progress and not tracked. The finding is a defect against an acceptance
   criterion of the closed issue #1884, whose own rules state that an SDK of 10.0 or 11.0 must produce no warning, and
@@ -227,11 +227,11 @@ No project was built and no test was run for this analysis.
   around 2026-11-10, when .NET 8 support ends, and it would then be a warning only, because the temporary project
   sets no `TreatWarningsAsErrors` and imports no `Directory.Build.*` file (`:742-745`); it would also not be
   displayed, because `DotNetTool.Execute` keeps the child output only to build the exception of a failed run and
-  discards it on success (`DotNetTool.cs:93-98,123-133`). No restore error follows from the `net8.0` leg either: `netstandard2.0` is
-  mandatory in the same project and is compatible with `net8.0`, so a package that restores for the mandatory leg
-  also restores for `net8.0`, and a package that does not already fails on the mandatory leg. The .NET 8 reference
-  pack is downloaded from NuGet because the SDK layout bundles only its own version of `Microsoft.NETCore.App.Ref`,
-  which is equally true of the .NET 10 SDK and is not a change.
+  discards it on success (`DotNetTool.cs:93-98,123-133`). No restore error follows from the `net8.0` leg either:
+  `netstandard2.0` is mandatory in the same project and is compatible with `net8.0`, so a package that restores for
+  the mandatory leg also restores for `net8.0`, and a package that does not already fails on the mandatory leg. The
+  .NET 8 reference pack is downloaded from NuGet because the SDK layout bundles only its own version of
+  `Microsoft.NETCore.App.Ref`, which is equally true of the .NET 10 SDK and is not a change.
 - Consequence: alignment and asset selection, not a build error. For an additional compile-time package that ships
   both a `netstandard2.0` asset and a `net10.0` asset, the `net8.0` leg selects the older one, so the compile-time
   compilation sees the older reference assembly; and an out-of-support target framework keeps being restored on every
@@ -239,7 +239,8 @@ No project was built and no test was run for this analysis.
 - Proposed change: change the default to `netstandard2.0;net10.0;net48`, which the selection at `:417` already
   accepts, and update `Issue1789.csproj:13`, its `README.md`, the unit test data, the comment at
   `IProjectOptions.cs:203` and the comment at `test.ps1:74-78`. Use `net10.0` and not `net11.0`: PB-2027.0 keeps the
-  .NET 10 SDK as a build-time SDK, and a .NET 10 SDK rejects a `net11.0` target framework. The constant is a plain
+  .NET 10 SDK as a build-time SDK (`platform-support.md:195-197`), and a .NET 10 SDK rejects a `net11.0` target
+  framework. The constant is a plain
   string with no Roslyn API surface, so it compiles under both variants, and `DefaultProjectOptions.cs:103` returns
   null, so no second default has to be changed. The framework list is appended to the cache key at `:266`, so
   existing cache directories are invalidated once, which is harmless.
@@ -324,7 +325,7 @@ No project was built and no test was run for this analysis.
     and the other Patterns and Extensions test projects
   - `Metalama.Framework/src/tests/Standalone/SupportedPlatform.TestedTargetFrameworks/SupportedPlatform.TestedTargetFrameworks.csproj:8-13`
   - `eng/src/Program.cs:26,35-37`
-  - `Metalama.Framework/docs/platform-support.md:210-212`, `Metalama.Framework/docs/testing.md:40-52`, `:121`
+  - `Metalama.Framework/docs/platform-support.md:211-212`, `Metalama.Framework/docs/testing.md:40-52`, `:121`
   - `Metalama.Framework/src/Metalama.Testing.AspectTesting/Metalama.Testing.AspectTesting.targets:46,58-61,103-107,108-115,136,178-179`,
     `Metalama.Framework/src/Metalama.Testing.AspectTesting/TestInput.cs:76,97-117`,
     `Metalama.Framework/src/Metalama.Testing.AspectTesting/BaseTestRunner.cs:367-369`,
@@ -338,7 +339,7 @@ No project was built and no test was run for this analysis.
   for the string returns exactly one hit, and it is the comment of
   `SupportedPlatform.TestedTargetFrameworks.csproj:8-10`, which states that `net481`, `net11.0` and
   `net11.0-windows` are in the tested matrix but are not listed because the build agents do not have their targeting
-  packs, citing issue #1884. `net11.0` is a supported user target framework (`platform-support.md:210-212`) and
+  packs, citing issue #1884. `net11.0` is a supported user target framework (`platform-support.md:211-212`) and
   `Metalama.Framework.props:30` admits it, so a user project on `net11.0` builds without `LAMA0600`; no automated
   test executes it. The absence is a consequence of UT-1: the .NET 10 SDK rejects a `net11.0` project, so the leg
   cannot be built on an agent until the container carries the .NET 11 SDK.
@@ -567,19 +568,20 @@ No project was built and no test was run for this analysis.
   `net472;net10.0`. The .NET SDK defines `NET6_0` only for an exact `net6.0` target, and no property group defines it
   artificially: no `DefineConstants` property in the repository adds `NET6_0`, in this project or anywhere else. The
   guarded region `DoubleTests.cs:13-43` holds the only two `[Fact]` methods of the class, so on both target
-  frameworks the class compiles as an empty class, xunit discovers no test in it, and no diagnostic is emitted. Within this repository the guard has never matched: the file entered the
-  repository in a commit where the project already targeted `net472;net8.0`, and the leg later moved to `net10.0`.
-  Adding `net11.0` to the target framework list would not change this. The title of the finding is a simplification:
-  the class compiles, and what never compiles is its body.
+  frameworks the class compiles as an empty class, xunit discovers no test in it, and no diagnostic is emitted.
+  Within this repository the guard has never matched: the file entered the repository in a commit where the project
+  already targeted `net472;net8.0`, and the leg later moved to `net10.0`. Adding `net11.0` to the target framework
+  list would not change this. The title of the finding is a simplification: the class compiles, and what never
+  compiles is its body.
 - Consequence: silently missing test coverage. The two facts are excluded on every target framework, no diagnostic is
   emitted, and the test run reports no failure and no skipped test.
 - Proposed change: replace `NET6_0` with `NET6_0_OR_GREATER` at `DoubleTests.cs:5` and `:13`, then run the tests and
   adopt the result. Removing the guard is not an option: `Math.BitDecrement` and `Math.BitIncrement` at `:23` and
   `:38` were introduced in .NET Core 3.0 and .NET Standard 2.1 and are absent from .NET Framework 4.7.2, which is the
   other target framework. The sibling helper `FloatingPointHelper.cs:15-25` computes its floating-point step by
-  multiplication for the same reason. Read the result rather than adopting it without inspection: the two facts have never run
-  in this repository, and the closed issue #536 is the precedent for a boundary-precision test of the same suite that
-  passed on .NET Framework and failed on .NET.
+  multiplication for the same reason. Read the result rather than adopting it without inspection: the two facts have
+  never run in this repository, and the closed issue #536 is the precedent for a boundary-precision test of the same
+  suite that passed on .NET Framework and failed on .NET.
 - Size: small.
 - Status: new work. Not implemented, not in progress and not tracked; the file has not been edited since it entered
   the repository, and the change that moved the leg to `net10.0` did not revisit the guard. Related: #1876; #536.
@@ -673,8 +675,9 @@ No project was built and no test was run for this analysis.
   `dotnet list package --vulnerable --include-transitive` on each top-level solution, and remove the three
   `GHSA-8g4q-xg66-9fp4` suppressions if the report confirms that they are no longer needed, which is likely because
   the minimum Roslyn API version of 5.0.0 already forces the transitive `System.Text.Json` to at least 9.0.0. Correct
-  the inverted pruning direction and the stale package names in the comments of `Metalama.Patterns.Immutability.csproj:31-34`
-  and `Metalama.Patterns.Observability.csproj:31-34`, and name the audit-mode default as the actual difference
+  the inverted pruning direction and the stale package names in the comments of
+  `Metalama.Patterns.Immutability.csproj:31-34` and `Metalama.Patterns.Observability.csproj:31-34`, and name the
+  audit-mode default as the actual difference
   between a `net8.0` and a `net10.0` leg. Rewrite the comment of `Metalama.Patterns/src/tests/Directory.Build.props:18`
   without removing the property. Record in `Directory.Packages.md` that the `SystemTextJsonVersion` of a Roslyn
   variant is the floor required by the `Microsoft.CodeAnalysis.CSharp.Features` package of that variant, raised to
@@ -1147,10 +1150,10 @@ consumes exposes C# 15 as a non-preview language version and the supported langu
   deliberately rejected in extension blocks today; #937, the pre-existing limitation of the non-inlined indexer
   override path.
 - Verification: the code pass answered the open question from the collection implementations and the existing unit
-  test, and found the implementation-method path and the rule that prevents an aspect from being applied there; the semantics pass confirmed the
-  metadata shape of an extension indexer from the language proposal and the symbol API, and established that the
-  tests are blocked on the language version; the scope pass confirmed that no issue and no pull request covers it and
-  noted the overlap with findings LK-6 and LK-7 of theme 04.
+  test, and found the implementation-method path and the rule that prevents an aspect from being applied there; the
+  semantics pass confirmed the metadata shape of an extension indexer from the language proposal and the symbol API,
+  and established that the tests are blocked on the language version; the scope pass confirmed that no issue and no
+  pull request covers it and noted the overlap with findings LK-6 and LK-7 of theme 04.
 - Open questions: none.
 
 ### UT-17. Labeled `break` and `continue` and `with(...)` elements in bodies analysed by patterns
@@ -1359,9 +1362,9 @@ consumes exposes C# 15 as a non-preview language version and the supported langu
 ## Withdrawn findings
 
 No finding of this theme was withdrawn. All twenty-three findings of the original report, counting the four
-sub-findings of UT-14, were confirmed by the three verification passes, and none was refuted at its core. Several statements
-inside them were refuted and are corrected above; the seven that most change the conclusions are recorded here so that a
-reader of the original report knows that they were considered.
+sub-findings of UT-14, were confirmed by the three verification passes, and none was refuted at its core. Several
+statements inside them were refuted and are corrected above; the seven that most change the conclusions are
+recorded here so that a reader of the original report knows that they were considered.
 
 The original report proposed to decide what `global.json` pins by weighing the default language version of the two
 SDK feature bands against each other (UT-1). The .NET SDK carries no per-target-framework language default; the
