@@ -547,3 +547,51 @@ Two documentation stories name a discretionary story as a blocker: the internal 
 three, and the conceptual documentation waits on the union introduction. They document what ships. The sections
 that describe an introduction interface slip with the story that delivers it, and the rest of each document does
 not wait for it.
+
+### 8b. Correction to section 8: the branch train, and when Roslyn 5.12 becomes stable
+
+Established on 2026-09-04, after section 8 was written. Section 8 concluded that no Visual Studio presents Roslyn
+5.10 or 5.11 and that none ever will, because those minor versions are not published on nuget.org. That reasoning
+used one source, the package index, and it is not sufficient. The branches say something different.
+
+`eng/Versions.props` read on the three branches of `dotnet/roslyn` gives a train of three, each one minor apart:
+
+| Branch | Minor version |
+| --- | --- |
+| `release/stable` | 10 |
+| `release/insiders` | 11 |
+| `main` | 12 |
+
+`release/stable` carries `PreReleaseVersionLabel` 1, which is what produces a version string of the form
+`5.10.0-1.26365.3`. The build that this repository consumes therefore comes from the stable branch, not from a
+discarded intermediate state of `main`, and Roslyn 5.10 is the current stable-track version rather than a version
+that never existed.
+
+### When Roslyn 5.12 reaches the stable branch
+
+The train rotates by one minor at a time. Roslyn 5.12 is on `main` today, so it reaches `release/insiders` after
+one rotation and `release/stable` after two. The rotations observed on `main` were on 2026-07-28 and 2026-08-25,
+which is roughly monthly, and that places Roslyn 5.12 on `release/stable` around November 2026, at the Visual
+Studio 18.12 and .NET 11 general availability rather than earlier.
+
+The answer to the question that prompted this section is therefore no. Roslyn 5.12 does not become the stable
+branch at the .NET software development kit release candidate. At release candidate time the software development
+kit carries a 5.12 build from `main` or from `release/insiders`, and the stable branch is still one or two minors
+behind.
+
+### What this puts back in question
+
+Section 8 concluded that the latest payload variant should be renumbered from 5.10.0 to 5.12.0 because the 5.10.0
+identity would serve an empty set. That conclusion now rests on a claim that is not established: whether a shipping
+Visual Studio carries Roslyn 5.10 or 5.11. The branch train does not settle it, because Roslyn may rotate a minor
+version that no Visual Studio release takes. The package index is consistent with a quarterly Visual Studio taking
+every third minor, which is the reading of section 8, and it is equally consistent with a monthly Visual Studio
+whose intermediate versions simply do not publish packages to nuget.org.
+
+The measurement that settles it is checklist item 1 of [`platform-support.md`](../platform-support.md), which
+requires the Roslyn version of the November 2026 baseline to be read from a real installation. Until then the
+variant renumbering of story S-09 should be treated as a decision that depends on that measurement rather than as a
+settled fact, and the corrections that section 8 proposed to `platform-support.md` should not be applied.
+
+The document that would settle it directly is the Visual Studio 2026 release history on the Microsoft
+documentation site, which the network policy of this session blocks.
