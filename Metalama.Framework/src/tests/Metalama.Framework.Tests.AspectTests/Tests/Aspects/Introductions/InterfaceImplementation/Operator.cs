@@ -4,15 +4,16 @@
 
 #if TEST_OPTIONS
 // @RequiredConstant(NET6_0_OR_GREATER)
-// @RequiredConstant(ROSLYN4_4_OR_GREATER)
 #endif
 
-#if NET8_0_OR_GREATER && ROSLYN4_4_OR_GREATER
+#if NET6_0_OR_GREATER
 using Metalama.Framework.Advising;
-using Metalama.Framework.Aspects; 
+using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using System;
 using System.Linq;
+
+#pragma warning disable CS0618 // IntroduceUnaryOperator is obsolete
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Introductions.InterfaceImplementation.Operator;
 
@@ -25,7 +26,7 @@ public class IntroductionAttribute : TypeAspect
 {
     public override void BuildAspect(IAspectBuilder<INamedType> builder)
     {
-        var ic = (TypeFactory.GetNamedType(typeof(I<>))).WithTypeArguments(builder.Target);
+        var ic = TypeFactory.GetNamedType(typeof(I<>)).WithTypeArguments(builder.Target);
 
         builder.ImplementInterface( ic);
 

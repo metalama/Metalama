@@ -10,7 +10,7 @@
         <!-- The documented, semicolon-separated form of the property. It is set to the same target frameworks as the
              default, so that this scenario asserts that the value is read in full rather than changing what is built.
              See README.md. -->
-        <MetalamaCompileTimeTargetFrameworks>netstandard2.0;net8.0;net48</MetalamaCompileTimeTargetFrameworks>
+        <MetalamaCompileTimeTargetFrameworks>netstandard2.0;net10.0;net48</MetalamaCompileTimeTargetFrameworks>
     </PropertyGroup>
 
     <ItemGroup>
