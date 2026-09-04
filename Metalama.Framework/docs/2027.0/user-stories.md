@@ -289,13 +289,20 @@ The list below reads as a dependency order. A story that names no blocker can st
 9. S-17, the introduction of a union type and of a case into a type carrying the union attribute. Blocked by S-03,
    S-12 and S-16. About half of its work can proceed before S-09. S-29, the introduction of a case into a `union`
    declaration, follows S-17 and is filed only if question Q1 chooses Option A.
-10. S-18, closed hierarchies in the code model, S-19, labels, S-20, the experimental syntax guard, and S-21,
-    extension indexers. All blocked by S-11. S-18 and S-19 are also blocked by S-02, and S-19 and S-20 also by S-09.
-    S-26, the introduction of a closed class. Blocked by S-02 and S-18.
+10. S-18, closed hierarchies in the code model, S-19, labels, S-20, the experimental syntax guard, S-21,
+    extension indexers, and S-30, the tests of non-virtual static interface members on the .NET Framework leg. All
+    blocked by S-11. S-18 and S-19 are also blocked by S-02, and S-19 and S-20 also by S-09. S-30 is blocked by S-11
+    alone. S-26, the introduction of a closed class. Blocked by S-02 and S-18.
 11. S-23 and S-24, the `Metalama.Premium` items that are independent of the Roslyn gate. S-24 waits instead on the
     open pull request metalama/Metalama.Premium#84, whose branch it is based on.
-12. S-25, the documentation. It is deliberately last, because a document written before the code is a second thing to
-    correct.
+12. S-33, the sample solutions. It names no blocker, and it needs a published 2027.0 package to build against, which
+    S-01, S-09 and S-11 gate in time but not in dependency.
+13. S-25, the platform, dependency and extensibility documentation. It is deliberately late, because a document
+    written before the code is a second thing to correct.
+14. S-36, the internal architecture documents. Blocked by S-03, S-12, S-14, S-16, S-17 and S-26, and also by S-29 if
+    question Q1 files that story.
+15. S-34, the conceptual documentation. Blocked by S-11, S-17, S-18, S-19, S-21 and S-25. It is last of all, because
+    it follows S-25 as well as the feature stories.
 
 ```mermaid
 graph TD
@@ -327,16 +334,34 @@ graph TD
   S09 --> S20["S-20 Experimental syntax guard"]
   S11 --> S20
   S11 --> S21["S-21 Extension indexers"]
+  S11 --> S30["S-30 Static interface members on the net48 leg"]
   S10 --> S28["S-28 Premium union architecture rule tests"]
   S22 --> S28
   S09 --> S25["S-25 Documentation"]
   S11 --> S25
+  S03 --> S36["S-36 Internal architecture documents"]
+  S12 --> S36
+  S14 --> S36
+  S16 --> S36
+  S17 --> S36
+  S26 --> S36
+  S29 --> S36
+  S11 --> S34["S-34 Conceptual documentation"]
+  S17 --> S34
+  S18 --> S34
+  S19 --> S34
+  S21 --> S34
+  S25 --> S34
   S05["S-05 Residue of the previous baseline"]
   S07["S-07 Declaration-kind switches"]
   S08["S-08 November 2026 measurement"]
   S23["S-23 Premium Roslyn 5.0.0 variant tests"]
   S24["S-24 Premium build-file residuals"]
   S27["S-27 Premium change-visibility code action"]
+  S31["S-31 Code refactoring provider entry points"]
+  S32["S-32 Visual Studio Tools and the flowed pins"]
+  S33["S-33 Sample solutions on PB-2027.0"]
+  S35["S-35 Host process classification"]
 ```
 
 ## Stories
@@ -2528,7 +2553,7 @@ This story does not change the platform requirement metadata of
 `Metalama.Framework/src/Metalama.Framework.Package/build/Metalama.Framework.props`, which belongs to
 `metalama/Metalama`. It adds no `net11.0` target framework to a sample, because sections 6 and 6c of
 [`DECISIONS.md`](DECISIONS.md) find no .NET 11 application programming interface that justifies one. It does not
-write the conceptual documentation that accompanies a sample, which is S-36.
+write the conceptual documentation that accompanies a sample, which is S-34.
 
 — Claude for @gfraiteur
 
@@ -2645,7 +2670,7 @@ This story does not edit the internal architecture documents under `Metalama.Fra
 [`OPEN-QUESTIONS.md`](OPEN-QUESTIONS.md) records as outside the documentation story of this release and which S-25
 partly owns. It does not document the introduction of structs, records, enums or delegates, which are the open issues
 #869, #867, #866 and #865 and which section 5c of [`DECISIONS.md`](DECISIONS.md) leaves out of scope. It does not
-change the samples, which are S-35.
+change the samples, which are S-33.
 
 — Claude for @gfraiteur
 
@@ -2939,8 +2964,9 @@ which is a separate repository and therefore a separate pull request.
 
 ## Already in progress
 
-Five pull requests interact with these stories. Two are open and three were merged after the theme documents were
-written. The state of each was read from GitHub on 2026-09-04 rather than taken from the survey.
+Six pull requests interact with these stories. Two are open, three were merged after the theme documents were
+written, and one was merged before them and is recorded here because no theme document names it. The state of each
+was read from GitHub on 2026-09-04 rather than taken from the survey.
 
 ### metalama/Metalama#1879, materializing compiler-synthesized record members
 
@@ -2982,6 +3008,16 @@ added, and S-23, the tests that would execute the lower variant it created.
 Merged on 2026-09-03 at 20:20 UTC, confirmed on GitHub on 2026-09-04. The survey of open pull requests does not
 record it. It retargeted the engineering project and moved the image to the Visual Studio 2026 build tools. Finding
 PR-4 is fully covered by it. What remains: the four residuals of S-24, which it did not scope.
+
+### metalama/Metalama#1612, the version-invariant notification contract
+
+Merged before the theme documents were written. It closed issue #1605 on 2026-05-01, under the milestone
+2026.1.11-preview. It added the version-invariant notification subscription contract to
+`Metalama.Framework.DesignTime.Contracts`, with frozen `[Guid]` markers, and registered the implementation through
+the design-time entry point manager, so that a cross-version consumer no longer has to reference
+`Metalama.Framework.DesignTime.Rpc`. What remains for this release: S-32 consumes that contract in Visual Studio
+Tools for Metalama and then reports the measurement that releases the five flowed dependency pins. No story of this
+document designs or builds the contract, because it is delivered.
 
 ## Findings not turned into a story
 
