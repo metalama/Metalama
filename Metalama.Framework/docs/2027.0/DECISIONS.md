@@ -745,3 +745,25 @@ already produced a restore failure through a stale `MSBuildExtensionsPath`, whos
 Engineering is incomplete by that one variable. The pinned constant is `dotNetSdkVersion`, currently `10.0.400`,
 which feeds the container component, the `global.json` that the preparation step generates, and
 `DotNetSdkVersion`. Which of the two the pin names is the decision the story has to take.
+
+### 4b. Labels themselves are unsupported in templates, not only labeled jumps
+
+Stated by the product owner on 2026-09-04, extending section 4. A label in a template is unsupported and must be
+reported, and not only a labeled `break` or `continue`.
+
+The reason is the same one that section 4 gives for the jumps, and it applies to the label itself: the template
+annotator cannot decide whether a label is run-time or compile-time. There is also a consistency argument. Before
+C# 15 the only way to use a label was `goto`, which the annotator already reports as an unsupported language
+feature, so a label in a template was already useless in practice. C# 15 gives labels a second use, and rejecting
+the jumps while accepting the labels would leave the language feature half supported for no benefit.
+
+The mechanism exists and is the same one. `TemplateAnnotator.VisitGotoStatement` calls
+`ReportUnsupportedLanguageFeature` for the `goto` keyword. The work is to do the same in a
+`VisitLabeledStatement` override, and in the visits of the two jump statements when they carry a name.
+
+One distinction must be preserved in the implementation. The rejection belongs to the annotator, which reads the
+template that the aspect author wrote. The template compiler rewriter generates a labeled statement of its own in
+the code it produces, and that generation is not affected, because it does not pass through the annotator. A
+rejection placed in the rewriter rather than in the annotator would break the generated output.
+
+Run-time code that an aspect transforms is not affected either. The annotator runs only inside a template.
