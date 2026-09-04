@@ -20,9 +20,9 @@ An aspect cannot introduce a closed class, because no builder property expresses
 
 A closed class is an ordinary class with one more modifier, which is why the writer is sized M and why every part of
 it is already identified. The reader that this story consumes, which reports whether a named type is closed, is
-delivered by S-16. Section 4 records that the decision raises the stake of question Q2 rather than depending on it:
-an aspect that introduces a closed class emits the modifier at build time and nothing at design time on the hosts
-that the lower Roslyn variant serves, so the editor and the build disagree about the exhaustiveness of the hierarchy.
+delivered by S-16. An aspect that introduces a closed class emits the modifier at build time and nothing at design
+time on the hosts that the lower Roslyn variant serves. Section 6 of [`DECISIONS.md`](../DECISIONS.md) records why
+that needs no diagnostic: such a host cannot compile C# 15 and reports the closed hierarchy as an error of its own.
 
 #### Scope
 

@@ -55,7 +55,8 @@ Three facts of that work are easy to lose in a page and change what a reader sho
 Section 6 of [`DECISIONS.md`](../DECISIONS.md) records that the public assembly `Metalama.Framework` is not built per
 Roslyn version while the engine is, so on the hosts that the `Roslyn.5.0.0` variant serves, which are Rider and the
 Visual Studio Code C# Dev Kit, a member that reports whether a type is a union reports the value of an ordinary type.
-Whether the product reports that divergence is question Q2, and the pages state the outcome once it is settled.
+The product reports nothing for that divergence, because such a host cannot compile C# 15 and reports the code as
+an error of its own, and the pages state that.
 
 Section 4 of [`DECISIONS.md`](../DECISIONS.md) records that there are two authoring forms of a union, the `union`
 declaration and a type carrying `System.Runtime.CompilerServices.UnionAttribute`, that Roslyn reports both as unions,
@@ -88,8 +89,8 @@ reader has to be told before using the feature.
 - Add the rejection of a labeled `break` and `continue` to the template language reference, with the reason, which is
   that the annotator cannot classify the label as compile-time or run-time, and state that run-time code that an
   aspect transforms is not affected.
-- State, on every page of the C# 15 set, which design-time hosts show the feature, and report the divergence of
-  question Q2 once it is settled.
+- State, on every page of the C# 15 set, which design-time hosts show the feature, and that a host whose Roslyn
+  predates C# 15 reports the code as an error of its own rather than being reported by Metalama.
 - State that a case added to a `union` declaration is a build-time-only change, if question Q1 chooses to ship that
   form and S-30 is delivered.
 - Publish the page list, so that S-29, S-24 and S-30 reference this issue instead of enumerating pages in their own

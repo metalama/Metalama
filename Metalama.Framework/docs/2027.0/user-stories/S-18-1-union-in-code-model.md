@@ -78,15 +78,15 @@ omission is corrected in the same way, by adding the kind.
   general question of whether a node is a type declaration.
 - Add the unit tests that pin `IsPartial` and the suppression path for a union, for an interface and for an extension
   block, which are the cases that are wrong today.
-- Decide, per D-3, whether the lower Roslyn variant reports a diagnostic when it meets a union it cannot represent,
-  and implement the chosen behaviour.
+- Pin with a test that the lower Roslyn variant answers false for a union and reports no diagnostic, which section 6
+  of [`DECISIONS.md`](../DECISIONS.md) decides.
 
 #### Acceptance criteria
 
 - An aspect can tell a union from an ordinary struct, can enumerate its case types, and can tell the two authoring
   forms apart.
-- The same code model members exist on the lower Roslyn variant and report the value of an ordinary struct there, and
-  the behaviour chosen for D-3 is covered by a test.
+- The same code model members exist on the lower Roslyn variant, report the value of an ordinary struct there, and
+  report no diagnostic, which a test pins.
 - Every visitor of the CM-7 inventory sees a union declaration, and the guard fails if a new one is added without it.
 - `IsPartial` is true for a partial union, for a partial interface and for every partial type declaration whose kind
   the predicate now admits, and the design-time generator produces the partial file for it.

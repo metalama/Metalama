@@ -93,6 +93,10 @@ The token goes before `partial`, because `partial` must sit immediately before t
 
 The validation rejects a closed type that is not a class, and one that is sealed or static.
 
+On the hosts that the lower Roslyn variant serves, an aspect that introduces a closed class emits the modifier at
+build time and nothing at design time. Section 6 records why that needs no diagnostic: such a host cannot compile
+C# 15, so it reports the closed hierarchy as an error of its own before the divergence can matter.
+
 An aspect can already introduce a class together with its subtypes in one run, which the existing tests
 `Recursive.cs`, `BaseType_Abstract.cs` and `IntroducedDerivedType.cs` prove, so the scenario is expressible.
 
@@ -199,18 +203,17 @@ superseded and must be rewritten.
 variant suffix. A member such as `INamedType.IsUnion` therefore exists in every host, while the engine code that
 answers it is compiled only in the latest variant.
 
-On the hosts that the lower variant serves, `IsUnion` and `IsClosed` report false, an aspect sees a union as an
-ordinary struct, and an aspect that emits a `closed` modifier at build time emits nothing at design time. The editor
-and the command line then disagree, and nothing reports it. This is the same class of failure that the platform
-baseline document describes as the reason for deriving the Roslyn floor deliberately, and section 7 records that
-those hosts probably include a supported Visual Studio rather than only Rider and the Visual Studio Code C# Dev
-Kit.
+On the hosts that the lower variant serves, `IsUnion` and `IsClosed` report false and an aspect sees a union as an
+ordinary struct. The lower variant answers false and reports nothing. No diagnostic is added for this.
 
-Whether the lower variant stays silent or reports a diagnostic is question Q2 of
-[`OPEN-QUESTIONS.md`](OPEN-QUESTIONS.md). It is a decision about whether to report rather than about how, because
-the reporting mechanism has recently been implemented. Section 4 raises its stake rather than depending on it: an
-aspect that introduces a closed class emits the modifier at build time and nothing at design time on those hosts, so
-the editor and the build disagree about the exhaustiveness of the hierarchy.
+The reason is that a host presenting an older Roslyn cannot compile C# 15 at all, so the situation the diagnostic
+would describe cannot arise in a project that builds. Metalama is loaded by the host, and a host whose Roslyn
+predates C# 15 has no `LanguageVersion.CSharp15` and reaches the features only under `LanguageVersion.Preview`.
+Metalama refuses the preview language version: `CompileTimeAspectPipeline.VerifyLanguageVersion` reports
+`PreviewCSharpVersionNotSupported` unless the project sets `MetalamaAllowPreviewLanguageFeatures`. A user who writes
+a union in such an editor therefore already sees the error, reported by the host for syntax it cannot parse or for a
+language feature it does not offer. A Metalama diagnostic would restate what the editor already shows, in a place
+where the user can act on it only by changing the integrated development environment.
 
 ## 7. The Roslyn variant set of 2027.0
 
@@ -461,7 +464,9 @@ The label rejection of section 5 is one error descriptor reported on the label t
 template annotator. Run-time code that uses a label is unaffected, because the annotator runs only under the guard
 that tests whether the code is inside a template.
 
-The fifth subject is the divergence of section 6, which is drafted both ways and is question Q2.
+The fifth subject is the divergence of section 6. The draft argues it both ways and recommends reporting a
+diagnostic. Section 6 decides otherwise, for a reason the draft did not weigh: the host that would receive the
+diagnostic cannot compile C# 15 and reports the code as an error already.
 
 ## 12. The stories are grouped under a new meta issue, "C# 15 Support"
 

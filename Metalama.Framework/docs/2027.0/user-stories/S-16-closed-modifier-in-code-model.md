@@ -34,7 +34,7 @@ S-13, and the emission of a `closed` modifier is delivered separately by S-28, w
 - Record what the value is for a builder and for an introduced type, which is false until S-28 adds the writer.
 - Record question Q8, the closed type read from a referenced assembly, as a known limitation in the documentation
   rather than implementing it.
-- Report or stay silent on the lower Roslyn variant according to D-3, using the same mechanism as S-18-1, so that the
+- Pin with a test that the lower Roslyn variant answers false and reports no diagnostic, as S-18-1 does, so that the
   two readers behave alike.
 
 #### Acceptance criteria

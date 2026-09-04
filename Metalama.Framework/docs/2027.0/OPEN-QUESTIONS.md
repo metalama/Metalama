@@ -30,38 +30,8 @@ design-time half cannot be expressed at all: every route from a generated part i
   wrote with the concise syntax.
 
 The analysis recommends Option A, and states that if only one form fits the release it should be the attribute
-form. Settled by the product owner.
-
-### Q2. Does the lower Roslyn variant report the divergence, or stay silent?
-
-Blocking, for one story, and it applies to every C# 15 reader.
-
-Section 6 of [`DECISIONS.md`](DECISIONS.md) records that the public application programming interface assembly is
-not built per Roslyn version, while the engine is. On the hosts that the `Roslyn.5.0.0` variant serves, `IsUnion`
-and `IsClosed` therefore report false, an aspect sees a union as an ordinary struct, and a `closed` modifier that
-an aspect emits at build time is absent at design time. Nothing reports the difference. Section 7 records that
-those hosts probably include a supported Visual Studio as well as Rider and the Visual Studio Code C# Dev Kit.
-
-- Option A, stay silent. This is the behaviour that follows from doing nothing. The editor and the command line
-  disagree and the user has no indication of it, which is the failure mode that the platform doctrine exists to
-  prevent.
-- Option B, report. The draft in `analysis-reports/12-csharp15-api-drafts.md` proposes a design-time warning
-  reported once per project, with an opt-out, from the diagnostic analyzer. It fires in an editor whose user can
-  act on it only by changing the integrated development environment. The reporting mechanism has recently been
-  implemented, so this is a question of whether to report rather than of how.
-- Option C, remove the members on the lower variant rather than answering false. Both options above take as given
-  that the public members exist in every host and answer false where the engine cannot answer, which follows from
-  the public assembly not being built per Roslyn version. Whether that assembly could carry a variant-specific
-  part has not been examined.
-
-The draft recommends Option B. Settled by the product owner.
-
-### Q3. Is the severity and the opt-out of each new design-time diagnostic right?
-
-Not blocking. Two diagnostics are drafted: the one of Q2, and the one that reports that the editor cannot show a
-case added to a `union` declaration under Option A of Q1. Both are design-time only, both fire in situations the
-user cannot repair from the editor, and both therefore need a severity and an opt-out chosen deliberately. The
-drafts propose a warning with an opt-out for the first. Settled when the stories are written.
+form. Under Option A the severity and the opt-out of that diagnostic are chosen when the story is written. Settled
+by the product owner.
 
 ## Measurements that the calendar settles
 

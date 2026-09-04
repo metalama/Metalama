@@ -52,7 +52,7 @@ the renaming of S-13 does not make the path wrong.
 
 [`design-time-memory.md`](../../design-time-memory.md) states its rule in terms of the object types that an object
 outliving a request may hold, and not in terms of the declarations that the pipeline analyses, so a union adds no
-type to that list. The design-time diagnostics that question Q2 and story S-30 may add are already governed by the
+type to that list. The design-time diagnostic that story S-30 may add is already governed by the
 rule stated in the section "What the pipeline stores for longer than one request", which requires the arguments of a
 diagnostic to be durable. The document's section "What has not been examined" already records that the source
 generator pipeline, which S-18-4 changes, was not audited, so the union arm of the design-time generator makes no

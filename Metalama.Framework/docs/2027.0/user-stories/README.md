@@ -38,7 +38,7 @@ the reason why it produces no story. A finding may be named again in the text of
 
 Most of these questions are answered. The subsections below state the question, the options and their consequences,
 and then either the answer that [`DECISIONS.md`](../DECISIONS.md) records or, where the question is still open, the
-recommendation and the work that waits on it. A reader who wants only the open items should read D-3, D-5, D-9, D-10,
+recommendation and the work that waits on it. A reader who wants only the open items should read D-5, D-9, D-10,
 D-11 and D-12.
 
 ### D-1. Does C# 15 support ship in 2027.0, and in what depth?
@@ -75,24 +75,22 @@ of [`Directory.Packages.md`](../../../../Directory.Packages.md), are superseded 
 
 ### D-3. What does the Roslyn 5.0 variant do when it meets a union or a closed type that it cannot represent?
 
-Open. It is question Q2 of [`OPEN-QUESTIONS.md`](../OPEN-QUESTIONS.md), and it applies to every C# 15 reader. The public
+Answer: it answers false and reports nothing, recorded in [`DECISIONS.md`](../DECISIONS.md) section 6. The public
 assembly `Metalama.Framework` is not built per Roslyn version, so a member that reports whether a type is a union
 exists in every host while the engine code that answers it is compiled only in the latest variant. On the hosts that
-the `Roslyn.5.0.0` variant serves, which are Rider and the Visual Studio Code C# Dev Kit, such a member reports false,
-an aspect sees a union as an ordinary struct, and the editor and the command line disagree.
+the `Roslyn.5.0.0` variant serves, such a member reports false and an aspect sees a union as an ordinary struct.
 
-- Option A, report nothing. This is the behaviour that follows from doing nothing, and it is the failure mode that
-  the platform doctrine exists to prevent.
-- Option B, report the divergence. The diagnostic analyzer reports a design-time warning once per project, and the
-  warning carries an opt-out. It is reported in an editor whose user can act on it only by changing the development
-  environment.
+The reason no diagnostic is added is that the divergence cannot arise in a project that builds. A host whose Roslyn
+predates C# 15 cannot compile C# 15: it has no `LanguageVersion.CSharp15` and reaches the features only under
+`LanguageVersion.Preview`, which Metalama refuses through
+`CompileTimeAspectPipeline.VerifyLanguageVersion`. A user who writes a union in such an editor already sees the
+error, reported by the host itself. A Metalama diagnostic would restate it in a place where the user can act on it
+only by changing the development environment.
 
-Recommendation: Option B, which the draft in
-[`analysis-reports/12-csharp15-api-drafts.md`](../analysis-reports/12-csharp15-api-drafts.md) also recommends. The
-severity and the opt-out of that diagnostic are question Q3 and are settled inside the story. One measurement could
-change the answer, which is Q6, the Roslyn version that a current Rider presents. The answer decides one bullet of
-S-18-1 and one bullet of S-16, which are the two stories that read a C# 15 type on both variants, and neither story is
-blocked on it beyond that bullet.
+The draft in [`analysis-reports/12-csharp15-api-drafts.md`](../analysis-reports/12-csharp15-api-drafts.md)
+recommended reporting, and did not weigh that the host cannot compile the code in the first place. Stories S-18-1
+and S-16, which are the two that read a C# 15 type on both variants, therefore each keep one bullet that pins the
+false value with a test rather than a bullet that decides a behaviour.
 
 ### D-4. For a union that an aspect targets, is the answer a single refusal rule, per-advice rules, or nothing?
 

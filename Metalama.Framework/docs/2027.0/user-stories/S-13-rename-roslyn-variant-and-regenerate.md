@@ -65,8 +65,8 @@ variant. Section 6 of [`DECISIONS.md`](../DECISIONS.md) supersedes that note for
 two alternatives that were considered, which are numeric syntax kind values with a run-time guard and a per-variant
 service that reads the members by reflection; the second repeats what #1215 deliberately removed. The decision is
 narrow: it covers the members that Roslyn 5.0 does not have, and it does not reopen the general policy for anything
-else. On the lower variant each gated site reports the value that an ordinary type would report, and whether it also
-reports a diagnostic is decision D-3.
+else. On the lower variant each gated site reports the value that an ordinary type would report, and reports no
+diagnostic, which section 6 also decides.
 
 #### Scope
 

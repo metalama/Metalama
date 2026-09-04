@@ -52,8 +52,8 @@ Two consequences are real. The first is that the troubleshooting report and the 
 with OmniSharp, for LinqPad, for the test host, for an MSBuild node, for a ReSharper test runner and for the Code
 Lens service, while the Backstage log of the same process names each of them correctly. A support report from a C#
 Dev Kit user therefore does not say which host produced it. The second is that no arm that must treat the C# Dev
-Kit differently can be written in `ProcessKindHelper` at all, because the enumeration has no member for it. Section 6 of [`DECISIONS.md`](../DECISIONS.md) and question [Q2](../OPEN-QUESTIONS.md) name Rider and the C# Dev Kit as exactly
-the two hosts on which the design-time result and the build-time result diverge under the Roslyn 5.0 variant, and
+Kit differently can be written in `ProcessKindHelper` at all, because the enumeration has no member for it. Section 6 of [`DECISIONS.md`](../DECISIONS.md) names Rider and the C# Dev Kit as two of the hosts on which the
+design-time result and the build-time result diverge under the Roslyn 5.0 variant, and
 `Metalama.Framework.EditorExtensions` is compiled once for every Roslyn variant against `RoslynApiMinVersion`. That
 assembly can distinguish Rider today, at `MetalamaCodeFixProvider.cs:42-48`, and cannot distinguish the C# Dev Kit.
 
@@ -125,8 +125,8 @@ report the next divergence after it happened; a shared source file prevents it.
 #### Not in scope
 
 This story does not perform the November 2026 measurement, which is S-11; it only states what that measurement must
-record. It does not decide whether the lower Roslyn variant reports the divergence of question Q2, which is a
-separate decision and a separate story, and it does not add any diagnostic. It does not change the behaviour that
+record. It adds no diagnostic, and section 6 of [`DECISIONS.md`](../DECISIONS.md) decides that the lower Roslyn
+variant reports none either. It does not change the behaviour that
 any entry point has today on any host.
 
 — Claude for @gfraiteur
