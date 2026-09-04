@@ -17,7 +17,7 @@ The latest Roslyn variant is renamed from 5.10 to 5.12 in the source code, and t
 through conditional compilation in that variant. Those are the two halves of this story. The rename touches the
 variant property file, the variant project names, the variant preprocessor symbol and every literal that spells the
 version, and it replaces the prerelease pin `5.10.0-1.26365.3` of `RoslynApiMaxVersion` and `RoslynMaxVersion` by
-the stable package that the November 2026 hosts carry. The conditional compilation is the mechanism that section 2
+the stable package that the November 2026 hosts carry. The conditional compilation is the mechanism that section 6
 of [`DECISIONS.md`](../DECISIONS.md) settles: the sources that name the C# 15 Roslyn members are compiled in the
 latest variant alone. The two halves are one story because they cannot be merged separately without breaking the
 build: the variant symbol that guards the C# 15 sources is named after the variant, so it is renamed by the same
@@ -25,24 +25,24 @@ change that introduces it. This story is the gate of the whole release.
 
 #### Context
 
-The version that this story leaves is a real one. Section 8b of [`DECISIONS.md`](../DECISIONS.md) records that
+The version that this story leaves is a real one. Section 7 of [`DECISIONS.md`](../DECISIONS.md) records that
 `5.10.0-1.26365.3` is built from the `release/stable` branch of `dotnet/roslyn`, whose `PreReleaseVersionLabel` is 1,
 so Roslyn 5.10 is the current stable-track version and not a discarded intermediate state. What the repository
 consumes is a prerelease build of it restored from the `roslyn-consolidated` feed, and what this story adopts is the
 stable package that nuget.org serves.
 
 Which version the variant binds against is decided by a criterion and by a measurement, not by the publication
-cadence. Section 8c of [`DECISIONS.md`](../DECISIONS.md) states the criterion: the latest variant must bind against a
+cadence. Section 7 of [`DECISIONS.md`](../DECISIONS.md) states the criterion: the latest variant must bind against a
 version no higher than the lowest Roslyn that offers C# 15 among the hosts in support on 2027-01-31, which is 5.11 if
 a supported host presents 5.11 and 5.12 otherwise. Roslyn 5.10 offers every C# 15 feature under
 `LanguageVersion.Preview` alone and still marks the union declaration and the with element experimental in the
-grammar, so a host on 5.10 imposes no C# 15 requirement. Section 14.1 sharpens the criterion further: a new
+grammar, so a host on 5.10 imposes no C# 15 requirement. The same section adds that a new
 enumeration member such as `SyntaxKind.ClosedKeyword` is a new Roslyn application programming interface, so a feature
 that adds no syntax node may still require a build against a newer Roslyn. The measurement that settles the value is
 checklist item 1 of [`platform-support.md`](../../platform-support.md), which S-11 performs after 2026-11-10, and this
 story takes the measured value. The title names 5.12 because that is the expected outcome.
 
-Section 8 of [`DECISIONS.md`](../DECISIONS.md) records that the new version replaces the 5.10 variant rather than
+Section 7 of [`DECISIONS.md`](../DECISIONS.md) records that the new version replaces the 5.10 variant rather than
 being added beside it, so the variant set stays at two. A version mismatch has two silent failure modes:
 `TargetedAssemblyReference` compares the declared Roslyn version by equality, and `ExtensionLoaderBase` drops a
 non-matching extension assembly with no diagnostic, which removes a pipeline stage rather than reporting an error.
@@ -61,7 +61,7 @@ prevents.
 
 The conditional compilation half has its own history. Issue #1881 removed 177 `#if ROSLYN_*` blocks from 152
 production files and wrote the note, in both variant property files, that no production source branches on the
-variant. Section 2 of [`DECISIONS.md`](../DECISIONS.md) supersedes that note for the C# 15 members, and it rejects the
+variant. Section 6 of [`DECISIONS.md`](../DECISIONS.md) supersedes that note for the C# 15 members, and it rejects the
 two alternatives that were considered, which are numeric syntax kind values with a run-time guard and a per-variant
 service that reads the members by reflection; the second repeats what #1215 deliberately removed. The decision is
 narrow: it covers the members that Roslyn 5.0 does not have, and it does not reopen the general policy for anything

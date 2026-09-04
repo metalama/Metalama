@@ -61,6 +61,6 @@ rather than a bump.
 
 This story does not rewrite the audience paragraph of [`Directory.Packages.md`](../../../../Directory.Packages.md),
 which #1903 owns and which is referenced rather than rewritten. It does not change the .NET SDK component of the
-container, which section 6b of [`DECISIONS.md`](../DECISIONS.md) excludes.
+container, which is story S-09.
 
 — Claude for @gfraiteur

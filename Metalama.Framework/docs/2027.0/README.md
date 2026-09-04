@@ -23,7 +23,7 @@ Two consequences of the baseline drive this analysis.
   servicing channel present a Roslyn at or above 5.10. The latest payload variant, `Roslyn.5.10.0`, serves them.
   The `Roslyn.5.0.0` variant serves Rider and the C# Dev Kit, and probably a serviced Visual Studio 18.0 as well:
   the Roslyn release branch for that version still received commits in late August 2026, which a branch does not
-  get unless the channel is serviced. Section 14.2 of [`DECISIONS.md`](DECISIONS.md) records the evidence, and the
+  get unless the channel is serviced. Section 7 of [`DECISIONS.md`](DECISIONS.md) records the evidence, and the
   measurement in the platform checklist is what settles it.
 - The .NET 11 SDK and the `net11.0` user target framework are in the supported set. The compile-time compilation is
   compiled by the Roslyn of the host and capped by the SDK that runs the build.
@@ -57,7 +57,7 @@ the `main` branch of `dotnet/roslyn` on 2026-09-03, and from the grammar file
 A feature that adds no syntax node may still add a Roslyn application programming interface, and that is what
 decides whether a payload variant is needed. The `closed` modifier is the example: the table records no new syntax
 for it, and yet `SyntaxKind.ClosedKeyword` is a new enumeration member, so reading or emitting the modifier
-requires a build against a Roslyn that declares it. Section 14.1 of [`DECISIONS.md`](DECISIONS.md) states the
+requires a build against a Roslyn that declares it. Section 7 of [`DECISIONS.md`](DECISIONS.md) states the
 criterion.
 
 | Feature | Roslyn gate | New syntax in the 5.10 grammar | Proposal |

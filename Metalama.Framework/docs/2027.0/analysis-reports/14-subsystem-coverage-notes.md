@@ -1,11 +1,11 @@
-# Coverage record for question Q14: the subsystems that no theme document examined
+# Coverage record: the subsystems that no theme document examined
 
-This note records what was read for question Q14 of
-[`OPEN-QUESTIONS.md`](../../../Metalama.Framework/docs/2027.0/OPEN-QUESTIONS.md), which subsystems were found
+This note records what was read for the completeness review of
+[`OPEN-QUESTIONS.md`](../OPEN-QUESTIONS.md), which subsystems were found
 unaffected by C# 15 and .NET 11, and on what evidence. One story came out of the review, which is S-31. Every other
 subsystem below needs no work, and the paragraph that names it says why.
 
-## The decision that Q14 asked for: syntax serialization
+## The decision that the review asked for: syntax serialization
 
 The completeness review said that syntax serialization deserved a decision rather than a note, because it holds one
 serializer per supported type and turns a compile-time value into run-time syntax. The decision is that no serializer
@@ -17,7 +17,7 @@ scope only when the symbol is available at compile time, and gives it the run-ti
 decided against the compile-time reference set, which is why a member added to a type that exists in
 `netstandard2.0` is classified as run-time only (`SymbolClassifier.cs:907-911`). The compile-time compilation always
 targets `netstandard2.0`, which provides neither `System.Runtime.CompilerServices.IUnion` nor the union attribute
-(`Metalama.Framework/docs/2027.0/03-code-model-unions-closed.md:673-676`), and section 4 of `DECISIONS.md` keeps
+(`Metalama.Framework/docs/2027.0/03-code-model-unions-closed.md:673-676`), and section 5 of `DECISIONS.md` keeps
 `MetalamaTemplateLanguageVersion` at 14.0. A union type is therefore run-time only in every configuration that
 2027.0 ships, and the serializer is never asked to reconstruct one.
 
@@ -56,7 +56,7 @@ in this project.
 The project is compiled once against `RoslynApiMinVersion` and packed once, not once per Roslyn variant
 (`Metalama.Framework.EditorExtensions.csproj:14-17`;
 `Metalama.Framework/src/Metalama.Framework.Package/Metalama.Framework.Package.csproj:79`). That does not create the
-divergence of section 2b of `DECISIONS.md`, because the project exposes no code model member and answers no question
+divergence of section 6 of `DECISIONS.md`, because the project exposes no code model member and answers no question
 about the compilation. It only constructs a type from the variant-specific assembly, and the variant is chosen from
 the Roslyn version of the host, not from the version this project was compiled against
 (`Metalama.Framework/src/Metalama.Framework.CompilerExtensions/ResourceExtractor.cs:633-655`, `:244-246`).
@@ -65,7 +65,7 @@ The one defect found in this project is the subject of story S-31.
 
 ## Host process detection
 
-Q14 also names host process detection, whose two copies were said to have diverged on the C# Dev Kit. The divergence
+The review also names host process detection, whose two copies were said to have diverged on the C# Dev Kit. The divergence
 is real. `Metalama.Backstage/src/Metalama.Backstage/Utilities/ProcessUtilities.cs:78-80` and `:102-105` recognize the
 C# Dev Kit language server and return `ProcessKind.LanguageServer`, while
 `Metalama.Framework/src/Metalama.Framework.CompilerExtensions/ProcessKindHelper.cs:14-59` recognizes none of those

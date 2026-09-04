@@ -28,12 +28,12 @@ The code model must report the union without a new `TypeKind` value. The precede
 question: `TypeKind.RecordClass` and `TypeKind.RecordStruct` are already obsolete with the message that names
 `TypeKind.Class` and `INamedType.IsRecord`, and a new value would need an arm in each of the seventeen switches over
 that enumeration, twelve of which throw in the default arm. The shape of the members is decided when the story is
-implemented, per section 7 of [`DECISIONS.md`](../DECISIONS.md); a draft that follows the precedent of `IsRecord` is in
+implemented, per section 11 of [`DECISIONS.md`](../DECISIONS.md); a draft that follows the precedent of `IsRecord` is in
 [`analysis-reports/12-csharp15-api-drafts.md`](../analysis-reports/12-csharp15-api-drafts.md) and is illustrative only.
 Two constraints hold for every member added by this story. The reads name Roslyn members that the lower variant does
 not have, so they follow the gating of S-13. And `ITypeSymbol.IsUnion` is true both for a `union` declaration and
 for a type carrying `System.Runtime.CompilerServices.UnionAttribute`, while the member restrictions apply to the
-first form only, so the code model must let a consumer tell the two apart, which is question Q9.
+first form only, so the code model must let a consumer tell the two apart.
 
 The kind lists are the third part of this story, and four themes reported the same five places.
 `SyntaxKindExtensions.IsTypeDeclaration` at

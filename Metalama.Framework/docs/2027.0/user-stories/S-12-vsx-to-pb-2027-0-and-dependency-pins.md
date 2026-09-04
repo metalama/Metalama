@@ -7,7 +7,7 @@
 - Size: L
 - Blocked by: nothing. The story is calendar-gated by the November 2026 Visual Studio releases in the same way as
   S-11, and it is not gated by any story of this repository.
-- Findings: none. No theme document of this analysis names `Metalama.Vsx`, which is what question Q13 of
+- Findings: none. No theme document of this analysis names `Metalama.Vsx`, which is the gap reported by
   [`OPEN-QUESTIONS.md`](../OPEN-QUESTIONS.md) records. The repository is not cloned in the session that produced this
   analysis, and its issue tracker `metalama/Metalama.Vsx.Public` was not reachable from that session either, so
   nothing in the product itself was verified. Every statement below about the extension is marked as an assumption.

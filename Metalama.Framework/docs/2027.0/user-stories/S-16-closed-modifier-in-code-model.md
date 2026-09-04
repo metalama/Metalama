@@ -22,7 +22,7 @@ restricts itself to the current compilation, so the existing enumeration of dire
 complete set for a closed type declared in the current compilation. Only the flag and its documentation are new. The
 one case the index does not answer is a closed type that comes from a referenced assembly, which is question Q8 and
 is left open. The read names a Roslyn member that the lower variant does not expose, so it follows the gating of
-S-13, and the emission of a `closed` modifier is delivered separately by S-28, which section 5f of
+S-13, and the emission of a `closed` modifier is delivered separately by S-28, which section 4 of
 [`DECISIONS.md`](../DECISIONS.md) puts in scope.
 
 #### Scope

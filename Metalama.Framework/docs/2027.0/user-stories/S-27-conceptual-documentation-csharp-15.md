@@ -7,7 +7,7 @@
 - Size: L
 - Blocked by: S-15, S-16, S-19, S-21, S-24 and S-29
 - Findings: none. No theme document of this analysis produces a story for `metalama/Metalama.Documentation`, which is
-  what question Q13 of [`OPEN-QUESTIONS.md`](../OPEN-QUESTIONS.md) records. The repository is not cloned in the session
+  the completeness review reported. The repository is not cloned in the session
   that produced this analysis, so no page was read, no page path was verified, and every statement below about the
   existing pages is marked as an assumption.
 
@@ -48,19 +48,19 @@ answered.
 The C# 15 subjects come from stories that this one follows. C# 15 as a supported language version is S-15. Reading a
 union in the code model is S-18-1 and introducing one is S-29, with S-30 conditional on question Q1. Reading a closed
 hierarchy is S-16 and introducing a closed class is S-28. Extension indexers are S-21. The rejection of a labeled
-`break` or `continue` in a template is S-19, which follows section 4 of [`DECISIONS.md`](../DECISIONS.md).
+`break` or `continue` in a template is S-19, which follows section 5 of [`DECISIONS.md`](../DECISIONS.md).
 
 Three facts of that work are easy to lose in a page and change what a reader should expect.
 
-Section 2b of [`DECISIONS.md`](../DECISIONS.md) records that the public assembly `Metalama.Framework` is not built per
+Section 6 of [`DECISIONS.md`](../DECISIONS.md) records that the public assembly `Metalama.Framework` is not built per
 Roslyn version while the engine is, so on the hosts that the `Roslyn.5.0.0` variant serves, which are Rider and the
 Visual Studio Code C# Dev Kit, a member that reports whether a type is a union reports the value of an ordinary type.
 Whether the product reports that divergence is question Q2, and the pages state the outcome once it is settled.
 
-Section 5e of [`DECISIONS.md`](../DECISIONS.md) records that there are two authoring forms of a union, the `union`
+Section 4 of [`DECISIONS.md`](../DECISIONS.md) records that there are two authoring forms of a union, the `union`
 declaration and a type carrying `System.Runtime.CompilerServices.UnionAttribute`, that Roslyn reports both as unions,
 and that the member restrictions apply to the first form only. A page that states a restriction has to say which of
-the two forms it concerns, which is the reader-facing half of question Q9.
+the two forms it concerns, because `ITypeSymbol.IsUnion` is true for both.
 
 A case added to a `union` declaration is a build-time-only change, which S-30 states in its scope and which the
 reader has to be told before using the feature.
@@ -78,7 +78,7 @@ reader has to be told before using the feature.
 - Answer the open question of finding UT-3, which is whether the documented value of
   `MetalamaCompileTimeTargetFrameworks` names `net8.0`, and correct it if it does.
 - Write the page that states which C# 15 features an aspect may use in the run-time code it produces, and that the
-  template language stays at C# 14 by section 4 of [`DECISIONS.md`](../DECISIONS.md).
+  template language stays at C# 14 by section 5 of [`DECISIONS.md`](../DECISIONS.md).
 - Write the page about unions: what an aspect reads about a union, what it may introduce, and which of the two
   authoring forms each statement concerns.
 - Write the page about closed hierarchies: what an aspect reads, and that an aspect may introduce a closed class
@@ -107,10 +107,10 @@ reader has to be told before using the feature.
 
 #### Not in scope
 
-This story does not edit the internal architecture documents under `Metalama.Framework/docs`, which question Q17 of
+This story does not edit the internal architecture documents under `Metalama.Framework/docs`, which
 [`OPEN-QUESTIONS.md`](../OPEN-QUESTIONS.md) records as outside the documentation story of this release and which S-24
 partly owns. It does not document the introduction of structs, records, enums or delegates, which are the open issues
-#869, #867, #866 and #865 and which section 5c of [`DECISIONS.md`](../DECISIONS.md) leaves out of scope. It does not
+#869, #867, #866 and #865 and which section 4 of [`DECISIONS.md`](../DECISIONS.md) leaves out of scope. It does not
 change the samples, which are S-25.
 
 — Claude for @gfraiteur

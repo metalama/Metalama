@@ -13,7 +13,7 @@
 ---
 
 Nine documents of `Metalama.Framework/docs` are named in no document of `Metalama.Framework/docs/2027.0`, which is
-question Q17 of [`OPEN-QUESTIONS.md`](../OPEN-QUESTIONS.md). They are
+the completeness review of this analysis. They are
 [`compilation-model.md`](../../compilation-model.md), [`pipeline.md`](../../pipeline.md),
 [`linker-architecture.md`](../../linker-architecture.md), [`linker-overview.md`](../../linker-overview.md),
 [`linker-callsite.md`](../../linker-callsite.md), [`kind-check-optimization.md`](../../kind-check-optimization.md),
@@ -38,7 +38,7 @@ Four of the nine documents need no change, and the reason is recorded rather tha
 and the propagation of `ContainsInitializableTypes` through the transitive manifest. None of the three terms of that
 check is keyed on a type kind, a syntax kind or a language version: they test the `IInitializable` interface and
 whether the compilation is partial. The one property of the document that the release relies on is the statement of
-the section "Term 3" that the derived type index excludes types declared in referenced assemblies, and section 9 of
+the section "Term 3" that the derived type index excludes types declared in referenced assemblies, and section 11 of
 [`DECISIONS.md`](../DECISIONS.md) confirms that reading a closed hierarchy needs no new way to enumerate derived types,
 so that statement stays correct as written.
 
@@ -64,7 +64,7 @@ rules that govern them, and it already names `Metalama.Vsx` as the cross-version
 surface and the cross-version contracts transport no type kind, no syntax kind and no language version, that the only
 kind on the wire is `AspectExplorerDeclarationKind`, and that the contracts assembly needs no change for this
 release, at [`analysis-reports/05-design-time-workspaces-linqpad.md`](../analysis-reports/05-design-time-workspaces-linqpad.md)
-lines 118 and 129. The absence of `Metalama.Vsx` from the analysis is question Q13 and is a gap of the analysis, not
+lines 118 and 129. The absence of `Metalama.Vsx` from the analysis is a gap of the analysis, not
 of this document.
 
 #### Scope

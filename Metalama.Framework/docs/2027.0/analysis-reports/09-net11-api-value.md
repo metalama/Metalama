@@ -2,12 +2,10 @@
 
 ## Question
 
-Decision 6 of `Metalama.Framework/docs/2027.0/DECISIONS.md:57-64` states that adding `net11.0` beside `net10.0`
-in every test project is not justified unless there is a .NET 11 application programming interface that Metalama
-wants to use, and that the question must be answered before any test matrix story is written. Decision 6b
-(`DECISIONS.md:66-81`, added 2026-09-04) further removes the build container work from the release scope and
-names two defects that must be fixed without an installed .NET 11 SDK. This report answers the interface
-question and then separates what genuinely requires a .NET 11 SDK or runtime from what does not.
+Section 9 of `Metalama.Framework/docs/2027.0/DECISIONS.md` states that adding `net11.0` beside `net10.0` in every
+test project is not justified unless there is a .NET 11 application programming interface that Metalama wants to
+use, and that the question must be answered before any test matrix story is written. This report answers the
+interface question and then separates what genuinely requires a .NET 11 SDK or runtime from what does not.
 
 ## Answer
 
@@ -21,8 +19,10 @@ adjacency, `System.Runtime.CompilerServices.UnionAttribute` and `AssemblyLoadCon
 are both reachable without referencing .NET 11, for reasons given below. The two cryptography issues, #1860 and
 #1864, need a .NET 11 runtime on macOS as a test host and explicitly not a .NET 11 target framework.
 
-Because no interface is wanted, the build container change has no justification either, which agrees with
-decision 6b rather than merely accepting it.
+This report concluded from the same evidence that the build container change had no justification either. That
+inference was wrong and section 9 of `DECISIONS.md` does not follow it. The .NET 11 software development kit is
+required as a toolchain rather than as a target: the language version provider caps the compile-time compilation by
+the major version of the installed kit, so a C# 15 construct in compile-time code cannot be compiled without it.
 
 ## What .NET 11 adds (from primary sources)
 

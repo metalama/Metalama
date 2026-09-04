@@ -18,7 +18,7 @@ of the six is deferrable while C# 15 ships, because deferring one does not stop 
 
 #### Context
 
-Section 12 of [`DECISIONS.md`](../DECISIONS.md) states the doctrine that decides the scope. Metalama must be able to
+Section 2 of [`DECISIONS.md`](../DECISIONS.md) states the doctrine that decides the scope. Metalama must be able to
 advise any user code: whatever a user writes, the code model must describe it, the pipeline must transform it, the
 linker must emit it, and the design-time result must match the build. The same section classifies the reading and
 advising half of the union work as required on that ground, and the introduction interface as discretionary. The
@@ -63,7 +63,7 @@ model members that the later stories read do not exist until the first story add
 
 #### Not in scope
 
-This meta-story does not introduce a union or a union case, which are S-29 and S-30 and which section 12 of
+This meta-story does not introduce a union or a union case, which are S-29 and S-30 and which section 2 of
 [`DECISIONS.md`](../DECISIONS.md) classifies as discretionary. It does not carry the closed hierarchy work, which is
 S-16 and S-28.
 

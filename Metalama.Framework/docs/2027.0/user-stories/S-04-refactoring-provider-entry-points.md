@@ -7,7 +7,7 @@
 - Size: S
 - Blocked by: nothing
 - Findings: none. The defect was found by the review of the subsystems that no theme document examined, which is
-  question Q14 of [`OPEN-QUESTIONS.md`](../OPEN-QUESTIONS.md).
+  the completeness review of this analysis.
 
 ---
 

@@ -2,11 +2,11 @@
 
 ## What this document is, and what it is not
 
-This is a draft written to be criticised, in the sense of section 7b of
-[`DECISIONS.md`](../../../Metalama.Framework/docs/2027.0/DECISIONS.md). It exists because the concepts of the C# 15
+This is a draft written to be criticised, in the sense of section 11 of
+[`DECISIONS.md`](../DECISIONS.md). It exists because the concepts of the C# 15
 work stay abstract until a shape is on the page, and a shape on the page is what makes a trade-off arguable. It is
 illustrative material. It is not a specification, it carries no authority over the user stories, and a story does not
-become a specification by citing it. Section 7 of the same document keeps the rule that a story states the
+become a specification by citing it. Section 11 of the same document keeps the rule that a story states the
 capability, the scope and the acceptance criteria, and not the shape of the interface.
 
 The document is written the way an aspect author meets the feature: the code the author writes, the code the author's
@@ -14,7 +14,7 @@ users write, the code that Metalama produces, and the diagnostic the author sees
 
 It covers five subjects: reading a union, reading a closed hierarchy, extension indexers, the diagnostic for a
 labeled `break` or `continue` in a template, and the divergence on the Roslyn 5.0 variant. It does not cover the
-introduction of a union or of a union leg. Section 5c of `DECISIONS.md` makes that work required and gives it to a
+introduction of a union or of a union leg. Section 4 of `DECISIONS.md` makes that work required and gives it to a
 separate analysis; nothing here designs it, and nothing here should be read as contradicting it. Where a reading
 member drafted here would also have to appear on a builder, this document says so and stops.
 
@@ -24,11 +24,11 @@ it.
 
 Two constraints from `DECISIONS.md` shape every draft below and are not repeated in each section.
 
-- Sections 2 and 2b: the Roslyn 5.12 members are reached through preprocessor blocks in the latest variant only, and
+- Section 6: the Roslyn 5.12 members are reached through preprocessor blocks in the latest variant only, and
   `Metalama.Framework`, the public application programming interface assembly, is not built per variant. A member
   drafted here therefore exists in every host, while the engine code that answers it is compiled only in the latest
   variant. The lower variant must return a defined value, not throw.
-- Section 4: the template language stays at C# 14, and a labeled `break` or `continue` in a template is forbidden and
+- Section 5: the template language stays at C# 14, and a labeled `break` or `continue` in a template is forbidden and
   must be reported.
 
 ---
@@ -64,7 +64,7 @@ RecordStruct,
 A union follows the same physics. Roslyn lowers a C# 15 union to a struct, so `SourceNamedTypeImpl.TypeKind`
 (`Metalama.Framework/src/Metalama.Framework.Engine/CodeModel/Source/SourceNamedTypeImpl.cs:69-79`) already returns
 `TypeKind.Struct` and no switch over `TypeKind` throws (finding CM-1 of
-[`03-code-model-unions-closed.md`](../../../Metalama.Framework/docs/2027.0/03-code-model-unions-closed.md)). Adding
+[`03-code-model-unions-closed.md`](../03-code-model-unions-closed.md)). Adding
 `TypeKind.Union` would repeat the record mistake and require a new arm in every exhaustive switch over the Metalama
 `TypeKind`. The flag is the right shape, and it is not an open question.
 
@@ -236,7 +236,7 @@ introduced into a union.
 Without that rule, the member is dropped by the linker injection rewriter with no diagnostic at all, because
 `LinkerInjectionStep.Rewriter` has no `VisitUnionDeclaration` override
 (`Metalama.Framework/src/Metalama.Framework.Engine/Linking/LinkerInjectionStep.Rewriter.cs:316-324` and `:359`,
-finding LK-1 of [`04-linker-and-advice.md`](../../../Metalama.Framework/docs/2027.0/04-linker-and-advice.md)). The
+finding LK-1 of [`04-linker-and-advice.md`](../04-linker-and-advice.md)). The
 eligibility rule is therefore not a nicety; it is what turns a silent wrong output into a diagnostic.
 
 ### Uncertainty
@@ -661,7 +661,7 @@ Severity is `Error`, following `goto`, which is the closest existing rejection
 (`TemplateAnnotator.cs:2600-2605`). It cannot be a warning: a template with a dropped label produces run-time code
 whose `break` targets the innermost loop instead of the labeled one, which is a silent change of control flow
 (TP-3 of
-[`02-syntax-generator-and-templates.md`](../../../Metalama.Framework/docs/2027.0/02-syntax-generator-and-templates.md)).
+[`02-syntax-generator-and-templates.md`](../02-syntax-generator-and-templates.md)).
 
 The location is the label identifier of the jump statement, not the whole statement, so that the editor underlines
 the token the author must delete. Reading it must not name `BreakStatementSyntax.Name`: that field is absent from the
@@ -911,7 +911,7 @@ documentation instead of two.
 ### The situation, restated in one paragraph
 
 `Metalama.Framework` is not built per Roslyn version, so `IsUnion` and `IsClosed` exist in every host, while the
-engine code that answers them is compiled only in the latest variant (section 2b). The Roslyn 5.0 variant serves
+engine code that answers them is compiled only in the latest variant (section 6). The Roslyn 5.0 variant serves
 Rider and the Visual Studio Code C# Dev Kit
 (`Metalama.Framework/src/Metalama.Framework.CompilerExtensions/RoslynVariantPolicy.cs:31-42`, which returns the
 `5.10.0` variant for a host at 5.10 or above and the `5.0.0` variant down to the floor of 5.0 at `:23`). There,
@@ -1018,7 +1018,7 @@ an editor based on Roslyn 5.12 or later to see the complete result.
 
 The argument for reporting is that the failure is not "nothing happens". It is generated code in the editor that
 differs from the assembly, which is worse than a warning, because the user reasons about source that the compiler
-never saw. Section 2b calls this the same class of failure that the platform baseline document names as the reason
+never saw. Section 6 calls this the same class of failure that the platform baseline document names as the reason
 for deriving the Roslyn floor deliberately, and a class of failure that a document singles out as the one to avoid
 should not be shipped silent. The cost is one descriptor and one call site, and there is a direct precedent at build
 time for refusing to be silent about a host Roslyn that Metalama cannot serve:

@@ -25,7 +25,7 @@ compiler rejects. The language forbids instance fields, auto-properties and fiel
 forbids a public single-parameter constructor and requires every explicit constructor to chain to a generated one, so
 several ordinary advices would otherwise emit code that the compiler rejects, and the diagnostic is then reported on
 generated code, which the user cannot correct. There is a fourth, silent case: an initializer
-injected into a constructor that has no syntax. Question Q9 constrains every rule written here, because the
+injected into a constructor that has no syntax. One condition constrains every rule written here, because the
 restrictions apply to the `union` declaration form and not to a type carrying the union attribute.
 
 #### Scope

@@ -2,7 +2,7 @@
 
 Written on 2026-09-04 against the branch `topic/2027.0/26-09-03-update-eng-7e3j07` of `/home/user/Metalama`, with the
 local branch `pr1879` read for pull request metalama/Metalama#1879. Every path is relative to `/home/user/Metalama`.
-Inputs: sections 5c, 5d and 5e of `Metalama.Framework/docs/2027.0/DECISIONS.md`,
+Inputs: section 4 of `Metalama.Framework/docs/2027.0/DECISIONS.md`,
 `Metalama.Framework/docs/2027.0/analysis-reports/11-introducing-unions-design.md`, and `FACTS.md`. The facts that the
 request supplies are used without re-derivation; Roslyn behaviour is taken from analysis 11, which cites `dotnet/roslyn`
 `main`, because no Roslyn that this repository consumes exposes the union application programming interface as

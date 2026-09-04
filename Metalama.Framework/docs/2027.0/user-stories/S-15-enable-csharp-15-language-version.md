@@ -27,7 +27,7 @@ variant-aware rather than a constant: the Roslyn 5.0 variant rejects the value 1
 which any part of this change is correct, because no Roslyn that Metalama consumes before S-13 has
 `LanguageVersion.CSharp15`. Two items of the story close with no code: the operator table needs nothing for C# 15,
 because C# 15 adds no user-definable operator, and the design-time pipeline verifies no language version by design,
-which is correct and is recorded rather than changed. Section 4 of [`DECISIONS.md`](../DECISIONS.md) keeps
+which is correct and is recorded rather than changed. Section 5 of [`DECISIONS.md`](../DECISIONS.md) keeps
 `MetalamaTemplateLanguageVersion` at `14.0`, so the template language does not move with the run-time ceiling and the
 distinction has to be stated where both values are written.
 
@@ -69,7 +69,7 @@ the same method for the .NET 11 SDK, so it must not change that failure path, an
 
 #### Not in scope
 
-This story does not raise the template language version, which section 4 of [`DECISIONS.md`](../DECISIONS.md) excludes,
+This story does not raise the template language version, which section 5 of [`DECISIONS.md`](../DECISIONS.md) excludes,
 and it does not deliver the language features themselves, which are S-16 to S-21 and S-28 to S-30.
 
 — Claude for @gfraiteur

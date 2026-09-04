@@ -5,7 +5,7 @@
 - Milestone: `2027.0`
 - Repositories: `metalama/Metalama`
 - Size: M
-- Priority: nice to have for 2027.0. It is discretionary under the doctrine of section 12 of
+- Priority: nice to have for 2027.0. It is discretionary under the doctrine of section 2 of
   [`DECISIONS.md`](../DECISIONS.md) and slips to 2027.1 if the release runs short.
 - Blocked by: S-29, and question Q1 of [`OPEN-QUESTIONS.md`](../OPEN-QUESTIONS.md)
 - Findings: none. The design is

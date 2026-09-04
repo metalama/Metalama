@@ -1,8 +1,8 @@
 # 11. Introducing a union and introducing a union leg: design analysis
 
 Written on 2026-09-04 against the branch `topic/2027.0/26-09-03-update-eng-7e3j07` of `/home/user/Metalama`, in answer to
-section 5c of `Metalama.Framework/docs/2027.0/DECISIONS.md`, which overrides section 5b and makes both halves mandatory
-for Metalama 2027.0. Sections 7 and 7b of the same document govern the depth of the application programming interface
+section 4 of `Metalama.Framework/docs/2027.0/DECISIONS.md`, which overrides section 4 and makes both halves mandatory
+for Metalama 2027.0. Section 11 of the same document govern the depth of the application programming interface
 material: the drafted shapes below are illustrative, not binding.
 
 Every path is relative to `/home/user/Metalama`. Claims about the code carry a file and line reference; claims about
@@ -394,7 +394,7 @@ pattern; a `switch` that omits it is reported as exhaustive. At build time, all 
 the build disagree, in a feature whose entire value is a compiler-checked exhaustiveness guarantee.
 
 That is worse than #1143, where at least an overload could be offered, and it is the same class of failure that
-section 2b of `DECISIONS.md` describes for the Roslyn 5.0 variant. A design-time diagnostic saying that the aspect adds
+section 6 of `DECISIONS.md` describes for the Roslyn 5.0 variant. A design-time diagnostic saying that the aspect adds
 a case the editor cannot show is the only available mitigation, and it is a mitigation, not a fix.
 
 ### When the union is not partial
@@ -439,7 +439,7 @@ release, the hand-written form is the one worth shipping, and the product owner 
 ## Drafted interfaces
 
 **This section is a draft for discussion.** It exists because a shape on the page makes a trade-off arguable, per
-section 7b of `DECISIONS.md`. It is illustrative material, written to be criticised and replaced. No user story becomes
+section 11 of `DECISIONS.md`. It is illustrative material, written to be criticised and replaced. No user story becomes
 a specification by citing it, and no name, parameter order or overload set below is proposed as final.
 
 ### 1. The code an aspect author writes to introduce a whole union
@@ -878,6 +878,6 @@ project does not control.
    `Metalama.Framework/src/Metalama.Framework.Engine/CodeModel/Helpers/DeclarationExtensions.cs:279-330` against a
    union, which needs the compiler.
 6. **Whether any customer has asked for either half.** Analysis 10 recorded that no issue in the tracker requests
-   union introduction, and section 5c of `DECISIONS.md` overrides that analysis on the product owner's authority
+   union introduction, and section 4 of `DECISIONS.md` overrides that analysis on the product owner's authority
    rather than on new evidence. This document does not revisit the decision; it records that the design-time defect of
    half two is the input the product owner may not have had when taking it.

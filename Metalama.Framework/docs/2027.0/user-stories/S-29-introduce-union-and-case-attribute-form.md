@@ -5,7 +5,7 @@
 - Milestone: `2027.0`
 - Repositories: `metalama/Metalama`
 - Size: L
-- Priority: nice to have for 2027.0. It is discretionary under the doctrine of section 12 of
+- Priority: nice to have for 2027.0. It is discretionary under the doctrine of section 2 of
   [`DECISIONS.md`](../DECISIONS.md) and slips to 2027.1 if the release runs short.
 - Blocked by: S-18-1, S-18-5
 - Findings: none. The requirement was decided after the theme documents were written; the design is
@@ -13,7 +13,7 @@
 
 ---
 
-Section 5c of [`DECISIONS.md`](../DECISIONS.md) requires that Metalama 2027.0 support the introduction of a union type
+Section 4 of [`DECISIONS.md`](../DECISIONS.md) requires that Metalama 2027.0 support the introduction of a union type
 and the introduction of a union case, that is a leg of a union. This is the largest single piece of C# 15 work in the
 release, and it has two halves that differ in kind: introducing a whole union is the creation of a new declaration,
 while introducing a case into a union that already exists in source is a signature change of a declaration that the
@@ -59,7 +59,8 @@ this release.
   design-time result is correct.
 - Emit the union declaration in the type introduction transformation and add the union arms to the injection rewriter
   and to the design-time generator, inside the variant block.
-- Extend the eligibility rules so that each states which of the two union forms it tests, per question Q9.
+- Extend the eligibility rules so that each states which of the two union forms it tests, because
+  `ITypeSymbol.IsUnion` is true for both while the restrictions of a union declaration apply to one.
 - Write the aspect tests with their committed baselines, including the design-time scenarios.
 - State, in the pull request description, which pages of `metalama/Metalama.Documentation` must follow, including the
   note that an added case is a build-time-only change.

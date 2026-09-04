@@ -55,6 +55,6 @@ constant gates of exactly this shape.
 
 #### Not in scope
 
-This story adds no `net11.0` test leg. Sections 6 and 6c of [`DECISIONS.md`](../DECISIONS.md) exclude it.
+This story adds no `net11.0` test leg, which section 9 of [`DECISIONS.md`](../DECISIONS.md) puts out of scope.
 
 — Claude for @gfraiteur

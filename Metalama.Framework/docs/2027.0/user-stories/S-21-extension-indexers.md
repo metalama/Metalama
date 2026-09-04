@@ -18,7 +18,7 @@ self-contained and has no dependency on the union work, so it can run in paralle
 
 #### Context
 
-Section 9 of [`DECISIONS.md`](../DECISIONS.md) records that extension indexers need no application programming
+Section 11 of [`DECISIONS.md`](../DECISIONS.md) records that extension indexers need no application programming
 interface change in order to be overridden, and that introducing one needs the removal of a single validation call
 plus an eligibility rule requiring the named receiver that an extension block with an indexer must declare. The
 language adds three further restrictions that the eligibility rules must carry: no `init` accessor, and none of the

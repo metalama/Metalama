@@ -18,13 +18,15 @@ which is why they are one pull request.
 
 #### Context
 
-The story is deliberately last, because a document written before the code is a second thing to correct. Two
-corrections come from decisions rather than from the theme documents: the statement that the November 2026 long-term
+The story is deliberately last, because a document written before the code is a second thing to correct. Three
+corrections come from decisions rather than from the theme documents, and question Q10 of
+[`OPEN-QUESTIONS.md`](../OPEN-QUESTIONS.md) records all three. The statement that the November 2026 long-term
 servicing baseline carries a Roslyn version near 5.11 should name 5.12, and the variant table row that offers a
-measured version of 5.10 or above should read 5.12 or above, both recorded as question Q10; and the statement that
-the `net10.0` toolset rolls forward to .NET 11 overstates the mechanism, because the roll-forward selects .NET 11
-only when no .NET 10 runtime is installed, which is question Q11. Both belong to the product owner, so this story
-applies them only once they are approved.
+measured version of 5.10 or above should read 5.12 or above. The statement that the Visual Studio 2026 long-term
+servicing channel opens in November 2026 is doubtful, because a serviced Visual Studio 18.0 appears to exist
+already. The statement that the `net10.0` toolset rolls forward to .NET 11 overstates the mechanism, because the
+roll-forward selects .NET 11 only when no .NET 10 runtime is installed. The document belongs to the product owner,
+so this story applies the corrections only once they are approved.
 
 #### Scope
 
@@ -42,7 +44,7 @@ applies them only once they are approved.
 - State in the extensibility guide that the target framework metadata of an extension assembly is compared for string
   equality against the Core flavour name of the current platform baseline, so that a merely compatible value does not
   match.
-- Apply the two corrections of question Q10 and the one of question Q11 once the product owner approves them.
+- Apply the three corrections of question Q10 once the product owner approves them.
 
 #### Acceptance criteria
 

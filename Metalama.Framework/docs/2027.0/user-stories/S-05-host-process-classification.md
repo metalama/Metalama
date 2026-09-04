@@ -7,7 +7,7 @@
 - Size: S
 - Blocked by: nothing
 - Findings: none. No theme document of this analysis examined host process detection. This story closes the second
-  paragraph of question [Q14](../OPEN-QUESTIONS.md) of the completeness review, which reported that the two copies of
+  paragraph of the completeness review, which reported that the two copies of
   the detection have diverged on the Visual Studio Code C# Dev Kit.
 
 ---
@@ -52,8 +52,7 @@ Two consequences are real. The first is that the troubleshooting report and the 
 with OmniSharp, for LinqPad, for the test host, for an MSBuild node, for a ReSharper test runner and for the Code
 Lens service, while the Backstage log of the same process names each of them correctly. A support report from a C#
 Dev Kit user therefore does not say which host produced it. The second is that no arm that must treat the C# Dev
-Kit differently can be written in `ProcessKindHelper` at all, because the enumeration has no member for it. Section
-2b of [`DECISIONS.md`](../DECISIONS.md) and question [Q2](../OPEN-QUESTIONS.md) name Rider and the C# Dev Kit as exactly
+Kit differently can be written in `ProcessKindHelper` at all, because the enumeration has no member for it. Section 6 of [`DECISIONS.md`](../DECISIONS.md) and question [Q2](../OPEN-QUESTIONS.md) name Rider and the C# Dev Kit as exactly
 the two hosts on which the design-time result and the build-time result diverge under the Roslyn 5.0 variant, and
 `Metalama.Framework.EditorExtensions` is compiled once for every Roslyn variant against `RoslynApiMinVersion`. That
 assembly can distinguish Rider today, at `MetalamaCodeFixProvider.cs:42-48`, and cannot distinguish the C# Dev Kit.

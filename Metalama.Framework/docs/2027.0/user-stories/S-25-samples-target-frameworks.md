@@ -8,7 +8,7 @@
 - Blocked by: nothing. The story needs a published 2027.0 package to build against, which S-10, S-13 and S-15 gate in
   time but not in dependency. A sample that demonstrates a C# 15 feature, if the scope decides to add one, is written
   after S-15.
-- Findings: none. No theme document of this analysis names `Metalama.Samples`, which is what question Q13 of
+- Findings: none. No theme document of this analysis names `Metalama.Samples`, which is the gap reported by
   [`OPEN-QUESTIONS.md`](../OPEN-QUESTIONS.md) records. The repository is not cloned in the session that produced this
   analysis, so no sample project file was read, and every statement below about the samples is marked as an
   assumption.
@@ -81,7 +81,7 @@ public defect and not only an internal one.
 
 This story does not change the platform requirement metadata of
 `Metalama.Framework/src/Metalama.Framework.Package/build/Metalama.Framework.props`, which belongs to
-`metalama/Metalama`. It adds no `net11.0` target framework to a sample, because sections 6 and 6c of
+`metalama/Metalama`. It adds no `net11.0` target framework to a sample, because section 9 of
 [`DECISIONS.md`](../DECISIONS.md) find no .NET 11 application programming interface that justifies one. It does not
 write the conceptual documentation that accompanies a sample, which is S-27.
 

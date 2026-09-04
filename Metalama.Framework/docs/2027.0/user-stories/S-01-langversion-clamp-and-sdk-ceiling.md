@@ -20,8 +20,8 @@ versions. The second defect is live today.
 
 #### Context
 
-Section 6b of [`DECISIONS.md`](../DECISIONS.md) removes the build container work from the release and names these two
-defects as what remains: both are properties of a comparison and are verified without an installed .NET 11 SDK. The
+Section 9 of [`DECISIONS.md`](../DECISIONS.md) records that both defects are properties of a version comparison and
+are verified without an installed .NET 11 SDK, so this story is independent of the container work of S-09. The
 clamp is not yet reachable, because the compiler toolset caps the implied version of a `net11.0` project at `14.0`
 until the Roslyn of S-13; it becomes reachable on the day that cap moves to `15.0`, and it then costs a project three
 language versions at once, because a project that implied `15.0` drops to `12.0`. The ceiling defect is reachable
@@ -50,7 +50,7 @@ check.
 - Extend the accepted value list of the clamp condition when `LangMaxVersion` moves, which is S-15, and reference
   that story from the comment so the two lists do not drift.
 - Add unit tests or a standalone scenario that exercises both comparisons without an installed .NET 11 SDK, following
-  section 6b of [`DECISIONS.md`](../DECISIONS.md).
+  section 9 of [`DECISIONS.md`](../DECISIONS.md).
 
 #### Acceptance criteria
 
@@ -61,7 +61,7 @@ check.
 
 #### Not in scope
 
-This story does not install a .NET 11 SDK in the build container and does not add a `net11.0` scenario. Sections 6b
-and 6c of [`DECISIONS.md`](../DECISIONS.md) exclude both.
+This story does not install a .NET 11 SDK in the build container, which is story S-09, and does not add a `net11.0`
+target framework, which section 9 of [`DECISIONS.md`](../DECISIONS.md) puts out of scope.
 
 — Claude for @gfraiteur

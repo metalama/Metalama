@@ -6,8 +6,7 @@ created, and none is to be created in `metalama/Metalama` or in `metalama/Metala
 approves this document.
 
 The sources are the theme documents of this directory, which carry the verified findings and the file and line
-reference of every claim; [`DECISIONS.md`](../DECISIONS.md), which records the answers taken by the product owner on
-2026-09-04; [`OPEN-QUESTIONS.md`](../OPEN-QUESTIONS.md), which records what is not answered; the later analyses under
+reference of every claim; [`DECISIONS.md`](../DECISIONS.md), which states the decisions that govern the release; [`OPEN-QUESTIONS.md`](../OPEN-QUESTIONS.md), which records what is not answered; the later analyses under
 [`analysis-reports`](../analysis-reports), which answer questions that the theme documents left open; and the survey of
 the open pull requests of the two repositories. The platform baseline itself is not decided here:
 [`platform-support.md`](../../platform-support.md) remains the authority on which platforms 2027.0 supports,
@@ -27,10 +26,9 @@ repository already uses.
 The `Blocked by` field names the stories that must be merged before this one starts, and the Mermaid graph of the
 next section draws the same relation.
 
-Two rules of [`DECISIONS.md`](../DECISIONS.md) govern how the stories are written. Section 7 says that a story states
-the capability, the scope and the acceptance criteria, and not the shape of a public application programming
-interface; section 7b says that the drafted shapes under `analysis-reports` are illustrative material for the
-implementer and carry no authority. The stories below therefore name the files, the properties and the members that
+Section 11 of [`DECISIONS.md`](../DECISIONS.md) governs how the stories are written. A story states the capability,
+the scope and the acceptance criteria, and not the shape of a public application programming interface, and the
+drafted shapes under `analysis-reports` are illustrative material for the implementer and carry no authority. The stories below therefore name the files, the properties and the members that
 exist today, and describe a new member by what it must report rather than by its signature.
 
 Every verified finding of the theme documents is assigned exactly once: to one story, or to the last section with
@@ -69,7 +67,7 @@ compilation, numeric syntax kind values with a run-time guard, and a per-variant
 reflection. A numeric kind names no absent member but cannot override a virtual visitor method or call a syntax
 factory. A reflection shim repeats what #1215 deliberately removed.
 
-Answer: conditional compilation, recorded in [`DECISIONS.md`](../DECISIONS.md) section 2. A symbol in the manner of
+Answer: conditional compilation, recorded in [`DECISIONS.md`](../DECISIONS.md) section 6. A symbol in the manner of
 `ROSLYN_5_12_0_OR_GREATER` is defined by the latest variant property file, and the sources that name the C# 15 Roslyn
 members are compiled only in that variant. The notes in `eng/RoslynVersions/Roslyn.5.0.0.props` and in the latest
 variant property file that state that no production source branches on the variant, and the corresponding paragraph
@@ -109,7 +107,7 @@ advices therefore emit code that the compiler rejects, with the diagnostic repor
 - Option C, no rule at all. The generated code is then silently invalid.
 
 Answer: Option B, recorded in [`DECISIONS.md`](../DECISIONS.md) section 3. Unions are supported as aspect targets, and
-what a union cannot carry is refused with a clear diagnostic. Question Q9 attaches a condition to every such rule:
+what a union cannot carry is refused with a clear diagnostic. One condition attaches to every such rule:
 `ITypeSymbol.IsUnion` is true both for a `union` declaration and for a type carrying
 `System.Runtime.CompilerServices.UnionAttribute`, while the member restrictions apply to the first form only, so each
 rule must state which of the two forms it tests.
@@ -118,16 +116,16 @@ rule must state which of the two forms it tests.
 
 Both answers are taken, and both are affirmative.
 
-Introducing a closed class is in scope, recorded in section 5f of [`DECISIONS.md`](../DECISIONS.md), which supersedes
-section 5b and answers question Q4. A closed class is an ordinary class with one more modifier, the writer is sized
+Introducing a closed class is in scope, recorded in section 4 of [`DECISIONS.md`](../DECISIONS.md), which also
+settles the question. A closed class is an ordinary class with one more modifier, the writer is sized
 M, and every part of it is identified: the settable property on `INamedTypeBuilder`, its validation, the storage in
 the builder data, the exposure on the introduced type, and the token emission in `ModifierHelper`. Three details of
 the emission are not free: the `closed` token replaces `abstract` rather than joining it, the token goes before
 `partial`, and the validation rejects a closed type that is not a class and one that is sealed or static. That work
 is story S-28, and findings CM-4 and LK-5 are carried by it.
 
-Introducing a union, and introducing a case into an existing union, is required, recorded in section 5c of
-[`DECISIONS.md`](../DECISIONS.md), which supersedes section 5b for unions. This is the largest single piece of C# 15
+Introducing a union, and introducing a case into an existing union, is required, recorded in the same section of
+[`DECISIONS.md`](../DECISIONS.md). This is the largest single piece of C# 15
 work in the release and it is story S-29.
 
 What is still open is question Q1, the second half of that requirement.
@@ -156,10 +154,10 @@ because the compile-time assembly of an aspect library must be compilable inside
   Roslyn 5.0 with an unsupported language version error, which is a hard failure and not a degradation.
 - Option C, offer `15.0` as an opt-in property, at the cost of a support matrix with two template language versions.
 
-Answer: Option A, recorded in [`DECISIONS.md`](../DECISIONS.md) section 4. The same section adds a consequence that
+Answer: Option A, recorded in [`DECISIONS.md`](../DECISIONS.md) section 5. The same section adds a consequence that
 changes one story: a labeled `break` or `continue` inside a template is forbidden and is reported with a diagnostic,
 because the annotator cannot classify a label whose loop may be in a different scope than the statement that names
-it. Section 4b extends the answer to the label itself, for the same reason and because before C# 15 the only use of a
+it. The same section extends the answer to the label itself, for the same reason and because before C# 15 the only use of a
 label was `goto`, which the annotator already reports, so a label in a template was already useless in practice.
 Run-time code that an aspect transforms and that uses a label outside a template is not affected and must keep
 working once the syntax model is regenerated. Story S-19 delivers the rejection and the run-time correctness, and no
@@ -177,19 +175,25 @@ longer proposes support for labels in templates.
   whose default language version differs from the one the tests assume.
 - Option C, keep one SDK and accept that `net11.0` stays declared and untested.
 
-Answer: Option C, recorded in [`DECISIONS.md`](../DECISIONS.md) sections 6b and 6c. The container change has no
-justification, because no .NET 11 application programming interface is wanted. Two things stay in scope and need no
-installed SDK: the supported-toolchain check must not report `LAMA0601` for a supported .NET SDK, and the
-`LangVersion` clamp must not rewrite the language version that a `net11.0` project implies. Both are properties of a
-comparison and are verified by a test of that comparison. Story S-01 delivers them. Findings LV-9, UT-1, UT-6, UT-7,
-UT-8 and PR-8 are withdrawn on this basis.
+Answer: Option A with the pin moved, recorded in [`DECISIONS.md`](../DECISIONS.md) section 9. Both feature bands are
+installed and `global.json` names the .NET 11 kit as the main kit of the product. The reason is not a .NET 11
+application programming interface, which the analysis found none of, but the compile-time language cap: the language
+version provider caps the compile-time compilation by the major version of the installed kit, so with only the .NET
+10 kit an aspect test cannot exercise a C# 15 construct in compile-time code. Story S-09 delivers it, and carries the
+move of the engineering pin that completes the `MSBuildExtensionsPath` mitigation.
+
+Two things are independent of the container and stay in story S-01: the supported-toolchain check must not report
+`LAMA0601` for a supported .NET SDK, and the `LangVersion` clamp must not rewrite the language version that a
+`net11.0` project implies. Both are properties of a comparison and are verified by a test of that comparison.
+Findings LV-9 and UT-1 are carried by S-09; UT-6, UT-7, UT-8 and PR-8 remain withdrawn, because they ask for a
+`net11.0` target framework.
 
 ### D-8. Does a `net11.0` leg run in the test matrix?
 
 Adding `net11.0` beside `net10.0` in every test project doubles the Core dimension of the longest part of the build,
 and an unknown number of expected-output files may diverge between the legs.
 
-Answer: no, recorded in [`DECISIONS.md`](../DECISIONS.md) sections 6 and 6c. A leg is justified only by a .NET 11
+Answer: no, recorded in [`DECISIONS.md`](../DECISIONS.md) section 9. A leg is justified only by a .NET 11
 application programming interface that Metalama wants to use, and the analysis in
 [`analysis-reports/09-net11-api-value.md`](../analysis-reports/09-net11-api-value.md) found none: the .NET 11 additions
 are numeric types, domain name resolution, compression, process management, text, streams and vector intrinsics, and
@@ -259,22 +263,22 @@ hand now that Visual Studio 2022 is dropped, so the risk rose this release rathe
 
 ### D-13. Is Roslyn 5.12 added beside Roslyn 5.10, or does it replace it?
 
-Answer: it replaces it, recorded in [`DECISIONS.md`](../DECISIONS.md) section 8. The variant set of 2027.0 therefore
+Answer: it replaces it, recorded in [`DECISIONS.md`](../DECISIONS.md) section 7. The variant set of 2027.0 therefore
 stays at two, and rule 8 of the doctrine forbids a variant that serves an empty set.
 
-Sections 8b and 8c correct the reasoning that section 8 used, and they must be read with it. Roslyn 5.10 is the
+One premise of that answer needs care. Roslyn 5.10 is the
 current stable-track version rather than a version that never existed: the build that this repository consumes comes
 from the `release/stable` branch, whose `PreReleaseVersionLabel` is 1. What decides whether a 5.10 or 5.11 variant is
-needed is not the package index but the criterion of section 8c: a variant is needed for a Roslyn version only if a
+needed is not the package index but the criterion of section 7: a variant is needed for a Roslyn version only if a
 Visual Studio that presents it is still in support on 2027-01-31 and that Roslyn offers a C# 15 feature as a
 supported language feature. Roslyn 5.10 offers none, because every C# 15 feature is reachable there only under
-`LanguageVersion.Preview`; Roslyn 5.11 is the first version that offers them. Section 14.1 adds that a new
+`LanguageVersion.Preview`; Roslyn 5.11 is the first version that offers them. The same section adds that a new
 enumeration member such as `SyntaxKind.ClosedKeyword` is a new Roslyn application programming interface, so a feature
 that adds no syntax node may still require a build against a newer Roslyn. The practical consequence for S-13 is that
 the latest variant must bind against a version no higher than the lowest Roslyn that offers C# 15 among the hosts in
 support, which is 5.11 if such a host exists and 5.12 otherwise, and the measurement that settles it is checklist
 item 1 of [`platform-support.md`](../../platform-support.md), performed by S-11. Two statements of
-[`platform-support.md`](../../platform-support.md) follow from section 8 and are recorded as question Q10 rather than
+[`platform-support.md`](../../platform-support.md) follow from section 7 and are recorded there rather than
 applied, because the document belongs to the product owner; S-24 carries them once they are approved.
 
 ## Ordering
@@ -319,7 +323,7 @@ same time.
 8. The documentation and the samples, because a document written before the code is a second thing to correct. S-24,
    the platform, dependency and extensibility documentation, S-25, the sample solutions, S-26, the internal
    architecture documents, and S-27, the conceptual documentation.
-9. The discretionary work, last, which section 13 of [`DECISIONS.md`](../DECISIONS.md) marks as nice to have for
+9. The discretionary work, last, which section 2 of [`DECISIONS.md`](../DECISIONS.md) marks as nice to have for
    2027.0 and which slips to 2027.1 if the release runs short. S-28, the introduction of a closed class, is the
    smallest and therefore the likeliest to survive a cut. Then S-29, the introduction of a union and of a case into a
    type carrying the union attribute, and S-30, the introduction of a case into a `union` declaration, which follows
@@ -488,10 +492,10 @@ document designs or builds the contract, because it is delivered.
 ## Findings not turned into a story
 
 Nine verified findings produce no story. The reason is given for each. Two findings that an earlier draft listed
-here, which are LV-9 and UT-1, are owned by story S-09, because section 6d of [`DECISIONS.md`](../DECISIONS.md) puts
+here, which are LV-9 and UT-1, are owned by story S-09, because section 9 of [`DECISIONS.md`](../DECISIONS.md) puts
 the build container work back in scope.
 
-- [UT-5](../06-user-tfm-patterns-tests-docs.md), no test project has a `net11.0` leg. Out of scope: section 6c records
+- [UT-5](../06-user-tfm-patterns-tests-docs.md), no test project has a `net11.0` leg. Out of scope: section 9 records
   that no .NET 11 application programming interface justifies a `net11.0` asset or a `net11.0` test leg.
 - [UT-6](../06-user-tfm-patterns-tests-docs.md), the tested-target-framework scenario omits `net11.0`. Out of scope for
   the same reason, and it additionally needs targeting packs that the build agents do not have.
@@ -504,7 +508,7 @@ the build container work back in scope.
   and the core decision is not to add one.
 - [TP-10](../02-syntax-generator-and-templates.md), the closed modifier and patterns over unions need nothing from the
   template compiler. No impact. Its one conditional action, the polyfill attributes that a closed compile-time class
-  would need, is closed by section 4 of [`DECISIONS.md`](../DECISIONS.md), which keeps the template language at C# 14.
+  would need, is closed by section 5 of [`DECISIONS.md`](../DECISIONS.md), which keeps the template language at C# 14.
 - [UT-15](../06-user-tfm-patterns-tests-docs.md), closed classes reach no pattern-specific code. No impact. The pattern
   libraries need no product change for a closed class, and the observation tests it proposes are not required by the
   closed writer of S-28, which changes no pattern library.
