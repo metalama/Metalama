@@ -17,10 +17,11 @@ the open pull requests of the two repositories. The platform baseline itself is 
 Each story is written as the issue body would be posted, preceded by the metadata that a person filing it has to
 choose. The issue type, the labels and the milestone are proposals and must be checked against the label set of the
 repository before an issue is created. Every story is a sub-issue of the meta-issue #1921, which groups the platform
-work of this release. The C# 15 stories, which are S-11 to S-22, are grouped under a new feature issue named C# 15,
-itself a sub-issue of #1921. That structure follows the previous release, in which the closed issue #1039, named
-C# 14, grouped twenty sub-issues under the closed meta-issue #1045, named .NET 10 Support. The `Size` field is an
-estimate of the effort of the pull request, on the small, medium and large scale that the repository already uses.
+work of this release. The C# 15 stories, which are S-11 to S-22 and S-26, S-28 and S-29, are grouped under a new
+feature issue named C# 15, itself a sub-issue of #1921. That structure follows the previous release, in which the
+closed issue #1039, named C# 14, grouped twenty sub-issues under the closed meta-issue #1045, named .NET 10 Support.
+The `Size` field is an estimate of the effort of the pull request, on the small, medium and large scale that the
+repository already uses.
 The `Blocked by` field names the stories that must be merged before this one starts, and the Mermaid graph of the
 next section draws the same relation.
 
@@ -138,8 +139,9 @@ What is still open is question Q1, the second half of that requirement.
   wrote with the concise syntax.
 
 Recommendation: Option A, in that order, taking the attribute form first because it is small and its design-time
-result is correct. If only one form fits the release it should be the attribute form. The answer decides the size of
-S-17 and whether that story carries a design-time diagnostic.
+result is correct. If only one form fits the release it should be the attribute form. The answer decides whether
+story S-29 is filed at all, because S-17 carries the attribute form and S-29 carries the form declared with the
+`union` keyword together with its design-time diagnostic.
 
 ### D-6. Does the template language version move to C# 15?
 
@@ -1068,8 +1070,7 @@ implemented, per section 7 of [`DECISIONS.md`](DECISIONS.md); a draft that follo
 Two constraints hold for every member added by this story. The reads name Roslyn members that the lower variant does
 not have, so they follow the gating of S-02. And `ITypeSymbol.IsUnion` is true both for a `union` declaration and
 for a type carrying `System.Runtime.CompilerServices.UnionAttribute`, while the member restrictions apply to the
-first form only, so the
-code model must let a consumer tell the two apart, which is question Q9.
+first form only, so the code model must let a consumer tell the two apart, which is question Q9.
 
 #### Scope
 
@@ -1251,9 +1252,8 @@ user sees first.
 #### Context
 
 This story settles two implementation points that no other story settles. The discriminator must be the kind of the
-primary
-declaration syntax rather than the Roslyn union flag, because that flag is also true for a hand-written class or
-struct carrying the union attribute, whose generated part must stay a class or a struct; emitting a union part for
+primary declaration syntax rather than the Roslyn union flag, because that flag is also true for a hand-written class
+or struct carrying the union attribute, whose generated part must stay a class or a struct; emitting a union part for
 such a type would itself produce `CS0261`. And the generated part must omit the case list, because exactly one part
 of a partial union carries it and a second one is `CS8863`, as
 [`analysis-reports/11-introducing-unions-design.md`](analysis-reports/11-introducing-unions-design.md) settles. The
@@ -1730,11 +1730,10 @@ The lower variant that these tests would execute was created by metalama/Metalam
 #1913 and renamed the Roslyn 4.12.0 variant projects to 5.0.0; that pull request added no test for them, which is the
 gap this story closes. The gap is behavioural rather than an interface gap: the variant projects are referenced by
 the package resource projects, so a use of an application programming interface that Roslyn 5.0 does not have fails
-the build. What is not
-covered is behaviour that differs when the engines bind against the older Roslyn, and a defect of that kind is not
-detected before a Rider user reports it. The order inside the story matters: the existing aspect test projects
-reference the unsuffixed engine by a hardcoded path, so a variant shim added before they are made variant-aware would
-compile the test sources under one property set and load the other engine.
+the build. What is not covered is behaviour that differs when the engines bind against the older Roslyn, and a defect
+of that kind is not detected before a Rider user reports it. The order inside the story matters: the existing aspect
+test projects reference the unsuffixed engine by a hardcoded path, so a variant shim added before they are made
+variant-aware would compile the test sources under one property set and load the other engine.
 
 #### Scope
 
@@ -2046,13 +2045,12 @@ written. The state of each was read from GitHub on 2026-09-04 rather than taken 
 
 This pull request is open. It makes `meta.Proceed()` work in an aspect that overrides a compiler-synthesized record
 member, and it builds the mechanism that S-14 and S-17 consume: a generator that reproduces the body of a synthesized
-member from its
-symbol, a linker substitution whose replaced node is the type declaration, a public helper that answers whether a
-member can be declared explicitly, and an eligibility rule built on it. Every gate of that mechanism is keyed on
-whether the type is a record. What remains for this release: S-14 must be rebased onto it and must extend it rather
-than duplicate it, and S-17 must not assume that it generalises to unions, because a user may not declare the
-synthesized union members at all and there is therefore no override to serve. The diagnostic identifiers that it
-takes must not be allocated again, and the one it removes must not be reused.
+member from its symbol, a linker substitution whose replaced node is the type declaration, a public helper that
+answers whether a member can be declared explicitly, and an eligibility rule built on it. Every gate of that
+mechanism is keyed on whether the type is a record. What remains for this release: S-14 must be rebased onto it and
+must extend it rather than duplicate it, and S-17 must not assume that it generalises to unions, because a user may
+not declare the synthesized union members at all and there is therefore no override to serve. The diagnostic
+identifiers that it takes must not be allocated again, and the one it removes must not be reused.
 
 ### metalama/Metalama.Premium#84, the out-of-band package caps
 
