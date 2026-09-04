@@ -24,7 +24,7 @@ No project was built and no test was run for this analysis.
 2. Because a union is a struct, no switch over `TypeKind`, `DeclarationKind`, `SymbolKind` or `MethodKind` in the
    engine crashes on a union or on a closed class. The recommendation is therefore a flag `INamedType.IsUnion`, on
    the precedent of `IsRecord`, rather than a new `TypeKind` value that would need a new arm in 17 switches.
-3. The breakage is in the syntax layer. `SyntaxKind.UnionDeclaration` is absent from the hand-written kind lists and
+3. The defects are in the syntax layer. `SyntaxKind.UnionDeclaration` is absent from the hand-written kind lists and
    no syntax visitor overrides `VisitUnionDeclaration`. The consequences are a wrong `LAMA0048` diagnostic because
    `IsPartial` is false for a `partial union`, a design-time partial declaration emitted as `partial struct` which
    the compiler rejects with CS0261, an assertion in `FindMemberDeclaration` for a union in the global namespace,
@@ -139,7 +139,7 @@ No project was built and no test was run for this analysis.
     (`IsTypeDeclaration` lists class, struct, interface, record and record struct) and `:41`
     (`IsBaseTypeDeclaration`)
   - `Metalama.Framework/src/Metalama.Framework.Engine/Pipeline/DesignTime/DesignTimeSyntaxTreeGenerator.cs:158-164`
-    (the `LAMA0048` report at `:162` and the early return at `:164`) and `:941-951` (`IsInNonPartialSourceType`,
+    (the `LAMA0048` report at `:162` and the early return at `:164`) and `:940-951` (`IsInNonPartialSourceType`,
     which reads `IsPartial` again at `:950`)
   - `Metalama.Framework/src/Metalama.Framework.Engine/Diagnostics/GeneralDiagnosticDescriptors.cs:209`
     (`TypeNotPartial`, that is `LAMA0048`, severity warning)
@@ -218,7 +218,7 @@ No project was built and no test was run for this analysis.
     `TypeKind.Struct when !type.IsRecord` arm that a union reaches), `:722` (the arm a closed class reaches)
   - `Metalama.Framework/src/Metalama.Framework.Engine/Pipeline/DesignTime/DesignTimeSyntaxTreeGenerator.cs:817-823`
     (`AddHeader`), `:332` (the single application of `AddHeader`, to the outermost declaration), `:294-307` and
-    `:316-324` (the construction of that outermost declaration)
+    `:310-324` (the construction of that outermost declaration)
   - `Metalama.Framework/src/Metalama.Framework.Engine/Pipeline/DesignTime/DesignTimeSyntaxTreeGenerator.cs:214-217`
     (the base list that carries the interfaces added by `IInjectInterfaceTransformation`)
   - `Metalama.Framework/src/Metalama.Framework.Engine.5.0.0/Metalama.Framework.Engine.5.0.0.csproj:6`
@@ -269,10 +269,10 @@ No project was built and no test was run for this analysis.
 
 - Where:
   - `Metalama.Framework/src/Metalama.Framework/Code/DeclarationBuilders/INamedTypeBuilder.cs:13-49` (`IsPartial` at
-    `:18`, `BaseType` at `:37`, `AddTypeParameter` at `:49`)
+    `:18`, `BaseType` at `:35`, `AddTypeParameter` at `:49`)
   - `Metalama.Framework/src/Metalama.Framework/Code/DeclarationBuilders/IMemberOrNamedTypeBuilder.cs:26-45`
-    (settable `IsStatic` at `:30`, `IsSealed` at `:35`, `IsAbstract` at `:40`, `IsPartial` at `:45`; the file has 45
-    lines, so the range 64-95 cited by the original report does not exist)
+    (settable `IsStatic` at `:30`, `IsSealed` at `:35`, `IsAbstract` at `:40`, `IsPartial` at `:45`; the file ends at
+    line 46, so the range 64-95 cited by the original report does not exist)
   - `Metalama.Framework/src/Metalama.Framework.Engine/CodeModel/Helpers/ModifierHelper.cs:198-236`
     (`GetTypeSyntaxModifierList`, which emits the abstract keyword at `:226` when `IsAbstract` and the kind is not an
     interface, and the sealed keyword at `:231` when `IsSealed`), and `:105` (the partial modifier, handled for
@@ -352,20 +352,20 @@ No project was built and no test was run for this analysis.
   - `Metalama.Framework/src/Metalama.Framework/Eligibility/EligibilityExtensions.cs:740` (`MustNotBeAbstract`)
   - `Metalama.Framework/src/Metalama.Framework/Code/DerivedTypesOptions.cs:22-44` (`All` and `DirectOnly` return
     types declared in the current compilation; `IncludingExternalTypesDangerous` is documented as incomplete)
-  - `Metalama.Framework/src/Metalama.Framework.Engine/CodeModel/DerivedTypeIndex.cs:40-92` and `:117-126`
+  - `Metalama.Framework/src/Metalama.Framework.Engine/CodeModel/DerivedTypeIndex.cs:40-92` and `:118-127`
     (`GetDirectlyDerivedTypesCore`, which filters every candidate through `IsContainedInCurrentCompilation`)
   - `Metalama.Framework/src/Metalama.Framework.Engine/CodeModel/PartialCompilation.cs:449-460` (the index of a
     complete compilation) and `:237-280` with `:366-420` (the index of a partial compilation)
 - What happens today: a closed class is implicitly abstract, both by the language rule and in the compiler, so
   `IsAbstract` is true, `IsSealed` is false, `CanBeInherited` is true, `HasDefaultConstructor` is false and
   `MustNotBeAbstract` rejects the type. All of that is semantically correct. Nothing tells an aspect that the set of
-  direct subtypes is complete. One qualification to the shortcut that closedness allows: for a closed type declared
-  in the current compilation, `DerivedTypesOptions.DirectOnly` is already exhaustive, because a subtype of a closed
-  type must be in the same module and `DirectOnly` returns every directly derived type declared in the current
-  compilation, but that holds only when the compilation model is built on a complete compilation, because a partial
-  compilation indexes only the closure of the selected syntax trees. It is the closed type coming from a referenced
-  assembly for which no complete answer exists: `DirectOnly` and `All` exclude external types by construction, and
-  `IncludingExternalTypesDangerous` is documented as incomplete.
+  direct subtypes is complete. One qualification applies to the optimization that closedness allows: for a closed
+  type declared in the current compilation, `DerivedTypesOptions.DirectOnly` is already exhaustive, because a
+  subtype of a closed type must be in the same module and `DirectOnly` returns every directly derived type declared
+  in the current compilation. That holds only when the compilation model is built on a complete compilation,
+  because a partial compilation indexes only the closure of the selected syntax trees. It is the closed type coming
+  from a referenced assembly for which no complete answer exists: `DirectOnly` and `All` exclude external types by
+  construction, and `IncludingExternalTypesDangerous` is documented as incomplete.
 - Consequence: no impact.
 - Proposed change: add `bool IsClosed { get; }` to `INamedType`, returning false in the builders and the introduced
   types unless CM-4 is implemented, and document in `DerivedTypesOptions` that for a closed type declared in the
@@ -413,12 +413,12 @@ No project was built and no test was run for this analysis.
     parent at `:119`)
   - `Metalama.Framework/src/Metalama.Framework.Engine/Utilities/Roslyn/SyntaxKindExtensions.cs:33-35` and `:41`
   - `Metalama.Framework/src/Metalama.Framework.Engine/CodeModel/Helpers/CodeModelExtensions.cs:66-89`
-    (`ToInsertPosition`, whose first branch is at `:69-81` and whose containing-type branch is at `:83-88`)
+    (`ToInsertPosition`, whose first branch is at `:70-82` and whose containing-type branch is at `:83-88`)
   - `Metalama.Framework/src/Metalama.Framework.Engine/Utilities/Roslyn/SymbolExtensions.cs:181-203` (`HasModifier`)
   - `Metalama.Framework/src/Metalama.Framework.Engine/CodeModel/Source/SourceMemberOrNamedType.cs:133-179`
     (`HasNewKeyword`)
-  - `Metalama.Framework/src/Metalama.Framework.Engine/CodeModel/Source/SourceConstructor.cs:113-127`
-    (`GetBaseConstructor`)
+  - `Metalama.Framework/src/Metalama.Framework.Engine/CodeModel/Source/SourceConstructor.cs:116-148`
+    (`GetBaseConstructor`, whose kind list is at `:124-125` and whose throwing default arm is at `:127`)
   - `Metalama.Framework/src/Metalama.Framework.Engine/Linking/SymbolExtensions.cs:18-64` (`GetDeclarationFlags`, with
     the kind list at `:29` and the throwing default arm at `:63`)
   - `Metalama.Framework/src/Metalama.Framework.Engine/Linking/LinkerInjectionStep.Rewriter.cs:397-402`, `:405-409`,
@@ -430,36 +430,36 @@ No project was built and no test was run for this analysis.
   - `Metalama.Framework/src/tests/Metalama.Framework.Tests.UnitTests/CodeModel/` (no test of `ToInsertPosition`
     exists today)
 - What happens today: `ToInsertPosition` takes the primary declaration of the union type and calls
-  `FindMemberDeclaration`, which walks up the ancestors until it finds a kind in the list. The union kind is in no
-  list, so the walk continues past the union. When the union is declared in a namespace, the walk reaches the
-  namespace declaration, which is in the list, and because a namespace declaration is not a
+  `FindMemberDeclaration`, which examines the node and then each of its ancestors in turn until it finds a kind in
+  the list. The union kind is in no list, so the search continues past the union. When the union is declared in a
+  namespace, the search reaches the namespace declaration, which is in the list, and because a namespace declaration is not a
   `BaseTypeDeclarationSyntax` the position becomes `After` the namespace. No visitor of the injection rewriter ever
   queries that position: the rewriter queries `After` only for the members of a type declaration, `Within` for a type
   declaration and for a namespace, and the root position for the compilation unit. A member introduced into a union
   is therefore not emitted at all, rather than emitted in the wrong place. When the union is declared in the global
-  namespace, the walk reaches the compilation unit, returns null, and `FindMemberDeclaration` throws an
-  `AssertionFailedException`. When the union is nested in a type, the walk stops at the enclosing type and the
+  namespace, the search reaches the compilation unit, returns null, and `FindMemberDeclaration` throws an
+  `AssertionFailedException`. When the union is nested in a type, the search stops at the enclosing type and the
   position becomes `Within` the enclosing type. The two families of compiler-synthesized union members reach the same
-  code by two different routes: the `Value` property reports the union declaration as its own declaring syntax and
+  code by two different paths: the `Value` property reports the union declaration as its own declaring syntax and
   therefore takes the first branch, while the per-case constructors have no declaring syntax and take the
   containing-type branch. `GetDeclaringType` returns the type that encloses the union, or null when the union is not
-  nested in a type. `HasModifier` returns false for every modifier of a union type, which is harmless, because the
+  nested in a type. `HasModifier` returns false for every modifier of a union type, which has no consequence, because the
   type modifier list is built from the accessibility, `IsStatic`, `HasNewKeyword`, `IsAbstract` and `IsSealed` and
   never calls it. `HasNewKeyword` reaches the default arm for a member declaration and answers from the union
   modifiers, which is correct.
 - Consequence: assertion or crash when the union is in the global namespace; silent loss of the introduced member,
   rather than misplacement, when the union is in a namespace; silent wrong answers for the remaining sites.
 - Proposed change: make each list recognize the union kind, and do not substitute Roslyn's own
-  `SyntaxFacts.IsTypeDeclaration` blindly. That helper is strictly wider, because it also returns true for a
-  delegate, an enum and an extension block, whereas `SyntaxKindExtensions.IsTypeDeclaration` is documented as the
-  narrower set of type declarations that can contain members; since the extension block kind already exists in Roslyn
-  5.0, a blind substitution would change current behaviour for extension blocks in addition to admitting unions.
-  Several of the lists also contain member and namespace kinds and cannot be replaced by the helper at all, so where
-  a list must accept non-type members, keep the member kinds and replace only the type-declaration part. Prefer
-  extending `SyntaxKindExtensions.IsTypeDeclaration`, which is the single choke point for several of the wrong
-  answers, in addition to the individual lists. The kind cannot be named directly in shared engine source, for the
-  reason stated in CM-2 and CM-10; the Roslyn helper itself is not experimental and compiles against both variants,
-  which makes it usable where the broad set is genuinely wanted. Add a unit test under
+  `SyntaxFacts.IsTypeDeclaration` without further analysis. That helper is strictly wider, because it also returns
+  true for a delegate, an enum and an extension block, whereas `SyntaxKindExtensions.IsTypeDeclaration` is documented
+  as the narrower set of type declarations that can contain members; since the extension block kind already exists in
+  Roslyn 5.0, an unconditional substitution would change current behaviour for extension blocks in addition to
+  admitting unions. Several of the lists also contain member and namespace kinds and cannot be replaced by the helper
+  at all, so where a list must accept non-type members, keep the member kinds and replace only the type-declaration
+  part. Prefer extending `SyntaxKindExtensions.IsTypeDeclaration`, which is the single predicate from which several
+  of the wrong answers derive, in addition to the individual lists. The kind cannot be named directly in shared
+  engine source, for the reason stated in CM-2 and CM-10; the Roslyn helper itself is not experimental and compiles
+  against both variants, which makes it usable where the broad set is genuinely wanted. Add a unit test under
   `Metalama.Framework/src/tests/Metalama.Framework.Tests.UnitTests/CodeModel/` that resolves `ToInsertPosition` for a
   union in the global namespace, for one in a namespace and for one nested in a class; the test can run only on the
   latest Roslyn variant with C# 15 enabled.
@@ -470,11 +470,11 @@ No project was built and no test was run for this analysis.
   linker and advice theme.
 - Verification: the code pass confirmed every kind list and the two failure modes, corrected the namespace outcome
   from misplacement to loss, showed that none of the lists is a copy of the Roslyn helper and added the omitted
-  `SyntaxKindExtensions` choke point. The semantics pass confirmed that a union declaration is a namespace member
+  `SyntaxKindExtensions` predicate. The semantics pass confirmed that a union declaration is a namespace member
   with a member body, that the Roslyn helper is union-aware already in the stable 5.9.0 and that it is wider than the
   Metalama predicate, and dated the reachability of the defect to the move to the stable Roslyn. The scope pass found
-  the change neither implemented, in progress nor tracked, and identified sixteen further consumers of the choke
-  point.
+  the change neither implemented, in progress nor tracked, and identified sixteen further consumers of that
+  predicate.
 - Open questions: none.
 
 ### CM-7. Syntax visitors have no `VisitUnionDeclaration` override
@@ -552,16 +552,17 @@ No project was built and no test was run for this analysis.
 
 - Where:
   - `Metalama.Framework/src/Metalama.Framework.Engine/CodeModel/Source/SourceConstructor.cs:112` (`IsPrimary`) and
-    `:116-133` (`GetBaseConstructor`)
+    `:116-148` (`GetBaseConstructor`)
   - `Metalama.Framework/src/Metalama.Framework.Engine/Utilities/Roslyn/SymbolExtensions.cs:249-252`
-    (`GetBackingField`), `:283-291` (`IsPrimaryConstructor`), `:393-472` (`GetPrimaryDeclarationSyntax`)
+    (`GetBackingField`), `:283-291` (`IsPrimaryConstructor`), `:393-467` (`GetPrimarySyntaxReference`) and `:472`
+    (`GetPrimaryDeclarationSyntax`)
   - `Metalama.Framework/src/Metalama.Framework.Engine/CodeModel/Helpers/DeclarationExtensions.cs:279-334`
     (`IsAutoProperty` and `GetPropertyKind`), `:380-391` (`HasExplicitAccessorBody`), `:664-665` (the
     implicit-constructor predicate)
   - `Metalama.Framework/src/Metalama.Framework.Engine/CodeModel/Source/SourceProperty.cs:46` and `:115`
   - `Metalama.Framework/src/Metalama.Framework.Engine/CodeModel/Source/SourceMemberOrNamedType.cs:110-130`
     (`PrimarySyntaxTree`) and
-    `Metalama.Framework/src/Metalama.Framework.Engine/CodeModel/Source/SymbolBasedDeclaration.cs:52-56`
+    `Metalama.Framework/src/Metalama.Framework.Engine/CodeModel/Source/SymbolBasedDeclaration.cs:53-57`
     (`IsImplicitlyDeclared`)
   - `Metalama.Framework/src/Metalama.Framework.Engine/Linking/SymbolExtensions.cs:18-64`, with the throw at `:63`,
     and its only two call sites at
@@ -575,7 +576,7 @@ No project was built and no test was run for this analysis.
     `Metalama.Framework/src/Metalama.Framework.Engine/Advising/AdviceFactory.cs:404-421` and `:1029`
   - `Metalama.Framework/src/Metalama.Framework.Engine/AdviceImpl/Introduction/Constructors/IntroduceConstructorAdvice.cs:86`
     and `:96`
-  - `Metalama.Framework/src/tests/Metalama.Framework.Tests.AspectTests/Tests/Aspects/Bugs/Bug582_EqualityContract.cs:17`
+  - `Metalama.Framework/src/tests/Metalama.Framework.Tests.AspectTests/Tests/Aspects/Bugs/Bug582_EqualityContract.cs:16`
     and its expected output `Bug582_EqualityContract.t.cs:2` (the pinned precedent for a compiler-synthesized member
     that becomes an override target)
 - What happens today: the synthesized per-case constructors have no declaring syntax, which is now verified in the
@@ -659,7 +660,8 @@ No project was built and no test was run for this analysis.
   rewriter and copies the union; the namespace is preserved only when the aspect is declared in the same namespace. A
   union nested in a compile-time type, for example inside an aspect class, falls into the default arm of the member
   switch of the compile-time type transformation and is likewise copied. A union nested in a run-time type reaches
-  the default arm of the nested-type population and is dropped, which is correct by accident. For the two copying
+  the default arm of the nested-type population and is dropped, which is the correct outcome although the code does
+  not recognize the union kind. For the two copying
   paths the compile-time tree is created with the parse options of the compile-time language version, which is C# 14,
   and Roslyn checks the union feature when it builds the declaration table rather than only in the parser, so the
   compile-time build fails on a declaration the user never wrote for compile-time. The scenario is reachable today
@@ -733,8 +735,8 @@ No project was built and no test was run for this analysis.
   assemblies, because Roslyn derives both predicates from metadata attributes on types read from a reference.
 - Consequence: build error of the engine itself, for every implementation of the findings above: a missing member in
   the `Roslyn.5.0.0` variant and, in the latest variant while it is built against the consumed preview, an
-  unsuppressed experimental diagnostic reported as an error. The failure is loud at build time; nothing is silent and
-  nothing fails at run time.
+  unsuppressed experimental diagnostic reported as an error. The failure occurs at build time. Nothing fails without
+  a diagnostic and nothing fails at run time.
 - Proposed change: decide once, for all themes, between four mechanisms, noting that only the last of them avoids the
   experimental diagnostic on the latest variant. The first is a conditional compilation block on
   `ROSLYN_5_10_0_OR_GREATER`, which requires updating the policy sentences of the two variant property files and of
@@ -753,7 +755,7 @@ No project was built and no test was run for this analysis.
   `SymbolExtensions` in favour of conditional compilation. The syntax factory call of CM-3 and the visitor overrides
   of CM-7 fit neither the numeric value nor the shim, because a numeric kind cannot override a virtual method or
   construct a node. The decision must also state what the Roslyn 5.0 variant answers for a union or closed type that
-  arrives through a referenced assembly: returning false silently disagrees with the latest variant on the same
+  arrives through a referenced assembly: returning false disagrees with the latest variant on the same
   reference, whereas a fallback that looks for the two metadata attributes by name agrees with it.
 - Size: a decision, then small per site. The decision additionally covers the experimental suppression and the
   behaviour of the lower variant on referenced union and closed types.
@@ -799,8 +801,8 @@ The following were checked and found unaffected by union types and by closed hie
   (`Metalama.Framework/src/Metalama.Framework.Engine/SerializableIds/SerializableDeclarationIdProvider.FromSymbol.cs:97-155`,
   `Metalama.Framework/src/Metalama.Framework.Engine/SerializableIds/DocumentationIdHelper.GeneratorOfDeclarationIdFromDeclaration.cs:59-63`).
   The serializable type identifier writes the type in C# syntax
-  (`Metalama.Framework/src/Metalama.Framework.Engine/SerializableIds/SerializableTypeIdGenerator.cs:93-112` and
-  `:174-197`), and `SymbolId.cs:44-60` wraps the Roslyn symbol key, which handles every symbol. The durable and
+  (`Metalama.Framework/src/Metalama.Framework.Engine/SerializableIds/SerializableTypeIdGenerator.cs:117-141` and
+  `:202-226`), and `SymbolId.cs:44-60` wraps the Roslyn symbol key, which handles every symbol. The durable and
   identifier-based references build on these identifiers. No round trip is affected.
 - Serialization. The compile-time serialization binders bind assembly-qualified names of compile-time types
   (`Metalama.Framework/src/Metalama.Framework.Engine/CompileTime/Serialization/`), and the type serializers serialize
