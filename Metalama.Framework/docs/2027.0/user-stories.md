@@ -803,7 +803,8 @@ rather than a bump.
 - Re-derive the `Microsoft.NET.Test.Sdk` pin against the measured floor and rewrite its comment, which states the
   right rule and the wrong value.
 - Verify, rather than raise, the `Microsoft.Build` pin, which doctrine keeps at the lowest supported host, and
-  correct the parenthetical of `Directory.Packages.md` that states the frozen assembly version for the 17 line only.
+  correct the parenthetical of [`Directory.Packages.md`](../../../Directory.Packages.md) that states the frozen
+  assembly version for the 17 line only.
 - Re-run the vulnerability audit, remove the audit suppressions whose cause the Roslyn floor move removed, and
   correct the package version comments that name a dropped target framework.
 - Restate the audit rule correctly where it is described: `NuGetAuditMode` defaults to `direct` except for .NET 10
@@ -819,8 +820,9 @@ rather than a bump.
 
 #### Not in scope
 
-The audience paragraph of `Directory.Packages.md`, which #1903 owns and which is referenced rather than rewritten.
-The .NET SDK component of the container, excluded by section 6b of [`DECISIONS.md`](DECISIONS.md).
+This story does not rewrite the audience paragraph of [`Directory.Packages.md`](../../../Directory.Packages.md),
+which #1903 owns and which is referenced rather than rewritten. It does not change the .NET SDK component of the
+container, which section 6b of [`DECISIONS.md`](DECISIONS.md) excludes.
 
 — Claude for @gfraiteur
 
@@ -831,7 +833,7 @@ The .NET SDK component of the container, excluded by section 6b of [`DECISIONS.m
 - Milestone: `2027.0`
 - Repositories: `metalama/Metalama`
 - Size: L
-- Blocked by: S-01
+- Blocked by: S-01, and the Roslyn version measured by S-08
 - Findings: [LV-12](01-language-version-and-hosts.md), [LV-13](01-language-version-and-hosts.md),
   [LV-14](01-language-version-and-hosts.md), [TP-1](02-syntax-generator-and-templates.md),
   [TP-9](02-syntax-generator-and-templates.md), [DT-3](05-design-time-workspaces-linqpad.md),
@@ -842,8 +844,8 @@ The .NET SDK component of the container, excluded by section 6b of [`DECISIONS.m
 `RoslynApiMaxVersion` and `RoslynMaxVersion` are `5.10.0-1.26365.3`, a build of the `main` branch of `dotnet/roslyn`
 of 2026-07-15 restored from the `roslyn-consolidated` feed, and no stable 5.10 or 5.11 package exists or will exist.
 Leaving the prerelease is therefore a renumbering of the latest variant to 5.12.0 and not the edit of a version
-label. This story is one pull request because the pieces cannot land separately without breaking the build, and it is
-the gate of the whole release.
+label. This story is one pull request because the pieces cannot be merged separately without breaking the build, and
+it is the gate of the whole release.
 
 #### Context
 
@@ -856,6 +858,17 @@ diagnostic, which removes a pipeline stage rather than reporting an error. The r
 visitor, version verifier or design-time hasher knows the union declaration, the with-element or the `Name` field of
 `break` and `continue`. Three published packages depend on this story as a release gate, because they currently
 declare a dependency on a Roslyn package that nuget.org does not serve, which already failed for a user in #1106.
+
+The variant that this story renumbers was created by the closed issue #1881, and the `roslyn-consolidated` package
+source that it removes was declared by the closed issue #1885, so this story supersedes both rather than merely
+standing beside them. The failure reported in #1106 was the nested reference-assembly restore, which reported
+`NU1102` for `Microsoft.CodeAnalysis.CSharp`, and not the declared dependency of a published package. The two share
+one cause, which is a Roslyn version that nuget.org does not serve, and the second is what the pack-time check below
+prevents.
+
+The value 5.12 is derived from the publication cadence and not measured. Checklist item 1 of
+[`platform-support.md`](../platform-support.md), which S-08 performs after 2026-11-10, settles it, and this story
+takes the measured value.
 
 #### Scope
 
@@ -896,11 +909,14 @@ declare a dependency on a Roslyn package that nuget.org does not serve, which al
 
 #### Not in scope
 
-Adding C# 15 to the supported language versions, which is S-11, and the Premium mirror, which is S-10.
+This story does not add C# 15 to the supported language versions, which is S-11, and it does not mirror the
+renumbering in `Metalama.Premium`, which is S-10. The open issue #875, which asks for a move to Roslyn 4.9, names a
+version far below the current floor and is superseded by this story. It is closed as superseded when this story is
+filed, rather than left to look like a duplicate.
 
 — Claude for @gfraiteur
 
-### S-10. Mirror the Roslyn 5.12 renumbering in Metalama.Premium
+### S-10. Mirror the Roslyn 5.12 renumbering in `Metalama.Premium`
 
 - Issue type: User Story
 - Labels: `enhancement`, `Area-Build-Engineering`
@@ -912,8 +928,9 @@ Adding C# 15 to the supported language versions, which is S-11, and the Premium 
 
 ---
 
-Metalama.Premium#85 left Premium with a latest variant named 5.10.0, two prerelease fallback literals in
-`Directory.Packages.props` and a `nuget.base.config` declaring the `roslyn-consolidated` feed. The version string
+metalama/Metalama.Premium#85, which closed the issue #1913, left Premium with a latest variant named 5.10.0, two
+prerelease fallback literals in `Directory.Packages.props` and a `nuget.base.config` declaring the
+`roslyn-consolidated` feed. The version string
 appears in eleven tracked files, including the `InternalsVisibleTo` entries, the packaging paths and the
 `MetalamaExtensionAssembly` items with their `TargetRoslynVersion` metadata.
 
@@ -939,7 +956,7 @@ cannot span two repositories.
 
 #### Acceptance criteria
 
-- No file in Metalama.Premium names the retired variant version.
+- No file in `Metalama.Premium` names the retired variant version.
 - Premium restores with no prerelease Roslyn package source.
 - The variant assembly names and their `TargetRoslynVersion` metadata match the variant that the core payload loads,
   verified by a design-time run rather than by inspection.
@@ -979,6 +996,12 @@ which is correct and is recorded rather than changed. Section 4 of [`DECISIONS.m
 `MetalamaTemplateLanguageVersion` at `14.0`, so the template language does not move with the run-time ceiling and the
 distinction has to be stated where both values are written.
 
+The precedent of this story is the closed issue #1039, which grouped the twenty C# 14 stories of the previous release
+under #1045. One open issue touches the same code: #1900 reports that
+`LanguageVersionProvider.GetLanguageVersionFromMSBuild` throws when neither `NETCoreSdkVersion` nor `MSBuildBinPath`
+is defined for a project, which the user sees as `LAMA0001` from the design-time analyzer. This story adds an arm to
+the same method for the .NET 11 SDK, so it must not change that failure path, and #1900 is referenced from it.
+
 #### Scope
 
 - Raise `SupportedCSharpVersions.Latest` and `All`, add C# 15 to `AllLanguageVersions` as a numeric cast so that the
@@ -1011,8 +1034,8 @@ distinction has to be stated where both values are written.
 
 #### Not in scope
 
-Raising the template language version, excluded by section 4 of [`DECISIONS.md`](DECISIONS.md), and the language
-features themselves, which are S-12 to S-22.
+This story does not raise the template language version, which section 4 of [`DECISIONS.md`](DECISIONS.md) excludes,
+and it does not deliver the language features themselves, which are S-12 to S-22.
 
 — Claude for @gfraiteur
 
@@ -1036,14 +1059,14 @@ visitors that classify, hash and rewrite type declarations. This story is the su
 
 #### Context
 
-The code model must report the union without a new `TypeKind` value. The precedent is decisive:
-`TypeKind.RecordClass` and `TypeKind.RecordStruct` are already obsolete with the message that names
+The code model must report the union without a new `TypeKind` value. The precedent of the record kinds settles the
+question: `TypeKind.RecordClass` and `TypeKind.RecordStruct` are already obsolete with the message that names
 `TypeKind.Class` and `INamedType.IsRecord`, and a new value would need an arm in each of the seventeen switches over
 that enumeration, twelve of which throw in the default arm. The shape of the members is decided when the story is
 implemented, per section 7 of [`DECISIONS.md`](DECISIONS.md); a draft that follows the precedent of `IsRecord` is in
 [`analysis-reports/12-csharp15-api-drafts.md`](analysis-reports/12-csharp15-api-drafts.md) and is illustrative only.
-Two constraints are not negotiable. The reads name Roslyn members that the lower variant does not have, so they
-follow the gating of S-02. And `ITypeSymbol.IsUnion` is true both for a `union` declaration and for a type carrying
+Two constraints hold for every member added by this story. The reads name Roslyn members that the lower variant does
+not have, so they follow the gating of S-02. And `ITypeSymbol.IsUnion` is true both for a `union` declaration and for a type carrying
 `System.Runtime.CompilerServices.UnionAttribute`, while the member restrictions apply to the first form only, so the
 code model must let a consumer tell the two apart, which is question Q9.
 
@@ -1074,7 +1097,8 @@ code model must let a consumer tell the two apart, which is question Q9.
 
 #### Not in scope
 
-Introducing a union, which is S-17, and the eligibility rules of advice applied to a union, which are S-14.
+This story does not introduce a union, which is S-17, and it does not add the eligibility rules of advice applied to
+a union, which are S-14.
 
 — Claude for @gfraiteur
 
@@ -1100,8 +1124,8 @@ a union nested in a compile-time class is copied verbatim and one nested in a ru
 
 #### Context
 
-The case a user hits first is a run-time union declared in the same file as an aspect, so the acceptance test is one
-aspect test that puts both in one file. The classifier cannot be corrected on its own: `TemplateAnnotator` has no
+A user encounters first a run-time union declared in the same file as an aspect, so the acceptance test is one aspect
+test that puts both in one file. The classifier cannot be corrected on its own: `TemplateAnnotator` has no
 union dispatch either, and its default path annotates an unhandled type declaration as run-time or compile-time,
 which the classifier accepts as compile-time. Routing every unhandled type declaration in the classifier to the
 compile-time helper would therefore classify a run-time union, a run-time interface and an extension block as
@@ -1159,8 +1183,8 @@ Section 3 of [`DECISIONS.md`](DECISIONS.md) requires full support: the linker in
 union, and advice that a union cannot carry is refused with a clear diagnostic rather than producing code that the
 compiler rejects. The language forbids instance fields, auto-properties and field-like events in a union declaration,
 forbids a public single-parameter constructor and requires every explicit constructor to chain to a generated one, so
-several ordinary advices would otherwise emit code that the compiler rejects with the diagnostic reported on
-generated code, which is the worst experience Metalama can offer. There is a fourth, silent case: an initializer
+several ordinary advices would otherwise emit code that the compiler rejects, and the diagnostic is then reported on
+generated code, which the user cannot correct. There is a fourth, silent case: an initializer
 injected into a constructor that has no syntax. Question Q9 constrains every rule written here, because the
 restrictions apply to the `union` declaration form and not to a type carrying the union attribute.
 
@@ -1193,11 +1217,13 @@ restrictions apply to the `union` declaration form and not to a type carrying th
 - The same advice applied to a type carrying the union attribute is not refused, because the restriction does not
   apply to it.
 - An aspect can read the synthesized `Value` property and the per-case constructors of a union.
-- No advice on a union produces a compiler error reported on generated code.
+- Each advice kind of the test matrix of this story, applied to a union declaration and to a type carrying the union
+  attribute, either produces code that compiles or is refused with a Metalama diagnostic, and no case of that matrix
+  produces a compiler error reported on generated code.
 
 #### Not in scope
 
-Introducing a union or a union case, which is S-17.
+This story does not introduce a union or a union case, which is S-17.
 
 — Claude for @gfraiteur
 
@@ -1223,7 +1249,8 @@ user sees first.
 
 #### Context
 
-Two implementation points are settled here and nowhere else. The discriminator must be the kind of the primary
+This story settles two implementation points that no other story settles. The discriminator must be the kind of the
+primary
 declaration syntax rather than the Roslyn union flag, because that flag is also true for a hand-written class or
 struct carrying the union attribute, whose generated part must stay a class or a struct; emitting a union part for
 such a type would itself produce `CS0261`. And the generated part must omit the case list, because exactly one part
@@ -1249,7 +1276,8 @@ parts, which is a verified negative statement and is recorded rather than implem
 - A partial union with introduced members shows no error in the editor, and the generated document declares a partial
   union with no case list.
 - A hand-written class or struct carrying the union attribute still receives a partial class or partial struct part.
-- The design-time test and its committed output are read before they are adopted.
+- The design-time test and its generated partial documents are committed, and the pull request description states
+  what the generated documents contain.
 
 — Claude for @gfraiteur
 
@@ -1269,11 +1297,11 @@ parts, which is a verified negative statement and is recorded rather than implem
 
 `AspectInstanceComparer.Compare` in
 `Metalama.Framework/src/Metalama.Framework.Engine/Pipeline/ExecuteAspectLayerPipelineStep.cs:198-269` orders aspect
-instances by the position of the primary declaration syntax of their target, and has one escape hatch at `:250-265`
+instances by the position of the primary declaration syntax of their target, and has one special case at `:250-265`
 for two implicitly declared methods of a record; anything else reaches the `AssertionFailedException` at `:267`. A
-union misses that hatch three ways, so an aspect that targets more than one synthesized member of a union crashes.
-Separately, `DeclarationEqualityComparer` reimplements the conversion rules and enumerates implicit conversion
-operators only, so it does not know the conversions that Roslyn grants a union.
+union falls outside that special case in three ways, so an aspect that targets more than one synthesized member of a
+union crashes. Separately, `DeclarationEqualityComparer` reimplements the conversion rules and enumerates implicit
+conversion operators only, so it does not know the conversions that Roslyn grants a union.
 
 #### Context
 
@@ -1289,7 +1317,8 @@ question. The second is a prerequisite of S-17 rather than a follow-up of it.
 - Generalise the record special case of `AspectInstanceComparer.Compare` to any implicitly declared members that
   share a span, rather than adding a union arm beside the record one, and remove the assertion that requires the
   declaring type to be a record.
-- Cover the three ways in which a union misses the present hatch: the synthesized `Value` is a property and not a
+- Cover the three ways in which a union falls outside the present special case: the synthesized `Value` is a property
+  and not a
   method, the synthesized case constructors are constructors and there may be several of them carrying the span of
   the union declaration, and the declaring type is not a record.
 - Teach the conversion reimplementation of `DeclarationEqualityComparer` the conversions that the language grants a
