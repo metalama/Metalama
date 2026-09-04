@@ -4,6 +4,7 @@
 
 using Metalama.Backstage.Utilities;
 using Metalama.Framework.Engine.Serialization;
+using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Options;
 using Microsoft.CodeAnalysis.CSharp;
 using System.Collections.Generic;
@@ -96,9 +97,43 @@ namespace Metalama.Framework.Engine.CompileTime.Manifest
         [JsonConverter( typeof(LanguageVersionJsonConverter) )]
         public LanguageVersion? LanguageVersion { get; set; }
 
-        // Prior versions of Metalama did not write LanguageVersion, but the maximum version was 13.
+        /// <summary>
+        /// Gets the language version that the compile-time code of this project was written in. It is the version
+        /// stored in the manifest, or C# 13 when the manifest carries none, because the versions of Metalama that did
+        /// not write the property never compiled compile-time code above C# 13.
+        /// </summary>
+        /// <remarks>
+        /// This value can be higher than any version that the Roslyn of the current process accepts, because the
+        /// manifest may have been written by a higher Roslyn version than the one reading it. Use
+        /// <see cref="ResolvedLanguageVersion"/> to parse or to compile, and this property only to report the version
+        /// that the project requires.
+        /// </remarks>
         [JsonIgnore]
-        public LanguageVersion ResolvedLanguageVersion => this.LanguageVersion ?? Microsoft.CodeAnalysis.CSharp.LanguageVersion.CSharp13;
+        public LanguageVersion RequiredLanguageVersion => this.LanguageVersion ?? AllLanguageVersions.CSharp13;
+
+        /// <summary>
+        /// Gets the language version at which the compile-time code of this project must be parsed and compiled, which
+        /// is <see cref="RequiredLanguageVersion"/> clamped to the highest version that the Roslyn variant of the
+        /// current process accepts.
+        /// </summary>
+        /// <remarks>
+        /// Without the clamp, Roslyn reports <c>CS8192</c>, "Provided language version is unsupported or invalid", on
+        /// every syntax tree of the compile-time project, and the whole compile-time build of the reference fails. That
+        /// error names a number and not the reference that requires it, which is what issue #1185 reported. The clamp
+        /// degrades instead: the compile-time code is parsed at the highest version available, which fails only if it
+        /// actually uses a more recent language feature. The caller reports the warning. See issue #1928.
+        /// </remarks>
+        [JsonIgnore]
+        public LanguageVersion ResolvedLanguageVersion
+        {
+            get
+            {
+                var requiredLanguageVersion = this.RequiredLanguageVersion;
+                var maxLanguageVersion = RoslynApiVersion.Current.ToLanguageVersion();
+
+                return requiredLanguageVersion > maxLanguageVersion ? maxLanguageVersion : requiredLanguageVersion;
+            }
+        }
 
         /// <summary>
         /// Gets the list of all aspect types (specified by fully qualified name) of the aspect library.

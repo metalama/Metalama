@@ -571,6 +571,24 @@ namespace Metalama.Framework.Engine.Diagnostics
                     Warning,
                     "The analysis of the references retained by compile-time code is complete." );
 
+        // The language version of a compile-time project is serialized as an integer, so a project built by a higher
+        // Roslyn version can carry a version that the Roslyn of the current process does not accept. Parsing at that
+        // version makes Roslyn report CS8192 on every syntax tree of the compile-time project and fails the whole
+        // compile-time build of the reference, which is what issue #1185 reported and which names a number rather than
+        // the reference that requires it. The language version is therefore clamped, and this warning names the
+        // reference and both versions. See issue #1928.
+        internal static readonly DiagnosticDefinition<(AssemblyIdentity ReferencedAssembly, string RequiredVersion, string SupportedVersion)>
+            CompileTimeLanguageVersionTooHigh =
+                new(
+                    "LAMA0088",
+                    _category,
+                    "The compile-time code of '{0}' was compiled with the C# language version {1}, but the current process "
+                    + "runs a version of Roslyn that supports at most the C# language version {2}. That code is read as C# {2}, "
+                    + "which fails if it uses a language feature of a more recent version. Use a more recent version of the "
+                    + ".NET SDK or of the IDE, or compile '{0}' with a lower value of the MetalamaTemplateLanguageVersion property.",
+                    Warning,
+                    "The compile-time code of a reference requires a more recent C# language version than the current process supports." );
+
         // TODO: Use formattable string (C# does not seem to find extension methods).
         internal static readonly DiagnosticDefinition<string>
             UnsupportedFeature = new(

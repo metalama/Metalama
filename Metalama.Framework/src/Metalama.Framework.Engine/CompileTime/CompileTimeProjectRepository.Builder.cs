@@ -561,6 +561,31 @@ internal sealed partial class CompileTimeProjectRepository
             }
         }
 
+        /// <summary>
+        /// Reports a warning when the compile-time code of a reference requires a higher C# language version than the
+        /// Roslyn variant of the current process accepts, in which case
+        /// <see cref="CompileTimeProjectManifest.ResolvedLanguageVersion"/> clamps the version instead of letting
+        /// Roslyn fail the compile-time build with <c>CS8192</c>. See issue #1928.
+        /// </summary>
+        private static void ReportLanguageVersionWarning(
+            AssemblyIdentity runTimeAssemblyIdentity,
+            CompileTimeProjectManifest manifest,
+            IDiagnosticAdder diagnosticAdder )
+        {
+            var requiredLanguageVersion = manifest.RequiredLanguageVersion;
+            var resolvedLanguageVersion = manifest.ResolvedLanguageVersion;
+
+            if ( requiredLanguageVersion <= resolvedLanguageVersion )
+            {
+                return;
+            }
+
+            diagnosticAdder.Report(
+                GeneralDiagnosticDescriptors.CompileTimeLanguageVersionTooHigh.CreateRoslynDiagnostic(
+                    null,
+                    (runTimeAssemblyIdentity, requiredLanguageVersion.ToDisplayStringSafe(), resolvedLanguageVersion.ToDisplayStringSafe()) ) );
+        }
+
         private bool TryDeserializeCompileTimeProject(
             AssemblyIdentity runTimeAssemblyIdentity,
             Stream resourceStream,
@@ -592,8 +617,11 @@ internal sealed partial class CompileTimeProjectRepository
 
             this.ReportMixedVersionWarnings( runTimeAssemblyIdentity, manifest, diagnosticAdder );
 
-            // Read source files.
-            var parseOptions = new CSharpParseOptions( manifest.LanguageVersion ?? SupportedCSharpVersions.Latest );
+            ReportLanguageVersionWarning( runTimeAssemblyIdentity, manifest, diagnosticAdder );
+
+            // Read source files. The language version is the one of the manifest, clamped to what the Roslyn of the
+            // current process accepts, because a higher one is rejected by Roslyn with CS8192. See issue #1928.
+            var parseOptions = new CSharpParseOptions( manifest.ResolvedLanguageVersion );
 
             List<SyntaxTree> syntaxTrees = [];
 
