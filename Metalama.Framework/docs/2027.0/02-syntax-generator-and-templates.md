@@ -75,12 +75,13 @@ No project was built and no test was run for this analysis.
   (`.gitignore:62`), so nothing has to be committed and nothing has to be edited in step: no member of the generated
   partial classes is hand-written.
 - The trigger is not a version number. No stable Roslyn 5.10, 5.11 or 5.12 package exists on nuget.org, and the
-  November 2026 baseline is expected to carry Roslyn 5.12. What removes the experimental markers is one Roslyn
-  commit, "Add C# 15 language version" (`dotnet/roslyn` pull request 84799 of 2026-08-11), which lands inside the
-  5.11 window. Regeneration therefore starts to emit code as soon as the consumed `Microsoft.CodeAnalysis.CSharp`
-  build is later than that commit. In practice the step is the renumbering of the latest variant described by steps 7
-  and 8 of [`updating-roslyn.md`](../updating-roslyn.md), with the stable grammar added as a new file (step 4 forbids
-  renaming the previous one) and the version name changed in `GenerateMetaSyntaxRewriter.cs:16-18`.
+  November 2026 baseline is expected to carry Roslyn 5.12. The markers are removed on `dotnet/roslyn` `main`, in the
+  same period as the addition of `LanguageVersion.CSharp15` by pull request 84799 of 2026-08-11. The exact commit
+  that removes them was not verified in this session. Regeneration therefore starts to emit code as soon as the
+  consumed `Microsoft.CodeAnalysis.CSharp` build is later than that change. In practice the step is the renumbering
+  of the latest variant described by steps 7 and 8 of [`updating-roslyn.md`](../updating-roslyn.md), with the stable
+  grammar added as a new file (step 4 forbids renaming the previous one) and the version name changed in
+  `GenerateMetaSyntaxRewriter.cs:16-18`.
 - What regeneration produces, in the latest variant only: new `Visit` and `Transform` members for the union
   declaration and the with-element (`Generator.cs:403-431`); a `switch (this.TargetApiVersion)` in
   `TransformBreakStatement` and `TransformContinueStatement`, because the fields then have different minimal versions
@@ -88,13 +89,14 @@ No project was built and no test was run for this analysis.
   the break and continue factories (`Generator.cs:535-609`); new overrides in the version checker that report the
   version-specific diagnostic (`Generator.cs:118-156`); a `name` parameter on the partial-update extensions
   (`Generator.cs:761-800`); and `this.Visit(node.Name)` plus three new visits in the two code hashers
-  (`Generator.cs:637-708`). The `UnsafeExpressionSyntax` node does not un-strip, because it keeps its
+  (`Generator.cs:637-708`). The `UnsafeExpressionSyntax` node stays stripped, because it keeps its
   `ExperimentalUrl` marker on `dotnet/roslyn` `main`; see TP-5. Because the identity of the latest variant changes,
   `RoslynApiVersion.g.cs` also changes (`Generator.cs:64-98`), and the three hand-written references at
   `SupportedCSharpVersions.cs:60`, `:85` and `:142` change with it.
-- Consequence: build error. If the grammar file and the consumed package do not move together, the build fails in one
-  direction with `RSEXPERIMENTAL006` on the latest variant and generates nothing in the other, and no test detects
-  either mismatch.
+- Consequence: build error. The grammar file and the consumed package must move together. A grammar file without the
+  markers combined with a package that still marks the corresponding API as experimental produces generated code that
+  fails with `RSEXPERIMENTAL006` on the latest variant. A package without the markers combined with a grammar file
+  that still declares them generates no code for the new declarations. No test detects either mismatch.
 - Proposed change: none in the generator itself, beyond the renumbering that theme 01 owns. Add to
   [`updating-roslyn.md`](../updating-roslyn.md) the consequence that step 4 does not yet state: when the new Roslyn
   removes the marker from a declaration, the generator starts emitting code for it in the latest variant, which
@@ -104,21 +106,22 @@ No project was built and no test was run for this analysis.
 - Size: extra small for the documentation sentence; small if a guard is added.
 - Status: decision required. The decision is whether to add a guard and in what form. A check that fails whenever the
   grammar file still declares an `ExperimentalUrl` on a node would fail permanently, because the unsafe expression
-  keeps its marker; and the prerelease label of the package version is not a proxy for the absence of the marker,
+  keeps its marker; and the prerelease label of the package version does not indicate the absence of the marker,
   because the stable 5.9.0 assemblies still carry it on the union, with-element and unsafe API. A sound check
   compares the local grammar file with the grammar of the exact package the latest variant references, declaration by
-  declaration; a cheaper second best is a stored list of the declarations that are knowingly stripped.
+  declaration. A less costly alternative is a stored list of the declarations that are knowingly stripped.
 - Verification: the code pass re-read the generator end to end and confirmed the mechanism, the absence of any
   colliding hand-written member and the absence of any snapshot change (`CompileTimeVariableInSwitch.ct.cs:27` keeps
   a three-argument factory call, because a nameless `break` leaves the target API version at the lowest value), and
   corrected several line citations and the count of stripped declarations from four to five. The semantics pass
   confirmed the stripping rationale and refuted three external premises: that a stable Roslyn 5.10 exists, that
-  stability is the trigger, and that the unsafe expression un-strips. The scope pass found the change neither
+  stability is the trigger, and that the unsafe expression loses its marker. The scope pass found the change neither
   implemented, in progress nor tracked, and related it to #1881, #1885 and #1896 under the open meta-issue #1921.
-- Open questions: whether the generated partial-update, visit and transform members for the two newly un-stripped
-  node types compile against the stable assembly depends on those types exposing an `Update` overload and a visitor
-  method of the shape the generator assumes. That is the assumption every other node satisfies, but it cannot be
-  verified from this repository, so the statement that regeneration has no other effect rests on it.
+- Open questions: whether the generated partial-update, visit and transform members for the two node types that the
+  stable grammar no longer marks as experimental compile against the stable assembly depends on those types exposing
+  an `Update` overload and a visitor method of the shape the generator assumes. That is the assumption every other
+  node satisfies, but it cannot be verified from this repository, so the statement that regeneration has no other
+  effect rests on it.
 
 ### TP-2. The version checker maps the latest Roslyn variant to C# 14, so C# 15 syntax passes as C# 14
 
@@ -148,7 +151,7 @@ No project was built and no test was run for this analysis.
   A union declaration is a type declaration and cannot appear in a template body, so it is not among the syntaxes
   this verifier can observe.
 - Consequence: silent wrong output. Two diagnostics that exist precisely to protect a user from writing a template
-  in a language version that the target project cannot compile are simply not reported.
+  in a language version that the target project cannot compile are not reported.
 - Proposed change: make these edits in the same change that renumbers the latest variant and regenerates from the
   stable grammar, and not before. Add `CSharp15 = (LanguageVersion) 1500` to `AllLanguageVersions.cs:14-18`; the
   numeric value is verified on `dotnet/roslyn` `main`. Add the arm for the new latest member to `ToLanguageVersion`
@@ -180,22 +183,22 @@ No project was built and no test was run for this analysis.
 
 - Where:
   - `Metalama.Framework/src/Metalama.Framework.Engine/Templating/TemplateAnnotator.cs:1375-1379`, `:1419`, `:1423`,
-    `:1360-1361`, `:1483`, `:2501`, `:2533`, `:2559`, `:2925`, `:685`, `:2590-2591`, `:2601-2606`
+    `:1360-1361`, `:1483`, `:2501`, `:2533`, `:2559`, `:2925`, `:685`, `:2591-2592`, `:2601-2606`
   - `Metalama.Framework/src/Metalama.Framework.Engine/Templating/TemplateAnnotator.ScopeContext.cs:21`, `:123-132`
-  - `Metalama.Framework/src/Metalama.Framework.Engine/Templating/TemplateCompilerRewriter.cs:198-263`, `:390-402`,
-    `:491-497`, `:629-635`, `:2267-2289`, `:2408`, `:2722-2745`, `:2908-2985`
+  - `Metalama.Framework/src/Metalama.Framework.Engine/Templating/TemplateCompilerRewriter.cs:196-263`, `:390-402`,
+    `:491-497`, `:625-630`, `:2267-2289`, `:2408`, `:2722-2745`, `:2908-2985`
   - `Metalama.Framework/src/Metalama.Framework.Engine/Templating/TemplatingDiagnosticDescriptors.cs:20-30`
   - `Metalama.Framework/src/Metalama.Framework.Sdk/Utilities/Roslyn/SafeSyntaxRewriter.cs:44-62`
   - `Metalama.Framework/src/Metalama.Framework.Engine/Templating/TemplateCompiler.cs:106-136`, `:152-162`
-  - `Metalama.Framework/src/Metalama.Framework.Engine/CompileTime/CompileTimeCompilationBuilder.cs:348-352`
-  - `Metalama.Framework/src/Metalama.Framework.Engine/Utilities/LanguageVersionProvider.cs:44-70`
+  - `Metalama.Framework/src/Metalama.Framework.Engine/CompileTime/CompileTimeCompilationBuilder.cs:349-354`
+  - `Metalama.Framework/src/Metalama.Framework.Engine/Utilities/LanguageVersionProvider.cs:45-72`
   - `Metalama.Framework/src/Metalama.Framework.Engine/Pipeline/CompileTime/CompileTimeAspectPipeline.cs:62-93`,
     `:177`
   - `eng/src/GenerateMetaSyntaxRewriter/Generator.cs:419-420`, `:481-519`, `:615-670`
   - `eng/src/GenerateMetaSyntaxRewriter/Syntax-5.10.0.xml:1290-1311`
   - `eng/src/GenerateMetaSyntaxRewriter/Syntax-5.0.0.xml:1270-1279`
   - `Metalama.Framework/src/tests/Metalama.Framework.Tests.TemplateTests/Tests/UnsupportedSyntax/GotoNotSupported.cs:26`
-  - `Metalama.Framework/src/Metalama.Testing.AspectTesting/TestOptions.cs:680-698`
+  - `Metalama.Framework/src/Metalama.Testing.AspectTesting/TestOptions.cs:681-700`
 - What happens today, scope classification: `VisitBreakStatement` and `VisitContinueStatement` annotate the statement
   with the current break-or-continue scope (`TemplateAnnotator.cs:1375-1379`), which every loop and switch sets to
   its own scope for its body (`TemplateAnnotator.ScopeContext.cs:21`, `:123-132`, with callers at
@@ -215,10 +218,10 @@ No project was built and no test was run for this analysis.
 - What happens today, compile-time scope: the statement is kept as compile-time C# and the base rewriter preserves
   the label identifier (`TemplateCompilerRewriter.cs:2267-2289`, `:2908-2985`). The compile-time compilation does not
   accept the result. Roslyn checks the feature in the binder and not in the parser, and the check reads the language
-  version from the parse options of the syntax tree; `CompileTimeCompilationBuilder.cs:348-352` attaches fresh parse
+  version from the parse options of the syntax tree; `CompileTimeCompilationBuilder.cs:349-354` attaches fresh parse
   options to every tree it creates, so the check runs again although the tree is not re-parsed. The compile-time
   language version is capped at C# 14 for every software development kit of major version 10 or later, including when
-  the project uses `preview` (`LanguageVersionProvider.cs:44-70`), so this case fails loudly rather than silently.
+  the project uses `preview` (`LanguageVersionProvider.cs:45-72`), so this case fails loudly rather than silently.
 - What happens today, a labeled statement whose loop is run-time inside a compile-time block: the forced compile-time
   annotation (`TemplateAnnotator.cs:1423`) makes the generated visitor take the base branch
   (`Generator.cs:419-420`), which casts the transformed child, an invocation expression, to a statement. The
@@ -237,7 +240,7 @@ No project was built and no test was run for this analysis.
   transformed user code, which is a compiler error reported in generated code.
 - Proposed change: two options, and the choice between them is the decision below.
   - Reject the construct, exactly as `goto` is rejected. In `VisitBreakStatement` and `VisitContinueStatement`, when
-    a label is present, call `ReportUnsupportedLanguageFeature` (`TemplateAnnotator.cs:2590-2591`), which reports
+    a label is present, call `ReportUnsupportedLanguageFeature` (`TemplateAnnotator.cs:2591-2592`), which reports
     LAMA0101, and add a `VisitLabeledStatement` override that reports the same diagnostic. This removes the silent
     wrong output and the crash for a few lines of code, and matches the existing treatment of `goto`
     (`TemplateAnnotator.cs:2601-2606`) and of a label, which is useless in a template while `goto` is rejected.
@@ -252,7 +255,7 @@ No project was built and no test was run for this analysis.
   Four constraints apply to the second option. The reserved diagnostic ranges are 100 to 119 and 220 to 299
   (`TemplatingDiagnosticDescriptors.cs:20-30`) and the highest identifier already allocated in that file is LAMA0293,
   so a new error takes an unused identifier in those ranges and is not adjacent to LAMA0101. Annotating a
-  compile-time `break` as run-time does not by itself make the label survive, because the generated factory call is
+  compile-time `break` as run-time does not by itself preserve the label, because the generated factory call is
   built from the stripped field list, so the label reappears only after regeneration. The label identifier would be
   emitted verbatim, because `Transform(SyntaxToken)` reserves a unique run-time name only for the symbol kinds
   accepted by `IsLocalSymbol` (`TemplateCompilerRewriter.cs:390-402`, `:491-497`), which does not include a label
@@ -291,7 +294,7 @@ No project was built and no test was run for this analysis.
   - `Metalama.Framework/src/Metalama.Framework.Sdk/Utilities/Roslyn/SafeSyntaxRewriter.cs:44-62`
   - `Metalama.Framework/src/Metalama.Framework.Sdk/Utilities/Roslyn/SyntaxProcessingException.cs:27-29`
   - `Metalama.Framework/src/Metalama.Testing.AspectTesting/TestOptions.cs:681-700`
-  - `eng/src/GenerateMetaSyntaxRewriter/Generator.cs:395-431`, `:481-519`
+  - `eng/src/GenerateMetaSyntaxRewriter/Generator.cs:396-431`, `:481-519`
   - `eng/src/GenerateMetaSyntaxRewriter/Model/TreeReader.cs:19`, `:35-43`
   - `eng/src/GenerateMetaSyntaxRewriter/Syntax-5.10.0.xml:816-822`
 - What happens today: the annotator visits each element of a collection expression through its private visit helper
@@ -430,7 +433,7 @@ No project was built and no test was run for this analysis.
 - Where:
   - `Metalama.Framework/src/Metalama.Framework.Engine/CompileTime/CompileTimeCompilationBuilder.ProduceCompileTimeCodeRewriter.cs:204-252`,
     `:254-378`, `:274-354`, `:356-370`, `:372-375`, `:417-447`, `:506-563`, `:540-544`, `:557-560`, `:1452-1477`,
-    `:1496-1509`, `:1525-1530`
+    `:1496-1509`, `:1526-1531`
   - `Metalama.Framework/src/Metalama.Framework.Engine/CompileTime/CompileTimeCompilationBuilder.FindCompileTimeCodeVisitor.cs:58-99`
   - `Metalama.Framework/src/Metalama.Framework.Engine/Utilities/Roslyn/SyntaxKindExtensions.cs:33-41`
   - `Metalama.Framework/src/Metalama.Framework.Engine/Utilities/Roslyn/RemovePreprocessorDirectivesRewriter.cs:17`
@@ -438,7 +441,7 @@ No project was built and no test was run for this analysis.
   - `Metalama.Framework/src/Metalama.Framework.Engine/Templating/TemplateAnnotator.cs:743-775`
   - `Metalama.Framework/src/Metalama.Framework.Engine/Templating/TemplatingCodeValidator.Visitor.cs:299-330`
   - `Metalama.Framework/src/Metalama.Framework.Engine/CompileTime/CompileTimeCompilationBuilder.cs:349-354`
-  - `Metalama.Framework/src/Metalama.Testing.AspectTesting/TestOptions.cs:681-698`
+  - `Metalama.Framework/src/Metalama.Testing.AspectTesting/TestOptions.cs:681-700`
   - `eng/src/GenerateMetaSyntaxRewriter/Syntax-5.10.0.xml:1954`, `:2083`
   - `eng/src/GenerateMetaSyntaxRewriter/Syntax-5.0.0.xml:2036`
 - What happens today: a union declaration is unknown to every kind list on the compile-time code path, and the effect
@@ -457,7 +460,7 @@ No project was built and no test was run for this analysis.
   - Declared at namespace or file level, `SyntaxKindExtensions.IsTypeDeclaration` lists the same five kinds
     (`SyntaxKindExtensions.cs:33-41`), so a union is copied without the compile-time annotation and the whole
     namespace is dropped when the union is its only compile-time member (`:1496-1509`), a top-level union is removed
-    from the compile-time tree (`:1525-1530`), and `FindCompileTimeCodeVisitor` classifies a syntax tree whose only
+    from the compile-time tree (`:1526-1531`), and `FindCompileTimeCodeVisitor` classifies a syntax tree whose only
     compile-time declaration is a union as containing no compile-time code
     (`CompileTimeCompilationBuilder.FindCompileTimeCodeVisitor.cs:58-99`).
   The annotator and the validator have comparable gaps, and their lists are neither identical to the rewriter's nor
@@ -485,15 +488,15 @@ No project was built and no test was run for this analysis.
   `TypeDeclarationSyntax` in both grammars (`Syntax-5.10.0.xml:2083`, `Syntax-5.0.0.xml:2036`) and is deliberately
   excluded from `IsTypeDeclaration`, so a bare type test would route C# 14 extension blocks into the nested-type path
   and change their treatment. If visitor overrides are preferred instead, they can only be written after the move to
-  the stable Roslyn, because naming the type or the kind against the current packages trips the experimental
+  the stable Roslyn, because naming the type or the kind against the current packages produces the experimental
   diagnostic and the Roslyn 5.0 variant does not have the API at all; the conditional compilation symbol would then
   follow the renumbered variant. The aspect tests belong under
   `Metalama.Framework/src/tests/Metalama.Framework.Tests.AspectTests/Tests/Aspects/CSharp15/Unions/`, beside the
   existing `CSharp14` directory, and they are skipped rather than failing until the latest variant recognises the
-  language version (`TestOptions.cs:681-698`).
+  language version (`TestOptions.cs:681-700`).
 - Size: medium. The individual edits are small, but they span six sites, one of which is a shared extension property
   with eight other call sites, and the whole change is gated on the Roslyn variant strategy.
-- Status: new work, and the sibling of finding CM-9 of theme 03, which reports the same two visitors from the code
+- Status: new work, and the counterpart of finding CM-9 of theme 03, which reports the same two visitors from the code
   model side. The two must be delivered as one change, because they edit the same file.
 - Verification: the code pass confirmed both default branches, corrected four details (the three kind lists are not
   identical, the accessibility and type-fabric checks belong to the run-time parent path only, the copy is not
@@ -526,8 +529,8 @@ No project was built and no test was run for this analysis.
   visitor for an extension block, a method, a property or an indexer (the complete override list is at `:147-1778`,
   and the only other part of the partial class adds no visitor), so the block is copied by the Roslyn base rewriter.
   The copy is not literally verbatim, because the expression-level and attribute-level overrides still apply to the
-  contents of the block. What does not happen is every member-level treatment performed by
-  `TransformMethodDeclaration` and its siblings (`:832-875`): the exclusion of run-time-only members from the
+  contents of the block. Every member-level treatment performed by `TransformMethodDeclaration` and by the equivalent
+  methods for the other member kinds (`:832-875`) is skipped: the exclusion of run-time-only members from the
   compile-time compilation, the manifest entry that records the scope and the template information, and the
   compilation of a template. No diagnostic descriptor covers this case. This is the C# 14 state, and an extension
   indexer, which is an indexer declaration inside the block, takes the same path. The explicit throw for an indexer
@@ -662,7 +665,7 @@ No project was built and no test was run for this analysis.
 ### TP-9. The design-time hashers do not hash the stripped declarations
 
 - Where:
-  - `eng/src/GenerateMetaSyntaxRewriter/Generator.cs:615-712`, `:656-663`, `:714-723`, `:726-736`
+  - `eng/src/GenerateMetaSyntaxRewriter/Generator.cs:615-712`, `:656-663`, `:714-723`, `:725-735`
   - `eng/src/GenerateMetaSyntaxRewriter/Syntax-5.10.0.xml:1148-1153`
   - `Metalama.Framework/src/Metalama.Framework.DesignTime/Pipeline/Diff/DiffStrategy.cs:73-84`, `:157-159`
   - `Metalama.Framework/src/Metalama.Framework.DesignTime/Pipeline/Diff/BaseCodeHasher.cs:19`, `:27-30`
@@ -693,7 +696,7 @@ No project was built and no test was run for this analysis.
   produced.
 - Proposed change: none beyond TP-1. Regeneration closes the union, with-element and labeled-jump cases without a
   hand-written change, because the union identifier is a non-trivial token and is then hashed by name
-  (`Generator.cs:726-736`) and the labels are then visited. After regeneration, add two cases to
+  (`Generator.cs:725-735`) and the labels are then visited. After regeneration, add two cases to
   `Metalama.Framework/src/tests/Metalama.Framework.Tests.UnitTests/Utilities/HasherTests.cs`: a union rename and a
   change of the label of a `break` statement, covering both hashers. Two constraints apply. The whole test source is
   compiled into the Roslyn 5.0 variant project by a wildcard
@@ -873,7 +876,7 @@ re-verified only where a finding above depends on them.
 - The Roslyn variant gating strategy, that is how the engine may name an API member that exists only in the latest
   variant, is finding CM-10 of theme 03. It is a prerequisite of TP-3, TP-5 and TP-6, each of which must otherwise
   read the new syntax without naming it.
-- TP-6 is the sibling of finding CM-9 of theme 03, which reports the same two visitors of the compile-time
+- TP-6 is the counterpart of finding CM-9 of theme 03, which reports the same two visitors of the compile-time
   compilation builder from the code model side. The two edit the same file and are one change.
 - The inventory of syntax visitors that inherit the Roslyn dispatch and therefore never observe a union declaration
   is finding CM-7 of theme 03, with LK-10 of theme 04 as one of its members. The annotator and validator gaps
