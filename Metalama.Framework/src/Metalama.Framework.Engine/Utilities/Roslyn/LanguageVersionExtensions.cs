@@ -39,12 +39,12 @@ internal static class LanguageVersionExtensions
             LanguageVersion.LatestMajor => "latestmajor",
             LanguageVersion.Preview => "preview",
 
-            // A version that is above every arm above is formatted from its numeric value, which is how the compiler
+            // A version that no arm above matches is formatted from its numeric value, which is how the compiler
             // composes the display string of every version from 7.0 on. Without this fallback the method throws while
             // the arguments of LAMA0051 and LAMA0052 are built, the exception replaces the diagnostic designed for the
             // situation, and the user is asked to open a support ticket for LAMA0001. The threshold is 700 because the
-            // versions below it are displayed as a single number and are all matched by an arm above. See issue #1928.
-            // The discard arm is kept rather than replaced by a relational pattern, because a switch expression over an
+            // versions below it are displayed as a single number, and all of them have an arm. See issue #1928. The
+            // discard arm is kept rather than replaced by a relational pattern, because a switch expression over an
             // enum without a discard arm produces an exhaustiveness warning that the build promotes to an error.
             _ => (int) version >= 700
                 ? FormatNumericVersion( version )
