@@ -113,16 +113,19 @@ rule must state which of the two forms it tests.
 
 ### D-5. Are introduced unions and introduced closed classes in scope?
 
-These are two answers, and one of them is only half taken.
+Both answers are taken, and both are affirmative.
 
-Introducing a closed class is out of scope, recorded in [`DECISIONS.md`](DECISIONS.md) section 5b and question Q4.
-The work is small and every part of it is identified, and it is deferred because no customer scenario is known that
-needs an aspect-generated closed hierarchy, and because of the design-time divergence of D-3. A known scenario
-reopens it. Findings CM-4 and LK-5 are withdrawn on that basis.
+Introducing a closed class is in scope, recorded in section 5f of [`DECISIONS.md`](DECISIONS.md), which supersedes
+section 5b and answers question Q4. A closed class is an ordinary class with one more modifier, the writer is sized
+M, and every part of it is identified: the settable property on `INamedTypeBuilder`, its validation, the storage in
+the builder data, the exposure on the introduced type, and the token emission in `ModifierHelper`. Three details of
+the emission are not free: the `closed` token replaces `abstract` rather than joining it, the token goes before
+`partial`, and the validation rejects a closed type that is not a class and one that is sealed or static. That work
+is story S-26, and findings CM-4 and LK-5 are carried by it.
 
-Introducing a union, and introducing a case into an existing union, is required, recorded in
-[`DECISIONS.md`](DECISIONS.md) section 5c, which overrides section 5b for unions only. This is the largest single
-piece of C# 15 work in the release and it is story S-17.
+Introducing a union, and introducing a case into an existing union, is required, recorded in section 5c of
+[`DECISIONS.md`](DECISIONS.md), which supersedes section 5b for unions. This is the largest single piece of C# 15
+work in the release and it is story S-17.
 
 What is still open is question Q1, the second half of that requirement.
 
@@ -160,8 +163,10 @@ longer proposes support for labels in templates.
 
 - Option A, install both feature bands and keep `global.json` on the .NET 10 SDK. It exercises a configuration that
   is known to be fragile, because two bands under one `dotnet` directory already produced an `MSB4062` restore
-  failure through a stale `MSBuildExtensionsPath`, and the mitigation in PostSharp.Engineering is incomplete by that
-  one variable.
+  failure through a stale `MSBuildExtensionsPath`. That mitigation is now complete: the merged pull request #1919
+  removes `MSBuildExtensionsPath` in `DotNetTool.cs:61` and in `MSBuildTool.cs:55`, and the matching change is in
+  PostSharp.Engineering 2023.2.421. The remaining objection to this option is therefore the cost of a second feature
+  band in the image, and not a missing mitigation.
 - Option B, install the .NET 11 SDK alone. One band and no conflict, but the product is then built by a compiler
   whose default language version differs from the one the tests assume.
 - Option C, keep one SDK and accept that `net11.0` stays declared and untested.
@@ -188,9 +193,10 @@ asset would not remove. Finding UT-5 is withdrawn on this basis.
 
 ### D-9. Is the November 2026 measurement a release blocker?
 
-`Metalama.Framework.props` and `Directory.Packages.md` both schedule a re-reading of the Visual Studio floor, the
-feature band and the host-capped package pins after 2026-11-10, and the build container pins Visual Studio Build
-Tools 18.9.2, which is a quarterly release below the long-term servicing floor that PB-2027.0 names.
+`Metalama.Framework.props` and [`Directory.Packages.md`](../../../Directory.Packages.md) both schedule a re-reading
+of the Visual Studio floor, the feature band and the host-capped package pins after 2026-11-10, and the build
+container pins Visual Studio Build Tools 18.9.2, which is a quarterly release below the long-term servicing floor
+that PB-2027.0 names.
 
 - Option A, measure immediately after the Visual Studio 2027 and long-term servicing releases and treat the result as
   a release blocker, so that the pins describe the hosts that 2027.0 actually supports.
@@ -200,13 +206,13 @@ Tools 18.9.2, which is a quarterly release below the long-term servicing floor t
 Recommendation: Option A for the Roslyn version of the baseline and for the variant identity, which are checklist
 items 1 and 2 of [`platform-support.md`](../platform-support.md) and which decide whether S-09 renumbers to 5.12 or
 to another value; Option B for the host-capped package pins, which are S-08. Whichever is chosen, the measurement
-must not compete for the same engineering days as S-09 and S-11, which are the critical path.
+must not be scheduled on the same engineering days as S-09 and S-11, which are the critical path.
 
 ### D-10. Should the aspect test harness fail rather than skip when a requested language version is unavailable?
 
 Today a language version that the running Roslyn does not recognise marks the test skipped with a reason, and the
-suite passes. That is correct while a variant genuinely cannot serve the version and wrong when a whole C# 15 suite
-disappears without anyone noticing.
+suite passes. That is correct while a variant genuinely cannot serve the version, and wrong when an entire C# 15
+suite is skipped and no reader of the build log observes it.
 
 - Option A, keep skipping and rely on reviewers reading the skip list.
 - Option B, fail when the version is one that the current baseline claims to support, and skip only when the running
@@ -225,10 +231,13 @@ Roslyn version that nuget.org does not serve. That failure already reached a use
   latest variant to the stable 5.9.0, which exposes the same public application programming interface as the consumed
   preview and is available today, and adding a build-time check that refuses to pack a prerelease Roslyn pin.
 
-Recommendation: Option B. It costs one target and removes a class of user-facing failure. The answer decides one
-acceptance criterion of S-09.
+Recommendation: Option B. It removes a class of user-facing failure at the cost of one interim renumbering. Option B
+has a prerequisite that S-09 does not carry: an interim move of the latest variant to the stable Roslyn 5.9.0 needs a
+`Metalama.Compiler` build on that version, per step 1 of [`updating-roslyn.md`](../updating-roslyn.md), so it is a
+separate story placed before S-09 and not an acceptance criterion of it. What the answer decides inside S-09 is only
+the pack-time check that refuses to publish a package pinning a prerelease Roslyn.
 
-### D-12. How far does Metalama.Premium follow the core in 2027.0?
+### D-12. How far does `Metalama.Premium` follow the core in 2027.0?
 
 - Option A, Premium follows fully: S-10 renumbers the variants, S-22 adds the reference graph work and the
   architecture rule tests, and S-23 closes the coverage gap of the Roslyn 5.0.0 variant, all inside the same narrow
@@ -255,13 +264,14 @@ applied, because the document belongs to the product owner; S-25 carries them on
 
 The list below reads as a dependency order. A story that names no blocker can start at once.
 
-1. S-01, the move of `Metalama.Compiler` to the stable Roslyn 5.12. It is not work in this repository, it is the head
-   of the critical path, and its schedule is the single most valuable piece of planning information for 2027.0.
+1. S-01, the move of `Metalama.Compiler` to the stable Roslyn 5.12. It is not work in this repository, and it is the
+   head of the critical path. Its schedule is the planning information on which most of 2027.0 depends.
 2. S-02, the variant gating, S-03, the type-declaration predicate, S-04, the two MSBuild comparisons, S-05, the
-   residue of the previous baseline, S-06, the language version display mapping and the manifest fallbacks, and
-   S-07, the declaration-kind switches. All six are independent of the Roslyn gate and are the pre-gate lane.
-3. S-08, the November 2026 measurement. Calendar-gated rather than dependency-gated, and it must not compete with the
-   critical path.
+   residue of the previous baseline, S-06, the language version display mapping and the manifest fallbacks, S-07,
+   the declaration-kind switches, and S-27, the change-visibility code action of `Metalama.Premium`. All seven are
+   independent of the Roslyn gate and can be delivered before it.
+3. S-08, the November 2026 measurement. It is calendar-gated rather than dependency-gated, and it must not be
+   scheduled against the critical path.
 4. S-09, the renumbering of the latest variant to Roslyn 5.12 and the regeneration of the syntax model. Blocked by
    S-01. It is the gate of the whole release.
 5. S-10, the Premium mirror of the renumbering. Blocked by S-09.
@@ -269,13 +279,17 @@ The list below reads as a dependency order. A story that names no blocker can st
    C# 15 project instead of reporting `LAMA0051`.
 7. S-12, the union in the public code model. Blocked by S-02, S-03 and S-11. It is the surface that six later stories
    consume.
-8. S-13, S-14, S-15, S-16 and S-22, the union consumers. All blocked by S-12; S-13 also by S-03.
-9. S-17, the introduction of a union and of a union case. Blocked by S-03, S-12 and S-16, and by decision D-5 for its
-   second half. About half of its work can proceed before S-09.
+8. S-13, S-14, S-15, S-16 and S-22, the union consumers. All blocked by S-12; S-13 also by S-03. S-28, the union and
+   closed architecture rule tests of `Metalama.Premium`, follows S-22 and S-10.
+9. S-17, the introduction of a union type and of a case into a type carrying the union attribute. Blocked by S-03,
+   S-12 and S-16. About half of its work can proceed before S-09. S-29, the introduction of a case into a `union`
+   declaration, follows S-17 and is filed only if question Q1 chooses Option A.
 10. S-18, closed hierarchies in the code model, S-19, labels, S-20, the experimental syntax guard, and S-21,
-    extension indexers. Blocked by S-11, and S-19 and S-20 also by S-09.
-11. S-23 and S-24, the Metalama.Premium items that are independent of every gate.
-12. S-25, the documentation. Deliberately last, because a document written before the code is a second thing to
+    extension indexers. All blocked by S-11. S-18 and S-19 are also blocked by S-02, and S-19 and S-20 also by S-09.
+    S-26, the introduction of a closed class. Blocked by S-02 and S-18.
+11. S-23 and S-24, the `Metalama.Premium` items that are independent of the Roslyn gate. S-24 waits instead on the
+    open pull request metalama/Metalama.Premium#84, whose branch it is based on.
+12. S-25, the documentation. It is deliberately last, because a document written before the code is a second thing to
     correct.
 
 ```mermaid
@@ -292,17 +306,24 @@ graph TD
   S12 --> S13
   S12 --> S14["S-14 Advice applied to a union"]
   S12 --> S15["S-15 Design-time union partial part"]
-  S12 --> S16["S-16 Comparers that a union breaks"]
+  S12 --> S16["S-16 Comparer defects a union exposes"]
   S12 --> S22["S-22 Patterns and the reference graph"]
   S16 --> S17["S-17 Introduce a union and a case"]
+  S12 --> S17
   S03 --> S17
+  S17 --> S29["S-29 Introduce a case into a union declaration"]
   S02 --> S18["S-18 Read closed hierarchies"]
   S11 --> S18
-  S09 --> S19["S-19 Labels in templates and in inlining"]
+  S02 --> S26["S-26 Introduce a closed class"]
+  S18 --> S26
+  S02 --> S19["S-19 Labels in templates and in inlining"]
+  S09 --> S19
   S11 --> S19
   S09 --> S20["S-20 Experimental syntax guard"]
   S11 --> S20
   S11 --> S21["S-21 Extension indexers"]
+  S10 --> S28["S-28 Premium union architecture rule tests"]
+  S22 --> S28
   S09 --> S25["S-25 Documentation"]
   S11 --> S25
   S05["S-05 Residue of the previous baseline"]
@@ -310,6 +331,7 @@ graph TD
   S08["S-08 November 2026 measurement"]
   S23["S-23 Premium Roslyn 5.0.0 variant tests"]
   S24["S-24 Premium build-file residuals"]
+  S27["S-27 Premium change-visibility code action"]
 ```
 
 ## Stories
@@ -361,7 +383,7 @@ replaces the 5.10 variant rather than being added beside it.
 
 #### Not in scope
 
-Every edit in `metalama/Metalama` and in `metalama/Metalama.Premium`. Those are stories S-09 and S-10.
+This story does not edit `metalama/Metalama` or `metalama/Metalama.Premium`. Those edits are stories S-09 and S-10.
 
 — Claude for @gfraiteur
 
@@ -383,7 +405,8 @@ Production source carries no conditional compilation today, and the only variant
 `ROSLYN_5_10_0_OR_GREATER`, is defined by `eng/RoslynVersions/Roslyn.5.10.0.props:10` and is used by two aspect tests.
 Section 2 of [`DECISIONS.md`](DECISIONS.md) settles the mechanism: the C# 15 Roslyn members are reached through
 conditional compilation and one implementation assembly per Roslyn version. This story applies that decision, so that
-the fourteen sites which depend on it do not each decide it again.
+the findings which depend on it, which are every finding of the code model theme and at least fourteen findings of
+the other themes, do not each decide it again.
 
 #### Context
 
@@ -397,8 +420,9 @@ general policy for anything else.
 #### Scope
 
 - Rewrite the note in `eng/RoslynVersions/Roslyn.5.0.0.props:8-10` and in the latest variant property file, and the
-  corresponding paragraph of `Directory.Packages.md`, so that they state the current policy: production source may
-  branch on the latest variant symbol, and only for members that the lower variant does not expose.
+  corresponding paragraph of [`Directory.Packages.md`](../../../Directory.Packages.md), so that they state the
+  current policy: production source may branch on the latest variant symbol, and only for members that the lower
+  variant does not expose.
 - State in the same place which members are covered, namely `UnionDeclarationSyntax`, `SyntaxKind.UnionDeclaration`,
   `SyntaxKind.ClosedKeyword`, `ITypeSymbol.IsUnion`, `ITypeSymbol.UnionCaseTypes`, `ITypeSymbol.IsClosed` and the
   `Name` field of `BreakStatementSyntax` and `ContinueStatementSyntax`, and that the list is closed rather than a
@@ -413,17 +437,19 @@ general policy for anything else.
   a document.
 - State whether the public `Metalama.Framework.Sdk` kind helpers, which are part of the extensibility surface, may
   name the new kinds at all, since a public surface cannot easily be narrowed later.
+- Reference the open issue #1217, which asks for `Metalama.Extensions.Metrics` to support several Roslyn versions,
+  and state whether the policy written here applies to that package or leaves it outside the closed list.
 
 #### Acceptance criteria
 
-- Both variant property files and `Directory.Packages.md` describe the policy that is actually in force, and no
-  document still states that production source carries no variant branch.
+- Both variant property files and [`Directory.Packages.md`](../../../Directory.Packages.md) describe the policy that
+  is actually in force, and no document still states that production source carries no variant branch.
 - One production source file compiles a C# 15 Roslyn member behind the variant symbol, and both variants build.
 - The list of members that may be gated is written down, and the rule for adding to it is written down.
 
 #### Not in scope
 
-The union and closed features themselves. This story is the mechanism and one example.
+This story does not deliver the union and closed features themselves. It delivers the mechanism and one example.
 
 — Claude for @gfraiteur
 
@@ -487,7 +513,7 @@ does not have. This is the largest piece of union plumbing that can be delivered
 
 #### Not in scope
 
-Naming any C# 15 syntax kind. This story compiles unchanged for both variants and adds no variant branch.
+This story names no C# 15 syntax kind. It compiles unchanged for both variants and adds no variant branch.
 
 — Claude for @gfraiteur
 
@@ -522,6 +548,15 @@ now: `MaximumSdkVersion` is documented as the last supported major and minor lin
 version makes every feature band of that line exceed it. `MinimumSdkVersion` legitimately keeps feature-band
 precision, because a contributing package may require `10.0.200`, so the two rules cannot share one property.
 
+Two issues already cover part of this work. The open issue #714 asks for three things: a warning when Metalama is
+used with an unsupported target framework, no silent downgrade of `LangVersion` without a warning, and the same
+language version at design time and at build time. The first was delivered by the closed issue #1884, which also
+introduced the `MaximumSdkVersion` comparison that this story corrects, and the second is what the diagnostic code
+and the rewritten warning text deliver here. This story therefore references #714, and #714 is closed or reduced to
+its third point when this story is done. The closed issue #1894 is the neighbour that removed the temporary
+`MetalamaCheckSupportedPlatform` property of this repository, so a build of this repository now exercises the same
+check.
+
 #### Scope
 
 - Add a second property holding the first two components of `$(NETCoreSdkVersion)` and use it in the maximum rule at
@@ -545,8 +580,8 @@ precision, because a contributing package may require `10.0.200`, so the two rul
 
 #### Not in scope
 
-Installing a .NET 11 SDK in the build container, and adding a `net11.0` scenario, both excluded by sections 6b and 6c
-of [`DECISIONS.md`](DECISIONS.md).
+This story does not install a .NET 11 SDK in the build container and does not add a `net11.0` scenario. Sections 6b
+and 6c of [`DECISIONS.md`](DECISIONS.md) exclude both.
 
 — Claude for @gfraiteur
 
@@ -559,12 +594,14 @@ of [`DECISIONS.md`](DECISIONS.md).
 - Size: S
 - Blocked by: nothing
 - Findings: [UT-3](06-user-tfm-patterns-tests-docs.md), [UT-4](06-user-tfm-patterns-tests-docs.md),
-  [UT-9](06-user-tfm-patterns-tests-docs.md), [UT-10](06-user-tfm-patterns-tests-docs.md)
+  [UT-9](06-user-tfm-patterns-tests-docs.md), [UT-10](06-user-tfm-patterns-tests-docs.md). This story completes the
+  closed issue #1876.
 
 ---
 
-Four leftovers of the move that dropped .NET 8 and .NET 9 share one property: each is invisible in a green build and
-none produces a failure. `CompileTimeAssemblyLocator.cs:43` still names `net8.0` in the default target frameworks of
+Four residual items of #1876, the issue that removed explicit support for .NET 8 and .NET 9, and of its pull request
+#1877, share one property: each is invisible in a build that succeeds, and none produces a failure.
+`CompileTimeAssemblyLocator.cs:43` still names `net8.0` in the default target frameworks of
 the nested compile-time reference project, `DefaultProjectOptions.cs:56` reports the target framework `net8.0` to
 every test whatever the test assembly targets, two facts of the Contracts unit tests are excluded on every leg
 because their guard names `NET6_0` rather than `NET6_0_OR_GREATER`, and two aspect tests never run because their
@@ -599,12 +636,13 @@ constant gates of exactly this shape.
 
 - No `net8.0` literal remains in the engine defaults or in the fixtures that pin them.
 - A test reads the target framework of the leg it runs on, and the aspect test that prints it is re-accepted.
-- The four previously excluded tests execute, and their result is read rather than adopted blindly.
+- The four previously excluded tests execute, and the pull request description states, for each of them, what the
+  newly produced output proves.
 - No test directive names a preprocessor symbol that no configuration defines.
 
 #### Not in scope
 
-Any `net11.0` leg, excluded by sections 6 and 6c of [`DECISIONS.md`](DECISIONS.md).
+This story adds no `net11.0` test leg. Sections 6 and 6c of [`DECISIONS.md`](DECISIONS.md) exclude it.
 
 — Claude for @gfraiteur
 
@@ -665,29 +703,30 @@ again. #1142 is the reason the value is serialized as an integer, and that must 
 - Issue type: Bug
 - Labels: `bug`, `Area-Framework`, `Area-Extensions`
 - Milestone: `2027.0`
-- Repositories: `metalama/Metalama`, `metalama/Metalama.Premium`
+- Repositories: `metalama/Metalama`
 - Size: M
 - Blocked by: nothing
 - Findings: [DT-5](05-design-time-workspaces-linqpad.md), [TP-7](02-syntax-generator-and-templates.md),
-  [PR-10](07-premium.md), [PR-11](07-premium.md)
+  [PR-11](07-premium.md)
 
 ---
 
 Four places switch over declaration kinds and do the wrong thing for a kind they do not list, and none of the four is
 caused by C# 15. `CSharpAttributeHelper.cs:74-191` returns null for records, record structs and extension blocks, and
 the caller propagates the null, so the add-attribute code action reports success and does nothing.
-`ChangeVisibilityCodeAction` in Metalama.Premium skips interfaces and indexers in the same way. The member switch of
+`ChangeVisibilityCodeAction` in `Metalama.Premium` skips interfaces and indexers in the same way, which is story
+S-27. The member switch of
 `TransformCompileTimeType` throws for an indexer and falls through for an extension block, so a template declared
 inside an extension block is copied verbatim. `ReferenceValidationContext.GetInboundGranularity` throws for a
 validated extension block, and the exception is reported as an error diagnostic from inside the user validator.
 
 #### Context
 
-Extension blocks are a C# 14 feature and already ship, so the last of these is a defect that a customer can hit
-today, and the first two are wrong for records, which have shipped for years. In every case the remedy is to test an
-abstract syntax base type or to add the missing arm, which also admits unions later without naming an experimental
-member. The two repositories are edited by two pull requests from one reviewed design, because a pull request cannot
-span them.
+Extension blocks are a C# 14 feature and already ship, so the last of these is a defect that a customer can
+encounter today, and the first two are wrong for records, which have shipped for years. In every case the remedy is
+to test an abstract syntax base type or to add the missing arm, which also admits unions later without naming an
+experimental member. The remedy is the same in both repositories, so S-27 is written from the same reviewed design,
+and it is a separate story because a pull request cannot span two repositories.
 
 #### Scope
 
@@ -697,9 +736,6 @@ span them.
   for parameters, accessors and the compilation unit, which do not derive from that type.
 - Keep the trivia behaviour that the tests of #779 pin, because the caller restores the leading trivia of the old
   node.
-- In `Metalama.Extensions.CodeFixes.Engine/Implementations/ChangeVisibilityCodeAction.cs`, apply the modifiers
-  through the abstract type declaration, in an override of `VisitCore` and not of `Visit`, which is sealed in
-  `SafeSyntaxRewriter`.
 - In `CompileTimeCompilationBuilder.ProduceCompileTimeCodeRewriter.TransformCompileTimeType`, decide between
   reporting a diagnostic for a template declared inside an extension block and supporting it; support requires
   extracting the member loop, because an extension block declaration is a type declaration whose `Identifier`
@@ -712,15 +748,14 @@ span them.
 
 - The add-attribute code action adds the attribute to a record, a record struct and an extension block, and the
   existing trivia tests do not regress.
-- The change-visibility code action changes the visibility of an interface and of an indexer.
 - A template declared inside an extension block either compiles or is reported with a diagnostic that names the
   reason, and is never copied verbatim.
 - A reference validator that validates an extension block reports its own diagnostics and no exception.
 
 #### Not in scope
 
-Unions. Every arm added here is written so that a union is admitted later without a further edit, but no C# 15 member
-is named.
+This story does not handle unions. Every arm added here is written so that a union is admitted later without a
+further edit, but no C# 15 member is named. The change-visibility code action of `Metalama.Premium` is story S-27.
 
 — Claude for @gfraiteur
 
@@ -739,18 +774,24 @@ is named.
 
 `eng/src/Program.cs:40` pins `VisualStudioBuildToolsComponentVersion.v18_9_2`, which is a quarterly release below the
 November 2026 long-term servicing floor that PB-2027.0 names, and `MSBuildVersion` at `:63` must keep matching it.
-`Metalama.Framework.props:34-37` and `Directory.Packages.md` both schedule a re-reading of the Visual Studio floor,
-the feature band and the host-capped package pins after 2026-11-10. Four findings from three themes wait on that one
-measurement, and grouping them avoids four separate reopenings of the same two documents.
+`Metalama.Framework.props:34-37` and [`Directory.Packages.md`](../../../Directory.Packages.md) both schedule a
+re-reading of the Visual Studio floor, the feature band and the host-capped package pins after 2026-11-10. Four
+findings from three themes wait on that one measurement, and grouping them avoids four separate reopenings of the
+same two documents.
 
 #### Context
 
-#1902 declined the previous attempt to move the build tools, on the grounds that regenerating the Visual Studio base
-images is expensive, and it recorded that the component version must exist in PostSharp.Engineering before the change
-can be made at all. The measurement itself is checklist item 1 of [`platform-support.md`](../platform-support.md).
-Two of the four items are comment corrections rather than version changes: the `Microsoft.NET.Test.Sdk` pin carries a
-comment that still names Visual Studio 2022 as the lowest supported host, and `Microsoft.Build` is pinned at the
-lowest supported host by doctrine and needs verification rather than a bump.
+The build tools pin has a history in two issues and one pull request. #1902 declined an earlier attempt to move it,
+on the grounds that regenerating the Visual Studio base images is expensive, and it recorded that the component
+version must exist in PostSharp.Engineering before the change can be made at all. The merged pull request #1919 then
+made that move, pinning the build tools to 18.9.2 and `MSBuildVersion` to 18.9, so this story raises values that
+#1919 set rather than values that have never moved. The obligation to re-read the host-capped package pins after
+2026-11-10 was recorded by the closed issue #1897, whose Premium mirror is the open pull request
+metalama/Metalama.Premium#84. The measurement itself is checklist item 1 of
+[`platform-support.md`](../platform-support.md). Two of the four items are comment corrections rather than version
+changes: the `Microsoft.NET.Test.Sdk` pin carries a comment that still names Visual Studio 2022 as the lowest
+supported host, and `Microsoft.Build` is pinned at the lowest supported host by doctrine and needs verification
+rather than a bump.
 
 #### Scope
 
