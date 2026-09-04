@@ -24,7 +24,7 @@ for this analysis.
    4.12.0 variant, made 5.0.0 the suffixed lower variant, added 5.10.0 as the latest variant with its package source,
    and moved every target framework to `net10.0` (PR-15). What remains is the reverse edit. The latest variant is
    pinned to a prerelease Roslyn that has no stable counterpart, so leaving it is a renumbering to the expected
-   stable 5.12, which touches 26 occurrences of the version string in 11 Premium files (PR-1).
+   stable 5.12, which touches 26 lines carrying the version string in 11 Premium files (PR-1).
 2. The Roslyn 5.0.0 variant of the Premium engines is compiled by the solution build and packaged into the shipped
    NuGet packages, and no test executes it. That variant is the payload that serves Rider and the C# Dev Kit, so a
    defect confined to it reaches a user before it reaches the team (PR-2).
@@ -73,7 +73,7 @@ for this analysis.
   - `Metalama/Metalama.Framework/src/Metalama.Framework.Engine/Utilities/SupportedCSharpVersions.cs:60,85,142`
   - [`updating-roslyn.md`](../updating-roslyn.md):18-22 (the renumbering of the latest variant) and :38-54 (entering
     and leaving a prerelease Roslyn)
-  - The 26 occurrences of the string `5.10.0` in 11 tracked Premium files on `pr85`, which include the
+  - The 26 lines that carry the string `5.10.0` in 11 tracked Premium files on `pr85`, which include the
     `InternalsVisibleTo` entries of `src/Metalama.Extensions.CodeFixes/Metalama.Extensions.CodeFixes.csproj:17-20`
     and `src/Metalama.Extensions.Validation/Metalama.Extensions.Validation.csproj:16-17`, the
     `TfmSpecificPackageFile` paths of
@@ -81,9 +81,9 @@ for this analysis.
     `src/Metalama.Extensions.Validation.Package/Metalama.Extensions.Validation.Package.csproj:46-51`, and the
     `MetalamaExtensionAssembly` entries with their `TargetRoslynVersion` attributes in
     `src/Metalama.Extensions.CodeFixes.Package/build/Metalama.Extensions.CodeFixes.props:9-18`,
-    `src/Metalama.Extensions.Validation.Package/build/Metalama.Extensions.Validation.props:8-11`,
-    `src/Metalama.Extensions.CodeFixes/MetalamaExtensionAssemblies.props:11-19` and
-    `src/Metalama.Extensions.Validation/MetalamaExtensionAssemblies.props:12`
+    `src/Metalama.Extensions.Validation.Package/build/Metalama.Extensions.Validation.props:9-12`,
+    `src/Metalama.Extensions.CodeFixes/MetalamaExtensionAssemblies.props:12-20` and
+    `src/Metalama.Extensions.Validation/MetalamaExtensionAssemblies.props:12-15`
 - What happens today: the core build exports `RoslynApiMaxVersion` and `RoslynMaxVersion`
   (`Metalama/eng/src/Program.cs:149-152`), and Premium imports the generated `Versions.g.props` through
   `eng/Versions.props:15`, which `Directory.Build.props:29` imports before `Directory.Packages.props` is evaluated.
@@ -135,7 +135,7 @@ for this analysis.
   away from it, and no issue covers the reverse edit. The related issues are #1881, which introduced the prerelease
   and the feed, #1885, which declared the package source, #1913, which produced the Premium literals, and the open
   umbrella #1921.
-- Verification. Code: the literals, the feed declaration, the generated `nuget.config` and the 26 occurrences of the
+- Verification. Code: the literals, the feed declaration, the generated `nuget.config` and the 26 lines that carry the
   version string were re-read on `pr85`, and three details of the original statement were corrected, namely that
   `RoslynVersion` is not exported, that the core variant file sets no `System.IO.Pipelines` pin, and that the two
   feed declarations are independent. Semantics: nuget.org and `dotnet/roslyn` `main` were re-checked, and the premise
@@ -238,7 +238,7 @@ for this analysis.
     `Metalama/Metalama.Framework/src/Metalama.Framework.Package/buildTransitive/Metalama.Framework.props:2`
   - `src/Metalama.Extensions.CodeFixes.Package/Metalama.Extensions.CodeFixes.Package.csproj:37`,
     `src/Metalama.Extensions.Validation.Package/Metalama.Extensions.Validation.Package.csproj:35` and
-    `src/Metalama.Patterns.Caching.Backends.Redis/Metalama.Patterns.Caching.Backends.Redis.csproj:24` (the three
+    `src/Metalama.Patterns.Caching.Backends.Redis/Metalama.Patterns.Caching.Backends.Redis.csproj:24-25` (the three
     package chains that carry the requirement into the standalone solutions)
   - `src/tests/Standalone/Validation/test.json:3` and `src/tests/Standalone/CachingBackends/test.json:2`
     (`FailOnUnexpectedDiagnostics`)
@@ -413,7 +413,7 @@ for this analysis.
   `pr85`, which does not change them. The two consumers are
   `src/Metalama.Patterns.Caching.Backends.Redis/Metalama.Patterns.Caching.Backends.Redis.csproj:22` and
   `src/tests/Metalama.Patterns.Caching.LoadTests/Metalama.Patterns.Caching.LoadTests.csproj:17`.
-- What happens today: both items are inside the same item group, which opens at `Directory.Packages.props:27` and
+- What happens today: both items are inside the same item group, which opens at `Directory.Packages.props:29` and
   closes at `:105`, so they are evaluated in document order. An MSBuild item update applies only to items that exist
   at that point of the evaluation, and the update precedes the include, so the update creates nothing and the include
   then defines the version as 2.9.32. The effective central version is therefore 2.9.32, and the 2.10.14 line changes
@@ -478,7 +478,7 @@ for this analysis.
   ([`platform-support.md`](../platform-support.md):338-339), and it already loads a lower target framework asset into
   a higher runtime in its own build. What the missing leg leaves untested is the .NET 11 host runtime, the `net11.0`
   target framework, and, once the stable software development kit ships with the expected Roslyn 5.12, the command
-  line compiler whose default language version is C# 15. A defect in any of those would surface as a user report.
+  line compiler whose default language version is C# 15. A defect in any of those would be reported by a user.
 - Proposed change: follow the recorded core decision, which does not place this leg in the product repositories. The
   core repository states that the software development kit dimension is covered only through a contributed
   requirement, because the build agent has one software development kit, and that varying the software development
@@ -625,7 +625,7 @@ for this analysis.
 
 - Where: `src/Metalama.Extensions.Validation/ReferenceValidationContext.cs:124-134` (the switch and its throwing
   default arm) and `:56-57` (the only caller);
-  `src/Metalama.Extensions.Architecture/Validators/ReferencePredicateValidator.cs:30-33` (the read of the
+  `src/Metalama.Extensions.Architecture/Validators/ReferencePredicateValidator.cs:30-34` (the read of the
   destination); `src/Metalama.Extensions.Validation.Engine/ReferenceValidatorInstance.cs:52-58`;
   `src/Metalama.Extensions.Validation.Engine/ValidationRunner.cs:170-173,217`;
   `src/Metalama.Extensions.Validation.Engine/ReferenceValidatorRunner.cs:104,111`;
@@ -690,12 +690,12 @@ for this analysis.
 ### PR-12. Architecture rules under closed classes and unions
 
 - Where: `src/Metalama.Extensions.Architecture/Validators/DerivedTypeNamingConventionValidator.cs:79-84`,
-  `src/Metalama.Extensions.Architecture/Aspects/InternalOnlyImplementAttribute.cs:44-45`,
+  `src/Metalama.Extensions.Architecture/Aspects/InternalOnlyImplementAttribute.cs:45-46`,
   `src/Metalama.Extensions.Architecture/Predicates/TypeEqualityPredicate.cs:82-91`,
   `src/Metalama.Extensions.Architecture/Predicates/HasFamilyAccessPredicate.cs:19-28`,
   `src/Metalama.Extensions.Validation.Engine/TransitiveValidatorInstance.cs`;
   `Metalama/Metalama.Framework/src/Metalama.Framework.Engine/ReferenceGraph/ReferenceIndexerRequirements.cs:35-40,57-65`,
-  `Metalama/Metalama.Framework/src/Metalama.Framework.Engine/ReferenceGraph/ReferenceIndexWalker.cs:99-102,103,176-183,717,729,761-803,894-903`,
+  `Metalama/Metalama.Framework/src/Metalama.Framework.Engine/ReferenceGraph/ReferenceIndexWalker.cs:97-101,103,176-183,717,729,761-803,894-903`,
   `Metalama/Metalama.Framework/src/Metalama.Framework.Engine/ReferenceGraph/ReferenceIndexBuilder.cs:15-18`,
   `Metalama/Metalama.Framework/src/Metalama.Framework.Engine/CodeModel/Source/SourceMemberOrNamedType.cs:23`,
   `Metalama/Metalama.Framework/src/Metalama.Framework/Code/TypeKind.cs`, and
@@ -813,10 +813,10 @@ for this analysis.
 - Consequence: silent wrong output at the next floor move, if a value is left behind. The loader drops the
   non-matching reference without a diagnostic, and the only diagnostic of that file applies to an assembly that was
   selected and then failed to load. A dropped extension removes a pipeline stage, so reference validation stops
-  producing its diagnostics with no error reported. No test covers the comparison. The failure has a further trap:
-  the aspect testing targets filter extension assemblies by target framework compatibility, which accepts a stale
-  lower value, while the run-time comparison is exact, so a stale value passes the build-time filter and fails the
-  run-time one.
+  producing its diagnostics with no error reported. No test covers the comparison. One further asymmetry makes the
+  failure harder to detect: the aspect testing targets filter extension assemblies by target framework
+  compatibility, which accepts a stale lower value, while the run-time comparison is exact, so a stale value passes
+  the build-time filter and fails the run-time one.
 - Proposed change: add a section "What this means in Metalama.Premium" to
   [`platform-support.md`](../platform-support.md), beside the existing section for `Metalama.Compiler` at :325, naming
   the four Premium files that carry the compared metadata and the four that must agree with it. Adding them under the
@@ -838,7 +838,7 @@ for this analysis.
 ### PR-15. Variant set alignment is implemented by Premium#85
 
 - Where: the difference between `develop/2027.0` and `pr85`, 47 files, of which the principal ones are
-  `eng/RoslynVersions/Roslyn.4.12.0.props` (deleted), `eng/RoslynVersions/Roslyn.5.0.0.props:3-7,9-18`,
+  `eng/RoslynVersions/Roslyn.4.12.0.props` (deleted), `eng/RoslynVersions/Roslyn.5.0.0.props:3-7,9-16`,
   `eng/RoslynVersions/Roslyn.5.10.0.props:3-7,9-10`, `eng/RoslynVersions/Latest.props:2`,
   `Directory.Packages.props:8-9,36-37`, `nuget.base.config:14-16`,
   `src/Metalama.Extensions.CodeFixes/Metalama.Extensions.CodeFixes.csproj:17-20`,
@@ -848,7 +848,7 @@ for this analysis.
   `src/Metalama.Extensions.CodeFixes.Package.Resources/Metalama.Extensions.CodeFixes.Package.Resources.csproj:6,26-29`,
   `src/Metalama.Extensions.Validation.Package.Resources/Metalama.Extensions.Validation.Package.Resources.csproj:26-27`,
   `src/Metalama.Extensions.CodeFixes.Package/build/Metalama.Extensions.CodeFixes.props:9-18`,
-  `src/Metalama.Extensions.Validation.Package/build/Metalama.Extensions.Validation.props:8-11` and
+  `src/Metalama.Extensions.Validation.Package/build/Metalama.Extensions.Validation.props:9-12` and
   `Metalama.Premium.sln`;
   `Metalama/Metalama.Framework/src/Metalama.Framework.Implementation.Package/Metalama.Framework.Implementation.Package.csproj:6,12`.
 - What happens today: the Roslyn 4.12.0 variant props file is deleted and no file on the branch contains that version
@@ -886,7 +886,8 @@ for this analysis.
 No finding of the original report was withdrawn. All fifteen findings survived the verification passes and none was
 refuted. Eleven of them changed materially and are recorded above rather than withdrawn, because their central claim
 held while a supporting statement did not. Two changed status rather than content, because the work landed between
-the writing of the report and its verification.
+the writing of the report and its verification. The remaining two, PR-7 and PR-13, were confirmed without
+correction.
 
 Two proposals inside surviving findings were refuted in detail and are recorded here, so that they are not
 reintroduced. PR-10 proposed overriding the visit method of the core safe syntax rewriter; that method is sealed and
