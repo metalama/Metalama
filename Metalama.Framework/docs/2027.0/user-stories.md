@@ -265,44 +265,52 @@ applied, because the document belongs to the product owner; S-25 carries them on
 
 ## Ordering
 
-The list below reads as a dependency order. A story that names no blocker can start at once.
+The stories are ordered by three rules, applied in this order. A story never precedes a story it is blocked by. A
+cheap story that removes a large uncertainty comes early, because the cost of learning late is the whole plan. A
+large story comes late, with one exception that is named where it occurs.
 
-1. S-01, the move of `Metalama.Compiler` to the stable Roslyn 5.12. It is not work in this repository, and it is the
-   head of the critical path. Its schedule is the planning information on which most of 2027.0 depends.
-2. S-02, the variant gating, S-03, the type-declaration predicate, S-04, the two MSBuild comparisons, S-05, the
-   residue of the previous baseline, S-06, the language version display mapping and the manifest fallbacks, S-07,
-   the declaration-kind switches, S-27, the change-visibility code action of `Metalama.Premium`, S-31, the code
-   refactoring provider entry points, and S-35, the host process classification. All nine are independent of the
-   Roslyn gate and can be delivered before it.
-3. S-08, the November 2026 measurement. It is calendar-gated rather than dependency-gated, and it must not be
-   scheduled against the critical path. S-32, Visual Studio Tools for Metalama and the flowed dependency pins, names
-   no blocker in this repository and is calendar-gated in the same way, by the November 2026 Visual Studio releases.
+The order below is a reading order for planning. It is not a schedule, and stages 1 and 2 are meant to run at the
+same time.
+
+1. The cheap work that removes uncertainty or repairs a defect that users meet today. None of it is blocked by
+   anything. S-02, the variant gating, is first of all, because it is a decision, it costs little, and eight later
+   stories cannot start until it is taken. S-04 repairs the two MSBuild comparisons that misreport a supported .NET
+   SDK and silently downgrade the language version of a `net11.0` project, which users meet now. Then S-06, the
+   language version display mapping, S-05, the residue of the previous baseline, S-31, the untested refactoring
+   entry points, S-35, the host process classification, S-24, the `Metalama.Premium` build-file residuals, and
+   S-27, the change-visibility code action of `Metalama.Premium`. Then the two medium ones that remove a class of
+   silent failure rather than a single defect: S-03, the type-declaration predicate, and S-07, the declaration-kind
+   switches.
+2. S-01, the move of `Metalama.Compiler` to the stable Roslyn 5.12. This is the exception to the rule that a large
+   story comes late. It is large, and it must start at once, because every C# 15 story is downstream of it and its
+   date is decided in another repository and by an external Roslyn release. It is a long pole, not a big task that
+   can be deferred.
+3. The calendar-gated work, which cannot be pulled earlier whatever the plan says. S-08, the November 2026
+   measurement, and S-32, Visual Studio Tools for Metalama, which waits on the same Visual Studio releases.
 4. S-09, the renumbering of the latest variant to Roslyn 5.12 and the regeneration of the syntax model. Blocked by
-   S-01. It is the gate of the whole release.
-5. S-10, the Premium mirror of the renumbering. Blocked by S-09.
-6. S-11, C# 15 as a supported language version. Blocked by S-04, S-06 and S-09. After it, a 2027.0 preview accepts a
-   C# 15 project instead of reporting `LAMA0051`.
-7. S-12, the union in the public code model. Blocked by S-02, S-03 and S-11. It is the surface that six later stories
-   consume.
-8. S-13, S-14, S-15, S-16 and S-22, the union consumers. All blocked by S-12; S-13 also by S-03. S-28, the union and
-   closed architecture rule tests of `Metalama.Premium`, follows S-22 and S-10.
-9. S-17, the introduction of a union type and of a case into a type carrying the union attribute. Blocked by S-03,
-   S-12 and S-16. About half of its work can proceed before S-09. S-29, the introduction of a case into a `union`
-   declaration, follows S-17 and is filed only if question Q1 chooses Option A.
-10. S-18, closed hierarchies in the code model, S-19, labels, S-20, the experimental syntax guard, S-21,
-    extension indexers, and S-30, the tests of non-virtual static interface members on the .NET Framework leg. All
-    blocked by S-11. S-18 and S-19 are also blocked by S-02, and S-19 and S-20 also by S-09. S-30 is blocked by S-11
-    alone. S-26, the introduction of a closed class. Blocked by S-02 and S-18.
-11. S-23 and S-24, the `Metalama.Premium` items that are independent of the Roslyn gate. S-24 waits instead on the
-    open pull request metalama/Metalama.Premium#84, whose branch it is based on.
-12. S-33, the sample solutions. It names no blocker, and it needs a published 2027.0 package to build against, which
-    S-01, S-09 and S-11 gate in time but not in dependency.
-13. S-25, the platform, dependency and extensibility documentation. It is deliberately late, because a document
-    written before the code is a second thing to correct.
-14. S-36, the internal architecture documents. Blocked by S-03, S-12, S-14, S-16, S-17 and S-26, and also by S-29 if
-    question Q1 files that story.
-15. S-34, the conceptual documentation. Blocked by S-11, S-17, S-18, S-19, S-21 and S-25. It is last of all, because
-    it follows S-25 as well as the feature stories.
+   S-01 and S-08. It is the gate of the release. Then S-10, the `Metalama.Premium` mirror of it.
+5. S-11, C# 15 as a supported language version. Blocked by S-04, S-06 and S-09. After it, a 2027.0 preview accepts
+   a C# 15 project instead of reporting an unsupported version.
+6. The required feature work, smallest first. S-18, the reading of a closed hierarchy, and S-30, the tests of
+   non-virtual static interface members on the .NET Framework leg, are the two small ones. Then S-12, the union in
+   the public code model, which is the surface that the rest consume, followed by S-19, the rejection of labels in
+   templates, S-20, the experimental syntax guard, S-21, extension indexers, S-13, the compile-time and design-time
+   dispatch, S-15, the design-time partial part, and S-16, the comparer repairs.
+7. The required work that is large, and therefore last of the required set. S-14, the injection and linking of
+   advice applied to a union, and S-22, the pattern and extension libraries on unions. S-23, the execution of the
+   Roslyn 5.0.0 variant of the `Metalama.Premium` engines, is large and blocked by nothing, so it sits here rather
+   than earlier. S-28, the `Metalama.Premium` architecture rule tests, follows S-22 and S-10 and is small.
+8. The discretionary work, which section 13 of [`DECISIONS.md`](DECISIONS.md) marks as nice to have for 2027.0 and
+   which slips to 2027.1 if the release runs short. S-26, the introduction of a closed class, is the smallest and
+   therefore the likeliest to survive a cut. Then S-17, the introduction of a union and of a case into a type
+   carrying the union attribute, and S-29, the introduction of a case into a `union` declaration, which follows
+   S-17 and is filed only if question Q1 chooses Option A. This is the cut line of the release.
+9. The documentation, last, because a document written before the code is a second thing to correct. S-25, the
+   platform, dependency and extensibility documentation, S-33, the sample solutions, S-36, the internal
+   architecture documents, and S-34, the conceptual documentation. Two of them name a discretionary story as a
+   blocker: S-36 is blocked by S-17, S-26 and S-29, and S-34 by S-17. They document what ships, so the sections
+   that describe an introduction interface slip with the story that delivers it, and the rest of each document does
+   not wait.
 
 ```mermaid
 graph TD
@@ -1445,6 +1453,8 @@ question. The second is a prerequisite of S-17 rather than a follow-up of it.
 - Milestone: `2027.0`
 - Repositories: `metalama/Metalama`
 - Size: L
+- Priority: nice to have for 2027.0. It is discretionary under the doctrine of section 12 of
+  [`DECISIONS.md`](DECISIONS.md) and slips to 2027.1 if the release runs short.
 - Blocked by: S-03, S-12, S-16
 - Findings: none. The requirement was decided after the theme documents were written; the design is
   [`analysis-reports/11-introducing-unions-design.md`](analysis-reports/11-introducing-unions-design.md).
@@ -1988,6 +1998,8 @@ lists the pages that must follow, and it does not edit them.
 - Milestone: `2027.0`
 - Repositories: `metalama/Metalama`
 - Size: M
+- Priority: nice to have for 2027.0. It is discretionary under the doctrine of section 12 of
+  [`DECISIONS.md`](DECISIONS.md) and slips to 2027.1 if the release runs short.
 - Blocked by: S-02, S-18
 - Findings: [CM-4](03-code-model-unions-closed.md), [LK-5](04-linker-and-advice.md)
 
@@ -2104,6 +2116,8 @@ repositories.
 - Milestone: `2027.0`
 - Repositories: `metalama/Metalama`
 - Size: M
+- Priority: nice to have for 2027.0. It is discretionary under the doctrine of section 12 of
+  [`DECISIONS.md`](DECISIONS.md) and slips to 2027.1 if the release runs short.
 - Blocked by: S-17, and question Q1 of [`OPEN-QUESTIONS.md`](OPEN-QUESTIONS.md)
 - Findings: none. The design is
   [`analysis-reports/11-introducing-unions-design.md`](analysis-reports/11-introducing-unions-design.md).

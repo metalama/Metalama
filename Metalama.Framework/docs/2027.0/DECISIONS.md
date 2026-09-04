@@ -525,3 +525,25 @@ Moving the union work as a whole to 2027.1 is not available under this doctrine,
 advising path rather than the interface surface. What may move is the introduction interface, which is one large
 story and two medium ones. The saving is real but smaller than the word "unions" suggests, and the difference is
 worth stating before the scope is cut rather than after.
+
+## 13. The discretionary stories are nice to have for 2027.0
+
+Taken by the product owner on 2026-09-04, applying the doctrine of section 12 to the release plan. The three
+stories that the doctrine classifies as discretionary stay in the 2027.0 plan and are marked as nice to have. They
+are the first thing to move to 2027.1 if the release runs short, and they are the only thing that may move without
+breaking the promise that Metalama can advise any user code.
+
+The three are the introduction of a closed class, the introduction of a union and of a case into a type carrying
+the union attribute, and the introduction of a case into a `union` declaration. This does not reverse sections 5c
+and 5f, which put them in scope. It records what happens to them under time pressure.
+
+Two consequences are recorded so that a cut does not have to be reasoned about twice.
+
+The order within the three follows their size. The introduction of a closed class is the smallest and is therefore
+the likeliest to survive a cut, and the two union introduction stories go together, because the second is
+meaningless without the first.
+
+Two documentation stories name a discretionary story as a blocker: the internal architecture documents wait on all
+three, and the conceptual documentation waits on the union introduction. They document what ships. The sections
+that describe an introduction interface slip with the story that delivers it, and the rest of each document does
+not wait for it.
