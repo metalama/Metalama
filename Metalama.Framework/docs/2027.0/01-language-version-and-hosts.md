@@ -202,10 +202,11 @@ inference rather than on a file that was read, the finding says so.
   fallback listed above. Three statements of the original behaviour matrix needed correction. The latest variant
   does not parse `15.0` either, because `LanguageVersion.CSharp15` is absent both from the Roslyn 5.0 packages and
   from the consumed Roslyn 5.10 prerelease, so `MSBuildProjectOptions.LanguageVersion` falls back to `Latest` in
-  both variants and the case of an explicit `15.0` cannot arise today. The reachable case is `LangVersion=preview`, where the project
-  version is `int.MaxValue - 1` and the minimum returns the SDK cap unchanged. And in the consumed Roslyn the six
-  C# 15 features are gated on `LanguageVersion.Preview` rather than on a C# 15 that the compiler does not know, so
-  compile-time code that uses C# 15 syntax is rejected with the preview-feature error. One mechanism was also
+  both variants and the case of an explicit `15.0` cannot arise today. The reachable case is `LangVersion=preview`,
+  where the project version is `int.MaxValue - 1` and the minimum returns the SDK cap unchanged. In the consumed
+  Roslyn the six C# 15 features are gated on `LanguageVersion.Preview` rather than on a C# 15 that the compiler
+  does not know, so compile-time code that uses C# 15 syntax is rejected with the preview-feature error. One
+  mechanism was also
   misdescribed: `CompileTimeCompilationBuilder.cs:349-353` calls `CSharpSyntaxTree.Create` rather than `ParseText`,
   so the compile-time trees are not re-parsed at the compile-time language version; only the predefined polyfill
   trees are parsed at it, and the guard that actually rejects a template written above the compile-time version is
@@ -377,9 +378,9 @@ inference rather than on a file that was read, the finding says so.
   diagnostic.
 - Open questions: none. Two observations sit inside the same file and are out of scope here. The null filter at
   `:276` is a no-op, because all fifty-four entries carry a non-null version, so a wrong non-null value would be
-  silent while a wrong null value would remove the entry from the by-name dictionary. And `OperatorData.cs:114-119`
-  gives `OperatorKind.UnsignedRightShift` the token of the compound assignment form, which is a pre-existing and
-  untested defect unrelated to C# 15 and should be raised separately.
+  silent while a wrong null value would remove the entry from the by-name dictionary. Separately,
+  `OperatorData.cs:114-119` gives `OperatorKind.UnsignedRightShift` the token of the compound assignment form,
+  which is a pre-existing and untested defect unrelated to C# 15 and should be raised separately.
 
 ### LV-7. The language ceiling of this repository stays at C# 14, and that is correct
 
