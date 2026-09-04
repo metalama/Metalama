@@ -1,6 +1,6 @@
 # Decisions taken by the product owner on 2026-09-04
 
-These answers are settled. The user stories are written against them, and a document that still presents one of
+These answers are settled, except where a section says the question is open. The user stories are written against them, and a document that still presents one of
 them as an open question is out of date.
 
 ## 1. C# 15 support ships in Metalama 2027.0
@@ -62,3 +62,19 @@ before any test matrix story is written. What remains necessary regardless is th
 host, because it is in the supported set: the language version clamp and the supported-toolchain check must be
 correct under it, and a scenario that exercises the .NET 11 SDK as a build host is worth having even when the
 target framework of the test project stays `net10.0`.
+
+## 6b. The .NET 11 SDK in the build container is not a priority
+
+Added on 2026-09-04, refining decision 6. Installing the .NET 11 SDK in the build container and settling which
+version `global.json` pins is not important for 2027.0 and is a distraction. The container work follows from a
+`net11.0` test leg, and decision 6 does not ask for one.
+
+Two things remain in scope and do not depend on the container.
+
+The supported-toolchain check must not report `LAMA0601` for a supported .NET SDK. The ceiling `MaximumSdkVersion`
+is `11.0` and the comparison uses `VersionGreaterThan` against the full version, so an .NET 11 SDK of `11.0.100`
+compares as greater than the ceiling and every build with it reports that the SDK is unsupported. This is a defect
+of the version comparison and it is verified by a test of that comparison, not by installing an SDK in the image.
+
+The language version clamp in `Metalama.Framework.targets` must not rewrite the language version that a `net11.0`
+project implies. That defect is likewise a property of the condition and is verified without the SDK.
