@@ -78,3 +78,31 @@ of the version comparison and it is verified by a test of that comparison, not b
 
 The language version clamp in `Metalama.Framework.targets` must not rewrite the language version that a `net11.0`
 project implies. That defect is likewise a property of the condition and is verified without the SDK.
+
+## 6c. The answer to decision 6: no .NET 11 interface is wanted
+
+Established on 2026-09-04 by the analysis in
+[`analysis-reports/09-net11-api-value.md`](analysis-reports/09-net11-api-value.md), which is the answer that the
+open question of decision 6 asked for.
+
+No .NET 11 application programming interface justifies a `net11.0` asset or a `net11.0` test leg. The .NET 11
+additions are numeric types, domain name resolution, compression, process management, text, streams and vector
+intrinsics, and none of them is on a path that Metalama uses. The internal evidence is decisive on its own: neither
+repository contains a polyfill file, no production source branches above `NET8_0_OR_GREATER`, and every shim is
+written to serve the `netstandard2.0` and `net472` assets, which a `net11.0` asset would not remove.
+
+The two adjacent candidates are rejected with evidence. The `UnionAttribute` and `IUnion` types of the union
+lowering are not needed as references, because the symbol classifier keys well-known types by name and namespace
+strings, and because the compile-time compilation always targets `netstandard2.0`. The assembly location override
+of `AssemblyLoadContext` solves a problem that Metalama does not have, because Metalama loads compile-time
+assemblies from a file path.
+
+The licensing issues #1860 and #1864 imply a .NET 11 runtime as a macOS test host and explicitly not a .NET 11
+target framework, because the elliptic curve members they need exist on every target framework of
+`Metalama.Backstage` already.
+
+This confirms decision 6b: with no interface wanted, the build container change has no justification either.
+
+One documentation correction follows from the same analysis. The statement in `platform-support.md` that the
+`net10.0` toolset rolls forward to .NET 11 overstates `RollForward=Major`, which selects .NET 11 only when no .NET
+10 runtime is installed.
