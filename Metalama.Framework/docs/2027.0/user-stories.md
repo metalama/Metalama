@@ -17,7 +17,12 @@ the open pull requests of the two repositories. The platform baseline itself is 
 Each story is written as the issue body would be posted, preceded by the metadata that a person filing it has to
 choose. The issue type, the labels and the milestone are proposals and must be checked against the label set of the
 repository before an issue is created. Every story is a sub-issue of the meta-issue #1921, which groups the platform
-work of this release.
+work of this release. The C# 15 stories, which are S-11 to S-22, are grouped under a new feature issue named C# 15,
+itself a sub-issue of #1921. That structure follows the previous release, in which the closed issue #1039, named
+C# 14, grouped twenty sub-issues under the closed meta-issue #1045, named .NET 10 Support. The `Size` field is an
+estimate of the effort of the pull request, on the small, medium and large scale that the repository already uses.
+The `Blocked by` field names the stories that must be merged before this one starts, and the Mermaid graph of the
+next section draws the same relation.
 
 Two rules of [`DECISIONS.md`](DECISIONS.md) govern how the stories are written. Section 7 says that a story states
 the capability, the scope and the acceptance criteria, and not the shape of a public application programming
@@ -25,8 +30,8 @@ interface; section 7b says that the drafted shapes under `analysis-reports` are 
 implementer and carry no authority. The stories below therefore name the files, the properties and the members that
 exist today, and describe a new member by what it must report rather than by its signature.
 
-Every verified finding of the theme documents appears exactly once in this document: either in a story, or in the
-last section with the reason why it produces no story.
+Every verified finding of the theme documents is assigned exactly once: to one story, or to the last section with
+the reason why it produces no story. A finding may be named again in the text of the story that owns it.
 
 ## Decisions required before the stories are created
 
@@ -41,14 +46,14 @@ Every C# 15 item is downstream of one external event, which is `Metalama.Compile
 that carries `LanguageVersion.CSharp15`. That Roslyn is expected to be 5.12, shipping in November 2026 with Visual
 Studio 2027 and the .NET 11 SDK, against a general availability date of 2027-01-01.
 
-- Option A, full support. Stories S-09 and S-11, and the feature chains S-12 to S-22, must be written, reviewed and
-  tested in roughly six weeks after the stable Roslyn exists. None of the feature work can be validated before it,
-  because a test that requests C# 15 today is skipped and the suite still reports success.
-- Option B, plumbing plus a defensive slice. A C# 15 project builds, reports the designed diagnostics instead of
-  crashing, and is not silently downgraded by the MSBuild clamp, while the language features are documented as
-  unsupported.
-- Option C, defer the Roslyn move. Not viable, because three published packages would keep a dependency on a Roslyn
-  package that nuget.org does not serve, which is the restore failure of #1106.
+- Option A, full support. Stories S-09 and S-11, and the dependent feature stories S-12 to S-22, must be written,
+  reviewed and tested in roughly six weeks after the stable Roslyn exists. None of the feature work can be validated
+  before it, because a test that requests C# 15 today is skipped and the suite still reports success.
+- Option B, the plumbing and a defensive subset of the work. A C# 15 project builds, reports the designed diagnostics
+  instead of crashing, and is not silently downgraded by the MSBuild clamp, while the language features are
+  documented as unsupported.
+- Option C, defer the Roslyn move. This option is not viable, because three published packages would keep a
+  dependency on a Roslyn package that nuget.org does not serve, which is the restore failure of #1106.
 
 Answer: Option A, recorded in [`DECISIONS.md`](DECISIONS.md) section 1. The schedule risk of the window between the
 November 2026 Roslyn and the general availability date is accepted rather than avoided.
@@ -65,7 +70,7 @@ Answer: conditional compilation, recorded in [`DECISIONS.md`](DECISIONS.md) sect
 `ROSLYN_5_12_0_OR_GREATER` is defined by the latest variant property file, and the sources that name the C# 15 Roslyn
 members are compiled only in that variant. The notes in `eng/RoslynVersions/Roslyn.5.0.0.props` and in the latest
 variant property file that state that no production source branches on the variant, and the corresponding paragraph
-of `Directory.Packages.md`, are superseded and are rewritten by S-02.
+of [`Directory.Packages.md`](../../../Directory.Packages.md), are superseded and are rewritten by S-02.
 
 ### D-3. What does the Roslyn 5.0 variant do when it meets a union or a closed type that it cannot represent?
 
@@ -75,28 +80,30 @@ exists in every host while the engine code that answers it is compiled only in t
 the `Roslyn.5.0.0` variant serves, which are Rider and the Visual Studio Code C# Dev Kit, such a member reports false,
 an aspect sees a union as an ordinary struct, and the editor and the command line disagree.
 
-- Option A, stay silent. The behaviour that follows from doing nothing, and the failure mode that the platform
-  doctrine exists to prevent.
-- Option B, report. A design-time warning reported once per project, with an opt-out, from the diagnostic analyzer.
-  It fires in an editor whose user can act on it only by changing the development environment.
+- Option A, report nothing. This is the behaviour that follows from doing nothing, and it is the failure mode that
+  the platform doctrine exists to prevent.
+- Option B, report the divergence. The diagnostic analyzer reports a design-time warning once per project, and the
+  warning carries an opt-out. It is reported in an editor whose user can act on it only by changing the development
+  environment.
 
 Recommendation: Option B, which the draft in
 [`analysis-reports/12-csharp15-api-drafts.md`](analysis-reports/12-csharp15-api-drafts.md) also recommends. The
 severity and the opt-out of that diagnostic are question Q3 and are settled inside the story. One measurement could
 change the answer, which is Q6, the Roslyn version that a current Rider presents. The answer decides one bullet of
-S-12 and one bullet of S-17, and neither story is blocked on it beyond that bullet.
+S-12 and one bullet of S-18, which are the two stories that read a C# 15 type on both variants, and neither story is
+blocked on it beyond that bullet.
 
-### D-4. For a union that an aspect targets, is the answer a blanket refusal, per-advice rules, or nothing?
+### D-4. For a union that an aspect targets, is the answer a single refusal rule, per-advice rules, or nothing?
 
 The language forbids instance fields, auto-properties and field-like events in a union declaration, forbids a public
 single-parameter constructor, and requires every explicit constructor to chain to a generated one. Several ordinary
 advices therefore emit code that the compiler rejects, with the diagnostic reported on generated code.
 
-- Option A, one blanket eligibility rule declaring a union an unsupported advice target. Small, and it covers the
-  three compiler errors and the silent case of an initializer injected into a constructor that has no syntax.
-- Option B, per-advice rules that permit what a union can carry and refuse only what it cannot. More work, and each
-  rule is a place where the language restrictions can be misread.
-- Option C, nothing. Silently invalid generated code.
+- Option A, one eligibility rule that declares a union an unsupported advice target. The rule is small, and it covers
+  the three compiler errors and the silent case of an initializer injected into a constructor that has no syntax.
+- Option B, per-advice rules that permit what a union can carry and refuse only what it cannot. These rules are more
+  work, and each rule is a place where the language restrictions can be misread.
+- Option C, no rule at all. The generated code is then silently invalid.
 
 Answer: Option B, recorded in [`DECISIONS.md`](DECISIONS.md) section 3. Unions are supported as aspect targets, and
 what a union cannot carry is refused with a clear diagnostic. Question Q9 attaches a condition to every such rule:
