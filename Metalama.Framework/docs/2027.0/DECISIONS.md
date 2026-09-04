@@ -595,3 +595,47 @@ settled fact, and the corrections that section 8 proposed to `platform-support.m
 
 The document that would settle it directly is the Visual Studio 2026 release history on the Microsoft
 documentation site, which the network policy of this session blocks.
+
+### 8c. The criterion that decides whether a Roslyn 5.10 or 5.11 variant is needed
+
+Stated by the product owner on 2026-09-04, and measured on the same day. A variant is needed for a Roslyn version
+only if a Visual Studio version that presents it is still in support on 2027-01-31 and that Roslyn exposes a C# 15
+feature as a supported, non-experimental language feature. A version that reaches the features only under
+`LanguageVersion.Preview` imposes nothing, because a user cannot rely on them there.
+
+The criterion is decidable from the Roslyn sources, and it was applied to the two branches by reading
+`LanguageVersion.cs`, `Errors/MessageID.cs` and `Syntax/Syntax.xml` on each.
+
+| | `release/stable`, Roslyn 5.10 | `release/insiders`, Roslyn 5.11 |
+| --- | --- | --- |
+| `LanguageVersion.CSharp15` | absent | present, value 1500 |
+| `Latest` maps to | `CSharp14` | `CSharp15` |
+| Unions, closed classes, collection expression arguments, extension indexers, labeled break and continue, static members in interfaces | all `Preview` | all `CSharp15` |
+| Unsafe evolution | `Preview` | `Preview` |
+| Experimental nodes in the grammar | five, including the union declaration and the with element | one, the unsafe expression alone |
+
+The boundary is therefore between 5.10 and 5.11, not between 5.11 and 5.12 as section 8b assumed.
+
+### What this decides
+
+Roslyn 5.10 exposes no supported C# 15 feature. Every one of the six is reachable only under
+`LanguageVersion.Preview`, and the union declaration and the with element are still marked experimental in the
+grammar, so a reference to them from generated code is an error by default. A Visual Studio that presents Roslyn
+5.10 therefore cannot offer C# 15 to a user, and it imposes no C# 15 requirement on Metalama. No variant is needed
+for it beyond what the existing lower variant already provides.
+
+Roslyn 5.11 is the first version where C# 15 is a supported language version and where the union and with element
+syntax is no longer experimental. If a Visual Studio presenting Roslyn 5.11 is still in support on 2027-01-31, then
+that host can compile C# 15, and the payload it loads must handle it.
+
+### The question that remains
+
+Whether such a Visual Studio exists, and whether it is in support on 2027-01-31, is a fact about the Visual Studio
+release calendar rather than about Roslyn. It is the same measurement that checklist item 1 of
+[`platform-support.md`](../platform-support.md) requires, and it is now sharper: it is enough to know the Roslyn
+version of every Visual Studio in support on that date, and to check whether any of them is 5.11 or above while
+being below the version that the latest variant binds against.
+
+The practical consequence for story S-09 is unchanged in shape but clearer in purpose. The latest variant must bind
+against a version no higher than the lowest Roslyn that offers C# 15 among the hosts in support, which is 5.11 if
+such a host exists and 5.12 otherwise.
