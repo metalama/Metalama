@@ -583,9 +583,10 @@ namespace Metalama.Framework.Engine.Diagnostics
                     "LAMA0088",
                     _category,
                     "The compile-time code of '{0}' was compiled with the C# language version {1}, but the current process "
-                    + "runs a version of Roslyn that supports at most the C# language version {2}. That code is read as C# {2}, "
-                    + "which fails if it uses a language feature of a more recent version. Use a more recent version of the "
-                    + ".NET SDK or of the IDE, or compile '{0}' with a lower value of the MetalamaTemplateLanguageVersion property.",
+                    + "runs a version of Roslyn that supports at most the C# language version {2}. That code is read as C# {2} "
+                    + "instead, and its compile-time build reports an error for each language feature above C# {2} that it uses. "
+                    + "Use a more recent version of the .NET SDK or of the IDE, or compile '{0}' with the "
+                    + "MetalamaTemplateLanguageVersion property set to {2} or lower.",
                     Warning,
                     "The compile-time code of a reference requires a more recent C# language version than the current process supports." );
 

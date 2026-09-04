@@ -98,15 +98,22 @@ namespace Metalama.Framework.Engine.CompileTime.Manifest
         public LanguageVersion? LanguageVersion { get; set; }
 
         /// <summary>
-        /// Gets the language version that the compile-time code of this project was written in. It is the version
+        /// Gets the C# language version at which the compile-time code of this project was compiled. It is the version
         /// stored in the manifest, or C# 13 when the manifest carries none, because the versions of Metalama that did
         /// not write the property never compiled compile-time code above C# 13.
         /// </summary>
         /// <remarks>
+        /// The stored version is the one that <see cref="Templating.TemplateCompiler.TemplateLanguageVersion"/> used,
+        /// that is, the value of the <c>MetalamaTemplateLanguageVersion</c> property when the project sets it, and
+        /// otherwise the language version of the project capped by the version that its .NET SDK supports. It is not
+        /// derived from the language features that the compile-time code actually uses, so it is an upper bound and
+        /// not a requirement.
+        /// <para>
         /// This value can be higher than any version that the Roslyn of the current process accepts, because the
         /// manifest may have been written by a higher Roslyn version than the one reading it. Use
         /// <see cref="ResolvedLanguageVersion"/> to parse or to compile, and this property only to report the version
         /// that the project requires.
+        /// </para>
         /// </remarks>
         [JsonIgnore]
         public LanguageVersion RequiredLanguageVersion => this.LanguageVersion ?? AllLanguageVersions.CSharp13;
@@ -119,9 +126,9 @@ namespace Metalama.Framework.Engine.CompileTime.Manifest
         /// <remarks>
         /// Without the clamp, Roslyn reports <c>CS8192</c>, "Provided language version is unsupported or invalid", on
         /// every syntax tree of the compile-time project, and the whole compile-time build of the reference fails. That
-        /// error names a number and not the reference that requires it, which is what issue #1185 reported. The clamp
-        /// degrades instead: the compile-time code is parsed at the highest version available, which fails only if it
-        /// actually uses a more recent language feature. The caller reports the warning. See issue #1928.
+        /// error names a number and not the reference that requires it, which is what issue #1185 reported. With the
+        /// clamp, the compile-time code is parsed at the highest version available, so the errors name the language
+        /// features that this version does not accept. The caller reports the warning. See issue #1928.
         /// </remarks>
         [JsonIgnore]
         public LanguageVersion ResolvedLanguageVersion
