@@ -4,7 +4,7 @@ Asserts that `MetalamaCompileTimeTargetFrameworks` is read in full when it is wr
 semicolon-separated form. See issue #1789.
 
 The property reaches the compiler through the generated analyzer configuration file, in which a semicolon starts a
-comment. Everything after the first semicolon was therefore dropped, `netstandard2.0;net8.0;net48` was read as
+comment. Everything after the first semicolon was therefore dropped, `netstandard2.0;net10.0;net48` was read as
 `netstandard2.0` alone, and the assembly locator then failed its own requirement of a .NET 6.0 or later target
 framework and threw, which surfaced as `LAMA0001` and invited a crash report for what is a configuration value.
 
