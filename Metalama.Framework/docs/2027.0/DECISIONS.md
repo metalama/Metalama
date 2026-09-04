@@ -349,3 +349,36 @@ The divergence of section 2b is drafted both ways, and the analysis recommends r
 silent: a design-time warning reported once per project, with an opt-out, from the diagnostic analyzer. The
 decision is still open, and one measurement could change it, which is the Roslyn version that a current Rider
 presents.
+
+### 5e. Is the attribute form an implementation detail?
+
+Question asked on 2026-09-04. The answer is no, and the proposal is explicit about it, but the question points at a
+real usability problem that the recommendation of section 5d understates.
+
+The unions proposal separates the two on purpose. It states that "any class or struct type with a
+`System.Runtime.CompilerServices.UnionAttribute` attribute is considered a union type", and it gives the reason:
+"the separation between union types and union declarations allows C# to have a succinct union declaration syntax
+with opinionated semantics, while also allowing existing types or types with other implementation choices to opt
+into union behaviors". The attribute is therefore a supported authoring form and an opt-in mechanism, not a marker
+that the compiler reserves for its own lowering. It happens to be what a `union` declaration lowers to as well.
+
+The usability problem is a different matter. A type carrying the attribute has no case list, so its cases are its
+public single-parameter constructors, which the author writes by hand, along with the `Value` property. Compared
+with `union Pet(Cat, Dog)`, that is a great deal of text. Telling a user that an aspect can add a leg only if they
+abandon the concise syntax is a poor answer, and it is the same class of demand as requiring a type to be declared
+`partial`, but much heavier.
+
+The distinction that resolves it is who writes the type.
+
+When the aspect introduces the whole union, nothing is imposed on anyone: the aspect emits the attribute form, the
+user never writes it, and the design-time result is correct. This is the case where the attribute form is simply
+the right choice.
+
+When the user wrote `union Pet(Cat, Dog)` and an aspect adds a leg, the attribute form is not available without
+asking the user to rewrite their declaration. Here the honest options are to support the operation at build time
+only, with a design-time diagnostic saying that the editor cannot show the added case, or not to support it.
+
+One risk that section 5d records bears on this and is worth repeating. The public Roslyn interface conflates the
+two forms: `ITypeSymbol.IsUnion` is true for both, and the restrictions of a union declaration apply to only one of
+them. An eligibility rule keyed on `IsUnion` alone would therefore reject advice that is legal on a type carrying
+the attribute.
