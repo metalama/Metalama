@@ -164,6 +164,10 @@ public partial class MSBuildProjectOptions : DefaultProjectOptions
     [Memo]
     public override string? AssemblyLocatorHooksDirectory => this.GetStringOption( MSBuildPropertyNames.MetalamaAssemblyLocatorHooksDirectory );
 
+    [Memo]
+    public override string? AssemblyLocatorBinaryLogDirectory
+        => this.GetStringOption( MSBuildPropertyNames.MetalamaAssemblyLocatorBinaryLogDirectory );
+
     public override LanguageVersion LanguageVersion
     {
         get

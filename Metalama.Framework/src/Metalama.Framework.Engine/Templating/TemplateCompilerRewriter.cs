@@ -284,12 +284,8 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
                 throw new ArgumentNullException( nameof(node) );
             }
 
-            this._rootTemplateSymbol = this._syntaxTreeAnnotationMap.GetDeclaredSymbol( node );
-
-            if ( this._rootTemplateSymbol == null )
-            {
-                throw new AssertionFailedException( "Didn't find a symbol for a template method node." );
-            }
+            this._rootTemplateSymbol = this._syntaxTreeAnnotationMap.GetDeclaredSymbol( node )
+                                       ?? throw new AssertionFailedException( "Didn't find a symbol for a template method node." );
         }
 
         if ( node.GetTargetScopeFromAnnotation() == TemplatingScope.RunTimeOnly &&

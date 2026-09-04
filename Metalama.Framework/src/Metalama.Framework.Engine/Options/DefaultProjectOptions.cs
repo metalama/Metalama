@@ -110,6 +110,8 @@ public class DefaultProjectOptions : IProjectOptions
 
     public virtual string? AssemblyLocatorHooksDirectory => null;
 
+    public virtual string? AssemblyLocatorBinaryLogDirectory => null;
+
     public virtual string? TemplateLanguageVersion => null;
 
     public virtual bool? DebugTransformedCode => null;

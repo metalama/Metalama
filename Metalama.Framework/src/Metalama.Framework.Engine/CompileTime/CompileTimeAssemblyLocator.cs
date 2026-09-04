@@ -90,6 +90,7 @@ internal sealed class CompileTimeAssemblyLocator
     }
 
     private readonly string _cacheDirectory = null!;
+    private readonly string? _binaryLogDirectory;
     private readonly ILogger _logger;
     private readonly INamedLockService _lockService;
     private readonly DotNetTool _dotNetTool;
@@ -296,6 +297,7 @@ internal sealed class CompileTimeAssemblyLocator
         var projectHash = hashBuilder.GetCurrentHashAsUInt64().ToString( "x", CultureInfo.InvariantCulture );
 
         this._cacheDirectory = tempFileManager.GetTempDirectory( TempDirectories.AssemblyLocator, CleanUpStrategy.WhenUnused, projectHash );
+        this._binaryLogDirectory = projectOptions.AssemblyLocatorBinaryLogDirectory;
 
         // Get Metalama implementation contract assemblies (but not the public API, for which we need a special compile-time build).
         var metalamaImplementationAssemblies =
@@ -857,6 +859,7 @@ internal sealed class CompileTimeAssemblyLocator
             }
             catch ( ProcessFailedException exception )
             {
+                this.CopyBinaryLog( binaryLogPath );
                 this.ReportReferenceAssemblyBuildFailure( exception, projectFilePath, binaryLogPath, diagnostics );
                 referencePaths = null;
 
@@ -873,6 +876,47 @@ internal sealed class CompileTimeAssemblyLocator
             referencePaths = assemblies;
 
             return true;
+        }
+    }
+
+    /// <summary>
+    /// Copies the binary log of the nested reference-assembly build into the directory named by
+    /// <see cref="IProjectOptions.AssemblyLocatorBinaryLogDirectory"/>, when that option is set.
+    /// </summary>
+    /// <remarks>
+    /// The nested build writes its binary log into the cache directory, which is under the temporary directory of the
+    /// machine. A continuous integration agent that runs the build in a container discards that directory together with
+    /// the container, so the log of a failure cannot be collected afterwards. A repository that needs to publish the log
+    /// sets the option to a directory that outlives the build, such as its artifacts directory.
+    /// </remarks>
+    private void CopyBinaryLog( string binaryLogPath )
+    {
+        if ( string.IsNullOrEmpty( this._binaryLogDirectory ) )
+        {
+            return;
+        }
+
+        try
+        {
+            if ( !File.Exists( binaryLogPath ) )
+            {
+                this._logger.Warning?.Log( $"The binary log '{binaryLogPath}' does not exist, so it was not copied." );
+
+                return;
+            }
+
+            Directory.CreateDirectory( this._binaryLogDirectory! );
+
+            var destination = Path.Combine( this._binaryLogDirectory!, Path.GetFileName( binaryLogPath ) );
+            File.Copy( binaryLogPath, destination, true );
+
+            this._logger.Trace?.Log( $"The binary log was copied to '{destination}'." );
+        }
+        catch ( Exception e )
+        {
+            // Copying the log assists a diagnosis and is not required for one. A failure to copy it must not replace
+            // the diagnostic that describes the failure of the nested build itself.
+            this._logger.Warning?.Log( $"Cannot copy the binary log to '{this._binaryLogDirectory}': {e.Message}" );
         }
     }
 

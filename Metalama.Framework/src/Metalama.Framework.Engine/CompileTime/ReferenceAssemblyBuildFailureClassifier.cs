@@ -59,6 +59,18 @@ internal static class ReferenceAssemblyBuildFailureClassifier
         RegexOptions.CultureInvariant );
 
     /// <summary>
+    /// Matches a line that begins with the position of a diagnostic, such as <c>Program.cs(12,9):</c>.
+    /// </summary>
+    /// <remarks>
+    /// The position is invariant across languages, as a message identifier is, and it is the only invariant part
+    /// of a diagnostic that carries no identifier. MSBuild produces such a diagnostic for the <c>Error</c> and
+    /// <c>Warning</c> tasks when they are used without a code.
+    /// </remarks>
+    private static readonly Regex _filePositionRegex = new(
+        @"\([0-9]+,[0-9]+\)\s*:",
+        RegexOptions.CultureInvariant );
+
+    /// <summary>
     /// Matches an HTTP status code that denotes an authentication or authorization failure, as it appears in the message
     /// that NuGet produces for a rejected request.
     /// </summary>
@@ -218,13 +230,25 @@ internal static class ReferenceAssemblyBuildFailureClassifier
     /// </summary>
     /// <remarks>
     /// The lines that carry a message identifier are preferred, because they are the diagnostics of the child build and
-    /// can be recognized whatever the language of the toolchain. When the output carries none, as when the .NET host
-    /// fails before MSBuild is loaded, the last lines are quoted instead: they cannot be recognized as errors without
-    /// depending on the language, but they are where a failing build explains itself.
+    /// can be recognized whatever the language of the toolchain. When the output carries none, the lines that begin
+    /// with the position of a diagnostic are quoted, which catches a diagnostic raised without a code and is invariant
+    /// for the same reason. When the output carries neither, as when the .NET host fails before MSBuild is loaded, the
+    /// last lines are quoted instead: they cannot be recognized as errors without depending on the language, but they
+    /// are where a failing build explains itself.
     /// </remarks>
     public static string GetReportedErrors( ImmutableArray<string> output )
     {
-        var errorLines = GetLinesWithMessageId( output );
+        var errorLines = GetMatchingLines( output, _messageIdRegex );
+
+        if ( errorLines.Count == 0 )
+        {
+            // A diagnostic that carries no message identifier, as the Error task produces when it is used without a
+            // code, still explains the failure, and its position makes it recognizable whatever the language of the
+            // toolchain. Quoting it is better than quoting the epilogue of the build, whose number of lines depends
+            // on the version of MSBuild: a version that prints one line more than another pushes the diagnostic out
+            // of the lines quoted below. See issue #1744.
+            errorLines = GetMatchingLines( output, _filePositionRegex );
+        }
 
         if ( errorLines.Count > 0 )
         {
@@ -248,16 +272,17 @@ internal static class ReferenceAssemblyBuildFailureClassifier
     }
 
     /// <summary>
-    /// Returns the distinct lines of the output that carry a message identifier, in the order in which they were produced.
+    /// Returns the distinct lines of the output that match <paramref name="regex"/>, in the order in which they were
+    /// produced.
     /// </summary>
-    private static IReadOnlyList<string> GetLinesWithMessageId( ImmutableArray<string> output )
+    private static IReadOnlyList<string> GetMatchingLines( ImmutableArray<string> output, Regex regex )
     {
         var errorLines = new List<string>();
         var seenErrorLines = new HashSet<string>( StringComparer.Ordinal );
 
         foreach ( var line in output )
         {
-            if ( !_messageIdRegex.IsMatch( line ) )
+            if ( !regex.IsMatch( line ) )
             {
                 continue;
             }

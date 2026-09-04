@@ -113,6 +113,44 @@ When starting work on a GitHub issue:
    (`Tee-Object`) and inspect it.
 
 6. **Cross-solution changes**: Run `Build.ps1 build` early rather than discovering issues incrementally. Claude may run `Build.ps1 build` itself in this environment (this overrides the general `eng` skill guidance that says to ask the user). Because it is long-running, start it in the background (`run_in_background`) with a high timeout and continue with other work until it completes.
+
+7. **Changing the build container is riskier than it looks.** The container is generated from the component list in
+   `eng/src/Program.cs` by `Build.ps1 generate-scripts`. Three findings, each of which cost a continuous integration
+   cycle to learn.
+
+   - **Several .NET SDK feature bands may be installed, and a stale `MSBuildExtensionsPath` is what makes them
+     conflict.** Visual Studio installs an SDK of its own through the `Microsoft.NetCore.Component.SDK` component,
+     and Visual Studio 2026 18.9 installs 10.0.400. On a fresh checkout `global.json` does not exist yet, because
+     it is generated and git-ignored, so `BuildMetalama` starts under the highest installed SDK and the .NET
+     command line interface exports `MSBuildExtensionsPath` for it. The `prepare` step then writes `global.json`,
+     and every child process resolves the pinned SDK for itself but inherits the stale `MSBuildExtensionsPath`.
+     A solution restore then imports `NuGet.targets` from one feature band into an MSBuild of another and fails
+     with `MSB4062`, because `NuGet.Build.Tasks` of the first requires a newer `Microsoft.Build.Framework` than the
+     second provides. The mitigation already exists and is incomplete by one entry:
+     `ToolInvocationOptions.BlockedEnvironmentVariables` in PostSharp.Engineering and `variablesToRemove` in
+     `MSBuildTool.cs` both remove `MSBUILD_EXE_PATH` and `MSBuildSDKsPath` from a child process, and neither
+     removes `MSBuildExtensionsPath`. Add the variable to those lists rather than reducing the image to a single
+     feature band.
+   - **The desktop `MSBuild.exe` is a second, independent build surface, and it does not behave like
+     `dotnet build`.** Two things use it: the `MsbuildSolution` entry for `Metalama.Framework.TestApp.sln`, and the
+     nested reference-assembly build that Metalama itself runs (`CompileTimeAssemblyLocator`). A Visual Studio
+     component that `dotnet build` does not need may still be required by one of them. Removing
+     `Microsoft.NetCore.Component.SDK` leaves `MSBuild.exe` with no `C:\BuildTools\MSBuild\Sdks` directory and it
+     fails to resolve `Microsoft.NET.Sdk` with `MSB4276`. Do not conclude that a component is unused because the
+     .NET SDK obtains the same payload from NuGet.
+   - **Diagnosing a container failure from the outside.** Download the build log with
+     `downloadBuildLog.html?buildId=<id>`. Restore and build binary logs are published under `artifacts/logs`, and
+     a binary log is a gzip stream, so decompressing it and searching the strings reveals the MSBuild properties,
+     which is how the two SDK directories above were found. The binary log of Metalama's nested
+     reference-assembly build is written under the agent's temporary directory and is not published, so a failure
+     there cannot be diagnosed from the build log.
+
+8. **`Build.ps1 build` may fail locally while continuous integration passes.** On a machine with several .NET SDKs
+   and more than one Visual Studio, it has failed with
+   `System.MissingMethodException: Method not found: 'Boolean Microsoft.NET.StringTools.SpanBasedStringBuilder.Equals(...)'`
+   inside `ArtifactManifestFile`. `BuildMetalama` carries its own `Microsoft.NET.StringTools.dll` and loads MSBuild
+   through `Microsoft.Build.Locator`, and the two versions disagree. The continuous integration container has one
+   SDK and does not reproduce it. Do not spend cycles on it; use continuous integration as the gate.
 - When working on an issue creat a file called <Isse-number>-TODO.md to track progress.
 - don't include *-TODO.md in commits
 - After a full build with `Build.ps1 build` (Claude may run it, preferably in the background), the msbuild binlogs are under artifacts/logs
@@ -122,6 +160,12 @@ When starting work on a GitHub issue:
 - For assertions, use `Invariant.Assert` / `Invariant.AssertNotNull` (`Metalama.Framework.Engine`) instead of the `System.Diagnostics.Debug` assert methods, so the compiler and the `MetalamaAssertionAnalyzer` can track control flow. In projects that don't reference the engine (e.g. `Metalama.Patterns.Caching.Backend`), throw `CachingAssertionFailedException` instead; `System.Diagnostics.Debug` is only acceptable there in already-ported code that uses it throughout.
 - Github comments and issues and PRs must be signed by Claude - not commits. No ad link, just the signature `— Claude for @gfraiteur`.
 - **Warnings: ignore them while coding, but zero warnings is a gate for any push to a PR.** While writing and testing code, don't lose time on cosmetic warnings (such as redundant usings). But the CI build runs with `-p:ContinuousIntegrationBuild=True`, which promotes analyzer suggestions to errors: `IDE0005` ("using directive is unnecessary") is invisible in a local build and *fails* the CI build. A green local build and a green test suite therefore prove nothing about CI.
+
+  The mechanism is worth knowing, because it gives a cheaper check than running the whole CI configuration:
+  `CodeQuality.targets` sets `TreatWarningsAsErrors` when `ContinuousIntegrationBuild` is true. Every warning is
+  therefore a CI error, so an ordinary local build already shows them, as warnings. `Build.ps1 <command> --ci`
+  simulates the switch, but it also changes dependency resolution to the continuous integration artifact sources,
+  which fails on a developer machine, so prefer reading the warnings of a normal build.
 
   So, before creating a PR **and before every push to an existing PR**, build every project you touched in CI mode and get zero warnings:
 

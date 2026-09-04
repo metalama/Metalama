@@ -199,12 +199,8 @@ internal class MemoryCachingBackend : CachingBackend
                         createdEntry.Size = 0;
 
                         return newHashSet;
-                    } );
-
-                if ( backwardDependencies == null )
-                {
-                    throw new CachingAssertionFailedException();
-                }
+                    } )
+                    ?? throw new CachingAssertionFailedException();
             }
 
             lock ( backwardDependencies )
