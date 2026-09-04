@@ -680,7 +680,7 @@ No project was built and no test was run for this analysis.
   break-statement visitor therefore hashes only the attribute lists, the keyword and the semicolon, so a change of
   the label of a compile-time `break` in a template does not change the compile-time hash, the diff strategy treats
   the tree as unchanged (`DiffStrategy.cs:73-84`), and the compilation changes record nothing
-  (`CompilationChanges.cs:203-225`). For the node types that have no override the Roslyn default visit walks the
+  (`CompilationChanges.cs:203-225`). For the node types that have no override the Roslyn default visit reaches the
   child nodes but not the tokens, because the hasher passes no depth (`BaseCodeHasher.cs:27-30`) and the base walker
   defaults to node depth (`SafeSyntaxWalker.cs:39`). Every token of a union declaration is consequently ignored, not
   only the identifier: renaming a union, changing its modifiers and changing its keyword are all invisible to both
@@ -773,10 +773,10 @@ No project was built and no test was run for this analysis.
 
 ## Withdrawn findings
 
-No finding of this theme was withdrawn. Every one of the ten findings of the original report survived the three
-verification passes, and none was refuted at its core. Several statements inside them were refuted and are corrected
-above; the four that most change the picture are recorded here so that a reader of the original report knows they
-were considered.
+No finding of this theme was withdrawn. Every one of the ten findings of the original report was confirmed by the
+three verification passes, and none was refuted in its main claim. Several statements inside them were refuted and
+are corrected above. The four corrections with the largest consequences are recorded here so that a reader of the
+original report knows that they were considered.
 
 The original report treated the stable Roslyn 5.10 as the version that brings C# 15. No stable Roslyn 5.10, 5.11 or
 5.12 package exists on nuget.org, the November 2026 baseline is expected to carry Roslyn 5.12, and the removal of the
@@ -784,7 +784,7 @@ experimental markers is a single Roslyn commit of 2026-08-11 rather than a conse
 Every version number in TP-1, TP-2, TP-6 and TP-8 is corrected accordingly.
 
 The original report proposed a consistency check that fails when the grammar file still declares an experimental
-declaration while the consumed package version carries no prerelease label. Both halves of that rule are false: the
+declaration while the consumed package version carries no prerelease label. Both parts of that rule are false: the
 unsafe expression keeps its marker permanently, and the stable 5.9.0 assemblies still carry markers on the union,
 with-element and unsafe API. The check as proposed would fail a correct configuration and is replaced by a
 documentation sentence and a reformulated guard.
@@ -826,7 +826,7 @@ re-verified only where a finding above depends on them.
   operation types that the registration restricts, and the kind-check optimization analyzer registers syntax actions
   for three kinds only and returns false for unknown shapes.
 - `AdditionalDiagnosticAnalyzer`
-  (`Metalama.Framework/src/Metalama.Framework.Engine/Analyzers/AdditionalDiagnosticAnalyzer.cs:31`, `:43-46`) returns
+  (`Metalama.Framework/src/Metalama.Framework.Engine/Analyzers/AdditionalDiagnosticAnalyzer.cs:32`, `:44-47`) returns
   early for any type kind other than class, struct or interface.
 - Every file of the Roslyn 5.0 generated directory is unchanged by the stable grammar, because it derives from
   `eng/src/GenerateMetaSyntaxRewriter/Syntax-5.0.0.xml`
@@ -841,7 +841,7 @@ re-verified only where a finding above depends on them.
   (`Metalama.Framework/src/Metalama.Framework.Engine/SyntaxGeneration/SyntaxFactoryDebugHelper.cs:19-31`) use the
   current Roslyn API version and the default parse options, so they follow TP-1 and TP-8 automatically.
 - `ReferenceIndexWalker.DefaultVisit`
-  (`Metalama.Framework/src/Metalama.Framework.Engine/ReferenceGraph/ReferenceIndexWalker.cs:97-101`) walks the
+  (`Metalama.Framework/src/Metalama.Framework.Engine/ReferenceGraph/ReferenceIndexWalker.cs:97-101`) visits the
   children of an unknown kind and does not throw. The same is true of `TextSpanClassifier.DefaultVisit`
   (`Metalama.Framework/src/Metalama.Framework.Engine/Formatting/TextSpanClassifier.cs:278-295`), but the classifier
   is nevertheless a finding elsewhere: it is reported as LK-10 by theme 04 and grouped with CM-7 under theme 03,
@@ -881,7 +881,7 @@ re-verified only where a finding above depends on them.
 - The inventory of syntax visitors that inherit the Roslyn dispatch and therefore never observe a union declaration
   is finding CM-7 of theme 03, with LK-10 of theme 04 as one of its members. The annotator and validator gaps
   recorded inside TP-6 belong to that inventory and share its gating mechanism.
-- TP-3 is the template half of a feature whose other halves are finding LK-9 of theme 04, which reports that the
+- TP-3 covers the template part of a feature whose other parts are finding LK-9 of theme 04, which reports that the
   inlining substitution copies user labels verbatim so that a template label may collide with a target label, and
   finding UT-17 of theme 06, which records that the metric providers count nodes generically and need only tests.
 - TP-7 belongs to a cluster of switches over declaration kinds that fall through, owned by theme 05, together with

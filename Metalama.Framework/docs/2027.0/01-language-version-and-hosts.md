@@ -16,11 +16,11 @@ inference rather than on a file that was read, the finding says so.
 
 ## Summary
 
-1. The move to the stable Roslyn 5.12 is the gate of the whole theme. The consumed `5.10.0-1.26365.3` is a build of
-   the `main` branch that will never have a stable counterpart, and the November 2026 baseline carries Roslyn 5.12,
-   so the transition is a renumbering of the latest variant from `5.10.0` to `5.12.0` (LV-12), across eight edit
-   sites with two silent failure modes (LV-13), following a procedure that names two members that no longer exist
-   (LV-14).
+1. The move to the stable Roslyn 5.12 is the prerequisite of the whole theme. The consumed `5.10.0-1.26365.3` is a
+   build of the `main` branch that will never have a stable counterpart, and the November 2026 baseline carries
+   Roslyn 5.12, so the transition is a renumbering of the latest variant from `5.10.0` to `5.12.0` (LV-12), across
+   eight edit sites with two silent failure modes (LV-13), following a procedure that names two members that no
+   longer exist (LV-14).
 2. Two language version defects are latent today and both become real on the day of that rebase. The MSBuild clamp
    rewrites an implied `15.0` down to `12.0` and warns with a text that is false in that direction (LV-1), and
    `VerifyLanguageVersion` throws inside the formatting of its own diagnostic instead of reporting `LAMA0052`
@@ -71,10 +71,10 @@ inference rather than on a file that was read, the finding says so.
   redirects `CSharpCoreTargetsPath` to it. That copy computes, for a `.NETCoreApp` target framework, nine plus the
   major version minus five, which is `15.0` for `net11.0`, caps the result at `_MaxAvailableLangVersion`, sets
   `LangVersionImplicitlySet` to `True` when `LangVersion` was empty, and then assigns `LangVersion`. The cap decides
-  when the clamp fires. In the `Metalama.Compiler` package that was inspected, and in Roslyn through the end of the
-  5.10 window, that cap is `14.0`, so a `net11.0` project receives `14.0` today, `14.0` is in the accepted list, and
-  neither the rewrite nor the warning occurs. The cap becomes `15.0` from the 5.11 window onwards and on `main`,
-  which is the stable Roslyn 5.12 that this theme adopts. Two consequences follow. Until the rebase, a `net11.0`
+  when the clamp fires. In the `Metalama.Compiler` package that was inspected, and in the Roslyn 5.10 prerelease
+  that this repository consumes, that cap is `14.0`, so a `net11.0` project receives `14.0` today, `14.0` is in the
+  accepted list, and neither the rewrite nor the warning occurs. The cap is `15.0` on the `main` branch of
+  `dotnet/roslyn`, which is the Roslyn 5.12 that this theme adopts. Two consequences follow. Until the rebase, a `net11.0`
   project silently compiles as C# 14 rather than C# 15, independently of Metalama. From the rebase onwards, `15.0`
   is a legal language version for the new compiler, it matches none of the seven accepted strings, and the clamp
   rewrites it to `12.0`. The `PropertyGroup` carries no `MetalamaEnabled` guard, unlike the neighbouring blocks, so
@@ -111,8 +111,8 @@ inference rather than on a file that was read, the finding says so.
   existing `DefaultLanguageVersion` scenarios cannot observe the defect, and corrected the proposal by requiring the
   new project to be registered in the solution. The semantics lens refuted the attribution of the implied value to
   the .NET SDK, read the patched `Microsoft.CSharp.Core.targets` shipped by `Metalama.Compiler` and the
-  `_MaxAvailableLangVersion` cap on four Roslyn branches, and established that the defect is latent until the rebase
-  onto Roslyn 5.11 or later. The scope lens confirmed that the defect is present verbatim on the working branch,
+  `_MaxAvailableLangVersion` cap of the Roslyn sources, and established that the defect is latent until the rebase
+  onto Roslyn 5.12. The scope lens confirmed that the defect is present verbatim on the working branch,
   that no pull request touches those lines and that no issue tracks it.
 - Open questions: the `Metalama.Compiler` package that was inspected is 2026.1.17 from the `release/2026.1` branch,
   while the repository consumes 2027.0.0, which is not in the local cache. Confirming the cap in 2027.0.0 would
@@ -126,7 +126,7 @@ inference rather than on a file that was read, the finding says so.
   - `Metalama.Framework/src/Metalama.Framework.Engine/Utilities/Roslyn/LanguageVersionExtensions.cs:16-40`
     (arms up to `(LanguageVersion) 1400` at `:34`, throwing default arm at `:39`)
   - `Metalama.Framework/src/Metalama.Framework.Engine/Utilities/SupportedCSharpVersions.cs:31-45`
-  - `Metalama.Framework/src/Metalama.Framework.Engine/Utilities/AllLanguageVersions.cs:13-18`
+  - `Metalama.Framework/src/Metalama.Framework.Engine/Utilities/AllLanguageVersions.cs:14-18`
   - `Metalama.Framework/src/Metalama.Framework.Engine/Pipeline/SourceTransformer.cs:145-159`
   - `Metalama.Framework/src/Metalama.Framework.Engine/Pipeline/CompileTime/CompileTimeExceptionHandler.cs:184-198`
   - `Metalama.Framework/src/Metalama.Framework.Engine/Diagnostics/GeneralDiagnosticDescriptors.cs:25-32`,
@@ -200,9 +200,9 @@ inference rather than on a file that was read, the finding says so.
   named in the title is real: `Metalama.Framework.Engine.5.0.0.csproj:6` compiles the same source files into the
   Roslyn 5.0 variant, so `Latest` is one value shared by both variants, and it feeds `DefaultParseOptions` and every
   fallback listed above. Three statements of the original behaviour matrix needed correction. The latest variant
-  does not parse `15.0` either, because `LanguageVersion.cs` is byte identical between the Roslyn 5.0 branch and the
-  end of the 5.10 window, so `MSBuildProjectOptions.LanguageVersion` falls back to `Latest` in both variants and the
-  case of an explicit `15.0` cannot arise today. The reachable case is `LangVersion=preview`, where the project
+  does not parse `15.0` either, because `LanguageVersion.CSharp15` is absent both from the Roslyn 5.0 packages and
+  from the consumed Roslyn 5.10 prerelease, so `MSBuildProjectOptions.LanguageVersion` falls back to `Latest` in
+  both variants and the case of an explicit `15.0` cannot arise today. The reachable case is `LangVersion=preview`, where the project
   version is `int.MaxValue - 1` and the minimum returns the SDK cap unchanged. And in the consumed Roslyn the six
   C# 15 features are gated on `LanguageVersion.Preview` rather than on a C# 15 that the compiler does not know, so
   compile-time code that uses C# 15 syntax is rejected with the preview-feature error. One mechanism was also
@@ -221,8 +221,8 @@ inference rather than on a file that was read, the finding says so.
   LV-2. Define `Latest` as `RoslynApiVersion.Current.ToLanguageVersion()` instead of the constant, which is
   expressible because `RoslynApiVersion.Current` is generated per variant at `eng/src/GenerateMetaSyntaxRewriter/Generator.cs:93`. Map only the 5.12 variant to `CSharp15` in `ToLanguageVersion` and keep `V5_0_0` and `V5_10_0`
   at `CSharp14`. `All` may stay a shared constant, because it is used only for membership and for the diagnostic
-  text, which keeps the aspect test baselines identical in both variants; the price is that the Roslyn 5.0 variant
-  advertises `15.0` in those messages although its own parser rejects the string first. Make
+  text, which keeps the aspect test baselines identical in both variants; the consequence is that the Roslyn 5.0
+  variant lists `15.0` in those messages although its own parser rejects the string first. Make
   `LanguageVersionProvider` map an SDK major of 11 or more to `CSharp15`, and clamp its result to the variant
   maximum, because `LangVersion=preview` makes the project version `int.MaxValue - 1` and the minimum then returns
   the SDK cap unchanged. Sort `FormatSupportedVersions` explicitly, because `All` is an `ImmutableHashSet` whose
@@ -240,12 +240,13 @@ inference rather than on a file that was read, the finding says so.
   not know is reported as a compilation error rather than rejected at the construction of the parse options. The
   scope lens confirmed that no site is changed on the working branch, that no pull request or issue covers it, and
   that findings TP-2 and TP-11 of theme 02 propose the same edits.
-- Open questions: the threshold of `GetMaxLanguageVersion` for the `msbuild.exe` path. The exact boundary in the
-  Roslyn source is 5.11, because `CSharp15` was added inside the 5.11 window; `(5, >= 12)` is a defensible
-  conservative choice, because Visual Studio 18.11 is the insiders channel and no stable Roslyn 5.11 package exists,
-  and it would only cap templates on that channel to C# 14. The value 10 must not be used, because Visual Studio
-  18.10 is a shipping stable channel whose compiler accepts the C# 15 features only under the preview language
-  version. Separately, whether `MetalamaTemplateLanguageVersion` may ever be `15.0` for a library that must also
+- Open questions: the threshold of `GetMaxLanguageVersion` for the `msbuild.exe` path. `LanguageVersion.CSharp15`
+  was added to the `main` branch of `dotnet/roslyn` on 2026-08-11, before that branch reached 5.12, so the exact
+  boundary in the Roslyn source is below 5.12. The value `(5, >= 12)` is a defensible conservative choice, because
+  5.12 is the lowest minor version whose stable package is expected to expose `LanguageVersion.CSharp15`, and
+  because a threshold above the exact boundary only caps templates to C# 14 on a Visual Studio that ships no stable
+  Roslyn package. The value 10 must not be used, because the stable Roslyn packages below 5.12, up to and including
+  5.9.0, accept the C# 15 features only under the preview language version. Separately, whether `MetalamaTemplateLanguageVersion` may ever be `15.0` for a library that must also
   load in Rider: the answer today is no, and `Directory.Build.props:11-16` already records that bound.
 
 ### LV-4. `CompileTimeProjectManifest.ResolvedLanguageVersion` is dead code and disagrees with the two live fallbacks
@@ -255,7 +256,7 @@ inference rather than on a file that was read, the finding says so.
     (the comment that explains the integer form), `:99-101` (the property and its `CSharp13` default)
   - `Metalama.Framework/src/Metalama.Framework.Engine/CompileTime/CompileTimeCompilationBuilder.cs:1355`
   - `Metalama.Framework/src/Metalama.Framework.Engine/CompileTime/CompileTimeProjectRepository.Builder.cs:596`
-  - `Metalama.Framework/src/Metalama.Framework.Engine/Utilities/SupportedCSharpVersions.cs:31-32`, `:145-156`
+  - `Metalama.Framework/src/Metalama.Framework.Engine/Utilities/SupportedCSharpVersions.cs:31-32`, `:149-159`
   - `Metalama.Framework/src/tests/Metalama.Framework.Tests.UnitTests/CompileTime/CompileTimeProjectManifestTests.cs:14-66`
 - What happens today: the property is marked `[JsonIgnore]`, so it is not serialized, and a search of both
   repositories finds no reader, so it is dead code. The two fallbacks that are actually used both resolve an absent
@@ -374,7 +375,7 @@ inference rather than on a file that was read, the finding says so.
   adds a user definable operator. The scope lens confirmed that no pull request and no issue covers the optional
   diagnostic.
 - Open questions: none. Two observations sit inside the same file and are out of scope here. The null filter at
-  `:276` is a no-op, because all forty-four entries carry a non-null version, so a wrong non-null value would be
+  `:276` is a no-op, because all fifty-four entries carry a non-null version, so a wrong non-null value would be
   silent while a wrong null value would remove the entry from the by-name dictionary. And `OperatorData.cs:114-119`
   gives `OperatorKind.UnsignedRightShift` the token of the compound assignment form, which is a pre-existing and
   untested defect unrelated to C# 15 and should be raised separately.
@@ -391,9 +392,9 @@ inference rather than on a file that was read, the finding says so.
   - `Metalama.Framework/src/tests/Metalama.Framework.Tests.Benchmarks/Metalama.Framework.Tests.Benchmarks.csproj:9`
   - `Metalama.Framework/src/tests/Standalone/CSharp10/CSharp10.csproj:5`
   - `Directory.Build.props:11-16` (`MetalamaTemplateLanguageVersion` and the bound it records)
-  - `eng/RoslynVersions/Roslyn.5.0.0.props:1-15`
+  - `eng/RoslynVersions/Roslyn.5.0.0.props:1-14`
   - `Metalama.Framework/src/Metalama.Framework.Engine.5.0.0/Metalama.Framework.Engine.5.0.0.csproj:6`
-  - `Metalama.Framework/src/Metalama.Framework.Engine/Utilities/SupportedCSharpVersions.cs:31-32`, `:50`, `:57-58`
+  - `Metalama.Framework/src/Metalama.Framework.Engine/Utilities/SupportedCSharpVersions.cs:31-32`, `:50`, `:59-60`
   - `Directory.Packages.props:20-28`
 - What happens today: `LangMaxVersion` is `14.0`, it is used as `LangVersion` in `Metalama.Framework`, it is
   exported to dependent repositories, and three other solutions consume it. Two solutions do not participate:
@@ -488,9 +489,10 @@ inference rather than on a file that was read, the finding says so.
   - `Metalama.Framework/docs/platform-support.md:195-201`, `:338-339`
 - What happens today: the build container installs one .NET SDK, pinned at 10.0.400, and the same constant generates
   `global.json`, which is git-ignored. The single feature band is deliberate, and `eng/src/Program.cs:19-25` records
-  the `MSBuildExtensionsPath` conflict that two bands produced. Outside the analysis reports, the only occurrence of
-  the string `net11.0` in the repository is the comment of the platform test project that explains why the target
-  framework is excluded, namely that the agents have no targeting pack. The Docker scenarios pin .NET SDK 10.0.302
+  the `MSBuildExtensionsPath` conflict that two bands produced. No project in the repository targets `net11.0`.
+  Outside the documentation and the analysis reports, the only occurrence of the string is the comment of the
+  platform test project that explains why the target framework is excluded, namely that the agents have no
+  targeting pack. The Docker scenarios pin .NET SDK 10.0.302
   as well. On the target framework axis the platform check does admit `net11.0`: the value `11.0` is not greater
   than `MaximumNETCoreAppVersion`, so `LAMA0600` is not reported. On the .NET SDK axis it does not.
   `_MetalamaSdkVersion` is `$(NETCoreSdkVersion)` with the prerelease suffix removed, and it is compared with
@@ -614,8 +616,8 @@ inference rather than on a file that was read, the finding says so.
   `MSBuildBinPath` is covered by the standalone scenario `Issue31024`, whose old-style .NET Framework project is
   built by `$(MSBuildExePath)` and whose source says so. The Visual Studio release that Metalama must cover in
   November 2026 is version 18.12 rather than a new major version: Roslyn `main` is 5.12 and inserts into Visual
-  Studio under a title naming 18.12, the insiders branch is 5.11 for 18.11, the stable branch is 5.10 for 18.10, and
-  MSBuild `main` is 18.12.0. That release therefore carries Roslyn 5.12.
+  Studio under a title naming 18.12, MSBuild `main` is 18.12.0, and the quarterly Visual Studio 2026 releases so
+  far are 18.0, 18.3, 18.6 and 18.9. That release therefore carries Roslyn 5.12.
 - Consequence: no impact in continuous integration today, and no diagnostic for a newer Visual Studio, because the
   platform requirement declares only a minimum and `LAMA0602` fires only below that floor. The gap is a coverage gap
   for the Visual Studio 18.12 MSBuild, and it lies in the standalone scenario rather than in the `MsbuildSolution`
@@ -627,7 +629,7 @@ inference rather than on a file that was read, the finding says so.
   the change together with the feature-band measurement of `MinimumVisualStudioVersion` that
   `Metalama.Framework.props:34-37` already schedules for after 2026-11-10. The arm that
   `SupportedCSharpVersions.GetMaxLanguageVersion` needs for the `msbuild.exe` path belongs to LV-3 and must not use
-  the threshold 10, because Visual Studio 18.10 is a shipping stable channel whose Roslyn has no C# 15.
+  the threshold 10, because no stable Roslyn package below 5.12 exposes `LanguageVersion.CSharp15`.
 - Size: S in this repository, dependent on PostSharp.Engineering exposing the component.
 - Status: new work, and to be sequenced with the November 2026 measurement that theme 06 owns and with the container
   change of LV-9, because both edit `eng/src/Program.cs` and both regenerate the container. Issue #1902 asked for
@@ -657,7 +659,7 @@ inference rather than on a file that was read, the finding says so.
   - `Metalama.Framework/src/tests/Metalama.Framework.Tests.UnitTests/CompileTime/NuGetHelperTests.cs:1240-1258`
   - `eng/RoslynVersions/Roslyn.5.10.0.props:3`, `:5`, `:11-12` and `eng/RoslynVersions/Latest.props:2`
   - `Metalama.Framework/src/Metalama.Framework.CompilerExtensions/RoslynVariantPolicy.cs:30-54`
-  - `Metalama.Framework/src/Metalama.Framework.CompilerExtensions/ResourceExtractor.cs:145-156`, `:236-308`
+  - `Metalama.Framework/src/Metalama.Framework.CompilerExtensions/ResourceExtractor.cs:157-172`, `:236-308`
   - `Metalama.Framework/src/Metalama.Framework.CompilerExtensions/MetalamaSourceTransformer.cs:23-31`, `:38-44`,
     `:52-57`
   - `Metalama.Framework/docs/updating-roslyn.md:12`, `:15-17`
@@ -667,20 +669,21 @@ inference rather than on a file that was read, the finding says so.
   `ToNuGetVersionString` maps the latest variant to the same string. Four external facts, verified on 2026-09-03,
   settle the target. Only the stable `Microsoft.CodeAnalysis.CSharp` versions 5.0.0, 5.3.0, 5.6.0 and 5.9.0 are
   served by nuget.org; there is no 5.10, 5.11 or 5.12 package. Roslyn minor versions advance with the monthly Visual
-  Studio snaps, while the stable packages are published for the quarterly .NET software development kit feature
-  bands, which is why a stable exists only at every third minor. The .NET 11 general availability feature band of
+  Studio snaps, while a stable package is published only at every third minor, in step with the quarterly Visual
+  Studio 2026 releases 18.0, 18.3, 18.6 and 18.9. The .NET 11 general availability feature band of
   `dotnet/sdk` pins the Roslyn toolset at a 5.12 build of 2026-09-01, which makes the November 2026 baseline a
   Roslyn 5.12 baseline and makes the sentence "Roslyn 5.11 or thereabouts" in
-  [`platform-support.md`](../platform-support.md) an understatement. Finally, `release/stable` of `dotnet/roslyn` is
-  a real product branch at 5.10, so the accurate statement is not that Roslyn 5.10 does not exist, but that no
+  [`platform-support.md`](../platform-support.md) an understatement. Finally, Roslyn 5.10 is a real version of the
+  product, so the accurate statement is not that Roslyn 5.10 does not exist, but that no
   stable package of that minor is served by nuget.org and none is expected, which is what matters here, because
   `ToNuGetVersionString` names a package that a user machine must restore. Because
   [`platform-support.md`](../platform-support.md) places no Visual Studio below the November 2026 baseline in the
   supported set, the variant identity `5.10.0` will serve no host in PB-2027.0, which is exactly the renumbering
   case of [`updating-roslyn.md`](../updating-roslyn.md). Two further observations confirm 5.12 rather than 5.10 or
-  5.11 as the required target: `LanguageVersion.CSharp15` is absent from the stable branch and present from the
-  insiders branch onwards, and the grammar of the stable branch still carries five experimental markers while the
-  later branches keep only one.
+  5.11 as the required target. `LanguageVersion.CSharp15` is absent from the stable package 5.9.0 and from the
+  consumed 5.10 prerelease, and is present on `main`, which is 5.12. The grammar of the consumed 5.10 prerelease
+  still marks five declarations as experimental, namely the union declaration, the unsafe expression, the with
+  element and the name field of the break and continue statements, while `main` marks only the unsafe expression.
 - Consequence: build or restore error on every user machine if `ToNuGetVersionString` names a package that its
   source does not serve, since the string is written into the generated reference-assembly project and alone
   declares the prerelease source. If the identity understates the Roslyn version that the payload binds against, a
@@ -702,8 +705,9 @@ inference rather than on a file that was read, the finding says so.
   renaming the previous one; the consequences of the disappearing experimental markers belong to theme 02. Correct
   `platform-support.md:235` and `Directory.Packages.md:201` from 5.11 to 5.12, re-derive the variant ranges at
   `platform-support.md:253` and `Directory.Packages.md:171-172`, and correct the cadence wording so that it names
-  the monthly Visual Studio snaps for the Roslyn minors and the quarterly feature bands for the stable packages. At
-  step two, also update the comments that describe Roslyn 5.10 as a preview at `Directory.Packages.props:25-27` and
+  the monthly Visual Studio snaps for the Roslyn minors and the quarterly Visual Studio releases for the stable
+  packages. At step two, also update the comments that describe Roslyn 5.10 as a preview at
+  `Directory.Packages.props:25-27` and
   `nuget.base.config:5-7`. The same 5.10 naming appears in the sentence added by pull request #1912 about re-reading
   the Visual Studio package ceilings after 2026-11-10 and should be corrected with them.
 - Size: S for the strings in each step, plus the documentation edits; the renumbering itself is LV-13.
@@ -749,12 +753,13 @@ inference rather than on a file that was read, the finding says so.
     `Metalama.Framework/docs/platform-support.md:233-235`, `:248-249`; `Metalama.Framework/docs/updating-roslyn.md:16`
 - What happens today: nothing. Both failure modes below are consequences of the renumbering, and the variant policy
   maps a host presenting Roslyn 5.12 to the `5.10.0` variant correctly today. One statement of the original
-  narrative is withdrawn: the claim that the location of the diagnostic `CS1014` changed between Roslyn 5.0 and the
-  5.10 build is not supported by the parser, whose three relevant methods are textually identical between the two
-  and both report on the identifier. What is observed is that the two aspect test baselines differ; the cause is not
-  recorded, and the preprocessor symbol names the variant boundary at which the difference was observed. The parser
-  was rewritten again on the 5.12 branch, but the outcome for that test input is unchanged, so no baseline is
-  expected to change with the renumbering.
+  narrative is withdrawn: the explanation recorded at `Directory.Packages.md:215`, that the location of the
+  diagnostic `CS1014` changed between Roslyn 5.0 and the 5.10 build, is not supported by the parser, whose three
+  relevant methods are textually identical between the two and both report on the identifier. What is observed is
+  that the two aspect test baselines differ; the cause of that difference is therefore not established, and the
+  preprocessor symbol names the variant boundary at which the difference was observed. Nothing found in the Roslyn
+  sources predicts a different outcome for that test input under Roslyn 5.12, so no baseline is expected to change
+  with the renumbering.
 - Consequence: nothing today, and two silent failure modes afterwards. Failure mode one is silent wrong output:
   `TargetedAssemblyReference.SatisfiesCurrentProcess` accepts an extension assembly only when its declared
   `TargetRoslynVersion` equals the current version exactly, and `ExtensionLoaderBase` drops the others without a
@@ -877,8 +882,9 @@ The following were checked and found unaffected by C# 15, by the .NET 11 SDK or 
   `EMBED_SYSTEM_TYPES` symbol is defined for any version at or above C# 14, so C# 15 keeps it.
 - `Metalama.Framework/src/Metalama.Framework.Engine/Linking/LinkerAnalysisStep.cs:553`,
   `Metalama.Framework/src/Metalama.Framework.Engine/Linking/LinkerInjectionHelperProvider.cs:219`,
-  `Metalama.Framework/src/Metalama.Framework.Engine/CodeModel/ProjectModel.ProjectFeaturesImpl.cs:25`: comparisons
-  against C# 9, 10, 11 and 14 that C# 15 satisfies in the intended direction.
+  `Metalama.Framework/src/Metalama.Framework.Engine/CodeModel/ProjectModel.ProjectFeaturesImpl.cs:25`: two
+  relational comparisons against C# 14 and C# 9, and one equality pattern that matches C# 9 and C# 10 alone. C# 15
+  takes the same branch as C# 14 at all three sites, which is the intended outcome.
 - `Metalama.Framework/src/Metalama.Framework.Engine/Services/CompilationContext.cs:180-181` reads the effective
   version of the first syntax tree and enumerates no version.
 - `Metalama.Framework/src/Metalama.Framework.Engine/CompileTime/CompileTimeCompilationBuilder.cs:239-240` hashes the
