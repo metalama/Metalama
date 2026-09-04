@@ -3975,6 +3975,152 @@
   ]
  },
  {
+  "lens": "style",
+  "required_edits": [
+   {
+    "location": "Mermaid graph, lines 274-306 (edge list and the label of node S16)",
+    "problem": "The graph is syntactically valid, but it omits the edge that the metadata of S-17 declares. S-17 reads `Blocked by: S-03, S-12, S-16`, and the ordering list at line 266 repeats `Blocked by S-03, S-12 and S-16`, while the graph carries only `S16 --> S17` and `S03 --> S17`. The label of node S16, `S-16 Comparers that a union breaks`, is figurative and does not match the heading of the story, which is `Repair the two comparer defects that a union exposes`.",
+    "fix": "Insert the missing edge immediately after the line `  S16 --> S17[\"S-17 Introduce a union and a case\"]`, so that the three edges read:\n```\n  S16 --> S17[\"S-17 Introduce a union and a case\"]\n  S12 --> S17\n  S03 --> S17\n```\nand change the label of node S16 to `S16[\"S-16 Comparer defects a union exposes\"]`."
+   },
+   {
+    "location": "All 17 `Not in scope` sections (lines 357, 419, 483, 541, 600, 715, 774, 851, 966, 1029, 1152, 1330, 1381, 1441, 1490, 1550, 1770)",
+    "problem": "Every `Not in scope` section opens with a noun-phrase fragment that has no main verb, which the copywriting rule against stems and fragments forbids. The defect is systemic rather than local, so the whole set has to be rewritten in one pass.",
+    "fix": "Open each section with a complete sentence whose subject is the story. Use these texts:\nS-01: \"This story does not edit `metalama/Metalama` or `metalama/Metalama.Premium`. Those edits are stories S-09 and S-10.\"\nS-02: \"This story does not deliver the union and closed features themselves. It delivers the mechanism and one example.\"\nS-03: \"This story names no C# 15 syntax kind. It compiles unchanged for both variants and adds no variant branch.\"\nS-04: \"This story does not install a .NET 11 SDK in the build container and does not add a `net11.0` scenario. Sections 6b and 6c of [`DECISIONS.md`](DECISIONS.md) exclude both.\"\nS-05: \"This story adds no `net11.0` test leg. Sections 6 and 6c of [`DECISIONS.md`](DECISIONS.md) exclude it.\"\nS-07: \"This story does not handle unions. Every arm added here is written so that a union is admitted later without a further edit, but no C# 15 member is named.\"\nS-08: \"This story does not rewrite the audience paragraph of [`Directory.Packages.md`](../../../Directory.Packages.md), which #1903 owns and which is referenced rather than rewritten. It does not change the .NET SDK component of the container, which section 6b of [`DECISIONS.md`](DECISIONS.md) excludes.\"\nS-09: \"This story does not add C# 15 to the supported language versions, which is S-11, and it does not mirror the renumbering in Metalama.Premium, which is S-10.\"\nS-11: \"This story does not raise the template language version, which section 4 of [`DECISIONS.md`](DECISIONS.md) excludes, and it does not deliver the language features themselves, which are S-12 to S-22.\"\nS-12: \"This story does not introduce a union, which is S-17, and it does not add the eligibility rules of advice applied to a union, which are S-14.\"\nS-14: \"This story does not introduce a union or a union case, which is S-17.\"\nS-17: \"This story does not introduce a closed class, which section 5b of [`DECISIONS.md`](DECISIONS.md) excludes, and it does not introduce structs, records, enums or delegates, which are #869, #867, #866 and #865 and stay open.\"\nS-18: \"This story does not introduce a closed class, which section 5b of [`DECISIONS.md`](DECISIONS.md) and question Q4 exclude.\"\nS-19: \"This story does not support labels in templates, which section 4 of [`DECISIONS.md`](DECISIONS.md) excludes.\"\nS-20: \"This story does not support the unsafe expression, which is a preview language feature and is out of scope for 2027.0.\"\nS-21: \"This story does not remove the `LAMA0699` limitation on non-inlined indexer overrides, which is #937.\"\nS-25: \"This story does not rewrite the audience paragraph of [`Directory.Packages.md`](../../../Directory.Packages.md), which #1903 owns. It does not change the well-known source generator attribute list of `Metalama.Framework.props`, which is functional and not documentation: an attribute that a newer framework adds and that the list omits changes aspect eligibility for a generated partial member with no diagnostic, so it needs its own behavioural change and test and must not be lost in a documentation review.\""
+   },
+   {
+    "location": "D-3, the option list, lines 78-81",
+    "problem": "Both options are written as fragments with no main verb, and the label of option A, \"stay silent\", attributes an intention to a build variant, which is figurative.",
+    "fix": "Replace the two bullets with:\n\"- Option A, report nothing. This is the behaviour that follows from doing nothing, and it is the failure mode that the platform doctrine exists to prevent.\n- Option B, report the divergence. The diagnostic analyzer reports a design-time warning once per project, and the warning carries an opt-out. It is reported in an editor whose user can act on it only by changing the development environment.\""
+   },
+   {
+    "location": "D-4, the heading at line 89 and the option list at lines 95-99",
+    "problem": "The heading and option A use \"blanket\", which is figurative. Options A, B and C continue with the fragments \"Small, and it covers...\", \"More work, and each rule...\" and \"Silently invalid generated code.\", none of which is a complete sentence.",
+    "fix": "Change the heading to \"### D-4. For a union that an aspect targets, is the answer a single refusal rule, per-advice rules, or nothing?\" and replace the three bullets with:\n\"- Option A, one eligibility rule that declares a union an unsupported advice target. The rule is small, and it covers the three compiler errors and the silent case of an initializer injected into a constructor that has no syntax.\n- Option B, per-advice rules that permit what a union can carry and refuse only what it cannot. These rules are more work, and each rule is a place where the language restrictions can be misread.\n- Option C, no rule at all. The generated code is then silently invalid.\""
+   },
+   {
+    "location": "D-5, first sentence, line 109",
+    "problem": "The paragraph opens with a mystery: \"These are two answers, and one of them is only half taken.\" The subject is not stated in the first clause, and \"only half taken\" is figurative.",
+    "fix": "\"This section holds two answers. The first is complete, and the second is complete for one half of the requirement only.\""
+   },
+   {
+    "location": "D-1, option A at line 44 and option C at lines 50-51",
+    "problem": "Option A calls S-12 to S-22 \"the feature chains\", which is figurative, and option B calls the reduced scope \"a defensive slice\", which is also figurative. Option C continues with the fragment \"Not viable, because three published packages would keep...\".",
+    "fix": "In option A, write \"Stories S-09 and S-11, and the dependent feature stories S-12 to S-22, must be written, reviewed and tested...\". In option B, write \"Option B, the plumbing and a defensive subset of the work.\". In option C, write \"Option C, defer the Roslyn move. This option is not viable, because three published packages would keep a dependency on a Roslyn package that nuget.org does not serve, which is the restore failure of #1106.\""
+   },
+   {
+    "location": "Ordering, item 1, lines 251-252",
+    "problem": "The sentence \"It is not work in this repository, it is the head of the critical path, and its schedule is the single most valuable piece of planning information for 2027.0\" joins two independent clauses with a comma, and \"the single most valuable piece of planning information\" is rhetorical emphasis.",
+    "fix": "\"1. S-01, the move of `Metalama.Compiler` to the stable Roslyn 5.12. It is not work in this repository, and it is the head of the critical path. Its schedule is the planning information on which most of 2027.0 depends.\""
+   },
+   {
+    "location": "Ordering, item 2 at line 255, item 3 at lines 256-257, and D-9, last sentence at lines 195-196",
+    "problem": "Item 2 ends with \"are the pre-gate lane\", which is a metaphor. Item 3 and D-9 both say that a story \"must not compete\" for engineering days, which attributes an intention to a work item.",
+    "fix": "In item 2, write \"All six are independent of the Roslyn gate and can be delivered before it.\" In item 3, write \"It is calendar-gated rather than dependency-gated, and it must not be scheduled against the critical path.\" In D-9, write \"Whichever is chosen, the measurement must not be scheduled on the same engineering days as S-09 and S-11, which are the critical path.\""
+   },
+   {
+    "location": "Ordering, item 12, lines 271-272",
+    "problem": "\"Deliberately last, because a document written before the code is a second thing to correct.\" is a fragment with no subject and no main verb.",
+    "fix": "\"12. S-25, the documentation. It is deliberately last, because a document written before the code is a second thing to correct.\""
+   },
+   {
+    "location": "S-05, opening paragraph, line 559",
+    "problem": "\"Four leftovers of the move\" is informal, and \"invisible in a green build\" uses a colour as a metaphor for a build that succeeds. The heading of the story already uses the accurate word, which is \"residue\".",
+    "fix": "\"Four residual items of the move that dropped .NET 8 and .NET 9 share one property: each is invisible in a build that succeeds, and none produces a failure.\""
+   },
+   {
+    "location": "S-07, Context, lines 679-680, and S-13, Context, line 1055",
+    "problem": "\"a defect that a customer can hit today\" and \"The case a user hits first is a run-time union declared in the same file as an aspect\" use \"hit\" informally, and the second sentence is a cleft construction that delays the subject.",
+    "fix": "In S-07, write \"so the last of these is a defect that a customer can encounter today\". In S-13, write \"A user encounters first a run-time union declared in the same file as an aspect, so the acceptance test is one aspect test that puts both in one file.\""
+   },
+   {
+    "location": "S-09, opening paragraph, line 797",
+    "problem": "\"the pieces cannot land separately\" uses \"land\" informally for merging a pull request.",
+    "fix": "\"This story is one pull request because the pieces cannot be merged separately without breaking the build, and it is the gate of the whole release.\""
+   },
+   {
+    "location": "S-12, Context, line 991 and line 997",
+    "problem": "\"The precedent is decisive:\" is a rhetorical evaluation rather than a statement of the mechanism, and \"Two constraints are not negotiable.\" is exactly the opening shape the copywriting rules forbid, in the manner of \"Two consequences are worth knowing\".",
+    "fix": "Write \"The precedent of the record kinds settles the question:\" at line 991, and \"Two constraints hold for every member added by this story.\" at line 997."
+   },
+   {
+    "location": "S-14, Context, line 1115",
+    "problem": "\"which is the worst experience Metalama can offer\" is rhetorical emphasis and a superlative that the document cannot verify.",
+    "fix": "\"...emit code that the compiler rejects, and the diagnostic is then reported on generated code, which the user cannot correct.\""
+   },
+   {
+    "location": "S-15, Context, line 1178",
+    "problem": "\"Two implementation points are settled here and nowhere else.\" opens with a count and an emphatic claim rather than with the subject.",
+    "fix": "\"This story settles two implementation points that no other story settles.\""
+   },
+   {
+    "location": "S-16, opening paragraph at lines 1224-1226 and Scope, first and second bullets at lines 1240-1246",
+    "problem": "\"one escape hatch\", \"A union misses that hatch three ways\" and \"the three ways in which a union misses the present hatch\" are metaphors, and \"misses that hatch three ways\" is also ungrammatical, because it lacks the preposition.",
+    "fix": "In the opening paragraph, write \"...and has one special case at `:250-265` for two implicitly declared methods of a record; anything else reaches the `AssertionFailedException` at `:267`. A union falls outside that special case in three ways, so an aspect that targets more than one synthesized member of a union crashes.\" In the second Scope bullet, write \"- Cover the three ways in which a union falls outside the present special case:\"."
+   },
+   {
+    "location": "S-18, opening paragraph, lines 1347-1350",
+    "problem": "\"Nothing is broken today by a closed class\" uses \"broken\" informally, and \"What is missing is that an aspect cannot tell that a class is closed, and that the documentation does not say...\" is a cleft construction that the rule against inversion forbids.",
+    "fix": "\"A closed class breaks nothing today: it is a class with a modifier that the compiler merges across partial parts, Roslyn adds the abstract flag to it so the code model reports `IsAbstract` correctly, and the derived-type model is already right. Two things are missing: an aspect cannot tell that a class is closed, and the documentation does not say that the enumeration of direct derived types is exhaustive for such a type.\""
+   },
+   {
+    "location": "S-20, opening paragraph, lines 1459-1461",
+    "problem": "\"closes the crash, so what remains is tests\" does not agree in number and uses \"close\" figuratively, and \"What the regeneration does not close is the unsafe expression\" is a cleft construction.",
+    "fix": "\"The regeneration of S-09 produces the visitor for that node and removes the crash, so only the tests remain. The regeneration does not remove the failure of the unsafe expression, which keeps its experimental marker on the target Roslyn and is therefore still stripped from the generated code, so it passes the annotator and surfaces as a C# error on the generated compile-time file.\""
+   },
+   {
+    "location": "S-10 opening paragraph line 867, S-24 opening paragraph line 1672, and the two bullets of the last section at lines 1842 and 1844",
+    "problem": "The issue references `Metalama.Premium#85` and `Metalama.Premium#86` omit the owner, so they are not the prescribed `owner/repo#NNNN` form and GitHub does not resolve them. The bare `#86` in the opening paragraph of S-24 is worse, because GitHub resolves it against `metalama/Metalama` and names a different issue. The same references are written correctly as `metalama/Metalama.Premium#85` at lines 1793, 1799 and 1806.",
+    "fix": "Write `metalama/Metalama.Premium#85` and `metalama/Metalama.Premium#86` at all four locations. The opening sentence of S-24 becomes \"metalama/Metalama.Premium#85 and metalama/Metalama.Premium#86 aligned Premium with PB-2027.0 and moved its build image to the Visual Studio 2026 build tools.\""
+   },
+   {
+    "location": "Every occurrence of Metalama.Premium in prose (lines 224, 270, 672, 855, 894, 1600, 1614, 1660, 1751, 1763)",
+    "problem": "The document writes `Metalama.Compiler` in backticks in prose at nine places, and writes Metalama.Premium without backticks at every one of its twenty occurrences. The rule that file, property and member names are in backticks is applied to one product name and not to the other.",
+    "fix": "Put Metalama.Premium in backticks wherever it names the repository or the product in prose, so that the two read alike: `Metalama.Premium`. Leave the headings and the `Repositories` metadata as they are, where the form is already `metalama/Metalama.Premium`."
+   },
+   {
+    "location": "Every unlinked occurrence of Directory.Packages.md (lines 68, 184, 393, 412, 735, 758, 774, 1770)",
+    "problem": "The introduction links the three doctrine documents at lines 13 to 15. Afterwards `platform-support.md` and `updating-roslyn.md` are linked at every occurrence, while `Directory.Packages.md` is written in backticks with no link at eight places, so one of the three cited authorities is harder to reach than the other two.",
+    "fix": "Write [`Directory.Packages.md`](../../../Directory.Packages.md) at each of the eight occurrences, matching the form used at line 14."
+   },
+   {
+    "location": "S-24, Context line 1681, Scope line 1692 and Acceptance criteria line 1704",
+    "problem": "\"the docker context\" writes a proper noun in lower case at three places.",
+    "fix": "Write \"the Docker context\" at all three places."
+   },
+   {
+    "location": "S-22, Context, line 1582",
+    "problem": "\"materialising\" is the only occurrence of the -ise form of this verb. The document writes \"materializes\" at line 1282, \"materialization\" at line 1284, \"materialize\" at line 1300 and \"materializing\" at line 1782.",
+    "fix": "Write \"where materializing an override produces a compiler error\"."
+   },
+   {
+    "location": "S-25, Scope, third bullet, line 1746",
+    "problem": "\"our own outputs\" is the only first-person form in the document, which is otherwise impersonal.",
+    "fix": "\"- State that the remaining `net10.0` literals name the outputs of this repository and move only with the embedded Core flavour, so that they are not confused with the .NET SDK pin.\""
+   },
+   {
+    "location": "Introduction, second paragraph, line 9, and S-17, the Findings line at line 1268",
+    "problem": "\"the answers taken by the product owner\" and \"The requirement was taken after the theme documents were written\" use \"take\" for giving an answer and for deciding a requirement, which is not standard English usage and reads as a translation.",
+    "fix": "At line 9, write \"which records the answers that the product owner gave on 2026-09-04\". At line 1268, write \"The requirement was decided after the theme documents were written; the design is\"."
+   },
+   {
+    "location": "D-10, recommendation paragraph, lines 201-202",
+    "problem": "\"wrong when a whole C# 15 suite disappears without anyone noticing\" is figurative and informal.",
+    "fix": "\"That is correct while a variant genuinely cannot serve the version, and wrong when an entire C# 15 suite is skipped and no reader of the build log observes it.\""
+   },
+   {
+    "location": "Already in progress, the four subsections at lines 1784, 1793, 1799 and 1806",
+    "problem": "Each subsection opens with a state label that is a fragment: \"Open.\", \"Open, with a failing build that the pull request body reports as predating the change.\", and \"Recorded as merged on 2026-09-03.\" twice.",
+    "fix": "Open each subsection with a complete sentence: \"This pull request is open.\"; \"This pull request is open, and its build fails for a reason that the pull request body reports as predating the change.\"; \"This pull request is recorded as merged on 2026-09-03.\" for both of the last two."
+   },
+   {
+    "location": "Introduction, the paragraph at lines 17-20",
+    "problem": "The paragraph explains that the issue type, the labels and the milestone are proposals, and it says nothing about the two other metadata fields that every story carries. The `Size` letters S, M and L and the `Blocked by` field are used twenty-five times and are never defined, so a reviewer cannot check them.",
+    "fix": "Append to that paragraph: \"The `Size` field is an estimate of the effort of the pull request, on the small, medium and large scale that the repository already uses. The `Blocked by` field names the stories that must be merged before this one starts, and the Mermaid graph of the next section draws the same relation.\""
+   }
+  ],
+  "notes": "Scope of the pass: every sentence of the 1848 lines was read, the metadata block and the section sequence of all twenty-five stories were checked mechanically, the Mermaid block was parsed by hand, and the document was compared with its siblings in the same directory for spelling convention.\n\nVerified clean, so no edit is proposed for these:\n- No em dash appears anywhere except in the twenty-six prescribed signature lines, which the repository requires in that form. No en dash appears.\n- No contraction, no bold text and no italic text appear anywhere.\n- All twenty-five stories carry the prescribed structure: issue type, labels, milestone, `Repositories`, `Size`, `Blocked by`, `Findings`, a horizontal rule, an opening paragraph, `Context`, `Scope`, `Acceptance criteria` and the signature line. The optional `Not in scope` section is present in seventeen of them. Every story ends with the signature line and no other line follows it.\n- The introduction states the approval rule in its first paragraph: \"It is a draft for approval: no issue has been created, and none is to be created in `metalama/Metalama` or in `metalama/Metalama.Premium` until the product owner approves this document.\" That requirement is satisfied.\n- The Mermaid block is syntactically valid: the fence is `mermaid`, the direction is declared, every node identifier is alphanumeric, every label is quoted, and the five terminal stories are declared as standalone nodes. The only defect is the missing edge reported above.\n- Diagnostic identifiers (`LAMA0051`, `CS8863`, `MSB4062`, `RSEXPERIMENTAL006` and the rest), MSBuild property names, file paths with line numbers, and Roslyn type and member names are in backticks at every occurrence. No acronym beyond SDK, MSBuild and NuGet is used unexpanded, and \"application programming interface\" is spelled out at all fourteen occurrences.\n- Line width is bounded at 118 characters, which matches the other documents of the directory.\n- British spelling (\"behaviour\", \"coloured\", \"recognise\", \"generalise\") is the convention of the sibling theme documents, so it is correct here; only the single \"materialising\" is inconsistent within the document itself.\n\nTwo lower-priority observations that I did not raise to a required edit:\n- The document cites `DECISIONS.md` in two orders, \"recorded in [`DECISIONS.md`](DECISIONS.md) section 1\" at line 53 and \"section 6b of [`DECISIONS.md`](DECISIONS.md)\" at line 162. Both are grammatical; settling on the second form throughout would read better.\n- The `Blocked by` line of S-17 reads \"S-03, S-12, S-16, and decision D-5 for the second half\" with a serial comma, while every other `Blocked by` line omits it. Removing the comma would make the twenty-five lines uniform.\n\nI did not evaluate whether the findings identifiers are complete, whether the stories duplicate existing issues, or whether the blocked_by relations agree with the facts file; those belong to the other two lenses. The one exception is the missing `S12 --> S17` edge, which I report because the graph is part of the style remit and because it contradicts the metadata printed three lines above it."
+ },
+ {
   "path": "/home/user/Metalama/Metalama.Framework/docs/2027.0/04-linker-and-advice.md",
   "included_ids": [
    "LK-1",
