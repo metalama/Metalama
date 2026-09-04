@@ -486,3 +486,42 @@ enabling of C# 15 as a supported language version belongs to the new meta issue,
 that the platform move makes possible.
 
 No issue is created until the stories are approved, which is the standing rule of this analysis.
+
+## 12. The doctrine that decides what C# 15 support must contain
+
+Stated by the product owner on 2026-09-04. It is a general rule of the product, not a decision about this release,
+and a search of `Metalama.Framework/docs` and of `CLAUDE.md` finds it written nowhere, so it is recorded here.
+
+Metalama must be able to advise any user code. Whatever a user writes, and whatever language feature it uses,
+an aspect applied to it must work: the code model must describe it, the pipeline must transform it, the linker must
+emit it, and the design-time result must match the build.
+
+Metalama is not required to expose every new language feature in the advising and introduction interfaces. That an
+aspect can introduce a construct is a separate product decision, taken feature by feature on its merits, and the
+absence of it is a limitation rather than a defect. The four open issues #865, #866, #867 and #869, which ask for
+the introduction of enums, delegates, records and structs, are the standing evidence that the product has always
+worked this way.
+
+### What the doctrine decides for 2027.0
+
+The two halves of the C# 15 work fall on opposite sides of the rule, and the division is not the one that the word
+"unions" suggests.
+
+Required, because a user will write this code and apply an aspect to it: the union in the code model, the
+compile-time and design-time dispatch, the injection and linking of advice applied to a union, the design-time
+partial part, the comparer repairs, the correctness of the pattern and extension libraries on a union, the reading
+of a closed hierarchy, and the handling of labeled statements, collection expression arguments and extension
+indexers in code that an aspect transforms. None of this is deferrable while C# 15 ships, because deferring it does
+not stop the code from existing, it only leaves Metalama crashing or silently wrong when it meets it.
+
+Discretionary, because it adds surface rather than protecting code: the introduction of a union, the introduction of
+a case into a union, and the introduction of a closed class. Sections 5c and 5f put all three in scope, and the
+doctrine does not cancel those decisions. It identifies them as the part of the release that may be moved without
+breaking the promise, and therefore as the first candidate if the scope of 2027.0 has to shrink.
+
+### The consequence for the proposal to move unions to 2027.1
+
+Moving the union work as a whole to 2027.1 is not available under this doctrine, because most of that work is the
+advising path rather than the interface surface. What may move is the introduction interface, which is one large
+story and two medium ones. The saving is real but smaller than the word "unions" suggests, and the difference is
+worth stating before the scope is cut rather than after.
