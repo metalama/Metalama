@@ -495,8 +495,8 @@ inference rather than on a file that was read, the finding says so.
   the `MSBuildExtensionsPath` conflict that two bands produced. No project in the repository targets `net11.0`.
   Outside the documentation and the analysis reports, the only occurrence of the string is the comment of the
   platform test project that explains why the target framework is excluded, namely that the agents have no
-  targeting pack. The Docker scenarios pin .NET SDK 10.0.302
-  as well. On the target framework axis the platform check does admit `net11.0`: the value `11.0` is not greater
+  targeting pack. The Docker scenarios pin .NET SDK 10.0.302 as well. On the target framework axis the platform
+  check does admit `net11.0`: the value `11.0` is not greater
   than `MaximumNETCoreAppVersion`, so `LAMA0600` is not reported. On the .NET SDK axis it does not.
   `_MetalamaSdkVersion` is `$(NETCoreSdkVersion)` with the prerelease suffix removed, and it is compared with
   `[MSBuild]::VersionGreaterThan` against `MaximumSdkVersion`, which is `11.0`. That intrinsic parses both operands
@@ -677,8 +677,8 @@ inference rather than on a file that was read, the finding says so.
   `dotnet/sdk` pins the Roslyn toolset at a 5.12 build of 2026-09-01, which makes the November 2026 baseline a
   Roslyn 5.12 baseline and makes the sentence "Roslyn 5.11 or thereabouts" in
   [`platform-support.md`](../platform-support.md) an understatement. Finally, Roslyn 5.10 is a real version of the
-  product, so the accurate statement is not that Roslyn 5.10 does not exist, but that no
-  stable package of that minor is served by nuget.org and none is expected, which is what matters here, because
+  product, so the accurate statement is not that Roslyn 5.10 does not exist, but that no stable package of that
+  minor is served by nuget.org and none is expected, which is what matters here, because
   `ToNuGetVersionString` names a package that a user machine must restore. Because
   [`platform-support.md`](../platform-support.md) places no Visual Studio below the November 2026 baseline in the
   supported set, the variant identity `5.10.0` will serve no host in PB-2027.0, which is exactly the renumbering
@@ -861,13 +861,14 @@ inference rather than on a file that was read, the finding says so.
 ## Withdrawn findings
 
 No finding of this theme was withdrawn. Every one of the fourteen findings survived the three verification lenses.
-Nine of them were corrected rather than confirmed as written, and each correction is recorded in the verification
-item of the finding it belongs to. The corrections that change a conclusion rather than a detail are these: the
-trigger of LV-1, LV-2, LV-3 and LV-5 moves from the present to the Roslyn 5.12 rebase, because no Roslyn that
-Metalama consumes today knows C# 15; the behaviour matrix cell that said that no `LAMA0601` is reported under the
-.NET 11 SDK is inverted, which turns a coverage gap into a live defect (LV-9); the mechanism attributed to the
-Roslyn 5.0 variant in LV-7 belongs to the shared constant rather than to the variant projects; and the recorded
-cause of the two differing aspect test baselines in LV-13 is withdrawn for want of evidence.
+Twelve of them were corrected in at least one respect rather than confirmed as written, and each correction is
+recorded in the verification item of the finding it belongs to. The corrections that change a conclusion rather
+than a detail are these: the trigger of LV-1, LV-2, LV-3 and LV-5 moves from the present to the Roslyn 5.12
+rebase, because no Roslyn that Metalama consumes today knows C# 15; the behaviour matrix cell that said that no
+`LAMA0601` is reported under the .NET 11 SDK is inverted, which turns a coverage gap into a live defect (LV-9);
+the mechanism attributed to the Roslyn 5.0 variant in LV-7 belongs to the shared constant rather than to the
+variant projects; and the recorded cause of the two differing aspect test baselines in LV-13 is withdrawn for want
+of evidence.
 
 ## Non-findings
 
