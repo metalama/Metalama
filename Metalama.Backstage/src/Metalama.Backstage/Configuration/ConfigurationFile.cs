@@ -9,7 +9,7 @@ using System.Text.Json.Serialization;
 namespace Metalama.Backstage.Configuration;
 
 [PublicAPI]
-public abstract record ConfigurationFile
+public abstract record ConfigurationFile : ConfigurationObject
 {
     private DateTime? _fileSystemTimestamp;
 
