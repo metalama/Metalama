@@ -13,6 +13,8 @@ using Metalama.Framework.DesignTime.VisualStudio.DiagnosticAnalysis;
 using Metalama.Framework.DesignTime.VisualStudio.DiagnosticSuppressing;
 using Metalama.Framework.DesignTime.VisualStudio.SourceGenerating;
 using System;
+using System.Linq;
+using System.Reflection;
 using Xunit;
 
 namespace Metalama.Framework.Tests.UnitTests.DesignTime;
@@ -35,8 +37,36 @@ public sealed class TestRoslynEntryPointTypeNames
     [InlineData( RoslynEntryPointTypeNames.VsCodeFixProvider, typeof(VsCodeFixProvider) )]
     [InlineData( RoslynEntryPointTypeNames.RiderCodeFixProvider, typeof(RiderCodeFixProvider) )]
     [InlineData( RoslynEntryPointTypeNames.TheCodeFixProvider, typeof(TheCodeFixProvider) )]
+    [InlineData( RoslynEntryPointTypeNames.VsCodeRefactoringProvider, typeof(VsCodeRefactoringProvider) )]
+    [InlineData( RoslynEntryPointTypeNames.RiderCodeRefactoringProvider, typeof(RiderCodeRefactoringProvider) )]
+    [InlineData( RoslynEntryPointTypeNames.TheCodeRefactoringProvider, typeof(TheCodeRefactoringProvider) )]
     public void TestConstant( string constantValue, Type type )
     {
         Assert.Equal( type.FullName, constantValue );
+    }
+
+    /// <summary>
+    /// Tests that every type name constant of <see cref="RoslynEntryPointTypeNames"/> is covered by a row of <see cref="TestConstant"/>,
+    /// so that a new entry point cannot be added without being compared with the full name of the real type.
+    /// </summary>
+    [Fact]
+    public void TestAllConstantsAreCovered()
+    {
+        var constants = typeof(RoslynEntryPointTypeNames)
+            .GetFields( BindingFlags.Public | BindingFlags.Static )
+            .Where( f => f.IsLiteral && f.FieldType == typeof(string) )
+            .Where( f => f.Name != nameof(RoslynEntryPointTypeNames.DesignTimeAssemblyName) )
+            .Select( f => (string) f.GetRawConstantValue()! )
+            .OrderBy( n => n, StringComparer.Ordinal )
+            .ToArray();
+
+        var testMethod = typeof(TestRoslynEntryPointTypeNames).GetMethod( nameof(this.TestConstant) )!;
+
+        var testedConstants = testMethod.GetCustomAttributes<InlineDataAttribute>()
+            .Select( a => (string) a.GetData( testMethod ).Single()[0]! )
+            .OrderBy( n => n, StringComparer.Ordinal )
+            .ToArray();
+
+        Assert.Equal( constants, testedConstants );
     }
 }
