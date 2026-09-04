@@ -53,8 +53,8 @@ public sealed class ConfigurationManagerUnknownMemberTests : TestsBase
         Assert.Equal( 1, (int) finalDocument["Counter"]! );
 
         // Every member that the running version does not declare is still there.
-        UnknownMemberJson.AssertUnknownMembersPreserved( initialDocument, finalDocument );
-        Assert.True( UnknownMemberJson.CountUnknownMembers( initialDocument ) > 0 );
+        UnknownJsonMemberHelper.AssertUnknownMembersPreserved( initialDocument, finalDocument );
+        Assert.True( UnknownJsonMemberHelper.CountUnknownMembers( initialDocument ) > 0 );
     }
 
     [Fact]
@@ -70,7 +70,7 @@ public sealed class ConfigurationManagerUnknownMemberTests : TestsBase
             var document = this.ReadFile<NestedTestConfigurationFile>( configurationManager );
 
             Assert.Equal( i, (int) document["Counter"]! );
-            UnknownMemberJson.AssertUnknownMembersPreserved( initialDocument, document );
+            UnknownJsonMemberHelper.AssertUnknownMembersPreserved( initialDocument, document );
         }
     }
 
@@ -90,7 +90,7 @@ public sealed class ConfigurationManagerUnknownMemberTests : TestsBase
         var finalDocument = this.ReadFile<ToastNotificationsConfiguration>( configurationManager );
 
         Assert.Equal( snoozeUntil, finalDocument["lastNotificationTime"]!.GetValue<DateTime>() );
-        UnknownMemberJson.AssertUnknownMembersPreserved( initialDocument, finalDocument );
+        UnknownJsonMemberHelper.AssertUnknownMembersPreserved( initialDocument, finalDocument );
     }
 
     [Fact]
@@ -122,7 +122,7 @@ public sealed class ConfigurationManagerUnknownMemberTests : TestsBase
     private JsonObject WriteFileWithUnknownMembers<T>( Configuration.ConfigurationManager configurationManager )
         where T : ConfigurationFile, new()
     {
-        var document = UnknownMemberJson.CreateDocumentWithUnknownMembers( typeof(T), this._jsonOptions );
+        var document = UnknownJsonMemberHelper.CreateDocumentWithUnknownMembers( typeof(T), this._jsonOptions );
         Assert.NotNull( document );
 
         var path = configurationManager.GetFilePath<T>();

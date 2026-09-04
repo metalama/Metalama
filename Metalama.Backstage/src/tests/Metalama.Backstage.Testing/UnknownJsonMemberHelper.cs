@@ -27,7 +27,7 @@ namespace Metalama.Backstage.Testing;
 /// declared type.
 /// </remarks>
 [PublicAPI]
-public static class UnknownMemberJson
+public static class UnknownJsonMemberHelper
 {
     /// <summary>
     /// The prefix of the name of every member that this class adds. No version of Metalama declares a member with

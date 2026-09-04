@@ -68,7 +68,7 @@ public sealed class UnknownConfigurationMemberTests
                 continue;
             }
 
-            var document = UnknownMemberJson.CreateDocumentWithUnknownMembers( type, this._jsonOptions );
+            var document = UnknownJsonMemberHelper.CreateDocumentWithUnknownMembers( type, this._jsonOptions );
 
             if ( document == null )
             {
@@ -87,8 +87,8 @@ public sealed class UnknownConfigurationMemberTests
 
             var roundTripped = JsonNode.Parse( JsonSerializer.Serialize( deserialized, type, this._jsonOptions ) );
 
-            UnknownMemberJson.AssertUnknownMembersPreserved( document, roundTripped );
-            Assert.True( UnknownMemberJson.CountUnknownMembers( document ) > 0 );
+            UnknownJsonMemberHelper.AssertUnknownMembersPreserved( document, roundTripped );
+            Assert.True( UnknownJsonMemberHelper.CountUnknownMembers( document ) > 0 );
 
             testedTypes++;
         }

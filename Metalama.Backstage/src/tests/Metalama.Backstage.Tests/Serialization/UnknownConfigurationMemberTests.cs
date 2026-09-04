@@ -59,7 +59,7 @@ public sealed class UnknownConfigurationMemberTests : JsonSerializationTestsBase
                 continue;
             }
 
-            var document = UnknownMemberJson.CreateDocumentWithUnknownMembers( type, this.JsonOptions );
+            var document = UnknownJsonMemberHelper.CreateDocumentWithUnknownMembers( type, this.JsonOptions );
 
             if ( document == null )
             {
@@ -78,8 +78,8 @@ public sealed class UnknownConfigurationMemberTests : JsonSerializationTestsBase
 
             var roundTripped = JsonNode.Parse( this.JsonService.Serialize( deserialized, type ) );
 
-            UnknownMemberJson.AssertUnknownMembersPreserved( document, roundTripped );
-            Assert.True( UnknownMemberJson.CountUnknownMembers( document ) > 0 );
+            UnknownJsonMemberHelper.AssertUnknownMembersPreserved( document, roundTripped );
+            Assert.True( UnknownJsonMemberHelper.CountUnknownMembers( document ) > 0 );
 
             testedTypes++;
         }
@@ -123,7 +123,7 @@ public sealed class UnknownConfigurationMemberTests : JsonSerializationTestsBase
         var roundTripped = JsonNode.Parse( this.JsonService.Serialize( deserialized, typeof(TelemetryConfiguration) ) );
         this.Output.WriteLine( roundTripped!.ToJsonString( new JsonSerializerOptions { WriteIndented = true } ) );
 
-        UnknownMemberJson.AssertUnknownMembersPreserved( document, roundTripped );
+        UnknownJsonMemberHelper.AssertUnknownMembersPreserved( document, roundTripped );
 
         // The known member must still be read.
         Assert.Equal( TelemetryConsent.Yes, deserialized.ExceptionConsent );
@@ -154,7 +154,7 @@ public sealed class UnknownConfigurationMemberTests : JsonSerializationTestsBase
         var roundTripped = JsonNode.Parse( this.JsonService.Serialize( deserialized, typeof(ToastNotificationsConfiguration) ) );
         this.Output.WriteLine( roundTripped!.ToJsonString( new JsonSerializerOptions { WriteIndented = true } ) );
 
-        UnknownMemberJson.AssertUnknownMembersPreserved( document, roundTripped );
+        UnknownJsonMemberHelper.AssertUnknownMembersPreserved( document, roundTripped );
 
         Assert.True( deserialized.Notifications["notification1"].Disabled );
     }
