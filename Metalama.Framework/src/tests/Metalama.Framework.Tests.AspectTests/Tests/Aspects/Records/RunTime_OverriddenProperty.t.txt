@@ -1,0 +1,10 @@
+Equals:
+  result: True
+GetHashCode:
+  equal instances have the same hash code: True
+ToString:
+  (the getter of X runs)
+  result: Transformed { X = 1 }
+Deconstruct:
+  (the getter of X runs)
+  result: 1

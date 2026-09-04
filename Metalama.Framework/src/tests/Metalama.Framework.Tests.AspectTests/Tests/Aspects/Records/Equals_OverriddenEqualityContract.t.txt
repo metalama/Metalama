@@ -1,0 +1,4 @@
+Equals:
+  (the getter of EqualityContract runs)
+  (the getter of EqualityContract runs)
+  result: True

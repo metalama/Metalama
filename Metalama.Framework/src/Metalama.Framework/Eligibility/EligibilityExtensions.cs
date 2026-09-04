@@ -589,6 +589,17 @@ public static partial class EligibilityExtensions
             m => $"{m} must be explicitly declared" );
 
     /// <summary>
+    /// Requires the target member to be one whose explicit declaration can be written in source code, as determined by
+    /// <see cref="MemberExtensions.CanBeDeclaredExplicitly"/>. Unlike <see cref="MustBeExplicitlyDeclared"/>, this rule
+    /// accepts a compiler-generated member as long as the same member could have been declared in source code.
+    /// </summary>
+    /// <param name="eligibilityBuilder">The eligibility builder for a member.</param>
+    public static void MustBeDeclarableExplicitly( this IEligibilityBuilder<IMember> eligibilityBuilder )
+        => eligibilityBuilder.MustSatisfy(
+            m => m.CanBeDeclaredExplicitly(),
+            m => $"{m} must be a member that can be declared explicitly in source code" );
+
+    /// <summary>
     /// Forbids the target field, property, or indexer from being <c>ref</c> or <c>ref readonly</c>.
     /// </summary>
     /// <param name="eligibilityBuilder">The eligibility builder for a field, property, or indexer.</param>
