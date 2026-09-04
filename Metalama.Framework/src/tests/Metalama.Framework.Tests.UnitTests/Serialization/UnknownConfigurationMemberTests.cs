@@ -53,7 +53,7 @@ public sealed class UnknownConfigurationMemberTests
             "The following types are serialized into a configuration file and declare no member annotated with "
             + "JsonExtensionDataAttribute, so a version that does not know a member of the file removes it:"
             + Environment.NewLine
-            + string.Join( Environment.NewLine, typesWithoutExtensionData.Select( t => "  " + t.FullName ) ) );
+            + string.Join( Environment.NewLine, typesWithoutExtensionData.SelectAsArray( t => "  " + t.FullName ) ) );
     }
 
     [Fact]
