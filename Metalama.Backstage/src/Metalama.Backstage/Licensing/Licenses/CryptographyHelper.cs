@@ -147,5 +147,125 @@ namespace Metalama.Backstage.Licensing.Licenses
 
             return parameters;
         }
+
+        /// <summary>
+        /// Gets the name of the root element of the XML representation of a key, which identifies the signature
+        /// algorithm of that key.
+        /// </summary>
+        /// <param name="xmlString">The XML representation of a key.</param>
+        /// <returns>The name of the root element of <paramref name="xmlString"/>.</returns>
+        public static string GetKeyRootElementName( string xmlString )
+        {
+            var xmlDoc = new XmlDocument();
+            xmlDoc.LoadXml( xmlString );
+
+            return xmlDoc.DocumentElement!.Name;
+        }
+
+        public static ECDsa CreateECDsaFromXml( string xml ) => CreateECDsaFromParameters( ParseECDsaParameters( xml ) );
+
+        private static ECDsa CreateECDsaFromParameters( ECParameters parameters )
+        {
+#if NET472 || NET5_0_OR_GREATER
+            var ecdsa = ECDsa.Create( parameters );
+#else
+            var ecdsa = ECDsa.Create();
+            ecdsa.ImportParameters( parameters );
+#endif
+
+            return ecdsa;
+        }
+
+        /// <summary>
+        /// Reconstructs the parameters of an Elliptic Curve DSA key from an XML string.
+        /// </summary>
+        /// <param name="xmlString">The XML representation of the key, whose root element is <c>ECDSAKeyValue</c>, and whose
+        /// children are the friendly name of the curve, the two coordinates of the public point, and, for a private key,
+        /// the private value.</param>
+        /// <returns>The parameters of the key.</returns>
+        /// <remarks>
+        /// The key is parsed by hand, as the finite field DSA keys are, because the method that imports a public key in the
+        /// SubjectPublicKeyInfo format, <c>ImportSubjectPublicKeyInfo</c>, is unavailable on the .NET Standard 2.0 and
+        /// .NET Framework 4.7.2 targets of this assembly. The curve is resolved
+        /// by mapping its name explicitly, and not through <see cref="ECCurve.CreateFromFriendlyName"/>, whose behavior
+        /// differs between platforms.
+        /// </remarks>
+        private static ECParameters ParseECDsaParameters( string xmlString )
+        {
+            var parameters = default(ECParameters);
+
+            var xmlDoc = new XmlDocument();
+            xmlDoc.LoadXml( xmlString );
+
+            if ( !xmlDoc.DocumentElement!.Name.Equals( "ECDSAKeyValue", StringComparison.Ordinal ) )
+            {
+                throw new ArgumentException( "Invalid XML Elliptic Curve DSA key.", nameof(xmlString) );
+            }
+
+            var missingNodes = new HashSet<string> { "Curve", "X", "Y" };
+            var point = default(ECPoint);
+
+            foreach ( XmlNode? node in xmlDoc.DocumentElement.ChildNodes )
+            {
+                if ( node == null )
+                {
+                    throw new ArgumentException( "Invalid key. Document contains null nodes.", nameof(xmlString) );
+                }
+
+                switch ( node.Name )
+                {
+                    case "Curve":
+                        parameters.Curve = GetNamedCurve( node.InnerText, nameof(xmlString) );
+                        missingNodes.Remove( node.Name );
+
+                        break;
+
+                    case "X":
+                        point.X = Convert.FromBase64String( node.InnerText );
+                        missingNodes.Remove( node.Name );
+
+                        break;
+
+                    case "Y":
+                        point.Y = Convert.FromBase64String( node.InnerText );
+                        missingNodes.Remove( node.Name );
+
+                        break;
+
+                    // D is present in a private key only.
+                    case "D":
+                        parameters.D = Convert.FromBase64String( node.InnerText );
+
+                        break;
+
+                    default:
+                        throw new ArgumentException( $"Invalid key. Unknown node: {node.Name}", nameof(xmlString) );
+                }
+            }
+
+            if ( missingNodes.Count != 0 )
+            {
+                throw new ArgumentException(
+                    $"Invalid XML Elliptic Curve DSA key. Missing nodes: {string.Join( ", ", missingNodes )}",
+                    nameof(xmlString) );
+            }
+
+            parameters.Q = point;
+
+            return parameters;
+        }
+
+        /// <summary>
+        /// Gets the curve of a given name.
+        /// </summary>
+        /// <param name="name">The friendly name of the curve.</param>
+        /// <param name="parameterName">The name of the parameter that the name of the curve was read from.</param>
+        /// <returns>The curve named <paramref name="name"/>.</returns>
+        private static ECCurve GetNamedCurve( string name, string parameterName )
+            => name switch
+            {
+                "nistP256" => ECCurve.NamedCurves.nistP256,
+                _ => throw new ArgumentException( $"Invalid key. Unknown curve: {name}", parameterName )
+            };
     }
 }

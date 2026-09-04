@@ -96,10 +96,12 @@ namespace Metalama.Backstage.Licensing.Licenses
             }
 #pragma warning restore CS0618
 
-            if ( licenseKeyData.SignatureKeyId is 0 or 1
+            if ( licenseKeyData.SignatureKeyId is 0 or 1 or ProductionLicensingAuthorityProvider.SigningKeyId
                  && (licenseKeyData is { LicenseId: not 0 and not 22 and < 100 } || RevokedLicenseKeys.Ids.Contains( licenseKeyData.LicenseId )) )
             {
-                // We use these keys to test the LicensingAuthority.
+                // The rule covers every production key, including the Elliptic Curve DSA key, so that a revoked license
+                // cannot be reissued under another key. The license identifiers below 100 are used to test the
+                // licensing authority.
                 errorMessage = "the license key has been revoked";
 
                 return false;

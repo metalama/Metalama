@@ -3,54 +3,58 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using JetBrains.Annotations;
-using System.Security.Cryptography;
+using System;
 
 namespace Metalama.Backstage.Licensing.Licenses;
-
-// Allow weak cryptography
-#pragma warning disable CA5384, CA5350, CA5351
 
 /// <summary>
 /// Signs a license key with a single key of the licensing authority, and verifies a signature created with that key.
 /// </summary>
 /// <remarks>
-/// An instance of this class holds a <see cref="DSA"/> object. It is created by an
-/// <see cref="ILicensingAuthorityProvider"/>, which creates it only when it is required, because the constructor of
-/// the <see cref="DSA"/> object throws on a platform where finite field DSA is unavailable.
+/// <para>
+/// There are two implementations, one for each signature algorithm. <see cref="DsaLicensingAuthority"/> signs with
+/// finite field DSA and is the algorithm of every license key issued until 2026. <see cref="ECDsaLicensingAuthority"/>
+/// signs with Elliptic Curve DSA and is the algorithm of the license keys issued afterwards. The identifier of the key
+/// selects the implementation, because the two sets of identifiers are disjoint.
+/// </para>
+/// <para>
+/// An instance of this class holds the cryptographic key object. It is created by an
+/// <see cref="ILicensingAuthorityProvider"/>, which creates it only when it is required, because the constructor of a
+/// finite field DSA key throws on a platform where that algorithm is unavailable.
+/// </para>
 /// </remarks>
 [PublicAPI( "Use in the license generator web and API." )]
-public sealed class LicensingAuthority
+public abstract class LicensingAuthority
 {
-    private static readonly SHA1 _sha1 = SHA1.Create();
-
-    // Sharing the DSA object and locking is much faster than having several instances of the DSA object for the same key.
-    private readonly DSA _key;
-
-    internal LicensingAuthority( byte keyId, DSA key )
+    /// <summary>
+    /// Initializes a new instance of the <see cref="LicensingAuthority"/> class.
+    /// </summary>
+    /// <param name="keyId">The identifier of the key.</param>
+    private protected LicensingAuthority( byte keyId )
     {
         this.KeyId = keyId;
-        this._key = key;
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="LicensingAuthority"/> class from a key represented in XML.
+    /// Creates the authority of a key given in its XML representation, choosing the implementation from the root
+    /// element of that representation.
     /// </summary>
     /// <param name="keyId">The identifier of the key.</param>
     /// <param name="key">The XML representation of the key. A private key signs and verifies, a public key only verifies.</param>
-    public LicensingAuthority( int keyId, string key ) : this( checked((byte) keyId), CryptographyHelper.CreateDsaFromXml( key ) ) { }
+    /// <returns>The authority of the key.</returns>
+    /// <exception cref="ArgumentException">The root element of <paramref name="key"/> is neither <c>DSAKeyValue</c> nor <c>ECDSAKeyValue</c>.</exception>
+    internal static LicensingAuthority Create( byte keyId, string key )
+        => CryptographyHelper.GetKeyRootElementName( key ) switch
+        {
+            "DSAKeyValue" => new DsaLicensingAuthority( keyId, key ),
+            "ECDSAKeyValue" => new ECDsaLicensingAuthority( keyId, key ),
+            var name => throw new ArgumentException( $"Invalid key. Unknown root element: {name}", nameof(key) )
+        };
 
     /// <summary>
     /// Gets the identifier of the key of the current authority.
     /// </summary>
     internal byte KeyId { get; }
-
-    private static byte[] GetHash( byte[] message )
-    {
-        lock ( _sha1 )
-        {
-            return _sha1.ComputeHash( message );
-        }
-    }
 
     /// <summary>
     /// Verifies the signature of a message.
@@ -58,22 +62,12 @@ public sealed class LicensingAuthority
     /// <param name="message">The message.</param>
     /// <param name="signature">The signature of <paramref name="message"/>, created with the private key of the current authority.</param>
     /// <returns><c>true</c> if the signature is valid, otherwise <c>false</c>.</returns>
-    internal bool VerifySignature( byte[] message, byte[] signature )
-    {
-        lock ( this._key )
-        {
-            return this._key.VerifySignature( GetHash( message ), signature );
-        }
-    }
+    internal abstract bool VerifySignature( byte[] message, byte[] signature );
 
     /// <summary>
     /// Signs a message.
     /// </summary>
-    internal void Sign( byte[] message, out byte[] signature )
-    {
-        lock ( this._key )
-        {
-            signature = this._key.CreateSignature( GetHash( message ) );
-        }
-    }
+    /// <param name="message">The message.</param>
+    /// <param name="signature">At output, the signature of <paramref name="message"/>.</param>
+    internal abstract void Sign( byte[] message, out byte[] signature );
 }
