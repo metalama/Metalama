@@ -13,7 +13,8 @@ namespace Metalama.Backstage.Licensing.Licenses;
 /// </summary>
 /// <remarks>
 /// The license key generator uses this provider to verify the signature that it has just created, with the same
-/// private key as the one it signed with.
+/// private key as the one it signed with. The implementation of the authority of a key is chosen from the root element
+/// of the XML representation of that key, and not from its identifier, because the identifiers are arbitrary here.
 /// </remarks>
 [PublicAPI( "Use in the license generator web and API." )]
 public sealed class ExplicitLicensingAuthorityProvider : LicensingAuthorityProvider
@@ -33,5 +34,5 @@ public sealed class ExplicitLicensingAuthorityProvider : LicensingAuthorityProvi
     }
 
     /// <inheritdoc />
-    protected override LicensingAuthority CreateAuthority( byte keyId ) => new( keyId, this._keys[keyId] );
+    protected override LicensingAuthority CreateAuthority( byte keyId ) => LicensingAuthority.Create( keyId, this._keys[keyId] );
 }
