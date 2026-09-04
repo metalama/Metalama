@@ -16,6 +16,10 @@ using System;
 using System.IO;
 using MetalamaDependencies = PostSharp.Engineering.BuildTools.Dependencies.Definitions.MetalamaDependencies.V2027_0;
 
+// The only .NET SDK that the build agent installs and that global.json pins. The version comes from the product
+// family, so that it matches the feature band that the Visual Studio version of the family installs.
+var dotNetSdkVersion = MetalamaDependencies.Family.PreferredVersions.DotNetSdk.V_10_0;
+
 var product = new Product( MetalamaDependencies.Metalama )
 {
     BuildTimeout = TimeSpan.FromMinutes( 60 ),
@@ -24,11 +28,8 @@ var product = new Product( MetalamaDependencies.Metalama )
         Components =
         [
             // Must match global.json. Since .NET 8 and .NET 9 were dropped, this is the only .NET SDK that the
-            // product and the tests require.
-            new DotNetComponent( PreferredVersions.DotNetSdk.V_10_0, DotNetComponentKind.Sdk ),
-
-            // Required by this project, which targets net9.0. No product project targets net9.0 any more.
-            new DotNetComponent( PreferredVersions.DotNetSdk.V_9_0, DotNetComponentKind.Sdk ),
+            // product, this project and the tests require.
+            new DotNetComponent( dotNetSdkVersion, DotNetComponentKind.Sdk ),
 
             // Required by some tests.
             new VisualStudioBuildToolsComponent(
@@ -49,7 +50,7 @@ var product = new Product( MetalamaDependencies.Metalama )
             new AzureCliComponent()
         ]
     },
-    DotNetSdkVersion = new DotNetSdkVersion( PreferredVersions.DotNetSdk.V_10_0 ) { AllowPrerelease = true },
+    DotNetSdkVersion = new DotNetSdkVersion( dotNetSdkVersion ),
     GenerateNuGetConfig = true,
     MSBuildVersion = new Version( 17, 14 ),
     Solutions =

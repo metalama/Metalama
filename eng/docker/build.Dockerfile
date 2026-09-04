@@ -33,31 +33,6 @@ RUN Invoke-WebRequest -Uri https://github.com/PowerShell/PowerShell/releases/dow
 ENV PATH="C:\Program Files\PowerShell\7;${PATH}"
 
 
-# Download .NET Installer
-RUN Invoke-WebRequest -Uri https://dot.net/v1/dotnet-install.ps1 -OutFile dotnet-install.ps1
-
-# Add .NET to PATH using ENV directive (persists across shell switches)
-ENV PATH="C:\Program Files\dotnet;${PATH}"
-
-
-# Install .NET Sdk 8.0.417
-RUN & .\dotnet-install.ps1 -Version 8.0.417 -InstallDir 'C:\Program Files\dotnet'
-
-
-# Install .NET Sdk 9.0.310
-RUN & .\dotnet-install.ps1 -Version 9.0.310 -InstallDir 'C:\Program Files\dotnet'
-
-
-# Install .NET Sdk 10.0.102
-RUN & .\dotnet-install.ps1 -Version 10.0.102 -InstallDir 'C:\Program Files\dotnet'
-
-
-# .NET Dump Tool
-RUN dotnet tool install --global dotnet-dump;
-
-ENV PATH="C:\Users\ContainerAdministrator\.dotnet\tools;${PATH}"
-
-
 # Install Azure CLI
 RUN Invoke-WebRequest -Uri https://aka.ms/installazurecliwindowsx64 -OutFile AzureCLI.msi; `
     $process = Start-Process msiexec.exe -Wait -PassThru -ArgumentList '/I AzureCLI.msi /quiet'; `
@@ -65,6 +40,23 @@ RUN Invoke-WebRequest -Uri https://aka.ms/installazurecliwindowsx64 -OutFile Azu
     Remove-Item AzureCLI.msi
 
 ENV PATH="C:\Program Files\Microsoft SDKs\Azure\CLI2\wbin;${PATH}"
+
+
+# Download .NET Installer
+RUN Invoke-WebRequest -Uri https://dot.net/v1/dotnet-install.ps1 -OutFile dotnet-install.ps1
+
+# Add .NET to PATH using ENV directive (persists across shell switches)
+ENV PATH="C:\Program Files\dotnet;${PATH}"
+
+
+# Install .NET Sdk 10.0.400
+RUN & .\dotnet-install.ps1 -Version 10.0.400 -InstallDir 'C:\Program Files\dotnet'
+
+
+# .NET Dump Tool
+RUN dotnet tool install --global dotnet-dump;
+
+ENV PATH="C:\Users\ContainerAdministrator\.dotnet\tools;${PATH}"
 
 
 # Epilogue
