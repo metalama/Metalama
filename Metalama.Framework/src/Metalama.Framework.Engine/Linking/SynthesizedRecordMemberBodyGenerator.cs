@@ -624,6 +624,88 @@ internal static class SynthesizedRecordMemberBodyGenerator
     }
 
     /// <summary>
+    /// Determines whether the generated body of <c>Equals</c> and <c>GetHashCode</c> reads the value that the backing field of
+    /// a property holds when it reads the property itself.
+    /// </summary>
+    /// <remarks>
+    /// A property declared with the <c>field</c> keyword has a compiler-generated backing field and a getter that can compute
+    /// any value from it, whereas the C# compiler compares the backing field. The getter returns the backing field unchanged
+    /// when it is automatic, and when its body reads <c>field</c> and nothing else.
+    /// </remarks>
+    public static bool GetterReadsBackingField( IPropertySymbol property )
+    {
+        if ( property.GetPropertyKind() != PropertyKind.SemiAuto )
+        {
+            // The getter of an automatic property is the backing field. A property without a backing field is not concerned.
+            return true;
+        }
+
+        // A property that has no getter at all is reported too, so that the reason is stated before the C# compiler reports
+        // that the generated body reads a property that cannot be read.
+        var getterSyntax = property.GetMethod?.GetPrimaryDeclarationSyntax();
+
+        if ( getterSyntax is { SyntaxKind: SyntaxKind.GetAccessorDeclaration } and AccessorDeclarationSyntax { Body: null, ExpressionBody: null } )
+        {
+            // An automatic getter is the backing field.
+            return true;
+        }
+
+        return GetReturnedExpression( getterSyntax ) is { SyntaxKind: SyntaxKind.FieldExpression };
+    }
+
+    /// <summary>
+    /// Gets the single expression that a getter returns, whatever form its declaration takes, or <c>null</c> when there is no
+    /// getter and when its body does more than return an expression.
+    /// </summary>
+    private static ExpressionSyntax? GetReturnedExpression( SyntaxNode? getterSyntax )
+        => getterSyntax switch
+        {
+            { SyntaxKind: SyntaxKind.GetAccessorDeclaration } and AccessorDeclarationSyntax accessor
+                => accessor.ExpressionBody?.Expression
+                   ?? (accessor.Body?.Statements is [{ SyntaxKind: SyntaxKind.ReturnStatement } and ReturnStatementSyntax returnStatement]
+                       ? returnStatement.Expression
+                       : null),
+            { SyntaxKind: SyntaxKind.ArrowExpressionClause } and ArrowExpressionClauseSyntax arrowExpressionClause => arrowExpressionClause.Expression,
+            { SyntaxKind: SyntaxKind.PropertyDeclaration } and PropertyDeclarationSyntax propertyDeclaration => propertyDeclaration.ExpressionBody
+                ?.Expression,
+            _ => null
+        };
+
+    /// <summary>
+    /// Gets the field-like events of a record whose backing field the generated body of <c>Equals</c> and <c>GetHashCode</c>
+    /// cannot read.
+    /// </summary>
+    /// <param name="type">The record type.</param>
+    /// <param name="hasReadableBackingField">
+    /// Determines whether the backing field of an event can be read from generated source, either under the name of the event
+    /// itself or under the name of the field that the linker emits for it.
+    /// </param>
+    /// <remarks>
+    /// An aspect that overrides a field-like event with templates that do not call the original implementation leaves the
+    /// event with no backing field, and the name of the event then binds to the event rather than to a field.
+    /// </remarks>
+    public static IReadOnlyList<IEventSymbol> GetEventFieldsWithoutReadableBackingField(
+        INamedTypeSymbol type,
+        Predicate<IEventSymbol> hasReadableBackingField )
+    {
+        List<IEventSymbol>? events = null;
+
+        foreach ( var member in type.GetMembers() )
+        {
+            if ( member.Kind == SymbolKind.Event
+                 && member is IEventSymbol { IsStatic: false, ExplicitInterfaceImplementations.IsEmpty: true } @event
+                 && @event.IsEventField() == true
+                 && !hasReadableBackingField( @event ) )
+            {
+                events ??= [];
+                events.Add( @event );
+            }
+        }
+
+        return (IReadOnlyList<IEventSymbol>?) events ?? [];
+    }
+
+    /// <summary>
     /// Creates the description of the backing field of a field-like event. Inside the declaring type, the name of the event
     /// binds to that field, unless the linker replaces the event by a private event that carries the field.
     /// </summary>

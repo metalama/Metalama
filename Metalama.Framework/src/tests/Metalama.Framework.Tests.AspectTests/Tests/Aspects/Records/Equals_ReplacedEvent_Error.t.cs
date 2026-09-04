@@ -1,0 +1,2 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0655 on `Changed`: `The original implementation of 'Target.Equals(Target?)' generated for record 'Target' reads the backing field of the field-like event 'Target.Changed', which the event no longer has. An aspect overrides the event with templates that do not call the original implementation, so the linker replaces the event by one that stores no handler and the generated body cannot be compiled. Call 'meta.Proceed()' in the templates that override the event.`
