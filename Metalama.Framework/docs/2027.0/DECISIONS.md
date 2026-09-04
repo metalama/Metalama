@@ -461,3 +461,22 @@ divergence rather than for withholding the feature.
 
 Introducing a union remains governed by section 5c and is a separate and much larger piece of work, because a union
 is not a class with one more modifier.
+
+## 11. The stories are grouped under a new meta issue, "C# 15 Support"
+
+Stated by the product owner on 2026-09-04. The stories of this analysis become sub-issues of a new meta issue
+titled "C# 15 Support", which is created when the stories are approved. It is a sibling of the existing meta issue
+#1921, ".NET 11 Support", which groups the platform work and already carries sixteen sub-issues of which thirteen
+are closed.
+
+The division between the two follows the subject rather than the schedule. A story about the language, that is the
+C# 15 language version, unions, closed hierarchies, extension indexers, the template restrictions and the syntax
+model, belongs to the new meta issue. A story about the platform, that is a target framework, a software
+development kit, a Visual Studio version, a package version or a Roslyn variant, belongs to #1921.
+
+Two stories sit on the boundary and are assigned deliberately. The move of the latest Roslyn variant to the stable
+5.12 belongs to #1921, because it is a platform move whose motivation happens to be a language feature. The
+enabling of C# 15 as a supported language version belongs to the new meta issue, because it is the language change
+that the platform move makes possible.
+
+No issue is created until the stories are approved, which is the standing rule of this analysis.
