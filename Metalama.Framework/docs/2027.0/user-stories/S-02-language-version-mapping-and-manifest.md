@@ -1,4 +1,4 @@
-### S-02. Language version: display mapping and compile-time manifest fallbacks
+### S-02. Language version: the unsupported-version diagnostics crash instead of naming the version
 
 - Issue type: Bug
 - Labels: `bug`, `Area-Framework`

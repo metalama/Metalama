@@ -311,7 +311,7 @@ same time.
    unions in target code, which is a meta-story whose six sub-stories run in the order S-18-1 to S-18-6 and are
    merged as one stack of pull requests. S-18 is the second exception to the rule that a large story comes late: it
    is the largest required piece of the release, and its first sub-story is the surface that the rest consume, so it
-   cannot start late. Then S-19, the rejection of labels in templates, S-20, the experimental syntax guard, and S-21,
+   cannot start late. Then S-19, the rejection of labels in templates, S-20, the collection expression arguments in templates, and S-21,
    extension indexers, which are independent of the union work and can run beside it.
 7. The required work of `Metalama.Premium`. S-22, the execution of the Roslyn 5.0.0 variant of the `Metalama.Premium`
    engines, is large and blocked by nothing, so it sits here rather than earlier. S-23, the `Metalama.Premium`
@@ -391,10 +391,10 @@ graph TD
 
 | Story | Title | Size | Repositories | Blocked by |
 | --- | --- | --- | --- | --- |
-| [S-01](S-01-langversion-clamp-and-sdk-ceiling.md) | Build: LangVersion clamp and .NET SDK ceiling comparison | S | `metalama/Metalama` | nothing |
-| [S-02](S-02-language-version-mapping-and-manifest.md) | Language version: display mapping and compile-time manifest fallbacks | S | `metalama/Metalama` | nothing |
-| [S-03](S-03-remove-previous-baseline-residue.md) | Build: residue of the previous platform baseline | S | `metalama/Metalama` | nothing |
-| [S-04](S-04-refactoring-provider-entry-points.md) | Design time: code refactoring provider entry points | S | `metalama/Metalama` | nothing |
+| [S-01](S-01-langversion-clamp-and-sdk-ceiling.md) | Build: a `net11.0` project is silently compiled as C# 12, and every .NET 11 software development kit is reported as unsupported | S | `metalama/Metalama` | nothing |
+| [S-02](S-02-language-version-mapping-and-manifest.md) | Language version: the unsupported-version diagnostics crash instead of naming the version | S | `metalama/Metalama` | nothing |
+| [S-03](S-03-remove-previous-baseline-residue.md) | Build: remove the residues of the .NET 8 and .NET 9 removal | S | `metalama/Metalama` | nothing |
+| [S-04](S-04-refactoring-provider-entry-points.md) | Design time: renaming a code refactoring provider disables it in the editor and no test detects it | S | `metalama/Metalama` | nothing |
 | [S-05](S-05-host-process-classification.md) | Design time: host process classification | S | `metalama/Metalama` | nothing |
 | [S-06](S-06-premium-build-file-residuals.md) | Metalama.Premium: build-file residuals | S | `metalama/Metalama.Premium` | metalama/Metalama.Premium#84, whose branch this story is based on |
 | [S-07](S-07-premium-change-visibility-code-action.md) | Metalama.Premium: change-visibility code action | S | `metalama/Metalama.Premium` | nothing |
@@ -416,7 +416,7 @@ graph TD
 | [S-18-5](S-18-5-union-comparers.md) | C# 15 unions: declaration comparers | M | `metalama/Metalama` | S-18-1 |
 | [S-18-6](S-18-6-unions-in-pattern-and-extension-libraries.md) | C# 15 unions: pattern and extension libraries | L | `metalama/Metalama` | S-18-1 |
 | [S-19](S-19-reject-labels-in-templates.md) | C# 15: raise errors when a label is used in a template | M | `metalama/Metalama` | S-13, S-15 |
-| [S-20](S-20-experimental-syntax-guard-in-templates.md) | Templates: raise errors when experimental syntax is used | M | `metalama/Metalama` | S-13, S-15 |
+| [S-20](S-20-collection-expression-arguments-in-templates.md) | C# 15 collection expression arguments: support in templates | M | `metalama/Metalama` | S-13, S-15 |
 | [S-21](S-21-extension-indexers.md) | C# 15 extension indexers: advising and introducing | M | `metalama/Metalama` | S-15 |
 | [S-22](S-22-premium-roslyn-5-0-variant-tests.md) | Metalama.Premium: execute the Roslyn 5.0.0 variant in tests | L | `metalama/Metalama.Premium` | nothing |
 | [S-23](S-23-premium-union-and-closed-architecture-tests.md) | Metalama.Premium: union and closed architecture rule tests | S | `metalama/Metalama.Premium` | S-14, S-18-6 |

@@ -1,4 +1,4 @@
-### S-01. Build: LangVersion clamp and .NET SDK ceiling comparison
+### S-01. Build: a `net11.0` project is silently compiled as C# 12, and every .NET 11 software development kit is reported as unsupported
 
 - Issue type: Bug
 - Labels: `bug`, `Area-Build-Engineering`

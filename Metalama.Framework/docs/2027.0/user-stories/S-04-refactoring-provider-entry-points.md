@@ -1,4 +1,4 @@
-### S-04. Design time: code refactoring provider entry points
+### S-04. Design time: renaming a code refactoring provider disables it in the editor and no test detects it
 
 - Issue type: Bug
 - Labels: `bug`, `Area-Framework`

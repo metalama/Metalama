@@ -1,6 +1,6 @@
-### S-03. Build: residue of the previous platform baseline
+### S-03. Build: remove the residues of the .NET 8 and .NET 9 removal
 
-- Issue type: Bug
+- Issue type: Enhancement
 - Labels: `bug`, `Area-Framework`, `Area-Build-Engineering`
 - Milestone: `2027.0`
 - Repositories: `metalama/Metalama`
