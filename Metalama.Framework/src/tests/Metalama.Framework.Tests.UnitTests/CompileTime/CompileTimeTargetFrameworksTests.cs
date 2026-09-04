@@ -20,15 +20,15 @@ namespace Metalama.Framework.Tests.UnitTests.CompileTime;
 public sealed class CompileTimeTargetFrameworksTests
 {
     [Theory]
-    [InlineData( "netstandard2.0;net8.0;net48" )]
-    [InlineData( "netstandard2.0,net8.0,net48" )]
-    [InlineData( "netstandard2.0; net8.0; net48" )]
-    [InlineData( " netstandard2.0 , net8.0 , net48 " )]
+    [InlineData( "netstandard2.0;net10.0;net48" )]
+    [InlineData( "netstandard2.0,net10.0,net48" )]
+    [InlineData( "netstandard2.0; net10.0; net48" )]
+    [InlineData( " netstandard2.0 , net10.0 , net48 " )]
     public void BothSeparatorsAreAccepted( string value )
     {
         var targetFrameworks = CompileTimeAssemblyLocator.ParseTargetFrameworks( value );
 
-        Assert.Equal( new[] { "netstandard2.0", "net8.0", "net48" }, targetFrameworks.ToArray() );
+        Assert.Equal( new[] { "netstandard2.0", "net10.0", "net48" }, targetFrameworks.ToArray() );
     }
 
     [Theory]
@@ -49,10 +49,10 @@ public sealed class CompileTimeTargetFrameworksTests
     [Fact]
     public void SemicolonSeparatedValueKeepsEveryTargetFramework()
     {
-        var targetFrameworks = CompileTimeAssemblyLocator.ParseTargetFrameworks( "netstandard2.0;net8.0;net48" );
+        var targetFrameworks = CompileTimeAssemblyLocator.ParseTargetFrameworks( "netstandard2.0;net10.0;net48" );
 
         Assert.Contains( "netstandard2.0", targetFrameworks );
-        Assert.Contains( "net8.0", targetFrameworks );
+        Assert.Contains( "net10.0", targetFrameworks );
         Assert.Contains( "net48", targetFrameworks );
     }
 }

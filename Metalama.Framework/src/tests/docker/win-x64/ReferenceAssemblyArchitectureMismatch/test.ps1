@@ -75,7 +75,7 @@ Set-Location $cacheDirectory
 # free of network access and that play no part in the failure, because the .NET SDK is resolved before any
 # restore would run: its PackageReference on Microsoft.CodeAnalysis.CSharp is omitted, and it targets the
 # framework of the 64-bit SDK itself, whose reference pack that SDK carries, rather than
-# 'netstandard2.0;net8.0;net48', whose reference packs would have to be downloaded.
+# 'netstandard2.0;net10.0;net48', whose reference packs would have to be downloaded.
 @"
 <Project>
   <PropertyGroup>
