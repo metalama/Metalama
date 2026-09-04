@@ -184,3 +184,19 @@ or whether the linker must rewrite the part that the user wrote.
 
 The four introduction issues #865, #866, #867 and #869 stay out of scope. Union introduction is no longer grouped
 with them.
+
+## 7. The user stories do not carry the application programming interface design
+
+Stated by the product owner on 2026-09-04, and it applies to every story of this release.
+
+A user story states the capability, the scope, the files and mechanisms it touches, and the acceptance criteria. It
+does not specify the shape of the public application programming interface. The name and the parameters of a new
+advice method, the members added to a builder, and the way a new concept is exposed on an interface are decided
+when the story is implemented, not when it is written.
+
+The analyses under `analysis-reports` may go further, because they exist to establish feasibility and size, and a
+proposed shape is often the shortest way to show that something is possible. A proposed shape in an analysis is
+evidence for the estimate. It is not a specification, and a story must not quote it as one.
+
+This applies in particular to the union work of section 5c, where the natural temptation is to fix the signature of
+an introduction method in the story text.
