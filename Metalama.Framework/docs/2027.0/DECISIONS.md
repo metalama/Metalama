@@ -266,3 +266,57 @@ assembly version `42.42.42.42`, and carries the real version in an informational
 2026-09-01. A future Rider could in principle report a version that no Visual Studio presents. That would change
 the lower bound of the variant set, which is what the release candidate measurement of checklist item 2 exists to
 catch, and it would not change the conclusion above about the upper bound.
+
+### 5d. How the requirement of section 5c is met, and one choice it exposes
+
+The design analysis is in
+[`analysis-reports/11-introducing-unions-design.md`](analysis-reports/11-introducing-unions-design.md). It settles
+the grammar question and finds that the requirement is met in full for one form of union and only at build time for
+the other. The choice between them is the product owner's.
+
+#### The grammar question is settled
+
+Exactly one part of a partial union carries the case list. A part without one parses and binds. A second part that
+carries one is an error, CS8863, reported by the same code path that rejects two parameter lists on a partial
+record. A union where no part carries one is an error, CS9370. No diagnostic compares case lists between parts,
+and none can exist.
+
+The consequence is that a generated partial part can never add a case to a union that the user declared with the
+`union` keyword.
+
+#### There are two kinds of union, and the distinction decides the design
+
+A `union` declaration is one form. The other is any class or struct that carries
+`System.Runtime.CompilerServices.UnionAttribute`, which the proposal describes as adapting an existing type to the
+union patterns. Roslyn treats both as unions: `ITypeSymbol.IsUnion` is true for either, and the case set of the
+second form is derived from the public single-parameter constructors, or from the static factory methods of a
+nested member provider interface, rather than from a case list.
+
+For a type carrying the attribute, adding a leg is the introduction of a constructor. That is ordinary member
+introduction, it is expressible in a generated partial part, and the editor and the build therefore agree. None of
+the restrictions of a union declaration applies, because Roslyn guards all of them behind a test of whether the
+type is a union declaration.
+
+For a `union` declaration, adding a leg means rewriting the case list of the part the user wrote. The build-time
+half is small, because the linker already rewrites a type parameter list in the same field and the same method for
+partial constructor parameter introduction. The design-time half is impossible: every route from a generated part
+is closed by a compiler rule, so the editor cannot show the added case, and the editor and the build disagree about
+conversions and about switch exhaustiveness.
+
+#### The choice
+
+The analysis recommends shipping both, the attribute form first because it is small and its design-time result is
+correct, and the declaration form second with an explicit design-time diagnostic. If only one fits the release, it
+recommends the attribute form, and it states plainly that the declaration form buys a capability that works at
+build time only.
+
+Estimated at six to nine days in total, of which about four can proceed before Roslyn 5.12 exists.
+
+#### One consequence for section 5b
+
+The earlier analysis said that union introduction was blocked by the mandatory case list and by the materialization
+of the synthesized members. The first is confirmed for the declaration form and does not apply to the attribute
+form. The second is answered differently than expected: the machinery of pull request #1879 does not generalise,
+because a user may not declare the `Value` property or a case constructor at all, so there is no override to serve
+and no body to reproduce. The precedent that does apply is the introduction of a namespace, which registers a
+builder without an injection.
