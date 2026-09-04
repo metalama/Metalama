@@ -320,3 +320,32 @@ form. The second is answered differently than expected: the machinery of pull re
 because a user may not declare the `Value` property or a case constructor at all, so there is no override to serve
 and no body to reproduce. The precedent that does apply is the introduction of a namespace, which registers a
 builder without an injection.
+
+## 9. The drafted interfaces for the rest of C# 15
+
+The drafts are in [`analysis-reports/12-csharp15-api-drafts.md`](analysis-reports/12-csharp15-api-drafts.md), and
+they are material for discussion under section 7b, not a specification. Four of the five subjects came back smaller
+than expected, and the fifth needs a decision.
+
+Reading a union needs two members on `INamedType`, `IsUnion` and `UnionCaseTypes`, following the precedent of
+`IsRecord`. The synthesized `Value` property and the per-case constructors are reached by name through the members
+that already exist.
+
+Reading a closed hierarchy needs no new way to enumerate derived types. The derived type index already restricts
+itself to the current compilation, and the language requires every subtype of a closed type to be in the same
+module, so the existing `DerivedTypesOptions.DirectOnly` is already the complete set for a closed type of the
+current compilation. Only the flag and its documentation are new. The one genuine hole is a closed type that comes
+from a referenced assembly.
+
+Extension indexers need no application programming interface change at all in order to be overridden. Introducing
+one needs the removal of a single validation call in the advice factory, plus an eligibility rule requiring the
+named receiver that an extension block with an indexer must declare.
+
+The forbidden labeled break and continue of section 4 is one error descriptor reported on the label token from the
+two visit methods of the template annotator. Run-time code that uses a label is unaffected, because the annotator
+runs only under the guard that tests whether the code is inside a template.
+
+The divergence of section 2b is drafted both ways, and the analysis recommends reporting rather than staying
+silent: a design-time warning reported once per project, with an opt-out, from the diagnostic analyzer. The
+decision is still open, and one measurement could change it, which is the Roslyn version that a current Rider
+presents.
