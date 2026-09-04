@@ -154,3 +154,33 @@ The open question is what the lower variant does when it meets a C# 15 type that
 report a diagnostic that the design-time result is incomplete because the host Roslyn predates C# 15. A diagnostic
 is the safer answer and costs one descriptor and one call site, but it fires in an editor whose user cannot act on
 it other than by changing the integrated development environment.
+
+## 5c. Decision 5 is overridden: introducing unions and union legs is required
+
+Taken by the product owner on 2026-09-04, superseding section 5b. Metalama 2027.0 must support the introduction of
+a union type and the introduction of a union leg, that is a case of a union. The recommendation of the analysis to
+ship only the reading half is not accepted.
+
+This is the largest single piece of C# 15 work in the release, and it has two halves that differ in kind.
+
+Introducing a whole union means that the type builder acquires a model for the case list, which the grammar makes
+mandatory, and that the introduction pipeline materializes the members that the compiler synthesizes, namely one
+public constructor per case and the `Value` property. The introduction pipeline never re-reads the final model from
+Roslyn, so a synthesized member that an aspect must be able to see or override has to exist as a builder. The
+machinery for exactly this problem was written for records in pull request #1879, which materializes the body of a
+compiler-synthesized record member from its symbol, and it is the natural thing to extend rather than to duplicate.
+
+Introducing a leg into a union that already exists in source is a different operation. It changes the case list of
+a declaration that the user wrote, which is a signature change of an existing declaration. The precedent in the
+code base is the introduction of a parameter into a partial constructor, delivered for C# 14 in issue #1143, and
+the same two constraints apply. The linker has to rewrite the case list of the existing declaration, and the
+design-time pipeline cannot change the signature of an existing declaration, so the design-time result has to be
+expressed the way partial constructors express theirs.
+
+One point of the C# 15 grammar has to be settled before either half can be designed, and it was already recorded as
+an open question of the code model analysis: whether every part of a partial union must repeat the case list, or
+whether one part may carry it. The answer decides whether a leg can be added from a generated partial part at all,
+or whether the linker must rewrite the part that the user wrote.
+
+The four introduction issues #865, #866, #867 and #869 stay out of scope. Union introduction is no longer grouped
+with them.
