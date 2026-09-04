@@ -91,7 +91,13 @@ Due at the release candidate, on 2026-11-20.
 
 ### Q7. What is the impact of union and leg introduction on the comparers?
 
-Blocking, for the introduction work. Raised by the product owner on 2026-09-04. The hazards to confirm or refute
+Answered on 2026-09-04 in section 10 of [`DECISIONS.md`](DECISIONS.md), from the analysis in
+`analysis-reports/13-union-comparers.md`. Most hazards were refuted. Two defects were found: the aspect instance
+ordering throws when two targets share a span, which a union causes and which affects the reading half, and the
+conversion reimplementation of `DeclarationEqualityComparer` does not know the union conversions. The original
+question follows.
+
+Raised by the product owner on 2026-09-04. The hazards to confirm or refute
 are that a synthesized case constructor has no declaring syntax, that two case constructors differ only in their
 single parameter type, that introducing a leg changes the constructor set of an existing type and therefore the
 collections cached against it, that a builder must be equated with the symbol it becomes for a type whose members

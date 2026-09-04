@@ -67,16 +67,17 @@ inference rather than on a file that was read, the finding says so.
   `latestMajor` and `preview`, saves the previous value into `_LangVersionBeforeMetalamaFix` at line 119 and assigns
   `12.0` at line 120. The value that reaches that condition is not produced by the .NET SDK. The .NET SDK sets no
   `LangVersion` in any of its five relevant targets files; the mapping from a target framework to a language version
-  lives in Roslyn's `Microsoft.CSharp.Core.targets`, and `Metalama.Compiler` ships a patched copy of that file and
+  is defined in Roslyn's `Microsoft.CSharp.Core.targets`, and `Metalama.Compiler` ships a patched copy of that file and
   redirects `CSharpCoreTargetsPath` to it. That copy computes, for a `.NETCoreApp` target framework, nine plus the
   major version minus five, which is `15.0` for `net11.0`, caps the result at `_MaxAvailableLangVersion`, sets
   `LangVersionImplicitlySet` to `True` when `LangVersion` was empty, and then assigns `LangVersion`. The cap decides
   when the clamp fires. In the `Metalama.Compiler` package that was inspected, and in the Roslyn 5.10 prerelease
   that this repository consumes, that cap is `14.0`, so a `net11.0` project receives `14.0` today, `14.0` is in the
   accepted list, and neither the rewrite nor the warning occurs. The cap is `15.0` on the `main` branch of
-  `dotnet/roslyn`, which is the Roslyn 5.12 that this theme adopts. Two consequences follow. Until the rebase, a `net11.0`
-  project silently compiles as C# 14 rather than C# 15, independently of Metalama. From the rebase onwards, `15.0`
-  is a legal language version for the new compiler, it matches none of the seven accepted strings, and the clamp
+  `dotnet/roslyn`, which is the Roslyn 5.12 that this theme adopts. Two consequences follow. Until the rebase, a
+  `net11.0` project silently compiles as C# 14 rather than C# 15, independently of Metalama. From the rebase
+  onwards, `15.0` is a legal language version for the new compiler, it matches none of the seven accepted strings,
+  and the clamp
   rewrites it to `12.0`. The `PropertyGroup` carries no `MetalamaEnabled` guard, unlike the neighbouring blocks, so
   the clamp also applies to a project in which Metalama is disabled.
 - Consequence: build or restore error. When the clamp fires, the project drops from C# 15 to C# 12 and therefore
@@ -246,8 +247,9 @@ inference rather than on a file that was read, the finding says so.
   5.12 is the lowest minor version whose stable package is expected to expose `LanguageVersion.CSharp15`, and
   because a threshold above the exact boundary only caps templates to C# 14 on a Visual Studio that ships no stable
   Roslyn package. The value 10 must not be used, because the stable Roslyn packages below 5.12, up to and including
-  5.9.0, accept the C# 15 features only under the preview language version. Separately, whether `MetalamaTemplateLanguageVersion` may ever be `15.0` for a library that must also
-  load in Rider: the answer today is no, and `Directory.Build.props:11-16` already records that bound.
+  5.9.0, accept the C# 15 features only under the preview language version. Separately, whether
+  `MetalamaTemplateLanguageVersion` may ever be `15.0` for a library that must also load in Rider: the answer today
+  is no, and `Directory.Build.props:11-16` already records that bound.
 
 ### LV-4. `CompileTimeProjectManifest.ResolvedLanguageVersion` is dead code and disagrees with the two live fallbacks
 
@@ -421,8 +423,9 @@ inference rather than on a file that was read, the finding says so.
   files. Optionally replace the hardcoded `14.0` of the unit test project with `$(LangMaxVersion)` so that the
   ceiling has one definition.
 - Size: S, a comment plus one optional single-line change.
-- Status: new work, too small for a story of its own; it should ride with the story that carries LV-3, which edits
-  `SupportedCSharpVersions` and is the place where a reader would otherwise raise `LangMaxVersion` by symmetry.
+- Status: new work, too small for a story of its own; it should be delivered with the story that carries LV-3,
+  which edits `SupportedCSharpVersions` and is the place where a reader would otherwise raise `LangMaxVersion` by
+  symmetry.
 - Verification: the code lens confirmed the property, its export and its three consumers, refuted the claim that
   every project of the five solutions compiles with C# 14, and refuted the mechanism attributed to the `.5.0.0`
   variant. The semantics lens did not apply, because the finding rests on no external premise. The scope lens

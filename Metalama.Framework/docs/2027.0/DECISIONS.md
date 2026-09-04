@@ -384,3 +384,51 @@ One risk that section 5d records bears on this and is worth repeating. The publi
 two forms: `ITypeSymbol.IsUnion` is true for both, and the restrictions of a union declaration apply to only one of
 them. An eligibility rule keyed on `IsUnion` alone would therefore reject advice that is legal on a type carrying
 the attribute.
+
+## 10. The comparer impact of union introduction, and two defects it found
+
+Answer to question Q7, from [`analysis-reports/13-union-comparers.md`](analysis-reports/13-union-comparers.md).
+
+Most of the hazards do not exist, which is the useful part of the answer.
+`ConstructorSignatureEqualityComparer` compares parameter types through `SignatureTypeComparer`, so it does not
+collide two case constructors that differ only in their single parameter, and no comparer in the code base keys a
+constructor on its name and parameter count alone. The missing declaring syntax of a synthesized constructor
+reaches no comparer of members, because `DeclarationEqualityComparer` keys on a reference and
+`StructuralSymbolComparer` on symbol properties. `InjectedMemberComparer` never receives a synthesized union
+member, because the design registers those as builders without an injection, and `DeclarationOrderingComparer` does
+not order generated members at all. The determinism fix that pull request #1879 had to make for records is
+therefore not needed a second time.
+
+Two genuine defects were found, and neither is in the work breakdown of the design analysis.
+
+### The aspect instance ordering throws when two targets share a span
+
+`AspectInstanceComparer.Compare` in
+`Metalama.Framework/src/Metalama.Framework.Engine/Pipeline/ExecuteAspectLayerPipelineStep.cs:198-269` orders aspect
+instances by the position of the primary declaration syntax of their target. When two targets have the same span it
+has one escape hatch, at `:250-265`: both targets are methods, they have the same declaring type, that type
+`IsRecord`, and both are implicitly declared, in which case it compares them by signature. Anything else reaches
+the `AssertionFailedException` at `:267`.
+
+A union misses that hatch three ways. The synthesized `Value` is a property rather than a method. The synthesized
+case constructors are constructors rather than methods, and there may be several of them, all carrying the span of
+the union declaration. The `Invariant.Assert` at `:255` requires `IsRecord`, which is false for a union.
+
+An aspect that targets more than one synthesized member of a union therefore crashes. This affects the reading
+half, which ships whatever the open questions decide, so it is not conditional on them. The fix is to generalise
+the record special case to any implicitly declared members that share a span, rather than to add a union arm beside
+the record one. Size S.
+
+### The conversion reimplementation does not know the union conversions
+
+`DeclarationEqualityComparer` reimplements the conversion rules and enumerates `op_Implicit` methods only, so an
+introduced union does not accept the implicit conversion from its case types that Roslyn grants a union declared in
+source. Size M, and it is a prerequisite of the introduction work rather than a follow-up.
+
+`ComparerAgreesWithRoslynTests` is the test that would have caught this, and it and `DeclarationComparerTests` are
+the two tests that must gain a union case.
+
+### The equality of the union type itself
+
+No impact. The caching pattern builds its cache key from `ToString` rather than from `Equals` or `GetHashCode`, so
+the value equality of a union struct does not reach it.
