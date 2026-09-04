@@ -2112,6 +2112,814 @@ cannot do at all, so the editor and the build disagree and the divergence has to
 
 — Claude for @gfraiteur
 
+### S-30. Cover non-virtual static interface members on the .NET Framework test leg
+
+- Issue type: User Story
+- Labels: `enhancement`, `Area-Framework`
+- Milestone: `2027.0`
+- Repositories: `metalama/Metalama`
+- Size: S
+- Blocked by: S-11
+- Findings: the section "Static members in interfaces without runtime support for default interface implementation" of
+  [`08-roslyn-api-delta.md`](08-roslyn-api-delta.md). The feature is also named by
+  [UT-19](06-user-tfm-patterns-tests-docs.md), which story S-11 owns.
+
+---
+
+`Metalama.Framework/src/tests/Metalama.Framework.Tests.AspectTests/Metalama.Framework.Tests.AspectTests.csproj:14`
+declares the target frameworks `net48;net10.0`. Twenty of the thirty-five test input files of
+`Tests/Aspects/Introductions/Interfaces` carry `@RequiredConstant(NET6_0_OR_GREATER)` and are therefore skipped on the
+`net48` leg, and not one of the thirty-five introduces a non-virtual static member into an interface. C# 15 makes such a
+member legal on a runtime that does not support default interface implementations, and .NET Framework is that runtime.
+This story adds the tests that prove it. It needs no product change.
+
+#### Context
+
+The feature adds no syntax. It is Roslyn pull request 83097, merged on 2026-04-10 into the branch `features/Unions`,
+and it has no language design proposal. A code search over `dotnet/roslyn` finds `IDS_FeatureStaticMembersInInterfaces`
+in two files only, `src/Compilers/CSharp/Portable/Errors/MessageID.cs` and
+`src/Compilers/CSharp/Portable/Symbols/Source/SourceMemberMethodSymbol.cs`, and in no parser file.
+`MessageID.RequiredVersion` returns `LanguageVersion.CSharp15` for it, in the same group as the five other C# 15
+features. The whole of the change is the method
+`SourceMemberMethodSymbol.ReportLackOfRuntimeSupportForStaticMembersInInterfaces`, which is called from
+`SourceMemberMethodSymbol`, `SourceMemberFieldSymbol` and `SourceFieldLikeEventSymbol` when
+`ContainingAssembly.RuntimeSupportsDefaultInterfaceImplementation` is false. For a protected, protected internal or
+private protected member it reports `ERR_RuntimeDoesNotSupportProtectedAccessForInterfaceMember`. For every other
+accessibility it performs the language version check instead of reporting
+`ERR_RuntimeDoesNotSupportDefaultInterfaceImplementation`. A static abstract or static virtual member keeps
+`ERR_RuntimeDoesNotSupportStaticAbstractMembersInInterfaces`, and an instance member with a body keeps its previous
+error. Because there is no new syntax and no new Roslyn application programming interface member, neither the syntax
+model regeneration of S-09 nor the variant gating of S-02 is involved.
+
+Two compilations of Metalama lack the runtime support and are therefore the ones the feature changes. The first is the
+test compilation of the `net48` leg: `GetMetadataReferences` in
+`Metalama.Framework/src/Metalama.Testing.UnitTesting/TestContext.CreateRoslynCompilation.cs:84-130` builds the
+references from the assemblies of the running process, so on that leg the test compilation references the .NET
+Framework 4.8 assemblies. The second is the compile-time compilation, which is always compiled against the
+`netstandard2.0` reference set, as `CompileTimeAssemblyLocator.cs:664` and the validation at `:219-224` show, and whose
+language version is the one returned by `ILanguageVersionProvider.GetCompileTimeLanguageVersion` at
+`CompileTimeCompilationBuilder.cs:279`. Compile-time code that declares a static member with a body in a compile-time
+interface is therefore refused today even in a project that targets `net10.0`.
+
+Nothing in Metalama refuses a static interface member. No source of `Metalama.Framework/src` names
+`RuntimeSupportsDefaultInterfaceImplementation`, and the eligibility rule `_introduceRule` of
+`Metalama.Framework/src/Metalama.Framework/Eligibility/EligibilityRuleFactory.cs:117-126`, which serves every
+introduction advice, accepts an interface target. `IntroduceMemberAdvice.InitializeBuilder` at
+`Metalama.Framework/src/Metalama.Framework.Engine/AdviceImpl/Introduction/IntroduceMemberAdvice.cs:128-133` makes an
+introduced member virtual only when the template is virtual or when there is no template, so a static template
+introduced into an interface produces a non-virtual static member, and
+`ModifierHelper.GetMemberSyntaxModifierList` at
+`Metalama.Framework/src/Metalama.Framework.Engine/CodeModel/Helpers/ModifierHelper.cs:122-141` then emits `static` and
+neither `abstract` nor `virtual`. Metalama already generates the declaration that the feature legalises, and that
+generated code is refused today when the target framework is `net472`, `net48` or `netstandard2.0`. The single
+Metalama refusal in this area is `LAMA0534`, reported by `IntroduceFieldAdvice.ValidateBuilder` at
+`Metalama.Framework/src/Metalama.Framework.Engine/AdviceImpl/Introduction/IntroduceFieldAdvice.cs:64-76` for every
+field introduced into an interface, including a static one. That restriction predates C# 15, because a static field in
+an interface has been legal since C# 8 on a runtime that supports default interface implementations, so narrowing it is
+a separate decision and not a consequence of this feature.
+
+The test mechanism that this story needs already exists and has no user. `TestOptions.TargetFrameworks`, documented at
+`Metalama.Framework/src/Metalama.Testing.AspectTesting/TestOptions.cs:284-289` and evaluated at
+`Metalama.Framework/src/Metalama.Testing.AspectTesting/TestInput.cs:96-116`, skips a test whose current target
+framework is not in the requested set, and no test file uses the `@TargetFrameworks` directive today. Two properties
+keep this story small. The expected output files are excluded from the compilation of the test project by
+`Metalama.Testing.AspectTesting.targets:17-26`, and the feature adds no syntax, so the test inputs compile at the
+pinned C# 14 language version of the test project on both legs. Neither the companion-file handling nor the language
+version override that other C# 15 test directories need applies here.
+
+#### Scope
+
+- Create the directory `Tests/Aspects/CSharp15/StaticInterfaceMembers` in
+  `Metalama.Framework/src/tests/Metalama.Framework.Tests.AspectTests`, following the conventions that S-11 establishes,
+  which are the required constant of the renumbered Roslyn variant in the `metalamaTests.json` of the `CSharp15`
+  directory and the `@LanguageVersion(15.0)` directive in each file.
+- Add the tests that introduce a public non-virtual static method, a public non-virtual static property and a public
+  non-virtual static event into an interface introduced by the aspect, modelled on
+  `Tests/Aspects/Introductions/Interfaces/IntroduceMethodStaticVirtual.cs`,
+  `IntroducePropertyStaticVirtual.cs` and `IntroduceEventStaticVirtual.cs`, but without the
+  `@RequiredConstant(NET6_0_OR_GREATER)` directive and with a `@TargetFrameworks` directive that names both legs. Run
+  each test and commit its expected output.
+- Add one test that introduces a non-virtual static method into an interface declared in the test source, which is the
+  scenario an aspect user meets, and one test with a private static method, whose accessibility the compiler admits
+  because `ReportLackOfRuntimeSupportForStaticMembersInInterfaces` treats every accessibility other than the three
+  protected ones alike.
+- Add one negative test for a protected static member introduced into an interface, whose expected output records
+  `ERR_RuntimeDoesNotSupportProtectedAccessForInterfaceMember` on the `net48` leg.
+- Add one compile-time test that declares a static member with a body in a compile-time interface, so that the
+  `netstandard2.0` compile-time compilation is covered as well as the `net48` test compilation.
+- Record in the issue, for each of the twenty gated files of `Tests/Aspects/Introductions/Interfaces`, why its
+  `@RequiredConstant(NET6_0_OR_GREATER)` directive is kept: a static abstract or static virtual member still requires
+  runtime support for static abstract interface members, and a private or virtual instance member with a body still
+  requires runtime support for default interface implementations.
+- Determine whether `LAMA0534` should be narrowed so that a static field is accepted, record the answer in the issue,
+  and file a separate issue if the answer is that it should.
+
+#### Acceptance criteria
+
+- On the `net48` leg, an aspect that introduces a public non-virtual static method into an interface produces
+  transformed code that compiles, and the test asserts that output instead of being skipped.
+- The same test on the `net10.0` leg produces the same expected output file.
+- A compile-time interface with a static member that has a body is accepted by the compile-time compilation, which
+  targets `netstandard2.0`.
+- A protected static member introduced into an interface is reported with
+  `ERR_RuntimeDoesNotSupportProtectedAccessForInterfaceMember` on the `net48` leg, and the expected output records it.
+- No file of `Tests/Aspects/Introductions/Interfaces` loses its `@RequiredConstant(NET6_0_OR_GREATER)` directive, and
+  the reason is written in the issue.
+- The `@TargetFrameworks` directive has at least one user, and a test whose requested target frameworks exclude the
+  current one is skipped with the reason visible in the test output.
+- The answer about `LAMA0534` is recorded, whether it is a change or a decision to keep the restriction.
+
+#### Not in scope
+
+This story does not narrow `LAMA0534` and does not otherwise change the advice code. It does not cover static abstract
+and static virtual interface members, which C# 15 leaves unchanged and which still require the runtime support that
+.NET Framework does not provide. It does not use the feature in the sources of Metalama itself, which is impossible in
+any case, because `Metalama.Framework` targets `netstandard2.0`, `Metalama.Framework.Engine` targets `net472`, and the
+repository pins its own language version at `Metalama.Framework/Directory.Build.props:45-46`.
+
+— Claude for @gfraiteur
+
+### S-31. Bring the code refactoring provider entry points under the tested entry-point name list
+
+- Issue type: Bug
+- Labels: `bug`, `Area-Framework`
+- Milestone: `2027.0`
+- Repositories: `metalama/Metalama`
+- Size: S
+- Blocked by: nothing
+- Findings: none. The defect was found by the review of the subsystems that no theme document examined, which is
+  question Q14 of [`OPEN-QUESTIONS.md`](OPEN-QUESTIONS.md).
+
+---
+
+`MetalamaCodeRefactoringProvider` names the assembly and the three implementation types that it loads as string
+literals, at `Metalama.Framework/src/Metalama.Framework.EditorExtensions/MetalamaCodeRefactoringProvider.cs:34-35`,
+`:42-43` and `:50-51`. Those three type names are absent from
+`Metalama.Framework/src/Metalama.Framework.DesignTime/RoslynEntryPointTypeNames.cs:17-32`, and therefore also absent
+from the test that compares each constant with the full name of the real type,
+`Metalama.Framework/src/tests/Metalama.Framework.Tests.UnitTests/DesignTime/TestRoslynEntryPointTypeNames.cs:27-37`.
+Renaming or moving `TheCodeRefactoringProvider`, `VsCodeRefactoringProvider` or `RiderCodeRefactoringProvider`
+therefore compiles and passes the whole test suite, and the failure appears only when a user opens a file in an
+editor.
+
+#### Context
+
+The three names are correct today, so this is a defect of the guard rather than a defect that a user can observe now.
+The consequence of a stale name is worth stating, because it decides the severity. `ResourceExtractor.CreateInstance`
+resolves the type with `assembly.GetType( typeName, true )` at
+`Metalama.Framework/src/Metalama.Framework.CompilerExtensions/ResourceExtractor.cs:253-255`, writes a crash report
+and rethrows at `:307`. The constructor of `MetalamaCodeRefactoringProvider` then throws, Roslyn fails to compose the
+exported code refactoring provider, and every Metalama refactoring disappears from the editor. The only record is a
+file in the crash report directory.
+
+The sibling facade in the same directory does not have the problem.
+`Metalama.Framework/src/Metalama.Framework.EditorExtensions/MetalamaCodeFixProvider.cs:36-37`, `:44-45` and `:52-53`
+use the constants, and the eleven constants that exist are covered by the test. The two facades are written from the
+same design and disagree only on this point.
+
+The summary of `RoslynEntryPointTypeNames` at `RoslynEntryPointTypeNames.cs:9-12` states that the type lists the
+public entry point types exposed to Roslyn, that the list is referenced by the `CompilerExtensions` and
+`EditorExtensions` projects, and that it is unit tested. Neither the first nor the third statement is true of the
+three code refactoring provider types. A reader who trusts the summary concludes that the entry points are covered
+when they are not.
+
+The release touches this area. Story S-09 renumbers the latest Roslyn variant, which changes the assembly identity
+that `ResourceExtractor` composes at `ResourceExtractor.cs:244-246`, so the entry-point loading path is read and
+edited during 2027.0 in any case.
+
+#### Scope
+
+- Add three constants to `Metalama.Framework/src/Metalama.Framework.DesignTime/RoslynEntryPointTypeNames.cs`, for
+  `Metalama.Framework.DesignTime.CodeFixes.TheCodeRefactoringProvider`,
+  `Metalama.Framework.DesignTime.VisualStudio.CodeFixes.VsCodeRefactoringProvider` and
+  `Metalama.Framework.DesignTime.Rider.RiderCodeRefactoringProvider`.
+- Replace the six string literals of
+  `Metalama.Framework/src/Metalama.Framework.EditorExtensions/MetalamaCodeRefactoringProvider.cs:34-35`, `:42-43` and
+  `:50-51` by those constants and by `RoslynEntryPointTypeNames.DesignTimeAssemblyName`, so that the file names no
+  type and no assembly by a literal.
+- Add one `InlineData` row per new constant to `TestRoslynEntryPointTypeNames.TestConstant` in
+  `Metalama.Framework/src/tests/Metalama.Framework.Tests.UnitTests/DesignTime/TestRoslynEntryPointTypeNames.cs`.
+- Correct the summary of `RoslynEntryPointTypeNames` at `RoslynEntryPointTypeNames.cs:9-12`, so that what it claims
+  about coverage is true after the change.
+- Balance the diagnostic suppression at `MetalamaCodeRefactoringProvider.cs:58-62`, where `VSTHRD110` is disabled
+  twice and restored once.
+
+#### Acceptance criteria
+
+- No source file of `Metalama.Framework.EditorExtensions` names an entry point type or the design-time assembly by a
+  string literal.
+- Every constant of `RoslynEntryPointTypeNames` is covered by a row of `TestRoslynEntryPointTypeNames`, and every
+  entry point that `Metalama.Framework.EditorExtensions` and `Metalama.Framework.CompilerExtensions` load is a
+  constant of `RoslynEntryPointTypeNames`.
+- Renaming any one of the three code refactoring provider types makes the unit test suite fail.
+- Both Roslyn variants build, and the projects that this story touches build with no warning under
+  `-p:ContinuousIntegrationBuild=True`.
+
+#### Not in scope
+
+This story does not change how the process kind is detected, and it does not change which implementation each host
+receives. The process kind detection is duplicated between
+`Metalama.Framework/src/Metalama.Framework.CompilerExtensions/ProcessKindHelper.cs:14-59` and
+`Metalama.Backstage/src/Metalama.Backstage/Utilities/ProcessUtilities.cs:34-139`, and the two copies have diverged,
+but the divergence has no functional consequence here, because every switch over the process kind sends an
+unrecognized host to a default arm that loads the general implementation.
+
+— Claude for @gfraiteur
+
+### S-32. Bring Visual Studio Tools for Metalama to PB-2027.0 and release the flowed dependency pins
+
+- Issue type: User Story
+- Labels: `enhancement`, `Area-Vsx`, `Area-Platforms`
+- Milestone: `2027.0`
+- Repositories: `metalama/Metalama.Vsx`
+- Size: L
+- Blocked by: nothing. The story is calendar-gated by the November 2026 Visual Studio releases in the same way as
+  S-08, and it is not gated by any story of this repository.
+- Findings: none. No theme document of this analysis names `Metalama.Vsx`, which is what question Q13 of
+  [`OPEN-QUESTIONS.md`](OPEN-QUESTIONS.md) records. The repository is not cloned in the session that produced this
+  analysis, and its issue tracker `metalama/Metalama.Vsx.Public` was not reachable from that session either, so
+  nothing in the product itself was verified. Every statement below about the extension is marked as an assumption.
+
+---
+
+Five package versions in this repository are pinned below what a measurement of this repository would allow, and they
+are pinned because of Visual Studio Tools for Metalama. `Directory.Packages.props:179-182` pins `StreamJsonRpc` at
+2.20.17, `System.IO.Pipelines` at 8.0.0, `System.Diagnostics.DiagnosticSource` at 6.0.1 and
+`Microsoft.Bcl.AsyncInterfaces` at 8.0.0, and `Directory.Packages.props:132` holds `System.Threading.Tasks.Extensions`
+at 4.5.4 with a comment naming the extension. `Directory.Packages.md:387` states the release condition of all five:
+they become free to bump only after the extension migrates off direct consumption of
+`Metalama.Framework.DesignTime.Rpc` and the older extension version leaves support. Neither half of that condition can
+be established in this repository.
+
+#### Context
+
+The mechanism is recorded in `Directory.Packages.md:378`. `Metalama.Framework.DesignTime.Rpc` merges `StreamJsonRpc`
+and `MessagePack` into itself, which the package references at
+`Metalama.Framework/src/Metalama.Framework.DesignTime.Rpc/Metalama.Framework.DesignTime.Rpc.csproj:34-35` and the
+`ILMerge` target at `:89-98` perform, and it flows `System.IO.Pipelines`, `System.Diagnostics.DiagnosticSource`,
+`System.Collections.Immutable` and `Microsoft.Bcl.AsyncInterfaces` on purpose, at `:38-41`. The extension is deployed
+separately and, according to `Directory.Packages.md:378`, sets `CentralPackageTransitivePinningEnabled` to true, so
+those flowed dependencies are resolved on the machine of a user who has the extension installed to the versions the
+extension pins rather than to the versions our package metadata requests. A bump that is internally consistent here
+can therefore break an extension that is already installed.
+
+The supported route away from that coupling exists and its Metalama half is delivered. The rule table of
+[`cross-process-communication.md`](../cross-process-communication.md), at lines 16 to 22, states that cross-process
+traffic between different Metalama versions is not allowed and that cross-version traffic uses
+`Metalama.Framework.DesignTime.Contracts`, whose types carry frozen `[Guid]` attributes and are unified by common
+language runtime type equivalence. Issue #1605 added the version-invariant notification contract that the extension
+needs; it was closed as completed on 2026-05-01 by pull request #1612. The extension half is tracked in the
+repository `metalama/Metalama.Vsx.Public`, as issues 17 and 18, which `Directory.Packages.md:387` cites and which this
+session could not read. It is an assumption that neither of them is delivered. `cross-process-communication.md:88`
+supports that assumption from this side: it records that the pipe-based delivery of `ServiceHubServerEndpoint` is
+retained so that older extension builds that still consume `Metalama.Framework.DesignTime.Rpc` keep working.
+
+PB-2027.0 changes the other half of the condition. [`platform-support.md`](../platform-support.md), at lines 124 to
+134, removes Visual Studio 2022 from the supported set in its entirety and names the Visual Studio 2026 long-term
+servicing channel baseline and Visual Studio 2027 as the two versions in the set. Two pins of this repository are
+still derived from the Visual Studio 2022 floor of the extension rather than from ours:
+`Metalama.Framework/src/Metalama.Framework.DesignTime.Contracts/Metalama.Framework.DesignTime.Contracts.csproj:32-33`
+overrides `Microsoft.CodeAnalysis.CSharp` and `Microsoft.CodeAnalysis.Workspaces.Common` to 4.0.1, and the comment at
+`:35` states that the `Newtonsoft.Json` reference must match the version used by the lowest version of Visual Studio
+that the extension supports. Both are frozen on purpose, because that project is loaded side by side by every
+Metalama version present in one Visual Studio session, which the comment at `:17-19` states. Its target frameworks are
+`net472` and `net10.0`, at `:4`.
+
+#### Scope
+
+- State which Visual Studio versions Visual Studio Tools for Metalama supports for the 2027.0 release, and reconcile
+  that set with PB-2027.0, which excludes Visual Studio 2022.
+- Complete the migration of the extension onto `Metalama.Framework.DesignTime.Contracts`, so that no code path of the
+  extension references `Metalama.Framework.DesignTime.Rpc`. This is the work that issues 17 and 18 of
+  `metalama/Metalama.Vsx.Public` describe, on the assumption that they are still open.
+- Report the lowest version of the extension that will still be installed on a user machine when 2027.0 ships, and
+  the versions of the five flowed dependencies that this version pins. That measurement is what releases the pins,
+  and nothing in `metalama/Metalama` can produce it.
+- Verify that the extension loads `Metalama.Framework.DesignTime.Contracts` of PB-2027.0 in Visual Studio 2026 and in
+  Visual Studio 2027, on the target frameworks that project declares.
+- State whether the extension still needs the Roslyn 4.0.1 override and the `Newtonsoft.Json` version of the contracts
+  project once its own floor is Visual Studio 2026, so that the two pins can be re-derived.
+- State whether the pipe-based delivery of `ServiceHubServerEndpoint` may be removed in 2027.0, or must be kept for a
+  further release because an unmigrated extension version is still installed.
+
+#### Acceptance criteria
+
+- A document of `metalama/Metalama.Vsx` states which Visual Studio versions the extension supports for 2027.0, and
+  that set agrees with PB-2027.0.
+- No source file of the extension references `Metalama.Framework.DesignTime.Rpc`.
+- The lowest installed extension version and the five dependency versions it pins are recorded, with the date of the
+  measurement, so that `Directory.Packages.md:387` can be replaced by an answer instead of a condition.
+- The answer states either that the five pins may be raised, or why they stay and what has to happen before they
+  move.
+- A design-time verification on Visual Studio 2026 and on Visual Studio 2027 shows Metalama diagnostics, code lens
+  and generated code, which is the check that item 3 of the checklist of [`platform-support.md`](../platform-support.md)
+  describes and which cannot be replaced by reading a log of a successful build.
+
+#### Not in scope
+
+This story does not edit `Directory.Packages.props` or [`Directory.Packages.md`](../../../Directory.Packages.md).
+Raising the five pins and rewriting the forward-looking item is a separate pull request in `metalama/Metalama`, and it
+is written once this story reports its measurement. It is also not part of S-08, which re-derives the pins that are
+capped by the Visual Studio installation of the build machine and not the pins that are capped by a separately
+deployed extension. This story does not change `Metalama.Framework.DesignTime.Contracts`, whose GUIDs are frozen
+forever by the rule at `cross-process-communication.md:57`.
+
+— Claude for @gfraiteur
+
+### S-33. Move the sample solutions to the target frameworks of PB-2027.0
+
+- Issue type: User Story
+- Labels: `enhancement`, `breaking`, `Area-Platforms`
+- Milestone: `2027.0`
+- Repositories: `metalama/Metalama.Samples`
+- Size: M
+- Blocked by: nothing. The story needs a published 2027.0 package to build against, which S-01, S-09 and S-11 gate in
+  time but not in dependency. A sample that demonstrates a C# 15 feature, if the scope decides to add one, is written
+  after S-11.
+- Findings: none. No theme document of this analysis names `Metalama.Samples`, which is what question Q13 of
+  [`OPEN-QUESTIONS.md`](OPEN-QUESTIONS.md) records. The repository is not cloned in the session that produced this
+  analysis, so no sample project file was read, and every statement below about the samples is marked as an
+  assumption.
+
+---
+
+The `Metalama.Framework` package now declares .NET 10 as the lowest .NET target framework it supports.
+`Metalama.Framework/src/Metalama.Framework.Package/build/Metalama.Framework.props:25-38` declares the
+platform requirement of the package, whose `MinimumNETCoreAppVersion` at `:30` is `10.0`, and
+`Metalama.Framework/src/Metalama.Framework.Package/build/Metalama.Framework.targets:344-346` reports the warning
+`LAMA0600` for a `.NETCoreApp` target framework below that value. A sample that targets `net8.0` or `net9.0`
+therefore reports, on every build, that Metalama does not support the target framework of the sample itself. This is
+an assumption about the samples rather than an observation: the target frameworks the sample projects declare were
+not read.
+
+#### Context
+
+[`platform-support.md`](../platform-support.md), at lines 211 to 215, states that the supported user target
+frameworks of PB-2027.0 are `net10.0` and `net11.0`, that `net8.0` and `net9.0` are out of support at general
+availability, and that this is a breaking change for users. The same document lists the two dropped user target
+frameworks at `:295-297`. The removal in this repository is issue #1876, "Remove explicit support for .NET 8 and
+.NET 9", closed on 2026-09-02; its residue in the engine defaults and the test gates is story S-05.
+
+Two consequences differ in kind, and a sample meets one or the other.
+
+A sample that targets `net8.0` and uses only the framework packages keeps a compatible asset, because
+`Metalama.Framework/src/Metalama.Framework/Metalama.Framework.csproj:4` ships `netstandard2.0` beside `net10.0`. It
+builds, and it reports `LAMA0600`. The failure is a warning, which a sample repository can carry unnoticed.
+
+A sample that targets `net8.0-windows` and uses the Windows Presentation Foundation aspects has no compatible asset
+at all, because `Metalama.Patterns/src/Metalama.Patterns.Wpf/Metalama.Patterns.Wpf.csproj:4` now ships `net472` and
+`net10.0-windows` and nothing else. `platform-support.md:214-215` names this as the most visible break of the
+release. The failure is a restore error, which is loud.
+
+One sample pattern is known from this repository and must survive the move.
+`Metalama.Framework/src/Metalama.Framework.Engine/CompileTime/RunTimeAssemblyRewriter.cs:144-150` keeps an aspect
+weaver in the run-time assembly, and the comment at `:146` states that this is a pattern used by `Metalama.Samples`
+for the try.postsharp.net site. A sample built on that pattern exercises a code path that no other consumer
+exercises, so it is worth naming in the verification rather than assuming that a green build covers it.
+
+The samples are published at the examples site that `README.md:148` names, so a sample that stops building is a
+public defect and not only an internal one.
+
+#### Scope
+
+- Inventory the target framework of every sample project and of every property file that sets one, and report the
+  ones that PB-2027.0 drops.
+- Raise every `net8.0` and `net9.0` target framework to `net10.0`, and every `net8.0-windows` target framework to
+  `net10.0-windows`.
+- Raise the referenced Metalama package version to 2027.0 and rebuild every sample.
+- Check every sample that pins a `LangVersion`, because S-11 changes the language version that the targets accept and
+  clamp.
+- Verify that the samples which reference `Metalama.Framework` from a weaver project still build, which is the
+  pattern that `RunTimeAssemblyRewriter.cs:146` names.
+- Report every sample that cannot move, with the reason, so that a decision to remove it is taken deliberately.
+- Decide whether the release adds a sample for the C# 15 features, and if so which. Reading a union, reading a closed
+  hierarchy and overriding an extension indexer are the three capabilities of the release that a sample can show
+  without depending on a question that is still open.
+- State whether the continuous integration configuration of the sample repository pins a .NET SDK that PB-2027.0
+  drops, and raise it if it does.
+
+#### Acceptance criteria
+
+- No sample project targets `net8.0`, `net9.0` or `net8.0-windows`.
+- Every sample builds against the 2027.0 packages with no `LAMA0600`, `LAMA0601` or `LAMA0602` warning.
+- The pull request description names every sample that was removed rather than moved, and the reason for each.
+- The examples site publishes no sample whose target framework PB-2027.0 has dropped.
+
+#### Not in scope
+
+This story does not change the platform requirement metadata of
+`Metalama.Framework/src/Metalama.Framework.Package/build/Metalama.Framework.props`, which belongs to
+`metalama/Metalama`. It adds no `net11.0` target framework to a sample, because sections 6 and 6c of
+[`DECISIONS.md`](DECISIONS.md) find no .NET 11 application programming interface that justifies one. It does not
+write the conceptual documentation that accompanies a sample, which is S-36.
+
+— Claude for @gfraiteur
+
+### S-34. Write the conceptual documentation of the C# 15 work and of the supported platforms of 2027.0
+
+- Issue type: User Story
+- Labels: `documentation`, `enhancement`
+- Milestone: `2027.0`
+- Repositories: `metalama/Metalama.Documentation`
+- Size: L
+- Blocked by: S-11, S-17, S-18, S-19, S-21, S-25
+- Findings: none. No theme document of this analysis produces a story for `metalama/Metalama.Documentation`, which is
+  what question Q13 of [`OPEN-QUESTIONS.md`](OPEN-QUESTIONS.md) records. The repository is not cloned in the session
+  that produced this analysis, so no page was read, no page path was verified, and every statement below about the
+  existing pages is marked as an assumption.
+
+---
+
+No story of this plan writes the user-facing documentation of the C# 15 work. S-17 asks, at
+`user-stories.md:1398-1399`, that its pull request description state which pages of `metalama/Metalama.Documentation`
+must follow. S-29 repeats the same sentence at `user-stories.md:2027-2028`. S-25 states, at
+`user-stories.md:1874-1876`, that it does not edit the conceptual documentation, because that is a separate repository
+and therefore a separate pull request, and that it lists the pages rather than editing them. Two stories therefore
+defer the page list, and the third excludes the pages. Nobody writes them. This story owns them.
+
+#### Context
+
+Two pages of the public documentation are cited from this repository and describe values that PB-2027.0 changes. The
+requirements page is cited as the last source of [`platform-support.md`](../platform-support.md), at `:385`. The
+MSBuild property page is the help link of the three platform-check warnings, at
+`Metalama.Framework/src/Metalama.Framework.Package/build/Metalama.Framework.props:42`; the codes are `LAMA0600` for
+the target framework, `LAMA0601` for the .NET SDK and `LAMA0602` for the Visual Studio version, which
+`Metalama.Framework/src/Metalama.Framework.Package/build/Metalama.Framework.targets:278-280` documents. It is an
+assumption that both pages state the previous baseline, because neither was read.
+
+The platform statements that the pages have to carry are settled.
+[`platform-support.md`](../platform-support.md), at lines 111 to 116, gives the canonical short form of PB-2027.0, at
+lines 124 to 134 excludes Visual Studio 2022 in its entirety, at lines 211 to 215 names `net10.0` and `net11.0` as the
+supported user target frameworks and records the Windows Presentation Foundation break, and at lines 293 to 299
+summarises what the baseline drops.
+
+One documented value is being changed by another story and is documented in both repositories.
+`Metalama.Framework/src/Metalama.Framework.Engine/CompileTime/CompileTimeAssemblyLocator.cs:43` holds the default of
+`MetalamaCompileTimeTargetFrameworks`, which is `netstandard2.0;net8.0;net48` today and which S-05 changes to name
+`net10.0`. Finding UT-3 records, at
+[`06-user-tfm-patterns-tests-docs.md`](06-user-tfm-patterns-tests-docs.md), lines 259 and 260, that whether the value
+documented in `Metalama.Documentation` also names `net8.0` is an open question, and that the repository was not
+present in the environment of that analysis. It is still not present, so the question is carried here rather than
+answered.
+
+The C# 15 subjects come from stories that this one follows. C# 15 as a supported language version is S-11. Reading a
+union in the code model is S-12 and introducing one is S-17, with S-29 conditional on question Q1. Reading a closed
+hierarchy is S-18 and introducing a closed class is S-26. Extension indexers are S-21. The rejection of a labeled
+`break` or `continue` in a template is S-19, which follows section 4 of [`DECISIONS.md`](DECISIONS.md).
+
+Three facts of that work are easy to lose in a page and change what a reader should expect.
+
+Section 2b of [`DECISIONS.md`](DECISIONS.md) records that the public assembly `Metalama.Framework` is not built per
+Roslyn version while the engine is, so on the hosts that the `Roslyn.5.0.0` variant serves, which are Rider and the
+Visual Studio Code C# Dev Kit, a member that reports whether a type is a union reports the value of an ordinary type.
+Whether the product reports that divergence is question Q2, and the pages state the outcome once it is settled.
+
+Section 5e of [`DECISIONS.md`](DECISIONS.md) records that there are two authoring forms of a union, the `union`
+declaration and a type carrying `System.Runtime.CompilerServices.UnionAttribute`, that Roslyn reports both as unions,
+and that the member restrictions apply to the first form only. A page that states a restriction has to say which of
+the two forms it concerns, which is the reader-facing half of question Q9.
+
+A case added to a `union` declaration is a build-time-only change, which S-29 states in its scope at
+`user-stories.md:2027-2028` and which the reader has to be told before using the feature.
+
+#### Scope
+
+- Revise the requirements page so that it states PB-2027.0: Visual Studio 2026 and later, the current releases of
+  Rider and of the Visual Studio Code C# Dev Kit, the .NET 10 and .NET 11 software development kits, `net10.0` and
+  `net11.0` as user target frameworks, .NET Framework 4.7.2 and later, and .NET Standard 2.0 and 2.1. State plainly
+  that Visual Studio 2022, `net8.0` and `net9.0` are no longer supported, and that a Windows Presentation Foundation
+  application on .NET 8 or .NET 9 has no compatible asset.
+- Revise the MSBuild property page for the three platform-check codes, for the `MetalamaCheckSupportedPlatform`
+  property and for the `MetalamaSupportedPlatformExclusion` item that suppress them, and for the documented value of
+  `MetalamaCompileTimeTargetFrameworks`, which S-05 changes.
+- Answer the open question of finding UT-3, which is whether the documented value of
+  `MetalamaCompileTimeTargetFrameworks` names `net8.0`, and correct it if it does.
+- Write the page that states which C# 15 features an aspect may use in the run-time code it produces, and that the
+  template language stays at C# 14 by section 4 of [`DECISIONS.md`](DECISIONS.md).
+- Write the page about unions: what an aspect reads about a union, what it may introduce, and which of the two
+  authoring forms each statement concerns.
+- Write the page about closed hierarchies: what an aspect reads, and that an aspect may introduce a closed class
+  whose generated modifier list reads `closed partial class`.
+- Write the page about extension indexers: overriding one, and introducing one into an extension block that declares
+  a named receiver.
+- Add the rejection of a labeled `break` and `continue` to the template language reference, with the reason, which is
+  that the annotator cannot classify the label as compile-time or run-time, and state that run-time code that an
+  aspect transforms is not affected.
+- State, on every page of the C# 15 set, which design-time hosts show the feature, and report the divergence of
+  question Q2 once it is settled.
+- State that a case added to a `union` declaration is a build-time-only change, if question Q1 chooses to ship that
+  form and S-29 is delivered.
+- Publish the page list, so that S-17, S-25 and S-29 reference this issue instead of enumerating pages in their own
+  pull request descriptions.
+
+#### Acceptance criteria
+
+- No page states a supported platform, a target framework or a C# version that PB-2027.0 has dropped.
+- Every C# 15 capability that 2027.0 ships has a page, and no page documents a capability that no story of this
+  release delivers.
+- Every statement about a union names the authoring form it concerns.
+- Every page of the C# 15 set states which design-time hosts show the feature.
+- The documented value of `MetalamaCompileTimeTargetFrameworks` equals the default that the shipped engine carries.
+- S-17, S-25 and S-29 reference this issue for their page list, and none of them enumerates pages of its own.
+
+#### Not in scope
+
+This story does not edit the internal architecture documents under `Metalama.Framework/docs`, which question Q17 of
+[`OPEN-QUESTIONS.md`](OPEN-QUESTIONS.md) records as outside the documentation story of this release and which S-25
+partly owns. It does not document the introduction of structs, records, enums or delegates, which are the open issues
+#869, #867, #866 and #865 and which section 5c of [`DECISIONS.md`](DECISIONS.md) leaves out of scope. It does not
+change the samples, which are S-35.
+
+— Claude for @gfraiteur
+
+### S-35. Derive the host process classification from one table and give the C# Dev Kit its own arm
+
+- Issue type: Bug
+- Labels: `bug`, `Area-Framework`, `Area-Build-Engineering`
+- Milestone: `2027.0`
+- Repositories: `metalama/Metalama`
+- Size: S
+- Blocked by: nothing
+- Findings: none. No theme document of this analysis examined host process detection. This story closes the second
+  paragraph of question [Q14](OPEN-QUESTIONS.md) of the completeness review, which reported that the two copies of
+  the detection have diverged on the Visual Studio Code C# Dev Kit.
+
+---
+
+Two files classify the current process by its name.
+`Metalama.Backstage/src/Metalama.Backstage/Utilities/ProcessUtilities.cs:34-139` matches fifteen process names in a
+switch statement and a sixteenth by prefix, and returns one of the seventeen members of
+`Metalama.Backstage.Diagnostics.ProcessKind`.
+`Metalama.Framework/src/Metalama.Framework.CompilerExtensions/ProcessKindHelper.cs:14-59` matches seven process
+names and returns one of the six members of `Metalama.Framework.CompilerExtensions.ProcessKind`, declared at
+`:62-70`. Each file carries a comment telling the reader that the other copy exists and that every change must be
+made in both:
+`ProcessKindHelper.cs:16-17` and `ProcessUtilities.cs:36-37`. The two tables no longer agree. The first classifies
+`microsoft.codeanalysis.languageserver` at `:78-80`, which is the language server of the Visual Studio Code C# Dev
+Kit; the second has no such case and no such enumeration member, so that process reaches the default arm at
+`ProcessKindHelper.cs:56-57` and is reported as `ProcessKind.Other`. The C# Dev Kit is one of the design-time host
+axes of PB-2027.0.
+
+#### Context
+
+Eleven classifications exist in the Backstage copy and in no other. They are `servicehub.host` carrying
+`$codelensservice$` in its command line at `ProcessUtilities.cs:51-65`, `visualstudio` at `:67-68`,
+`resharpertestrunner` and `resharpertestrunner64` at `:74-76`, `microsoft.codeanalysis.languageserver` and
+`microsoft.visualstudio.code.languageserver` at `:78-80`, `msbuild` at `:82-83`, `testhost` at `:85-86`, the four
+command line tests under the `dotnet` process name at `:102-117`, and a process name beginning with `linqpad` at
+`:130-133`. The two copies agree on `devenv`, on the three names of the Roslyn analysis process, on `csc` and
+`vbcscompiler`, and on the three command line tests that both perform under `dotnet`.
+
+The consequence at run time is smaller than the divergence suggests, and stating it precisely is what keeps this
+story at size S. `ProcessKindHelper.CurrentProcessKind` is read at six places. Five of them select the design-time
+entry point that is instantiated: `MetalamaSourceGenerator.cs:25-59`, `MetalamaDiagnosticAnalyzer.cs:24-57`,
+`MetalamaDiagnosticSuppressor.cs:21-50`, `MetalamaGeneratedCodeAnalyzer.cs:22-34`, and, in the assembly
+`Metalama.Framework.EditorExtensions`, `MetalamaCodeFixProvider.cs:24-57` and
+`MetalamaCodeRefactoringProvider.cs:22-55`. In every one of them the C# Dev Kit falls to the default arm, and the
+default arm selects the same entry point that an explicit arm for the language server would select today.
+`ResourceExtractor.cs:580-581` is the only place that takes a decision rather than writes a message from this
+classification, and it tests `ProcessKind.DevEnv or ProcessKind.Rider`, which the language server does not match
+under either table. No entry point is therefore wrong today.
+
+Two consequences are real. The first is that the troubleshooting report and the exception text of
+`ResourceExtractor.cs:202`, `:275` and `:402` name the host as `Other` for the C# Dev Kit, for Visual Studio Code
+with OmniSharp, for LinqPad, for the test host, for an MSBuild node, for a ReSharper test runner and for the Code
+Lens service, while the Backstage log of the same process names each of them correctly. A support report from a C#
+Dev Kit user therefore does not say which host produced it. The second is that no arm that must treat the C# Dev
+Kit differently can be written in `ProcessKindHelper` at all, because the enumeration has no member for it. Section
+2b of [`DECISIONS.md`](DECISIONS.md) and question [Q2](OPEN-QUESTIONS.md) name Rider and the C# Dev Kit as exactly
+the two hosts on which the design-time result and the build-time result diverge under the Roslyn 5.0 variant, and
+`Metalama.Framework.EditorExtensions` is compiled once for every Roslyn variant against `RoslynApiMinVersion`. That
+assembly can distinguish Rider today, at `MetalamaCodeFixProvider.cs:42-48`, and cannot distinguish the C# Dev Kit.
+
+The failure shape is on record. Issue #1463 reports that Visual Studio 2026 runs the Roslyn analysis service in a
+process named `DevHub.exe` instead of `ServiceHub.RoslynCodeAnalysisService.exe`, that the name was missing from
+both copies at once, and that the fix had to add it to both. The pull request that closed it is #1465. The two
+halves of this story, reconciling the tables and classifying the C# Dev Kit, are the same edit for the same reason,
+which is why they are one story and not two.
+
+Two further lists of process names exist, and one of them has the same omission. `ProcessManagerBase.cs:18-30`
+declares the processes that the process manager may stop. It names `servicehub.roslyncodeanalysisservice`, the two
+JetBrains workers and `omnisharp`, and it names neither `devhub` nor `microsoft.codeanalysis.languageserver`, so
+the Visual Studio 2026 analysis process and the C# Dev Kit language server are not stopped even when they hold a
+Metalama assembly. `ServiceHubClientEndpoint.cs:59-72` matches parent process names in order to find the Visual
+Studio user process, with one arm for Visual Studio 2022 at `:59-64` and one for Visual Studio 2026 at `:67-70`;
+`platform-support.md:134` states that 2027.0 does not support Visual Studio 2022, so the first arm serves no
+supported host.
+
+The duplication is removed rather than pinned by a test, and the mechanism for removing it is already in the
+repository. The comment at `Metalama.Framework.CompilerExtensions.csproj:23-25` states that the project can have no
+reference at all, because `Metalama.Backstage` is one of the assemblies that it embeds and extracts. The obstacle
+is therefore the assembly reference and not the source. `Metalama.Framework/Directory.Build.props:21` defines
+`MetalamaSharedThreadingSourceDirectory`, and `Metalama.Framework.CompilerExtensions.csproj:26-33` and
+`Metalama.Framework.DesignTime.Contracts.csproj:20-27` already compile eight source files of `Metalama.Backstage`
+through linked `Compile` items, for exactly this reason. A test that compares the two switch statements would
+report the next divergence after it happened; a shared source file prevents it.
+
+#### Scope
+
+- Move the process name table out of `ProcessUtilities.GetProcessKind` and `ProcessKindHelper.GetProcessKind` into
+  one source file that both assemblies compile, following the linked `Compile` item pattern of
+  `Metalama.Framework.CompilerExtensions.csproj:26-33` and the `MetalamaSharedThreadingSourceDirectory` property of
+  `Metalama.Framework/Directory.Build.props:21`.
+- Keep the two assemblies from declaring a type of the same full name, because `ResourceExtractor` extracts and
+  loads `Metalama.Backstage` into the same process that already contains `Metalama.Framework.CompilerExtensions`.
+- Make the process name and the command line parameters of the classification, so that the table can be exercised
+  by a test without the process existing, and keep the caching of the result for the current process, which
+  `ProcessUtilities.cs:22-29` explains is required because a parent process may end first.
+- Give `Metalama.Framework.CompilerExtensions.ProcessKind` the members that the shared table returns, and give the
+  entry point switches of `MetalamaSourceGenerator.cs`, `MetalamaDiagnosticAnalyzer.cs`,
+  `MetalamaDiagnosticSuppressor.cs`, `MetalamaGeneratedCodeAnalyzer.cs`, `MetalamaCodeFixProvider.cs` and
+  `MetalamaCodeRefactoringProvider.cs` an explicit arm for the C# Dev Kit language server, rather than leaving it in
+  the default arm.
+- Add `devhub` and `microsoft.codeanalysis.languageserver` to `ProcessManagerBase._processesToKill` at
+  `ProcessManagerBase.cs:18-30`, with the display names that the neighbouring entries use.
+- Record, for each arm of the shared table, which host of PB-2027.0 it serves, and remove the Visual Studio 2022
+  arm of `ServiceHubClientEndpoint.cs:59-64` and the `visualstudio` arm that returns `ProcessKind.VisualStudioMac`,
+  or state in a comment why each is kept.
+- Add the process name of the Roslyn analysis process and of the C# Dev Kit language server to what checklist items
+  1 and 2 of [`platform-support.md`](../platform-support.md) require to be recorded, so that a renamed process in
+  Visual Studio 2027 is found by the measurement rather than by a bug report.
+- Add a test that classifies every name of the table, and a test that fails when either assembly stops compiling the
+  shared file.
+
+#### Acceptance criteria
+
+- One source file holds the process name table, and adding a name to it takes effect in `Metalama.Backstage` and in
+  `Metalama.Framework.CompilerExtensions` without a second edit.
+- No source file carries a comment instructing the reader to repeat a change to this classification in another file.
+- The troubleshooting report of `ResourceExtractor` names the C# Dev Kit language server, an MSBuild node, a test
+  host and the Code Lens service by the same names that the Backstage log gives them.
+- Every design-time entry point selects the same implementation for the C# Dev Kit as before this story, chosen by
+  an arm that names the C# Dev Kit rather than by the default arm.
+- The process manager stops the Visual Studio 2026 analysis process and the C# Dev Kit language server when they
+  hold a Metalama assembly.
+- A test classifies every process name of the table, and it runs without the corresponding process existing.
+- Every arm of the table names a host that PB-2027.0 supports, or carries the reason it is kept.
+
+#### Not in scope
+
+This story does not perform the November 2026 measurement, which is S-08; it only states what that measurement must
+record. It does not decide whether the lower Roslyn variant reports the divergence of question Q2, which is a
+separate decision and a separate story, and it does not add any diagnostic. It does not change the behaviour that
+any entry point has today on any host.
+
+— Claude for @gfraiteur
+
+### S-36. Update the internal architecture documents that the C# 15 stories change
+
+- Issue type: User Story
+- Labels: `enhancement`, `documentation`, `Area-Framework`
+- Milestone: `2027.0`
+- Repositories: `metalama/Metalama`
+- Size: M
+- Blocked by: S-03, S-12, S-14, S-16, S-17 and S-26, which are the stories whose result these documents describe, and
+  S-29 if question Q1 of [`OPEN-QUESTIONS.md`](OPEN-QUESTIONS.md) files it. A documentation story is normally blocked
+  by the stories whose result it describes, because a document written before the code is a second thing to correct.
+- Findings: none
+
+---
+
+Nine documents of `Metalama.Framework/docs` are named in no document of `Metalama.Framework/docs/2027.0`, which is
+question Q17 of [`OPEN-QUESTIONS.md`](OPEN-QUESTIONS.md). They are
+[`compilation-model.md`](../compilation-model.md), [`pipeline.md`](../pipeline.md),
+[`linker-architecture.md`](../linker-architecture.md), [`linker-overview.md`](../linker-overview.md),
+[`linker-callsite.md`](../linker-callsite.md), [`kind-check-optimization.md`](../kind-check-optimization.md),
+[`trivia-and-formatting.md`](../trivia-and-formatting.md), [`design-time-memory.md`](../design-time-memory.md) and
+[`cross-process-communication.md`](../cross-process-communication.md). Each was read against the stories of this
+release. Five of them describe a mechanism that a story changes and are the scope of this story. Four of them need
+nothing, and the reason for each is stated below so that the question is not asked a third time.
+
+#### Context
+
+This story is the internal counterpart of S-25. S-25 carries the platform, dependency and extensibility
+documentation, which states the previous platform baseline. This story carries the documents that describe how the
+engine works, which no story of the release names. The division follows the subject: a statement about a target
+framework, a package version or a Roslyn variant belongs to S-25, and a statement about the code model, the pipeline,
+the linker or the kind-check doctrine belongs here.
+
+Like S-25, this story is scheduled after the work it describes, for the same reason.
+
+Four of the nine documents need no change, and the reason is recorded rather than left implicit.
+
+[`linker-callsite.md`](../linker-callsite.md) describes the closure check of the `[OnInitialized]` call-site advice
+and the propagation of `ContainsInitializableTypes` through the transitive manifest. None of the three terms of that
+check is keyed on a type kind, a syntax kind or a language version: they test the `IInitializable` interface and
+whether the compilation is partial. The one property of the document that the release relies on is the statement of
+the section "Term 3" that the derived type index excludes types declared in referenced assemblies, and section 9 of
+[`DECISIONS.md`](DECISIONS.md) confirms that reading a closed hierarchy needs no new way to enumerate derived types,
+so that statement stays correct as written.
+
+[`trivia-and-formatting.md`](../trivia-and-formatting.md) describes the three formatting modes, the conditional
+trivia convention and the `CodeFormatter` pipeline. The linker analysis established that the code formatter pipeline
+is agnostic of the node kind, that the custom simplifier passes an unknown node through, and that a collection
+expression needs no parentheses under a cast whether or not it carries a leading with-element, at
+[`04-linker-and-advice.md`](04-linker-and-advice.md) lines 980 to 993. The generated file that the document names in
+the section "Performance: rules of thumb for contributors" is written with a placeholder for the Roslyn variant, so
+the renumbering of S-09 does not make the path wrong.
+
+[`design-time-memory.md`](../design-time-memory.md) states its rule in terms of the object types that an object
+outliving a request may hold, and not in terms of the declarations that the pipeline analyses, so a union adds no
+type to that list. The design-time diagnostics that question Q2 and story S-29 may add are already governed by the
+rule stated in the section "What the pipeline stores for longer than one request", which requires the arguments of a
+diagnostic to be durable. The document's section "What has not been examined" already records that the source
+generator pipeline, which S-15 changes, was not audited, so the union arm of the design-time generator makes no
+statement of the document untrue.
+
+[`cross-process-communication.md`](../cross-process-communication.md) describes the two boundaries and the three
+rules that govern them, and it already names `Metalama.Vsx` as the cross-version consumer of
+`Metalama.Framework.DesignTime.Contracts`. The design-time analysis established that the remote procedure call
+surface and the cross-version contracts transport no type kind, no syntax kind and no language version, that the only
+kind on the wire is `AspectExplorerDeclarationKind`, and that the contracts assembly needs no change for this
+release, at [`analysis-reports/05-design-time-workspaces-linqpad.md`](analysis-reports/05-design-time-workspaces-linqpad.md)
+lines 118 and 129. The absence of `Metalama.Vsx` from the analysis is question Q13 and is a gap of the analysis, not
+of this document.
+
+#### Scope
+
+- [`compilation-model.md`](../compilation-model.md). The section "Declaration Types" divides declarations into
+  symbol-based source declarations and builder-based introduced declarations, and the section "How Transformations
+  Are Applied" with its list "AddDeclaration Routing" describes how a builder reaches an updatable collection. S-17
+  adds a transformation that implements `IIntroduceDeclarationTransformation` without `IInjectMemberTransformation`,
+  in order to register the synthesized `Value` property and the per-case constructors of an introduced union in the
+  code model without injecting syntax. That shape serves namespaces alone today, and a namespace is not a member.
+  State the shape, state that the members registered through it are marked implicitly declared, and add the case to
+  the table of the section "Declaration Origin", which has no row for a member that the compiler would synthesize and
+  that Metalama registers as a builder. State in the section "DeclarationBuilder vs DeclarationBuilderData" that the
+  named type builder carries a case list, which S-17 adds, and a closedness flag, which S-26 adds.
+- [`pipeline.md`](../pipeline.md). The section "Level 4: Parallel Type Processing", under "Processing Structure",
+  states that several aspect instances on one type execute sequentially and does not state how they are ordered. The
+  order comes from `AspectInstanceComparer.Compare` in
+  `Metalama.Framework/src/Metalama.Framework.Engine/Pipeline/ExecuteAspectLayerPipelineStep.cs:198-269`, whose only
+  escape hatch for two targets that share a span requires two implicitly declared methods of a record, at `:250-265`,
+  and which otherwise throws at `:267`. S-16 generalises that escape hatch to any implicitly declared members that
+  share a span and removes the assertion that requires a record. State the ordering rule and its new condition, since
+  the table "Key Files" already directs a reader to that file for the parallel processing alone.
+- [`linker-overview.md`](../linker-overview.md). The section "Step 3 - Linking" states that
+  `LinkerLinkingStep.LinkingRewriter` goes through every class. S-14 replaces the per-kind dispatch of
+  `LinkerLinkingStep.LinkingRewriter.cs:37-85` and of `LinkerInjectionStep.Rewriter.cs:316-324` by a dispatch over the
+  abstract type declaration, so the sentence must say any type declaration and must name the union as one of them.
+  The section "Step 1 - Injection" states that the collected information produces `LinkerInjectionRegistry`. S-17
+  registers member builders that have no injected member, which
+  `LinkerInjectionRegistry.GetTransformationForBuilder` has never received, so record what such a builder does in the
+  registry once S-17 has established it.
+- [`linker-architecture.md`](../linker-architecture.md). The section "Primary Constructor Handling" states that
+  primary constructors are found on records and on classes, and that
+  `ApplyMemberLevelTransformationsToPrimaryConstructor` modifies the parameter list and the base list of the type
+  declaration. For a union declaration that parameter list is the case list and not a parameter list. S-14 requires
+  the fallback path to preserve it and to stay out of the record and struct paths, and S-03 names
+  `ImplicitLastOverrideReferenceInliner` and `LinkerLateTransformationRegistry` as the two consumers where the same
+  distinction applies. State the distinction in that section. If question Q1 files S-29, add to the section
+  "Constructor Rewriting Flow", under "Source Constructors", that the case list of the part the user wrote is
+  rewritten in the same field and by the same method as the parameter list of a partial constructor, which is the
+  precedent S-29 follows.
+- [`kind-check-optimization.md`](../kind-check-optimization.md). The section "Golden Rule", the section "Pattern F:
+  SyntaxNode Patterns" and entry 6 of the section "Edge Cases" instruct a contributor to test the discriminator kind
+  before pattern matching, and entry 6 instructs a contributor to enumerate the two record kinds rather than to test
+  `RecordDeclarationSyntax`. S-03, S-07 and S-14 do the opposite wherever the intent is any type declaration: they
+  replace the enumeration of concrete kinds by a test on the abstract syntax type, because an enumeration silently
+  omits a kind that a later language version adds. `KindCheckOptimizationAnalyzer.cs:833-837` already exempts an
+  abstract syntax type from the rule, and neither S-03 nor S-25 records that exemption in the document that states
+  the doctrine. State the exemption, state the reason, and add the case as a further entry of the section "What NOT
+  to Optimize". Add the union declaration to the table "SyntaxKind to Syntax Types (Common)" of the section "Type
+  Mappings". State that no row is added to the table "DeclarationKind to IDeclaration Types" of the same section and
+  none to the multi-kind table of "Pitfall 1", because S-12 adds neither a `TypeKind` value nor a declaration kind
+  for a union, and because S-18 exposes closedness as a flag and not as a kind.
+
+#### Acceptance criteria
+
+- Every enumeration of type declarations in the five documents lists the union declaration, and none of them lists
+  the class, the struct, the interface and the record alone.
+- [`kind-check-optimization.md`](../kind-check-optimization.md) states that a test on an abstract syntax type is
+  exempt from the discriminator rule, names the analyzer code that implements the exemption, and states that this
+  release adds no `TypeKind` value and no declaration kind.
+- [`pipeline.md`](../pipeline.md) states how the aspect instances of one type are ordered, and states the condition
+  under which two targets that share a span are ordered by signature instead of throwing.
+- [`compilation-model.md`](../compilation-model.md) states that a declaration may be registered as a builder with no
+  injected syntax, and names the two cases in which that happens, which are the namespace and the synthesized members
+  of an introduced union.
+- [`linker-overview.md`](../linker-overview.md) and [`linker-architecture.md`](../linker-architecture.md) state that a
+  union declaration carries a case list in the syntactic position where a class carries a primary constructor
+  parameter list.
+- Every file, member and line reference added by this pull request resolves in the shipped code of the release.
+- The pull request description lists the four documents that were reviewed and left unchanged, with the reason for
+  each.
+
+#### Not in scope
+
+This story does not touch the documents that S-25 owns, which are [`platform-support.md`](../platform-support.md),
+[`extensibility.md`](../extensibility.md), [`testing.md`](../testing.md),
+[`compile-time-target-frameworks.md`](../compile-time-target-frameworks.md),
+[`Directory.Packages.md`](../../../Directory.Packages.md), `Directory.Packages.props`, `NOTES.md`, the two root
+`CLAUDE.md` files and the project and member comments that state the previous platform baseline. It does not touch
+[`linker-inlining.md`](../linker-inlining.md), whose section on label renaming S-19 owns, nor
+[`updating-roslyn.md`](../updating-roslyn.md), whose step 10 S-09 rewrites, nor the paragraph of
+[`Directory.Packages.md`](../../../Directory.Packages.md) and the variant property file notes that state the gating
+policy, which S-02 owns. It does not edit the conceptual documentation under `../Metalama.Documentation/content`,
+which is a separate repository and therefore a separate pull request.
+
+— Claude for @gfraiteur
+
 ## Already in progress
 
 Five pull requests interact with these stories. Two are open and three were merged after the theme documents were
