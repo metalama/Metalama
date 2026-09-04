@@ -2,7 +2,6 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using JetBrains.Annotations;
 using System.Security.Cryptography;
 
 namespace Metalama.Backstage.Licensing.Licenses;
@@ -19,8 +18,7 @@ namespace Metalama.Backstage.Licensing.Licenses;
 /// throws <see cref="System.PlatformNotSupportedException"/>. A license key issued afterwards is signed by
 /// <see cref="ECDsaLicensingAuthority"/>, which has no such platform dependency.
 /// </remarks>
-[PublicAPI( "Use in the license generator web and API." )]
-public sealed class DsaLicensingAuthority : LicensingAuthority
+internal sealed class DsaLicensingAuthority : LicensingAuthority
 {
     private static readonly SHA1 _sha1 = SHA1.Create();
 
@@ -37,7 +35,7 @@ public sealed class DsaLicensingAuthority : LicensingAuthority
     /// </summary>
     /// <param name="keyId">The identifier of the key.</param>
     /// <param name="key">The XML representation of the key. A private key signs and verifies, a public key only verifies.</param>
-    public DsaLicensingAuthority( int keyId, string key ) : this( checked((byte) keyId), CryptographyHelper.CreateDsaFromXml( key ) ) { }
+    internal DsaLicensingAuthority( int keyId, string key ) : this( checked((byte) keyId), CryptographyHelper.CreateDsaFromXml( key ) ) { }
 
     private static byte[] GetHash( byte[] message )
     {

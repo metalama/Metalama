@@ -96,7 +96,8 @@ namespace Metalama.Backstage.Licensing.Licenses
             }
 #pragma warning restore CS0618
 
-            if ( licenseKeyData.SignatureKeyId is 0 or 1 or ProductionLicensingAuthorityProvider.SigningKeyId
+            if ( licenseKeyData.SignatureKeyId is { } signatureKeyId
+                 && ProductionLicensingAuthorityProvider.KeyIdentifiers.Contains( signatureKeyId )
                  && (licenseKeyData is { LicenseId: not 0 and not 22 and < 100 } || RevokedLicenseKeys.Ids.Contains( licenseKeyData.LicenseId )) )
             {
                 // The rule covers every production key, including the Elliptic Curve DSA key, so that a revoked license
@@ -107,9 +108,9 @@ namespace Metalama.Backstage.Licensing.Licenses
                 return false;
             }
 
-            if ( licenseKeyData.RequiresSignature() && !licenseKeyData.VerifySignature( this._licensingAuthorityProvider ) )
+            if ( !licenseKeyData.TryVerifySignature( this._licensingAuthorityProvider, out var signatureErrorMessage ) )
             {
-                errorMessage = "the license key has an invalid signature";
+                errorMessage = signatureErrorMessage;
 
                 return false;
             }
@@ -251,9 +252,9 @@ namespace Metalama.Backstage.Licensing.Licenses
                 return false;
             }
 
-            if ( licenseKeyData.RequiresSignature() && !licenseKeyData.VerifySignature( this._licensingAuthorityProvider ) )
+            if ( !licenseKeyData.TryVerifySignature( this._licensingAuthorityProvider, out var signatureErrorMessage ) )
             {
-                errorMessage = $"The license key {licenseKeyData.LicenseUniqueId} has an invalid signature.";
+                errorMessage = $"The license key {licenseKeyData.LicenseUniqueId} cannot be used because {signatureErrorMessage}.";
                 this.Logger.Warning?.Log( errorMessage );
                 licenseProperties = null;
 

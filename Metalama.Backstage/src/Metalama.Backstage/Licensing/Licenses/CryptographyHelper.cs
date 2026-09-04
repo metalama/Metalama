@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Security.Cryptography;
 using System.Xml;
 
@@ -13,6 +14,30 @@ namespace Metalama.Backstage.Licensing.Licenses
 {
     internal static class CryptographyHelper
     {
+        /// <summary>
+        /// Loads the XML representation of a key, with the processing of a document type definition and the resolution
+        /// of external entities disabled.
+        /// </summary>
+        /// <param name="xmlString">The XML representation of a key.</param>
+        /// <returns>The document of <paramref name="xmlString"/>.</returns>
+        /// <remarks>
+        /// The keys of the product are constants of this assembly, but <see cref="ExplicitLicensingAuthorityProvider"/>
+        /// accepts a key from its caller, so the parser is hardened against an entity expansion and against the
+        /// resolution of an external entity.
+        /// </remarks>
+        private static XmlDocument LoadKeyXml( string xmlString )
+        {
+            var settings = new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null };
+
+            using var stringReader = new StringReader( xmlString );
+            using var xmlReader = XmlReader.Create( stringReader, settings );
+
+            var xmlDocument = new XmlDocument { XmlResolver = null };
+            xmlDocument.Load( xmlReader );
+
+            return xmlDocument;
+        }
+
         public static DSA CreateDsaFromXml( string xml ) => CreateDsaFromParameters( ParseDsaParameters( xml ) );
 
         private static DSA CreateDsaFromParameters( DSAParameters parameters )
@@ -52,8 +77,7 @@ namespace Metalama.Backstage.Licensing.Licenses
 
             var parameters = default(DSAParameters);
 
-            var xmlDoc = new XmlDocument();
-            xmlDoc.LoadXml( xmlString );
+            var xmlDoc = LoadKeyXml( xmlString );
 
             // ReSharper disable StringLiteralTypo
 
@@ -154,13 +178,7 @@ namespace Metalama.Backstage.Licensing.Licenses
         /// </summary>
         /// <param name="xmlString">The XML representation of a key.</param>
         /// <returns>The name of the root element of <paramref name="xmlString"/>.</returns>
-        public static string GetKeyRootElementName( string xmlString )
-        {
-            var xmlDoc = new XmlDocument();
-            xmlDoc.LoadXml( xmlString );
-
-            return xmlDoc.DocumentElement!.Name;
-        }
+        public static string GetKeyRootElementName( string xmlString ) => LoadKeyXml( xmlString ).DocumentElement!.Name;
 
         public static ECDsa CreateECDsaFromXml( string xml ) => CreateECDsaFromParameters( ParseECDsaParameters( xml ) );
 
@@ -194,8 +212,7 @@ namespace Metalama.Backstage.Licensing.Licenses
         {
             var parameters = default(ECParameters);
 
-            var xmlDoc = new XmlDocument();
-            xmlDoc.LoadXml( xmlString );
+            var xmlDoc = LoadKeyXml( xmlString );
 
             if ( !xmlDoc.DocumentElement!.Name.Equals( "ECDSAKeyValue", StringComparison.Ordinal ) )
             {

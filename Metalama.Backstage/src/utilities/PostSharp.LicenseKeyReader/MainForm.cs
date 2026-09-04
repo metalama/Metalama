@@ -31,10 +31,9 @@ namespace PostSharp.LicenseKeyReader
 
             this._propertyGrid.SelectedObject = licenseKeyData;
 
-            if ( licenseKeyData.RequiresSignature()
-                 && !licenseKeyData.VerifySignature( new ProductionLicensingAuthorityProvider() ) )
+            if ( !licenseKeyData.TryVerifySignature( new ProductionLicensingAuthorityProvider(), out var signatureErrorMessage ) )
             {
-                this.ShowError( "Failed to verify the license key signature" );
+                this.ShowError( $"Failed to verify the license key signature: {signatureErrorMessage}" );
             }
         }
     }

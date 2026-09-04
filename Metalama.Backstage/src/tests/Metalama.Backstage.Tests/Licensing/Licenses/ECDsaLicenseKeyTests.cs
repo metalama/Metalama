@@ -56,7 +56,7 @@ public sealed class ECDsaLicenseKeyTests : LicensingTestsBase
 
         Assert.True( LicenseKeyData.TryDeserialize( licenseKey, out var licenseKeyData, out _ ), "Cannot parse." );
         Assert.Equal( _testKeyId, licenseKeyData.SignatureKeyId );
-        Assert.True( licenseKeyData.VerifySignature( this.LicensingAuthorityProvider ), "Invalid signature." );
+        Assert.True( licenseKeyData.TryVerifySignature( this.LicensingAuthorityProvider, out var signatureErrorMessage ), signatureErrorMessage );
     }
 
     /// <summary>

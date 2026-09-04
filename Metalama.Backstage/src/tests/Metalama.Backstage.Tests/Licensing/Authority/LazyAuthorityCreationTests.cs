@@ -79,7 +79,7 @@ public sealed class LazyAuthorityCreationTests : LicensingTestsBase
 
         Assert.Empty( this._observer.CreatedAuthorityKeyIds );
 
-        Assert.True( licenseKeyData.VerifySignature( this.LicensingAuthorityProvider ) );
+        Assert.True( licenseKeyData.TryVerifySignature( this.LicensingAuthorityProvider, out var signatureErrorMessage ), signatureErrorMessage );
 
         Assert.Equal( licenseKeyData.SignatureKeyId!.Value, Assert.Single( this._observer.CreatedAuthorityKeyIds ) );
     }

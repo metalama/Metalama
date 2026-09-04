@@ -106,7 +106,7 @@ namespace Metalama.Backstage.Tests.Licensing.Licenses
         /// </summary>
         /// <param name="signatureKeyId">The identifier of the key that the license key claims to be signed with.</param>
         [Theory]
-        [InlineData( TestLicensingAuthorityProvider.TestKeyId )]
+        [InlineData( TestLicensingAuthorityProvider.DsaTestKeyId )]
         [InlineData( TestLicensingAuthorityProvider.ECDsaTestKeyId )]
         public void LicenseKeyWithInvalidSignatureFails( byte signatureKeyId )
         {

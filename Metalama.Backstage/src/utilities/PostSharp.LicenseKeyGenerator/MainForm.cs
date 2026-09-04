@@ -35,9 +35,9 @@ namespace PostSharp.LicenseKeyGenerator
                 throw new InvalidOperationException( errorMessage );
             }
 
-            if ( !deserializedLicenseKeyData.VerifySignature( this._authorityProvider ) )
+            if ( !deserializedLicenseKeyData.TryVerifySignature( this._authorityProvider, out var signatureErrorMessage ) )
             {
-                throw new InvalidOperationException( "Failed to verify license signature." );
+                throw new InvalidOperationException( $"Failed to verify the license key signature: {signatureErrorMessage}." );
             }
 
             this._propertyGrid.SelectedObject = licenseKeyBuilder;

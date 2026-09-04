@@ -2,7 +2,6 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using JetBrains.Annotations;
 using System;
 using System.Security.Cryptography;
 
@@ -24,8 +23,7 @@ namespace Metalama.Backstage.Licensing.Licenses;
 /// the format of the license key is unchanged and only its Base32 representation grows.
 /// </para>
 /// </remarks>
-[PublicAPI( "Use in the license generator web and API." )]
-public sealed class ECDsaLicensingAuthority : LicensingAuthority
+internal sealed class ECDsaLicensingAuthority : LicensingAuthority
 {
     /// <summary>
     /// The number of bytes that the digest of the signed message is truncated to. It is the length of the SHA-1 hash
@@ -55,7 +53,7 @@ public sealed class ECDsaLicensingAuthority : LicensingAuthority
     /// </summary>
     /// <param name="keyId">The identifier of the key.</param>
     /// <param name="key">The XML representation of the key. A private key signs and verifies, a public key only verifies.</param>
-    public ECDsaLicensingAuthority( int keyId, string key ) : this( checked((byte) keyId), CryptographyHelper.CreateECDsaFromXml( key ) ) { }
+    internal ECDsaLicensingAuthority( int keyId, string key ) : this( checked((byte) keyId), CryptographyHelper.CreateECDsaFromXml( key ) ) { }
 
     /// <summary>
     /// Computes the value that is signed and verified, being the SHA-256 digest of the message, truncated to

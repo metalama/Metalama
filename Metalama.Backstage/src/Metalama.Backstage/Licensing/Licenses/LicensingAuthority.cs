@@ -12,10 +12,11 @@ namespace Metalama.Backstage.Licensing.Licenses;
 /// </summary>
 /// <remarks>
 /// <para>
-/// There are two implementations, one for each signature algorithm. <see cref="DsaLicensingAuthority"/> signs with
-/// finite field DSA and is the algorithm of every license key issued until 2026. <see cref="ECDsaLicensingAuthority"/>
-/// signs with Elliptic Curve DSA and is the algorithm of the license keys issued afterwards. The identifier of the key
-/// selects the implementation, because the two sets of identifiers are disjoint.
+/// There are two implementations, one for each signature algorithm, both internal to this assembly. One signs with
+/// finite field DSA and is the algorithm of every license key issued until 2026. The other signs with Elliptic Curve
+/// DSA and is the algorithm of the license keys issued afterwards. The identifier of the key selects the
+/// implementation, because the two sets of identifiers are disjoint. An authority is therefore always obtained from
+/// an <see cref="ILicensingAuthorityProvider"/> and never constructed directly.
 /// </para>
 /// <para>
 /// An instance of this class holds the cryptographic key object. It is created by an
