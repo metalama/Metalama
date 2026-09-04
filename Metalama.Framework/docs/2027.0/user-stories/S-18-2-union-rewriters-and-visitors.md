@@ -1,11 +1,11 @@
-### S-13. Give the compile-time path and the design-time classifier a union dispatch
+### S-18-2. C# 15 unions: rewriters and visitors
 
 - Issue type: Bug
 - Labels: `bug`, `Area-Framework`, `Area-Framework-Templates`
 - Milestone: `2027.0`
 - Repositories: `metalama/Metalama`
 - Size: M
-- Blocked by: S-03, S-12
+- Blocked by: S-18-1
 - Findings: [CM-9](../03-code-model-unions-closed.md), [TP-6](../02-syntax-generator-and-templates.md),
   [LK-10](../04-linker-and-advice.md)
 

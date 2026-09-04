@@ -1,4 +1,4 @@
-### S-23. Execute the Roslyn 5.0.0 variant of the `Metalama.Premium` engines in tests
+### S-22. Metalama.Premium: execute the Roslyn 5.0.0 variant in tests
 
 - Issue type: User Story
 - Labels: `enhancement`, `Area-Extensions`, `Area-Build-Engineering`

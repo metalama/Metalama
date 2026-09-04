@@ -1,11 +1,11 @@
-### S-10. Mirror the Roslyn 5.12 renumbering in `Metalama.Premium`
+### S-14. Metalama.Premium: mirror the Roslyn 5.12 renaming
 
 - Issue type: User Story
 - Labels: `enhancement`, `Area-Build-Engineering`
 - Milestone: `2027.0`
 - Repositories: `metalama/Metalama.Premium`
 - Size: M
-- Blocked by: S-09
+- Blocked by: S-13
 - Findings: [PR-1](../07-premium.md)
 
 ---
@@ -21,7 +21,7 @@ appears in eleven tracked files, including the `InternalsVisibleTo` entries, the
 If the two repositories do not move in the same release, one of three things happens: Premium resolves a preview from
 a feed that the core has removed, or Premium removes the feed while the exported `RoslynApiMaxVersion` still carries a
 prerelease label, or Premium ships variant assemblies whose names no longer match the variant that the core loads,
-which the extension loader drops without a diagnostic. This story is separate from S-09 only because a pull request
+which the extension loader drops without a diagnostic. This story is separate from S-13 only because a pull request
 cannot span two repositories.
 
 #### Scope
@@ -34,7 +34,7 @@ cannot span two repositories.
   two package projects, and the `MetalamaExtensionAssembly` and `MetalamaDesignTimeExtensionAssembly` items with
   their `TargetRoslynVersion` metadata in the four property files.
 - Remove `nuget.base.config`, or keep it with its comment rewritten, according to whether the core still needs the
-  prerelease source after S-09.
+  prerelease source after S-13.
 
 #### Acceptance criteria
 

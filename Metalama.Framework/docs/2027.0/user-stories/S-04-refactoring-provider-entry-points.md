@@ -1,4 +1,4 @@
-### S-31. Bring the code refactoring provider entry points under the tested entry-point name list
+### S-04. Design time: code refactoring provider entry points
 
 - Issue type: Bug
 - Labels: `bug`, `Area-Framework`
@@ -42,7 +42,7 @@ public entry point types exposed to Roslyn, that the list is referenced by the `
 three code refactoring provider types. A reader who trusts the summary concludes that the entry points are covered
 when they are not.
 
-The release touches this area. Story S-09 renumbers the latest Roslyn variant, which changes the assembly identity
+The release touches this area. Story S-13 renames the latest Roslyn variant, which changes the assembly identity
 that `ResourceExtractor` composes at `ResourceExtractor.cs:244-246`, so the entry-point loading path is read and
 edited during 2027.0 in any case.
 

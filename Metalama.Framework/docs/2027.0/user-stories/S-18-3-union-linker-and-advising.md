@@ -1,11 +1,11 @@
-### S-14. Inject, link and validate advice applied to a union, and read its synthesized members
+### S-18-3. C# 15 unions: linker and advising
 
 - Issue type: User Story
 - Labels: `enhancement`, `Area-Framework`
 - Milestone: `2027.0`
 - Repositories: `metalama/Metalama`
 - Size: L
-- Blocked by: S-12
+- Blocked by: S-18-1
 - Findings: [LK-1](../04-linker-and-advice.md), [LK-2](../04-linker-and-advice.md), [LK-8](../04-linker-and-advice.md),
   [CM-8](../03-code-model-unions-closed.md)
 
@@ -37,7 +37,7 @@ restrictions apply to the `union` declaration form and not to a type carrying th
 - Correct the insert-position walks so that a member injected into a union is placed in a valid position.
 - Add the eligibility rules that refuse what a union declaration cannot carry, naming each restriction, and make each
   rule state which of the two union forms it tests.
-- Read the code model member added by S-12 rather than the Roslyn flag in those rules, because the eligibility rules
+- Read the code model member added by S-18-1 rather than the Roslyn flag in those rules, because the eligibility rules
   live in the public assembly, which does not reference Roslyn.
 - Make the synthesized `Value` property and the per-case constructors readable by the code model and reachable by the
   linker, extending the mechanism of metalama/Metalama#1879 rather than duplicating it, and rebase onto that pull
@@ -62,6 +62,6 @@ restrictions apply to the `union` declaration form and not to a type carrying th
 
 #### Not in scope
 
-This story does not introduce a union or a union case, which is S-17.
+This story does not introduce a union or a union case, which is S-29.
 
 — Claude for @gfraiteur

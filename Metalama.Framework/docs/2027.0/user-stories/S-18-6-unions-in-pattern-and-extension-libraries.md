@@ -1,11 +1,11 @@
-### S-22. Make the pattern libraries, the extension libraries and the reference graph correct on unions
+### S-18-6. C# 15 unions: pattern and extension libraries
 
 - Issue type: User Story
 - Labels: `enhancement`, `Area-Patterns`, `Area-Extensions`, `Area-Framework`
 - Milestone: `2027.0`
 - Repositories: `metalama/Metalama`
 - Size: L
-- Blocked by: S-12
+- Blocked by: S-18-1
 - Findings: [UT-14](../06-user-tfm-patterns-tests-docs.md), [UT-14a](../06-user-tfm-patterns-tests-docs.md),
   [UT-14b](../06-user-tfm-patterns-tests-docs.md), [UT-14c](../06-user-tfm-patterns-tests-docs.md),
   [UT-14d](../06-user-tfm-patterns-tests-docs.md)
@@ -29,8 +29,8 @@ diagnostics and that behaviour is pinned rather than changed, and the multicast 
 except the implicit parameterless constructor, where materializing an override produces a compiler error. The
 reference graph item needs one override in the core reference index walker, without which a reference from a union to
 its case types is never attributed and an architecture rule under-reports with no diagnostic; the Premium half is two
-architecture rule tests, which is why they are story S-28, and that story waits for S-10, because Premium cannot
-compile a union until its own latest variant is renumbered.
+architecture rule tests, which is why they are story S-23, and that story waits for S-14, because Premium cannot
+compile a union until its own latest variant is renamed.
 
 #### Scope
 
@@ -56,6 +56,6 @@ compile a union until its own latest variant is renumbered.
 
 #### Not in scope
 
-This story does not add the architecture rule tests of `Metalama.Premium`, which are story S-28.
+This story does not add the architecture rule tests of `Metalama.Premium`, which are story S-23.
 
 — Claude for @gfraiteur

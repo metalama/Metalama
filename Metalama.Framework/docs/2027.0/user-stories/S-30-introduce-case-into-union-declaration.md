@@ -1,4 +1,4 @@
-### S-29. Introduce a case into a `union` declaration
+### S-30. C# 15 unions: introducing a case into a union declaration
 
 - Issue type: User Story
 - Labels: `enhancement`, `Area-Framework`
@@ -7,14 +7,14 @@
 - Size: M
 - Priority: nice to have for 2027.0. It is discretionary under the doctrine of section 12 of
   [`DECISIONS.md`](../DECISIONS.md) and slips to 2027.1 if the release runs short.
-- Blocked by: S-17, and question Q1 of [`OPEN-QUESTIONS.md`](../OPEN-QUESTIONS.md)
+- Blocked by: S-29, and question Q1 of [`OPEN-QUESTIONS.md`](../OPEN-QUESTIONS.md)
 - Findings: none. The design is
   [`analysis-reports/11-introducing-unions-design.md`](../analysis-reports/11-introducing-unions-design.md).
 
 ---
 
 This story is filed only if question Q1 chooses Option A, which is to ship both authoring forms of case
-introduction. It adds a case to a type declared with the `union` keyword, which S-17 leaves out because that
+introduction. It adds a case to a type declared with the `union` keyword, which S-29 leaves out because that
 operation works at build time only.
 
 #### Context

@@ -1,4 +1,4 @@
-### S-32. Bring Visual Studio Tools for Metalama to PB-2027.0 and release the flowed dependency pins
+### S-12. Metalama.Vsx: PB-2027.0 and the flowed dependency pins
 
 - Issue type: User Story
 - Labels: `enhancement`, `Area-Vsx`, `Area-Platforms`
@@ -6,7 +6,7 @@
 - Repositories: `metalama/Metalama.Vsx`
 - Size: L
 - Blocked by: nothing. The story is calendar-gated by the November 2026 Visual Studio releases in the same way as
-  S-08, and it is not gated by any story of this repository.
+  S-11, and it is not gated by any story of this repository.
 - Findings: none. No theme document of this analysis names `Metalama.Vsx`, which is what question Q13 of
   [`OPEN-QUESTIONS.md`](../OPEN-QUESTIONS.md) records. The repository is not cloned in the session that produced this
   analysis, and its issue tracker `metalama/Metalama.Vsx.Public` was not reachable from that session either, so
@@ -104,7 +104,7 @@ Metalama version present in one Visual Studio session, which the comment at `:17
 
 This story does not edit `Directory.Packages.props` or [`Directory.Packages.md`](../../../../Directory.Packages.md).
 Raising the five pins and rewriting the forward-looking item is a separate pull request in `metalama/Metalama`, and it
-is written once this story reports its measurement. It is also not part of S-08, which re-derives the pins that are
+is written once this story reports its measurement. It is also not part of S-11, which re-derives the pins that are
 capped by the Visual Studio installation of the build machine and not the pins that are capped by a separately
 deployed extension. This story does not change `Metalama.Framework.DesignTime.Contracts`, whose GUIDs are frozen
 forever by the rule at `cross-process-communication.md:57`, and to which pull request #1612 has already added the

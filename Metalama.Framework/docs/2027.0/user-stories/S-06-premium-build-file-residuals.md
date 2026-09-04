@@ -1,4 +1,4 @@
-### S-24. Clean up the `Metalama.Premium` build-file residuals
+### S-06. Metalama.Premium: build-file residuals
 
 - Issue type: Bug
 - Labels: `bug`, `Area-Build-Engineering`

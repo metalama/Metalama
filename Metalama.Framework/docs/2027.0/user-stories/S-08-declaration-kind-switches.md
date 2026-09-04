@@ -1,4 +1,4 @@
-### S-07. Repair the declaration-kind switches that silently fall through
+### S-08. Engine: declaration-kind switches that silently fall through
 
 - Issue type: Bug
 - Labels: `bug`, `Area-Framework`, `Area-Extensions`
@@ -15,7 +15,7 @@ Four places switch over declaration kinds and do the wrong thing for a kind they
 caused by C# 15. `CSharpAttributeHelper.cs:74-191` returns null for records, record structs and extension blocks, and
 the caller propagates the null, so the add-attribute code action reports success and does nothing.
 `ChangeVisibilityCodeAction` in `Metalama.Premium` skips interfaces and indexers in the same way, which is story
-S-27. The member switch of `TransformCompileTimeType` throws for an indexer and falls through for an extension block,
+S-07. The member switch of `TransformCompileTimeType` throws for an indexer and falls through for an extension block,
 so a template declared inside an extension block is copied verbatim.
 `ReferenceValidationContext.GetInboundGranularity` throws for a
 validated extension block, and the exception is reported as an error diagnostic from inside the user validator.
@@ -25,7 +25,7 @@ validated extension block, and the exception is reported as an error diagnostic 
 Extension blocks are a C# 14 feature and already ship, so the last of these is a defect that a customer can
 encounter today, and the first two are wrong for records, which have shipped for years. In every case the remedy is
 to test an abstract syntax base type or to add the missing arm, which also admits unions later without naming an
-experimental member. The remedy is the same in both repositories, so S-27 is written from the same reviewed design,
+experimental member. The remedy is the same in both repositories, so S-07 is written from the same reviewed design,
 and it is a separate story because a pull request cannot span two repositories.
 
 #### Scope
@@ -55,6 +55,6 @@ and it is a separate story because a pull request cannot span two repositories.
 #### Not in scope
 
 This story does not handle unions. Every arm added here is written so that a union is admitted later without a
-further edit, but no C# 15 member is named. The change-visibility code action of `Metalama.Premium` is story S-27.
+further edit, but no C# 15 member is named. The change-visibility code action of `Metalama.Premium` is story S-07.
 
 — Claude for @gfraiteur

@@ -1,4 +1,4 @@
-### S-37. Install the .NET 11 software development kit in the build container and settle what `global.json` pins
+### S-09. Build: .NET 11 software development kit in the build container
 
 - Issue type: User Story
 - Labels: `enhancement`, `Area-Build-Engineering`
@@ -24,7 +24,7 @@ The mechanism is the compile-time compilation rather than the target framework, 
 visible to the compiler, maps its major version to a maximum language version, and applies that maximum whatever
 the project requests. A major of 10 or more maps to C# 14 today. The compile-time half of an aspect test is
 therefore pinned to C# 14 while the container carries only the .NET 10 kit, and a test that uses a C# 15 construct
-in compile-time code cannot build. Story S-11 adds the arm that maps a major of 11 to C# 15, and this story
+in compile-time code cannot build. Story S-15 adds the arm that maps a major of 11 to C# 15, and this story
 provides the kit that makes the arm reachable.
 
 The `net11.0` target framework remains out of scope, and this story does not add one. Section 6c records that no
@@ -63,7 +63,7 @@ version of PostSharp.Engineering.
 - The container carries both software development kits, and the generated container files name both.
 - A build and a test run are green on the continuous integration server with the pin as decided, with zero
   warnings.
-- An aspect test that requests C# 15 in compile-time code compiles once story S-11 has landed, which is the
+- An aspect test that requests C# 15 in compile-time code compiles once story S-15 has landed, which is the
   outcome this story exists for.
 - No restore fails with `MSB4062`, and the environment variable that causes it is blocked.
 - `Metalama.Premium` builds against the same container.
@@ -71,6 +71,6 @@ version of PostSharp.Engineering.
 #### Not in scope
 
 The `net11.0` target framework, for the product or for the tests, which section 6c puts out of scope. The arm of
-the language version provider that maps a major of 11 to C# 15, which belongs to story S-11.
+the language version provider that maps a major of 11 to C# 15, which belongs to story S-15.
 
 — Claude for @gfraiteur

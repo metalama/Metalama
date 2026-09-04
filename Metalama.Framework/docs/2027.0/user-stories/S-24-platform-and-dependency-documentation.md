@@ -1,11 +1,11 @@
-### S-25. Bring the platform, dependency and extensibility documentation up to the shipped 2027.0 state
+### S-24. Documentation: platform, dependency and extensibility documents
 
 - Issue type: User Story
 - Labels: `enhancement`, `documentation`, `Area-Build-Engineering`
 - Milestone: `2027.0`
 - Repositories: `metalama/Metalama`
 - Size: M
-- Blocked by: S-09, S-11
+- Blocked by: S-13, S-15
 - Findings: [UT-18](../06-user-tfm-patterns-tests-docs.md), [LV-10](../01-language-version-and-hosts.md),
   [DT-9](../05-design-time-workspaces-linqpad.md), [PR-9](../07-premium.md), [PR-14](../07-premium.md)
 

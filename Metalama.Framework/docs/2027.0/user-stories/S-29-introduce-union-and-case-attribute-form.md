@@ -1,4 +1,4 @@
-### S-17. Introduce a union type and introduce a case into a type carrying the union attribute
+### S-29. C# 15 unions: introducing a union and a case on the attribute form
 
 - Issue type: User Story
 - Labels: `enhancement`, `Area-Framework`
@@ -7,7 +7,7 @@
 - Size: L
 - Priority: nice to have for 2027.0. It is discretionary under the doctrine of section 12 of
   [`DECISIONS.md`](../DECISIONS.md) and slips to 2027.1 if the release runs short.
-- Blocked by: S-03, S-12, S-16
+- Blocked by: S-18-1, S-18-5
 - Findings: none. The requirement was decided after the theme documents were written; the design is
   [`analysis-reports/11-introducing-unions-design.md`](../analysis-reports/11-introducing-unions-design.md).
 
@@ -18,7 +18,7 @@ and the introduction of a union case, that is a leg of a union. This is the larg
 release, and it has two halves that differ in kind: introducing a whole union is the creation of a new declaration,
 while introducing a case into a union that already exists in source is a signature change of a declaration that the
 user wrote. This story carries the first half and the second half for a type carrying the union attribute. The
-second half for a `union` declaration is story S-29.
+second half for a `union` declaration is story S-30.
 
 #### Context
 
@@ -35,8 +35,8 @@ exactly one part of a partial union carries the case list, a second one is `CS88
 consequence is that a generated partial part can never add a case to a union declared with the `union` keyword, so
 that operation works at build time only, while the same operation on a type carrying the union attribute is ordinary
 member introduction whose design-time result is correct. Question Q1 chooses between shipping both forms and
-shipping the attribute form alone, and the build-time-only form is story S-29. About half of the work needs no
-C# 15 Roslyn member and can proceed before S-09.
+shipping the attribute form alone, and the build-time-only form is story S-30. About half of the work needs no
+C# 15 Roslyn member and can proceed before S-13.
 
 Two closed issues bound this work. #1622 reported that a constructor introduced into an introduced type was missing
 from the design-time generated source, because the transformation degraded its observability when it replaced the
@@ -76,8 +76,8 @@ this release.
 
 #### Not in scope
 
-This story does not introduce a closed class, which is S-26. It does not introduce structs, records, enums or
+This story does not introduce a closed class, which is S-28. It does not introduce structs, records, enums or
 delegates, which are #869, #867, #866 and #865 and stay open. It does not add a case to a `union` declaration, which
-is S-29.
+is S-30.
 
 — Claude for @gfraiteur

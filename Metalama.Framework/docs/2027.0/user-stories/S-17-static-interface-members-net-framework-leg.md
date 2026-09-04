@@ -1,14 +1,14 @@
-### S-30. Cover non-virtual static interface members on the .NET Framework test leg
+### S-17. C# 15 static interface members: support in target code
 
 - Issue type: User Story
 - Labels: `enhancement`, `Area-Framework`
 - Milestone: `2027.0`
 - Repositories: `metalama/Metalama`
 - Size: S
-- Blocked by: S-11
+- Blocked by: S-15
 - Findings: the section "Static members in interfaces without runtime support for default interface implementation" of
   [`08-roslyn-api-delta.md`](../08-roslyn-api-delta.md). The feature is also named by
-  [UT-19](../06-user-tfm-patterns-tests-docs.md), which story S-11 owns.
+  [UT-19](../06-user-tfm-patterns-tests-docs.md), which story S-15 owns.
 
 ---
 
@@ -35,7 +35,7 @@ accessibility it performs the language version check instead of reporting
 `ERR_RuntimeDoesNotSupportDefaultInterfaceImplementation`. A static abstract or static virtual member keeps
 `ERR_RuntimeDoesNotSupportStaticAbstractMembersInInterfaces`, and an instance member with a body keeps its previous
 error. Because there is no new syntax and no new Roslyn application programming interface member, neither the syntax
-model regeneration of S-09 nor the variant gating of S-02 is involved.
+model regeneration nor the variant gating of S-13 is involved.
 
 Two compilations of Metalama lack the runtime support and are therefore the ones the feature changes. The first is the
 test compilation of the `net48` leg: `GetMetadataReferences` in
@@ -76,8 +76,8 @@ version override that other C# 15 test directories need applies here.
 #### Scope
 
 - Create the directory `Tests/Aspects/CSharp15/StaticInterfaceMembers` in
-  `Metalama.Framework/src/tests/Metalama.Framework.Tests.AspectTests`, following the conventions that S-11 establishes,
-  which are the required constant of the renumbered Roslyn variant in the `metalamaTests.json` of the `CSharp15`
+  `Metalama.Framework/src/tests/Metalama.Framework.Tests.AspectTests`, following the conventions that S-15 establishes,
+  which are the required constant of the renamed Roslyn variant in the `metalamaTests.json` of the `CSharp15`
   directory and the `@LanguageVersion(15.0)` directive in each file.
 - Add the tests that introduce a public non-virtual static method, a public non-virtual static property and a public
   non-virtual static event into an interface introduced by the aspect, modelled on

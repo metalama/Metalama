@@ -1,13 +1,13 @@
-### S-33. Move the sample solutions to the target frameworks of PB-2027.0
+### S-25. Metalama.Samples: target frameworks of PB-2027.0
 
 - Issue type: User Story
 - Labels: `enhancement`, `breaking`, `Area-Platforms`
 - Milestone: `2027.0`
 - Repositories: `metalama/Metalama.Samples`
 - Size: M
-- Blocked by: nothing. The story needs a published 2027.0 package to build against, which S-01, S-09 and S-11 gate in
+- Blocked by: nothing. The story needs a published 2027.0 package to build against, which S-10, S-13 and S-15 gate in
   time but not in dependency. A sample that demonstrates a C# 15 feature, if the scope decides to add one, is written
-  after S-11.
+  after S-15.
 - Findings: none. No theme document of this analysis names `Metalama.Samples`, which is what question Q13 of
   [`OPEN-QUESTIONS.md`](../OPEN-QUESTIONS.md) records. The repository is not cloned in the session that produced this
   analysis, so no sample project file was read, and every statement below about the samples is marked as an
@@ -30,7 +30,7 @@ not read.
 frameworks of PB-2027.0 are `net10.0` and `net11.0`, that `net8.0` and `net9.0` are out of support at general
 availability, and that this is a breaking change for users. The same document lists the two dropped user target
 frameworks at `:295-297`. The removal in this repository is issue #1876, "Remove explicit support for .NET 8 and
-.NET 9", closed on 2026-09-02; its residue in the engine defaults and the test gates is story S-05.
+.NET 9", closed on 2026-09-02; its residue in the engine defaults and the test gates is story S-03.
 
 Two consequences differ in kind, and a sample meets one or the other.
 
@@ -59,7 +59,7 @@ public defect and not only an internal one.
 - Raise every `net8.0` and `net9.0` target framework to `net10.0`, and every `net8.0-windows` target framework to
   `net10.0-windows`.
 - Raise the referenced Metalama package version to 2027.0 and rebuild every sample.
-- Check every sample that pins a `LangVersion`, because S-11 changes the language version that the targets accept and
+- Check every sample that pins a `LangVersion`, because S-15 changes the language version that the targets accept and
   clamp.
 - Verify that the samples which reference `Metalama.Framework` from a weaver project still build, which is the
   pattern that `RunTimeAssemblyRewriter.cs:146` names.
@@ -83,6 +83,6 @@ This story does not change the platform requirement metadata of
 `Metalama.Framework/src/Metalama.Framework.Package/build/Metalama.Framework.props`, which belongs to
 `metalama/Metalama`. It adds no `net11.0` target framework to a sample, because sections 6 and 6c of
 [`DECISIONS.md`](../DECISIONS.md) find no .NET 11 application programming interface that justifies one. It does not
-write the conceptual documentation that accompanies a sample, which is S-34.
+write the conceptual documentation that accompanies a sample, which is S-27.
 
 — Claude for @gfraiteur

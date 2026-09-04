@@ -1,4 +1,4 @@
-### S-01. Move Metalama.Compiler to the stable Roslyn 5.12
+### S-10. Metalama.Compiler: move to Roslyn 5.12
 
 - Issue type: User Story
 - Labels: `enhancement`, `Area-Build-Engineering`
@@ -65,7 +65,7 @@ be well-formed with all 365 projects present on disk.
 One deliverable of this story is not a package. Step 4 of [`updating-roslyn.md`](../../updating-roslyn.md) requires the
 grammar file `src/Compilers/CSharp/Portable/Syntax/Syntax.xml` to be copied into `metalama/Metalama` from the
 `Metalama.Compiler` branch that targets the consumed Roslyn version, because that is the grammar of the build that
-is actually consumed. S-09 regenerates the syntax model from it, so S-09 needs a named branch and commit and not
+is actually consumed. S-13 regenerates the syntax model from it, so S-13 needs a named branch and commit and not
 only a package version.
 
 Two properties of the previous merges must be confirmed rather than assumed for this one. Both were a single hop,
@@ -91,9 +91,9 @@ be a stable release, and the branch that produces it has to be derived again. No
 - Set `RoslynVersion` in `eng/Versions.props`, publish the resulting `Metalama.Compiler` version, and record it in
   `eng/AutoUpdatedVersions.props` of `metalama/Metalama`, where `MetalamaCompilerVersion` is currently `2027.0.0`.
 - Name the branch and the commit of `Metalama.Compiler` from which `src/Compilers/CSharp/Portable/Syntax/Syntax.xml`
-  is to be copied, which is what step 4 of [`updating-roslyn.md`](../../updating-roslyn.md) requires and what S-09
+  is to be copied, which is what step 4 of [`updating-roslyn.md`](../../updating-roslyn.md) requires and what S-13
   consumes.
-- Report the date at which the merge is expected to be complete, because the schedule of S-09, S-11 and every story
+- Report the date at which the merge is expected to be complete, because the schedule of S-13, S-15 and every story
   downstream of them is derived from it.
 
 #### Acceptance criteria
@@ -111,11 +111,11 @@ be a stable release, and the branch that produces it has to be derived again. No
 - The published `Metalama.Compiler` version pins a Roslyn package that nuget.org serves.
 - `metalama/Metalama` can raise `RoslynApiMaxVersion` and `RoslynMaxVersion` to that version without any prerelease
   package source.
-- The story names the branch and the commit from which S-09 copies the grammar file.
+- The story names the branch and the commit from which S-13 copies the grammar file.
 
 #### Not in scope
 
-This story does not edit `metalama/Metalama` or `metalama/Metalama.Premium`. Those edits are stories S-09 and S-10.
+This story does not edit `metalama/Metalama` or `metalama/Metalama.Premium`. Those edits are stories S-13 and S-14.
 It does not correct the .NET Framework MSBuild bridge of `build/Metalama.Compiler.props`, which probes the shared
 framework directory for `10.*` only; `platform-support.md:347-349` records that drift point and pull request #211
 left it out of scope deliberately. It does not change the target frameworks of that repository, which pull request

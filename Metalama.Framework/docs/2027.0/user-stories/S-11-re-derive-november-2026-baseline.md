@@ -1,4 +1,4 @@
-### S-08. Re-derive the November 2026 baseline: Visual Studio build tools, MSBuild and the host-capped pins
+### S-11. Build: re-derive the November 2026 platform baseline
 
 - Issue type: User Story
 - Labels: `enhancement`, `Area-Build-Engineering`

@@ -1,18 +1,18 @@
-### S-20. Guard experimental C# syntax in templates and add the with-element tests
+### S-20. Templates: raise errors when experimental syntax is used
 
 - Issue type: User Story
 - Labels: `enhancement`, `Area-Framework-Templates`
 - Milestone: `2027.0`
 - Repositories: `metalama/Metalama`
 - Size: M
-- Blocked by: S-09, S-11
+- Blocked by: S-13, S-15
 - Findings: [TP-4](../02-syntax-generator-and-templates.md), [TP-5](../02-syntax-generator-and-templates.md)
 
 ---
 
 A collection expression with a with-element crashes the template compiler in run-time scope today, with an
 `InvalidCastException` surfaced as an unexpected-exception error and a crash report rather than as a template
-diagnostic. The regeneration of S-09 produces the visitor for that node and removes the crash, so only the tests
+diagnostic. The regeneration of S-13 produces the visitor for that node and removes the crash, so only the tests
 remain. The regeneration does not remove the failure of the unsafe expression, which keeps its experimental marker on
 the target Roslyn and is therefore still stripped from the generated code, so it passes the annotator and surfaces as
 a C# error on the generated compile-time file.

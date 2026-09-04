@@ -1,11 +1,11 @@
-### S-18. Read closed hierarchies in the code model
+### S-16. Code model: support for the closed modifier
 
 - Issue type: User Story
 - Labels: `enhancement`, `Area-Framework`
 - Milestone: `2027.0`
 - Repositories: `metalama/Metalama`
 - Size: S
-- Blocked by: S-02, S-11
+- Blocked by: S-13, S-15
 - Findings: [CM-5](../03-code-model-unions-closed.md)
 
 ---
@@ -22,7 +22,7 @@ restricts itself to the current compilation, so the existing enumeration of dire
 complete set for a closed type declared in the current compilation. Only the flag and its documentation are new. The
 one case the index does not answer is a closed type that comes from a referenced assembly, which is question Q8 and
 is left open. The read names a Roslyn member that the lower variant does not expose, so it follows the gating of
-S-02, and the emission of a `closed` modifier is delivered separately by S-26, which section 5f of
+S-13, and the emission of a `closed` modifier is delivered separately by S-28, which section 5f of
 [`DECISIONS.md`](../DECISIONS.md) puts in scope.
 
 #### Scope
@@ -31,10 +31,10 @@ S-02, and the emission of a `closed` modifier is delivered separately by S-26, w
   the read to the latest Roslyn variant.
 - Document in the derived-type options that, for a closed type declared in the current compilation, the direct
   enumeration is exhaustive.
-- Record what the value is for a builder and for an introduced type, which is false until S-26 adds the writer.
+- Record what the value is for a builder and for an introduced type, which is false until S-28 adds the writer.
 - Record question Q8, the closed type read from a referenced assembly, as a known limitation in the documentation
   rather than implementing it.
-- Report or stay silent on the lower Roslyn variant according to D-3, using the same mechanism as S-12, so that the
+- Report or stay silent on the lower Roslyn variant according to D-3, using the same mechanism as S-18-1, so that the
   two readers behave alike.
 
 #### Acceptance criteria
@@ -46,6 +46,6 @@ S-02, and the emission of a `closed` modifier is delivered separately by S-26, w
 
 #### Not in scope
 
-This story does not introduce a closed class, which is S-26. It delivers the reader that S-26 consumes.
+This story does not introduce a closed class, which is S-28. It delivers the reader that S-28 consumes.
 
 — Claude for @gfraiteur

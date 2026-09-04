@@ -1,4 +1,4 @@
-### S-35. Derive the host process classification from one table and give the C# Dev Kit its own arm
+### S-05. Design time: host process classification
 
 - Issue type: Bug
 - Labels: `bug`, `Area-Framework`, `Area-Build-Engineering`
@@ -125,7 +125,7 @@ report the next divergence after it happened; a shared source file prevents it.
 
 #### Not in scope
 
-This story does not perform the November 2026 measurement, which is S-08; it only states what that measurement must
+This story does not perform the November 2026 measurement, which is S-11; it only states what that measurement must
 record. It does not decide whether the lower Roslyn variant reports the divergence of question Q2, which is a
 separate decision and a separate story, and it does not add any diagnostic. It does not change the behaviour that
 any entry point has today on any host.

@@ -1,11 +1,11 @@
-### S-15. Emit a union partial part at design time instead of a struct partial part
+### S-18-4. C# 15 unions: design-time partial part
 
 - Issue type: Bug
 - Labels: `bug`, `Area-Framework`
 - Milestone: `2027.0`
 - Repositories: `metalama/Metalama`
 - Size: M
-- Blocked by: S-12
+- Blocked by: S-18-1
 - Findings: [CM-3](../03-code-model-unions-closed.md), [DT-2](../05-design-time-workspaces-linqpad.md),
   [LK-4](../04-linker-and-advice.md)
 
@@ -35,7 +35,7 @@ parts, which is a verified negative statement and is recorded rather than implem
   syntax, with the partial modifier, the identifier, the type parameters, no case list, and the base list passed
   through as every other arm does, because a union may implement interfaces.
 - Keep the generated part a class or a struct for a hand-written type carrying the union attribute.
-- Gate the syntax factory call on the latest Roslyn variant, per S-02, because the factory does not exist in the
+- Gate the syntax factory call on the latest Roslyn variant, per S-13, because the factory does not exist in the
   lower variant.
 - Add a design-time aspect test for a partial union with introduced members, with its generated partial documents
   committed.

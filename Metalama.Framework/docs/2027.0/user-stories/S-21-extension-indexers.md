@@ -1,11 +1,11 @@
-### S-21. Support extension indexers in advice, in overriding and in the contracts
+### S-21. C# 15 extension indexers: advising and introducing
 
 - Issue type: User Story
 - Labels: `enhancement`, `Area-Framework`
 - Milestone: `2027.0`
 - Repositories: `metalama/Metalama`
 - Size: M
-- Blocked by: S-11
+- Blocked by: S-15
 - Findings: [LK-6](../04-linker-and-advice.md), [LK-7](../04-linker-and-advice.md),
   [UT-16](../06-user-tfm-patterns-tests-docs.md)
 
@@ -14,7 +14,7 @@
 `Metalama.Framework/src/Metalama.Framework.Engine/Advising/AdviceFactory.cs:1406` rejects the introduction of an
 indexer into an extension block by design, a restriction that #1587 recorded in the documentation rather than
 lifted. C# 15 adds extension indexers to the language, so that deliberate restriction becomes a gap. This story is
-self-contained and has no dependency on the union work, so it can run in parallel with S-12 to S-17.
+self-contained and has no dependency on the union work, so it can run in parallel with S-18-1 to S-29.
 
 #### Context
 
@@ -25,7 +25,7 @@ language adds three further restrictions that the eligibility rules must carry: 
 modifiers that an extension member may not have. The overriding half follows the extension property path and is
 expected to be correct when the override is inlineable; the non-inlined case is bounded by the pre-existing
 `LAMA0699` of the open issue #937, which this story states rather than fixes. Every test needs C# 15 as a requestable
-language version, which is why the story waits for S-11.
+language version, which is why the story waits for S-15.
 
 The introduction path that this story extends was delivered for C# 14 by the closed issues #1035, which added
 advising on extension members, and #1160, which added introduction into an existing extension block. The indexer is

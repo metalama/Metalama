@@ -1,4 +1,4 @@
-### S-04. Correct the `LangVersion` clamp and the .NET SDK ceiling comparison of the platform check
+### S-01. Build: LangVersion clamp and .NET SDK ceiling comparison
 
 - Issue type: Bug
 - Labels: `bug`, `Area-Build-Engineering`
@@ -23,7 +23,7 @@ versions. The second defect is live today.
 Section 6b of [`DECISIONS.md`](../DECISIONS.md) removes the build container work from the release and names these two
 defects as what remains: both are properties of a comparison and are verified without an installed .NET 11 SDK. The
 clamp is not yet reachable, because the compiler toolset caps the implied version of a `net11.0` project at `14.0`
-until the Roslyn of S-09; it becomes reachable on the day that cap moves to `15.0`, and it then costs a project three
+until the Roslyn of S-13; it becomes reachable on the day that cap moves to `15.0`, and it then costs a project three
 language versions at once, because a project that implied `15.0` drops to `12.0`. The ceiling defect is reachable
 now: `MaximumSdkVersion` is documented as the last supported major and minor line, and comparing it against a full
 version makes every feature band of that line exceed it. `MinimumSdkVersion` legitimately keeps feature-band
@@ -47,7 +47,7 @@ check.
   `LAMA0600` to `LAMA0602`, and rewrite its text so that it describes the rewrite that actually happened.
 - State the suppression mechanism correctly: an MSBuild task warning is suppressed by `MSBuildWarningsAsMessages` and
   not by `NoWarn`.
-- Extend the accepted value list of the clamp condition when `LangMaxVersion` moves, which is S-11, and reference
+- Extend the accepted value list of the clamp condition when `LangMaxVersion` moves, which is S-15, and reference
   that story from the comment so the two lists do not drift.
 - Add unit tests or a standalone scenario that exercises both comparisons without an installed .NET 11 SDK, following
   section 6b of [`DECISIONS.md`](../DECISIONS.md).

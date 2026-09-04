@@ -1,11 +1,11 @@
-### S-16. Repair the two comparer defects that a union exposes
+### S-18-5. C# 15 unions: declaration comparers
 
 - Issue type: Bug
 - Labels: `bug`, `Area-Framework`
 - Milestone: `2027.0`
 - Repositories: `metalama/Metalama`
 - Size: M
-- Blocked by: S-12
+- Blocked by: S-18-1
 - Findings: none. Both defects were found by
   [`analysis-reports/13-union-comparers.md`](../analysis-reports/13-union-comparers.md) and are recorded in section 10 of
   [`DECISIONS.md`](../DECISIONS.md), after the theme documents were written.
@@ -27,7 +27,7 @@ hazards, which is the useful part of its answer: the constructor signature compa
 comparer keys a constructor on its name and parameter count, the missing declaring syntax of a synthesized
 constructor reaches no member comparer, and the determinism fix that #1879 had to make for records is not needed a
 second time. Two defects remain. The first affects the reading half and is therefore not conditional on any open
-question. The second is a prerequisite of S-17 rather than a follow-up of it.
+question. The second is a prerequisite of S-29 rather than a follow-up of it.
 
 #### Scope
 

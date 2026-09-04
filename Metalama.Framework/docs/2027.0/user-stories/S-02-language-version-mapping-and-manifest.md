@@ -1,4 +1,4 @@
-### S-06. Make the language version display mapping non-throwing and settle the compile-time manifest fallbacks
+### S-02. Language version: display mapping and compile-time manifest fallbacks
 
 - Issue type: Bug
 - Labels: `bug`, `Area-Framework`
@@ -19,7 +19,7 @@ live fallbacks at `CompileTimeCompilationBuilder.cs:1355` and `CompileTimeProjec
 
 #### Context
 
-These three items become dangerous only after S-11 raises the supported language version, and all three are cheaper
+These three items become dangerous only after S-15 raises the supported language version, and all three are cheaper
 to fix before it. The display mapping is a numeric cast and therefore compiles against the Roslyn 5.0 variant as
 well, so it needs no variant branch. The manifest question has a recorded precedent: #1185 reported the failure of a
 compile-time project produced by a higher Roslyn version and read by a lower one, with the Roslyn error `CS8192`,

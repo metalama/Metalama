@@ -1,11 +1,11 @@
-### S-34. Write the conceptual documentation of the C# 15 work and of the supported platforms of 2027.0
+### S-27. Documentation: conceptual documentation of C# 15 and PB-2027.0
 
 - Issue type: User Story
 - Labels: `documentation`, `enhancement`
 - Milestone: `2027.0`
 - Repositories: `metalama/Metalama.Documentation`
 - Size: L
-- Blocked by: S-11, S-17, S-18, S-19, S-21, S-25
+- Blocked by: S-15, S-29, S-16, S-19, S-21, S-24
 - Findings: none. No theme document of this analysis produces a story for `metalama/Metalama.Documentation`, which is
   what question Q13 of [`OPEN-QUESTIONS.md`](../OPEN-QUESTIONS.md) records. The repository is not cloned in the session
   that produced this analysis, so no page was read, no page path was verified, and every statement below about the
@@ -13,9 +13,9 @@
 
 ---
 
-No story of this plan writes the user-facing documentation of the C# 15 work. S-17 asks, at
+No story of this plan writes the user-facing documentation of the C# 15 work. S-29 asks, at
 `user-stories.md:1398-1399`, that its pull request description state which pages of `metalama/Metalama.Documentation`
-must follow. S-29 repeats the same sentence at `user-stories.md:2027-2028`. S-25 states, at
+must follow. S-30 repeats the same sentence at `user-stories.md:2027-2028`. S-24 states, at
 `user-stories.md:1874-1876`, that it does not edit the conceptual documentation, because that is a separate repository
 and therefore a separate pull request, and that it lists the pages rather than editing them. Two stories therefore
 defer the page list, and the third excludes the pages. Nobody writes them. This story owns them.
@@ -38,16 +38,16 @@ summarises what the baseline drops.
 
 One documented value is being changed by another story and is documented in both repositories.
 `Metalama.Framework/src/Metalama.Framework.Engine/CompileTime/CompileTimeAssemblyLocator.cs:43` holds the default of
-`MetalamaCompileTimeTargetFrameworks`, which is `netstandard2.0;net8.0;net48` today and which S-05 changes to name
+`MetalamaCompileTimeTargetFrameworks`, which is `netstandard2.0;net8.0;net48` today and which S-03 changes to name
 `net10.0`. Finding UT-3 records, at
 [`06-user-tfm-patterns-tests-docs.md`](../06-user-tfm-patterns-tests-docs.md), lines 259 and 260, that whether the value
 documented in `Metalama.Documentation` also names `net8.0` is an open question, and that the repository was not
 present in the environment of that analysis. It is still not present, so the question is carried here rather than
 answered.
 
-The C# 15 subjects come from stories that this one follows. C# 15 as a supported language version is S-11. Reading a
-union in the code model is S-12 and introducing one is S-17, with S-29 conditional on question Q1. Reading a closed
-hierarchy is S-18 and introducing a closed class is S-26. Extension indexers are S-21. The rejection of a labeled
+The C# 15 subjects come from stories that this one follows. C# 15 as a supported language version is S-15. Reading a
+union in the code model is S-18-1 and introducing one is S-29, with S-30 conditional on question Q1. Reading a closed
+hierarchy is S-16 and introducing a closed class is S-28. Extension indexers are S-21. The rejection of a labeled
 `break` or `continue` in a template is S-19, which follows section 4 of [`DECISIONS.md`](../DECISIONS.md).
 
 Three facts of that work are easy to lose in a page and change what a reader should expect.
@@ -62,7 +62,7 @@ declaration and a type carrying `System.Runtime.CompilerServices.UnionAttribute`
 and that the member restrictions apply to the first form only. A page that states a restriction has to say which of
 the two forms it concerns, which is the reader-facing half of question Q9.
 
-A case added to a `union` declaration is a build-time-only change, which S-29 states in its scope at
+A case added to a `union` declaration is a build-time-only change, which S-30 states in its scope at
 `user-stories.md:2027-2028` and which the reader has to be told before using the feature.
 
 #### Scope
@@ -74,7 +74,7 @@ A case added to a `union` declaration is a build-time-only change, which S-29 st
   application on .NET 8 or .NET 9 has no compatible asset.
 - Revise the MSBuild property page for the three platform-check codes, for the `MetalamaCheckSupportedPlatform`
   property and for the `MetalamaSupportedPlatformExclusion` item that suppress them, and for the documented value of
-  `MetalamaCompileTimeTargetFrameworks`, which S-05 changes.
+  `MetalamaCompileTimeTargetFrameworks`, which S-03 changes.
 - Answer the open question of finding UT-3, which is whether the documented value of
   `MetalamaCompileTimeTargetFrameworks` names `net8.0`, and correct it if it does.
 - Write the page that states which C# 15 features an aspect may use in the run-time code it produces, and that the
@@ -91,8 +91,8 @@ A case added to a `union` declaration is a build-time-only change, which S-29 st
 - State, on every page of the C# 15 set, which design-time hosts show the feature, and report the divergence of
   question Q2 once it is settled.
 - State that a case added to a `union` declaration is a build-time-only change, if question Q1 chooses to ship that
-  form and S-29 is delivered.
-- Publish the page list, so that S-17, S-25 and S-29 reference this issue instead of enumerating pages in their own
+  form and S-30 is delivered.
+- Publish the page list, so that S-29, S-24 and S-30 reference this issue instead of enumerating pages in their own
   pull request descriptions.
 
 #### Acceptance criteria
@@ -103,14 +103,14 @@ A case added to a `union` declaration is a build-time-only change, which S-29 st
 - Every statement about a union names the authoring form it concerns.
 - Every page of the C# 15 set states which design-time hosts show the feature.
 - The documented value of `MetalamaCompileTimeTargetFrameworks` equals the default that the shipped engine carries.
-- S-17, S-25 and S-29 reference this issue for their page list, and none of them enumerates pages of its own.
+- S-29, S-24 and S-30 reference this issue for their page list, and none of them enumerates pages of its own.
 
 #### Not in scope
 
 This story does not edit the internal architecture documents under `Metalama.Framework/docs`, which question Q17 of
-[`OPEN-QUESTIONS.md`](../OPEN-QUESTIONS.md) records as outside the documentation story of this release and which S-25
+[`OPEN-QUESTIONS.md`](../OPEN-QUESTIONS.md) records as outside the documentation story of this release and which S-24
 partly owns. It does not document the introduction of structs, records, enums or delegates, which are the open issues
 #869, #867, #866 and #865 and which section 5c of [`DECISIONS.md`](../DECISIONS.md) leaves out of scope. It does not
-change the samples, which are S-33.
+change the samples, which are S-25.
 
 — Claude for @gfraiteur

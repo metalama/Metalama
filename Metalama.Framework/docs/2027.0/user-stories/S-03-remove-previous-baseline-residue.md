@@ -1,4 +1,4 @@
-### S-05. Remove the residue of the previous platform baseline from the engine defaults and the test gates
+### S-03. Build: residue of the previous platform baseline
 
 - Issue type: Bug
 - Labels: `bug`, `Area-Framework`, `Area-Build-Engineering`
