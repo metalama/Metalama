@@ -25,6 +25,10 @@ is left open. The read names a Roslyn member that the lower variant does not exp
 S-13, and the emission of a `closed` modifier is delivered separately by S-28, which section 4 of
 [`DECISIONS.md`](../DECISIONS.md) puts in scope.
 
+The work of this story does not have to wait for its blockers. S-31 adds an opt-in that suppresses the
+experimental marker on the Roslyn members this story reads, so the implementation can proceed against the Roslyn
+that the repository consumes today and merge once S-13 has landed.
+
 #### Scope
 
 - Expose on `INamedType` whether a named type is closed, following the precedent of the other type flags, and gate

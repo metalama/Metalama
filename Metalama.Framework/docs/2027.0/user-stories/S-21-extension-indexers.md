@@ -32,6 +32,10 @@ advising on extension members, and #1160, which added introduction into an exist
 the one extension member kind that #1160 left rejected, which #1587 then recorded in the documentation instead of
 lifting.
 
+The work of this story does not have to wait for its blocker. S-31 adds an opt-in that suppresses the experimental
+marker on the Roslyn members of C# 15, so the implementation can proceed against the Roslyn that the repository
+consumes today and merge once S-15 has landed.
+
 #### Scope
 
 - Remove the validation that rejects an indexer in an extension block, and replace it with the eligibility rules that

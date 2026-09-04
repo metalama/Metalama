@@ -54,6 +54,10 @@ type. The reason is that the code base routes declarations and nodes by kind, wh
 predicates. The same lists omit the interface kind and the extension block kind in several places today, and each
 omission is corrected in the same way, by adding the kind.
 
+The work of this story does not have to wait for its blockers. S-31 adds an opt-in that suppresses the
+experimental marker on the Roslyn members this story reads, so the implementation can proceed against the Roslyn
+that the repository consumes today and merge once S-13 has landed.
+
 #### Scope
 
 - Expose on `INamedType` whether a named type is a union and what its case types are, following the precedent of
