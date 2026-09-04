@@ -5,7 +5,6 @@
 using Metalama.Backstage.Licensing;
 using Metalama.Backstage.Licensing.Consumption;
 using Metalama.Backstage.Licensing.Licenses;
-using System.Linq;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -101,12 +100,19 @@ namespace Metalama.Backstage.Tests.Licensing.Licenses
             Assert.False( this.LicenseFactory.TryCreate( "http://hello.world", out _, out _ ) );
         }
 
-        [Fact]
-        public void LicenseKeyWithInvalidSignatureFails()
+        /// <summary>
+        /// Tests that a license key whose signature is invalid is rejected, whichever key of the authority it claims
+        /// to be signed with.
+        /// </summary>
+        /// <param name="signatureKeyId">The identifier of the key that the license key claims to be signed with.</param>
+        [Theory]
+        [InlineData( TestLicensingAuthorityProvider.DsaTestKeyId )]
+        [InlineData( TestLicensingAuthorityProvider.ECDsaTestKeyId )]
+        public void LicenseKeyWithInvalidSignatureFails( byte signatureKeyId )
         {
             var licenseKey = new LicenseKeyDataBuilder
             {
-                Product = LicenseProduct.MetalamaProfessional, Signature = new byte[16], SignatureKeyId = this.LicensingAuthorityProvider.KeyIds.Single()
+                Product = LicenseProduct.MetalamaProfessional, Signature = new byte[16], SignatureKeyId = signatureKeyId
             }.SerializeToLicenseString();
 
             Assert.True( this.LicenseFactory.TryCreate( licenseKey, out var license, out var errorMessage ) );

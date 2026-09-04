@@ -25,7 +25,7 @@ public sealed class LegacyLicenseKeyTests : LicensingTestsBase
     {
         var authorityProvider = new ProductionLicensingAuthorityProvider();
         Assert.True( LicenseKeyData.TryDeserialize( licenseKey, out var licenseKeyData, out _ ), "Cannot parse." );
-        Assert.True( licenseKeyData.VerifySignature( authorityProvider ), "Invalid signature." );
+        Assert.True( licenseKeyData.TryVerifySignature( authorityProvider, out var signatureErrorMessage ), signatureErrorMessage );
     }
 
     [Theory]
