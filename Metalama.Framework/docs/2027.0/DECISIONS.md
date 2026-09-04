@@ -715,3 +715,33 @@ direction.
 
 The reporting mechanism that question Q2 would need has recently been implemented, so that question is a decision
 about whether to report rather than about how.
+
+### 6d. Correction: the .NET 11 software development kit is required after all
+
+Stated by the product owner on 2026-09-04, superseding sections 6b and 6c on this point. The .NET 11 software
+development kit must be installed in the build container and named by `global.json`, because without it the aspect
+tests that use C# 15 cannot compile.
+
+The mechanism is the compile-time compilation rather than the target framework, which is why the earlier sections
+missed it. `LanguageVersionProvider.GetLanguageVersionFromDotNetSdk` reads the `NETCoreSdkVersion` property that
+MSBuild makes visible to the compiler, and caps the language version of the compile-time compilation by the major
+version of the software development kit: a major of 10 or more maps to C# 14 today, and the cap is applied whatever
+the project requests. With only the .NET 10 software development kit installed, the compile-time half of an aspect
+test is therefore pinned to C# 14, and a test that exercises a C# 15 construct in compile-time code cannot build.
+
+Sections 6b and 6c remain correct on what they actually decided, and the distinction is worth keeping because it
+is the one the earlier reasoning collapsed.
+
+The `net11.0` target framework is still not wanted. No .NET 11 application programming interface justifies a
+`net11.0` asset or a `net11.0` leg in the test matrix, which the analysis established from the absence of any
+polyfill and of any production source branching above `NET8_0_OR_GREATER`.
+
+The .NET 11 software development kit is wanted, as the toolchain that builds and tests the product, because it is
+what lifts the compile-time language cap and because it is in the supported set of the platform baseline.
+
+The container work is therefore back in scope, and it carries the risk that section 6b recorded rather than the one
+it dismissed. The comment at `eng/src/Program.cs:19-25` records that two feature bands under one installation
+already produced a restore failure through a stale `MSBuildExtensionsPath`, whose mitigation in PostSharp.
+Engineering is incomplete by that one variable. The pinned constant is `dotNetSdkVersion`, currently `10.0.400`,
+which feeds the container component, the `global.json` that the preparation step generates, and
+`DotNetSdkVersion`. Which of the two the pin names is the decision the story has to take.
