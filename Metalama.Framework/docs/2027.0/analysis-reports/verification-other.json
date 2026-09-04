@@ -1994,6 +1994,715 @@
   ]
  },
  {
+  "angle": "Release sequencing and dependency order. The plan is organised as a critical path to a 2027.0 preview that accepts C# 15, not as a decomposition by area. Two facts fix the shape of the path. First, no Roslyn that Metalama consumes today exposes C# 15 as a non-preview language version: Directory.Packages.props:28 and :30 pin 5.10.0-1.26365.3, and LanguageVersion.CSharp15 was added to dotnet/roslyn main only on 2026-08-11, so the first package that carries it is the expected stable 5.12 of November 2026 (FACTS.md:48-49, :54-56). Second, the prerequisite of that move is Metalama.Compiler rebasing onto Roslyn 5.12, which is outside this repository (updating-roslyn.md step 1). The critical path is therefore: Metalama.Compiler on Roslyn 5.12, then the renumbering of the latest variant to 5.12.0 with the grammar regeneration, then the enablement of C# 15 in the supported version tables, and only then the per-feature work. Everything else is scheduled by one rule: any item that can be delivered before that gate, and that shortens the post-gate window, is pulled forward. Three groups of work satisfy the rule and are the pre-gate lanes of this plan. The variant gating decision, because every union and closed line of code waits on it. The version-neutral syntax dispatch, because a test on TypeDeclarationSyntax or MemberDeclarationSyntax compiles against both the Roslyn 5.0.0 and the latest variant today, so most of the union plumbing can land months before unions can be parsed, and it also fixes pre-existing gaps for interfaces and extension blocks. The build container and the .NET 11 SDK, because each container mistake costs a continuous integration cycle (CLAUDE.md) and every net11.0 test leg is blocked on it. Post-gate work is then ordered by whether it prevents silent wrong output (unions in the code model, the linker and the design-time partial part) or only adds a feature (closed type introduction, extension indexers), so that a preview can ship with the first group and defer the second.",
+  "clusters": [
+   {
+    "cluster_id": "CL-1",
+    "title": "Hand-written type-declaration kind lists and visitor dispatch that omit UnionDeclaration",
+    "member_ids": [
+     "CM-2",
+     "CM-6",
+     "CM-7",
+     "CM-9",
+     "LK-3",
+     "LK-10",
+     "DT-1",
+     "DT-6",
+     "TP-6"
+    ],
+    "owner_theme": "CM (code model)",
+    "rationale": "Four themes reported the same mechanism: a declaration kind is enumerated by hand instead of being tested by type, so a union declaration falls through. The sites are SyntaxKindExtensions.IsTypeDeclaration and IsBaseTypeDeclaration (SyntaxKindExtensions.cs:33-41), the three kind lists of SyntaxExtensions (SyntaxExtensions.cs:29-36, :59-66, :113-119), SourceNamedTypeImpl.IsPartial (SourceNamedTypeImpl.cs:329-352), the member switches of the compile-time rewriter, the template annotator, the templating code validator and the text span classifier. The cluster splits into two work items by one criterion: a site where a type test on TypeDeclarationSyntax or MemberDeclarationSyntax is sufficient can be fixed today against both Roslyn variants, and a site that needs an override of CSharpSyntaxVisitor.VisitUnionDeclaration cannot, because a virtual method cannot be overridden through a numeric kind. The first set is story S2 and is pre-gate; the second set is story S13 and is post-gate."
+   },
+   {
+    "cluster_id": "CL-2",
+    "title": "The design-time generated partial part of a union is emitted as partial struct",
+    "member_ids": [
+     "CM-3",
+     "DT-2",
+     "LK-4"
+    ],
+    "owner_theme": "DT (design-time)",
+    "rationale": "Three themes reported one defect in one method, DesignTimeSyntaxTreeGenerator.CreatePartialType (DesignTimeSyntaxTreeGenerator.cs:697-790), whose TypeKind.Struct arm emits partial struct for a union and produces CS0261 in the generated document. The three findings also converge on the same two implementation questions, namely whether the generated part may omit the case-type list and how the union factory call is gated between the variants, so they are one pull request."
+   },
+   {
+    "cluster_id": "CL-3",
+    "title": "Renumbering the latest Roslyn variant to 5.12 and regenerating the syntax model",
+    "member_ids": [
+     "LV-12",
+     "LV-13",
+     "LV-14",
+     "TP-1",
+     "TP-9",
+     "DT-3",
+     "DT-8",
+     "PR-1"
+    ],
+    "owner_theme": "LV (language version and hosts)",
+    "rationale": "Five themes reported the same release step from different sides: the version strings and the package source (LV-12, DT-8), the eight edit sites and the two silent failure modes of a mismatch (LV-13), the grammar file and the regeneration that stops stripping the experimental nodes (TP-1, DT-3, TP-9), the stale procedure document (LV-14) and the Premium mirror (PR-1). They are one release step because the grammar file, the variant name, the preprocessor constant, the package strings and the generated code must all move together or the build breaks; only the Premium half is a separate pull request because it is a separate repository."
+   },
+   {
+    "cluster_id": "CL-4",
+    "title": "C# 15 in the supported language version tables and in the test framework",
+    "member_ids": [
+     "LV-2",
+     "LV-3",
+     "LV-4",
+     "LV-5",
+     "LV-6",
+     "LV-7",
+     "LV-8",
+     "TP-2",
+     "TP-8",
+     "DT-4",
+     "DT-7",
+     "UT-19"
+    ],
+    "owner_theme": "LV (language version and hosts)",
+    "rationale": "Four themes reported the same small set of tables: SupportedCSharpVersions.Latest and All (SupportedCSharpVersions.cs:31-44), ToLanguageVersion (:52-62), GetMaxLanguageVersion (:149-159), AllLanguageVersions, LanguageVersionProvider and LanguageVersionExtensions.ToDisplayStringSafe. The design-time and test-framework findings add no separate implementation; they state the consequence for their layer and the test conventions that follow. The cluster splits in two by deliverability: the non-throwing display mapping and the manifest fallbacks compile today and are pulled forward into story S9, while every assignment of a value of 1500 waits for the variant to carry LanguageVersion.CSharp15 and lands in story S12."
+   },
+   {
+    "cluster_id": "CL-5",
+    "title": "The .NET 11 SDK in the build container and the net11.0 test matrix",
+    "member_ids": [
+     "LV-9",
+     "UT-1",
+     "UT-4",
+     "UT-5",
+     "UT-6",
+     "UT-7",
+     "UT-8",
+     "PR-8"
+    ],
+    "owner_theme": "UT (user target framework and tests)",
+    "rationale": "Three themes reported one blocking prerequisite and its dependants. The container carries a single .NET SDK (eng/src/Program.cs:26 and :35-37), and a .NET 10 SDK rejects a net11.0 target framework outright, so no test project, no standalone scenario, no design-time scenario and no Premium leg can name net11.0 until the container changes. The container is one work item with a long feedback loop and is separated from the legs that consume it, so that the legs can be added in parallel once it lands."
+   },
+   {
+    "cluster_id": "CL-6",
+    "title": "Injection, linking and advice on unions, including the compiler-synthesized members",
+    "member_ids": [
+     "LK-1",
+     "LK-2",
+     "LK-8",
+     "CM-8"
+    ],
+    "owner_theme": "LK (linker and advice)",
+    "rationale": "The injection rewriter, the linking rewriter and the eligibility surface are one chain: fixing the dispatch without the eligibility rules turns a dropped injection into invalid generated code, because a union forbids instance fields, auto-properties and field-like events, forbids a public single-parameter constructor and requires every constructor to chain. The code model finding about the synthesized Value property and the per-case constructors belongs here because its remedy is in the linker kind list and in LinkerRecordHelper, and because it shares the substitution mechanism of the open pull request metalama/Metalama#1879."
+   },
+   {
+    "cluster_id": "CL-7",
+    "title": "Closed hierarchies across the code model, type introduction and the template compiler",
+    "member_ids": [
+     "CM-4",
+     "CM-5",
+     "LK-5",
+     "TP-10"
+    ],
+    "owner_theme": "CM (code model)",
+    "rationale": "The reader half (INamedType.IsClosed and the DerivedTypesOptions documentation), the writer half (INamedTypeBuilder.IsClosed and the modifier emission) and the two negative statements (the template compiler and the syntax generator need nothing, and introducing a union is out of scope) are one feature. They are grouped so that the product owner can defer the whole feature without leaving a half-implemented modifier behind."
+   },
+   {
+    "cluster_id": "CL-8",
+    "title": "Extension indexers and templates inside extension blocks",
+    "member_ids": [
+     "LK-6",
+     "LK-7",
+     "UT-16",
+     "TP-7",
+     "PR-11"
+    ],
+    "owner_theme": "LK (linker and advice)",
+    "rationale": "Three themes reported the extension member surface. Two of the five findings are not C# 15 at all: templates declared inside an extension block are a pre-existing gap since C# 14 (TP-7), and the Premium validation granularity switch already throws for an extension block today (PR-11). Grouping them makes visible that two thirds of this cluster can be delivered before the Roslyn gate and that only the indexer half waits for C# 15."
+   },
+   {
+    "cluster_id": "CL-9",
+    "title": "Declaration coverage of the attribute code action and of the visibility code fix",
+    "member_ids": [
+     "DT-5",
+     "PR-10"
+    ],
+    "owner_theme": "DT (design-time and workspaces)",
+    "rationale": "Both findings are the same pattern in two repositories: a switch over declaration kinds that silently returns the unchanged node for any kind it does not enumerate, so the code action appears to do nothing. Both are fixed by replacing the enumeration with a test on an abstract syntax base type, which names no experimental member and therefore compiles against both variants today, and both already fail for records and interfaces independently of C# 15."
+   },
+   {
+    "cluster_id": "CL-10",
+    "title": "Metalama.Premium alignment residuals after Premium#85 and Premium#86",
+    "member_ids": [
+     "PR-2",
+     "PR-3",
+     "PR-4",
+     "PR-5",
+     "PR-6",
+     "PR-7",
+     "PR-13",
+     "PR-15"
+    ],
+    "owner_theme": "PR (Metalama.Premium)",
+    "rationale": "Eight findings describe one merged migration and what it left behind. Two are fully delivered by merged pull requests and must not be proposed again. The rest are small build-file items in one repository with no dependency on the Roslyn gate, plus one genuine coverage gap, the absence of any test project that executes the Roslyn 5.0.0 variant of the Premium engines, which is separated because it is the only item of real size."
+   },
+   {
+    "cluster_id": "CL-11",
+    "title": "Documentation of the platform baseline, the drift points and the host runtime",
+    "member_ids": [
+     "LV-10",
+     "UT-18",
+     "DT-9",
+     "PR-9",
+     "PR-14"
+    ],
+    "owner_theme": "UT (documentation)",
+    "rationale": "Five findings across four themes propose text only, and four of them edit the same two documents, Metalama.Framework/docs/platform-support.md and Directory.Packages.md, even when the subject is in Metalama.Premium. They are one pull request written after the code changes are known, so that the documents describe the shipped state rather than the intended one."
+   },
+   {
+    "cluster_id": "CL-12",
+    "title": "Labeled break and continue across the template compiler and the linker",
+    "member_ids": [
+     "TP-3",
+     "LK-9"
+    ],
+    "owner_theme": "TP (templates)",
+    "rationale": "One language feature reported twice: the annotator does not model the label and the generated rewriter drops it, and the inlining substitution copies user labels verbatim so that a template label can collide with a target label. Both act on the same statements, both need the Name member of BreakStatementSyntax and ContinueStatementSyntax that the generator strips today, and a fix to one without the other leaves either a dropped label or a collision."
+   },
+   {
+    "cluster_id": "CL-13",
+    "title": "MSBuild platform checks that misreport under the .NET 11 SDK",
+    "member_ids": [
+     "LV-1",
+     "UT-2"
+    ],
+    "owner_theme": "LV (language version and hosts)",
+    "rationale": "Two findings in the same pair of files, Metalama.Framework.props and Metalama.Framework.targets. The LangVersion clamp rewrites an implied 15.0 down to 12.0 with a warning that has no code and a false explanation (Metalama.Framework.targets:115-121), and the .NET SDK ceiling of 11.0 (Metalama.Framework.props:33) makes LAMA0601 fire for every .NET 11 SDK because the comparison pads the shorter operand. Both are MSBuild-only, both are exercised by the same standalone scenarios, and both are invisible until the container carries a .NET 11 SDK."
+   },
+   {
+    "cluster_id": "CL-14",
+    "title": "Pattern and extension libraries under C# 15 unions and closed classes",
+    "member_ids": [
+     "UT-14",
+     "UT-14a",
+     "UT-14b",
+     "UT-14c",
+     "UT-14d",
+     "UT-15",
+     "UT-17"
+    ],
+    "owner_theme": "UT (patterns, tests and docs)",
+    "rationale": "One preamble and six consequences in Observability, Immutability, Caching, Multicast and Metrics, all following from the same fact, that a union is a struct with an opaque Value property for every library that reads the code model. Only two of the seven require product code, the immutability classification and the caching key and serialization; the rest are tests. The whole cluster consumes the code model surface of story S13 and cannot start before it."
+   },
+   {
+    "cluster_id": "CL-15",
+    "title": "Test-suite preprocessor gates that no variant defines",
+    "member_ids": [
+     "UT-9",
+     "UT-10"
+    ],
+    "owner_theme": "UT (patterns, tests and docs)",
+    "rationale": "Two findings, one in the Contracts unit tests and one in the aspect tests, in which a stale or misspelled preprocessor symbol excludes a test with no failure. They are one hygiene pull request, and they are scheduled before the C# 15 test suite is written, because that suite adds new constant gates and would repeat the same class of mistake."
+   },
+   {
+    "cluster_id": "CL-16",
+    "title": "The Roslyn variant gating strategy for the C# 15 API members",
+    "member_ids": [
+     "CM-10"
+    ],
+    "owner_theme": "CM (code model)",
+    "rationale": "A single finding, listed as a cluster because it is the one prerequisite that every other union and closed finding names. The repository has no conditional compilation in production source today, and the two candidate mechanisms, a preprocessor block and a numeric kind value, have different reaches: a numeric kind cannot override a virtual visitor method, and a preprocessor constant must be renamed when the variant is renumbered. Taking the decision once, before any union code is written, is what keeps the post-gate window short."
+   }
+  ],
+  "stories": [
+   {
+    "story_id": "S0",
+    "title": "Move Metalama.Compiler to Roslyn 5.12",
+    "member_ids": [],
+    "blocked_by": [],
+    "repos": [
+     "Metalama.Compiler"
+    ],
+    "size": "L",
+    "rationale": "This story carries no finding, because Metalama.Compiler is not cloned in this session and nothing could be verified in it. It is nevertheless the head of the critical path and must be a tracked item, because step 1 of Metalama.Framework/docs/updating-roslyn.md makes every other Roslyn move conditional on it, and because the whole C# 15 plan depends on a date that is decided in that repository. The scope is the rebase of Metalama.Compiler onto the Roslyn version that Visual Studio 2027 and the .NET 11 SDK carry, expected to be 5.12 (dotnet/roslyn main reads MinorVersion 12, and no stable 5.10 or 5.11 package exists on nuget.org, per FACTS.md:48-49). Until it is done, nothing downstream of S10 can start, so its schedule is the single most valuable piece of information for planning 2027.0."
+   },
+   {
+    "story_id": "S1",
+    "title": "Decide and document how engine source names the Roslyn 5.12 only API members while still compiling for the Roslyn 5.0 variant",
+    "member_ids": [
+     "CM-10"
+    ],
+    "blocked_by": [],
+    "repos": [
+     "Metalama"
+    ],
+    "size": "S",
+    "rationale": "First item of the pre-gate lane and a prerequisite of every union and closed story. Metalama.Framework.Engine.5.0.0.csproj compiles the same source files against Roslyn 5.0.0, which has no union or closed member at all, and production source carries no conditional compilation today (eng/RoslynVersions/Roslyn.5.10.0.props:8-10 records that the only variant constant exists for two aspect tests). The three candidate mechanisms differ in reach: a numeric kind value names no experimental member but cannot override a virtual visitor method, a preprocessor block can but must be renamed when the variant is renumbered to 5.12.0, and a reflection shim repeats the mechanism that issue #1215 deliberately removed. Taking the decision as a written note now costs half a day and prevents three teams from choosing differently under time pressure after the Roslyn gate opens."
+   },
+   {
+    "story_id": "S2",
+    "title": "Make the engine recognise any type declaration by type test instead of by enumerated syntax kind",
+    "member_ids": [
+     "CM-2",
+     "CM-6",
+     "LK-3",
+     "LK-10",
+     "DT-1",
+     "DT-6",
+     "TP-6"
+    ],
+    "blocked_by": [
+     "S1"
+    ],
+    "repos": [
+     "Metalama"
+    ],
+    "size": "M",
+    "rationale": "The largest piece of union work that can be delivered before the Roslyn gate, and therefore the highest-value item of the pre-gate lane. Every site listed here classifies a declaration by enumerating syntax kinds: SyntaxKindExtensions.IsTypeDeclaration and IsBaseTypeDeclaration (SyntaxKindExtensions.cs:33-41), the three lists of SyntaxExtensions (:29-36, :59-66, :113-119), SourceNamedTypeImpl.IsPartial (SourceNamedTypeImpl.cs:329-352), the member switches of the compile-time rewriter and the templating code validator, and the text span classifier. Replacing the enumeration with a test on TypeDeclarationSyntax or MemberDeclarationSyntax names no experimental member and compiles against both variants today. It also fixes defects that exist now, independently of C# 15: interfaces and extension blocks are already missing from the classifier, and the suppression lookup already fails on kinds it does not list. Two cautions carry into the implementation: the KindCheckOptimizationAnalyzer of issue #1307 enforces the kind-check doctrine and exempts abstract syntax classes, and the broadened predicates must not treat the case-type list of a union as a parameter list at ImplicitLastOverrideReferenceInliner.cs:72 and in LinkerLateTransformationRegistry."
+   },
+   {
+    "story_id": "S3",
+    "title": "Correct the LangVersion clamp and the .NET SDK ceiling comparison of the platform check",
+    "member_ids": [
+     "LV-1",
+     "UT-2"
+    ],
+    "blocked_by": [],
+    "repos": [
+     "Metalama"
+    ],
+    "size": "S",
+    "rationale": "Two MSBuild-only defects in the package build files, both delivered before the gate so that the C# 15 enablement pull request does not have to carry them. The clamp at Metalama.Framework.targets:115-121 rewrites an implied LangVersion that is not in its allowed list down to 12.0, which will drop a net11.0 project from C# 15 to C# 12 on the day Metalama.Compiler rebases onto a Roslyn whose _MaxAvailableLangVersion is 15.0; the warning at :243 has no code, so it cannot be suppressed, and its explanation is false in that direction. The ceiling at Metalama.Framework.props:33 is a separate one-line defect that is live today: MaximumSdkVersion 11.0 compared against a padded 11.0.100 makes LAMA0601 fire for every .NET 11 SDK, including on a net10.0 project, which contradicts the declared support matrix of issue #1884. The standalone scenarios that prove both need the .NET 11 SDK, so the tests follow S4 while the code lands now."
+   },
+   {
+    "story_id": "S4",
+    "title": "Add the .NET 11 SDK to the build container and decide the global.json pin",
+    "member_ids": [
+     "UT-1",
+     "LV-9"
+    ],
+    "blocked_by": [],
+    "repos": [
+     "Metalama"
+    ],
+    "size": "M",
+    "rationale": "The second blocking prerequisite of the release, parallel to the Roslyn gate and independent of it. The container declares one .NET SDK (eng/src/Program.cs:26 and :35-37), and a .NET 10 SDK refuses a net11.0 target framework with NETSDK1045, so every net11.0 test leg, every net11.0 standalone scenario and the two scenarios that prove S3 are blocked here. It is scheduled early because the feedback loop is a continuous integration cycle per attempt and because CLAUDE.md records that the last two container changes each cost one: the MSBuildExtensionsPath mitigation in PostSharp.Engineering is one entry short, and removing a Visual Studio component broke the desktop MSBuild. The story includes the decision of what global.json pins once two feature bands are installed."
+   },
+   {
+    "story_id": "S5",
+    "title": "Re-derive the November 2026 platform baseline: Visual Studio Build Tools, MSBuild and the host-capped package pins",
+    "member_ids": [
+     "LV-11",
+     "UT-11",
+     "UT-12",
+     "UT-13"
+    ],
+    "blocked_by": [
+     "S4"
+    ],
+    "repos": [
+     "Metalama"
+    ],
+    "size": "M",
+    "rationale": "A calendar-gated story, not a dependency-gated one. Metalama.Framework/docs/platform-support.md and Directory.Packages.md already schedule a measurement after 2026-11-10, when the Visual Studio 2026 long-term servicing channel and Visual Studio 2027 ship; four findings from three themes wait on that same date, namely the Build Tools component and MSBuildVersion of eng/src/Program.cs, the Microsoft.NET.Test.Sdk pin whose comment still names Visual Studio 2022, the Microsoft.Build pin that must stay at the lowest supported host, and the vulnerability audit under the new SDK. Grouping them into one measurement avoids four separate reopenings of the same documents. Nothing here is on the C# 15 critical path, and none of it should delay a preview."
+   },
+   {
+    "story_id": "S6",
+    "title": "Add net11.0 legs to the test projects, the standalone scenarios and the design-time simulator",
+    "member_ids": [
+     "UT-4",
+     "UT-5",
+     "UT-6",
+     "UT-7",
+     "UT-8",
+     "PR-8"
+    ],
+    "blocked_by": [
+     "S4"
+    ],
+    "repos": [
+     "Metalama",
+     "Metalama.Premium"
+    ],
+    "size": "L",
+    "rationale": "The coverage half of the .NET 11 work, deliberately separated from the container so that it can start the day the container lands and can be split among several people. It adds the second Core leg to the test projects, lists net11.0 and net11.0-windows in the tested-target-framework scenario whose comment currently records their absence, gives the standalone scenarios a net11.0 sibling that clears LangVersion so that the SDK default can be observed at all, raises the design-time host simulator, and adds the Premium leg. It also corrects the test project options that report net8.0 whatever the leg actually targets, because every snapshot that prints the value would otherwise diverge twice. Sized L because the number of expected-output files that may move is unknown until the first run."
+   },
+   {
+    "story_id": "S7",
+    "title": "Complete the PB-2027.0 target framework move inside the engine defaults",
+    "member_ids": [
+     "UT-3",
+     "LV-10"
+    ],
+    "blocked_by": [],
+    "repos": [
+     "Metalama",
+     "Metalama.Documentation"
+    ],
+    "size": "S",
+    "rationale": "A pre-gate hygiene item that closes what issue #1876 left behind. The default target framework list of the nested compile-time reference project still names net8.0 (CompileTimeAssemblyLocator.cs:43), so an additional compile-time package resolves its netstandard2.0 asset instead of its net10.0 asset and an out-of-support target framework is restored on every build. The value moves to net10.0 and not to net11.0, because PB-2027.0 keeps a .NET 10 SDK as the build-time SDK. The second finding needs no code and contributes the sentence that the remaining net10.0 literals name our own outputs and move only with the embedded Core flavour. Doing this before the container change keeps the two kinds of net literal from being confused."
+   },
+   {
+    "story_id": "S8",
+    "title": "Remove the test gates whose preprocessor symbol no configuration defines",
+    "member_ids": [
+     "UT-9",
+     "UT-10"
+    ],
+    "blocked_by": [],
+    "repos": [
+     "Metalama"
+    ],
+    "size": "S",
+    "rationale": "Scheduled before the C# 15 test suite is written rather than after, because that suite will add new constant gates of exactly this shape and would otherwise repeat the mistake. Two aspect tests are gated on ROSLYN4_4_OR_GREATER, which no variant defines because the naming convention uses underscores, and two facts of the Contracts unit tests are gated on NET6_0, which no leg defines since the target frameworks moved. Neither exclusion fails anything, so both are invisible in a green run. The fix keeps the target framework gate in both cases and only corrects the symbol, since the excluded code genuinely does not compile on .NET Framework."
+   },
+   {
+    "story_id": "S9",
+    "title": "Make the language version display mapping non-throwing and settle the compile-time manifest fallbacks",
+    "member_ids": [
+     "LV-2",
+     "LV-4",
+     "LV-5"
+    ],
+    "blocked_by": [],
+    "repos": [
+     "Metalama"
+    ],
+    "size": "S",
+    "rationale": "The part of the C# 15 language version work that compiles today, pulled forward out of S12 so that the enablement pull request is smaller and so that no crash path survives it. ToDisplayStringSafe has no arm for the value 1500 and throws ArgumentOutOfRangeException, which would replace the designed LAMA0051 and LAMA0052 diagnostics by a request to open a support ticket; the arm is a numeric cast and compiles against the Roslyn 5.0.0 variant as well. In the same file set, the manifest carries a ResolvedLanguageVersion property that nothing reads and that disagrees with the two live fallbacks, and the reading side has no clamp, which is the defect that issue #1185 reported once already as CS8192 on a compile-time project produced by a higher Roslyn. Both become dangerous only after S12, and both are cheaper to fix now."
+   },
+   {
+    "story_id": "S10",
+    "title": "Renumber the latest Roslyn variant to 5.12 and regenerate the syntax model from the stable grammar",
+    "member_ids": [
+     "LV-12",
+     "LV-13",
+     "LV-14",
+     "TP-1",
+     "TP-9",
+     "DT-3",
+     "DT-8"
+    ],
+    "blocked_by": [
+     "S0"
+    ],
+    "repos": [
+     "Metalama"
+    ],
+    "size": "L",
+    "rationale": "The gate of the whole release. It is one pull request because the pieces cannot land separately without breaking the build: the version strings of Directory.Packages.props:28 and :30 and of SupportedCSharpVersions.ToNuGetVersionString, the variant property file whose ThisRoslynVersionNoPreview and DefineConstants are hardcoded (eng/RoslynVersions/Roslyn.5.10.0.props:5 and :10), the version list of the generator whose enum values are positional indices (GenerateMetaSyntaxRewriter.cs:17-18 with Generator.cs:88-91, so the retired name must be placed in version order inside legacyVersionNames), the new Syntax-5.12.0.xml grammar, the hardcoded comparison and variant name of RoslynVariantPolicy.cs:32-34 with its tests, and the regenerated visitors, verifiers and hashers. The regeneration is not cosmetic: it is what makes the design-time diff hashers see the union, with-element and labeled break nodes, and what stops the version checker from accepting C# 15 syntax as C# 14. Two collateral obligations belong here because they are inseparable from the strings: leaving the prerelease Roslyn is the release gate that keeps a published preview restorable from nuget.org, which issue #1106 already broke once, and step 10 of updating-roslyn.md must be rewritten because it names members that were renamed by pull request #1911."
+   },
+   {
+    "story_id": "S11",
+    "title": "Mirror the Roslyn 5.12 renumbering in Metalama.Premium",
+    "member_ids": [
+     "PR-1"
+    ],
+    "blocked_by": [
+     "S10"
+    ],
+    "repos": [
+     "Metalama.Premium"
+    ],
+    "size": "M",
+    "rationale": "The same release step in the second repository, separated only because a pull request cannot span repositories. Premium#85 has merged and left Premium with a latest variant named 5.10.0, two prerelease fallback literals in Directory.Packages.props and a nuget.base.config declaring the roslyn-consolidated feed; a git grep on that branch finds the version string in eleven tracked files, including the InternalsVisibleTo entries, the packaging paths and the MetalamaExtensionAssembly items with their TargetRoslynVersion metadata. If the two repositories do not move in the same release, either Premium resolves a preview from a feed that the core has removed, or Premium ships variant assemblies whose names no longer match the payload directories the core expects."
+   },
+   {
+    "story_id": "S12",
+    "title": "Enable C# 15 as a supported language version across the engine, the targets and the test framework",
+    "member_ids": [
+     "LV-3",
+     "LV-6",
+     "LV-7",
+     "LV-8",
+     "TP-2",
+     "TP-8",
+     "DT-4",
+     "DT-7",
+     "UT-19"
+    ],
+    "blocked_by": [
+     "S9",
+     "S10"
+    ],
+    "repos": [
+     "Metalama"
+    ],
+    "size": "M",
+    "rationale": "The second gate, and the story that actually delivers the headline of the release: after it, a 2027.0 preview accepts a C# 15 project instead of reporting LAMA0051. It raises SupportedCSharpVersions.Latest and All, adds the variant-aware arm to ToLanguageVersion and the (5, >= 12) arm to GetMaxLanguageVersion (SupportedCSharpVersions.cs:31-44, :52-62, :149-159), adds CSharp15 to AllLanguageVersions, extends LanguageVersionProvider for the .NET 11 SDK, extends the allowed value list of the MSBuild clamp, and makes the test framework able to request 15.0 instead of silently skipping such a test. It cannot precede S10, because no variant that Metalama consumes before the renumbering has LanguageVersion.CSharp15 and the 5.0.0 variant reports CS1617 for the value 1500 (FACTS.md:54-56). It carries three items that need no code and would otherwise be lost: the operator table is unaffected by C# 15, the aspect test harness already tolerates an unrecognised version, and the repository keeps its own source at C# 14, which must be written into the comment so that the two bounds are not confused. The template language pin stays at 14.0 unless the product owner decides otherwise, which is a listed decision."
+   },
+   {
+    "story_id": "S13",
+    "title": "Expose the C# 15 union in the code model and give the compile-time path a union dispatch",
+    "member_ids": [
+     "CM-1",
+     "CM-7",
+     "CM-9"
+    ],
+    "blocked_by": [
+     "S1",
+     "S2",
+     "S12"
+    ],
+    "repos": [
+     "Metalama"
+    ],
+    "size": "M",
+    "rationale": "The first post-gate story and the one that the patterns, the linker and the design-time stories all consume, so it is scheduled immediately after S12. It adds INamedType.IsUnion and the case types beside IsRecord, without a new TypeKind value, since TypeKind.RecordClass and TypeKind.RecordStruct are the precedent for why a new value is the wrong shape and since a new value would need an arm in every switch that throws in its default. It also adds the visitor overrides that a type test cannot replace, because CSharpSyntaxVisitor dispatches VisitUnionDeclaration and a numeric kind cannot override a virtual method, and the interception in the compile-time code rewriter so that a run-time union in a file that also holds an aspect stops breaking the compile-time compilation. Everything here is gated by the mechanism chosen in S1, and the reads of ITypeSymbol.UnionCaseTypes require the 5.12 baseline, because the member is absent from the consumed 5.10 preview."
+   },
+   {
+    "story_id": "S14",
+    "title": "Inject, link and validate advice on unions",
+    "member_ids": [
+     "LK-1",
+     "LK-2",
+     "LK-8",
+     "CM-8"
+    ],
+    "blocked_by": [
+     "S13"
+    ],
+    "repos": [
+     "Metalama"
+    ],
+    "size": "L",
+    "rationale": "The story that decides whether an aspect applied to a union produces correct code, wrong code or a clear diagnostic, and therefore the one that determines whether a preview can be shipped with unions at all. Without the dispatch, injected members targeting a union are never inserted and the registry asserts; with the dispatch but without eligibility rules, the pipeline emits code that the compiler rejects with CS9373, CS9374 or CS9375, because a union forbids instance fields, auto-properties and field-like events, forbids a public single-parameter constructor and requires every constructor to chain. The defensive slice, one blanket diagnostic that declares a union an unsupported advice target, is small and covers all three compiler errors as well as the silent case of an initializer injected into a constructor that has no syntax; it is the recommended content of the first pull request, with the per-advice rules following. The synthesized Value property and the per-case constructors are included here because their remedy is the linker kind list and LinkerRecordHelper, and because they share the substitution mechanism of the open pull request metalama/Metalama#1879, on which this story must be rebased."
+   },
+   {
+    "story_id": "S15",
+    "title": "Emit a union partial part at design time instead of a struct partial part",
+    "member_ids": [
+     "CM-3",
+     "DT-2",
+     "LK-4"
+    ],
+    "blocked_by": [
+     "S13"
+    ],
+    "repos": [
+     "Metalama"
+    ],
+    "size": "M",
+    "rationale": "The design-time half of union support, scheduled directly after the code model because it consumes it and because a union with introduced members shows compiler errors in the editor until it lands. CreatePartialType emits partial struct for a union (DesignTimeSyntaxTreeGenerator.cs:749), which is CS0261 in the generated document. Two implementation points are settled in this story and nowhere else: the discriminator must be the kind of the primary declaration syntax rather than the Roslyn IsUnion flag, which is also true for a hand-written type carrying the union attribute and whose generated part must stay a class or a struct part, and the generated part must omit the case-type list, since only one partial part may carry a parameter list. The closed modifier needs nothing here, because the compiler merges modifiers across partial parts."
+   },
+   {
+    "story_id": "S16",
+    "title": "Guard experimental C# syntax in templates and add the C# 15 template tests",
+    "member_ids": [
+     "TP-4",
+     "TP-5"
+    ],
+    "blocked_by": [
+     "S12"
+    ],
+    "repos": [
+     "Metalama"
+    ],
+    "size": "M",
+    "rationale": "The template compiler needs less than the other layers, because the regeneration of S10 covers the union, the with-element and the labeled break nodes automatically. What remains is one node that stays experimental on the target Roslyn, the unsafe expression, which the annotator does not reject and which therefore surfaces as a C# error on the generated compile-time file instead of a template diagnostic. The remedy is a name-free guard driven by the generator, which records that a node was stripped as experimental, so that the same protection applies to every future experimental node without naming one. The with-element finding contributes the tests only, since it is fixed by the regeneration; the tests belong in the C# 15 aspect test directory established by S12."
+   },
+   {
+    "story_id": "S17",
+    "title": "Support labeled break and continue in templates and rename labels when inlining",
+    "member_ids": [
+     "TP-3",
+     "LK-9"
+    ],
+    "blocked_by": [
+     "S12"
+    ],
+    "repos": [
+     "Metalama"
+    ],
+    "size": "M",
+    "rationale": "One language feature that needs work in two layers and that produces wrong code without a diagnostic in both. The annotator does not model the labeled statement, so the label is dropped and an emitted break targets the innermost loop instead of the labeled one; after the regeneration it becomes CS9393 or CS9394 in transformed user code instead. Independently, the inlining substitution copies user labels verbatim, and labeled loops make a collision between a template label and a target label realistic, which is CS0140 or CS0158 in the transformed compilation. The two are one story because both act on the same statements and both need the Name member that the generator strips today. Off the shortest path to a preview, but it should precede any promise that C# 15 templates are supported."
+   },
+   {
+    "story_id": "S18",
+    "title": "Expose closed hierarchies in the code model and allow an introduced type to be closed",
+    "member_ids": [
+     "CM-4",
+     "CM-5",
+     "LK-5",
+     "TP-10"
+    ],
+    "blocked_by": [
+     "S12"
+    ],
+    "repos": [
+     "Metalama"
+    ],
+    "size": "M",
+    "rationale": "The cheapest of the C# 15 features and the one most easily deferred, which is why it is a story of its own rather than a part of the union work. Nothing is broken today: a closed class is a class with an abstract-like modifier that the compiler merges across partial parts, the derived-type model is already correct, and the template compiler and the syntax generator need nothing, which this story records as a negative scope statement. What is missing is a reader on INamedType, a writer on INamedTypeBuilder with the validation rules that mirror the compiler restrictions, and the emission of the modifier instead of abstract. The reads are gated by S1 because ITypeSymbol.IsClosed does not exist in the Roslyn 5.0.0 variant. Introducing a union stays out of scope and is a listed decision."
+   },
+   {
+    "story_id": "S19",
+    "title": "Support C# 15 extension indexers in advice and in the linker",
+    "member_ids": [
+     "LK-6",
+     "LK-7",
+     "UT-16"
+    ],
+    "blocked_by": [
+     "S12"
+    ],
+    "repos": [
+     "Metalama"
+    ],
+    "size": "M",
+    "rationale": "A self-contained feature with no dependency on the union work, so it can run in parallel with S13 to S15 once C# 15 is requestable. It lifts the deliberate rejection of indexer introduction into an extension block, which issue #1587 documented rather than fixed, and replaces it with an eligibility rule that enforces the declaration restrictions of the proposal, namely a named receiver parameter, no init accessor and none of the forbidden modifiers. The overriding half is expected to be correct already for inlined output and to be limited by the pre-existing LAMA0699 on non-inlined indexer overrides, which is open issue #937 and is not in scope here. The contract tests contributed by the third finding must first establish whether an extension indexer appears in the indexer collection that the not-null fabric enumerates."
+   },
+   {
+    "story_id": "S20",
+    "title": "Handle templates declared inside an extension block",
+    "member_ids": [
+     "TP-7"
+    ],
+    "blocked_by": [],
+    "repos": [
+     "Metalama"
+    ],
+    "size": "M",
+    "rationale": "Deliberately kept out of the C# 15 scope and off the critical path, because it is a pre-existing gap since C# 14 and needs no new Roslyn: the member switch of the compile-time code rewriter has no case for an extension block, so a template declared inside one is copied verbatim or hits the throwing default. It can be delivered at any time, and it should be, because an extension block is ordinary user code today. If the cheaper option is chosen, a diagnostic when a template member is declared inside an extension block, the story is small; if support is chosen, the member loop must be extracted, and the shared code must account for an extension block being a type declaration whose identifier is default and whose base list rewrites throw."
+   },
+   {
+    "story_id": "S21",
+    "title": "Accept the extension block declaration kind in Metalama.Extensions.Validation",
+    "member_ids": [
+     "PR-11"
+    ],
+    "blocked_by": [],
+    "repos": [
+     "Metalama.Premium"
+    ],
+    "size": "S",
+    "rationale": "The only Premium finding that is a live defect for a customer of the current release rather than future work, so it is scheduled immediately and independently of the Roslyn gate. GetInboundGranularity throws for a validated extension block, and the exception is reported through the user code invoker as an error diagnostic, so the validation rule silently reports nothing else. The mapping is one switch arm and the aspect test that pins it compiles against the Roslyn variant that Premium consumes today. Only the extension indexer variant of the test waits for C# 15, and it belongs to S19."
+   },
+   {
+    "story_id": "S22",
+    "title": "Replace the per-kind switches of the attribute code action and the visibility code fix by a type test",
+    "member_ids": [
+     "DT-5",
+     "PR-10"
+    ],
+    "blocked_by": [],
+    "repos": [
+     "Metalama",
+     "Metalama.Premium"
+    ],
+    "size": "S",
+    "rationale": "A pre-gate item in both repositories, delivered now because both helpers already fail silently for records, record structs and interfaces, which are not C# 15 at all, and because the same edit makes them correct for unions later at no extra cost. In both cases a switch over declaration kinds falls through to a default that returns null or the unchanged node, so the code action appears to do nothing. The remedy is a single call on the abstract syntax base type, narrowed so that the fallback does not widen to namespaces, enum members or incomplete members. Two pull requests are needed because the repositories differ, but the design is one and should be reviewed once."
+   },
+   {
+    "story_id": "S23",
+    "title": "Make the pattern and extension libraries behave correctly on C# 15 unions and closed classes",
+    "member_ids": [
+     "UT-14",
+     "UT-14a",
+     "UT-14b",
+     "UT-14c",
+     "UT-14d",
+     "UT-15",
+     "UT-17"
+    ],
+    "blocked_by": [
+     "S13"
+    ],
+    "repos": [
+     "Metalama"
+    ],
+    "size": "L",
+    "rationale": "The last consumer of the union code model and therefore the tail of the union path, not part of a first preview. Only two items are product code. The immutability classification treats a union as mutable, which produces spurious observability warnings, and it must key on the union declaration rather than on the Roslyn flag, because that flag is also true for a hand-written type carrying the union attribute. The caching key generation and the cache item serialization treat a union as an opaque struct, which is silent wrong output, and the natural discriminator is the interface that the compiler makes every union implement, which the affected projects cannot bind to at compile time as they target net472 and netstandard2.0. Everything else is tests: observability rejects a union with its existing message, multicast is correct except for the implicit parameterless constructor, closed classes reach no pattern-specific code, and the metrics providers handle the new statement and collection element shapes."
+   },
+   {
+    "story_id": "S24",
+    "title": "Index union case types in the reference graph and pin the architecture rules that read them",
+    "member_ids": [
+     "PR-12"
+    ],
+    "blocked_by": [
+     "S13"
+    ],
+    "repos": [
+     "Metalama",
+     "Metalama.Premium"
+    ],
+    "size": "M",
+    "rationale": "One finding whose product change is in the core and whose acceptance criterion is in Premium, so the two repositories move together. The reference index walker does not enter a union declaration, so a reference from a union to its case types is never attributed and an architecture rule on a case type under-reports with no diagnostic, which is the only silent false negative that the architecture extension acquires from C# 15. The Premium half is two aspect tests, one for a rule on a case type and one for a rule on a closed class, plus a third that records that the transitive validator is still required for a closed class derived from in another project."
+   },
+   {
+    "story_id": "S25",
+    "title": "Clean up the residual pins, target frameworks and stale comments of the Metalama.Premium build files",
+    "member_ids": [
+     "PR-3",
+     "PR-5",
+     "PR-6",
+     "PR-7",
+     "PR-13"
+    ],
+    "blocked_by": [],
+    "repos": [
+     "Metalama.Premium"
+    ],
+    "size": "S",
+    "rationale": "One small pull request that closes what the merged Premium migrations left behind, scheduled early because it is independent of every gate and because it removes noise from the later Premium changes. It removes the obsolete .NET 8 SDK and .NET 6 runtime components and the stale Visual Studio 2022 channel manifest from the image definition, raises the template language pin from 13.0 to 14.0 now that the Roslyn 4.12 variant is gone and rewrites its rationale to name the Roslyn floor instead of a Visual Studio version, aligns the MSBuild package pins with the core doctrine and deletes an entry that no project references and that does not exist on nuget.org, resolves a contradictory pair of central package entries that leaves the Redis backend on an older client than intended, and rewords the variant comment that describes a preprocessor symbol Premium no longer defines."
+   },
+   {
+    "story_id": "S26",
+    "title": "Execute the Roslyn 5.0.0 variant of the Premium engines in a test",
+    "member_ids": [
+     "PR-2"
+    ],
+    "blocked_by": [],
+    "repos": [
+     "Metalama.Premium"
+    ],
+    "size": "L",
+    "rationale": "The one Premium item of real size and the only Premium coverage gap that can produce a user-visible defect. The three Roslyn 5.0.0 variant projects are compiled by the solution build but no test project executes them, so a behavioural defect that appears only when the Premium engines bind against Roslyn 5.0.0 reaches a Rider user before it reaches the suite. Adding the variant test projects is not sufficient on its own: the two aspect test projects hardcode a reference to the unsuffixed engine and must first be made variant-aware in the manner of the core aspect test project. The unit test shims are blocked on a core change that publishes a Roslyn 5.0.0 variant of the unit test helpers package, so they should be deferred to a second pull request or dropped. Scheduled off the critical path but before the release, because the variant it covers is the one that serves Rider and the C# Dev Kit."
+   },
+   {
+    "story_id": "S27",
+    "title": "Bring the platform, dependency and extensibility documentation up to the shipped 2027.0 state",
+    "member_ids": [
+     "UT-18",
+     "DT-9",
+     "PR-9",
+     "PR-14"
+    ],
+    "blocked_by": [
+     "S10",
+     "S12",
+     "S6"
+    ],
+    "repos": [
+     "Metalama",
+     "Metalama.Documentation"
+    ],
+    "size": "M",
+    "rationale": "Deliberately the last story of the release, because a document written before the code is a second thing to correct. It sweeps the statements that name net8.0 or C# 14 as the latest, records that a .NET 10 host of the introspection packages needs a .NET 10 SDK on the machine, and extends the drift-point lists of platform-support.md so that the next floor move edits the Premium build files too, which is where the Core flavour literal is repeated in eight places with no test on the comparison. One item must be lifted out of it and treated as behaviour rather than text: the source generator attribute list of Metalama.Framework.props is functional, and an attribute that .NET 11 adds and that the list omits makes a generated partial member eligible for aspects that should exclude it, with no diagnostic. One paragraph is already owned by open issue #1903 and must be referenced rather than rewritten here."
+   },
+   {
+    "story_id": "S28",
+    "title": "Already in progress: Metalama.Premium variant alignment and engineering update",
+    "member_ids": [
+     "PR-4",
+     "PR-15"
+    ],
+    "blocked_by": [],
+    "repos": [
+     "Metalama.Premium"
+    ],
+    "size": "S",
+    "rationale": "Recorded so that the work is not proposed a second time. Both findings are fully covered by merged pull requests: metalama/Metalama.Premium#85 replaced the net8.0 and net9.0 target frameworks by net10.0, dropped the Roslyn 4.12.0 variant, made 5.0.0 the lower variant and added the 5.10.0 latest variant with its package feed, closing issue #1913; metalama/Metalama.Premium#86 retargeted the engineering project to net10.0, removed the .NET 9 runtime from the image and moved the build image to Visual Studio 2026, mirroring metalama/Metalama#1919. Nothing remains in either finding. The residual items that those pull requests did not cover are stories S25 and S11, and the story exists only to hold the two identifiers and the merge evidence."
+   }
+  ],
+  "decisions": [
+   "Does C# 15 support ship in 2027.0 at all? Every C# 15 item in this plan is downstream of one external event, namely Metalama.Compiler rebasing onto Roslyn 5.12, which is expected with Visual Studio 2027 and the .NET 11 SDK in November 2026, against a 2027.0 general availability of 2027-01-01 (FACTS.md:48-49). Option A, ship C# 15 in 2027.0: the engineering window between the stable Roslyn and general availability is roughly six weeks, and stories S10, S12, S13, S14 and S15 must all land inside it, which is feasible only if the pre-gate lane (S1, S2, S3, S9) has already landed and if the union work is reduced to the defensive slice. Option B, ship 2027.0 on the stable Roslyn 5.12 with C# 15 accepted as a language version but unions declared unsupported by a diagnostic: this needs S10, S12 and the blanket diagnostic of S14 only, and it is the smallest honest claim. Option C, ship 2027.0 without the Roslyn 5.12 move, keeping the latest variant on a build with no stable counterpart: this fails the release gate of story S10, because Metalama.Framework.Workspaces, Metalama.Testing.AspectTesting and Metalama.LinqPad would reference a Roslyn package that nuget.org does not serve, which is exactly the restore failure that issue #1106 already produced for a published preview. Option C is not viable as stated; the choice is between A and B, and it should be taken now, because it decides whether the union stories are staffed before November.",
+   "How is the union and closed API gated between the Roslyn 5.0.0 variant and the latest variant? The same engine sources are compiled for both variants, the Roslyn 5.0.0 variant has none of the C# 15 members, and production source contains no conditional compilation today (eng/RoslynVersions/Roslyn.5.10.0.props:8-10). Option A, preprocessor blocks: the only mechanism that can override CSharpSyntaxVisitor.VisitUnionDeclaration or call SyntaxFactory.UnionDeclaration, but it reintroduces the branching that issue #1881 removed from 152 files and its constant name is hardcoded in the variant property file, so it must be renamed when the variant is renumbered to 5.12.0. Option B, numeric syntax kind values with a runtime guard: names no experimental member and no absent member, works for every kind test, and cannot express a visitor override or a factory call. Option C, a reflection shim service registered per variant: fits the symbol reads but repeats the mechanism that issue #1215 deliberately replaced by conditional compilation on performance and maintenance grounds. The realistic answer is a written policy that combines B for kind tests and A for overrides and factory calls, but the decision must be recorded once before story S13 starts, and it carries a second question: whether the public Metalama.Framework.Sdk surface, where the kind helpers are marked as public API, may mention the new kinds at all.",
+   "Does an aspect applied to a C# 15 union produce a diagnostic or working code in 2027.0? Option A, defensive only: one eligibility rule declares a union an unsupported advice target, which is small, covers the instance field prohibition, the public single-parameter constructor prohibition and the constructor chaining requirement at once, and is deliverable inside the six-week window. Option B, full support: the injection and linking dispatch, the synthesized Value property and per-case constructors, per-advice eligibility rules and the design-time partial part, which is stories S13, S14 and S15 in full, depends on the open pull request metalama/Metalama#1879 for the synthesized member mechanism, and is at least two weeks of work after the gate. Option C, nothing: an aspect on a union silently emits members that the compiler rejects with CS9373, CS9374 or CS9375 in generated code, which is the worst outcome for a first release of the feature. Option A is the recommended content of a 2027.0 preview, with Option B tracked for 2027.1.",
+   "Does the template language version move to C# 15? MetalamaTemplateLanguageVersion is pinned to 14.0 and the comment at Directory.Build.props:11-16 ties the value to the lowest supported Roslyn, which stays at 5.0.0 for Rider 2026.2 and the C# Dev Kit throughout PB-2027.0. Option A, keep 14.0: a template cannot use a C# 15 construct, which is the status quo and costs nothing. Option B, raise to 15.0: the compile-time assembly of such a project cannot be built inside Rider 2026.2, because the Roslyn 5.0 host rejects the language version, so the aspect library becomes unusable at design time for a whole class of users. Option C, offer 15.0 as an opt-in property with 14.0 as the default: this preserves Rider and lets an author who does not care about Rider use the newer syntax, at the cost of a support matrix with two template language versions. The choice also decides whether the C# 15 template tests of stories S16 and S17 can be written at all.",
+   "Does 2027.0 add the ability to introduce a closed class or a union? Reading them is separate work and is proposed in stories S18 and S13. Option A, reader only: INamedType gains IsClosed and IsUnion, and an aspect can observe but not produce these types, which is the smaller half and is what the C# 14 precedent did first for extension members. Option B, add the closed writer as well: INamedTypeBuilder gains IsClosed with the validation that mirrors the compiler restrictions and the modifier emission replaces abstract, which is a further day of work and needs the target framework to provide the attribute the compiler requires. Option C, add union introduction: this is a larger piece, because a union declaration carries a case-type list rather than a parameter list and the builder model has no representation for one, and it is proposed to be out of scope for 2027.0. Confirm that the union writer is out of scope, so that story S18 can be sized as the closed writer alone.",
+   "Which .NET SDK does the build container install and which one does global.json pin? Story S4 must add a .NET 11 SDK for any net11.0 test leg to exist, and CLAUDE.md records that two feature bands in one image already caused an MSB4062 failure through a stale MSBuildExtensionsPath, whose mitigation in PostSharp.Engineering is one variable short. Option A, install both the .NET 10 SDK and the .NET 11 SDK and keep global.json on 10.0.400: the product build stays on the SDK the baseline names as the build-time SDK, and only the net11.0 legs use the newer one, at the price of exercising the two-band configuration that is known to be fragile. Option B, install the .NET 11 SDK alone and pin global.json to it: one band, no conflict, but the product would then be built with an SDK that the baseline does not name as the build-time SDK, and a developer machine without that SDK cannot run the build. Option A is the safer default only if the missing environment variable is added to PostSharp.Engineering first, which is itself a dependency of the story.",
+   "Do both Core target framework legs run in the Roslyn 5.0.0 variant test projects, or only one? Adding net11.0 beside net10.0 in every test project doubles the test matrix in the variant dimension as well. Option A, both legs in both variants: maximal coverage and the longest continuous integration time, in a suite that is already the longest part of the build. Option B, net11.0 in the latest variant only and net10.0 in the Roslyn 5.0.0 variant: this covers the runtime that each variant actually serves, since the Roslyn 5.0.0 variant exists for Rider and the C# Dev Kit rather than for the newest SDK, and halves the added time. The answer changes the size of story S6 materially and should be given before it starts.",
+   "Does Metalama.Premium ship C# 15 union and closed support in 2027.0, and on what schedule relative to the core? Premium mirrors the variant set and consumes the core code model. Option A, Premium follows the core in the same release: story S11 renumbers the variants and story S24 adds the reference graph work and the architecture rule tests, which requires Premium engineering time inside the same six-week window. Option B, Premium ships the renumbering only, which it must do in any case for the payloads to match, and defers the union-aware architecture rules to 2027.1: the consequence is one silent false negative, namely that an architecture rule on a type used as a union case under-reports, with no diagnostic. Option B is compatible with a defensive core, Option A is only worth it if the core takes the full union support option.",
+   "Is the missing test coverage of the Roslyn 5.0.0 variant of the Premium engines accepted for another release? Those three variant projects are compiled but never executed, and the variant they serve is the one behind Rider and the C# Dev Kit, which no member of the team tests by hand now that Visual Studio 2022 is dropped. Option A, fund story S26: the two aspect test projects must first be made variant-aware, and the unit test shims additionally need a core change that publishes a Roslyn 5.0.0 variant of the unit test helpers package, so the full item is large. Option B, fund the aspect test shims only and drop the unit test shims: this covers the code path that a Rider user actually exercises at a fraction of the cost. Option C, accept the gap for 2027.0 and rely on user reports. The risk of Option C rose this release, because the lower variant changed from 4.12.0 to 5.0.0 and no manual testing covers it any more.",
+   "When is the November 2026 baseline measured, and does it hold the release? Metalama.Framework/docs/platform-support.md and Directory.Packages.md both schedule a re-reading of the Visual Studio floor, the feature band, the shipped package caps and the test infrastructure pins after 2026-11-10, and story S5 groups the four findings that wait on it. Option A, measure once, immediately after the Visual Studio 2027 and long-term servicing channel releases, and treat the result as a release blocker: the pins then describe the hosts that 2027.0 actually supports, at the cost of a fixed dependency on a date outside the team's control that sits in the same weeks as the Roslyn gate. Option B, ship 2027.0 with the current floor values and re-derive in 2027.0.1: the declared minimum Visual Studio version and the test infrastructure pin would then name a floor that is lower than the one the baseline document states. Whichever option is chosen, it should not be allowed to compete for the same engineering days as stories S10 and S12, which are the actual critical path."
+  ]
+ },
+ {
   "report_id": "03-code-model-unions-closed",
   "findings": [
    {
