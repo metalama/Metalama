@@ -94,9 +94,9 @@ No project was built and no test was run for this analysis.
   Metalama consumes today that feature requires `LanguageVersion.Preview`, so the scenario is reachable only in a
   preview-enabled project and becomes an ordinary C# 15 scenario after the move to the stable Roslyn 5.12.
 - Consequence: a diagnostic reported wrongly and a silent omission. In the editor the user sees a `LAMA0048` warning
-  that the source already satisfies, and the members introduced into the union are never shown, because the generator
-  returns before producing a file. During a build the same generator runs from `LinkerPipelineStage`, whose
-  diagnostic sink is deliberately discarded, so the build reports nothing and merely omits the
+  whose requirement the source already satisfies, and the members introduced into the union are never shown, because
+  the generator returns before producing a file. During a build the same generator runs from `LinkerPipelineStage`,
+  whose diagnostic sink is deliberately discarded, so the build reports nothing and merely omits the
   `DesignTimeGeneratedCode` output file while the linker still injects the members into the produced assembly. The
   offered code fix then produces source that does not compile. A partial correction that fixes only the kind test
   converts the wrong `LAMA0048` into the compilation error CS0261 in the generated file, which is DT-2.
@@ -251,8 +251,8 @@ No project was built and no test was run for this analysis.
     import), and [`updating-roslyn.md`](../updating-roslyn.md):11-13 and `:36`
 - What happens today: the two hashers are generated with one visit method per grammar node, and the generator strips
   every node and every field that carries an experimental URL before generation. The stripping pass has two
-  consequences. First, the union node has no visit method, so the Roslyn default visit runs; the walker is constructed at
-  `SyntaxWalkerDepth.Node`, which visits child nodes and skips tokens, so the union identifier, its modifiers and the
+  consequences. First, the union node has no visit method, so the Roslyn default visit runs; the walker is constructed
+  at `SyntaxWalkerDepth.Node`, which visits child nodes and skips tokens, so the union identifier, its modifiers and the
   `union` keyword contribute nothing to the hash, while the node-typed fields that the grammar declares, namely the
   attribute lists, the type parameter list, the parameter list, the base list, the constraint clauses and the
   members, still do. Second, the generated visit methods for the break and continue statements hash only the
@@ -308,7 +308,7 @@ No project was built and no test was run for this analysis.
   answered against a published package, because no stable package above 5.9.0 exists yet, so the statement is
   plausible rather than established for the release that will actually ship.
 
-### DT-4. The design-time pipeline verifies no language version, and correctly so
+### DT-4. The design-time pipeline verifies no language version, and that is the correct design
 
 - Where:
   - `Metalama.Framework/src/Metalama.Framework.Engine/Pipeline/CompileTime/CompileTimeAspectPipeline.cs:62-93`
@@ -562,20 +562,20 @@ No project was built and no test was run for this analysis.
   the run reports success. The absence of the C# 15 language version from the consumed build is established directly
   rather than by dating: the stable Roslyn 5.9.0 assemblies declare the enumeration member for C# 14 and declare no
   member for C# 15, the only occurrence of the name `CSharp15` in them being the name of a test assembly in an
-  `InternalsVisibleTo` attribute, and the consumed build exposes the same public API. Consequently a test that requests C# 15 is skipped on
-  both variants and the suite reports success with zero C# 15 tests executed. A test that requests the preview version
-  parses, but the default scenario runs the compile-time pipeline, which rejects preview unless the preview opt-in is
-  set, and neither the test options nor the test project options expose that option; that behaviour is pinned by an
-  existing test with a committed baseline. Independently of the directive, the compile-time project of every test is
-  compiled at the latest supported version, which is C# 14, so a template using C# 15 syntax cannot compile; the
-  separate template language version property does not help, because it only lowers the declared version and is not
-  mapped from an aspect test. Unit tests receive the default parse options with no way to pass a version. Every aspect
-  test file is also compiled into the test project itself at the project language version, which the repository sets
-  to 14.0 for every project rather than inheriting it from the .NET SDK, unless the file name starts with two
-  underscores, in which case it is excluded from compilation, excluded from discovery and pulled in by an include
-  directive of another test, which adds it with the parse options of that test. The required-constant and
-  forbidden-constant directives work as documented, and the latest-variant constant is defined by one properties file
-  and used by exactly two aspect tests.
+  `InternalsVisibleTo` attribute, and the consumed build exposes the same public API. Consequently a test that
+  requests C# 15 is skipped on both variants and the suite reports success with zero C# 15 tests executed. A test
+  that requests the preview version parses, but the default scenario runs the compile-time pipeline, which rejects
+  preview unless the preview opt-in is set, and neither the test options nor the test project options expose that
+  option; that behaviour is pinned by an existing test with a committed baseline. Independently of the directive, the
+  compile-time project of every test is compiled at the latest supported version, which is C# 14, so a template using
+  C# 15 syntax cannot compile; the separate template language version property does not help, because it only lowers
+  the declared version and is not mapped from an aspect test. Unit tests receive the default parse options with no way
+  to pass a version. Every aspect test file is also compiled into the test project itself at the project language
+  version, which the repository sets to 14.0 for every project rather than inheriting it from the .NET SDK, unless the
+  file name starts with two underscores, in which case it is excluded from compilation, excluded from discovery and
+  included by an include directive of another test, which adds it with the parse options of that test. The
+  required-constant and forbidden-constant directives work as documented, and the latest-variant constant is defined
+  by one properties file and used by exactly two aspect tests.
 - Consequence: the suite reports success with no C# 15 test executed. The loss is not entirely invisible, because the
   skip is recorded with its reason and appears in the skipped count; only the exit code is unaffected. Nothing throws
   and nothing asserts.
@@ -813,7 +813,7 @@ No project was built and no test was run for this analysis.
 ## Withdrawn findings
 
 No finding of the original report was withdrawn. All nine findings survived the verification passes, and none was
-refuted. Six of them changed materially and are recorded above rather than withdrawn, because their central claim
+refuted. Seven of them changed materially and are recorded above rather than withdrawn, because their central claim
 held while a supporting statement did not.
 
 DT-1 claimed that the code fix defect follows from the union kind; the code pass established that the code fix never
@@ -894,12 +894,11 @@ passes unless a finding depends on them, so they are recorded as read on 2026-09
 - Workspaces packaging under PB-2027.0. The single .NET 10 target
   (`Metalama.Framework.Workspaces.csproj:18`) is what the baseline requires, and a .NET 11 consumer resolves that
   asset. The fallback to a .NET 9 asset (`:96-98`) is never selected once the consumed package contains a .NET 10
-  folder, and the
-  error at `:117-118` guards the packing. The file `build/Metalama.Framework.Workspaces.targets` imports a path that
-  does not exist, because the file name in the import is singular where the real file is plural; this has been so
-  since the first public commit and has no effect, because NuGet drops from the build asset list every file whose name
-  also appears under the transitive build directory, so only the transitive file is ever imported. The file may be
-  deleted or corrected in any later change.
+  folder, and the error at `:117-118` guards the packing. The file `build/Metalama.Framework.Workspaces.targets`
+  imports a path that does not exist, because the file name in the import is singular where the real file is plural;
+  this has been so since the first public commit and has no effect, because NuGet drops from the build asset list
+  every file whose name also appears under the transitive build directory, so only the transitive file is ever
+  imported. The file may be deleted or corrected in any later change.
 - Workspaces MSBuild versions. The MSBuild pin is 18.0.2 with its rationale at `Directory.Packages.props:35-52`, and
   the lowest supported host stays the .NET 10 SDK under PB-2027.0
   ([`Directory.Packages.md`](../../../Directory.Packages.md):18-20), so the pin is unchanged by .NET 11. The MSBuild

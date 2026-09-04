@@ -24,8 +24,8 @@ No project was built and no test was run for this analysis.
    `net10.0` asset for a `net11.0` consumer. The work of this theme is in the build container, the test matrix, a few
    stale defaults and the documentation.
 2. The build container installs exactly one .NET SDK, 10.0.400 (`eng/src/Program.cs:26`), and a .NET 10 SDK rejects a
-   `net11.0` project outright with `NETSDK1045`. Every other target-framework finding of this theme (UT-4, UT-5,
-   UT-6, UT-7, UT-8) is blocked on that one change, and the repository already records the gap in
+   `net11.0` project outright with `NETSDK1045`. Every finding of this theme that adds a `net11.0` leg (UT-5, UT-6,
+   UT-7, UT-8) is blocked on that one change, and the repository already records the gap in
    `SupportedPlatform.TestedTargetFrameworks.csproj:8-10` and in issue #1884.
 3. One defect is live today and contradicts the support matrix that the repository declares. `MaximumSdkVersion` is
    `11.0` while every .NET 11 SDK reports a three-component version such as `11.0.100`, so the comparison at
@@ -36,9 +36,9 @@ No project was built and no test was run for this analysis.
    `Project.TargetFramework == "net8.0"` whatever the test assembly targets (UT-4). Neither produces a failure, which
    is why the change that dropped .NET 8 and .NET 9 did not correct either of them.
 5. Runtime dependency pins do not have to move for .NET 11. The per-variant `System.Text.Json` pins are floors
-   imposed by the Roslyn packages on their `netstandard2.0` assets and stay on the 10.0 line even after the
-   renumbering to Roslyn 5.12, package pruning and the transitive audit default are .NET 10 SDK behaviours that the
-   .NET 11 SDK does not change, and `net8.0` is not an end-of-life target framework in either SDK today (UT-11,
+   imposed by the Roslyn packages on their `netstandard2.0` assets, and they stay on the 10.0 line even after the
+   renumbering to Roslyn 5.12. Package pruning and the transitive audit default are .NET 10 SDK behaviours that the
+   .NET 11 SDK does not change. Finally, `net8.0` is not an end-of-life target framework in either SDK today (UT-11,
    UT-12, UT-13).
 6. A C# 15 union declaration is `TypeKind.Struct` in Roslyn, so every pattern library treats it as an ordinary
    non-record struct. `[Observable]` rejects it, Multicast matches it as `MulticastTargets.Struct`, the immutability
@@ -47,10 +47,11 @@ No project was built and no test was run for this analysis.
 7. Closed classes, labeled `break` and `continue`, `with(...)` elements and extension indexers reach no
    pattern-specific code path that fails. The remaining work for them is test coverage and, for extension indexers,
    the contract advice that theme 04 owns (UT-15, UT-16, UT-17).
-8. Three test gates admit no test and report no diagnostic. Two facts of the Contracts unit tests are excluded on
-   every leg because their guard names `NET6_0` rather than `NET6_0_OR_GREATER`, and two aspect tests never run
-   because their guard names `ROSLYN4_4_OR_GREATER`, which no variant defines (UT-9, UT-10). The conventions that a C# 15 test suite
-   needs are recorded in UT-19, and they cannot produce an executing test before the move to the stable Roslyn.
+8. Three test gates prevent their tests from running, and no build and no test run fails as a result. Two facts of
+   the Contracts unit tests are excluded on every leg because their guard names `NET6_0` rather than
+   `NET6_0_OR_GREATER`, and two aspect tests never run because their guard names `ROSLYN4_4_OR_GREATER`, which no
+   variant defines (UT-9, UT-10). The conventions that a C# 15 test suite needs are recorded in UT-19, and they
+   cannot produce an executing test before the move to the stable Roslyn.
 
 ## Findings
 
@@ -348,8 +349,8 @@ No project was built and no test was run for this analysis.
   assets of `Metalama.Extensions.HtmlWriter` and `Metalama.Extensions.DiffEngine` serve a `net11.0` leg, and they
   pass the run-time filter as well, because `TargetedAssemblyReference` hard-codes `net10.0` for every runtime that
   is not .NET Framework; program execution is gated by `NET5_0_OR_GREATER`; and every `@RequiredConstant` gate that
-  names a `NET…_OR_GREATER` or `NETCOREAPP…_OR_GREATER` symbol is satisfied on `net11.0`, because the .NET SDK
-  emits the whole ladder of those symbols for a `net11.0` compilation. The two verification passes counted those
+  names a symbol of the form `NETx_y_OR_GREATER` or `NETCOREAPPx_y_OR_GREATER` is satisfied on `net11.0`, because
+  the .NET SDK emits every symbol of that series for a `net11.0` compilation. The two verification passes counted those
   gates slightly differently, 128 of 140 and 131 of 139 occurrences, and neither count changes the conclusion; the
   remaining gates name `NETFRAMEWORK`, a Roslyn variant symbol or `DEBUG` and are unaffected.
 - Three details need attention. The expected `.t.cs` and `.t.txt` files are shared by all legs and are compared per
@@ -387,7 +388,7 @@ No project was built and no test was run for this analysis.
   acts once the target frameworks move.
 - Verification: the code pass confirmed the complete inventory of target frameworks, confirmed that no `net11.0`
   string exists in any build file, and found the recorded reason and the container prerequisite that the original
-  report omitted; the semantics pass confirmed that the .NET SDK defines the whole `_OR_GREATER` ladder for
+  report omitted; the semantics pass confirmed that the .NET SDK defines every `_OR_GREATER` symbol of the series for
   `net11.0`, that `net11.0` is not filtered out of the SDK target framework list, and that
   `IsTargetFrameworkCompatible` selects the `net10.0` extension assets, and it refuted the illustration about a new
   `System.Console.WriteLine` overload, replacing it with the implicit-usings difference above; the scope pass
@@ -576,7 +577,7 @@ No project was built and no test was run for this analysis.
   adopt the result. Removing the guard is not an option: `Math.BitDecrement` and `Math.BitIncrement` at `:23` and
   `:38` were introduced in .NET Core 3.0 and .NET Standard 2.1 and are absent from .NET Framework 4.7.2, which is the
   other target framework. The sibling helper `FloatingPointHelper.cs:15-25` computes its floating-point step by
-  multiplication for the same reason. Read the result rather than adopting it blindly: the two facts have never run
+  multiplication for the same reason. Read the result rather than adopting it without inspection: the two facts have never run
   in this repository, and the closed issue #536 is the precedent for a boundary-precision test of the same suite that
   passed on .NET Framework and failed on .NET.
 - Size: small.
@@ -609,18 +610,19 @@ No project was built and no test was run for this analysis.
   them because the spelling did not match. The skip is produced by `TestInput.cs:74-83`, which compares the
   `@RequiredConstant` values against the `DefineConstants` of the test project published as assembly metadata, and
   `TestExecutor.cs:309-311` reports the result as a skipped test whose reason names the undefined constant.
-- Consequence: lost test coverage. Two tests never run. The condition is not entirely invisible, because each run
-  reports them as skipped with a reason, but nothing fails.
-- Proposed change: remove only the misspelled Roslyn symbol and keep the target framework gate. The test source files
-  are compiled into the test project itself, which targets `net48` as well as `net10.0`, and both files declare a
-  static abstract operator in an interface, which .NET Framework does not support. Follow the convention of the three
-  sibling static abstract tests: keep `// @RequiredConstant(NET6_0_OR_GREATER)` and change the conditional to
-  `#if NET6_0_OR_GREATER`, so that the directive and the conditional name the same symbol. Then run the two tests on
-  the `net10.0` leg and accept the output; expected files already exist beside them and may need to be re-accepted. A
-  cheap guard against a recurrence is a check that every `@RequiredConstant` value is a symbol that some
-  configuration defines.
+- Consequence: lost test coverage. Two tests never run. The condition is reported, because each run lists them as
+  skipped with a reason, but no test fails.
+- Proposed change: remove the misspelled Roslyn symbol and keep a target framework gate. The test source files are
+  compiled into the test project itself, which targets `net48` as well as `net10.0`, and both files declare a static
+  abstract operator in an interface, which .NET Framework does not support, so a target framework gate is still
+  required. The two files are inconsistent today, because the directive at `:6` names `NET6_0_OR_GREATER` while the
+  conditional at `:10` names `NET8_0_OR_GREATER`. Follow the convention of the three sibling static abstract tests:
+  keep `// @RequiredConstant(NET6_0_OR_GREATER)` and write the conditional as `#if NET6_0_OR_GREATER`, so that the
+  directive and the conditional name the same symbol. Then run the two tests on the `net10.0` leg and accept the
+  output; expected files already exist beside them and may need to be re-accepted. A low-cost guard against a
+  recurrence is a check that every `@RequiredConstant` value is a symbol that some configuration defines.
 - Size: small.
-- Status: new work. The gates are a residue of the closed issue #1881, whose cleanup searched for the `ROSLYN_*`
+- Status: new work. The gates remain from the closed issue #1881, whose cleanup searched for the `ROSLYN_*`
   naming convention and could not match a spelling without underscores.
 - Verification: the code pass confirmed the two files, the skip mechanism, the variant symbol set and the history of
   the misspelling, and corrected the proposal to keep the target framework gate; the semantics pass was not engaged,
@@ -669,9 +671,9 @@ No project was built and no test was run for this analysis.
   .NET 10 behaviours and the third is absent from the .NET 11 SDK sources today.
 - Proposed change: no version bump for .NET 11. Once the .NET 11 SDK is in the container, run
   `dotnet list package --vulnerable --include-transitive` on each top-level solution, and remove the three
-  `GHSA-8g4q-xg66-9fp4` suppressions if the report confirms that they are dead, which is likely because the minimum
-  Roslyn API version of 5.0.0 already forces the transitive `System.Text.Json` to at least 9.0.0. Correct the
-  inverted pruning direction and the stale package names in the comments of `Metalama.Patterns.Immutability.csproj:31-34`
+  `GHSA-8g4q-xg66-9fp4` suppressions if the report confirms that they are no longer needed, which is likely because
+  the minimum Roslyn API version of 5.0.0 already forces the transitive `System.Text.Json` to at least 9.0.0. Correct
+  the inverted pruning direction and the stale package names in the comments of `Metalama.Patterns.Immutability.csproj:31-34`
   and `Metalama.Patterns.Observability.csproj:31-34`, and name the audit-mode default as the actual difference
   between a `net8.0` and a `net10.0` leg. Rewrite the comment of `Metalama.Patterns/src/tests/Directory.Build.props:18`
   without removing the property. Record in `Directory.Packages.md` that the `SystemTextJsonVersion` of a Roslyn
@@ -866,7 +868,7 @@ consumes exposes C# 15 as a non-preview language version and the supported langu
   written against the Roslyn version consumed today, so sequence it after the move to the stable Roslyn and the
   raising of the supported language version, and guard it with the Roslyn variant constant, because the Roslyn 5.0
   variant cannot parse a union declaration at all. Decide separately whether the attribute-marked class form deserves
-  its own handling; the plainest option is to wait for the language proposal to close that question and to record the
+  its own handling; the simplest option is to wait for the language proposal to close that question and to record the
   case as a known limitation meanwhile.
 - Size: small for the declaration-form test once C# 15 is enabled. The attribute-marked class form is a separate open
   question and is not sized here.
@@ -877,7 +879,7 @@ consumes exposes C# 15 as a non-preview language version and the supported langu
   diagnostics, and found the attribute-marked class case; the semantics pass confirmed the union lowering and the
   restriction on instance state from the language proposal and the compiler sources, and established that the test
   is blocked on the language version; the scope pass confirmed that no issue and no pull request covers it.
-- Open questions: none beyond the fate of the attribute-marked class form in the language proposal.
+- Open questions: none, apart from whether the language proposal retains the attribute-marked class form.
 
 #### UT-14b. Immutability classifies a union as mutable, which produces Observability warnings
 
@@ -898,9 +900,10 @@ consumes exposes C# 15 as a non-preview language version and the supported langu
   union without implying it, so a union declared without the modifier is `ImmutabilityKind.None`.
   `GraphBuildingContext.IsDeeplyImmutable` delegates to that method and returns true whenever the kind is not `None`,
   so `Shallow` already counts as immutable there. In an `[Observable]` class, a computed property that reads a member
-  of a union-typed property makes the union-typed property the stem, and
-  `DependencyGraphBuilder.Visitor.cs:119-129` reports the warning `LAMA5161` as if the union could change behind the
-  reference. A union declared `readonly` avoids the warning today, which is the available workaround.
+  of a union-typed property classifies the union-typed property as `ChainSection.Stem`, and
+  `DependencyGraphBuilder.Visitor.cs:119-129` reports the warning `LAMA5161`, on the ground that the members of the
+  union type are not observable. A union declared `readonly` avoids the warning today, which is the available
+  workaround.
 - The union declaration form satisfies the documented definition of shallow immutability, because its only instance
   field is the read-only backing field of the synthesized get-only `Value` property and user-declared instance
   fields, auto-properties and field-like events are compiler errors. That definition is about fields and
@@ -964,10 +967,11 @@ consumes exposes C# 15 as a non-preview language version and the supported langu
   without a constructor attribute uses the default constructor, deserialization yields the default value of the union
   with a null `Value`.
 - The behaviour is not specific to unions: every user-defined struct that does not override `ToString` already
-  collapses to a single cache key, and no test pins that case. C# 15 unions make it easy to hit, because a union is a
-  struct that no author would think of as opaque.
+  collapses to a single cache key, and no test asserts that behaviour. C# 15 unions make the case more frequent, because a
+  union is a struct whose author expects the cache key to depend on the case value.
 - Consequence: silent wrong output. No diagnostic is produced at build time or at run time, and the default formatter
-  even swallows an exception from `ToString`.
+  also catches an exception thrown by `ToString` and writes the name of the exception type in its place
+  (`DefaultFormatter.cs:111-118`).
 - Proposed change: recognize union types where the default formatter is chosen, that is in the two creation points of
   `FormatterRepository`, and return a formatter that formats `Value` through the repository. A registration in the
   caching repository builder is not sufficient, because the set of union types is not known in advance and the
@@ -1080,7 +1084,7 @@ consumes exposes C# 15 as a non-preview language version and the supported langu
 - Size: small, and blocked on the C# 15 enablement.
 - Status: new work. Not implemented, not in progress and not tracked; no source in either repository references the
   closed API. Related: #626, which settled the convention that the `IsSealed` branches implement; #1039, the
-  precedent umbrella; #985, the natural place to record that the template compiler needs nothing.
+  precedent umbrella; #985, the appropriate place to record that the template compiler needs nothing.
 - Verification: the code pass confirmed every cited site, the flag forwarding and the absence of any reference to the
   closed API, and added the run-time formatter site that the original report omitted; the semantics pass confirmed
   from the language proposal and the compiler sources that a closed class is not sealed, is implicitly abstract and
@@ -1133,7 +1137,7 @@ consumes exposes C# 15 as a non-preview language version and the supported langu
   contract tests, with the Roslyn variant gate, because the Roslyn 5.0 variant cannot parse an extension indexer. A
   `[NotNull]` test in `Metalama.Patterns.Contracts.AspectTests` is optional and, if written, must apply the attribute
   explicitly to an extension indexer parameter: a fabric-driven test would assert nothing. Two restrictions of the
-  language proposal shape the tests: an extension indexer cannot declare an `init` accessor, and an extension block
+  language proposal constrain the tests: an extension indexer cannot declare an `init` accessor, and an extension block
   that declares an indexer must name its receiver parameter, which is what makes a receiver contract meaningful. No
   Patterns source change is expected, which the code confirms rather than leaves open.
 - Size: small, and blocked on the advice work of theme 04 and on the language version.
@@ -1143,7 +1147,7 @@ consumes exposes C# 15 as a non-preview language version and the supported langu
   deliberately rejected in extension blocks today; #937, the pre-existing limitation of the non-inlined indexer
   override path.
 - Verification: the code pass answered the open question from the collection implementations and the existing unit
-  test, and found the implementation-method path and the rule that neutralises it; the semantics pass confirmed the
+  test, and found the implementation-method path and the rule that prevents an aspect from being applied there; the semantics pass confirmed the
   metadata shape of an extension indexer from the language proposal and the symbol API, and established that the
   tests are blocked on the language version; the scope pass confirmed that no issue and no pull request covers it and
   noted the overlap with findings LK-6 and LK-7 of theme 04.
@@ -1156,7 +1160,7 @@ consumes exposes C# 15 as a non-preview language version and the supported langu
     `Metalama.Extensions/src/Metalama.Extensions.Metrics/StatementsCountMetricProvider.Visitor.cs:19-34`,
     `Metalama.Extensions/src/Metalama.Extensions.Metrics/SyntaxNodesCountMetricProvider.Visitor.cs:18-28`,
     `Metalama.Extensions/src/Metalama.Extensions.Metrics/Metalama.Extensions.Metrics.csproj:13-14`,
-    `Metalama.Framework/src/Metalama.Framework.Sdk/Metalama.Framework.Sdk.csproj:34-37`, `Directory.Packages.props:23`
+    `Metalama.Framework/src/Metalama.Framework.Sdk/Metalama.Framework.Sdk.csproj:33-36`, `Directory.Packages.props:23`
   - `Metalama.Patterns/src/Metalama.Patterns.Observability/Implementation/DependencyAnalysis/DependencyGraphBuilder.Visitor.cs:54`,
     `:97`, `:99-213`, `:215-278`, `:280-291`, `:305-311`, `:409-437`
   - `Metalama.Patterns/src/Metalama.Patterns.Observability/Implementation/DependencyAnalysis/RoslynExtensions.cs:57-67`,
@@ -1166,9 +1170,9 @@ consumes exposes C# 15 as a non-preview language version and the supported langu
   - `Metalama.Framework/src/Metalama.Framework.Engine/Utilities/SupportedCSharpVersions.cs:30-31,49`,
     `Metalama.Framework/src/Metalama.Testing.UnitTesting/TestContext.CreateRoslynCompilation.cs:155-156`,
     `Metalama.Framework/src/Metalama.Testing.UnitTesting/TestContext.CreateCompilation.cs:96-99`
-- What happens today: both constructs travel a path that already exists. A labeled `break` adds one identifier node
-  to the break statement, and the identifier binds to a label symbol, which the compiler sources document
-  explicitly. In the Observability walker, the identifier is either added to a chain that the classification then
+- What happens today: both constructs are handled by code paths that already exist. A labeled `break` adds one
+  identifier node to the break statement, and the identifier binds to a label symbol, which the compiler sources
+  document explicitly. In the Observability walker, the identifier is either added to a chain that the classification then
   marks unsupported, because the accepted prefix contains only properties and private fields, or, if the semantic
   model returns no symbol, it resets a context that has already been processed; in both cases no diagnostic and no
   exception result. This is the path that `goto label;` already takes today. The assertion that the walker can throw
@@ -1209,7 +1213,7 @@ consumes exposes C# 15 as a non-preview language version and the supported langu
   - `Metalama.Framework/docs/platform-support.md:114-115`: the canonical baseline string lists `User=net10.0` while
     `:211-212` names both `net10.0` and `net11.0`. The denomination rule at `:99-106` says that the short form lists
     the floor of each axis, so the string is consistent with the rule as written; state the set explicitly or make
-    the rule unambiguous. `:274-276`: add that the C# 15 language support follows the same clock as
+    the rule unambiguous. `:274-276`: add that the C# 15 language support follows the same schedule as
     `RoslynApiMaxVersion`. `:278-291`: give the shipped assets table a note explaining why no `net11.0` row exists,
     citing the paragraph at `:75-82`, which states that there is one Core flavour rather than one per .NET major
     version; do not repeat the roll-forward sentence of the Metalama.Compiler section at `:325-349`, which is an
@@ -1355,8 +1359,8 @@ consumes exposes C# 15 as a non-preview language version and the supported langu
 ## Withdrawn findings
 
 No finding of this theme was withdrawn. All twenty-three findings of the original report, counting the four
-sub-findings of UT-14, survived the three verification passes, and none was refuted at its core. Several statements
-inside them were refuted and are corrected above; the seven that most change the picture are recorded here so that a
+sub-findings of UT-14, were confirmed by the three verification passes, and none was refuted at its core. Several statements
+inside them were refuted and are corrected above; the seven that most change the conclusions are recorded here so that a
 reader of the original report knows that they were considered.
 
 The original report proposed to decide what `global.json` pins by weighing the default language version of the two
@@ -1489,9 +1493,9 @@ re-verified only where a finding above depends on them.
   UT-5, UT-6, UT-7 and UT-8 together with finding LV-9 of theme 01 and finding PR-8 of theme 07. The container is a
   separate work item from the legs that consume it, because its feedback loop is one continuous integration cycle per
   attempt while the legs can then be added in parallel.
-- The residue of the previous platform baseline in engine defaults and test gates is the second cluster of this
-  theme, carrying UT-3, UT-9 and UT-10. The three share one property: each is invisible in a green build and none
-  produces a failure.
+- The engine defaults and test gates that still name the previous platform baseline are the second cluster of this
+  theme, carrying UT-3, UT-9 and UT-10. The three share one property: none of them is detectable in a build that
+  succeeds, and none produces a failure.
 - The pattern and extension libraries on unions are the third cluster, carrying UT-14 and its four sub-findings
   together with finding PR-12 of theme 07, whose only product change is one override in the reference index walker.
   All six consume the same code model surface and share one test matrix.
