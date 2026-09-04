@@ -323,8 +323,8 @@ for this analysis.
 
 ### PR-5. `MetalamaTemplateLanguageVersion` is 13.0 with a Visual Studio 2022 rationale
 
-- Where: `Directory.Build.props:18-20`, `Metalama/Directory.Build.props:11-16`, `eng/RoslynVersions/Roslyn.5.0.0.props:3`
-  and
+- Where: `Directory.Build.props:18-20`, `Metalama/Directory.Build.props:11-16`,
+  `eng/RoslynVersions/Roslyn.5.0.0.props:3` and
   `Metalama/Metalama.Framework/src/Metalama.Framework.Engine/Utilities/SupportedCSharpVersions.cs:57-58`.
 - What happens today: the compile-time code of `Metalama.Extensions.Architecture`,
   `Metalama.Extensions.Validation` and `Metalama.Extensions.CodeFixes` is parsed as C# 13 by the Metalama pipeline,
@@ -381,16 +381,17 @@ for this analysis.
 - Consequence: no impact. The MSBuild pin cannot cause a run-time mismatch, because the two referenced packages are
   consumed with the runtime assets excluded, and the vulnerability diagnostics that a package of that age would
   otherwise raise are suppressed on the same lines.
-- Proposed change: raise `Microsoft.Build.Framework` and `Microsoft.Build.Tasks.Core` to the core `MicrosoftBuildVersion`
-  and cite the doctrine comment of `Metalama/Directory.Packages.props:35-49`. Delete the `Microsoft.Build.Core` entry
-  rather than aligning it. Sequence the raise after the move of `Metalama.Licensing.BuildTasks` to `net10.0`, which
-  metalama/Metalama.Premium#85 performed, because `Microsoft.Build.Tasks.Core` 18.0.2 has no `net8.0` compile asset
-  and a `net8.0` target would silently fall back to the narrower `netstandard2.0` reference assembly. Note also that
-  the core doctrine requires a consumer of `Microsoft.Build` to reference `Microsoft.NET.StringTools` with the
-  runtime assets excluded, and the Premium project references neither, so the doctrine citation is not a mechanical
-  copy. Delete the dead property at `src/tests/Directory.Build.props:17`, regenerate the bill of materials, and
-  reword the `RestorePrerelease` comment in both repositories. State in that rewording which outcome is assumed,
-  because PR-1 may make the property unnecessary rather than merely misdescribed.
+- Proposed change: raise `Microsoft.Build.Framework` and `Microsoft.Build.Tasks.Core` to the core
+  `MicrosoftBuildVersion` property and cite the doctrine comment of `Metalama/Directory.Packages.props:35-49`. Delete
+  the `Microsoft.Build.Core` entry rather than aligning it. Sequence the raise after the move of
+  `Metalama.Licensing.BuildTasks` to `net10.0`, which metalama/Metalama.Premium#85 performed, because
+  `Microsoft.Build.Tasks.Core` 18.0.2 has no `net8.0` compile asset and a `net8.0` target would silently fall back to
+  the narrower `netstandard2.0` reference assembly. Note also that the core doctrine requires a consumer of
+  `Microsoft.Build` to reference `Microsoft.NET.StringTools` with the runtime assets excluded, and the Premium project
+  references neither, so the doctrine citation is not a mechanical copy. Delete the dead property at
+  `src/tests/Directory.Build.props:17`, regenerate the bill of materials, and reword the `RestorePrerelease` comment
+  in both repositories. State in that rewording which outcome is assumed, because PR-1 may make the property
+  unnecessary rather than merely misdescribed.
 - Size: small.
 - Status: new work. Two searches of the issue tracker returned no issue that proposes any part of it. The related
   issues are #1913, which is the change that last edited this file and whose scope deliberately excluded these
@@ -816,12 +817,13 @@ for this analysis.
   the aspect testing targets filter extension assemblies by target framework compatibility, which accepts a stale
   lower value, while the run-time comparison is exact, so a stale value passes the build-time filter and fails the
   run-time one.
-- Proposed change: add a section "What this means in Metalama.Premium" to [`platform-support.md`](../platform-support.md),
-  beside the existing section for `Metalama.Compiler` at :325, naming the four Premium files that carry the compared
-  metadata and the four that must agree with it. Adding them under the section at :301 would contradict the
-  per-repository organisation of the document. Optionally, state in [`extensibility.md`](../extensibility.md):215-241
-  that the target framework metadata is compared for string equality against the Core flavour name of the current
-  platform baseline, so that a value which is merely compatible does not match.
+- Proposed change: add a section "What this means in Metalama.Premium" to
+  [`platform-support.md`](../platform-support.md), beside the existing section for `Metalama.Compiler` at :325, naming
+  the four Premium files that carry the compared metadata and the four that must agree with it. Adding them under the
+  section at :301 would contradict the per-repository organisation of the document. Optionally, state in
+  [`extensibility.md`](../extensibility.md):215-241 that the target framework metadata is compared for string equality
+  against the Core flavour name of the current platform baseline, so that a value which is merely compatible does not
+  match.
 - Size: small.
 - Status: new work. The value half is merged: metalama/Metalama.Premium#85 moved every Premium literal, and its
   issue scoped no documentation. The related issues are #1913, whose acceptance criteria name only build files,
