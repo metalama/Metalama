@@ -277,18 +277,51 @@ public static class UnknownMemberJson
 
     private static JsonNode? CreateDefaultNode( Type type, JsonSerializerOptions options )
     {
-        object? instance;
+        var instance = CreateInstance( type );
 
+        return instance == null ? null : JsonSerializer.SerializeToNode( instance, type, options );
+    }
+
+    /// <summary>
+    /// Creates an instance of a type with the parameterless constructor, or, when the type has none, with the
+    /// constructor that has the fewest parameters, passing the default value of each parameter.
+    /// </summary>
+    /// <remarks>
+    /// The values of the members do not matter, because only the shape of the document is used. A type such as
+    /// <c>UserDiagnosticRegistration</c> has no parameterless constructor, and it would otherwise be left out of the
+    /// round trip.
+    /// </remarks>
+    /// <param name="type">The type to instantiate.</param>
+    private static object? CreateInstance( Type type )
+    {
         try
         {
-            instance = Activator.CreateInstance( type, nonPublic: true );
+            return Activator.CreateInstance( type, nonPublic: true );
         }
         catch ( MissingMethodException )
         {
-            return null;
-        }
+            var constructor = type.GetConstructors( BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance )
+                .OrderBy( c => c.GetParameters().Length )
+                .FirstOrDefault();
 
-        return instance == null ? null : JsonSerializer.SerializeToNode( instance, type, options );
+            if ( constructor == null )
+            {
+                return null;
+            }
+
+            var arguments = constructor.GetParameters()
+                .Select( p => p.ParameterType.IsValueType ? Activator.CreateInstance( p.ParameterType ) : null )
+                .ToArray();
+
+            try
+            {
+                return constructor.Invoke( arguments );
+            }
+            catch ( TargetInvocationException )
+            {
+                return null;
+            }
+        }
     }
 
     private static JsonTypeInfo? GetTypeInfo( Type type, JsonSerializerOptions options )

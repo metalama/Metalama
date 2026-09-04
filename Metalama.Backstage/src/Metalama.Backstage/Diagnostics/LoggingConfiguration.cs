@@ -4,7 +4,9 @@
 
 using Metalama.Backstage.Serialization;
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace Metalama.Backstage.Diagnostics;
@@ -32,6 +34,16 @@ public sealed record LoggingConfiguration
     /// </summary>
     [JsonPropertyName( "stopLoggingAfterHours" )]
     public double StopLoggingAfterHours { get; init; } = 2;
+
+    /// <summary>
+    /// Gets or sets the members of the configuration file that this version of Metalama does not declare.
+    /// </summary>
+    /// <remarks>
+    /// See <see cref="Metalama.Backstage.Configuration.ConfigurationFile.UnknownMembers"/> for the reason why this
+    /// property exists and why it has a setter rather than an initializer.
+    /// </remarks>
+    [JsonExtensionData]
+    public IDictionary<string, JsonElement>? UnknownMembers { get; set; }
 
     public bool IsTraceCategoryEnabled( string category )
         => (this.TraceCategories.TryGetValue( "*", out var allEnabled ) && allEnabled) ||
