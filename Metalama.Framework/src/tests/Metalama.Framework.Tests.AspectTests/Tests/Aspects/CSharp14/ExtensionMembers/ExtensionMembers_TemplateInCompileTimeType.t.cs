@@ -1,0 +1,3 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0274 on `Twice`: `The template 'ExtensionTemplates.extension(int).Twice' is contained in 'ExtensionTemplates.extension(int)', which is not an aspect, a fabric, or a type implementing ITemplateProvider.`
+// Error LAMA0274 on `=> value * 2`: `The template 'ExtensionTemplates.extension(int).Twice.get' is contained in 'ExtensionTemplates.extension(int)', which is not an aspect, a fabric, or a type implementing ITemplateProvider.`
