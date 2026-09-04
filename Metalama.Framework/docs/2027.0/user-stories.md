@@ -1318,9 +1318,8 @@ question. The second is a prerequisite of S-17 rather than a follow-up of it.
   share a span, rather than adding a union arm beside the record one, and remove the assertion that requires the
   declaring type to be a record.
 - Cover the three ways in which a union falls outside the present special case: the synthesized `Value` is a property
-  and not a
-  method, the synthesized case constructors are constructors and there may be several of them carrying the span of
-  the union declaration, and the declaring type is not a record.
+  and not a method, the synthesized case constructors are constructors and there may be several of them carrying the
+  span of the union declaration, and the declaring type is not a record.
 - Teach the conversion reimplementation of `DeclarationEqualityComparer` the conversions that the language grants a
   union, so that an introduced union accepts the implicit conversion from its case types.
 - Add a union case to `ComparerAgreesWithRoslynTests` and to `DeclarationComparerTests`, which are the two tests that
@@ -1334,15 +1333,15 @@ question. The second is a prerequisite of S-17 rather than a follow-up of it.
 
 — Claude for @gfraiteur
 
-### S-17. Introduce a union type and introduce a case into an existing union
+### S-17. Introduce a union type and introduce a case into a type carrying the union attribute
 
 - Issue type: User Story
 - Labels: `enhancement`, `Area-Framework`
 - Milestone: `2027.0`
 - Repositories: `metalama/Metalama`
 - Size: L
-- Blocked by: S-03, S-12, S-16, and decision D-5 for the second half
-- Findings: none. The requirement was taken after the theme documents were written; the design is
+- Blocked by: S-03, S-12, S-16
+- Findings: none. The requirement was decided after the theme documents were written; the design is
   [`analysis-reports/11-introducing-unions-design.md`](analysis-reports/11-introducing-unions-design.md).
 
 ---
@@ -1351,7 +1350,8 @@ Section 5c of [`DECISIONS.md`](DECISIONS.md) requires that Metalama 2027.0 suppo
 and the introduction of a union case, that is a leg of a union. This is the largest single piece of C# 15 work in the
 release, and it has two halves that differ in kind: introducing a whole union is the creation of a new declaration,
 while introducing a case into a union that already exists in source is a signature change of a declaration that the
-user wrote.
+user wrote. This story carries the first half and the second half for a type carrying the union attribute. The
+second half for a `union` declaration is story S-29.
 
 #### Context
 
@@ -1367,8 +1367,16 @@ and it depends on a grammar rule that
 exactly one part of a partial union carries the case list, a second one is `CS8863`, and none is `CS9370`. The
 consequence is that a generated partial part can never add a case to a union declared with the `union` keyword, so
 that operation works at build time only, while the same operation on a type carrying the union attribute is ordinary
-member introduction whose design-time result is correct. Decision D-5 chooses between shipping both forms and
-shipping the attribute form alone. About half of the work needs no C# 15 Roslyn member and can proceed before S-09.
+member introduction whose design-time result is correct. Question Q1 chooses between shipping both forms and
+shipping the attribute form alone, and the build-time-only form is story S-29. About half of the work needs no
+C# 15 Roslyn member and can proceed before S-09.
+
+Two closed issues bound this work. #1622 reported that a constructor introduced into an introduced type was missing
+from the design-time generated source, because the transformation degraded its observability when it replaced the
+implicit constructor; the per-case constructors of a union replace the implicit parameterless constructor in the same
+way, so the design-time claim of this story is verified against that fix rather than assumed. #1869 added `IsPartial`
+to the named type builder through pull request #1878, so the case list model extends a member set that changed in
+this release.
 
 #### Scope
 
@@ -1382,30 +1390,28 @@ shipping the attribute form alone. About half of the work needs no C# 15 Roslyn 
   documentation and the eligibility tests can be reviewed before the compiler exists.
 - Deliver the case introduction for a type carrying the union attribute, which is member introduction and whose
   design-time result is correct.
-- Deliver the case introduction for a `union` declaration only if D-5 chooses Option A, with the linker rewriting the
-  case list of the part the user wrote and a design-time diagnostic stating that the editor cannot show the added
-  case.
 - Emit the union declaration in the type introduction transformation and add the union arms to the injection rewriter
   and to the design-time generator, inside the variant block.
 - Extend the eligibility rules so that each states which of the two union forms it tests, per question Q9.
-- Write the aspect tests with their committed baselines, including the design-time scenarios, and the documentation
-  page under `../Metalama.Documentation/content` including the note that an added case is a build-time-only change.
+- Write the aspect tests with their committed baselines, including the design-time scenarios.
+- State, in the pull request description, which pages of `metalama/Metalama.Documentation` must follow, including the
+  note that an added case is a build-time-only change.
 
 #### Acceptance criteria
 
 - An aspect can introduce a union type, and an aspect can read the members that the compiler synthesizes for it.
 - An aspect can add a case to a type carrying the union attribute, and the editor and the build agree about the
   result.
-- If D-5 chooses Option A, an aspect can add a case to a `union` declaration, the build result is correct, and a
-  design-time diagnostic states that the editor cannot show it.
 - Every eligibility rule of the story names the union form it tests, and none rejects advice that is legal on a type
   carrying the union attribute.
-- The aspect tests and their expected output are committed and were read before adoption.
+- The aspect tests and their expected output are committed, and the pull request description explains each difference
+  from the previous baseline.
 
 #### Not in scope
 
-Introducing a closed class, excluded by section 5b of [`DECISIONS.md`](DECISIONS.md), and the introduction of
-structs, records, enums and delegates, which are #869, #867, #866 and #865 and stay open.
+This story does not introduce a closed class, which is S-26. It does not introduce structs, records, enums or
+delegates, which are #869, #867, #866 and #865 and stay open. It does not add a case to a `union` declaration, which
+is S-29.
 
 — Claude for @gfraiteur
 
@@ -1421,10 +1427,10 @@ structs, records, enums and delegates, which are #869, #867, #866 and #865 and s
 
 ---
 
-Nothing is broken today by a closed class: it is a class with a modifier that the compiler merges across partial
-parts, Roslyn adds the abstract flag to it so the code model reports `IsAbstract` correctly, and the derived-type
-model is already right. What is missing is that an aspect cannot tell that a class is closed, and that the
-documentation does not say that the enumeration of direct derived types is exhaustive for such a type.
+A closed class breaks nothing today: it is a class with a modifier that the compiler merges across partial parts,
+Roslyn adds the abstract flag to it so the code model reports `IsAbstract` correctly, and the derived-type model is
+already right. Two things are missing: an aspect cannot tell that a class is closed, and the documentation does not
+say that the enumeration of direct derived types is exhaustive for such a type.
 
 #### Context
 
@@ -1433,8 +1439,8 @@ restricts itself to the current compilation, so the existing enumeration of dire
 complete set for a closed type declared in the current compilation. Only the flag and its documentation are new. The
 one case the index does not answer is a closed type that comes from a referenced assembly, which is question Q8 and
 is left open. The read names a Roslyn member that the lower variant does not expose, so it follows the gating of
-S-02, and the emission of a `closed` modifier is out of scope because section 5b of [`DECISIONS.md`](DECISIONS.md)
-puts the closed writer out of the release.
+S-02, and the emission of a `closed` modifier is delivered separately by S-26, which section 5f of
+[`DECISIONS.md`](DECISIONS.md) puts in scope.
 
 #### Scope
 
@@ -1442,9 +1448,11 @@ puts the closed writer out of the release.
   the read to the latest Roslyn variant.
 - Document in the derived-type options that, for a closed type declared in the current compilation, the direct
   enumeration is exhaustive.
-- Record what the value is for a builder and for an introduced type, which is false while the writer is out of scope.
+- Record what the value is for a builder and for an introduced type, which is false until S-26 adds the writer.
 - Record question Q8, the closed type read from a referenced assembly, as a known limitation in the documentation
   rather than implementing it.
+- Report or stay silent on the lower Roslyn variant according to D-3, using the same mechanism as S-12, so that the
+  two readers behave alike.
 
 #### Acceptance criteria
 
@@ -1455,7 +1463,7 @@ puts the closed writer out of the release.
 
 #### Not in scope
 
-Introducing a closed class, excluded by section 5b of [`DECISIONS.md`](DECISIONS.md) and by question Q4.
+This story does not introduce a closed class, which is S-26. It delivers the reader that S-26 consumes.
 
 — Claude for @gfraiteur
 
@@ -1466,7 +1474,7 @@ Introducing a closed class, excluded by section 5b of [`DECISIONS.md`](DECISIONS
 - Milestone: `2027.0`
 - Repositories: `metalama/Metalama`
 - Size: M
-- Blocked by: S-09, S-11
+- Blocked by: S-02, S-09, S-11
 - Findings: [TP-3](02-syntax-generator-and-templates.md), [LK-9](04-linker-and-advice.md),
   [UT-17](06-user-tfm-patterns-tests-docs.md)
 
@@ -1515,7 +1523,7 @@ destination.
 
 #### Not in scope
 
-Supporting labels in templates, excluded by section 4 of [`DECISIONS.md`](DECISIONS.md).
+This story does not support labels in templates, which section 4 of [`DECISIONS.md`](DECISIONS.md) excludes.
 
 — Claude for @gfraiteur
 
@@ -1533,10 +1541,10 @@ Supporting labels in templates, excluded by section 4 of [`DECISIONS.md`](DECISI
 
 A collection expression with a with-element crashes the template compiler in run-time scope today, with an
 `InvalidCastException` surfaced as an unexpected-exception error and a crash report rather than as a template
-diagnostic. The regeneration of S-09 produces the visitor for that node and closes the crash, so what remains is
-tests. What the regeneration does not close is the unsafe expression, which keeps its experimental marker on the
-target Roslyn and is therefore still stripped from the generated code, so it passes the annotator and surfaces as a
-C# error on the generated compile-time file.
+diagnostic. The regeneration of S-09 produces the visitor for that node and removes the crash, so only the tests
+remain. The regeneration does not remove the failure of the unsafe expression, which keeps its experimental marker on
+the target Roslyn and is therefore still stripped from the generated code, so it passes the annotator and surfaces as
+a C# error on the generated compile-time file.
 
 #### Context
 
@@ -1564,7 +1572,10 @@ per-node override that would have to be written again each time Roslyn adds an e
 
 #### Not in scope
 
-Supporting the unsafe expression, which is a preview language feature and is out of scope for 2027.0.
+This story does not support the unsafe expression, which is a preview language feature and is out of scope for
+2027.0. That support is already tracked by the open issue #985, which lists the unsafe expression among the deferred
+template compiler features. This story delivers the guard that reports such a node with a template diagnostic, and it
+does not deliver the support that #985 tracks, so #985 stays open and is referenced from this story.
 
 — Claude for @gfraiteur
 
@@ -1597,6 +1608,11 @@ expected to be correct when the override is inlineable; the non-inlined case is 
 `LAMA0699` of the open issue #937, which this story states rather than fixes. Every test needs C# 15 as a requestable
 language version, which is why the story waits for S-11.
 
+The introduction path that this story extends was delivered for C# 14 by the closed issues #1035, which added
+advising on extension members, and #1160, which added introduction into an existing extension block. The indexer is
+the one extension member kind that #1160 left rejected, which #1587 then recorded in the documentation instead of
+lifting.
+
 #### Scope
 
 - Remove the validation that rejects an indexer in an extension block, and replace it with the eligibility rules that
@@ -1624,7 +1640,7 @@ language version, which is why the story waits for S-11.
 
 #### Not in scope
 
-Removing the `LAMA0699` limitation on non-inlined indexer overrides, which is #937.
+This story does not remove the `LAMA0699` limitation on non-inlined indexer overrides, which is #937.
 
 — Claude for @gfraiteur
 
@@ -1633,12 +1649,12 @@ Removing the `LAMA0699` limitation on non-inlined indexer overrides, which is #9
 - Issue type: User Story
 - Labels: `enhancement`, `Area-Patterns`, `Area-Extensions`, `Area-Framework`
 - Milestone: `2027.0`
-- Repositories: `metalama/Metalama`, `metalama/Metalama.Premium`
+- Repositories: `metalama/Metalama`
 - Size: L
 - Blocked by: S-12
 - Findings: [UT-14](06-user-tfm-patterns-tests-docs.md), [UT-14a](06-user-tfm-patterns-tests-docs.md),
   [UT-14b](06-user-tfm-patterns-tests-docs.md), [UT-14c](06-user-tfm-patterns-tests-docs.md),
-  [UT-14d](06-user-tfm-patterns-tests-docs.md), [PR-12](07-premium.md)
+  [UT-14d](06-user-tfm-patterns-tests-docs.md)
 
 ---
 
@@ -1656,10 +1672,11 @@ practical discriminator, which is the interface that the compiler makes every un
 projects target `net472` and `netstandard2.0` and cannot bind to it at compile time, so the check has to be made in
 another way. The remaining three consequences are tests: the observability aspect already rejects a union with two
 diagnostics and that behaviour is pinned rather than changed, and the multicast selector is correct for every target
-except the implicit parameterless constructor, where materialising an override produces a compiler error. The
+except the implicit parameterless constructor, where materializing an override produces a compiler error. The
 reference graph item needs one override in the core reference index walker, without which a reference from a union to
 its case types is never attributed and an architecture rule under-reports with no diagnostic; the Premium half is two
-architecture rule tests, which is why both repositories are listed and why the core half lands first.
+architecture rule tests, which is why they are story S-28, and that story waits for S-10, because Premium cannot
+compile a union until its own latest variant is renumbered.
 
 #### Scope
 
