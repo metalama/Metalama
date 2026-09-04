@@ -698,7 +698,7 @@ again. #1142 is the reason the value is serialized as an integer, and that must 
 
 — Claude for @gfraiteur
 
-### S-07. Repair the declaration-kind switches that silently fall through, in both repositories
+### S-07. Repair the declaration-kind switches that silently fall through
 
 - Issue type: Bug
 - Labels: `bug`, `Area-Framework`, `Area-Extensions`
@@ -715,9 +715,9 @@ Four places switch over declaration kinds and do the wrong thing for a kind they
 caused by C# 15. `CSharpAttributeHelper.cs:74-191` returns null for records, record structs and extension blocks, and
 the caller propagates the null, so the add-attribute code action reports success and does nothing.
 `ChangeVisibilityCodeAction` in `Metalama.Premium` skips interfaces and indexers in the same way, which is story
-S-27. The member switch of
-`TransformCompileTimeType` throws for an indexer and falls through for an extension block, so a template declared
-inside an extension block is copied verbatim. `ReferenceValidationContext.GetInboundGranularity` throws for a
+S-27. The member switch of `TransformCompileTimeType` throws for an indexer and falls through for an extension block,
+so a template declared inside an extension block is copied verbatim.
+`ReferenceValidationContext.GetInboundGranularity` throws for a
 validated extension block, and the exception is reported as an error diagnostic from inside the user validator.
 
 #### Context
@@ -1066,8 +1066,9 @@ that enumeration, twelve of which throw in the default arm. The shape of the mem
 implemented, per section 7 of [`DECISIONS.md`](DECISIONS.md); a draft that follows the precedent of `IsRecord` is in
 [`analysis-reports/12-csharp15-api-drafts.md`](analysis-reports/12-csharp15-api-drafts.md) and is illustrative only.
 Two constraints hold for every member added by this story. The reads name Roslyn members that the lower variant does
-not have, so they follow the gating of S-02. And `ITypeSymbol.IsUnion` is true both for a `union` declaration and for a type carrying
-`System.Runtime.CompilerServices.UnionAttribute`, while the member restrictions apply to the first form only, so the
+not have, so they follow the gating of S-02. And `ITypeSymbol.IsUnion` is true both for a `union` declaration and
+for a type carrying `System.Runtime.CompilerServices.UnionAttribute`, while the member restrictions apply to the
+first form only, so the
 code model must let a consumer tell the two apart, which is question Q9.
 
 #### Scope
@@ -1691,8 +1692,6 @@ compile a union until its own latest variant is renumbered.
   constructor advice ineligible on a union in the engine, and record which of the two was chosen.
 - Attribute a reference from a union declaration to its case types in the core reference index walker, by entering
   the union type declaration as the current declaration before visiting its case list.
-- Add the two architecture rule tests in Metalama.Premium, one for a rule on a type used as a union case and one for
-  a closed class.
 
 #### Acceptance criteria
 
@@ -1700,12 +1699,15 @@ compile a union until its own latest variant is renumbered.
   union attribute is not classified from the attribute alone.
 - A cached method whose parameter is a union produces a different cache key for two different cases, and a cached
   value of union type survives a serialization round trip.
-- An architecture rule on a type used as a union case reports the reference from the union.
 - The multicast and observability tests are committed with their expected output.
+
+#### Not in scope
+
+This story does not add the architecture rule tests of `Metalama.Premium`, which are story S-28.
 
 — Claude for @gfraiteur
 
-### S-23. Execute the Roslyn 5.0.0 variant of the Metalama.Premium engines in tests
+### S-23. Execute the Roslyn 5.0.0 variant of the `Metalama.Premium` engines in tests
 
 - Issue type: User Story
 - Labels: `enhancement`, `Area-Extensions`, `Area-Build-Engineering`
@@ -1724,8 +1726,11 @@ rather than staying constant.
 
 #### Context
 
-The gap is behavioural rather than an interface gap: the variant projects are referenced by the package resource
-projects, so a use of an application programming interface that Roslyn 5.0 does not have fails the build. What is not
+The lower variant that these tests would execute was created by metalama/Metalama.Premium#85, which closed the issue
+#1913 and renamed the Roslyn 4.12.0 variant projects to 5.0.0; that pull request added no test for them, which is the
+gap this story closes. The gap is behavioural rather than an interface gap: the variant projects are referenced by
+the package resource projects, so a use of an application programming interface that Roslyn 5.0 does not have fails
+the build. What is not
 covered is behaviour that differs when the engines bind against the older Roslyn, and a defect of that kind is not
 detected before a Rider user reports it. The order inside the story matters: the existing aspect test projects
 reference the unsuffixed engine by a hardcoded path, so a variant shim added before they are made variant-aware would
@@ -1751,20 +1756,21 @@ compile the test sources under one property set and load the other engine.
 
 — Claude for @gfraiteur
 
-### S-24. Clean up the Metalama.Premium build-file residuals
+### S-24. Clean up the `Metalama.Premium` build-file residuals
 
 - Issue type: Bug
 - Labels: `bug`, `Area-Build-Engineering`
 - Milestone: `2027.0`
 - Repositories: `metalama/Metalama.Premium`
 - Size: S
-- Blocked by: nothing
+- Blocked by: metalama/Metalama.Premium#84, whose branch this story is based on
 - Findings: [PR-3](07-premium.md), [PR-5](07-premium.md), [PR-6](07-premium.md), [PR-7](07-premium.md)
 
 ---
 
-Metalama.Premium#85 and #86 aligned Premium with PB-2027.0 and moved its build image to the Visual Studio 2026 build
-tools. Four residuals remain, all of them small, independent of every gate and confined to build files: obsolete
+metalama/Metalama.Premium#85, which closed the issue #1913, and metalama/Metalama.Premium#86 aligned Premium with
+PB-2027.0 and moved its build image to the Visual Studio 2026 build tools. Four residuals remain, all of them small,
+independent of every gate and confined to build files: obsolete
 container components, a template language version pinned below what the repository now supports, package pins and
 comments that state a rule with the wrong value, and a pair of central package entries that makes an intended client
 update inert.
@@ -1772,7 +1778,7 @@ update inert.
 #### Context
 
 The .NET 8 SDK and the .NET 6 runtime components of the container were justified by target frameworks that Premium no
-longer has, and a stale Visual Studio 2022 channel manifest is still at the top of the docker context.
+longer has, and a stale Visual Studio 2022 channel manifest is still at the top of the Docker context.
 `MetalamaTemplateLanguageVersion` is `13.0` under a comment that names a Visual Studio version, whereas the value is
 bounded by the lowest Roslyn variant of the repository, which is now 5.0.0 and supports C# 14; raising it is expected
 to change which system-type polyfills the compile-time compilation embeds. The `Microsoft.Build` pins do not follow
@@ -1783,10 +1789,11 @@ version never takes effect.
 #### Scope
 
 - Remove the .NET 8 SDK and the .NET 6 runtime components from `eng/src/Program.cs`, remove the stale Visual Studio
-  channel manifest from the docker context, and decide whether the prerelease flag of the SDK version follows the
+  channel manifest from the Docker context, and decide whether the prerelease flag of the SDK version follows the
   core repository.
-- Raise `MetalamaTemplateLanguageVersion` from `13.0` to `14.0` and rewrite its comment to name the lowest Roslyn
-  variant of the repository rather than a Visual Studio version.
+- Raise `MetalamaTemplateLanguageVersion` from `13.0` to `14.0`, mirroring the closed issue #1896 in the core
+  repository, and rewrite its comment to name the lowest Roslyn variant of the repository rather than a Visual Studio
+  version.
 - Align the `Microsoft.Build` pins with the core doctrine, together with the move of the licensing build task off its
   older target framework, delete the dead property and the entry that no project references, and correct the
   rationale comments.
@@ -1795,7 +1802,7 @@ version never takes effect.
 
 #### Acceptance criteria
 
-- The container installs no component whose reason has been removed, and the docker context carries no manifest for
+- The container installs no component whose reason has been removed, and the Docker context carries no manifest for
   an unsupported Visual Studio.
 - The template language version of Premium equals the value the core repository uses, and its comment names the
   Roslyn floor.
@@ -1810,7 +1817,7 @@ version never takes effect.
 - Issue type: User Story
 - Labels: `enhancement`, `documentation`, `Area-Build-Engineering`
 - Milestone: `2027.0`
-- Repositories: `metalama/Metalama`, `metalama/Metalama.Documentation`
+- Repositories: `metalama/Metalama`
 - Size: M
 - Blocked by: S-09, S-11
 - Findings: [UT-18](06-user-tfm-patterns-tests-docs.md), [LV-10](01-language-version-and-hosts.md),
@@ -1837,12 +1844,12 @@ applies them only once they are approved.
 
 - Correct the locations that still name `net8.0` or C# 14 as the latest, and the standalone project comments that
   describe a check that has since been disabled, including the comment of the default language version scenario.
-- State that the remaining `net10.0` literals name our own outputs and move only with the embedded Core flavour, so
-  that they are not confused with the .NET SDK pin.
+- State that the remaining `net10.0` literals name the outputs of this repository and move only with the embedded
+  Core flavour, so that they are not confused with the .NET SDK pin.
 - State in the `Metalama.Framework.Workspaces` and `Metalama.LinqPad` package documentation that the host runtime
   major decides which .NET SDK the in-process MSBuild registration may use, so that a user on a machine carrying only
   the newer SDK understands the failure.
-- Add a section about Metalama.Premium beside the existing one about Metalama.Compiler in
+- Add a section about `Metalama.Premium` beside the existing one about `Metalama.Compiler` in
   [`platform-support.md`](../platform-support.md), listing the Premium build files that repeat the Core flavour
   literal, which is repeated in eight places with no test on the comparison, and the task directory selection of the
   licensing targets.
@@ -1854,29 +1861,192 @@ applies them only once they are approved.
 #### Acceptance criteria
 
 - No document or project comment names a target framework or a C# version that PB-2027.0 has dropped as the latest.
-- [`platform-support.md`](../platform-support.md) lists the drift points of Metalama.Premium as it lists those of
-  Metalama.Compiler.
+- [`platform-support.md`](../platform-support.md) lists the drift points of `Metalama.Premium` as it lists those of
+  `Metalama.Compiler`.
 - The two introspection packages state the host runtime and the .NET SDK they require.
 - The roll-forward statement names the condition under which the roll-forward happens.
 
 #### Not in scope
 
-The audience paragraph of `Directory.Packages.md`, which #1903 owns. The well-known source generator attribute list
-of `Metalama.Framework.props`, which is functional and not documentation: an attribute that a newer framework adds
-and that the list omits changes aspect eligibility for a generated partial member with no diagnostic, so it needs its
-own behavioural change and test and must not be lost in a documentation review.
+This story does not rewrite the audience paragraph of [`Directory.Packages.md`](../../../Directory.Packages.md),
+which #1903 owns. It does not change the well-known source generator attribute list of `Metalama.Framework.props`,
+which is functional and not documentation: an attribute that a newer framework adds and that the list omits changes
+aspect eligibility for a generated partial member with no diagnostic, so it needs its own behavioural change and test
+and must not be lost in a documentation review. It does not edit the conceptual documentation under
+`../Metalama.Documentation/content`, which is a separate repository and therefore a separate pull request. This story
+lists the pages that must follow, and it does not edit them.
+
+— Claude for @gfraiteur
+
+### S-26. Introduce a closed class
+
+- Issue type: User Story
+- Labels: `enhancement`, `Area-Framework`
+- Milestone: `2027.0`
+- Repositories: `metalama/Metalama`
+- Size: M
+- Blocked by: S-02, S-18
+- Findings: [CM-4](03-code-model-unions-closed.md), [LK-5](04-linker-and-advice.md)
+
+---
+
+An aspect cannot introduce a closed class, because no builder property expresses the modifier and
+`ModifierHelper.GetTypeSyntaxModifierList` emits neither it nor `partial` for a type. Section 5f of
+[`DECISIONS.md`](DECISIONS.md) puts this writer in scope for 2027.0.
+
+#### Context
+
+A closed class is an ordinary class with one more modifier, which is why the writer is sized M and why every part of
+it is already identified. The reader that this story consumes, which reports whether a named type is closed, is
+delivered by S-18. Section 5f records that the decision raises the stake of question Q2 rather than depending on it:
+an aspect that introduces a closed class emits the modifier at build time and nothing at design time on the hosts
+that the lower Roslyn variant serves, so the editor and the build disagree about the exhaustiveness of the hierarchy.
+
+#### Scope
+
+- Add the settable closed property to `INamedTypeBuilder`, with the getter on `INamedType` delivered by S-18.
+- Validate in the setter that the type kind is a class and that the type is neither sealed nor static, which are the
+  restrictions the language states.
+- Store the value in `NamedTypeBuilderData` and expose it on `IntroducedNamedType`.
+- Emit the closed keyword in `GetTypeSyntaxModifierList` and suppress `abstract` there, while `IsAbstract` keeps
+  reporting true.
+- Emit the modifier before `partial`, because `partial` must sit immediately before the type keyword.
+- Gate the reference to `SyntaxKind.ClosedKeyword` on the latest Roslyn variant, per S-02.
+- Report a diagnostic rather than emitting the modifier when the target compilation provides neither
+  `System.Runtime.CompilerServices.IsClosedTypeAttribute` nor `CompilerFeatureRequiredAttribute`.
+
+#### Acceptance criteria
+
+- An aspect introduces a closed class whose generated code compiles.
+- The generated modifier list reads `closed partial class` and never `abstract closed class`.
+- Introducing a closed struct, a sealed closed class or a static closed class is refused with a diagnostic that names
+  the language restriction.
+- Both Roslyn variants build.
+
+— Claude for @gfraiteur
+
+### S-27. Repair the change-visibility code action of `Metalama.Premium`
+
+- Issue type: Bug
+- Labels: `bug`, `Area-Extensions`
+- Milestone: `2027.0`
+- Repositories: `metalama/Metalama.Premium`
+- Size: S
+- Blocked by: nothing
+- Findings: [PR-10](07-premium.md)
+
+---
+
+`ChangeVisibilityCodeAction` in `Metalama.Premium` switches over declaration kinds and does the wrong thing for a
+kind it does not list: it skips interfaces and indexers, so the code action reports success and changes nothing.
+This is the same defect that S-07 repairs in `CSharpAttributeHelper`, and it is a separate story because a pull
+request cannot span two repositories.
+
+#### Context
+
+The defect is not caused by C# 15, and it is reachable today for an interface and for an indexer, both of which have
+shipped for years. The remedy is the one that S-07 applies, which is to apply the modifiers through the abstract type
+declaration rather than through an enumeration of concrete kinds, and it also admits unions later without naming an
+experimental member. The design is reviewed once, in S-07, and applied here.
+
+#### Scope
+
+- In `Metalama.Extensions.CodeFixes.Engine/Implementations/ChangeVisibilityCodeAction.cs`, apply the modifiers
+  through the abstract type declaration, in an override of `VisitCore` and not of `Visit`, which is sealed in
+  `SafeSyntaxRewriter`.
+
+#### Acceptance criteria
+
+- The change-visibility code action changes the visibility of an interface and of an indexer.
+
+— Claude for @gfraiteur
+
+### S-28. Add the union and closed architecture rule tests of `Metalama.Premium`
+
+- Issue type: User Story
+- Labels: `enhancement`, `Area-Extensions`
+- Milestone: `2027.0`
+- Repositories: `metalama/Metalama.Premium`
+- Size: S
+- Blocked by: S-10, S-22
+- Findings: [PR-12](07-premium.md)
+
+---
+
+An architecture rule on a type that is used as a union case under-reports with no diagnostic, because the reference
+from the union declaration to its case types is not attributed. S-22 attributes that reference in the core reference
+index walker, and this story adds the tests that prove the result in `Metalama.Premium`.
+
+#### Context
+
+The tests must be compiled against a Roslyn that has the union syntax, so this story waits for S-10, which renumbers
+the latest variant of `Metalama.Premium`. It is a separate story from S-22 because a pull request cannot span two
+repositories.
+
+#### Scope
+
+- Add the two architecture rule tests in `Metalama.Premium`, one for a rule on a type used as a union case and one
+  for a closed class.
+
+#### Acceptance criteria
+
+- An architecture rule on a type used as a union case reports the reference from the union.
+
+— Claude for @gfraiteur
+
+### S-29. Introduce a case into a `union` declaration
+
+- Issue type: User Story
+- Labels: `enhancement`, `Area-Framework`
+- Milestone: `2027.0`
+- Repositories: `metalama/Metalama`
+- Size: M
+- Blocked by: S-17, and question Q1 of [`OPEN-QUESTIONS.md`](OPEN-QUESTIONS.md)
+- Findings: none. The design is
+  [`analysis-reports/11-introducing-unions-design.md`](analysis-reports/11-introducing-unions-design.md).
+
+---
+
+This story is filed only if question Q1 chooses Option A, which is to ship both authoring forms of case
+introduction. It adds a case to a type declared with the `union` keyword, which S-17 leaves out because that
+operation works at build time only.
+
+#### Context
+
+Exactly one part of a partial union carries the case list, a second one is `CS8863`, and none is `CS9370`, as
+[`analysis-reports/11-introducing-unions-design.md`](analysis-reports/11-introducing-unions-design.md) settles. A
+generated partial part can therefore never add a case to a union declared with the `union` keyword. The operation
+has to rewrite the part the user wrote, which the linker can do at build time and which the design-time pipeline
+cannot do at all, so the editor and the build disagree and the divergence has to be reported rather than repaired.
+
+#### Scope
+
+- Add the case introduction for a `union` declaration, with the linker rewriting the case list of the part the user
+  wrote.
+- Report a design-time diagnostic stating that the editor cannot show the added case.
+- Write the aspect tests with their committed baselines, including the design-time scenario.
+- State, in the pull request description, which pages of `metalama/Metalama.Documentation` must follow, including the
+  note that an added case is a build-time-only change.
+
+#### Acceptance criteria
+
+- An aspect adds a case to a `union` declaration, and the build result is correct.
+- A design-time diagnostic states that the editor cannot show the added case.
+- The aspect tests and their expected output are committed, and the pull request description explains each difference
+  from the previous baseline.
 
 — Claude for @gfraiteur
 
 ## Already in progress
 
-Four pull requests interact with these stories. Two are open and two were merged after the theme documents were
-written, and the second pair must be confirmed rather than assumed, because the sources disagree about their state.
+Five pull requests interact with these stories. Two are open and three were merged after the theme documents were
+written. The state of each was read from GitHub on 2026-09-04 rather than taken from the survey.
 
 ### metalama/Metalama#1879, materializing compiler-synthesized record members
 
-Open. It makes `meta.Proceed()` work in an aspect that overrides a compiler-synthesized record member, and it builds
-the mechanism that S-14 and S-17 consume: a generator that reproduces the body of a synthesized member from its
+This pull request is open. It makes `meta.Proceed()` work in an aspect that overrides a compiler-synthesized record
+member, and it builds the mechanism that S-14 and S-17 consume: a generator that reproduces the body of a synthesized
+member from its
 symbol, a linker substitution whose replaced node is the type declaration, a public helper that answers whether a
 member can be declared explicitly, and an eligibility rule built on it. Every gate of that mechanism is keyed on
 whether the type is a record. What remains for this release: S-14 must be rebased onto it and must extend it rather
@@ -1886,25 +2056,37 @@ takes must not be allocated again, and the one it removes must not be reused.
 
 ### metalama/Metalama.Premium#84, the out-of-band package caps
 
-Open, with a failing build that the pull request body reports as predating the change. It mirrors the re-derived
-package caps of #1897 into Premium. What remains: S-24 edits the same two files and must be based on this branch or
-rebased onto it after it merges, and must not reintroduce the variant-conditional properties that it removes.
+This pull request is open, and its build fails for a reason that the pull request body reports as predating the
+change. It mirrors the re-derived package caps of #1897 into Premium. What remains: S-24 edits the same two files and
+must be based on this branch or rebased onto it after it merges, and must not reintroduce the variant-conditional
+properties that it removes.
+
+### metalama/Metalama#1919, the engineering update and the build image
+
+Merged on 2026-09-03. It updated PostSharp.Engineering to 2023.2.422, pinned the Visual Studio Build Tools of the
+build image to 18.9.2 and `MSBuildVersion` to 18.9, pinned the .NET SDK to 10.0.400, removed the .NET 8 and .NET 9
+SDKs from the image, and added `MSBuildExtensionsPath` to the environment variables that `DotNetTool` and
+`MSBuildTool` remove from a nested build. What remains for this release: S-08 raises the two values that it set, and
+D-7 no longer rests on an incomplete mitigation. Its counterpart in the other repository is
+metalama/Metalama.Premium#86, whose residuals S-24 carries.
 
 ### metalama/Metalama.Premium#85, the Premium alignment with PB-2027.0
 
-Recorded as merged on 2026-09-03. It dropped the Roslyn 4.12 variant, made 5.0.0 the lower variant with a project
-suffix, added the latest variant with its package source, and moved every target framework to `net10.0`. Finding
-PR-15 is fully covered by it. What remains: S-10, the renumbering of the variant it added, and S-23, the tests that
-would execute the lower variant it created.
+Merged on 2026-09-03 at 14:05 UTC, confirmed on GitHub on 2026-09-04. The survey of open pull requests still records
+it as open and is superseded on this point. It closed the issue #1913. It dropped the Roslyn 4.12 variant, made 5.0.0
+the lower variant with a project suffix, added the latest variant with its package source, and moved every target
+framework to `net10.0`. Finding PR-15 is fully covered by it. What remains: S-10, the renumbering of the variant it
+added, and S-23, the tests that would execute the lower variant it created.
 
 ### metalama/Metalama.Premium#86, the engineering update and the build image
 
-Recorded as merged on 2026-09-03. It retargeted the engineering project and moved the image to the Visual Studio 2026
-build tools. Finding PR-4 is fully covered by it. What remains: the four residuals of S-24, which it did not scope.
+Merged on 2026-09-03 at 20:20 UTC, confirmed on GitHub on 2026-09-04. The survey of open pull requests does not
+record it. It retargeted the engineering project and moved the image to the Visual Studio 2026 build tools. Finding
+PR-4 is fully covered by it. What remains: the four residuals of S-24, which it did not scope.
 
 ## Findings not turned into a story
 
-Thirteen verified findings produce no story. The reason is given for each.
+Eleven verified findings produce no story. The reason is given for each.
 
 - [LV-9](01-language-version-and-hosts.md), nothing builds or tests under the .NET 11 SDK. Out of scope for 2027.0:
   section 6b of [`DECISIONS.md`](DECISIONS.md) removes the build container work from the release. The .NET SDK
@@ -1923,19 +2105,15 @@ Thirteen verified findings produce no story. The reason is given for each.
   `Metalama.LinqPad` is documented by S-25 rather than changed.
 - [PR-8](07-premium.md), no Premium test leg exercises the .NET 11 SDK. Out of scope: it follows the core decision,
   and the core decision is not to add one.
-- [CM-4](03-code-model-unions-closed.md), introduced types cannot be closed. Out of scope: section 5b of
-  [`DECISIONS.md`](DECISIONS.md) and question Q4 put the closed writer outside 2027.0. The work is small and every
-  part of it is identified, so a known customer scenario reopens it.
-- [LK-5](04-linker-and-advice.md), type introduction cannot emit `closed` or `union`. Out of scope for the closed
-  half, for the same reason; the union half is superseded by section 5c and is delivered by S-17.
 - [TP-10](02-syntax-generator-and-templates.md), the closed modifier and patterns over unions need nothing from the
   template compiler. No impact. Its one conditional action, the polyfill attributes that a closed compile-time class
   would need, is closed by section 4 of [`DECISIONS.md`](DECISIONS.md), which keeps the template language at C# 14.
-- [UT-15](06-user-tfm-patterns-tests-docs.md), closed classes reach no pattern-specific code. No impact, and it
-  proposes observation tests for a behaviour that cannot change while the closed writer is out of scope.
-- [PR-4](07-premium.md), the engineering tool targeted `net9.0`. Already delivered by Metalama.Premium#86; the story
-  must not be proposed a second time, and the merge is to be confirmed before S-24 starts.
-- [PR-15](07-premium.md), the Premium variant set alignment. Already delivered by Metalama.Premium#85, with the same
-  confirmation.
+- [UT-15](06-user-tfm-patterns-tests-docs.md), closed classes reach no pattern-specific code. No impact. The pattern
+  libraries need no product change for a closed class, and the observation tests it proposes are not required by the
+  closed writer of S-26, which changes no pattern library.
+- [PR-4](07-premium.md), the engineering tool targeted `net9.0`. Delivered by metalama/Metalama.Premium#86, merged on
+  2026-09-03; the story must not be proposed a second time.
+- [PR-15](07-premium.md), the Premium variant set alignment. Delivered by metalama/Metalama.Premium#85, merged on
+  2026-09-03.
 
 — Claude for @gfraiteur
