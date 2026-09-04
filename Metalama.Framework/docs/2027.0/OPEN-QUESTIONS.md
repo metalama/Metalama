@@ -102,8 +102,8 @@ are that a synthesized case constructor has no declaring syntax, that two case c
 single parameter type, that introducing a leg changes the constructor set of an existing type and therefore the
 collections cached against it, that a builder must be equated with the symbol it becomes for a type whose members
 the compiler synthesizes, and that the order of synthesized members must be deterministic, which is a defect that
-pull request #1879 had to fix for records. An analysis is in progress and its result belongs in
-`analysis-reports/13-union-comparers.md`.
+pull request #1879 had to fix for records. Every one of those hazards was refuted except the ordering of aspect
+instances, which fails for a different reason than the one anticipated.
 
 ### Q8. How is a closed type from a referenced assembly handled?
 

@@ -77,9 +77,8 @@ inference rather than on a file that was read, the finding says so.
   `dotnet/roslyn`, which is the Roslyn 5.12 that this theme adopts. Two consequences follow. Until the rebase, a
   `net11.0` project silently compiles as C# 14 rather than C# 15, independently of Metalama. From the rebase
   onwards, `15.0` is a legal language version for the new compiler, it matches none of the seven accepted strings,
-  and the clamp
-  rewrites it to `12.0`. The `PropertyGroup` carries no `MetalamaEnabled` guard, unlike the neighbouring blocks, so
-  the clamp also applies to a project in which Metalama is disabled.
+  and the clamp rewrites it to `12.0`. The `PropertyGroup` carries no `MetalamaEnabled` guard, unlike the
+  neighbouring blocks, so the clamp also applies to a project in which Metalama is disabled.
 - Consequence: build or restore error. When the clamp fires, the project drops from C# 15 to C# 12 and therefore
   loses the features of C# 13 and C# 14 as well as those of C# 15, so the compiler reports the family of errors that
   name a feature as unavailable in C# 12.0; when the code happens to fit C# 12, the user instead receives a warning
