@@ -1,6 +1,8 @@
 # Decisions taken by the product owner on 2026-09-04
 
-These answers are settled, except where a section says the question is open. The user stories are written against them, and a document that still presents one of
+These answers are settled, except where a section says the question is open. What is not settled is listed in
+[`OPEN-QUESTIONS.md`](OPEN-QUESTIONS.md), which is the companion of this document: a question leaves that file
+when it is answered here. The user stories are written against them, and a document that still presents one of
 them as an open question is out of date.
 
 ## 1. C# 15 support ships in Metalama 2027.0
