@@ -206,11 +206,10 @@ inference rather than on a file that was read, the finding says so.
   where the project version is `int.MaxValue - 1` and the minimum returns the SDK cap unchanged. In the consumed
   Roslyn the six C# 15 features are gated on `LanguageVersion.Preview` rather than on a C# 15 that the compiler
   does not know, so compile-time code that uses C# 15 syntax is rejected with the preview-feature error. One
-  mechanism was also
-  misdescribed: `CompileTimeCompilationBuilder.cs:349-353` calls `CSharpSyntaxTree.Create` rather than `ParseText`,
-  so the compile-time trees are not re-parsed at the compile-time language version; only the predefined polyfill
-  trees are parsed at it, and the guard that actually rejects a template written above the compile-time version is
-  `RoslynVersionSyntaxVerifier`, constructed at `TemplateCompiler.cs:106`.
+  mechanism was also misdescribed: `CompileTimeCompilationBuilder.cs:349-353` calls `CSharpSyntaxTree.Create`
+  rather than `ParseText`, so the compile-time trees are not re-parsed at the compile-time language version; only
+  the predefined polyfill trees are parsed at it, and the guard that actually rejects a template written above the
+  compile-time version is `RoslynVersionSyntaxVerifier`, constructed at `TemplateCompiler.cs:106`.
 - Consequence: diagnostic reported, and no wrong output, in the current state. After the move to Roslyn 5.12 and
   before this change, the class becomes an error on every project at the SDK default language version, raised as an
   `ArgumentOutOfRangeException` from `ToDisplayStringSafe` while formatting `LAMA0051` rather than as the intended
@@ -376,7 +375,7 @@ inference rather than on a file that was read, the finding says so.
   C# 15 features against the compiler sources and read the five published proposals to establish that none of them
   adds a user definable operator. The scope lens confirmed that no pull request and no issue covers the optional
   diagnostic.
-- Open questions: none. Two observations sit inside the same file and are out of scope here. The null filter at
+- Open questions: none. Two observations concern the same file and are out of scope here. The null filter at
   `:276` is a no-op, because all fifty-four entries carry a non-null version, so a wrong non-null value would be
   silent while a wrong null value would remove the entry from the by-name dictionary. Separately,
   `OperatorData.cs:114-119` gives `OperatorKind.UnsignedRightShift` the token of the compound assignment form,
