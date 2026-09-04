@@ -47,7 +47,7 @@ No project was built and no test was run for this analysis.
 7. Closed classes cause no failure. An aspect cannot introduce one, which is a feature gap bounded by four external
    constraints (LK-5); a class that an aspect introduces below a closed base type is admitted, and the one semantic
    consequence is that such an introduction can make a previously exhaustive user switch non-exhaustive.
-8. Labeled `break` and `continue` break no linker rewrite, because no rewriter reconstructs those statements. The
+8. No linker rewrite is affected by labeled `break` and `continue`, because no rewriter reconstructs those statements. The
    exposure is elsewhere: inlining copies user labels verbatim into one flattened statement list, so a labeled loop
    in a template collides with a labeled loop in the target, and two overrides expanded from one template collide
    with each other (LK-9).
@@ -71,7 +71,7 @@ No project was built and no test was run for this analysis.
   - `Metalama.Framework/src/Metalama.Framework.Engine/Templating/TemplateExpansionContext.cs:145`, `:161`
   - `Metalama.Framework/src/Metalama.Framework.Engine/CodeModel/Helpers/CodeModelExtensions.cs:66-89`
   - `Metalama.Framework/src/Metalama.Framework.Engine/Utilities/Roslyn/SyntaxExtensions.cs:19-21`, `:23-46`,
-    `:51-76`, `:112-120`, `:131`
+    `:51-75`, `:113-120`, `:131`
   - `Metalama.Framework/src/Metalama.Framework.Engine/CodeModel/Introductions/BuilderData/NamedDeclarationBuilderData.cs:25-42`
   - `Metalama.Framework/src/Metalama.Framework.Engine/AdviceImpl/Override/OverrideMemberTransformation.cs:41`
   - `Metalama.Framework/src/Metalama.Framework.Engine/CodeModel/Source/SourceNamedTypeImpl.cs:69-79`
@@ -100,7 +100,7 @@ No project was built and no test was run for this analysis.
   initializer statements and introduced attributes targeting union members are never injected.
 - The insert positions computed for a union are consumed by nothing. `CodeModelExtensions.cs:66-89` derives the
   position of a source declaration from `FindMemberDeclaration()` and tests `is BaseTypeDeclarationSyntax` at
-  `CodeModelExtensions.cs:73`; `SyntaxExtensions.cs:23-46` lists every member kind except the union declaration, so
+  `CodeModelExtensions.cs:74`; `SyntaxExtensions.cs:23-46` lists every member kind except the union declaration, so
   the walk continues to the enclosing namespace and the result is `InsertPosition( After, <namespace> )`, which no
   visitor consumes. A member introduced into a union receives `InsertPosition( Within, <union declaration> )`
   (`NamedDeclarationBuilderData.cs:25-42`) and an override of a source member receives
@@ -110,7 +110,7 @@ No project was built and no test was run for this analysis.
   `TemplateExpansionContext.cs:145` and `:161` obtain a lexical scope inside `GetInjectedMembers`
   (`LinkerInjectionStep.cs:565`), which runs before the rewriter (`:352`) and before the registry (`:377`), and
   `LexicalScopeFactory.cs:186` and `:193` derive the type declaration through `GetDeclaringType`, whose kind list
-  (`SyntaxExtensions.cs:112-120`) also omits the union declaration, so the value is null for a member of a
+  (`SyntaxExtensions.cs:113-120`) also omits the union declaration, so the value is null for a member of a
   namespace-level union. For a union nested in a class, `GetDeclaringType` returns the enclosing class, which is the
   wrong lexical scope rather than a failure, and execution continues. A union declared directly in a compilation unit
   with no namespace fails still earlier, in `SyntaxExtensions.cs:19-21`. When neither applies, the failure is in the
@@ -130,22 +130,22 @@ No project was built and no test was run for this analysis.
   (`Metalama.Framework.Engine.5.0.0.csproj:6`) and the Roslyn 5.0 public API contains no union member at all, which
   is the reason to avoid naming `UnionDeclarationSyntax`; the experimental marker is a separate and lesser obstacle,
   and it is already absent on the Roslyn version the 2027.0 baseline is expected to consume. `Rewriter` derives from
-  `SafeSyntaxRewriter`, whose `Visit` is sealed and whose documented extension point is `VisitCore`
+  `SafeSyntaxRewriter`, whose `Visit` is sealed and which calls the virtual `VisitCore` instead
   (`SafeSyntaxRewriter.cs:44-67`), so override `VisitCore` and route a `TypeDeclarationSyntax` that is none of the
   five handled node types to `VisitTypeDeclaration<TypeDeclarationSyntax>`. The test must be on the node type and not
   on the syntax kind, because `RecordDeclarationSyntax` carries two kinds. `VisitTypeDeclaration<T>` uses only
   members of the abstract base and two helpers typed on `TypeDeclarationSyntax`, so it compiles unchanged with the
   base type as the type argument.
-- Fix `GetDeclaringType` (`SyntaxExtensions.cs:112-120`) as well, and first, because the lexical scope factory
+- Fix `GetDeclaringType` (`SyntaxExtensions.cs:113-120`) as well, and first, because the lexical scope factory
   consumes it before the rewriter runs. Extend `FindMemberDeclarationOrNull` (`:23-46`) and `FindSymbolDeclaringNode`
-  (`:51-76`) by adding a type test to the existing kind list rather than replacing that list, which would otherwise
+  (`:51-75`) by adding a type test to the existing kind list rather than replacing that list, which would otherwise
   drop the method, field and namespace kinds. The only callers of the three helpers are
   `Metalama.Framework/src/Metalama.Framework.DesignTime/DiagnosticSuppressing/TheDiagnosticSuppressor.cs:192`,
   `LexicalScopeFactory.cs:121` and `:186`, `CodeModelExtensions.cs:72` and `:87`, and
   `Metalama.Framework/src/Metalama.Framework.Engine/Diagnostics/ScopedSuppression.cs:60`. The same kind lists are the
   subject of LK-3 and are owned by theme 03, so the two changes must be made together.
 - Exclude the primary-constructor branch for a union. `VisitTypeDeclaration` calls
-  `ApplyMemberLevelTransformationsToPrimaryConstructor` (`LinkerInjectionStep.Rewriter.cs:1150-1165`), which appends
+  `ApplyMemberLevelTransformationsToPrimaryConstructor` (`LinkerInjectionStep.Rewriter.cs:1150-1198`), which appends
   advice parameters to the parameter list of the type declaration and rewrites the base list arguments. For a union
   that parameter list holds the case types, parsed as parameter entries whose identifier is optional and usually
   absent, so an introduce-parameter advice would silently add a case type to the union. Report the advice as
@@ -178,7 +178,8 @@ No project was built and no test was run for this analysis.
   version, the rationale for avoiding the type name, and the treatment of the case list and of extension blocks. The
   scope pass found no implementation, no pull request and no issue, and related the story to #1921, #1881 and #1343.
 - Open questions: the two open questions of the original report are answered. The experimental marker on the union
-  declaration was removed from the Roslyn grammar on 2026-08-11, and a union symbol reports `TypeKind.Struct`, which
+  declaration is present in the consumed Roslyn build and is absent on the `dotnet/roslyn` main branch from which the
+  stable 5.12 will be produced, and a union symbol reports `TypeKind.Struct`, which
   `SourceNamedTypeImpl.cs:69-79` maps without throwing. The exact exception site in the registry is verified by
   reading and not by running.
 
@@ -186,10 +187,10 @@ No project was built and no test was run for this analysis.
 
 - Where:
   - `Metalama.Framework/src/Metalama.Framework.Engine/Linking/LinkerLinkingStep.LinkingRewriter.cs:22` (the class),
-    `:37`, `:50`, `:63`, `:66`, `:79-85` (the five overrides, of which the interface and extension-block ones are the
+    `:37`, `:50`, `:63`, `:66`, `:79-86` (the five overrides, of which the interface and extension-block ones are the
     one-line treatment the proposal reuses), `:88-247` (`GetMembersForTypeDeclaration`)
   - `Metalama.Framework/src/Metalama.Framework.Engine/Linking/LinkerRewritingDriver.Types.cs:18-44` (`RewriteClass`),
-    `:46-62` (`RewriteStruct`), `:64-103` (`RewriteRecord`, positional branch at `:86-103`)
+    `:46-62` (`RewriteStruct`), `:64-159` (`RewriteRecord`, positional branch at `:86-154`)
   - `Metalama.Framework/src/Metalama.Framework.Engine/Linking/LinkerRewritingDriver.cs:447`, `:1003-1032`
     (`GetSharedTypeMembers`)
   - `Metalama.Framework/src/Metalama.Framework.Engine/Linking/LinkerLinkingStep.cs:20-31`, `:66-69` (the removal of
@@ -211,8 +212,8 @@ No project was built and no test was run for this analysis.
   because the linker diagnostics cover only the three descriptors declared for it and the cleanup rewriter does not
   inspect aspect-reference annotations. Members of a nested type inside a union are still linked, because
   `GetMembersForTypeDeclaration` is not involved in reaching them.
-- A statement of the finding needs care and is restated here, because it is easy to misread. A union has no primary
-  constructor, in the language and in the Roslyn symbol model, but this does not mean that the parameter list is
+- The parameter list of a union declaration is easy to misread, so the finding is restated here. A union has no
+  primary constructor, in the language and in the Roslyn symbol model, but this does not mean that the parameter list is
   absent. The union declaration overrides the parameter-list field of `TypeDeclarationSyntax` and holds the case
   types there, so the parameter list is non-null for every union that compiles and contains at least one parameter
   entry whose identifier is absent. Roslyn separates the two cases by node type and not by the presence of the list,
@@ -225,7 +226,7 @@ No project was built and no test was run for this analysis.
   because a union may not declare an instance automatic property.
 - Proposed change: apply the technique of LK-1 and route an unknown `TypeDeclarationSyntax` to
   `node.WithMembers( List( this.GetMembersForTypeDeclaration( node ) ) )`, which is exactly the treatment already
-  used for interfaces (`:63-64`) and for extension blocks (`:79-85`). `GetMembersForTypeDeclaration` already takes
+  used for interfaces (`:63-64`) and for extension blocks (`:79-86`). `GetMembersForTypeDeclaration` already takes
   the abstract base type (`:88`), so no signature changes. The fallback must be that expression and must not be
   routed through `RewriteClass`, `RewriteStruct` or `RewriteRecord`: their primary-constructor branch passes a
   default parameter list and would delete the case types of the union, and the positional branch of `RewriteRecord`
@@ -257,18 +258,18 @@ No project was built and no test was run for this analysis.
   - `Metalama.Framework/src/Metalama.Framework.Engine/Utilities/Roslyn/SyntaxKindExtensions.cs:33-35`
     (`IsTypeDeclaration`) and `:41` (`IsBaseTypeDeclaration`, defined in terms of it)
   - `Metalama.Framework/src/Metalama.Framework.Engine/CodeModel/Source/SourceNamedTypeImpl.cs:329-352` (`IsPartial`:
-    the kind test is at `:344`, the result at `:351`), `:260-275` (`GetPrimaryConstructorImpl`)
+    the kind test is at `:344`, the result at `:350`), `:260-275` (`GetPrimaryConstructorImpl`)
   - `Metalama.Framework/src/Metalama.Framework.Engine/Pipeline/DesignTime/DesignTimeSyntaxTreeGenerator.cs:158-163`
   - `Metalama.Framework/src/Metalama.Framework.Engine/AdviceImpl/Introduction/IntroduceMemberAdvice.cs:216-224`
   - `Metalama.Framework/src/Metalama.Framework.Engine/Utilities/Roslyn/SymbolExtensions.cs:283-291`
     (`IsPrimaryConstructor`), `:181-202` (`HasModifier`)
   - `Metalama.Framework/src/Metalama.Framework.Engine/Linking/SymbolExtensions.cs:18-65` (`GetDeclarationFlags`; kind
-    list at `:25-31`, null arm at `:57-60`, throwing default at `:62`)
+    list at `:25-31`, null arm at `:59-60`, throwing default at `:62`)
   - `Metalama.Framework/src/Metalama.Framework.Engine/Linking/LinkerAnalysisStep.InlineabilityAnalyzer.cs:94`, `:285`
   - `Metalama.Framework/src/Metalama.Framework.Engine/Linking/Inlining/ImplicitLastOverrideReferenceInliner.cs:22-29`
     (the fallback to the containing type syntax), `:72-73`
   - `Metalama.Framework/src/Metalama.Framework.Engine/Linking/LinkerLateTransformationRegistry.cs:143-160` (kind list
-    at `:148-150`), `:181-197` (kind list at `:187-189`)
+    at `:149-150`), `:181-196` (kind list at `:190-191`)
   - `Metalama.Framework/src/Metalama.Framework.Engine/Linking/LinkerSyntaxHandler.cs:104-105`
   - `Metalama.Framework/src/Metalama.Framework.Engine/Linking/LinkerAnalysisStep.SemanticBodyAnalyzer.cs:244`, `:418`
   - `Metalama.Framework/src/Metalama.Framework.Engine/Linking/LinkerAnalysisStep.SubstitutionGenerator.cs:908`
@@ -276,10 +277,10 @@ No project was built and no test was run for this analysis.
   - `Metalama.Framework/src/Metalama.Framework.Engine/Linking/LinkerRewritingDriver.cs:323`
   - `Metalama.Framework/src/Metalama.Framework.Engine/Linking/LinkerRecordHelper.cs:45`, `:65`
   - `Metalama.Framework/src/Metalama.Framework/Eligibility/EligibilityRuleFactory.cs:88`
-    (`MustBeExplicitlyDeclared`), `:58-79` (the method rule), `:39-49` and `:51-56` (the declaring-type rule and the
+    (`MustBeExplicitlyDeclared`), `:58-81` (the method rule), `:39-49` and `:51-56` (the declaring-type rule and the
     constructor rule, which has no explicit-declaration requirement)
-  - `Metalama.Framework/src/Metalama.Framework.Engine/Utilities/Roslyn/SyntaxExtensions.cs:51-76`
-    (`FindSymbolDeclaringNode`), `:112-120` (`GetDeclaringType`)
+  - `Metalama.Framework/src/Metalama.Framework.Engine/Utilities/Roslyn/SyntaxExtensions.cs:51-75`
+    (`FindSymbolDeclaringNode`), `:113-120` (`GetDeclaringType`)
   - `Metalama.Framework/src/Metalama.Framework.Engine.Analyzers/KindCheckOptimizationAnalyzer.cs:24-31`, `:45-52`,
     `:722-725`
 - What happens today: a `partial union` reports `IsPartial == false`, because `SourceNamedTypeImpl.IsPartial`
@@ -329,9 +330,10 @@ No project was built and no test was run for this analysis.
   `Linking.SymbolExtensions.GetDeclarationFlags`. Keep the record-only lists for the record-synthesized-member logic,
   and treat `LinkerRecordHelper.GetSynthesizedMethodOverrideTargets` as in scope rather than out of scope, for the
   reason given above. Note that `IsBaseTypeDeclaration` is defined in terms of `IsTypeDeclaration` and must keep
-  working, and that `GetDeclaringType` already requires the abstract node type in its condition, so its kind list is
-  redundant there.
-- Two constraints on the shape of that widening. The first comes from the scope pass and is the more important one:
+  working, and that the kind list of `GetDeclaringType` is not redundant even though its condition also requires the
+  abstract node type, because the extension block declaration and the union declaration derive from that abstract type
+  and the kind list is what excludes them.
+- Two constraints apply to the shape of that widening. The first comes from the scope pass and is the more important one:
   the proposal to replace the kind lists by a bare type test contradicts a doctrine that this repository enforces
   automatically. Issue #1307, completed by pull request #1309, converted such tests to a kind check followed by a
   type pattern, and `KindCheckOptimizationAnalyzer` reports LAMA0860 on a bare pattern match against a syntax node
@@ -348,7 +350,7 @@ No project was built and no test was run for this analysis.
   body, and the two late-transformation registry methods test the parameter list on the type declaration. Those sites
   need an explicit union arm rather than a silent match. Where the union kind has to be named in code shared by both
   Roslyn variants, the constraint of #1881 applies and the gating strategy owned by theme 03 decides the mechanism.
-- Size: medium, and possibly light, because `IsTypeDeclaration` is a public member of a public static class of
+- Size: medium, and possibly small, because `IsTypeDeclaration` is a public member of a public static class of
   `Metalama.Framework.Engine` with eight call sites.
 - Status: new work, with a rebase dependency. Every cited site is unchanged on the working branch and the repository
   contains no union identifier in any C# source. Pull request #1879 rewrites two of the eligibility lines cited here
@@ -496,15 +498,15 @@ No project was built and no test was run for this analysis.
 - Where:
   - `Metalama.Framework/src/Metalama.Framework.Engine/Advising/AdviceFactory.cs:1406` (the call), `:527-534`
     (`ValidateNotExtensionBlock`, whose other nine call sites are at `:957`, `:1128`, `:1158`, `:1206`, `:1490`,
-    `:1879`, `:2060`, `:2083` and `:2106`), `:404-417` (`Validate`, which also throws)
+    `:1879`, `:2060`, `:2083` and `:2106`), `:404-422` (`Validate`, which also throws)
   - `Metalama.Framework/src/Metalama.Framework.Engine/Utilities/UserCode/UserCodeInvoker.cs:133-140` and
     `Metalama.Framework/src/Metalama.Framework.Engine/Diagnostics/GeneralDiagnosticDescriptors.cs:182-190` (the
     conversion of the exception into LAMA0041)
-  - `Metalama.Framework/src/Metalama.Framework/Eligibility/EligibilityRuleFactory.cs:117-125` (`_introduceRule`),
-    `:250-259` (the nine advice kinds that share it)
+  - `Metalama.Framework/src/Metalama.Framework/Eligibility/EligibilityRuleFactory.cs:117-126` (`_introduceRule`),
+    `:250-259` (the eight advice kinds that share it)
   - `Metalama.Framework/src/Metalama.Framework/Code/IExtensionBlock.cs:11-21`,
     `Metalama.Framework/src/Metalama.Framework.Engine/CodeModel/Source/ExtensionBlockImpl.cs:24`,
-    `Metalama.Framework/src/Metalama.Framework.Engine/CodeModel/Introductions/Builders/ExtensionBlockBuilder.cs:34`
+    `Metalama.Framework/src/Metalama.Framework.Engine/CodeModel/Introductions/Builders/ExtensionBlockBuilder.cs:35`
   - `Metalama.Framework/src/Metalama.Framework.Engine/AdviceImpl/Introduction/IntroduceIndexerTransformation.cs:28`,
     `:35-46`
   - `Metalama.Framework/src/Metalama.Framework.Engine/AdviceImpl/Introduction/IntroduceMemberAdvice.cs:194-197`
@@ -526,21 +528,21 @@ No project was built and no test was run for this analysis.
   cannot be introduced into a declaration that represents an extension block. Because the call happens inside
   `BuildAspect`, `UserCodeInvoker.cs:133-140` converts the exception into the error diagnostic LAMA0041, so the
   result is a build error and not a crash and not silent output. The eligibility rule for the introduction advice
-  kinds already admits the extension type kind (`EligibilityRuleFactory.cs:117-125`, mapped at `:258`), so the
+  kinds already admits the extension type kind (`EligibilityRuleFactory.cs:117-126`, mapped at `:258`), so the
   imperative check is the only barrier. The transformation already emits the syntax that C# 15 requires once it is
   placed inside an extension block (`IntroduceIndexerTransformation.cs:35-46`), and the introduction advice already
   suppresses the diagnostic about an instance member in a static type for extension blocks
-  (`IntroduceMemberAdvice.cs:194-197`). What is missing is the implementation-method half:
+  (`IntroduceMemberAdvice.cs:194-197`). What is missing is the implementation-method part:
   `ExtensionImplementationHelper` creates the implicit static implementation methods for methods and for property
   accessors and has no indexer counterpart, and `IntroduceIndexerTransformation` overrides only `GetInjectedMembers`
   and has no `GetImplicitDeclarations` override at all.
 - Consequence: a diagnostic is reported. The aspect fails at build time with LAMA0041 and the message names the
   extension block.
 - Proposed change: remove the validation at `AdviceFactory.cs:1406` and add a dedicated eligibility rule for the
-  indexer introduction rather than modifying `_introduceRule`, which nine advice kinds share. Express the rule in the
+  indexer introduction rather than modifying `_introduceRule`, which eight advice kinds share. Express the rule in the
   public code model, because the `Metalama.Framework` project does not reference `Metalama.Framework.Engine` and
   therefore cannot read the builder property: test the name of `IExtensionBlock.ReceiverParameter` for emptiness,
-  which is the same condition that the builder evaluates at `ExtensionBlockBuilder.cs:34` and which also holds for
+  which is the same condition that the builder evaluates at `ExtensionBlockBuilder.cs:35` and which also holds for
   source blocks through `ExtensionBlockImpl.cs:24`. The rule is required by the language, which states that an
   extension block declaring an indexer must provide a named receiver parameter, because an indexer is always an
   instance member. The rule must also reject an `init` accessor and the `abstract`, `virtual`, `override`, `new`,
@@ -590,7 +592,7 @@ No project was built and no test was run for this analysis.
   - `Metalama.Framework/src/Metalama.Framework.Engine/Advising/AdviceFactory.cs:640-646`, `:671-677`
   - `Metalama.Framework/src/Metalama.Framework.Engine/AdviceImpl/Override/OverrideIndexerBaseTransformation.cs:36-97`
   - `Metalama.Framework/src/Metalama.Framework.Engine/Linking/LinkerAspectReferenceSyntaxProvider.cs:142-161`
-    (`GetIndexerReference`), `:199-227` (`CreateIndexerAccessExpression`, the extension-block branch at `:213-218`),
+    (`GetIndexerReference`), `:199-225` (`CreateIndexerAccessExpression`, the extension-block branch at `:213-218`),
     `:268-274`, `:289-296` (the property path)
   - `Metalama.Framework/src/Metalama.Framework.Engine/Transformations/ProceedHelper.cs:234-241`, `:252-259`
   - `Metalama.Framework/src/Metalama.Framework.Engine/Linking/LinkerAnalysisStep.cs:850-906` and
@@ -600,8 +602,8 @@ No project was built and no test was run for this analysis.
     (`GetTrampolineForIndexer`, the receiver at `:443-454`, the name at `:447` and `:451`)
   - `Metalama.Framework/src/Metalama.Framework.Engine/Linking/LinkerRewritingDriver.Methods.cs:340-351`,
     `Metalama.Framework/src/Metalama.Framework.Engine/Linking/LinkerRewritingDriver.Properties.cs:668-679`
-  - `Metalama.Framework/src/Metalama.Framework.Engine/Linking/LinkerInjectionStep.cs:1136-1167`
-    (`ForEachMethodInExtensionBlock`, the indexers at `:1155-1166`) and
+  - `Metalama.Framework/src/Metalama.Framework.Engine/Linking/LinkerInjectionStep.cs:1136-1168`
+    (`ForEachMethodInExtensionBlock`, the indexers at `:1156-1167`) and
     `Metalama.Framework/src/Metalama.Framework.Engine/Linking/LinkerInjectionStep.AuxiliaryMemberFactory.cs:472-580`
   - `Metalama.Framework/src/Metalama.Framework.Engine/CodeModel/Source/ExtensionBlockImpl.cs:21-24`, `:34` and
     `Metalama.Framework/src/Metalama.Framework.Engine/CodeModel/Helpers/DeclarationExtensions.cs:44` (the Roslyn
@@ -672,7 +674,7 @@ No project was built and no test was run for this analysis.
 
 - Where:
   - `Metalama.Framework/src/Metalama.Framework/Eligibility/EligibilityRuleFactory.cs:164-195`
-    (`_addInitializerRule`; the type branch at `:174-176`), `:117-127` (`_introduceRule`, shared by nine advice kinds
+    (`_addInitializerRule`; the type branch at `:174-176`), `:117-126` (`_introduceRule`, shared by eight advice kinds
     per `:250-259`), `:152-162` (`_introduceParameterRule`)
   - `Metalama.Framework/src/Metalama.Framework.Engine/CodeModel/Helpers/DeclarationExtensions.cs:664-665`
     (`IsImplicitInstanceConstructor`)
@@ -721,14 +723,14 @@ No project was built and no test was run for this analysis.
   permitted, so a static introduction into a union is not affected.
 - Consequence: a build error in the user compilation, on generated code, with CS9373, CS9374 and CS9375, and in
   addition a silent loss of the statements and parameters that target the synthesized case constructors.
-- Proposed change: two options, and the choice between them is the decision below. The conservative option is a
-  blanket check on the target type: add a union rule to the shared introduction rule, to both branches of the
+- Proposed change: two options, and the choice between them is the decision below. The conservative option is an
+  unconditional check on the target type: add a union rule to the shared introduction rule, to both branches of the
   add-initializer rule, to the parameter-introduction rule through the declaring type, and to the interface
   implementation rule, so that 2027.0 fails early with a clear message instead of failing at the linker or in the
   transformed compilation. It costs one rule and covers the three compiler errors as well as the silent case. The
   precise option keeps the legal cases working and moves the check into the advice implementations that actually emit
   an instance field or a constructor, each reporting a dedicated diagnostic.
-- Three constraints apply to either option. The eligibility rules are shared objects: one rule serves nine advice
+- Three constraints apply to either option. The eligibility rules are shared objects: one rule serves eight advice
   kinds, so a rule cannot be added for field introduction alone without splitting it. The rules observe only the
   target type, so they cannot distinguish an automatic property from a template property, nor a field-like event from
   an accessor event, because both map to the same advice kind. And introducing a method, a static field or a nested
@@ -741,7 +743,7 @@ No project was built and no test was run for this analysis.
   Roslyn, and the flag is declared on the type symbol interface and is absent from the Roslyn 5.0 variant that serves
   Rider. The predicate must therefore be an `INamedType` member whose implementation is variant-gated and returns
   false in the lower variant.
-- Size: small for the blanket check; large for the precise per-advice validation, because it requires the
+- Size: small for the unconditional check; large for the precise per-advice validation, because it requires the
   variant-gated predicate, changes in eight advice implementations, new diagnostics and tests.
 - Status: decision required. The decision is whether 2027.0 refuses every advice on a union with one diagnostic or
   validates per advice kind, and, within that, whether the refusal is expressed as an eligibility rule or as a
@@ -822,14 +824,15 @@ No project was built and no test was run for this analysis.
   user `goto` statements do occur in a target body and the linker emits its own, and the label of a break or continue
   statement. The last two members do not exist in Roslyn 5.0 and are experimental in the build consumed today, so a
   strongly typed rewrite belongs to the latest variant only and needs a suppression until that variant is built from
-  a Roslyn later than 2026-08-11. The alternative that compiles in both variants without a suppression is an override
+  the stable Roslyn 5.12, which no longer marks them as experimental. The alternative that compiles in both variants
+  without a suppression is an override
   of the identifier-name visit that tests whether the parent node is a break or continue statement, which uses only
   syntax kinds that already exist in Roslyn 5.0 and is inert under the lower variant. Two language rules must be
   respected by whatever rewrites these statements: only the statement immediately nested within a labeled statement
   is labeled with that identifier, so the rewrite must not insert a statement or a block between a label and its
   loop; and dropping the label of a break or continue statement produces no diagnostic and silently retargets the
   jump to the innermost loop.
-- A smaller alternative is worth measuring first: leave the syntax alone and refuse the inlining when the inlined body
+- A smaller alternative is worth measuring first: leave the syntax unchanged and refuse the inlining when the inlined body
   and the destination body declare a label of the same name, by treating the semantic as not inlineable in the
   inlineability analyzer. That produces a call instead of an error and needs no new rewriting.
 - Add linker tests under `Tests/Methods/Overrides/Labels` covering a labeled loop in the override only, in the target
@@ -900,7 +903,7 @@ No project was built and no test was run for this analysis.
 - Status: new work. The classifier contains no union and no interface override, no pull request touches the
   formatting directory, and no issue scopes the change; #985 concerns the template compiler and #940 concerns
   highlighting robustness rather than the set of classified kinds. This is the lowest severity of the theme and
-  should ride along with the dispatch story rather than justify one of its own. It is also the one member of the
+  should be done as part of the dispatch story rather than as a story of its own. It is also the one member of the
   union dispatch family that needs no new type reference and no gating, so it can precede the move to Roslyn 5.12.
 - Verification: the code pass confirmed the absence of the dispatch, established that the whole union body loses its
   classification rather than the declaration header only, listed the four surfaces that consume the classification,
@@ -1000,7 +1003,7 @@ re-verified only where a finding above depends on them.
   receiver.
 - Extension blocks in the injection step. Members are injected into introduced extension blocks
   (`LinkerInjectionStep.Rewriter.cs:622-637`) and receiver-contract statements are distributed per member including
-  the indexers of an extension block (`LinkerInjectionStep.cs:251-263`, `:837-880`, `:1155-1166`).
+  the indexers of an extension block (`LinkerInjectionStep.cs:251-263`, `:837-880`, `:1156-1167`).
 - Static members in interfaces. The validation of an introduced member (`IntroduceMemberAdvice.cs:174-186`) rejects
   only static virtual members outside interfaces and static sealed members, and the member modifier helper emits the
   static keyword for interface members and the abstract and virtual keywords only when the member declares them. No

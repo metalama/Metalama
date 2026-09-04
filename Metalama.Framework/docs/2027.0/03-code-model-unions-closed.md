@@ -99,18 +99,19 @@ No project was built and no test was run for this analysis.
   a new arm in the 17 switches over the Metalama `TypeKind` that this analysis inventoried. The two inventories
   disagree on how many of those switches throw in the default arm, 9 in the exhaustiveness table of the original
   report and 12 in the Roslyn API delta report, and the disagreement does not change the conclusion. Implement
-  `IsUnion` in `SourceNamedTypeImpl` from `ITypeSymbol.IsUnion`, forward it in the facade at `SourceNamedType.cs:514-522`
-  with the same pattern as `IsRecord`, and return the constant false and an empty list in `NamedTypeBuilder.cs:36`,
-  `NamedTypeBuilderData.cs:55`, `IntroducedNamedType.cs:200` and `IntroducedExtensionBlock.cs:190`. Because the
-  Roslyn predicate covers any class or struct carrying the `[Union]` attribute, the documentation of `IsUnion` must
-  state that `IsUnion` is independent of `TypeKind` and that a union is not necessarily a value type. Add an
-  eligibility rule that rejects the introduction of an instance field, an auto-property or a field-like event into a
-  union, and cover the constructor case as well, because an explicitly declared public constructor with a single
-  parameter is rejected by CS9374 and a declared constructor without a `this` initializer by CS9375. Note that those
-  three restrictions are checked by the compiler for a union declaration only, so a rule phrased as "must not be a
-  union" would be stricter than the compiler for an attribute-based union type. Independently of the public API, add
-  the missing `VisitUnionDeclaration` override to `LinkerInjectionStep.Rewriter`, which is owned by the linker and
-  advice theme, otherwise members introduced into a union continue to be dropped without a diagnostic.
+  `IsUnion` in `SourceNamedTypeImpl` from `ITypeSymbol.IsUnion`, forward it in the facade at
+  `SourceNamedType.cs:514-522` with the same pattern as `IsRecord`, and return the constant false and an empty list
+  in `NamedTypeBuilder.cs:36`, `NamedTypeBuilderData.cs:55`, `IntroducedNamedType.cs:200` and
+  `IntroducedExtensionBlock.cs:190`. Because the Roslyn predicate covers any class or struct carrying the `[Union]`
+  attribute, the documentation of `IsUnion` must state that `IsUnion` is independent of `TypeKind` and that a union
+  is not necessarily a value type. Add an eligibility rule that rejects the introduction of an instance field, an
+  auto-property or a field-like event into a union, and cover the constructor case as well, because an explicitly
+  declared public constructor with a single parameter is rejected by CS9374 and a declared constructor without a
+  `this` initializer by CS9375. Note that those three restrictions are checked by the compiler for a union
+  declaration only, so a rule phrased as "must not be a union" would be stricter than the compiler for an
+  attribute-based union type. Independently of the public API, add the missing `VisitUnionDeclaration` override to
+  `LinkerInjectionStep.Rewriter`, which is owned by the linker and advice theme, otherwise members introduced into a
+  union continue to be dropped without a diagnostic.
 - Size: medium for the public API and the five implementation sites. `UnionCaseTypes` cannot be implemented from the
   Roslyn member against the currently consumed build and must wait for the stable Roslyn, so either the change is
   split, shipping `IsUnion` first, or the whole member pair is deferred to that move.
@@ -432,21 +433,21 @@ No project was built and no test was run for this analysis.
 - What happens today: `ToInsertPosition` takes the primary declaration of the union type and calls
   `FindMemberDeclaration`, which examines the node and then each of its ancestors in turn until it finds a kind in
   the list. The union kind is in no list, so the search continues past the union. When the union is declared in a
-  namespace, the search reaches the namespace declaration, which is in the list, and because a namespace declaration is not a
-  `BaseTypeDeclarationSyntax` the position becomes `After` the namespace. No visitor of the injection rewriter ever
-  queries that position: the rewriter queries `After` only for the members of a type declaration, `Within` for a type
-  declaration and for a namespace, and the root position for the compilation unit. A member introduced into a union
-  is therefore not emitted at all, rather than emitted in the wrong place. When the union is declared in the global
-  namespace, the search reaches the compilation unit, returns null, and `FindMemberDeclaration` throws an
-  `AssertionFailedException`. When the union is nested in a type, the search stops at the enclosing type and the
-  position becomes `Within` the enclosing type. The two families of compiler-synthesized union members reach the same
-  code by two different paths: the `Value` property reports the union declaration as its own declaring syntax and
-  therefore takes the first branch, while the per-case constructors have no declaring syntax and take the
-  containing-type branch. `GetDeclaringType` returns the type that encloses the union, or null when the union is not
-  nested in a type. `HasModifier` returns false for every modifier of a union type, which has no consequence, because the
-  type modifier list is built from the accessibility, `IsStatic`, `HasNewKeyword`, `IsAbstract` and `IsSealed` and
-  never calls it. `HasNewKeyword` reaches the default arm for a member declaration and answers from the union
-  modifiers, which is correct.
+  namespace, the search reaches the namespace declaration, which is in the list, and because a namespace declaration
+  is not a `BaseTypeDeclarationSyntax` the position becomes `After` the namespace. No visitor of the injection
+  rewriter ever queries that position: the rewriter queries `After` only for the members of a type declaration,
+  `Within` for a type declaration and for a namespace, and the root position for the compilation unit. A member
+  introduced into a union is therefore not emitted at all, rather than emitted in the wrong place. When the union is
+  declared in the global namespace, the search reaches the compilation unit, returns null, and
+  `FindMemberDeclaration` throws an `AssertionFailedException`. When the union is nested in a type, the search stops
+  at the enclosing type and the position becomes `Within` the enclosing type. The two families of
+  compiler-synthesized union members reach the same code by two different paths: the `Value` property reports the
+  union declaration as its own declaring syntax and therefore takes the first branch, while the per-case
+  constructors have no declaring syntax and take the containing-type branch. `GetDeclaringType` returns the type
+  that encloses the union, or null when the union is not nested in a type. `HasModifier` returns false for every
+  modifier of a union type, which has no consequence, because the type modifier list is built from the
+  accessibility, `IsStatic`, `HasNewKeyword`, `IsAbstract` and `IsSealed` and never calls it. `HasNewKeyword`
+  reaches the default arm for a member declaration and answers from the union modifiers, which is correct.
 - Consequence: assertion or crash when the union is in the global namespace; silent loss of the introduced member,
   rather than misplacement, when the union is in a namespace; silent wrong answers for the remaining sites.
 - Proposed change: make each list recognize the union kind, and do not substitute Roslyn's own
@@ -661,12 +662,11 @@ No project was built and no test was run for this analysis.
   union nested in a compile-time type, for example inside an aspect class, falls into the default arm of the member
   switch of the compile-time type transformation and is likewise copied. A union nested in a run-time type reaches
   the default arm of the nested-type population and is dropped, which is the correct outcome although the code does
-  not recognize the union kind. For the two copying
-  paths the compile-time tree is created with the parse options of the compile-time language version, which is C# 14,
-  and Roslyn checks the union feature when it builds the declaration table rather than only in the parser, so the
-  compile-time build fails on a declaration the user never wrote for compile-time. The scenario is reachable today
-  only when preview language features are allowed, because the pipeline rejects a preview language version otherwise
-  and admits no version above C# 14.
+  not recognize the union kind. For the two copying paths the compile-time tree is created with the parse options of
+  the compile-time language version, which is C# 14, and Roslyn checks the union feature when it builds the
+  declaration table rather than only in the parser, so the compile-time build fails on a declaration the user never
+  wrote for compile-time. The scenario is reachable today only when preview language features are allowed, because
+  the pipeline rejects a preview language version otherwise and admits no version above C# 14.
 - Consequence: build error in the compile-time compilation, with a message that names a language version or a missing
   framework type rather than the real cause. The specific message depends on the Roslyn build and on the compile-time
   language version: the preview-feature error against the Roslyn build consumed today, CS9327 against the stable
@@ -832,7 +832,7 @@ The following were checked and found unaffected by union types and by closed hie
 - The type-kind constraint of a generic parameter is unaffected: a union satisfies the struct constraint, and neither
   proposal adds a constraint kind.
 - The record copy-constructor predicate requires `IsRecord`, which is false for a union, so the record-specific
-  constructor logic does not misfire on the synthesized union constructors.
+  constructor logic is not applied to the synthesized union constructors.
 - Closed enums are not part of C# 15, so the handling of `TypeKind.Enum` is unaffected.
 - A `closed` or `union` declaration inside compile-time code fails because the compile-time compilation is C# 14. That
   is the language version theme, not a code-model defect; see also CM-9 for the case of a run-time union in the same
@@ -848,8 +848,8 @@ documentation, and PR for `Metalama.Premium`.
 - Hand-written type-declaration kind lists. CM-2 and CM-6 are the code-model half of one edit that LK-3, DT-1 and
   DT-6 also report. The predicate at
   `Metalama.Framework/src/Metalama.Framework.Engine/Utilities/Roslyn/SyntaxKindExtensions.cs:33-35` and `:41` is the
-  single choke point, and the decision inside that edit, a type test against an added kind, is shared with those three
-  findings. It is one work item and not five.
+  single predicate that all four findings depend on, and the decision inside that edit, a type test against an added
+  kind, is shared with those three findings. It is one work item and not five.
 - Syntax visitors. CM-7 is the inventory, and LK-10 is one member of it, the design-time classifier, which cannot be
   corrected alone because the template annotator has no union dispatch either. Both need the mechanism of CM-10.
 - The compile-time code finder and rewriter. CM-9 and TP-6 name the same two visitors of the compile-time compilation
