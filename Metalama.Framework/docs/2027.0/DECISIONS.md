@@ -215,3 +215,54 @@ capability, the scope and the acceptance criteria.
 A draft is most useful when it is written the way an aspect author would meet it, which means the code an author
 writes, the code that the author's users write, and the code that Metalama produces, rather than an interface
 declaration on its own.
+
+## 8. Roslyn 5.12 replaces the 5.10 variant, it is not added beside it
+
+Question asked on 2026-09-04: is Roslyn 5.12 implemented in addition to Roslyn 5.10, or in replacement of it, that
+is, is there a supported Visual Studio version sitting on Roslyn 5.10?
+
+The answer is replacement. No supported Visual Studio presents Roslyn 5.10 or 5.11, and none ever will, because
+those minor versions are not published.
+
+### Why no host can present Roslyn 5.10
+
+Roslyn publishes a stable package every third minor version. The evidence is the flat container index of
+`Microsoft.CodeAnalysis.CSharp` on nuget.org, read on 2026-09-04, which serves exactly four versions in the 5
+generation: 5.0.0 published 2025-11-18, 5.3.0 published 2026-03-10, 5.6.0 published 2026-07-02 and 5.9.0 published
+2026-08-17. There is no 5.10 and no 5.11, and `eng/Versions.props` on the `main` branch of `dotnet/roslyn` reads
+minor version 12, so the next published version is 5.12.
+
+Roslyn minor versions track Visual Studio minor versions, which `platform-support.md` already states and which the
+release branches corroborate: `release/dev18.0` and `release/dev18.3` are the only release branches, matching the
+stable 5.0 and 5.3. The Visual Studio 2026 quarterly versions are therefore 18.0, 18.3, 18.6, 18.9 and 18.12, and
+they carry Roslyn 5.0, 5.3, 5.6, 5.9 and 5.12. A version between two of those exists only as a build of `main`,
+which is what the consumed `5.10.0-1.26365.3` is, and no Visual Studio ships one.
+
+### The consequence for the variant set
+
+Rule 8 of the doctrine says that a variant may exist only if it serves a host in the supported set. A variant whose
+identity is 5.10.0 is loadable only by a host presenting Roslyn 5.10 or later, and once the latest variant is
+renumbered to 5.12.0, the 5.10.0 identity serves no host that the 5.12.0 identity does not serve. Keeping it would
+add a payload for an empty set.
+
+The variant set of 2027.0 therefore stays at two: the `Roslyn.5.0.0` variant, which serves Rider and the Visual
+Studio Code C# Dev Kit, and the latest variant, renumbered from 5.10.0 to 5.12.0, which serves the Visual Studio
+2026 long-term servicing channel baseline, Visual Studio 2027 and `Metalama.Compiler`.
+
+### Two corrections that follow
+
+The Roslyn API section of `platform-support.md` says that the November 2026 long-term servicing channel baseline
+carries "Roslyn 5.11 or thereabouts". Given the publication cadence above, the value is 5.12, and the sentence
+should name it. Checklist item 1 of that document, which requires the Roslyn version of the baseline to be
+measured after 2026-11-10, stands unchanged and remains the thing that settles it.
+
+The variant table of the same section offers a row "5.10 or above" for the measured Rider and C# Dev Kit version.
+Since 5.10 and 5.11 are not published, that row should read 5.12 or above.
+
+### The caveat
+
+This derivation is about Visual Studio. Rider does not take a published Roslyn package: it builds its own, reports
+assembly version `42.42.42.42`, and carries the real version in an informational attribute, measured at 5.0.0 on
+2026-09-01. A future Rider could in principle report a version that no Visual Studio presents. That would change
+the lower bound of the variant set, which is what the release candidate measurement of checklist item 2 exists to
+catch, and it would not change the conclusion above about the upper bound.
