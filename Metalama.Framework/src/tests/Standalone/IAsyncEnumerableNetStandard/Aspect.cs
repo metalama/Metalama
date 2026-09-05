@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Advising;
-using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using System;
@@ -22,7 +21,7 @@ class Aspect : OverrideMethodAspect
             nameof(this.OverrideAsyncEnumerableMethod),
             nameof(this.OverrideAsyncEnumeratorMethod) );
 
-        builder.Advice.Override( builder.Target, templates );
+        builder.Override( templates );
     }
 
     public override dynamic? OverrideMethod()

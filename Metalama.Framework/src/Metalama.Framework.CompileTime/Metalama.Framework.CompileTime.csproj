@@ -30,6 +30,11 @@
         <PackageReference Include="System.Collections.Immutable" />
         <PackageReference Include="Microsoft.Bcl.HashCode" Condition="'$(TargetFramework)'=='netstandard2.0'" />
 
+        <!-- Supplies IAsyncEnumerable<T>, IAsyncEnumerator<T> and ValueTask, which the netstandard2.0 target framework
+             does not have. This project compiles the sources of Metalama.Framework, which declare the async iterator
+             members for every target framework. -->
+        <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Condition="'$(TargetFramework)'=='netstandard2.0'" />
+
         <!-- The following references change 'dynamic' into 'object' -->
         <ProjectReference Include="../Metalama.SourceTransformer/Metalama.SourceTransformer.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     </ItemGroup>

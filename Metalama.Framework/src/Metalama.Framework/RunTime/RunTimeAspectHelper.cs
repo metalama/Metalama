@@ -2,18 +2,11 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-// ReSharper disable RedundantBlankLines, MissingBlankLines
-
 using System;
 using System.Collections;
 using System.Collections.Generic;
-#if NET5_0_OR_GREATER
 using System.Threading;
 using System.Threading.Tasks;
-
-#endif
-
-// ReSharper restore RedundantBlankLines, MissingBlankLines
 
 namespace Metalama.Framework.RunTime
 {
@@ -129,7 +122,6 @@ namespace Metalama.Framework.RunTime
             }
         }
 
-#if NET5_0_OR_GREATER
         /// <summary>
         /// Evaluates an <see cref="IAsyncEnumerable{T}"/> and stores the result into an <see cref="AsyncEnumerableList{T}"/>. If the enumerable is already
         /// an <see cref="AsyncEnumerableList{T}"/>, returns the input list.
@@ -240,7 +232,6 @@ namespace Metalama.Framework.RunTime
                 return list;
             }
         }
-#endif
 
         /// <summary>
         /// An <see cref="IEnumerator{T}"/> wrapper around a <see cref="List{T}"/> that supports <see cref="IEnumerator.Reset"/>.
@@ -310,7 +301,6 @@ namespace Metalama.Framework.RunTime
             }
         }
 
-#if NET5_0_OR_GREATER
         /// <summary>
         /// An <see cref="IAsyncEnumerator{T}"/> wrapper around an <see cref="AsyncEnumerableList{T}"/> that supports resetting.
         /// This type is used by code transformed by aspects when return value contracts are applied to async iterator methods
@@ -343,7 +333,9 @@ namespace Metalama.Framework.RunTime
             {
                 this._cancellationToken.ThrowIfCancellationRequested();
 
-                return ValueTask.FromResult( this._enumerator.MoveNext() );
+                // The static members of ValueTask are not available on netstandard2.0, so the value is wrapped by the
+                // constructor instead of by ValueTask.FromResult.
+                return new ValueTask<bool>( this._enumerator.MoveNext() );
             }
 
             /// <summary>
@@ -355,8 +347,9 @@ namespace Metalama.Framework.RunTime
             }
 
             /// <inheritdoc />
-            public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+            // The static members of ValueTask are not available on netstandard2.0, so the default value, which represents a
+            // completed operation, is returned instead of ValueTask.CompletedTask.
+            public ValueTask DisposeAsync() => default;
         }
-#endif
     }
 }

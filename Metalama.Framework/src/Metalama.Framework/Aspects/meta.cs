@@ -161,7 +161,6 @@ namespace Metalama.Framework.Aspects
         [TemplateKeyword]
         public static IEnumerator<dynamic?> ProceedEnumerator() => throw CreateException();
 
-#if NET5_0_OR_GREATER
         /// <summary>
         /// Synonym to <see cref="Proceed"/>, but the return type is exposed as a <c>IAsyncEnumerable&lt;dynamic?&gt;</c>.
         /// </summary>
@@ -175,7 +174,6 @@ namespace Metalama.Framework.Aspects
         /// <seealso href="@templates"/>
         [TemplateKeyword]
         public static IAsyncEnumerator<dynamic?> ProceedAsyncEnumerator() => throw CreateException();
-#endif
 
         /// <summary>
         /// Requests the debugger to break, if any debugger is attached to the current process.
