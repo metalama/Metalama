@@ -40,10 +40,6 @@ var product = new Product( MetalamaDependencies.Metalama )
         [
             // Must match global.json. This is the SDK that compiles the product, and the one whose version the
             // compile-time compilation reads to cap the C# language version.
-            // Must precede every DotNetComponent: it decides the archive form that dotnet-install.ps1
-            // downloads.
-            new DotNetInstallZipComponent(),
-
             new DotNetComponent( dotNet11SdkVersion, DotNetComponentKind.Sdk ),
 
             // Required to execute the net10.0 assemblies of the tests and of this project, and installed anyway by
