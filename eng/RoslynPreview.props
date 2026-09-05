@@ -19,6 +19,11 @@
 	  The flag ships disabled and is never committed in the enabled state. MSBuild exposes an environment variable as a
 	  property, so a developer or a build configuration enables it by setting the AllowRoslynPreviewFeatures
 	  environment variable to true, without editing a file.
+
+	  Changing the value of the flag requires Build.ps1 build, and not only a build of the affected solution, because
+	  the meta syntax rewriter generator runs during that command and its output is what carries the grammar
+	  declarations of the kept features. A solution built with the previous value compiles generated sources that do
+	  not match the current value.
 	-->
 
 	<PropertyGroup>
