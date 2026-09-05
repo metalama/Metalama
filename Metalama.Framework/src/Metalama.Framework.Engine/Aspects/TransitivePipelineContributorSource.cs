@@ -156,7 +156,20 @@ internal sealed partial class TransitivePipelineContributorSource : IExternalHie
                     break;
 
                 default:
-                    throw new AssertionFailedException( $"Unexpected reference kind: {reference}." );
+                    // The transitive aspect manifest of this reference cannot be read. This happens for a
+                    // PortableExecutableReference whose FilePath is null, which is what MetadataReference.CreateFromImage
+                    // and MetadataReference.CreateFromStream return when a host supplies the metadata as bytes instead of
+                    // as a file on disk. Skipping the reference means that the aspects it may inherit are not applied,
+                    // whereas failing here aborts the execution of the pipeline for the whole project. This is the same
+                    // decision as in CompileTimeProjectRepository.Builder.TryGetCompileTimeProject, which skips the very
+                    // same reference. See #1960.
+                    serviceProvider.GetLoggerFactory()
+                        .GetLogger( nameof(TransitivePipelineContributorSource) )
+                        .Warning?.Log(
+                            $"The transitive aspect manifest of the reference '{reference.Display}' of kind '{reference.GetType().Name}' "
+                            + "cannot be read, because the reference is not backed by a file. The reference is skipped." );
+
+                    continue;
             }
 
             // Process the manifest.
