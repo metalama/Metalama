@@ -11,6 +11,7 @@ using Metalama.Framework.Engine.Pipeline.CompileTime;
 using Metalama.Framework.Tests.UnitTestHelpers.Mocks;
 using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.Emit;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -25,21 +26,32 @@ namespace Metalama.Framework.Tests.UnitTests.CompileTime;
 #pragma warning disable VSTHRD200
 
 /// <summary>
-/// Tests that a compilation referencing an assembly supplied as bytes instead of as a file on disk keeps its aspect
-/// support. See issue #1960.
+/// Tests that a compilation keeps its aspect support when one of its references has no file path. See issue #1960.
 /// </summary>
 /// <remarks>
-/// <c>MetadataReference.CreateFromImage</c> and <c>MetadataReference.CreateFromStream</c> return a
-/// <see cref="PortableExecutableReference"/> whose <see cref="PortableExecutableReference.FilePath"/> is <c>null</c>.
-/// A host can add such a reference to the compilation that it gives to the design-time analyzer. Two sites used to throw
-/// an assertion for that reference: <c>CompileTimeProjectRepository.Builder.TryGetCompileTimeProject</c>, which aborted
-/// the initialization of the pipeline, and <c>TransitivePipelineContributorSource.Create</c>, which aborted its
-/// execution. Both now skip the reference, so the project keeps aspect support.
+/// <para>
+/// Roslyn gives a compilation a reference that has no <see cref="PortableExecutableReference.FilePath"/> when a project
+/// reference crosses a language boundary. <c>SolutionCompilationState.GetMetadataReferenceAsync</c> returns a
+/// <see cref="CompilationReference"/> when the referencing and the referenced project share their language services, and
+/// otherwise emits the referenced project metadata-only into memory and wraps it without a file path. That reference is
+/// called a skeleton reference. A build never produces one, because MSBuild passes every reference as a path, which is
+/// why every report of this issue comes from the design-time pipeline.
+/// </para>
+/// <para>
+/// Two sites used to throw an assertion for such a reference:
+/// <c>CompileTimeProjectRepository.Builder.TryGetCompileTimeProject</c>, which aborted the initialization of the
+/// pipeline, and <c>TransitivePipelineContributorSource.Create</c>, which aborted its execution. Both now skip the
+/// reference, so the project keeps its aspect support.
+/// </para>
 /// </remarks>
-public sealed class InMemoryMetadataReferenceTests : UnitTestClass
+public sealed class SkeletonMetadataReferenceTests : UnitTestClass
 {
-    public InMemoryMetadataReferenceTests( ITestOutputHelper testOutput ) : base( testOutput ) { }
+    public SkeletonMetadataReferenceTests( ITestOutputHelper testOutput ) : base( testOutput ) { }
 
+    /// <summary>
+    /// The source of the project that the skeleton reference stands for. It declares a run-time class and no
+    /// compile-time code, which is the case of a project of another language than the consuming one.
+    /// </summary>
     private const string _referencedCode = "public class ReferencedClass { }";
 
     private const string _compileTimeReferencedCode = """
@@ -83,7 +95,7 @@ public sealed class InMemoryMetadataReferenceTests : UnitTestClass
     };
 
     /// <summary>
-    /// Verifies that the repository is created for a compilation that has a reference created from a metadata image.
+    /// Verifies that the repository is created for a compilation that has a skeleton reference.
     /// </summary>
     [Fact]
     public void RepositoryIsCreatedWhenReferenceHasNoFilePath()
@@ -91,9 +103,9 @@ public sealed class InMemoryMetadataReferenceTests : UnitTestClass
         using var testContext = this.CreateTestContext();
         using var domain = testContext.Domain;
 
-        var inMemoryReference = CreateInMemoryReference( testContext, "Metalama.Tests.InMemoryReference" );
+        var skeletonReference = CreateSkeletonReference( testContext, "Metalama.Tests.SkeletonReference" );
 
-        var compilation = testContext.CreateCSharpCompilation( _mainCode, additionalReferences: [inMemoryReference] );
+        var compilation = testContext.CreateCSharpCompilation( _mainCode, additionalReferences: [skeletonReference] );
 
         var repository = CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, compilation );
 
@@ -105,8 +117,8 @@ public sealed class InMemoryMetadataReferenceTests : UnitTestClass
     }
 
     /// <summary>
-    /// Verifies that the reference that has no file path is the only one that is skipped, and that a compile-time project
-    /// referenced through a file is still part of the closure.
+    /// Verifies that the skeleton reference is the only one that is skipped, and that a compile-time project referenced
+    /// through a file is still part of the closure.
     /// </summary>
     [Fact]
     public void OtherReferencesAreStillResolvedWhenOneReferenceHasNoFilePath()
@@ -114,7 +126,7 @@ public sealed class InMemoryMetadataReferenceTests : UnitTestClass
         using var testContext = this.CreateTestContext();
         using var domain = testContext.Domain;
 
-        var inMemoryReference = CreateInMemoryReference( testContext, "Metalama.Tests.InMemoryReference" );
+        var skeletonReference = CreateSkeletonReference( testContext, "Metalama.Tests.SkeletonReference" );
 
         var compileTimeReferencePath = MetalamaPathUtilities.GetTempFileName();
 
@@ -128,7 +140,7 @@ public sealed class InMemoryMetadataReferenceTests : UnitTestClass
 
             var compilation = testContext.CreateCSharpCompilation(
                 _mainCode,
-                additionalReferences: [inMemoryReference, compileTimeReference] );
+                additionalReferences: [skeletonReference, compileTimeReference] );
 
             var repository = CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, compilation ).AssertNotNull();
 
@@ -146,18 +158,18 @@ public sealed class InMemoryMetadataReferenceTests : UnitTestClass
     }
 
     /// <summary>
-    /// Verifies that the whole compile-time pipeline runs and applies the aspect for a compilation that has a reference
-    /// created from a metadata image. This covers <c>TransitivePipelineContributorSource.Create</c>, which runs on every
-    /// pipeline execution and which the two tests above do not reach, because they only build the repository.
+    /// Verifies that the whole compile-time pipeline runs and applies the aspect for a compilation that has a skeleton
+    /// reference. This covers <c>TransitivePipelineContributorSource.Create</c>, which runs on every pipeline execution
+    /// and which the two tests above do not reach, because they only build the repository.
     /// </summary>
     [Fact]
     public async Task CompileTimePipelineRunsWhenReferenceHasNoFilePath()
     {
         using var testContext = this.CreateTestContext();
 
-        var inMemoryReference = CreateInMemoryReference( testContext, "Metalama.Tests.InMemoryReference" );
+        var skeletonReference = CreateSkeletonReference( testContext, "Metalama.Tests.SkeletonReference" );
 
-        var compilation = testContext.CreateCSharpCompilation( _mainCode, additionalReferences: [inMemoryReference] );
+        var compilation = testContext.CreateCSharpCompilation( _mainCode, additionalReferences: [skeletonReference] );
 
         var pipeline = new CompileTimeAspectPipeline( testContext.ServiceProvider );
         var diagnostics = new DiagnosticBag();
@@ -183,16 +195,16 @@ public sealed class InMemoryMetadataReferenceTests : UnitTestClass
 
     /// <summary>
     /// Verifies that the design-time pipeline, which is the one that every crash report comes from, executes for a
-    /// compilation that has a reference created from a metadata image.
+    /// compilation that has a skeleton reference.
     /// </summary>
     [Fact]
     public void DesignTimePipelineRunsWhenReferenceHasNoFilePath()
     {
         using var testContext = this.CreateTestContext();
 
-        var inMemoryReference = CreateInMemoryReference( testContext, "Metalama.Tests.InMemoryReference" );
+        var skeletonReference = CreateSkeletonReference( testContext, "Metalama.Tests.SkeletonReference" );
 
-        var compilation = testContext.CreateCSharpCompilation( _mainCode, additionalReferences: [inMemoryReference] );
+        var compilation = testContext.CreateCSharpCompilation( _mainCode, additionalReferences: [skeletonReference] );
 
         using var pipelineFactory = new TestDesignTimeAspectPipelineFactory( testContext );
 
@@ -208,25 +220,63 @@ public sealed class InMemoryMetadataReferenceTests : UnitTestClass
     }
 
     /// <summary>
-    /// Compiles <paramref name="assemblyName"/> and returns a reference to the resulting metadata image, without writing
-    /// the assembly to disk.
+    /// Builds the reference that Roslyn builds for a project reference that crosses a language boundary: the referenced
+    /// project is emitted metadata-only into memory, and the metadata is wrapped in a
+    /// <see cref="PortableExecutableReference"/> that has no <see cref="PortableExecutableReference.FilePath"/>.
     /// </summary>
-    private static PortableExecutableReference CreateInMemoryReference( TestContext testContext, string assemblyName )
+    /// <remarks>
+    /// The steps are the ones of <c>SolutionCompilationState.SkeletonReferenceCache.CreateAndTrackSkeletonReference</c>
+    /// and <c>SolutionCompilationState.SkeletonReferenceSet.GetOrCreateMetadataReference</c>: an emit with
+    /// <see cref="EmitOptions.EmitMetadataOnly"/> and without private members, then a reference that carries a display
+    /// name and no file path. The source is compiled as C#, because this test project does not reference the Visual Basic
+    /// language services. The language of the referenced project has no effect on what is tested here, because the
+    /// reference that reaches Metalama carries metadata and nothing else.
+    /// </remarks>
+    private static PortableExecutableReference CreateSkeletonReference( TestContext testContext, string assemblyName )
     {
         var compilation = testContext.CreateCSharpCompilation( _referencedCode, assemblyName: assemblyName );
 
         using var stream = new MemoryStream();
 
-        Emit( compilation, stream, assemblyName );
+        var emitResult = compilation.Emit( stream, options: new EmitOptions( metadataOnly: true, includePrivateMembers: false ) );
 
-        var reference = MetadataReference.CreateFromImage( stream.ToArray() );
+        if ( !emitResult.Success )
+        {
+            throw new InvalidOperationException(
+                $"Cannot emit '{assemblyName}': {string.Join( ", ", emitResult.Diagnostics.Select( d => d.ToString() ) )}" );
+        }
 
-        // The reference must really be the kind that the design-time host supplies, otherwise the test does not cover
-        // the intended path.
+        var reference = AssemblyMetadata.CreateFromImage( stream.ToArray() ).GetReference( display: assemblyName );
+
+        // The reference must have the shape that the design-time host supplies, otherwise the test does not cover the
+        // intended path.
         Assert.Null( reference.FilePath );
         Assert.Equal( "Microsoft.CodeAnalysis.MetadataImageReference", reference.GetType().FullName );
 
+        // A skeleton carries no manifest resource, because Roslyn passes none to that emit. The production code does not
+        // rely on this, and the assertion is here so that the test models a skeleton rather than an ordinary assembly.
+        Assert.Empty( GetManifestResourceNames( reference ) );
+
         return reference;
+    }
+
+    /// <summary>
+    /// Returns the names of the manifest resources of a reference. The names are in the metadata tables, so reading them
+    /// needs no access to the image of the referenced assembly.
+    /// </summary>
+    private static IEnumerable<string> GetManifestResourceNames( PortableExecutableReference reference )
+    {
+        var assemblyMetadata = (AssemblyMetadata) reference.GetMetadata();
+
+        foreach ( var module in assemblyMetadata.GetModules() )
+        {
+            var metadataReader = module.GetMetadataReader();
+
+            foreach ( var handle in metadataReader.ManifestResources )
+            {
+                yield return metadataReader.GetString( metadataReader.GetManifestResource( handle ).Name );
+            }
+        }
     }
 
     /// <summary>
