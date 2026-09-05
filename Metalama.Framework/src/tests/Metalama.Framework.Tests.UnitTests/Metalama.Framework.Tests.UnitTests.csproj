@@ -26,6 +26,13 @@
         <Compile Include="..\..\Metalama.Framework.CompilerExtensions\AssemblyResolutionPolicy.cs" Link="Utilities\AssemblyResolutionPolicy.cs" />
         <Compile Include="..\..\Metalama.Framework.CompilerExtensions\RoslynVariantPolicy.cs" Link="Utilities\RoslynVariantPolicy.cs" />
         <Compile Include="..\..\Metalama.Framework.CompilerExtensions\ProcessKindHelper.cs" Link="Utilities\ProcessKindHelper.cs" />
+
+        <!-- The classification of the host process is compiled here in the same way, so that one test can compare
+             what the two assemblies return. The METALAMA_BACKSTAGE symbol is not defined in this project, so these
+             two files declare their types in the Metalama.Framework.CompilerExtensions namespace, and the copy of
+             Metalama.Backstage comes from the package reference. -->
+        <Compile Include="$(MetalamaSharedProcessKindSourceDirectory)ProcessKind.cs" Link="Utilities\ProcessKind.cs" />
+        <Compile Include="$(MetalamaSharedProcessKindSourceDirectory)ProcessKindDetector.cs" Link="Utilities\ProcessKindDetector.cs" />
     </ItemGroup>
 
     <ItemGroup>

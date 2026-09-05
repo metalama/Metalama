@@ -24,6 +24,17 @@ public sealed class MetalamaGeneratedCodeAnalyzer : DiagnosticAnalyzer
             case ProcessKind.Format:
                 break;
 
+            case ProcessKind.LanguageServer:
+                // The language server of the Visual Studio Code C# Dev Kit. It is named explicitly, and not left
+                // to the default arm, so that it can be given its own entry point without another change to the
+                // classification.
+                ResourceExtractor.TryCreateInstance<DiagnosticAnalyzer>(
+                    "Metalama.Framework.Engine",
+                    "Metalama.Framework.Engine.GeneratedCodeAnalyzer",
+                    out this._impl );
+
+                break;
+
             default:
                 ResourceExtractor.TryCreateInstance<DiagnosticAnalyzer>(
                     "Metalama.Framework.Engine",

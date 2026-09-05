@@ -19,9 +19,21 @@ internal abstract partial class ProcessManagerBase : IProcessManager
         new KillableProcessSpec( "VBCSCompiler", KillableModuleKind.Both, true, true ),
         new KillableProcessSpec( "MSBuild", KillableModuleKind.Both, false, true ),
         new KillableProcessSpec( "servicehub.roslyncodeanalysisservice", KillableModuleKind.Both, false, false, "Visual Studio" ),
+
+        // Visual Studio 2026 runs the Roslyn analysis process under this name instead. See issue #1463.
+        new KillableProcessSpec( "devhub", KillableModuleKind.Both, false, false, "Visual Studio" ),
         new KillableProcessSpec( "jetbrains.resharper.roslyn.worker", KillableModuleKind.DotNet, false, false, "Rider/Resharper" ),
         new KillableProcessSpec( "jetbrains.roslyn.worker", KillableModuleKind.DotNet, false, false, "Rider/Resharper" ),
         new KillableProcessSpec( "omnisharp", KillableModuleKind.DotNet, false, false, "Visual Studio Code / Omnisharp" ),
+
+        // The language server of the Visual Studio Code C# Dev Kit. It runs either as its own executable or as an
+        // assembly under 'dotnet', so it is matched as both kinds of module.
+        new KillableProcessSpec(
+            "microsoft.codeanalysis.languageserver",
+            KillableModuleKind.Both,
+            false,
+            false,
+            "Visual Studio Code / C# Dev Kit" ),
 
         // The Backstage Worker runs under 'dotnet' (hosting Metalama.Backstage.Worker.dll), so it is matched as a DotNet module.
         new KillableProcessSpec( "Metalama.Backstage.Worker", KillableModuleKind.DotNet, false, true ),
