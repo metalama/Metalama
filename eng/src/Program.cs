@@ -16,6 +16,8 @@ using System;
 using System.IO;
 using MetalamaDependencies = PostSharp.Engineering.BuildTools.Dependencies.Definitions.MetalamaDependencies.V2026_1;
 
+var preferredVersions = MetalamaDependencies.Family.PreferredVersions;
+
 var product = new Product( MetalamaDependencies.Metalama )
 {
     BuildTimeout = TimeSpan.FromMinutes( 60 ),
@@ -24,14 +26,14 @@ var product = new Product( MetalamaDependencies.Metalama )
         Components =
         [
             // Must match global.json.
-            new DotNetComponent( PreferredVersions.DotNetSdk.V_10_0, DotNetComponentKind.Sdk ),
+            new DotNetComponent( preferredVersions.DotNetSdk.V_10_0, DotNetComponentKind.Sdk ),
 
             // The runtime is required by all tests.
             // The SDK is required by the Workspace tests.
-            new DotNetComponent( PreferredVersions.DotNetSdk.V_8_0, DotNetComponentKind.Sdk ),
+            new DotNetComponent( preferredVersions.DotNetSdk.V_8_0, DotNetComponentKind.Sdk ),
 
             // Required by eng and to provide net9.0 targeting pack.
-            new DotNetComponent( PreferredVersions.DotNetSdk.V_9_0, DotNetComponentKind.Sdk ),
+            new DotNetComponent( preferredVersions.DotNetSdk.V_9_0, DotNetComponentKind.Sdk ),
 
             // Required by some tests.
             new VisualStudioBuildToolsComponent(
@@ -52,7 +54,7 @@ var product = new Product( MetalamaDependencies.Metalama )
             new AzureCliComponent()
         ]
     },
-    DotNetSdkVersion = new DotNetSdkVersion( PreferredVersions.DotNetSdk.V_10_0 ) { AllowPrerelease = true },
+    DotNetSdkVersion = new DotNetSdkVersion( preferredVersions.DotNetSdk.V_10_0 ) { AllowPrerelease = true },
     GenerateNuGetConfig = true,
     MSBuildVersion = new Version( 17, 14 ),
     Solutions =
