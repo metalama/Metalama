@@ -52,6 +52,23 @@ internal static class LanguageVersionExtensions
         };
     }
 
+    /// <summary>
+    /// Returns <paramref name="version"/> when the Roslyn that this assembly is bound to recognizes it, and
+    /// <see cref="LanguageVersion.Preview"/> otherwise.
+    /// </summary>
+    /// <remarks>
+    /// A member of <see cref="AllLanguageVersions"/> is a numeric cast, so a source file can name a version that the
+    /// bound Roslyn does not declare, but a parser of that Roslyn rejects the value. The same features are reached
+    /// under <see cref="LanguageVersion.Preview"/> in the Roslyn releases that publish a feature before they name the
+    /// version that supports it, so this method returns the fallback in that case. The choice is made from the
+    /// running Roslyn and from no build flag, so the method stops returning the fallback by itself once Roslyn
+    /// declares the version. See issue #1935.
+    /// </remarks>
+    public static LanguageVersion OrPreviewIfNotSupported( this LanguageVersion version )
+        => LanguageVersionFacts.TryParse( version.ToDisplayStringSafe(), out var parsedVersion ) && parsedVersion == version
+            ? version
+            : LanguageVersion.Preview;
+
     private static string FormatNumericVersion( LanguageVersion version )
     {
         var numericVersion = (int) version;

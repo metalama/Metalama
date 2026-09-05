@@ -16,4 +16,5 @@ internal static class AllLanguageVersions
     public const LanguageVersion CSharp12 = (LanguageVersion) 1200;
     public const LanguageVersion CSharp13 = (LanguageVersion) 1300;
     public const LanguageVersion CSharp14 = (LanguageVersion) 1400;
+    public const LanguageVersion CSharp15 = (LanguageVersion) 1500;
 }

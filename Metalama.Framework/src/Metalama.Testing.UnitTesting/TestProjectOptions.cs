@@ -101,6 +101,8 @@ internal sealed class TestProjectOptions : DefaultProjectOptions, IDisposable
 
     public override bool FormatCompileTimeCode => this.TestContextOptions.FormatCompileTimeCode;
 
+    public override bool AllowPreviewLanguageFeatures => this.TestContextOptions.AllowPreviewLanguageFeatures;
+
     public override bool RequireOrderedAspects => this.TestContextOptions.RequireOrderedAspects;
 
     public ImmutableArray<Assembly> AdditionalAssemblies => this.TestContextOptions.AdditionalAssemblies;
