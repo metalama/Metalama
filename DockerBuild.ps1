@@ -423,12 +423,14 @@ try
                 }
             }
             $envVariables["NUGET_PACKAGES"] = $nugetPackages
-    Assert-NuGetPackagesPathSafe ($envVariables["NUGET_PACKAGES"])
+            Assert-NuGetPackagesPathSafe ($envVariables["NUGET_PACKAGES"])
         }
 
         # Add secrets from the PostSharpBuildEnv key vault, on our development machines.
         # On CI agents, these environment variables are supposed to be set by the host.
-        if ($LoadEnvFromKeyVault -or ($env:IS_POSTSHARP_OWNED -and -not $env:IS_TEAMCITY_AGENT))
+        # -BuildImage only builds the image; the secrets below are for the container run, so do not
+        # require an Azure login in that case.
+        if ($LoadEnvFromKeyVault -or ($env:IS_POSTSHARP_OWNED -and -not $env:IS_TEAMCITY_AGENT -and -not $BuildImage))
         {
             $moduleName = "Az.KeyVault"
 
@@ -534,7 +536,7 @@ try
             }
         }
         $claudeEnv["NUGET_PACKAGES"] = $nugetPackages
-    Assert-NuGetPackagesPathSafe ($claudeEnv["NUGET_PACKAGES"])
+        Assert-NuGetPackagesPathSafe ($claudeEnv["NUGET_PACKAGES"])
 
         # Process additional environment variables from -Env parameter
         # Supports both "NAME" (read from host) and "NAME=VALUE" (literal value) forms
@@ -870,13 +872,38 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
         {
             $cmd += @('--build-arg', "WINDOWS_VERSION=$windowsVersion")
         }
+
+        # Same for the OS image: only a root image declares it, and resolving it here (rather than up front)
+        # means the mirror is only consulted when a root image is genuinely being built. The Windows default
+        # root takes its tag from WINDOWS_VERSION and so declares a repository; every other root (Linux, and
+        # any product that pins its own base image) declares a complete reference.
+        if ($windowsVersion -and ($content -match 'ARG\s+OS_IMAGE_REPOSITORY=(\S+)'))
+        {
+            $cmd += @('--build-arg', "OS_IMAGE_REPOSITORY=$( (Get-OsImage $Matches[1] $windowsVersion).Repository )")
+        }
+        elseif ($content -match 'ARG\s+OS_IMAGE=(\S+)')
+        {
+            # Split the trailing tag off the reference; a ':' before the last '/' belongs to a registry port.
+            $ref = $Matches[1]
+            $slash = $ref.LastIndexOf('/')
+            $colon = $ref.LastIndexOf(':')
+            if ($colon -gt $slash) { $osRepository = $ref.Substring(0, $colon); $osTag = $ref.Substring($colon + 1) }
+            else { $osRepository = $ref; $osTag = 'latest' }
+
+            $cmd += @('--build-arg', "OS_IMAGE=$( (Get-OsImage $osRepository $osTag).Reference )")
+        }
         $cmd += $baseBuildArg
         $cmd += @('-f', '-', $ctxDir)
         Write-Host "Building $tag" -ForegroundColor Green
         Write-Host "Docker command: docker $( $cmd -join ' ' )" -ForegroundColor Cyan
         # Pipe docker output to the host so it does NOT become this function's return value (which would
         # otherwise pollute the tag string the caller folds into the next --build-arg BASE_IMAGE).
-        $content | & docker @cmd 2>&1 | Out-Host
+        #
+        # The config dir must be passed here too: `docker build` resolves the FROM itself, and when that is the
+        # OS mirror (or any other image in the private registry) it needs the credentials that the login wrote
+        # into the temporary config. Without it the build fails with "no basic auth credentials" on any agent
+        # whose default config is not already logged in.
+        $content | & docker @dockerConfigArg @cmd 2>&1 | Out-Host
         if ($LASTEXITCODE -ne 0) { Write-Host "Docker build failed for $tag (exit $LASTEXITCODE)" -ForegroundColor Red; exit $LASTEXITCODE }
         $script:builtNewImage = $true
     }
@@ -912,14 +939,169 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
             if ($Memory -and $Isolation -ne 'process') { $cmd += "--memory=$Memory" }
             $cmd += @('--build-arg', "MOUNTPOINTS=$mountPointsAsString", '-f', '-', $bootCtx)
             Write-Host "Building boot image $bootTag (bind-mount dirs) over $baseTag" -ForegroundColor Green
-            $content | & docker @cmd 2>&1 | Out-Host
+            # Its FROM is the local chain leaf, so no credentials are needed - but the config dir is passed for
+            # consistency with Build-OneImage, and costs nothing when it is empty.
+            $content | & docker @dockerConfigArg @cmd 2>&1 | Out-Host
             if ($LASTEXITCODE -ne 0) { Write-Host "Boot image build failed for $bootTag (exit $LASTEXITCODE)" -ForegroundColor Red; exit $LASTEXITCODE }
         }
         finally { Remove-Item $bootCtx -Recurse -Force -ErrorAction SilentlyContinue }
         return $bootTag
     }
 
-    # Ensure the image and its ancestors exist (parent first): use local, else pull, else build; queue a push
+    # Push one image to the registry in a background job, without waiting for it. The jobs are collected in
+    # $script:RegistryPushJobs and waited for at the end of the script, where a failed push fails the build.
+    function Start-AsyncPush([string]$tag)
+    {
+        if (-not $script:PushedTags.Add($tag))
+        {
+            return
+        }
+
+        Write-Host "  starting async push to registry" -ForegroundColor Cyan
+
+        # Copied to a local so that $using: captures it: $dockerConfigArg belongs to the enclosing scope.
+        $configArg = $dockerConfigArg
+
+        $pushJob = Start-Job -ScriptBlock {
+            docker @using:configArg push $using:tag 2>&1
+            $LASTEXITCODE
+        }
+
+        $script:RegistryPushJobs += [pscustomobject]@{ Tag = $tag; Job = $pushJob }
+    }
+
+    # Wait for ALL async registry push jobs to complete (each image pushed in its own job). A push that failed
+    # or timed out fails the script: an image missing from the registry is silently rebuilt from scratch by
+    # every later build, which costs far more than a red build here.
+    #
+    # Called on the normal path and again from the `finally` block, so that the failure of a later step never
+    # abandons a push in flight: the jobs die with the process, and a half-pushed image never becomes a tag in
+    # the registry. The job list is emptied here, so the second call is a no-op after a normal completion.
+    function Wait-ForRegistryPushes
+    {
+        if ($script:RegistryPushJobs.Count -eq 0)
+        {
+            return
+        }
+
+        Write-Host ""
+        Write-Host "Waiting for $( $script:RegistryPushJobs.Count ) registry push job(s) to complete..." -ForegroundColor Cyan
+
+        foreach ($entry in $script:RegistryPushJobs)
+        {
+            $completed = Wait-Job -Job $entry.Job -Timeout 1800  # 30 minute timeout per job
+            if ($completed)
+            {
+                $jobOutput = Receive-Job -Job $entry.Job
+                $exitCode = $jobOutput[-1]  # last item is the exit code
+                $output = if ($jobOutput.Count -gt 1) { $jobOutput[0..($jobOutput.Count - 2)] -join "`n" } else { "" }
+
+                if ($exitCode -eq 0)
+                {
+                    Write-Host "Registry push completed: $( $entry.Tag )" -ForegroundColor Green
+                }
+                else
+                {
+                    Write-Host "Registry push FAILED (exit $exitCode): $( $entry.Tag )" -ForegroundColor Red
+                    if ($output) { Write-Host "Push output: $output" -ForegroundColor Gray }
+                    $script:PushFailed = $true
+                }
+            }
+            else
+            {
+                Write-Host "Registry push TIMED OUT after 30 minutes: $( $entry.Tag )" -ForegroundColor Red
+                Stop-Job -Job $entry.Job
+                $script:PushFailed = $true
+            }
+            Remove-Job -Job $entry.Job -Force
+        }
+
+        $script:RegistryPushJobs = @()
+    }
+
+    # Resolve the OS image a root image is built FROM, mirroring it into the configured registry the first time
+    # it is needed. On a fresh agent the OS image is the most expensive download of the whole build, and the
+    # registry is on the LAN, so building from the mirror replaces an internet transfer with a local one.
+    # Agents that configure no registry (the cloud ones) go straight to the upstream registry, as before.
+    #
+    # Takes the upstream repository and tag, and returns an object with the Repository and the full Reference to
+    # build from - either the mirror or, when there is no registry (or the mirror cannot be created), upstream.
+    # Called only when a ROOT image is actually being built, so a run that pulls its whole chain never touches
+    # the mirror. Each distinct image is resolved once per run.
+    function Get-OsImage([string]$repository, [string]$tag)
+    {
+        $upstreamRef = "${repository}:${tag}"
+
+        if ($script:OsImages.ContainsKey($upstreamRef))
+        {
+            return $script:OsImages[$upstreamRef]
+        }
+
+        $upstream = [pscustomobject]@{ Repository = $repository; Reference = $upstreamRef }
+
+        if (-not $dockerRegistry)
+        {
+            $script:OsImages[$upstreamRef] = $upstream
+            return $upstream
+        }
+
+        # Flatten the upstream repository into a single product-neutral name, dropping the registry host:
+        # 'mcr.microsoft.com/windows/servercore' -> 'windows-servercore', 'ubuntu' -> 'ubuntu'. Every product
+        # using this registry then shares the one mirror.
+        $segments = $repository -split '/'
+        if ($segments.Length -gt 1 -and ($segments[0] -match '[.:]'))
+        {
+            $segments = $segments[1..($segments.Length - 1)]
+        }
+
+        $mirrorRepository = "$dockerRegistry/$( $segments -join '-' )"
+        $mirror = [pscustomobject]@{ Repository = $mirrorRepository; Reference = "${mirrorRepository}:${tag}" }
+
+        docker @dockerConfigArg manifest inspect $mirror.Reference *> $null
+        if ($LASTEXITCODE -eq 0)
+        {
+            # Pull it here, with the credentials from the temporary config, rather than leaving it to the FROM
+            # resolution inside `docker build`: the build only sees the credentials this script passes it, and
+            # an agent whose default config is not logged in would otherwise fail with "no basic auth
+            # credentials". Pulling it first also means the build never touches the registry at all.
+            Write-Host "Building from the OS image mirrored at $( $mirror.Reference )" -ForegroundColor Green
+            docker @dockerConfigArg pull $mirror.Reference 2>&1 | Out-Host
+
+            if ($LASTEXITCODE -ne 0)
+            {
+                # The mirror is unusable on this agent; upstream still is. Not fatal.
+                Write-Host "Could not pull the mirrored OS image; building from $upstreamRef." -ForegroundColor Yellow
+                $script:OsImages[$upstreamRef] = $upstream
+                return $upstream
+            }
+
+            $script:OsImages[$upstreamRef] = $mirror
+            return $mirror
+        }
+
+        # Not mirrored yet: take it from upstream this once and mirror it, so that every later build on every
+        # agent gets it from the registry. The push is normally near-instant even though the image is gigabytes:
+        # those exact blobs already underlie every chain image pushed so far, so the registry mounts them across
+        # repositories instead of receiving them again.
+        Write-Host "The OS image is not mirrored yet; pulling $upstreamRef to mirror it" -ForegroundColor Cyan
+        docker pull $upstreamRef 2>&1 | Out-Host
+
+        if ($LASTEXITCODE -ne 0)
+        {
+            # Not fatal: the build below pulls the same image from upstream anyway, and reports its own error.
+            Write-Host "Could not pull the OS image; building from $upstreamRef." -ForegroundColor Yellow
+            $script:OsImages[$upstreamRef] = $upstream
+            return $upstream
+        }
+
+        docker tag $upstreamRef $mirror.Reference | Out-Null
+        Start-AsyncPush $mirror.Reference
+        $script:OsImages[$upstreamRef] = $mirror
+
+        return $mirror
+    }
+
+    # Ensure the image and its ancestors exist (parent first): use local, else pull, else build; start a push
     # when building in registry mode. Returns the image tag.
     function Ensure-Image([string]$dfPath)
     {
@@ -958,16 +1140,16 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
             Build-OneImage $dfPath $tag $baseBuildArg
         }
 
-        # Queue an async push if the image isn't already in the registry. Pushes run in background jobs started
-        # after ALL builds (so a push never overlaps a host docker build) and are waited for at the end. The
-        # Claude leaf is excluded (see $isClaudeLeaf above): it is local-only and never enters the registry.
+        # Push the image as soon as it exists, if it isn't already in the registry: the push then overlaps the
+        # builds of the images above it in the chain instead of waiting for all of them. The job is waited for
+        # at the end of the script. The Claude leaf is excluded (see $isClaudeLeaf above): it is local-only and
+        # never enters the registry.
         if ($dockerRegistry -and -not $isClaudeLeaf)
         {
             docker @dockerConfigArg manifest inspect $tag *> $null
             if ($LASTEXITCODE -ne 0)
             {
-                Write-Host "  queued for async push to registry" -ForegroundColor Cyan
-                $script:ImagesToPush += $tag
+                Start-AsyncPush $tag
             }
         }
         return $tag
@@ -976,10 +1158,26 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
     # Dictionary to track volume mounts with "writable wins" logic
     $script:VolumeMountDict = @{ }
 
-    # Async registry push: images are queued during chain resolution, pushed in background jobs started after
-    # ALL builds complete (so a push never overlaps a host docker build), and all waited for at the end.
-    $script:ImagesToPush = @()
+    # Async registry push: each image is pushed in its own background job, started by Ensure-Image as soon as
+    # the image exists, and waited for at the very end of the script. A push therefore overlaps the builds that
+    # follow it and the container run.
     $script:RegistryPushJobs = @()
+
+    # Set by Wait-ForRegistryPushes when any push failed, and read on both exit paths (normal completion and
+    # the `finally` block).
+    $script:PushFailed = $false
+
+    # The exit code the script has decided on, so that the `finally` block can tell a build that is failing for
+    # another reason from one that would otherwise have succeeded.
+    $script:ExitCode = 0
+
+    # OS images the root images are built FROM, keyed by upstream reference and resolved on first use by
+    # Get-OsImage.
+    $script:OsImages = @{ }
+
+    # Tags already handed to Start-AsyncPush, so that resolving the same image twice (the run step resolves the
+    # chain again) does not push it twice.
+    $script:PushedTags = [System.Collections.Generic.HashSet[string]]::new( [StringComparer]::Ordinal )
 
     # Tag of the local, run-specific boot image (set by New-BootImage); removed after the container exits.
     $script:BootImageTag = $null
@@ -1864,15 +2062,25 @@ $envVarAssignments$gitConfigCommands$postInitCommands
 
             $dockerPassword = $env:DOCKER_PASSWORD
             $dockerUsername = $env:DOCKER_USERNAME
-            if ($dockerPassword -and $dockerUsername)
+
+            # Setting DOCKER_REGISTRY without credentials is a configuration error, not a request for anonymous
+            # access: continuing would silently rebuild every ancestor locally (no pull) and then fail the pushes
+            # at the end of the build anyway, after a long and misleading build.
+            $missingCredentials = @()
+            if (-not $dockerUsername) { $missingCredentials += "DOCKER_USERNAME" }
+            if (-not $dockerPassword) { $missingCredentials += "DOCKER_PASSWORD" }
+            if ($missingCredentials)
             {
-                Write-Host "Authenticating to registry..." -ForegroundColor Gray
-                $dockerPassword | docker @dockerConfigArg login $dockerRegistry --username $dockerUsername --password-stdin 2> $null
-                if ($LASTEXITCODE -ne 0) { Write-Host "Warning: Registry authentication failed. Pull/push may fail." -ForegroundColor Yellow }
+                Write-Error "DOCKER_REGISTRY is set to '$dockerRegistry' but $( $missingCredentials -join " and " ) $( if ($missingCredentials.Count -eq 1) { "is" } else { "are" } ) not set. Set the missing variable(s), or unset DOCKER_REGISTRY to build without a registry."
+                exit 1
             }
-            else
+
+            Write-Host "Authenticating to registry..." -ForegroundColor Gray
+            $loginOutput = $dockerPassword | docker @dockerConfigArg login $dockerRegistry --username $dockerUsername --password-stdin 2>&1
+            if ($LASTEXITCODE -ne 0)
             {
-                Write-Host "Warning: DOCKER_USERNAME/DOCKER_PASSWORD not set. Registry pull/push may fail." -ForegroundColor Yellow
+                Write-Error "Registry authentication to '$dockerRegistry' failed as user '$dockerUsername': $( $loginOutput -join [System.Environment]::NewLine )"
+                exit 1
             }
         }
 
@@ -1901,20 +2109,6 @@ $envVarAssignments$gitConfigCommands$postInitCommands
     {
         $ImageTag = New-BootImage $ImageTag
     }
-
-    # Start the async registry pushes now - after every host build (chain + boot) is done, so a push never runs
-    # concurrently with a docker build. Each queued image pushes in its own background job; they overlap the
-    # container run and are all waited for at the end.
-    foreach ($pushTag in ($script:ImagesToPush | Select-Object -Unique))
-    {
-        Write-Host "Starting async push to registry: $pushTag" -ForegroundColor Cyan
-        $pushJob = Start-Job -ScriptBlock {
-            docker @using:dockerConfigArg push $using:pushTag 2>&1
-            $LASTEXITCODE
-        }
-        $script:RegistryPushJobs += [pscustomobject]@{ Tag = $pushTag; Job = $pushJob }
-    }
-
 
     # Run the build within the container
     if (-not $BuildImage)
@@ -2180,39 +2374,7 @@ $envVarAssignments$gitConfigCommands$postInitCommands
         Write-Host "Skipping container run (BuildImage specified)." -ForegroundColor Yellow
     }
 
-    # Wait for ALL async registry push jobs to complete (each image pushed in its own job).
-    if ($script:RegistryPushJobs.Count -gt 0)
-    {
-        Write-Host ""
-        Write-Host "Waiting for $( $script:RegistryPushJobs.Count ) registry push job(s) to complete..." -ForegroundColor Cyan
-
-        foreach ($entry in $script:RegistryPushJobs)
-        {
-            $completed = Wait-Job -Job $entry.Job -Timeout 1800  # 30 minute timeout per job
-            if ($completed)
-            {
-                $jobOutput = Receive-Job -Job $entry.Job
-                $exitCode = $jobOutput[-1]  # last item is the exit code
-                $output = if ($jobOutput.Count -gt 1) { $jobOutput[0..($jobOutput.Count - 2)] -join "`n" } else { "" }
-
-                if ($exitCode -eq 0)
-                {
-                    Write-Host "Registry push completed: $( $entry.Tag )" -ForegroundColor Green
-                }
-                else
-                {
-                    Write-Host "Registry push FAILED (exit $exitCode): $( $entry.Tag )" -ForegroundColor Yellow
-                    if ($output) { Write-Host "Push output: $output" -ForegroundColor Gray }
-                }
-            }
-            else
-            {
-                Write-Host "Registry push timed out (still running in background): $( $entry.Tag )" -ForegroundColor Yellow
-                Stop-Job -Job $entry.Job
-            }
-            Remove-Job -Job $entry.Job -Force
-        }
-    }
+    Wait-ForRegistryPushes
 
     # Stop timing and display results
     $elapsed = $stopwatch.Elapsed
@@ -2220,10 +2382,30 @@ $envVarAssignments$gitConfigCommands$postInitCommands
     Write-Host "Total build time: $($elapsed.ToString('hh\:mm\:ss\.fff') )" -ForegroundColor Cyan
     Write-Host "Build completed at: $( Get-Date -Format 'yyyy-MM-dd HH:mm:ss' )" -ForegroundColor Cyan
 
-    exit $dockerExitCode
+    # The container's own exit code wins when both failed: it says more about what went wrong than the push does.
+    # $dockerExitCode is $null when the container was not run at all (-BuildImage).
+    if ($dockerExitCode)
+    {
+        $script:ExitCode = $dockerExitCode
+    }
+    elseif ($script:PushFailed)
+    {
+        Write-Host "The build failed because at least one registry push failed." -ForegroundColor Red
+        $script:ExitCode = 1
+    }
+
+    exit $script:ExitCode
 }
 finally
 {
+    # Never abandon a push that is still in flight. On the normal path the jobs have already been waited for
+    # (and the list emptied), so this only does something when a later step failed or was interrupted - exactly
+    # when the push would otherwise die with the process and leave the image out of the registry.
+    if ($script:RegistryPushJobs.Count -gt 0)
+    {
+        Wait-ForRegistryPushes
+    }
+
     # Safety-net rebalance on Ctrl+C or unexpected exit
     if ($isDynamicCpus)
     {
@@ -2243,4 +2425,12 @@ finally
 
     # Restore original location
     Pop-Location
+
+    # A failed push must fail the build even when the script is unwinding from another failure. A non-zero
+    # $script:ExitCode means the script already decided to fail, and that reason is the more informative one.
+    if ($script:PushFailed -and $script:ExitCode -eq 0)
+    {
+        Write-Host "The build failed because at least one registry push failed." -ForegroundColor Red
+        exit 1
+    }
 }
