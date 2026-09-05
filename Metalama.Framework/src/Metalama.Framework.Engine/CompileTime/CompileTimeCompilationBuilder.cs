@@ -1352,7 +1352,7 @@ internal sealed partial class CompileTimeCompilationBuilder
         var compilation = this.CreateEmptyCompileTimeCompilation(
                 outputPaths.CompileTimeAssemblyName,
                 referencedProjects,
-                manifest.LanguageVersion ?? SupportedCSharpVersions.Latest,
+                manifest.ResolvedLanguageVersion,
                 new TransformedPathGenerator() )
             .AddSyntaxTrees( syntaxTrees );
 
