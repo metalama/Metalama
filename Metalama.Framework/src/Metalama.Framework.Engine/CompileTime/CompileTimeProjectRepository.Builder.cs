@@ -321,7 +321,18 @@ internal sealed partial class CompileTimeProjectRepository
                         out referencedProject );
 
                 default:
-                    throw new AssertionFailedException( $"Unexpected reference kind: {reference}." );
+                    // The compile-time project of this reference cannot be located. This happens for a
+                    // PortableExecutableReference whose FilePath is null, which is what MetadataReference.CreateFromImage
+                    // and MetadataReference.CreateFromStream return when a host supplies the metadata as bytes instead
+                    // of as a file on disk. Skipping the reference degrades the aspect support of that one reference,
+                    // whereas failing here aborts the initialization of the pipeline for the whole project. See #1960.
+                    this._logger.Warning?.Log(
+                        $"The compile-time project of the reference '{reference.Display}' of kind '{reference.GetType().Name}' cannot be "
+                        + "located, because the reference is not backed by a file. The reference is skipped." );
+
+                    referencedProject = null;
+
+                    return true;
             }
         }
 
