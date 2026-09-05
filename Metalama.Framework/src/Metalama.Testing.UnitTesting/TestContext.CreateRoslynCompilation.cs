@@ -105,7 +105,13 @@ public partial class TestContext
                 typeof(IAspectWeaver).Assembly,
                 typeof(ITemplateSyntaxFactory).Assembly,
                 typeof(FieldOrPropertyInfo).Assembly,
-                typeof(UnitTestClass).Assembly
+                typeof(UnitTestClass).Assembly,
+
+                // The signatures of the async iterator templates of OverrideMethodAspect name IAsyncEnumerable{T} and
+                // IAsyncEnumerator{T}. On .NET Framework these types come from Microsoft.Bcl.AsyncInterfaces, which a
+                // real project obtains as a dependency of Metalama.Framework.Redist. Without this reference the
+                // templates cannot be resolved and the pipeline reports LAMA0268.
+                typeof(IAsyncEnumerable<>).Assembly
             ] );
 
             assemblies.AddRange( this.TestProjectOptions.AdditionalAssemblies );
