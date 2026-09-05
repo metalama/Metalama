@@ -155,21 +155,24 @@ internal sealed partial class TransitivePipelineContributorSource : IExternalHie
 
                     break;
 
-                default:
-                    // The transitive aspect manifest of this reference cannot be read. This happens for a
-                    // PortableExecutableReference whose FilePath is null, which is what MetadataReference.CreateFromImage
-                    // and MetadataReference.CreateFromStream return when a host supplies the metadata as bytes instead of
-                    // as a file on disk. Skipping the reference means that the aspects it may inherit are not applied,
-                    // whereas failing here aborts the execution of the pipeline for the whole project. This is the same
-                    // decision as in CompileTimeProjectRepository.Builder.TryGetCompileTimeProject, which skips the very
-                    // same reference. See #1960.
+                case PortableExecutableReference { FilePath: null }:
+                    // The transitive aspect manifest of a reference is read from the file of the referenced assembly,
+                    // so it cannot be read for a reference whose metadata is not backed by a file. This is the same
+                    // reference, and the same decision, as in CompileTimeProjectRepository.Builder
+                    // .TryGetCompileTimeProject, whose comment states why the skip loses nothing: the reference is
+                    // Roslyn's metadata-only "skeleton" for a project reference that crosses a language boundary, and a
+                    // project of another language than the consuming C# one carries no Metalama compile-time code and
+                    // therefore no inheritable aspect. Failing here would abort the execution of the pipeline for the
+                    // whole project, and does so on every execution rather than only on initialization. See #1960.
                     serviceProvider.GetLoggerFactory()
                         .GetLogger( nameof(TransitivePipelineContributorSource) )
-                        .Warning?.Log(
-                            $"The transitive aspect manifest of the reference '{reference.Display}' of kind '{reference.GetType().Name}' "
-                            + "cannot be read, because the reference is not backed by a file. The reference is skipped." );
+                        .Trace?.Log(
+                            $"The reference '{reference.Display}' has no file path, so its transitive aspect manifest cannot be read. The reference is skipped." );
 
                     continue;
+
+                default:
+                    throw new AssertionFailedException( $"Unexpected reference kind: {reference}." );
             }
 
             // Process the manifest.
