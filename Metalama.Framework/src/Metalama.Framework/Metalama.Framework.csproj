@@ -48,6 +48,12 @@
 
         <PackageReference Include="Microsoft.Bcl.HashCode" Condition="'$(TargetFramework)'=='netstandard2.0'" />
 
+        <!-- Supplies IAsyncEnumerable<T>, IAsyncEnumerator<T> and the async iterator state machine types, which the
+             netstandard2.0 target framework does not have. The Metalama.Framework.RunTime helpers that buffer an async
+             iterator are compiled for netstandard2.0 as well, because a project targeting netstandard2.0, net472,
+             net8.0 or net9.0 resolves the netstandard2.0 asset of this package. -->
+        <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Condition="'$(TargetFramework)'=='netstandard2.0'" />
+
         <!-- We are stuck with a low version of System.Collections.Immutable because our code needs to run with Roslyn 4.0. -->
         <PackageReference Include="System.Collections.Immutable" />
     </ItemGroup>

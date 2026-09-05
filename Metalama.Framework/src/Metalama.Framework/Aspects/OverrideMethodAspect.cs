@@ -152,7 +152,6 @@ namespace Metalama.Framework.Aspects
         [Template( IsEmpty = true )]
         public virtual IEnumerator<dynamic?> OverrideEnumeratorMethod() => throw new NotSupportedException();
 
-#if NET5_0_OR_GREATER
         /// <summary>
         /// Template of the new method implementation for methods returning <see cref="IAsyncEnumerable{T}"/>. By default, this template is used for methods using the <c>yield</c> statement with <c>async</c>.
         /// When <see cref="UseEnumerableTemplateForAnyEnumerable"/> is <c>true</c>, this template is used for all methods returning <see cref="IAsyncEnumerable{T}"/>.
@@ -168,7 +167,6 @@ namespace Metalama.Framework.Aspects
         /// </summary>
         [Template( IsEmpty = true )]
         public virtual IAsyncEnumerator<dynamic?> OverrideAsyncEnumeratorMethod() => throw new NotSupportedException();
-#endif
 
         /// <summary>
         /// The default template for overriding method implementations.

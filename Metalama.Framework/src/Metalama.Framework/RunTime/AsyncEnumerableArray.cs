@@ -2,7 +2,6 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-#if NET5_0_OR_GREATER
 using JetBrains.Annotations;
 using System;
 using System.Collections;
@@ -60,4 +59,3 @@ public sealed class AsyncEnumerableArray<T> : IReadOnlyList<T>, IAsyncEnumerable
 #pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
 }
 
-#endif
