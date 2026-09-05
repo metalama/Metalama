@@ -99,7 +99,7 @@ public sealed class ProcessKindTests
     /// Gets the rows of <see cref="_testCases"/> in the form that <see cref="MemberDataAttribute"/> requires.
     /// </summary>
     public static IEnumerable<object[]> TestCases
-        => _testCases.Select( c => new object[] { c.ProcessName, c.CommandLine, c.ExpectedProcessKind } );
+        => _testCases.SelectAsArray( c => new object[] { c.ProcessName, c.CommandLine, c.ExpectedProcessKind } );
 
     /// <summary>
     /// Verifies that the two assemblies classify the host process into the same set of kinds. The test fails when
@@ -165,7 +165,7 @@ public sealed class ProcessKindTests
             .OrderBy( k => k.ToString(), StringComparer.Ordinal );
 
         var coveredKinds = _testCases
-            .Select( c => c.ExpectedProcessKind )
+            .SelectAsArray( c => c.ExpectedProcessKind )
             .Distinct()
             .OrderBy( k => k.ToString(), StringComparer.Ordinal );
 
