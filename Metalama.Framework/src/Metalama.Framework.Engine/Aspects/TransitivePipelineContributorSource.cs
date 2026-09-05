@@ -155,6 +155,22 @@ internal sealed partial class TransitivePipelineContributorSource : IExternalHie
 
                     break;
 
+                case PortableExecutableReference { FilePath: null }:
+                    // The transitive aspect manifest of a reference is read from the file of the referenced assembly,
+                    // so it cannot be read for a reference whose metadata is not backed by a file. This is the same
+                    // reference, and the same decision, as in CompileTimeProjectRepository.Builder
+                    // .TryGetCompileTimeProject, whose comment states why the skip loses nothing: the reference is
+                    // Roslyn's metadata-only "skeleton" for a project reference that crosses a language boundary, and a
+                    // project of another language than the consuming C# one carries no Metalama compile-time code and
+                    // therefore no inheritable aspect. Failing here would abort the execution of the pipeline for the
+                    // whole project, and does so on every execution rather than only on initialization. See #1960.
+                    serviceProvider.GetLoggerFactory()
+                        .GetLogger( nameof(TransitivePipelineContributorSource) )
+                        .Trace?.Log(
+                            $"The reference '{reference.Display}' has no file path, so its transitive aspect manifest cannot be read. The reference is skipped." );
+
+                    continue;
+
                 default:
                     throw new AssertionFailedException( $"Unexpected reference kind: {reference}." );
             }
