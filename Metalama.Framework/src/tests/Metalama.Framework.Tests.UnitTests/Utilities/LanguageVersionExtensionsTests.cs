@@ -14,8 +14,8 @@ namespace Metalama.Framework.Tests.UnitTests.Utilities;
 /// diagnostic message. The method must never throw, because it is called while the arguments of
 /// <c>LAMA0051</c> and <c>LAMA0052</c> are built, and an exception there replaces the intended diagnostic by
 /// <c>LAMA0001</c>. See issue #1928. The tests of
-/// <see cref="LanguageVersionExtensions.OrPreviewIfNotSupported"/> are here as well, because that method is built on
-/// the same formatting. See issue #1935.
+/// <see cref="LanguageVersionExtensions.OrPreviewIfNotSupported"/> are here as well, because that method is declared
+/// by the same class. See issue #1935.
 /// </summary>
 public sealed class LanguageVersionExtensionsTests
 {

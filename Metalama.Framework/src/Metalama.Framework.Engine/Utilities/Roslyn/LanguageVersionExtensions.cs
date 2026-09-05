@@ -63,11 +63,14 @@ internal static class LanguageVersionExtensions
     /// version that supports it, so this method returns the fallback in that case. The choice is made from the
     /// running Roslyn and from no build flag, so the method stops returning the fallback by itself once Roslyn
     /// declares the version. See issue #1935.
+    /// <para>
+    /// <see cref="Enum.IsDefined(Type,object)"/> reads the enumeration of the Roslyn assembly that is loaded, which is
+    /// the assembly whose parser receives the value, and it is the same test as the internal
+    /// <c>LanguageVersionFacts.IsValid</c> of Roslyn.
+    /// </para>
     /// </remarks>
     public static LanguageVersion OrPreviewIfNotSupported( this LanguageVersion version )
-        => LanguageVersionFacts.TryParse( version.ToDisplayStringSafe(), out var parsedVersion ) && parsedVersion == version
-            ? version
-            : LanguageVersion.Preview;
+        => Enum.IsDefined( typeof(LanguageVersion), version ) ? version : LanguageVersion.Preview;
 
     private static string FormatNumericVersion( LanguageVersion version )
     {
