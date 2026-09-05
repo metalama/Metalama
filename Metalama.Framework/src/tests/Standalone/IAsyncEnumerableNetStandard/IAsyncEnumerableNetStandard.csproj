@@ -1,8 +1,15 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
     
+  <!-- net8.0 and netstandard2.0 both resolve the netstandard2.0 asset of Metalama.Framework.Redist, which is where
+       issue #1963 was observed. They resolve it through different assets of Microsoft.Bcl.AsyncInterfaces: netstandard2.0
+       gets the assembly that declares IAsyncEnumerable<T>, and net8.0 gets the facade that forwards the type to the
+       framework. Both legs are therefore kept.
+       net8.0 is an untested target framework in the 2027.0 matrix and would report LAMA0600. See issue #1884. -->
+
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.0;net10.0</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <OutputType>Library</OutputType>
+    <NoWarn>$(NoWarn);LAMA0600</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
