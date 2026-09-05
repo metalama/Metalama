@@ -33,6 +33,11 @@ internal static class RoslynPreview
     /// </summary>
     public static IReadOnlySet<string> KeptGrammarFeatures { get; } = ReadKeptGrammarFeatures();
 
+    /// <summary>
+    /// Reads the value that <c>eng/src/Directory.Build.props</c> writes into the assembly metadata under
+    /// <see cref="_keptGrammarFeaturesKey"/>, and splits it into a set. An absent value yields an empty set,
+    /// which is the disabled state of the opt-in.
+    /// </summary>
     private static IReadOnlySet<string> ReadKeptGrammarFeatures()
     {
         var value = typeof(RoslynPreview).Assembly
