@@ -41,8 +41,14 @@ public sealed class ProcessKindTests
     /// </summary>
     private const string _compilerExtensionsAssemblyPathKey = "CompilerExtensionsAssemblyPath";
 
+    /// <summary>
+    /// The namespace in which <c>Metalama.Framework.CompilerExtensions</c> declares the shared types.
+    /// </summary>
     private const string _compilerExtensionsNamespace = "Metalama.Framework.CompilerExtensions";
 
+    /// <summary>
+    /// The assembly <c>Metalama.Framework.CompilerExtensions.dll</c>, loaded once for the whole test class.
+    /// </summary>
     private static readonly Lazy<Assembly> _compilerExtensionsAssembly = new( LoadCompilerExtensionsAssembly );
 
     /// <summary>
