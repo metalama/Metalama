@@ -1,0 +1,7 @@
+HashMatchesCompiler: True
+ToStringMatchesCompiler: True
+Equals(same): True
+Equals(different): False
+Operator==: True
+Operator!=: True
+Deconstruct: 1, x

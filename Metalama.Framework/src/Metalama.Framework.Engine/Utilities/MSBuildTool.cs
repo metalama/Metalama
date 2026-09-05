@@ -50,7 +50,10 @@ public sealed class MSBuildTool
 
         // Remove environment variables that can interfere with MSBuild execution.
         // These variables may point to .NET SDK paths that conflict with Visual Studio's MSBuild.
-        var variablesToRemove = new[] { "DOTNET_ROOT_X64", "MSBUILD_EXE_PATH", "MSBuildSDKsPath", "Configuration" };
+        var variablesToRemove = new[]
+        {
+            "DOTNET_ROOT_X64", "MSBUILD_EXE_PATH", "MSBuildSDKsPath", "MSBuildExtensionsPath", "Configuration"
+        };
 
         foreach ( var key in startInfo.Environment.Keys
                      .Where( k => variablesToRemove.Any( v => k.Equals( v, StringComparison.OrdinalIgnoreCase ) ) )

@@ -17,6 +17,12 @@
              every run exercises the failure rather than reading a cached result. See README.md. -->
         <MetalamaAssemblyLocatorHooksDirectory>$(MSBuildThisFileDirectory)AssemblyLocatorHooks</MetalamaAssemblyLocatorHooksDirectory>
         <MetalamaAssemblyLocatorSalt>Issue1744.HooksFailure</MetalamaAssemblyLocatorSalt>
+
+        <!-- The nested build writes its binary log under the temporary directory of the machine, which a continuous
+             integration agent discards together with the container that ran the build. That log is the only artifact
+             from which the failure can be diagnosed after the fact, so it is copied into the artifacts directory,
+             from which the build publishes it. -->
+        <MetalamaAssemblyLocatorBinaryLogDirectory>$([MSBuild]::NormalizeDirectory(`$(RepoDirectory)artifacts\logs`))</MetalamaAssemblyLocatorBinaryLogDirectory>
     </PropertyGroup>
 
     <ItemGroup>

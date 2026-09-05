@@ -11,8 +11,7 @@ namespace Metalama.Backstage.Licensing.Licenses;
 
 /// <summary>
 /// Base implementation of <see cref="ILicensingAuthorityProvider"/>. It creates the authority of a key, and therefore
-/// the <see cref="System.Security.Cryptography.DSA"/> object of that key, when the authority is required for the first
-/// time.
+/// the cryptographic object of that key, when the authority is required for the first time.
 /// </summary>
 /// <remarks>
 /// The authority is not created while the licensing services are registered, because an unsigned license key requires

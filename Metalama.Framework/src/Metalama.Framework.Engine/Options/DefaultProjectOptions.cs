@@ -53,7 +53,7 @@ public class DefaultProjectOptions : IProjectOptions
         }
     }
 
-    public virtual string? TargetFramework => "net8.0";
+    public virtual string? TargetFramework => "net10.0";
 
     public virtual string? TargetFrameworkMoniker => null;
 
@@ -109,6 +109,8 @@ public class DefaultProjectOptions : IProjectOptions
     public virtual bool IsTest => false;
 
     public virtual string? AssemblyLocatorHooksDirectory => null;
+
+    public virtual string? AssemblyLocatorBinaryLogDirectory => null;
 
     public virtual string? TemplateLanguageVersion => null;
 

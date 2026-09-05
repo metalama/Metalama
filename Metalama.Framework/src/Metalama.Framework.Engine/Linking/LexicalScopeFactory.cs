@@ -172,12 +172,8 @@ internal sealed partial class LexicalScopeFactory : ITemplateLexicalScopeProvide
 
                             // Otherwise (e.g. for implicit constructors), take the containing type.
                             case { ContainingType: { } containingType }:
-                                syntaxReference = containingType.GetPrimarySyntaxReference();
-
-                                if ( syntaxReference == null )
-                                {
-                                    throw new AssertionFailedException( $"No syntax for '{containingType}'." );
-                                }
+                                syntaxReference = containingType.GetPrimarySyntaxReference()
+                                                  ?? throw new AssertionFailedException( $"No syntax for '{containingType}'." );
 
                                 break;
 

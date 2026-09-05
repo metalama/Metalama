@@ -182,6 +182,12 @@ namespace Metalama.Framework.Engine.Linking
                 nonInlinedSemantics,
                 out var overrideTargetsWithUnsupportedNonInlinedOverrides );
 
+            VerifyRecordMemberMaterialization(
+                input.InjectionRegistry,
+                input.SourceCompilationModel.CompilationContext,
+                input.DiagnosticSink,
+                reachableSemantics );
+
             var forcefullyInitializedSymbols = GetForcefullyInitializedSymbols( input.InjectionRegistry, reachableSemantics );
             var forcefullyInitializedTypes = GetForcefullyInitializedTypes( input.IntermediateCompilation, forcefullyInitializedSymbols );
 
@@ -907,6 +913,106 @@ namespace Metalama.Framework.Engine.Linking
             }
 
             overrideTargetsWithUnsupportedNonInlinedOverrides = overrideTargets;
+        }
+
+        /// <summary>
+        /// Reports the compiler-synthesized record members whose original implementation the linker materializes, and whose
+        /// generated body cannot read a backing field that the body synthesized by the C# compiler reads.
+        /// </summary>
+        /// <remarks>
+        /// The backing field of an auto-property has no name that can be written in source code, so the generated body reads
+        /// the property, unless the linker emits an explicit backing field for it. The generated body and the body that the
+        /// C# compiler synthesizes then differ in three cases. A derived type can override the property, and C# offers no way
+        /// to read one's own property non-virtually. The getter of a property declared with the <c>field</c> keyword can
+        /// return a value other than the one that the backing field holds. An aspect can also replace the implementation of
+        /// the property without calling the original implementation, in which case the property has no backing field left to
+        /// read. The same replacement applied to a field-like event leaves the generated body without anything to read at
+        /// all, because the name of an event that carries no backing field is not an expression. None of these cases can be
+        /// corrected in generated source, so all of them are reported.
+        /// </remarks>
+        private static void VerifyRecordMemberMaterialization(
+            LinkerInjectionRegistry injectionRegistry,
+            CompilationContext sourceCompilationContext,
+            UserDiagnosticSink diagnosticSink,
+            HashSet<IntermediateSymbolSemantic> reachableSemantics )
+        {
+            foreach ( var semantic in reachableSemantics )
+            {
+                if ( semantic.Kind != IntermediateSymbolSemanticKind.Default
+                     || semantic.Symbol.Kind != SymbolKind.Method
+                     || semantic.Symbol is not IMethodSymbol { IsImplicitlyDeclared: true } method )
+                {
+                    continue;
+                }
+
+                // Only Equals and GetHashCode read the fields of the record. PrintMembers reads the properties, which is
+                // what the C# compiler does as well.
+                if ( SynthesizedRecordMemberBodyGenerator.GetMemberKind( method )
+                     is not (SynthesizedRecordMemberKind.Equals or SynthesizedRecordMemberKind.GetHashCode) )
+                {
+                    continue;
+                }
+
+                var properties = SynthesizedRecordMemberBodyGenerator.GetAutoPropertiesReadThroughProperty(
+                    method.ContainingType,
+                    HasMaterializedBackingField );
+
+                foreach ( var property in properties )
+                {
+                    // An aspect that overrides the property without calling the original implementation removes its backing
+                    // field, so the generated body compares the value that the aspect returns. A property declared with the
+                    // 'field' keyword computes the value that its getter returns. Otherwise, the property and its backing
+                    // field hold the same value, and the two implementations differ only when a derived type overrides the
+                    // property.
+                    var descriptor =
+                        injectionRegistry.IsOverrideTarget( property )
+                            ? AspectLinkerDiagnosticDescriptors.SynthesizedRecordMemberReadsReplacedProperty
+                            : !SynthesizedRecordMemberBodyGenerator.GetterReadsBackingField( property )
+                                ? AspectLinkerDiagnosticDescriptors.SynthesizedRecordMemberReadsSemiAutoProperty
+                                : property.IsVirtual || (property.IsOverride && !property.IsSealed)
+                                    ? AspectLinkerDiagnosticDescriptors.SynthesizedRecordMemberReadsPropertyVirtually
+                                    : null;
+
+                    if ( descriptor == null )
+                    {
+                        continue;
+                    }
+
+                    // Map the diagnostic location from the intermediate compilation to the source compilation (#818).
+                    var diagnosticLocation = LinkerDiagnosticMapper.GetSourceLocation( property, sourceCompilationContext )
+                                             ?? property.GetDiagnosticLocation();
+
+                    diagnosticSink.Report( descriptor.CreateRoslynDiagnostic( diagnosticLocation, (method, method.ContainingType, property) ) );
+                }
+
+                var events = SynthesizedRecordMemberBodyGenerator.GetEventFieldsWithoutReadableBackingField(
+                    method.ContainingType,
+                    HasReadableBackingField );
+
+                foreach ( var @event in events )
+                {
+                    // Map the diagnostic location from the intermediate compilation to the source compilation (#818).
+                    var diagnosticLocation = LinkerDiagnosticMapper.GetSourceLocation( @event, sourceCompilationContext )
+                                             ?? @event.GetDiagnosticLocation();
+
+                    diagnosticSink.Report(
+                        AspectLinkerDiagnosticDescriptors.SynthesizedRecordMemberReadsReplacedEvent.CreateRoslynDiagnostic(
+                            diagnosticLocation,
+                            (method, method.ContainingType, @event) ) );
+                }
+            }
+
+            // Mirrors LinkerRewritingDriver.HasMaterializedBackingField, which is not reachable from the analysis step.
+            bool HasMaterializedBackingField( IPropertySymbol property )
+                => injectionRegistry.IsOverrideTarget( property )
+                   && reachableSemantics.Contains( property.ToSemantic( IntermediateSymbolSemanticKind.Default ) );
+
+            // The name of an event that no aspect overrides binds to the backing field that the C# compiler emits for it. An
+            // aspect that overrides it removes that field, and the linker emits one of its own only when the default semantic
+            // of the event is reachable, which mirrors LinkerRewritingDriver.HasMaterializedBackingField.
+            bool HasReadableBackingField( IEventSymbol @event )
+                => !injectionRegistry.IsOverrideTarget( @event )
+                   || reachableSemantics.Contains( @event.ToSemantic( IntermediateSymbolSemanticKind.Default ) );
         }
 
         private static IReadOnlyList<ISymbol> GetForcefullyInitializedSymbols(

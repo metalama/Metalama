@@ -200,7 +200,7 @@ public interface IProjectOptions : IProjectService, IEquatable<IProjectOptions>
     bool RoslynIsCompileTimeOnly { get; }
 
     /// <summary>
-    /// Gets a semicolon-separated list of target frameworks that can be used for compile-time code, e.g. <c>netstandard2.0;net8.0;net48</c>.
+    /// Gets a semicolon-separated list of target frameworks that can be used for compile-time code, e.g. <c>netstandard2.0;net10.0;net48</c>.
     /// </summary>
     string? CompileTimeTargetFrameworks { get; }
 
@@ -236,6 +236,19 @@ public interface IProjectOptions : IProjectService, IEquatable<IProjectOptions>
     /// and/or Metalama.AssemblyLocator.Build.targets files are stored.
     /// </summary>
     string? AssemblyLocatorHooksDirectory { get; }
+
+    /// <summary>
+    /// Gets the path of the directory into which the binary log of the nested reference-assembly build is copied
+    /// when that build fails, or <c>null</c> to keep the log in the cache directory only.
+    /// </summary>
+    /// <remarks>
+    /// The nested build writes its binary log into the cache directory, which is under the temporary directory of
+    /// the machine, and that log is the only artifact from which such a failure can be diagnosed after the fact.
+    /// A continuous integration agent that runs the build in a container discards the temporary directory together
+    /// with the container, so the log cannot be collected afterwards. This option names a directory that outlives
+    /// the build, such as the artifacts directory of a repository, from which the log can be published.
+    /// </remarks>
+    string? AssemblyLocatorBinaryLogDirectory { get; }
 
     /// <summary>
     /// Gets names of attribute types that are considered to be affected by source generators.

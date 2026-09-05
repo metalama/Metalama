@@ -53,6 +53,13 @@ public sealed class DotNetTool
         startInfo.Environment.Remove( "MSBUILD_EXE_PATH" );
         startInfo.Environment.Remove( "MSBuildSDKsPath" );
 
+        // MSBuildExtensionsPath belongs to the same family and is the one that leaks in practice. The .NET command
+        // line interface exports it for the software development kit that the parent process resolved, and MSBuild
+        // imports NuGet.targets through it. The child resolves its own software development kit but keeps the
+        // inherited value, so when the two differ the child runs the targets of one feature band on the engine of
+        // another and fails with MSB4062.
+        startInfo.Environment.Remove( "MSBuildExtensionsPath" );
+
         // Rider also sets host-tuning knobs on its worker (GC mode, R2R/NGen disabled). They're appropriate for a
         // long-running IDE host but slow down our short-lived `dotnet build`, so don't inherit them either.
         startInfo.Environment.Remove( "DOTNET_GCConserveMemory" );

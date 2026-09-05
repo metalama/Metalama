@@ -1,0 +1,2 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0552 on `Target`: `The aspect 'Override' cannot override 'Target.Equals(object?)' because the C# compiler adds this member to record 'Target' unconditionally, so it cannot be declared explicitly. Override the strongly typed 'Equals' overload instead. The equality operators and 'Equals(object)' both call it.`

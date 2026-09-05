@@ -97,6 +97,15 @@ internal sealed partial class LinkerAnalysisStep
                     return false;
                 }
 
+                if ( semantic.Kind is IntermediateSymbolSemanticKind.Default
+                     && SynthesizedRecordMemberBodyGenerator.BodyDeclaresLocalVariable( semantic.Symbol ) )
+                {
+                    // The body generated for a compiler-synthesized record member can declare a local variable, whose name
+                    // could collide with a local variable of the body it would be inlined into. Such a body is emitted as
+                    // a separate method instead.
+                    return false;
+                }
+
                 if ( semantic.Symbol.Kind == SymbolKind.Property
                      && semantic.Symbol is IPropertySymbol { SetMethod: null, OverriddenProperty: not null } getOnlyOverrideProperty
                      && getOnlyOverrideProperty.IsAutoProperty().GetValueOrDefault() )

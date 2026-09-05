@@ -16,8 +16,9 @@ using System;
 using System.IO;
 using MetalamaDependencies = PostSharp.Engineering.BuildTools.Dependencies.Definitions.MetalamaDependencies.V2027_0;
 
-// The only .NET SDK that the build agent installs and that global.json pins. The version comes from the product
-// family, so that it matches the feature band that the Visual Studio version of the family installs.
+// The .NET SDK of the build container and of global.json. The product family is the source of truth, because
+// the version depends on the Visual Studio baseline that the family pins, and the family definition records why
+// this one differs from the default.
 var dotNetSdkVersion = MetalamaDependencies.Family.PreferredVersions.DotNetSdk.V_10_0;
 
 var product = new Product( MetalamaDependencies.Metalama )
@@ -27,32 +28,38 @@ var product = new Product( MetalamaDependencies.Metalama )
     {
         Components =
         [
-            // Must match global.json. Since .NET 8 and .NET 9 were dropped, this is the only .NET SDK that the
-            // product, this project and the tests require.
+            // Must match global.json. Since .NET 8 and .NET 9 were dropped, this is the only .NET SDK required by
+            // the product, by the tests and by this project.
             new DotNetComponent( dotNetSdkVersion, DotNetComponentKind.Sdk ),
 
             // Required by some tests.
             new VisualStudioBuildToolsComponent(
-                VisualStudioBuildToolsComponentVersion.v17_14_15,
+                VisualStudioBuildToolsComponentVersion.v18_9_2,
                 [
-                    // Required to test MSBuild.
+                    // Required to test MSBuild. Microsoft.NetCore.Component.SDK cannot be omitted: without it
+                    // the MSBuild.exe of the Build Tools has no C:\BuildTools\MSBuild\Sdks directory and fails
+                    // to resolve Microsoft.NET.Sdk with MSB4276. It installs the .NET SDK that the product family
+                    // names, which is why the family names the version that Visual Studio ships.
                     "Microsoft.Component.MSBuild",
-                    "Microsoft.NetCore.Component.SDK",
+                    "Microsoft.NetCore.Component.SDK"
 
-                    // Required because we target these frameworks.
-                    "Microsoft.Net.Component.4.7.2.TargetingPack",
-                    "Microsoft.Net.Component.4.7.2.SDK",
-                    "Microsoft.Net.Component.4.8.TargetingPack",
-                    "Microsoft.Net.Component.4.8.SDK"
+                    // The .NET Framework targeting packs and developer packs are deliberately absent, which keeps
+                    // their payload out of the Visual Studio layer, the base of the image chain. The .NET SDK obtains
+                    // the reference assemblies of a .NET Framework target framework from the
+                    // Microsoft.NETFramework.ReferenceAssemblies packages, which is why net462 and net481 build
+                    // although no component installs their packs. No project and no build script uses a tool of the
+                    // developer packs, such as sn.exe or al.exe. The desktop MSBuild builds, which are the ones that
+                    // do not necessarily follow the .NET SDK, were compared with and without these components and
+                    // reported the same diagnostics.
                 ] ),
 
             // Required to download test license keys.
             new AzureCliComponent()
         ]
     },
-    DotNetSdkVersion = new DotNetSdkVersion( dotNetSdkVersion ),
+    DotNetSdkVersion = new DotNetSdkVersion( dotNetSdkVersion ) { AllowPrerelease = true },
     GenerateNuGetConfig = true,
-    MSBuildVersion = new Version( 17, 14 ),
+    MSBuildVersion = new Version( 18, 9 ),
     Solutions =
     [
         new DotNetSolution( "Metalama.Backstage/Metalama.Backstage.sln" ) { SupportsTestCoverage = true, CanFormatCode = true },

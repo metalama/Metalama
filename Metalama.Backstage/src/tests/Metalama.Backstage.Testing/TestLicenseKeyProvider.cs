@@ -24,7 +24,7 @@ public sealed class TestLicenseKeyProvider
     /// Gets the authority that signs the license keys of the current provider. It is the same authority as the one
     /// that a service provider of the current process uses to verify their signature.
     /// </summary>
-    public LicensingAuthority Authority { get; } = TestLicensingAuthorityProvider.TestAuthority;
+    public LicensingAuthority Authority { get; } = TestLicensingAuthorityProvider.DsaTestAuthority;
 
     public const string NamespaceConstraint = "TestNamespace";
 

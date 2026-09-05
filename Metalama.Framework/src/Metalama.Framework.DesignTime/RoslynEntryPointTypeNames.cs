@@ -7,9 +7,11 @@ using JetBrains.Annotations;
 namespace Metalama.Framework.DesignTime
 {
     /// <summary>
-    /// Lists the public entry points types exposed to Roslyn. 
-    /// This list is referenced by the *.CompilerExtensions and *.EditorExtensions projects.
-    /// It is unit tested.
+    /// Lists the name of the design-time assembly and the names of the public entry point types that this assembly exposes to Roslyn.
+    /// The *.CompilerExtensions and *.EditorExtensions projects must name every entry point that they load by a constant of this class,
+    /// and never by a string literal.
+    /// The TestRoslynEntryPointTypeNames unit test compares each type name constant with the full name of the real type, and verifies
+    /// that every type name constant is covered by a test case.
     /// </summary>
     [UsedImplicitly( ImplicitUseTargetFlags.Members )]
     internal static class RoslynEntryPointTypeNames
@@ -30,5 +32,8 @@ namespace Metalama.Framework.DesignTime
         public const string VsCodeFixProvider = "Metalama.Framework.DesignTime.VisualStudio.CodeFixes.VsCodeFixProvider";
         public const string RiderCodeFixProvider = "Metalama.Framework.DesignTime.Rider.RiderCodeFixProvider";
         public const string TheCodeFixProvider = "Metalama.Framework.DesignTime.CodeFixes.TheCodeFixProvider";
+        public const string VsCodeRefactoringProvider = "Metalama.Framework.DesignTime.VisualStudio.CodeFixes.VsCodeRefactoringProvider";
+        public const string RiderCodeRefactoringProvider = "Metalama.Framework.DesignTime.Rider.RiderCodeRefactoringProvider";
+        public const string TheCodeRefactoringProvider = "Metalama.Framework.DesignTime.CodeFixes.TheCodeRefactoringProvider";
     }
 }

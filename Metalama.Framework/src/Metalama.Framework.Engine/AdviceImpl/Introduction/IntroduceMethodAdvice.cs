@@ -267,6 +267,16 @@ internal sealed class IntroduceMethodAdvice : IntroduceMemberAdvice<IMethod, IMe
                     }
                     else if ( targetDeclaration.Equals( existingMethod.DeclaringType ) )
                     {
+                        if ( !existingMethod.CanBeDeclaredExplicitly() )
+                        {
+                            return
+                                this.CreateFailedResult(
+                                    AdviceDiagnosticDescriptors.CannotOverrideNonDeclarableRecordMember.CreateRoslynDiagnostic(
+                                        targetDeclaration.GetDiagnosticLocation(),
+                                        (this.AspectInstance.AspectClass.ShortName, existingMethod, existingMethod.DeclaringType),
+                                        this ) );
+                        }
+
                         var overriddenMethod = new OverrideMethodTransformation(
                             this.AspectLayerInstance,
                             existingMethod.ToFullRef(),

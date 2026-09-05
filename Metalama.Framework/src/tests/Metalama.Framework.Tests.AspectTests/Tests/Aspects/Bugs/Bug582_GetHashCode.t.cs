@@ -1,2 +1,11 @@
-// CompileTimeAspectPipeline.ExecuteAsync failed.
-// Error LAMA0651 on ``: `Cannot use meta.Proceed() when overriding the compiler-synthesized record member 'Target.GetHashCode()'. Remove the call to meta.Proceed() from the template.`
+[OverrideGetHashCodeAttribute]
+internal record Target
+{
+  public override global::System.Int32 GetHashCode()
+  {
+    // <target>
+    global::System.Int32 result;
+    result = unchecked(global::System.Collections.Generic.EqualityComparer<global::System.Type>.Default.GetHashCode(this.EqualityContract));
+    return (global::System.Int32)result;
+  }
+}
