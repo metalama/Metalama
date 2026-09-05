@@ -1,12 +1,15 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net472;net10.0;netstandard2.0</TargetFrameworks>
+    <TargetFrameworks>net472;net10.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <Configurations>Debug;Release;LamaDebug</Configurations>
     <IsTestProject>false</IsTestProject>
     <IsPackable>true</IsPackable>
+    <!-- Microsoft.Extensions.TimeProvider.Testing declares no net472 support, but its net462 asset runs on net472
+         and depends on the same version of Microsoft.Bcl.TimeProvider as the product packages. -->
+    <SuppressTfmSupportBuildWarnings>true</SuppressTfmSupportBuildWarnings>
     <PackageId>Metalama.Patterns.Caching.TestHelpers</PackageId>
     <PackageDescription>This package contains helper classes used when developing unit tests for new CachingBackend implementations. You don't need this package in any other scenarios.</PackageDescription>
   </PropertyGroup>
@@ -18,6 +21,8 @@
   <ItemGroup>
     <PackageReference Include="JetBrains.Annotations" PrivateAssets="all" />
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" />
+    <!-- buildTransitive carries a targets file that warns about net472, which the net462 asset supports in practice. -->
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" PrivateAssets="buildTransitive" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
