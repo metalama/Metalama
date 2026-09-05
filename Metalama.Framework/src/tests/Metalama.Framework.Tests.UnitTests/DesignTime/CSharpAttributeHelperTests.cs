@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -209,6 +209,185 @@ public enum Enum
                 .SelectMany( list => list.Attributes );
 
             this.LogAndAssertContains( resultAttributes, "TestAttribute" );
+        }
+
+        [Fact]
+        public async Task Can_AddAttributeToStructAsync()
+        {
+            const string syntax = @"
+public struct Struct
+{
+}
+";
+
+            SyntaxNode originalDeclaration = (await this.GetSyntaxRootAsync( syntax )).DescendantNodes()
+                .OfType<StructDeclarationSyntax>()
+                .First();
+
+            var newRoot = await this.AddAttributeThroughSymbolAsync( "TestAttribute", originalDeclaration );
+
+            var resultAttributes = newRoot.DescendantNodesAndSelf()
+                .OfType<StructDeclarationSyntax>()
+                .First()
+                .AttributeLists
+                .SelectMany( list => list.Attributes );
+
+            this.LogAndAssertContains( resultAttributes, "TestAttribute" );
+        }
+
+        [Fact]
+        public async Task Can_AddAttributeToRecordAsync()
+        {
+            const string syntax = @"
+public record Record
+{
+}
+";
+
+            SyntaxNode originalDeclaration = (await this.GetSyntaxRootAsync( syntax )).DescendantNodes()
+                .OfType<RecordDeclarationSyntax>()
+                .First();
+
+            var newRoot = await this.AddAttributeThroughSymbolAsync( "TestAttribute", originalDeclaration );
+
+            var resultAttributes = newRoot.DescendantNodesAndSelf()
+                .OfType<RecordDeclarationSyntax>()
+                .First()
+                .AttributeLists
+                .SelectMany( list => list.Attributes );
+
+            this.LogAndAssertContains( resultAttributes, "TestAttribute" );
+        }
+
+        [Fact]
+        public async Task Can_AddAttributeToRecordStructAsync()
+        {
+            const string syntax = @"
+public record struct RecordStruct
+{
+}
+";
+
+            SyntaxNode originalDeclaration = (await this.GetSyntaxRootAsync( syntax )).DescendantNodes()
+                .OfType<RecordDeclarationSyntax>()
+                .First();
+
+            var newRoot = await this.AddAttributeThroughSymbolAsync( "TestAttribute", originalDeclaration );
+
+            var resultAttributes = newRoot.DescendantNodesAndSelf()
+                .OfType<RecordDeclarationSyntax>()
+                .First()
+                .AttributeLists
+                .SelectMany( list => list.Attributes );
+
+            this.LogAndAssertContains( resultAttributes, "TestAttribute" );
+        }
+
+        [Fact]
+        public async Task Can_AddAttributeToExtensionBlockAsync()
+        {
+            const string syntax = @"
+public static class Extensions
+{
+    extension(string s)
+    {
+        public int Length2 => s.Length;
+    }
+}
+";
+
+            SyntaxNode originalDeclaration = (await this.GetSyntaxRootAsync( syntax )).DescendantNodes()
+                .OfType<ExtensionBlockDeclarationSyntax>()
+                .First();
+
+            var newRoot = await this.AddAttributeAsync( "TestAttribute", originalDeclaration );
+
+            var resultAttributes = newRoot.DescendantNodesAndSelf()
+                .OfType<ExtensionBlockDeclarationSyntax>()
+                .First()
+                .AttributeLists
+                .SelectMany( list => list.Attributes );
+
+            this.LogAndAssertContains( resultAttributes, "TestAttribute" );
+        }
+
+        [Fact]
+        public async Task When_AttributeAppliedToNamespace_Then_NothingIsAddedAsync()
+        {
+            const string syntax = @"
+namespace Test
+{
+}
+";
+
+            SyntaxNode originalDeclaration = (await this.GetSyntaxRootAsync( syntax )).DescendantNodes()
+                .OfType<NamespaceDeclarationSyntax>()
+                .First();
+
+            var newRoot = await this.AddAttributeAsync( "TestAttribute", originalDeclaration );
+
+            AssertEx.EolInvariantEqual( syntax, newRoot.ToFullString() );
+        }
+
+        [Fact]
+        public async Task When_AttributeAppliedToFileScopedNamespace_Then_NothingIsAddedAsync()
+        {
+            const string syntax = @"
+namespace Test;
+
+public class Class
+{
+}
+";
+
+            SyntaxNode originalDeclaration = (await this.GetSyntaxRootAsync( syntax )).DescendantNodes()
+                .OfType<FileScopedNamespaceDeclarationSyntax>()
+                .First();
+
+            var newRoot = await this.AddAttributeAsync( "TestAttribute", originalDeclaration );
+
+            AssertEx.EolInvariantEqual( syntax, newRoot.ToFullString() );
+        }
+
+        [Fact]
+        public async Task Can_AddAttributeToEnumMemberAsync()
+        {
+            const string syntax = @"
+public enum Enum
+{
+    Member
+}
+";
+
+            SyntaxNode originalDeclaration = (await this.GetSyntaxRootAsync( syntax )).DescendantNodes()
+                .OfType<EnumMemberDeclarationSyntax>()
+                .First();
+
+            var newRoot = await this.AddAttributeThroughSymbolAsync( "TestAttribute", originalDeclaration );
+
+            var resultAttributes = newRoot.DescendantNodesAndSelf()
+                .OfType<EnumMemberDeclarationSyntax>()
+                .First()
+                .AttributeLists
+                .SelectMany( list => list.Attributes );
+
+            this.LogAndAssertContains( resultAttributes, "TestAttribute" );
+        }
+
+        [Fact]
+        public async Task When_AttributeAppliedToGlobalStatement_Then_NothingIsAddedAsync()
+        {
+            const string syntax = @"
+System.Console.WriteLine();
+";
+
+            SyntaxNode originalDeclaration = (await this.GetSyntaxRootAsync( syntax )).DescendantNodes()
+                .OfType<GlobalStatementSyntax>()
+                .First();
+
+            var newRoot = await this.AddAttributeAsync( "TestAttribute", originalDeclaration );
+
+            AssertEx.EolInvariantEqual( syntax, newRoot.ToFullString() );
         }
 
         [Fact]

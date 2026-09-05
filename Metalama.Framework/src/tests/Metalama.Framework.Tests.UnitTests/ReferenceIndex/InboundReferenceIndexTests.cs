@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -326,6 +326,26 @@ public sealed class InboundReferenceIndexTests : UnitTestClass
         // Both should report the getter accessor, not the indexer itself.
         Assert.Equal( 2, result.ReferencingSymbols.Count );
         Assert.All( result.ReferencingSymbols, s => Assert.Contains( ".this", s ) );
+    }
+
+    [Fact]
+    public void InvocationOfExtensionMethodValidatedThroughExtensionBlock()
+    {
+        // A validator registered on an extension block must see the invocations of the members of that block.
+        // The extension block cannot be named in source, so it enters the index only as the declaring type of
+        // one of its members, which requires the reference indexer to descend into the referenced declaring type.
+        var code = new Dictionary<string, string>()
+        {
+            ["A.cs"] = "static class A { extension(string s) { public int GetDoubleLength() => s.Length * 2; } }",
+            ["B.cs"] = "class B { int M(string s) => s.GetDoubleLength(); }"
+        };
+
+        var result = this.BuildIndex(
+            code,
+            compilation => compilation.Types.OfName( "A" ).SelectMany( t => t.ExtensionBlocks ),
+            ReferenceKinds.Invocation );
+
+        Assert.Single( result.ReferencingSymbols, "B.M(string)" );
     }
 
     // TODO: other reference kinds.
