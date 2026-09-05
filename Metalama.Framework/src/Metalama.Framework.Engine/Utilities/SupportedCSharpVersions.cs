@@ -28,12 +28,12 @@ public static class SupportedCSharpVersions
     /// <remarks>
     /// This C# version might not be supported by the .NET SDK. See also <see cref="LanguageVersionProvider"/>.
     /// <para>
-    /// The opt-in of issue #1935 does not raise this version. The opt-in changes how this repository is compiled and
-    /// never what Metalama permits a user to compile, and this property decides the latter: it is the default
-    /// language version of a project, and it is the version against which
-    /// <see cref="Pipeline.CompileTime.CompileTimeAspectPipeline"/> refuses the preview version. A source that needs
-    /// the value of the next language version reads
-    /// <see cref="LanguageVersionExtensions.OrPreviewIfNotSupported"/> of
+    /// The opt-in of issue #1935 does not raise this version. That opt-in changes how this repository is compiled and
+    /// never what Metalama permits a user to compile, and this property decides the second of the two: it is the
+    /// default language version of a project, and it is the version that the compile-time pipeline assumes for a
+    /// compilation that carries no parse options. Raising it to the preview version therefore makes the pipeline
+    /// report <c>LAMA0051</c> for a project that has not opted in. A source that needs the value of the next language
+    /// version reads <see cref="LanguageVersionExtensions.OrPreviewIfNotSupported"/> of
     /// <see cref="AllLanguageVersions.CSharp15"/> instead.
     /// </para>
     /// </remarks>
