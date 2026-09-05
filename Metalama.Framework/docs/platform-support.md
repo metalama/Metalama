@@ -196,17 +196,28 @@ The backend Roslyn is 5.0.0. `lib/ReSharperHost/Microsoft.CodeAnalysis.dll` carr
 in the set under rule 1. The floor is the .NET 10 SDK. The .NET 11 SDK, released in November 2026, is also in the
 set.
 
-The build container installs the SDK that the product family names, through
-`MetalamaDependencies.V2027_0.Family.PreferredVersions`, and `eng/src/Program.cs` reads the same value for the
-container component and for `global.json`, so the image and the pin cannot drift apart. The family names the version
-that Visual Studio installs through the `Microsoft.NetCore.Component.SDK` component, which is 10.0.400 for Visual
-Studio 2026 18.9. The preferred versions belong to the family and not to a single global set, because a family pins
-its own Visual Studio baseline: the families that are still on Visual Studio 2022 keep the default, since Visual
-Studio 2022 ships no .NET 10 SDK and has no version to match.
+The build container installs two SDKs, and `eng/src/Program.cs` names both, so the image and the `global.json` pin
+cannot drift apart.
 
-Several feature bands are expected to coexist in one installation, and nothing in this doctrine requires the
-container to hold only one. A build that mixes two of them is a defect in the build tooling, not a reason to
-remove an SDK: see the note on `MSBuildExtensionsPath` in `CLAUDE.md`.
+The main one is the .NET 11 SDK, which `global.json` names and which therefore compiles the product. Its version is
+a literal in `eng/src/Program.cs`, because the .NET 11 SDK is still a preview and
+`MetalamaDependencies.V2027_0.Family.PreferredVersions` names only released feature bands. The literal moves to the
+family once the .NET 11 SDK is released. The product is therefore built with an SDK that no supported Visual Studio
+installs, which is the decision that story S-09 records: the compile-time compilation caps the C# language version
+by the major version of the SDK, so a compile-time C# 15 construct requires the .NET 11 SDK to be the one that
+`global.json` names, and not merely one that is installed.
+
+The second one is the .NET 10 SDK that the family names, which is 10.0.400 for Visual Studio 2026 18.9. It stays
+installed for two reasons. The .NET 11 SDK carries no .NET 10 runtime, and every build tool and test assembly of
+the product targets `net10.0`. It is also the SDK that Visual Studio installs through the
+`Microsoft.NetCore.Component.SDK` component, so the desktop `MSBuild.exe` of the container exercises the same
+toolchain as a developer machine. The preferred versions belong to the family and not to a single global set,
+because a family pins its own Visual Studio baseline: the families that are still on Visual Studio 2022 keep the
+default, since Visual Studio 2022 ships no .NET 10 SDK and has no version to match.
+
+Several SDKs, including several feature bands of one major version, are expected to coexist in one installation,
+and nothing in this doctrine requires the container to hold only one. A build that mixes two of them is a defect in
+the build tooling, not a reason to remove an SDK: see the note on `MSBuildExtensionsPath` in `CLAUDE.md`.
 
 ### .NET runtime, for user target frameworks
 
