@@ -25,6 +25,7 @@
              resolution rules are compiled into this project in order to be unit tested. -->
         <Compile Include="..\..\Metalama.Framework.CompilerExtensions\AssemblyResolutionPolicy.cs" Link="Utilities\AssemblyResolutionPolicy.cs" />
         <Compile Include="..\..\Metalama.Framework.CompilerExtensions\RoslynVariantPolicy.cs" Link="Utilities\RoslynVariantPolicy.cs" />
+        <Compile Include="..\..\Metalama.Framework.CompilerExtensions\ProcessKindHelper.cs" Link="Utilities\ProcessKindHelper.cs" />
     </ItemGroup>
 
     <ItemGroup>
