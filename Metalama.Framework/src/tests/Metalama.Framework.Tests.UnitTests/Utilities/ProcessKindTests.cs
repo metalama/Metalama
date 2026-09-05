@@ -4,12 +4,12 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Reflection;
 using Xunit;
 using BackstageProcessKind = Metalama.Backstage.Diagnostics.ProcessKind;
 using BackstageProcessKindDetector = Metalama.Backstage.Diagnostics.ProcessKindDetector;
-using CompilerExtensionsProcessKind = Metalama.Framework.CompilerExtensions.ProcessKind;
-using CompilerExtensionsProcessKindDetector = Metalama.Framework.CompilerExtensions.ProcessKindDetector;
 
 namespace Metalama.Framework.Tests.UnitTests.Utilities;
 
@@ -20,8 +20,14 @@ namespace Metalama.Framework.Tests.UnitTests.Utilities;
 /// <para>
 /// The classification is compiled into <c>Metalama.Backstage</c> and into
 /// <c>Metalama.Framework.CompilerExtensions</c> from a single source file, because the second assembly can
-/// reference nothing: it embeds and extracts the first one. This test project compiles that file in the same way,
-/// and reaches the copy of <c>Metalama.Backstage</c> through its package reference, so it can compare the two.
+/// reference nothing: it embeds and extracts the first one.
+/// </para>
+/// <para>
+/// This test reads both assemblies as they are built, and not a copy of the shared source file compiled into the
+/// test project. It reaches <c>Metalama.Backstage</c> through its package reference, and it loads
+/// <c>Metalama.Framework.CompilerExtensions.dll</c> from the output directory of that project, whose path the
+/// project file of this test passes as assembly metadata. A build that stops compiling the shared file into either
+/// assembly, or that adds a second copy of the classification to one of them, therefore fails these tests.
 /// </para>
 /// <para>
 /// The classification takes the process name and the command line as parameters, so every arm of the table is
@@ -30,6 +36,75 @@ namespace Metalama.Framework.Tests.UnitTests.Utilities;
 /// </remarks>
 public sealed class ProcessKindTests
 {
+    /// <summary>
+    /// The name of the assembly metadata item that carries the path of <c>Metalama.Framework.CompilerExtensions.dll</c>.
+    /// </summary>
+    private const string _compilerExtensionsAssemblyPathKey = "CompilerExtensionsAssemblyPath";
+
+    private const string _compilerExtensionsNamespace = "Metalama.Framework.CompilerExtensions";
+
+    private static readonly Lazy<Assembly> _compilerExtensionsAssembly = new( LoadCompilerExtensionsAssembly );
+
+    /// <summary>
+    /// Loads <c>Metalama.Framework.CompilerExtensions.dll</c> from the output directory of that project.
+    /// </summary>
+    /// <remarks>
+    /// The assembly is an analyzer assembly that no project can reference, so it is loaded by path instead. The
+    /// path is passed by the project file of this test, because the assembly is not copied to the output directory
+    /// of this test: a reference to it would declare, in this test assembly, types of the same full name as the
+    /// ones that are being read.
+    /// </remarks>
+    private static Assembly LoadCompilerExtensionsAssembly()
+    {
+        var relativePath = typeof(ProcessKindTests).Assembly
+            .GetCustomAttributes<AssemblyMetadataAttribute>()
+            .Single( a => a.Key == _compilerExtensionsAssemblyPathKey )
+            .Value;
+
+        Assert.NotNull( relativePath );
+
+        var path = Path.GetFullPath( relativePath! );
+
+        Assert.True(
+            File.Exists( path ),
+            $"'{path}' does not exist. Build Metalama.Framework.CompilerExtensions, for instance by running 'Build.ps1 build', before running this test." );
+
+        return Assembly.LoadFrom( path );
+    }
+
+    /// <summary>
+    /// Gets a type of <c>Metalama.Framework.CompilerExtensions</c> by its name.
+    /// </summary>
+    /// <param name="typeName">The name of the type, without its namespace.</param>
+    private static Type GetCompilerExtensionsType( string typeName )
+        => _compilerExtensionsAssembly.Value.GetType( $"{_compilerExtensionsNamespace}.{typeName}", true )!;
+
+    /// <summary>
+    /// Classifies a process through <c>Metalama.Framework.CompilerExtensions</c>, and returns the name of the kind
+    /// that it returns. The name is what the two assemblies are compared on, because the enumeration of one of them
+    /// is not the enumeration of the other.
+    /// </summary>
+    /// <param name="processName">The process name, as <c>Process.ProcessName</c> gives it.</param>
+    /// <param name="commandLine">The command line, as <c>Environment.CommandLine</c> gives it.</param>
+    private static string GetCompilerExtensionsProcessKindName( string processName, string commandLine )
+    {
+        var method = GetCompilerExtensionsType( "ProcessKindDetector" )
+            .GetMethod(
+                nameof(BackstageProcessKindDetector.GetProcessKind),
+                BindingFlags.Public | BindingFlags.Static,
+                null,
+                [typeof(string), typeof(string)],
+                null );
+
+        Assert.NotNull( method );
+
+        var processKind = method!.Invoke( null, [processName, commandLine] );
+
+        Assert.NotNull( processKind );
+
+        return processKind!.ToString()!;
+    }
+
     /// <summary>
     /// The process name and the command line of one process, and the kind that the table must classify it as.
     /// </summary>
@@ -112,7 +187,7 @@ public sealed class ProcessKindTests
         var backstageNames = Enum.GetNames( typeof(BackstageProcessKind) ).OrderBy( n => n, StringComparer.Ordinal );
 
         var compilerExtensionsNames =
-            Enum.GetNames( typeof(CompilerExtensionsProcessKind) ).OrderBy( n => n, StringComparer.Ordinal );
+            Enum.GetNames( GetCompilerExtensionsType( "ProcessKind" ) ).OrderBy( n => n, StringComparer.Ordinal );
 
         Assert.Equal( backstageNames, compilerExtensionsNames );
     }
@@ -130,12 +205,7 @@ public sealed class ProcessKindTests
     {
         Assert.Equal( expectedProcessKind, BackstageProcessKindDetector.GetProcessKind( processName, commandLine ) );
 
-        var expectedCompilerExtensionsProcessKind =
-            (CompilerExtensionsProcessKind) Enum.Parse( typeof(CompilerExtensionsProcessKind), expectedProcessKind.ToString() );
-
-        Assert.Equal(
-            expectedCompilerExtensionsProcessKind,
-            CompilerExtensionsProcessKindDetector.GetProcessKind( processName, commandLine ) );
+        Assert.Equal( expectedProcessKind.ToString(), GetCompilerExtensionsProcessKindName( processName, commandLine ) );
     }
 
     /// <summary>

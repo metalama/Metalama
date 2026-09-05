@@ -25,14 +25,18 @@
              resolution rules are compiled into this project in order to be unit tested. -->
         <Compile Include="..\..\Metalama.Framework.CompilerExtensions\AssemblyResolutionPolicy.cs" Link="Utilities\AssemblyResolutionPolicy.cs" />
         <Compile Include="..\..\Metalama.Framework.CompilerExtensions\RoslynVariantPolicy.cs" Link="Utilities\RoslynVariantPolicy.cs" />
-        <Compile Include="..\..\Metalama.Framework.CompilerExtensions\ProcessKindHelper.cs" Link="Utilities\ProcessKindHelper.cs" />
+    </ItemGroup>
 
-        <!-- The classification of the host process is compiled here in the same way, so that one test can compare
-             what the two assemblies return. The METALAMA_BACKSTAGE symbol is not defined in this project, so these
-             two files declare their types in the Metalama.Framework.CompilerExtensions namespace, and the copy of
-             Metalama.Backstage comes from the package reference. -->
-        <Compile Include="$(MetalamaSharedProcessKindSourceDirectory)ProcessKind.cs" Link="Utilities\ProcessKind.cs" />
-        <Compile Include="$(MetalamaSharedProcessKindSourceDirectory)ProcessKindDetector.cs" Link="Utilities\ProcessKindDetector.cs" />
+    <ItemGroup>
+        <!-- ProcessKindTests reads the classification of the host process from Metalama.Framework.CompilerExtensions
+             as it is built, and not from a copy of the shared source file compiled into this project, so that the
+             test fails when that project stops compiling the shared file or declares a second copy of the
+             classification. The assembly is loaded by path, because a reference to it would declare here types of
+             the same full name as the ones that the test reads. -->
+        <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+            <_Parameter1>CompilerExtensionsAssemblyPath</_Parameter1>
+            <_Parameter2>$(MSBuildThisFileDirectory)../../Metalama.Framework.CompilerExtensions/bin/$(Configuration)/netstandard2.0/Metalama.Framework.CompilerExtensions.dll</_Parameter2>
+        </AssemblyAttribute>
     </ItemGroup>
 
     <ItemGroup>

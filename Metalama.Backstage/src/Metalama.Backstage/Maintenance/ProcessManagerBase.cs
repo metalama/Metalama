@@ -20,14 +20,20 @@ internal abstract partial class ProcessManagerBase : IProcessManager
         new KillableProcessSpec( "MSBuild", KillableModuleKind.Both, false, true ),
         new KillableProcessSpec( "servicehub.roslyncodeanalysisservice", KillableModuleKind.Both, false, false, "Visual Studio" ),
 
-        // Visual Studio 2026 runs the Roslyn analysis process under this name instead. See issue #1463.
+        // Visual Studio 2026 runs the Roslyn analysis process under this name instead. See issue #1463. Like the
+        // process that it replaces, it is reported to the user rather than stopped, because Visual Studio owns it.
+        // Ending a child process of the integrated development environment leaves that environment in an
+        // inconsistent state, and Visual Studio starts the analysis process again as soon as a document is opened,
+        // which would lock the files again before the clean-up finished.
         new KillableProcessSpec( "devhub", KillableModuleKind.Both, false, false, "Visual Studio" ),
         new KillableProcessSpec( "jetbrains.resharper.roslyn.worker", KillableModuleKind.DotNet, false, false, "Rider/Resharper" ),
         new KillableProcessSpec( "jetbrains.roslyn.worker", KillableModuleKind.DotNet, false, false, "Rider/Resharper" ),
         new KillableProcessSpec( "omnisharp", KillableModuleKind.DotNet, false, false, "Visual Studio Code / Omnisharp" ),
 
         // The language server of the Visual Studio Code C# Dev Kit. It runs either as its own executable or as an
-        // assembly under 'dotnet', so it is matched as both kinds of module.
+        // assembly under 'dotnet', so it is matched as both kinds of module. Like OmniSharp above, which is the
+        // language server that preceded it, it is reported to the user rather than stopped, because Visual Studio
+        // Code owns it and starts it again.
         new KillableProcessSpec(
             "microsoft.codeanalysis.languageserver",
             KillableModuleKind.Both,
@@ -154,7 +160,44 @@ internal abstract partial class ProcessManagerBase : IProcessManager
         }
     }
 
-    protected abstract IEnumerable<KillableProcess> GetProcesses( ImmutableArray<KillableProcessSpec> processNames );
+    /// <summary>
+    /// Gets the processes that run as their own executable and that match one of <paramref name="processSpecs"/>.
+    /// </summary>
+    /// <remarks>
+    /// The enumeration is performed on every operating system, and not on Windows alone, because the language
+    /// server of the Visual Studio Code C# Dev Kit runs as its own executable on Linux and on macOS as well. The
+    /// comparison of the process name is case insensitive, which is what <see cref="Process.GetProcessesByName(string)"/>
+    /// performs on every platform.
+    /// </remarks>
+#pragma warning disable CA1307
+    protected IEnumerable<KillableProcess> GetStandaloneProcesses( ImmutableArray<KillableProcessSpec> processSpecs )
+    {
+        foreach ( var processSpec in processSpecs.Where( p => p.IsStandaloneProcess ) )
+        {
+            foreach ( var process in Process.GetProcessesByName( processSpec.Name.ToLowerInvariant() ) )
+            {
+                if ( !this.TryGetModulePaths( process, out var modules ) )
+                {
+                    continue;
+                }
+
+                if ( this.ReferencesMetalama( process, modules ) == false )
+                {
+                    this.Logger.Trace?.Log( $"Do not kill '{process.ProcessName}' ({process.Id}) because it does not contain Metalama." );
+                }
+
+                yield return new KillableProcess( process, this.Logger, null, processSpec );
+            }
+        }
+    }
+#pragma warning restore CA1307
+
+    /// <summary>
+    /// Gets the processes that match one of <paramref name="processSpecs"/>, whether they run as an assembly under
+    /// the <c>dotnet</c> process name or as their own executable.
+    /// </summary>
+    protected IEnumerable<KillableProcess> GetProcesses( ImmutableArray<KillableProcessSpec> processSpecs )
+        => this.GetDotNetProcesses( processSpecs ).Concat( this.GetStandaloneProcesses( processSpecs ) );
 
     public virtual void KillCompilerProcesses( bool shouldEmitWarnings )
     {
