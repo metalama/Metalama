@@ -28,20 +28,17 @@ public static class SupportedCSharpVersions
     /// <remarks>
     /// This C# version might not be supported by the .NET SDK. See also <see cref="LanguageVersionProvider"/>.
     /// <para>
-    /// The opt-in of issue #1935 raises this version to the next one, so that a development build of this repository
-    /// can consume the Roslyn members of a language version that Roslyn still marks as experimental. The value comes
-    /// from <see cref="LanguageVersionExtensions.OrPreviewIfNotSupported"/> rather than from a constant, because the
-    /// Roslyn that publishes those members reaches them under <see cref="LanguageVersion.Preview"/> and rejects the
-    /// version it has not declared yet. The opt-in ships disabled, so a shipped build returns
-    /// <see cref="LanguageVersion.CSharp14"/> and the set of <see cref="All"/> is unchanged in either case.
+    /// The opt-in of issue #1935 does not raise this version. The opt-in changes how this repository is compiled and
+    /// never what Metalama permits a user to compile, and this property decides the latter: it is the default
+    /// language version of a project, and it is the version against which
+    /// <see cref="Pipeline.CompileTime.CompileTimeAspectPipeline"/> refuses the preview version. A source that needs
+    /// the value of the next language version reads
+    /// <see cref="LanguageVersionExtensions.OrPreviewIfNotSupported"/> of
+    /// <see cref="AllLanguageVersions.CSharp15"/> instead.
     /// </para>
     /// </remarks>
     public static LanguageVersion Latest
-#if ALLOW_PREVIEW_LANG_VERSION
-        => AllLanguageVersions.CSharp15.OrPreviewIfNotSupported();
-#else
         => LanguageVersion.CSharp14;
-#endif
 
 #pragma warning disable SA1114 // Parameter list should follow declaration
     /// <summary>
