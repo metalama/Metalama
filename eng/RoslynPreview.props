@@ -49,13 +49,20 @@
 	</PropertyGroup>
 
 	<!--
-	  A release must not carry the flag. This check is permanent: it stays when a later story turns the harness off,
-	  and it is the reason the flag can be left enabled in a working copy without risk.
+	  A release candidate package and a general availability package must not carry the flag. A preview package may:
+	  the experimental application programming interface belongs to a language version that is itself in preview, and a
+	  preview package is where a user meets it. PackageVersionSuffix of eng/MainVersion.props tells the two apart. It
+	  is '-preview' while the version line is in development, and the release procedure of that line sets it to '-rc'
+	  and then to the empty value. The check therefore matches the suffix rather than the build configuration, so that
+	  a continuous integration build of a preview line may carry the flag.
+
+	  This check is permanent: it stays when a later story turns the harness off, and it is the reason the flag can be
+	  left enabled in a working copy without risk.
 	-->
-	<Target Name="VerifyRoslynPreviewFeaturesAreDisabledInContinuousIntegration"
+	<Target Name="VerifyRoslynPreviewFeaturesAreNotInAReleasedPackage"
 	        BeforeTargets="BeforeBuild"
-	        Condition="'$(AllowRoslynPreviewFeatures)'=='true' AND '$(ContinuousIntegrationBuild)'=='true'">
-		<Error Text="AllowRoslynPreviewFeatures is set in a continuous integration build. The flag compiles this repository against an experimental Roslyn application programming interface, and a build that produces packages must never carry it. Unset the AllowRoslynPreviewFeatures environment variable, or build the solution with 'dotnet build' instead. See eng/RoslynPreview.props and issue #1935." />
+	        Condition="'$(AllowRoslynPreviewFeatures)'=='true' AND !$(PackageVersionSuffix.StartsWith('-preview'))">
+		<Error Text="AllowRoslynPreviewFeatures is set while PackageVersionSuffix is '$(PackageVersionSuffix)', which produces a release candidate or a general availability package. The flag compiles this repository against an experimental Roslyn application programming interface, which such a package must never carry. Unset the AllowRoslynPreviewFeatures environment variable. See eng/RoslynPreview.props and issue #1935." />
 	</Target>
 
 </Project>
