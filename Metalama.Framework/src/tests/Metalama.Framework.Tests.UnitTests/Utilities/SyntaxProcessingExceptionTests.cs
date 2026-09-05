@@ -21,8 +21,7 @@ namespace Metalama.Framework.Tests.UnitTests.Utilities
     {
         /// <summary>
         /// The code that the tests parse. The attribute is on the second line because only the positions after the
-        /// edited line ending have no line mapping in the text returned by
-        /// <see cref="InconsistentLineIndexSourceText"/>.
+        /// first line have no line mapping in the text returned by <see cref="InconsistentLineIndexSourceText"/>.
         /// </summary>
         private const string _code = "// The attribute is on the next line.\r\n[My]\r\nclass Target { }\r\n";
 
