@@ -659,7 +659,25 @@ internal sealed class CompileTimeProject : IProjectService
             return DiagnosticManifest.Empty;
         }
 
-        var declaringTypes = this.Assembly.GetTypes();
+        Type[] declaringTypes;
+
+        try
+        {
+            declaringTypes = this.Assembly.GetTypes();
+        }
+        catch ( ReflectionTypeLoadException e )
+        {
+            // A reference of the compile-time assembly cannot be bound, so some of its types cannot be loaded. The
+            // types that could be loaded are still usable, and a diagnostic manifest built from them is better than no
+            // compile-time project at all. See issue #1870.
+            declaringTypes = e.Types.WhereNotNull().ToArray();
+
+            serviceProvider.GetLoggerFactory()
+                .GetLogger( "CompileTimeProject" )
+                .Warning?.Log(
+                    $"Some types of the compile-time assembly '{this.CompileTimeIdentity}' could not be loaded, so the diagnostics "
+                    + $"and suppressions that they declare are ignored: {e.Message}" );
+        }
 
         var service = new DiagnosticDefinitionDiscoveryService( serviceProvider );
         var diagnostics = service.GetDiagnosticDefinitions( declaringTypes ).ToImmutableArray();

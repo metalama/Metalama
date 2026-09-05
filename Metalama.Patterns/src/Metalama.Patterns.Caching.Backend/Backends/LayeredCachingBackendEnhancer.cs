@@ -78,7 +78,7 @@ internal sealed class LayeredCachingBackendEnhancer : CachingBackendEnhancer
     /// <inheritdoc />
     protected override void SetItemCore( string key, CacheItem item )
     {
-        var newItem = new MaterializedCacheItem( item );
+        var newItem = new MaterializedCacheItem( item, this.TimeProvider );
 
         this.LocalCache.SetItem( key, item );
         this.UnderlyingBackend.SetItem( key, newItem );
@@ -87,7 +87,7 @@ internal sealed class LayeredCachingBackendEnhancer : CachingBackendEnhancer
     /// <inheritdoc />
     protected override ValueTask SetItemAsyncCore( string key, CacheItem item, CancellationToken cancellationToken )
     {
-        var newItem = new MaterializedCacheItem( item );
+        var newItem = new MaterializedCacheItem( item, this.TimeProvider );
 
         this.LocalCache.SetItem( key, item );
 
@@ -314,7 +314,7 @@ internal sealed class LayeredCachingBackendEnhancer : CachingBackendEnhancer
         }
         else
         {
-            this.LocalCache.InvalidateDependencyImpl( key, new RemovedValue(), DateTimeOffset.UtcNow + this._removedItemTransitionPeriod );
+            this.LocalCache.InvalidateDependencyImpl( key, new RemovedValue( this.GetTimestamp() ), this.TimeProvider.GetUtcNow() + this._removedItemTransitionPeriod );
         }
 
         this.UnderlyingBackend.InvalidateDependency( key );
@@ -329,7 +329,7 @@ internal sealed class LayeredCachingBackendEnhancer : CachingBackendEnhancer
         }
         else
         {
-            this.LocalCache.InvalidateDependencyImpl( key, new RemovedValue(), DateTimeOffset.UtcNow + this._removedItemTransitionPeriod );
+            this.LocalCache.InvalidateDependencyImpl( key, new RemovedValue( this.GetTimestamp() ), this.TimeProvider.GetUtcNow() + this._removedItemTransitionPeriod );
         }
 
         return this.UnderlyingBackend.InvalidateDependencyAsync( key, cancellationToken );
@@ -344,7 +344,7 @@ internal sealed class LayeredCachingBackendEnhancer : CachingBackendEnhancer
         }
         else
         {
-            this.LocalCache.RemoveItemImpl( key, new RemovedValue(), DateTimeOffset.UtcNow + this._removedItemTransitionPeriod );
+            this.LocalCache.RemoveItemImpl( key, new RemovedValue( this.GetTimestamp() ), this.TimeProvider.GetUtcNow() + this._removedItemTransitionPeriod );
         }
 
         this.UnderlyingBackend.RemoveItem( key );
@@ -359,7 +359,7 @@ internal sealed class LayeredCachingBackendEnhancer : CachingBackendEnhancer
         }
         else
         {
-            this.LocalCache.RemoveItemImpl( key, new RemovedValue(), DateTime.UtcNow + this._removedItemTransitionPeriod );
+            this.LocalCache.RemoveItemImpl( key, new RemovedValue( this.GetTimestamp() ), this.TimeProvider.GetUtcNow() + this._removedItemTransitionPeriod );
         }
 
         return this.UnderlyingBackend.RemoveItemAsync( key, cancellationToken );
@@ -410,7 +410,11 @@ internal sealed class LayeredCachingBackendEnhancer : CachingBackendEnhancer
     /// <inheritdoc />
     protected override CachingBackendFeatures CreateFeatures() => new Features( this.UnderlyingBackend.SupportedFeatures );
 
-    internal static long GetTimestamp() => DateTimeOffset.UtcNow.UtcTicks;
+    /// <summary>
+    /// Gets the current instant, in ticks, from the clock of the backend. The value is the timestamp of a
+    /// materialized cache item and of a removal.
+    /// </summary>
+    internal long GetTimestamp() => this.TimeProvider.GetUtcNow().UtcTicks;
 
     private sealed class Features : CachingBackendEnhancerFeatures
     {
@@ -422,9 +426,18 @@ internal sealed class LayeredCachingBackendEnhancer : CachingBackendEnhancer
     private sealed record RemovedValue : MemoryCacheItem
     {
 #pragma warning disable SA1401
-        public readonly long Timestamp = GetTimestamp();
+        public readonly long Timestamp;
 #pragma warning restore SA1401
 
-        public RemovedValue() : base( null, default, new object() ) { }
+        /// <summary>
+        /// Initializes a new instance of the <see cref="RemovedValue"/> class.
+        /// </summary>
+        /// <param name="timestamp">
+        /// The instant of the removal, read from the clock of the enhancer by <see cref="GetTimestamp"/>.
+        /// </param>
+        public RemovedValue( long timestamp ) : base( null, default, new object() )
+        {
+            this.Timestamp = timestamp;
+        }
     }
 }

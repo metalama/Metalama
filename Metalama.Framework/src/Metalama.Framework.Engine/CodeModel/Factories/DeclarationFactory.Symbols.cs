@@ -118,7 +118,13 @@ public partial class DeclarationFactory
     {
         return typeSymbol.Kind switch
         {
-            SymbolKind.NamedType when typeSymbol is INamedTypeSymbol namedType => this.GetNamedType( namedType, genericContext, defaultNullability ),
+            // Roslyn gives an error type symbol its own symbol kind, but the symbol still implements INamedTypeSymbol,
+            // and GetNamedType substitutes it by object. Routing the kind here rather than throwing keeps the design-time
+            // pipeline running while a reference is unresolved. See #1867.
+            SymbolKind.NamedType or SymbolKind.ErrorType when typeSymbol is INamedTypeSymbol namedType => this.GetNamedType(
+                namedType,
+                genericContext,
+                defaultNullability ),
             SymbolKind.ArrayType when typeSymbol is IArrayTypeSymbol arrayType => this.GetArrayType( arrayType, genericContext, defaultNullability ),
             SymbolKind.PointerType when typeSymbol is IPointerTypeSymbol pointerType => this.GetPointerType( pointerType, genericContext ),
             SymbolKind.TypeParameter when typeSymbol is ITypeParameterSymbol typeParameter => this.GetTypeParameter( typeParameter, genericContext )

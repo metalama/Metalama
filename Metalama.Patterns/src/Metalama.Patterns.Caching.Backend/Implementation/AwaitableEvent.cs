@@ -48,6 +48,12 @@ internal sealed class AwaitableEvent
     /// </summary>
     private readonly ITestSynchronizationProvider? _testSynchronizationProvider;
 
+    /// <summary>
+    /// The object that dispatches the continuation of a wait operation when the operation completes on a thread
+    /// other than the one that awaits it. It is the thread pool unless the service provider supplies another one.
+    /// </summary>
+    private readonly IWorkItemDispatcher _workItemDispatcher;
+
     internal volatile int SignalState;
 
     public AwaitableEvent( EventResetMode resetMode, IServiceProvider? serviceProvider = null )
@@ -60,6 +66,7 @@ internal sealed class AwaitableEvent
         Volatile.Write( ref this.Operations, new ConcurrentQueue<WaitOperationBase>() );
 
         this._testSynchronizationProvider = (ITestSynchronizationProvider?) serviceProvider?.GetService( typeof(ITestSynchronizationProvider) );
+        this._workItemDispatcher = serviceProvider.GetWorkItemDispatcher();
 
         this.SignalState = signaled ? SIGNALED : NOT_SIGNALED;
     }
@@ -400,7 +407,8 @@ internal sealed class AwaitableEvent
             {
                 State = CREATED,
                 Event = CreateWaitEvent(), // private to this operation - never shared or pooled
-                TestSynchronizationProvider = this._testSynchronizationProvider
+                TestSynchronizationProvider = this._testSynchronizationProvider,
+                WorkItemDispatcher = this._workItemDispatcher
             };
 
         // enqueue the operation (other threads will now see it)
@@ -529,7 +537,8 @@ internal sealed class AwaitableEvent
             {
                 State = CREATED,
                 Event = CreateWaitEvent(), // private to this operation - never shared or pooled
-                TestSynchronizationProvider = this._testSynchronizationProvider
+                TestSynchronizationProvider = this._testSynchronizationProvider,
+                WorkItemDispatcher = this._workItemDispatcher
             };
 
         // enqueue the operation (other threads will now see it)
@@ -711,7 +720,8 @@ internal sealed class AwaitableEvent
                     State = CREATED,
                     Timeout = timeout,
                     CancellationToken = cancellationToken,
-                    TestSynchronizationProvider = this._testSynchronizationProvider
+                    TestSynchronizationProvider = this._testSynchronizationProvider,
+                    WorkItemDispatcher = this._workItemDispatcher
                 };
 
             // we cannot do more now because we don't have the continuation, we need to wait until it is set
@@ -800,7 +810,8 @@ internal sealed class AwaitableEvent
                     State = CREATED,
                     Timeout = timeout,
                     CancellationToken = cancellationToken,
-                    TestSynchronizationProvider = this._testSynchronizationProvider
+                    TestSynchronizationProvider = this._testSynchronizationProvider,
+                    WorkItemDispatcher = this._workItemDispatcher
                 };
 
             // we cannot do more now because we don't have the continuation, we need to wait until it is set
@@ -1008,6 +1019,9 @@ internal sealed class AwaitableEvent
         // without a reference to the event - can reach synchronization points too. Null in production.
         public ITestSynchronizationProvider? TestSynchronizationProvider;
 
+        // Copied from the owning AwaitableEvent for the same reason as TestSynchronizationProvider.
+        public IWorkItemDispatcher WorkItemDispatcher = ThreadPoolWorkItemDispatcher.Instance;
+
         /// <inheritdoc cref="AwaitableEvent.SyncPoint"/>
         protected void SyncPoint( string name ) => this.TestSynchronizationProvider?.SyncPoint( name );
 
@@ -1118,11 +1132,11 @@ internal sealed class AwaitableEvent
             }
             else if ( this.FlowContext )
             {
-                ThreadPool.QueueUserWorkItem( _runContinuationWaitCallback, this.Continuation );
+                this.WorkItemDispatcher.Dispatch( _runContinuationWaitCallback, this.Continuation );
             }
             else
             {
-                ThreadPool.UnsafeQueueUserWorkItem( _runContinuationWaitCallback, this.Continuation );
+                this.WorkItemDispatcher.Dispatch( _runContinuationWaitCallback, this.Continuation, false );
             }
 
             return true;
@@ -1207,11 +1221,11 @@ internal sealed class AwaitableEvent
             }
             else if ( this.FlowContext )
             {
-                ThreadPool.QueueUserWorkItem( _runContinuationWaitCallback, this );
+                this.WorkItemDispatcher.Dispatch( _runContinuationWaitCallback, this );
             }
             else
             {
-                ThreadPool.UnsafeQueueUserWorkItem( _runContinuationWaitCallback, this );
+                this.WorkItemDispatcher.Dispatch( _runContinuationWaitCallback, this, false );
             }
 
             return true;

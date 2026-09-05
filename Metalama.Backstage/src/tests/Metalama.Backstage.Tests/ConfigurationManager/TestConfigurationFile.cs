@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Backstage.Configuration;
+using System.Collections.Immutable;
 
 namespace Metalama.Backstage.Tests.ConfigurationManager;
 
@@ -32,6 +33,49 @@ internal sealed record TestConfigurationFile : ConfigurationFile
 /// </remarks>
 [ConfigurationFile( "test2.json" )]
 internal sealed record SecondTestConfigurationFile : ConfigurationFile
+{
+    public bool IsModified { get; init; }
+}
+
+/// <summary>
+/// A configuration file whose members are nested objects, so that a test can observe what
+/// <see cref="Configuration.ConfigurationManager"/> does with a member that the running version does not declare at
+/// every level of a document.
+/// </summary>
+[ConfigurationFile( "test-nested.json" )]
+internal sealed record NestedTestConfigurationFile : ConfigurationFile
+{
+    /// <summary>
+    /// Gets the number of updates that were applied, which gives a test a known member to change.
+    /// </summary>
+    public int Counter { get; init; }
+
+    /// <summary>
+    /// Gets a nested object, which stands for a member such as <c>DiagnosticsConfiguration.Logging</c>.
+    /// </summary>
+    public TestNestedObject Nested { get; init; } = new();
+
+    /// <summary>
+    /// Gets a dictionary whose values are objects, which stands for a member such as
+    /// <c>ToastNotificationsConfiguration.Notifications</c>.
+    /// </summary>
+    public ImmutableDictionary<string, TestNestedObject> Map { get; init; } = ImmutableDictionary<string, TestNestedObject>.Empty;
+
+    /// <summary>
+    /// Gets an array whose elements are objects, so that a test covers the level of nesting that a merge of two JSON
+    /// documents could not handle.
+    /// </summary>
+    public ImmutableArray<TestNestedObject> Items { get; init; } = ImmutableArray<TestNestedObject>.Empty;
+}
+
+/// <summary>
+/// An object nested in <see cref="NestedTestConfigurationFile"/>.
+/// </summary>
+/// <remarks>
+/// The type does not derive from <see cref="ConfigurationFile"/>, so it derives from <see cref="ConfigurationObject"/>,
+/// exactly as the nested types of the product do.
+/// </remarks>
+internal sealed record TestNestedObject : ConfigurationObject
 {
     public bool IsModified { get; init; }
 }

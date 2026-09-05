@@ -28,6 +28,12 @@ namespace Metalama.Patterns.Caching.Backends;
 /// in the <see cref="MemoryCachingBackend"/> constructor. You only need to do this if you intend to limit the size
 /// of the cache.</item>
 /// </list>
+/// <para>
+/// Each instance prefixes its keys with an identifier of its own, so several instances that share one
+/// <see cref="Microsoft.Extensions.Caching.Memory.IMemoryCache"/> keep separate items and separate dependencies. This
+/// is what the two layers of a layered backend need when the application registers a single
+/// <see cref="Microsoft.Extensions.Caching.Memory.IMemoryCache"/> in its service container.
+/// </para>
 /// </remarks>
 [PublicAPI]
 internal class MemoryCachingBackend : CachingBackend
@@ -35,7 +41,14 @@ internal class MemoryCachingBackend : CachingBackend
     private readonly IMemoryCache _cache;
     private readonly Func<object?, long> _sizeCalculator;
     private readonly ICachingSerializer? _serializer;
+    private readonly string _itemKeyPrefix;
+    private readonly string _dependencyKeyPrefix;
     private static readonly RecyclableMemoryStreamManager _memoryStreamManager = new();
+
+    /// <summary>
+    /// The identifier given to the last instance of the <see cref="MemoryCachingBackend"/> class.
+    /// </summary>
+    private static int _lastInstanceId;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="MemoryCachingBackend"/> class based on a new instance of the <see cref="Microsoft.Extensions.Caching.Memory.MemoryCache"/> class.
@@ -63,16 +76,20 @@ internal class MemoryCachingBackend : CachingBackend
         this._cache = cache ?? (IMemoryCache?) serviceProvider?.GetService( typeof(IMemoryCache) ) ?? new MemoryCache( new MemoryCacheOptions() );
         this._serializer = configuration.Serializer;
         this._sizeCalculator = this._serializer != null ? item => ((byte[]?) item)?.Length ?? 0 : configuration.SizeCalculator;
+
+        var instanceId = Interlocked.Increment( ref _lastInstanceId ).ToString( CultureInfo.InvariantCulture );
+        this._itemKeyPrefix = nameof(MemoryCachingBackend) + ":" + instanceId + ":item:";
+        this._dependencyKeyPrefix = nameof(MemoryCachingBackend) + ":" + instanceId + ":dependency:";
     }
 
-    private static string GetItemKey( string key )
+    private string GetItemKey( string key )
     {
-        return nameof(MemoryCachingBackend) + ":item:" + key;
+        return this._itemKeyPrefix + key;
     }
 
-    private static string GetDependencyKey( string key )
+    private string GetDependencyKey( string key )
     {
-        return nameof(MemoryCachingBackend) + ":dependency:" + key;
+        return this._dependencyKeyPrefix + key;
     }
 
     private static CacheItemRemovedReason CreateRemovalReason( EvictionReason sourceReason )
@@ -161,12 +178,11 @@ internal class MemoryCachingBackend : CachingBackend
             return;
         }
 
-        var prefix = GetItemKey( "" );
         var fullKey = (string) keyAsObject;
 
-        if ( fullKey.StartsWith( prefix, StringComparison.OrdinalIgnoreCase ) )
+        if ( fullKey.StartsWith( this._itemKeyPrefix, StringComparison.OrdinalIgnoreCase ) )
         {
-            var key = fullKey.Substring( prefix.Length );
+            var key = fullKey.Substring( this._itemKeyPrefix.Length );
 
             var item = (CacheItem) (value ?? throw new ArgumentNullException( nameof(value) ));
             this.CleanDependencies( key, item );
@@ -183,7 +199,7 @@ internal class MemoryCachingBackend : CachingBackend
 
         foreach ( var dependency in dependencies )
         {
-            var dependencyKey = GetDependencyKey( dependency );
+            var dependencyKey = this.GetDependencyKey( dependency );
 
             var backwardDependencies = (HashSet<string>?) this._cache.Get( dependencyKey );
 
@@ -224,7 +240,7 @@ internal class MemoryCachingBackend : CachingBackend
     /// <inheritdoc />
     protected override void SetItemCore( string key, PSCacheItem item )
     {
-        var itemKey = GetItemKey( key );
+        var itemKey = this.GetItemKey( key );
         var lockTaken = false;
         var previousValue = (MemoryCacheItem?) this._cache.Get( itemKey );
 
@@ -260,13 +276,13 @@ internal class MemoryCachingBackend : CachingBackend
     /// <inheritdoc />
     protected override bool ContainsItemCore( string key )
     {
-        return this._cache.Get( GetItemKey( key ) ) != null;
+        return this._cache.Get( this.GetItemKey( key ) ) != null;
     }
 
     /// <inheritdoc />  
     protected override CacheItem? GetItemCore( string key, bool includeDependencies )
     {
-        return this.Deserialize( (MemoryCacheItem?) this._cache.Get( GetItemKey( key ) ) );
+        return this.Deserialize( (MemoryCacheItem?) this._cache.Get( this.GetItemKey( key ) ) );
     }
 
     protected MemoryCacheItem? Deserialize( MemoryCacheItem? item )
@@ -313,7 +329,7 @@ internal class MemoryCachingBackend : CachingBackend
 
     internal void InvalidateDependencyImpl( string key, MemoryCacheItem? replacementValue = null, DateTimeOffset? replacementValueExpiration = null )
     {
-        var items = (HashSet<string>?) this._cache.Get( GetDependencyKey( key ) );
+        var items = (HashSet<string>?) this._cache.Get( this.GetDependencyKey( key ) );
 
         if ( items != null )
         {
@@ -345,7 +361,7 @@ internal class MemoryCachingBackend : CachingBackend
                 "If " + nameof(replacementValue) + " is specified, " + nameof(replacementValueExpiration) + " must also be specified." );
         }
 
-        var itemKey = GetItemKey( key );
+        var itemKey = this.GetItemKey( key );
 
         var cacheValue = (MemoryCacheItem?) this._cache.Get( itemKey );
 
@@ -390,7 +406,7 @@ internal class MemoryCachingBackend : CachingBackend
 
         foreach ( var dependency in cacheValue.Dependencies )
         {
-            var dependencyKey = GetDependencyKey( dependency );
+            var dependencyKey = this.GetDependencyKey( dependency );
             var backwardDependencies = (HashSet<string>?) this._cache.Get( dependencyKey );
 
             if ( backwardDependencies == null )
@@ -413,27 +429,38 @@ internal class MemoryCachingBackend : CachingBackend
     /// <inheritdoc />
     protected override bool ContainsDependencyCore( string key )
     {
-        return this._cache.Get( GetDependencyKey( key ) ) != null;
+        return this._cache.Get( this.GetDependencyKey( key ) ) != null;
     }
 
     /// <param name="options"></param>
     /// <inheritdoc />
     protected override void ClearCore( ClearCacheOptions options )
     {
-        if ( this._cache is MemoryCache classicMemoryCache )
+        switch ( this._cache )
         {
-            if ( (options & ClearCacheOptions.Compact) != 0 )
-            {
+            case MemoryCache classicMemoryCache when (options & ClearCacheOptions.Compact) != 0:
                 classicMemoryCache.Compact( 1 );
-            }
-            else
-            {
+
+                break;
+
+            case MemoryCache classicMemoryCache:
                 classicMemoryCache.Clear();
-            }
-        }
-        else
-        {
-            throw new NotSupportedException( "IMemoryCache implementations other than MemoryCache don't support clearing." );
+
+                break;
+
+            case IClearableMemoryCache clearableMemoryCache when (options & ClearCacheOptions.Compact) != 0:
+                clearableMemoryCache.Compact( 1 );
+
+                break;
+
+            case IClearableMemoryCache clearableMemoryCache:
+                clearableMemoryCache.Clear();
+
+                break;
+
+            default:
+                throw new NotSupportedException(
+                    "IMemoryCache implementations other than MemoryCache and IClearableMemoryCache do not support clearing." );
         }
     }
 
@@ -449,7 +476,7 @@ internal class MemoryCachingBackend : CachingBackend
     /// <inheritdoc />
     protected override CachingBackendFeatures CreateFeatures()
     {
-        return new Features( this._cache is MemoryCache );
+        return new Features( this._cache is MemoryCache or IClearableMemoryCache );
     }
 
     /// <inheritdoc />

@@ -36,7 +36,16 @@ internal sealed class AutoReloadManager : IDisposable, IAsyncDisposable
             }
             else
             {
-                this._backgroundTaskScheduler.EnqueueBackgroundTask( ct => Task.Run( () => this.AutoRefreshCore( backend, key, autoRefreshInfo ), ct ) );
+                // The background task scheduler already dispatches the delegate through the work-item dispatcher of
+                // the caching service, so the synchronous refresh runs there and needs no dispatch of its own.
+                this._backgroundTaskScheduler.EnqueueBackgroundTask(
+                    ct =>
+                    {
+                        ct.ThrowIfCancellationRequested();
+                        this.AutoRefreshCore( backend, key, autoRefreshInfo );
+
+                        return Task.CompletedTask;
+                    } );
             }
         }
     }

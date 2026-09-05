@@ -12,5 +12,6 @@ namespace Metalama.Backstage.Tests.ConfigurationManager;
 /// </summary>
 [JsonSerializable( typeof(TestConfigurationFile) )]
 [JsonSerializable( typeof(SecondTestConfigurationFile) )]
+[JsonSerializable( typeof(NestedTestConfigurationFile) )]
 [UsedImplicitly]
 internal partial class TestConfigurationJsonContext : JsonSerializerContext { }

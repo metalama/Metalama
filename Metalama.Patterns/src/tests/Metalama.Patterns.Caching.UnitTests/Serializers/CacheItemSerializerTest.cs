@@ -42,7 +42,7 @@ public sealed class CacheItemSerializerTest
             SlidingExpiration = TimeSpan.FromMinutes( 5 ), AbsoluteExpiration = TimeSpan.FromHours( 10 ), Priority = CacheItemPriority.Low
         };
 
-        var initialItem = new MaterializedCacheItem( new CacheItem( initialObject, default, initialConfiguration ) );
+        var initialItem = new MaterializedCacheItem( new CacheItem( initialObject, default, initialConfiguration ), TimeProvider.System );
         var roundloopItem = RoundLoop( initialItem );
 
         Assert.Equal( initialObject.Value, ((MyObject) roundloopItem.Value!).Value );

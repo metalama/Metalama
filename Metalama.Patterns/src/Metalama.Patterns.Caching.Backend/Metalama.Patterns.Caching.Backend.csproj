@@ -27,6 +27,11 @@
     </ItemGroup>
 
 
+    <!-- Microsoft.Bcl.TimeProvider backports System.TimeProvider to the target frameworks that do not have it. -->
+    <ItemGroup Condition="'$(TargetFramework)' != 'net8.0'">
+        <PackageReference Include="Microsoft.Bcl.TimeProvider" />
+    </ItemGroup>
+
     <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
         <PackageReference Include="System.Runtime.Serialization.Xml" />
         <PackageReference Include="System.Threading" />

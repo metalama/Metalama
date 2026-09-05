@@ -124,6 +124,69 @@ Abstract base for multi-instance cache synchronization:
 | `WhenBackgroundTasksCompleted()` | Wait for all queued tasks to complete |
 | `Cancel()` | Cancel all pending tasks |
 
+## Substitutable Dependencies
+
+A caching backend has three dependencies that another implementation can replace: the clock, the object that dispatches work items, and the memory cache. Each has a production implementation that is used when the service provider supplies none, so none of them is ever absent, and the behaviour with the defaults is the production behaviour.
+
+| Dependency | Type | Default | Supplied through |
+|------------|------|---------|------------------|
+| Clock | `System.TimeProvider` | `TimeProvider.System` | The service provider of the backend |
+| Work-item dispatch | `IWorkItemDispatcher` | `ThreadPoolWorkItemDispatcher.Instance` | The service provider of the backend |
+| Memory cache | `Microsoft.Extensions.Caching.Memory.IMemoryCache` | A new `MemoryCache` with default options | The backend builder, or the service provider |
+
+These three are dependencies, not test hooks. A test hook, such as `ITestSynchronizationProvider` in `AwaitableEvent` or `IBackgroundTaskSchedulerObserver` in `BackgroundTaskScheduler`, is called by the product to notify a test, has no production meaning, and does nothing when it is absent. Time, execution and storage are dependencies of the backend, so they are modelled in the same way as `IRetryPolicy`.
+
+The `Metalama.Patterns.Caching.TestHelpers` package supplies an implementation of each one, and `FakeCachingServices` registers the three of them in a single service provider. See the README of that package.
+
+### Clock
+
+`CachingBackend.TimeProvider` is the clock of the backend. It is `TimeProvider.System` unless the service provider supplies another `TimeProvider`. The property is `protected internal`, so a class that derives from `CachingBackend` reads the clock through it instead of reading `DateTime.UtcNow`.
+
+Two components read the clock:
+
+- `LayeredCachingBackendEnhancer` stamps the items that it writes to the L2 layer, and it computes the expiration of the tombstone that it writes into the L1 layer when an item is removed. The transition period of that tombstone is one minute.
+- `MaterializedCacheItem` converts a relative absolute expiration into an absolute one, and back. It receives the `TimeProvider` as a constructor argument, because it has no service provider of its own.
+
+### Work-item dispatch
+
+`IWorkItemDispatcher` declares one method, `Dispatch`, which queues a work item. Every event and every background operation of a backend goes through it:
+
+| Component | What it dispatches |
+|-----------|--------------------|
+| `CachingBackend.RaiseEvent` | The `ItemRemoved` and `DependencyInvalidated` events |
+| `BackgroundTaskScheduler` | The background tasks that it executes |
+| `AwaitableEvent` | The continuation of an asynchronous wait, when the captured `TaskScheduler` is the default one |
+
+`CachingBackend.WorkItemDispatcher` exposes the dispatcher to derived classes. It is `ThreadPoolWorkItemDispatcher` unless the service provider supplies another `IWorkItemDispatcher`. `ThreadPoolWorkItemDispatcher` is a singleton, reached through `ThreadPoolWorkItemDispatcher.Instance`. It calls `ThreadPool.QueueUserWorkItem` when the execution context flows, and `ThreadPool.UnsafeQueueUserWorkItem` when it does not.
+
+The interface only queues. The ability to wait for the completion of the pending work items belongs to the implementation that a test substitutes, not to the interface, because the product never waits for a work item that it has queued.
+
+### Memory cache
+
+`MemoryCachingBackend` stores its entries in an `IMemoryCache`. It takes the first of the following that is available:
+
+1. The instance given to `MemoryCachingBackendBuilder.WithMemoryCache` or `LayeredCachingBackendBuilder.WithMemoryCache`, or the `MemoryCache` that `WithMemoryCacheOptions` builds from the given options.
+2. The `IMemoryCache` of the service provider.
+3. A new `MemoryCache` with default options.
+
+`LayeredCachingBackendBuilder.WithMemoryCache` supplies the memory cache of the L1 layer. The L2 layer is the underlying backend and has a memory cache only if it is itself a `MemoryCachingBackend`.
+
+`IMemoryCache` declares no operation that removes every entry, although `MemoryCache` has one. `IClearableMemoryCache` is an `IMemoryCache` that declares `Clear` and `Compact`. `MemoryCachingBackend` reports the `Clear` feature when its `IMemoryCache` is a `MemoryCache` or implements `IClearableMemoryCache`. A call to `Clear` on a backend whose `IMemoryCache` is neither throws `NotSupportedException`.
+
+### Substitution in tests
+
+Substitution is opt-in per test class. A test class that needs it creates a `FakeCachingServices` and passes its `ServiceProvider` to the backend under test. Every other test class keeps running against the real clock, the real thread pool and `MemoryCache`, and its behaviour is unchanged.
+
+Three test suites stay on the real thread pool on purpose, because they exist to exercise a real and contended one:
+
+| Test suite | Reason |
+|------------|--------|
+| `AwaitableEventRaceTests` | Reproduces interleavings of `AwaitableEvent` between two real threads |
+| `BackgroundTaskSchedulerEdgeCaseTests` | Exercises the concurrency limit and the overload detection of `BackgroundTaskScheduler` |
+| `AwaitableEventHangDiagnostic` | A load test that repeats the enqueue-then-await handshake a large number of times, under processor saturation |
+
+`BaseCacheBackendTests` also stays on the real clock. It is shared with the Redis and Azure backends of `Metalama.Premium`, which run against a network and a real clock, so a fake clock cannot drive them.
+
 ## Serialization
 
 Two-layer serialization system:
@@ -231,3 +294,7 @@ Enhancers delegate to underlying backend features (except `NonBlockingCachingBac
 | `NonBlockingCachingBackendEnhancer` | `Metalama.Patterns.Caching.Backend/Backends/NonBlockingCachingBackendEnhancer.cs` |
 | `JsonCachingSerializer` | `Metalama.Patterns.Caching.Backend/Serializers/JsonCachingSerializer.cs` |
 | `CacheItemSerializer` | `Metalama.Patterns.Caching.Backend/Serializers/CacheItemSerializer.cs` |
+| `IWorkItemDispatcher` | `Metalama.Patterns.Caching.Backend/Implementation/IWorkItemDispatcher.cs` |
+| `ThreadPoolWorkItemDispatcher` | `Metalama.Patterns.Caching.Backend/Implementation/ThreadPoolWorkItemDispatcher.cs` |
+| `IClearableMemoryCache` | `Metalama.Patterns.Caching.Backend/Implementation/IClearableMemoryCache.cs` |
+| `FakeCachingServices` | `tests/Metalama.Patterns.Caching.TestHelpers/FakeCachingServices.cs` |

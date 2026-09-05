@@ -69,6 +69,30 @@ public sealed class ToastNotificationStatusService : IToastNotificationStatusSer
         return true;
     }
 
+    /// <summary>
+    /// Returns the value to store for a notification kind, after copying into it the members of the previous value
+    /// that this version of Metalama does not declare.
+    /// </summary>
+    /// <remarks>
+    /// An update of a notification kind builds a new value instead of copying the previous one with a <c>with</c>
+    /// expression, because the declared members are reset. The members written by a newer version of Metalama are
+    /// therefore carried over explicitly, otherwise the update would remove them from the configuration file.
+    /// See <see cref="ConfigurationObject.CopyUnknownMembersFrom"/>.
+    /// </remarks>
+    /// <param name="configuration">The configuration file before the update.</param>
+    /// <param name="kind">The kind of notification whose value is replaced.</param>
+    /// <param name="newValue">The new value, which is modified in place and returned.</param>
+    private static ToastNotificationConfiguration WithUnknownMembersOfPreviousValue(
+        ToastNotificationsConfiguration configuration,
+        ToastNotificationKind kind,
+        ToastNotificationConfiguration newValue )
+    {
+        configuration.Notifications.TryGetValue( kind.Name, out var previousValue );
+        newValue.CopyUnknownMembersFrom( previousValue );
+
+        return newValue;
+    }
+
     public bool TryAcquire( ToastNotificationKind kind )
     {
         if ( this.IsPaused )
@@ -86,7 +110,10 @@ public sealed class ToastNotificationStatusService : IToastNotificationStatusSer
                 LastNotificationTime = this._dateTimeProvider.UtcNow,
                 Notifications = c.Notifications.SetItem(
                     kind.Name,
-                    new ToastNotificationConfiguration() { SnoozeUntil = this._dateTimeProvider.UtcNow + kind.AutoSnoozePeriod } )
+                    WithUnknownMembersOfPreviousValue(
+                        c,
+                        kind,
+                        new ToastNotificationConfiguration { SnoozeUntil = this._dateTimeProvider.UtcNow + kind.AutoSnoozePeriod } ) )
             } );
     }
 
@@ -96,7 +123,10 @@ public sealed class ToastNotificationStatusService : IToastNotificationStatusSer
             {
                 Notifications = config.Notifications.SetItem(
                     kind.Name,
-                    new ToastNotificationConfiguration { SnoozeUntil = this._dateTimeProvider.UtcNow + kind.ManualSnoozePeriod } )
+                    WithUnknownMembersOfPreviousValue(
+                        config,
+                        kind,
+                        new ToastNotificationConfiguration { SnoozeUntil = this._dateTimeProvider.UtcNow + kind.ManualSnoozePeriod } ) )
             } );
 
     public void Mute( ToastNotificationKind kind )
@@ -113,7 +143,7 @@ public sealed class ToastNotificationStatusService : IToastNotificationStatusSer
             {
                 Notifications = config.Notifications.SetItem(
                     kind.Name,
-                    new ToastNotificationConfiguration { Disabled = true } )
+                    WithUnknownMembersOfPreviousValue( config, kind, new ToastNotificationConfiguration { Disabled = true } ) )
             } );
     }
 

@@ -88,6 +88,12 @@
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.2" />
     <PackageVersion Include="Microsoft.Extensions.Caching.Memory" Version="8.0.1" />
+    <!-- Microsoft.Bcl.TimeProvider backports System.TimeProvider to net472 and netstandard2.0. It is user-surfacing
+         through Metalama.Patterns.Caching.Backend, so it stays on the .NET 8.0 line. -->
+    <PackageVersion Include="Microsoft.Bcl.TimeProvider" Version="8.0.1" />
+    <!-- Microsoft.Extensions.TimeProvider.Testing 8.10.0 is the highest version on the 8.x line. Its net462 group
+         depends on Microsoft.Bcl.TimeProvider 8.0.1, so net472 resolves a single version of the shim. -->
+    <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="8.10.0" />
     <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="8.0.1" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.3" />
     <PackageVersion Include="Microsoft.Extensions.Logging" Version="8.0.1" />
