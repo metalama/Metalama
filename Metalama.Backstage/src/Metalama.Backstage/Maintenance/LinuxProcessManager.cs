@@ -4,18 +4,18 @@
 
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 
 namespace Metalama.Backstage.Maintenance;
 
+/// <summary>
+/// The implementation of <see cref="IProcessManager"/> for Linux.
+/// </summary>
 internal sealed class LinuxProcessManager : ProcessManagerBase
 {
     public LinuxProcessManager( IServiceProvider serviceProvider ) : base( serviceProvider ) { }
-
-    protected override IEnumerable<KillableProcess> GetProcesses( ImmutableArray<KillableProcessSpec> processNames ) => this.GetDotNetProcesses( processNames );
 
     protected override bool TryGetModulePaths( Process process, [NotNullWhen( true )] out List<string>? modules )
     {

@@ -196,17 +196,28 @@ The backend Roslyn is 5.0.0. `lib/ReSharperHost/Microsoft.CodeAnalysis.dll` carr
 in the set under rule 1. The floor is the .NET 10 SDK. The .NET 11 SDK, released in November 2026, is also in the
 set.
 
-The build container installs the SDK that the product family names, through
-`MetalamaDependencies.V2027_0.Family.PreferredVersions`, and `eng/src/Program.cs` reads the same value for the
-container component and for `global.json`, so the image and the pin cannot drift apart. The family names the version
-that Visual Studio installs through the `Microsoft.NetCore.Component.SDK` component, which is 10.0.400 for Visual
-Studio 2026 18.9. The preferred versions belong to the family and not to a single global set, because a family pins
-its own Visual Studio baseline: the families that are still on Visual Studio 2022 keep the default, since Visual
-Studio 2022 ships no .NET 10 SDK and has no version to match.
+The build container installs two SDKs, and `eng/src/Program.cs` names both, so the image and the `global.json` pin
+cannot drift apart.
 
-Several feature bands are expected to coexist in one installation, and nothing in this doctrine requires the
-container to hold only one. A build that mixes two of them is a defect in the build tooling, not a reason to
-remove an SDK: see the note on `MSBuildExtensionsPath` in `CLAUDE.md`.
+The main one is the .NET 11 SDK, which `global.json` names and which therefore compiles the product. Its version is
+a literal in `eng/src/Program.cs`, because the .NET 11 SDK is still a preview and
+`MetalamaDependencies.V2027_0.Family.PreferredVersions` names only released feature bands. The literal moves to the
+family once the .NET 11 SDK is released. The product is therefore built with an SDK that no supported Visual Studio
+installs, which is the decision that story S-09 records: the compile-time compilation caps the C# language version
+by the major version of the SDK, so a compile-time C# 15 construct requires the .NET 11 SDK to be the one that
+`global.json` names, and not merely one that is installed.
+
+The second one is the .NET 10 SDK that the family names, which is 10.0.400 for Visual Studio 2026 18.9. It stays
+installed for two reasons. The .NET 11 SDK carries no .NET 10 runtime, and every build tool and test assembly of
+the product targets `net10.0`. It is also the SDK that Visual Studio installs through the
+`Microsoft.NetCore.Component.SDK` component, so the desktop `MSBuild.exe` of the container exercises the same
+toolchain as a developer machine. The preferred versions belong to the family and not to a single global set,
+because a family pins its own Visual Studio baseline: the families that are still on Visual Studio 2022 keep the
+default, since Visual Studio 2022 ships no .NET 10 SDK and has no version to match.
+
+Several SDKs, including several feature bands of one major version, are expected to coexist in one installation,
+and nothing in this doctrine requires the container to hold only one. A build that mixes two of them is a defect in
+the build tooling, not a reason to remove an SDK: see the note on `MSBuildExtensionsPath` in `CLAUDE.md`.
 
 ### .NET runtime, for user target frameworks
 
@@ -369,11 +380,19 @@ Rules 1 to 8 are applied against calendars. These three items are applied agains
    `docs/contributing/target-framework-strategy.md` on the branch that shipped it. If it is .NET 8, the Core
    flavour stays `net8.0` for 2027.0. Read the Roslyn version from the same installation: the Visual Studio floor
    of the Roslyn axis is inferred from the release cadence until this is measured, and a baseline below Roslyn
-   5.10 puts a Visual Studio host in the 5.0 to 5.9 range and makes a Roslyn 5.0 variant mandatory.
+   5.10 puts a Visual Studio host in the 5.0 to 5.9 range and makes a Roslyn 5.0 variant mandatory. Record the
+   name of the analysis process as well. Metalama classifies its host by process name, in the table of
+   `Metalama.Backstage.Diagnostics.ProcessKindDetector`, and Visual Studio has renamed that process once already:
+   it was `ServiceHub.RoslynCodeAnalysisService` up to Visual Studio 2022 and is `DevHub` in Visual Studio 2026,
+   which issue [#1463](https://github.com/metalama/Metalama/issues/1463) reported as a bug. A name that the table
+   does not contain leaves the host classified as `Other`, which no diagnostic reports.
 2. The Rider and C# Dev Kit backend runtime and Roslyn version. Done for Rider on 2026-09-01: .NET 10.0.5 and
    Roslyn 5.0.0, recorded in the "Other design-time hosts" section above. Outstanding for the C# Dev Kit, which
    was not installed on that machine. Repeat both at the release candidate on 2026-11-20, because this axis
-   follows the current release rather than a calendar.
+   follows the current release rather than a calendar. Record the name of the C# Dev Kit language server process
+   as well, for the reason given in item 1. The table of `Metalama.Backstage.Diagnostics.ProcessKindDetector`
+   currently expects `Microsoft.CodeAnalysis.LanguageServer`, either as its own executable or as an assembly
+   named on the command line of `dotnet`.
 3. A design-time smoke test on the floor. Run the design-time verification protocol of
    [`Directory.Packages.md`](../../Directory.Packages.md) on the floor Visual Studio and on the previous one. A
    mismatch between `net8.0` and `net10.0` does not surface in the integrated development environment: check the

@@ -10,20 +10,21 @@ namespace Metalama.Framework.GenerateMetaSyntaxRewriter.Model;
 
 internal static class TreeReader
 {
-    public static Tree ReadTree( string inputFile )
+    public static Tree ReadTree( string inputFile, IReadOnlySet<string> keptExperimentalFeatures )
     {
         SyntaxXmlCleaner.Clean( inputFile );
         var reader = XmlReader.Create( inputFile, new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit } );
         var serializer = new XmlSerializer( typeof(Tree) );
         var tree = (Tree) serializer.Deserialize( reader )!;
-        RemoveExperimentalDeclarations( tree );
+        RemoveExperimentalDeclarations( tree, keptExperimentalFeatures );
         TreeFlattening.FlattenChildren( tree );
 
         return tree;
     }
 
     /// <summary>
-    /// Removes the nodes and the fields that belong to an experimental Roslyn feature.
+    /// Removes the nodes and the fields that belong to an experimental Roslyn feature, except the features named by
+    /// <paramref name="keptExperimentalFeatures"/>.
     /// </summary>
     /// <remarks>
     /// The <c>Syntax-*.xml</c> files are copied unchanged from the Roslyn version they describe, so they declare the
@@ -31,20 +32,27 @@ internal static class TreeReader
     /// every reference from generated code into an <c>RSEXPERIMENTAL</c> error. Experimental features are not supported,
     /// so the declarations are removed here rather than omitted from the grammar file: the file has to keep describing
     /// the Roslyn version it is named after.
+    /// <para>
+    /// A feature named by <paramref name="keptExperimentalFeatures"/> is generated instead of removed, so that the
+    /// engine can be developed against it before Roslyn removes the marker. The build supplies that list from the
+    /// <c>RoslynPreviewKeptGrammarFeatures</c> property of <c>eng/RoslynPreview.props</c>, and it is empty unless the
+    /// opt-in of issue #1935 is enabled. An empty list is the behaviour described in the paragraph above.
+    /// </para>
     /// </remarks>
-    private static void RemoveExperimentalDeclarations( Tree tree )
+    private static void RemoveExperimentalDeclarations( Tree tree, IReadOnlySet<string> keptExperimentalFeatures )
     {
-        tree.Types.RemoveAll( t => t.IsExperimental );
+        tree.Types.RemoveAll( t => t.IsExperimental && !keptExperimentalFeatures.Contains( t.ExperimentalUrl ) );
 
         foreach ( var type in tree.Types )
         {
-            RemoveExperimentalChildren( type.Children );
+            RemoveExperimentalChildren( type.Children, keptExperimentalFeatures );
         }
     }
 
     /// <summary>
     /// Removes the fields that belong to an experimental Roslyn feature from a list of children, and from the
-    /// children of every <see cref="Choice"/> and <see cref="Sequence"/> that the list contains.
+    /// children of every <see cref="Choice"/> and <see cref="Sequence"/> that the list contains. A field of a feature
+    /// named by <paramref name="keptExperimentalFeatures"/> is not removed.
     /// </summary>
     /// <remarks>
     /// The children of a node form a tree, because a <see cref="Choice"/> and a <see cref="Sequence"/> hold children
@@ -52,21 +60,21 @@ internal static class TreeReader
     /// <see cref="Choice"/> and <see cref="Sequence"/> nodes themselves are never removed: they carry no
     /// <c>ExperimentalUrl</c> attribute, and one that becomes empty generates no code.
     /// </remarks>
-    private static void RemoveExperimentalChildren( List<TreeTypeChild> children )
+    private static void RemoveExperimentalChildren( List<TreeTypeChild> children, IReadOnlySet<string> keptExperimentalFeatures )
     {
-        children.RemoveAll( c => c is Field { IsExperimental: true } );
+        children.RemoveAll( c => c is Field { IsExperimental: true } field && !keptExperimentalFeatures.Contains( field.ExperimentalUrl ) );
 
         foreach ( var child in children )
         {
             switch ( child )
             {
                 case Choice choice:
-                    RemoveExperimentalChildren( choice.Children );
+                    RemoveExperimentalChildren( choice.Children, keptExperimentalFeatures );
 
                     break;
 
                 case Sequence sequence:
-                    RemoveExperimentalChildren( sequence.Children );
+                    RemoveExperimentalChildren( sequence.Children, keptExperimentalFeatures );
 
                     break;
             }

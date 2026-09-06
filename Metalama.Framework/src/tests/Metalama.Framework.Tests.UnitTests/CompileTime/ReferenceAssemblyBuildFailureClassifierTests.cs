@@ -219,6 +219,57 @@ public sealed class ReferenceAssemblyBuildFailureClassifierTests
         Assert.Contains( "401 (Unauthorized)", errors );
     }
 
+    /// <summary>
+    /// A build that runs on a preview .NET SDK always emits <c>NETSDK1057</c>, at high importance. That line carries a
+    /// message identifier but explains no failure, and quoting it in place of the diagnostic that failed the build
+    /// hides the cause. The error of this output carries no identifier, as the MSBuild <c>Error</c> task produces it
+    /// when it is used without a code, so it is recognized by its position. See issue #1933.
+    /// </summary>
+    [Fact]
+    public void ReportedErrors_PreviewSdkMessageDoesNotDisplaceTheError()
+    {
+        var output = ImmutableArray.Create(
+            "Determining projects to restore...",
+            @"C:\Program Files\dotnet\sdk\11.0.100-preview.7.26381.103\Sdks\Microsoft.NET.Sdk\targets\Microsoft.NET.RuntimeIdentifierInference.targets(385,5): message NETSDK1057: You are using a preview version of .NET. See: https://aka.ms/dotnet-support-policy [C:\Temp\TempProject.csproj::TargetFramework=netstandard2.0]",
+            @"C:\Temp\AssemblyLocatorHooks\Metalama.AssemblyLocator.Build.targets(14,9): error : The reference-assembly build is failed on purpose by the Issue1744 test scenario. [C:\Temp\TempProject.csproj]",
+            "Build FAILED." );
+
+        var errors = ReferenceAssemblyBuildFailureClassifier.GetReportedErrors( output );
+
+        Assert.Contains( "failed on purpose", errors );
+        Assert.DoesNotContain( "NETSDK1057", errors );
+    }
+
+    /// <summary>
+    /// A line that carries an informational identifier beside a real one is still quoted, because the real identifier
+    /// may be the failure.
+    /// </summary>
+    [Fact]
+    public void ReportedErrors_InformationalIdentifierBesideARealOneIsKept()
+    {
+        var output = ImmutableArray.Create(
+            "TempProject.csproj(5): error NU1101: Unable to find package Microsoft.CodeAnalysis.CSharp. NETSDK1057: preview." );
+
+        Assert.Contains( "NU1101", ReferenceAssemblyBuildFailureClassifier.GetReportedErrors( output ) );
+    }
+
+    /// <summary>
+    /// When the preview message is the only line that carries an identifier, the output is treated as carrying none, so
+    /// the last lines are quoted rather than a message that explains nothing.
+    /// </summary>
+    [Fact]
+    public void ReportedErrors_PreviewSdkMessageAloneFallsBackToTheLastLines()
+    {
+        var output = ImmutableArray.Create(
+            "Microsoft.NET.RuntimeIdentifierInference.targets(385,5): message NETSDK1057: You are using a preview version of .NET.",
+            "The build stopped for a reason that carries no identifier." );
+
+        var errors = ReferenceAssemblyBuildFailureClassifier.GetReportedErrors( output );
+
+        Assert.Contains( "Its last output lines were the following:", errors );
+        Assert.Contains( "carries no identifier", errors );
+    }
+
     [Fact]
     public void ReportedErrors_NonErrorLinesAreExcluded()
     {

@@ -320,6 +320,33 @@ internal sealed partial class CompileTimeProjectRepository
                         cancellationToken,
                         out referencedProject );
 
+                case PortableExecutableReference { FilePath: null }:
+                    // The compile-time project of a reference is read from the file of the referenced assembly, so it
+                    // cannot be located for a reference whose metadata is not backed by a file. In the IDE such a
+                    // reference is the "skeleton" that Roslyn builds for a project reference that crosses a language
+                    // boundary: SolutionCompilationState.GetMetadataReferenceAsync returns a CompilationReference when
+                    // the two projects share their language services, and otherwise emits the referenced project
+                    // metadata-only into memory and wraps it without a file path. The build never produces one, because
+                    // MSBuild passes every reference as a path.
+                    //
+                    // Skipping is not a loss, and this is the assumption the skip rests on: the referenced project is
+                    // of another language than the consuming one, the consuming one is C# whenever this pipeline runs,
+                    // and Metalama compile-time code exists only in a C# project. The skip deliberately does NOT rest
+                    // on the skeleton carrying no resource. A metadata-only assembly can carry a manifest resource, and
+                    // the skeleton carries none only because Roslyn passes no resource to that one Emit call, which is
+                    // an implementation detail of that call site rather than a property of a metadata-only assembly.
+                    //
+                    // A host other than Roslyn's own workspace could supply a pathless reference of another origin, and
+                    // skipping remains the right answer there: the file that the compile-time project would be read
+                    // from does not exist, whereas failing here aborts the initialization of the pipeline for the whole
+                    // project. See #1960.
+                    this._logger.Trace?.Log(
+                        $"The reference '{reference.Display}' has no file path, so its compile-time project cannot be located. The reference is skipped." );
+
+                    referencedProject = null;
+
+                    return true;
+
                 default:
                     throw new AssertionFailedException( $"Unexpected reference kind: {reference}." );
             }

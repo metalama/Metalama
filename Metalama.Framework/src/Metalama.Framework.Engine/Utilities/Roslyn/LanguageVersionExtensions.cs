@@ -52,6 +52,26 @@ internal static class LanguageVersionExtensions
         };
     }
 
+    /// <summary>
+    /// Returns <paramref name="version"/> when the Roslyn that this assembly is bound to recognizes it, and
+    /// <see cref="LanguageVersion.Preview"/> otherwise.
+    /// </summary>
+    /// <remarks>
+    /// A member of <see cref="AllLanguageVersions"/> is a numeric cast, so a source file can name a version that the
+    /// bound Roslyn does not declare, but a parser of that Roslyn rejects the value. The same features are reached
+    /// under <see cref="LanguageVersion.Preview"/> in the Roslyn releases that publish a feature before they name the
+    /// version that supports it, so this method returns the fallback in that case. The choice is made from the
+    /// running Roslyn and from no build flag, so the method stops returning the fallback by itself once Roslyn
+    /// declares the version. See issue #1935.
+    /// <para>
+    /// <see cref="Enum.IsDefined(Type,object)"/> reads the enumeration of the Roslyn assembly that is loaded, which is
+    /// the assembly whose parser receives the value, and it is the same test as the internal
+    /// <c>LanguageVersionFacts.IsValid</c> of Roslyn.
+    /// </para>
+    /// </remarks>
+    public static LanguageVersion OrPreviewIfNotSupported( this LanguageVersion version )
+        => Enum.IsDefined( typeof(LanguageVersion), version ) ? version : LanguageVersion.Preview;
+
     private static string FormatNumericVersion( LanguageVersion version )
     {
         var numericVersion = (int) version;
