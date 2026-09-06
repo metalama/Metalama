@@ -55,8 +55,21 @@ internal static class ReferenceAssemblyBuildFailureClassifier
     /// and the text that follows it are localized.
     /// </remarks>
     private static readonly Regex _messageIdRegex = new(
-        @"\b(?:NU|NETSDK|MSB|CS|AD)[0-9]{3,5}\s*:",
+        @"\b(?<id>(?:NU|NETSDK|MSB|CS|AD)[0-9]{3,5})\s*:",
         RegexOptions.CultureInvariant );
+
+    /// <summary>
+    /// Message identifiers that a build emits for information, and that therefore never explain a failure.
+    /// </summary>
+    /// <remarks>
+    /// A line carrying one of these must neither be quoted nor prevent <see cref="GetReportedErrors"/> from falling
+    /// back to the lines that do explain the failure. <c>NETSDK1057</c> is emitted by every build that runs on a
+    /// preview .NET SDK, and at high importance, so it appears whatever the verbosity of the build. Quoting it in
+    /// place of the diagnostic that failed the build states something true but irrelevant, and hides the cause.
+    /// The identifier is invariant across languages, as the rest of this class requires.
+    /// </remarks>
+    private static readonly ImmutableHashSet<string> _informationalMessageIds =
+        ImmutableHashSet.Create( StringComparer.OrdinalIgnoreCase, "NETSDK1057" );
 
     /// <summary>
     /// Matches a line that begins with the position of a diagnostic, such as <c>Program.cs(12,9):</c>.
@@ -238,7 +251,7 @@ internal static class ReferenceAssemblyBuildFailureClassifier
     /// </remarks>
     public static string GetReportedErrors( ImmutableArray<string> output )
     {
-        var errorLines = GetMatchingLines( output, _messageIdRegex );
+        var errorLines = GetMatchingLines( output, _messageIdRegex, CarriesOnlyInformationalMessageIds );
 
         if ( errorLines.Count == 0 )
         {
@@ -247,7 +260,7 @@ internal static class ReferenceAssemblyBuildFailureClassifier
             // toolchain. Quoting it is better than quoting the epilogue of the build, whose number of lines depends
             // on the version of MSBuild: a version that prints one line more than another pushes the diagnostic out
             // of the lines quoted below. See issue #1744.
-            errorLines = GetMatchingLines( output, _filePositionRegex );
+            errorLines = GetMatchingLines( output, _filePositionRegex, CarriesOnlyInformationalMessageIds );
         }
 
         if ( errorLines.Count > 0 )
@@ -272,17 +285,47 @@ internal static class ReferenceAssemblyBuildFailureClassifier
     }
 
     /// <summary>
-    /// Returns the distinct lines of the output that match <paramref name="regex"/>, in the order in which they were
-    /// produced.
+    /// Determines whether every message identifier of a line is one of <see cref="_informationalMessageIds"/>, in
+    /// which case the line carries no diagnostic that could explain the failure.
     /// </summary>
-    private static IReadOnlyList<string> GetMatchingLines( ImmutableArray<string> output, Regex regex )
+    /// <remarks>
+    /// A line that also carries a non-informational identifier is kept, because that identifier may be the failure.
+    /// </remarks>
+    private static bool CarriesOnlyInformationalMessageIds( string line )
+    {
+        var matches = _messageIdRegex.Matches( line );
+
+        if ( matches.Count == 0 )
+        {
+            return false;
+        }
+
+        foreach ( Match match in matches )
+        {
+            if ( !_informationalMessageIds.Contains( match.Groups["id"].Value ) )
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Returns the distinct lines of the output that match <paramref name="regex"/>, in the order in which they were
+    /// produced, skipping the ones that <paramref name="exclude"/> accepts.
+    /// </summary>
+    private static IReadOnlyList<string> GetMatchingLines(
+        ImmutableArray<string> output,
+        Regex regex,
+        Func<string, bool>? exclude = null )
     {
         var errorLines = new List<string>();
         var seenErrorLines = new HashSet<string>( StringComparer.Ordinal );
 
         foreach ( var line in output )
         {
-            if ( !regex.IsMatch( line ) )
+            if ( !regex.IsMatch( line ) || exclude?.Invoke( line ) == true )
             {
                 continue;
             }

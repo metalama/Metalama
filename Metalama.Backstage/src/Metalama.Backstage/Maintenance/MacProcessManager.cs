@@ -4,13 +4,15 @@
 
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 namespace Metalama.Backstage.Maintenance;
 
+/// <summary>
+/// The implementation of <see cref="IProcessManager"/> for macOS.
+/// </summary>
 internal sealed class MacProcessManager : ProcessManagerBase
 {
     public MacProcessManager( IServiceProvider serviceProvider ) : base( serviceProvider ) { }
@@ -44,10 +46,5 @@ internal sealed class MacProcessManager : ProcessManagerBase
         }
 
         return true;
-    }
-
-    protected override IEnumerable<KillableProcess> GetProcesses( ImmutableArray<KillableProcessSpec> processNames )
-    {
-        return this.GetDotNetProcesses( processNames );
     }
 }

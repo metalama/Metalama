@@ -81,6 +81,16 @@ public record TestContextOptions
     public ImmutableArray<Assembly> AdditionalAssemblies { get; init; } = ImmutableArray<Assembly>.Empty;
 
     /// <summary>
+    /// Gets a value indicating whether the test may be compiled at the preview version of the C# language.
+    /// </summary>
+    /// <remarks>
+    /// The compile-time pipeline reports <c>LAMA0051</c> for a compilation that requests the preview version, unless
+    /// the project sets the <c>MetalamaAllowPreviewLanguageFeatures</c> MSBuild property. This option is the
+    /// equivalent of that property for a test, and <see cref="TestProjectOptions"/> reads it.
+    /// </remarks>
+    public bool AllowPreviewLanguageFeatures { get; init; }
+
+    /// <summary>
     /// Gets a value indicating whether an error should be reported if all aspect classes
     /// are not strongly ordered.
     /// </summary>

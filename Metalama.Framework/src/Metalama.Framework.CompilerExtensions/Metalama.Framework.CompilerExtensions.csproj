@@ -31,6 +31,12 @@
       <Compile Include="$(MetalamaSharedThreadingSourceDirectory)NamedLockService.NamedLockBase.cs" Link="NamedLockService.NamedLockBase.cs" />
       <Compile Include="$(MetalamaSharedThreadingSourceDirectory)NamedLockService.OperatingSystemLock.cs" Link="NamedLockService.OperatingSystemLock.cs" />
       <Compile Include="$(MetalamaSharedThreadingSourceDirectory)NamedLockService.ProcessLocalLock.cs" Link="NamedLockService.ProcessLocalLock.cs" />
+
+      <!-- The classification of the host process is shared with Metalama.Backstage for the same reason. The
+           METALAMA_BACKSTAGE symbol is not defined here, so these two files declare their types in the
+           Metalama.Framework.CompilerExtensions namespace. -->
+      <Compile Include="$(MetalamaSharedProcessKindSourceDirectory)ProcessKind.cs" Link="ProcessKind.cs" />
+      <Compile Include="$(MetalamaSharedProcessKindSourceDirectory)ProcessKindDetector.cs" Link="ProcessKindDetector.cs" />
       <Compile Include="../Metalama.Framework.Engine/Utilities/AssemblyLoaders/*.cs"  />
       <Compile Include="..\Metalama.Framework.DesignTime\RoslynEntryPointTypeNames.cs" Link="RoslynEntryPointTypeNames.cs" />
     </ItemGroup>

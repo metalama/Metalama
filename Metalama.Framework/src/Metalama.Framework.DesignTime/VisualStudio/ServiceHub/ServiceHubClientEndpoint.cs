@@ -56,17 +56,11 @@ internal sealed class ServiceHubClientEndpoint : ClientEndpoint
 
         ProcessInfo devEnvProcess;
 
-        if ( parentProcesses.Count >= 2 &&
-             string.Equals( parentProcesses[0].ProcessName, "Microsoft.ServiceHub.Controller", StringComparison.OrdinalIgnoreCase ) &&
-             string.Equals( parentProcesses[1].ProcessName, "devenv", StringComparison.OrdinalIgnoreCase )
-           )
+        // Visual Studio 2026. The arm that matched Visual Studio 2022, where the analysis process was a child of
+        // Microsoft.ServiceHub.Controller and therefore a grandchild of devenv, was removed because
+        // Metalama.Framework/docs/platform-support.md states that 2027.0 does not support Visual Studio 2022.
+        if ( parentProcesses.Count >= 1 && string.Equals( parentProcesses[0].ProcessName, "devenv", StringComparison.OrdinalIgnoreCase ) )
         {
-            // VS 2022.
-            devEnvProcess = parentProcesses[1];
-        }
-        else if ( parentProcesses.Count >= 1 && string.Equals( parentProcesses[0].ProcessName, "devenv", StringComparison.OrdinalIgnoreCase ) )
-        {
-            // VS 2026.
             devEnvProcess = parentProcesses[0];
         }
         else

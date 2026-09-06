@@ -22,7 +22,7 @@ internal static class GenerateMetaSyntaxRewriter
         for ( var versionIndex = 0; versionIndex < versionNames.Length; versionIndex++ )
         {
             var version = new RoslynVersion( versionNames[versionIndex], versionIndex );
-            syntaxDocuments[versionIndex] = new SyntaxDocument( baseDirectory, version );
+            syntaxDocuments[versionIndex] = new SyntaxDocument( baseDirectory, version, RoslynPreview.KeptGrammarFeatures );
         }
 
         VersionDetector.DetectVersions( syntaxDocuments );

@@ -16,10 +16,20 @@ using System;
 using System.IO;
 using MetalamaDependencies = PostSharp.Engineering.BuildTools.Dependencies.Definitions.MetalamaDependencies.V2027_0;
 
-// The .NET SDK of the build container and of global.json. The product family is the source of truth, because
-// the version depends on the Visual Studio baseline that the family pins, and the family definition records why
-// this one differs from the default.
-var dotNetSdkVersion = MetalamaDependencies.Family.PreferredVersions.DotNetSdk.V_10_0;
+// The .NET 11 SDK, which global.json names as the main SDK of the product and which the build container installs.
+// The version is a literal instead of a member of the product family, because the .NET 11 SDK is still a preview
+// and PostSharp.Engineering names only released feature bands. Move it to
+// MetalamaDependencies.Family.PreferredVersions.DotNetSdk once the .NET 11 SDK is released.
+//
+// The product is therefore built with an SDK that no supported Visual Studio installs. The desktop MSBuild of the
+// container still builds with the SDK that Visual Studio ships, which is the .NET 10 one below.
+const string dotNet11SdkVersion = "11.0.100-preview.7.26381.103";
+
+// The .NET 10 SDK, which stays installed beside the .NET 11 one. Every project of this repository targets net10.0,
+// and the .NET 11 SDK carries no .NET 10 runtime, so the tests and this project would have no runtime to execute
+// on. The product family is the source of truth for this version, because it depends on the Visual Studio baseline
+// that the family pins, and the family definition records why this one differs from the default.
+var dotNet10SdkVersion = MetalamaDependencies.Family.PreferredVersions.DotNetSdk.V_10_0;
 
 var product = new Product( MetalamaDependencies.Metalama )
 {
@@ -28,9 +38,15 @@ var product = new Product( MetalamaDependencies.Metalama )
     {
         Components =
         [
-            // Must match global.json. Since .NET 8 and .NET 9 were dropped, this is the only .NET SDK required by
-            // the product, by the tests and by this project.
-            new DotNetComponent( dotNetSdkVersion, DotNetComponentKind.Sdk ),
+            // Must match global.json. This is the SDK that compiles the product, and the one whose version the
+            // compile-time compilation reads to cap the C# language version.
+            new DotNetComponent( dotNet11SdkVersion, DotNetComponentKind.Sdk ),
+
+            // Required to execute the net10.0 assemblies of the tests and of this project, and installed anyway by
+            // the Microsoft.NetCore.Component.SDK component below. Two SDKs under one installation is the
+            // configuration that made a restore fail with MSB4062 through a stale MSBuildExtensionsPath. The
+            // mitigation is in PostSharp.Engineering 2023.2.421 and later, which Directory.Packages.props pins.
+            new DotNetComponent( dotNet10SdkVersion, DotNetComponentKind.Sdk ),
 
             // Required by some tests.
             new VisualStudioBuildToolsComponent(
@@ -57,7 +73,7 @@ var product = new Product( MetalamaDependencies.Metalama )
             new AzureCliComponent()
         ]
     },
-    DotNetSdkVersion = new DotNetSdkVersion( dotNetSdkVersion ) { AllowPrerelease = true },
+    DotNetSdkVersion = new DotNetSdkVersion( dotNet11SdkVersion ) { AllowPrerelease = true },
     GenerateNuGetConfig = true,
     MSBuildVersion = new Version( 18, 9 ),
     Solutions =

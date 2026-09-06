@@ -28,6 +28,18 @@
     </ItemGroup>
 
     <ItemGroup>
+        <!-- ProcessKindTests reads the classification of the host process from Metalama.Framework.CompilerExtensions
+             as it is built, and not from a copy of the shared source file compiled into this project, so that the
+             test fails when that project stops compiling the shared file or declares a second copy of the
+             classification. The assembly is loaded by path, because a reference to it would declare here types of
+             the same full name as the ones that the test reads. -->
+        <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+            <_Parameter1>CompilerExtensionsAssemblyPath</_Parameter1>
+            <_Parameter2>$(MSBuildThisFileDirectory)../../Metalama.Framework.CompilerExtensions/bin/$(Configuration)/netstandard2.0/Metalama.Framework.CompilerExtensions.dll</_Parameter2>
+        </AssemblyAttribute>
+    </ItemGroup>
+
+    <ItemGroup>
         <PackageReference Include="Microsoft.NET.Test.Sdk" />
         <PackageReference Include="xunit" />
         <PackageReference Include="xunit.runner.visualstudio" />

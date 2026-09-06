@@ -28,115 +28,15 @@ public static class ProcessUtilities
         _isCurrentProcessUnattended = IsCurrentProcessUnattendedCore( _isCurrentProcessUnattendedLog );
     }
 
+    /// <summary>
+    /// Gets the kind of the current process. The value is computed once, in this property initializer, and is then
+    /// cached for the lifetime of the process. The table itself is in
+    /// <see cref="Diagnostics.ProcessKindDetector"/>, which <c>Metalama.Framework.CompilerExtensions</c> also
+    /// compiles.
+    /// </summary>
     [PublicAPI]
-    public static ProcessKind ProcessKind { get; } = GetProcessKind();
-
-    private static ProcessKind GetProcessKind()
-    {
-        // Note that the same logic is duplicated in Metalama.Framework.CompilerExtensions.ProcessKindHelper and cannot 
-        // be shared. Any change here must be done there too.
-
-        var processName = Process.GetCurrentProcess().ProcessName.ToLowerInvariant();
-
-        switch ( processName )
-        {
-            case "devenv":
-                return ProcessKind.DevEnv;
-
-            case "servicehub.roslyncodeanalysisservice":
-            case "servicehub.roslyncodeanalysisservices":
-            case "devhub":
-                return ProcessKind.RoslynCodeAnalysisService;
-
-            case "servicehub.host":
-                {
-                    var commandLine = Environment.CommandLine.ToLowerInvariant();
-
-#pragma warning disable CA1307
-                    if ( commandLine.Contains( "$codelensservice$" ) )
-                    {
-                        return ProcessKind.CodeLensService;
-                    }
-                    else
-                    {
-                        return ProcessKind.Other;
-                    }
-#pragma warning restore CA1307
-                }
-
-            case "visualstudio":
-                return ProcessKind.VisualStudioMac;
-
-            case "csc":
-            case "vbcscompiler":
-                return ProcessKind.Compiler;
-
-            case "resharpertestrunner":
-            case "resharpertestrunner64":
-                return ProcessKind.ResharperTestRunner;
-
-            case "microsoft.codeanalysis.languageserver":
-            case "microsoft.visualstudio.code.languageserver":
-                return ProcessKind.LanguageServer;
-
-            case "msbuild":
-                return ProcessKind.MsBuild;
-
-            case "testhost":
-                return ProcessKind.TestHost;
-
-            case "dotnet":
-                {
-                    var commandLine = Environment.CommandLine.ToLowerInvariant();
-
-#pragma warning disable CA1307
-                    if ( commandLine.Contains( "jetbrains.resharper.roslyn.worker" ) ||
-                         commandLine.Contains( "jetbrains.roslyn.worker" ) )
-                    {
-                        return ProcessKind.Rider;
-                    }
-                    else if ( commandLine.Contains( "vbcscompiler.dll" ) || commandLine.Contains( "csc.dll" ) )
-                    {
-                        return ProcessKind.Compiler;
-                    }
-                    else if ( commandLine.Contains( "languageserver.dll" ) )
-                    {
-                        return ProcessKind.LanguageServer;
-                    }
-                    else if ( commandLine.Contains( "omnisharp.dll" ) )
-                    {
-                        return ProcessKind.OmniSharp;
-                    }
-                    else if ( commandLine.Contains( "resharpertestrunner.dll" ) )
-                    {
-                        return ProcessKind.ResharperTestRunner;
-                    }
-                    else if ( commandLine.Contains( "msbuild.dll" ) )
-                    {
-                        return ProcessKind.MsBuild;
-                    }
-                    else if ( commandLine.Contains( "dotnet-format.dll" ) )
-                    {
-                        return ProcessKind.Format;
-                    }
-                    else
-                    {
-                        return ProcessKind.Other;
-                    }
-#pragma warning restore CA1307
-                }
-
-            default:
-                if ( processName.StartsWith( "linqpad", StringComparison.Ordinal ) )
-                {
-                    return ProcessKind.LinqPad;
-                }
-                else
-                {
-                    return ProcessKind.Other;
-                }
-        }
-    }
+    public static ProcessKind ProcessKind { get; } =
+        ProcessKindDetector.GetProcessKind( Process.GetCurrentProcess().ProcessName, Environment.CommandLine );
 
     [PublicAPI]
     public static bool IsCurrentProcessUnattended( ILoggerFactory loggerFactory )

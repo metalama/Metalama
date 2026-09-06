@@ -1,0 +1,73 @@
+<Project>
+
+	<!--
+	  The opt-in that lets this repository compile against a Roslyn application programming interface that Roslyn still
+	  marks as experimental.
+
+	  Roslyn publishes the members of a language feature one or more releases before it declares the language version
+	  that makes the feature supported, and every reference to such a member is reported as an error until then. The
+	  work that consumes those members is blocked for that whole interval. This file removes the obstacles for the
+	  duration of the interval.
+
+	  The flag is a development switch and never a product behaviour. It changes how Metalama is compiled, not what
+	  Metalama permits a user to compile.
+
+	  The flag is parameterised rather than written for one language version. A later cycle enables the harness by
+	  naming its own diagnostic identifiers and its own grammar features in the two lists below. The empty list is the
+	  disabled state and reproduces the behaviour of the repository before issue #1935.
+
+	  The flag ships disabled and is never committed in the enabled state. MSBuild exposes an environment variable as a
+	  property, so a developer or a build configuration enables it by setting the AllowRoslynPreviewFeatures
+	  environment variable to true, without editing a file.
+
+	  Changing the value of the flag requires Build.ps1 build, and not only a build of the affected solution, because
+	  the meta syntax rewriter generator runs during that command and its output is what carries the grammar
+	  declarations of the kept features. A solution built with the previous value compiles generated sources that do
+	  not match the current value.
+	-->
+
+	<PropertyGroup>
+		<AllowRoslynPreviewFeatures Condition="'$(AllowRoslynPreviewFeatures)'==''">false</AllowRoslynPreviewFeatures>
+
+		<!--
+		  The identifiers of the experimental diagnostics that the harness suppresses. Name here only the diagnostics of
+		  the features whose shape is settled. RSEXPERIMENTAL006 covers the union, closed hierarchy, collection argument
+		  and labeled jump members, and the Roslyn 5.11 window republishes the same public application programming
+		  interface lines for them with the experimental prefix removed and nothing else changed. RSEXPERIMENTAL007,
+		  which covers the pre-compilation source outputs, and the members of the unsafe evolution are still marked on
+		  the Roslyn main branch and may still be withdrawn, so they are not named here.
+		-->
+		<RoslynPreviewSuppressedDiagnostics Condition="'$(RoslynPreviewSuppressedDiagnostics)'==''">RSEXPERIMENTAL006</RoslynPreviewSuppressedDiagnostics>
+
+		<!--
+		  The experimental features whose grammar declarations the meta syntax rewriter generator keeps, named by the
+		  value of the ExperimentalUrl attribute that the Syntax-*.xml files carry. The three entries are the union
+		  declaration, the collection argument element and the labeled jump statements. The unsafe expression of
+		  https://github.com/dotnet/roslyn/issues/82789 is never named here, because its shape is not settled.
+		-->
+		<RoslynPreviewKeptGrammarFeatures Condition="'$(RoslynPreviewKeptGrammarFeatures)'==''">https://github.com/dotnet/roslyn/issues/82567;https://github.com/dotnet/roslyn/issues/82210;https://github.com/dotnet/roslyn/issues/83266</RoslynPreviewKeptGrammarFeatures>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(AllowRoslynPreviewFeatures)'=='true'">
+		<DefineConstants>$(DefineConstants);ALLOW_PREVIEW_LANG_VERSION</DefineConstants>
+		<NoWarn>$(NoWarn);$(RoslynPreviewSuppressedDiagnostics)</NoWarn>
+	</PropertyGroup>
+
+	<!--
+	  A release candidate package and a general availability package must not carry the flag. A preview package may:
+	  the experimental application programming interface belongs to a language version that is itself in preview, and a
+	  preview package is where a user meets it. PackageVersionSuffix of eng/MainVersion.props tells the two apart. It
+	  is '-preview' while the version line is in development, and the release procedure of that line sets it to '-rc'
+	  and then to the empty value. The check therefore matches the suffix rather than the build configuration, so that
+	  a continuous integration build of a preview line may carry the flag.
+
+	  This check is permanent: it stays when a later story turns the harness off, and it is the reason the flag can be
+	  left enabled in a working copy without risk.
+	-->
+	<Target Name="VerifyRoslynPreviewFeaturesAreNotInAReleasedPackage"
+	        BeforeTargets="BeforeBuild"
+	        Condition="'$(AllowRoslynPreviewFeatures)'=='true' AND !$(PackageVersionSuffix.StartsWith('-preview'))">
+		<Error Text="AllowRoslynPreviewFeatures is set while PackageVersionSuffix is '$(PackageVersionSuffix)', which produces a release candidate or a general availability package. The flag compiles this repository against an experimental Roslyn application programming interface, which such a package must never carry. Unset the AllowRoslynPreviewFeatures environment variable. See eng/RoslynPreview.props and issue #1935." />
+	</Target>
+
+</Project>
