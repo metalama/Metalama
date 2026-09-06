@@ -183,8 +183,21 @@
          the whole .NET 10.0 line require, and it keeps this package on the same 4.6.x line as the rest of the
          out-of-band family, which must move together. Measured for #1903; see Directory.Packages.md. -->
     <PackageVersion Include="System.Threading.Tasks.Extensions" Version="4.6.3" />
-    <PackageVersion Include="System.Collections.Immutable" Version="8.0.0" />
-    <PackageVersion Include="System.Reflection.Metadata" Version="8.0.0" /> 
+    <!-- These two packages are governed by the Roslyn version and not by the .NET line used elsewhere in
+         this file. Each Roslyn variant states a minimum, and the higher of the two minimums decides the
+         single value pinned here. Microsoft.CodeAnalysis.Common 5.10.0, which is RoslynApiMaxVersion,
+         requires at least 10.0.8 of both. Microsoft.CodeAnalysis.Common 5.0.0, which is RoslynApiMinVersion,
+         requires at least 9.0.0, which 10.0.8 also satisfies, so the lower variant restores without a
+         package downgrade. The desktop flavour of the design-time payload embeds both assemblies, and the
+         binding-redirect oldVersion upper bound in devenv.exe.config is assembly version 10.0.0.8 in both
+         Visual Studio 2022 17.14 and Visual Studio 2026 18.9. The lib/net462 asset of NuGet 10.0.8 carries
+         exactly that version, and the same asset of 10.0.9 carries 10.0.0.9, which falls outside the
+         redirect. There is no headroom: do not take a version above 10.0.8 before a Visual Studio release
+         ships one and moves the redirect. The core flavour embeds neither assembly, because on net10.0 both
+         belong to the shared framework, so NuGet prunes the asset and the runtime provides it. See
+         Directory.Packages.md. -->
+    <PackageVersion Include="System.Collections.Immutable" Version="10.0.8" />
+    <PackageVersion Include="System.Reflection.Metadata" Version="10.0.8" /> 
 
 
     <PackageVersion Include="Microsoft.Win32.Registry" Version="5.0.0" />
