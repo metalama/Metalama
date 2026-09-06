@@ -376,11 +376,19 @@ Rules 1 to 8 are applied against calendars. These three items are applied agains
    `docs/contributing/target-framework-strategy.md` on the branch that shipped it. If it is .NET 8, the Core
    flavour stays `net8.0` for 2027.0. Read the Roslyn version from the same installation: the Visual Studio floor
    of the Roslyn axis is inferred from the release cadence until this is measured, and a baseline below Roslyn
-   5.10 puts a Visual Studio host in the 5.0 to 5.9 range and makes a Roslyn 5.0 variant mandatory.
+   5.10 puts a Visual Studio host in the 5.0 to 5.9 range and makes a Roslyn 5.0 variant mandatory. Record the
+   name of the analysis process as well. Metalama classifies its host by process name, in the table of
+   `Metalama.Backstage.Diagnostics.ProcessKindDetector`, and Visual Studio has renamed that process once already:
+   it was `ServiceHub.RoslynCodeAnalysisService` up to Visual Studio 2022 and is `DevHub` in Visual Studio 2026,
+   which issue [#1463](https://github.com/metalama/Metalama/issues/1463) reported as a bug. A name that the table
+   does not contain leaves the host classified as `Other`, which no diagnostic reports.
 2. The Rider and C# Dev Kit backend runtime and Roslyn version. Done for Rider on 2026-09-01: .NET 10.0.5 and
    Roslyn 5.0.0, recorded in the "Other design-time hosts" section above. Outstanding for the C# Dev Kit, which
    was not installed on that machine. Repeat both at the release candidate on 2026-11-20, because this axis
-   follows the current release rather than a calendar.
+   follows the current release rather than a calendar. Record the name of the C# Dev Kit language server process
+   as well, for the reason given in item 1. The table of `Metalama.Backstage.Diagnostics.ProcessKindDetector`
+   currently expects `Microsoft.CodeAnalysis.LanguageServer`, either as its own executable or as an assembly
+   named on the command line of `dotnet`.
 3. A design-time smoke test on the floor. Run the design-time verification protocol of
    [`Directory.Packages.md`](../../Directory.Packages.md) on the floor Visual Studio and on the previous one. A
    mismatch between `net8.0` and `net10.0` does not surface in the integrated development environment: check the
