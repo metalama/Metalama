@@ -1,11 +1,9 @@
 <Project>
     <Import Project="../Directory.Packages.props" />
 
-    <ItemGroup>
-        <!-- Patterns are not loaded in VS, so we can apply security updates. The version is stated here rather than
-             taken from SystemTextJsonLatestVersion, because that property now follows the .NET 10 floor that Roslyn 5.10
-             requires, and System.Text.Json 10.0.x pulls System.Threading.Tasks.Extensions 4.6.3 into these
-             user-surfacing packages. -->
-        <PackageVersion Update="System.Text.Json" Version="9.0.10" />
-    </ItemGroup>
+    <!-- This file previously overrode System.Text.Json to 9.0.10, to keep System.Threading.Tasks.Extensions 4.6.3
+         out of the user-surfacing Patterns packages while the central pin of that package was 4.5.4. #1903 raised
+         the central pin to 4.6.3, so the override no longer changes anything it was written to prevent, and the
+         Patterns packages take the central version like every other consumer. -->
+
 </Project>
