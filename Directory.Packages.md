@@ -149,9 +149,11 @@ lower ceiling is gone. Second, the next release of any of these packages is not 
 appears, re-read the ceiling before taking it: a bump lands above the ceiling until a Visual Studio release
 ships the new version and moves the redirect.
 
-Properties 1 and 3 still bind: the family must move together, and it must keep a `netstandard2.0` asset. The
-central pin of `System.Threading.Tasks.Extensions` is held at 4.5.4 for an unrelated reason, the currently
-installed `Metalama.Vsx` versions; see the gotcha on flowed dependencies below.
+Properties 1 and 3 still bind: the family must move together, and it must keep a `netstandard2.0` asset. Every
+member sits at its ceiling, `System.Threading.Tasks.Extensions` at 4.6.3 included, so the family is on one line
+and no member has headroom. That package is also a flowed transitive dependency of
+`Metalama.Framework.DesignTime.Rpc`, which does not lower its ceiling; see *What Metalama.Vsx does and does not
+constrain* above.
 
 The values this document and `Directory.Packages.props` previously carried were measured against an older
 Visual Studio patch, one that shipped the 4.6.0 line: the former ceilings of 4.0.2.0, 4.0.4.0, 4.1.5.0, 6.0.1.0
