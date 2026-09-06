@@ -1,3 +1,16 @@
 <Project>
     <Import Project="../Versions.props"/>
+
+    <!-- The opt-in that lets the meta syntax rewriter generator keep the grammar declarations of an experimental
+         Roslyn feature. This file is a standalone project file: MSBuild stops at the first Directory.Build.props it
+         finds, so the repository root one does not reach the generator and the import is repeated here. -->
+    <Import Project="../RoslynPreview.props"/>
+
+    <!-- The list of kept grammar features reaches the generator as assembly metadata, because the generator is a
+         program that MSBuild builds and Build.ps1 then runs, and no MSBuild property is visible at that point. The
+         item is absent when the flag is unset, and the generator then reads an empty list, which is the behaviour of
+         the repository before issue #1935. -->
+    <ItemGroup Condition="'$(AllowRoslynPreviewFeatures)'=='true'">
+        <AssemblyMetadata Include="RoslynPreviewKeptGrammarFeatures" Value="$(RoslynPreviewKeptGrammarFeatures)"/>
+    </ItemGroup>
 </Project>

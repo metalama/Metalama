@@ -1,4 +1,9 @@
 <Project>
+	<!-- The opt-in that lets this variant compile against the experimental Roslyn application programming interface.
+	     It is imported here rather than from the repository root, because the root also covers the projects of the
+	     Roslyn 5.0.0 variant, where those members do not exist at any language version. -->
+	<Import Project="$(MSBuildThisFileDirectory)../RoslynPreview.props" />
+
 	<PropertyGroup>
 		<ThisRoslynVersion>$(RoslynApiMaxVersion)</ThisRoslynVersion>
 		<!-- This should be non-empty only when using preview version of Roslyn. Then it should be the Roslyn version without the preview part. -->

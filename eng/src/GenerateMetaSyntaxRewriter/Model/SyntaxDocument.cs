@@ -16,10 +16,14 @@ internal sealed class SyntaxDocument
     private readonly IDictionary<string, string?> _parentMap;
     private readonly IDictionary<string, Node> _nodeMap;
 
-    public SyntaxDocument( string baseDirectory, RoslynVersion version )
+    public SyntaxDocument( string baseDirectory, RoslynVersion version, IReadOnlySet<string> keptExperimentalFeatures )
     {
         this.Version = version;
-        this._tree = TreeReader.ReadTree( Path.Combine( baseDirectory, "..", "eng", "src", "GenerateMetaSyntaxRewriter", $"Syntax-{version.Name}.xml" ) );
+
+        this._tree = TreeReader.ReadTree(
+            Path.Combine( baseDirectory, "..", "eng", "src", "GenerateMetaSyntaxRewriter", $"Syntax-{version.Name}.xml" ),
+            keptExperimentalFeatures );
+
         this._nodeMap = this._tree.Types.OfType<Node>().ToDictionary( n => n.Name );
         this._parentMap = this._tree.Types.ToDictionary( n => n.Name, n => n.Base )!;
         this._parentMap.Add( this._tree.Root, null );
