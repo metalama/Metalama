@@ -10,7 +10,7 @@ Platform baseline PB-2027.0 (Metalama.Framework/docs/platform-support.md):
 - User target frameworks: net10.0 and net11.0. net8.0/net9.0 dropped. Core embedded flavour = net10.0, Desktop = net472.
 - Roslyn variants shipped: Roslyn.5.0.0 (serves Rider 2026.2 at Roslyn 5.0, C# Dev Kit) and Roslyn.5.10.0 (latest; VS 2026 LTSC, VS 2027, .NET 10/11 SDKs, Metalama.Compiler). Roslyn.4.12.0 dropped. RoslynApiMinVersion=5.0.0, RoslynApiMaxVersion=RoslynMaxVersion=5.10.0-1.26365.3 (a July 2026 prerelease from the roslyn-consolidated feed).
 - Production source has zero `#if ROSLYN_*` blocks. Only ROSLYN_5_10_0_OR_GREATER exists, used by two aspect tests.
-- MetalamaCompilerVersion = 2027.0.0 (eng/AutoUpdatedVersions.props).
+- MetalamaCompilerVersion = 2027.0.1 (eng/AutoUpdatedVersions.props).
 
 C# language version plumbing (all currently stop at C# 14):
 - Metalama.Framework/src/Metalama.Framework.Engine/Utilities/SupportedCSharpVersions.cs: Latest = CSharp14; All = {10..14}; ToLanguageVersion: V5_0_0 => CSharp14 AND V5_10_0 => CSharp14; GetMaxLanguageVersion: (>=5, _) => CSharp14; ToNuGetVersionString(V5_10_0) = "5.10.0-1.26365.3".

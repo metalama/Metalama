@@ -115,7 +115,7 @@ inference rather than on a file that was read, the finding says so.
   onto Roslyn 5.12. The scope lens confirmed that the defect is present verbatim on the working branch,
   that no pull request touches those lines and that no issue tracks it.
 - Open questions: the `Metalama.Compiler` package that was inspected is 2026.1.17 from the `release/2026.1` branch,
-  while the repository consumes 2027.0.0, which is not in the local cache. Confirming the cap in 2027.0.0 would
+  while the repository consumes 2027.0.1, which is not in the local cache. Confirming the cap in 2027.0.1 would
   settle whether the defect is already live on the current branch.
 
 ### LV-2. `VerifyLanguageVersion` throws instead of reporting `LAMA0052` for C# 15

@@ -89,7 +89,7 @@ be a stable release, and the branch that produces it has to be derived again. No
 - Run the .NET Framework test leg as well as the .NET leg, and account for every failure as caused by the merge or
   pre-existing.
 - Set `RoslynVersion` in `eng/Versions.props`, publish the resulting `Metalama.Compiler` version, and record it in
-  `eng/AutoUpdatedVersions.props` of `metalama/Metalama`, where `MetalamaCompilerVersion` is currently `2027.0.0`.
+  `eng/AutoUpdatedVersions.props` of `metalama/Metalama`, where `MetalamaCompilerVersion` is currently `2027.0.1`.
 - Name the branch and the commit of `Metalama.Compiler` from which `src/Compilers/CSharp/Portable/Syntax/Syntax.xml`
   is to be copied, which is what step 4 of [`updating-roslyn.md`](../../updating-roslyn.md) requires and what S-13
   consumes.
