@@ -9,7 +9,7 @@
   <PropertyGroup>
     <!-- 2023.2.398 is the first version that exposes ManySolutions and TestableSolution, which the design-time
          scenarios under Metalama.Framework/src/tests/DesignTimeStandalone derive from. -->
-    <PostSharpEngineeringVersion Condition="'$(PostSharpEngineeringVersion)'==''">2023.2.427</PostSharpEngineeringVersion>
+    <PostSharpEngineeringVersion Condition="'$(PostSharpEngineeringVersion)'==''">2023.2.431</PostSharpEngineeringVersion>
 
 
     <!-- We must match the version used by the lowest version of Visual Studio supported by the VSX, i.e. VS 17.14. -->
@@ -52,7 +52,7 @@
     <!-- These are the latest versions of dependencies, which we use in test projects to avoid vulnerability warnings -->
     <MicrosoftVisualStudioThreadingLatestVersion>17.14.15</MicrosoftVisualStudioThreadingLatestVersion>
     <!-- MessagePack 2.x is required for compatibility with StreamJsonRpc (3.x is incompatible). -->
-    <MessagePackLatestVersion>2.5.198</MessagePackLatestVersion>
+    <MessagePackLatestVersion>2.5.302</MessagePackLatestVersion>
     <!-- Microsoft.CodeAnalysis 5.10 requires the .NET 10 line of System.Text.Json, Microsoft.Bcl.AsyncInterfaces
          and System.IO.Pipelines. The *LatestVersion properties feed the projects that host themselves, so they
          follow that floor. The central pins that flow to Metalama.Vsx are unchanged; see the StreamJsonRpc note below. -->
