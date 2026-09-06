@@ -1,4 +1,4 @@
-<Project>
+﻿<Project>
 	<PropertyGroup>
 		<ThisRoslynVersion>5.0.0</ThisRoslynVersion>
 		<!-- This should be non-empty only when using preview version of Roslyn. Then it should be the Roslyn version without the preview part. -->
@@ -8,7 +8,11 @@
 		<!-- This variant defines no constant. No production source branches on the variant. The two aspect tests
 		     whose expected output differs between the variants use ROSLYN_5_10_0_OR_GREATER, which the latest variant
 		     defines. See Directory.Packages.md. -->
-		<!-- Microsoft.CodeAnalysis.CSharp.Features 5.0 requires System.Text.Json >= 9.0.0. -->
-		<SystemTextJsonVersion>9.0.0</SystemTextJsonVersion>
+		<!-- Microsoft.CodeAnalysis.CSharp.Features 5.0 requires System.Text.Json >= 9.0.0, and the 9.0 line is
+		     also what the hosts of this variant provide. On .NET the payload does not embed System.Text.Json,
+		     because Roslyn provides it through the parent assembly load context, and assembly binding rolls
+		     forward and never back, so this variant must not reference a line above the one its hosts carry.
+		     9.0.10 is the highest patch of that line. -->
+		<SystemTextJsonVersion>9.0.10</SystemTextJsonVersion>
 	</PropertyGroup>
 </Project>

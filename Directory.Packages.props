@@ -54,16 +54,28 @@
     <!-- MessagePack 2.x is required for compatibility with StreamJsonRpc (3.x is incompatible). -->
     <MessagePackLatestVersion>2.5.302</MessagePackLatestVersion>
     <!-- Microsoft.CodeAnalysis 5.10 requires the .NET 10 line of System.Text.Json, Microsoft.Bcl.AsyncInterfaces
-         and System.IO.Pipelines. The *LatestVersion properties feed the projects that host themselves, so they
-         follow that floor. The central pins that flow to Metalama.Vsx are unchanged; see the StreamJsonRpc note below. -->
+         and System.IO.Pipelines. The *LatestVersion properties feed the projects that host themselves, which no
+         design-time host loads, so they take the highest patch of that line rather than the 10.0.8 that the
+         binding redirects impose on the payload. -->
     <SystemTextJsonLatestVersion>10.0.11</SystemTextJsonLatestVersion>
     <MicrosoftBclAsyncInterfacesLatestVersion>10.0.11</MicrosoftBclAsyncInterfacesLatestVersion>
 
-    <!-- SystemTextJsonVersion depends on the Roslyn version; here is the fallback. -->
-    <SystemTextJsonVersion Condition="'$(SystemTextJsonVersion)'==''">8.0.6</SystemTextJsonVersion>
-    <!-- SystemTextJsonMinVersion is the API floor used by user-surfacing libraries (Metalama.Backstage etc.)
-         that need to remain on the .NET 8 line while we support .NET 8 SDK as a build target. -->
-    <SystemTextJsonMinVersion>8.0.6</SystemTextJsonMinVersion>
+    <!-- SystemTextJsonVersion is set per Roslyn variant in eng/RoslynVersions, because each Roslyn version
+         requires a floor of its own. This fallback governs the projects that are built once and linked into
+         every variant, Metalama.Framework.ConfigurationFiles among them, so it must not exceed the lowest
+         variant: a higher value makes the Roslyn 5.0 variant a package downgrade and fails restore. -->
+    <SystemTextJsonVersion Condition="'$(SystemTextJsonVersion)'==''">9.0.10</SystemTextJsonVersion>
+    <!-- SystemTextJsonMinVersion is the version referenced by Metalama.Backstage, which is its only consumer.
+         The limit here is the host and not the binding redirect. The core flavour of the design-time payload
+         does not embed System.Text.Json, because the parent assembly load context, which is Roslyn, provides it,
+         and assembly binding rolls forward and never back. The value must therefore be no higher than the lowest
+         version any host in the supported set provides. Microsoft.CodeAnalysis 5.0 requires the 9.0 line and the
+         Rider backend presents it, so that line is the limit, and the .NET 10.0 line used elsewhere in this file
+         would fail to bind there. 9.0.10 is its highest patch. Its netstandard2.0 and net462 closure is satisfied
+         by the Microsoft.Bcl.AsyncInterfaces, System.IO.Pipelines and System.Threading.Tasks.Extensions pinned
+         below, and it is the version that Metalama.Vsx ships. Keep it out of the 8.0 line, whose patches carry
+         known advisories that reach a user application through Metalama.Backstage. -->
+    <SystemTextJsonMinVersion>9.0.10</SystemTextJsonMinVersion>
     <SystemNetHttpLatestVersion>4.3.4</SystemNetHttpLatestVersion>
     <SystemTextRegularExpressionsLatestVersion>4.3.1</SystemTextRegularExpressionsLatestVersion>
     <SystemFormatsAsn1LatestVersion>9.0.10</SystemFormatsAsn1LatestVersion>
@@ -85,33 +97,55 @@
          than the one required by the lowest version of Visual Studio supported by the VSX. -->
     <PackageVersion Include="K4os.Hash.xxHash" Version="1.0.8" />
     <PackageVersion Include="Microsoft.Bcl.HashCode" Version="6.0.0" />
-    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
-    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.2" />
-    <PackageVersion Include="Microsoft.Extensions.Caching.Memory" Version="8.0.1" />
-    <!-- Microsoft.Bcl.TimeProvider backports System.TimeProvider to net472 and netstandard2.0. It is user-surfacing
-         through Metalama.Patterns.Caching.Backend, so it stays on the .NET 8.0 line. -->
-    <PackageVersion Include="Microsoft.Bcl.TimeProvider" Version="8.0.1" />
-    <!-- Microsoft.Extensions.TimeProvider.Testing 8.10.0 is the highest version on the 8.x line. Its net462 group
-         depends on Microsoft.Bcl.TimeProvider 8.0.1, so net472 resolves a single version of the shim. -->
-    <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="8.10.0" />
-    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="8.0.1" />
-    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.3" />
-    <PackageVersion Include="Microsoft.Extensions.Logging" Version="8.0.1" />
-    <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="8.0.1" />
+    <!-- Seven user-surfacing packages of the Microsoft.Extensions family are on the .NET 10.0 line, which is the
+         line of PB-2027.0: DependencyInjection, DependencyInjection.Abstractions and Caching.Memory here, and
+         Hosting.Abstractions, Logging.Abstractions, Logging and Logging.Console below. Each still publishes a
+         netstandard2.0 and a net462 asset on that line. No assembly of this family is present in either flavour
+         of the design-time payload built by Metalama.Framework.CompilerExtensions.Resources, so no host caps
+         them. They take 10.0.8 because that is the version of the .NET 10.0 line used throughout this file, and
+         because their netstandard2.0 and net462 groups then require exactly the pinned versions of the
+         out-of-band family and of Microsoft.Bcl.AsyncInterfaces. Measured for #1903; see Directory.Packages.md. -->
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.8" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.8" />
+    <PackageVersion Include="Microsoft.Extensions.Caching.Memory" Version="10.0.8" />
+    <!-- Microsoft.Bcl.TimeProvider backports System.TimeProvider to net472 and netstandard2.0. Its net462 and
+         netstandard2.0 groups require Microsoft.Bcl.AsyncInterfaces of the same version, so the two move
+         together and this one cannot exceed the ceiling that governs that package below. -->
+    <PackageVersion Include="Microsoft.Bcl.TimeProvider" Version="10.0.8" />
+    <!-- Microsoft.Extensions.TimeProvider.Testing is versioned on its own line, not on the .NET runtime line.
+         The net462 group of 10.9.0 requires Microsoft.Bcl.TimeProvider 8.0.1, which the 10.0.8 pinned above
+         satisfies, so net472 still resolves a single version of the shim. -->
+    <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="10.9.0" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.8" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.8" />
+    <PackageVersion Include="Microsoft.Extensions.Logging" Version="10.0.8" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="10.0.8" />
     
     <PackageVersion Include="Microsoft.Toolkit.Uwp.Notifications" Version="7.1.3" />
     <!-- Microsoft.Toolkit.Uwp.Notifications 7.1.3 references vulnerable System.Drawing.Common 4.7.0, so update it here. -->
     <!-- See also #35587 for updating the above package. -->
-    <PackageVersion Include="System.Drawing.Common" Version="8.0.26" />
+    <!-- The only consumer is Metalama.Backstage.Desktop.Windows, a net10.0-windows executable that we host
+         ourselves, so no design-time host constrains this version. It follows the .NET 10.0 line used
+         throughout this file. -->
+    <PackageVersion Include="System.Drawing.Common" Version="10.0.8" />
     <PackageVersion Include="Microsoft.Web.WebView2" Version="1.0.3912.50" />
     <PackageVersion Include="Newtonsoft.Json" Version="$(NewtonsoftJsonVersion)" />
     <PackageVersion Include="Spectre.Console" Version="0.55.2" />
     <PackageVersion Include="Spectre.Console.Cli" Version="0.55.0" />
-    <PackageVersion Include="System.DirectoryServices" Version="8.0.0" />
+    <!-- The lib/net462 folder of this package holds a _._ placeholder, because the assembly is part of .NET
+         Framework, so the net472 flavour of the design-time payload carries no copy of it and no binding
+         redirect governs it. The netstandard2.0 asset carries assembly version 4.0.0.0 on both the 8.0 and the
+         10.0 line. Measured for #1903. -->
+    <PackageVersion Include="System.DirectoryServices" Version="10.0.8" />
     <PackageVersion Include="System.IO.Abstractions" Version="22.1.1" />
     <PackageVersion Include="System.IO.Abstractions.TestingHelpers" Version="22.1.1" />
     <PackageVersion Include="System.IO.Hashing" Version="9.0.15" />
-    <PackageVersion Include="System.IO.Packaging" Version="8.0.1" />
+    <!-- Metalama.Backstage references this package and is loaded into devenv.exe. The binding-redirect
+         oldVersion range in devenv.exe.config of Visual Studio 2026 18.9 is 4.0.0.0-99.0.0.0, redirected to the
+         11.0.0.0 that Visual Studio ships, so this package is not capped at 10.0.0.8 the way the rest of the
+         payload is. It takes 10.0.8 with the rest of the .NET 10.0 line rather than a higher patch, so that one
+         version governs the whole line. Measured for #1903; see Directory.Packages.md. -->
+    <PackageVersion Include="System.IO.Packaging" Version="10.0.8" />
     <!-- Out-of-band family. The binding-redirect oldVersion upper bound is AsmVer 6.0.3.0 in devenv.exe.config
          of both Visual Studio 2022 17.14 and Visual Studio 2026 18.9. The lib/net462 asset of NuGet 6.1.2, which
          is what the net472 payload resolves, is exactly 6.0.3.0. The value is also the floor that System.Memory
@@ -130,12 +164,25 @@
     <PackageVersion Include="System.Threading" Version="4.3.0" />
     <PackageVersion Include="System.Threading.Thread" Version="4.3.0" />
     <PackageVersion Include="System.Threading.ThreadPool" Version="4.3.0" />
-    <PackageVersion Include="System.Threading.AccessControl" Version="8.0.0" />
+    <!-- Metalama.Framework.CompilerExtensions embeds the net472 asset of this package in the desktop flavour of
+         the design-time payload, and Metalama.Vsx merges it into Metalama.Repacked, so the assembly is loaded
+         into devenv.exe and the binding redirect governs it. The redirect in Visual Studio 2026 18.9 is
+         4.0.0.0-10.0.0.8, and the lib/net462 asset of NuGet 10.0.8 carries exactly 10.0.0.8. There is no
+         headroom: do not take a version above 10.0.8 before a Visual Studio release ships it and moves the
+         redirect. Measured for #1903; see Directory.Packages.md. -->
+    <PackageVersion Include="System.Threading.AccessControl" Version="10.0.8" />
     <PackageVersion Include="System.ComponentModel.Annotations" Version="5.0.0" />
     <PackageVersion Include="System.Interactive.Async" Version="6.0.1" />
     <PackageVersion Include="System.Linq.Parallel" Version="4.3.0" />
     <PackageVersion Include="System.Reflection.Emit" Version="4.7.0" />
-    <PackageVersion Include="System.Threading.Tasks.Extensions" Version="4.5.4" /> <!-- Held at 4.5.4 (AsmVer 4.2.0.0) so the merged StreamJsonRpc binds to AsmVers that separately-deployed VSX 2026.0.x already provides (CPM transitive pinning would otherwise force 4.5.4 in VSX deployments and break runtime binding). -->
+    <!-- Out-of-band family, and a flowed dependency of Metalama.Framework.DesignTime.Rpc. The binding-redirect
+         oldVersion upper bound in devenv.exe.config of Visual Studio 2026 18.9 is assembly version 4.2.4.0, and
+         the lib/net462 asset of NuGet 4.6.3 carries exactly 4.2.4.0, so 4.6.3 is the highest version the
+         design-time payload may take. No headroom: do not take a version above it before a Visual Studio release
+         ships one and moves the redirect. It is also the version that the netstandard2.0 and net462 groups of
+         the whole .NET 10.0 line require, and it keeps this package on the same 4.6.x line as the rest of the
+         out-of-band family, which must move together. Measured for #1903; see Directory.Packages.md. -->
+    <PackageVersion Include="System.Threading.Tasks.Extensions" Version="4.6.3" />
     <PackageVersion Include="System.Collections.Immutable" Version="8.0.0" />
     <PackageVersion Include="System.Reflection.Metadata" Version="8.0.0" /> 
 
@@ -175,17 +222,29 @@
     <PackageVersion Include="Microsoft.AspNetCore.TestHost" Version="8.0.20" />
     
     <PackageVersion Include="ILRepack" Version="2.0.44" />
-    <!-- StreamJsonRpc and MessagePack are both ILMerged into Metalama.Framework.DesignTime.Rpc.
-         Despite the merge, the merged IL still binds externally to StreamJsonRpc's flowed transitive
-         deps (System.IO.Pipelines, System.Diagnostics.DiagnosticSource, Microsoft.Bcl.AsyncInterfaces,
-         System.Threading.Tasks.Extensions). Bumping StreamJsonRpc may shift those AsmVer requirements,
-         which can break separately-deployed consumers (e.g., Metalama.Vsx 2026.0.x with CPM transitive
-         pinning enabled) that pin those flowed deps to lower versions. So StreamJsonRpc must stay at the
-         version whose flowed-dep AsmVers match what shipped consumers already provide. -->
+    <!-- StreamJsonRpc and MessagePack are both ILMerged into Metalama.Framework.DesignTime.Rpc. Despite the
+         merge, the merged intermediate language still binds externally to the flowed dependencies below, so
+         raising StreamJsonRpc may shift what those must provide. -->
     <PackageVersion Include="StreamJsonRpc" Version="2.20.17" />
-    <PackageVersion Include="System.IO.Pipelines" Version="8.0.0" />
-    <PackageVersion Include="System.Diagnostics.DiagnosticSource" Version="6.0.1" />
-    <PackageVersion Include="Microsoft.Bcl.AsyncInterfaces" Version="8.0.0" />
+    <!-- The three packages below are the flowed transitive dependencies of Metalama.Framework.DesignTime.Rpc,
+         and they follow the .NET 10.0 line at the version the design-time binding redirects admit. The redirect
+         oldVersion upper bound in devenv.exe.config of Visual Studio 2026 18.9 is assembly version 10.0.0.8 for
+         all three, and 10.0.8 is the NuGet version whose lib/net462 asset carries exactly that. No headroom: do
+         not take a version above it before a Visual Studio release ships one and moves the redirect.
+         Metalama.Vsx constrains these values at its build and not at its deployment.
+         It does not constrain them at deployment. Metalama.Vsx merges Metalama.Backstage, Metalama.Backstage.Tools
+         and Metalama.Framework.DesignTime.Rpc into a single Metalama.Repacked assembly with its own identity, so
+         an installed extension carries its own copy of that code and the versions pinned here do not reach it.
+         Nor does it ship these three packages: an installed Metalama.Vsx 2026.1.5 holds 65 files, among which
+         System.IO.Pipelines, System.Diagnostics.DiagnosticSource, Microsoft.Bcl.AsyncInterfaces and
+         System.Threading.Tasks.Extensions do not appear. Visual Studio provides them, under the redirects above.
+         It does constrain them at its build. That repository enables central transitive pinning, so its own pins
+         must not be below what these packages require, or it fails to restore with NU1605. A change here
+         therefore belongs in a pull request on metalama/Metalama.Vsx as well.
+         Measured for #1903; see Directory.Packages.md. -->
+    <PackageVersion Include="System.IO.Pipelines" Version="10.0.8" />
+    <PackageVersion Include="System.Diagnostics.DiagnosticSource" Version="10.0.8" />
+    <PackageVersion Include="Microsoft.Bcl.AsyncInterfaces" Version="10.0.8" />
 
 
     <PackageVersion Include="Metalama.Backstage" Version="$(MetalamaVersion)" />
