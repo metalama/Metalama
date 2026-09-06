@@ -1,9 +1,4 @@
 <Project>
     <Import Project="../Directory.Packages.props" />
 
-    <!-- This file previously overrode System.Text.Json to 9.0.10, to keep System.Threading.Tasks.Extensions 4.6.3
-         out of the user-surfacing Patterns packages while the central pin of that package was 4.5.4. #1903 raised
-         the central pin to 4.6.3, so the override no longer changes anything it was written to prevent, and the
-         Patterns packages take the central version like every other consumer. -->
-
 </Project>

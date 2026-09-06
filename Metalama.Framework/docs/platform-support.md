@@ -316,12 +316,12 @@ Two further points bear on any change to the floors.
 - A path segment that names a target framework is not always one of ours. One embedded-resource item can carry
   two such segments: one naming a directory of our own build output, which follows this baseline, and one naming
   an asset folder inside a package, which follows the layout of that package instead. Changing the second
-  matches no file, and the assembly is then dropped from the embedded resources without any error. The item that
-  used to demonstrate this, a `CoreAssemblyToEmbed` naming
-  `runtimes/win/lib/net8.0/System.Threading.AccessControl.dll`, no longer exists: the core flavour targets
-  `net10.0`, where that assembly belongs to the shared framework, so NuGet prunes the asset of the package and
-  the runtime provides the assembly. Only the desktop flavour still embeds it, from our own `net472` build
-  output.
+  matches no file, and the assembly is then dropped from the embedded resources without any error. Check which
+  kind a segment is before editing it. `System.Threading.AccessControl` is the package to watch here: the
+  desktop flavour embeds it from our own `net472` build output, and the core flavour embeds nothing, because on
+  `net10.0` the assembly belongs to the shared framework, so NuGet prunes the asset and the runtime provides it.
+  A core flavour that has to embed it again would have to name an asset folder of that package, and that path
+  does not follow this baseline.
 - The extension loader compares target framework names as strings. `TargetedAssemblyReference` and
   `ExtensionLoaderBase` each derive a target framework name from the same .NET Framework Boolean as
   `ResourceExtractor`, then compare it for equality against the `TargetFramework` metadata of

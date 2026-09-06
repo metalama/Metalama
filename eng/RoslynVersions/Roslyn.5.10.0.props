@@ -9,10 +9,11 @@
 		     for the two aspect tests whose expected output differs between Roslyn 5.0 and Roslyn 5.10. See Directory.Packages.md. -->
 		<DefineConstants>$(DefineConstants);ROSLYN_5_10_0_OR_GREATER</DefineConstants>
 		<!-- Microsoft.CodeAnalysis.CSharp.Features 5.10 requires System.Text.Json >= 10.0.8, and 10.0.8 is also
-		     the highest version the design-time payload may take: this assembly is embedded in the desktop
-		     flavour, the devenv.exe.config redirect upper bound is assembly version 10.0.0.8, and the lib/net462
-		     asset of NuGet 10.0.8 carries exactly that. The value was 10.0.11, whose lib/net462 asset is
-		     10.0.0.11 and therefore above the redirect. Lowered for #1903; see Directory.Packages.md. -->
+		     the highest version the design-time payload may take, so the two bounds meet on a single value. This
+		     assembly is embedded in the desktop flavour of the payload, the devenv.exe.config redirect upper
+		     bound is assembly version 10.0.0.8, and the lib/net462 asset of NuGet 10.0.8 carries exactly that.
+		     A higher patch carries a higher lib/net462 assembly version and falls outside the redirect.
+		     Measured for #1903; see Directory.Packages.md. -->
 		<SystemTextJsonVersion>10.0.8</SystemTextJsonVersion>
 	</PropertyGroup>
 </Project>
