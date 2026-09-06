@@ -6,6 +6,11 @@
     <Nullable>enable</Nullable>
     <Configurations>Debug;Release;LamaDebug</Configurations>
     <NoWarn>SA1402,SA1649</NoWarn>
+
+    <!-- Sets DOTNET_JitDebuggable for the test host, to work around a defect of the .NET 10 runtime. The run
+         settings file explains the defect and the conditions under which both it and this property are removed.
+         See https://github.com/metalama/Metalama/issues/1976. -->
+    <RunSettingsFilePath>$(MSBuildProjectDirectory)\Metalama.Patterns.Wpf.AspectTests.runsettings</RunSettingsFilePath>
   </PropertyGroup>
 
   <ItemGroup>

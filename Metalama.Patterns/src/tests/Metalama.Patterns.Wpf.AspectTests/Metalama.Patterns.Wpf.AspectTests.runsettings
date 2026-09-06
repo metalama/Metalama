@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+
+  <RunConfiguration>
+    <EnvironmentVariables>
+
+      <!--
+        Workaround for a defect of the .NET 10 runtime, tracked as https://github.com/dotnet/runtime/issues/131267.
+        The test host of this project crashed intermittently with "Fatal error. Internal CLR error. (0x80131506)"
+        after every test had passed, which aborted the run and failed the public build.
+
+        When the garbage collector suspends a thread that runs in code which is not fully interruptible, it hijacks
+        the return address of the current method. The hijacked return value is reported to the collector through the
+        garbage collection information of the calling method. CallDescrWorkerInternal, which the runtime uses for
+        reflection invocation, is written in assembly and carries no such information, so an object reference left
+        in the return register is neither reported nor updated. The heap is corrupted, and the process fails later
+        at an unrelated read. xunit invokes every test method by reflection, so every test method is exposed.
+
+        DOTNET_JitDebuggable makes the just-in-time compiler emit fully interruptible code for every method. The
+        garbage collector then suspends threads in place instead of hijacking a return address, and the defect
+        cannot occur. The cost is that this test host runs without optimizations.
+
+        Remove this file, and the RunSettingsFilePath property that references it, once the build container
+        installs a .NET 10 runtime of version 10.0.12 or later, which carries the fix. See
+        https://github.com/metalama/Metalama/issues/1976.
+      -->
+      <DOTNET_JitDebuggable>1</DOTNET_JitDebuggable>
+
+    </EnvironmentVariables>
+  </RunConfiguration>
+
+</RunSettings>
