@@ -748,6 +748,10 @@ internal sealed class CompileTimeAssemblyLocator
                    </PropertyGroup>{hooksPropsImport}
                    <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
                    <PropertyGroup>
+                     <!-- A preview .NET SDK reports NETSDK1057 at high importance, so it appears whatever the
+                          verbosity. The output of this build is read to explain a failure, where an informational
+                          message must not be taken for its cause. See issue #1933. -->
+                     <SuppressNETCoreSdkPreviewMessage>true</SuppressNETCoreSdkPreviewMessage>
                      <TargetFrameworks>{targetFrameworks}</TargetFrameworks>
                      <OutputType>Exe</OutputType>
                      <LangVersion>latest</LangVersion>
