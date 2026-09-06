@@ -20,6 +20,11 @@
              and that can therefore reference nothing. See the remarks of Metalama.Backstage.Threading.INamedLockService. -->
         <MetalamaSharedThreadingSourceDirectory>$(MSBuildThisFileDirectory)..\Metalama.Backstage\src\Metalama.Backstage\Threading\</MetalamaSharedThreadingSourceDirectory>
 
+        <!-- The directory holding the source files that carry the classification of the host process, which
+             Metalama.Backstage shares with Metalama.Framework.CompilerExtensions for the same reason. See the
+             remarks of Metalama.Backstage.Diagnostics.ProcessKindDetector. -->
+        <MetalamaSharedProcessKindSourceDirectory>$(MSBuildThisFileDirectory)..\Metalama.Backstage\src\Metalama.Backstage\Diagnostics\</MetalamaSharedProcessKindSourceDirectory>
+
     </PropertyGroup>
 
     <Import Project="../eng/Versions.props"/>

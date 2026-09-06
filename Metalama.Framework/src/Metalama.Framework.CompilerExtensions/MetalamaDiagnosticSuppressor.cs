@@ -40,6 +40,17 @@ namespace Metalama.Framework.CompilerExtensions
                     // so we're skipping it.
                     break;
 
+                case ProcessKind.LanguageServer:
+                    // The language server of the Visual Studio Code C# Dev Kit. It is named explicitly, and not
+                    // left to the default arm, so that it can be given its own entry point without another change
+                    // to the classification.
+                    ResourceExtractor.TryCreateInstance<DiagnosticSuppressor>(
+                        RoslynEntryPointTypeNames.DesignTimeAssemblyName,
+                        RoslynEntryPointTypeNames.TheDiagnosticSuppressor,
+                        out this._impl );
+
+                    break;
+
                 default:
                     ResourceExtractor.TryCreateInstance<DiagnosticSuppressor>(
                         RoslynEntryPointTypeNames.DesignTimeAssemblyName,
