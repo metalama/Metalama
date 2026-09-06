@@ -47,6 +47,18 @@ namespace Metalama.Framework.CompilerExtensions
 
                     break;
 
+                case ProcessKind.LanguageServer:
+                    // The language server of the Visual Studio Code C# Dev Kit. It is named explicitly, and not
+                    // left to the default arm, because section 6 of DECISIONS.md names the C# Dev Kit as one of
+                    // the hosts on which the design-time result and the build-time result diverge, and this
+                    // assembly can already distinguish Rider.
+                    ResourceExtractor.TryCreateInstance<CodeFixProvider>(
+                        RoslynEntryPointTypeNames.DesignTimeAssemblyName,
+                        RoslynEntryPointTypeNames.TheCodeFixProvider,
+                        out this._impl );
+
+                    break;
+
                 default:
                     ResourceExtractor.TryCreateInstance<CodeFixProvider>(
                         RoslynEntryPointTypeNames.DesignTimeAssemblyName,

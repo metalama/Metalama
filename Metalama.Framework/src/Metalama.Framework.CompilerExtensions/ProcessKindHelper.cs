@@ -7,64 +7,16 @@ using System.Diagnostics;
 
 namespace Metalama.Framework.CompilerExtensions;
 
+/// <summary>
+/// Exposes the kind of the current process to the design-time entry points of this assembly.
+/// </summary>
 public static class ProcessKindHelper
 {
-    public static ProcessKind CurrentProcessKind { get; } = GetProcessKind();
-
-    private static ProcessKind GetProcessKind()
-    {
-        // Note that the same logic is duplicated in Metalama.Backstage.Utilities.ProcessUtilities and cannot 
-        // be shared. Any change here must be done there too.
-
-        switch ( Process.GetCurrentProcess().ProcessName.ToLowerInvariant() )
-        {
-            case "devenv":
-                return ProcessKind.DevEnv;
-
-            case "servicehub.roslyncodeanalysisservice":
-            case "servicehub.roslyncodeanalysisservices":
-            case "devhub":
-                return ProcessKind.RoslynCodeAnalysisService;
-
-            case "csc":
-            case "vbcscompiler":
-                return ProcessKind.Compiler;
-
-            case "dotnet":
-                var commandLine = Environment.CommandLine.ToLowerInvariant();
-
-#pragma warning disable CA1307
-                if ( commandLine.Contains( "jetbrains.resharper.roslyn.worker" ) ||
-                     commandLine.Contains( "jetbrains.roslyn.worker" ) )
-                {
-                    return ProcessKind.Rider;
-                }
-                else if ( commandLine.Contains( "vbcscompiler.dll" ) || commandLine.Contains( "csc.dll" ) )
-                {
-                    return ProcessKind.Compiler;
-                }
-                else if ( commandLine.Contains( "dotnet-format.dll" ) )
-                {
-                    return ProcessKind.Format;
-                }
-                else
-                {
-                    return ProcessKind.Other;
-                }
-#pragma warning restore CA1307
-
-            default:
-                return ProcessKind.Other;
-        }
-    }
-}
-
-public enum ProcessKind
-{
-    Other,
-    Compiler,
-    DevEnv,
-    RoslynCodeAnalysisService,
-    Rider,
-    Format
+    /// <summary>
+    /// Gets the kind of the current process. The value is computed once, in this property initializer, and is then
+    /// cached for the lifetime of the process. The table itself is in <see cref="ProcessKindDetector"/>, which
+    /// <c>Metalama.Backstage</c> also compiles.
+    /// </summary>
+    public static ProcessKind CurrentProcessKind { get; } =
+        ProcessKindDetector.GetProcessKind( Process.GetCurrentProcess().ProcessName, Environment.CommandLine );
 }
