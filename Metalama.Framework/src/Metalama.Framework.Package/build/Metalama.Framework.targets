@@ -398,6 +398,12 @@
            to be removed before the version is compared. -->
       <_MetalamaSdkVersion Condition="'$(NETCoreSdkVersion)'!=''">$(NETCoreSdkVersion.Split('-')[0])</_MetalamaSdkVersion>
 
+      <!-- MaximumSdkVersion names the last supported major and minor line, so the maximum rule has to compare a
+           version that carries no feature band. Comparing the full version against it reports every feature band of
+           the supported line, for instance 11.0.100 against 11.0. The minimum rule keeps the full version, because a
+           contributing package may require a specific feature band, for instance 10.0.200. See issue #1927. -->
+      <_MetalamaSdkMajorMinorVersion Condition="'$(_MetalamaSdkVersion)'!=''">$(_MetalamaSdkVersion.Split('.')[0]).$(_MetalamaSdkVersion.Split('.')[1])</_MetalamaSdkMajorMinorVersion>
+
       <_MetalamaSuppressionHint0601>The build continues, but a problem that is specific to this .NET SDK will not be fixed. To suppress this warning, set the 'MetalamaCheckSupportedPlatform' property to 'False', or add 'LAMA0601' to the 'NoWarn' property.</_MetalamaSuppressionHint0601>
       <_MetalamaSuppressionHint0602>The build continues, but a problem that is specific to this version of Visual Studio will not be fixed. To suppress this warning, set the 'MetalamaCheckSupportedPlatform' property to 'False', or add 'LAMA0602' to the 'NoWarn' property.</_MetalamaSuppressionHint0602>
     </PropertyGroup>
@@ -409,7 +415,7 @@
 
     <Warning Code="LAMA0601"
              HelpLink="%(_MetalamaPlatformRequirement.HelpLink)"
-             Condition="'$(_MetalamaSdkVersion)'!='' AND '%(_MetalamaPlatformRequirement.MaximumSdkVersion)'!='' AND $([MSBuild]::VersionGreaterThan($(_MetalamaSdkVersion), %(_MetalamaPlatformRequirement.MaximumSdkVersion)))"
+             Condition="'$(_MetalamaSdkMajorMinorVersion)'!='' AND '%(_MetalamaPlatformRequirement.MaximumSdkVersion)'!='' AND $([MSBuild]::VersionGreaterThan($(_MetalamaSdkMajorMinorVersion), %(_MetalamaPlatformRequirement.MaximumSdkVersion)))"
              Text="'%(_MetalamaPlatformRequirement.Identity)' does not support the .NET SDK $(NETCoreSdkVersion), which is newer than %(_MetalamaPlatformRequirement.MaximumSdkVersion). Check whether a newer version of '%(_MetalamaPlatformRequirement.Identity)' is available.%(_MetalamaPlatformRequirement.SdkVersionsSentence) $(_MetalamaSuppressionHint0601)"/>
 
     <Warning Code="LAMA0602"
