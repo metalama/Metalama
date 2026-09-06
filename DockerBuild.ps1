@@ -1026,6 +1026,48 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
         $script:RegistryPushJobs = @()
     }
 
+    # The processor architecture of the Docker engine, in the naming Docker itself uses ('amd64', 'arm64').
+    # It is the architecture of the OS image a mirror ends up holding, because `docker pull` of a
+    # multi-architecture manifest selects the engine's own platform.
+    #
+    # The engine is asked rather than the host, because the two differ on macOS: the engine runs in a Linux
+    # virtual machine (Docker Desktop, Colima, Rancher Desktop), and the images are of the virtual machine's
+    # architecture, not of the architecture the PowerShell process happens to run under. Queried once per run.
+    function Get-DockerArchitecture
+    {
+        if ($script:DockerArchitecture)
+        {
+            return $script:DockerArchitecture
+        }
+
+        # '{{.Server.Arch}}' is the daemon's own Go architecture name, the same vocabulary an image manifest
+        # uses. `docker info --format '{{.Architecture}}'` is not interchangeable with it: that one reports the
+        # uname form, 'x86_64' rather than 'amd64', which is why the result is normalized below.
+        $architecture = (docker version --format '{{.Server.Arch}}' 2>$null | Select-Object -Last 1)
+
+        if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($architecture))
+        {
+            # The daemon could not be asked: it is not running, or on Linux the user is not in the docker
+            # group. The host architecture is the next best answer, and is the right one wherever the daemon
+            # runs on the host itself, which covers Linux and Windows.
+            $architecture = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString()
+            Write-Host "Could not read the Docker engine architecture; assuming the host's, $architecture." -ForegroundColor Yellow
+        }
+
+        $architecture = $architecture.Trim()
+
+        # Accept every spelling the two sources above can produce, including the .NET enum names ('X64',
+        # 'Arm64') that the fallback returns.
+        $script:DockerArchitecture = switch -Regex ($architecture)
+        {
+            '^(amd64|x64|x86_64)$' { 'amd64' }
+            '^(arm64|aarch64)$' { 'arm64' }
+            default { $architecture.ToLowerInvariant() }
+        }
+
+        return $script:DockerArchitecture
+    }
+
     # Resolve the OS image a root image is built FROM, mirroring it into the configured registry the first time
     # it is needed. On a fresh agent the OS image is the most expensive download of the whole build, and the
     # registry is on the LAN, so building from the mirror replaces an internet transfer with a local one.
@@ -1061,7 +1103,22 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
             $segments = $segments[1..($segments.Length - 1)]
         }
 
-        $mirrorRepository = "$dockerRegistry/$( $segments -join '-' )"
+        # A repository holds one manifest per tag, and the mirror is single-platform: whichever agent creates
+        # it decides the architecture every later agent gets, with no error until a command runs in a
+        # container built from it. So the architecture belongs in the mirror name. amd64 keeps the unsuffixed
+        # name, which every mirror already in the registry was pushed under:
+        #   amd64 -> <registry>/ubuntu, arm64 -> <registry>/ubuntu-arm64.
+        $architecture = Get-DockerArchitecture
+        $architectureSuffix = if ($architecture -eq 'amd64')
+        {
+            ''
+        }
+        else
+        {
+            "-$architecture"
+        }
+
+        $mirrorRepository = "$dockerRegistry/$( $segments -join '-' )$architectureSuffix"
         $mirror = [pscustomobject]@{ Repository = $mirrorRepository; Reference = "${mirrorRepository}:${tag}" }
 
         docker @dockerConfigArg manifest inspect $mirror.Reference *> $null
@@ -1181,6 +1238,9 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
     # OS images the root images are built FROM, keyed by upstream reference and resolved on first use by
     # Get-OsImage.
     $script:OsImages = @{ }
+
+    # The Docker engine architecture, resolved on first use by Get-DockerArchitecture.
+    $script:DockerArchitecture = $null
 
     # Tags already handed to Start-AsyncPush, so that resolving the same image twice (the run step resolves the
     # chain again) does not push it twice.
