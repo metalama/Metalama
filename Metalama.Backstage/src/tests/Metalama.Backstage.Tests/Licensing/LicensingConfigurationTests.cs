@@ -39,7 +39,7 @@ namespace Metalama.Backstage.Tests.Licensing
             // concatenates the Licenses array and therefore throws InvalidOperationException on a default instance.
             var configuration = new LicensingConfiguration { Licenses = default };
 
-            var licenses = configuration.GetRegisteredLicenses( message => this.Logger.WriteLine( message.ToString()! ) ).ToList();
+            var licenses = configuration.GetRegisteredLicenses( this.CurrentVersion, message => this.Logger.WriteLine( message.ToString()! ) ).ToList();
 
             Assert.Empty( licenses );
         }
@@ -51,7 +51,7 @@ namespace Metalama.Backstage.Tests.Licensing
             // is a default instance.
             var configuration = new LicensingConfiguration { Licenses = default, LegacyLicense = LicenseKeyProvider.PostSharpFramework };
 
-            var licenses = configuration.GetRegisteredLicenses( message => this.Logger.WriteLine( message.ToString()! ) ).ToList();
+            var licenses = configuration.GetRegisteredLicenses( this.CurrentVersion, message => this.Logger.WriteLine( message.ToString()! ) ).ToList();
 
             Assert.Single( licenses );
         }

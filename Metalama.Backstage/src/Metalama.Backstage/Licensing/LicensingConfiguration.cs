@@ -48,6 +48,26 @@ internal sealed record LicensingConfiguration : ConfigurationFile
         init => this._licenses = value.IsDefault ? ImmutableArray<string?>.Empty : value;
     }
 
+    /// <summary>
+    /// Gets the license keys that no released version of Metalama can consume, grouped by the minimal version of
+    /// Metalama that can consume them. The key of the group is that version, formatted by <see cref="Version.ToString()"/>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Every installed version of Metalama reads the same <c>licensing.json</c>, so a license key that only a later
+    /// version understands otherwise reaches the earlier versions, which report a message that the user cannot act
+    /// upon, or throw. A version reads <see cref="LegacyLicense"/>, <see cref="Licenses"/> and the groups whose
+    /// version is not greater than its own, and skips the other groups before their license keys are deserialized.
+    /// </para>
+    /// <para>
+    /// The value is <c>null</c> when there is no group, and the member is then absent from the file, so registering
+    /// a license key that every released version can consume writes the same file as before this member existed.
+    /// </para>
+    /// </remarks>
+    [JsonPropertyName( "licensesByMinimalVersion" )]
+    [JsonIgnore( Condition = JsonIgnoreCondition.WhenWritingNull )]
+    public ImmutableDictionary<string, ImmutableArray<string?>>? LicensesByMinimalVersion { get; init; }
+
     public CommunityLicenseReason CommunityLicenseReason { get; init; }
 
     public LicensingConfiguration SetLicense( LicenseRegistrationProperties license )
@@ -70,28 +90,43 @@ internal sealed record LicensingConfiguration : ConfigurationFile
             clone = clone.RemoveAllLicenses();
         }
 
-        // Now we can add the new license.
-        if ( !license.Product.IsSupportedBeforeMetalama20251() )
+        var licenseString = license.LicenseString ?? throw new ArgumentNullException( nameof(license) );
+
+        // Now we can add the new license, in the oldest group that can consume it.
+        if ( license.MinMetalamaVersion != null )
         {
-            return clone with { Licenses = ImmutableArray.Create( license.LicenseString ?? throw new ArgumentNullException() )! };
+            return clone with
+            {
+                LicensesByMinimalVersion = ImmutableDictionary<string, ImmutableArray<string?>>.Empty
+                    .Add( license.MinMetalamaVersion.ToString(), ImmutableArray.Create<string?>( licenseString ) )
+            };
+        }
+        else if ( !license.Product.IsSupportedBeforeMetalama20251() )
+        {
+            return clone with { Licenses = ImmutableArray.Create<string?>( licenseString ) };
         }
         else
         {
-            return clone with { LegacyLicense = license.LicenseString };
+            return clone with { LegacyLicense = licenseString };
         }
     }
 
-    public LicensingConfiguration RemoveAllLicenses() => this with { LegacyLicense = null, Licenses = ImmutableArray<string?>.Empty };
+    public LicensingConfiguration RemoveAllLicenses()
+        => this with { LegacyLicense = null, Licenses = ImmutableArray<string?>.Empty, LicensesByMinimalVersion = null };
 
     private LicensingConfiguration RemoveAllLicensesExcept( LicenseProduct product )
     {
-        if ( this.LegacyLicense != null && GetLicenseKeyData( this.LegacyLicense )?.Product != product )
+        // A license key of a group is never a license key of the product that has to co-exist, because Metalama
+        // Community and Metalama Free are consumed by every released version and therefore never reach a group.
+        var clone = this.LicensesByMinimalVersion == null ? this : this with { LicensesByMinimalVersion = null };
+
+        if ( clone.LegacyLicense != null && GetLicenseKeyData( clone.LegacyLicense )?.Product != product )
         {
-            return this with { LegacyLicense = null };
+            return clone with { LegacyLicense = null };
         }
         else
         {
-            return this;
+            return clone;
         }
     }
 
@@ -114,11 +149,50 @@ internal sealed record LicensingConfiguration : ConfigurationFile
     }
 
     /// <summary>
-    /// Gets all parsable license keys, regardless of whether they are supported or not by the current version.
+    /// Enumerates the groups of <see cref="LicensesByMinimalVersion"/> whose name parses as a version and that carry
+    /// at least one non-blank license key, ordered by that version. A group whose name does not parse as a version is
+    /// skipped, as a later version may name a group in a way that the current version does not understand. A group
+    /// whose license keys are all blank is skipped as well, so that it behaves as an empty group and is not reported
+    /// as requiring a later version of Metalama.
     /// </summary>
-    public IEnumerable<LicenseKeyData> GetRegisteredLicenses( Action<LicensingMessage>? reportMessage = null )
+    private IEnumerable<(Version MinimalVersion, ImmutableArray<string?> Licenses)> GetLicenseGroups()
     {
-        var licenses = new[] { this.LegacyLicense }.Concat( this.Licenses );
+        if ( this.LicensesByMinimalVersion == null )
+        {
+            return [];
+        }
+
+        return this.LicensesByMinimalVersion
+            .Where( group => !group.Value.IsDefaultOrEmpty && group.Value.Any( licenseKey => !string.IsNullOrWhiteSpace( licenseKey ) ) )
+            .Select( group => (IsVersion: System.Version.TryParse( group.Key, out var version ), MinimalVersion: version, group.Value) )
+            .Where( group => group.IsVersion )
+            .Select( group => (MinimalVersion: group.MinimalVersion!, Licenses: group.Value) )
+            .OrderBy( group => group.MinimalVersion );
+    }
+
+    /// <summary>
+    /// Gets the minimal versions of the groups that <paramref name="currentVersion"/> does not support, ordered by
+    /// version. The license keys of those groups are not deserialized, so the version of the group is the only
+    /// information that the running version has about them.
+    /// </summary>
+    /// <param name="currentVersion">The version of the running product.</param>
+    /// <returns>The minimal versions of the unsupported groups.</returns>
+    public IEnumerable<Version> GetUnsupportedMinimalVersions( Version currentVersion )
+        => this.GetLicenseGroups().Where( group => group.MinimalVersion > currentVersion ).Select( group => group.MinimalVersion );
+
+    /// <summary>
+    /// Gets all parsable license keys that the running version supports, regardless of whether they are valid or not.
+    /// The license keys of a group whose version is greater than <paramref name="currentVersion"/> are not returned
+    /// and are not deserialized, so they report no message.
+    /// </summary>
+    /// <param name="currentVersion">The version of the running product.</param>
+    /// <param name="reportMessage">A delegate that receives the message reported by a license key that does not parse.</param>
+    /// <returns>The license key data of the license keys that the running version supports.</returns>
+    public IEnumerable<LicenseKeyData> GetRegisteredLicenses( Version currentVersion, Action<LicensingMessage>? reportMessage = null )
+    {
+        var licenses = new[] { this.LegacyLicense }
+            .Concat( this.Licenses )
+            .Concat( this.GetLicenseGroups().Where( group => group.MinimalVersion <= currentVersion ).SelectMany( group => group.Licenses ) );
 
         foreach ( var license in licenses )
         {

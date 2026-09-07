@@ -27,6 +27,7 @@ using Metalama.Backstage.Welcome;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using System;
+using System.Collections.Immutable;
 using Xunit.Abstractions;
 using ILoggerFactory = Metalama.Backstage.Diagnostics.ILoggerFactory;
 
@@ -97,6 +98,34 @@ namespace Metalama.Backstage.Testing
         /// <returns>The licensing authority provider of the current test.</returns>
         protected virtual ILicensingAuthorityProvider CreateLicensingAuthorityProvider( IServiceProvider serviceProvider )
             => new TestLicensingAuthorityProvider( serviceProvider );
+
+        /// <summary>
+        /// Adds a group of license keys to the licensing configuration of the current test, beside the license keys
+        /// that are already registered, exactly as a later version of Metalama writes it. See issue #1922.
+        /// </summary>
+        /// <param name="minimalVersion">The minimal version of Metalama that can consume the license keys of the group.</param>
+        /// <param name="licenseKeys">The license keys of the group.</param>
+        /// <remarks>
+        /// A test that needs a group which the running version does not support has to write it, because the running
+        /// version detects the minimal version of a license key from a format that it knows, and therefore never
+        /// registers a license key that requires a version later than its own.
+        /// </remarks>
+        protected void AddLicenseGroup( string minimalVersion, params string[] licenseKeys )
+        {
+            var configurationManager = this.ConfigurationManager
+                                       ?? throw new InvalidOperationException(
+                                           "The current test does not use the in-memory configuration manager." );
+
+            var configuration = configurationManager.Get<LicensingConfiguration>();
+
+            var groups = configuration.LicensesByMinimalVersion ?? ImmutableDictionary<string, ImmutableArray<string?>>.Empty;
+
+            configurationManager.Set(
+                configuration with
+                {
+                    LicensesByMinimalVersion = groups.SetItem( minimalVersion, ImmutableArray.Create<string?>( licenseKeys ) )
+                } );
+        }
 
         private TestFileSystem? _uniqueFileSystem;
 

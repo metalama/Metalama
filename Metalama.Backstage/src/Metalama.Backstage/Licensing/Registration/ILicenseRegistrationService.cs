@@ -29,6 +29,13 @@ public interface ILicenseRegistrationService : IBackstageService, INotifyPropert
     IEnumerable<LicenseRegistrationProperties> RegisteredLicenses { get; }
 
     /// <summary>
+    /// Gets the minimal versions of the registered license keys that the running version of Metalama cannot consume,
+    /// ordered by version. Such a license key is stored in a group named after the version, and the version is the
+    /// only information about it that the running version has, because the license key itself is not deserialized.
+    /// </summary>
+    IEnumerable<Version> UnsupportedRegisteredLicenseVersions { get; }
+
+    /// <summary>
     /// Validates the license key and returns a value indicating whether it can be registered using <see cref="RegisterLicense"/>.
     /// </summary>
     LicenseRegistrationResult ValidateLicenseKey( string licenseKey );
