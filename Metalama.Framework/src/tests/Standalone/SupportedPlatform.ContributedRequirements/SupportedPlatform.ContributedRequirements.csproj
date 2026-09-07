@@ -1,20 +1,30 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <!-- A requirement contributed by a package other than Metalama.Framework, or declared by the project itself, is
-         evaluated on its own and reports its own package. The four requirements below cover the four rules that the
+         evaluated on its own and reports its own package. The requirements below cover the rules that the
          requirement of Metalama.Framework does not exercise on this build agent: a target framework newer than the
-         tested range, a required target platform, a .NET SDK older than the required one, and a .NET SDK newer than
-         the tested range.
+         tested range, a required target platform, a .NET SDK older than the required one, a .NET SDK newer than
+         the tested range, and the boundary between the two .NET SDK rules.
 
          The target framework of the project is in the tested matrix of Metalama.Framework, so no diagnostic may name
          'Metalama.Framework'. That is what makes this scenario an assertion about independent evaluation rather than
          about merged floors.
-         See https://github.com/metalama/Metalama/issues/1884. -->
+         See https://github.com/metalama/Metalama/issues/1884 and
+         https://github.com/metalama/Metalama/issues/1927. -->
 
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
         <OutputType>Library</OutputType>
         <MetalamaCheckSupportedPlatform>True</MetalamaCheckSupportedPlatform>
+    </PropertyGroup>
+
+    <!-- The requirements that pin the .NET SDK boundary are computed from the running .NET SDK, so that the scenario
+         stays valid when the .NET SDK of the build agent moves. -->
+    <PropertyGroup>
+        <_TestSdkVersion>$(NETCoreSdkVersion.Split('-')[0])</_TestSdkVersion>
+        <_TestSdkMajorVersion>$(_TestSdkVersion.Split('.')[0])</_TestSdkMajorVersion>
+        <_TestSdkMajorMinorVersion>$(_TestSdkMajorVersion).$(_TestSdkVersion.Split('.')[1])</_TestSdkMajorMinorVersion>
+        <_TestPreviousSdkMajorVersion>$([MSBuild]::Subtract($(_TestSdkMajorVersion), 1))</_TestPreviousSdkMajorVersion>
     </PropertyGroup>
 
     <ItemGroup>
@@ -38,6 +48,24 @@
 
         <MetalamaPlatformRequirement Include="Test.LegacySdk">
             <MaximumSdkVersion>1.0</MaximumSdkVersion>
+        </MetalamaPlatformRequirement>
+
+        <!-- MaximumSdkVersion names the last supported major and minor line, so a requirement whose maximum is the
+             line of the running .NET SDK accepts every feature band of that line, including the first one. -->
+        <MetalamaPlatformRequirement Include="Test.CurrentSdkLine">
+            <MaximumSdkVersion>$(_TestSdkMajorMinorVersion)</MaximumSdkVersion>
+        </MetalamaPlatformRequirement>
+
+        <!-- One line below the running .NET SDK is still exceeded, so the maximum rule compares the major and minor
+             components and is not disabled. -->
+        <MetalamaPlatformRequirement Include="Test.PreviousSdkLine">
+            <MaximumSdkVersion>$(_TestPreviousSdkMajorVersion).0</MaximumSdkVersion>
+        </MetalamaPlatformRequirement>
+
+        <!-- MinimumSdkVersion keeps the feature band, because a contributing package may require one, so a floor
+             inside the line of the running .NET SDK is still reported. -->
+        <MetalamaPlatformRequirement Include="Test.FutureFeatureBand">
+            <MinimumSdkVersion>$(_TestSdkMajorMinorVersion).99999</MinimumSdkVersion>
         </MetalamaPlatformRequirement>
     </ItemGroup>
 

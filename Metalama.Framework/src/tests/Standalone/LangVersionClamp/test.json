@@ -1,0 +1,5 @@
+{
+    "BuildOnly": true,
+    "ExpectedDiagnosticsRegexes": [ "warning LAMA0603.*7[.]3.*12[.]0" ],
+    "ForbiddenDiagnosticsRegexes": [ "lowest version supported by Metalama Framework" ]
+}
