@@ -10,6 +10,20 @@ namespace Metalama.Backstage.Licensing
 {
     internal static class ApplicationInfoLicenseExtensions
     {
+        /// <summary>
+        /// Returns the version of the running product, which decides the groups of license keys that the product
+        /// reads. A group whose minimal version is greater than the returned version is skipped.
+        /// </summary>
+        /// <param name="application">The running application.</param>
+        /// <returns>The version of <paramref name="application"/>.</returns>
+        /// <remarks>
+        /// An application that does not report its version is given the version 0.0, so it reads no group at all.
+        /// This is the conservative outcome: a product that cannot state its version cannot state that it supports
+        /// the license keys of a group.
+        /// </remarks>
+        public static Version GetLicensingVersion( this IApplicationInfo application ) => application.AssemblyVersion ?? new Version( 0, 0 );
+
+
         private static bool IsPreviewLicenseEligible( this IComponentInfo component )
             => (component.IsPrerelease ?? false) && component is { BuildDate: not null, Company: "PostSharp Technologies" };
 

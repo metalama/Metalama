@@ -26,5 +26,17 @@ namespace Metalama.Tools.Config.Tests.Commands.Licensing
             await this.TestCommandAsync( $"license register {LicenseKeyProvider.MetalamaProfessionalBusinessNotAuditable}" );
             await this.TestCommandAsync( "license list", expectedOutput: "No" );
         }
+
+        /// <summary>
+        /// Tests that a license key which the running version does not support is reported as requiring a later
+        /// version of Metalama, instead of being hidden. See issue #1922.
+        /// </summary>
+        [Fact]
+        public async Task LicenseRequiringLaterVersion_IsReportedAsRequiringThatVersion()
+        {
+            await this.TestCommandAsync( $"license register {CreateLicenseKeyRequiringFutureVersion()}" );
+
+            await this.TestCommandAsync( "license list", expectedOutput: $"requires Metalama {FutureVersion} or later" );
+        }
     }
 }

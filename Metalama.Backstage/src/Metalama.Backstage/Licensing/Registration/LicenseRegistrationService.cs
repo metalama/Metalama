@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Backstage.Application;
 using Metalama.Backstage.Configuration;
 using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Extensibility;
@@ -25,9 +26,15 @@ internal sealed class LicenseRegistrationService : ILicenseRegistrationService
     private readonly IUserDeviceDetectionService _userDeviceDetectionService;
     private readonly IConfigurationManager _configurationManager;
 
+    /// <summary>
+    /// The version of the running product. It decides the groups of license keys that the current service reads.
+    /// </summary>
+    private readonly Version _currentVersion;
+
     public LicenseRegistrationService( IServiceProvider serviceProvider )
     {
         this._serviceProvider = serviceProvider;
+        this._currentVersion = serviceProvider.GetRequiredBackstageService<IApplicationInfoProvider>().CurrentApplication.GetLicensingVersion();
         this._logger = serviceProvider.GetLoggerFactory().GetLogger( nameof(LicenseRegistrationService) );
         this._dateTimeProvider = serviceProvider.GetRequiredBackstageService<IDateTimeProvider>();
         this._userDeviceDetectionService = serviceProvider.GetRequiredBackstageService<IUserDeviceDetectionService>();
@@ -142,7 +149,7 @@ internal sealed class LicenseRegistrationService : ILicenseRegistrationService
     {
         var currentConfiguration = this._configurationManager.Get<LicensingConfiguration>();
 
-        if ( currentConfiguration.GetRegisteredLicenses()
+        if ( currentConfiguration.GetRegisteredLicenses( this._currentVersion )
             .Any( l => l is { LicenseType: LicenseType.Evaluation } && l.ValidTo >= this._dateTimeProvider.UtcNow ) )
         {
             errorMessage = "The evaluation license is already active.";
@@ -230,7 +237,12 @@ internal sealed class LicenseRegistrationService : ILicenseRegistrationService
     }
 
     public IEnumerable<LicenseRegistrationProperties> RegisteredLicenses
-        => this._configurationManager.Get<LicensingConfiguration>().GetRegisteredLicenses().Select( x => x.ToLicenseRegistrationProperties() );
+        => this._configurationManager.Get<LicensingConfiguration>()
+            .GetRegisteredLicenses( this._currentVersion )
+            .Select( x => x.ToLicenseRegistrationProperties() );
+
+    public IEnumerable<Version> UnsupportedRegisteredLicenseVersions
+        => this._configurationManager.Get<LicensingConfiguration>().GetUnsupportedMinimalVersions( this._currentVersion );
 
     public event PropertyChangedEventHandler? PropertyChanged;
 

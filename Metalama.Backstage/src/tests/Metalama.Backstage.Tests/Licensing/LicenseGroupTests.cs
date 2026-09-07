@@ -8,6 +8,7 @@ using Metalama.Backstage.Licensing;
 using Metalama.Backstage.Licensing.Consumption;
 using Metalama.Backstage.Licensing.Consumption.Sources;
 using Metalama.Backstage.Licensing.Licenses;
+using Metalama.Backstage.Licensing.Licenses.LicenseFields;
 using Metalama.Backstage.Serialization;
 using System;
 using System.Collections.Generic;
@@ -95,12 +96,36 @@ public sealed class LicenseGroupTests : LicensingTestsBase
 
     /// <summary>
     /// Creates a license key that is signed by the Elliptic Curve DSA authority of #1864. The versions released
-    /// before that authority cannot verify such a key, so it is the first license key that requires a group.
+    /// before that authority cannot verify such a key, so it is the first license key that requires a group. The
+    /// license key carries no minimal version, so the minimal version comes from the rule that is based on the
+    /// identifier of the signature key.
     /// </summary>
     /// <returns>The license key.</returns>
     private static string CreateLicenseKeyRequiringLaterVersion()
     {
-        var builder = new LicenseKeyDataBuilder
+        var builder = CreateLicenseKeyDataBuilder();
+
+        Assert.True( builder.RequiresSignature() );
+
+        return builder.SignAndSerialize( TestLicensingAuthorityProvider.ECDsaTestAuthority );
+    }
+
+    /// <summary>
+    /// Creates a license key that carries a minimal version and that is signed by the finite field DSA authority,
+    /// which every version verifies. The minimal version therefore comes from the license key itself.
+    /// </summary>
+    /// <param name="minMetalamaVersion">The minimal version of Metalama that can consume the license key.</param>
+    /// <returns>The license key.</returns>
+    private static string CreateLicenseKeyRequiringVersion( Version minMetalamaVersion )
+    {
+        var builder = CreateLicenseKeyDataBuilder();
+        builder.MinMetalamaVersion = minMetalamaVersion;
+
+        return builder.SignAndSerialize( LicenseKeyProvider.Authority );
+    }
+
+    private static LicenseKeyDataBuilder CreateLicenseKeyDataBuilder()
+        => new()
         {
             LicenseId = 801,
             Product = LicenseProduct.MetalamaProfessional,
@@ -109,9 +134,22 @@ public sealed class LicenseGroupTests : LicensingTestsBase
             SubscriptionEndDate = LicenseKeyProvider.DefaultSubscriptionExpirationDate
         };
 
-        Assert.True( builder.RequiresSignature() );
+    /// <summary>
+    /// Attempts to consume a license from the user profile.
+    /// </summary>
+    /// <returns>Whether a license was granted, and the messages that the consumption reported.</returns>
+    private (bool CanConsume, List<LicensingMessage> Messages) TryConsumeFromUserProfile()
+    {
+        var messages = new List<LicensingMessage>();
+        var service = new LicenseConsumptionService( this.ServiceProvider, [new UserProfileLicenseSource( this.ServiceProvider )] );
+        var canConsume = service.CreateConsumer( LicenseConsumptionOptions.Default, messages.Add ).TryConsume( LicenseRequirement.Any );
 
-        return builder.SignAndSerialize( TestLicensingAuthorityProvider.ECDsaTestAuthority );
+        foreach ( var message in messages )
+        {
+            this.Logger.WriteLine( message.ToString()! );
+        }
+
+        return (canConsume, messages);
     }
 
     /// <summary>
@@ -280,5 +318,90 @@ public sealed class LicenseGroupTests : LicensingTestsBase
 
         Assert.Contains( "licensesByMinimalVersion", json, StringComparison.Ordinal );
         Assert.Contains( licenseKey, json, StringComparison.Ordinal );
+    }
+
+    /// <summary>
+    /// Tests that registering a license key whose minimal version is greater than the version of the test
+    /// application grants no license and reports no message, and that the license key is nevertheless stored and
+    /// reported as requiring a later version.
+    /// </summary>
+    [Fact]
+    public void LicenseKeyRequiringFutureVersionGrantsNoLicenseAndReportsNoMessage()
+    {
+        var futureVersion = new Version( 9999, 0 );
+        var licenseKey = CreateLicenseKeyRequiringVersion( futureVersion );
+
+        Assert.True( this.LicenseRegistrationService.RegisterLicense( licenseKey ).IsSuccess );
+
+        var (canConsume, messages) = this.TryConsumeFromUserProfile();
+
+        Assert.False( canConsume );
+        Assert.Empty( messages );
+        Assert.Empty( this.LicenseRegistrationService.RegisteredLicenses );
+
+        // The license key is stored, and the version of its group is reported, so that the user interface can tell
+        // the user which version of Metalama is required.
+        Assert.Equal( futureVersion, Assert.Single( this.LicenseRegistrationService.UnsupportedRegisteredLicenseVersions ) );
+        Assert.Contains( licenseKey, this.GetLicensingConfigurationJson(), StringComparison.Ordinal );
+    }
+
+    /// <summary>
+    /// Tests that the minimal version carried by the license key takes precedence over the rule that is based on the
+    /// properties of the license key. The license key of this test is signed by the Elliptic Curve DSA authority,
+    /// for which the rule gives 2027.0, and carries a minimal version of 1.0.
+    /// </summary>
+    [Fact]
+    public void MinimalVersionOfTheLicenseKeyTakesPrecedenceOverTheRule()
+    {
+        var builder = CreateLicenseKeyDataBuilder();
+        builder.MinMetalamaVersion = new Version( 1, 0 );
+        var licenseKey = builder.SignAndSerialize( TestLicensingAuthorityProvider.ECDsaTestAuthority );
+
+        Assert.True( this.LicenseRegistrationService.RegisterLicense( licenseKey ).IsSuccess );
+
+        var (licenses, messages) = this.GetLicensesFromUserProfile();
+
+        Assert.Single( licenses );
+        Assert.Empty( messages );
+        Assert.Empty( this.LicenseRegistrationService.UnsupportedRegisteredLicenseVersions );
+    }
+
+    /// <summary>
+    /// Tests that the minimal version is carried by an optional license field that is preceded by its length, so
+    /// that a version of Metalama which does not declare the field ignores it instead of rejecting the license key.
+    /// </summary>
+    [Fact]
+    public void MinimalVersionIsCarriedByAnOptionalLicenseField()
+    {
+        Assert.False( LicenseFieldIndex.MinMetalamaVersion.IsMustUnderstand() );
+        Assert.True( LicenseFieldIndex.MinMetalamaVersion.IsPrefixedByLength() );
+
+        var licenseKey = CreateLicenseKeyRequiringVersion( new Version( 2027, 0 ) );
+
+        Assert.True( LicenseKeyData.TryDeserialize( licenseKey, out var licenseKeyData, out var errorMessage ), errorMessage );
+        Assert.Equal( new Version( 2027, 0 ), licenseKeyData.MinMetalamaVersion );
+        Assert.True( licenseKeyData.ValidateFields( out errorMessage ), errorMessage );
+        Assert.True( licenseKeyData.TryVerifySignature( this.LicensingAuthorityProvider, out errorMessage ), errorMessage );
+    }
+
+    /// <summary>
+    /// Tests that a group survives the round trip through the configuration file, so that a version which supports
+    /// the group reads back what another version wrote.
+    /// </summary>
+    [Fact]
+    public void GroupSurvivesTheRoundTripThroughTheConfigurationFile()
+    {
+        var licenseKey = CreateLicenseKeyRequiringVersion( new Version( 9999, 0 ) );
+
+        Assert.True( this.LicenseRegistrationService.RegisterLicense( licenseKey ).IsSuccess );
+
+        var json = this.GetLicensingConfigurationJson();
+
+        Assert.True( this.JsonSerializationService.TryDeserialize<LicensingConfiguration>( json, out var configuration ) );
+
+        var group = Assert.Single( configuration!.LicensesByMinimalVersion! );
+
+        Assert.Equal( "9999.0", group.Key );
+        Assert.Equal( licenseKey, Assert.Single( group.Value ) );
     }
 }

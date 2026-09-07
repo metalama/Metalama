@@ -36,6 +36,13 @@ namespace Metalama.Backstage.Licensing.Licenses.LicenseFields
         // 130 was used for "origin version" concept, but was removed before released (there may be test keys using this field).
         ServicingPhase = 131,
 
+        /// <summary>
+        /// The minimal version of Metalama that can consume the license key. It is the counterpart of
+        /// <see cref="MinPostSharpVersion"/> for Metalama. The index is in the optional range, so a version that does
+        /// not declare the field ignores it instead of rejecting the license key.
+        /// </summary>
+        MinMetalamaVersion = 132,
+
         // 253 is reserved as unknown optional field for testing purposes
         MinPostSharpVersion = 254,
         End = 255

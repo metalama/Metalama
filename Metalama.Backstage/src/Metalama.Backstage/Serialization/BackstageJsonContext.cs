@@ -46,6 +46,7 @@ namespace Metalama.Backstage.Serialization;
 [JsonSerializable( typeof(ImmutableDictionary<string, ReportingStatus>) )]
 [JsonSerializable( typeof(ImmutableDictionary<string, ToastNotificationConfiguration>) )]
 [JsonSerializable( typeof(ImmutableDictionary<long, DateTime>) )]
+[JsonSerializable( typeof(ImmutableDictionary<string, ImmutableArray<string?>>) )]
 [JsonSerializable( typeof(ImmutableArray<string>) )]
 [JsonSerializable( typeof(ImmutableArray<string?>) )]
 
@@ -55,6 +56,7 @@ namespace Metalama.Backstage.Serialization;
 [JsonSerializable( typeof(Dictionary<string, ReportingStatus>) )]
 [JsonSerializable( typeof(Dictionary<string, ToastNotificationConfiguration>) )]
 [JsonSerializable( typeof(Dictionary<long, DateTime>) )]
+[JsonSerializable( typeof(Dictionary<string, ImmutableArray<string?>>) )]
 
 // HashSet types needed for ImmutableHashSet built-in support
 [JsonSerializable( typeof(HashSet<string>) )]

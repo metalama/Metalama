@@ -337,6 +337,23 @@ public partial class LicenseKeyDataBuilder : ILicenseKeyData
         }
     }
 
+    /// <summary>
+    /// Gets or sets the minimal version of Metalama that can consume the license key. The license generator sets it
+    /// when the license key carries something that the earlier versions do not understand, so that those versions
+    /// never read the license key.
+    /// </summary>
+    public Version? MinMetalamaVersion
+    {
+        get
+        {
+            var minMetalamaVersionString = (string?) this.GetFieldValue( LicenseFieldIndex.MinMetalamaVersion );
+
+            return minMetalamaVersionString == null ? null : System.Version.Parse( minMetalamaVersionString );
+        }
+
+        set => this.SetFieldValue<LicenseFieldString>( LicenseFieldIndex.MinMetalamaVersion, value?.ToString() );
+    }
+
     // Used for testing
     internal object? UnknownMustUnderstandField
     {
