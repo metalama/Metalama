@@ -235,7 +235,7 @@ public partial class TestContext : ITempFileManager, IApplicationInfoProvider, I
             typedAdditionalServices.GlobalServices.Add(
                 sp => sp.WithService<IProjectOptionsFactory>( _ => new TestProjectOptionsFactory( this.ProjectOptions ) ) );
 
-            typedAdditionalServices.ProjectServices.Add( _ => new TestLanguageVersionProvider() );
+            typedAdditionalServices.ProjectServices.Add( sp => new TestLanguageVersionProvider( sp ) );
             typedAdditionalServices.ProjectServices.Add<IFormattedCodeWriter>( sp => new FormattedCodeWriter( sp ) );
 
             backstageServices = typedAdditionalServices.BackstageServices.Build( backstageServices );
