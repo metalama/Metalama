@@ -232,9 +232,11 @@ The Roslyn version of Rider and of the Visual Studio Code C# Dev Kit is the only
 
 ### Preprocessor symbols defined by the variants
 
-No production source branches on a variant symbol. Both variants are Roslyn 5, so the engine treats them alike: they differ only in the Roslyn version their payload binds against.
+Production source branches on a variant symbol only where the Roslyn application programming interface differs between the variants. Both variants are Roslyn 5, so the engine otherwise treats them alike: they differ in the Roslyn version their payload binds against, and in the members that version declares.
 
-The latest variant defines `ROSLYN_5_10_0_OR_GREATER`, and two aspect tests use it. `UnknownAccessorInTemplate` and its `_Roslyn5_0` counterpart split one scenario in two, because Roslyn 5.0 reports `CS1014` on an empty span and Roslyn 5.10 reports it on the `setx` token. Name a new symbol after the Roslyn version at which the distinction appears, so that renumbering a variant does not rewrite the sites that use it.
+The latest variant defines `ROSLYN_5_10_0_OR_GREATER`, and three kinds of site use it. `INamedType.IsClosed` reads `ITypeSymbol.IsClosed`, which Roslyn 5.0 does not declare, so the read is compiled into the latest variant only and the property returns false in the other one; section 6 of `Metalama.Framework/docs/2027.0/DECISIONS.md` decides that mechanism for every C# 15 member. `UnknownAccessorInTemplate` and its `_Roslyn5_0` counterpart split one aspect test scenario in two, because Roslyn 5.0 reports `CS1014` on an empty span and Roslyn 5.10 reports it on the `setx` token. Name a new symbol after the Roslyn version at which the distinction appears, so that renumbering a variant does not rewrite the sites that use it.
+
+A site that reads a member which the consumed Roslyn still marks with an experimental diagnostic names `ALLOW_PREVIEW_LANG_VERSION` in the same condition. That symbol is the opt-in of `eng/RoslynPreview.props`, it ships disabled, and it is removed from a condition once Roslyn publishes the member without the marker.
 
 `Metalama.Framework.Tests.AspectTests` defines `METALAMA_HTML_WRITER` in its latest-variant evaluation. `Metalama.Extensions.HtmlWriter` and `Metalama.Extensions.DiffEngine` are built against the latest Roslyn, so they are referenced by the latest variant only, and the test suites that request HTML output require that symbol. The condition is the presence of the extension, not the Roslyn version, so the symbol is not named after Roslyn.
 

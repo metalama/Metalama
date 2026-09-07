@@ -5,9 +5,9 @@
 #if TEST_OPTIONS
 // The closed modifier is a C# 15 feature, so the test compilation needs the preview language version and the opt-in
 // that lets Metalama accept it. ALLOW_PREVIEW_LANG_VERSION is the flag of eng/RoslynPreview.props: the engine reads
-// ITypeSymbol.IsClosed only when it is set, so the test is skipped otherwise, and it is never set in the Roslyn 5.0
-// variant. NET8_0_OR_GREATER is required because the compiler emits CompilerFeatureRequiredAttribute on the
-// constructor of a closed class, and .NET Framework does not declare that attribute.
+// ITypeSymbol.IsClosed only when it is set, and the Roslyn 5.0 variant never sets it. NET8_0_OR_GREATER is required
+// because the compiler emits CompilerFeatureRequiredAttribute on the constructor of a closed class, and .NET
+// Framework does not declare that attribute.
 // @LanguageVersion(preview)
 // @AllowPreviewLanguageFeatures
 // @RequiredConstant(ALLOW_PREVIEW_LANG_VERSION)
@@ -19,8 +19,10 @@ using Metalama.Framework.Aspects;
 #if TESTRUNNER
 namespace System.Runtime.CompilerServices
 {
-    // The compiler emits this attribute on a closed class and reports CS0656 when it cannot find it. The target
-    // framework of this test does not declare it yet, so the test declares it.
+    /// <summary>
+    /// Stands for the attribute that the compiler emits on a closed class. No target framework declares it yet, and
+    /// the compiler reports CS0656 when it cannot find it.
+    /// </summary>
     [AttributeUsage( AttributeTargets.Class, AllowMultiple = false, Inherited = false )]
     public sealed class IsClosedTypeAttribute : Attribute { }
 }
@@ -42,7 +44,4 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp15.ClosedType
         public sealed class Case : ClosedTarget { }
     }
 #endif
-
-    [ReportClosedness]
-    public abstract class AbstractTarget { }
 }

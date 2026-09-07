@@ -202,6 +202,31 @@ namespace Metalama.Framework.Code
         bool IsRecord { get; }
 
         /// <summary>
+        /// Gets a value indicating whether the type is declared with the <c>closed</c> modifier. Also returns <c>false</c>
+        /// when the type is not a class.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// A closed type is implicitly abstract, so <see cref="IMemberOrNamedType.IsAbstract"/> is <c>true</c> and
+        /// <see cref="IMemberOrNamedType.IsSealed"/> is <c>false</c> for it.
+        /// </para>
+        /// <para>
+        /// When the type is closed and is declared in the current compilation, the set returned by
+        /// <see cref="ICompilation.GetDerivedTypes(INamedType,DerivedTypesOptions)"/> with
+        /// <see cref="DerivedTypesOptions.DirectOnly"/> is the complete set of the direct subtypes of the type, because
+        /// the language requires every subtype of a closed type to be declared in the same module. That guarantee does
+        /// not extend to a closed type declared in a referenced assembly, and it does not hold when the compilation
+        /// model is built on a subset of the syntax trees of the project, which is the case at design time.
+        /// </para>
+        /// <para>
+        /// This property returns <c>false</c> for a type introduced by an aspect. It also returns <c>false</c> in a
+        /// host whose Roslyn version predates C# 15, because such a host cannot compile a closed type in the first
+        /// place.
+        /// </para>
+        /// </remarks>
+        bool IsClosed { get; }
+
+        /// <summary>
         /// Determines whether the type if subclass of the given class or interface.
         /// </summary>
         bool IsSubclassOf( INamedType type );
