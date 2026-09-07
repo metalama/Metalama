@@ -177,8 +177,11 @@ internal class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeImpl
     // ALLOW_PREVIEW_LANG_VERSION, the opt-in of eng/RoslynPreview.props, because the Roslyn build consumed today
     // still marks the member with RSEXPERIMENTAL006, which the compiler reports as an error. Remove that second
     // symbol from the condition when issue #1936 brings a Roslyn that publishes the member without the marker.
-    // The constant false of the other variants is not observable in source, because a Roslyn that does not declare
-    // ITypeSymbol.IsClosed cannot parse the closed modifier either.
+    // In the lower Roslyn variant, the constant false is not observable in source, because a Roslyn that does not
+    // declare ITypeSymbol.IsClosed cannot parse the closed modifier either. In the latest variant compiled with the
+    // opt-in unset, which is its default state, the constant is observable: that Roslyn parses the closed modifier
+    // under the preview language version, so the property answers false for a type that is closed. That behavior is
+    // temporary and ends with the removal of the second symbol.
 #if ROSLYN_5_10_0_OR_GREATER && ALLOW_PREVIEW_LANG_VERSION
     public bool IsClosed => this.NamedTypeSymbol.IsClosed;
 #else

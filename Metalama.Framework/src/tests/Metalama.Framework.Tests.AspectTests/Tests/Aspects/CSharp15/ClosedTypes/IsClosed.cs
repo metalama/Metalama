@@ -5,7 +5,10 @@
 #if TEST_OPTIONS
 // The closed modifier is a C# 15 feature, so the test compilation needs the preview language version and the opt-in
 // that lets Metalama accept it. ALLOW_PREVIEW_LANG_VERSION is the flag of eng/RoslynPreview.props: the engine reads
-// ITypeSymbol.IsClosed only when it is set, and the Roslyn 5.0 variant never sets it. NET8_0_OR_GREATER is required
+// ITypeSymbol.IsClosed only when it is set, and the Roslyn 5.0 variant never sets it. The test is gated on that flag
+// and not on the Roslyn variant alone, because the latest variant compiled with the flag unset answers false for this
+// class by design, so a test gated on the variant would fail in the default build. Replace the flag with
+// ROSLYN_5_10_0_OR_GREATER when issue #1936 removes it from the condition of the reader. NET8_0_OR_GREATER is required
 // because the compiler emits CompilerFeatureRequiredAttribute on the constructor of a closed class, and .NET
 // Framework does not declare that attribute.
 // @LanguageVersion(preview)
