@@ -4,9 +4,7 @@
 
 #if TEST_OPTIONS
 // @RequiredConstant(NET8_0_OR_GREATER)
-// @RequiredConstant(ROSLYN_5_10_0_OR_GREATER)
 // @LanguageVersion(preview)
-// @AllowPreviewLanguageFeatures
 #endif
 
 // An indexer is always an instance member, so an extension block that declares one must name its receiver

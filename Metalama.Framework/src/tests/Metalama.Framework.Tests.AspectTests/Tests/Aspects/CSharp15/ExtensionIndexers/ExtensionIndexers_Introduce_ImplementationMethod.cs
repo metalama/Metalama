@@ -4,9 +4,7 @@
 
 #if TEST_OPTIONS
 // @RequiredConstant(NET8_0_OR_GREATER)
-// @RequiredConstant(ROSLYN_5_10_0_OR_GREATER)
 // @LanguageVersion(preview)
-// @AllowPreviewLanguageFeatures
 #endif
 
 // The accessors of an indexer introduced into an extension block must expose the static implementation methods that

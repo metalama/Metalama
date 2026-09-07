@@ -4,9 +4,7 @@
 
 #if TEST_OPTIONS
 // @RequiredConstant(NET8_0_OR_GREATER)
-// @RequiredConstant(ROSLYN_5_10_0_OR_GREATER)
 // @LanguageVersion(preview)
-// @AllowPreviewLanguageFeatures
 #endif
 
 // The implementation method that the compiler creates for an extension accessor keeps the params modifier of the

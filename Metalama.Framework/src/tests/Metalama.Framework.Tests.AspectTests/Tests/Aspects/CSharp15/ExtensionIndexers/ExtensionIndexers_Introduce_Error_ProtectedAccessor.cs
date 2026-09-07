@@ -4,9 +4,7 @@
 
 #if TEST_OPTIONS
 // @RequiredConstant(NET8_0_OR_GREATER)
-// @RequiredConstant(ROSLYN_5_10_0_OR_GREATER)
 // @LanguageVersion(preview)
-// @AllowPreviewLanguageFeatures
 #endif
 
 // The language forbids the protected modifier on an extension member. An accessor can carry an accessibility of its

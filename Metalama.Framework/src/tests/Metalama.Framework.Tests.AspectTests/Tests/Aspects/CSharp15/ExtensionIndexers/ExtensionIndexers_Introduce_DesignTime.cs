@@ -5,9 +5,7 @@
 #if TEST_OPTIONS
 // @TestScenario(DesignTime)
 // @RequiredConstant(NET8_0_OR_GREATER)
-// @RequiredConstant(ROSLYN_5_10_0_OR_GREATER)
 // @LanguageVersion(preview)
-// @AllowPreviewLanguageFeatures
 #endif
 
 using Metalama.Framework.Aspects;

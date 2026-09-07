@@ -4,9 +4,7 @@
 
 #if TEST_OPTIONS
 // @RequiredConstant(NET8_0_OR_GREATER)
-// @RequiredConstant(ROSLYN_5_10_0_OR_GREATER)
 // @LanguageVersion(preview)
-// @AllowPreviewLanguageFeatures
 #endif
 
 // This test states the boundary of issue #937: an override of an indexer that cannot be inlined is refused with
