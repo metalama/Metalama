@@ -268,15 +268,6 @@ public class TestOptions
     public ImmutableDictionary<string, string> LanguageFeatures { get; set; } = ImmutableDictionary<string, string>.Empty;
 
     /// <summary>
-    /// Gets or sets a value indicating whether the test may be compiled at the preview version of the C# language.
-    /// Without this option the pipeline reports <c>LAMA0051</c> for a test that requests the preview version, which
-    /// is the behavior of a user project that does not set the <c>MetalamaAllowPreviewLanguageFeatures</c> MSBuild
-    /// property. Combine it with <c>// @LanguageVersion(preview)</c>.
-    /// To enable this option in a test, add this comment to your test file: <c>// @AllowPreviewLanguageFeatures</c>.
-    /// </summary>
-    public bool? AllowPreviewLanguageFeatures { get; set; }
-
-    /// <summary>
     /// Gets or sets a value indicating whether an error should be reported if the compilation uses aspects that
     /// are not explicitly ordered.
     /// To enable this option in a test, add this comment to your test file: <c>// @RequireOrderedAspects</c>. 
@@ -465,8 +456,6 @@ public class TestOptions
         this.DefinedConstants.AddRange( baseOptions.DefinedConstants );
 
         this.DependencyDefinedConstants.AddRange( baseOptions.DependencyDefinedConstants );
-
-        this.AllowPreviewLanguageFeatures ??= baseOptions.AllowPreviewLanguageFeatures;
 
         this.RequireOrderedAspects ??= baseOptions.RequireOrderedAspects;
 
@@ -753,11 +742,6 @@ public class TestOptions
 
                     break;
 
-                case "AllowPreviewLanguageFeatures":
-                    this.AllowPreviewLanguageFeatures = true;
-
-                    break;
-
                 case "RequireOrderedAspects":
                     this.RequireOrderedAspects = true;
 
@@ -873,11 +857,9 @@ public class TestOptions
     internal TestContextOptions ApplyToTestContextOptions( TestContextOptions testContextOptions )
         => testContextOptions with
         {
-            AllowPreviewLanguageFeatures = this.AllowPreviewLanguageFeatures ?? testContextOptions.AllowPreviewLanguageFeatures,
-
             // The language version of the test reaches the compile-time compilation through the project options, so
             // the @LanguageVersion directive applies to compile-time code and to template bodies as well as to the
-            // run-time code that BaseTestRunner parses with it. See issue #1979.
+            // run-time code that BaseTestRunner parses with it.
             LanguageVersion = this.LanguageVersion ?? testContextOptions.LanguageVersion,
             RequireOrderedAspects = this.RequireOrderedAspects ?? testContextOptions.RequireOrderedAspects,
             RoslynIsCompileTimeOnly = this.RoslynIsCompileTimeOnly ?? testContextOptions.RoslynIsCompileTimeOnly,

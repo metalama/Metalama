@@ -102,7 +102,13 @@ internal sealed class TestProjectOptions : DefaultProjectOptions, IDisposable
 
     public override bool FormatCompileTimeCode => this.TestContextOptions.FormatCompileTimeCode;
 
-    public override bool AllowPreviewLanguageFeatures => this.TestContextOptions.AllowPreviewLanguageFeatures;
+    /// <summary>
+    /// Gets a value indicating whether the preview language features are allowed, which is the case when the project
+    /// under test requests the preview language version. A user project has two settings, the <c>LangVersion</c> and
+    /// the <c>MetalamaAllowPreviewLanguageFeatures</c> MSBuild properties, because the second is the acknowledgement
+    /// that Metalama does not support the preview version. A test needs no such acknowledgement.
+    /// </summary>
+    public override bool AllowPreviewLanguageFeatures => this.LanguageVersion == LanguageVersion.Preview;
 
     public override LanguageVersion LanguageVersion => this.TestContextOptions.LanguageVersion ?? base.LanguageVersion;
 

@@ -123,7 +123,7 @@ internal sealed class LanguageVersionProvider : ILanguageVersionProvider
     /// scale of the numbered versions, so the ceiling does not apply to it. The compile-time pipeline reports
     /// <c>LAMA0051</c> when a project requests the preview version without setting the
     /// <c>MetalamaAllowPreviewLanguageFeatures</c> MSBuild property, so this method is not the place where that
-    /// choice is validated. See issue #1979.
+    /// choice is validated.
     /// </remarks>
     private static LanguageVersion ApplyCeiling( LanguageVersion projectVersion, LanguageVersion toolsetSupportedVersion )
         => projectVersion == LanguageVersion.Preview || toolsetSupportedVersion >= projectVersion

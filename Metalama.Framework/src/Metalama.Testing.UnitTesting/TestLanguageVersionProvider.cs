@@ -26,7 +26,7 @@ internal sealed class TestLanguageVersionProvider : ILanguageVersionProvider
     /// No ceiling is applied, unlike <see cref="LanguageVersionProvider"/>. The compile-time compilation of a test is
     /// parsed by the Roslyn that the test assembly is bound to, and no software development kit takes part, so the
     /// version that the project requests is the version the compiler receives. A test that requests the preview
-    /// language version therefore covers its compile-time code as well as its run-time code. See issue #1979.
+    /// language version therefore covers its compile-time code as well as its run-time code.
     /// </remarks>
     public LanguageVersion GetCompileTimeLanguageVersion() => this._projectOptions.LanguageVersion;
 }

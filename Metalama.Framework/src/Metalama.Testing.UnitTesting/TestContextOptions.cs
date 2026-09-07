@@ -83,16 +83,6 @@ public record TestContextOptions
     public ImmutableArray<Assembly> AdditionalAssemblies { get; init; } = ImmutableArray<Assembly>.Empty;
 
     /// <summary>
-    /// Gets a value indicating whether the test may be compiled at the preview version of the C# language.
-    /// </summary>
-    /// <remarks>
-    /// The compile-time pipeline reports <c>LAMA0051</c> for a compilation that requests the preview version, unless
-    /// the project sets the <c>MetalamaAllowPreviewLanguageFeatures</c> MSBuild property. This option is the
-    /// equivalent of that property for a test, and <see cref="TestProjectOptions"/> reads it.
-    /// </remarks>
-    public bool AllowPreviewLanguageFeatures { get; init; }
-
-    /// <summary>
     /// Gets the version of the C# language of the project under test, or <c>null</c> to use
     /// <see cref="SupportedCSharpVersions.Latest"/>.
     /// </summary>
@@ -100,8 +90,8 @@ public record TestContextOptions
     /// This option is the equivalent of the <c>LangVersion</c> MSBuild property for a test. It is read by
     /// <see cref="TestProjectOptions"/>, and through it by the provider that gives the compile-time compilation its
     /// language version, so a test that requests the preview version covers compile-time code as well as run-time
-    /// code. Combine it with <see cref="AllowPreviewLanguageFeatures"/> when the value is
-    /// <see cref="LanguageVersion.Preview"/>. See issue #1979.
+    /// code. The value <see cref="LanguageVersion.Preview"/> also allows the preview language features, which a user
+    /// project allows with the <c>MetalamaAllowPreviewLanguageFeatures</c> MSBuild property.
     /// </remarks>
     public LanguageVersion? LanguageVersion { get; init; }
 

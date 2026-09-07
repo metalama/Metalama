@@ -4,7 +4,6 @@
 
 #if TEST_OPTIONS
 // @LanguageVersion(preview)
-// @AllowPreviewLanguageFeatures
 // @TargetFrameworks(net48;net10.0)
 #endif
 
