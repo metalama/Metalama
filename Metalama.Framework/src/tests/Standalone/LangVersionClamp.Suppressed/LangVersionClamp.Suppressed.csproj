@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!-- LAMA0603 is reported by an MSBuild task and not by the C# compiler, so it is suppressed by
+         MSBuildWarningsAsMessages. The text of the diagnostic names that property, and this scenario is what keeps
+         that sentence true.
+         See https://github.com/metalama/Metalama/issues/1927. -->
+
+    <PropertyGroup>
+        <TargetFramework>net48</TargetFramework>
+        <OutputType>Library</OutputType>
+        <MSBuildWarningsAsMessages>$(MSBuildWarningsAsMessages);LAMA0603</MSBuildWarningsAsMessages>
+
+        <!-- Reset properties from engineering. -->
+        <Nullable></Nullable>
+        <LangVersion></LangVersion>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Metalama.Framework" />
+    </ItemGroup>
+
+</Project>
