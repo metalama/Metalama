@@ -1,1 +1,2 @@
-// TODO: Replace this file with the correct transformed code. See the test output for the actual transformed code.
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error CS8652 on ` Format`: `The feature 'static members in interfaces' is currently in Preview and *unsupported*. To use Preview features, use the 'preview' language version.`
