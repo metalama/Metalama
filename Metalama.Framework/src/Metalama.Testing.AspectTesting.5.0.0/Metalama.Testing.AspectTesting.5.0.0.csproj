@@ -1,7 +1,4 @@
 <Project ToolsVersion="Current">
-  <PropertyGroup>
-    <IsPackable>false</IsPackable>   
-  </PropertyGroup>
   <ItemGroup>
     <Compile Include="../Metalama.Testing.AspectTesting/**/*.cs" Exclude="../Metalama.Testing.AspectTesting/bin/**/*.cs;../Metalama.Testing.AspectTesting/obj/**/*.cs" />
   </ItemGroup>
