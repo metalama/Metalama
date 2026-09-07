@@ -116,6 +116,27 @@ public static partial class EligibilityRuleFactory
             builder.MustBeRunTimeOnly();
         } );
 
+    /// <summary>
+    /// The rule of <see cref="AdviceKind.IntroduceIndexer"/>. It is separate from <c>_introduceRule</c>, which eight
+    /// other advice kinds share, because an indexer is the only introduced member that an extension block cannot
+    /// always accept. An indexer is always an instance member, and an extension block declares the receiver of its
+    /// instance members, so a block that does not name its receiver parameter cannot declare one.
+    /// </summary>
+    private static readonly IEligibilityRule<IDeclaration> _introduceIndexerRule = CreateRule<IDeclaration, INamedType>(
+        builder =>
+        {
+            builder.MustSatisfy(
+                t => t.TypeKind is TypeKind.Class or TypeKind.Struct or TypeKind.Interface or TypeKind.Extension,
+                t => $"'{t}' must be a class, struct, interface, or extension block" );
+
+            builder.MustSatisfy(
+                t => t is not IExtensionBlock extensionBlock || !string.IsNullOrEmpty( extensionBlock.ReceiverParameter.Name ),
+                t => $"'{t}' must name its receiver parameter, because an indexer is always an instance member" );
+
+            builder.MustBeExplicitlyDeclared();
+            builder.MustBeRunTimeOnly();
+        } );
+
     private static readonly IEligibilityRule<IDeclaration> _introduceExtensionBlockRule = CreateRule<IDeclaration, INamedType>(
         builder =>
         {
@@ -246,7 +267,7 @@ public static partial class EligibilityRuleFactory
             AdviceKind.IntroduceField => _introduceRule,
             AdviceKind.IntroduceEvent => _introduceRule,
             AdviceKind.IntroduceProperty => _introduceRule,
-            AdviceKind.IntroduceIndexer => _introduceRule,
+            AdviceKind.IntroduceIndexer => _introduceIndexerRule,
             AdviceKind.IntroduceConstructor => _introduceRule,
             AdviceKind.IntroduceExtensionBlock => _introduceExtensionBlockRule,
             AdviceKind.ImplementInterface => _implementInterfaceRule,

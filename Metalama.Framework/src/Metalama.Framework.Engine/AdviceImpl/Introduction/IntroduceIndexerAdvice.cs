@@ -212,6 +212,13 @@ internal sealed class IntroduceIndexerAdvice : IntroduceMemberAdvice<IIndexer, I
         }
     }
 
+    /// <summary>
+    /// Determines whether an accessibility includes the <c>protected</c> modifier, which the language forbids on an
+    /// extension member.
+    /// </summary>
+    private static bool IsProtected( Accessibility? accessibility )
+        => accessibility is Accessibility.Protected or Accessibility.ProtectedInternal or Accessibility.PrivateProtected;
+
     protected override void ValidateBuilder( IndexerBuilder builder, IDiagnosticAdder diagnosticAdder )
     {
         base.ValidateBuilder( builder, diagnosticAdder );
@@ -234,6 +241,46 @@ internal sealed class IntroduceIndexerAdvice : IntroduceMemberAdvice<IIndexer, I
                     targetDeclaration.GetDiagnosticLocation(),
                     (this.AspectInstance.AspectClass.ShortName, builder, targetDeclaration),
                     this ) );
+        }
+
+        if ( targetDeclaration.TypeKind == TypeKind.Extension )
+        {
+            // The language forbids an init accessor and the modifiers below on an extension member. The receiver
+            // parameter of the block is required by the eligibility rule of AdviceKind.IntroduceIndexer.
+            if ( builder.HasInitOnlySetter )
+            {
+                diagnosticAdder.Report(
+                    AdviceDiagnosticDescriptors.CannotIntroduceInitOnlyIndexerIntoExtensionBlock.CreateRoslynDiagnostic(
+                        targetDeclaration.GetDiagnosticLocation(),
+                        (this.AspectInstance.AspectClass.ShortName, builder, targetDeclaration),
+                        this ) );
+            }
+
+            var forbiddenModifier = builder switch
+            {
+                { IsAbstract: true } => "abstract",
+                { IsVirtual: true } => "virtual",
+                { IsOverride: true } => "override",
+                { HasNewKeyword: true } => "new",
+                { IsSealed: true } => "sealed",
+                { IsPartial: true } => "partial",
+
+                // An accessor can carry an accessibility of its own, which is more restrictive than the one of the
+                // indexer, so the three accessibilities have to be examined.
+                _ when IsProtected( builder.Accessibility )
+                       || IsProtected( builder.GetMethod?.Accessibility )
+                       || IsProtected( builder.SetMethod?.Accessibility ) => "protected",
+                _ => null
+            };
+
+            if ( forbiddenModifier != null )
+            {
+                diagnosticAdder.Report(
+                    AdviceDiagnosticDescriptors.CannotIntroduceMemberWithModifierIntoExtensionBlock.CreateRoslynDiagnostic(
+                        targetDeclaration.GetDiagnosticLocation(),
+                        (this.AspectInstance.AspectClass.ShortName, builder, targetDeclaration, forbiddenModifier),
+                        this ) );
+            }
         }
     }
 
