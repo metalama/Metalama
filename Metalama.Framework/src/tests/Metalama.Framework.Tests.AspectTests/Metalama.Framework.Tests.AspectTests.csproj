@@ -53,6 +53,14 @@
         <Compile Remove="$(MSBuildThisFileDirectory)/Tests/**/__*.cs" />
         <!-- But still show them in solution explorer -->
         <None Include="$(MSBuildThisFileDirectory)/Tests/**/__*.cs" />
+
+        <!-- This test declares a static member with a body in an interface. The declaration is legal from C# 15 on,
+             and this project is pinned to language version 14, so its net48 leg reports CS8652 for it. The test
+             framework reads the file from the source directory and not from the compilation, so removing the file
+             from the compilation does not remove the test, and the test still runs on both legs. Remove this item
+             when the project moves to a language version that accepts the declaration. See issue #1938. -->
+        <Compile Remove="$(MSBuildThisFileDirectory)/Tests/Aspects/CSharp15/StaticInterfaceMembers/CompileTimeStaticMember.cs" />
+        <None Include="$(MSBuildThisFileDirectory)/Tests/Aspects/CSharp15/StaticInterfaceMembers/CompileTimeStaticMember.cs" />
     </ItemGroup>
 
     <ItemGroup>

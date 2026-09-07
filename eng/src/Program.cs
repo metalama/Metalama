@@ -158,6 +158,10 @@ var product = new Product( MetalamaDependencies.Metalama )
         "Flashtrace.$(PackageVersion).nupkg",
         "Flashtrace.Formatters.$(PackageVersion).nupkg" ),
     PrivateArtifacts = Pattern.Create(
+        // The Roslyn 5.0.0 variants of the two testing packages are private, because they exist to test the
+        // lower variant of Metalama.Premium and no public consumer references them.
+        "Metalama.Testing.UnitTesting.5.0.0.$(PackageVersion).nupkg",
+        "Metalama.Testing.AspectTesting.5.0.0.$(PackageVersion).nupkg",
         "Metalama.Framework.Tests.UnitTestHelpers.$(PackageVersion).nupkg",
         "Metalama.Framework.DesignTime.Contracts.$(PackageVersion).nupkg",
         "Metalama.Framework.DesignTime.Rpc.$(PackageVersion).nupkg" ),

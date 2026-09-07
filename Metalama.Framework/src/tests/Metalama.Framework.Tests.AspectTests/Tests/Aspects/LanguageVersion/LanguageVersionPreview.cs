@@ -8,6 +8,13 @@
 
 using Metalama.Framework.Aspects;
 
+/*
+ * A test that requests the preview language version also allows the preview language features, so the expected
+ * output is the transformed code. A user project needs the MetalamaAllowPreviewLanguageFeatures MSBuild property
+ * beside the LangVersion property, and the LAMA0051 that Metalama reports without it is covered by the
+ * PreviewLangVersion scenario of the standalone test suite.
+ */
+
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.LanguageVersion.LanguageVersionPreview;
 
 public class TheAspect : TypeAspect

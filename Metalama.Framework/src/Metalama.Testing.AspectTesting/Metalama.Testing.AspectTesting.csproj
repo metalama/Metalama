@@ -9,7 +9,7 @@
         <Description>Test framework for Metalama aspects and fabrics. This is not your typical test framework. When referencing this package, every _file_ is turned into a test by default. Please read the documentation before use.</Description>
         
         <AssemblyName>Metalama.Testing.AspectTesting$(ThisRoslynVersionProjectSuffix)</AssemblyName>
-		<PackageId>Metalama.Testing.AspectTesting</PackageId>
+		<PackageId>Metalama.Testing.AspectTesting$(ThisRoslynVersionProjectSuffix)</PackageId>
     </PropertyGroup>
 
     <ItemGroup>
@@ -38,7 +38,7 @@
         <ProjectReference Include="../Metalama.Testing.UnitTesting$(ThisRoslynVersionProjectSuffix)/Metalama.Testing.UnitTesting$(ThisRoslynVersionProjectSuffix).csproj" />
 
         <!-- Dependency of the resulting package should be on Implementation package. -->
-        <ProjectReference Condition="$(ThisRoslynVersion) == $(RoslynApiMaxVersion)" Include="../Metalama.Framework.Implementation.Package$(ThisRoslynVersionProjectSuffix)/Metalama.Framework.Implementation.Package$(ThisRoslynVersionProjectSuffix).csproj" />
+        <ProjectReference Include="../Metalama.Framework.Implementation.Package$(ThisRoslynVersionProjectSuffix)/Metalama.Framework.Implementation.Package$(ThisRoslynVersionProjectSuffix).csproj" />
 
         <!-- Validate that we do not expose internal APIs -->
         <ProjectReference Include="../Metalama.Framework.Engine.Analyzers/Metalama.Framework.Engine.Analyzers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
@@ -57,19 +57,15 @@
     </ItemGroup>
 
     <ItemGroup>
-        <None Include="Metalama.Testing.AspectTesting.props">
-            <Pack>true</Pack>
-            <PackagePath>build</PackagePath>
-        </None>
-        <None Include="Metalama.Testing.AspectTesting.targets">
-            <Pack>true</Pack>
-            <PackagePath>build</PackagePath>
-        </None>
+        <!-- The paths are qualified with MSBuildThisFileDirectory and the package path is derived from PackageId,
+             because the variant shim projects import this file and NuGet imports build/<PackageId>.props only. -->
+        <None Include="$(MSBuildThisFileDirectory)Metalama.Testing.AspectTesting.props" Pack="true" PackagePath="build/$(PackageId).props" />
+        <None Include="$(MSBuildThisFileDirectory)Metalama.Testing.AspectTesting.targets" Pack="true" PackagePath="build/$(PackageId).targets" />
     </ItemGroup>
 
     <!-- Packaging -->
     <ItemGroup>
-        <None Include="README.md" Pack="true" PackagePath="/" />
+        <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="/" />
     </ItemGroup>
 
     <PropertyGroup>
