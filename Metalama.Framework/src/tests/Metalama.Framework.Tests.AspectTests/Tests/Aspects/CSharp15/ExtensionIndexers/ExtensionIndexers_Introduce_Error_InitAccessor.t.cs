@@ -1,0 +1,2 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0542 on `C`: `The aspect 'TheAspect' cannot introduce indexer 'C.extension(int).this[int]' into 'C.extension(int)' because the indexer has an 'init' accessor, which the language forbids for an extension member.`

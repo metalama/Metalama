@@ -1403,8 +1403,6 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
 
             this.Validate( targetType, AdviceKind.IntroduceIndexer );
 
-            ValidateNotExtensionBlock( targetType, "an indexer" );
-
             var boundGetTemplate = this.ValidateTemplateName( getTemplate, TemplateKind.Default )
                 ?.GetTemplateMember<IMethod>( this._compilation, this._state.ServiceProvider, this.TemplateProvider, this.GetTagsReader( tags ) );
 

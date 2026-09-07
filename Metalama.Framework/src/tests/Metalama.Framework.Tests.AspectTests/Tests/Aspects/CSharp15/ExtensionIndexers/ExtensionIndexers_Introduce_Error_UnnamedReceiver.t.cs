@@ -1,0 +1,2 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0041 on `C`: `'Exception of type 'System.InvalidOperationException' thrown while executing BuildAspect for aspect [TheAspect] applied to 'C': Cannot add an IntroduceIndexer advice to 'C.extension(int)' because ''C.extension(int)'' must name its receiver parameter, because an indexer is always an instance member. Check the IsAdviceEligible(AdviceKind.IntroduceIndexer) method. Exception details are in '(none)'. To attach a debugger to the compiler, use the  '-p:MetalamaDebugCompiler=True' command-line option.`

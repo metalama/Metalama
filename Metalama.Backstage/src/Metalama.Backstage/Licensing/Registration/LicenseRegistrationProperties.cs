@@ -32,5 +32,13 @@ namespace Metalama.Backstage.Licensing.Registration
         bool LicenseServerEligible,
         Version MinPostSharpVersion,
         LicenseGeneration Generation,
-        ServicingPhase ServicingPhase ) { }
+        ServicingPhase ServicingPhase )
+    {
+        /// <summary>
+        /// Gets the minimal version of Metalama that can consume the license key, or <c>null</c> if every version can
+        /// consume it. The registration stores the license key in the group of that version, so that the versions
+        /// which cannot consume it never read it.
+        /// </summary>
+        public Version? MinMetalamaVersion { get; init; }
+    }
 }

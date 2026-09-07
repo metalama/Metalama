@@ -155,7 +155,7 @@ namespace Metalama.Backstage.Licensing.Licenses
                 licenseServerEligible,
                 licenseKeyData.GetMinPostSharpVersion(),
                 licenseKeyData.Generation.GetValueOrDefault(),
-                licenseKeyData.NormalizeServicingPhase() );
+                licenseKeyData.NormalizeServicingPhase() ) { MinMetalamaVersion = licenseKeyData.MinMetalamaVersion };
 
             return data;
         }

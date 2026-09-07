@@ -317,6 +317,22 @@ namespace Metalama.Framework.Engine.Advising
                 _category,
                 Error );
 
+        internal static readonly DiagnosticDefinition<(string AspectType, IDeclaration Member, IDeclaration TargetType)>
+            CannotIntroduceInitOnlyIndexerIntoExtensionBlock = new(
+                "LAMA0542",
+                "Cannot introduce an indexer with an init accessor into an extension block.",
+                "The aspect '{0}' cannot introduce indexer '{1}' into '{2}' because the indexer has an 'init' accessor, which the language forbids for an extension member.",
+                _category,
+                Error );
+
+        internal static readonly DiagnosticDefinition<(string AspectType, IDeclaration Member, IDeclaration TargetType, string Modifier)>
+            CannotIntroduceMemberWithModifierIntoExtensionBlock = new(
+                "LAMA0543",
+                "Cannot introduce a member with this modifier into an extension block.",
+                "The aspect '{0}' cannot introduce '{1}' into '{2}' because the member is '{3}', which the language forbids for an extension member.",
+                _category,
+                Error );
+
         // Sub-range 550-559: Initialization diagnostics.
 
         internal static readonly DiagnosticDefinition<(string AspectType, INamedType TargetType)>

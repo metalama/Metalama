@@ -1,0 +1,2 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0699 on `this`: `Version of declaration 'C.extension(TestClass).this[int] provided by 'source code' cannot be inlined. It is not currently possible to generate non-inlined code for this declaration.`

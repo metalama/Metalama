@@ -16,7 +16,9 @@ namespace Metalama.Backstage.Commands.Licensing
     {
         protected override void Execute( ExtendedCommandContext context, BaseCommandSettings settings )
         {
-            var licenses = context.ServiceProvider.GetRequiredBackstageService<ILicenseRegistrationService>().RegisteredLicenses.ToList();
+            var licenseRegistrationService = context.ServiceProvider.GetRequiredBackstageService<ILicenseRegistrationService>();
+            var licenses = licenseRegistrationService.RegisteredLicenses.ToList();
+            var unsupportedVersions = licenseRegistrationService.UnsupportedRegisteredLicenseVersions.ToList();
 
             if ( licenses.Count > 0 )
             {
@@ -80,9 +82,18 @@ namespace Metalama.Backstage.Commands.Licensing
                     context.Console.Out.Write( table );
                 }
             }
-            else
+            else if ( unsupportedVersions.Count == 0 )
             {
                 context.Console.WriteWarning( "No Metalama license is currently registered." );
+            }
+
+            // A license key of an unsupported group is not deserialized, so the minimal version of the group is the
+            // only information that the current version has about it.
+            foreach ( var unsupportedVersion in unsupportedVersions )
+            {
+                context.Console.WriteWarning(
+                    $"A registered license key requires Metalama {unsupportedVersion} or later. "
+                    + "Upgrade Metalama to this version to use that license key." );
             }
         }
     }

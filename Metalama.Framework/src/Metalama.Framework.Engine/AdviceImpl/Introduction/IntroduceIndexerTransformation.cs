@@ -137,4 +137,60 @@ internal sealed class IntroduceIndexerTransformation : IntroduceMemberTransforma
                     hasNoBody ? Token( SyntaxKind.SemicolonToken ) : default );
         }
     }
+
+    /// <inheritdoc />
+    public override IEnumerable<DeclarationBuilderData> GetImplicitDeclarations()
+    {
+        // An indexer introduced into an extension block needs the static implementation methods that the compiler
+        // creates in the enclosing static class, as an introduced method or property does. Each one takes the
+        // receiver first, then the index parameters, and, for the setter, the assigned value last.
+        var containingDeclaration = this.BuilderData.ContainingDeclaration.GetTarget( this.InitialCompilation );
+
+        if ( containingDeclaration is not IExtensionBlock extensionBlock )
+        {
+            return [];
+        }
+
+        var result = new List<DeclarationBuilderData>( 2 );
+        var indexerType = this.BuilderData.Type.GetTarget( this.InitialCompilation );
+        var metadataName = IndexerHelper.GetMetadataName( this.BuilderData.Attributes, this.InitialCompilation );
+
+        if ( this.BuilderData.GetMethod != null )
+        {
+            result.Add(
+                ExtensionImplementationHelper.CreateImplicitAccessorMethod(
+                    this.AspectLayerInstance,
+                    extensionBlock,
+                    metadataName,
+                    isSetter: false,
+                    this.BuilderData.GetMethod.Accessibility,
+                    this.BuilderData.IsStatic,
+                    indexerType,
+                    this.BuilderData.RefKind,
+                    this.InitialCompilation,
+                    this.BuilderData.GetMethod.Attributes,
+                    this.BuilderData.GetMethod.ReturnParameter.Attributes,
+                    this.BuilderData.Parameters ) );
+        }
+
+        if ( this.BuilderData.SetMethod != null )
+        {
+            result.Add(
+                ExtensionImplementationHelper.CreateImplicitAccessorMethod(
+                    this.AspectLayerInstance,
+                    extensionBlock,
+                    metadataName,
+                    isSetter: true,
+                    this.BuilderData.SetMethod.Accessibility,
+                    this.BuilderData.IsStatic,
+                    indexerType,
+                    this.BuilderData.RefKind,
+                    this.InitialCompilation,
+                    this.BuilderData.SetMethod.Attributes,
+                    this.BuilderData.SetMethod.ReturnParameter.Attributes,
+                    this.BuilderData.Parameters ) );
+        }
+
+        return result;
+    }
 }

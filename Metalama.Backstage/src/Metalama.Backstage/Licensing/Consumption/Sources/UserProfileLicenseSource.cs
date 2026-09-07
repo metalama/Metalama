@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Backstage.Application;
 using Metalama.Backstage.Configuration;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Licensing.Licenses;
@@ -17,6 +18,8 @@ namespace Metalama.Backstage.Licensing.Consumption.Sources;
 /// </summary>
 internal sealed class UserProfileLicenseSource : LicenseSourceBase
 {
+    private readonly Version _currentVersion;
+
     private LicensingConfiguration _licensingConfiguration;
 
     public override string Description => "user profile";
@@ -25,13 +28,15 @@ internal sealed class UserProfileLicenseSource : LicenseSourceBase
 
     protected override IEnumerable<LicenseRegistrationProperties> GetRegisteredLicenses( Action<LicensingMessage> reportMessage )
     {
-        return this._licensingConfiguration.GetRegisteredLicenses( reportMessage )
+        return this._licensingConfiguration.GetRegisteredLicenses( this._currentVersion, reportMessage )
             .Select( l => l.ToLicenseRegistrationProperties() );
     }
 
     public UserProfileLicenseSource( IServiceProvider services )
         : base( services )
     {
+        this._currentVersion = services.GetRequiredBackstageService<IApplicationInfoProvider>().CurrentApplication.GetLicensingVersion();
+
         var configurationManager = services.GetRequiredBackstageService<IConfigurationManager>();
         this._licensingConfiguration = configurationManager.Get<LicensingConfiguration>();
         configurationManager.ConfigurationFileChanged += this.OnConfigurationFileChanged;
