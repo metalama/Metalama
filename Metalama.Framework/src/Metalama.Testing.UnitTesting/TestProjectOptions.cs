@@ -6,6 +6,7 @@ using Metalama.Backstage.Utilities;
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Formatting;
 using Metalama.Framework.Engine.Options;
+using Microsoft.CodeAnalysis.CSharp;
 using System;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
@@ -101,7 +102,15 @@ internal sealed class TestProjectOptions : DefaultProjectOptions, IDisposable
 
     public override bool FormatCompileTimeCode => this.TestContextOptions.FormatCompileTimeCode;
 
-    public override bool AllowPreviewLanguageFeatures => this.TestContextOptions.AllowPreviewLanguageFeatures;
+    /// <summary>
+    /// Gets a value indicating whether the preview language features are allowed, which is the case when the project
+    /// under test requests the preview language version. A user project has two settings, the <c>LangVersion</c> and
+    /// the <c>MetalamaAllowPreviewLanguageFeatures</c> MSBuild properties, because the second is the acknowledgement
+    /// that Metalama does not support the preview version. A test needs no such acknowledgement.
+    /// </summary>
+    public override bool AllowPreviewLanguageFeatures => this.LanguageVersion == LanguageVersion.Preview;
+
+    public override LanguageVersion LanguageVersion => this.TestContextOptions.LanguageVersion ?? base.LanguageVersion;
 
     public override bool RequireOrderedAspects => this.TestContextOptions.RequireOrderedAspects;
 

@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!-- A project that requests the preview language version without setting MetalamaAllowPreviewLanguageFeatures is
+         refused with LAMA0051. The aspect test suite cannot cover that diagnostic, because the test harness allows
+         the preview language features for every test that requests the preview language version.
+         See https://github.com/metalama/Metalama/issues/1979. -->
+
+    <PropertyGroup>
+        <TargetFramework>net$(NETCoreAppMaximumVersion)</TargetFramework>
+        <OutputType>Library</OutputType>
+        <LangVersion>preview</LangVersion>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Metalama.Framework" />
+    </ItemGroup>
+
+</Project>
