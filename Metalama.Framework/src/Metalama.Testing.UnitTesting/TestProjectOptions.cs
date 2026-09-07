@@ -6,6 +6,7 @@ using Metalama.Backstage.Utilities;
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Formatting;
 using Metalama.Framework.Engine.Options;
+using Microsoft.CodeAnalysis.CSharp;
 using System;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
@@ -102,6 +103,8 @@ internal sealed class TestProjectOptions : DefaultProjectOptions, IDisposable
     public override bool FormatCompileTimeCode => this.TestContextOptions.FormatCompileTimeCode;
 
     public override bool AllowPreviewLanguageFeatures => this.TestContextOptions.AllowPreviewLanguageFeatures;
+
+    public override LanguageVersion LanguageVersion => this.TestContextOptions.LanguageVersion ?? base.LanguageVersion;
 
     public override bool RequireOrderedAspects => this.TestContextOptions.RequireOrderedAspects;
 

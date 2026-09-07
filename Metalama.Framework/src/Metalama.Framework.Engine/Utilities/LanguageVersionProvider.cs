@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis.CSharp;
 using System;
 using System.IO;
@@ -53,22 +54,18 @@ internal sealed class LanguageVersionProvider : ILanguageVersionProvider
 
         var sdkSupportedVersion = version.Major switch
         {
+            // The compiler of the .NET 11 software development kit accepts C# 15. The value is written as
+            // AllLanguageVersions.CSharp15 and not as a literal of the enumeration, because the Roslyn that this
+            // assembly is bound to does not always declare that version, and the same features are then reached
+            // under the preview version. See the remarks of SupportedCSharpVersions.Latest.
+            >= 11 => AllLanguageVersions.CSharp15.OrPreviewIfNotSupported(),
             >= 10 => LanguageVersion.CSharp14,
             >= 9 => LanguageVersion.CSharp13,
             >= 8 => LanguageVersion.CSharp12,
             _ => throw new PlatformNotSupportedException( $"Unsupported .NET SDK version: {version}." )
         };
 
-        var projectVersion = this._projectOptions.LanguageVersion;
-
-        if ( sdkSupportedVersion >= projectVersion )
-        {
-            return projectVersion;
-        }
-        else
-        {
-            return sdkSupportedVersion;
-        }
+        return ApplyCeiling( this._projectOptions.LanguageVersion, sdkSupportedVersion );
     }
 
     private LanguageVersion GetLanguageVersionFromMSBuild()
@@ -110,15 +107,26 @@ internal sealed class LanguageVersionProvider : ILanguageVersionProvider
 
         var msBuildSupportedVersion = SupportedCSharpVersions.GetMaxLanguageVersion( roslynVersion );
 
-        var projectVersion = this._projectOptions.LanguageVersion;
-
-        if ( msBuildSupportedVersion >= projectVersion )
-        {
-            return projectVersion;
-        }
-        else
-        {
-            return msBuildSupportedVersion;
-        }
+        return ApplyCeiling( this._projectOptions.LanguageVersion, msBuildSupportedVersion );
     }
+
+    /// <summary>
+    /// Returns the language version at which the compile-time compilation is parsed, given the version
+    /// <paramref name="projectVersion"/> that the project requests and the highest version
+    /// <paramref name="toolsetSupportedVersion"/> that the toolset accepts.
+    /// </summary>
+    /// <remarks>
+    /// The preview version is returned unchanged, and is not compared with the ceiling. Its numeric value is
+    /// <see cref="int.MaxValue"/>, so the comparison would lower every request for it to the ceiling, and the
+    /// compile-time code of a project would then be parsed at a lower version than its run-time code. The value is
+    /// symbolic: it stands for the set of features that the compiler accepts, and not for a point on the ordered
+    /// scale of the numbered versions, so the ceiling does not apply to it. The compile-time pipeline reports
+    /// <c>LAMA0051</c> when a project requests the preview version without setting the
+    /// <c>MetalamaAllowPreviewLanguageFeatures</c> MSBuild property, so this method is not the place where that
+    /// choice is validated. See issue #1979.
+    /// </remarks>
+    private static LanguageVersion ApplyCeiling( LanguageVersion projectVersion, LanguageVersion toolsetSupportedVersion )
+        => projectVersion == LanguageVersion.Preview || toolsetSupportedVersion >= projectVersion
+            ? projectVersion
+            : toolsetSupportedVersion;
 }

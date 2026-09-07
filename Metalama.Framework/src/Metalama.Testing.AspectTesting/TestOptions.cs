@@ -874,6 +874,11 @@ public class TestOptions
         => testContextOptions with
         {
             AllowPreviewLanguageFeatures = this.AllowPreviewLanguageFeatures ?? testContextOptions.AllowPreviewLanguageFeatures,
+
+            // The language version of the test reaches the compile-time compilation through the project options, so
+            // the @LanguageVersion directive applies to compile-time code and to template bodies as well as to the
+            // run-time code that BaseTestRunner parses with it. See issue #1979.
+            LanguageVersion = this.LanguageVersion ?? testContextOptions.LanguageVersion,
             RequireOrderedAspects = this.RequireOrderedAspects ?? testContextOptions.RequireOrderedAspects,
             RoslynIsCompileTimeOnly = this.RoslynIsCompileTimeOnly ?? testContextOptions.RoslynIsCompileTimeOnly,
             FormatCompileTimeCode = this.FormatCompileTimeCode ?? testContextOptions.FormatCompileTimeCode,

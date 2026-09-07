@@ -7,8 +7,10 @@ using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Formatting;
 using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Services;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using System;
 using System.Collections.Immutable;
 using System.Reflection;
@@ -89,6 +91,19 @@ public record TestContextOptions
     /// equivalent of that property for a test, and <see cref="TestProjectOptions"/> reads it.
     /// </remarks>
     public bool AllowPreviewLanguageFeatures { get; init; }
+
+    /// <summary>
+    /// Gets the version of the C# language of the project under test, or <c>null</c> to use
+    /// <see cref="SupportedCSharpVersions.Latest"/>.
+    /// </summary>
+    /// <remarks>
+    /// This option is the equivalent of the <c>LangVersion</c> MSBuild property for a test. It is read by
+    /// <see cref="TestProjectOptions"/>, and through it by the provider that gives the compile-time compilation its
+    /// language version, so a test that requests the preview version covers compile-time code as well as run-time
+    /// code. Combine it with <see cref="AllowPreviewLanguageFeatures"/> when the value is
+    /// <see cref="LanguageVersion.Preview"/>. See issue #1979.
+    /// </remarks>
+    public LanguageVersion? LanguageVersion { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether an error should be reported if all aspect classes
