@@ -7,6 +7,7 @@ using Metalama.Framework.Code.Collections;
 using Metalama.Framework.Code.Invokers;
 using Metalama.Framework.Engine.CodeModel.Abstractions;
 using Metalama.Framework.Engine.CodeModel.Collections;
+using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.CodeModel.Source;
@@ -175,14 +176,31 @@ internal sealed class IntroducedAccessor : IntroducedDeclaration, IMethodImpl
             return null;
         }
 
-        // Get the property name from the declaring member.
-        var declaringProperty = (IProperty) this._introducedMember;
-        var propertyName = declaringProperty.Name;
+        // Get the name after which the accessors of the declaring member are named. For a property it is the name of
+        // the property, and for an indexer it is the metadata name of the indexer, which is Item unless the indexer
+        // carries IndexerNameAttribute. No other member kind is allowed in an extension block.
+        string memberName;
+
+        switch ( this._introducedMember.DeclarationKind )
+        {
+            case DeclarationKind.Indexer when this._introducedMember is IIndexer indexer:
+                memberName = IndexerHelper.GetMetadataName( indexer );
+
+                break;
+
+            case DeclarationKind.Property when this._introducedMember is IProperty property:
+                memberName = property.Name;
+
+                break;
+
+            default:
+                return null;
+        }
 
         // Get the expected implicit method name based on accessor type.
         var implicitMethodName = this.MethodKind == MethodKind.PropertyGet
-            ? "get_" + propertyName
-            : "set_" + propertyName;
+            ? "get_" + memberName
+            : "set_" + memberName;
 
         return ExtensionImplementationLookup.FindImplicitMethod(
             extensionBlock,

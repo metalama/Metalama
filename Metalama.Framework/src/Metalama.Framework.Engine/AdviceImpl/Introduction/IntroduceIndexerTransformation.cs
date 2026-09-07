@@ -15,7 +15,6 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Introduction;
@@ -154,7 +153,7 @@ internal sealed class IntroduceIndexerTransformation : IntroduceMemberTransforma
 
         var result = new List<DeclarationBuilderData>( 2 );
         var indexerType = this.BuilderData.Type.GetTarget( this.InitialCompilation );
-        var metadataName = this.GetIndexerMetadataName();
+        var metadataName = IndexerHelper.GetMetadataName( this.BuilderData.Attributes, this.InitialCompilation );
 
         if ( this.BuilderData.GetMethod != null )
         {
@@ -193,30 +192,5 @@ internal sealed class IntroduceIndexerTransformation : IntroduceMemberTransforma
         }
 
         return result;
-    }
-
-    /// <summary>
-    /// Gets the name that the indexer has in metadata, which is also the name from which the names of its accessors
-    /// are formed. The name is <c>Item</c> unless the indexer carries <see cref="IndexerNameAttribute"/>.
-    /// </summary>
-    private string GetIndexerMetadataName()
-    {
-        const string defaultIndexerName = "Item";
-
-        foreach ( var attribute in this.BuilderData.Attributes )
-        {
-            if ( attribute.ConstructorArguments.Length != 1
-                 || attribute.Type.GetTarget( this.InitialCompilation ).FullName != typeof(IndexerNameAttribute).FullName )
-            {
-                continue;
-            }
-
-            if ( attribute.ConstructorArguments[0].ToTypedConstant( this.InitialCompilation ).Value is string indexerName )
-            {
-                return indexerName;
-            }
-        }
-
-        return defaultIndexerName;
     }
 }

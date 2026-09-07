@@ -1,0 +1,2 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0543 on `C`: `The aspect 'TheAspect' cannot introduce 'C.extension(int).this[int]' into 'C.extension(int)' because the member is 'protected', which the language forbids for an extension member.`

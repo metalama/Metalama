@@ -212,6 +212,13 @@ internal sealed class IntroduceIndexerAdvice : IntroduceMemberAdvice<IIndexer, I
         }
     }
 
+    /// <summary>
+    /// Determines whether an accessibility includes the <c>protected</c> modifier, which the language forbids on an
+    /// extension member.
+    /// </summary>
+    private static bool IsProtected( Accessibility? accessibility )
+        => accessibility is Accessibility.Protected or Accessibility.ProtectedInternal or Accessibility.PrivateProtected;
+
     protected override void ValidateBuilder( IndexerBuilder builder, IDiagnosticAdder diagnosticAdder )
     {
         base.ValidateBuilder( builder, diagnosticAdder );
@@ -257,7 +264,12 @@ internal sealed class IntroduceIndexerAdvice : IntroduceMemberAdvice<IIndexer, I
                 { HasNewKeyword: true } => "new",
                 { IsSealed: true } => "sealed",
                 { IsPartial: true } => "partial",
-                { Accessibility: Accessibility.Protected or Accessibility.ProtectedInternal or Accessibility.PrivateProtected } => "protected",
+
+                // An accessor can carry an accessibility of its own, which is more restrictive than the one of the
+                // indexer, so the three accessibilities have to be examined.
+                _ when IsProtected( builder.Accessibility )
+                       || IsProtected( builder.GetMethod?.Accessibility )
+                       || IsProtected( builder.SetMethod?.Accessibility ) => "protected",
                 _ => null
             };
 

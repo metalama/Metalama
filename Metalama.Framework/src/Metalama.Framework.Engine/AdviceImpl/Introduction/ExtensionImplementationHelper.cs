@@ -228,6 +228,10 @@ internal static class ExtensionImplementationHelper
                     indexParameter.RefKind,
                     indexParameter.DefaultValue?.ToTypedConstant( compilation ) );
 
+                // The implementation method that the compiler creates keeps the params modifier of the index
+                // parameter, even in the setter, where the assigned value follows it.
+                indexParameterBuilder.IsParams = indexParameter.IsParams;
+
                 CopyAttributes( indexParameter.Attributes, indexParameterBuilder, compilation );
             }
         }
