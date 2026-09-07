@@ -150,8 +150,10 @@ internal sealed record LicensingConfiguration : ConfigurationFile
 
     /// <summary>
     /// Enumerates the groups of <see cref="LicensesByMinimalVersion"/> whose name parses as a version and that carry
-    /// at least one license key, ordered by that version. A group whose name does not parse as a version is skipped,
-    /// as a later version may name a group in a way that the current version does not understand.
+    /// at least one non-blank license key, ordered by that version. A group whose name does not parse as a version is
+    /// skipped, as a later version may name a group in a way that the current version does not understand. A group
+    /// whose license keys are all blank is skipped as well, so that it behaves as an empty group and is not reported
+    /// as requiring a later version of Metalama.
     /// </summary>
     private IEnumerable<(Version MinimalVersion, ImmutableArray<string?> Licenses)> GetLicenseGroups()
     {
@@ -161,7 +163,7 @@ internal sealed record LicensingConfiguration : ConfigurationFile
         }
 
         return this.LicensesByMinimalVersion
-            .Where( group => !group.Value.IsDefaultOrEmpty )
+            .Where( group => !group.Value.IsDefaultOrEmpty && group.Value.Any( licenseKey => !string.IsNullOrWhiteSpace( licenseKey ) ) )
             .Select( group => (IsVersion: System.Version.TryParse( group.Key, out var version ), MinimalVersion: version, group.Value) )
             .Where( group => group.IsVersion )
             .Select( group => (MinimalVersion: group.MinimalVersion!, Licenses: group.Value) )

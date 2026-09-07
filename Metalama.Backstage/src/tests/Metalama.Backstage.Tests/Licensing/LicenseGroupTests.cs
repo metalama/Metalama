@@ -8,9 +8,11 @@ using Metalama.Backstage.Licensing;
 using Metalama.Backstage.Licensing.Consumption;
 using Metalama.Backstage.Licensing.Consumption.Sources;
 using Metalama.Backstage.Licensing.Licenses;
+using Metalama.Backstage.Licensing.Registration;
 using Metalama.Backstage.Serialization;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using Xunit;
 using Xunit.Abstractions;
@@ -399,6 +401,52 @@ public sealed class LicenseGroupTests : LicensingTestsBase
         // Neither a group whose name does not parse as a version nor an empty group is reported to the user, because
         // the running version has nothing to tell about them.
         Assert.Empty( this.LicenseRegistrationService.UnsupportedRegisteredLicenseVersions );
+    }
+
+    /// <summary>
+    /// Tests that a group whose license keys are all blank is not reported as requiring a later version of Metalama,
+    /// and that it does not prevent the license key of a legacy property from being consumed.
+    /// </summary>
+    /// <remarks>
+    /// A blank license key is treated as absent when the license keys of a group are read, so a group that carries
+    /// only blank license keys has to behave as an empty group. Reporting it would tell the user to upgrade
+    /// Metalama in order to consume a license key that does not exist.
+    /// </remarks>
+    [Fact]
+    public void GroupOfBlankLicenseKeysIsNotReportedAsRequiringLaterVersion()
+    {
+        this.SetLicensingConfiguration(
+            $$"""
+              {
+                "license": "{{LicenseKeyProvider.MetalamaProfessionalBusiness}}",
+                "licensesByMinimalVersion": { "{{_futureVersion}}": [ null, "  " ] }
+              }
+              """ );
+
+        var (canConsume, messages) = this.TryConsumeFromUserProfile();
+
+        Assert.True( canConsume );
+        Assert.Empty( messages );
+        Assert.Empty( this.LicenseRegistrationService.UnsupportedRegisteredLicenseVersions );
+    }
+
+    /// <summary>
+    /// Tests that a change of the licensing configuration raises <see cref="INotifyPropertyChanged.PropertyChanged"/>
+    /// for <see cref="ILicenseRegistrationService.UnsupportedRegisteredLicenseVersions"/>.
+    /// </summary>
+    /// <remarks>
+    /// The property is read from the configuration file, which another process may change, so a user interface that
+    /// binds to it displays a stale value unless the change is notified.
+    /// </remarks>
+    [Fact]
+    public void ChangingTheConfigurationNotifiesTheUnsupportedVersions()
+    {
+        var notifiedProperties = new List<string?>();
+        this.LicenseRegistrationService.PropertyChanged += ( _, args ) => notifiedProperties.Add( args.PropertyName );
+
+        Assert.True( this.LicenseRegistrationService.RegisterLicense( LicenseKeyProvider.MetalamaProfessionalBusiness ).IsSuccess );
+
+        Assert.Contains( nameof(ILicenseRegistrationService.UnsupportedRegisteredLicenseVersions), notifiedProperties );
     }
 
     /// <summary>

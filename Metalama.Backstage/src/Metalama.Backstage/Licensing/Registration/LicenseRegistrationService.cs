@@ -50,6 +50,7 @@ internal sealed class LicenseRegistrationService : ILicenseRegistrationService
         if ( obj is LicensingConfiguration )
         {
             this.OnPropertyChanged( nameof(this.RegisteredLicenses) );
+            this.OnPropertyChanged( nameof(this.UnsupportedRegisteredLicenseVersions) );
             this.OnPropertyChanged( nameof(this.CanRegisterTrialEdition) );
         }
     }
