@@ -1,4 +1,4 @@
 {
     "BuildOnly": true,
-    "ForbiddenDiagnosticsRegexes": [ "warning LAMA0603", "warning.*C# language version of the current project" ]
+    "ForbiddenDiagnosticsRegexes": [ "warning LAMA0603", "warning.*changed the C# language version of this project" ]
 }
