@@ -6,7 +6,7 @@
         <TargetFrameworks>net472;net10.0</TargetFrameworks>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <AssemblyName>Metalama.Testing.UnitTesting$(ThisRoslynVersionProjectSuffix)</AssemblyName>
-        <PackageId>Metalama.Testing.UnitTesting</PackageId>
+        <PackageId>Metalama.Testing.UnitTesting$(ThisRoslynVersionProjectSuffix)</PackageId>
         
     </PropertyGroup>
 
@@ -30,7 +30,7 @@
         <ProjectReference Include="../Metalama.Framework.Analyzers/Metalama.Framework.Analyzers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 
         <!-- Dependency of the resulting package should be on Implementation package. -->
-        <ProjectReference Condition="$(ThisRoslynVersion) == $(RoslynApiMaxVersion)" Include="../Metalama.Framework.Implementation.Package$(ThisRoslynVersionProjectSuffix)/Metalama.Framework.Implementation.Package$(ThisRoslynVersionProjectSuffix).csproj" />
+        <ProjectReference Include="../Metalama.Framework.Implementation.Package$(ThisRoslynVersionProjectSuffix)/Metalama.Framework.Implementation.Package$(ThisRoslynVersionProjectSuffix).csproj" />
 
         <!-- Override dependencies to avoid vulnerability warnings. -->
         <PackageReference Include="System.Text.Json" VersionOverride="$(SystemTextJsonLatestVersion)" />
@@ -45,7 +45,7 @@
 
     <!-- Packaging -->
     <ItemGroup>
-        <None Include="README.md" Pack="true" PackagePath="/" />
+        <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="/" />
     </ItemGroup>
 
 </Project>
