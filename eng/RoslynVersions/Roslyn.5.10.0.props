@@ -11,9 +11,9 @@
 		<!-- ThisRoslynVersionProjectSuffix should be empty for the latest version, otherwise it should be a dot followed by ThisRoslynVersion -->
 		<ThisRoslynVersionProjectSuffix></ThisRoslynVersionProjectSuffix>
 		<!-- ROSLYN_5_10_0_OR_GREATER is defined by this variant only. Production source branches on it wherever it
-		     reads a Roslyn member that the C# 15 language feature set introduced. The aspect tests that need C# 15,
-		     and the two aspect tests whose expected output differs between Roslyn 5.0 and Roslyn 5.10, require it as
-		     well. See Directory.Packages.md. -->
+		     reads a Roslyn member that the C# 15 language feature set introduced. The unit tests of such a member,
+		     the aspect tests that need C# 15, and the two aspect tests whose expected output differs between
+		     Roslyn 5.0 and Roslyn 5.10, require it as well. See Directory.Packages.md. -->
 		<DefineConstants>$(DefineConstants);ROSLYN_5_10_0_OR_GREATER</DefineConstants>
 		<!-- Microsoft.CodeAnalysis.CSharp.Features 5.10 requires System.Text.Json >= 10.0.8, and 10.0.8 is also
 		     the highest version the design-time payload may take, so the two bounds meet on a single value. This
