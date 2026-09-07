@@ -2,10 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Backstage.Licensing;
-using Metalama.Backstage.Licensing.Licenses;
 using Metalama.Backstage.Testing;
-using System;
 using Xunit.Abstractions;
 
 namespace Metalama.Tools.Config.Tests.Commands.Licensing
@@ -21,33 +18,22 @@ namespace Metalama.Tools.Config.Tests.Commands.Licensing
         protected static TestLicenseKeyProvider LicenseKeyProvider { get; } = new();
 
         /// <summary>
-        /// The minimal version of Metalama that <see cref="CreateLicenseKeyRequiringLaterVersion"/> requires. It is
-        /// greater than the version of the test application, so the test application does not support a group of
-        /// that version.
+        /// The name of a group of license keys that no version of Metalama supports today. A later version writes
+        /// such a group when it registers a license key that the current version cannot consume. See issue #1922.
         /// </summary>
-        protected static Version LaterVersion { get; } = new( 2027, 0 );
+        protected const string UnsupportedVersion = "2099.0";
 
         /// <summary>
-        /// Creates a license key whose minimal version of Metalama is greater than the version of the test
-        /// application. Registering it therefore stores it in a group that the test application does not support.
+        /// A license key of a format that the current version cannot parse. It stands for a license key that only
+        /// Metalama <see cref="UnsupportedVersion"/> understands, so a command that meets it in an unsupported group
+        /// proves that the group is skipped before its license keys are deserialized.
         /// </summary>
-        /// <returns>The license key.</returns>
-        /// <remarks>
-        /// The license key is signed by the Elliptic Curve DSA authority of #1864, and its minimal version is
-        /// detected from the identifier of the signature key.
-        /// </remarks>
-        protected static string CreateLicenseKeyRequiringLaterVersion()
-        {
-            var builder = new LicenseKeyDataBuilder
-            {
-                LicenseId = 801,
-                Product = LicenseProduct.MetalamaProfessional,
-                LicenseType = LicenseType.Business,
-                Generation = LicenseGeneration.Current,
-                SubscriptionEndDate = LicenseKeyProvider.DefaultSubscriptionExpirationDate
-            };
+        private const string _unparsableLicenseKey = "999-THIS-LICENSE-KEY-REQUIRES-A-LATER-VERSION";
 
-            return builder.SignAndSerialize( LicenseKeyProvider.ECDsaAuthority );
-        }
+        /// <summary>
+        /// Adds a group of license keys that the current version does not support to the licensing configuration,
+        /// beside the license keys that are already registered.
+        /// </summary>
+        protected void AddUnsupportedLicenseGroup() => this.AddLicenseGroup( UnsupportedVersion, _unparsableLicenseKey );
     }
 }

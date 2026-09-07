@@ -26,15 +26,15 @@ namespace Metalama.Tools.Config.Tests.Commands.Licensing
         }
 
         /// <summary>
-        /// Tests that unregistering removes the license keys of every group, including the groups that the running
-        /// version does not support. See issue #1922.
+        /// Tests that unregistering removes the license keys of every group, including the groups that the current
+        /// version does not support and therefore never reads. See issue #1922.
         /// </summary>
         [Fact]
-        public async Task LicenseRequiringLaterVersionUnregisters()
+        public async Task UnsupportedGroupUnregisters()
         {
-            await this.TestCommandAsync( $"license register {CreateLicenseKeyRequiringLaterVersion()}" );
+            await this.TestCommandAsync( $"license register {LicenseKeyProvider.MetalamaProfessionalBusiness}" );
 
-            await this.TestCommandAsync( "license list", $"requires Metalama {LaterVersion} or later" );
+            this.AddUnsupportedLicenseGroup();
 
             await this.TestCommandAsync( "license unregister", "have been unregistered." );
 

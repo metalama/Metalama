@@ -45,8 +45,7 @@ public sealed class LicenseGroupTests : LicensingTestsBase
 
     /// <summary>
     /// The minimal version of Metalama that a license key signed by the Elliptic Curve DSA authority of #1864
-    /// requires. It is greater than the version of the test application, so the test application does not support a
-    /// group of that version.
+    /// requires, which is the version that introduces that authority.
     /// </summary>
     private static readonly Version _ecdsaMinimalVersion = new( 2027, 0 );
 
@@ -106,7 +105,7 @@ public sealed class LicenseGroupTests : LicensingTestsBase
     /// Its minimal version is detected from the identifier of the signature key.
     /// </summary>
     /// <returns>The license key.</returns>
-    private static string CreateLicenseKeyRequiringLaterVersion()
+    private static string CreateLicenseKeySignedByECDsaAuthority()
     {
         var builder = CreateLicenseKeyDataBuilder();
 
@@ -290,13 +289,14 @@ public sealed class LicenseGroupTests : LicensingTestsBase
     }
 
     /// <summary>
-    /// Tests that registering a license key that the released versions cannot consume places it in a group named
-    /// after its minimal compatible version, instead of the legacy property or the <c>licenses</c> array.
+    /// Tests that registering a license key that the versions released before its licensing authority cannot consume
+    /// places it in the group of its minimal compatible version, instead of the legacy property or the
+    /// <c>licenses</c> array, which every released version reads.
     /// </summary>
     [Fact]
-    public void RegisteringLicenseKeyRequiringLaterVersionCreatesGroup()
+    public void RegisteringLicenseKeyOfNewAuthorityCreatesGroup()
     {
-        var licenseKey = CreateLicenseKeyRequiringLaterVersion();
+        var licenseKey = CreateLicenseKeySignedByECDsaAuthority();
 
         Assert.True( this.LicenseRegistrationService.RegisterLicense( licenseKey ).IsSuccess );
 
@@ -305,23 +305,31 @@ public sealed class LicenseGroupTests : LicensingTestsBase
         Assert.Null( configuration.LegacyLicense );
         Assert.DoesNotContain( licenseKey, configuration.Licenses );
 
-        var json = this.GetLicensingConfigurationJson();
+        var group = Assert.Single( configuration.LicensesByMinimalVersion! );
 
-        Assert.Contains( "licensesByMinimalVersion", json, StringComparison.Ordinal );
-        Assert.Contains( licenseKey, json, StringComparison.Ordinal );
+        Assert.Equal( _ecdsaMinimalVersion.ToString(), group.Key );
+        Assert.Equal( licenseKey, Assert.Single( group.Value ) );
     }
 
     /// <summary>
-    /// Tests that registering a license key whose minimal version is greater than the version of the test
-    /// application grants no license and reports no message, and that the license key is nevertheless stored and
-    /// reported as requiring a later version.
+    /// Tests that a license key whose minimal version is greater than the version of the running product grants no
+    /// license and reports no message, and that the version of its group is nevertheless reported, so that the user
+    /// interface can tell the user which version of Metalama is required.
     /// </summary>
+    /// <remarks>
+    /// The group is written to the configuration instead of being registered, because the running version detects
+    /// the minimal version of a license key from a format that it knows, and therefore cannot produce a license key
+    /// that requires a version later than its own.
+    /// </remarks>
     [Fact]
-    public void LicenseKeyRequiringLaterVersionGrantsNoLicenseAndReportsNoMessage()
+    public void LicenseKeyOfUnsupportedGroupGrantsNoLicenseAndReportsNoMessage()
     {
-        var licenseKey = CreateLicenseKeyRequiringLaterVersion();
-
-        Assert.True( this.LicenseRegistrationService.RegisterLicense( licenseKey ).IsSuccess );
+        this.SetLicensingConfiguration(
+            $$"""
+              {
+                "licensesByMinimalVersion": { "{{_futureVersion}}": [ "{{_unparsableLicenseKey}}" ] }
+              }
+              """ );
 
         var (canConsume, messages) = this.TryConsumeFromUserProfile();
 
@@ -329,10 +337,88 @@ public sealed class LicenseGroupTests : LicensingTestsBase
         Assert.Empty( messages );
         Assert.Empty( this.LicenseRegistrationService.RegisteredLicenses );
 
-        // The license key is stored, and the version of its group is reported, so that the user interface can tell
-        // the user which version of Metalama is required.
-        Assert.Equal( _ecdsaMinimalVersion, Assert.Single( this.LicenseRegistrationService.UnsupportedRegisteredLicenseVersions ) );
-        Assert.Contains( licenseKey, this.GetLicensingConfigurationJson(), StringComparison.Ordinal );
+        Assert.Equal(
+            Version.Parse( _futureVersion ),
+            Assert.Single( this.LicenseRegistrationService.UnsupportedRegisteredLicenseVersions ) );
+    }
+
+    /// <summary>
+    /// Tests that the license key of the legacy property is consumed when the configuration also carries a group
+    /// that the running version does not support, so that such a group never disables the license keys that the
+    /// running version can consume.
+    /// </summary>
+    [Fact]
+    public void UnsupportedGroupDoesNotPreventTheLegacyLicenseFromBeingConsumed()
+    {
+        this.SetLicensingConfiguration(
+            $$"""
+              {
+                "license": "{{LicenseKeyProvider.MetalamaProfessionalBusiness}}",
+                "licensesByMinimalVersion": { "{{_futureVersion}}": [ "{{_unparsableLicenseKey}}" ] }
+              }
+              """ );
+
+        var (canConsume, messages) = this.TryConsumeFromUserProfile();
+
+        Assert.True( canConsume );
+        Assert.Empty( messages );
+
+        Assert.Equal(
+            LicenseKeyProvider.MetalamaProfessionalBusiness,
+            this.LicenseRegistrationService.RegisteredLicenses.Single().LicenseString );
+    }
+
+    /// <summary>
+    /// Tests that the content of <c>licensesByMinimalVersion</c> which the running version does not understand is
+    /// skipped instead of throwing, that it reports no message, and that it does not prevent the license keys of the
+    /// supported groups from being consumed.
+    /// </summary>
+    /// <remarks>
+    /// The test covers a group whose name does not parse as a version, an empty group, and a group that carries a
+    /// null license key.
+    /// </remarks>
+    [Fact]
+    public void MalformedGroupsAreIgnored()
+    {
+        this.SetLicensingConfiguration(
+            $$"""
+              {
+                "licensesByMinimalVersion": {
+                  "not-a-version": [ "{{_unparsableLicenseKey}}" ],
+                  "{{_futureVersion}}": [],
+                  "{{_supportedVersion}}": [ null, "{{LicenseKeyProvider.MetalamaProfessionalBusiness}}" ]
+                }
+              }
+              """ );
+
+        var (canConsume, messages) = this.TryConsumeFromUserProfile();
+
+        Assert.True( canConsume );
+        Assert.Empty( messages );
+
+        // Neither a group whose name does not parse as a version nor an empty group is reported to the user, because
+        // the running version has nothing to tell about them.
+        Assert.Empty( this.LicenseRegistrationService.UnsupportedRegisteredLicenseVersions );
+    }
+
+    /// <summary>
+    /// Tests that registering a license key removes the license keys of every group, including the groups that the
+    /// running version does not support, as it removes the license keys of the legacy properties.
+    /// </summary>
+    [Fact]
+    public void RegisteringLicenseKeyRemovesTheUnsupportedGroups()
+    {
+        this.SetLicensingConfiguration(
+            $$"""
+              {
+                "licensesByMinimalVersion": { "{{_futureVersion}}": [ "{{_unparsableLicenseKey}}" ] }
+              }
+              """ );
+
+        Assert.True( this.LicenseRegistrationService.RegisterLicense( LicenseKeyProvider.MetalamaProfessionalBusiness ).IsSuccess );
+
+        Assert.Empty( this.LicenseRegistrationService.UnsupportedRegisteredLicenseVersions );
+        Assert.DoesNotContain( _unparsableLicenseKey, this.GetLicensingConfigurationJson(), StringComparison.Ordinal );
     }
 
     /// <summary>
@@ -346,7 +432,7 @@ public sealed class LicenseGroupTests : LicensingTestsBase
     [Fact]
     public void MinimalVersionIsDetectedFromTheLicensingAuthority()
     {
-        var ecdsaLicenseKey = CreateLicenseKeyRequiringLaterVersion();
+        var ecdsaLicenseKey = CreateLicenseKeySignedByECDsaAuthority();
 
         Assert.True( LicenseKeyData.TryDeserialize( ecdsaLicenseKey, out var ecdsaLicenseKeyData, out var errorMessage ), errorMessage );
         Assert.Equal( _ecdsaMinimalVersion, ecdsaLicenseKeyData.MinMetalamaVersion );
@@ -366,7 +452,7 @@ public sealed class LicenseGroupTests : LicensingTestsBase
     [Fact]
     public void GroupSurvivesTheRoundTripThroughTheConfigurationFile()
     {
-        var licenseKey = CreateLicenseKeyRequiringLaterVersion();
+        var licenseKey = CreateLicenseKeySignedByECDsaAuthority();
 
         Assert.True( this.LicenseRegistrationService.RegisterLicense( licenseKey ).IsSuccess );
 

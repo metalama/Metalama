@@ -28,15 +28,31 @@ namespace Metalama.Tools.Config.Tests.Commands.Licensing
         }
 
         /// <summary>
-        /// Tests that a license key which the running version does not support is reported as requiring a later
-        /// version of Metalama, instead of being hidden. See issue #1922.
+        /// Tests that a group of license keys that the current version does not support is reported as requiring a
+        /// later version of Metalama, instead of being hidden. The license key of the group does not parse, so the
+        /// command reports the version of the group without deserializing what it contains. See issue #1922.
         /// </summary>
         [Fact]
-        public async Task LicenseRequiringLaterVersion_IsReportedAsRequiringThatVersion()
+        public async Task UnsupportedGroup_IsReportedAsRequiringLaterVersion()
         {
-            await this.TestCommandAsync( $"license register {CreateLicenseKeyRequiringLaterVersion()}" );
+            this.AddUnsupportedLicenseGroup();
 
-            await this.TestCommandAsync( "license list", expectedOutput: $"requires Metalama {LaterVersion} or later" );
+            await this.TestCommandAsync( "license list", expectedOutput: $"requires Metalama {UnsupportedVersion} or later" );
+        }
+
+        /// <summary>
+        /// Tests that a group of license keys that the current version does not support neither hides the license
+        /// keys that the current version does consume, nor makes the command fail. See issue #1922.
+        /// </summary>
+        [Fact]
+        public async Task UnsupportedGroup_DoesNotHideSupportedLicense()
+        {
+            await this.TestCommandAsync( $"license register {LicenseKeyProvider.MetalamaProfessionalBusiness}" );
+
+            this.AddUnsupportedLicenseGroup();
+
+            await this.TestCommandAsync( "license list", expectedOutput: "Metalama Professional" );
+            await this.TestCommandAsync( "license list", expectedOutput: $"requires Metalama {UnsupportedVersion} or later" );
         }
     }
 }
