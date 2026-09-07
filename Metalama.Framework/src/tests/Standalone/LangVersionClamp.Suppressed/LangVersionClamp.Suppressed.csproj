@@ -10,8 +10,7 @@
         <OutputType>Library</OutputType>
         <MSBuildWarningsAsMessages>$(MSBuildWarningsAsMessages);LAMA0603</MSBuildWarningsAsMessages>
 
-        <!-- Reset properties from engineering. -->
-        <Nullable></Nullable>
+        <!-- Reset the language version set by engineering, so that it is implied from the target framework. -->
         <LangVersion></LangVersion>
     </PropertyGroup>
 
