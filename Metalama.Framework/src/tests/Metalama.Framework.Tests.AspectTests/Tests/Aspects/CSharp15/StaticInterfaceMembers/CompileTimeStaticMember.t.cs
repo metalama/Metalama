@@ -1,2 +1,9 @@
-// CompileTimeAspectPipeline.ExecuteAsync failed.
-// Error CS8652 on ` Format`: `The feature 'static members in interfaces' is currently in Preview and *unsupported*. To use Preview features, use the 'preview' language version.`
+internal class TargetType
+{
+  [TheAspect]
+  public void Method()
+  {
+    global::System.Console.WriteLine("[42]");
+    return;
+  }
+}

@@ -16,10 +16,10 @@ using System;
  * for default interface implementations, so a static member with a body in a compile-time interface is the second
  * declaration that C# 15 legalises for Metalama.
  *
- * The expected output records CS8652 and not the transformed code, because the preview language version requested by
- * this test does not reach the compile-time compilation. The compile-time language version comes from
- * ILanguageVersionProvider, which returns C# 14 whatever the project asks for, so the declaration below is refused on
- * both legs of the test project. Issue #1979 covers that, and this test turns into a positive one when it is fixed.
+ * The preview language version requested by this test reaches the compile-time compilation, so the expected output is
+ * the transformed code. The compile-time language version comes from ILanguageVersionProvider, which returned C# 14
+ * whatever the project asked for until issue #1979, and the declaration below was then refused on both legs of the
+ * test project.
  *
  * This file is removed from the compilation of the test project by Metalama.Framework.Tests.AspectTests.csproj,
  * because the project itself is pinned to language version 14 and its net48 leg would report CS8652 for the
