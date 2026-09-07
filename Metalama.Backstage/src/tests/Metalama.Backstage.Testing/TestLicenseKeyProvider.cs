@@ -26,6 +26,12 @@ public sealed class TestLicenseKeyProvider
     /// </summary>
     public LicensingAuthority Authority { get; } = TestLicensingAuthorityProvider.DsaTestAuthority;
 
+    /// <summary>
+    /// Gets the Elliptic Curve DSA authority of the current provider. A license key that it signs requires
+    /// Metalama 2027.0 or later, because the versions released before that authority cannot verify its signature.
+    /// </summary>
+    public LicensingAuthority ECDsaAuthority { get; } = TestLicensingAuthorityProvider.ECDsaTestAuthority;
+
     public const string NamespaceConstraint = "TestNamespace";
 
     private string GenerateLicenseKey( int id, Action<LicenseKeyDataBuilder> action, bool sign = true, bool endSubscription = true )

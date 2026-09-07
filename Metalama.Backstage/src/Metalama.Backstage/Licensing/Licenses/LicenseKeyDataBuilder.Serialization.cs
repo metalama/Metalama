@@ -62,7 +62,6 @@ namespace Metalama.Backstage.Licensing.Licenses
                     case LicenseFieldIndex.Licensee:
                     case LicenseFieldIndex.Namespace:
                     case LicenseFieldIndex.MinPostSharpVersion:
-                    case LicenseFieldIndex.MinMetalamaVersion:
                         shouldReadFieldLength = false;
                         licenseField = new LicenseFieldString();
 

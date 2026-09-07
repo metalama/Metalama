@@ -32,9 +32,9 @@ namespace Metalama.Tools.Config.Tests.Commands.Licensing
         [Fact]
         public async Task LicenseRequiringLaterVersionUnregisters()
         {
-            await this.TestCommandAsync( $"license register {CreateLicenseKeyRequiringFutureVersion()}" );
+            await this.TestCommandAsync( $"license register {CreateLicenseKeyRequiringLaterVersion()}" );
 
-            await this.TestCommandAsync( "license list", $"requires Metalama {FutureVersion} or later" );
+            await this.TestCommandAsync( "license list", $"requires Metalama {LaterVersion} or later" );
 
             await this.TestCommandAsync( "license unregister", "have been unregistered." );
 

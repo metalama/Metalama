@@ -108,41 +108,6 @@ namespace Metalama.Backstage.Licensing.Licenses
         }
 
         /// <summary>
-        /// The first version of Metalama that verifies an Elliptic Curve DSA signature, which is the authority added
-        /// by issue #1864. An earlier version has no authority of the key identifiers of that algorithm, so it reports
-        /// that the signature of the license key is invalid.
-        /// </summary>
-        private static readonly Version _firstVersionSupportingECDsaSignature = new( 2027, 0 );
-
-        /// <summary>
-        /// Returns the minimal version of Metalama that can consume a license key, or <c>null</c> if every version
-        /// can consume it. The value carried by the license key takes precedence. Otherwise the value is derived from
-        /// the properties of the license key, which is what a license key issued before the field existed requires.
-        /// </summary>
-        /// <param name="licenseKeyData">The license key data.</param>
-        /// <returns>The minimal version of Metalama that can consume <paramref name="licenseKeyData"/>, or <c>null</c>.</returns>
-        /// <remarks>
-        /// The registration stores a license key in the group of that version, so that the versions which cannot
-        /// consume the license key never read it. See issue #1922.
-        /// </remarks>
-        internal static Version? GetMinMetalamaVersion( this LicenseKeyData licenseKeyData )
-        {
-            if ( licenseKeyData.MinMetalamaVersion != null )
-            {
-                return licenseKeyData.MinMetalamaVersion;
-            }
-
-            // The key identifier 2 belongs to ProductionLicensingAuthorityProvider and the key identifier 254 to
-            // TestLicensingAuthorityProvider. Both are Elliptic Curve DSA keys.
-            if ( licenseKeyData.SignatureKeyId is 2 or TestLicensingAuthorityProvider.ECDsaTestKeyId )
-            {
-                return _firstVersionSupportingECDsaSignature;
-            }
-
-            return null;
-        }
-
-        /// <summary>
         /// Creates a new object of <see cref="LicenseRegistrationProperties"/> based on the given <see cref="LicenseKeyData"/>.
         /// </summary>
         [PublicAPI( "Used by BusinessSystems.LicenseAuditLoader" )]
@@ -190,7 +155,7 @@ namespace Metalama.Backstage.Licensing.Licenses
                 licenseServerEligible,
                 licenseKeyData.GetMinPostSharpVersion(),
                 licenseKeyData.Generation.GetValueOrDefault(),
-                licenseKeyData.NormalizeServicingPhase() ) { MinMetalamaVersion = licenseKeyData.GetMinMetalamaVersion() };
+                licenseKeyData.NormalizeServicingPhase() ) { MinMetalamaVersion = licenseKeyData.MinMetalamaVersion };
 
             return data;
         }

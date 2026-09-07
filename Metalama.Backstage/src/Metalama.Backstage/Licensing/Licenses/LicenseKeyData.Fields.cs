@@ -148,20 +148,6 @@ namespace Metalama.Backstage.Licensing.Licenses
             }
         }
 
-        /// <summary>
-        /// Gets the minimal version of Metalama that can consume the current license key, as the license generator
-        /// set it, or <c>null</c> if the license key carries no such field.
-        /// </summary>
-        public Version? MinMetalamaVersion
-        {
-            get
-            {
-                var minMetalamaVersionString = (string?) this.GetFieldValue( LicenseFieldIndex.MinMetalamaVersion );
-
-                return minMetalamaVersionString == null ? null : System.Version.Parse( minMetalamaVersionString );
-            }
-        }
-
         internal LicenseKeyDataBuilder ToBuilder()
             => new() { Product = this.Product, LicenseId = this.LicenseId, LicenseType = this.LicenseType, LicenseGuid = this.LicenseGuid };
     }

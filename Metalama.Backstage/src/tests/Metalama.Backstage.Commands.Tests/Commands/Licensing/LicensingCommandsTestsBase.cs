@@ -21,17 +21,22 @@ namespace Metalama.Tools.Config.Tests.Commands.Licensing
         protected static TestLicenseKeyProvider LicenseKeyProvider { get; } = new();
 
         /// <summary>
-        /// The minimal version of Metalama that <see cref="CreateLicenseKeyRequiringFutureVersion"/> requires. No
-        /// version of Metalama supports it, so a license key of that group is never consumed.
+        /// The minimal version of Metalama that <see cref="CreateLicenseKeyRequiringLaterVersion"/> requires. It is
+        /// greater than the version of the test application, so the test application does not support a group of
+        /// that version.
         /// </summary>
-        protected static Version FutureVersion { get; } = new( 9999, 0 );
+        protected static Version LaterVersion { get; } = new( 2027, 0 );
 
         /// <summary>
-        /// Creates a license key that carries a minimal version of Metalama greater than the version of the test
+        /// Creates a license key whose minimal version of Metalama is greater than the version of the test
         /// application. Registering it therefore stores it in a group that the test application does not support.
         /// </summary>
         /// <returns>The license key.</returns>
-        protected static string CreateLicenseKeyRequiringFutureVersion()
+        /// <remarks>
+        /// The license key is signed by the Elliptic Curve DSA authority of #1864, and its minimal version is
+        /// detected from the identifier of the signature key.
+        /// </remarks>
+        protected static string CreateLicenseKeyRequiringLaterVersion()
         {
             var builder = new LicenseKeyDataBuilder
             {
@@ -39,11 +44,10 @@ namespace Metalama.Tools.Config.Tests.Commands.Licensing
                 Product = LicenseProduct.MetalamaProfessional,
                 LicenseType = LicenseType.Business,
                 Generation = LicenseGeneration.Current,
-                SubscriptionEndDate = LicenseKeyProvider.DefaultSubscriptionExpirationDate,
-                MinMetalamaVersion = FutureVersion
+                SubscriptionEndDate = LicenseKeyProvider.DefaultSubscriptionExpirationDate
             };
 
-            return builder.SignAndSerialize( LicenseKeyProvider.Authority );
+            return builder.SignAndSerialize( LicenseKeyProvider.ECDsaAuthority );
         }
     }
 }

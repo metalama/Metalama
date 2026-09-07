@@ -41,6 +41,34 @@ namespace Metalama.Backstage.Licensing.Licenses
         [Obsolete]
         public bool IsLimitedByNamespace => !string.IsNullOrEmpty( this.Namespace );
 
+        /// <summary>
+        /// The first version of Metalama that verifies an Elliptic Curve DSA signature, which is the licensing
+        /// authority added by issue #1864. An earlier version has no authority of the identifiers of the keys of that
+        /// algorithm, so it reports that the signature of the license key is invalid.
+        /// </summary>
+        private static readonly Version _firstVersionSupportingECDsaSignature = new( 2027, 0 );
+
+        /// <summary>
+        /// Gets the minimal version of Metalama that can consume the current license key, or <c>null</c> if every
+        /// version can consume it. The value is detected from the properties of the license key, so that it does not
+        /// depend on the license generator. Registration stores the license key in the group of that version, so that
+        /// the versions which cannot consume the license key never read it. See issue #1922.
+        /// </summary>
+        /// <remarks>
+        /// The licensing authority that signs the license key is the only property that decides the minimal version
+        /// today. A must-understand license field that an earlier version does not declare is the next property to
+        /// decide it.
+        /// </remarks>
+        public Version? MinMetalamaVersion
+            => this.SignatureKeyId switch
+            {
+                // The key 2 of ProductionLicensingAuthorityProvider and the key 254 of TestLicensingAuthorityProvider
+                // are the Elliptic Curve DSA keys. The other identifiers are those of the finite field DSA keys,
+                // which every version verifies.
+                2 or TestLicensingAuthorityProvider.ECDsaTestKeyId => _firstVersionSupportingECDsaSignature,
+                _ => null
+            };
+
         internal LicenseKeyData() : this( LicenseKeyDataSerializer.CurrentVersion, ImmutableSortedDictionary<LicenseFieldIndex, LicenseField>.Empty ) { }
 
         internal LicenseKeyData( byte version, ImmutableSortedDictionary<LicenseFieldIndex, LicenseField> fields )

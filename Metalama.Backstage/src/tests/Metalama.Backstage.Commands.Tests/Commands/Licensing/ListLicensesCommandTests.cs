@@ -34,9 +34,9 @@ namespace Metalama.Tools.Config.Tests.Commands.Licensing
         [Fact]
         public async Task LicenseRequiringLaterVersion_IsReportedAsRequiringThatVersion()
         {
-            await this.TestCommandAsync( $"license register {CreateLicenseKeyRequiringFutureVersion()}" );
+            await this.TestCommandAsync( $"license register {CreateLicenseKeyRequiringLaterVersion()}" );
 
-            await this.TestCommandAsync( "license list", expectedOutput: $"requires Metalama {FutureVersion} or later" );
+            await this.TestCommandAsync( "license list", expectedOutput: $"requires Metalama {LaterVersion} or later" );
         }
     }
 }

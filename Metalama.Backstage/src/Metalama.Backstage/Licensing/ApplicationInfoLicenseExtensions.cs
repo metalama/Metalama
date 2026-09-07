@@ -23,7 +23,6 @@ namespace Metalama.Backstage.Licensing
         /// </remarks>
         public static Version GetLicensingVersion( this IApplicationInfo application ) => application.AssemblyVersion ?? new Version( 0, 0 );
 
-
         private static bool IsPreviewLicenseEligible( this IComponentInfo component )
             => (component.IsPrerelease ?? false) && component is { BuildDate: not null, Company: "PostSharp Technologies" };
 
