@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!-- The clamp of Metalama.Framework.targets rewrites an implicitly set language version that is outside the
+         accepted list, and the MetalamaCheckLangVersion target then reports LAMA0603. A .NET Framework project is
+         the shortest way to reach the clamp, because the implied language version of net48 is 7.3.
+
+         The diagnostic must carry the code, so that it can be suppressed, and its text must name the version the
+         project had and the version it was given.
+         See https://github.com/metalama/Metalama/issues/1927. -->
+
+    <PropertyGroup>
+        <TargetFramework>net48</TargetFramework>
+        <OutputType>Library</OutputType>
+
+        <!-- Reset the language version set by engineering, so that it is implied from the target framework. -->
+        <LangVersion></LangVersion>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Metalama.Framework" />
+    </ItemGroup>
+
+</Project>
