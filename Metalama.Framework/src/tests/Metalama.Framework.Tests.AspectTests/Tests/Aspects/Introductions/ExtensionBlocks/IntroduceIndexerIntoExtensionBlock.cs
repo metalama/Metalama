@@ -2,10 +2,16 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+#if TEST_OPTIONS
+// @RequiredConstant(ROSLYN_5_10_0_OR_GREATER)
+// @LanguageVersion(preview)
+// @AllowPreviewLanguageFeatures
+#endif
+
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 
-namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Introductions.ExtensionBlocks.ErrorIndexerIntoExtensionBlock;
+namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Introductions.ExtensionBlocks.IntroduceIndexerIntoExtensionBlock;
 
 public class IntroductionAttribute : TypeAspect
 {
@@ -13,7 +19,8 @@ public class IntroductionAttribute : TypeAspect
     {
         var extensionBlock = builder.IntroduceExtensionBlock( typeof(string), "self" );
 
-        // Try to introduce an indexer into the extension block - this should fail
+        // Introduce an indexer into the introduced extension block. C# 15 admits an indexer in an extension block
+        // whose receiver parameter is named, which is the block introduced above.
         extensionBlock.IntroduceIndexer(
             typeof(int),
             nameof(GetTemplate),

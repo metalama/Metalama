@@ -15,6 +15,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Introduction;
@@ -136,5 +137,86 @@ internal sealed class IntroduceIndexerTransformation : IntroduceMemberTransforma
                     null,
                     hasNoBody ? Token( SyntaxKind.SemicolonToken ) : default );
         }
+    }
+
+    /// <inheritdoc />
+    public override IEnumerable<DeclarationBuilderData> GetImplicitDeclarations()
+    {
+        // An indexer introduced into an extension block needs the static implementation methods that the compiler
+        // creates in the enclosing static class, as an introduced method or property does. Each one takes the
+        // receiver first, then the index parameters, and, for the setter, the assigned value last.
+        var containingDeclaration = this.BuilderData.ContainingDeclaration.GetTarget( this.InitialCompilation );
+
+        if ( containingDeclaration is not IExtensionBlock extensionBlock )
+        {
+            return [];
+        }
+
+        var result = new List<DeclarationBuilderData>( 2 );
+        var indexerType = this.BuilderData.Type.GetTarget( this.InitialCompilation );
+        var metadataName = this.GetIndexerMetadataName();
+
+        if ( this.BuilderData.GetMethod != null )
+        {
+            result.Add(
+                ExtensionImplementationHelper.CreateImplicitAccessorMethod(
+                    this.AspectLayerInstance,
+                    extensionBlock,
+                    metadataName,
+                    isSetter: false,
+                    this.BuilderData.GetMethod.Accessibility,
+                    this.BuilderData.IsStatic,
+                    indexerType,
+                    this.BuilderData.RefKind,
+                    this.InitialCompilation,
+                    this.BuilderData.GetMethod.Attributes,
+                    this.BuilderData.GetMethod.ReturnParameter.Attributes,
+                    this.BuilderData.Parameters ) );
+        }
+
+        if ( this.BuilderData.SetMethod != null )
+        {
+            result.Add(
+                ExtensionImplementationHelper.CreateImplicitAccessorMethod(
+                    this.AspectLayerInstance,
+                    extensionBlock,
+                    metadataName,
+                    isSetter: true,
+                    this.BuilderData.SetMethod.Accessibility,
+                    this.BuilderData.IsStatic,
+                    indexerType,
+                    this.BuilderData.RefKind,
+                    this.InitialCompilation,
+                    this.BuilderData.SetMethod.Attributes,
+                    this.BuilderData.SetMethod.ReturnParameter.Attributes,
+                    this.BuilderData.Parameters ) );
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Gets the name that the indexer has in metadata, which is also the name from which the names of its accessors
+    /// are formed. The name is <c>Item</c> unless the indexer carries <see cref="IndexerNameAttribute"/>.
+    /// </summary>
+    private string GetIndexerMetadataName()
+    {
+        const string defaultIndexerName = "Item";
+
+        foreach ( var attribute in this.BuilderData.Attributes )
+        {
+            if ( attribute.ConstructorArguments.Length != 1
+                 || attribute.Type.GetTarget( this.InitialCompilation ).FullName != typeof(IndexerNameAttribute).FullName )
+            {
+                continue;
+            }
+
+            if ( attribute.ConstructorArguments[0].ToTypedConstant( this.InitialCompilation ).Value is string indexerName )
+            {
+                return indexerName;
+            }
+        }
+
+        return defaultIndexerName;
     }
 }

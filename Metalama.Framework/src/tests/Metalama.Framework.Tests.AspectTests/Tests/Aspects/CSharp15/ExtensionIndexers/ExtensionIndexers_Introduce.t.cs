@@ -8,7 +8,7 @@ internal static class C
       get
       {
         global::System.Console.WriteLine("Get.");
-        return index.ToString();
+        return (global::System.String)index.ToString();
       }
       set
       {

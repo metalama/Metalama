@@ -235,6 +235,41 @@ internal sealed class IntroduceIndexerAdvice : IntroduceMemberAdvice<IIndexer, I
                     (this.AspectInstance.AspectClass.ShortName, builder, targetDeclaration),
                     this ) );
         }
+
+        if ( targetDeclaration.TypeKind == TypeKind.Extension )
+        {
+            // The language forbids an init accessor and the modifiers below on an extension member. The receiver
+            // parameter of the block is required by the eligibility rule of AdviceKind.IntroduceIndexer.
+            if ( builder.HasInitOnlySetter )
+            {
+                diagnosticAdder.Report(
+                    AdviceDiagnosticDescriptors.CannotIntroduceInitOnlyIndexerIntoExtensionBlock.CreateRoslynDiagnostic(
+                        targetDeclaration.GetDiagnosticLocation(),
+                        (this.AspectInstance.AspectClass.ShortName, builder, targetDeclaration),
+                        this ) );
+            }
+
+            var forbiddenModifier = builder switch
+            {
+                { IsAbstract: true } => "abstract",
+                { IsVirtual: true } => "virtual",
+                { IsOverride: true } => "override",
+                { HasNewKeyword: true } => "new",
+                { IsSealed: true } => "sealed",
+                { IsPartial: true } => "partial",
+                { Accessibility: Accessibility.Protected or Accessibility.ProtectedInternal or Accessibility.PrivateProtected } => "protected",
+                _ => null
+            };
+
+            if ( forbiddenModifier != null )
+            {
+                diagnosticAdder.Report(
+                    AdviceDiagnosticDescriptors.CannotIntroduceMemberWithModifierIntoExtensionBlock.CreateRoslynDiagnostic(
+                        targetDeclaration.GetDiagnosticLocation(),
+                        (this.AspectInstance.AspectClass.ShortName, builder, targetDeclaration, forbiddenModifier),
+                        this ) );
+            }
+        }
     }
 
     protected override IntroductionAdviceResult<IIndexer> ImplementCore( IndexerBuilder builder, AdviceImplementationContext context )
