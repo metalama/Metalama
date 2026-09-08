@@ -31,7 +31,7 @@ namespace System.Runtime.CompilerServices
 }
 #endif
 
-namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp15.ClosedTypes.Introduce
+namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp15.ClosedTypes.IntroduceClosedClass
 {
     public class IntroductionAttribute : TypeAspect
     {

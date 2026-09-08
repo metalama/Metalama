@@ -1,13 +1,13 @@
 [Introduction]
 public class TargetType
 {
-  closed class ClosedType
+  closed class ClosedAbstractType
   {
   }
   closed partial class ClosedPartialType
   {
   }
-  closed class ClosedAbstractType
+  closed class ClosedType
   {
   }
 }
