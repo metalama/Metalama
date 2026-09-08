@@ -44,6 +44,7 @@ internal sealed class NamedTypeBuilderData : MemberOrNamedTypeBuilderData
         this.Attributes = builder.Attributes.ToImmutable( this._ref );
         this.TypeKind = builder.TypeKind;
         this.IsRecord = builder.IsRecord;
+        this.IsClosed = builder.IsClosed;
     }
 
     protected override IFullRef<IDeclaration> ToDeclarationFullRef() => this._ref;
@@ -53,6 +54,8 @@ internal sealed class NamedTypeBuilderData : MemberOrNamedTypeBuilderData
     public override DeclarationKind DeclarationKind => DeclarationKind.NamedType;
 
     public bool IsRecord { get; }
+
+    public bool IsClosed { get; }
 
     public override IEnumerable<DeclarationBuilderData> GetOwnedDeclarations() => base.GetOwnedDeclarations().Concat( this.TypeParameters );
 }
