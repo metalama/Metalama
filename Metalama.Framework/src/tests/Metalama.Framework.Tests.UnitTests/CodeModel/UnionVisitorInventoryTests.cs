@@ -33,6 +33,20 @@ namespace Metalama.Framework.Tests.UnitTests.CodeModel;
 public sealed class UnionVisitorInventoryTests
 {
     /// <summary>
+    /// The visitors whose visit methods are produced by <c>eng/src/GenerateMetaSyntaxRewriter</c> from the grammar of
+    /// the Roslyn version. The generator writes one method per node of the grammar, so it cannot omit a kind, and the
+    /// guard has nothing to add for them.
+    /// </summary>
+    private static readonly IReadOnlySet<string> _generatedVisitors =
+        new HashSet<string>( StringComparer.Ordinal )
+        {
+            "Metalama.Framework.DesignTime.Pipeline.Diff.CompileTimeCodeHasher",
+            "Metalama.Framework.DesignTime.Pipeline.Diff.RunTimeCodeHasher",
+            "Metalama.Framework.Engine.Templating.MetaSyntaxRewriter",
+            "Metalama.Framework.Engine.Templating.RoslynVersionSyntaxVerifier"
+        };
+
+    /// <summary>
     /// The visitors that override the struct declaration and deliberately do not override the union declaration. Each
     /// entry names the issue that owns the visitor, because the visitors of the other themes are corrected by the
     /// sub-issues of #1940 and not by #1941.
@@ -82,7 +96,7 @@ public sealed class UnionVisitorInventoryTests
             .SelectMany( a => a.GetTypes() )
             .Where( t => DeclaresVisitMethod( t, "VisitStructDeclaration" ) && !DeclaresVisitMethod( t, "VisitUnionDeclaration" ) )
             .Select( t => t.FullName! )
-            .Where( n => !_visitorsThatDoNotVisitAUnion.ContainsKey( n ) )
+            .Where( n => !_visitorsThatDoNotVisitAUnion.ContainsKey( n ) && !_generatedVisitors.Contains( n ) )
             .OrderBy( n => n, StringComparer.Ordinal )
             .ToArray();
 

@@ -276,7 +276,12 @@ internal sealed class ReferenceIndexWalker : SafeSyntaxWalker
     //
     // The override does not share the body of VisitStructDeclaration, because the parameter list of a union holds the
     // case types and not primary constructor parameters. Visiting it as a parameter list would enter a declaration
-    // for a parameter that declares nothing. The case types are indexed as ordinary type references instead.
+    // for a parameter that declares nothing.
+    //
+    // The case types are not indexed either. No member of ReferenceKinds names the relation between a union and one
+    // of its case types: a case type is neither a base type nor a parameter type, and recording it under one of those
+    // names would give a wrong answer to an architecture rule. Adding a member to ReferenceKinds changes the public
+    // application programming interface and belongs to the story that adds the union to the reference graph.
     public override void VisitUnionDeclaration( UnionDeclarationSyntax node )
     {
         using ( this.EnterTypeDeclarationDefinition( node ) )
@@ -284,16 +289,6 @@ internal sealed class ReferenceIndexWalker : SafeSyntaxWalker
             this.Visit( node.AttributeLists );
             this.Visit( node.BaseList );
             this.Visit( node.ConstraintClauses );
-
-            if ( node.ParameterList != null )
-            {
-                foreach ( var caseType in node.ParameterList.Parameters )
-                {
-                    // No member of ReferenceKinds names the relation between a union and one of its case types, and
-                    // adding one changes the public application programming interface, which this story does not do.
-                    this.VisitTypeReference( caseType.Type, ReferenceKinds.Default );
-                }
-            }
 
             if ( this._options.MustDescendIntoMembers() )
             {
