@@ -4,6 +4,7 @@
 
 #if TEST_OPTIONS
 // @LanguageVersion(preview)
+// @RequiredConstant(ALLOW_PREVIEW_LANG_VERSION)
 #endif
 
 using Metalama.Framework.Aspects;
@@ -12,9 +13,15 @@ using System.Collections.Generic;
 
 /*
  * C# 15 lets a collection expression carry a with-element, which passes arguments to the constructor of the
- * collection type. This test places such an element in a run-time expression of a template, so the template
- * compiler has to rebuild the element in the generated code. The element carries the equality comparer of the
- * set, so the count written by the target method is one and not two. See issue #1948.
+ * collection type. This test places such an element in a run-time expression of a template, so the template compiler
+ * has to rebuild the element in the generated code. The element carries the equality comparer of the set, so the
+ * count written by the target method is one and not two. See issue #1948.
+ *
+ * The test requires ALLOW_PREVIEW_LANG_VERSION, the opt-in of eng/RoslynPreview.props, because the consumed Roslyn
+ * still marks the with-element as experimental. Without the opt-in the meta syntax rewriter generator removes the
+ * declaration, no visitor is emitted for the node, the Roslyn base rewriter runs, and it throws an invalid cast that
+ * the pipeline reports as an unexpected exception. Drop the condition when issue #1936 brings a Roslyn that publishes
+ * the declaration without the marker.
  */
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp15.CollectionExpressionArguments_RunTime;

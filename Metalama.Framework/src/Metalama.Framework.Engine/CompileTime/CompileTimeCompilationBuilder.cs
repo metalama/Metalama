@@ -441,11 +441,26 @@ internal sealed partial class CompileTimeCompilationBuilder
                     transformedFileGenerator.GetTransformedFilePath( x.Key, x.Value.Hash ),
                     Encoding.UTF8 ) );
 
+        var compilationOptions = new CSharpCompilationOptions( OutputKind.DynamicallyLinkedLibrary, deterministic: true, optimizationLevel: OptimizationLevel.Debug );
+
+#if ROSLYN_5_10_0_OR_GREATER && ALLOW_PREVIEW_LANG_VERSION
+
+        // The template compiler rewrites a run-time expression into calls to the Roslyn syntax factories, and the
+        // opt-in of eng/RoslynPreview.props makes the meta syntax rewriter generator emit those calls for the nodes of
+        // an experimental feature as well. The factory members of such a feature carry RSEXPERIMENTAL006, so the
+        // compilation below refuses the emitted call. This suppression is the counterpart, inside the compilation the
+        // engine creates, of the NoWarn that eng/RoslynPreview.props applies to the compilation of this repository.
+        // Remove it together with the rest of the opt-in, when issue #1936 brings a Roslyn that publishes those
+        // members without the marker.
+        compilationOptions = compilationOptions.WithSpecificDiagnosticOptions(
+            new[] { new KeyValuePair<string, ReportDiagnostic>( "RSEXPERIMENTAL006", ReportDiagnostic.Suppress ) } );
+#endif
+
         var compilation = CSharpCompilation.Create(
                 assemblyName,
                 predefinedSyntaxTrees,
                 references,
-                new CSharpCompilationOptions( OutputKind.DynamicallyLinkedLibrary, deterministic: true, optimizationLevel: OptimizationLevel.Debug ) )
+                compilationOptions )
             .AddReferences(
                 referencedProjects
                     .Where( r => r is { IsEmpty: false, IsFramework: false } )
