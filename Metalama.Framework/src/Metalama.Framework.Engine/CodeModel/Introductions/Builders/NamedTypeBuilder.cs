@@ -96,6 +96,8 @@ internal class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, I
         get => base.IsSealed;
         set
         {
+            this.CheckNotFrozen();
+
             if ( value && this._isClosed )
             {
                 throw new InvalidOperationException(
@@ -115,6 +117,8 @@ internal class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, I
         get => base.IsStatic;
         set
         {
+            this.CheckNotFrozen();
+
             if ( value && this._isClosed )
             {
                 throw new InvalidOperationException(
