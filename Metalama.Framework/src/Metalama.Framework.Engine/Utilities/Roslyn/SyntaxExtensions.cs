@@ -32,7 +32,11 @@ public static class SyntaxExtensions
                      or SyntaxKind.FieldDeclaration or SyntaxKind.EventFieldDeclaration
                      or SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration
                      or SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration or SyntaxKind.EnumDeclaration
-                     or SyntaxKind.DelegateDeclaration or SyntaxKind.NamespaceDeclaration or SyntaxKind.FileScopedNamespaceDeclaration
+                     or SyntaxKind.DelegateDeclaration or SyntaxKind.ExtensionBlockDeclaration
+#if ROSLYN_5_10_0_OR_GREATER && ALLOW_PREVIEW_LANG_VERSION
+                     or SyntaxKind.UnionDeclaration
+#endif
+                     or SyntaxKind.NamespaceDeclaration or SyntaxKind.FileScopedNamespaceDeclaration
                      or SyntaxKind.IncompleteMember or SyntaxKind.GlobalStatement
                  && current is MemberDeclarationSyntax memberDeclaration )
             {
@@ -60,7 +64,11 @@ public static class SyntaxExtensions
                       or SyntaxKind.FieldDeclaration or SyntaxKind.EventFieldDeclaration
                       or SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration
                       or SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration or SyntaxKind.EnumDeclaration
-                      or SyntaxKind.DelegateDeclaration or SyntaxKind.NamespaceDeclaration or SyntaxKind.FileScopedNamespaceDeclaration
+                      or SyntaxKind.DelegateDeclaration or SyntaxKind.ExtensionBlockDeclaration
+#if ROSLYN_5_10_0_OR_GREATER && ALLOW_PREVIEW_LANG_VERSION
+                      or SyntaxKind.UnionDeclaration
+#endif
+                      or SyntaxKind.NamespaceDeclaration or SyntaxKind.FileScopedNamespaceDeclaration
                       or SyntaxKind.IncompleteMember or SyntaxKind.GlobalStatement
                   && current is MemberDeclarationSyntax)
                  || (current.IsKind( SyntaxKind.VariableDeclarator ) && current is VariableDeclaratorSyntax { Parent.Parent: FieldDeclarationSyntax }) )
@@ -115,6 +123,10 @@ public static class SyntaxExtensions
         {
             SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration
                 or SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration or SyntaxKind.EnumDeclaration
+                or SyntaxKind.ExtensionBlockDeclaration
+#if ROSLYN_5_10_0_OR_GREATER && ALLOW_PREVIEW_LANG_VERSION
+                or SyntaxKind.UnionDeclaration
+#endif
                 when node is TypeDeclarationSyntax type => type,
             _ => node.Parent?.GetDeclaringType()
         };

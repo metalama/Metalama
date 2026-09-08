@@ -191,6 +191,73 @@ internal class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeImpl
     public bool IsClosed => false;
 #endif
 
+    // ITypeSymbol.IsUnion and UnionDeclarationSyntax exist in the latest Roslyn variant only, so the three union
+    // members are compiled into that variant only, for the reason and under the condition explained above IsClosed.
+#if ROSLYN_5_10_0_OR_GREATER && ALLOW_PREVIEW_LANG_VERSION
+    public bool IsUnion => this.NamedTypeSymbol.IsUnion;
+
+    public bool IsUnionDeclaration => this.UnionDeclarations.Count > 0;
+
+    [Memo]
+    public IReadOnlyList<IType> UnionCaseTypes => this.GetUnionCaseTypes();
+
+    /// <summary>
+    /// Gets the parts of the type that are declared with the <c>union</c> keyword, which is an empty list for a type
+    /// that is not a union declaration, and for a union declared in a referenced assembly.
+    /// </summary>
+    [Memo]
+    private IReadOnlyList<UnionDeclarationSyntax> UnionDeclarations
+        => this.NamedTypeSymbol.DeclaringSyntaxReferences
+            .Select( r => r.GetSyntax() )
+            .OfType<UnionDeclarationSyntax>()
+            .ToReadOnlyList();
+
+    private IReadOnlyList<IType> GetUnionCaseTypes()
+    {
+        // The case types are parsed into the parameter list of the union declaration, and a partial union writes that
+        // list on one of its parts only.
+        ParameterListSyntax? caseList = null;
+
+        foreach ( var unionDeclaration in this.UnionDeclarations )
+        {
+            if ( unionDeclaration.ParameterList != null )
+            {
+                caseList = unionDeclaration.ParameterList;
+
+                break;
+            }
+        }
+
+        if ( caseList == null || caseList.Parameters.Count == 0 )
+        {
+            return [];
+        }
+
+        var semanticModel = this.Compilation.CompilationContext.SemanticModelProvider.GetSemanticModel( caseList.SyntaxTree );
+
+        var caseTypes = new List<IType>( caseList.Parameters.Count );
+
+        foreach ( var parameter in caseList.Parameters )
+        {
+            // A case whose type does not bind is skipped rather than reported. The compiler has already reported the
+            // error on the union header, and the code model must not fail on incomplete code at design time.
+            if ( parameter.Type != null && semanticModel.GetTypeInfo( parameter.Type ).Type is { } caseTypeSymbol
+                                        && caseTypeSymbol.TypeKind != Microsoft.CodeAnalysis.TypeKind.Error )
+            {
+                caseTypes.Add( this.Compilation.Factory.GetIType( caseTypeSymbol ) );
+            }
+        }
+
+        return caseTypes;
+    }
+#else
+    public bool IsUnion => false;
+
+    public bool IsUnionDeclaration => false;
+
+    public IReadOnlyList<IType> UnionCaseTypes => [];
+#endif
+
     public bool HasDefaultConstructor
         => this.NamedTypeSymbol.TypeKind == Microsoft.CodeAnalysis.TypeKind.Struct ||
            (this.NamedTypeSymbol is { TypeKind: Microsoft.CodeAnalysis.TypeKind.Class, IsAbstract: false } &&

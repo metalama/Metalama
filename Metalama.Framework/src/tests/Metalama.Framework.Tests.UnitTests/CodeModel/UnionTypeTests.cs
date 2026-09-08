@@ -188,7 +188,7 @@ public sealed class UnionTypeTests : UnitTestClass
 
         var shape = compilation.Types.OfName( "Shape" ).Single();
 
-        Assert.Equal( ["Circle", "Rectangle"], shape.UnionCaseTypes.Select( t => ((INamedType) t).Name ).ToArray() );
+        Assert.Equal( ["Circle", "Rectangle"], shape.UnionCaseTypes.SelectAsArray( t => ((INamedType) t).Name ) );
 
         // The case types are pre-existing types named in the union header. None of them is a union itself.
         Assert.All( shape.UnionCaseTypes, t => Assert.False( ((INamedType) t).IsUnion ) );
@@ -212,11 +212,11 @@ public sealed class UnionTypeTests : UnitTestClass
         var partialShape = compilation.Types.OfName( "PartialShape" ).Single();
 
         Assert.True( partialShape.IsUnion );
-        Assert.Equal( ["Circle", "Rectangle"], partialShape.UnionCaseTypes.Select( t => ((INamedType) t).Name ).ToArray() );
+        Assert.Equal( ["Circle", "Rectangle"], partialShape.UnionCaseTypes.SelectAsArray( t => ((INamedType) t).Name ) );
     }
 
     /// <summary>
-    /// Verifies the acceptance criterion that <see cref="INamedType.IsPartial"/> is true for a partial union. The
+    /// Verifies the acceptance criterion that <see cref="IMemberOrNamedType.IsPartial"/> is true for a partial union. The
     /// property answers from the modifiers of the primary declaration only when the syntax kind of that declaration
     /// is one that <c>SyntaxKindExtensions.IsTypeDeclaration</c> admits, and the union kind was missing from that
     /// list, so <c>LAMA0048</c> was reported although the type is partial.

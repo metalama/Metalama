@@ -197,6 +197,12 @@ internal sealed class IntroducedExtensionBlock : IntroducedMemberOrNamedType, IE
 
     public bool IsClosed => false;
 
+    public bool IsUnion => false;
+
+    public bool IsUnionDeclaration => false;
+
+    public IReadOnlyList<IType> UnionCaseTypes => [];
+
     public bool? IsNullable => false; // Extension blocks don't support nullability annotations.
 
     [Memo]

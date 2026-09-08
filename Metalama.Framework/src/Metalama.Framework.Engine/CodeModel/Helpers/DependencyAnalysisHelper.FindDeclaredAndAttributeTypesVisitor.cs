@@ -78,6 +78,19 @@ public static partial class DependencyAnalysisHelper
             base.VisitRecordDeclaration( node );
         }
 
+#if ROSLYN_5_10_0_OR_GREATER && ALLOW_PREVIEW_LANG_VERSION
+        // Roslyn routes a union declaration to its own visit method, which a syntax kind cannot override, so the
+        // union needs an override of its own. The method is named only in the Roslyn variant that declares it, for
+        // the reason explained in section 6 of Metalama.Framework/docs/2027.0/DECISIONS.md. Sharing the struct helper
+        // is safe here, because the helper does not read the parameter list of the declaration, which holds the case
+        // types of a union and not primary constructor parameters.
+        public override void VisitUnionDeclaration( UnionDeclarationSyntax node )
+        {
+            this.VisitType( node );
+            base.VisitUnionDeclaration( node );
+        }
+#endif
+
         public override void VisitEnumDeclaration( EnumDeclarationSyntax node )
         {
             this.VisitType( node );

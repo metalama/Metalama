@@ -28,11 +28,21 @@ public static class SyntaxKindExtensions
     {
         /// <summary>
         /// Gets a value indicating whether the syntax kind represents a type declaration that can contain members
-        /// (class, struct, interface, record, or record struct).
+        /// (class, struct, interface, record, record struct, or union). The extension block declaration is
+        /// deliberately excluded, because it declares no type of its own.
         /// </summary>
+        /// <remarks>
+        /// The union kind is named only in the Roslyn variant that declares it. In the other variant the predicate
+        /// answers <c>false</c> for a union, which is not observable, because a Roslyn that has no union kind cannot
+        /// parse a union declaration either.
+        /// </remarks>
         public bool IsTypeDeclaration
             => kind is SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration
-                or SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration;
+                or SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration
+#if ROSLYN_5_10_0_OR_GREATER && ALLOW_PREVIEW_LANG_VERSION
+                or SyntaxKind.UnionDeclaration
+#endif
+                ;
 
         /// <summary>
         /// Gets a value indicating whether the syntax kind represents any base type declaration
