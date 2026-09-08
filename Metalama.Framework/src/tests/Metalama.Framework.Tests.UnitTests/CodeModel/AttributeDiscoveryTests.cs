@@ -165,12 +165,12 @@ class C< [MyAttribute(4)]T>
                 { "Healthy.cs", "[MyAttribute] class Healthy { }" }
             };
 
-            var compilation = testContext.CreateCompilationModel( code, ignoreErrors: true );
+            var compilation = testContext.CreateCompilationModel( code );
 
             // The type that declares the attribute with the unrecognized target is still part of the code model.
             Assert.Equal(
                 ["Broken", "Healthy", "MyAttribute"],
-                compilation.Types.Select( t => t.Name ).OrderBy( name => name, StringComparer.Ordinal ) );
+                compilation.Types.SelectAsArray( t => t.Name ).OrderBy( name => name, StringComparer.Ordinal ) );
 
             var myAttribute = compilation.Types.OfName( "MyAttribute" ).Single();
 
@@ -182,6 +182,55 @@ class C< [MyAttribute(4)]T>
             // The attribute with the unrecognized target is skipped, but the attribute of the other file is
             // discovered.
             Assert.Equal( ["Healthy"], targets );
+        }
+
+        /// <summary>
+        /// Verifies that the attribute target specifiers that Metalama recognizes are resolved to the expected
+        /// declaration.
+        /// </summary>
+        /// <remarks>
+        /// An unrecognized target specifier is now skipped instead of throwing, as issue #1988 requires, so this test
+        /// guards the recognized ones against being skipped by mistake. The <c>assembly</c>, <c>module</c>,
+        /// <c>field</c>, <c>param</c> and <c>return</c> specifiers are covered by <see cref="Resolution"/>.
+        /// </remarks>
+        [Fact]
+        public void RecognizedTargetsAreResolved()
+        {
+            using var testContext = this.CreateTestContext();
+
+            const string code = """
+                                class MyAttribute : System.Attribute { public MyAttribute( int id ) { } }
+
+                                [type: MyAttribute(1)]
+                                class C< [typevar: MyAttribute(2)] T >
+                                {
+                                    [event: MyAttribute(3)]
+                                    public event System.EventHandler? E;
+                                }
+
+                                record R( [property: MyAttribute(4)] int Value );
+
+                                [method: MyAttribute(5)]
+                                class D( int p ) { public int Q => p; }
+                                """;
+
+            var compilation = testContext.CreateCompilationModel( code );
+            var myAttribute = compilation.Types.OfName( "MyAttribute" ).Single();
+
+            var targets = compilation.GetAllAttributesOfType( myAttribute )
+                .Select( a => a.ConstructorArguments[0].Value + ":" + a.ContainingDeclaration.ToDisplayString() )
+                .OrderBy( target => target, StringComparer.Ordinal )
+                .ToArray();
+
+            Assert.Equal(
+                [
+                    "1:C<T>",
+                    "2:C<T>/T",
+                    "3:C<T>.E",
+                    "4:R.Value",
+                    "5:D.D(int)"
+                ],
+                targets );
         }
 
         [Fact]

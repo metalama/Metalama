@@ -35,6 +35,12 @@ namespace Metalama.Framework.Engine.CodeModel
                 this._compilation = compilation;
             }
 
+            /// <summary>
+            /// Gets the logger that reports the attributes that have been ignored.
+            /// </summary>
+            private ILogger Logger
+                => this._compilation.Project.ServiceProvider.GetLoggerFactory().GetLogger( nameof(AttributeDiscoveryVisitor) );
+
             public override void VisitAttribute( AttributeSyntax node )
             {
                 // We always need to resolve the constructor from the semantic model because the attribute name from
@@ -154,7 +160,16 @@ namespace Metalama.Framework.Engine.CodeModel
                             break;
 
                         default:
-                            throw new AssertionFailedException( $"Unexpected attribute target: '{targetKind}'." );
+                            // The target specifier is not a valid one, so the compiler reports CS0658 for it. This
+                            // happens at design time while the user types the specifier: going from '[Required]' to
+                            // '[property: Required]' passes through '[p: Required]' and every other prefix. Skipping
+                            // the attribute costs the aspects that the attribute represents, while throwing aborts
+                            // the construction of the code model and therefore costs every design-time service of the
+                            // whole project. See issue #1988.
+                            this.Logger.Warning?.Log(
+                                $"The attribute '{node}' of '{node.SyntaxTree.FilePath}' has been ignored because '{attributeList.Target.Identifier}' is not a valid attribute target." );
+
+                            break;
                     }
                 }
                 else
@@ -188,10 +203,8 @@ namespace Metalama.Framework.Engine.CodeModel
                 }
                 catch ( Exception e ) when ( e is not (OperationCanceledException or TaskCanceledException) )
                 {
-                    this._compilation.Project.ServiceProvider.GetLoggerFactory()
-                        .GetLogger( nameof(AttributeDiscoveryVisitor) )
-                        .Warning?.Log(
-                            $"The attribute '{node}' of '{node.SyntaxTree.FilePath}' has been ignored because the semantic model could not bind it: {e.Message}" );
+                    this.Logger.Warning?.Log(
+                        $"The attribute '{node}' of '{node.SyntaxTree.FilePath}' has been ignored because the semantic model could not bind it: {e.Message}" );
 
                     attributeConstructor = null;
                 }
