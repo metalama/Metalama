@@ -221,7 +221,28 @@ internal static class ModifierHelper
                 AddToken( SyntaxKind.NewKeyword );
             }
 
-            if ( namedType.IsAbstract && namedType.TypeKind != TypeKind.Interface )
+            // SyntaxKind.ClosedKeyword exists in the latest Roslyn variant only, so the emission is compiled into
+            // that variant only, as decided by section 6 of Metalama.Framework/docs/2027.0/DECISIONS.md. The
+            // condition also names ALLOW_PREVIEW_LANG_VERSION, the opt-in of eng/RoslynPreview.props, because the
+            // Roslyn build consumed today still marks the member with RSEXPERIMENTAL006, which the compiler reports
+            // as an error. Remove that second symbol from the condition when issue #1936 brings a Roslyn that
+            // publishes the member without the marker. An engine that cannot emit the keyword generates an ordinary
+            // abstract class and reports no diagnostic, because a host that presents such a Roslyn version cannot
+            // compile a closed hierarchy at all.
+#if ROSLYN_5_10_0_OR_GREATER && ALLOW_PREVIEW_LANG_VERSION
+            var isClosed = namedType.IsClosed;
+
+            if ( isClosed )
+            {
+                AddToken( SyntaxKind.ClosedKeyword );
+            }
+#else
+            const bool isClosed = false;
+#endif
+
+            // A closed class is implicitly abstract, and the compiler reports CS9384 for a declaration that carries
+            // both modifiers, so the closed keyword replaces the abstract keyword.
+            if ( namedType.IsAbstract && !isClosed && namedType.TypeKind != TypeKind.Interface )
             {
                 AddToken( SyntaxKind.AbstractKeyword );
             }

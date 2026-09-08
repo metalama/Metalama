@@ -219,11 +219,12 @@ namespace Metalama.Framework.Code
         /// model is built on a subset of the syntax trees of the project, which is the case at design time.
         /// </para>
         /// <para>
-        /// This property returns <c>false</c> for a type introduced by an aspect. It also returns <c>false</c> when the
-        /// Metalama engine that runs the aspect cannot read the closed modifier, in which case no type is reported as
-        /// closed. That is the case for the engine built for a Roslyn version that predates C# 15, and, in the current
-        /// preview, for the engine built for the latest Roslyn version, because the Roslyn member that reports the
-        /// modifier is still experimental there.
+        /// For a type introduced by an aspect, this property returns the value that the aspect set on
+        /// <see cref="DeclarationBuilders.INamedTypeBuilder.IsClosed"/>. For a type declared in source, it returns
+        /// <c>false</c> when the Metalama engine that runs the aspect cannot read the closed modifier, in which case
+        /// no such type is reported as closed. That is the case for the engine built for a Roslyn version that
+        /// predates C# 15, and, in the current preview, for the engine built for the latest Roslyn version, because
+        /// the Roslyn member that reports the modifier is still experimental there.
         /// </para>
         /// </remarks>
         bool IsClosed { get; }

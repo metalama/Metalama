@@ -30,16 +30,100 @@ namespace Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 internal class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, INamedTypeImpl, IMemberOrNamedTypeBuilderImpl
 {
     private INamedType? _baseType;
+    private bool _isClosed;
 
     public TypeKind TypeKind { get; }
 
     public bool IsRecord { get; }
 
     /// <summary>
-    /// Gets a value indicating whether the introduced type is declared with the <c>closed</c> modifier. The property
-    /// always returns <c>false</c>, because introducing a closed type is not supported yet.
+    /// Gets or sets a value indicating whether the introduced type is declared with the <c>closed</c> modifier of
+    /// C# 15.
     /// </summary>
-    public bool IsClosed => false;
+    /// <remarks>
+    /// The setter enforces the three restrictions that the language states: the type must be a class, and it must be
+    /// neither sealed nor static. Roslyn reports the last two as <c>ERR_ClosedSealedStatic</c>.
+    /// </remarks>
+    public bool IsClosed
+    {
+        get => this._isClosed;
+        set
+        {
+            this.CheckNotFrozen();
+
+            if ( value )
+            {
+                if ( this.TypeKind != TypeKind.Class )
+                {
+                    throw new InvalidOperationException(
+                        $"The type '{this.Name}' cannot be closed because the language allows the closed modifier on a class only." );
+                }
+
+                if ( this.IsSealed )
+                {
+                    throw new InvalidOperationException(
+                        $"The type '{this.Name}' cannot be closed because it is sealed, and the language forbids the closed modifier on a sealed class." );
+                }
+
+                if ( this.IsStatic )
+                {
+                    throw new InvalidOperationException(
+                        $"The type '{this.Name}' cannot be closed because it is static, and the language forbids the closed modifier on a static class." );
+                }
+            }
+
+            this._isClosed = value;
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the introduced type is abstract. The getter returns <c>true</c> when
+    /// <see cref="IsClosed"/> is <c>true</c>, because a closed class is implicitly abstract, which is what Roslyn
+    /// reports for a closed class declared in source.
+    /// </summary>
+    public override bool IsAbstract
+    {
+        get => base.IsAbstract || this._isClosed;
+        set => base.IsAbstract = value;
+    }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the introduced type is sealed. The setter refuses a closed type,
+    /// because the language forbids the two modifiers together.
+    /// </summary>
+    public override bool IsSealed
+    {
+        get => base.IsSealed;
+        set
+        {
+            if ( value && this._isClosed )
+            {
+                throw new InvalidOperationException(
+                    $"The type '{this.Name}' cannot be sealed because it is closed, and the language forbids the closed modifier on a sealed class." );
+            }
+
+            base.IsSealed = value;
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the introduced type is static. The setter refuses a closed type,
+    /// because the language forbids the two modifiers together.
+    /// </summary>
+    public override bool IsStatic
+    {
+        get => base.IsStatic;
+        set
+        {
+            if ( value && this._isClosed )
+            {
+                throw new InvalidOperationException(
+                    $"The type '{this.Name}' cannot be static because it is closed, and the language forbids the closed modifier on a static class." );
+            }
+
+            base.IsStatic = value;
+        }
+    }
 
     public IntroducedRef<INamedType> Ref { get; }
 
