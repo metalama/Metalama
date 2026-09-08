@@ -165,12 +165,16 @@ class C< [MyAttribute(4)]T>
                 { "Healthy.cs", "[MyAttribute] class Healthy { }" }
             };
 
+#if !NET5_0_OR_GREATER
+            code.Add( "IsExternalInit.cs", "namespace System.Runtime.CompilerServices { internal static class IsExternalInit {} }" );
+#endif
+
             var compilation = testContext.CreateCompilationModel( code );
 
             // The type that declares the attribute with the unrecognized target is still part of the code model.
             Assert.Equal(
                 ["Broken", "Healthy", "MyAttribute"],
-                compilation.Types.SelectAsArray( t => t.Name ).OrderBy( name => name, StringComparer.Ordinal ) );
+                compilation.GlobalNamespace.Types.SelectAsArray( t => t.Name ).OrderBy( name => name, StringComparer.Ordinal ) );
 
             var myAttribute = compilation.Types.OfName( "MyAttribute" ).Single();
 
@@ -198,21 +202,30 @@ class C< [MyAttribute(4)]T>
         {
             using var testContext = this.CreateTestContext();
 
-            const string code = """
-                                class MyAttribute : System.Attribute { public MyAttribute( int id ) { } }
+#if !NET5_0_OR_GREATER
+            var code =
+#else
+            const string code =
+#endif
+                """
+                class MyAttribute : System.Attribute { public MyAttribute( int id ) { } }
 
-                                [type: MyAttribute(1)]
-                                class C< [typevar: MyAttribute(2)] T >
-                                {
-                                    [event: MyAttribute(3)]
-                                    public event System.EventHandler? E;
-                                }
+                [type: MyAttribute(1)]
+                class C< [typevar: MyAttribute(2)] T >
+                {
+                    [event: MyAttribute(3)]
+                    public event System.EventHandler? E;
+                }
 
-                                record R( [property: MyAttribute(4)] int Value );
+                record R( [property: MyAttribute(4)] int Value );
 
-                                [method: MyAttribute(5)]
-                                class D( int p ) { public int Q => p; }
-                                """;
+                [method: MyAttribute(5)]
+                class D( int p ) { public int Q => p; }
+                """;
+
+#if !NET5_0_OR_GREATER
+            code += "namespace System.Runtime.CompilerServices { internal static class IsExternalInit {} }";
+#endif
 
             var compilation = testContext.CreateCompilationModel( code );
             var myAttribute = compilation.Types.OfName( "MyAttribute" ).Single();
