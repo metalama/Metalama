@@ -6,6 +6,7 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Engine.AdviceImpl.Introduction;
 using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 using Metalama.Testing.UnitTesting;
+using System;
 using System.Linq;
 using Xunit;
 using TypeKind = Metalama.Framework.Code.TypeKind;
@@ -18,8 +19,9 @@ using Microsoft.CodeAnalysis.CSharp;
 namespace Metalama.Framework.Tests.UnitTests.CodeModel;
 
 /// <summary>
-/// Tests of <see cref="INamedType.IsClosed"/>, the code model reader of the <c>closed</c> modifier of C# 15.
-/// See issue #1939.
+/// Tests of <see cref="INamedType.IsClosed"/> and of <see cref="INamedTypeBuilder.IsClosed"/>, the code model
+/// reader and writer of the <c>closed</c> modifier of C# 15.
+/// See issues #1939 and #1950.
 /// </summary>
 public sealed class ClosedTypeTests : UnitTestClass
 {
@@ -49,8 +51,8 @@ public sealed class ClosedTypeTests : UnitTestClass
     }
 
     /// <summary>
-    /// Verifies that the property is <c>false</c> for a type introduced by an aspect, which is its value until the
-    /// introduction story adds the writer, and that the builder and the introduced type agree.
+    /// Verifies that the property is <c>false</c> for a type introduced by an aspect that does not set it, which is
+    /// its default value, and that the builder and the introduced type agree.
     /// </summary>
     [Fact]
     public void IsClosedIsFalseForIntroducedType()
@@ -65,6 +67,88 @@ public sealed class ClosedTypeTests : UnitTestClass
 
         Assert.False( builder.IsClosed );
         Assert.False( compilation.Types.OfName( "IntroducedType" ).Single().IsClosed );
+    }
+
+    /// <summary>
+    /// Verifies that an aspect can introduce a closed class: the builder stores the value, the introduced type
+    /// reports it, and <see cref="IMemberOrNamedType.IsAbstract"/> reports true, because a closed class is implicitly
+    /// abstract. See issue #1950.
+    /// </summary>
+    [Fact]
+    public void IsClosedIsTrueForIntroducedClosedClass()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var compilation = testContext.CreateCompilationModel( "" ).CreateMutableClone();
+
+        var builder = new NamedTypeBuilder( null!, compilation.GlobalNamespace, "IntroducedType", TypeKind.Class );
+        builder.IsClosed = true;
+
+        Assert.True( builder.IsClosed );
+        Assert.True( builder.IsAbstract );
+
+        builder.Freeze();
+        compilation.AddTransformation( builder.CreateTransformation() );
+
+        var introducedType = compilation.Types.OfName( "IntroducedType" ).Single();
+
+        Assert.True( introducedType.IsClosed );
+        Assert.True( introducedType.IsAbstract );
+    }
+
+    /// <summary>
+    /// Verifies that the setter refuses a type kind that is not a class, which is the restriction that the language
+    /// states. A record class is a class here, because <see cref="TypeKind.Class"/> covers it.
+    /// </summary>
+    [Theory]
+    [InlineData( TypeKind.Struct )]
+    [InlineData( TypeKind.Interface )]
+    public void IsClosedIsRejectedForTypeThatIsNotAClass( TypeKind typeKind )
+    {
+        using var testContext = this.CreateTestContext();
+
+        var compilation = testContext.CreateCompilationModel( "" ).CreateMutableClone();
+
+        var builder = new NamedTypeBuilder( null!, compilation.GlobalNamespace, "IntroducedType", typeKind );
+
+        Assert.Throws<InvalidOperationException>( () => builder.IsClosed = true );
+    }
+
+    /// <summary>
+    /// Verifies that the setter refuses a sealed class, which the language forbids because a closed class is
+    /// implicitly abstract.
+    /// </summary>
+    [Fact]
+    public void IsClosedIsRejectedForSealedClass()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var compilation = testContext.CreateCompilationModel( "" ).CreateMutableClone();
+
+        var builder = new NamedTypeBuilder( null!, compilation.GlobalNamespace, "IntroducedType", TypeKind.Class )
+        {
+            IsSealed = true
+        };
+
+        Assert.Throws<InvalidOperationException>( () => builder.IsClosed = true );
+    }
+
+    /// <summary>
+    /// Verifies that the setter refuses a static class, which the language forbids for the same reason.
+    /// </summary>
+    [Fact]
+    public void IsClosedIsRejectedForStaticClass()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var compilation = testContext.CreateCompilationModel( "" ).CreateMutableClone();
+
+        var builder = new NamedTypeBuilder( null!, compilation.GlobalNamespace, "IntroducedType", TypeKind.Class )
+        {
+            IsStatic = true
+        };
+
+        Assert.Throws<InvalidOperationException>( () => builder.IsClosed = true );
     }
 
 #if ROSLYN_5_10_0_OR_GREATER && ALLOW_PREVIEW_LANG_VERSION
