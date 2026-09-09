@@ -62,8 +62,15 @@ internal sealed class SyntaxAttributeRef : AttributeRef
             }
         }
 
-        // Find the parent declaration.
-        var resolved = this.ContainingDeclaration.ToFullRef( this._refFactory ).GetAttributes();
+        // Find the parent declaration. The declaration has no symbol when the semantic model does not bind the syntax
+        // node the attribute is written on, for instance a duplicate `get` accessor of invalid code. There is then no
+        // declaration to attach the attribute to, so the attribute is skipped instead of aborting the code model.
+        if ( !this.ContainingDeclaration.ToFullRef( this._refFactory ).TryGetAttributes( out var resolved ) )
+        {
+            this._resolvedRef = ResolvedAttributeRef.Invalid;
+
+            return null;
+        }
 
         // In the parent, find the AttributeData corresponding to the current item.
 

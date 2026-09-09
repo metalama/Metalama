@@ -11,6 +11,7 @@ using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 namespace Metalama.Framework.Engine.CodeModel.References;
@@ -70,6 +71,20 @@ internal abstract partial class FullRef<T> : BaseRef<T>, IFullRef<T>
     public abstract FullRef<T> WithGenericContext( GenericContext genericContext );
 
     public RefFactory RefFactory { get; }
+
+    public bool TryGetAttributes( [NotNullWhen( true )] out ResolvedAttributeRef? attributes )
+    {
+        if ( !this.TryGetSymbolIgnoringRefKind( this.CompilationContext, out _ ) )
+        {
+            attributes = null;
+
+            return false;
+        }
+
+        attributes = this.GetAttributes();
+
+        return true;
+    }
 
     public ResolvedAttributeRef GetAttributes()
     {
@@ -157,6 +172,18 @@ internal abstract partial class FullRef<T> : BaseRef<T>, IFullRef<T>
         => this.ApplyRefKind( this.GetSymbolIgnoringRefKind( compilationContext ) );
 
     protected abstract ISymbol GetSymbolIgnoringRefKind( CompilationContext compilationContext );
+
+    /// <summary>
+    /// Gets the symbol of the reference, ignoring <see cref="BaseRef{T}.TargetKind"/>, or returns <c>false</c> if the
+    /// reference has no symbol. The default implementation always succeeds, because a reference that is not built from
+    /// a syntax node always has a symbol.
+    /// </summary>
+    protected virtual bool TryGetSymbolIgnoringRefKind( CompilationContext compilationContext, [NotNullWhen( true )] out ISymbol? symbol )
+    {
+        symbol = this.GetSymbolIgnoringRefKind( compilationContext );
+
+        return true;
+    }
 
     public virtual ISymbol GetClosestContainingSymbol() => this.GetSymbolIgnoringRefKind( this.CompilationContext );
 

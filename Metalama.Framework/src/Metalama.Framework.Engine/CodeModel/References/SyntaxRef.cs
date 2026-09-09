@@ -10,6 +10,7 @@ using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Metalama.Framework.Engine.CodeModel.References;
 
@@ -43,21 +44,39 @@ internal sealed partial class SyntaxRef<T> : FullRef<T>
         return this.Symbol;
     }
 
+    protected override bool TryGetSymbolIgnoringRefKind( CompilationContext compilationContext, [NotNullWhen( true )] out ISymbol? symbol )
+    {
+        Invariant.Assert( this.CompilationContext == compilationContext );
+
+        symbol = this.SymbolOrNull;
+
+        return symbol != null;
+    }
+
     public override SyntaxTree PrimarySyntaxTree => this._syntaxNode.SyntaxTree;
 
-    [Memo]
-    private ISymbol Symbol => this.GetSymbol();
+    private ISymbol Symbol
+        => this.SymbolOrNull ?? throw new AssertionFailedException( $"Cannot get a symbol for {this._syntaxNode.GetType().Name}." );
 
-    private ISymbol GetSymbol()
+    /// <summary>
+    /// Gets the symbol of the syntax node, or <c>null</c> if the semantic model does not bind the node.
+    /// </summary>
+    /// <remarks>
+    /// Invalid code can contain a declaration that the parser accepts but the semantic model does not bind, for
+    /// instance a duplicate <c>get</c> accessor. A reference to such a declaration has no symbol.
+    /// </remarks>
+    [Memo]
+    private ISymbol? SymbolOrNull => this.GetSymbolOrNull();
+
+    private ISymbol? GetSymbolOrNull()
     {
         var semanticModel =
             this.CompilationContext.SemanticModelProvider.GetSemanticModel( this._syntaxNode.SyntaxTree )
             ?? throw new AssertionFailedException( $"Cannot get a semantic model for '{this._syntaxNode.SyntaxTree.FilePath}'." );
 
-        return (this._syntaxNode.SyntaxKind.IsLambdaExpression && this._syntaxNode is LambdaExpressionSyntax
-                   ? semanticModel.GetSymbolInfo( this._syntaxNode ).Symbol
-                   : semanticModel.GetDeclaredSymbol( this._syntaxNode ))
-               ?? throw new AssertionFailedException( $"Cannot get a symbol for {this._syntaxNode.GetType().Name}." );
+        return this._syntaxNode.SyntaxKind.IsLambdaExpression && this._syntaxNode is LambdaExpressionSyntax
+            ? semanticModel.GetSymbolInfo( this._syntaxNode ).Symbol
+            : semanticModel.GetDeclaredSymbol( this._syntaxNode );
     }
 
     protected override ICompilationElement? Resolve(
