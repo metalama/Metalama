@@ -9,6 +9,7 @@ using Metalama.Framework.Code.DeclarationBuilders;
 using Metalama.Framework.Code.Types;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel.Abstractions;
+using Metalama.Framework.Engine.CodeModel.Facets;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 using Metalama.Framework.Engine.CodeModel.Introductions.Collections;
@@ -325,9 +326,16 @@ internal class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, I
 
     public IExtensionBlockCollection ExtensionBlocks => throw new NotImplementedException();
 
+    // Unlike ExtensionBlocks above, this property does not throw, because eligibility rules and advice validation run
+    // against builders. A builder produces no type that has a facet today: the constructor accepts a class, a struct,
+    // an interface or an extension block only.
+    public ITypeFacetCollection Facets => TypeFacetCollection.Empty;
+
     public bool IsReadOnly => false;
 
     public bool IsRef => false;
+
+    public bool IsDelegate => this.TypeKind == TypeKind.Delegate;
 
     public INamedType TypeDefinition => this;
 

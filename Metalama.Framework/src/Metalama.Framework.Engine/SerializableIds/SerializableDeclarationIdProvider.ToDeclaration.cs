@@ -101,7 +101,7 @@ public static partial class SerializableDeclarationIdProvider
                     (IGeneric generic, "TypeParameter") => GetAtOrNull( generic.TypeParameters, ordinal ),
                     (IMethod method, nameof(RefTargetKind.Return)) => method.ReturnParameter,
                     (INamedType { TypeKind: TypeKind.Delegate } delegateType, nameof(RefTargetKind.Return))
-                        => delegateType.Methods.OfName( "Invoke" ).SingleOrDefault()?.ReturnParameter,
+                        => delegateType.Facets.Delegate?.InvokeMethod.ReturnParameter,
                     (IField field, nameof(RefTargetKind.PropertyGet)) => field.GetMethod,
                     (IField field, nameof(RefTargetKind.PropertySet)) => field.SetMethod,
                     (IField field, nameof(RefTargetKind.PropertySetParameter)) => field.SetMethod?.Parameters[0],

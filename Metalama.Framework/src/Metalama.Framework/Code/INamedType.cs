@@ -5,6 +5,7 @@
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code.Collections;
 using Metalama.Framework.Code.DeclarationBuilders;
+using Metalama.Framework.Code.Types;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -187,6 +188,23 @@ namespace Metalama.Framework.Code
         IExtensionBlockCollection ExtensionBlocks { get; }
 
         /// <summary>
+        /// Gets the facets of the type, that is, the structure that the type has because of its kind and that other
+        /// named types do not have. The collection is empty for a type that has no such structure.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// A facet is read through its typed property, as in <c>type.Facets.Delegate?.ReturnType</c>. Enumerating the
+        /// collection yields exactly the typed properties that are not <c>null</c>.
+        /// </para>
+        /// <para>
+        /// This property returns an empty collection for a type introduced by an aspect, and for a type under
+        /// construction by a builder.
+        /// </para>
+        /// </remarks>
+        /// <seealso cref="ITypeFacetCollection"/>
+        ITypeFacetCollection Facets { get; }
+
+        /// <summary>
         /// Gets a value indicating whether the type is <c>readonly</c>.
         /// </summary>
         bool IsReadOnly { get; }
@@ -200,6 +218,20 @@ namespace Metalama.Framework.Code
         /// Gets a value indicating whether type is a record. Also returns <c>false</c> when the type neither a class nor a record.
         /// </summary>
         bool IsRecord { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether the type is a delegate, which is equivalent to testing whether
+        /// <see cref="IType.TypeKind"/> is <see cref="TypeKind.Delegate"/>.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// This property answers whether the type is a delegate without allocating anything. The signature of the
+        /// delegate is read through <see cref="Facets"/>, as in <c>type.Facets.Delegate?.ReturnType</c>.
+        /// </para>
+        /// </remarks>
+        /// <seealso cref="Facets"/>
+        /// <seealso cref="IDelegateFacet"/>
+        bool IsDelegate { get; }
 
         /// <summary>
         /// Gets a value indicating whether the type is declared with the <c>closed</c> modifier. Also returns <c>false</c>
