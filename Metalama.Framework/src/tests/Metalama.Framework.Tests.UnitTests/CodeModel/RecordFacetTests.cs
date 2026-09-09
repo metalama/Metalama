@@ -46,6 +46,26 @@ public sealed class RecordFacetTests : UnitTestClass
 
                    sealed record SealedPositionalRecordClass( int Id );
 
+                   record RecordWithUnrelatedOverloads( int Id )
+                   {
+                       public bool PrintMembers( int unused ) => false;
+
+                       public void Deconstruct( out string other ) => other = "";
+                   }
+
+                   record RecordWithDeclaredPositionalProperty( int Id )
+                   {
+                       public int Id { get; init; } = Id;
+                   }
+
+                   record struct RecordStructWithOwnEqualityContractAndCopyConstructor( int Id )
+                   {
+                       public int EqualityContract => 0;
+
+                       public RecordStructWithOwnEqualityContractAndCopyConstructor(
+                           RecordStructWithOwnEqualityContractAndCopyConstructor other ) : this( other.Id ) { }
+                   }
+
                    class OrdinaryClass;
                    struct OrdinaryStruct;
                    interface IInterface;
@@ -224,6 +244,84 @@ public sealed class RecordFacetTests : UnitTestClass
     }
 
     /// <summary>
+    /// Verifies that the facet names the synthesized members of a record that declares an overload of
+    /// <c>PrintMembers</c> and an overload of <c>Deconstruct</c> beside them.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The compiler accepts both overloads, because neither has the signature of the member that it synthesizes, so
+    /// a facet that selected its members by name and by the number of parameters would find two candidates and
+    /// would throw.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void RecordWithUnrelatedOverloadsReportsTheSynthesizedMembers()
+    {
+        using var testContext = this.CreateTestContext();
+        var compilation = testContext.CreateCompilation( GetCode() );
+
+        var facet = compilation.Types.OfName( "RecordWithUnrelatedOverloads" ).Single().Facets.Record;
+
+        Assert.NotNull( facet );
+
+        var printMembers = facet.PrintMembersMethod;
+
+        Assert.Equal( "StringBuilder", ((INamedType) printMembers.Parameters.Single().Type).Name );
+        Assert.Equal( SpecialType.Boolean, printMembers.ReturnType.SpecialType );
+        Assert.True( printMembers.IsImplicitlyDeclared );
+
+        var deconstruct = facet.DeconstructMethod;
+
+        Assert.NotNull( deconstruct );
+        Assert.Equal( SpecialType.Int32, deconstruct.Parameters.Single().Type.SpecialType );
+        Assert.True( deconstruct.IsImplicitlyDeclared );
+    }
+
+    /// <summary>
+    /// Verifies that a positional parameter whose property the record declares itself contributes no element to
+    /// <see cref="IRecordFacet.PositionalProperties"/>, because the compiler then synthesizes no property for that
+    /// parameter.
+    /// </summary>
+    [Fact]
+    public void PositionalParameterWhosePropertyIsDeclaredContributesNoElement()
+    {
+        using var testContext = this.CreateTestContext();
+        var compilation = testContext.CreateCompilation( GetCode() );
+
+        var type = compilation.Types.OfName( "RecordWithDeclaredPositionalProperty" ).Single();
+        var facet = type.Facets.Record;
+
+        Assert.NotNull( facet );
+        Assert.Empty( facet.PositionalProperties );
+
+        // The property is a member of the type, and the record remains positional.
+        Assert.False( type.Properties.OfName( "Id" ).Single().IsImplicitlyDeclared );
+        Assert.NotNull( facet.DeconstructMethod );
+    }
+
+    /// <summary>
+    /// Verifies that a record struct that declares a property named <c>EqualityContract</c> and a constructor whose
+    /// single parameter is the record struct itself has neither an equality contract nor a copy constructor,
+    /// because the compiler synthesizes neither for a record struct.
+    /// </summary>
+    [Fact]
+    public void RecordStructThatDeclaresMembersOfTheFacetHasNone()
+    {
+        using var testContext = this.CreateTestContext();
+        var compilation = testContext.CreateCompilation( GetCode() );
+
+        var facet = compilation.Types.OfName( "RecordStructWithOwnEqualityContractAndCopyConstructor" ).Single().Facets.Record;
+
+        Assert.NotNull( facet );
+        Assert.Null( facet.EqualityContractProperty );
+        Assert.Null( facet.CloneMethod );
+        Assert.Null( facet.CopyConstructor );
+
+        Assert.Equal( "PrintMembers", facet.PrintMembersMethod.Name );
+        Assert.NotNull( facet.DeconstructMethod );
+    }
+
+    /// <summary>
     /// Verifies the acceptance criterion that the facet is absent for a type that is not a record.
     /// </summary>
     [Fact]
@@ -310,6 +408,10 @@ public sealed class RecordFacetTests : UnitTestClass
         Assert.Equal( SpecialType.String, facet.PositionalProperties.Single().Type.SpecialType );
         Assert.Equal( SpecialType.String, facet.DeconstructMethod!.Parameters.Single().Type.SpecialType );
         Assert.True( facet.CopyConstructor!.Parameters.Single().Type.Equals( constructedRecord, TypeComparison.Default ) );
+
+        // The clone method is resolved from the symbol, so its mapping to the constructed type is verified too.
+        Assert.True( facet.CloneMethod!.ReturnType.Equals( constructedRecord, TypeComparison.Default ) );
+        Assert.Equal( constructedRecord, facet.CloneMethod.DeclaringType );
 
         // The generic definition reports the members that are not substituted.
         var definition = constructedRecord.Definition;
