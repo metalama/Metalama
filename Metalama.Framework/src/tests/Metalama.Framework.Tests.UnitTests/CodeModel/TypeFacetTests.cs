@@ -205,11 +205,13 @@ public sealed class TypeFacetTests : UnitTestClass
 
         Assert.Empty( builder.Facets );
         Assert.False( builder.IsDelegate );
+        Assert.False( builder.IsEnum );
 
         var introducedType = compilation.Types.OfName( "IntroducedType" ).Single();
 
         Assert.Empty( introducedType.Facets );
         Assert.False( introducedType.IsDelegate );
+        Assert.False( introducedType.IsEnum );
     }
 
     /// <summary>

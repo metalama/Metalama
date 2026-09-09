@@ -4,12 +4,10 @@
 
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Types;
-using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 using Metalama.Testing.UnitTesting;
 using System;
 using System.Linq;
 using Xunit;
-using TypeKind = Metalama.Framework.Code.TypeKind;
 
 namespace Metalama.Framework.Tests.UnitTests.CodeModel;
 
@@ -199,29 +197,5 @@ public sealed class EnumFacetTests : UnitTestClass
         var attributeTargets = compilation.Factory.GetNamedTypeByReflectionType( typeof(AttributeTargets) );
 
         Assert.True( attributeTargets.Facets.Enum!.IsFlags );
-    }
-
-    /// <summary>
-    /// Verifies implementation guideline 5 of the design document for the enum facet: the implementations of
-    /// <see cref="INamedType"/> that back a builder return the empty collection rather than throwing.
-    /// </summary>
-    [Fact]
-    public void EnumFacetOfBuilderDoesNotThrow()
-    {
-        using var testContext = this.CreateTestContext();
-
-        var compilation = testContext.CreateCompilationModel( "" ).CreateMutableClone();
-
-        var builder = new NamedTypeBuilder( null!, compilation.GlobalNamespace, "IntroducedType", TypeKind.Class );
-        builder.Freeze();
-        compilation.AddTransformation( builder.CreateTransformation() );
-
-        Assert.Null( builder.Facets.Enum );
-        Assert.False( builder.IsEnum );
-
-        var introducedType = compilation.Types.OfName( "IntroducedType" ).Single();
-
-        Assert.Null( introducedType.Facets.Enum );
-        Assert.False( introducedType.IsEnum );
     }
 }
