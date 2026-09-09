@@ -342,10 +342,11 @@ expression for it.
 
 The member that this calls for is `IMethodBaseInvoker`, declaring the operations that `IMethodInvoker` and
 `IConstructorInvoker` have in common, with `IMethodBase` deriving from it. Creating an instance of a union case
-would then be the invocation of its creation member. That is a story of its own, because it changes `IMethodBase`
-and because the relationship between the three invoker interfaces has to be settled: `IMethod` and `IConstructor`
-already derive from the two specific invokers. It is not part of this proposal, and until it exists a consumer that
-invokes a creation member tests whether it is an `IMethod` or an `IConstructor`.
+would then be the invocation of its creation member. That is a story of its own, issue
+[#1999](https://github.com/metalama/Metalama/issues/1999), because it changes `IMethodBase` and because the
+relationship between the three invoker interfaces has to be settled: `IMethod` and `IConstructor` already derive
+from the two specific invokers. It is not part of this proposal, and until it exists a consumer that invokes a
+creation member tests whether it is an `IMethod` or an `IConstructor`.
 
 ### 2.4. Writing is on builders, not on facets
 
@@ -449,10 +450,12 @@ The flags are the discriminators and the facets are the structure, so they answe
 the same one twice. That is the same relationship that `TypeKind.Delegate` and `TypeKind.Enum` already have with
 their facets.
 
-What does not go on `INamedType` is the structure. Pull request #1991 proposes `IsUnion`, `IsUnionDeclaration` and
-`UnionCaseTypes`. Under this proposal `IsUnion` ships as a flag, and the other two are replaced by `Facets.Union`.
-The recommendation is to hold those two back from #1991 rather than ship them and duplicate them later, because a
-shipped public member cannot be withdrawn.
+What does not go on `INamedType` is the structure. Pull request
+[#1991](https://github.com/metalama/Metalama/pull/1991) proposes `IsUnion`, `IsUnionDeclaration` and
+`UnionCaseTypes`. Under this proposal `IsUnion` ships as a flag, and the other two are replaced by `Facets.Union`,
+which issue [#1941](https://github.com/metalama/Metalama/issues/1941) delivers. The recommendation is to hold those
+two back from #1991 rather than ship them and duplicate them later, because a shipped public member cannot be
+withdrawn.
 
 Both would be wrong as specified there in any case. `UnionCaseTypes` is documented as empty when
 `IsUnionDeclaration` is false, which describes the current implementation from syntax rather than the contract:
@@ -472,7 +475,7 @@ the elements of a tuple are a view over the fields of the underlying `ValueTuple
 that describe the structure of a type that a type expression forms, that are reached by a type test, and that are
 constructed at one site. Section 1.3 states why that mechanism is correct for that family and does not extend to a
 declared type. `ITupleType` and `ITupleElement` move to `Metalama.Framework.Code.Types` so that they sit with that
-family.
+family, which is issue [#1998](https://github.com/metalama/Metalama/issues/1998).
 
 `ITypeFacetCollection` has no tuple property in this proposal, and `INamedType.IsTuple` is the flag. An
 `ITupleFacet` declaring the members of `ITupleType` may be added later for completeness, which would make the
@@ -506,24 +509,45 @@ The delegate facet is implemented first, and deliberately. It requires no C# 15,
 language version, and it has about fifteen call sites to convert, so the shape is exercised against shipped
 behaviour before anything that cannot be revised is public.
 
-| Pull request | Content | Depends on |
+### 6.1. Reading the facets
+
+| Issue | Content | Blocked by |
 | --- | --- | --- |
-| 1 | `TypeFacetKind`, `ITypeFacet`, `ITypeFacetCollection`, `INamedType.Facets`, `INamedType.IsDelegate`, `IDelegateFacet`. Conversion of the `Invoke` lookups and of `IEvent.Signature`. | — |
-| 2 | `IEnumFacet` and `INamedType.IsEnum`. | 1 |
-| 3 | `IRecordFacet`, and the conversion of the synthesized-member lookups of the linker. | 1 |
-| 4 | `INamedType.IsTuple`, and the move of `ITupleType` and `ITupleElement` to `Metalama.Framework.Code.Types`. Takes the `breaking` label. | — |
-| 5 | `IUnionFacet`, `IUnionCase`, `UnionKind`, `INamedType.IsUnion`. | 1, and the move to the stable Roslyn |
-| 6 | `IUnionBuilder`, and the builder shapes of the other kinds. | 5, and the union introduction story |
+| [#1995](https://github.com/metalama/Metalama/issues/1995) | `TypeFacetKind`, `ITypeFacet`, `ITypeFacetCollection`, `INamedType.Facets`, `INamedType.IsDelegate`, `IDelegateFacet`. Conversion of the `Invoke` lookups and of `IEvent.Signature`. | nothing |
+| [#1996](https://github.com/metalama/Metalama/issues/1996) | `IEnumFacet` and `INamedType.IsEnum`. | #1995 |
+| [#1997](https://github.com/metalama/Metalama/issues/1997) | `IRecordFacet`, and the conversion of the synthesized-member lookups of the linker. | #1995 |
+| [#1998](https://github.com/metalama/Metalama/issues/1998) | `INamedType.IsTuple`, and the move of `ITupleType` and `ITupleElement` to `Metalama.Framework.Code.Types`. Carries the `breaking` label. | nothing |
+| [#1941](https://github.com/metalama/Metalama/issues/1941) | `IUnionFacet`, `IUnionCase`, `UnionKind`, `INamedType.IsUnion`. The union facet is delivered by the existing union code model story, not by an issue of its own. | #1995, and the move to the stable Roslyn |
+| [#1999](https://github.com/metalama/Metalama/issues/1999) | An invoker on `IMethodBase`, described in section 2.3. | nothing |
+| [#2000](https://github.com/metalama/Metalama/issues/2000) | Conceptual and reference documentation of the facets. | #1995, and completed after the other facets exist |
 
-`IMethodBaseInvoker` is a story of its own, described in section 2.3, and it is not one of these pull requests.
+### 6.2. Introducing the types
 
-Pull request 1 changes one shipped behaviour: `EligibilityRuleFactory` currently throws `InvalidOperationException`
+The four issues below are the type introduction backlog, which predates this proposal. They are named here because
+this document decides the shape of their builder interfaces, in section 2.4, and because each of them replaces
+implementation guideline 5 for its own kind: the type that the builder produces has to report the facet of that
+kind. They are not C# 15 work, they are not gated on the move to the stable Roslyn, and their milestone is a
+separate decision.
+
+| Issue | Content | Blocked by |
+| --- | --- | --- |
+| [#869](https://github.com/metalama/Metalama/issues/869) | Introduce a struct. A struct has no facet, so this issue adds no builder interface. It carries the machinery that the other three need, which is emitting a type kind other than `class` at build time and at design time. | nothing |
+| [#865](https://github.com/metalama/Metalama/issues/865) | Introduce a delegate, with `IDelegateBuilder`. Every member-introduction operation inherited from `INamedTypeBuilder` throws, because a delegate declaration has no members. | #1995, #869 |
+| [#866](https://github.com/metalama/Metalama/issues/866) | Introduce an enum, with `IEnumBuilder`. | #1996, #869 |
+| [#867](https://github.com/metalama/Metalama/issues/867) | Introduce a record, with `IRecordBuilder`. The largest of the four, because the synthesized members have to exist as builders. | #1997, #869 |
+
+`IUnionBuilder` belongs to the union introduction stories S-29 and S-30 of
+[`../2027.0/user-stories/README.md`](../2027.0/user-stories/README.md), and not to an issue of its own.
+
+### 6.3. What the first issue measures
+
+Issue #1995 changes one shipped behaviour: `EligibilityRuleFactory` currently throws `InvalidOperationException`
 when the type of an event is not a well-formed delegate, and it returns `false` after the conversion.
 
-Pull request 1 is also the acceptance test of the design. Fourteen of the fifteen call sites assert that the
-`Invoke` method exists, while `Facets.Delegate` is `null` for a malformed type. If several converted sites end up
-asserting that the facet is not `null`, the nullable collection property is the wrong shape for those consumers, and
-the design has to be revised before the union facet is built on it.
+It is also the acceptance test of the design. Fourteen of the fifteen call sites assert that the `Invoke` method
+exists, while `Facets.Delegate` is `null` for a malformed type. If several converted sites end up asserting that the
+facet is not `null`, the nullable collection property is the wrong shape for those consumers, and the design has to
+be revised before the union facet is built on it.
 
 ## 7. Resolved questions
 
