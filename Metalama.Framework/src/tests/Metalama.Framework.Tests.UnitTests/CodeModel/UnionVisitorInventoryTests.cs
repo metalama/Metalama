@@ -37,7 +37,7 @@ public sealed class UnionVisitorInventoryTests
     /// the Roslyn version. The generator writes one method per node of the grammar, so it cannot omit a kind, and the
     /// guard has nothing to add for them.
     /// </summary>
-    private static readonly IReadOnlySet<string> _generatedVisitors =
+    private static readonly HashSet<string> _generatedVisitors =
         new HashSet<string>( StringComparer.Ordinal )
         {
             "Metalama.Framework.DesignTime.Pipeline.Diff.CompileTimeCodeHasher",
