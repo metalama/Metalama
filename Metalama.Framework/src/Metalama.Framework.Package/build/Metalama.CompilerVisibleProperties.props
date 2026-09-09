@@ -52,9 +52,7 @@
         <CompilerVisibleProperty Include="MetalamaImmutableTypes"/>
         <CompilerVisibleProperty Include="MetalamaImmutableContractTypes"/>
         <CompilerVisibleProperty Include="MetalamaEnforceImmutabilityContract"/>
-        <!-- The warnings that the project ignores, sanitized by the MetalamaComputeIgnoredWarnings target below.
-             They are applied to the compile-time compilation, which the engine creates itself and which therefore
-             carries none of the MSBuild settings of the project. -->
+        <!-- Set by the MetalamaComputeIgnoredWarnings target of Metalama.Framework.targets. -->
         <CompilerVisibleProperty Include="MetalamaIgnoredWarnings"/>
     </ItemGroup>
 
@@ -120,29 +118,6 @@
         <PropertyGroup>
             <MetalamaImmutableTypes>@(MetalamaImmutableType)</MetalamaImmutableTypes>
             <MetalamaImmutableContractTypes>@(MetalamaImmutableContractType)</MetalamaImmutableContractTypes>
-        </PropertyGroup>
-    </Target>
-
-    <!--
-        Exports the warnings that the project ignores, so that the engine can apply them to the compile-time
-        compilation. That compilation is created by the engine and carries none of the MSBuild settings of the
-        project, therefore a warning that the project ignores for its own compilation would otherwise still be
-        reported against the compile-time code that the template compiler generates for it.
-
-        The NoWarn property is not exported directly, because a compiler-visible property is written to a generated
-        EditorConfig file, which holds one property per line, and NoWarn commonly spans several lines:
-
-            <NoWarn>$(NoWarn);VSTHRD001;
-                VSTHRD002</NoWarn>
-
-        Each line break is therefore replaced by a semicolon, which is the separator of the property. The white
-        space that the line break leaves behind is not removed here, because the engine trims each identifier and
-        drops the empty ones.
-    -->
-    <Target Name="MetalamaComputeIgnoredWarnings" BeforeTargets="GenerateMSBuildEditorConfigFileCore">
-        <PropertyGroup>
-            <MetalamaIgnoredWarnings>$(NoWarn)</MetalamaIgnoredWarnings>
-            <MetalamaIgnoredWarnings>$(MetalamaIgnoredWarnings.Replace('%0D', ';').Replace('%0A', ';'))</MetalamaIgnoredWarnings>
         </PropertyGroup>
     </Target>
 

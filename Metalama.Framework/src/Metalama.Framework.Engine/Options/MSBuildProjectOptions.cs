@@ -34,7 +34,7 @@ public partial class MSBuildProjectOptions : DefaultProjectOptions
 
     /// <summary>
     /// The characters that separate the identifiers of the <c>MetalamaIgnoredWarnings</c> MSBuild property. The build
-    /// joins them with a semicolon, and the <c>NoWarn</c> property they come from also accepts a comma and white
+    /// joins them with a comma, and the <c>NoWarn</c> property they come from also accepts a semicolon and white
     /// space, therefore all three are honoured here.
     /// </summary>
     private static readonly char[] _ignoredWarningsSeparators = [';', ',', ' ', '\t', '\r', '\n'];

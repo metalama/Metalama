@@ -148,10 +148,10 @@ public sealed class MSBuildProjectOptionsTests
     [Fact]
     public void IgnoredWarnings_AreSplitAndNormalized()
     {
-        // The build joins the identifiers with a semicolon, but the NoWarn property they come from also accepts a
-        // comma and white space, and it leaves white space behind where a line break was replaced by a semicolon.
+        // The build joins the identifiers with a comma, but the NoWarn property they come from also accepts a
+        // semicolon and white space, and it leaves white space behind where a line break was replaced by a comma.
         var source = new DictionaryOptionsSource(
-            new Dictionary<string, string> { [MSBuildPropertyNames.MetalamaIgnoredWarnings] = ";      CS1591;; CA1822 ,1591;   " } );
+            new Dictionary<string, string> { [MSBuildPropertyNames.MetalamaIgnoredWarnings] = ",      CS1591,, CA1822 ;1591,   " } );
 
         var options = new TestableMSBuildProjectOptions( source );
 
