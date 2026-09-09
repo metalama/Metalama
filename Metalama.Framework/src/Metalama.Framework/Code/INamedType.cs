@@ -13,9 +13,13 @@ using System.Diagnostics.CodeAnalysis;
 namespace Metalama.Framework.Code
 {
     /// <summary>
-    /// Represents a named type: class, struct, interface, enum, delegate, or record.
+    /// Represents a named type: class, struct, interface, enum, delegate, record, or union.
     /// </summary>
     /// <remarks>
+    /// <para>
+    /// A union has no <see cref="TypeKind"/> value of its own. The compiler reports a union declaration as a struct,
+    /// and <see cref="INamedType.IsUnion"/> is the property that tells a union from an ordinary class or struct.
+    /// </para>
     /// <para>
     /// Named types are the fundamental building blocks of C# programs. Unlike other types in the type system
     /// (such as arrays, pointers, or type parameters), named types have a fully qualified name, can contain members
@@ -259,6 +263,38 @@ namespace Metalama.Framework.Code
         /// </para>
         /// </remarks>
         bool IsClosed { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether the type is a union. Also returns <c>false</c> when the type is not a class
+        /// or a struct.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// A union is written in one of two forms. The first is a declaration that uses the <c>union</c> keyword. The
+        /// second is a class or a struct that carries the <c>System.Runtime.CompilerServices.UnionAttribute</c>
+        /// attribute. This property is <c>true</c> for both, and <see cref="IUnionFacet.UnionKind"/> tells them apart.
+        /// </para>
+        /// <para>
+        /// This property answers whether the type is a union without allocating anything. The authoring form, the
+        /// cases and the <c>Value</c> property of the union are read through <see cref="Facets"/>, as in
+        /// <c>type.Facets.Union?.Cases</c>.
+        /// </para>
+        /// <para>
+        /// A union is independent of <see cref="IType.TypeKind"/>. The compiler reports a union declaration as a
+        /// struct, and the attribute form is a union of the kind that its own declaration gives, so a union is not
+        /// necessarily a value type.
+        /// </para>
+        /// <para>
+        /// This property returns <c>false</c> for a type introduced by an aspect. It also returns <c>false</c> when the
+        /// Metalama engine that runs the aspect cannot read the union, in which case no type is reported as a union.
+        /// That is the case for the engine built for a Roslyn version that predates C# 15, and, in the current preview,
+        /// for the engine built for the latest Roslyn version, because the Roslyn member that reports the union is
+        /// still experimental there.
+        /// </para>
+        /// </remarks>
+        /// <seealso cref="Facets"/>
+        /// <seealso cref="IUnionFacet"/>
+        bool IsUnion { get; }
 
         /// <summary>
         /// Determines whether the type if subclass of the given class or interface.

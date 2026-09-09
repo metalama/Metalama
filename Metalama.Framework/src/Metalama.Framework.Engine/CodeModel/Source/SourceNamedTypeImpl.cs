@@ -191,6 +191,15 @@ internal class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeImpl
     public bool IsClosed => false;
 #endif
 
+    // ITypeSymbol.IsUnion exists in the latest Roslyn variant only, so the read is compiled into that variant only,
+    // for the reason and under the condition explained above IsClosed. The structure of the union is not read here:
+    // it is the union facet, which UnionFacet builds and which this property gates.
+#if ROSLYN_5_10_0_OR_GREATER && ALLOW_PREVIEW_LANG_VERSION
+    public bool IsUnion => this.NamedTypeSymbol.IsUnion;
+#else
+    public bool IsUnion => false;
+#endif
+
     public bool HasDefaultConstructor
         => this.NamedTypeSymbol.TypeKind == Microsoft.CodeAnalysis.TypeKind.Struct ||
            (this.NamedTypeSymbol is { TypeKind: Microsoft.CodeAnalysis.TypeKind.Class, IsAbstract: false } &&

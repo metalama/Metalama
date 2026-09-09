@@ -41,6 +41,13 @@ internal sealed class PartialTypesVisitor : CSharpSyntaxVisitor<ImmutableArray<B
 
     public override ImmutableArray<BaseTypeDeclarationSyntax> VisitRecordDeclaration( RecordDeclarationSyntax node ) => VisitBaseTypeDeclaration( node );
 
+#if ROSLYN_5_10_0_OR_GREATER && ALLOW_PREVIEW_LANG_VERSION
+    // The base class of this visitor does not descend into the children of a node it does not know, so without this
+    // override a partial union is never collected. The method is named only in the Roslyn variant that declares it,
+    // for the reason explained in section 6 of Metalama.Framework/docs/2027.0/DECISIONS.md.
+    public override ImmutableArray<BaseTypeDeclarationSyntax> VisitUnionDeclaration( UnionDeclarationSyntax node ) => VisitBaseTypeDeclaration( node );
+#endif
+
     public override ImmutableArray<BaseTypeDeclarationSyntax> VisitGlobalStatement( GlobalStatementSyntax node )
         => ImmutableArray<BaseTypeDeclarationSyntax>.Empty;
 

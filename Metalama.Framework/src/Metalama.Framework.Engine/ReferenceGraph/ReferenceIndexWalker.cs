@@ -269,6 +269,35 @@ internal sealed class ReferenceIndexWalker : SafeSyntaxWalker
         }
     }
 
+#if ROSLYN_5_10_0_OR_GREATER && ALLOW_PREVIEW_LANG_VERSION
+    // Roslyn routes a union declaration to its own visit method, which a syntax kind cannot override, so the union
+    // needs an override of its own. The method is named only in the Roslyn variant that declares it, for the reason
+    // explained in section 6 of Metalama.Framework/docs/2027.0/DECISIONS.md.
+    //
+    // The override does not share the body of VisitStructDeclaration, because the parameter list of a union holds the
+    // case types and not primary constructor parameters. Visiting it as a parameter list would enter a declaration
+    // for a parameter that declares nothing.
+    //
+    // The case types are not indexed either. No member of ReferenceKinds names the relation between a union and one
+    // of its case types: a case type is neither a base type nor a parameter type, and recording it under one of those
+    // names would give a wrong answer to an architecture rule. Adding a member to ReferenceKinds changes the public
+    // application programming interface and belongs to the story that adds the union to the reference graph.
+    public override void VisitUnionDeclaration( UnionDeclarationSyntax node )
+    {
+        using ( this.EnterTypeDeclarationDefinition( node ) )
+        {
+            this.Visit( node.AttributeLists );
+            this.Visit( node.BaseList );
+            this.Visit( node.ConstraintClauses );
+
+            if ( this._options.MustDescendIntoMembers() )
+            {
+                this.VisitMembers( node.Members );
+            }
+        }
+    }
+#endif
+
     public override void VisitDelegateDeclaration( DelegateDeclarationSyntax node )
     {
         using ( this.EnterTypeDeclarationDefinition( node ) )

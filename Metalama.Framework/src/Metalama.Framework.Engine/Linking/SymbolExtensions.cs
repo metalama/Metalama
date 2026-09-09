@@ -27,7 +27,10 @@ internal static class SymbolExtensions
                 or SyntaxKind.PropertyDeclaration or SyntaxKind.IndexerDeclaration or SyntaxKind.EventDeclaration or SyntaxKind.FieldDeclaration
                 or SyntaxKind.EventFieldDeclaration
                 or SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration or SyntaxKind.RecordDeclaration
-                or SyntaxKind.RecordStructDeclaration
+                or SyntaxKind.RecordStructDeclaration or SyntaxKind.ExtensionBlockDeclaration
+#if ROSLYN_5_10_0_OR_GREATER && ALLOW_PREVIEW_LANG_VERSION
+                or SyntaxKind.UnionDeclaration
+#endif
                 or SyntaxKind.EnumDeclaration or SyntaxKind.DelegateDeclaration or SyntaxKind.NamespaceDeclaration or SyntaxKind.FileScopedNamespaceDeclaration:
                 return ((MemberDeclarationSyntax) declaration).GetLinkerDeclarationFlags();
 

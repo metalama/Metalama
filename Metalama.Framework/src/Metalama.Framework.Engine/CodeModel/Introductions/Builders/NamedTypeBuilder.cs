@@ -42,6 +42,12 @@ internal class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, I
     /// </summary>
     public bool IsClosed => false;
 
+    /// <summary>
+    /// Gets a value indicating whether the introduced type is a union. The property always returns <c>false</c>,
+    /// because introducing a union is not supported yet.
+    /// </summary>
+    public bool IsUnion => false;
+
     public IntroducedRef<INamedType> Ref { get; }
 
     public TypeParameterBuilderList TypeParameters { get; } = [];
