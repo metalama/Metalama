@@ -122,7 +122,7 @@ public sealed class UnionTypeTests : UnitTestClass
 
         Assert.False( attributeUnion.IsUnion );
         Assert.Null( attributeUnion.Facets.Union );
-        Assert.Equal( 0, attributeUnion.Facets.Count );
+        Assert.Empty( attributeUnion.Facets );
     }
 
 #endif
