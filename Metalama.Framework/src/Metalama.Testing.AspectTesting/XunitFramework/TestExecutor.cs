@@ -301,7 +301,11 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
                         CompileTimeAssemblies = [..projectReferences.CompileTimeAssemblyReferences.Select( x => x.Path ).WhereNotNull()],
                         TestPlugInTypes = projectReferences.PlugInTypes,
                         AllTargetFrameworks = this._factory.ProjectProperties.AllTargetFrameworks,
-                        DurableRefKind = this._factory.ProjectProperties.DurableRefKind
+                        DurableRefKind = this._factory.ProjectProperties.DurableRefKind,
+
+                        // The NoWarn of the test project reaches the compile-time compilation of the test, in the same
+                        // way as the NoWarn of a user project does in a production build. See issue #1948.
+                        NoWarn = this._factory.ProjectProperties.IgnoredWarnings
                     };
 
                 testOptions = testInput.Options.ApplyToTestContextOptions( testOptions );

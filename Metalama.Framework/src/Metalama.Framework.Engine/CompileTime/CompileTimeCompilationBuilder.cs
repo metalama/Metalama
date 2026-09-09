@@ -238,6 +238,14 @@ internal sealed partial class CompileTimeCompilationBuilder
 
             h.Append( this._projectOptions.TemplateLanguageVersion );
             this._logger.Trace?.Log( $"ProjectHash: TemplateLanguageVersion={this._projectOptions.TemplateLanguageVersion}" );
+
+            // NoWarn selects the diagnostic options of the compile-time compilation, therefore a compile-time assembly
+            // built under one value must not be served from the cache under another.
+            foreach ( var suppressedDiagnosticId in this._projectOptions.NoWarn )
+            {
+                h.Append( suppressedDiagnosticId );
+                this._logger.Trace?.Log( $"ProjectHash: NoWarn={suppressedDiagnosticId}" );
+            }
         }
 
         h.Append( RoslynApiVersion.Current );
@@ -443,18 +451,19 @@ internal sealed partial class CompileTimeCompilationBuilder
 
         var compilationOptions = new CSharpCompilationOptions( OutputKind.DynamicallyLinkedLibrary, deterministic: true, optimizationLevel: OptimizationLevel.Debug );
 
-#if ROSLYN_5_10_0_OR_GREATER && ALLOW_PREVIEW_LANG_VERSION
+        // This compilation is created by the engine and carries none of the MSBuild settings of the project, therefore
+        // the diagnostics that the project suppresses through NoWarn are applied to it here. The suppression matters
+        // for a project that uses a language feature whose Roslyn application programming interface is still marked as
+        // experimental: the template compiler rewrites a run-time expression into calls to the Roslyn syntax
+        // factories, and the factory member of such a feature reports an RSEXPERIMENTAL diagnostic that the project
+        // suppresses for its own compilation. See issue #1948.
+        var noWarn = this._projectOptions?.NoWarn ?? ImmutableArray<string>.Empty;
 
-        // The template compiler rewrites a run-time expression into calls to the Roslyn syntax factories, and the
-        // opt-in of eng/RoslynPreview.props makes the meta syntax rewriter generator emit those calls for the nodes of
-        // an experimental feature as well. The factory members of such a feature carry RSEXPERIMENTAL006, so the
-        // compilation below refuses the emitted call. This suppression is the counterpart, inside the compilation the
-        // engine creates, of the NoWarn that eng/RoslynPreview.props applies to the compilation of this repository.
-        // Remove it together with the rest of the opt-in, when issue #1936 brings a Roslyn that publishes those
-        // members without the marker.
-        compilationOptions = compilationOptions.WithSpecificDiagnosticOptions(
-            new[] { new KeyValuePair<string, ReportDiagnostic>( "RSEXPERIMENTAL006", ReportDiagnostic.Suppress ) } );
-#endif
+        if ( !noWarn.IsEmpty )
+        {
+            compilationOptions = compilationOptions.WithSpecificDiagnosticOptions(
+                noWarn.Select( id => new KeyValuePair<string, ReportDiagnostic>( id, ReportDiagnostic.Suppress ) ) );
+        }
 
         var compilation = CSharpCompilation.Create(
                 assemblyName,

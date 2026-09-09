@@ -11,6 +11,7 @@ using Microsoft.CodeAnalysis.Diagnostics;
 using System;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Linq;
 
 // ReSharper disable ClassCanBeSealed.Global
@@ -26,6 +27,17 @@ namespace Metalama.Framework.Engine.Options;
 // ReSharper disable once InconsistentNaming
 public partial class MSBuildProjectOptions : DefaultProjectOptions
 {
+    /// <summary>
+    /// The character that separates the items of a list-valued MSBuild property of Metalama.
+    /// </summary>
+    private static readonly char[] _defaultListSeparators = [','];
+
+    /// <summary>
+    /// The characters that separate the identifiers of the <c>NoWarn</c> MSBuild property. That property accepts a
+    /// semicolon, a comma and white space, therefore all three are honoured here.
+    /// </summary>
+    private static readonly char[] _noWarnSeparators = [';', ',', ' ', '\t', '\r', '\n'];
+
     private readonly IProjectOptionsSource _source;
     private readonly TransformerOptions _transformerOptions;
 
@@ -215,6 +227,23 @@ public partial class MSBuildProjectOptions : DefaultProjectOptions
     [Memo]
     public override ImmutableArray<string> SourceGeneratorAttributes => this.GetListOption( MSBuildPropertyNames.MetalamaSourceGeneratorAttributes );
 
+    [Memo]
+    public override ImmutableArray<string> NoWarn
+        => this.GetListOption( MSBuildPropertyNames.NoWarn, _noWarnSeparators )
+            .Select( NormalizeDiagnosticId )
+            .ToImmutableArray();
+
+    /// <summary>
+    /// Prefixes a bare warning number with <c>CS</c>.
+    /// </summary>
+    /// <remarks>
+    /// The <c>NoWarn</c> property accepts the number of a C# compiler warning without its prefix, as in
+    /// <c>1591</c>, whereas the identifier of a diagnostic always carries the prefix. The C# command line applies
+    /// the same rule.
+    /// </remarks>
+    private static string NormalizeDiagnosticId( string id )
+        => int.TryParse( id, NumberStyles.None, CultureInfo.InvariantCulture, out _ ) ? "CS" + id : id;
+
     public override bool AvoidLockingExtensionAssemblies => this.GetBooleanOption( MSBuildPropertyNames.MetalamaAvoidLockingExtensionAssemblies );
 
     [Memo]
@@ -297,9 +326,9 @@ public partial class MSBuildProjectOptions : DefaultProjectOptions
         return defaultValue;
     }
 
-    private ImmutableArray<string> GetListOption( string name )
+    private ImmutableArray<string> GetListOption( string name, char[]? separators = null )
         => this.GetStringOption( name, string.Empty )
-            .Split( ',' )
+            .Split( separators ?? _defaultListSeparators )
             .SelectAsReadOnlyList( p => p.Trim() )
             .Where( p => !string.IsNullOrEmpty( p ) )
             .ToImmutableArray();

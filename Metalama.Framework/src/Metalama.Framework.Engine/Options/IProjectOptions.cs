@@ -323,6 +323,24 @@ public interface IProjectOptions : IProjectService, IEquatable<IProjectOptions>
     bool DiagnoseMemoryLeaks { get; }
 
     /// <summary>
+    /// Gets the identifiers of the diagnostics that the project suppresses, as set by the <c>NoWarn</c> MSBuild
+    /// property.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The compile-time compilation is created by the engine and therefore carries none of the MSBuild settings of
+    /// the project. This property makes the suppressions of the project apply to it as well.
+    /// </para>
+    /// <para>
+    /// The suppression matters for a project that uses a language feature whose Roslyn application programming
+    /// interface is still marked as experimental. The template compiler rewrites run-time code into calls to the
+    /// Roslyn syntax factories, and the factory member of such a feature reports an <c>RSEXPERIMENTAL</c>
+    /// diagnostic that the project suppresses for its own compilation. See issue #1948.
+    /// </para>
+    /// </remarks>
+    ImmutableArray<string> NoWarn { get; }
+
+    /// <summary>
     /// Gets the kind of durable reference that the project produces. The default value is
     /// <see cref="Options.DurableRefKind.Default"/>, which lets the execution scenario select the representation.
     /// </summary>
