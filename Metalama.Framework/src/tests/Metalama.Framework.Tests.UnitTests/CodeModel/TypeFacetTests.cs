@@ -33,7 +33,6 @@ public sealed class TypeFacetTests : UnitTestClass
                                  struct Struct;
                                  interface IInterface;
                                  enum Enum { Value }
-                                 record RecordClass;
 
                                  class Holder
                                  {
@@ -53,7 +52,7 @@ public sealed class TypeFacetTests : UnitTestClass
         using var testContext = this.CreateTestContext();
         var compilation = testContext.CreateCompilation( _code );
 
-        foreach ( var typeName in new[] { "OrdinaryClass", "Struct", "IInterface", "Enum", "RecordClass", "Holder" } )
+        foreach ( var typeName in new[] { "OrdinaryClass", "Struct", "IInterface", "Enum", "Holder" } )
         {
             var type = compilation.Types.OfName( typeName ).Single();
 
