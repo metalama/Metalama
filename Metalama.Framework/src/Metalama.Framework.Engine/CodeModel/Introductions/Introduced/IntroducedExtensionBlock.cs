@@ -193,9 +193,13 @@ internal sealed class IntroducedExtensionBlock : IntroducedMemberOrNamedType, IE
 
     public bool IsDelegate => false;
 
+    public bool IsEnum => false;
+
     public bool IsRecord => false;
 
     public bool IsClosed => false;
+
+    public bool IsUnion => false;
 
     public bool? IsNullable => false; // Extension blocks don't support nullability annotations.
 

@@ -14,6 +14,22 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn;
 [PublicAPI]
 public static class SyntaxKindExtensions
 {
+    /// <summary>
+    /// The syntax kind of a union declaration, which is <see cref="SyntaxKind.None"/> in the Roslyn variant that does
+    /// not declare that kind.
+    /// </summary>
+    /// <remarks>
+    /// The kind is held in a constant rather than named in the predicate, so that the predicate reads its syntax kind
+    /// in both Roslyn variants and compiles in both. <see cref="SyntaxKind.None"/> is never the kind of a syntax
+    /// node, and the predicate rejects it explicitly in any case.
+    /// </remarks>
+    private const SyntaxKind _unionDeclarationKind =
+#if ROSLYN_5_10_0_OR_GREATER && ALLOW_PREVIEW_LANG_VERSION
+        SyntaxKind.UnionDeclaration;
+#else
+        SyntaxKind.None;
+#endif
+
     extension( SyntaxNode node )
     {
         public SyntaxKind SyntaxKind => node.Kind();
@@ -28,11 +44,21 @@ public static class SyntaxKindExtensions
     {
         /// <summary>
         /// Gets a value indicating whether the syntax kind represents a type declaration that can contain members
-        /// (class, struct, interface, record, or record struct).
+        /// (class, struct, interface, record, record struct, or union). The extension block declaration is
+        /// deliberately excluded, because it declares no type of its own.
         /// </summary>
+        /// <remarks>
+        /// The union kind is named only in the Roslyn variant that declares it. In the other variant the predicate
+        /// answers <c>false</c> for a union, which is not observable, because a Roslyn that has no union kind cannot
+        /// parse a union declaration either.
+        /// </remarks>
         public bool IsTypeDeclaration
             => kind is SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration
-                or SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration;
+                or SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration
+#if ROSLYN_5_10_0_OR_GREATER && ALLOW_PREVIEW_LANG_VERSION
+                or SyntaxKind.UnionDeclaration
+#endif
+                ;
 
         /// <summary>
         /// Gets a value indicating whether the syntax kind represents any base type declaration
@@ -98,6 +124,16 @@ public static class SyntaxKindExtensions
         /// (record or record struct).
         /// </summary>
         public bool IsRecordDeclaration => kind is SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration;
+
+        /// <summary>
+        /// Gets a value indicating whether the syntax kind represents a union declaration, which is the form of a
+        /// union that uses the <c>union</c> keyword.
+        /// </summary>
+        /// <remarks>
+        /// The predicate answers <c>false</c> in the Roslyn variant that does not declare the union kind, which is
+        /// not observable, because a Roslyn that has no union kind cannot parse a union declaration either.
+        /// </remarks>
+        public bool IsUnionDeclaration => _unionDeclarationKind != SyntaxKind.None && kind == _unionDeclarationKind;
 
         /// <summary>
         /// Gets a value indicating whether the syntax kind represents a name

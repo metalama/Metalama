@@ -175,6 +175,8 @@ internal class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeImpl
 
     public bool IsDelegate => this.NamedTypeSymbol.TypeKind == Microsoft.CodeAnalysis.TypeKind.Delegate;
 
+    public bool IsEnum => this.NamedTypeSymbol.TypeKind == Microsoft.CodeAnalysis.TypeKind.Enum;
+
     // ITypeSymbol.IsClosed exists in the latest Roslyn variant only, so the read is compiled into that variant only,
     // as decided by section 6 of Metalama.Framework/docs/2027.0/DECISIONS.md. The condition also names
     // ALLOW_PREVIEW_LANG_VERSION, the opt-in of eng/RoslynPreview.props, because the Roslyn build consumed today
@@ -189,6 +191,15 @@ internal class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeImpl
     public bool IsClosed => this.NamedTypeSymbol.IsClosed;
 #else
     public bool IsClosed => false;
+#endif
+
+    // ITypeSymbol.IsUnion exists in the latest Roslyn variant only, so the read is compiled into that variant only,
+    // for the reason and under the condition explained above IsClosed. The structure of the union is not read here:
+    // it is the union facet, which UnionFacet builds and which this property gates.
+#if ROSLYN_5_10_0_OR_GREATER && ALLOW_PREVIEW_LANG_VERSION
+    public bool IsUnion => this.NamedTypeSymbol.IsUnion;
+#else
+    public bool IsUnion => false;
 #endif
 
     public bool HasDefaultConstructor

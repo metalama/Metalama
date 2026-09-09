@@ -531,6 +531,16 @@ namespace Metalama.Framework.Engine.CodeModel.Source
             }
         }
 
+        public bool IsEnum
+        {
+            get
+            {
+                this.OnUsingDeclaration();
+
+                return this.Implementation.IsEnum;
+            }
+        }
+
         public bool IsRecord
         {
             get
@@ -548,6 +558,16 @@ namespace Metalama.Framework.Engine.CodeModel.Source
                 this.OnUsingDeclaration();
 
                 return this.Implementation.IsClosed;
+            }
+        }
+
+        public bool IsUnion
+        {
+            get
+            {
+                this.OnUsingDeclaration();
+
+                return this.Implementation.IsUnion;
             }
         }
 

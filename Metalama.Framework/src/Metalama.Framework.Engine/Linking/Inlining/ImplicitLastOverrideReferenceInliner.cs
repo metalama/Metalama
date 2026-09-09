@@ -69,6 +69,15 @@ internal sealed class ImplicitLastOverrideReferenceInliner : Inliner
                 SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration
                     when declarationSyntax is RecordDeclarationSyntax recordDeclaration
                     => recordDeclaration,
+#if ROSLYN_5_10_0_OR_GREATER && ALLOW_PREVIEW_LANG_VERSION
+
+                // The parameter list of a union declaration holds the case types of the union and not the parameters
+                // of a primary constructor, so it is not the body of an implicit last override. The union kind is a
+                // type declaration kind, so this arm is required to keep the declaration out of the arm below, which
+                // returns the parameter list.
+                SyntaxKind.UnionDeclaration => throw new AssertionFailedException(
+                    $"The declaration of '{aspectReference.ContainingSemantic.Symbol}' is a union, whose parameter list is a case list." ),
+#endif
                 { IsTypeDeclaration: true } when declarationSyntax is TypeDeclarationSyntax { ParameterList: { } parameterList } => parameterList,
                 _ => throw new AssertionFailedException( $"Declaration '{aspectReference.ContainingSemantic.Symbol}' has an unexpected declaration node." )
             };

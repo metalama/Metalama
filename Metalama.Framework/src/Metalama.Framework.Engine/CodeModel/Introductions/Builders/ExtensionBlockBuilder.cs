@@ -109,6 +109,12 @@ internal sealed class ExtensionBlockBuilder : NamedTypeBuilder, IExtensionBlockB
         set => throw new NotSupportedException( "Extension blocks cannot be sealed." );
     }
 
+    public override bool IsClosed
+    {
+        get => false;
+        set => throw new NotSupportedException( "Extension blocks cannot be closed." );
+    }
+
     public override bool IsPartial
     {
         get => false;

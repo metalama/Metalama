@@ -16,7 +16,7 @@ namespace Metalama.Framework.Code.DeclarationBuilders;
 ///   <item>Cannot have a base type (always throws on <see cref="INamedTypeBuilder.BaseType"/> setter).</item>
 ///   <item>The <see cref="IMemberOrNamedTypeBuilder.Name"/> property is used internally to generate deterministic file names for the design-time syntax tree. It is automatically assigned if not set.</item>
 ///   <item>Cannot set accessibility (extension blocks don't have access modifiers).</item>
-///   <item>Cannot be abstract, sealed, or partial.</item>
+///   <item>Cannot be abstract, sealed, partial, or closed. The setter of <see cref="INamedTypeBuilder.IsClosed"/> throws a <see cref="System.NotSupportedException"/> for both values, because an extension block is not a class.</item>
 ///   <item>Cannot contain fields (will fail at advice execution time).</item>
 ///   <item>Cannot contain auto-properties (will fail at advice execution time).</item>
 ///   <item>Cannot contain nested types (will fail at advice execution time).</item>

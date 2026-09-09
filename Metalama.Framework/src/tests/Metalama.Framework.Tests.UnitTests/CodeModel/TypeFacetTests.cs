@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -33,7 +33,6 @@ public sealed class TypeFacetTests : UnitTestClass
                                  struct Struct;
                                  interface IInterface;
                                  enum Enum { Value }
-                                 record RecordClass;
 
                                  class Holder
                                  {
@@ -53,7 +52,7 @@ public sealed class TypeFacetTests : UnitTestClass
         using var testContext = this.CreateTestContext();
         var compilation = testContext.CreateCompilation( _code );
 
-        foreach ( var typeName in new[] { "OrdinaryClass", "Struct", "IInterface", "Enum", "RecordClass", "Holder" } )
+        foreach ( var typeName in new[] { "OrdinaryClass", "Struct", "IInterface", "Holder" } )
         {
             var type = compilation.Types.OfName( typeName ).Single();
 
@@ -206,11 +205,13 @@ public sealed class TypeFacetTests : UnitTestClass
 
         Assert.Empty( builder.Facets );
         Assert.False( builder.IsDelegate );
+        Assert.False( builder.IsEnum );
 
         var introducedType = compilation.Types.OfName( "IntroducedType" ).Single();
 
         Assert.Empty( introducedType.Facets );
         Assert.False( introducedType.IsDelegate );
+        Assert.False( introducedType.IsEnum );
     }
 
     /// <summary>

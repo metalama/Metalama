@@ -204,9 +204,15 @@ internal sealed class IntroducedNamedType : IntroducedMemberOrNamedType, INamedT
 
     public bool IsDelegate => this._namedTypeBuilderData.TypeKind == TypeKind.Delegate;
 
+    public bool IsEnum => this._namedTypeBuilderData.TypeKind == TypeKind.Enum;
+
     public bool IsRecord => this._namedTypeBuilderData.IsRecord;
 
     public bool IsClosed => this._namedTypeBuilderData.IsClosed;
+
+    // Introducing a union is not supported yet, so the value is a constant rather than a read of the builder data.
+    // The story that adds the writer adds it to the builder data at the same time.
+    public bool IsUnion => false;
 
     public bool? IsNullable { get; }
 
