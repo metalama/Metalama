@@ -220,6 +220,8 @@ internal class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, I
 
     public bool IsDelegate => this.TypeKind == TypeKind.Delegate;
 
+    public bool IsEnum => this.TypeKind == TypeKind.Enum;
+
     public INamedType TypeDefinition => this;
 
     public INamedType Definition => this;

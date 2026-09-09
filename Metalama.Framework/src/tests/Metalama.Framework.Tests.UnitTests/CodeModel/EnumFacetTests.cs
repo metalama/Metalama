@@ -101,7 +101,14 @@ public sealed class EnumFacetTests : UnitTestClass
         using var testContext = this.CreateTestContext();
         var compilation = testContext.CreateCompilation( _code );
 
-        var members = compilation.Types.OfName( "Color" ).Single().Facets.Enum!.Members;
+        var color = compilation.Types.OfName( "Color" ).Single();
+
+        // The last member is resolved by name first. INamedType.Fields enumerates the fields that a previous consumer
+        // resolved by name before the others, so this is the case in which an implementation that took its order from
+        // that collection would report Blue first.
+        _ = color.Fields.OfName( "Blue" ).Single();
+
+        var members = color.Facets.Enum!.Members;
 
         Assert.Equal( new[] { "Red", "Green", "Blue" }, members.SelectAsArray( f => f.Name ) );
         Assert.Equal( new object?[] { 0, 5, 6 }, members.SelectAsArray( f => f.ConstantValue!.Value.Value ) );

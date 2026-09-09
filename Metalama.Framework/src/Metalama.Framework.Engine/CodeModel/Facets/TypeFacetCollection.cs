@@ -44,7 +44,7 @@ internal sealed class TypeFacetCollection : ITypeFacetCollection
     /// Creates the collection of facets of a type, or returns <see cref="Empty"/> when the type has no facet.
     /// </summary>
     public static ITypeFacetCollection Create( INamedType type )
-        => type.IsDelegate || type.IsUnion || type.IsRecord ? new TypeFacetCollection( type ) : Empty;
+        => type.IsDelegate || type.IsUnion || type.IsRecord || type.IsEnum ? new TypeFacetCollection( type ) : Empty;
 
     [Memo]
     public IDelegateFacet? Delegate => this._type.IsDelegate ? new DelegateFacet( this._type ) : null;
@@ -55,9 +55,13 @@ internal sealed class TypeFacetCollection : ITypeFacetCollection
     [Memo]
     public IRecordFacet? Record => this._type.IsRecord ? new RecordFacet( this._type ) : null;
 
+    [Memo]
+    public IEnumFacet? Enum => this._type.IsEnum ? new EnumFacet( this._type ) : null;
+
     // The count is answered from the discriminators of the type and not from the typed properties, so that counting
     // the facets of a type does not construct them.
-    public int Count => (this._type.IsDelegate ? 1 : 0) + (this._type.IsUnion ? 1 : 0) + (this._type.IsRecord ? 1 : 0);
+    public int Count
+        => (this._type.IsDelegate ? 1 : 0) + (this._type.IsUnion ? 1 : 0) + (this._type.IsRecord ? 1 : 0) + (this._type.IsEnum ? 1 : 0);
 
     public IEnumerator<ITypeFacet> GetEnumerator()
     {
@@ -77,6 +81,11 @@ internal sealed class TypeFacetCollection : ITypeFacetCollection
         {
             yield return this.Record;
         }
+
+        if ( this.Enum != null )
+        {
+            yield return this.Enum;
+        }
     }
 
     IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
@@ -88,6 +97,8 @@ internal sealed class TypeFacetCollection : ITypeFacetCollection
         public IUnionFacet? Union => null;
 
         public IRecordFacet? Record => null;
+
+        public IEnumFacet? Enum => null;
 
         public int Count => 0;
 

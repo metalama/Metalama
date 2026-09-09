@@ -44,4 +44,10 @@ public interface ITypeFacetCollection : IReadOnlyCollection<ITypeFacet>
     /// Gets the facet of the record, or <c>null</c> when the type is not a record.
     /// </summary>
     IRecordFacet? Record { get; }
+
+    /// <summary>
+    /// Gets the facet of the enum, or <c>null</c> when the type is not an enum.
+    /// </summary>
+    /// <seealso cref="INamedType.IsEnum"/>
+    IEnumFacet? Enum { get; }
 }

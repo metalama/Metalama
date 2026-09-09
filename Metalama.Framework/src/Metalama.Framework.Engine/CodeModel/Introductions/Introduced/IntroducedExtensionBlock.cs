@@ -193,6 +193,8 @@ internal sealed class IntroducedExtensionBlock : IntroducedMemberOrNamedType, IE
 
     public bool IsDelegate => false;
 
+    public bool IsEnum => false;
+
     public bool IsRecord => false;
 
     public bool IsClosed => false;
