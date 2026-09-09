@@ -16,20 +16,15 @@ using System.Collections.Generic;
  * expression below carries the value of a parameter of the target method, which is a run-time expression, so the
  * collection expression stays in run-time scope and the template compiler has to rebuild the with-element in the
  * generated code. The positions exercised are: a compile-time expression as the argument of the with-element, a
- * named argument in the with-element, a spread element beside the with-element, a collection expression that carries
- * a with-element nested in another collection expression, a with-element in a statement that a compile-time loop
- * repeats, and a with-element in a statement that a compile-time condition selects.
+ * compile-time element beside a run-time one, a named argument in the with-element, a spread element beside the
+ * with-element, a collection expression that carries a with-element nested in another collection expression, a
+ * with-element in a statement that a compile-time loop repeats, and a with-element in a statement that a compile-time
+ * condition selects.
  *
- * Two shapes are deliberately absent.
- *
- * A collection expression whose elements are all compile-time is itself compile-time, and the local that receives it
- * is then a compile-time local that leaves no statement behind. That rule belongs to collection expressions in
- * general and not to the with-element, and the compile-time scope is covered by
- * CollectionExpressionArguments_CompileTime.
- *
- * A collection expression that carries a compile-time element beside a run-time one crashes the template compiler,
- * which is issue #1994. That defect belongs to the collection expression of C# 12: it reproduces with no
- * with-element, and a with-element neither causes it nor changes it.
+ * One shape is deliberately absent. A collection expression whose elements are all compile-time is itself
+ * compile-time, and the local that receives it is then a compile-time local that leaves no statement behind. That
+ * rule belongs to collection expressions in general and not to the with-element, and the compile-time scope is
+ * covered by CollectionExpressionArguments_CompileTime.
  *
  * The test requires ALLOW_PREVIEW_LANG_VERSION for the reason given in CollectionExpressionArguments_RunTime. See
  * issue #1948.
@@ -43,6 +38,10 @@ internal class TheAspect : OverrideMethodAspect
     {
         var capacity = meta.CompileTime( 2 );
         List<string> byCapacity = [with( capacity ), meta.Target.Parameters[0].Value, "b"];
+
+        // A compile-time element beside a run-time one, which #1994 made work for the collection expression of
+        // C# 12. The with-element neither causes that case nor changes it, and this checks that the two compose.
+        List<string> mixedElements = [with( capacity ), meta.Target.Method.Name, meta.Target.Parameters[0].Value];
 
         HashSet<string> named = [with( comparer: StringComparer.OrdinalIgnoreCase ), meta.Target.Parameters[0].Value];
 
@@ -62,7 +61,7 @@ internal class TheAspect : OverrideMethodAspect
             Console.WriteLine( conditional.Count );
         }
 
-        Console.WriteLine( byCapacity.Count + named.Count + spread.Count + nested.Count );
+        Console.WriteLine( byCapacity.Count + mixedElements.Count + named.Count + spread.Count + nested.Count );
 
         return meta.Proceed();
     }
