@@ -37,7 +37,7 @@ public interface IUnionCase
     /// <summary>
     /// Gets the member that creates a value of the case: the constructor that the compiler synthesizes for a union
     /// declaration, the public single-parameter constructor of the attribute form, or the static <c>Create</c> method
-    /// that the attribute form declares in its <c>IUnionMembers</c> interface.
+    /// of the <c>IUnionMembers</c> interface of the attribute form, or of an interface that this interface inherits.
     /// </summary>
     /// <remarks>
     /// The member is typed as <see cref="IMethodBase"/> because it is a constructor for one authoring form and a
