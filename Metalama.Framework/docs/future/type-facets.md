@@ -78,6 +78,9 @@ The facet types are declared in the namespace `Metalama.Framework.Code.Types`, b
 `ITypeFacetCollection` is declared in `Metalama.Framework.Code.Collections`, beside `IExtensionBlockCollection`,
 because it is a collection.
 
+Every interface below carries `[InternalImplement]`. Adding a member to such an interface, including an inherited
+one, is not a user-facing breaking change, so a facet can gain a member in a later release.
+
 ### 2.1. One collection of facets
 
 A facet is the structure that a declared named type has because of its kind, and that other named types do not
@@ -104,12 +107,13 @@ public enum TypeFacetKind
 ```csharp
 // Metalama.Framework/Code/Types/ITypeFacet.cs
 [CompileTime]
+[InternalImplement]
 public interface ITypeFacet
 {
     /// <summary>
     /// Gets the kind of the facet.
     /// </summary>
-    TypeFacetKind Kind { get; }
+    TypeFacetKind FacetKind { get; }
 
     /// <summary>
     /// Gets the type to which the facet belongs.
@@ -120,6 +124,7 @@ public interface ITypeFacet
 
 ```csharp
 // Metalama.Framework/Code/Collections/ITypeFacetCollection.cs
+[InternalImplement]
 public interface ITypeFacetCollection : IReadOnlyCollection<ITypeFacet>
 {
     IDelegateFacet? Delegate { get; }
@@ -171,6 +176,7 @@ member does not pay for resolving the others.
 ```csharp
 // Metalama.Framework/Code/Types/IDelegateFacet.cs
 [CompileTime]
+[InternalImplement]
 public interface IDelegateFacet : ITypeFacet
 {
     /// <summary>
@@ -190,6 +196,7 @@ are the asynchronous pattern that preceded `async`.
 ```csharp
 // Metalama.Framework/Code/Types/IEnumFacet.cs
 [CompileTime]
+[InternalImplement]
 public interface IEnumFacet : ITypeFacet
 {
     /// <summary>
@@ -217,6 +224,7 @@ more cumbersome than the property it would replace.
 ```csharp
 // Metalama.Framework/Code/Types/IRecordFacet.cs
 [CompileTime]
+[InternalImplement]
 public interface IRecordFacet : ITypeFacet
 {
     /// <summary>
@@ -256,12 +264,13 @@ record struct interface. Three of its members are `null` for a record struct, an
 ```csharp
 // Metalama.Framework/Code/Types/IUnionFacet.cs
 [CompileTime]
+[InternalImplement]
 public interface IUnionFacet : ITypeFacet
 {
     /// <summary>
     /// Gets the kind of the union.
     /// </summary>
-    new UnionKind Kind { get; }
+    UnionKind UnionKind { get; }
 
     /// <summary>
     /// Gets the cases of the union, in the order in which the compiler reports them.
@@ -292,6 +301,7 @@ public enum UnionKind
 }
 
 [CompileTime]
+[InternalImplement]
 public interface IUnionCase
 {
     IType Type { get; }
@@ -326,19 +336,16 @@ invoker through the member, and no facet declares an invoker member of its own.
 var call = eventType.Facets.Delegate!.InvokeMethod.With( handler ).Invoke( args );
 ```
 
-`IUnionCase.CreationMember` is typed as `IMethodBase`, which today derives from no invoker, because the creation
-member is a constructor for one form of union and a static method for another. The proposal therefore adds
-`IMethodBaseInvoker`, declaring the operations that `IMethodInvoker` and `IConstructorInvoker` have in common, and
-makes `IMethodBase` derive from it. Creating an instance of a union case is then the invocation of its creation
-member, and no facet declares a method to create an expression:
+`IUnionCase.CreationMember` is typed as `IMethodBase`, which derives from no invoker, because the creation member is
+a constructor for one form of union and a static method for another. No facet declares a method to create an
+expression for it.
 
-```csharp
-var instance = unionCase.CreationMember.CreateInvokeExpression( value );
-```
-
-The relationship between the three invoker interfaces has to be settled during implementation. `IMethod` and
-`IConstructor` already derive from the two specific invokers, so `IMethodInvoker` and `IConstructorInvoker` either
-derive from `IMethodBaseInvoker` or keep their members independently.
+The member that this calls for is `IMethodBaseInvoker`, declaring the operations that `IMethodInvoker` and
+`IConstructorInvoker` have in common, with `IMethodBase` deriving from it. Creating an instance of a union case
+would then be the invocation of its creation member. That is a story of its own, because it changes `IMethodBase`
+and because the relationship between the three invoker interfaces has to be settled: `IMethod` and `IConstructor`
+already derive from the two specific invokers. It is not part of this proposal, and until it exists a consumer that
+invokes a creation member tests whether it is an `IMethod` or an `IConstructor`.
 
 ### 2.4. Writing is on builders, not on facets
 
@@ -377,14 +384,15 @@ members are not yet resolvable.
 | `INamedType.IsRecord` | Kept, and joined by `IsDelegate`, `IsEnum`, `IsTuple` and `IsUnion`. See section 4.4. |
 | `INamedType.UnderlyingType` | Kept. It is shipped and it also serves nullable reference types. `IEnumFacet.UnderlyingType` is the member with one meaning, and the documentation of both says so. |
 | `IEvent.Signature` | Kept, and defined as `Type.Facets.Delegate!.InvokeMethod`. The four duplicate implementations are removed. The member currently has no documentation and gains it. |
-| `IMethodBase` | Gains `IMethodBaseInvoker` as a base interface. See section 2.3. |
+| `IMethodBase` | Unchanged. `IMethodBaseInvoker` is a story of its own. See section 2.3. |
 | `ITupleType`, `ITupleElement` | Moved from `Metalama.Framework.Code` to `Metalama.Framework.Code.Types`. Otherwise unchanged. A tuple has no facet today. See section 4.5. |
 | `TypeKind.Tuple`, `TypeFactory.CreateTupleType` | Unchanged. |
 | `INamedType.PrimaryConstructor` | Kept. A primary constructor is not specific to records since C# 12, so it does not move to `IRecordFacet`. |
 | `IExtensionBlock` | Unchanged, and deliberately not a facet. See section 4.1. |
 
 No member is made obsolete by this proposal. It carries one user-facing breaking change, the namespace of
-`ITupleType` and `ITupleElement`, so the pull request that carries it takes the `breaking` label.
+`ITupleType` and `ITupleElement`, so the pull request that carries it takes the `breaking` label. The change ships
+in 2027.0 as a plain namespace change, with no compatibility measure.
 
 ## 4. Decisions
 
@@ -504,9 +512,10 @@ behaviour before anything that cannot be revised is public.
 | 2 | `IEnumFacet` and `INamedType.IsEnum`. | 1 |
 | 3 | `IRecordFacet`, and the conversion of the synthesized-member lookups of the linker. | 1 |
 | 4 | `INamedType.IsTuple`, and the move of `ITupleType` and `ITupleElement` to `Metalama.Framework.Code.Types`. Takes the `breaking` label. | — |
-| 5 | `IMethodBaseInvoker` on `IMethodBase`. | — |
-| 6 | `IUnionFacet`, `IUnionCase`, `UnionKind`, `INamedType.IsUnion`. | 1, 5, and the move to the stable Roslyn |
-| 7 | `IUnionBuilder`, and the builder shapes of the other kinds. | 6, and the union introduction story |
+| 5 | `IUnionFacet`, `IUnionCase`, `UnionKind`, `INamedType.IsUnion`. | 1, and the move to the stable Roslyn |
+| 6 | `IUnionBuilder`, and the builder shapes of the other kinds. | 5, and the union introduction story |
+
+`IMethodBaseInvoker` is a story of its own, described in section 2.3, and it is not one of these pull requests.
 
 Pull request 1 changes one shipped behaviour: `EligibilityRuleFactory` currently throws `InvalidOperationException`
 when the type of an event is not a well-formed delegate, and it returns `false` after the conversion.
@@ -516,21 +525,9 @@ Pull request 1 is also the acceptance test of the design. Fourteen of the fiftee
 asserting that the facet is not `null`, the nullable collection property is the wrong shape for those consumers, and
 the design has to be revised before the union facet is built on it.
 
-## 7. Open questions
+## 7. Resolved questions
 
-1. Whether `IUnionFacet.Kind` shadows `ITypeFacet.Kind` or the base member is renamed. `ITypeFacet.Kind` returns
-   `TypeFacetKind` and `IUnionFacet.Kind` returns `UnionKind`, so the derived member has to be declared `new`, and a
-   consumer sees a different type depending on the interface through which it reads the property. Renaming the base
-   member to `FacetKind` removes the shadowing at the price of a name that is less uniform with the rest of the code
-   model.
-2. Whether `IMethodInvoker` and `IConstructorInvoker` derive from `IMethodBaseInvoker`, or keep their members
-   independently. See section 2.3.
-3. Whether the move of `ITupleType` and `ITupleElement` to `Metalama.Framework.Code.Types` ships as a plain
-   namespace change or with a compatibility measure, and in which release.
-
-## 8. Resolved questions
-
-These were open in the first revision of this document and are settled.
+These were open in an earlier revision of this document and are settled. No question is open.
 
 - `IDelegateFacet` does not expose `BeginInvoke` and `EndInvoke`. They are the asynchronous pattern that preceded
   `async`.
@@ -539,8 +536,12 @@ These were open in the first revision of this document and are settled.
 - `UnionKind` gains an `External` member for a union read from a referenced assembly, whose authoring form the
   compiled form does not record.
 - The property names `Delegate`, `Enum` and `Record` on `ITypeFacetCollection` are not a concern.
+- The two kind properties are named apart rather than shadowed: `ITypeFacet.FacetKind` returns `TypeFacetKind` and
+  `IUnionFacet.UnionKind` returns `UnionKind`.
+- `IMethodBaseInvoker` is a story of its own and is not part of this proposal.
+- The namespace of `ITupleType` and `ITupleElement` changes in 2027.0 with no compatibility measure.
 
-## 9. References
+## 8. References
 
 - [`../2027.0/DECISIONS.md`](../2027.0/DECISIONS.md), sections 3, 4 and 6.
 - [`../2027.0/03-code-model-unions-closed.md`](../2027.0/03-code-model-unions-closed.md), finding CM-1.
