@@ -52,7 +52,7 @@ internal class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, I
     /// cannot emit the modifier.
     /// </para>
     /// </remarks>
-    public bool IsClosed
+    public virtual bool IsClosed
     {
         get => this._isClosed;
         set

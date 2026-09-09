@@ -20,9 +20,11 @@ An aspect cannot introduce a closed class, because no builder property expresses
 
 A closed class is an ordinary class with one more modifier, which is why the writer is sized M and why every part of
 it is already identified. The reader that this story consumes, which reports whether a named type is closed, is
-delivered by S-16. An aspect that introduces a closed class emits the modifier at build time and nothing at design
-time on the hosts that the lower Roslyn variant serves. Section 6 of [`DECISIONS.md`](../DECISIONS.md) records why
-that needs no diagnostic: such a host cannot compile C# 15 and reports the closed hierarchy as an error of its own.
+delivered by S-16. On the hosts that the lower Roslyn variant serves, the writer refuses the modifier instead of
+ignoring it: the setter throws an `InvalidOperationException`, so an aspect never silently obtains an ordinary
+abstract class where it requested a closed class. Section 6 of [`DECISIONS.md`](../DECISIONS.md) lets the reader
+report false on such a host, and the writer differs from the reader because a request that is ignored changes the
+generated code.
 
 #### Scope
 
@@ -34,13 +36,16 @@ that needs no diagnostic: such a host cannot compile C# 15 and reports the close
   reporting true.
 - Emit the modifier before `partial`, because `partial` must sit immediately before the type keyword.
 - Gate the reference to `SyntaxKind.ClosedKeyword` on the latest Roslyn variant, per S-13.
+- Refuse the value in the variant that cannot emit the keyword, so that an aspect never silently obtains a class that
+  is not closed.
 
 #### Acceptance criteria
 
 - An aspect introduces a closed class whose generated code compiles.
 - The generated modifier list reads `closed partial class` and never `abstract closed class`.
-- Introducing a closed struct, a sealed closed class or a static closed class is refused with a diagnostic that names
-  the language restriction.
+- Introducing a closed struct, a sealed closed class or a static closed class is refused with an exception that names
+  the language restriction, which the aspect pipeline reports as an error.
+- Setting the property in the variant that cannot emit the keyword is refused as well.
 - Both Roslyn variants build.
 
 — Claude for @gfraiteur
