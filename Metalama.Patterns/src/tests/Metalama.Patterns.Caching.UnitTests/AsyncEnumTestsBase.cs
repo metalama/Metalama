@@ -49,12 +49,20 @@ public abstract class AsyncEnumTestsBase : BaseCachingTests, IAsyncLifetime
     /// </remarks>
     public async Task DisposeAsync()
     {
-        using var cancellationTokenSource = new CancellationTokenSource( _disposeTimeout );
+        try
+        {
+            using var cancellationTokenSource = new CancellationTokenSource( _disposeTimeout );
 
-        await this.FinishBlockingTaskAsync( cancellationTokenSource.Token );
+            await this.FinishBlockingTaskAsync( cancellationTokenSource.Token );
 
-        this.TestOutputHelper.WriteLine( this.GetLog() );
-        this._context.Dispose();
+            this.TestOutputHelper.WriteLine( this.GetLog() );
+        }
+        finally
+        {
+            // The caching context is disposed even when the wait above fails, so that a test whose enumeration
+            // does not complete does not leak the context into the tests that follow.
+            this._context.Dispose();
+        }
     }
 
     /// <summary>
@@ -158,13 +166,24 @@ public abstract class AsyncEnumTestsBase : BaseCachingTests, IAsyncLifetime
             this._log = log;
         }
 
-        private readonly TaskCompletionSource _blockingTask = new();
+        /// <summary>
+        /// Blocks the members that await it, until <see cref="FinishBlockingTask"/> completes it.
+        /// </summary>
+        /// <remarks>
+        /// The continuations run asynchronously, so that the blocked member resumes on the thread pool instead of
+        /// on the thread that calls <see cref="FinishBlockingTask"/>.
+        /// </remarks>
+        private readonly TaskCompletionSource _blockingTask = new( TaskCreationOptions.RunContinuationsAsynchronously );
 
         /// <summary>
         /// Completed when a blocked member has run to the end of its body, or when its enumeration has been
         /// abandoned before that.
         /// </summary>
-        private readonly TaskCompletionSource _blockedMemberCompleted = new();
+        /// <remarks>
+        /// The continuations run asynchronously, so that the disposal of the test does not resume on the thread
+        /// that runs the enumeration.
+        /// </remarks>
+        private readonly TaskCompletionSource _blockedMemberCompleted = new( TaskCreationOptions.RunContinuationsAsynchronously );
 
         public void FinishBlockingTask()
         {

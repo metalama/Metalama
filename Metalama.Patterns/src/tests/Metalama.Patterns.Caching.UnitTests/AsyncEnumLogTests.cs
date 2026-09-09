@@ -62,6 +62,11 @@ public sealed class AsyncEnumLogTests : AsyncEnumTestsBase
             cancellationToken.ThrowIfCancellationRequested();
 
             _ = this.GetLog();
+
+            // The loop yields after every read, so that it does not hold a thread of the pool for the whole
+            // duration of the appending task. The reads still overlap the appends, because the two tasks run
+            // concurrently and the appending task performs many appends between two reads.
+            await Task.Yield();
         }
 
         await appendTask.WaitAsync( cancellationToken );
