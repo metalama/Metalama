@@ -4,7 +4,4 @@
   </ItemGroup>
   <Import Project="../../../../eng/RoslynVersions/Roslyn.5.0.0.props" />
   <Import Project="../Metalama.Framework.Tests.UnitTestHelpers/Metalama.Framework.Tests.UnitTestHelpers.csproj" />
-  <PropertyGroup>
-    <IsPackable>false</IsPackable>
-  </PropertyGroup>
 </Project>
