@@ -17,31 +17,48 @@ namespace Metalama.Framework.Tests.UnitTests.CodeModel;
 /// </summary>
 public sealed class RecordFacetTests : UnitTestClass
 {
-    private const string _code = """
-                                 record PositionalRecordClass( int Id, string Name );
+    /// <summary>
+    /// Gets the code of the compilation under test.
+    /// </summary>
+    /// <remarks>
+    /// The reference assemblies of .NET Framework do not define <c>IsExternalInit</c>, which the <c>init</c>
+    /// accessor of a positional record requires, so the type is declared in the code itself.
+    /// </remarks>
+    private static string GetCode()
+    {
+        // ReSharper disable once ConvertToConstant.Local
+        var code = """
+                   record PositionalRecordClass( int Id, string Name );
 
-                                 record NonPositionalRecordClass
-                                 {
-                                     public int Id { get; init; }
-                                 }
+                   record NonPositionalRecordClass
+                   {
+                       public int Id { get; init; }
+                   }
 
-                                 record struct PositionalRecordStruct( int Id, string Name );
+                   record struct PositionalRecordStruct( int Id, string Name );
 
-                                 record struct NonPositionalRecordStruct
-                                 {
-                                     public int Id { get; init; }
-                                 }
+                   record struct NonPositionalRecordStruct
+                   {
+                       public int Id { get; init; }
+                   }
 
-                                 readonly record struct ReadOnlyRecordStruct( int Id );
+                   readonly record struct ReadOnlyRecordStruct( int Id );
 
-                                 sealed record SealedPositionalRecordClass( int Id );
+                   sealed record SealedPositionalRecordClass( int Id );
 
-                                 class OrdinaryClass;
-                                 struct OrdinaryStruct;
-                                 interface IInterface;
-                                 enum Enum { Value }
-                                 delegate void Handler();
-                                 """;
+                   class OrdinaryClass;
+                   struct OrdinaryStruct;
+                   interface IInterface;
+                   enum Enum { Value }
+                   delegate void Handler();
+                   """;
+
+#if !NET5_0_OR_GREATER
+        code += "namespace System.Runtime.CompilerServices { internal static class IsExternalInit {} }";
+#endif
+
+        return code;
+    }
 
     /// <summary>
     /// Verifies the acceptance criterion that, for a positional record class, every member of the facet is present
@@ -51,7 +68,7 @@ public sealed class RecordFacetTests : UnitTestClass
     public void PositionalRecordClassHasEveryMemberOfTheFacet()
     {
         using var testContext = this.CreateTestContext();
-        var compilation = testContext.CreateCompilation( _code );
+        var compilation = testContext.CreateCompilation( GetCode() );
 
         var type = compilation.Types.OfName( "PositionalRecordClass" ).Single();
 
@@ -118,7 +135,7 @@ public sealed class RecordFacetTests : UnitTestClass
     public void MembersOfTheFacetAreTheMembersOfTheType()
     {
         using var testContext = this.CreateTestContext();
-        var compilation = testContext.CreateCompilation( _code );
+        var compilation = testContext.CreateCompilation( GetCode() );
 
         var type = compilation.Types.OfName( "PositionalRecordClass" ).Single();
         var facet = type.Facets.Record;
@@ -142,7 +159,7 @@ public sealed class RecordFacetTests : UnitTestClass
     public void RecordStructHasNoEqualityContractNoCloneMethodAndNoCopyConstructor( string typeName )
     {
         using var testContext = this.CreateTestContext();
-        var compilation = testContext.CreateCompilation( _code );
+        var compilation = testContext.CreateCompilation( GetCode() );
 
         var type = compilation.Types.OfName( typeName ).Single();
 
@@ -171,7 +188,7 @@ public sealed class RecordFacetTests : UnitTestClass
     public void NonPositionalRecordHasNoDeconstructMethodAndNoPositionalProperty( string typeName, bool isRecordClass )
     {
         using var testContext = this.CreateTestContext();
-        var compilation = testContext.CreateCompilation( _code );
+        var compilation = testContext.CreateCompilation( GetCode() );
 
         var type = compilation.Types.OfName( typeName ).Single();
 
@@ -197,7 +214,7 @@ public sealed class RecordFacetTests : UnitTestClass
     public void CopyConstructorOfSealedRecordClassIsPrivate()
     {
         using var testContext = this.CreateTestContext();
-        var compilation = testContext.CreateCompilation( _code );
+        var compilation = testContext.CreateCompilation( GetCode() );
 
         var facet = compilation.Types.OfName( "SealedPositionalRecordClass" ).Single().Facets.Record;
 
@@ -213,7 +230,7 @@ public sealed class RecordFacetTests : UnitTestClass
     public void TypeThatIsNotARecordHasNoRecordFacet()
     {
         using var testContext = this.CreateTestContext();
-        var compilation = testContext.CreateCompilation( _code );
+        var compilation = testContext.CreateCompilation( GetCode() );
 
         foreach ( var typeName in new[] { "OrdinaryClass", "OrdinaryStruct", "IInterface", "Enum", "Handler" } )
         {
@@ -233,9 +250,14 @@ public sealed class RecordFacetTests : UnitTestClass
     {
         using var testContext = this.CreateTestContext();
 
-        var compilation = testContext.CreateCompilation(
-            "class C { ReferencedRecord F = null!; }",
-            dependentCode: "public record ReferencedRecord( int Id, string Name );" );
+        // ReSharper disable once ConvertToConstant.Local
+        var dependentCode = "public record ReferencedRecord( int Id, string Name );";
+
+#if !NET5_0_OR_GREATER
+        dependentCode += "namespace System.Runtime.CompilerServices { internal static class IsExternalInit {} }";
+#endif
+
+        var compilation = testContext.CreateCompilation( "class C { ReferencedRecord F = null!; }", dependentCode );
 
         var type = (INamedType) compilation.Types.OfName( "C" ).Single().Fields.OfName( "F" ).Single().Type;
 
@@ -259,14 +281,19 @@ public sealed class RecordFacetTests : UnitTestClass
     [Fact]
     public void FacetOfConstructedGenericRecordReportsTheSubstitutedMembers()
     {
-        const string code = """
-                            record Box<T>( T Value );
+        // ReSharper disable once ConvertToConstant.Local
+        var code = """
+                   record Box<T>( T Value );
 
-                            class Holder
-                            {
-                                public Box<string> ConstructedRecord = null!;
-                            }
-                            """;
+                   class Holder
+                   {
+                       public Box<string> ConstructedRecord = null!;
+                   }
+                   """;
+
+#if !NET5_0_OR_GREATER
+        code += "namespace System.Runtime.CompilerServices { internal static class IsExternalInit {} }";
+#endif
 
         using var testContext = this.CreateTestContext();
         var compilation = testContext.CreateCompilation( code );
