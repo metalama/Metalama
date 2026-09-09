@@ -92,7 +92,7 @@ have. A type has a collection of facets, which is empty for an ordinary class, s
 public enum TypeFacetKind
 {
     /// <summary>The type has no facet.</summary>
-    None,
+    None = 0,
 
     Delegate,
 
@@ -287,17 +287,17 @@ public interface IUnionFacet : ITypeFacet
 [CompileTime]
 public enum UnionKind
 {
+    /// <summary>
+    /// The kind of the union is not known. This is the case for a union declared in a referenced assembly, because
+    /// the compiled form does not record the authoring form, so the two kinds below cannot be told apart there.
+    /// </summary>
+    None = 0,
+
     /// <summary>The type is declared with the <c>union</c> keyword.</summary>
     Declaration,
 
     /// <summary>The type is a class or a struct that carries <c>UnionAttribute</c>.</summary>
-    Attribute,
-
-    /// <summary>
-    /// The type is a union declared in a referenced assembly. The compiled form does not record the authoring form,
-    /// so the two forms above cannot be told apart there.
-    /// </summary>
-    External
+    Attribute
 }
 
 [CompileTime]
@@ -533,8 +533,8 @@ These were open in an earlier revision of this document and are settled. No ques
   `async`.
 - `IRecordFacet` keeps its nullable members and is not split in two.
 - The members of an enum stay `IReadOnlyList<IField>`, and no interface of their own is declared for them.
-- `UnionKind` gains an `External` member for a union read from a referenced assembly, whose authoring form the
-  compiled form does not record.
+- `UnionKind` gains a `None` member, of value zero, for a union read from a referenced assembly, whose authoring
+  form the compiled form does not record.
 - The property names `Delegate`, `Enum` and `Record` on `ITypeFacetCollection` are not a concern.
 - The two kind properties are named apart rather than shadowed: `ITypeFacet.FacetKind` returns `TypeFacetKind` and
   `IUnionFacet.UnionKind` returns `UnionKind`.
