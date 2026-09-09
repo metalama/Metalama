@@ -33,10 +33,11 @@ public partial class MSBuildProjectOptions : DefaultProjectOptions
     private static readonly char[] _defaultListSeparators = [','];
 
     /// <summary>
-    /// The characters that separate the identifiers of the <c>NoWarn</c> MSBuild property. That property accepts a
-    /// semicolon, a comma and white space, therefore all three are honoured here.
+    /// The characters that separate the identifiers of the <c>MetalamaIgnoredWarnings</c> MSBuild property. The build
+    /// joins them with a semicolon, and the <c>NoWarn</c> property they come from also accepts a comma and white
+    /// space, therefore all three are honoured here.
     /// </summary>
-    private static readonly char[] _noWarnSeparators = [';', ',', ' ', '\t', '\r', '\n'];
+    private static readonly char[] _ignoredWarningsSeparators = [';', ',', ' ', '\t', '\r', '\n'];
 
     private readonly IProjectOptionsSource _source;
     private readonly TransformerOptions _transformerOptions;
@@ -228,8 +229,8 @@ public partial class MSBuildProjectOptions : DefaultProjectOptions
     public override ImmutableArray<string> SourceGeneratorAttributes => this.GetListOption( MSBuildPropertyNames.MetalamaSourceGeneratorAttributes );
 
     [Memo]
-    public override ImmutableArray<string> NoWarn
-        => this.GetListOption( MSBuildPropertyNames.NoWarn, _noWarnSeparators )
+    public override ImmutableArray<string> IgnoredWarnings
+        => this.GetListOption( MSBuildPropertyNames.MetalamaIgnoredWarnings, _ignoredWarningsSeparators )
             .Select( NormalizeDiagnosticId )
             .ToImmutableArray();
 

@@ -120,7 +120,7 @@ public class DefaultProjectOptions : IProjectOptions
 
     public virtual ImmutableArray<string> SourceGeneratorAttributes => ImmutableArray<string>.Empty;
 
-    public virtual ImmutableArray<string> NoWarn => ImmutableArray<string>.Empty;
+    public virtual ImmutableArray<string> IgnoredWarnings => ImmutableArray<string>.Empty;
 
     public virtual ImmutableArray<TargetedAssemblyReference> ExtensionAssemblies => ImmutableArray<TargetedAssemblyReference>.Empty;
 

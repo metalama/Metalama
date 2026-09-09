@@ -239,12 +239,12 @@ internal sealed partial class CompileTimeCompilationBuilder
             h.Append( this._projectOptions.TemplateLanguageVersion );
             this._logger.Trace?.Log( $"ProjectHash: TemplateLanguageVersion={this._projectOptions.TemplateLanguageVersion}" );
 
-            // NoWarn selects the diagnostic options of the compile-time compilation, therefore a compile-time assembly
-            // built under one value must not be served from the cache under another.
-            foreach ( var suppressedDiagnosticId in this._projectOptions.NoWarn )
+            // The ignored warnings select the diagnostic options of the compile-time compilation, therefore a
+            // compile-time assembly built under one value must not be served from the cache under another.
+            foreach ( var ignoredWarning in this._projectOptions.IgnoredWarnings )
             {
-                h.Append( suppressedDiagnosticId );
-                this._logger.Trace?.Log( $"ProjectHash: NoWarn={suppressedDiagnosticId}" );
+                h.Append( ignoredWarning );
+                this._logger.Trace?.Log( $"ProjectHash: IgnoredWarnings={ignoredWarning}" );
             }
         }
 
@@ -452,17 +452,17 @@ internal sealed partial class CompileTimeCompilationBuilder
         var compilationOptions = new CSharpCompilationOptions( OutputKind.DynamicallyLinkedLibrary, deterministic: true, optimizationLevel: OptimizationLevel.Debug );
 
         // This compilation is created by the engine and carries none of the MSBuild settings of the project, therefore
-        // the diagnostics that the project suppresses through NoWarn are applied to it here. The suppression matters
+        // the diagnostics that the project ignores through NoWarn are applied to it here. The suppression matters
         // for a project that uses a language feature whose Roslyn application programming interface is still marked as
         // experimental: the template compiler rewrites a run-time expression into calls to the Roslyn syntax
         // factories, and the factory member of such a feature reports an RSEXPERIMENTAL diagnostic that the project
         // suppresses for its own compilation. See issue #1948.
-        var noWarn = this._projectOptions?.NoWarn ?? ImmutableArray<string>.Empty;
+        var ignoredWarnings = this._projectOptions?.IgnoredWarnings ?? ImmutableArray<string>.Empty;
 
-        if ( !noWarn.IsEmpty )
+        if ( !ignoredWarnings.IsEmpty )
         {
             compilationOptions = compilationOptions.WithSpecificDiagnosticOptions(
-                noWarn.Select( id => new KeyValuePair<string, ReportDiagnostic>( id, ReportDiagnostic.Suppress ) ) );
+                ignoredWarnings.Select( id => new KeyValuePair<string, ReportDiagnostic>( id, ReportDiagnostic.Suppress ) ) );
         }
 
         var compilation = CSharpCompilation.Create(

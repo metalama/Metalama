@@ -106,7 +106,7 @@ public abstract class ProjectOptionsWrapper : IProjectOptions
 
     public virtual ImmutableArray<string> SourceGeneratorAttributes => this.Wrapped.SourceGeneratorAttributes;
 
-    public virtual ImmutableArray<string> NoWarn => this.Wrapped.NoWarn;
+    public virtual ImmutableArray<string> IgnoredWarnings => this.Wrapped.IgnoredWarnings;
 
     public virtual ImmutableArray<TargetedAssemblyReference> ExtensionAssemblies => this.Wrapped.ExtensionAssemblies;
 

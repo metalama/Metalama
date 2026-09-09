@@ -110,9 +110,9 @@ public record TestContextOptions
     /// <summary>
     /// Gets the identifiers of the diagnostics that the test project suppresses, which the aspect testing framework
     /// reads from the <c>NoWarn</c> MSBuild property of that project. They are suppressed in the compile-time
-    /// compilation, in the same way as <see cref="IProjectOptions.NoWarn"/> in a production build.
+    /// compilation, in the same way as <see cref="IProjectOptions.IgnoredWarnings"/> in a production build.
     /// </summary>
-    internal ImmutableArray<string> NoWarn { get; init; } = ImmutableArray<string>.Empty;
+    internal ImmutableArray<string> IgnoredWarnings { get; init; } = ImmutableArray<string>.Empty;
 
     /// <summary>
     /// Gets a value indicating whether run-time code should be validated for references to compile-time-only code.

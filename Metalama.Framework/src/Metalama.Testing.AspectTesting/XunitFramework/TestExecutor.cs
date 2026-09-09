@@ -305,7 +305,7 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
 
                         // The NoWarn of the test project reaches the compile-time compilation of the test, in the same
                         // way as the NoWarn of a user project does in a production build. See issue #1948.
-                        NoWarn = this._factory.ProjectProperties.IgnoredWarnings
+                        IgnoredWarnings = this._factory.ProjectProperties.IgnoredWarnings
                     };
 
                 testOptions = testInput.Options.ApplyToTestContextOptions( testOptions );

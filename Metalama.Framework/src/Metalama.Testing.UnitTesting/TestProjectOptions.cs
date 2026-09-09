@@ -124,7 +124,7 @@ internal sealed class TestProjectOptions : DefaultProjectOptions, IDisposable
 
     public override bool RoslynIsCompileTimeOnly => this.TestContextOptions.RoslynIsCompileTimeOnly;
 
-    public override ImmutableArray<string> NoWarn => this.TestContextOptions.NoWarn;
+    public override ImmutableArray<string> IgnoredWarnings => this.TestContextOptions.IgnoredWarnings;
 
     public override bool ValidateRunTimeCode => this.TestContextOptions.ValidateRunTimeCode;
 

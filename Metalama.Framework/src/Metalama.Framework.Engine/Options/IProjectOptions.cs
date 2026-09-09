@@ -338,7 +338,7 @@ public interface IProjectOptions : IProjectService, IEquatable<IProjectOptions>
     /// diagnostic that the project suppresses for its own compilation. See issue #1948.
     /// </para>
     /// </remarks>
-    ImmutableArray<string> NoWarn { get; }
+    ImmutableArray<string> IgnoredWarnings { get; }
 
     /// <summary>
     /// Gets the kind of durable reference that the project produces. The default value is
