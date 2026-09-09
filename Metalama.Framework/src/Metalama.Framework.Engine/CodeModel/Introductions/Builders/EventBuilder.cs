@@ -7,6 +7,7 @@ using Metalama.Framework.Code.DeclarationBuilders;
 using Metalama.Framework.Code.Invokers;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel.Abstractions;
+using Metalama.Framework.Engine.CodeModel.Facets;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 using Metalama.Framework.Engine.CodeModel.Invokers;
@@ -16,7 +17,6 @@ using Metalama.Framework.Engine.ReflectionMocks;
 using Metalama.Framework.Engine.Utilities;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using MethodKind = Metalama.Framework.Code.MethodKind;
 
@@ -60,7 +60,7 @@ internal sealed class EventBuilder : MemberBuilder, IEventBuilder, IEventImpl
         set => throw new NotSupportedException();
     }
 
-    public IMethod Signature => this.Type.Methods.OfName( "Invoke" ).Single();
+    public IMethod Signature => DelegateFacetHelper.GetSignature( this );
 
     [Memo]
     public AccessorBuilder AddMethod => new( this, MethodKind.EventAdd, this.IsEventField );

@@ -19,7 +19,6 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 using MethodKind = Metalama.Framework.Code.MethodKind;
 
@@ -149,7 +148,7 @@ internal sealed class OverrideEventTransformation : OverrideMemberTransformation
                 InjectedMemberSemantic.Override,
                 overriddenDeclaration.ToFullRef() );
 
-        var eventHandlerInvokeMethod = overriddenDeclaration.Type.Methods.OfName( "Invoke" ).Single();
+        var eventHandlerInvokeMethod = overriddenDeclaration.Signature;
 
         var argsType = eventHandlerInvokeMethod.Compilation.Factory.CreateTupleType( eventHandlerInvokeMethod.Parameters );
 

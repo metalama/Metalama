@@ -5,6 +5,7 @@
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Invokers;
 using Metalama.Framework.Engine.CodeModel.Abstractions;
+using Metalama.Framework.Engine.CodeModel.Facets;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 using Metalama.Framework.Engine.CodeModel.Invokers;
 using Metalama.Framework.Engine.CodeModel.References;
@@ -40,7 +41,7 @@ internal sealed class IntroducedEvent : IntroducedMember, IEventImpl
     [Memo]
     public INamedType Type => this.MapDeclaration( this.EventBuilderData.Type );
 
-    public IMethod Signature => this.Type.Methods.OfName( "Invoke" ).Single();
+    public IMethod Signature => DelegateFacetHelper.GetSignature( this );
 
     [Memo]
     public IMethod AddMethod => new IntroducedAccessor( this, this.EventBuilderData.AddMethod );

@@ -120,8 +120,7 @@ internal sealed partial class AccessorBuilder : DeclarationBuilder, IMethodBuild
             _ => throw new AssertionFailedException( $"Unexpected combination ('{this.ContainingDeclaration}', {this.MethodKind})." )
         };
 
-    [Memo]
-    private IMethod EventDelegateInvokeMethod => ((IEvent) this._containingMember).Type.Methods.OfName( "Invoke" ).Single();
+    private IMethod EventDelegateInvokeMethod => ((IEvent) this._containingMember).Signature;
 
     public MethodKind MethodKind { get; }
 

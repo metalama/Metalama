@@ -94,12 +94,15 @@ public static partial class EligibilityRuleFactory
     internal static IEligibilityRule<IDeclaration> OverrideEventRaiseAdviceRule { get; } = CreateRule<IDeclaration, IEvent>(
         builder =>
         {
+            // The facet is null when the type of the event is not a well-formed delegate, and both rules then return
+            // false. Before the facet existed they resolved the Invoke method by its identifier and threw
+            // InvalidOperationException in that case, which an eligibility rule reaches in normal use at design time.
             builder.MustSatisfy(
-                e => e.Type.Methods.OfName( "Invoke" ).Single().ReturnType.SpecialType == SpecialType.Void,
+                e => e.Type.Facets.Delegate?.ReturnType.SpecialType == SpecialType.Void,
                 e => $"'{e}' must have delegate type with void return value" );
 
             builder.MustSatisfy(
-                e => e.Type.Methods.OfName( "Invoke" ).Single().Parameters.All( p => p.RefKind == RefKind.None ),
+                e => e.Type.Facets.Delegate?.Parameters.All( p => p.RefKind == RefKind.None ) ?? false,
                 e => $"'{e}' must have delegate type without a parameter of out/ref/in/pointer type" );
 
             builder.DeclaringType().AddRule( _overrideDeclaringTypeRule );

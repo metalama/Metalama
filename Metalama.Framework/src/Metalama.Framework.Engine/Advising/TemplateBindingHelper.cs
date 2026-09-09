@@ -501,7 +501,7 @@ internal static class TemplateBindingHelper
 
                 // For event raise, we expect either 0, 1 (handler) or 1+n (handler + delegate invoke args) parameters.
                 var containingEvent = (IEvent) targetMethod.ContainingDeclaration.AssertNotNull();
-                var delegateInvokeMethod = containingEvent.Type.Methods.OfName( "Invoke" ).Single();
+                var delegateInvokeMethod = containingEvent.Signature;
 
                 var fullParameterCount = 1 + delegateInvokeMethod.Parameters.Count;
 

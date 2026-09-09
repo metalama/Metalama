@@ -184,8 +184,8 @@ internal sealed partial class MethodInvoker
         /// </remarks>
         private static bool IsCompatibleWithDelegate( IMethod method, INamedType delegateType )
         {
-            // Get the delegate's Invoke method.
-            var invokeMethod = delegateType.Methods.OfName( "Invoke" ).SingleOrDefault();
+            // Get the delegate's Invoke method. The facet is null when the type is not a well-formed delegate.
+            var invokeMethod = delegateType.Facets.Delegate?.InvokeMethod;
 
             if ( invokeMethod == null )
             {
@@ -254,15 +254,43 @@ internal sealed partial class MethodInvoker
         /// </summary>
         private static bool IsExactMatchWithDelegate( IMethod method, INamedType delegateType )
         {
-            var parameterTypes = method.Parameters.SelectAsImmutableArray( p => p.Type );
-            var refKinds = method.Parameters.SelectAsImmutableArray( p => p.RefKind );
-
-            // Use ConversionKind.Identical to require exact type equality for parameters.
-            var invokeMethod = delegateType.Methods.OfCompatibleSignature( "Invoke", parameterTypes, refKinds, isStatic: false, ConversionKind.Identical );
+            // Get the delegate's Invoke method. The facet is null when the type is not a well-formed delegate.
+            var invokeMethod = delegateType.Facets.Delegate?.InvokeMethod;
 
             if ( invokeMethod == null )
             {
                 return false;
+            }
+
+            var methodParameters = method.Parameters;
+            var delegateParameters = invokeMethod.Parameters;
+
+            if ( methodParameters.Count != delegateParameters.Count )
+            {
+                return false;
+            }
+
+            // Use ConversionKind.Identical to require exact type equality for parameters.
+            var comparer = delegateType.Compilation.Comparers.Default;
+
+            for ( var i = 0; i < methodParameters.Count; i++ )
+            {
+                var methodParam = methodParameters[i];
+                var delegateParam = delegateParameters[i];
+
+                if ( methodParam.RefKind != delegateParam.RefKind )
+                {
+                    return false;
+                }
+
+                if ( !comparer.IsConvertibleTo(
+                        methodParam.Type,
+                        delegateParam.Type,
+                        ConversionKind.Identical,
+                        ConversionFlags.TypeParameterEquivalence ) )
+                {
+                    return false;
+                }
             }
 
             // Check return type: must be exactly identical.
