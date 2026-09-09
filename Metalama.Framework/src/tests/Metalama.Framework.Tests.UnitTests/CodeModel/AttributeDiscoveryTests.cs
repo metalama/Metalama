@@ -7,6 +7,7 @@ using Metalama.Framework.Tests.UnitTests.Utilities;
 using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis.CSharp;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Xunit;
 
@@ -137,6 +138,112 @@ class C< [MyAttribute(4)]T>
             // The attribute of the tree that cannot be bound is not discovered, but the attribute of the other
             // tree is.
             Assert.Equal( ["Healthy"], targets );
+        }
+
+        /// <summary>
+        /// Verifies that an attribute whose target specifier is not one that Metalama recognizes does not abort the
+        /// construction of the code model, and that the other attributes of the compilation are still discovered.
+        /// </summary>
+        /// <remarks>
+        /// Issue #1988 reports that such an attribute was costing the user every design-time service of the project.
+        /// The code is invalid, so the compiler reports CS0658 for it, but a design-time compilation is invalid most
+        /// of the time: the user goes through <c>[prop: Required]</c> on the way to <c>[property: Required]</c>.
+        /// </remarks>
+        [Theory]
+        [InlineData( "[foo: MyAttribute] class Broken { }" )]
+        [InlineData( "record Broken( [prop: MyAttribute] int Value );" )]
+        [InlineData( "class Broken { [get: MyAttribute] public int P { get => 0; set { } } }" )]
+        [InlineData( "class Broken { [class: MyAttribute] public Broken() { } }" )]
+        public void AttributeWithUnrecognizedTargetDoesNotAbortTheCodeModel( string brokenCode )
+        {
+            using var testContext = this.CreateTestContext();
+
+            var code = new Dictionary<string, string>
+            {
+                { "MyAttribute.cs", "class MyAttribute : System.Attribute { }" },
+                { "Broken.cs", brokenCode },
+                { "Healthy.cs", "[MyAttribute] class Healthy { }" }
+            };
+
+#if !NET5_0_OR_GREATER
+            code.Add( "IsExternalInit.cs", "namespace System.Runtime.CompilerServices { internal static class IsExternalInit {} }" );
+#endif
+
+            var compilation = testContext.CreateCompilationModel( code );
+
+            // The type that declares the attribute with the unrecognized target is still part of the code model.
+            Assert.Equal(
+                ["Broken", "Healthy", "MyAttribute"],
+                compilation.GlobalNamespace.Types.SelectAsArray( t => t.Name ).OrderBy( name => name, StringComparer.Ordinal ) );
+
+            var myAttribute = compilation.Types.OfName( "MyAttribute" ).Single();
+
+            var targets = compilation.GetAllAttributesOfType( myAttribute )
+                .Select( a => a.ContainingDeclaration.ToDisplayString() )
+                .OrderBy( name => name, StringComparer.Ordinal )
+                .ToArray();
+
+            // The attribute with the unrecognized target is skipped, but the attribute of the other file is
+            // discovered.
+            Assert.Equal( ["Healthy"], targets );
+        }
+
+        /// <summary>
+        /// Verifies that the attribute target specifiers that Metalama recognizes are resolved to the expected
+        /// declaration.
+        /// </summary>
+        /// <remarks>
+        /// An unrecognized target specifier is now skipped instead of throwing, as issue #1988 requires, so this test
+        /// guards the recognized ones against being skipped by mistake. The <c>assembly</c>, <c>module</c>,
+        /// <c>field</c>, <c>param</c> and <c>return</c> specifiers are covered by <see cref="Resolution"/>.
+        /// </remarks>
+        [Fact]
+        public void RecognizedTargetsAreResolved()
+        {
+            using var testContext = this.CreateTestContext();
+
+#if !NET5_0_OR_GREATER
+            var code =
+#else
+            const string code =
+#endif
+                """
+                class MyAttribute : System.Attribute { public MyAttribute( int id ) { } }
+
+                [type: MyAttribute(1)]
+                class C< [typevar: MyAttribute(2)] T >
+                {
+                    [event: MyAttribute(3)]
+                    public event System.EventHandler? E;
+                }
+
+                record R( [property: MyAttribute(4)] int Value );
+
+                [method: MyAttribute(5)]
+                class D( int p ) { public int Q => p; }
+                """;
+
+#if !NET5_0_OR_GREATER
+            code += "namespace System.Runtime.CompilerServices { internal static class IsExternalInit {} }";
+#endif
+
+            var compilation = testContext.CreateCompilationModel( code );
+            var myAttribute = compilation.Types.OfName( "MyAttribute" ).Single();
+
+            var targets = compilation.GetAllAttributesOfType( myAttribute )
+                .Select( a => a.ConstructorArguments[0].Value + ":" + a.ContainingDeclaration.ToDisplayString() )
+                .OrderBy( target => target, StringComparer.Ordinal )
+                .ToArray();
+
+            Assert.Equal(
+                [
+                    "1:C<T>",
+                    "2:C<T>/T",
+                    "3:C<T>.E",
+                    "4:R.Value",
+                    "5:D.D(int)"
+                ],
+                targets );
         }
 
         [Fact]
