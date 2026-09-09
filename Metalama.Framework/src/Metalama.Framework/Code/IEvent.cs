@@ -25,6 +25,20 @@ namespace Metalama.Framework.Code
         /// </summary>
         new INamedType Type { get; }
 
+        /// <summary>
+        /// Gets the <c>Invoke</c> method of the delegate type of the event, which carries the signature that a
+        /// handler of the event must have.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// This property is equivalent to <c>Type.Facets.Delegate.InvokeMethod</c>. It requires <see cref="Type"/> to
+        /// be a delegate, which the C# compiler guarantees for an event that it accepts, and it fails for the event
+        /// of a type that is not a delegate, which a compilation that contains errors can still produce. Read
+        /// <see cref="Collections.ITypeFacetCollection.Delegate"/> instead of this property in code that has to
+        /// accept such an event.
+        /// </para>
+        /// </remarks>
+        /// <seealso cref="Types.IDelegateFacet"/>
         IMethod Signature { get; }
 
         /// <summary>

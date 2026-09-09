@@ -40,7 +40,7 @@ internal sealed class IntroducedEvent : IntroducedMember, IEventImpl
     [Memo]
     public INamedType Type => this.MapDeclaration( this.EventBuilderData.Type );
 
-    public IMethod Signature => this.Type.Methods.OfName( "Invoke" ).Single();
+    public IMethod Signature => this.Type.Facets.Delegate.AssertNotNull().InvokeMethod;
 
     [Memo]
     public IMethod AddMethod => new IntroducedAccessor( this, this.EventBuilderData.AddMethod );
