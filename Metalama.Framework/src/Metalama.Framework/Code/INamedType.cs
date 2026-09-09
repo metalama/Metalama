@@ -248,6 +248,21 @@ namespace Metalama.Framework.Code
         bool IsDelegate { get; }
 
         /// <summary>
+        /// Gets a value indicating whether the type is an enum, which is equivalent to testing whether
+        /// <see cref="IType.TypeKind"/> is <see cref="TypeKind.Enum"/>.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// This property answers whether the type is an enum without allocating anything. The underlying type, the
+        /// members and the flags attribute of the enum are read through <see cref="Facets"/>, as in
+        /// <c>type.Facets.Enum?.UnderlyingType</c>.
+        /// </para>
+        /// </remarks>
+        /// <seealso cref="Facets"/>
+        /// <seealso cref="IEnumFacet"/>
+        bool IsEnum { get; }
+
+        /// <summary>
         /// Gets a value indicating whether the type is declared with the <c>closed</c> modifier. Also returns <c>false</c>
         /// when the type is not a class.
         /// </summary>
@@ -328,6 +343,15 @@ namespace Metalama.Framework.Code
         /// <summary>
         /// Gets the underlying type of an enum, the non-nullable type of a nullable reference type, or the current type.
         /// </summary>
+        /// <remarks>
+        /// <para>
+        /// This property has three meanings, so the caller has to know the kind of the type to know which type it
+        /// returned. The underlying type of an enum is also exposed by <see cref="IEnumFacet.UnderlyingType"/>, which
+        /// has a single meaning. That facet is reached through <see cref="Facets"/>, and it is <c>null</c> for a type
+        /// that is not an enum.
+        /// </para>
+        /// </remarks>
+        /// <seealso cref="IEnumFacet.UnderlyingType"/>
         INamedType UnderlyingType { get; }
 
         /// <inheritdoc cref="IDeclaration.ToRef"/>

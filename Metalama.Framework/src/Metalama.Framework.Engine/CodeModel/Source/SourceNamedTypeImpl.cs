@@ -175,6 +175,8 @@ internal class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeImpl
 
     public bool IsDelegate => this.NamedTypeSymbol.TypeKind == Microsoft.CodeAnalysis.TypeKind.Delegate;
 
+    public bool IsEnum => this.NamedTypeSymbol.TypeKind == Microsoft.CodeAnalysis.TypeKind.Enum;
+
     // ITypeSymbol.IsClosed exists in the latest Roslyn variant only, so the read is compiled into that variant only,
     // as decided by section 6 of Metalama.Framework/docs/2027.0/DECISIONS.md. The condition also names
     // ALLOW_PREVIEW_LANG_VERSION, the opt-in of eng/RoslynPreview.props, because the Roslyn build consumed today

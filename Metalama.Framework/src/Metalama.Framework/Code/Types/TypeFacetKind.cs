@@ -31,5 +31,10 @@ public enum TypeFacetKind
     /// <summary>
     /// The facet of a record (<see cref="IRecordFacet"/>).
     /// </summary>
-    Record
+    Record,
+
+    /// <summary>
+    /// The facet of an enum (<see cref="IEnumFacet"/>).
+    /// </summary>
+    Enum
 }
