@@ -41,8 +41,14 @@ internal class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, I
     /// C# 15.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// The setter enforces the three restrictions that the language states: the type must be a class, and it must be
     /// neither sealed nor static. Roslyn reports the last two as <c>ERR_ClosedSealedStatic</c>.
+    /// </para>
+    /// <para>
+    /// The setter also refuses the value <c>true</c> when this build of the engine cannot emit the modifier, which
+    /// is the case of the Roslyn variant whose Roslyn version does not offer C# 15.
+    /// </para>
     /// </remarks>
     public bool IsClosed
     {
@@ -53,6 +59,17 @@ internal class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, I
 
             if ( value )
             {
+#if !(ROSLYN_5_10_0_OR_GREATER && ALLOW_PREVIEW_LANG_VERSION)
+
+                // ModifierHelper.GetTypeSyntaxModifierList emits SyntaxKind.ClosedKeyword under the same condition,
+                // because that member exists in the latest Roslyn variant only. A build that cannot emit the keyword
+                // refuses the value instead of generating an ordinary abstract class, so that an aspect never
+                // silently produces a hierarchy that is not closed. Remove ALLOW_PREVIEW_LANG_VERSION from this
+                // condition, and from the condition of ModifierHelper, when issue #1936 brings a Roslyn that
+                // publishes the member without the RSEXPERIMENTAL006 marker.
+                throw new InvalidOperationException(
+                    $"The type '{this.Name}' cannot be closed because this build of Metalama uses a version of Roslyn that does not support the closed modifier of C# 15." );
+#else
                 if ( this.TypeKind != TypeKind.Class )
                 {
                     throw new InvalidOperationException(
@@ -70,6 +87,7 @@ internal class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, I
                     throw new InvalidOperationException(
                         $"The type '{this.Name}' cannot be closed because it is static, and the language forbids the closed modifier on a static class." );
                 }
+#endif
             }
 
             this._isClosed = value;
@@ -79,12 +97,25 @@ internal class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, I
     /// <summary>
     /// Gets or sets a value indicating whether the introduced type is abstract. The getter returns <c>true</c> when
     /// <see cref="IsClosed"/> is <c>true</c>, because a closed class is implicitly abstract, which is what Roslyn
-    /// reports for a closed class declared in source.
+    /// reports for a closed class declared in source. The setter refuses the value <c>false</c> for a closed type,
+    /// for the same reason.
     /// </summary>
     public override bool IsAbstract
     {
         get => base.IsAbstract || this._isClosed;
-        set => base.IsAbstract = value;
+
+        set
+        {
+            this.CheckNotFrozen();
+
+            if ( !value && this._isClosed )
+            {
+                throw new InvalidOperationException(
+                    $"The type '{this.Name}' must be abstract because it is closed, and the language makes a closed class implicitly abstract." );
+            }
+
+            base.IsAbstract = value;
+        }
     }
 
     /// <summary>

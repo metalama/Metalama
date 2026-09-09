@@ -226,9 +226,9 @@ internal static class ModifierHelper
             // condition also names ALLOW_PREVIEW_LANG_VERSION, the opt-in of eng/RoslynPreview.props, because the
             // Roslyn build consumed today still marks the member with RSEXPERIMENTAL006, which the compiler reports
             // as an error. Remove that second symbol from the condition when issue #1936 brings a Roslyn that
-            // publishes the member without the marker. An engine that cannot emit the keyword generates an ordinary
-            // abstract class and reports no diagnostic, because a host that presents such a Roslyn version cannot
-            // compile a closed hierarchy at all.
+            // publishes the member without the marker. The setter of NamedTypeBuilder.IsClosed carries the same
+            // condition and throws when the value cannot be emitted, so a type that reaches this method with the
+            // closed modifier requested is always produced by a build that can emit the keyword.
 #if ROSLYN_5_10_0_OR_GREATER && ALLOW_PREVIEW_LANG_VERSION
             var isClosed = namedType.IsClosed;
 

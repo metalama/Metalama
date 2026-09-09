@@ -70,6 +70,14 @@ public sealed class ClosedTypeTests : UnitTestClass
         Assert.False( compilation.Types.OfName( "IntroducedType" ).Single().IsClosed );
     }
 
+#if ROSLYN_5_10_0_OR_GREATER && ALLOW_PREVIEW_LANG_VERSION
+
+    // The writer refuses the closed modifier in a build that cannot emit it, so the tests of the writer are compiled
+    // under the same condition as the setter of NamedTypeBuilder.IsClosed. The test below the #else covers the
+    // builds that refuse it. Drop ALLOW_PREVIEW_LANG_VERSION from this condition, and from the condition of the
+    // setter and of ModifierHelper, when issue #1936 brings a Roslyn that publishes the member without the
+    // RSEXPERIMENTAL006 marker.
+
     /// <summary>
     /// Verifies that an aspect can introduce a closed class: the builder stores the value, the introduced type
     /// reports it, and <see cref="IMemberOrNamedType.IsAbstract"/> reports true, because a closed class is implicitly
@@ -151,6 +159,58 @@ public sealed class ClosedTypeTests : UnitTestClass
 
         Assert.Throws<InvalidOperationException>( () => builder.IsClosed = true );
     }
+
+    /// <summary>
+    /// Verifies that the setter of <see cref="IMemberOrNamedTypeBuilder.IsAbstract"/> refuses the value <c>false</c>
+    /// on a closed type, because the language makes a closed class implicitly abstract.
+    /// </summary>
+    [Fact]
+    public void IsAbstractIsRejectedForClosedClass()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var compilation = testContext.CreateCompilationModel( "" ).CreateMutableClone();
+
+        var builder = new NamedTypeBuilder( null!, compilation.GlobalNamespace, "IntroducedType", TypeKind.Class )
+        {
+            IsClosed = true
+        };
+
+        Assert.Throws<InvalidOperationException>( () => builder.IsAbstract = false );
+
+        // Setting the property to the value that the type already has is allowed.
+        builder.IsAbstract = true;
+
+        Assert.True( builder.IsAbstract );
+    }
+
+#else
+
+    /// <summary>
+    /// Verifies that the setter refuses the closed modifier in a build whose Roslyn version does not offer C# 15,
+    /// because such a build cannot emit the keyword. The restriction applies whatever the type kind, so this test
+    /// also covers the kinds that the language forbids anyway.
+    /// </summary>
+    [Theory]
+    [InlineData( TypeKind.Class )]
+    [InlineData( TypeKind.Struct )]
+    public void IsClosedIsRejectedWhenTheRoslynVersionDoesNotSupportIt( TypeKind typeKind )
+    {
+        using var testContext = this.CreateTestContext();
+
+        var compilation = testContext.CreateCompilationModel( "" ).CreateMutableClone();
+
+        var builder = new NamedTypeBuilder( null!, compilation.GlobalNamespace, "IntroducedType", typeKind );
+
+        Assert.Throws<InvalidOperationException>( () => builder.IsClosed = true );
+
+        // The value false is accepted, because it requests nothing.
+        builder.IsClosed = false;
+
+        Assert.False( builder.IsClosed );
+    }
+
+#endif
 
 #if ROSLYN_5_10_0_OR_GREATER && ALLOW_PREVIEW_LANG_VERSION
 

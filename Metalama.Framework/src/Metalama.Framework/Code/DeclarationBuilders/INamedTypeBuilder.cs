@@ -30,12 +30,14 @@ public interface INamedTypeBuilder : IMemberOrNamedTypeBuilder, INamedType
     /// <para>
     /// A closed class is implicitly abstract, so <see cref="IMemberOrNamedTypeBuilder.IsAbstract"/> reports
     /// <c>true</c> as soon as this property is set, and the generated declaration carries the <c>closed</c> keyword
-    /// instead of the <c>abstract</c> keyword.
+    /// instead of the <c>abstract</c> keyword. Setting <see cref="IMemberOrNamedTypeBuilder.IsAbstract"/> to
+    /// <c>false</c> on a closed type throws an <see cref="InvalidOperationException"/>.
     /// </para>
     /// <para>
-    /// The keyword is emitted by a Metalama engine built for a Roslyn version that offers C# 15. An engine built for
-    /// an older Roslyn version generates an ordinary abstract class and reports no diagnostic, because a host that
-    /// presents such a Roslyn version cannot compile a closed hierarchy at all.
+    /// The keyword is emitted by a Metalama engine that uses a Roslyn version that offers C# 15. Setting this
+    /// property to <c>true</c> throws an <see cref="InvalidOperationException"/> under any other Roslyn version,
+    /// because such an engine cannot generate a closed class. A host that presents such a Roslyn version cannot
+    /// compile a closed hierarchy either.
     /// </para>
     /// </remarks>
     new bool IsClosed { get; set; }
