@@ -81,18 +81,23 @@
     Do not generate or call Init.g.ps1 (skips environment variables, git config, safe.directory, etc).
 
 .PARAMETER Isolation
-    Docker isolation mode: 'process' or 'hyperv'.
+    Docker isolation mode: 'process' or 'hyperv'. Windows only; ignored on Linux and macOS.
     When not specified, defaults to 'hyperv' on Windows Desktop and 'process' on Windows Server.
-    Memory and CPU limits only apply to hyperv isolation.
+    On Windows, -Memory and a static -Cpus only apply under hyperv isolation.
 
 .PARAMETER Memory
-    Docker memory limit (e.g., "8g"). Only used with hyperv isolation.
+    Docker memory limit (e.g., "8g"). Applied on Linux and macOS, and on Windows under
+    hyperv isolation; Windows process isolation ignores it.
+    Clamped to the memory that the Docker engine reports, so a default larger than the
+    machine does not produce a limit the engine cannot honour. The MSBuild node count
+    passed to the container as MAX_BUILD_PARALLELISM is derived from the result, at one
+    node per 4 GB.
     Defaults to $env:BuildAgentMemory (an integer in GB) if set, otherwise 24g.
 
 .PARAMETER Cpus
     Docker CPU limit. Use a positive integer for a static limit, or "dynamic" for
     automatic allocation that rebalances CPUs across all managed containers.
-    Only used with hyperv isolation (static) or any isolation (dynamic).
+    A static limit is applied wherever -Memory is; "dynamic" applies under any isolation.
     Defaults to $env:BuildAgentCpus if set, otherwise the host processor count.
 
 .PARAMETER Mount
@@ -155,8 +160,8 @@ param(
     [string]$RegistryImage, # Use a pre-built image from a registry, skipping Dockerfile build entirely.
     [switch]$NoRegistry, # Ignore DOCKER_REGISTRY and its credentials; build locally without pulling or pushing.
     [switch]$NoInit, # Do not generate or call Init.g.ps1 (skips git config, safe.directory, etc).
-    [string]$Isolation = 'process', # Docker isolation mode (process or hyperv). When not specified, defaults to hyperv on Windows Desktop and process on Windows Server. Memory/CPU limits only apply to hyperv.
-    [string]$Memory = $(if ($env:BuildAgentMemory) { "${env:BuildAgentMemory}g" } else { '24g' }), # Docker memory limit (e.g., "8g"). Only used with hyperv isolation. Defaults to $env:BuildAgentMemory (in GB) or 24g.
+    [string]$Isolation = 'process', # Docker isolation mode (process or hyperv). Windows only. When not specified, defaults to hyperv on Windows Desktop and process on Windows Server. Memory/CPU limits only apply to hyperv.
+    [string]$Memory = $(if ($env:BuildAgentMemory) { "${env:BuildAgentMemory}g" } else { '24g' }), # Docker memory limit (e.g., "8g"). Applied except under Windows process isolation, and clamped to the memory reported by the Docker engine. Defaults to $env:BuildAgentMemory (in GB) or 24g.
     [string]$Cpus = $(if ($env:BuildAgentCpus) { $env:BuildAgentCpus } else { [Environment]::ProcessorCount }), # Docker CPU limit. Use a positive integer or "dynamic". Defaults to $env:BuildAgentCpus or host processor count.
     [string[]]$Mount, # Additional directories to mount from host (readonly by default, append :w for writable). Supports * and ** glob patterns.
     [string[]]$Env, # Additional environment variables to pass from host to container.
@@ -229,6 +234,14 @@ else
     ""
 }
 
+# --memory and --cpus are honoured by the Linux and macOS engines whatever $Isolation says: isolation modes
+# are a Windows concept and nothing outside $isolationArg acts on the value there. On Windows the limits only
+# take effect under hyperv isolation - a process-isolated container shares the host kernel and the daemon
+# silently drops both flags. Guarding on $Isolation alone would therefore leave every Linux container
+# unlimited, which also loses MAX_BUILD_PARALLELISM (msbuild.ps1 derives the node count from the memory
+# budget, and falls back to one node per CPU when there is none).
+$supportsResourceLimits = $IsUnix -or $Isolation -ne 'process'
+
 # Set BuildAgentPath default based on platform
 if ( [string]::IsNullOrEmpty($BuildAgentPath))
 {
@@ -298,6 +311,43 @@ try
             exit 1
         }
         $Cpus = $cpuInt
+    }
+
+    # msbuild.ps1 budgets one MSBuild node per 4 GB of the container's memory.
+    $MinMemoryPerCpuGb = 4
+
+    # -Memory defaults to 24g, which is more than several agents have. A limit above what the engine can honour is
+    # worse than no limit at all on Linux: the cgroup ceiling is then unreachable, so nothing constrains the build,
+    # and the node count below would be derived from memory the container can never use. Ask the engine what it
+    # actually has and clamp to it. A failure to reach the engine leaves the requested value untouched.
+    $memoryGb = 0
+    if ($supportsResourceLimits -and $Memory -match '^\s*(\d+(?:\.\d+)?)\s*([gm])b?\s*$')
+    {
+        $memoryGb = [double]$Matches[1]
+        if ($Matches[2] -eq 'm') { $memoryGb = $memoryGb / 1024 }
+
+        $engineMemoryBytes = [long]0
+        $engineMemoryRaw = "$( docker info --format '{{.MemTotal}}' 2>$null )".Trim()
+        if ([long]::TryParse($engineMemoryRaw, [ref]$engineMemoryBytes) -and $engineMemoryBytes -gt 0)
+        {
+            $engineMemoryGb = $engineMemoryBytes / 1GB
+            if ($memoryGb -gt $engineMemoryGb)
+            {
+                $clampedGb = [int][Math]::Max(1, [Math]::Floor($engineMemoryGb))
+                Write-Host "Requested --memory=$Memory exceeds the $( [Math]::Round($engineMemoryGb, 1) )g reported by the Docker engine; clamping to ${clampedGb}g" -ForegroundColor Yellow
+                $Memory = "${clampedGb}g"
+                $memoryGb = $clampedGb
+            }
+        }
+    }
+
+    # Derive the node count here, where the container's memory budget is known. Inside the container msbuild.ps1
+    # cannot read the cgroup limit, so without this it falls back to the processor count and over-subscribes a
+    # small agent - 16 nodes against 7 GB on the cell that reported this.
+    $maxBuildParallelism = 0
+    if ($memoryGb -gt 0)
+    {
+        $maxBuildParallelism = [int][Math]::Max(1, [Math]::Floor($memoryGb / $MinMemoryPerCpuGb))
     }
 
     if ($env:IS_TEAMCITY_AGENT)
@@ -873,7 +923,7 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
         Copy-TimestampToContext $dfPath
         $cmd = @('build', '-t', $tag)
         if ($isolationArg) { $cmd += $isolationArg }
-        if ($Memory -and $Isolation -ne 'process') { $cmd += "--memory=$Memory" }
+        if ($Memory -and $supportsResourceLimits) { $cmd += "--memory=$Memory" }
         # Pass WINDOWS_VERSION only to the root image that declares it (avoids 'unconsumed build-arg' warnings).
         if ($IsWindows -and $windowsVersion -and ($content -match 'ARG\s+WINDOWS_VERSION'))
         {
@@ -943,7 +993,7 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
         {
             $cmd = @('build', '-t', $bootTag)
             if ($isolationArg) { $cmd += $isolationArg }
-            if ($Memory -and $Isolation -ne 'process') { $cmd += "--memory=$Memory" }
+            if ($Memory -and $supportsResourceLimits) { $cmd += "--memory=$Memory" }
             $cmd += @('--build-arg', "MOUNTPOINTS=$mountPointsAsString", '-f', '-', $bootCtx)
             Write-Host "Building boot image $bootTag (bind-mount dirs) over $baseTag" -ForegroundColor Green
             # Its FROM is the local chain leaf, so no credentials are needed - but the config dir is passed for
@@ -1167,6 +1217,32 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
 
     # Ensure the image and its ancestors exist (parent first): use local, else pull, else build; start a push
     # when building in registry mode. Returns the image tag.
+    # True when $tag exists in the registry. A miss is the ordinary case (the image has not been pushed yet)
+    # and stays quiet, but any OTHER failure - experimental CLI gating, an untrusted certificate, a lost
+    # session, an unreachable host - is reported once. Silencing those made a broken registry look exactly like
+    # a cache miss, so every agent rebuilt the whole ancestor chain on every run and nobody could see why.
+    function Test-ImageInRegistry([string]$tag)
+    {
+        $output = (docker @dockerConfigArg manifest inspect $tag 2>&1 | Out-String).Trim()
+
+        if ($LASTEXITCODE -eq 0)
+        {
+            return $true
+        }
+
+        # A genuine "not in the registry" answer. Anything else is a configuration or connectivity fault.
+        if ($output -notmatch 'manifest unknown|no such manifest|not found|manifest for .* not found')
+        {
+            if (-not $script:RegistryProbeWarned)
+            {
+                $script:RegistryProbeWarned = $true
+                Write-Host "Warning: cannot query the registry for '$tag', so cached images cannot be reused and every layer will be rebuilt locally. $output" -ForegroundColor Yellow
+            }
+        }
+
+        return $false
+    }
+
     function Ensure-Image([string]$dfPath)
     {
         $baseBuildArg = @()
@@ -1192,7 +1268,7 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
         {
             Write-Host "  found locally" -ForegroundColor Green
         }
-        elseif (-not $isClaudeLeaf -and $dockerRegistry -and (& { docker @dockerConfigArg manifest inspect $tag *> $null; $LASTEXITCODE -eq 0 }))
+        elseif (-not $isClaudeLeaf -and $dockerRegistry -and (Test-ImageInRegistry $tag))
         {
             Write-Host "  pulling from registry" -ForegroundColor Green
             docker @dockerConfigArg pull $tag 2>&1 | Out-Host
@@ -1210,8 +1286,7 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
         # never enters the registry.
         if ($dockerRegistry -and -not $isClaudeLeaf)
         {
-            docker @dockerConfigArg manifest inspect $tag *> $null
-            if ($LASTEXITCODE -ne 0)
+            if (-not (Test-ImageInRegistry $tag))
             {
                 Start-AsyncPush $tag
             }
@@ -2389,10 +2464,17 @@ $envVarAssignments$gitConfigCommands$postInitCommands
             # Build docker command with proper argument handling (avoid empty strings)
             $dockerCmd = @('run', '--rm')
 
-            # Memory limit: only add when NOT using process isolation
-            if ($Isolation -ne 'process' -and $Memory)
+            # Memory limit: everywhere except Windows process isolation, which ignores it.
+            if ($supportsResourceLimits -and $Memory)
             {
                 $dockerCmd += "--memory=$Memory"
+            }
+
+            # The MSBuild node count that matches that budget. msbuild.ps1 reads it inside the container, where the
+            # limit itself is not visible.
+            if ($maxBuildParallelism -gt 0)
+            {
+                $dockerCmd += @('-e', "MAX_BUILD_PARALLELISM=$maxBuildParallelism")
             }
 
             # CPU limit: dynamic or static
@@ -2403,7 +2485,7 @@ $envVarAssignments$gitConfigCommands$postInitCommands
                 $dockerCmd += @('-e', "DOTNET_PROCESSOR_COUNT=$dynamicAllocation")
                 $dockerCmd += @('--label', "$DynamicCpuLabel")
             }
-            elseif ($Isolation -ne 'process')
+            elseif ($supportsResourceLimits)
             {
                 $dockerCmd += "--cpus=$Cpus"
             }
