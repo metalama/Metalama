@@ -3,9 +3,11 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Code;
+using Metalama.Framework.Code.DeclarationBuilders;
 using Metalama.Framework.Engine.AdviceImpl.Introduction;
 using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 using Metalama.Testing.UnitTesting;
+using System;
 using System.Linq;
 using Xunit;
 using TypeKind = Metalama.Framework.Code.TypeKind;
@@ -18,8 +20,9 @@ using Microsoft.CodeAnalysis.CSharp;
 namespace Metalama.Framework.Tests.UnitTests.CodeModel;
 
 /// <summary>
-/// Tests of <see cref="INamedType.IsClosed"/>, the code model reader of the <c>closed</c> modifier of C# 15.
-/// See issue #1939.
+/// Tests of <see cref="INamedType.IsClosed"/> and of <see cref="INamedTypeBuilder.IsClosed"/>, the code model
+/// reader and writer of the <c>closed</c> modifier of C# 15.
+/// See issues #1939 and #1950.
 /// </summary>
 public sealed class ClosedTypeTests : UnitTestClass
 {
@@ -49,8 +52,8 @@ public sealed class ClosedTypeTests : UnitTestClass
     }
 
     /// <summary>
-    /// Verifies that the property is <c>false</c> for a type introduced by an aspect, which is its value until the
-    /// introduction story adds the writer, and that the builder and the introduced type agree.
+    /// Verifies that the property is <c>false</c> for a type introduced by an aspect that does not set it, which is
+    /// its default value, and that the builder and the introduced type agree.
     /// </summary>
     [Fact]
     public void IsClosedIsFalseForIntroducedType()
@@ -65,6 +68,221 @@ public sealed class ClosedTypeTests : UnitTestClass
 
         Assert.False( builder.IsClosed );
         Assert.False( compilation.Types.OfName( "IntroducedType" ).Single().IsClosed );
+    }
+
+#if ROSLYN_5_10_0_OR_GREATER && ALLOW_PREVIEW_LANG_VERSION
+
+    // The writer refuses the closed modifier in the variant that cannot emit it, which is the variant that serves a
+    // host whose Roslyn version does not offer C# 15, so the tests of the writer are compiled under the same
+    // condition as the setter of NamedTypeBuilder.IsClosed. The test below the #else covers the variant that refuses
+    // it. Drop ALLOW_PREVIEW_LANG_VERSION from this condition, and from the condition of the setter and of
+    // ModifierHelper, when issue #1936 brings a Roslyn that publishes the member without the RSEXPERIMENTAL006
+    // marker.
+
+    /// <summary>
+    /// Verifies that an aspect can introduce a closed class: the builder stores the value, the introduced type
+    /// reports it, and <see cref="IMemberOrNamedType.IsAbstract"/> reports true, because a closed class is implicitly
+    /// abstract. See issue #1950.
+    /// </summary>
+    [Fact]
+    public void IsClosedIsTrueForIntroducedClosedClass()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var compilation = testContext.CreateCompilationModel( "" ).CreateMutableClone();
+
+        var builder = new NamedTypeBuilder( null!, compilation.GlobalNamespace, "IntroducedType", TypeKind.Class );
+        builder.IsClosed = true;
+
+        Assert.True( builder.IsClosed );
+        Assert.True( builder.IsAbstract );
+
+        builder.Freeze();
+        compilation.AddTransformation( builder.CreateTransformation() );
+
+        var introducedType = compilation.Types.OfName( "IntroducedType" ).Single();
+
+        Assert.True( introducedType.IsClosed );
+        Assert.True( introducedType.IsAbstract );
+    }
+
+    /// <summary>
+    /// Verifies that the setter refuses a type kind that is not a class, which is the restriction that the language
+    /// states. A record class is a class here, because <see cref="TypeKind.Class"/> covers it.
+    /// </summary>
+    [Theory]
+    [InlineData( TypeKind.Struct )]
+    [InlineData( TypeKind.Interface )]
+    public void IsClosedIsRejectedForTypeThatIsNotAClass( TypeKind typeKind )
+    {
+        using var testContext = this.CreateTestContext();
+
+        var compilation = testContext.CreateCompilationModel( "" ).CreateMutableClone();
+
+        var builder = new NamedTypeBuilder( null!, compilation.GlobalNamespace, "IntroducedType", typeKind );
+
+        Assert.Throws<InvalidOperationException>( () => builder.IsClosed = true );
+    }
+
+    /// <summary>
+    /// Verifies that the setter refuses a sealed class, which the language forbids because a closed class is
+    /// implicitly abstract.
+    /// </summary>
+    [Fact]
+    public void IsClosedIsRejectedForSealedClass()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var compilation = testContext.CreateCompilationModel( "" ).CreateMutableClone();
+
+        var builder = new NamedTypeBuilder( null!, compilation.GlobalNamespace, "IntroducedType", TypeKind.Class )
+        {
+            IsSealed = true
+        };
+
+        Assert.Throws<InvalidOperationException>( () => builder.IsClosed = true );
+    }
+
+    /// <summary>
+    /// Verifies that the setter refuses a static class, which the language forbids for the same reason.
+    /// </summary>
+    [Fact]
+    public void IsClosedIsRejectedForStaticClass()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var compilation = testContext.CreateCompilationModel( "" ).CreateMutableClone();
+
+        var builder = new NamedTypeBuilder( null!, compilation.GlobalNamespace, "IntroducedType", TypeKind.Class )
+        {
+            IsStatic = true
+        };
+
+        Assert.Throws<InvalidOperationException>( () => builder.IsClosed = true );
+    }
+
+    /// <summary>
+    /// Verifies that the setter of <see cref="IMemberOrNamedTypeBuilder.IsAbstract"/> refuses the value <c>false</c>
+    /// on a closed type, because the language makes a closed class implicitly abstract.
+    /// </summary>
+    [Fact]
+    public void IsAbstractIsRejectedForClosedClass()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var compilation = testContext.CreateCompilationModel( "" ).CreateMutableClone();
+
+        var builder = new NamedTypeBuilder( null!, compilation.GlobalNamespace, "IntroducedType", TypeKind.Class )
+        {
+            IsClosed = true
+        };
+
+        Assert.Throws<InvalidOperationException>( () => builder.IsAbstract = false );
+
+        // Setting the property to the value that the type already has is allowed.
+        builder.IsAbstract = true;
+
+        Assert.True( builder.IsAbstract );
+    }
+
+    /// <summary>
+    /// Verifies that the setter of <see cref="IMemberOrNamedTypeBuilder.IsSealed"/> refuses a closed type. This is
+    /// the restriction that <see cref="IsClosedIsRejectedForSealedClass"/> covers, in the other order of assignment,
+    /// which is a different branch of the implementation.
+    /// </summary>
+    [Fact]
+    public void IsSealedIsRejectedForClosedClass()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var compilation = testContext.CreateCompilationModel( "" ).CreateMutableClone();
+
+        var builder = new NamedTypeBuilder( null!, compilation.GlobalNamespace, "IntroducedType", TypeKind.Class )
+        {
+            IsClosed = true
+        };
+
+        Assert.Throws<InvalidOperationException>( () => builder.IsSealed = true );
+
+        // The value false is accepted, because it requests nothing.
+        builder.IsSealed = false;
+
+        Assert.False( builder.IsSealed );
+    }
+
+    /// <summary>
+    /// Verifies that the setter of <see cref="IMemberOrNamedTypeBuilder.IsStatic"/> refuses a closed type. This is
+    /// the restriction that <see cref="IsClosedIsRejectedForStaticClass"/> covers, in the other order of assignment,
+    /// which is a different branch of the implementation.
+    /// </summary>
+    [Fact]
+    public void IsStaticIsRejectedForClosedClass()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var compilation = testContext.CreateCompilationModel( "" ).CreateMutableClone();
+
+        var builder = new NamedTypeBuilder( null!, compilation.GlobalNamespace, "IntroducedType", TypeKind.Class )
+        {
+            IsClosed = true
+        };
+
+        Assert.Throws<InvalidOperationException>( () => builder.IsStatic = true );
+
+        // The value false is accepted, because it requests nothing.
+        builder.IsStatic = false;
+
+        Assert.False( builder.IsStatic );
+    }
+
+#else
+
+    /// <summary>
+    /// Verifies that the setter refuses the closed modifier in the variant that serves a host whose Roslyn version
+    /// does not offer C# 15, because that variant cannot emit the keyword. The restriction applies whatever the type
+    /// kind, so this test also covers the kinds that the language forbids anyway.
+    /// </summary>
+    [Theory]
+    [InlineData( TypeKind.Class )]
+    [InlineData( TypeKind.Struct )]
+    public void IsClosedIsRejectedWhenTheHostDoesNotSupportCSharp15( TypeKind typeKind )
+    {
+        using var testContext = this.CreateTestContext();
+
+        var compilation = testContext.CreateCompilationModel( "" ).CreateMutableClone();
+
+        var builder = new NamedTypeBuilder( null!, compilation.GlobalNamespace, "IntroducedType", typeKind );
+
+        Assert.Throws<InvalidOperationException>( () => builder.IsClosed = true );
+
+        // The value false is accepted, because it requests nothing.
+        builder.IsClosed = false;
+
+        Assert.False( builder.IsClosed );
+    }
+
+#endif
+
+    /// <summary>
+    /// Verifies that an extension block refuses both values of the property, as it refuses every other modifier that
+    /// it cannot carry. The refusal does not depend on the Roslyn variant, because an extension block is never a
+    /// class, so this test carries no condition.
+    /// </summary>
+    [Fact]
+    public void IsClosedIsNotSupportedForExtensionBlock()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var compilation = testContext.CreateCompilationModel( "static class Extensions { } class Receiver;" ).CreateMutableClone();
+
+        var declaringType = compilation.Types.OfName( "Extensions" ).Single();
+        var receiverType = compilation.Types.OfName( "Receiver" ).Single();
+
+        var builder = new ExtensionBlockBuilder( null!, declaringType, receiverType, "self" );
+
+        Assert.False( builder.IsClosed );
+        Assert.Throws<NotSupportedException>( () => builder.IsClosed = true );
+        Assert.Throws<NotSupportedException>( () => builder.IsClosed = false );
     }
 
 #if ROSLYN_5_10_0_OR_GREATER && ALLOW_PREVIEW_LANG_VERSION

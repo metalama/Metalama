@@ -93,9 +93,12 @@ The token goes before `partial`, because `partial` must sit immediately before t
 
 The validation rejects a closed type that is not a class, and one that is sealed or static.
 
-On the hosts that the lower Roslyn variant serves, an aspect that introduces a closed class emits the modifier at
-build time and nothing at design time. Section 6 records why that needs no diagnostic: such a host cannot compile
-C# 15, so it reports the closed hierarchy as an error of its own before the divergence can matter.
+On the hosts that the lower Roslyn variant serves, the writer refuses the modifier instead of ignoring it: the
+setter of `INamedTypeBuilder.IsClosed` throws an `InvalidOperationException` in the variant that cannot emit the
+keyword, so an aspect never silently obtains an ordinary abstract class where it requested a closed class. The
+writer differs from the reader on this point. Section 6 lets the reader report false on such a host, because a
+reader that answers false describes the code that the host presents, while a writer that ignored the request would
+generate a type other than the one the aspect asked for.
 
 An aspect can already introduce a class together with its subtypes in one run, which the existing tests
 `Recursive.cs`, `BaseType_Abstract.cs` and `IntroducedDerivedType.cs` prove, so the scenario is expressible.

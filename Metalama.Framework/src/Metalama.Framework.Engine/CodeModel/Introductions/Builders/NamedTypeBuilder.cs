@@ -31,16 +31,139 @@ namespace Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 internal class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, INamedTypeImpl, IMemberOrNamedTypeBuilderImpl
 {
     private INamedType? _baseType;
+    private bool _isClosed;
 
     public TypeKind TypeKind { get; }
 
     public bool IsRecord { get; }
 
     /// <summary>
-    /// Gets a value indicating whether the introduced type is declared with the <c>closed</c> modifier. The property
-    /// always returns <c>false</c>, because introducing a closed type is not supported yet.
+    /// Gets or sets a value indicating whether the introduced type is declared with the <c>closed</c> modifier of
+    /// C# 15.
     /// </summary>
-    public bool IsClosed => false;
+    /// <remarks>
+    /// <para>
+    /// The setter enforces the three restrictions that the language states: the type must be a class, and it must be
+    /// neither sealed nor static. Roslyn reports the last two as <c>ERR_ClosedSealedStatic</c>.
+    /// </para>
+    /// <para>
+    /// The setter also refuses the value <c>true</c> when the host that runs Metalama uses a version of Roslyn that
+    /// does not offer C# 15. That host is the compiler during a build and the integrated development environment at
+    /// design time. The host decides which variant of the engine is loaded, and the variant that serves such a host
+    /// cannot emit the modifier.
+    /// </para>
+    /// </remarks>
+    public virtual bool IsClosed
+    {
+        get => this._isClosed;
+        set
+        {
+            this.CheckNotFrozen();
+
+            if ( value )
+            {
+#if !(ROSLYN_5_10_0_OR_GREATER && ALLOW_PREVIEW_LANG_VERSION)
+
+                // ModifierHelper.GetTypeSyntaxModifierList emits SyntaxKind.ClosedKeyword under the same condition,
+                // because that member exists in the latest Roslyn variant only. Which variant runs is decided by the
+                // host, which loads a variant only when its own Roslyn is at least the version that the variant binds
+                // against, as Directory.Packages.md describes. The variant that serves a host whose Roslyn predates
+                // C# 15 refuses the value instead of generating an ordinary abstract class, so that an aspect never
+                // silently produces a hierarchy that is not closed. Remove ALLOW_PREVIEW_LANG_VERSION from this
+                // condition, and from the condition of ModifierHelper, when issue #1936 brings a Roslyn that
+                // publishes the member without the RSEXPERIMENTAL006 marker.
+                throw new InvalidOperationException(
+                    $"The type '{this.Name}' cannot be closed because the host that runs Metalama uses a version of Roslyn that does not support the closed modifier of C# 15. At design time, that host is the integrated development environment." );
+#else
+                if ( this.TypeKind != TypeKind.Class )
+                {
+                    throw new InvalidOperationException(
+                        $"The type '{this.Name}' cannot be closed because the language allows the closed modifier on a class only." );
+                }
+
+                if ( this.IsSealed )
+                {
+                    throw new InvalidOperationException(
+                        $"The type '{this.Name}' cannot be closed because it is sealed, and the language forbids the closed modifier on a sealed class." );
+                }
+
+                if ( this.IsStatic )
+                {
+                    throw new InvalidOperationException(
+                        $"The type '{this.Name}' cannot be closed because it is static, and the language forbids the closed modifier on a static class." );
+                }
+#endif
+            }
+
+            this._isClosed = value;
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the introduced type is abstract. The getter returns <c>true</c> when
+    /// <see cref="IsClosed"/> is <c>true</c>, because a closed class is implicitly abstract, which is what Roslyn
+    /// reports for a closed class declared in source. The setter refuses the value <c>false</c> for a closed type,
+    /// for the same reason.
+    /// </summary>
+    public override bool IsAbstract
+    {
+        get => base.IsAbstract || this._isClosed;
+
+        set
+        {
+            this.CheckNotFrozen();
+
+            if ( !value && this._isClosed )
+            {
+                throw new InvalidOperationException(
+                    $"The type '{this.Name}' must be abstract because it is closed, and the language makes a closed class implicitly abstract." );
+            }
+
+            base.IsAbstract = value;
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the introduced type is sealed. The setter refuses a closed type,
+    /// because the language forbids the two modifiers together.
+    /// </summary>
+    public override bool IsSealed
+    {
+        get => base.IsSealed;
+        set
+        {
+            this.CheckNotFrozen();
+
+            if ( value && this._isClosed )
+            {
+                throw new InvalidOperationException(
+                    $"The type '{this.Name}' cannot be sealed because it is closed, and the language forbids the closed modifier on a sealed class." );
+            }
+
+            base.IsSealed = value;
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the introduced type is static. The setter refuses a closed type,
+    /// because the language forbids the two modifiers together.
+    /// </summary>
+    public override bool IsStatic
+    {
+        get => base.IsStatic;
+        set
+        {
+            this.CheckNotFrozen();
+
+            if ( value && this._isClosed )
+            {
+                throw new InvalidOperationException(
+                    $"The type '{this.Name}' cannot be static because it is closed, and the language forbids the closed modifier on a static class." );
+            }
+
+            base.IsStatic = value;
+        }
+    }
 
     /// <summary>
     /// Gets a value indicating whether the introduced type is a union. The property always returns <c>false</c>,

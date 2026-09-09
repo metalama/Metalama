@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Aspects;
+using System;
 
 namespace Metalama.Framework.Code.DeclarationBuilders;
 
@@ -13,9 +14,34 @@ namespace Metalama.Framework.Code.DeclarationBuilders;
 public interface INamedTypeBuilder : IMemberOrNamedTypeBuilder, INamedType
 {
     /// <summary>
-    /// Gets or sets a value indicating whether the type is marked as <c>partial</c> in source code. 
+    /// Gets or sets a value indicating whether the type is marked as <c>partial</c> in source code.
     /// </summary>
     new bool IsPartial { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the type is declared with the <c>closed</c> modifier of C# 15.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The language allows the <c>closed</c> modifier on a class only, and forbids it on a sealed class and on a
+    /// static class. The setter throws an <see cref="InvalidOperationException"/> when one of these restrictions is
+    /// not met.
+    /// </para>
+    /// <para>
+    /// A closed class is implicitly abstract, so <see cref="IMemberOrNamedTypeBuilder.IsAbstract"/> reports
+    /// <c>true</c> as soon as this property is set, and the generated declaration carries the <c>closed</c> keyword
+    /// instead of the <c>abstract</c> keyword. Setting <see cref="IMemberOrNamedTypeBuilder.IsAbstract"/> to
+    /// <c>false</c> on a closed type throws an <see cref="InvalidOperationException"/>.
+    /// </para>
+    /// <para>
+    /// Metalama runs inside a host, which is the compiler during a build and the integrated development environment
+    /// at design time, and the host supplies the version of Roslyn that Metalama uses. Setting this property to
+    /// <c>true</c> throws an <see cref="InvalidOperationException"/> when that version does not offer C# 15, because
+    /// the <c>closed</c> keyword cannot be generated then. A host that supplies such a version does not support the
+    /// language feature at all, so it cannot compile a closed class either.
+    /// </para>
+    /// </remarks>
+    new bool IsClosed { get; set; }
 
     // TODO: Struct introduction
 
