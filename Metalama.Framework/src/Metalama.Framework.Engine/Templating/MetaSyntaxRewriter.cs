@@ -125,6 +125,12 @@ internal partial class MetaSyntaxRewriter : SafeSyntaxRewriter
                 case ArgumentSyntax argument:
                     return this.TransformArgument( argument );
 
+                case ExpressionElementSyntax expressionElement:
+                    return this.TransformExpressionElement( expressionElement );
+
+                case SpreadElementSyntax spreadElement:
+                    return this.TransformSpreadElement( spreadElement );
+
                 case StatementSyntax statement:
                     return this.TransformStatement( statement );
 
