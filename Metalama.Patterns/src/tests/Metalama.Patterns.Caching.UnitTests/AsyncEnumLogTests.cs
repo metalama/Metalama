@@ -61,7 +61,7 @@ public sealed class AsyncEnumLogTests : AsyncEnumTestsBase
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            _ = this.StringBuilder.ToString();
+            _ = this.GetLog();
         }
 
         await appendTask.WaitAsync( cancellationToken );
@@ -72,19 +72,21 @@ public sealed class AsyncEnumLogTests : AsyncEnumTestsBase
     /// been released.
     /// </summary>
     /// <remarks>
-    /// Releasing the blocking task does not wait for the enumeration that it unblocks, so the log that
-    /// <c>Dispose</c> reads is truncated, and the entries that are missing from it are appended while the log is
-    /// being read.
+    /// Before the correction, releasing the blocking task did not wait for the enumeration that it unblocks, so
+    /// the log read by the disposal of the test was truncated and the entries missing from it were appended while
+    /// the log was being read.
     /// </remarks>
     [Fact]
-    public void TheLogIsCompleteWhenTheBlockedEnumerationHasBeenReleased()
+    public async Task TheLogIsCompleteWhenTheBlockedEnumerationHasBeenReleased()
     {
+        using var cancellationTokenSource = new CancellationTokenSource( TimeSpan.FromMinutes( 1 ) );
+
         // ReSharper disable once NotDisposedResource
-        _ = this.Instance.BlockedCachedEnumerable().GetAsyncEnumerator();
+        _ = this.BlockedCachedEnumerable().GetAsyncEnumerator();
 
-        this.Instance.FinishBlockingTask();
+        await this.FinishBlockingTaskAsync( cancellationTokenSource.Token );
 
-        Assert.Equal( "E1.E2.E3.E4", this.StringBuilder.ToString() );
+        Assert.Equal( "E1.E2.E3.E4", this.GetLog() );
     }
 }
 
