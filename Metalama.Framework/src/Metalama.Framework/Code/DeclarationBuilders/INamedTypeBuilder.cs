@@ -34,10 +34,11 @@ public interface INamedTypeBuilder : IMemberOrNamedTypeBuilder, INamedType
     /// <c>false</c> on a closed type throws an <see cref="InvalidOperationException"/>.
     /// </para>
     /// <para>
-    /// The keyword is emitted by a Metalama engine that uses a Roslyn version that offers C# 15. Setting this
-    /// property to <c>true</c> throws an <see cref="InvalidOperationException"/> under any other Roslyn version,
-    /// because such an engine cannot generate a closed class. A host that presents such a Roslyn version cannot
-    /// compile a closed hierarchy either.
+    /// Metalama runs inside a host, which is the compiler during a build and the integrated development environment
+    /// at design time, and the host supplies the version of Roslyn that Metalama uses. Setting this property to
+    /// <c>true</c> throws an <see cref="InvalidOperationException"/> when that version does not offer C# 15, because
+    /// the <c>closed</c> keyword cannot be generated then. A host that supplies such a version does not support the
+    /// language feature at all, so it cannot compile a closed class either.
     /// </para>
     /// </remarks>
     new bool IsClosed { get; set; }

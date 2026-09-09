@@ -72,11 +72,12 @@ public sealed class ClosedTypeTests : UnitTestClass
 
 #if ROSLYN_5_10_0_OR_GREATER && ALLOW_PREVIEW_LANG_VERSION
 
-    // The writer refuses the closed modifier in a build that cannot emit it, so the tests of the writer are compiled
-    // under the same condition as the setter of NamedTypeBuilder.IsClosed. The test below the #else covers the
-    // builds that refuse it. Drop ALLOW_PREVIEW_LANG_VERSION from this condition, and from the condition of the
-    // setter and of ModifierHelper, when issue #1936 brings a Roslyn that publishes the member without the
-    // RSEXPERIMENTAL006 marker.
+    // The writer refuses the closed modifier in the variant that cannot emit it, which is the variant that serves a
+    // host whose Roslyn version does not offer C# 15, so the tests of the writer are compiled under the same
+    // condition as the setter of NamedTypeBuilder.IsClosed. The test below the #else covers the variant that refuses
+    // it. Drop ALLOW_PREVIEW_LANG_VERSION from this condition, and from the condition of the setter and of
+    // ModifierHelper, when issue #1936 brings a Roslyn that publishes the member without the RSEXPERIMENTAL006
+    // marker.
 
     /// <summary>
     /// Verifies that an aspect can introduce a closed class: the builder stores the value, the introduced type
@@ -187,14 +188,14 @@ public sealed class ClosedTypeTests : UnitTestClass
 #else
 
     /// <summary>
-    /// Verifies that the setter refuses the closed modifier in a build whose Roslyn version does not offer C# 15,
-    /// because such a build cannot emit the keyword. The restriction applies whatever the type kind, so this test
-    /// also covers the kinds that the language forbids anyway.
+    /// Verifies that the setter refuses the closed modifier in the variant that serves a host whose Roslyn version
+    /// does not offer C# 15, because that variant cannot emit the keyword. The restriction applies whatever the type
+    /// kind, so this test also covers the kinds that the language forbids anyway.
     /// </summary>
     [Theory]
     [InlineData( TypeKind.Class )]
     [InlineData( TypeKind.Struct )]
-    public void IsClosedIsRejectedWhenTheRoslynVersionDoesNotSupportIt( TypeKind typeKind )
+    public void IsClosedIsRejectedWhenTheHostDoesNotSupportCSharp15( TypeKind typeKind )
     {
         using var testContext = this.CreateTestContext();
 

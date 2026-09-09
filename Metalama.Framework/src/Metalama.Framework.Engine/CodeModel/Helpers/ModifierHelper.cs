@@ -228,7 +228,8 @@ internal static class ModifierHelper
             // as an error. Remove that second symbol from the condition when issue #1936 brings a Roslyn that
             // publishes the member without the marker. The setter of NamedTypeBuilder.IsClosed carries the same
             // condition and throws when the value cannot be emitted, so a type that reaches this method with the
-            // closed modifier requested is always produced by a build that can emit the keyword.
+            // closed modifier requested is always produced by the variant that can emit the keyword, which is the
+            // variant that a host offering C# 15 loads.
 #if ROSLYN_5_10_0_OR_GREATER && ALLOW_PREVIEW_LANG_VERSION
             var isClosed = namedType.IsClosed;
 

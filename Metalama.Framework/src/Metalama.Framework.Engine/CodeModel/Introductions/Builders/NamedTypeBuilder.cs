@@ -46,8 +46,10 @@ internal class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, I
     /// neither sealed nor static. Roslyn reports the last two as <c>ERR_ClosedSealedStatic</c>.
     /// </para>
     /// <para>
-    /// The setter also refuses the value <c>true</c> when this build of the engine cannot emit the modifier, which
-    /// is the case of the Roslyn variant whose Roslyn version does not offer C# 15.
+    /// The setter also refuses the value <c>true</c> when the host that runs Metalama uses a version of Roslyn that
+    /// does not offer C# 15. That host is the compiler during a build and the integrated development environment at
+    /// design time. The host decides which variant of the engine is loaded, and the variant that serves such a host
+    /// cannot emit the modifier.
     /// </para>
     /// </remarks>
     public bool IsClosed
@@ -62,13 +64,15 @@ internal class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, I
 #if !(ROSLYN_5_10_0_OR_GREATER && ALLOW_PREVIEW_LANG_VERSION)
 
                 // ModifierHelper.GetTypeSyntaxModifierList emits SyntaxKind.ClosedKeyword under the same condition,
-                // because that member exists in the latest Roslyn variant only. A build that cannot emit the keyword
-                // refuses the value instead of generating an ordinary abstract class, so that an aspect never
+                // because that member exists in the latest Roslyn variant only. Which variant runs is decided by the
+                // host, which loads a variant only when its own Roslyn is at least the version that the variant binds
+                // against, as Directory.Packages.md describes. The variant that serves a host whose Roslyn predates
+                // C# 15 refuses the value instead of generating an ordinary abstract class, so that an aspect never
                 // silently produces a hierarchy that is not closed. Remove ALLOW_PREVIEW_LANG_VERSION from this
                 // condition, and from the condition of ModifierHelper, when issue #1936 brings a Roslyn that
                 // publishes the member without the RSEXPERIMENTAL006 marker.
                 throw new InvalidOperationException(
-                    $"The type '{this.Name}' cannot be closed because this build of Metalama uses a version of Roslyn that does not support the closed modifier of C# 15." );
+                    $"The type '{this.Name}' cannot be closed because the host that runs Metalama uses a version of Roslyn that does not support the closed modifier of C# 15. At design time, that host is the integrated development environment." );
 #else
                 if ( this.TypeKind != TypeKind.Class )
                 {
