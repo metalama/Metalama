@@ -12,8 +12,21 @@ public class TheAspect : OverrideMethodAspect
 {
     public override dynamic? OverrideMethod()
     {
-        List<string> mixed = [meta.Target.Method.Name, meta.Target.Parameters[0].Value];
-        Console.WriteLine( mixed.Count );
+        // A compile-time element followed by a run-time element.
+        List<string> first = [meta.Target.Method.Name, meta.Target.Parameters[0].Value];
+        Console.WriteLine( first.Count );
+
+        // A run-time element followed by a compile-time element.
+        List<string> last = [meta.Target.Parameters[0].Value, meta.Target.Method.Name];
+        Console.WriteLine( last.Count );
+
+        // A compile-time element between two run-time elements.
+        int[] middle = [meta.Target.Parameters[1].Value, meta.Target.Parameters.Count, meta.Target.Parameters[1].Value];
+        Console.WriteLine( middle.Length );
+
+        // A compile-time spread element followed by a run-time element.
+        List<string> spread = [..new[] { meta.Target.Method.Name, meta.Target.Type.Name }, meta.Target.Parameters[0].Value];
+        Console.WriteLine( spread.Count );
 
         return meta.Proceed();
     }
@@ -23,5 +36,5 @@ public class C
 {
     // <target>
     [TheAspect]
-    public void Method( string p ) { }
+    public void Method( string p, int i ) { }
 }
