@@ -1,15 +1,16 @@
 # Type facets
 
 This document proposes an addition to the public code model: a uniform way to expose the structure that is specific
-to a kind of named type. It covers delegates, enums, records, tuples and C# 15 unions. It is a design proposal.
-Nothing described here is implemented.
+to a kind of declared named type. It covers delegates, enums, records and C# 15 unions. Section 4.5 explains why it
+does not cover tuples. It is a design proposal. Nothing described here is implemented.
 
 ## 1. The problem
 
 A named type of some kinds carries structure that other named types do not have. A delegate has a signature. An
 enum has an underlying type and a set of members. A record has an equality contract and a set of synthesized
-members. A tuple has elements. A C# 15 union has case types and a `Value` property. The code model exposes that
-structure in four different ways today, and three of them are defective.
+members. A C# 15 union has case types and a `Value` property. The code model exposes that structure in four
+different ways today. Two of them are defective, the third is correct only for a type that a type expression forms,
+and the fourth is the one this proposal replaces.
 
 ### 1.1. A member reached by a string literal
 
@@ -41,30 +42,24 @@ INamedType UnderlyingType { get; }
 
 The caller has to know the kind of the type to know what the property returned.
 
-### 1.3. A derived interface keyed on a type kind
+### 1.3. A derived interface reached by a type test
 
 `ITupleType` derives from `INamedType`, adds `TupleElements`, `TupleLength` and `CreateCreateInstanceExpression`,
-and is reached by a type test. `IExtensionBlock` follows the same pattern. Both have a value of their own in
-`TypeKind`.
+and is reached by a type test. `IArrayType`, `IPointerType`, `IFunctionPointerType` and `IDynamicType` follow the
+same pattern, and so does `IExtensionBlock`.
 
-The mechanism gives correct answers, and the tuple case is the closest existing analogue of the union case. Roslyn
-models a tuple as `INamedTypeSymbol.IsTupleType` plus `TupleElements`, with `TypeKind` remaining `Struct`, which is
-exactly how it models a union as `ITypeSymbol.IsUnion` plus `UnionCaseTypes`. Metalama departed from Roslyn for
-tuples and introduced `TypeKind.Tuple`.
+This mechanism is correct for a type that a type expression forms. Such a type reaches the model through one
+construction path, the type factory, which decides its runtime interface at one site. Section 4.5 keeps the
+mechanism for those types.
 
-The defect is that the mechanism is a second one. The structure of a tuple is reached by a type test, while the
-structure of a delegate, an enum, a record or a union is reached in one of the other three ways, so a consumer has
-to know which kind uses which mechanism. Section 4.5 replaces it for tuples.
-
-The mechanism also does not extend to unions, for two reasons. First, a value `TypeKind.Union` would require a new arm in
-the seventeen switches over `TypeKind` that the analysis in
-[`../2027.0/03-code-model-unions-closed.md`](../2027.0/03-code-model-unions-closed.md) inventoried, and the union
-design depends on a union continuing to behave as a struct. Second, a tuple is constructed and a union is declared.
-A tuple reaches the model through one construction path, `TypeFactory.CreateTupleType`, which can decide to return
-an `ITupleType`. A union reaches the model through source symbols, metadata symbols, generic instantiation,
-builders, introduced types and the design-time partial pipeline, and for the attribute form its identity depends on
-an attribute that Roslyn synthesizes at emit time. Deciding the runtime type of the code model object correctly at
-every one of those sites is not reliable.
+The mechanism does not extend to a declared type, for two reasons. First, a declared type reaches the model through
+source symbols, metadata symbols, generic instantiation, builders, introduced types and the design-time partial
+pipeline. Deciding the runtime type of the code model object correctly at every one of those sites is not reliable,
+and for a union written with the union attribute the identity depends on an attribute that Roslyn synthesizes at
+emit time. Second, the type test is normally paired with a value of `TypeKind`, and a value `TypeKind.Union` would
+require a new arm in the seventeen switches over `TypeKind` that the analysis in
+[`../2027.0/03-code-model-unions-closed.md`](../2027.0/03-code-model-unions-closed.md) inventoried, while the union
+design depends on a union continuing to behave as a struct.
 
 ### 1.4. Flat members on `INamedType`
 
@@ -77,8 +72,8 @@ majority of named types.
 
 ### 2.1. One collection of facets
 
-A facet is the structure that a kind of type has and that other types do not have. A type has a collection of
-facets, which is empty for an ordinary class, struct or interface.
+A facet is the structure that a declared named type has because of its kind, and that other named types do not
+have. A type has a collection of facets, which is empty for an ordinary class, struct or interface.
 
 ```csharp
 // Metalama.Framework/Code/TypeFacetKind.cs
@@ -88,7 +83,6 @@ public enum TypeFacetKind
     Delegate,
     Enum,
     Record,
-    Tuple,
     Union
 }
 ```
@@ -122,8 +116,6 @@ public interface ITypeFacetCollection : IReadOnlyCollection<ITypeFacet>
     IEnumFacet? Enum { get; }
 
     IRecordFacet? Record { get; }
-
-    ITupleFacet? Tuple { get; }
 
     IUnionFacet? Union { get; }
 }
@@ -238,31 +230,6 @@ public interface IRecordFacet : ITypeFacet
 ```
 
 ```csharp
-// Metalama.Framework/Code/ITupleFacet.cs
-[CompileTime]
-public interface ITupleFacet : ITypeFacet
-{
-    /// <summary>
-    /// Gets the elements of the tuple.
-    /// </summary>
-    IReadOnlyList<ITupleElement> TupleElements { get; }
-
-    /// <summary>
-    /// Gets the number of elements in the tuple.
-    /// </summary>
-    int TupleLength { get; }
-
-    /// <summary>
-    /// Creates an expression that creates an instance of the tuple with the specified values.
-    /// </summary>
-    IExpression CreateCreateInstanceExpression( params IEnumerable<IExpression> values );
-}
-```
-
-The members of `ITupleFacet` are those of the existing `ITupleType`. Section 4.5 explains why the proposal
-duplicates them rather than deriving `ITupleType` from `ITypeFacet`.
-
-```csharp
 // Metalama.Framework/Code/IUnionFacet.cs
 [CompileTime]
 public interface IUnionFacet : ITypeFacet
@@ -335,10 +302,9 @@ invoker through the member, and no facet declares an invoker member of its own.
 var call = eventType.Facets.Delegate!.InvokeMethod.With( handler ).Invoke( args );
 ```
 
-A facet declares a method that creates an expression only where no member of the type carries the operation.
-`ITupleFacet.CreateCreateInstanceExpression` is such a method, and it is the precedent, because a tuple is created
-by a syntactic construct and not by calling a member. `IUnionCase.CreateCreateInstanceExpression` exists for the
-same reason: the
+A facet declares a method that creates an expression only where no member of the type carries the operation. The
+precedent is `ITupleType.CreateCreateInstanceExpression`, which exists because a tuple is created by a syntactic
+construct and not by calling a member. `IUnionCase.CreateCreateInstanceExpression` exists for the same reason: the
 creation member differs by form, so the consumer would otherwise have to test whether it is a constructor or a
 static method.
 
@@ -379,26 +345,21 @@ members are not yet resolvable.
 | `INamedType.IsRecord` | Kept. It is shipped, widely used, and cheap. The documentation gains a reference to `Facets.Record`. |
 | `INamedType.UnderlyingType` | Kept. It is shipped and it also serves nullable reference types. `IEnumFacet.UnderlyingType` is the member with one meaning, and the documentation of both says so. |
 | `IEvent.Signature` | Kept, and defined as `Type.Facets.Delegate!.InvokeMethod`. The four duplicate implementations are removed. The member currently has no documentation and gains it. |
-| `ITupleType` | Made obsolete, and kept working. Its members forward to `Facets.Tuple`. See section 4.5. |
-| `ITupleElement` | Kept and unchanged. It is the element type of `ITupleFacet.TupleElements`, and nothing about it is superseded. |
-| `TypeFactory.CreateTupleType` | The return type changes from `ITupleType` to `INamedType`, so that the factory does not return an obsolete type. See section 4.5. |
-| `TypeKind.Tuple` | Kept. See section 4.5. |
+| `ITupleType`, `ITupleElement`, `TypeKind.Tuple`, `TypeFactory.CreateTupleType` | Unchanged. A tuple is not a facet. See section 4.5. |
 | `INamedType.PrimaryConstructor` | Kept. A primary constructor is not specific to records since C# 12, so it does not move to `IRecordFacet`. |
 | `IExtensionBlock` | Unchanged, and deliberately not a facet. See section 4.1. |
 
-`ITupleType` is the only member that this proposal makes obsolete. The change to the return type of
-`TypeFactory.CreateTupleType` is a user-facing break, so the pull request that carries it takes the `breaking`
-label.
+No member is made obsolete by this proposal, and it carries no user-facing breaking change.
 
 ## 4. Decisions
 
 ### 4.1. An extension block is not a facet
 
-A facet describes the structure of a type that a program can use. A tuple is such a type: a variable can be declared
-of it. An extension block is not: it has no usable name, no variable can be declared of it, and it is reached from
-its containing type through `INamedType.ExtensionBlocks`, where it is a member rather than a facet of itself.
-`IExtensionBlock` derives from `INamedType` for the convenience of the implementation, not because an extension
-block is a type in the sense of the language.
+A facet describes the structure of a type that a program can use. An extension block is not such a type: it has no
+usable name, no variable can be declared of it, and it is reached from its containing type through
+`INamedType.ExtensionBlocks`, where it is a member rather than a facet of itself. `IExtensionBlock` derives from
+`INamedType` for the convenience of the implementation, not because an extension block is a type in the sense of the
+language.
 
 ### 4.2. A type may have more than one facet
 
@@ -448,35 +409,29 @@ The counter-argument is that `IsUnion` is the cheap first test, that it is what 
 `type.Facets.Union is not null` is longer to write in a predicate over a collection of types. The proposal accepts
 that cost, on the ground that a second way to ask the same question is the defect this document exists to remove.
 
-### 4.5. The tuple facet is a new interface, and `ITupleType` is made obsolete
+### 4.5. A tuple is not a facet
 
-The alternative is to derive `ITupleType` from `ITypeFacet` and let `ITypeFacetCollection.Tuple` return the type
-itself. That alternative is rejected for two reasons.
+A tuple is not declared. The type `(int X, string Y)` is formed by a type expression at the place where it is used,
+and the element names are attached there. Metalama models it that way: `TupleType` and `TupleTypeImpl` are in
+`CodeModel/Source/ConstructedTypes/`, beside the array, the pointer, the function pointer and the dynamic type, and
+the elements of a tuple are a view over the fields of the underlying `ValueTuple` with the names overridden.
 
-The first is that the tuple would be the only facet that is not a distinct object. Every other facet describes a
-type. A tuple facet obtained that way would be the type, `ITypeFacet.Type` would return the object it was reached
-from, and a consumer that descends from a type into its facets would reach the same object. The interface would have
-one member whose meaning differs from the same member on every other facet.
+`ITupleType` therefore belongs to the family of `IArrayType`, `IPointerType` and `IFunctionPointerType`: interfaces
+that describe the structure of a type that a type expression forms, that are reached by a type test, and that are
+constructed at one site. Section 1.3 states why that mechanism is correct for that family and does not extend to a
+declared type.
 
-The second is that the model would keep two mechanisms for the structure of a tuple, the type test and the
-collection, which is the defect described in section 1.3.
+A facet describes the other thing: the structure that a named type has because of what its declaration says. A
+delegate, an enum, a record and a union are declared. A tuple is not, so `ITupleType`, `ITupleElement`,
+`TypeKind.Tuple` and `TypeFactory.CreateTupleType` are unchanged, and `ITypeFacetCollection` has no tuple property.
 
-`ITupleFacet` therefore declares the three members of `ITupleType`, and `ITupleType` is made obsolete with a
-warning. It keeps deriving from `INamedType`, it keeps its members, and each member forwards to the facet, so code
-written against it compiles with a warning and behaves as before. The release in which the warning becomes an error
-is not decided here.
-
-`TypeFactory.CreateTupleType` returns `ITupleType` today. A factory that returns an obsolete type raises a warning
-at every call site, so the return type changes to `INamedType`. The change is source-compatible for a caller that
-uses `var` or that passes the result where an `IType` or an `INamedType` is expected, and it is a binary break. It
-is a user-facing break and is labelled as one.
-
-`TypeKind.Tuple` is kept. The property `Facets.Tuple is not null` is equivalent to `TypeKind == TypeKind.Tuple`, but
-the same equivalence holds between `Facets.Delegate` and `TypeKind.Delegate`, and between `Facets.Enum` and
-`TypeKind.Enum`. `TypeKind` is the kind discriminator of `IType`, and a facet is the structure of those kinds that
-have structure, so the two answer different questions. Section 4.4 rejects `IsUnion` for a reason that does not
-apply here: a union has no value in `TypeKind`, so `IsUnion` would be a second discriminator invented beside
-`Facets.Union` rather than the one that already exists.
+The cost of this decision is that a consumer that wants the structure of an arbitrary type has to know two
+mechanisms: a type test for a type that a type expression forms, and the facet collection for a declared one. An
+earlier revision of this document proposed the alternative, which is to declare `ITupleFacet` with the members of
+`ITupleType`, to make `ITupleType` obsolete and forward its members to the facet, and to change the return type of
+`TypeFactory.CreateTupleType` to `INamedType`. That alternative removes the second mechanism at the price of a
+user-facing breaking change, sixty-three references to convert inside the repository, and a facet that describes a
+type that nobody declared.
 
 ## 5. Implementation guidelines
 
@@ -510,10 +465,9 @@ behaviour before anything that cannot be revised is public.
 | --- | --- | --- |
 | 1 | `TypeFacetKind`, `ITypeFacet`, `ITypeFacetCollection`, `INamedType.Facets`, `IDelegateFacet`. Conversion of the `Invoke` lookups and of `IEvent.Signature`. | — |
 | 2 | `IEnumFacet`. | 1 |
-| 3 | `ITupleFacet` and `ITypeFacetCollection.Tuple`. `ITupleType` is made obsolete and bridged, and the return type of `TypeFactory.CreateTupleType` changes. Takes the `breaking` label. | 1 |
-| 4 | `IRecordFacet`, and the conversion of the synthesized-member lookups of the linker. | 1 |
-| 5 | `IUnionFacet`, `IUnionCase`, `UnionForm`. | 1, and the move to the stable Roslyn |
-| 6 | `IUnionBuilder`, and the builder shapes of the other kinds. | 5, and the union introduction story |
+| 3 | `IRecordFacet`, and the conversion of the synthesized-member lookups of the linker. | 1 |
+| 4 | `IUnionFacet`, `IUnionCase`, `UnionForm`. | 1, and the move to the stable Roslyn |
+| 5 | `IUnionBuilder`, and the builder shapes of the other kinds. | 4, and the union introduction story |
 
 Pull request 1 changes one shipped behaviour: `EligibilityRuleFactory` currently throws `InvalidOperationException`
 when the type of an event is not a well-formed delegate, and it returns `false` after the conversion.
@@ -537,8 +491,6 @@ the design has to be revised before the union facet is built on it.
 5. Whether the union facet is populated for a union read from a referenced assembly. The compiled form does not
    record the authoring form, so `Form` would report `Attribute` for a type that the author wrote with the `union`
    keyword.
-6. In which release the obsoletion of `ITupleType` becomes an error, and whether the sixty-three references to it
-   inside the repository are converted in the pull request that introduces `ITupleFacet` or over several.
 
 ## 8. References
 
