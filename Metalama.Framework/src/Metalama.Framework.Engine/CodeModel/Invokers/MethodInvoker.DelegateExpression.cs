@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Code;
+using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.SyntaxSerialization;
@@ -184,8 +185,8 @@ internal sealed partial class MethodInvoker
         /// </remarks>
         private static bool IsCompatibleWithDelegate( IMethod method, INamedType delegateType )
         {
-            // Get the delegate's Invoke method.
-            var invokeMethod = delegateType.Methods.OfName( "Invoke" ).SingleOrDefault();
+            // Get the Invoke method of the delegate. The facet is null when the type is not a delegate.
+            var invokeMethod = delegateType.Facets.Delegate?.InvokeMethod;
 
             if ( invokeMethod == null )
             {
@@ -254,13 +255,17 @@ internal sealed partial class MethodInvoker
         /// </summary>
         private static bool IsExactMatchWithDelegate( IMethod method, INamedType delegateType )
         {
-            var parameterTypes = method.Parameters.SelectAsImmutableArray( p => p.Type );
-            var refKinds = method.Parameters.SelectAsImmutableArray( p => p.RefKind );
-
-            // Use ConversionKind.Identical to require exact type equality for parameters.
-            var invokeMethod = delegateType.Methods.OfCompatibleSignature( "Invoke", parameterTypes, refKinds, isStatic: false, ConversionKind.Identical );
+            // Get the Invoke method of the delegate. The facet is null when the type is not a delegate.
+            var invokeMethod = delegateType.Facets.Delegate?.InvokeMethod;
 
             if ( invokeMethod == null )
+            {
+                return false;
+            }
+
+            // The parameters are compared by the signature comparer of the engine, which requires the parameter types
+            // and the reference kinds to be identical.
+            if ( !method.SignatureEquals( invokeMethod ) )
             {
                 return false;
             }

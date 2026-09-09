@@ -16,7 +16,6 @@ using Metalama.Framework.Engine.ReflectionMocks;
 using Metalama.Framework.Engine.Utilities;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using MethodKind = Metalama.Framework.Code.MethodKind;
 
@@ -60,7 +59,7 @@ internal sealed class EventBuilder : MemberBuilder, IEventBuilder, IEventImpl
         set => throw new NotSupportedException();
     }
 
-    public IMethod Signature => this.Type.Methods.OfName( "Invoke" ).Single();
+    public IMethod Signature => this.Type.Facets.Delegate.AssertNotNull().InvokeMethod;
 
     [Memo]
     public AccessorBuilder AddMethod => new( this, MethodKind.EventAdd, this.IsEventField );

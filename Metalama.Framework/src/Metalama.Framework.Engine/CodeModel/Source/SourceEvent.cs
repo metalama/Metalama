@@ -49,7 +49,7 @@ namespace Metalama.Framework.Engine.CodeModel.Source
 
         public RefKind RefKind => RefKind.None;
 
-        public IMethod Signature => this.Type.Methods.OfName( "Invoke" ).Single();
+        public IMethod Signature => this.Type.Facets.Delegate.AssertNotNull().InvokeMethod;
 
         [Memo]
         public IMethod AddMethod => this.Compilation.Factory.GetMethod( this._symbol.AddMethod! );
