@@ -27,19 +27,19 @@ namespace Metalama.Framework.Engine.CodeModel
         {
             private readonly CompilationModel _compilation;
 
+            /// <summary>
+            /// The logger that reports the attributes that have been ignored.
+            /// </summary>
+            private readonly ILogger _logger;
+
             private readonly ImmutableDictionaryOfArray<IRef<INamedType>, AttributeRef>.Builder _builder =
                 ImmutableDictionaryOfArray<IRef<INamedType>, AttributeRef>.CreateBuilder( RefEqualityComparer<INamedType>.Default );
 
             public AttributeDiscoveryVisitor( CompilationModel compilation )
             {
                 this._compilation = compilation;
+                this._logger = compilation.Project.ServiceProvider.GetLoggerFactory().GetLogger( nameof(AttributeDiscoveryVisitor) );
             }
-
-            /// <summary>
-            /// Gets the logger that reports the attributes that have been ignored.
-            /// </summary>
-            private ILogger Logger
-                => this._compilation.Project.ServiceProvider.GetLoggerFactory().GetLogger( nameof(AttributeDiscoveryVisitor) );
 
             public override void VisitAttribute( AttributeSyntax node )
             {
@@ -166,7 +166,7 @@ namespace Metalama.Framework.Engine.CodeModel
                             // the attribute costs the aspects that the attribute represents, while throwing aborts
                             // the construction of the code model and therefore costs every design-time service of the
                             // whole project. See issue #1988.
-                            this.Logger.Warning?.Log(
+                            this._logger.Warning?.Log(
                                 $"The attribute '{node}' of '{node.SyntaxTree.FilePath}' has been ignored because '{attributeList.Target.Identifier}' is not a valid attribute target." );
 
                             break;
@@ -203,7 +203,7 @@ namespace Metalama.Framework.Engine.CodeModel
                 }
                 catch ( Exception e ) when ( e is not (OperationCanceledException or TaskCanceledException) )
                 {
-                    this.Logger.Warning?.Log(
+                    this._logger.Warning?.Log(
                         $"The attribute '{node}' of '{node.SyntaxTree.FilePath}' has been ignored because the semantic model could not bind it: {e.Message}" );
 
                     attributeConstructor = null;
