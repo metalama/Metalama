@@ -62,5 +62,21 @@ internal sealed class EnumFacet : IEnumFacet
     }
 
     [Memo]
-    public bool IsFlags => this.Type.Attributes.Any( typeof(FlagsAttribute) );
+    public bool IsFlags => this.GetIsFlagsCore();
+
+    private bool GetIsFlagsCore()
+    {
+        // The attribute type is matched by its name first, because that comparison is the cheapest one, and by its
+        // namespace afterwards. Matching by typeof(FlagsAttribute) would resolve the reflection type through the
+        // compilation, which costs more.
+        foreach ( var attribute in this.Type.Attributes )
+        {
+            if ( attribute.Type.Name == nameof(FlagsAttribute) && attribute.Type.ContainingNamespace.FullName == "System" )
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }
