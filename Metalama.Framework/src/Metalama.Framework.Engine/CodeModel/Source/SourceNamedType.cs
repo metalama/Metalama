@@ -561,26 +561,6 @@ namespace Metalama.Framework.Engine.CodeModel.Source
             }
         }
 
-        public bool IsUnionDeclaration
-        {
-            get
-            {
-                this.OnUsingDeclaration();
-
-                return this.Implementation.IsUnionDeclaration;
-            }
-        }
-
-        public IReadOnlyList<IType> UnionCaseTypes
-        {
-            get
-            {
-                this.OnUsingDeclaration();
-
-                return this.Implementation.UnionCaseTypes;
-            }
-        }
-
         ICompilation ICompilationElement.Compilation => this.Compilation;
 
         private protected override IFullRef<IDeclaration> ToFullDeclarationRef() => this.Implementation.Ref;

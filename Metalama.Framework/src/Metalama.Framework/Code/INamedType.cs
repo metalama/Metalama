@@ -270,9 +270,14 @@ namespace Metalama.Framework.Code
         /// </summary>
         /// <remarks>
         /// <para>
-        /// A union is written in one of two forms. The first is a declaration that uses the <c>union</c> keyword, for
-        /// which <see cref="IsUnionDeclaration"/> is <c>true</c>. The second is a class or a struct that carries the
-        /// <c>System.Runtime.CompilerServices.UnionAttribute</c> attribute. This property is <c>true</c> for both.
+        /// A union is written in one of two forms. The first is a declaration that uses the <c>union</c> keyword. The
+        /// second is a class or a struct that carries the <c>System.Runtime.CompilerServices.UnionAttribute</c>
+        /// attribute. This property is <c>true</c> for both, and <see cref="IUnionFacet.UnionKind"/> tells them apart.
+        /// </para>
+        /// <para>
+        /// This property answers whether the type is a union without allocating anything. The authoring form, the
+        /// cases and the <c>Value</c> property of the union are read through <see cref="Facets"/>, as in
+        /// <c>type.Facets.Union?.Cases</c>.
         /// </para>
         /// <para>
         /// A union is independent of <see cref="IType.TypeKind"/>. The compiler reports a union declaration as a
@@ -287,32 +292,9 @@ namespace Metalama.Framework.Code
         /// still experimental there.
         /// </para>
         /// </remarks>
+        /// <seealso cref="Facets"/>
+        /// <seealso cref="IUnionFacet"/>
         bool IsUnion { get; }
-
-        /// <summary>
-        /// Gets a value indicating whether the type is declared with the <c>union</c> keyword. Also returns
-        /// <c>false</c> for a type that is a union because it carries the
-        /// <c>System.Runtime.CompilerServices.UnionAttribute</c> attribute, and for a union declared in a referenced
-        /// assembly, whose authoring form the compiled assembly does not record.
-        /// </summary>
-        /// <remarks>
-        /// The two forms are told apart because the language forbids an instance field, an automatic property and a
-        /// field-like event in a union declaration only. An aspect that introduces such a member must test this
-        /// property and not <see cref="IsUnion"/>.
-        /// </remarks>
-        bool IsUnionDeclaration { get; }
-
-        /// <summary>
-        /// Gets the case types of the type, in the order in which the union header declares them. Returns an empty list
-        /// when <see cref="IsUnionDeclaration"/> is <c>false</c>.
-        /// </summary>
-        /// <remarks>
-        /// A case type is an ordinary type, declared elsewhere and named in the union header. The compiler synthesizes
-        /// no case type, and a case type carries no member that distinguishes it. The list is empty for the attribute
-        /// form of a union and for a union declared in a referenced assembly, because neither of them carries a union
-        /// header.
-        /// </remarks>
-        IReadOnlyList<IType> UnionCaseTypes { get; }
 
         /// <summary>
         /// Determines whether the type if subclass of the given class or interface.

@@ -48,18 +48,6 @@ internal class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, I
     /// </summary>
     public bool IsUnion => false;
 
-    /// <summary>
-    /// Gets a value indicating whether the introduced type is declared with the <c>union</c> keyword. The property
-    /// always returns <c>false</c>, because introducing a union is not supported yet.
-    /// </summary>
-    public bool IsUnionDeclaration => false;
-
-    /// <summary>
-    /// Gets the case types of the introduced type. The property always returns an empty list, because introducing a
-    /// union is not supported yet.
-    /// </summary>
-    public IReadOnlyList<IType> UnionCaseTypes => [];
-
     public IntroducedRef<INamedType> Ref { get; }
 
     public TypeParameterBuilderList TypeParameters { get; } = [];

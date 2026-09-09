@@ -208,13 +208,9 @@ internal sealed class IntroducedNamedType : IntroducedMemberOrNamedType, INamedT
 
     public bool IsClosed => this._namedTypeBuilderData.IsClosed;
 
-    // Introducing a union is not supported yet, so the three values are constants rather than a read of the builder
-    // data. The story that adds the writer adds them to the builder data at the same time.
+    // Introducing a union is not supported yet, so the value is a constant rather than a read of the builder data.
+    // The story that adds the writer adds it to the builder data at the same time.
     public bool IsUnion => false;
-
-    public bool IsUnionDeclaration => false;
-
-    public IReadOnlyList<IType> UnionCaseTypes => [];
 
     public bool? IsNullable { get; }
 

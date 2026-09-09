@@ -33,4 +33,10 @@ public interface ITypeFacetCollection : IReadOnlyCollection<ITypeFacet>
     /// Gets the facet of the delegate, or <c>null</c> when the type is not a delegate.
     /// </summary>
     IDelegateFacet? Delegate { get; }
+
+    /// <summary>
+    /// Gets the facet of the union, or <c>null</c> when the type is not a union.
+    /// </summary>
+    /// <seealso cref="INamedType.IsUnion"/>
+    IUnionFacet? Union { get; }
 }

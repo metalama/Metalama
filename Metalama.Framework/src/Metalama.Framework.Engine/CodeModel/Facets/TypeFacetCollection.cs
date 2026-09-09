@@ -43,18 +43,28 @@ internal sealed class TypeFacetCollection : ITypeFacetCollection
     /// <summary>
     /// Creates the collection of facets of a type, or returns <see cref="Empty"/> when the type has no facet.
     /// </summary>
-    public static ITypeFacetCollection Create( INamedType type ) => type.IsDelegate ? new TypeFacetCollection( type ) : Empty;
+    public static ITypeFacetCollection Create( INamedType type ) => type.IsDelegate || type.IsUnion ? new TypeFacetCollection( type ) : Empty;
 
     [Memo]
     public IDelegateFacet? Delegate => this._type.IsDelegate ? new DelegateFacet( this._type ) : null;
 
-    public int Count => this.Delegate == null ? 0 : 1;
+    [Memo]
+    public IUnionFacet? Union => this._type.IsUnion ? new UnionFacet( this._type ) : null;
+
+    public int Count => (this.Delegate == null ? 0 : 1) + (this.Union == null ? 0 : 1);
 
     public IEnumerator<ITypeFacet> GetEnumerator()
     {
+        // The facets are yielded in the order of the members of TypeFacetKind, which is the order that the
+        // documentation of ITypeFacetCollection states.
         if ( this.Delegate != null )
         {
             yield return this.Delegate;
+        }
+
+        if ( this.Union != null )
+        {
+            yield return this.Union;
         }
     }
 
@@ -63,6 +73,8 @@ internal sealed class TypeFacetCollection : ITypeFacetCollection
     private sealed class EmptyTypeFacetCollection : ITypeFacetCollection
     {
         public IDelegateFacet? Delegate => null;
+
+        public IUnionFacet? Union => null;
 
         public int Count => 0;
 

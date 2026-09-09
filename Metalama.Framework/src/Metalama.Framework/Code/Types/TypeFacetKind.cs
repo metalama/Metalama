@@ -21,5 +21,10 @@ public enum TypeFacetKind
     /// <summary>
     /// The facet of a delegate (<see cref="IDelegateFacet"/>).
     /// </summary>
-    Delegate
+    Delegate,
+
+    /// <summary>
+    /// The facet of a union (<see cref="IUnionFacet"/>).
+    /// </summary>
+    Union
 }
