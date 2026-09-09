@@ -2,7 +2,7 @@
 
 This document proposes an addition to the public code model: a uniform way to expose the structure that is specific
 to a kind of declared named type. It covers delegates, enums, records and C# 15 unions. Section 4.5 explains why it
-does not cover tuples. It is a design proposal. Nothing described here is implemented.
+does not cover tuples today. It is a design proposal. Nothing described here is implemented.
 
 ## 1. The problem
 
@@ -68,7 +68,15 @@ is what pull request #1991 proposes, continues that pattern. The count grows: th
 `Value` property and the case constructors, which would be two more members. Each one is meaningless for the great
 majority of named types.
 
+The flag itself is not the problem, and section 4.4 keeps the flags. The problem is the structure that follows the
+flag.
+
 ## 2. The public interfaces
+
+The facet types are declared in the namespace `Metalama.Framework.Code.Types`, beside `IArrayType`, `IPointerType`,
+`IFunctionPointerType` and `IDynamicType`, because they describe the structure of a type.
+`ITypeFacetCollection` is declared in `Metalama.Framework.Code.Collections`, beside `IExtensionBlockCollection`,
+because it is a collection.
 
 ### 2.1. One collection of facets
 
@@ -76,22 +84,25 @@ A facet is the structure that a declared named type has because of its kind, and
 have. A type has a collection of facets, which is empty for an ordinary class, struct or interface.
 
 ```csharp
-// Metalama.Framework/Code/TypeFacetKind.cs
+// Metalama.Framework/Code/Types/TypeFacetKind.cs
 [CompileTime]
 public enum TypeFacetKind
 {
+    /// <summary>The type has no facet.</summary>
+    None,
+
     Delegate,
+
     Enum,
+
     Record,
+
     Union
 }
 ```
 
-The enum has no `None` member. A facet that exists has a kind, and the absence of a facet is represented by a `null`
-property of the collection.
-
 ```csharp
-// Metalama.Framework/Code/ITypeFacet.cs
+// Metalama.Framework/Code/Types/ITypeFacet.cs
 [CompileTime]
 public interface ITypeFacet
 {
@@ -137,9 +148,9 @@ The collection follows the precedent of `IExtensionBlockCollection`, which deriv
 Consumer code:
 
 ```csharp
-if ( type.Facets.Union is { } union )
+if ( type.IsUnion )
 {
-    foreach ( var unionCase in union.Cases ) { /* ... */ }
+    foreach ( var unionCase in type.Facets.Union!.Cases ) { /* ... */ }
 }
 
 var returnType = eventType.Facets.Delegate?.InvokeMethod.ReturnType;
@@ -154,8 +165,11 @@ coexist.
 A facet names every member that the compiler synthesizes for that kind of type, so that no consumer has to reach a
 member by a string literal.
 
+Every member of a facet is a lazy expression, cached with `[Memo]`. A consumer that obtains a facet and reads one
+member does not pay for resolving the others.
+
 ```csharp
-// Metalama.Framework/Code/IDelegateFacet.cs
+// Metalama.Framework/Code/Types/IDelegateFacet.cs
 [CompileTime]
 public interface IDelegateFacet : ITypeFacet
 {
@@ -170,8 +184,11 @@ public interface IDelegateFacet : ITypeFacet
 }
 ```
 
+`BeginInvoke` and `EndInvoke` are not exposed. They exist only for a delegate compiled for .NET Framework, and they
+are the asynchronous pattern that preceded `async`.
+
 ```csharp
-// Metalama.Framework/Code/IEnumFacet.cs
+// Metalama.Framework/Code/Types/IEnumFacet.cs
 [CompileTime]
 public interface IEnumFacet : ITypeFacet
 {
@@ -193,15 +210,19 @@ public interface IEnumFacet : ITypeFacet
 }
 ```
 
+The members of an enum are exposed as `IField`, and no interface of their own is declared for them. An enum member
+is a field, so an interface derived from `IField` would exist only to remove members that do not apply, which is
+more cumbersome than the property it would replace.
+
 ```csharp
-// Metalama.Framework/Code/IRecordFacet.cs
+// Metalama.Framework/Code/Types/IRecordFacet.cs
 [CompileTime]
 public interface IRecordFacet : ITypeFacet
 {
     /// <summary>
     /// Gets the <c>EqualityContract</c> property, or <c>null</c> when the type is a record struct, which has none.
     /// </summary>
-    IProperty? EqualityContract { get; }
+    IProperty? EqualityContractProperty { get; }
 
     IMethod PrintMembersMethod { get; }
 
@@ -229,15 +250,18 @@ public interface IRecordFacet : ITypeFacet
 }
 ```
 
+`IRecordFacet` is one interface with nullable members, and it is not split into a record class interface and a
+record struct interface. Three of its members are `null` for a record struct, and that is accepted.
+
 ```csharp
-// Metalama.Framework/Code/IUnionFacet.cs
+// Metalama.Framework/Code/Types/IUnionFacet.cs
 [CompileTime]
 public interface IUnionFacet : ITypeFacet
 {
     /// <summary>
-    /// Gets the form in which the union is written.
+    /// Gets the kind of the union.
     /// </summary>
-    UnionForm Form { get; }
+    new UnionKind Kind { get; }
 
     /// <summary>
     /// Gets the cases of the union, in the order in which the compiler reports them.
@@ -252,13 +276,19 @@ public interface IUnionFacet : ITypeFacet
 }
 
 [CompileTime]
-public enum UnionForm
+public enum UnionKind
 {
     /// <summary>The type is declared with the <c>union</c> keyword.</summary>
     Declaration,
 
     /// <summary>The type is a class or a struct that carries <c>UnionAttribute</c>.</summary>
-    Attribute
+    Attribute,
+
+    /// <summary>
+    /// The type is a union declared in a referenced assembly. The compiled form does not record the authoring form,
+    /// so the two forms above cannot be told apart there.
+    /// </summary>
+    External
 }
 
 [CompileTime]
@@ -276,19 +306,13 @@ public interface IUnionCase
     /// constructor of the attribute form, or the static <c>Create</c> method of the union member provider.
     /// </summary>
     IMethodBase CreationMember { get; }
-
-    /// <summary>
-    /// Creates an expression that creates an instance of the union holding a value of this case.
-    /// </summary>
-    IExpression CreateCreateInstanceExpression( IExpression value );
 }
 ```
 
 `IUnionCase` follows `ITupleElement`, which is richer than the type of the element and carries `Index`,
 `HasFriendlyName` and `CorrespondingTupleField`. The richer abstraction is required rather than convenient: Roslyn
 collapses duplicate case types through a set, so the index of a case is not recoverable from its type, and the
-creation member of the attribute form may be a static method rather than a constructor, which `IConstructor` cannot
-express.
+creation member of the attribute form may be a static method rather than a constructor.
 
 ### 2.3. Facets expose invokers
 
@@ -302,11 +326,19 @@ invoker through the member, and no facet declares an invoker member of its own.
 var call = eventType.Facets.Delegate!.InvokeMethod.With( handler ).Invoke( args );
 ```
 
-A facet declares a method that creates an expression only where no member of the type carries the operation. The
-precedent is `ITupleType.CreateCreateInstanceExpression`, which exists because a tuple is created by a syntactic
-construct and not by calling a member. `IUnionCase.CreateCreateInstanceExpression` exists for the same reason: the
-creation member differs by form, so the consumer would otherwise have to test whether it is a constructor or a
-static method.
+`IUnionCase.CreationMember` is typed as `IMethodBase`, which today derives from no invoker, because the creation
+member is a constructor for one form of union and a static method for another. The proposal therefore adds
+`IMethodBaseInvoker`, declaring the operations that `IMethodInvoker` and `IConstructorInvoker` have in common, and
+makes `IMethodBase` derive from it. Creating an instance of a union case is then the invocation of its creation
+member, and no facet declares a method to create an expression:
+
+```csharp
+var instance = unionCase.CreationMember.CreateInvokeExpression( value );
+```
+
+The relationship between the three invoker interfaces has to be settled during implementation. `IMethod` and
+`IConstructor` already derive from the two specific invokers, so `IMethodInvoker` and `IConstructorInvoker` either
+derive from `IMethodBaseInvoker` or keep their members independently.
 
 ### 2.4. Writing is on builders, not on facets
 
@@ -342,14 +374,17 @@ members are not yet resolvable.
 
 | Existing member | Disposition |
 | --- | --- |
-| `INamedType.IsRecord` | Kept. It is shipped, widely used, and cheap. The documentation gains a reference to `Facets.Record`. |
+| `INamedType.IsRecord` | Kept, and joined by `IsDelegate`, `IsEnum`, `IsTuple` and `IsUnion`. See section 4.4. |
 | `INamedType.UnderlyingType` | Kept. It is shipped and it also serves nullable reference types. `IEnumFacet.UnderlyingType` is the member with one meaning, and the documentation of both says so. |
 | `IEvent.Signature` | Kept, and defined as `Type.Facets.Delegate!.InvokeMethod`. The four duplicate implementations are removed. The member currently has no documentation and gains it. |
-| `ITupleType`, `ITupleElement`, `TypeKind.Tuple`, `TypeFactory.CreateTupleType` | Unchanged. A tuple is not a facet. See section 4.5. |
+| `IMethodBase` | Gains `IMethodBaseInvoker` as a base interface. See section 2.3. |
+| `ITupleType`, `ITupleElement` | Moved from `Metalama.Framework.Code` to `Metalama.Framework.Code.Types`. Otherwise unchanged. A tuple has no facet today. See section 4.5. |
+| `TypeKind.Tuple`, `TypeFactory.CreateTupleType` | Unchanged. |
 | `INamedType.PrimaryConstructor` | Kept. A primary constructor is not specific to records since C# 12, so it does not move to `IRecordFacet`. |
 | `IExtensionBlock` | Unchanged, and deliberately not a facet. See section 4.1. |
 
-No member is made obsolete by this proposal, and it carries no user-facing breaking change.
+No member is made obsolete by this proposal. It carries one user-facing breaking change, the namespace of
+`ITupleType` and `ITupleElement`, so the pull request that carries it takes the `breaking` label.
 
 ## 4. Decisions
 
@@ -391,25 +426,34 @@ The proposal adds no value to `TypeKind` and no interface derived from `INamedTy
 the two reasons. Roslyn made the same choice: `IsUnion` and `UnionCaseTypes` are declared on `ITypeSymbol`, and
 there is no `IUnionTypeSymbol`.
 
-### 4.4. No flat union members on `INamedType`
+### 4.4. The flags stay on `INamedType`, the structure does not
 
-Pull request #1991 proposes `INamedType.IsUnion`, `INamedType.IsUnionDeclaration` and
-`INamedType.UnionCaseTypes`. This proposal replaces all three with `Facets.Union`. The recommendation is to hold
-them back from #1991 rather than ship them and duplicate them later, because a shipped public member cannot be
-withdrawn and the repository already carries two members in that situation, `UnderlyingType` and `IsRecord`.
+`INamedType` keeps `IsRecord` and gains `IsDelegate`, `IsEnum`, `IsTuple` and `IsUnion`. Two reasons.
 
-Two of the three would be wrong as specified in any case. `UnionCaseTypes` is documented there as empty when
+The first is ease of use. A flag reads well in a predicate over a collection of types, in an eligibility rule and in
+a template, where `type.Facets.Union is not null` does not.
+
+The second is cost. Testing a flag through the collection allocates the collection and the facet in order to answer
+a Boolean question, and generic code that walks the model asks that question on every type. A flag answers it
+without allocating.
+
+The flags are the discriminators and the facets are the structure, so they answer different questions rather than
+the same one twice. That is the same relationship that `TypeKind.Delegate` and `TypeKind.Enum` already have with
+their facets.
+
+What does not go on `INamedType` is the structure. Pull request #1991 proposes `IsUnion`, `IsUnionDeclaration` and
+`UnionCaseTypes`. Under this proposal `IsUnion` ships as a flag, and the other two are replaced by `Facets.Union`.
+The recommendation is to hold those two back from #1991 rather than ship them and duplicate them later, because a
+shipped public member cannot be withdrawn.
+
+Both would be wrong as specified there in any case. `UnionCaseTypes` is documented as empty when
 `IsUnionDeclaration` is false, which describes the current implementation from syntax rather than the contract:
 Roslyn documents `ITypeSymbol.UnionCaseTypes` as returning the case types "when `IsUnion` is true", and it is
 defined for the attribute form. `IsUnionDeclaration` reads as a question about a declaration, on an object that is
-already an `IDeclaration`. `UnionForm` states the distinction with the vocabulary of the language proposal, which
+already an `IDeclaration`. `UnionKind` states the distinction with the vocabulary of the language proposal, which
 defines "union type" and "union declaration" as two terms, and it does so without that collision.
 
-The counter-argument is that `IsUnion` is the cheap first test, that it is what `ITypeSymbol` exposes, and that
-`type.Facets.Union is not null` is longer to write in a predicate over a collection of types. The proposal accepts
-that cost, on the ground that a second way to ask the same question is the defect this document exists to remove.
-
-### 4.5. A tuple is not a facet
+### 4.5. A tuple has no facet today
 
 A tuple is not declared. The type `(int X, string Y)` is formed by a type expression at the place where it is used,
 and the element names are attached there. Metalama models it that way: `TupleType` and `TupleTypeImpl` are in
@@ -419,41 +463,34 @@ the elements of a tuple are a view over the fields of the underlying `ValueTuple
 `ITupleType` therefore belongs to the family of `IArrayType`, `IPointerType` and `IFunctionPointerType`: interfaces
 that describe the structure of a type that a type expression forms, that are reached by a type test, and that are
 constructed at one site. Section 1.3 states why that mechanism is correct for that family and does not extend to a
-declared type.
+declared type. `ITupleType` and `ITupleElement` move to `Metalama.Framework.Code.Types` so that they sit with that
+family.
 
-A facet describes the other thing: the structure that a named type has because of what its declaration says. A
-delegate, an enum, a record and a union are declared. A tuple is not, so `ITupleType`, `ITupleElement`,
-`TypeKind.Tuple` and `TypeFactory.CreateTupleType` are unchanged, and `ITypeFacetCollection` has no tuple property.
-
-The cost of this decision is that a consumer that wants the structure of an arbitrary type has to know two
-mechanisms: a type test for a type that a type expression forms, and the facet collection for a declared one. An
-earlier revision of this document proposed the alternative, which is to declare `ITupleFacet` with the members of
-`ITupleType`, to make `ITupleType` obsolete and forward its members to the facet, and to change the return type of
-`TypeFactory.CreateTupleType` to `INamedType`. That alternative removes the second mechanism at the price of a
-user-facing breaking change, sixty-three references to convert inside the repository, and a facet that describes a
-type that nobody declared.
+`ITypeFacetCollection` has no tuple property in this proposal, and `INamedType.IsTuple` is the flag. An
+`ITupleFacet` declaring the members of `ITupleType` may be added later for completeness, which would make the
+collection a complete index of the structure of a type. That addition is not required by any consumer known today,
+and it is deliberately left out of the pull requests that section 6 lists.
 
 ## 5. Implementation guidelines
 
 These are constraints on the implementation, not a design of it.
 
-1. `Facets` is one member on `INamedType`, for any number of facets. The number of members to implement does not
-   grow when a facet is added. That is the difference from the flat design, which needs one member per exposed
-   value.
+1. `Facets` is one member on `INamedType`, for any number of facets. The structure does not add a member per kind.
+   The flags of section 4.4 do add one member per kind, and they are Boolean and non-allocating.
 2. The collection constructs the facets. No facet type declares a static factory method that returns `null`. A facet
    reference that a consumer holds is never `null`, and nullability is expressed only by the properties of the
    collection.
-3. A type that has no facet returns a shared empty collection. Generic code that walks the model reads `Facets` on
+3. Every member of a facet is a lazy expression cached with `[Memo]`, and the facet resolves no member that a
+   consumer does not read.
+4. A type that has no facet returns a shared empty collection. Generic code that walks the model reads `Facets` on
    every type, so the common case must not allocate.
-4. The implementations of `INamedType` that back a builder return the empty collection rather than throwing.
+5. The implementations of `INamedType` that back a builder return the empty collection rather than throwing.
    Eligibility rules and advice validation run against builders, so an exception there is reached in normal use.
-5. The facet interfaces name no Roslyn type. `Metalama.Framework` is not built per Roslyn version, while
+6. The facet interfaces name no Roslyn type. `Metalama.Framework` is not built per Roslyn version, while
    `Metalama.Framework.Engine` is, and the union facet reads `ITypeSymbol.IsUnion` and `ITypeSymbol.UnionCaseTypes`,
    which exist only in the latest variant. The conditional compilation is therefore confined to the construction of
    the collection in the engine, under the condition that section 6 of
-   [`../2027.0/DECISIONS.md`](../2027.0/DECISIONS.md) decides. The flat design instead needs a conditional block in
-   each implementation of `INamedType`.
-6. A facet is computed once per type and cached, in the manner of the other collection members of `INamedType`.
+   [`../2027.0/DECISIONS.md`](../2027.0/DECISIONS.md) decides.
 
 ## 6. Order of implementation
 
@@ -463,11 +500,13 @@ behaviour before anything that cannot be revised is public.
 
 | Pull request | Content | Depends on |
 | --- | --- | --- |
-| 1 | `TypeFacetKind`, `ITypeFacet`, `ITypeFacetCollection`, `INamedType.Facets`, `IDelegateFacet`. Conversion of the `Invoke` lookups and of `IEvent.Signature`. | — |
-| 2 | `IEnumFacet`. | 1 |
+| 1 | `TypeFacetKind`, `ITypeFacet`, `ITypeFacetCollection`, `INamedType.Facets`, `INamedType.IsDelegate`, `IDelegateFacet`. Conversion of the `Invoke` lookups and of `IEvent.Signature`. | — |
+| 2 | `IEnumFacet` and `INamedType.IsEnum`. | 1 |
 | 3 | `IRecordFacet`, and the conversion of the synthesized-member lookups of the linker. | 1 |
-| 4 | `IUnionFacet`, `IUnionCase`, `UnionForm`. | 1, and the move to the stable Roslyn |
-| 5 | `IUnionBuilder`, and the builder shapes of the other kinds. | 4, and the union introduction story |
+| 4 | `INamedType.IsTuple`, and the move of `ITupleType` and `ITupleElement` to `Metalama.Framework.Code.Types`. Takes the `breaking` label. | — |
+| 5 | `IMethodBaseInvoker` on `IMethodBase`. | — |
+| 6 | `IUnionFacet`, `IUnionCase`, `UnionKind`, `INamedType.IsUnion`. | 1, 5, and the move to the stable Roslyn |
+| 7 | `IUnionBuilder`, and the builder shapes of the other kinds. | 6, and the union introduction story |
 
 Pull request 1 changes one shipped behaviour: `EligibilityRuleFactory` currently throws `InvalidOperationException`
 when the type of an event is not a well-formed delegate, and it returns `false` after the conversion.
@@ -479,20 +518,29 @@ the design has to be revised before the union facet is built on it.
 
 ## 7. Open questions
 
-1. Whether `IDelegateFacet` exposes `BeginInvoke` and `EndInvoke`. They exist for a delegate compiled for .NET
-   Framework and not for one compiled for .NET. Exposing them adds two nullable members for a case that no known
-   consumer needs.
-2. Whether `IRecordFacet` is worth its nullable members. `EqualityContract`, `CloneMethod` and `CopyConstructor` are
-   all `null` for a record struct. Splitting the interface in two would remove the nullability and add a type.
-3. Whether the enum members deserve an abstraction of their own, in the manner of `ITupleElement`, carrying the
-   constant value and the index, rather than `IReadOnlyList<IField>`.
-4. Whether the `Delegate`, `Enum` and `Record` property names of `ITypeFacetCollection` pass the naming analyzers of
-   this repository.
-5. Whether the union facet is populated for a union read from a referenced assembly. The compiled form does not
-   record the authoring form, so `Form` would report `Attribute` for a type that the author wrote with the `union`
-   keyword.
+1. Whether `IUnionFacet.Kind` shadows `ITypeFacet.Kind` or the base member is renamed. `ITypeFacet.Kind` returns
+   `TypeFacetKind` and `IUnionFacet.Kind` returns `UnionKind`, so the derived member has to be declared `new`, and a
+   consumer sees a different type depending on the interface through which it reads the property. Renaming the base
+   member to `FacetKind` removes the shadowing at the price of a name that is less uniform with the rest of the code
+   model.
+2. Whether `IMethodInvoker` and `IConstructorInvoker` derive from `IMethodBaseInvoker`, or keep their members
+   independently. See section 2.3.
+3. Whether the move of `ITupleType` and `ITupleElement` to `Metalama.Framework.Code.Types` ships as a plain
+   namespace change or with a compatibility measure, and in which release.
 
-## 8. References
+## 8. Resolved questions
+
+These were open in the first revision of this document and are settled.
+
+- `IDelegateFacet` does not expose `BeginInvoke` and `EndInvoke`. They are the asynchronous pattern that preceded
+  `async`.
+- `IRecordFacet` keeps its nullable members and is not split in two.
+- The members of an enum stay `IReadOnlyList<IField>`, and no interface of their own is declared for them.
+- `UnionKind` gains an `External` member for a union read from a referenced assembly, whose authoring form the
+  compiled form does not record.
+- The property names `Delegate`, `Enum` and `Record` on `ITypeFacetCollection` are not a concern.
+
+## 9. References
 
 - [`../2027.0/DECISIONS.md`](../2027.0/DECISIONS.md), sections 3, 4 and 6.
 - [`../2027.0/03-code-model-unions-closed.md`](../2027.0/03-code-model-unions-closed.md), finding CM-1.
