@@ -104,17 +104,22 @@ internal sealed class UnionFacet : IUnionFacet
     /// Enumerates the creation members of a union, which are the members that create a value of one of its cases.
     /// </summary>
     /// <remarks>
-    /// A union that declares a member provider interface has its creation members there, and every other union has
-    /// them on the type itself. A union declaration always takes the second branch, because the language forbids a
-    /// union declaration to use a member provider interface.
+    /// <para>
+    /// A union that declares a union member provider interface creates the value of a case through a public static
+    /// method named <c>Create</c>, and every other union creates it through a public constructor that takes one
+    /// parameter. A union declaration always takes the second branch, because the language forbids a union
+    /// declaration to declare a member provider interface.
+    /// </para>
+    /// <para>
+    /// The methods are read from the union and not from the member provider interface, which declares them as static
+    /// abstract members. The member of the union is the one that a consumer can invoke.
+    /// </para>
     /// </remarks>
     private static IEnumerable<IMethodBase> GetCreationMembers( INamedType type )
     {
-        var memberProvider = type.Types.OfName( _memberProviderInterfaceName ).SingleOrDefault();
-
-        if ( memberProvider != null )
+        if ( type.Types.OfName( _memberProviderInterfaceName ).Any() )
         {
-            return memberProvider.Methods
+            return type.Methods
                 .OfName( _creationMethodName )
                 .Where( method => method is { IsStatic: true, Accessibility: Accessibility.Public, Parameters.Count: 1 } );
         }

@@ -283,21 +283,31 @@ public sealed class UnionTypeTests : UnitTestClass
     [Fact]
     public void CasesOfUnionWithMemberProviderAreItsCreateMethods()
     {
+        // The compiler accepts a union member provider only in this shape: the nested interface is named
+        // IUnionMembers, declares the Value property and one static abstract Create method per case, and the union
+        // implements it. A union that declares the Create methods without the interface is reported as having no
+        // creation member, which is CS9385.
         const string code = """
                             using System.Runtime.CompilerServices;
 
                             [Union]
-                            class ProviderUnion : IUnion
+                            class ProviderUnion : IUnion, ProviderUnion.IUnionMembers
                             {
                                 private ProviderUnion( object value ) { this.Value = value; }
 
                                 public object Value { get; }
 
+                                public static ProviderUnion Create( Circle circle ) => new ProviderUnion( circle );
+
+                                public static ProviderUnion Create( Rectangle rectangle ) => new ProviderUnion( rectangle );
+
                                 public interface IUnionMembers
                                 {
-                                    public static ProviderUnion Create( Circle circle ) => new ProviderUnion( circle );
+                                    object Value { get; }
 
-                                    public static ProviderUnion Create( Rectangle rectangle ) => new ProviderUnion( rectangle );
+                                    static abstract ProviderUnion Create( Circle circle );
+
+                                    static abstract ProviderUnion Create( Rectangle rectangle );
                                 }
                             }
 
@@ -345,7 +355,7 @@ public sealed class UnionTypeTests : UnitTestClass
 
             Assert.Equal( "Value", valueProperty.Name );
             Assert.Same( type, valueProperty.DeclaringType );
-            Assert.Equal( SpecialType.Object, valueProperty.Type.SpecialType );
+            Assert.Equal( Code.SpecialType.Object, valueProperty.Type.SpecialType );
         }
     }
 
