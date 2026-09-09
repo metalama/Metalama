@@ -53,15 +53,19 @@ public sealed class TypeFacetTests : UnitTestClass
         using var testContext = this.CreateTestContext();
         var compilation = testContext.CreateCompilation( _code );
 
-        var typesWithoutFacet = new[] { "OrdinaryClass", "Struct", "IInterface", "Enum", "RecordClass", "Holder" }
-            .Select( name => compilation.Types.OfName( name ).Single() );
-
-        foreach ( var type in typesWithoutFacet )
+        foreach ( var typeName in new[] { "OrdinaryClass", "Struct", "IInterface", "Enum", "RecordClass", "Holder" } )
         {
-            Assert.False( type.IsDelegate, $"{type.Name} should not be a delegate." );
+            var type = compilation.Types.OfName( typeName ).Single();
+
+            Assert.False( type.IsDelegate, $"{typeName} should not be a delegate." );
             Assert.Null( type.Facets.Delegate );
             Assert.Empty( type.Facets );
-            Assert.Equal( 0, type.Facets.Count );
+
+            // The count is read into a local because the invariant is that it agrees with the typed properties, which
+            // is a different statement from the emptiness of the enumeration asserted above.
+            var facetCount = type.Facets.Count;
+
+            Assert.Equal( 0, facetCount );
         }
     }
 
@@ -104,9 +108,12 @@ public sealed class TypeFacetTests : UnitTestClass
 
         Assert.Equal( "Invoke", facet.InvokeMethod.Name );
         Assert.Equal( SpecialType.Void, facet.ReturnType.SpecialType );
-        Assert.Equal( new[] { "sender", "args" }, facet.Parameters.Select( p => p.Name ) );
+        Assert.Equal( new[] { "sender", "args" }, facet.Parameters.SelectAsArray( p => p.Name ) );
 
-        Assert.Equal( 1, handler.Facets.Count );
+        // See the comment of TypeThatHasNoFacetHasAnEmptyCollection on why the count is read into a local.
+        var facetCount = handler.Facets.Count;
+
+        Assert.Equal( 1, facetCount );
         Assert.Same( facet, Assert.Single( handler.Facets ) );
     }
 
