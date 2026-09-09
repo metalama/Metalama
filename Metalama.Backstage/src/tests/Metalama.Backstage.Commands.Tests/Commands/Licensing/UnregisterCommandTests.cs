@@ -24,5 +24,21 @@ namespace Metalama.Tools.Config.Tests.Commands.Licensing
 
             await this.TestCommandAsync( "license list", "No Metalama license" );
         }
+
+        /// <summary>
+        /// Tests that unregistering removes the license keys of every group, including the groups that the current
+        /// version does not support and therefore never reads. See issue #1922.
+        /// </summary>
+        [Fact]
+        public async Task UnsupportedGroupUnregisters()
+        {
+            await this.TestCommandAsync( $"license register {LicenseKeyProvider.MetalamaProfessionalBusiness}" );
+
+            this.AddUnsupportedLicenseGroup();
+
+            await this.TestCommandAsync( "license unregister", "have been unregistered." );
+
+            await this.TestCommandAsync( "license list", "No Metalama license", unexpectedOutput: "requires Metalama" );
+        }
     }
 }

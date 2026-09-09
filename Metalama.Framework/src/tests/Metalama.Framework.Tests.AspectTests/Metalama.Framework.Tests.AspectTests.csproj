@@ -20,6 +20,12 @@
         <OutputType>Library</OutputType>
         <AssemblyName>Metalama.Framework.Tests.AspectTests.$(ThisRoslynVersionNoPreview)</AssemblyName>
         <LangVersion Condition="'$(LangVersionOverride)'!=''">$(LangVersionOverride)</LangVersion>
+        <!-- This project compiles the test input files so that they can be edited and analysed, so a test of a
+             language feature that is still in preview needs the preview language version here. The value has no
+             effect on the language version of an aspect test, which the test framework takes from the
+             @LanguageVersion directive of the test file, and it has no effect on what Metalama permits a user to
+             compile. See issue #1949. -->
+        <LangVersion Condition="'$(LangVersionOverride)'==''">preview</LangVersion>
         <ImplicitUsings>disable</ImplicitUsings>
     </PropertyGroup>
 

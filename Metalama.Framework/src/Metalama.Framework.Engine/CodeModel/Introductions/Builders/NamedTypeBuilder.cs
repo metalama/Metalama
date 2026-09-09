@@ -35,6 +35,12 @@ internal class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, I
 
     public bool IsRecord { get; }
 
+    /// <summary>
+    /// Gets a value indicating whether the introduced type is declared with the <c>closed</c> modifier. The property
+    /// always returns <c>false</c>, because introducing a closed type is not supported yet.
+    /// </summary>
+    public bool IsClosed => false;
+
     public IntroducedRef<INamedType> Ref { get; }
 
     public TypeParameterBuilderList TypeParameters { get; } = [];

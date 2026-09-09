@@ -199,6 +199,8 @@ internal sealed class IntroducedNamedType : IntroducedMemberOrNamedType, INamedT
 
     public bool IsRecord => this._namedTypeBuilderData.IsRecord;
 
+    public bool IsClosed => this._namedTypeBuilderData.IsClosed;
+
     public bool? IsNullable { get; }
 
     [Memo]

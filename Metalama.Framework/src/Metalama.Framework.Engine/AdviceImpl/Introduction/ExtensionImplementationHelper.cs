@@ -150,7 +150,7 @@ internal static class ExtensionImplementationHelper
     /// </summary>
     /// <param name="aspectLayerInstance">The aspect layer instance.</param>
     /// <param name="extensionBlock">The extension block containing the property.</param>
-    /// <param name="propertyName">The property name.</param>
+    /// <param name="memberName">The metadata name of the property, or of the indexer.</param>
     /// <param name="isSetter">True for setter, false for getter.</param>
     /// <param name="accessorAccessibility">The accessibility of the accessor.</param>
     /// <param name="isPropertyStatic">Whether the property is static.</param>
@@ -159,22 +159,24 @@ internal static class ExtensionImplementationHelper
     /// <param name="compilation">The compilation for resolving types.</param>
     /// <param name="sourceAccessorAttributes">The accessor-level attributes to copy.</param>
     /// <param name="sourceReturnParameterAttributes">The return parameter attributes to copy (for getter).</param>
+    /// <param name="indexParameters">The index parameters of an indexer, which come after the receiver and before the assigned value. Empty for a property.</param>
     /// <returns>The MethodBuilderData for the implicit accessor method.</returns>
     public static MethodBuilderData CreateImplicitAccessorMethod(
         AspectLayerInstance aspectLayerInstance,
         IExtensionBlock extensionBlock,
-        string propertyName,
+        string memberName,
         bool isSetter,
         Accessibility accessorAccessibility,
         bool isPropertyStatic,
         IType propertyType,
         RefKind propertyRefKind,
-        ICompilation compilation,
+        CompilationModel compilation,
         ImmutableArray<AttributeBuilderData> sourceAccessorAttributes = default,
-        ImmutableArray<AttributeBuilderData> sourceReturnParameterAttributes = default )
+        ImmutableArray<AttributeBuilderData> sourceReturnParameterAttributes = default,
+        ImmutableArray<ParameterBuilderData> indexParameters = default )
     {
         var parentType = extensionBlock.DeclaringType;
-        var methodName = (isSetter ? "set_" : "get_") + propertyName;
+        var methodName = (isSetter ? "set_" : "get_") + memberName;
 
         var implicitMethodBuilder = new MethodBuilder(
             aspectLayerInstance,
@@ -215,6 +217,25 @@ internal static class ExtensionImplementationHelper
                 receiverParam.RefKind );
         }
 
+        // The index parameters of an indexer come after the receiver and before the assigned value.
+        if ( !indexParameters.IsDefaultOrEmpty )
+        {
+            foreach ( var indexParameter in indexParameters )
+            {
+                var indexParameterBuilder = (BaseParameterBuilder) implicitMethodBuilder.AddParameter(
+                    indexParameter.Name,
+                    indexParameter.Type.GetTarget( compilation ),
+                    indexParameter.RefKind,
+                    indexParameter.DefaultValue?.ToTypedConstant( compilation ) );
+
+                // The implementation method that the compiler creates keeps the params modifier of the index
+                // parameter, even in the setter, where the assigned value follows it.
+                indexParameterBuilder.IsParams = indexParameter.IsParams;
+
+                CopyAttributes( indexParameter.Attributes, indexParameterBuilder, compilation );
+            }
+        }
+
         if ( isSetter )
         {
             // Add value parameter for setter with the property's RefKind.
@@ -229,15 +250,15 @@ internal static class ExtensionImplementationHelper
         }
 
         // Copy accessor-level attributes.
-        if ( !sourceAccessorAttributes.IsDefault && compilation is CompilationModel compilationModel )
+        if ( !sourceAccessorAttributes.IsDefault )
         {
-            CopyAttributes( sourceAccessorAttributes, implicitMethodBuilder, compilationModel );
+            CopyAttributes( sourceAccessorAttributes, implicitMethodBuilder, compilation );
         }
 
         // Copy return parameter attributes (primarily for getter).
-        if ( !sourceReturnParameterAttributes.IsDefault && compilation is CompilationModel compModel )
+        if ( !sourceReturnParameterAttributes.IsDefault )
         {
-            CopyAttributes( sourceReturnParameterAttributes, implicitMethodBuilder.ReturnParameter, compModel );
+            CopyAttributes( sourceReturnParameterAttributes, implicitMethodBuilder.ReturnParameter, compilation );
         }
 
         // Freeze and return the builder data.
