@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -43,7 +43,8 @@ internal sealed class TypeFacetCollection : ITypeFacetCollection
     /// <summary>
     /// Creates the collection of facets of a type, or returns <see cref="Empty"/> when the type has no facet.
     /// </summary>
-    public static ITypeFacetCollection Create( INamedType type ) => type.IsDelegate || type.IsUnion ? new TypeFacetCollection( type ) : Empty;
+    public static ITypeFacetCollection Create( INamedType type )
+        => type.IsDelegate || type.IsUnion || type.IsRecord ? new TypeFacetCollection( type ) : Empty;
 
     [Memo]
     public IDelegateFacet? Delegate => this._type.IsDelegate ? new DelegateFacet( this._type ) : null;
@@ -51,9 +52,12 @@ internal sealed class TypeFacetCollection : ITypeFacetCollection
     [Memo]
     public IUnionFacet? Union => this._type.IsUnion ? new UnionFacet( this._type ) : null;
 
+    [Memo]
+    public IRecordFacet? Record => this._type.IsRecord ? new RecordFacet( this._type ) : null;
+
     // The count is answered from the discriminators of the type and not from the typed properties, so that counting
     // the facets of a type does not construct them.
-    public int Count => (this._type.IsDelegate ? 1 : 0) + (this._type.IsUnion ? 1 : 0);
+    public int Count => (this._type.IsDelegate ? 1 : 0) + (this._type.IsUnion ? 1 : 0) + (this._type.IsRecord ? 1 : 0);
 
     public IEnumerator<ITypeFacet> GetEnumerator()
     {
@@ -68,6 +72,11 @@ internal sealed class TypeFacetCollection : ITypeFacetCollection
         {
             yield return this.Union;
         }
+
+        if ( this.Record != null )
+        {
+            yield return this.Record;
+        }
     }
 
     IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
@@ -77,6 +86,8 @@ internal sealed class TypeFacetCollection : ITypeFacetCollection
         public IDelegateFacet? Delegate => null;
 
         public IUnionFacet? Union => null;
+
+        public IRecordFacet? Record => null;
 
         public int Count => 0;
 

@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Code;
+using Metalama.Framework.Code.Comparers;
 using Metalama.Framework.Code.Types;
 using Metalama.Testing.UnitTesting;
 using System.Linq;
@@ -86,7 +87,7 @@ public sealed class RecordFacetTests : UnitTestClass
         var copyConstructor = facet.CopyConstructor;
 
         Assert.NotNull( copyConstructor );
-        Assert.Same( type, copyConstructor.Parameters.Single().Type );
+        Assert.True( copyConstructor.Parameters.Single().Type.Equals( type, TypeComparison.Default ) );
         Assert.Equal( Accessibility.Protected, copyConstructor.Accessibility );
         Assert.True( copyConstructor.IsImplicitlyDeclared );
 
@@ -224,17 +225,17 @@ public sealed class RecordFacetTests : UnitTestClass
     }
 
     /// <summary>
-    /// Verifies that a record read from a referenced assembly reports the facet, so that the facet is resolved from
-    /// the members of the type and not from the syntax of a record declaration.
+    /// Verifies that a record class declared in a referenced project reports every member of the facet, so that the
+    /// facet does not depend on the record being declared in the compilation that reads it.
     /// </summary>
     [Fact]
-    public void RecordFromReferencedAssemblyHasTheFacet()
+    public void RecordFromReferencedProjectHasTheFacet()
     {
         using var testContext = this.CreateTestContext();
 
         var compilation = testContext.CreateCompilation(
-            "class C { PositionalRecordClass F = null!; }",
-            dependentCode: _code );
+            "class C { ReferencedRecord F = null!; }",
+            dependentCode: "public record ReferencedRecord( int Id, string Name );" );
 
         var type = (INamedType) compilation.Types.OfName( "C" ).Single().Fields.OfName( "F" ).Single().Type;
 
@@ -281,7 +282,7 @@ public sealed class RecordFacetTests : UnitTestClass
         Assert.NotNull( facet );
         Assert.Equal( SpecialType.String, facet.PositionalProperties.Single().Type.SpecialType );
         Assert.Equal( SpecialType.String, facet.DeconstructMethod!.Parameters.Single().Type.SpecialType );
-        Assert.Same( constructedRecord, facet.CopyConstructor!.Parameters.Single().Type );
+        Assert.True( facet.CopyConstructor!.Parameters.Single().Type.Equals( constructedRecord, TypeComparison.Default ) );
 
         // The generic definition reports the members that are not substituted.
         var definition = constructedRecord.Definition;

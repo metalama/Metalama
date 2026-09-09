@@ -219,8 +219,18 @@ namespace Metalama.Framework.Code
         bool IsRef { get; }
 
         /// <summary>
-        /// Gets a value indicating whether type is a record. Also returns <c>false</c> when the type neither a class nor a record.
+        /// Gets a value indicating whether the type is a record, which covers a record class and a record struct.
+        /// Returns <c>false</c> for any other type.
         /// </summary>
+        /// <remarks>
+        /// <para>
+        /// This property answers whether the type is a record without allocating anything. The members that the
+        /// compiler synthesizes for the record are read through <see cref="Facets"/>, as in
+        /// <c>type.Facets.Record?.PrintMembersMethod</c>.
+        /// </para>
+        /// </remarks>
+        /// <seealso cref="Facets"/>
+        /// <seealso cref="IRecordFacet"/>
         bool IsRecord { get; }
 
         /// <summary>
