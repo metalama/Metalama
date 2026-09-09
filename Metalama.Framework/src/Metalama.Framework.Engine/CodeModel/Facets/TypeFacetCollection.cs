@@ -51,7 +51,9 @@ internal sealed class TypeFacetCollection : ITypeFacetCollection
     [Memo]
     public IUnionFacet? Union => this._type.IsUnion ? new UnionFacet( this._type ) : null;
 
-    public int Count => (this.Delegate == null ? 0 : 1) + (this.Union == null ? 0 : 1);
+    // The count is answered from the discriminators of the type and not from the typed properties, so that counting
+    // the facets of a type does not construct them.
+    public int Count => (this._type.IsDelegate ? 1 : 0) + (this._type.IsUnion ? 1 : 0);
 
     public IEnumerator<ITypeFacet> GetEnumerator()
     {

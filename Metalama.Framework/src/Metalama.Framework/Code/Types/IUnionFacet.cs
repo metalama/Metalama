@@ -40,14 +40,27 @@ public interface IUnionFacet : ITypeFacet
     /// order of the union header for a union declaration.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// The list is never empty for a well-formed union, because the language requires a union to have at least one
     /// case.
+    /// </para>
+    /// <para>
+    /// A type occurs once in the list, as it does in the case set of the compiler. Two creation members that take the
+    /// same type therefore declare one case, whose <see cref="IUnionCase.CreationMember"/> is the first of the two.
+    /// </para>
     /// </remarks>
     IReadOnlyList<IUnionCase> Cases { get; }
 
     /// <summary>
-    /// Gets the <c>Value</c> property, which holds the value of the case that the union currently carries. The
-    /// compiler synthesizes it for a union declaration, and the language requires the attribute form to declare it.
+    /// Gets the <c>Value</c> property, which holds the value of the case that the union currently carries, or
+    /// <c>null</c> when the union has no such property. The compiler synthesizes the property for a union
+    /// declaration, and the language requires the attribute form to have one, so the value is <c>null</c> only for a
+    /// union that the compiler reports as ill-formed, which the code model of a design-time session does see.
     /// </summary>
-    IProperty ValueProperty { get; }
+    /// <remarks>
+    /// The property is the one that the compiler resolves, which is not necessarily declared by the union itself: the
+    /// attribute form may inherit it from a base type, and a union that has a union member provider interface
+    /// declares it on that interface.
+    /// </remarks>
+    IProperty? ValueProperty { get; }
 }

@@ -80,6 +80,53 @@ public sealed class UnionTypeTests : UnitTestClass
         Assert.Null( introducedType.Facets.Union );
     }
 
+#if !ROSLYN_5_10_0_OR_GREATER
+
+    /// <summary>
+    /// Verifies that the attribute form of a union reports <see cref="INamedType.IsUnion"/> as <c>false</c>, has no
+    /// union facet and reports no diagnostic on the Roslyn 5.0 variant, whose Roslyn has no notion of a union at all.
+    /// That variant is the one that this test pins, because it is the only one on which the attribute form is an
+    /// ordinary class. The declaration form cannot be pinned in the same way, because that Roslyn does not parse it.
+    /// </summary>
+    [Fact]
+    public void AttributeUnionIsNotAUnionOnTheLowerRoslynVariant()
+    {
+        const string code = """
+                            using System;
+                            using System.Runtime.CompilerServices;
+
+                            namespace System.Runtime.CompilerServices
+                            {
+                                [AttributeUsage( AttributeTargets.Class | AttributeTargets.Struct )]
+                                public sealed class UnionAttribute : Attribute;
+
+                                public interface IUnion;
+                            }
+
+                            [Union]
+                            class AttributeUnion : IUnion
+                            {
+                                public AttributeUnion( int value ) { this.Value = value; }
+
+                                public object Value { get; }
+                            }
+                            """;
+
+        using var testContext = this.CreateTestContext();
+
+        // The helper reports an exception when the compilation has an error, so creating it pins that reading the
+        // code model of this type reports no diagnostic.
+        var compilation = testContext.CreateCompilation( code );
+
+        var attributeUnion = compilation.Types.OfName( "AttributeUnion" ).Single();
+
+        Assert.False( attributeUnion.IsUnion );
+        Assert.Null( attributeUnion.Facets.Union );
+        Assert.Equal( 0, attributeUnion.Facets.Count );
+    }
+
+#endif
+
 #if ROSLYN_5_10_0_OR_GREATER && ALLOW_PREVIEW_LANG_VERSION
 
     // The union is a C# 15 feature, so only the preview language version of the latest Roslyn variant parses it, and
@@ -327,6 +374,8 @@ public sealed class UnionTypeTests : UnitTestClass
 
         Assert.Equal( ["Circle", "Rectangle"], cases.SelectAsArray( c => ((INamedType) c.Type).Name ) );
 
+        var memberProviderInterface = providerUnion.Types.OfName( "IUnionMembers" ).Single();
+
         Assert.All(
             cases,
             unionCase =>
@@ -335,7 +384,185 @@ public sealed class UnionTypeTests : UnitTestClass
 
                 Assert.Equal( "Create", creationMember.Name );
                 Assert.True( creationMember.IsStatic );
+
+                // The creation member is the declaration of the member provider interface and not the implementation
+                // that the union declares, because the interface is what the compiler reads.
+                Assert.Equal( memberProviderInterface, creationMember.DeclaringType );
             } );
+
+        // The Value property is resolved on the member provider interface for the same reason.
+        Assert.Equal( memberProviderInterface, providerUnion.Facets.Union!.ValueProperty?.DeclaringType );
+    }
+
+    /// <summary>
+    /// Verifies that the cases of a union whose member provider interface extends another interface include the cases
+    /// that the extended interface declares. The compiler reads the member provider interface and then the interfaces
+    /// it inherits, so a derivation that read the <c>Create</c> methods of the union alone would drop them.
+    /// </summary>
+    [Fact]
+    public void CasesOfUnionWithMemberProviderIncludeThoseOfTheInheritedInterfaces()
+    {
+        const string code = """
+                            using System.Runtime.CompilerServices;
+
+                            [Union]
+                            class InheritedProviderUnion : IUnion, InheritedProviderUnion.IUnionMembers
+                            {
+                                private InheritedProviderUnion( object value ) { this.Value = value; }
+
+                                public object Value { get; }
+
+                                public static InheritedProviderUnion Create( Circle circle ) => new InheritedProviderUnion( circle );
+
+                                public static InheritedProviderUnion Create( Rectangle rectangle ) => new InheritedProviderUnion( rectangle );
+
+                                public interface IUnionMembersBase
+                                {
+                                    static abstract InheritedProviderUnion Create( Rectangle rectangle );
+                                }
+
+                                public interface IUnionMembers : IUnionMembersBase
+                                {
+                                    object Value { get; }
+
+                                    static abstract InheritedProviderUnion Create( Circle circle );
+                                }
+                            }
+
+                            record Circle( double Radius );
+
+                            record Rectangle( double Width, double Height );
+                            """;
+
+        using var testContext = this.CreateTestContext();
+        var compilation = CreateUnionCompilation( testContext, code );
+
+        var inheritedProviderUnion = compilation.Types.OfName( "InheritedProviderUnion" ).Single();
+        var cases = inheritedProviderUnion.Facets.Union!.Cases;
+
+        // The interface itself is read first and the interfaces it inherits follow, which is the order of the cases.
+        Assert.Equal( ["Circle", "Rectangle"], cases.SelectAsArray( c => ((INamedType) c.Type).Name ) );
+        Assert.Equal( [0, 1], cases.SelectAsArray( c => c.Index ) );
+
+        Assert.Equal( "IUnionMembers", cases[0].CreationMember.DeclaringType.Name );
+        Assert.Equal( "IUnionMembersBase", cases[1].CreationMember.DeclaringType.Name );
+    }
+
+    /// <summary>
+    /// Verifies that a nested interface named <c>IUnionMembers</c> that the union does not implement is not a member
+    /// provider, so that the creation members of the union are its constructors. The name alone does not make a
+    /// member provider, which is the rule the compiler applies.
+    /// </summary>
+    [Fact]
+    public void NestedInterfaceThatTheUnionDoesNotImplementIsNotAMemberProvider()
+    {
+        const string code = """
+                            using System.Runtime.CompilerServices;
+
+                            [Union]
+                            class NotAProviderUnion : IUnion
+                            {
+                                public NotAProviderUnion( Circle circle ) { this.Value = circle; }
+
+                                public object Value { get; }
+
+                                public interface IUnionMembers
+                                {
+                                    static abstract NotAProviderUnion Create( Rectangle rectangle );
+                                }
+                            }
+
+                            record Circle( double Radius );
+
+                            record Rectangle( double Width, double Height );
+                            """;
+
+        using var testContext = this.CreateTestContext();
+        var compilation = CreateUnionCompilation( testContext, code );
+
+        var cases = compilation.Types.OfName( "NotAProviderUnion" ).Single().Facets.Union!.Cases;
+
+        Assert.Equal( ["Circle"], cases.SelectAsArray( c => ((INamedType) c.Type).Name ) );
+        Assert.IsAssignableFrom<IConstructor>( Assert.Single( cases ).CreationMember );
+    }
+
+    /// <summary>
+    /// Verifies that a type occurs once in the case list although two constructors take it, and that a constructor
+    /// whose parameter is passed by <c>ref</c> is not a creation member. The compiler collects the case types in a
+    /// set and admits a parameter passed by value or by <c>in</c> only.
+    /// </summary>
+    [Fact]
+    public void CasesAreTheDeduplicatedTypesOfTheSuitableCreationMembers()
+    {
+        const string code = """
+                            using System.Runtime.CompilerServices;
+
+                            [Union]
+                            class OverloadedUnion : IUnion
+                            {
+                                public OverloadedUnion( Circle circle ) { this.Value = circle; }
+
+                                public OverloadedUnion( in Circle circle ) { this.Value = circle; }
+
+                                public OverloadedUnion( ref Rectangle rectangle ) { this.Value = rectangle; }
+
+                                public object Value { get; }
+                            }
+
+                            record Circle( double Radius );
+
+                            record Rectangle( double Width, double Height );
+                            """;
+
+        using var testContext = this.CreateTestContext();
+        var compilation = CreateUnionCompilation( testContext, code );
+
+        var overloadedUnion = compilation.Types.OfName( "OverloadedUnion" ).Single();
+        var cases = overloadedUnion.Facets.Union!.Cases;
+
+        var unionCase = Assert.Single( cases );
+
+        Assert.Equal( "Circle", ((INamedType) unionCase.Type).Name );
+        Assert.Equal( 0, unionCase.Index );
+
+        // The creation member of the case is the first of the two constructors that take the type of the case.
+        Assert.Equal( Code.RefKind.None, ((IConstructor) unionCase.CreationMember).Parameters[0].RefKind );
+    }
+
+    /// <summary>
+    /// Verifies that the <c>Value</c> property of a union that inherits it from a base type is reported. The compiler
+    /// looks the property up in the union and then in its base types, so a lookup restricted to the union itself
+    /// would report none for a valid union.
+    /// </summary>
+    [Fact]
+    public void ValuePropertyIsResolvedInTheBaseTypes()
+    {
+        const string code = """
+                            using System.Runtime.CompilerServices;
+
+                            class UnionBase
+                            {
+                                public object Value { get; protected set; }
+                            }
+
+                            [Union]
+                            class InheritedValueUnion : UnionBase, IUnion
+                            {
+                                public InheritedValueUnion( Circle circle ) { this.Value = circle; }
+                            }
+
+                            record Circle( double Radius );
+                            """;
+
+        using var testContext = this.CreateTestContext();
+        var compilation = CreateUnionCompilation( testContext, code );
+
+        var inheritedValueUnion = compilation.Types.OfName( "InheritedValueUnion" ).Single();
+        var valueProperty = inheritedValueUnion.Facets.Union!.ValueProperty;
+
+        Assert.NotNull( valueProperty );
+        Assert.Equal( "Value", valueProperty.Name );
+        Assert.Equal( "UnionBase", valueProperty.DeclaringType.Name );
     }
 
     /// <summary>
@@ -353,6 +580,7 @@ public sealed class UnionTypeTests : UnitTestClass
             var type = compilation.Types.OfName( typeName ).Single();
             var valueProperty = type.Facets.Union!.ValueProperty;
 
+            Assert.NotNull( valueProperty );
             Assert.Equal( "Value", valueProperty.Name );
             Assert.Same( type, valueProperty.DeclaringType );
             Assert.Equal( Code.SpecialType.Object, valueProperty.Type.SpecialType );
@@ -360,12 +588,13 @@ public sealed class UnionTypeTests : UnitTestClass
     }
 
     /// <summary>
-    /// Verifies that the authoring form of a union read from a compiled assembly is reported as
-    /// <see cref="UnionKind.None"/>, and that its cases and its <c>Value</c> property are reported nonetheless. The
-    /// compiled form of a union is the same for the two authoring forms, so the form cannot be recovered from it.
+    /// Verifies that a union read from a compiled assembly is reported as <see cref="UnionKind.Attribute"/>, and that
+    /// its cases and its <c>Value</c> property are reported. The compiled form of every union carries the union
+    /// attribute and does not record whether the source used the <c>union</c> keyword, so the attribute form is what
+    /// the compiled shape has.
     /// </summary>
     [Fact]
-    public void UnionKindOfUnionReadFromCompiledAssemblyIsNotKnown()
+    public void UnionReadFromCompiledAssemblyIsReportedAsTheAttributeForm()
     {
         using var testContext = this.CreateTestContext();
 
@@ -396,9 +625,9 @@ public sealed class UnionTypeTests : UnitTestClass
         var facet = shape.Facets.Union;
 
         Assert.NotNull( facet );
-        Assert.Equal( UnionKind.None, facet.UnionKind );
+        Assert.Equal( UnionKind.Attribute, facet.UnionKind );
         Assert.Equal( ["Circle", "Rectangle"], facet.Cases.SelectAsArray( c => ((INamedType) c.Type).Name ) );
-        Assert.Equal( "Value", facet.ValueProperty.Name );
+        Assert.Equal( "Value", facet.ValueProperty?.Name );
     }
 
     /// <summary>

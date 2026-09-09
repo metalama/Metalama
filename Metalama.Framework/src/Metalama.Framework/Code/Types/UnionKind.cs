@@ -21,9 +21,8 @@ namespace Metalama.Framework.Code.Types;
 public enum UnionKind
 {
     /// <summary>
-    /// The authoring form of the union is not known. This is the value reported for a union read from a referenced
-    /// assembly, because the compiled form of a union is the same for the two forms below and therefore does not
-    /// record which one was written.
+    /// The type is not a union. The code model never reports this value, because <see cref="IUnionFacet"/> exists for
+    /// a union only. It is the default value of the enumeration.
     /// </summary>
     None = 0,
 
@@ -34,7 +33,8 @@ public enum UnionKind
 
     /// <summary>
     /// The union is a class or a struct that carries the <c>System.Runtime.CompilerServices.UnionAttribute</c>
-    /// attribute.
+    /// attribute. A union read from a referenced assembly is reported as this form, because the compiled form of
+    /// every union carries that attribute and does not record whether the source used the <c>union</c> keyword.
     /// </summary>
     Attribute
 }
