@@ -382,7 +382,7 @@ namespace Metalama.Framework.Engine.Linking
                                 .GetCanonicalDefinition();
 
                         var delegateType = targetEvent.Type.AssertNotNull().StripNullabilityAnnotation();
-                        var invokeMethod = delegateType.Methods.OfName( "Invoke" ).Single();
+                        var invokeMethod = delegateType.Facets.Delegate.AssertNotNull().InvokeMethod;
 
                         var raiseMethodName =
                             injectedMember.Syntax.Kind() switch
@@ -525,7 +525,7 @@ namespace Metalama.Framework.Engine.Linking
             SyntaxGenerationContext context )
         {
             // We must use the invoke method to get the parameter names, and not the tuple type, because the element name is not available for 1-tuples.
-            var invokeMethod = delegateType.Methods.OfName( "Invoke" ).Single();
+            var invokeMethod = delegateType.Facets.Delegate.AssertNotNull().InvokeMethod;
             var parameterList = SeparatedList( invokeMethod.Parameters.SelectAsArray( p => Parameter( SyntaxFactoryEx.SafeIdentifier( p.Name ) ) ) );
             var argumentList = SeparatedList( invokeMethod.Parameters.SelectAsArray( p => Argument( SyntaxFactoryEx.SafeIdentifierName( p.Name ) ) ) );
 

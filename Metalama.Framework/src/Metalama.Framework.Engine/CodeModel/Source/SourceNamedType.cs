@@ -491,6 +491,16 @@ namespace Metalama.Framework.Engine.CodeModel.Source
             }
         }
 
+        public ITypeFacetCollection Facets
+        {
+            get
+            {
+                this.OnUsingDeclaration();
+
+                return this.Implementation.Facets;
+            }
+        }
+
         public bool IsReadOnly
         {
             get
@@ -508,6 +518,16 @@ namespace Metalama.Framework.Engine.CodeModel.Source
                 this.OnUsingDeclaration();
 
                 return this.Implementation.IsRef;
+            }
+        }
+
+        public bool IsDelegate
+        {
+            get
+            {
+                this.OnUsingDeclaration();
+
+                return this.Implementation.IsDelegate;
             }
         }
 

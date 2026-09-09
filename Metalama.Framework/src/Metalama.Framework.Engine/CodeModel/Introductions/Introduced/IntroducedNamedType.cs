@@ -8,6 +8,7 @@ using Metalama.Framework.Code.Comparers;
 using Metalama.Framework.Code.Types;
 using Metalama.Framework.Engine.CodeModel.Abstractions;
 using Metalama.Framework.Engine.CodeModel.Collections;
+using Metalama.Framework.Engine.CodeModel.Facets;
 using Metalama.Framework.Engine.CodeModel.GenericContexts;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 using Metalama.Framework.Engine.CodeModel.Introductions.ConstructedTypes;
@@ -176,6 +177,10 @@ internal sealed class IntroducedNamedType : IntroducedMemberOrNamedType, INamedT
         return new ExtensionBlockCollection( this, collection.ToImmutableArray() );
     }
 
+    // A type introduced by an aspect has no facet today, because a builder produces a class, a struct, an interface or
+    // an extension block only. The type introduction stories add the facet of the kind that each of them introduces.
+    public ITypeFacetCollection Facets => TypeFacetCollection.Empty;
+
     public INamedType TypeDefinition => this.Definition;
 
     [Memo]
@@ -196,6 +201,8 @@ internal sealed class IntroducedNamedType : IntroducedMemberOrNamedType, INamedT
     public bool IsReadOnly => this._namedTypeBuilderData.IsReadOnly;
 
     public bool IsRef => this._namedTypeBuilderData.IsRef;
+
+    public bool IsDelegate => this._namedTypeBuilderData.TypeKind == TypeKind.Delegate;
 
     public bool IsRecord => this._namedTypeBuilderData.IsRecord;
 

@@ -9,6 +9,7 @@ using Metalama.Framework.Code.Types;
 using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.CodeModel.Abstractions;
 using Metalama.Framework.Engine.CodeModel.Collections;
+using Metalama.Framework.Engine.CodeModel.Facets;
 using Metalama.Framework.Engine.CodeModel.GenericContexts;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.References;
@@ -172,6 +173,8 @@ internal class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeImpl
 
     public bool IsRecord => this.NamedTypeSymbol.IsRecord;
 
+    public bool IsDelegate => this.NamedTypeSymbol.TypeKind == Microsoft.CodeAnalysis.TypeKind.Delegate;
+
     // ITypeSymbol.IsClosed exists in the latest Roslyn variant only, so the read is compiled into that variant only,
     // as decided by section 6 of Metalama.Framework/docs/2027.0/DECISIONS.md. The condition also names
     // ALLOW_PREVIEW_LANG_VERSION, the opt-in of eng/RoslynPreview.props, because the Roslyn build consumed today
@@ -332,6 +335,9 @@ internal class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeImpl
 
     [Memo]
     public IExtensionBlockCollection ExtensionBlocks => this.GetExtensionBlocksCore();
+
+    [Memo]
+    public ITypeFacetCollection Facets => TypeFacetCollection.Create( this.Facade );
 
     private IExtensionBlockCollection GetExtensionBlocksCore()
     {

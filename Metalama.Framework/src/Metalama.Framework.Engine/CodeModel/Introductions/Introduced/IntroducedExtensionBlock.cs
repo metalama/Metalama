@@ -8,6 +8,7 @@ using Metalama.Framework.Code.Comparers;
 using Metalama.Framework.Code.Types;
 using Metalama.Framework.Engine.CodeModel.Abstractions;
 using Metalama.Framework.Engine.CodeModel.Collections;
+using Metalama.Framework.Engine.CodeModel.Facets;
 using Metalama.Framework.Engine.CodeModel.GenericContexts;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 using Metalama.Framework.Engine.CodeModel.Introductions.Collections;
@@ -166,6 +167,9 @@ internal sealed class IntroducedExtensionBlock : IntroducedMemberOrNamedType, IE
     [Memo]
     public IExtensionBlockCollection ExtensionBlocks => new ExtensionBlockCollection( this, [] );
 
+    // An extension block is not a facet and has none. See section 4.1 of Metalama.Framework/docs/future/type-facets.md.
+    public ITypeFacetCollection Facets => TypeFacetCollection.Empty;
+
     public INamedType TypeDefinition => this.Definition;
 
     [Memo]
@@ -186,6 +190,8 @@ internal sealed class IntroducedExtensionBlock : IntroducedMemberOrNamedType, IE
     public bool IsReadOnly => false;
 
     public bool IsRef => false;
+
+    public bool IsDelegate => false;
 
     public bool IsRecord => false;
 
