@@ -240,9 +240,13 @@ internal sealed partial class CompileTimeCompilationBuilder
             this._logger.Trace?.Log( $"ProjectHash: TemplateLanguageVersion={this._projectOptions.TemplateLanguageVersion}" );
 
             // The ignored warnings select the diagnostic options of the compile-time compilation, therefore a
-            // compile-time assembly built under one value must not be served from the cache under another.
+            // compile-time assembly built under one value must not be served from the cache under another. The length
+            // of an identifier is hashed before it, because the hasher appends the raw bytes of a string with neither
+            // a length nor a terminator: without the length, the two identifiers 'CS1' and 'CA2' and the single
+            // identifier 'CS1CA2' would produce one byte sequence although they suppress different diagnostics.
             foreach ( var ignoredWarning in this._projectOptions.IgnoredWarnings )
             {
+                h.Append( ignoredWarning.Length );
                 h.Append( ignoredWarning );
                 this._logger.Trace?.Log( $"ProjectHash: IgnoredWarnings={ignoredWarning}" );
             }

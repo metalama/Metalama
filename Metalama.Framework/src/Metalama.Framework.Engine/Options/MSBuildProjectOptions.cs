@@ -230,18 +230,36 @@ public partial class MSBuildProjectOptions : DefaultProjectOptions
 
     [Memo]
     public override ImmutableArray<string> IgnoredWarnings
-        => this.GetListOption( MSBuildPropertyNames.MetalamaIgnoredWarnings, _ignoredWarningsSeparators )
-            .Select( NormalizeDiagnosticId )
-            .ToImmutableArray();
+        => ParseIgnoredWarnings( this.GetStringOption( MSBuildPropertyNames.MetalamaIgnoredWarnings, string.Empty ) );
 
     /// <summary>
-    /// Prefixes a bare warning number with <c>CS</c>.
+    /// Parses the value of a <c>NoWarn</c>-like property into the identifiers of the diagnostics that it suppresses.
     /// </summary>
     /// <remarks>
-    /// The <c>NoWarn</c> property accepts the number of a C# compiler warning without its prefix, as in
-    /// <c>1591</c>, whereas the identifier of a diagnostic always carries the prefix. The C# command line applies
-    /// the same rule.
+    /// <para>
+    /// A bare warning number is prefixed with <c>CS</c>, because the <c>NoWarn</c> property accepts the number of a
+    /// C# compiler warning without its prefix, as in <c>1591</c>, whereas the identifier of a diagnostic always
+    /// carries the prefix. The C# command line applies the same rule.
+    /// </para>
+    /// <para>
+    /// The <c>nullable</c> alias, which the C# command line expands into every nullable warning, is not expanded,
+    /// because the set that it names is internal to Roslyn. The alias is harmless here, because it names warnings
+    /// only, and only an error of the compile-time compilation is ever reported.
+    /// </para>
+    /// <para>
+    /// The aspect testing framework parses the value that it reads from the assembly metadata of the test project
+    /// with this method, so that a test and a production build honour a single syntax.
+    /// </para>
     /// </remarks>
+    public static ImmutableArray<string> ParseIgnoredWarnings( string? value )
+        => value == null
+            ? ImmutableArray<string>.Empty
+            : value.Split( _ignoredWarningsSeparators )
+                .SelectAsReadOnlyList( id => id.Trim() )
+                .Where( id => !string.IsNullOrEmpty( id ) )
+                .Select( NormalizeDiagnosticId )
+                .ToImmutableArray();
+
     private static string NormalizeDiagnosticId( string id )
         => int.TryParse( id, NumberStyles.None, CultureInfo.InvariantCulture, out _ ) ? "CS" + id : id;
 

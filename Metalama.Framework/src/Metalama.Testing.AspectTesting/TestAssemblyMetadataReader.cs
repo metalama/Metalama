@@ -111,12 +111,10 @@ namespace Metalama.Testing.AspectTesting
 
             string? GetGlobalUsingsFile() => GetOptionalAssemblyMetadataValue( "GlobalUsingsFile" );
 
+            // The value is the NoWarn of the test project, parsed as MSBuildProjectOptions parses the property in a
+            // production build, so that a bare warning number and a comma mean the same in both. See issue #1948.
             ImmutableArray<string> GetIgnoredWarnings()
-                => GetOptionalAssemblyMetadataValue( "IgnoredWarnings" )
-                    ?.Split( ';' )
-                    .Select( s => s.Trim() )
-                    .Where( s => !string.IsNullOrEmpty( s ) )
-                    .ToImmutableArray() ?? ImmutableArray<string>.Empty;
+                => MSBuildProjectOptions.ParseIgnoredWarnings( GetOptionalAssemblyMetadataValue( "IgnoredWarnings" ) );
 
             // An unrecognized value lets the execution scenario select the representation, instead of failing the test
             // run. MSBuildProjectOptions reads the same property in the same way in a production build.

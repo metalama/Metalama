@@ -168,6 +168,23 @@ public sealed class MSBuildProjectOptionsTests
         Assert.Empty( options.IgnoredWarnings );
     }
 
+    [Fact]
+    public void ParseIgnoredWarnings_AcceptsTheRawNoWarnOfAProject()
+    {
+        // The aspect testing framework reads the NoWarn of the test project from an assembly metadata attribute,
+        // which carries the property as MSBuild wrote it, therefore with its semicolons and its line breaks, and it
+        // parses it with this method so that a test and a production build honour a single syntax. See issue #1948.
+        var parsed = MSBuildProjectOptions.ParseIgnoredWarnings( "CS1591,CA1822;1572\r\n    VSTHRD200;" );
+
+        Assert.Equal( new[] { "CS1591", "CA1822", "CS1572", "VSTHRD200" }, parsed );
+    }
+
+    [Fact]
+    public void ParseIgnoredWarnings_Null_ReturnsEmpty()
+    {
+        Assert.Empty( MSBuildProjectOptions.ParseIgnoredWarnings( null ) );
+    }
+
     private sealed class TestableMSBuildProjectOptions : MSBuildProjectOptions
     {
         public TestableMSBuildProjectOptions( IProjectOptionsSource source ) : base( source ) { }
