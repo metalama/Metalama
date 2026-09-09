@@ -240,6 +240,33 @@ public sealed class TypeFacetTests : UnitTestClass
     }
 
     /// <summary>
+    /// Verifies that <see cref="IEvent.Signature"/> is the <c>Invoke</c> method that the facet names for an event
+    /// that an aspect introduces, both while the builder describes it and after the transformation is applied. Those
+    /// are two of the four duplicate implementations that the facet replaces.
+    /// </summary>
+    [Fact]
+    public void SignatureOfIntroducedEventIsTheInvokeMethodOfTheFacet()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var compilation = testContext.CreateCompilationModel( "class C;" ).CreateMutableClone();
+
+        var type = compilation.Types.OfName( "C" ).Single();
+
+        // The default type of an event that a builder describes is System.EventHandler.
+        var builder = new EventBuilder( null!, type, "IntroducedEvent", isEventField: true );
+        builder.Freeze();
+        compilation.AddTransformation( builder.CreateTransformation() );
+
+        Assert.Equal( SpecialType.Void, builder.Signature.ReturnType.SpecialType );
+        Assert.Equal( builder.Type.Facets.Delegate!.InvokeMethod, builder.Signature );
+
+        var introducedEvent = type.Events.OfName( "IntroducedEvent" ).Single();
+
+        Assert.Equal( introducedEvent.Type.Facets.Delegate!.InvokeMethod, introducedEvent.Signature );
+    }
+
+    /// <summary>
     /// Verifies the change of shipped behaviour that this issue carries: the eligibility rule of
     /// <see cref="AdviceKind.OverrideEventInvoke"/>, which inspects the signature of the event, returns
     /// <see cref="EligibleScenarios.None"/> when the type of the event is not a well-formed delegate, where it threw
