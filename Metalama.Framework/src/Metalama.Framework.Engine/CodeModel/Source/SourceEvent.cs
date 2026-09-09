@@ -5,7 +5,6 @@
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Invokers;
 using Metalama.Framework.Engine.CodeModel.Abstractions;
-using Metalama.Framework.Engine.CodeModel.Facets;
 using Metalama.Framework.Engine.CodeModel.GenericContexts;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.Invokers;
@@ -50,7 +49,7 @@ namespace Metalama.Framework.Engine.CodeModel.Source
 
         public RefKind RefKind => RefKind.None;
 
-        public IMethod Signature => DelegateFacetHelper.GetSignature( this );
+        public IMethod Signature => this.Type.Facets.Delegate.AssertNotNull().InvokeMethod;
 
         [Memo]
         public IMethod AddMethod => this.Compilation.Factory.GetMethod( this._symbol.AddMethod! );

@@ -31,11 +31,11 @@ namespace Metalama.Framework.Code
         /// </summary>
         /// <remarks>
         /// <para>
-        /// This property is equivalent to <c>Type.Facets.Delegate.InvokeMethod</c>, and it throws an
-        /// <see cref="System.InvalidOperationException"/> when <see cref="Type"/> is not a well-formed delegate,
-        /// which is possible for a type read from malformed metadata. Read
+        /// This property is equivalent to <c>Type.Facets.Delegate.InvokeMethod</c>. It requires <see cref="Type"/> to
+        /// be a delegate, which the C# compiler guarantees for an event that it accepts, and it fails for the event
+        /// of a type that is not a delegate, which a compilation that contains errors can still produce. Read
         /// <see cref="Collections.ITypeFacetCollection.Delegate"/> instead of this property in code that has to
-        /// accept such a type.
+        /// accept such an event.
         /// </para>
         /// </remarks>
         /// <seealso cref="Types.IDelegateFacet"/>

@@ -7,7 +7,6 @@ using Metalama.Framework.Code.DeclarationBuilders;
 using Metalama.Framework.Code.Invokers;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel.Abstractions;
-using Metalama.Framework.Engine.CodeModel.Facets;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 using Metalama.Framework.Engine.CodeModel.Invokers;
@@ -60,7 +59,7 @@ internal sealed class EventBuilder : MemberBuilder, IEventBuilder, IEventImpl
         set => throw new NotSupportedException();
     }
 
-    public IMethod Signature => DelegateFacetHelper.GetSignature( this );
+    public IMethod Signature => this.Type.Facets.Delegate.AssertNotNull().InvokeMethod;
 
     [Memo]
     public AccessorBuilder AddMethod => new( this, MethodKind.EventAdd, this.IsEventField );

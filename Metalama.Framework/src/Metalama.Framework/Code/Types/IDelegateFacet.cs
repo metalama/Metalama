@@ -14,9 +14,9 @@ namespace Metalama.Framework.Code.Types;
 /// <remarks>
 /// <para>
 /// The facet is reached through <see cref="ITypeFacetCollection.Delegate"/>, as in
-/// <c>type.Facets.Delegate?.ReturnType</c>. It is <c>null</c> for a type that is not a delegate, and also for a type
-/// that <see cref="INamedType.IsDelegate"/> reports as a delegate but that declares no <c>Invoke</c> method, which
-/// is possible for a type read from malformed metadata.
+/// <c>type.Facets.Delegate?.ReturnType</c>. It is <c>null</c> for a type that
+/// <see cref="INamedType.IsDelegate"/> reports as not being a delegate, which includes
+/// <see cref="System.Delegate"/> and <see cref="System.MulticastDelegate"/> themselves.
 /// </para>
 /// <para>
 /// The <c>BeginInvoke</c> and <c>EndInvoke</c> methods are not exposed. They exist only for a delegate compiled for

@@ -5,6 +5,7 @@
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Collections;
 using Metalama.Framework.Code.Types;
+using Metalama.Framework.Engine.Utilities;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -20,55 +21,32 @@ namespace Metalama.Framework.Engine.CodeModel.Facets;
 /// allocates nothing. Code that walks the compilation reads <see cref="INamedType.Facets"/> on every type, so that
 /// case is the one that has to be free.
 /// </para>
+/// <para>
+/// Each facet of a type that has one is constructed on first read and memoized, so a type whose facets are never
+/// read allocates the collection only.
+/// </para>
 /// </remarks>
 internal sealed class TypeFacetCollection : ITypeFacetCollection
 {
     /// <summary>
-    /// The identifier of the method that carries the signature of a delegate. This class is the single site of the
-    /// code model that resolves it: every other consumer reaches the method through the facet.
-    /// </summary>
-    private const string _invokeMethodName = nameof(System.Action.Invoke);
-
-    /// <summary>
     /// Gets the collection returned by every type that has no facet.
     /// </summary>
-    public static ITypeFacetCollection Empty { get; } = new TypeFacetCollection( null );
+    public static ITypeFacetCollection Empty { get; } = new EmptyTypeFacetCollection();
 
-    private TypeFacetCollection( IDelegateFacet? delegateFacet )
+    private readonly INamedType _type;
+
+    public TypeFacetCollection( INamedType type )
     {
-        this.Delegate = delegateFacet;
+        this._type = type;
     }
 
     /// <summary>
     /// Creates the collection of facets of a type, or returns <see cref="Empty"/> when the type has no facet.
     /// </summary>
-    /// <remarks>
-    /// <para>
-    /// The <c>Invoke</c> method of a delegate is resolved here, because the collection cannot report whether the type
-    /// has the facet without it. A type that is not a delegate resolves nothing.
-    /// </para>
-    /// </remarks>
-    public static ITypeFacetCollection Create( INamedType type )
-    {
-        if ( !type.IsDelegate )
-        {
-            return Empty;
-        }
+    public static ITypeFacetCollection Create( INamedType type ) => type.IsDelegate ? new TypeFacetCollection( type ) : Empty;
 
-        // A delegate declared in source or read from well-formed metadata declares exactly one Invoke method. The
-        // method is absent from a type read from malformed metadata, and the type then has no facet, which is the
-        // condition that the consumers of the facet test.
-        var invokeMethod = type.Methods.OfName( _invokeMethodName ).SingleOrDefault();
-
-        if ( invokeMethod == null )
-        {
-            return Empty;
-        }
-
-        return new TypeFacetCollection( new DelegateFacet( type, invokeMethod ) );
-    }
-
-    public IDelegateFacet? Delegate { get; }
+    [Memo]
+    public IDelegateFacet? Delegate => this._type.IsDelegate ? new DelegateFacet( this._type ) : null;
 
     public int Count => this.Delegate == null ? 0 : 1;
 
@@ -81,4 +59,15 @@ internal sealed class TypeFacetCollection : ITypeFacetCollection
     }
 
     IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
+
+    private sealed class EmptyTypeFacetCollection : ITypeFacetCollection
+    {
+        public IDelegateFacet? Delegate => null;
+
+        public int Count => 0;
+
+        public IEnumerator<ITypeFacet> GetEnumerator() => Enumerable.Empty<ITypeFacet>().GetEnumerator();
+
+        IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
+    }
 }

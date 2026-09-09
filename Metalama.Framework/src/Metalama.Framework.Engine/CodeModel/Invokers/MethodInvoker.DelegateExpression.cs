@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Code;
+using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.SyntaxSerialization;
@@ -184,7 +185,7 @@ internal sealed partial class MethodInvoker
         /// </remarks>
         private static bool IsCompatibleWithDelegate( IMethod method, INamedType delegateType )
         {
-            // Get the delegate's Invoke method. The facet is null when the type is not a well-formed delegate.
+            // Get the Invoke method of the delegate. The facet is null when the type is not a delegate.
             var invokeMethod = delegateType.Facets.Delegate?.InvokeMethod;
 
             if ( invokeMethod == null )
@@ -254,7 +255,7 @@ internal sealed partial class MethodInvoker
         /// </summary>
         private static bool IsExactMatchWithDelegate( IMethod method, INamedType delegateType )
         {
-            // Get the delegate's Invoke method. The facet is null when the type is not a well-formed delegate.
+            // Get the Invoke method of the delegate. The facet is null when the type is not a delegate.
             var invokeMethod = delegateType.Facets.Delegate?.InvokeMethod;
 
             if ( invokeMethod == null )
@@ -262,35 +263,11 @@ internal sealed partial class MethodInvoker
                 return false;
             }
 
-            var methodParameters = method.Parameters;
-            var delegateParameters = invokeMethod.Parameters;
-
-            if ( methodParameters.Count != delegateParameters.Count )
+            // The parameters are compared by the signature comparer of the engine, which requires the parameter types
+            // and the reference kinds to be identical.
+            if ( !method.SignatureEquals( invokeMethod ) )
             {
                 return false;
-            }
-
-            // Use ConversionKind.Identical to require exact type equality for parameters.
-            var comparer = delegateType.Compilation.Comparers.Default;
-
-            for ( var i = 0; i < methodParameters.Count; i++ )
-            {
-                var methodParam = methodParameters[i];
-                var delegateParam = delegateParameters[i];
-
-                if ( methodParam.RefKind != delegateParam.RefKind )
-                {
-                    return false;
-                }
-
-                if ( !comparer.IsConvertibleTo(
-                        methodParam.Type,
-                        delegateParam.Type,
-                        ConversionKind.Identical,
-                        ConversionFlags.TypeParameterEquivalence ) )
-                {
-                    return false;
-                }
             }
 
             // Check return type: must be exactly identical.
