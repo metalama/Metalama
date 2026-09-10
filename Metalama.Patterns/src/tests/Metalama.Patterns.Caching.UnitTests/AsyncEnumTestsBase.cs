@@ -7,42 +7,142 @@ using Metalama.Patterns.Caching.Aspects;
 using Metalama.Patterns.Caching.Backends;
 using Metalama.Patterns.Caching.TestHelpers;
 using System.Text;
+using Xunit;
 using Xunit.Abstractions;
 
 namespace Metalama.Patterns.Caching.Tests;
 
-public abstract class AsyncEnumTestsBase : BaseCachingTests, IDisposable
+public abstract class AsyncEnumTestsBase : BaseCachingTests, IAsyncLifetime
 {
+    /// <summary>
+    /// Upper bound of the wait for the blocked member, so that an enumeration that never completes fails the test
+    /// instead of blocking the test run.
+    /// </summary>
+    private static readonly TimeSpan _disposeTimeout = TimeSpan.FromMinutes( 1 );
+
     private readonly CachingTestContext<CachingBackend> _context;
 
-    protected StringBuilder StringBuilder { get; }
+    /// <summary>
+    /// The log of the test. The tasks that the caching aspect starts append to it and the test thread reads it,
+    /// so every access is synchronized on the instance itself.
+    /// </summary>
+    private readonly StringBuilder _log = new();
+
+    private bool _hasInvokedBlockedMember;
 
     protected TestClass Instance { get; }
 
     protected AsyncEnumTestsBase( ITestOutputHelper testOutputHelper ) : base( testOutputHelper )
     {
-        this.StringBuilder = new StringBuilder();
         this.Instance = new TestClass( this.Log );
 
         this._context = this.InitializeTest( nameof(AsyncEnumerableTests) );
     }
 
-    public void Dispose()
+    /// <inheritdoc />
+    public Task InitializeAsync() => Task.CompletedTask;
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// The enumeration released by <see cref="FinishBlockingTaskAsync"/> is awaited before the log is read, so
+    /// that the log is complete and no append is in flight while it is being read.
+    /// </remarks>
+    public async Task DisposeAsync()
     {
-        this.Instance.FinishBlockingTask();
-        this.TestOutputHelper.WriteLine( this.StringBuilder.ToString() );
-        this._context.Dispose();
+        try
+        {
+            using var cancellationTokenSource = new CancellationTokenSource( _disposeTimeout );
+
+            await this.FinishBlockingTaskAsync( cancellationTokenSource.Token );
+
+            this.TestOutputHelper.WriteLine( this.GetLog() );
+        }
+        finally
+        {
+            // The caching context is disposed even when the wait above fails, so that a test whose enumeration
+            // does not complete does not leak the context into the tests that follow.
+            this._context.Dispose();
+        }
     }
 
+    /// <summary>
+    /// Releases the task on which the blocked members of <see cref="TestClass"/> wait, then waits until the
+    /// member that this releases has run to the end of its body.
+    /// </summary>
+    /// <remarks>
+    /// The wait happens only when the test has invoked a blocked member through
+    /// <see cref="BlockedCachedEnumerable"/> or <see cref="BlockedCachedEnumerator"/>. No other member appends to
+    /// the log after the test method has returned.
+    /// </remarks>
+    protected async Task FinishBlockingTaskAsync( CancellationToken cancellationToken )
+    {
+        this.Instance.FinishBlockingTask();
+
+        if ( this._hasInvokedBlockedMember )
+        {
+            await this.Instance.WaitForBlockedMemberAsync( cancellationToken );
+        }
+    }
+
+    /// <summary>
+    /// Invokes <see cref="TestClass.BlockedCachedEnumerable"/> and records that the enumeration has to be awaited
+    /// before the log is read.
+    /// </summary>
+    protected IAsyncEnumerable<int> BlockedCachedEnumerable()
+    {
+        this._hasInvokedBlockedMember = true;
+
+        return this.Instance.BlockedCachedEnumerable();
+    }
+
+    /// <summary>
+    /// Invokes <see cref="TestClass.BlockedCachedEnumerator"/> and records that the enumeration has to be awaited
+    /// before the log is read.
+    /// </summary>
+    protected IAsyncEnumerator<int> BlockedCachedEnumerator()
+    {
+        this._hasInvokedBlockedMember = true;
+
+        return this.Instance.BlockedCachedEnumerator();
+    }
+
+    /// <summary>
+    /// Gets the content of the log.
+    /// </summary>
+    protected string GetLog()
+    {
+        lock ( this._log )
+        {
+            return this._log.ToString();
+        }
+    }
+
+    /// <summary>
+    /// Removes the content of the log.
+    /// </summary>
+    protected void ClearLog()
+    {
+        lock ( this._log )
+        {
+            this._log.Clear();
+        }
+    }
+
+    /// <summary>
+    /// Appends an entry to the log.
+    /// </summary>
     // ReSharper disable once MemberCanBePrivate.Global
     protected void Log( string message )
     {
-        if ( this.StringBuilder.Length > 0 )
+        lock ( this._log )
         {
-            this.StringBuilder.Append( "." );
-        }
+            if ( this._log.Length > 0 )
+            {
+                this._log.Append( '.' );
+            }
 
-        this.StringBuilder.Append( message );
+            this._log.Append( message );
+        }
     }
 
     protected async Task Iterate( IAsyncEnumerator<int> iterator )
@@ -66,12 +166,35 @@ public abstract class AsyncEnumTestsBase : BaseCachingTests, IDisposable
             this._log = log;
         }
 
-        private readonly TaskCompletionSource _blockingTask = new();
+        /// <summary>
+        /// Blocks the members that await it, until <see cref="FinishBlockingTask"/> completes it.
+        /// </summary>
+        /// <remarks>
+        /// The continuations run asynchronously, so that the blocked member resumes on the thread pool instead of
+        /// on the thread that calls <see cref="FinishBlockingTask"/>.
+        /// </remarks>
+        private readonly TaskCompletionSource _blockingTask = new( TaskCreationOptions.RunContinuationsAsynchronously );
+
+        /// <summary>
+        /// Completed when a blocked member has run to the end of its body, or when its enumeration has been
+        /// abandoned before that.
+        /// </summary>
+        /// <remarks>
+        /// The continuations run asynchronously, so that the disposal of the test does not resume on the thread
+        /// that runs the enumeration.
+        /// </remarks>
+        private readonly TaskCompletionSource _blockedMemberCompleted = new( TaskCreationOptions.RunContinuationsAsynchronously );
 
         public void FinishBlockingTask()
         {
             this._blockingTask.TrySetResult();
         }
+
+        /// <summary>
+        /// Waits until the blocked member that the test invoked has stopped appending to the log.
+        /// </summary>
+        public Task WaitForBlockedMemberAsync( CancellationToken cancellationToken )
+            => this._blockedMemberCompleted.Task.WaitAsync( cancellationToken );
 
         [Cache( IgnoreThisParameter = true )]
 #pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
@@ -92,19 +215,26 @@ public abstract class AsyncEnumTestsBase : BaseCachingTests, IDisposable
         [Cache( IgnoreThisParameter = true )]
         public async IAsyncEnumerable<int> BlockedCachedEnumerable()
         {
-            this._log( "E1" );
+            try
+            {
+                this._log( "E1" );
 
-            await this._blockingTask.Task;
+                await this._blockingTask.Task;
 
-            this._log( "E2" );
+                this._log( "E2" );
 
-            yield return 42;
+                yield return 42;
 
-            this._log( "E3" );
+                this._log( "E3" );
 
-            yield return 99;
+                yield return 99;
 
-            this._log( "E4" );
+                this._log( "E4" );
+            }
+            finally
+            {
+                this._blockedMemberCompleted.TrySetResult();
+            }
         }
 
         [Cache( IgnoreThisParameter = true )]
@@ -126,19 +256,26 @@ public abstract class AsyncEnumTestsBase : BaseCachingTests, IDisposable
         [Cache( IgnoreThisParameter = true )]
         public async IAsyncEnumerator<int> BlockedCachedEnumerator()
         {
-            this._log( "E1" );
+            try
+            {
+                this._log( "E1" );
 
-            await this._blockingTask.Task;
+                await this._blockingTask.Task;
 
-            this._log( "E2" );
+                this._log( "E2" );
 
-            yield return 42;
+                yield return 42;
 
-            this._log( "E3" );
+                this._log( "E3" );
 
-            yield return 99;
+                yield return 99;
 
-            this._log( "E4" );
+                this._log( "E4" );
+            }
+            finally
+            {
+                this._blockedMemberCompleted.TrySetResult();
+            }
         }
     }
 }
