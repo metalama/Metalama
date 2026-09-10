@@ -1,4 +1,4 @@
-# Updating Roslyn
+﻿# Updating Roslyn
 
 Which Roslyn versions we must support, and therefore which variants we ship, is decided by the platform baseline
 in [`platform-support.md`](platform-support.md). Rule 7 of that doctrine requires a new stable Roslyn version to
@@ -33,7 +33,7 @@ there.
     4. `JsonSerializationBinder`
     5. `Metalama.Framework.CompilerExtensions.Resources.csproj`, which must list the new assemblies
 11. Drop a variant when no host in the supported platform baseline still needs it. Delete its props file and its shim projects, remove them from `Metalama.Framework.sln`, and raise `RoslynApiMinVersion` to the identity of the lowest remaining variant. Then check every constant the remaining variants define: a constant that all of them define, or that none of them defines, is no longer a distinction, and it must be removed together with its `#if` sites and its `@RequiredConstant`, `@ForbiddenConstant`, `RequiredConstants` and `ForbiddenConstants` test directives. A test that exists only for the dropped variant goes with it.
-12. Do not add a `DefineConstants` entry to a variant props file unless the source has to branch on a distinction that no existing constant expresses. The variant props files currently define `ROSLYN_5_10_0_OR_GREATER`, which the aspect tests use and which also gates the engine sources that read or emit a Roslyn member introduced with C# 15, together with the unit tests of those sources.
+12. Do not add a `DefineConstants` entry to a variant props file unless the source has to branch on a distinction that no existing constant expresses. The variant props files currently define `ROSLYN_5_11_0_OR_GREATER`, which the aspect tests use and which also gates the engine sources that read or emit a Roslyn member introduced with C# 15, together with the unit tests of those sources.
 
 ## Entering and leaving a prerelease Roslyn
 

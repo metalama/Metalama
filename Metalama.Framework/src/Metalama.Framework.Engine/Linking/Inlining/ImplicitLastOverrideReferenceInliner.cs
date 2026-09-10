@@ -69,7 +69,7 @@ internal sealed class ImplicitLastOverrideReferenceInliner : Inliner
                 SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration
                     when declarationSyntax is RecordDeclarationSyntax recordDeclaration
                     => recordDeclaration,
-#if ROSLYN_5_10_0_OR_GREATER && ALLOW_PREVIEW_LANG_VERSION
+#if ROSLYN_5_11_0_OR_GREATER
 
                 // The parameter list of a union declaration holds the case types of the union and not the parameters
                 // of a primary constructor, so it is not the body of an implicit last override. The union kind is a

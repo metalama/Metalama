@@ -29,9 +29,9 @@ namespace Metalama.Framework.CompilerExtensions
         /// <returns><c>true</c> if a variant serves <paramref name="roslynVersion"/>, otherwise <c>false</c>.</returns>
         public static bool TryGetVariantName( Version roslynVersion, out string variantName )
         {
-            if ( roslynVersion >= new Version( 5, 10 ) )
+            if ( roslynVersion >= new Version( 5, 11 ) )
             {
-                variantName = "5.10.0";
+                variantName = "5.11.0";
 
                 return true;
             }

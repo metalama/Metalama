@@ -222,15 +222,13 @@ internal static class ModifierHelper
             }
 
             // SyntaxKind.ClosedKeyword exists in the latest Roslyn variant only, so the emission is compiled into
-            // that variant only, as decided by section 6 of Metalama.Framework/docs/2027.0/DECISIONS.md. The
-            // condition also names ALLOW_PREVIEW_LANG_VERSION, the opt-in of eng/RoslynPreview.props, because the
-            // Roslyn build consumed today still marks the member with RSEXPERIMENTAL006, which the compiler reports
-            // as an error. Remove that second symbol from the condition when issue #1936 brings a Roslyn that
-            // publishes the member without the marker. The setter of NamedTypeBuilder.IsClosed carries the same
-            // condition and throws when the value cannot be emitted, so a type that reaches this method with the
-            // closed modifier requested is always produced by the variant that can emit the keyword, which is the
-            // variant that a host offering C# 15 loads.
-#if ROSLYN_5_10_0_OR_GREATER && ALLOW_PREVIEW_LANG_VERSION
+            // that variant only, as decided by section 6 of Metalama.Framework/docs/2027.0/DECISIONS.md. Roslyn 5.11
+            // publishes the member without the RSEXPERIMENTAL006 marker that Roslyn 5.10 carried, so the condition
+            // names the variant symbol alone and no longer names the opt-in of eng/RoslynPreview.props. The setter of
+            // NamedTypeBuilder.IsClosed carries the same condition and throws when the value cannot be emitted, so a
+            // type that reaches this method with the closed modifier requested is always produced by the variant that
+            // can emit the keyword, which is the variant that a host offering C# 15 loads.
+#if ROSLYN_5_11_0_OR_GREATER
             var isClosed = namedType.IsClosed;
 
             if ( isClosed )

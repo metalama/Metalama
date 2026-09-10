@@ -62,16 +62,14 @@ internal class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, I
 
             if ( value )
             {
-#if !(ROSLYN_5_10_0_OR_GREATER && ALLOW_PREVIEW_LANG_VERSION)
+#if !ROSLYN_5_11_0_OR_GREATER
 
                 // ModifierHelper.GetTypeSyntaxModifierList emits SyntaxKind.ClosedKeyword under the same condition,
                 // because that member exists in the latest Roslyn variant only. Which variant runs is decided by the
                 // host, which loads a variant only when its own Roslyn is at least the version that the variant binds
                 // against, as Directory.Packages.md describes. The variant that serves a host whose Roslyn predates
                 // C# 15 refuses the value instead of generating an ordinary abstract class, so that an aspect never
-                // silently produces a hierarchy that is not closed. Remove ALLOW_PREVIEW_LANG_VERSION from this
-                // condition, and from the condition of ModifierHelper, when issue #1936 brings a Roslyn that
-                // publishes the member without the RSEXPERIMENTAL006 marker.
+                // silently produces a hierarchy that is not closed.
                 throw new InvalidOperationException(
                     $"The type '{this.Name}' cannot be closed because the host that runs Metalama uses a version of Roslyn that does not support the closed modifier of C# 15. At design time, that host is the integrated development environment." );
 #else

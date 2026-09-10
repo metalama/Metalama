@@ -1242,8 +1242,8 @@ public sealed class NuGetHelperTests : UnitTestClass
     {
         // Issue #1885: a version string that carries a prerelease label belongs to a build published on the feeds
         // that the consolidated source serves and not on nuget.org. The version string used here is the one of
-        // Roslyn 5.10, taken from pull request #1883.
-        Assert.Equal( _prereleaseSourceUrl, SupportedCSharpVersions.GetPrereleasePackageSourceUrl( "5.10.0-1.26365.3" ) );
+        // Roslyn 5.11, which issue #2005 made the version that the latest variant binds against.
+        Assert.Equal( _prereleaseSourceUrl, SupportedCSharpVersions.GetPrereleasePackageSourceUrl( "5.11.0-1.26425.128" ) );
     }
 
     [Fact]
