@@ -15,16 +15,14 @@ internal static class GenerateMetaSyntaxRewriter
     {
         var deprecatedVersionNames = Array.Empty<string>();
 
-        // Versions that should be considered when generating code, but not have their own generated code. 5.10.0 is
-        // here, and not among the versions that carry generated code, because the latest variant was renumbered from
-        // it to 5.11.0 and no variant binds against Roslyn 5.10 any more. Its grammar is still read, so that the
-        // version checker and the ordinals of RoslynApiVersion keep the value V5_10_0 that a host running Roslyn 5.10
-        // is detected as.
-        string[] legacyVersionNames = ["4.0.1", "4.4.0", "4.8.0", "4.12.0", "5.10.0"];
+        // Versions that should be considered when generating code, but not have their own generated code.
+        string[] legacyVersionNames = ["4.0.1", "4.4.0", "4.8.0", "4.12.0"];
 
-        // The versions in ascending order, which is the order that assigns the ordinals of RoslynApiVersion. A version
-        // inserted out of order renumbers the enumeration, and the values are persisted in compile-time assemblies.
-        string[] versionNames = ["4.0.1", "4.4.0", "4.8.0", "4.12.0", "5.0.0", "5.10.0", "5.11.0"];
+        // The versions in ascending order, which is the order that assigns the ordinals of RoslynApiVersion. The
+        // ordinals are not persisted: a manifest stores the member by name, because ManifestJsonContext registers
+        // JsonStringEnumConverter. Retiring a version therefore removes its member rather than renumbering around it,
+        // which is what issue #2005 did with 5.10.0 when the latest variant was renumbered to 5.11.0.
+        string[] versionNames = [.. legacyVersionNames, "5.0.0", "5.11.0"];
 
         var syntaxDocuments = new SyntaxDocument[versionNames.Length];
 
