@@ -16,6 +16,11 @@
 	  naming its own diagnostic identifiers and its own grammar features in the two lists below. The empty list is the
 	  disabled state and reproduces the behaviour of the repository before issue #1935.
 
+	  Both lists are empty today and no source names ALLOW_PREVIEW_LANG_VERSION. Issue #2005 moved this repository to
+	  Roslyn 5.11, which declares C# 15 and publishes the members of its six features without an experimental marker,
+	  so the harness has nothing left to enable. It is kept for the next language version that Roslyn publishes ahead
+	  of the version that supports it.
+
 	  The flag ships disabled and is never committed in the enabled state. MSBuild exposes an environment variable as a
 	  property, so a developer or a build configuration enables it by setting the AllowRoslynPreviewFeatures
 	  environment variable to true, without editing a file.
@@ -31,21 +36,26 @@
 
 		<!--
 		  The identifiers of the experimental diagnostics that the harness suppresses. Name here only the diagnostics of
-		  the features whose shape is settled. RSEXPERIMENTAL006 covers the union, closed hierarchy, collection argument
-		  and labeled jump members, and the Roslyn 5.11 window republishes the same public application programming
-		  interface lines for them with the experimental prefix removed and nothing else changed. RSEXPERIMENTAL007,
-		  which covers the pre-compilation source outputs, and the members of the unsafe evolution are still marked on
-		  the Roslyn main branch and may still be withdrawn, so they are not named here.
+		  the features whose shape is settled.
+
+		  The list is empty, because Roslyn 5.11 declares C# 15 and republishes the members of its six features without
+		  the RSEXPERIMENTAL006 marker that Roslyn 5.10 carried, so no source of this repository needs a suppression any
+		  more. RSEXPERIMENTAL007, which covers the pre-compilation source outputs, and the members of the unsafe
+		  evolution, which upstream holds until C# 16, are still marked and are not named here, because no source reads
+		  them. A later cycle that consumes a member ahead of its language version names its diagnostic here.
 		-->
-		<RoslynPreviewSuppressedDiagnostics Condition="'$(RoslynPreviewSuppressedDiagnostics)'==''">RSEXPERIMENTAL006</RoslynPreviewSuppressedDiagnostics>
+		<RoslynPreviewSuppressedDiagnostics Condition="'$(RoslynPreviewSuppressedDiagnostics)'==''"></RoslynPreviewSuppressedDiagnostics>
 
 		<!--
 		  The experimental features whose grammar declarations the meta syntax rewriter generator keeps, named by the
-		  value of the ExperimentalUrl attribute that the Syntax-*.xml files carry. The three entries are the union
-		  declaration, the collection argument element and the labeled jump statements. The unsafe expression of
-		  https://github.com/dotnet/roslyn/issues/82789 is never named here, because its shape is not settled.
+		  value of the ExperimentalUrl attribute that the Syntax-*.xml files carry.
+
+		  The list is empty, because the grammar of Roslyn 5.11 declares the union, the collection argument element and
+		  the labeled jump statements without an ExperimentalUrl attribute, so the generator keeps them without being
+		  told to. The unsafe expression of https://github.com/dotnet/roslyn/issues/82789 is the one feature that the
+		  5.11 grammar still marks, and it is never named here, because its shape is not settled.
 		-->
-		<RoslynPreviewKeptGrammarFeatures Condition="'$(RoslynPreviewKeptGrammarFeatures)'==''">https://github.com/dotnet/roslyn/issues/82567;https://github.com/dotnet/roslyn/issues/82210;https://github.com/dotnet/roslyn/issues/83266</RoslynPreviewKeptGrammarFeatures>
+		<RoslynPreviewKeptGrammarFeatures Condition="'$(RoslynPreviewKeptGrammarFeatures)'==''"></RoslynPreviewKeptGrammarFeatures>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(AllowRoslynPreviewFeatures)'=='true'">

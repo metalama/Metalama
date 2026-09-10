@@ -4,7 +4,7 @@
 
 #if TEST_OPTIONS
 // @TestScenario(DesignTime)
-// @RequiredConstant(ROSLYN_5_10_0_OR_GREATER)
+// @RequiredConstant(ROSLYN_5_11_0_OR_GREATER)
 #endif
 
 using Metalama.Framework.Aspects;

@@ -2,7 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-#if ROSLYN_5_10_0_OR_GREATER && ALLOW_PREVIEW_LANG_VERSION
+#if ROSLYN_5_11_0_OR_GREATER
 using Metalama.Framework.DesignTime.DiagnosticSuppressing;
 using Metalama.Framework.Engine.CodeModel.Source;
 using System;

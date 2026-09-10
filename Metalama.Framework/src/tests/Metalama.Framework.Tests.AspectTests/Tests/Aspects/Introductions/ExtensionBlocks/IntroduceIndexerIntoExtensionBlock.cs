@@ -3,7 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 #if TEST_OPTIONS
-// @RequiredConstant(ROSLYN_5_10_0_OR_GREATER)
+// @RequiredConstant(ROSLYN_5_11_0_OR_GREATER)
 // @LanguageVersion(preview)
 #endif
 

@@ -1,0 +1,38 @@
+﻿<Project>
+	<!-- The opt-in that lets this variant compile against the experimental Roslyn application programming interface.
+	     It is imported here rather than from the repository root, because the root also covers the projects of the
+	     Roslyn 5.0.0 variant, where those members do not exist at any language version.
+
+	     No source names the constant that the opt-in defines today. Roslyn 5.11 publishes the members of the six
+	     C# 15 features that were experimental in Roslyn 5.10 without the experimental marker, so the conditions
+	     that named the constant now name only the variant symbol. The import stays for the next language version
+	     that Roslyn publishes ahead of its supported language version, which enables the harness by naming its own
+	     diagnostic identifiers and grammar features in eng/RoslynPreview.props. -->
+	<Import Project="$(MSBuildThisFileDirectory)../RoslynPreview.props" />
+
+	<PropertyGroup>
+		<ThisRoslynVersion>$(RoslynApiMaxVersion)</ThisRoslynVersion>
+		<!-- This should be non-empty only when using preview version of Roslyn. Then it should be the Roslyn version without the preview part. -->
+		<ThisRoslynVersionNoPreview>5.11.0</ThisRoslynVersionNoPreview>
+		<!-- ThisRoslynVersionProjectSuffix should be empty for the latest version, otherwise it should be a dot followed by ThisRoslynVersion -->
+		<ThisRoslynVersionProjectSuffix></ThisRoslynVersionProjectSuffix>
+		<!-- ROSLYN_5_11_0_OR_GREATER is defined by this variant only. Production source branches on it wherever it
+		     reads or emits a Roslyn member that the C# 15 language feature set introduced. The unit tests of such a member,
+		     the aspect tests that need C# 15, and the two aspect tests whose expected output differs between
+		     Roslyn 5.0 and Roslyn 5.11, require it as well. See Directory.Packages.md. -->
+		<DefineConstants>$(DefineConstants);ROSLYN_5_11_0_OR_GREATER</DefineConstants>
+		<!-- Microsoft.CodeAnalysis.CSharp.Features 5.11 requires System.Text.Json >= 10.0.10, where the 5.10 build
+		     required 10.0.8. The desktop flavour of the design-time payload embeds this assembly, and the
+		     System.Text.Json binding redirect of devenv.exe.config admits assembly versions up to 10.0.0.8 only, in
+		     Visual Studio 2022 17.14 and in Visual Studio 18.9 alike. The lib/net462 asset of NuGet 10.0.10 carries
+		     assembly version 10.0.0.10, which is above that bound, so the restore floor of Roslyn 5.11 and the load
+		     ceiling of Visual Studio no longer meet on a single value as they did for Roslyn 5.10.
+		     The floor is taken here, because a restore that fails with NU1605 blocks every build, while the ceiling
+		     is exceeded only in the desktop flavour and only until a Visual Studio servicing release ships
+		     System.Text.Json 10.0.10 and moves the redirect. Verify the design-time payload in Visual Studio before
+		     a release candidate of this line: an assembly that falls outside the redirect fails to load with
+		     System.IO.FileLoadException, and the analyzer host reports that failure to its own log only, so the user
+		     sees no diagnostic, no code lens and no generated code. See Directory.Packages.md and issue #2005. -->
+		<SystemTextJsonVersion>10.0.10</SystemTextJsonVersion>
+	</PropertyGroup>
+</Project>

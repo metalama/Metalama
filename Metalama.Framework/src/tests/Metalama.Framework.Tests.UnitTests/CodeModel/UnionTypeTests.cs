@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -10,7 +10,7 @@ using Metalama.Testing.UnitTesting;
 using System.Linq;
 using Xunit;
 using TypeKind = Metalama.Framework.Code.TypeKind;
-#if ROSLYN_5_10_0_OR_GREATER && ALLOW_PREVIEW_LANG_VERSION
+#if ROSLYN_5_11_0_OR_GREATER
 using Metalama.Framework.Engine.Utilities;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -80,7 +80,7 @@ public sealed class UnionTypeTests : UnitTestClass
         Assert.Null( introducedType.Facets.Union );
     }
 
-#if !ROSLYN_5_10_0_OR_GREATER
+#if !ROSLYN_5_11_0_OR_GREATER
 
     /// <summary>
     /// Verifies that the attribute form of a union reports <see cref="INamedType.IsUnion"/> as <c>false</c>, has no
@@ -127,15 +127,11 @@ public sealed class UnionTypeTests : UnitTestClass
 
 #endif
 
-#if ROSLYN_5_10_0_OR_GREATER && ALLOW_PREVIEW_LANG_VERSION
+#if ROSLYN_5_11_0_OR_GREATER
 
-    // The union is a C# 15 feature, so only the preview language version of the latest Roslyn variant parses it, and
-    // the engine reads ITypeSymbol.IsUnion only when ALLOW_PREVIEW_LANG_VERSION, the opt-in of
-    // eng/RoslynPreview.props, is set, because the consumed Roslyn still marks that member with RSEXPERIMENTAL006.
-    // The default build of the latest variant therefore answers false for a union by design, and a test that did not
-    // require the opt-in would fail there. Drop ALLOW_PREVIEW_LANG_VERSION from this condition, and from the
-    // condition of the readers in SourceNamedTypeImpl, when issue #1936 brings a Roslyn that publishes the member
-    // without the marker.
+    // The union is a C# 15 feature, so only the latest Roslyn variant parses it and only that variant reads
+    // ITypeSymbol.IsUnion, under the same condition as the readers in SourceNamedTypeImpl. Roslyn 5.11 declares C# 15
+    // and publishes the member without the RSEXPERIMENTAL006 marker, so the condition names the variant symbol alone.
 
 #if NET7_0_OR_GREATER
 
@@ -598,7 +594,7 @@ public sealed class UnionTypeTests : UnitTestClass
     {
         using var testContext = this.CreateTestContext();
 
-        var parseOptions = SupportedCSharpVersions.DefaultParseOptions.WithLanguageVersion( LanguageVersion.Preview );
+        var parseOptions = SupportedCSharpVersions.DefaultParseOptions;
 
         var referencedCompilation = testContext.CreateEmptyCSharpCompilation( "UnionDependency" )
             .AddSyntaxTrees(
@@ -648,14 +644,15 @@ public sealed class UnionTypeTests : UnitTestClass
 
     /// <summary>
     /// Creates a compilation of <paramref name="code"/>, which defaults to <see cref="_unionCode"/>, together with
-    /// <see cref="_unionSupportCode"/>. The helpers of <see cref="TestContext"/> parse with
-    /// <see cref="SupportedCSharpVersions.Latest"/>, which is the language version that Metalama allows a user
-    /// project to use and which does not parse a union declaration, so the syntax trees are parsed here with the
-    /// preview language version instead.
+    /// <see cref="_unionSupportCode"/>. The syntax trees are parsed with
+    /// <see cref="SupportedCSharpVersions.DefaultParseOptions"/>, whose language version is
+    /// <see cref="SupportedCSharpVersions.Latest"/>. That version is C# 15 in this variant, which parses a union
+    /// declaration, so no override is needed. Issue #2005 removed the preview override that stood here while C# 15
+    /// was reached through <see cref="LanguageVersion.Preview"/>.
     /// </summary>
     private static ICompilation CreateUnionCompilation( TestContext testContext, string? code = null )
     {
-        var parseOptions = SupportedCSharpVersions.DefaultParseOptions.WithLanguageVersion( LanguageVersion.Preview );
+        var parseOptions = SupportedCSharpVersions.DefaultParseOptions;
 
         var roslynCompilation = testContext.CreateEmptyCSharpCompilation( null )
             .AddSyntaxTrees(
