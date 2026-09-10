@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -49,10 +49,13 @@ public sealed class CompileTimeProjectLanguageVersionTests : UnitTestClass
     [Fact]
     public void LanguageVersionAboveTheHostIsClampedAndReported()
     {
-        // The value 1500 is C# 15. It is not a member of LanguageVersion in the Roslyn versions that Metalama
+        // The value 1600 is C# 16. It is not a member of LanguageVersion in the Roslyn versions that Metalama
         // consumes today, which is exactly the situation the clamp addresses: the manifest is written by a Roslyn
-        // variant that knows the version and read by one that does not.
-        const LanguageVersion writtenLanguageVersion = (LanguageVersion) 1500;
+        // variant that knows the version and read by one that does not. The value was 1500 until issue #2005 moved
+        // this repository to Roslyn 5.11, which declares C# 15, so that version no longer exceeds what the consuming
+        // Roslyn accepts and no longer exercises the clamp. Raise this value again when a consumed Roslyn declares
+        // C# 16.
+        const LanguageVersion writtenLanguageVersion = (LanguageVersion) 1600;
 
         using var producerContext = this.CreateTestContext();
         using var consumerContext = this.CreateTestContext();
@@ -132,7 +135,7 @@ public sealed class CompileTimeProjectLanguageVersionTests : UnitTestClass
         var message = warning.GetMessage( CultureInfo.InvariantCulture );
 
         Assert.Contains( referencedCompilation.AssemblyName!, message, StringComparison.Ordinal );
-        Assert.Contains( "15.0", message, StringComparison.Ordinal );
+        Assert.Contains( "16.0", message, StringComparison.Ordinal );
     }
 
     private static string FormatDiagnostics( DiagnosticBag bag )

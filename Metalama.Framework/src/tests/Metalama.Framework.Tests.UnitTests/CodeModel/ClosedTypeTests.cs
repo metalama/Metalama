@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -11,7 +11,7 @@ using System;
 using System.Linq;
 using Xunit;
 using TypeKind = Metalama.Framework.Code.TypeKind;
-#if ROSLYN_5_10_0_OR_GREATER && ALLOW_PREVIEW_LANG_VERSION
+#if ROSLYN_5_11_0_OR_GREATER
 using Metalama.Framework.Engine.Utilities;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -70,14 +70,12 @@ public sealed class ClosedTypeTests : UnitTestClass
         Assert.False( compilation.Types.OfName( "IntroducedType" ).Single().IsClosed );
     }
 
-#if ROSLYN_5_10_0_OR_GREATER && ALLOW_PREVIEW_LANG_VERSION
+#if ROSLYN_5_11_0_OR_GREATER
 
     // The writer refuses the closed modifier in the variant that cannot emit it, which is the variant that serves a
     // host whose Roslyn version does not offer C# 15, so the tests of the writer are compiled under the same
     // condition as the setter of NamedTypeBuilder.IsClosed. The test below the #else covers the variant that refuses
-    // it. Drop ALLOW_PREVIEW_LANG_VERSION from this condition, and from the condition of the setter and of
-    // ModifierHelper, when issue #1936 brings a Roslyn that publishes the member without the RSEXPERIMENTAL006
-    // marker.
+    // it.
 
     /// <summary>
     /// Verifies that an aspect can introduce a closed class: the builder stores the value, the introduced type
@@ -285,15 +283,11 @@ public sealed class ClosedTypeTests : UnitTestClass
         Assert.Throws<NotSupportedException>( () => builder.IsClosed = false );
     }
 
-#if ROSLYN_5_10_0_OR_GREATER && ALLOW_PREVIEW_LANG_VERSION
+#if ROSLYN_5_11_0_OR_GREATER
 
-    // The closed modifier is a C# 15 feature, so only the preview language version of the latest Roslyn variant parses
-    // it, and the engine reads ITypeSymbol.IsClosed only when ALLOW_PREVIEW_LANG_VERSION, the opt-in of
-    // eng/RoslynPreview.props, is set, because the consumed Roslyn still marks that member with RSEXPERIMENTAL006.
-    // The default build of the latest variant therefore answers false for a closed class by design, and a test that
-    // did not require the opt-in would fail there. Drop ALLOW_PREVIEW_LANG_VERSION from this condition, and from the
-    // condition of the reader in SourceNamedTypeImpl, when issue #1936 brings a Roslyn that publishes the member
-    // without the marker.
+    // The closed modifier is a C# 15 feature, so only the latest Roslyn variant parses it and only that variant reads
+    // ITypeSymbol.IsClosed, under the same condition as the reader in SourceNamedTypeImpl. Roslyn 5.11 declares C# 15
+    // and publishes the member without the RSEXPERIMENTAL006 marker, so the condition names the variant symbol alone.
 
 #if NET7_0_OR_GREATER
 
@@ -369,14 +363,15 @@ public sealed class ClosedTypeTests : UnitTestClass
     }
 
     /// <summary>
-    /// Creates a compilation of <see cref="_closedTypeCode"/>. The helpers of <see cref="TestContext"/> parse with
-    /// <see cref="SupportedCSharpVersions.Latest"/>, which is the language version that Metalama allows a user project
-    /// to use and which does not parse the <c>closed</c> modifier, so the syntax tree is parsed here with the preview
-    /// language version instead.
+    /// Creates a compilation of <see cref="_closedTypeCode"/>. The syntax tree is parsed with
+    /// <see cref="SupportedCSharpVersions.DefaultParseOptions"/>, whose language version is
+    /// <see cref="SupportedCSharpVersions.Latest"/>. That version is C# 15 in this variant, which parses the
+    /// <c>closed</c> modifier, so no override is needed. Issue #2005 removed the preview override that stood here
+    /// while C# 15 was reached through <see cref="LanguageVersion.Preview"/>.
     /// </summary>
     private static ICompilation CreateClosedTypeCompilation( TestContext testContext )
     {
-        var parseOptions = SupportedCSharpVersions.DefaultParseOptions.WithLanguageVersion( LanguageVersion.Preview );
+        var parseOptions = SupportedCSharpVersions.DefaultParseOptions;
 
         var roslynCompilation = testContext.CreateEmptyCSharpCompilation( null )
             .AddSyntaxTrees( CSharpSyntaxTree.ParseText( _closedTypeCode, parseOptions, "closedTypes.cs" ) );

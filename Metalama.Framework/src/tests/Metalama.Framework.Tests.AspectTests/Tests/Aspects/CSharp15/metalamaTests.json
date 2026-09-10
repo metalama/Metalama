@@ -1,5 +1,6 @@
-{
-    // C# 15 is reached through the preview language version, which only the latest Roslyn variant provides.
-    // ROSLYN_5_10_0_OR_GREATER is defined by that variant only. See Directory.Packages.md and issue #1938.
-    "RequiredConstants": [ "ROSLYN_5_10_0_OR_GREATER" ]
+﻿{
+    // C# 15 is a language version that only the latest Roslyn variant declares, because Roslyn 5.11 declares it and
+    // Roslyn 5.0 does not. ROSLYN_5_11_0_OR_GREATER is defined by that variant only. See Directory.Packages.md and
+    // issues #1938 and #2005.
+    "RequiredConstants": [ "ROSLYN_5_11_0_OR_GREATER" ]
 }

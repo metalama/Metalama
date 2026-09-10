@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -95,7 +95,7 @@ public sealed class TypeDeclarationSyntaxKindTests
         Assert.False( declaration.SyntaxKind.IsTypeDeclaration );
     }
 
-#if ROSLYN_5_10_0_OR_GREATER && ALLOW_PREVIEW_LANG_VERSION
+#if ROSLYN_5_11_0_OR_GREATER
 
     // The union kind exists in the latest Roslyn variant only, and the engine names it only under the opt-in of
     // eng/RoslynPreview.props, for the reason explained in section 6 of
@@ -120,7 +120,7 @@ public sealed class TypeDeclarationSyntaxKindTests
                             }
                             """;
 
-        var root = ParseSingleTypeDeclaration( code, LanguageVersion.Preview );
+        var root = ParseSingleTypeDeclaration( code, SupportedCSharpVersions.Latest );
 
         var declaration = root.DescendantNodes().OfType<UnionDeclarationSyntax>().Single();
         var header = declaration.ParameterList!;

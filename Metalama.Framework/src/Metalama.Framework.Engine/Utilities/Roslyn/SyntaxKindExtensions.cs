@@ -24,7 +24,7 @@ public static class SyntaxKindExtensions
     /// node, and the predicate rejects it explicitly in any case.
     /// </remarks>
     private const SyntaxKind _unionDeclarationKind =
-#if ROSLYN_5_10_0_OR_GREATER && ALLOW_PREVIEW_LANG_VERSION
+#if ROSLYN_5_11_0_OR_GREATER
         SyntaxKind.UnionDeclaration;
 #else
         SyntaxKind.None;
@@ -55,7 +55,7 @@ public static class SyntaxKindExtensions
         public bool IsTypeDeclaration
             => kind is SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration
                 or SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration
-#if ROSLYN_5_10_0_OR_GREATER && ALLOW_PREVIEW_LANG_VERSION
+#if ROSLYN_5_11_0_OR_GREATER
                 or SyntaxKind.UnionDeclaration
 #endif
                 ;

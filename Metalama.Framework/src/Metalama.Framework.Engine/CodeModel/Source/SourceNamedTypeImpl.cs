@@ -178,16 +178,12 @@ internal class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeImpl
     public bool IsEnum => this.NamedTypeSymbol.TypeKind == Microsoft.CodeAnalysis.TypeKind.Enum;
 
     // ITypeSymbol.IsClosed exists in the latest Roslyn variant only, so the read is compiled into that variant only,
-    // as decided by section 6 of Metalama.Framework/docs/2027.0/DECISIONS.md. The condition also names
-    // ALLOW_PREVIEW_LANG_VERSION, the opt-in of eng/RoslynPreview.props, because the Roslyn build consumed today
-    // still marks the member with RSEXPERIMENTAL006, which the compiler reports as an error. Remove that second
-    // symbol from the condition when issue #1936 brings a Roslyn that publishes the member without the marker.
+    // as decided by section 6 of Metalama.Framework/docs/2027.0/DECISIONS.md. Roslyn 5.11 publishes the member
+    // without the RSEXPERIMENTAL006 marker that Roslyn 5.10 carried, so the condition names the variant symbol alone
+    // and no longer names the opt-in of eng/RoslynPreview.props.
     // In the lower Roslyn variant, the constant false is not observable in source, because a Roslyn that does not
-    // declare ITypeSymbol.IsClosed cannot parse the closed modifier either. In the latest variant compiled with the
-    // opt-in unset, which is its default state, the constant is observable: that Roslyn parses the closed modifier
-    // under the preview language version, so the property answers false for a type that is closed. That behavior is
-    // temporary and ends with the removal of the second symbol.
-#if ROSLYN_5_10_0_OR_GREATER && ALLOW_PREVIEW_LANG_VERSION
+    // declare ITypeSymbol.IsClosed cannot parse the closed modifier either.
+#if ROSLYN_5_11_0_OR_GREATER
     public bool IsClosed => this.NamedTypeSymbol.IsClosed;
 #else
     public bool IsClosed => false;
@@ -196,7 +192,7 @@ internal class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeImpl
     // ITypeSymbol.IsUnion exists in the latest Roslyn variant only, so the read is compiled into that variant only,
     // for the reason and under the condition explained above IsClosed. The structure of the union is not read here:
     // it is the union facet, which UnionFacet builds and which this property gates.
-#if ROSLYN_5_10_0_OR_GREATER && ALLOW_PREVIEW_LANG_VERSION
+#if ROSLYN_5_11_0_OR_GREATER
     public bool IsUnion => this.NamedTypeSymbol.IsUnion;
 #else
     public bool IsUnion => false;

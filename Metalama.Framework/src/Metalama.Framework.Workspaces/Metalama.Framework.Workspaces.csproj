@@ -4,7 +4,7 @@
     <PropertyGroup>
         <!-- The MSBuild version, and therefore the .NET runtime version, must match the version of the .NET SDK
              used for the project. Only .NET 10 is supported, so there is a single target framework.
-             Microsoft.CodeAnalysis.Workspaces.MSBuild 5.10 ships assets for net10.0 and net472 only, so a net8.0
+             Microsoft.CodeAnalysis.Workspaces.MSBuild 5.11 ships assets for net10.0 and net472 only, so a net8.0
              or net9.0 build of this project could not reference MSBuildWorkspace at all. See Directory.Packages.md.
 
              TargetFrameworks is used in the plural even for a single value, and must stay that way. This project

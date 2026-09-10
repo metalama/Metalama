@@ -230,7 +230,7 @@ public sealed class ReferenceAssemblyBuildFailureClassifierTests
     {
         var output = ImmutableArray.Create(
             "Determining projects to restore...",
-            @"C:\Program Files\dotnet\sdk\11.0.100-preview.7.26381.103\Sdks\Microsoft.NET.Sdk\targets\Microsoft.NET.RuntimeIdentifierInference.targets(385,5): message NETSDK1057: You are using a preview version of .NET. See: https://aka.ms/dotnet-support-policy [C:\Temp\TempProject.csproj::TargetFramework=netstandard2.0]",
+            @"C:\Program Files\dotnet\sdk\11.0.100-rc.1.26425.128\Sdks\Microsoft.NET.Sdk\targets\Microsoft.NET.RuntimeIdentifierInference.targets(385,5): message NETSDK1057: You are using a preview version of .NET. See: https://aka.ms/dotnet-support-policy [C:\Temp\TempProject.csproj::TargetFramework=netstandard2.0]",
             @"C:\Temp\AssemblyLocatorHooks\Metalama.AssemblyLocator.Build.targets(14,9): error : The reference-assembly build is failed on purpose by the Issue1744 test scenario. [C:\Temp\TempProject.csproj]",
             "Build FAILED." );
 

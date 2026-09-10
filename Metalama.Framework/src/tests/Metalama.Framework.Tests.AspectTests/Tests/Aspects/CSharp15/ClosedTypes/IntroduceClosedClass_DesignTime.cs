@@ -6,17 +6,13 @@
 // The compile-time counterpart of this test is IntroduceClosedClass. This one runs the design-time pipeline, so the
 // modifier list it pins is the one that the source generator writes into the partial file that the integrated
 // development environment consumes, and not the one that the compiler emits.
-// The closed modifier is a C# 15 feature, which only the preview language version parses, so the code of this test
-// needs @LanguageVersion(preview). The metalamaTests.json of the CSharp15 folder requires ROSLYN_5_10_0_OR_GREATER,
-// so this test runs in the latest Roslyn variant only. ALLOW_PREVIEW_LANG_VERSION is the flag of
-// eng/RoslynPreview.props: SyntaxKind.ClosedKeyword carries RSEXPERIMENTAL006 in the consumed Roslyn, so the engine
-// emits the modifier only when that flag is set, and a test that did not require the flag would fail in the default
-// build. Drop this requirement when issue #1936 brings a Roslyn that publishes the member without the marker.
+// The closed modifier is a C# 15 feature, so the code of this test needs @LanguageVersion(15.0). Roslyn 5.11 declares
+// that version, where Roslyn 5.10 reached the feature through the preview version only. The metalamaTests.json of the
+// CSharp15 folder requires ROSLYN_5_11_0_OR_GREATER, so this test runs in the latest Roslyn variant only.
 // NET8_0_OR_GREATER is required because the compiler emits CompilerFeatureRequiredAttribute on the constructor of a
 // closed class, and .NET Framework does not declare that attribute.
 // @TestScenario(DesignTime)
-// @LanguageVersion(preview)
-// @RequiredConstant(ALLOW_PREVIEW_LANG_VERSION)
+// @LanguageVersion(15.0)
 // @RequiredConstant(NET8_0_OR_GREATER)
 #endif
 

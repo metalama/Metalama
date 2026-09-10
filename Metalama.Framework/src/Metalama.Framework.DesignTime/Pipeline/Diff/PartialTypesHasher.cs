@@ -46,7 +46,7 @@ internal sealed class PartialTypesHasher : CSharpSyntaxVisitor<int?>
 
     public override int? VisitRecordDeclaration( RecordDeclarationSyntax node ) => VisitBaseTypeDeclaration( node );
 
-#if ROSLYN_5_10_0_OR_GREATER && ALLOW_PREVIEW_LANG_VERSION
+#if ROSLYN_5_11_0_OR_GREATER
     // The base class of this visitor does not descend into the children of a node it does not know, so without this
     // override a union declaration produces no hash at all. The method is named only in the Roslyn variant that
     // declares it, for the reason explained in section 6 of Metalama.Framework/docs/2027.0/DECISIONS.md.

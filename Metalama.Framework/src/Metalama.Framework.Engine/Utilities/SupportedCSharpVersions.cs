@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -28,23 +28,32 @@ public static class SupportedCSharpVersions
     /// <remarks>
     /// This C# version might not be supported by the .NET SDK. See also <see cref="LanguageVersionProvider"/>.
     /// <para>
-    /// The opt-in of issue #1935 does not raise this version. That opt-in changes how this repository is compiled and
-    /// never what Metalama permits a user to compile, and this property decides the second of the two: it is the
-    /// default language version of a project, and it is the version that the compile-time pipeline assumes for a
-    /// compilation that carries no parse options. Raising it to the preview version therefore makes the pipeline
-    /// report <c>LAMA0051</c> for a project that has not opted in. A source that needs the value of the next language
-    /// version reads <see cref="LanguageVersionExtensions.OrPreviewIfNotSupported"/> of
-    /// <see cref="AllLanguageVersions.CSharp15"/> instead.
+    /// The value differs between the Roslyn variants, because a parser accepts only a version that its own
+    /// <see cref="LanguageVersion"/> declares. Roslyn 5.11 declares C# 15, and the Roslyn 5.0 variant does not, so the
+    /// lower variant stays on C# 14. The value is a variant distinction and not a build flag: it is the default
+    /// language version of a project, and the version that the compile-time pipeline assumes for a compilation that
+    /// carries no parse options, so it must name a version that the running parser accepts.
     /// </para>
     /// </remarks>
     public static LanguageVersion Latest
-        => LanguageVersion.CSharp14;
+#if ROSLYN_5_11_0_OR_GREATER
+        => AllLanguageVersions.CSharp15;
+#else
+        => AllLanguageVersions.CSharp14;
+#endif
 
 #pragma warning disable SA1114 // Parameter list should follow declaration
     /// <summary>
     /// Gets all supported language versions.
     /// </summary>
+    /// <remarks>
+    /// C# 15 is present in the latest Roslyn variant only, for the reason given on <see cref="Latest"/>. A version
+    /// that the bound parser does not declare would be offered to a user and then rejected by that parser.
+    /// </remarks>
     public static ImmutableHashSet<LanguageVersion> All { get; } = ImmutableHashSet.Create(
+#if ROSLYN_5_11_0_OR_GREATER
+        AllLanguageVersions.CSharp15,
+#endif
         LanguageVersion.CSharp14,
         LanguageVersion.CSharp13,
         LanguageVersion.CSharp12,
@@ -66,7 +75,7 @@ public static class SupportedCSharpVersions
             RoslynApiVersion.V4_8_0 => AllLanguageVersions.CSharp12,
             RoslynApiVersion.V4_12_0 => AllLanguageVersions.CSharp13,
             RoslynApiVersion.V5_0_0 => AllLanguageVersions.CSharp14,
-            RoslynApiVersion.V5_10_0 => AllLanguageVersions.CSharp14,
+            RoslynApiVersion.V5_11_0 => AllLanguageVersions.CSharp15,
             _ => throw new AssertionFailedException( $"Unexpected Roslyn API version {apiVersion}." )
         };
 
@@ -91,7 +100,7 @@ public static class SupportedCSharpVersions
             RoslynApiVersion.V4_8_0 => "4.8.0",
             RoslynApiVersion.V4_12_0 => "4.12.0",
             RoslynApiVersion.V5_0_0 => "5.0.0",
-            RoslynApiVersion.V5_10_0 => "5.10.0-1.26365.3",
+            RoslynApiVersion.V5_11_0 => "5.11.0-1.26425.128",
             _ => throw new AssertionFailedException( $"Unexpected Roslyn version {roslynVersion}." )
         };
 
@@ -148,7 +157,7 @@ public static class SupportedCSharpVersions
             RoslynApiVersion.V4_8_0 => new Version( 4, 8, 0 ),
             RoslynApiVersion.V4_12_0 => new Version( 4, 12, 0 ),
             RoslynApiVersion.V5_0_0 => new Version( 5, 0, 0 ),
-            RoslynApiVersion.V5_10_0 => new Version( 5, 10, 0 ),
+            RoslynApiVersion.V5_11_0 => new Version( 5, 11, 0 ),
             _ => throw new AssertionFailedException( $"Unexpected Roslyn version {roslynApiVersion}." )
         };
 
@@ -158,6 +167,7 @@ public static class SupportedCSharpVersions
     internal static LanguageVersion GetMaxLanguageVersion( Version roslynVersion )
         => (roslynVersion.Major, roslynVersion.Minor) switch
         {
+            (>= 5, >= 11) => AllLanguageVersions.CSharp15,
             (>= 5, _) => AllLanguageVersions.CSharp14,
             (4, >= 12) => AllLanguageVersions.CSharp13,
             (4, >= 8) => AllLanguageVersions.CSharp12,
