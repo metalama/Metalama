@@ -15,7 +15,7 @@ public sealed class AsyncEnumeratorTests : AsyncEnumTestsBase
     [Fact]
     public void DoesNotBlockOnUnawaitedMethod()
     {
-        _ = this.Instance.BlockedCachedEnumerator();
+        _ = this.BlockedCachedEnumerator();
 
         // Success is indicated by this method completing.
     }
@@ -23,7 +23,7 @@ public sealed class AsyncEnumeratorTests : AsyncEnumTestsBase
     [Fact]
     public void DoesNotBlockOnUnawaitedFirstMoveNextAsync()
     {
-        _ = this.Instance.BlockedCachedEnumerator().MoveNextAsync();
+        _ = this.BlockedCachedEnumerator().MoveNextAsync();
 
         // Success is indicated by this method completing.
     }
@@ -33,17 +33,17 @@ public sealed class AsyncEnumeratorTests : AsyncEnumTestsBase
     {
         _ = await this.Instance.CachedEnumerator().MoveNextAsync();
 
-        Assert.Equal( "E1.E2.E3", this.StringBuilder.ToString() );
+        Assert.Equal( "E1.E2.E3", this.GetLog() );
     }
 
     [Fact]
     public async Task DoesNotIterateOnSecondAwaitedMoveNextAsync()
     {
         _ = await this.Instance.CachedEnumerator().MoveNextAsync();
-        this.StringBuilder.Clear();
+        this.ClearLog();
         _ = await this.Instance.CachedEnumerator().MoveNextAsync();
 
-        Assert.Equal( "", this.StringBuilder.ToString() );
+        Assert.Equal( "", this.GetLog() );
     }
 
     [Fact]
@@ -51,7 +51,7 @@ public sealed class AsyncEnumeratorTests : AsyncEnumTestsBase
     {
         await this.Iterate( this.Instance.CachedEnumerator() );
 
-        Assert.Equal( "E1.E2.E3.I1.I2[42].I2[99].I3", this.StringBuilder.ToString() );
+        Assert.Equal( "E1.E2.E3.I1.I2[42].I2[99].I3", this.GetLog() );
     }
 
     [Fact]
@@ -60,7 +60,7 @@ public sealed class AsyncEnumeratorTests : AsyncEnumTestsBase
         await this.Iterate( this.Instance.CachedEnumerator() );
         await this.Iterate( this.Instance.CachedEnumerator() );
 
-        Assert.Equal( "E1.E2.E3.I1.I2[42].I2[99].I3.I1.I2[42].I2[99].I3", this.StringBuilder.ToString() );
+        Assert.Equal( "E1.E2.E3.I1.I2[42].I2[99].I3.I1.I2[42].I2[99].I3", this.GetLog() );
     }
 }
 
