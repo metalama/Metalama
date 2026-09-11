@@ -14,6 +14,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Generic;
 using System.Linq;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
+using RefKind = Metalama.Framework.Code.RefKind;
 using SpecialType = Metalama.Framework.Code.SpecialType;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Introduction;
@@ -64,6 +65,41 @@ internal sealed class IntroduceNamedTypeTransformation : IntroduceDeclarationTra
                     SyntaxFactoryEx.SafeIdentifier( field.Name ),
                     equalsValue );
         }
+    }
+
+    /// <summary>
+    /// Gets the <c>Invoke</c> method of an introduced delegate, which carries its signature.
+    /// </summary>
+    private static IMethod GetInvokeMethod( INamedType introducedType ) => introducedType.Facets.Delegate.AssertNotNull().InvokeMethod;
+
+    /// <summary>
+    /// Builds the return type of a delegate declaration, including the <c>ref</c> and <c>ref readonly</c> modifiers
+    /// of a return by reference, which the declaration writes before the return type.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>ContextualSyntaxGenerator.ReturnType</c> is not used, because it emits the type alone. Metalama does not
+    /// introduce a method that returns by reference, which is why the setter of
+    /// <c>ParameterBuilder.RefKind</c> refuses a return parameter for every kind but a delegate, and a delegate is
+    /// therefore the one declaration that needs the modifier emitted here.
+    /// </para>
+    /// </remarks>
+    private static TypeSyntax GetDelegateReturnType( INamedType introducedType, MemberInjectionContext context )
+    {
+        var returnParameter = GetInvokeMethod( introducedType ).ReturnParameter;
+        var returnType = context.SyntaxGenerator.TypeSyntax( returnParameter.Type );
+
+        return returnParameter.RefKind switch
+        {
+            RefKind.None => returnType,
+            RefKind.Ref => RefType( SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.RefKeyword ), default, returnType ),
+            RefKind.RefReadOnly => RefType(
+                SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.RefKeyword ),
+                SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.ReadOnlyKeyword ),
+                returnType ),
+            _ => throw new AssertionFailedException(
+                $"Unsupported reference kind '{returnParameter.RefKind}' on the return value of the delegate '{introducedType}'." )
+        };
     }
 
     public override IEnumerable<InjectedMember> GetInjectedMembers( MemberInjectionContext context )
@@ -153,6 +189,22 @@ internal sealed class IntroduceNamedTypeTransformation : IntroduceDeclarationTra
                         SeparatedList( GetEnumMembers( introducedType, context ) ),
                         Token( SyntaxKind.CloseBraceToken ),
                         default ),
+
+                // A delegate declaration is a method signature with the delegate keyword in front of it. The
+                // signature comes from the Invoke method, which the advice registers in the code model without
+                // emitting it, because this declaration has no member list to put it in.
+                TypeKind.Delegate =>
+                    DelegateDeclaration(
+                        AdviceSyntaxGenerator.GetAttributeLists( introducedType, context ),
+                        introducedType.GetSyntaxModifierList(),
+                        Token( SyntaxKind.DelegateKeyword ),
+                        GetDelegateReturnType( introducedType, context )
+                            .WithOptionalTrailingTrivia( ElasticSpace, context.SyntaxGenerationContext.Options ),
+                        SyntaxFactoryEx.SafeIdentifier( introducedType.Name ),
+                        typeArgs,
+                        context.SyntaxGenerator.ParameterList( GetInvokeMethod( introducedType ), context.FinalCompilation ),
+                        context.SyntaxGenerator.ConstraintClauses( introducedType ),
+                        Token( SyntaxKind.SemicolonToken ) ),
                 _ => throw new AssertionFailedException( $"Unsupported type kind '{introducedType.TypeKind}'." )
             }).NormalizeWhitespaceIfNecessary( context.SyntaxGenerationContext );
 

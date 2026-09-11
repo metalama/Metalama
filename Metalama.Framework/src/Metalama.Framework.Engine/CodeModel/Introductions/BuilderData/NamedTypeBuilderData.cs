@@ -34,8 +34,8 @@ internal sealed class NamedTypeBuilderData : MemberOrNamedTypeBuilderData
     public bool IsRef { get; }
 
     /// <summary>
-    /// Gets the names of the members of an enum, in the order in which the aspect added them, or an empty array for
-    /// every other kind.
+    /// Gets the members of an enum, in the order in which the aspect added them, or an empty array for every other
+    /// kind.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -44,8 +44,26 @@ internal sealed class NamedTypeBuilderData : MemberOrNamedTypeBuilderData
     /// consumer resolved by name, which is why <c>EnumFacet</c> takes the order of a type read from source from its
     /// symbol rather than from that collection.
     /// </para>
+    /// <para>
+    /// They are stored as references rather than as names so that the facet can resolve them in any compilation that
+    /// knows the enum, including one in which the transformations that register them have not been applied. An
+    /// aspect reads the facet of a type it has just introduced through a builder whose compilation is the one the
+    /// aspect sees, which is not the compilation the advice writes to.
+    /// </para>
     /// </remarks>
-    public ImmutableArray<string> EnumMemberNames { get; }
+    public ImmutableArray<IFullRef<IField>> EnumMembers { get; }
+
+    /// <summary>
+    /// Gets the <c>Invoke</c> method of a delegate, or <c>null</c> for every other kind.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// It is stored for the reason that <see cref="EnumMembers"/> is stored: <c>DelegateFacet</c> resolves the
+    /// method through <see cref="INamedType.Methods"/>, which is empty in a compilation to which the transformation
+    /// that registers the method has not been applied.
+    /// </para>
+    /// </remarks>
+    public IFullRef<IMethod>? InvokeMethod { get; }
 
     public NamedTypeBuilderData( NamedTypeBuilder builder, IFullRef<IDeclaration> containingDeclaration ) : base( builder, containingDeclaration )
     {
@@ -65,9 +83,11 @@ internal sealed class NamedTypeBuilderData : MemberOrNamedTypeBuilderData
         // nothing, so that the common case carries no reference.
         this.UnderlyingType = builder.TypeKind == TypeKind.Enum ? builder.UnderlyingType.ToFullRef() : null;
 
-        this.EnumMemberNames = builder is EnumBuilder enumBuilder
-            ? enumBuilder.MemberBuilders.SelectAsImmutableArray( m => m.Name )
-            : ImmutableArray<string>.Empty;
+        this.EnumMembers = builder is EnumBuilder enumBuilder
+            ? enumBuilder.MemberBuilders.SelectAsImmutableArray( m => (IFullRef<IField>) m.BuilderData.ToRef() )
+            : ImmutableArray<IFullRef<IField>>.Empty;
+
+        this.InvokeMethod = builder is DelegateBuilder delegateBuilder ? delegateBuilder.InvokeMethodBuilder.BuilderData.ToRef() : null;
     }
 
     protected override IFullRef<IDeclaration> ToDeclarationFullRef() => this._ref;

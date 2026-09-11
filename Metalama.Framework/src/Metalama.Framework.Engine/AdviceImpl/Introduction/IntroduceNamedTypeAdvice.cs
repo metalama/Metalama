@@ -44,6 +44,7 @@ internal sealed class IntroduceNamedTypeAdvice : IntroduceDeclarationAdvice<INam
         return this._typeKind switch
         {
             TypeKind.Enum => new EnumBuilder( this.AspectLayerInstance, target, this._explicitName ),
+            TypeKind.Delegate => new DelegateBuilder( this.AspectLayerInstance, target, this._explicitName ),
             _ => new NamedTypeBuilder( this.AspectLayerInstance, target, this._explicitName, this._typeKind )
         };
     }
@@ -122,14 +123,25 @@ internal sealed class IntroduceNamedTypeAdvice : IntroduceDeclarationAdvice<INam
     /// </remarks>
     private void RegisterOwnedMembers( NamedTypeBuilder builder, AdviceImplementationContext context )
     {
-        if ( builder is not EnumBuilder enumBuilder )
+        switch ( builder )
         {
-            return;
-        }
+            case EnumBuilder enumBuilder:
+                foreach ( var member in enumBuilder.MemberBuilders )
+                {
+                    context.AddTransformation( new IntroduceSynthesizedDeclarationTransformation( this.AspectLayerInstance, member.BuilderData ) );
+                }
 
-        foreach ( var member in enumBuilder.MemberBuilders )
-        {
-            context.AddTransformation( new IntroduceSynthesizedDeclarationTransformation( this.AspectLayerInstance, member.BuilderData ) );
+                break;
+
+            case DelegateBuilder delegateBuilder:
+                // The compiler synthesizes the Invoke method from the delegate declaration, which has no member
+                // list to put one in, so the method is registered in the code model and emitted by nothing. This is
+                // section 4.2 of Metalama.Framework/docs/future/introducing-types.md, and it is what lets
+                // DelegateFacet resolve the method through INamedType.Methods.
+                context.AddTransformation(
+                    new IntroduceSynthesizedDeclarationTransformation( this.AspectLayerInstance, delegateBuilder.InvokeMethodBuilder.BuilderData ) );
+
+                break;
         }
     }
 

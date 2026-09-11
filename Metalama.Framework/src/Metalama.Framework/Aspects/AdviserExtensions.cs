@@ -1735,6 +1735,30 @@ public static class AdviserExtensions
             buildEnum );
 
     /// <summary>
+    /// Introduces a new delegate into the current namespace (as a top-level type) or type (as a nested type).
+    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> or <see cref="WithNamespace"/> method to introduce the delegate to a different type or namespace
+    /// than the current one.
+    /// </summary>
+    /// <param name="adviser">An adviser for a named type or namespace.</param>
+    /// <param name="name">The delegate name.</param>
+    /// <param name="whenExists">Determines the implementation strategy when a type of the same name is already declared in the target type or namespace.
+    ///     The default strategy is to fail with a compile-time error.</param>
+    /// <param name="buildDelegate">An optional delegate that modifies the <see cref="IDelegateBuilder"/> that represents the introduced delegate. The
+    ///     signature of the introduced delegate is given through this callback.</param>
+    /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> that exposes the outcome of the operation and the introduced <see cref="INamedType"/>.</returns>
+    /// <seealso href="@introducing-types"/>
+    public static IIntroductionAdviceResult<INamedType> IntroduceDelegate(
+        this IAdviser<INamespaceOrNamedType> adviser,
+        string name,
+        OverrideStrategy whenExists = OverrideStrategy.Default,
+        Action<IDelegateBuilder>? buildDelegate = null )
+        => ((IAdviserInternal) adviser).AdviceFactory.IntroduceDelegate(
+            adviser.Target,
+            name,
+            whenExists,
+            buildDelegate );
+
+    /// <summary>
     /// Introduces a new struct into the current namespace (as a top-level type) or type (as a nested type).
     /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> or <see cref="WithNamespace"/> method to introduce the struct to a different type or namespace
     /// than the current one.

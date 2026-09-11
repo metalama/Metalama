@@ -5,6 +5,7 @@
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Collections;
 using Metalama.Framework.Code.Types;
+using Metalama.Framework.Engine.CodeModel.Introductions.Introduced;
 using Metalama.Framework.Engine.Utilities;
 using System.Linq;
 
@@ -37,7 +38,19 @@ internal sealed class DelegateFacet : IDelegateFacet
     public INamedType Type { get; }
 
     [Memo]
-    public IMethod InvokeMethod => this.Type.Methods.OfName( _invokeMethodName ).Single();
+    public IMethod InvokeMethod => this.GetInvokeMethodCore();
+
+    private IMethod GetInvokeMethodCore()
+        => this.Type switch
+        {
+            // The Invoke method of an introduced delegate comes from the builder data, which answers in every
+            // compilation that knows the delegate rather than only in one to which the transformation that registers
+            // the method has been applied. An aspect that types an event by a delegate it has just introduced reads
+            // the facet through a builder whose compilation is the one the aspect sees, which is not the compilation
+            // the advice writes to.
+            IntroducedNamedType { InvokeMethod: { } invokeMethod } => invokeMethod,
+            _ => this.Type.Methods.OfName( _invokeMethodName ).Single()
+        };
 
     public IType ReturnType => this.InvokeMethod.ReturnType;
 

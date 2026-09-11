@@ -1067,6 +1067,24 @@ namespace Metalama.Framework.Advising
             Action<IEnumBuilder>? buildEnum = null );
 
         /// <summary>
+        /// Introduces a new delegate to the target namespace or type.
+        /// </summary>
+        /// <param name="targetNamespaceOrType">The namespace or type into which the delegate must be introduced.</param>
+        /// <param name="name">The name of the introduced delegate.</param>
+        /// <param name="whenExists">Determines the implementation strategy when a type of the same name is already declared in the target namespace or type.
+        ///     The default strategy is to fail with a compile-time error.</param>
+        /// <param name="buildDelegate">An optional callback that allows you to configure the introduced delegate, which means its accessibility, its custom
+        ///     attributes, its type parameters and its signature. A delegate that the callback leaves unconfigured is internal, returns <c>void</c> and takes
+        ///     no parameter.</param>
+        /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> representing the result of the advice. The <see cref="IIntroductionAdviceResult{T}.Declaration"/> property provides access to the introduced delegate.
+        /// Unlike the result of introducing a class, this result must not be used to introduce members, because a delegate accepts none.</returns>
+        IIntroductionAdviceResult<INamedType> IntroduceDelegate(
+            INamespaceOrNamedType targetNamespaceOrType,
+            string name,
+            OverrideStrategy whenExists = OverrideStrategy.Default,
+            Action<IDelegateBuilder>? buildDelegate = null );
+
+        /// <summary>
         /// Introduces a new extension block into a static class. Extension blocks allow adding
         /// extension members (methods, properties, indexers, operators) to a type (represented as an <see cref="IType"/>). Requires C# 14+ and Roslyn 5.0+, and C# 15+ for indexers.
         /// </summary>

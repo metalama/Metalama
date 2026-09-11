@@ -233,20 +233,35 @@ of the switch quoted in section 1, and the type of the local variable it produce
 `ModifierHelper.GetTypeSyntaxModifierList` gains the `record` modifier. The `enum` and `delegate` keywords are not
 modifiers and belong to the syntax factory call of their arm.
 
-The design-time path needs no second emission of the declaration, and this is the point at which an implementer is
-most likely to go wrong. An introduced type is emitted at design time by
-`IntroduceNamedTypeTransformation.GetInjectedMembers`, which is the same method the build uses, as a member of the
-generated partial part of its containing type or of the generated file of its namespace.
-`DesignTimeSyntaxTreeGenerator.CreatePartialType` builds that containing part and nothing else. It returns a
-`TypeDeclarationSyntax` and emits the `partial` modifier, so it can never produce an enum or a delegate, and its
-arms for a class, a struct, a record class and a record struct describe the type that contains the introduction
-rather than the introduction itself.
+An introduced type reaches the editor by two different routes, and only one of them was examined when this section
+was first written. Both are described here, because this is the point at which an implementer is most likely to go
+wrong.
 
-One guard is needed there nonetheless. `ProcessTransformationsOnNamespace` routes an introduced type that carries
-no transformation of its own into `ProcessTransformationsOnType`, so that it is emitted as an empty type, and that
-method calls `CreatePartialType` on it. An introduced enum or delegate reaching that path would fall to the default
-arm of the switch and throw, so the routing skips a kind that cannot be partial and cannot contain a member. That
-is a condition rather than a new arm, and the enum and the delegate documents own it.
+A nested introduced type is emitted by `IntroduceNamedTypeTransformation.GetInjectedMembers`, which is the same
+method the build uses, as a member of the generated partial part of its containing type.
+`DesignTimeSyntaxTreeGenerator.AddPartialModifierToTypes` then adds `partial` to the members it recognises. That
+method tests the syntax kind and falls through unchanged for anything that is not a class, a struct, an interface
+or a record, so a nested introduced enum or delegate works untouched and correctly receives no `partial` modifier.
+
+A top-level introduced type is routed by `ProcessTransformationsOnNamespace` into `ProcessTransformationsOnType`,
+which re-creates the declaration through `CreatePartialType`. That is how a top-level introduced type appears in
+the editor at all. `CreatePartialType` returns a `TypeDeclarationSyntax`, emits the `partial` modifier, and
+switches on `TypeKind`, so a top-level introduced enum or delegate falls to the default arm and throws.
+
+Skipping the routing, which an earlier revision of this section proposed, would make the type vanish from the
+editor instead of crashing, which is not better. `ProcessTransformationsOnType` therefore emits the declaration
+from the introduction transformation for a kind that cannot be partial, rather than re-creating it, and
+`CreatePartialType` gains no arm. For an enum this also matters for correctness and not only for the modifier:
+`CreatePartialType` builds the body from member transformations, and the members of an enum come from the builder,
+so a re-created enum would be emitted empty. The transformation wraps a top-level type in its namespace, because at
+build time it is injected into a compilation unit, and the caller adds the namespace itself, so the wrapper is
+removed.
+
+The design-time generator must also skip a transformation that implements `IIntroduceDeclarationTransformation`
+without implementing `IInjectMemberTransformation`, which is the mechanism of section 4.2. `LinkerInjectionStep`
+skips it at build time by construction, because it enumerates the second interface, while the design-time generator
+groups every observable transformation and then throws for one it does not recognise. The implicit parameterless
+constructor of an introduced struct is the smallest instance.
 
 Every new builder follows the freeze pattern that [`../compilation-model.md`](../compilation-model.md) describes: a
 mutable builder is handed to the aspect, is frozen at the end of the advice, and is snapshotted into an immutable
@@ -477,7 +492,7 @@ What each later issue adds, once those are merged:
 | The facet implementation, which needs a path that reads the code model rather than a Roslyn symbol | `EnumFacet`, `RecordFacet` and `UnionFacet`, one file each. `DelegateFacet` names no symbol and already works on an introduced type. |
 | `IAdviceFactory`, `AdviserExtensions` and `AdviceFactory` | Each kind, appending a method to a different part of each file. |
 | The arm of the switch in `IntroduceNamedTypeTransformation` | Each kind. |
-| The guard in `DesignTimeSyntaxTreeGenerator.ProcessTransformationsOnNamespace` that keeps a kind which cannot be partial out of `CreatePartialType` | The enum and the delegate. Section 4.1 states why it is a condition and not an arm, and why `CreatePartialType` gains nothing. |
+| Emitting a kind that cannot be partial from its own transformation in `DesignTimeSyntaxTreeGenerator.ProcessTransformationsOnType`, and skipping a transformation that injects no member | The enum and the delegate. Section 4.1 states why `CreatePartialType` gains nothing, and why the nested route already works. |
 | `ModifierHelper.GetTypeSyntaxModifierList` | The record only, for the `record` modifier. |
 
 The recommendation follows from the two tables. One issue first, implemented by one agent in one pull request,

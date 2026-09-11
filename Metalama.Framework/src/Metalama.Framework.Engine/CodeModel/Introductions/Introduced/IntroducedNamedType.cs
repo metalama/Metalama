@@ -221,10 +221,16 @@ internal sealed class IntroducedNamedType : IntroducedMemberOrNamedType, INamedT
     public bool IsEnum => this._namedTypeBuilderData.TypeKind == TypeKind.Enum;
 
     /// <summary>
-    /// Gets the names of the members of the enum, in the order in which the aspect added them, which is the order in
-    /// which <c>EnumFacet</c> reports them.
+    /// Gets the members of the enum, in the order in which the aspect added them, which is the order in which
+    /// <c>EnumFacet</c> reports them.
     /// </summary>
-    public ImmutableArray<string> EnumMemberNames => this._namedTypeBuilderData.EnumMemberNames;
+    public ImmutableArray<IField> EnumMembers => this._namedTypeBuilderData.EnumMembers.SelectAsImmutableArray( f => this.MapDeclaration( f ) );
+
+    /// <summary>
+    /// Gets the <c>Invoke</c> method of the delegate, which is what <c>DelegateFacet</c> reports, or <c>null</c>
+    /// when this type is not a delegate.
+    /// </summary>
+    public IMethod? InvokeMethod => this.MapDeclaration( this._namedTypeBuilderData.InvokeMethod );
 
     public bool IsRecord => this._namedTypeBuilderData.IsRecord;
 

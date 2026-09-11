@@ -42,26 +42,35 @@ internal sealed class EnumFacet : IEnumFacet
 
     private IReadOnlyList<IField> GetMembersCore()
     {
-        // The order of INamedType.Fields depends on which fields a previous consumer resolved by name, so the order
-        // of declaration is taken from the symbol of a type read from source and from the builder data of an
-        // introduced one. Each field is then resolved through the code model, so that a member of this list is the
-        // same object as the one that INamedType.Fields returns for that name.
-        var names = this.Type switch
+        switch ( this.Type )
         {
-            ISymbolBasedCompilationElement symbolBased => GetMemberNamesFromSymbol( (INamedTypeSymbol) symbolBased.Symbol ),
-            IntroducedNamedType introduced => introduced.EnumMemberNames,
-            _ => throw new AssertionFailedException( $"Cannot get the members of the enum '{this.Type}'." )
-        };
+            case ISymbolBasedCompilationElement symbolBased:
+                return this.GetMembersFromSymbol( (INamedTypeSymbol) symbolBased.Symbol );
 
-        return names.SelectAsImmutableArray( name => this.Type.Fields.OfName( name ).Single() );
+            // The members of an introduced enum come from the builder data, which is the only place that records the
+            // order in which the aspect added them, and which answers in every compilation that knows the enum
+            // rather than only in one to which the transformations that register them have been applied.
+            case IntroducedNamedType introduced:
+                return introduced.EnumMembers;
+
+            default:
+                throw new AssertionFailedException( $"Cannot get the members of the enum '{this.Type}'." );
+        }
     }
 
     /// <summary>
-    /// Gets the names of the members of an enum read from source, in the order of declaration.
+    /// Gets the members of an enum read from source, in the order of declaration.
     /// </summary>
-    private static ImmutableArray<string> GetMemberNamesFromSymbol( INamedTypeSymbol symbol )
+    /// <remarks>
+    /// <para>
+    /// The order of <see cref="INamedType.Fields"/> depends on which fields a previous consumer resolved by name, so
+    /// the order is taken from the symbol. Each field is then resolved through the code model, so that a member of
+    /// this list is the same object as the one that <see cref="INamedType.Fields"/> returns for that name.
+    /// </para>
+    /// </remarks>
+    private IReadOnlyList<IField> GetMembersFromSymbol( INamedTypeSymbol symbol )
     {
-        var builder = ImmutableArray.CreateBuilder<string>();
+        var builder = ImmutableArray.CreateBuilder<IField>();
 
         foreach ( var member in symbol.GetMembers() )
         {
@@ -69,7 +78,7 @@ internal sealed class EnumFacet : IEnumFacet
             // underlying value, is not one of them.
             if ( member.Kind == SymbolKind.Field && member is IFieldSymbol { IsConst: true } )
             {
-                builder.Add( member.Name );
+                builder.Add( this.Type.Fields.OfName( member.Name ).Single() );
             }
         }
 

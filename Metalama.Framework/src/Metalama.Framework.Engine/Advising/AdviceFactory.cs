@@ -2112,6 +2112,28 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         }
     }
 
+    public IIntroductionAdviceResult<INamedType> IntroduceDelegate(
+        INamespaceOrNamedType targetNamespaceOrType,
+        string name,
+        OverrideStrategy whenExists = OverrideStrategy.Default,
+        Action<IDelegateBuilder>? buildDelegate = null )
+    {
+        using ( this.WithNonUserCode() )
+        {
+            this.ValidateNotExplicitInterfaceImplementation( AdviceKind.IntroduceType );
+
+            ValidateNotExtensionBlock( targetNamespaceOrType, "a delegate" );
+
+            return new IntroduceNamedTypeAdvice(
+                    this.GetAdviceConstructorParameters( targetNamespaceOrType ),
+                    name,
+                    whenExists,
+                    buildDelegate == null ? null : b => buildDelegate( (IDelegateBuilder) b ),
+                    TypeKind.Delegate )
+                .Execute( this._state );
+        }
+    }
+
     public IIntroductionAdviceResult<INamedType> IntroduceStruct(
         INamespaceOrNamedType targetNamespaceOrType,
         string name,
