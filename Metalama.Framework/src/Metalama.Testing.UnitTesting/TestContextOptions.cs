@@ -108,6 +108,13 @@ public record TestContextOptions
     internal bool RoslynIsCompileTimeOnly { get; init; }
 
     /// <summary>
+    /// Gets the identifiers of the diagnostics that the test project suppresses, which the aspect testing framework
+    /// reads from the <c>NoWarn</c> MSBuild property of that project. They are suppressed in the compile-time
+    /// compilation, in the same way as <see cref="IProjectOptions.IgnoredWarnings"/> in a production build.
+    /// </summary>
+    internal ImmutableArray<string> IgnoredWarnings { get; init; } = ImmutableArray<string>.Empty;
+
+    /// <summary>
     /// Gets a value indicating whether run-time code should be validated for references to compile-time-only code.
     /// Defaults to <c>true</c> for tests to maintain backward compatibility.
     /// </summary>
