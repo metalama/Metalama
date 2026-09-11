@@ -378,8 +378,10 @@ beyond the shape, because the introduction of those kinds is not currently suppo
 > documents it indexes, which supersede this section on two points. First, `IEnumBuilder` and `IDelegateBuilder`
 > derive from `IMemberOrNamedTypeBuilder` rather than from `INamedTypeBuilder`, for the reasons that section 2 of
 > that document gives; `IRecordBuilder` and `IUnionBuilder` derive from `INamedTypeBuilder` as drafted here.
-> Second, `IUnionBuilder.AddCase` returns a builder rather than an `IUnionCase`, because a case that is being
-> built has no creation member yet, which is the lifetime argument that the next paragraph of this section makes.
+> Second, `IUnionBuilder.AddCase` returns nothing, and no interface describes a case under construction. A case is
+> a bare type in the grammar of the language, so there is nothing for a builder to carry, and `IUnionCase` cannot
+> be returned either, because a case that is being built has no creation member yet, which is the lifetime argument
+> that the next paragraph of this section makes.
 
 The reason for keeping the writing surface off the facet is that the reader and the writer have different
 lifetimes. A facet describes a type that exists. A builder describes a type that is being constructed and whose
@@ -555,10 +557,11 @@ separate decision.
 [#1951](https://github.com/metalama/Metalama/issues/1951) and
 [#1952](https://github.com/metalama/Metalama/issues/1952).
 
-> This table is superseded by section 6 of [`introducing-types.md`](introducing-types.md), which adds the two union
-> issues to it and records the revised hierarchy of section 2.4. The blockers listed above are satisfied: #1995,
-> #1996, #1997 and #1941 are closed, so only #869 blocks the other four. Each of the five kinds is designed in a
-> document of its own, and section 8 of that document indexes every related issue.
+> This table is superseded by section 6 of [`introducing-types.md`](introducing-types.md), which adds the union to
+> it and records the revised hierarchy of section 2.4. The facet blockers listed above are satisfied, because
+> #1995, #1996, #1997 and #1941 are closed, so #869 alone blocks the enum, the delegate and the record. The union
+> is blocked by #869 and also by #1945, which is open. Each of the five kinds is designed in a document of its own,
+> and section 8 of that document indexes every related issue.
 
 ### 6.3. What the first issue measures
 

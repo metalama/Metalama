@@ -71,6 +71,15 @@ private ValueChangedHandler _onValueChanged;
 public delegate TOutput Transformer<in TInput, out TOutput>( TInput value );
 ```
 
+A delegate cannot be partial, so the design-time path needs one guard that section 4.1 of
+[`introducing-types.md`](introducing-types.md) describes.
+`DesignTimeSyntaxTreeGenerator.ProcessTransformationsOnNamespace` routes an introduced type that carries no
+transformation of its own into `ProcessTransformationsOnType`, which calls `CreatePartialType` on it. That method
+returns a `TypeDeclarationSyntax` and emits the `partial` modifier, so an introduced delegate reaching it falls to the
+default arm of its switch and throws. The routing skips a kind that cannot be partial and cannot contain a member,
+and `CreatePartialType` gains no arm. The delegate itself is emitted at design time by
+`IntroduceNamedTypeTransformation.GetInjectedMembers`, which is the same method the build uses.
+
 ## 3. The interfaces
 
 ### 3.1. `IDelegateBuilder`
@@ -310,6 +319,20 @@ The one residue is that `Name` reports the name of the delegate on an object tha
 `Invoke` method is named `Invoke`. The introduced model does not inherit that: `IDelegateFacet.InvokeMethod.Name`
 is `Invoke`, as it is for a delegate read from source. The divergence is confined to the authoring object, and a
 unit test pins it.
+
+The objection to that residue is broader than the name, and it is recorded here because it is formally correct and
+was overruled deliberately. Deriving from `IMethodBuilder` makes `IDelegateBuilder` an `IMethod`, so the inherited
+members that describe a method as an object, which are `DeclarationKind`, `Definition`, `ToRef`, the conversion to
+a reflection object and the invoker, have no coherent method to describe while the builder carries the name and the
+accessibility of the delegate. A builder of the type with composed signature operations, or a builder that exposes
+an `InvokeMethod`, has no such object.
+
+It is overruled because the alternative costs more than it buys. Both alternatives restate five signature members
+that `IMethodBuilder` already declares, and the second adds an object whose name, accessibility and modifiers are
+all invalid. The members the objection names are not reached by an aspect that configures a delegate, and the
+authoring object lives until the advice completes, after which the code model reports the `Invoke` method
+correctly. The convenience of one object, with no duplicated surface, is the property this design optimises for,
+and this paragraph is here so that a later reader knows the trade was seen rather than missed.
 
 ### 6.3. The type parameters belong to the delegate
 

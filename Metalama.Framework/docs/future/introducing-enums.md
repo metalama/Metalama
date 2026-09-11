@@ -97,6 +97,15 @@ public enum Permissions : byte
 }
 ```
 
+An enum cannot be partial, so the design-time path needs one guard that section 4.1 of
+[`introducing-types.md`](introducing-types.md) describes.
+`DesignTimeSyntaxTreeGenerator.ProcessTransformationsOnNamespace` routes an introduced type that carries no
+transformation of its own into `ProcessTransformationsOnType`, which calls `CreatePartialType` on it. That method
+returns a `TypeDeclarationSyntax` and emits the `partial` modifier, so an introduced enum reaching it falls to the
+default arm of its switch and throws. The routing skips a kind that cannot be partial and cannot contain a member,
+and `CreatePartialType` gains no arm. The enum itself is emitted at design time by
+`IntroduceNamedTypeTransformation.GetInjectedMembers`, which is the same method the build uses.
+
 ## 3. The interfaces
 
 ### 3.1. `IEnumBuilder`
@@ -371,8 +380,8 @@ model from the same builders. That is not the case for a record, a union, a dele
 synthesized members the compiler creates from the declaration and which section 4.2 of
 [`introducing-types.md`](introducing-types.md) therefore keeps out of the generated code.
 
-The reason for the difference is the one that section: a member is exempt from emission exactly when the compiler
-creates it. The members of an enum are written by the aspect author, so they are emitted and registered like any
+The reason for the difference is the one that section gives: a member is exempt from emission exactly when the
+compiler creates it. The members of an enum are written by the aspect author, so they are emitted and registered like any
 declared member, and the transformation that carries them is an ordinary injecting one.
 
 The synthetic field whose metadata name is `value__` is the exception, and it is neither emitted nor materialized.

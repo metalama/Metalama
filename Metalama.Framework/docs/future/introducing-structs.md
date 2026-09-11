@@ -28,8 +28,15 @@ public class GeneratePointAttribute : TypeAspect
                 t.IsReadOnly = true;
             } );
 
-        point.IntroduceAutomaticProperty( "X", typeof(double) );
-        point.IntroduceAutomaticProperty( "Y", typeof(double) );
+        point.IntroduceAutomaticProperty(
+            "X",
+            typeof(double),
+            buildProperty: p => p.Writeability = Writeability.InitOnly );
+
+        point.IntroduceAutomaticProperty(
+            "Y",
+            typeof(double),
+            buildProperty: p => p.Writeability = Writeability.InitOnly );
     }
 }
 ```
@@ -39,10 +46,15 @@ public class GeneratePointAttribute : TypeAspect
 ```csharp
 public readonly struct Point
 {
-    public double X { get; set; }
-    public double Y { get; set; }
+    public double X { get; init; }
+    public double Y { get; init; }
 }
 ```
+
+A readonly struct may declare no settable instance auto-property, which is why the example makes both properties
+init-only. Metalama does not refuse a settable one, and section 3.2 of
+[`introducing-types.md`](introducing-types.md) states why: the compiler reports the error on the generated
+declaration.
 
 ## 3. The interfaces
 
@@ -165,7 +177,7 @@ introduced struct beyond what the language refuses on any struct.
 ## 5. What the facet reports, and what this issue changes about facets
 
 A struct has no facet, so an introduced struct reports the empty collection, as an introduced class and an
-introduced interface do. This is the one of the five kinds that adds no facet.
+introduced interface do. It is the one of the five kinds that adds no facet.
 
 It is nevertheless the issue that changes how a builder answers `Facets`, because section 4 gives it the machinery
 that the five kinds share and this is part of it. Section 5.1 of [`introducing-types.md`](introducing-types.md)

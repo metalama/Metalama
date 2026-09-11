@@ -233,11 +233,20 @@ of the switch quoted in section 1, and the type of the local variable it produce
 `ModifierHelper.GetTypeSyntaxModifierList` gains the `record` modifier. The `enum` and `delegate` keywords are not
 modifiers and belong to the syntax factory call of their arm.
 
-The design-time generator produces the partial type for the editor, and
-`DesignTimeSyntaxTreeGenerator.CreatePartialType` already has arms for a record class and a record struct. Those
-arms serve the reading of a type that the user wrote. Introducing a type of a new kind requires the same arms on
-the introduction path, and the record document states which of the two paths each arm serves, because the two are
-easy to mistake for each other.
+The design-time path needs no second emission of the declaration, and this is the point at which an implementer is
+most likely to go wrong. An introduced type is emitted at design time by
+`IntroduceNamedTypeTransformation.GetInjectedMembers`, which is the same method the build uses, as a member of the
+generated partial part of its containing type or of the generated file of its namespace.
+`DesignTimeSyntaxTreeGenerator.CreatePartialType` builds that containing part and nothing else. It returns a
+`TypeDeclarationSyntax` and emits the `partial` modifier, so it can never produce an enum or a delegate, and its
+arms for a class, a struct, a record class and a record struct describe the type that contains the introduction
+rather than the introduction itself.
+
+One guard is needed there nonetheless. `ProcessTransformationsOnNamespace` routes an introduced type that carries
+no transformation of its own into `ProcessTransformationsOnType`, so that it is emitted as an empty type, and that
+method calls `CreatePartialType` on it. An introduced enum or delegate reaching that path would fall to the default
+arm of the switch and throw, so the routing skips a kind that cannot be partial and cannot contain a member. That
+is a condition rather than a new arm, and the enum and the delegate documents own it.
 
 Every new builder follows the freeze pattern that [`../compilation-model.md`](../compilation-model.md) describes: a
 mutable builder is handed to the aspect, is frozen at the end of the advice, and is snapshotted into an immutable
@@ -429,7 +438,7 @@ records the superseded hierarchy decision.
 | [#866](https://github.com/metalama/Metalama/issues/866) | Introduce an enum, with `IEnumBuilder`. | #869 |
 | [#865](https://github.com/metalama/Metalama/issues/865) | Introduce a delegate, with `IDelegateBuilder`. | #869 |
 | [#867](https://github.com/metalama/Metalama/issues/867) | Introduce a record class and a record struct, with `IRecordBuilder`. | #869 |
-| [#1951](https://github.com/metalama/Metalama/issues/1951) | Introduce a union, with `IUnionBuilder`. This is user story S-29, narrowed to its first half: adding a case to a union that already exists is not supported, which section 6.5 of [`introducing-unions.md`](introducing-unions.md) decides. | #869, [#1941](https://github.com/metalama/Metalama/issues/1941), [#1945](https://github.com/metalama/Metalama/issues/1945) |
+| [#1951](https://github.com/metalama/Metalama/issues/1951) | Introduce a union, with `IUnionBuilder`. This is user story S-29, narrowed twice by sections 6.3 and 6.4 of [`introducing-unions.md`](introducing-unions.md): only the form written with the `union` keyword is introduced, and adding a case to a union that already exists is not supported. The issue is revised before the work starts. | #869, [#1941](https://github.com/metalama/Metalama/issues/1941), [#1945](https://github.com/metalama/Metalama/issues/1945) |
 
 The struct is first because it carries the machinery, and because it is the only one of the five whose design adds
 no public interface, so it exercises the emission path alone. The record is the largest, because it registers the
@@ -468,7 +477,7 @@ What each later issue adds, once those are merged:
 | The facet implementation, which needs a path that reads the code model rather than a Roslyn symbol | `EnumFacet`, `RecordFacet` and `UnionFacet`, one file each. `DelegateFacet` names no symbol and already works on an introduced type. |
 | `IAdviceFactory`, `AdviserExtensions` and `AdviceFactory` | Each kind, appending a method to a different part of each file. |
 | The arm of the switch in `IntroduceNamedTypeTransformation` | Each kind. |
-| The arm of `DesignTimeSyntaxTreeGenerator.CreatePartialType` | The enum and the delegate only. The class, struct, record class and record struct arms are already there. |
+| The guard in `DesignTimeSyntaxTreeGenerator.ProcessTransformationsOnNamespace` that keeps a kind which cannot be partial out of `CreatePartialType` | The enum and the delegate. Section 4.1 states why it is a condition and not an arm, and why `CreatePartialType` gains nothing. |
 | `ModifierHelper.GetTypeSyntaxModifierList` | The record only, for the `record` modifier. |
 
 The recommendation follows from the two tables. One issue first, implemented by one agent in one pull request,
@@ -564,7 +573,7 @@ are named so that a reader who implements one of the five knows what is adjacent
 | [#912](https://github.com/metalama/Metalama/issues/912) | Introductions: hidden visibility | Independent. |
 | [#1998](https://github.com/metalama/Metalama/issues/1998) | Code model: move the tuple type interfaces to the type namespace and add a tuple flag | A tuple is not declared and is not introduced, so it produces no document here. |
 | [#1999](https://github.com/metalama/Metalama/issues/1999) | Code model: an invoker on `IMethodBase` | It would let a consumer invoke the creation member of a union case, which [`introducing-unions.md`](introducing-unions.md) needs no more than the reader does. |
-| [#1954](https://github.com/metalama/Metalama/issues/1954) | Documentation: internal architecture documents. User story S-26. | It names S-28, S-29 and S-30 as blockers, so the sections it writes about an introduction interface follow the stories of this set. Its dependency on S-30 lapses, because section 6.5 of [`introducing-unions.md`](introducing-unions.md) withdraws that story. |
+| [#1954](https://github.com/metalama/Metalama/issues/1954) | Documentation: internal architecture documents. User story S-26. | It names S-28, S-29 and S-30 as blockers, so the sections it writes about an introduction interface follow the stories of this set. Its dependency on S-30 lapses, because section 6.4 of [`introducing-unions.md`](introducing-unions.md) withdraws that story. |
 
 The conceptual documentation of `metalama/Metalama.Documentation` carries a note that support for structs,
 delegates and enums will be added in a future release. Whichever of the five ships last removes it, and user story

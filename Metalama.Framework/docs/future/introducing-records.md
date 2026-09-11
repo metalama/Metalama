@@ -240,7 +240,7 @@ valid, and what is not depends on the authoring form.
 | --- | --- | --- |
 | `Accessibility`, `Name`, `IsPartial` | Valid. | Valid. |
 | `AddTypeParameter` | Valid. | Valid. |
-| `BaseType` | Valid, and the base must itself be a record class. The setter throws an `InvalidOperationException` for a base that is not a record, which is the rule of the language. | The setter throws a `NotSupportedException`. A record struct derives from `System.ValueType` and the language allows no other base. |
+| `BaseType` | Valid. The language requires the base of a record class to be a record class, and Metalama does not refuse a base that is not one, because a base list is representable and section 3.2 of [`introducing-types.md`](introducing-types.md) leaves such a case to the compiler, which reports CS8867 on the generated declaration. | The setter throws a `NotSupportedException`. A record struct derives from `System.ValueType`, and there is no base list to emit. |
 | `IsAbstract` | Valid. | The setter throws a `NotSupportedException`. |
 | `IsSealed` | Valid. | The setter throws a `NotSupportedException`. A record struct is implicitly sealed. |
 | `IsStatic` | The setter throws a `NotSupportedException`. A record is never static. | Same. |
@@ -265,7 +265,7 @@ through the public interface here. The kind of a builder is read from `IsRecord`
 
 The introduced type reports an `IRecordFacet`. Every member the facet names has to be materialized as a builder,
 because the facet of an introduced type is built from the builder data. This is the substance of the issue, and it
-is the reason the issue is sized larger than the other three.
+is the reason the issue is sized larger than the other four.
 
 Materialized means present in the code model and not emitted as syntax. Metalama generates the record declaration,
 which is the `record` keyword, the name, the positional parameter list and the base list, and the compiler
@@ -281,7 +281,7 @@ This kind registers the most: the six members that `IRecordFacet` names, the pri
 | `IRecordFacet` member | Record class | Record struct |
 | --- | --- | --- |
 | `EqualityContractProperty` | A protected virtual property named `EqualityContract`, materialized. | `null`. A record struct has none. |
-| `PrintMembersMethod` | A method named `PrintMembers`, materialized. | Materialized. Its accessibility differs: private on a record struct, protected on a record class that is sealed, protected virtual otherwise. |
+| `PrintMembersMethod` | A method named `PrintMembers`, materialized. It is `protected virtual` on a record class that is not sealed, and `private` on one that is. | Materialized, and `private`. |
 | `CloneMethod` | A method whose metadata name is `<Clone>$`, materialized. | `null`. A record struct has none. |
 | `CopyConstructor` | A constructor taking the record type, materialized. | `null`. A record struct has none. |
 | `DeconstructMethod` | Materialized when the record has at least one positional parameter, and `null` otherwise. | Same. |
