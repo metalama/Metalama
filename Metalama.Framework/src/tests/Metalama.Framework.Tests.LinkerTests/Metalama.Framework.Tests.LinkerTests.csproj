@@ -43,6 +43,14 @@
     </ItemGroup>
 
     <ItemGroup>
+        <!-- This test contains a labeled break and a labeled continue. The statements are legal from C# 15 on, and this
+             project is pinned to language version 14, so the compilation of the project reports an error for them. The
+             test framework reads the file from the source directory and not from the compilation, so removing the file
+             from the compilation does not remove the test. Remove these items when the project moves to a language
+             version that accepts the statements. See issues #1947 and #1937. -->
+        <Compile Remove="$(MSBuildThisFileDirectory)/Tests/Methods/Overrides/Labels/LabeledJump.cs" />
+        <None Include="$(MSBuildThisFileDirectory)/Tests/Methods/Overrides/Labels/LabeledJump.cs" />
+
         <!-- Exclude files that intentionally do not compile -->
         <Compile Remove="$(MSBuildThisFileDirectory)/Tests/**/__*.cs" />
         <!-- But still show them in solution explorer -->
