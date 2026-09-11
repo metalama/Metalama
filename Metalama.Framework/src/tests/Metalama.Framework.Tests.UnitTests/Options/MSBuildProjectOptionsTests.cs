@@ -145,6 +145,46 @@ public sealed class MSBuildProjectOptionsTests
         Assert.Equal( DurableRefKind.Default, options.DurableRefKind );
     }
 
+    [Fact]
+    public void IgnoredWarnings_AreSplitAndNormalized()
+    {
+        // The build joins the identifiers with a comma, but the NoWarn property they come from also accepts a
+        // semicolon and white space, and it leaves white space behind where a line break was replaced by a comma.
+        var source = new DictionaryOptionsSource(
+            new Dictionary<string, string> { [MSBuildPropertyNames.MetalamaIgnoredWarnings] = ",      CS1591,, CA1822 ;1591,   " } );
+
+        var options = new TestableMSBuildProjectOptions( source );
+
+        Assert.Equal( new[] { "CS1591", "CA1822", "CS1591" }, options.IgnoredWarnings );
+    }
+
+    [Fact]
+    public void IgnoredWarnings_Missing_ReturnsEmpty()
+    {
+        var source = new DictionaryOptionsSource( new Dictionary<string, string>() );
+
+        var options = new TestableMSBuildProjectOptions( source );
+
+        Assert.Empty( options.IgnoredWarnings );
+    }
+
+    [Fact]
+    public void ParseIgnoredWarnings_AcceptsTheRawNoWarnOfAProject()
+    {
+        // The aspect testing framework reads the NoWarn of the test project from an assembly metadata attribute,
+        // which carries the property as MSBuild wrote it, therefore with its semicolons and its line breaks, and it
+        // parses it with this method so that a test and a production build honour a single syntax. See issue #1948.
+        var parsed = MSBuildProjectOptions.ParseIgnoredWarnings( "CS1591,CA1822;1572\r\n    VSTHRD200;" );
+
+        Assert.Equal( new[] { "CS1591", "CA1822", "CS1572", "VSTHRD200" }, parsed );
+    }
+
+    [Fact]
+    public void ParseIgnoredWarnings_Null_ReturnsEmpty()
+    {
+        Assert.Empty( MSBuildProjectOptions.ParseIgnoredWarnings( null ) );
+    }
+
     private sealed class TestableMSBuildProjectOptions : MSBuildProjectOptions
     {
         public TestableMSBuildProjectOptions( IProjectOptionsSource source ) : base( source ) { }
