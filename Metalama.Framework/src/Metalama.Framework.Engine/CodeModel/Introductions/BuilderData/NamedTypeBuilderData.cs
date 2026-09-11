@@ -23,17 +23,15 @@ internal sealed class NamedTypeBuilderData : MemberOrNamedTypeBuilderData
 
     public TypeKind TypeKind { get; }
 
-    // The following members can return a constant value at the moment.
+    /// <summary>
+    /// Gets the underlying integral type of an enum, or <c>null</c> for every other kind, which is its own underlying
+    /// type.
+    /// </summary>
+    public IFullRef<INamedType>? UnderlyingType { get; }
 
-#pragma warning disable CA1822
+    public bool IsReadOnly { get; }
 
-    // ReSharper disable once MemberCanBeMadeStatic.Global
-    public bool IsReadOnly => false;
-
-    // ReSharper disable once MemberCanBeMadeStatic.Global
-    public bool IsRef => false;
-
-#pragma warning restore CA1822
+    public bool IsRef { get; }
 
     public NamedTypeBuilderData( NamedTypeBuilder builder, IFullRef<IDeclaration> containingDeclaration ) : base( builder, containingDeclaration )
     {
@@ -45,6 +43,13 @@ internal sealed class NamedTypeBuilderData : MemberOrNamedTypeBuilderData
         this.TypeKind = builder.TypeKind;
         this.IsRecord = builder.IsRecord;
         this.IsClosed = builder.IsClosed;
+        this.IsUnion = builder.IsUnion;
+        this.IsReadOnly = builder.IsReadOnly;
+        this.IsRef = builder.IsRef;
+
+        // An enum reports its underlying integral type here; every other kind is its own underlying type and stores
+        // nothing, so that the common case carries no reference.
+        this.UnderlyingType = builder.TypeKind == TypeKind.Enum ? builder.UnderlyingType.ToFullRef() : null;
     }
 
     protected override IFullRef<IDeclaration> ToDeclarationFullRef() => this._ref;
@@ -56,6 +61,8 @@ internal sealed class NamedTypeBuilderData : MemberOrNamedTypeBuilderData
     public bool IsRecord { get; }
 
     public bool IsClosed { get; }
+
+    public bool IsUnion { get; }
 
     public override IEnumerable<DeclarationBuilderData> GetOwnedDeclarations() => base.GetOwnedDeclarations().Concat( this.TypeParameters );
 }

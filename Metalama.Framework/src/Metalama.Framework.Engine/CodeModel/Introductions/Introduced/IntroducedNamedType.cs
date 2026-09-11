@@ -177,9 +177,12 @@ internal sealed class IntroducedNamedType : IntroducedMemberOrNamedType, INamedT
         return new ExtensionBlockCollection( this, collection.ToImmutableArray() );
     }
 
-    // A type introduced by an aspect has no facet today, because a builder produces a class, a struct, an interface or
-    // an extension block only. The type introduction stories add the facet of the kind that each of them introduces.
-    public ITypeFacetCollection Facets => TypeFacetCollection.Empty;
+    // An introduced type reports the facet of its kind, which is section 5.2 of
+    // Metalama.Framework/docs/future/introducing-types.md. This is the same call that SourceNamedTypeImpl makes, and
+    // it serves every kind at once, because the collection dispatches on the four flags above and constructs nothing
+    // for a type that has none.
+    [Memo]
+    public ITypeFacetCollection Facets => TypeFacetCollection.Create( this );
 
     public INamedType TypeDefinition => this.Definition;
 
@@ -188,7 +191,14 @@ internal sealed class IntroducedNamedType : IntroducedMemberOrNamedType, INamedT
 
     protected override IMemberOrNamedType GetDefinition() => this.Definition;
 
-    public INamedType UnderlyingType => this.Definition;
+    // The underlying type of an enum is its underlying integral type, which the builder data carries. Every other
+    // kind is its own underlying type. IEnumFacet.UnderlyingType reads this property, so an enum that answered itself
+    // here would report itself as its own underlying type.
+    [Memo]
+    public INamedType UnderlyingType
+        => this._namedTypeBuilderData.UnderlyingType is { } underlyingType
+            ? this.MapDeclaration( underlyingType ).AssertNotNull()
+            : this.Definition;
 
     public TypeKind TypeKind => this._namedTypeBuilderData.TypeKind;
 
@@ -196,7 +206,10 @@ internal sealed class IntroducedNamedType : IntroducedMemberOrNamedType, INamedT
 
     public Type ToType() => throw new NotImplementedException();
 
-    public bool? IsReferenceType => this._namedTypeBuilderData.TypeKind is TypeKind.Class;
+    // A delegate is a reference type, so the test names it beside the class. Getting this wrong is not cosmetic:
+    // ToNullable below branches on it, so a delegate reported as a value type would produce Nullable<TDelegate>,
+    // which the language does not accept. See #1840 for the same class of defect.
+    public bool? IsReferenceType => this._namedTypeBuilderData.TypeKind is TypeKind.Class or TypeKind.Interface or TypeKind.Delegate;
 
     public bool IsReadOnly => this._namedTypeBuilderData.IsReadOnly;
 
@@ -210,9 +223,7 @@ internal sealed class IntroducedNamedType : IntroducedMemberOrNamedType, INamedT
 
     public bool IsClosed => this._namedTypeBuilderData.IsClosed;
 
-    // Introducing a union is not supported yet, so the value is a constant rather than a read of the builder data.
-    // The story that adds the writer adds it to the builder data at the same time.
-    public bool IsUnion => false;
+    public bool IsUnion => this._namedTypeBuilderData.IsUnion;
 
     public bool? IsNullable { get; }
 

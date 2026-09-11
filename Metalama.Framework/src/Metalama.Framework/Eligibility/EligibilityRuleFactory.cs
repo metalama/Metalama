@@ -97,12 +97,17 @@ public static partial class EligibilityRuleFactory
             // The facet is null when the type of the event is not a well-formed delegate, and both rules then return
             // false. Before the facet existed they resolved the Invoke method by its identifier and threw
             // InvalidOperationException in that case, which an eligibility rule reaches in normal use at design time.
+            //
+            // IsDelegate is tested first because a type that is still being built throws from Facets, which section
+            // 5.1 of Metalama.Framework/docs/future/introducing-types.md decides. The flag answers on a builder
+            // without allocating, so a type that is not a delegate stays ineligible instead of throwing, which is the
+            // behaviour these two rules exist to provide.
             builder.MustSatisfy(
-                e => e.Type.Facets.Delegate?.ReturnType.SpecialType == SpecialType.Void,
+                e => e.Type.IsDelegate && e.Type.Facets.Delegate?.ReturnType.SpecialType == SpecialType.Void,
                 e => $"'{e}' must have delegate type with void return value" );
 
             builder.MustSatisfy(
-                e => e.Type.Facets.Delegate?.Parameters.All( p => p.RefKind == RefKind.None ) ?? false,
+                e => e.Type.IsDelegate && (e.Type.Facets.Delegate?.Parameters.All( p => p.RefKind == RefKind.None ) ?? false),
                 e => $"'{e}' must have delegate type without a parameter of out/ref/in/pointer type" );
 
             builder.DeclaringType().AddRule( _overrideDeclaringTypeRule );
