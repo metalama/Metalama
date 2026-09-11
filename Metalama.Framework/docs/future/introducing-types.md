@@ -72,7 +72,7 @@ delegate does not even build the same thing as the other four.
 | Record | `IRecordBuilder` | `INamedTypeBuilder` | the type |
 | Union | `IUnionBuilder` | `INamedTypeBuilder` | the type |
 | Enum | `IEnumBuilder` | `IMemberOrNamedTypeBuilder` | the type |
-| Delegate | `IDelegateBuilder` | `IMethodBuilder` | the `Invoke` method of the type |
+| Delegate | `IDelegateBuilder` | `IMethodBuilder` | the declaration, whose shape is a method signature |
 
 Section 2.4 of [`type-facets.md`](type-facets.md) decided that all four builders derive from `INamedTypeBuilder`
 and that the inapplicable inherited operations throw, after the precedent of `IExtensionBlockBuilder`. That
@@ -123,17 +123,20 @@ an aspect has to be able to use it as a type, so the result of introducing an en
 Refusing the operation is therefore an advice validation rule, described in section 3, and not a consequence of the
 hierarchy. The hierarchy decides what the callback that configures the type can do, and nothing more.
 
-### 2.3. A delegate builder is the builder of its `Invoke` method
+### 2.3. A delegate builder derives from `IMethodBuilder`
 
 A delegate is the one kind of this set whose whole structure is one member. A delegate declaration is a method
 signature with the `delegate` keyword in front of it, and `IDelegateFacet` says the same thing on the read side:
 it declares `InvokeMethod`, and its `ReturnType` and `Parameters` are that method's.
 
-`IDelegateBuilder` therefore derives from `IMethodBuilder` and is the builder of the `Invoke` method. The
-obstacle of section 2.1 does not arise, because the declaring type of that method is the delegate, and a delegate
-always has one. What belongs to the type, which is its name, its accessibility, its custom attributes and its type
-parameters, is reached through `DeclaringType`, narrowed to `INamedTypeBuilder`.
-[`introducing-delegates.md`](introducing-delegates.md) carries the design and the cost.
+`IDelegateBuilder` therefore derives from `IMethodBuilder` and declares no member of its own. The obstacle of
+section 2.1 does not arise, because `IMember.DeclaringType` reports the delegate type, and a delegate always has
+one. The inherited members that describe a declaration rather than a signature, which are `Name`, `Accessibility`,
+`AddAttribute` and `AddTypeParameter`, describe the delegate, because the `Invoke` method has no choice about any
+of them: the language names it `Invoke`, makes it public, gives it no attribute and forbids it to be generic. A
+setter that would otherwise be refused as invalid therefore carries one meaning and not two, and an aspect
+configures the delegate on one object. [`introducing-delegates.md`](introducing-delegates.md) carries the design,
+the alternatives and the one residue.
 
 ### 2.4. The restriction is reduced and not removed
 
@@ -148,10 +151,12 @@ interfaces, `PrimaryConstructor`, `ExtensionBlocks`, `MakeGenericInstance` and t
 is approximately thirty members against the four that remain.
 
 The delegate trades differently, because its base is chosen for what it carries rather than for what it omits.
-`IMethodBuilder` gives the return type, the return parameter and the parameter operations, which are the whole of
-what an author configures on a delegate, and the members that throw are the ones that describe a method as a member
-of a type: its name, its accessibility, its own type parameters, its attributes and its modifiers. Section 4 of
-[`introducing-delegates.md`](introducing-delegates.md) lists them, and the count is close to the enum's.
+`IMethodBuilder` gives the return type, the return parameter and the parameter operations, which are the signature,
+and the name, the accessibility, the attributes and the type parameters, which are the declaration. That is
+everything an author configures on a delegate. What throws is the set of modifiers that a delegate cannot carry,
+which is `IsStatic`, `IsSealed`, `IsAbstract`, `IsPartial`, `IsVirtual`, `IsExtern`, `IsReadOnly` and
+`OperatorKind`. Section 4 of [`introducing-delegates.md`](introducing-delegates.md) lists them, and the count is
+close to the enum's.
 
 ### 2.5. The consequence: neither builder is a type
 
@@ -164,10 +169,10 @@ var result = builder.IntroduceEnum( "Color" );
 var enumType = result.Declaration;
 ```
 
-`IDelegateBuilder.DeclaringType` is an `INamedTypeBuilder` and is therefore an `INamedType`, so it is a type in the
-sense of the compiler. It is not the finished delegate: it is the type under construction, whose members are not
-resolvable, so an aspect does not use it as the type of a declaration either. The result of the advice is the one
-object that is safe to use for that.
+`IDelegateBuilder.DeclaringType` reports the delegate type and is read-only, so it is an `INamedType` and is a
+type in the sense of the compiler. It is not the finished delegate: it is the type under construction, whose
+members are not resolvable, so an aspect does not use it as the type of a declaration either, and it has no reason
+to reach it at all. The result of the advice is the one object that is safe to use for that.
 
 This costs nothing in the implementation. The engine class behind a type builder derives from `NamedTypeBuilder`
 and implements `INamedTypeImpl`, because the compilation model requires it, so a builder nested inside it resolves
@@ -275,9 +280,8 @@ that an aspect supplies:
 The hierarchy of section 2 bounds that risk rather than leaving it open. `IEnumBuilder` and `IDelegateBuilder` do
 not derive from `INamedType`, so they declare no `Facets` member at all and an aspect cannot pass either of them
 where a type is expected. A delegate builder can therefore never be the type of an event. The builders that remain
-reachable as a type are those of a class, a struct, a record and a union, to which
-`IDelegateBuilder.DeclaringType` adds the delegate type under construction, and `Facets.Delegate` is meaningless on
-all of them while they are being built.
+reachable as a type are those of a class, a struct, a record and a union, and `Facets.Delegate` is meaningless on
+all four.
 
 ### 5.2. An introduced type reports its facet
 
