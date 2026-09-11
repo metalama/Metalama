@@ -37,11 +37,15 @@ internal sealed class IntroduceNamedTypeAdvice : IntroduceDeclarationAdvice<INam
 
     protected override NamedTypeBuilder CreateBuilder()
     {
-        return new NamedTypeBuilder(
-            this.AspectLayerInstance,
-            (INamespaceOrNamedType) this.TargetDeclaration.AssertNotNull(),
-            this._explicitName,
-            this._typeKind );
+        var target = (INamespaceOrNamedType) this.TargetDeclaration.AssertNotNull();
+
+        // Each kind whose builder carries state of its own has a class of its own. The compilation model requires an
+        // INamedTypeImpl in every case, so each of them derives from NamedTypeBuilder and narrows what it exposes.
+        return this._typeKind switch
+        {
+            TypeKind.Enum => new EnumBuilder( this.AspectLayerInstance, target, this._explicitName ),
+            _ => new NamedTypeBuilder( this.AspectLayerInstance, target, this._explicitName, this._typeKind )
+        };
     }
 
     protected override IntroductionAdviceResult<INamedType> ImplementCore( NamedTypeBuilder builder, AdviceImplementationContext context )
@@ -68,6 +72,7 @@ internal sealed class IntroduceNamedTypeAdvice : IntroduceDeclarationAdvice<INam
 
             context.AddTransformation( builder.CreateTransformation() );
 
+            this.RegisterOwnedMembers( builder, context );
             this.IntroduceImplicitConstructorIfNeeded( builder, context );
 
             return this.CreateSuccessResult( AdviceOutcome.Default, builder );
@@ -91,6 +96,7 @@ internal sealed class IntroduceNamedTypeAdvice : IntroduceDeclarationAdvice<INam
                     builder.Freeze();
                     context.AddTransformation( builder.CreateTransformation() );
 
+                    this.RegisterOwnedMembers( builder, context );
                     this.IntroduceImplicitConstructorIfNeeded( builder, context );
 
                     return this.CreateSuccessResult( AdviceOutcome.Default, builder );
@@ -98,6 +104,32 @@ internal sealed class IntroduceNamedTypeAdvice : IntroduceDeclarationAdvice<INam
                 default:
                     throw new AssertionFailedException( $"Unexpected OverrideStrategy: {this.OverrideStrategy}." );
             }
+        }
+    }
+
+    /// <summary>
+    /// Registers in the code model the members that the builder of a kind owns, which today is the members of an
+    /// enum.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The members of an enum are emitted inside the enum declaration rather than injected separately, which makes
+    /// this kind the exception to section 4.2 of
+    /// <c>Metalama.Framework/docs/future/introducing-types.md</c>: they are written by the aspect author rather than
+    /// synthesized by the compiler. They are registered without injection here so that they reach
+    /// <c>INamedType.Fields</c> exactly once.
+    /// </para>
+    /// </remarks>
+    private void RegisterOwnedMembers( NamedTypeBuilder builder, AdviceImplementationContext context )
+    {
+        if ( builder is not EnumBuilder enumBuilder )
+        {
+            return;
+        }
+
+        foreach ( var member in enumBuilder.MemberBuilders )
+        {
+            context.AddTransformation( new IntroduceSynthesizedDeclarationTransformation( this.AspectLayerInstance, member.BuilderData ) );
         }
     }
 

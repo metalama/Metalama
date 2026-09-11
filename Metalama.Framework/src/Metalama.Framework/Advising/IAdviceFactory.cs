@@ -1051,6 +1051,22 @@ namespace Metalama.Framework.Advising
             Action<INamedTypeBuilder>? buildType = null );
 
         /// <summary>
+        /// Introduces a new enum to the target namespace or type.
+        /// </summary>
+        /// <param name="targetNamespaceOrType">The namespace or type into which the enum must be introduced.</param>
+        /// <param name="name">The name of the introduced enum.</param>
+        /// <param name="whenExists">Determines the implementation strategy when a type of the same name is already declared in the target namespace or type.
+        ///     The default strategy is to fail with a compile-time error.</param>
+        /// <param name="buildEnum">An optional callback that allows you to configure the introduced enum, in particular to add its members.</param>
+        /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> representing the result of the advice. The <see cref="IIntroductionAdviceResult{T}.Declaration"/> property provides access to the introduced enum.
+        /// Unlike the result of introducing a class, this result must not be used to introduce members, because an enum accepts none.</returns>
+        IIntroductionAdviceResult<INamedType> IntroduceEnum(
+            INamespaceOrNamedType targetNamespaceOrType,
+            string name,
+            OverrideStrategy whenExists = OverrideStrategy.Default,
+            Action<IEnumBuilder>? buildEnum = null );
+
+        /// <summary>
         /// Introduces a new extension block into a static class. Extension blocks allow adding
         /// extension members (methods, properties, indexers, operators) to a type (represented as an <see cref="IType"/>). Requires C# 14+ and Roslyn 5.0+, and C# 15+ for indexers.
         /// </summary>

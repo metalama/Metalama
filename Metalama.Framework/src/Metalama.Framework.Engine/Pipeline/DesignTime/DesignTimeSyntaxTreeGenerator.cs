@@ -61,10 +61,16 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
             var injectionNameProvider = new LinkerInjectionNameProvider( finalCompilationModel, injectionHelperProvider );
             var aspectReferenceSyntaxProvider = new LinkerAspectReferenceSyntaxProvider();
 
-            // Get all transformations that are observable at design time and group them by future target file.
+            // Get all transformations that are observable at design time and group them by future target file. A
+            // transformation that implements IIntroduceDeclarationTransformation without implementing
+            // IInjectMemberTransformation registers a declaration in the code model and emits no syntax, so it is
+            // skipped here, exactly as LinkerInjectionStep skips it at build time. Section 4.2 of
+            // Metalama.Framework/docs/future/introducing-types.md states the rule.
             var transformationsByBucket =
                 transformations
-                    .Where( t => t.Observability == TransformationObservability.Always )
+                    .Where(
+                        t => t.Observability == TransformationObservability.Always
+                             && t is not (IIntroduceDeclarationTransformation and not IInjectMemberTransformation) )
                     .GroupBy(
                         t =>
                             t.TargetDeclaration switch
@@ -143,12 +149,18 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                              introduceDeclarationTransformation.DeclarationBuilderData.ToFullRef().As<INamespaceOrNamedType>() ) )
                     {
                         // If this is an introduced type that does not have any transformations, we will "process" it to get the empty type.
-                        ProcessTransformationsOnType( namedTypeBuilder.ToRef().GetTarget( finalCompilationModel ), Array.Empty<ITransformation>() );
+                        ProcessTransformationsOnType(
+                            namedTypeBuilder.ToRef().GetTarget( finalCompilationModel ),
+                            Array.Empty<ITransformation>(),
+                            introduceDeclarationTransformation as IInjectMemberTransformation );
                     }
                 }
             }
 
-            void ProcessTransformationsOnType( INamedType declaringTypeOrExtensionBlock, IEnumerable<ITransformation> typeTransformations )
+            void ProcessTransformationsOnType(
+                INamedType declaringTypeOrExtensionBlock,
+                IEnumerable<ITransformation> typeTransformations,
+                IInjectMemberTransformation? typeInjection = null )
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
@@ -178,6 +190,17 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                 var members = List<MemberDeclarationSyntax>();
                 var syntaxGenerationContext = finalCompilationModel.CompilationContext.GetSyntaxGenerationContext( SyntaxGenerationOptions.Formatted, true );
 
+                // TODO: Provide other implementations or allow nulls (because this pipeline should not execute anything).
+                // TODO: Implement support for initializable transformations.
+                var introductionContext = new MemberInjectionContext(
+                    serviceProvider,
+                    diagnostics,
+                    injectionNameProvider,
+                    lexicalScopeFactory,
+                    aspectReferenceSyntaxProvider,
+                    syntaxGenerationContext,
+                    finalCompilationModel );
+
                 foreach ( var transformation in orderedTransformations )
                 {
                     cancellationToken.ThrowIfCancellationRequested();
@@ -185,17 +208,6 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                     switch ( transformation )
                     {
                         case IInjectMemberTransformation injectMemberTransformation:
-                            // TODO: Provide other implementations or allow nulls (because this pipeline should not execute anything).
-                            // TODO: Implement support for initializable transformations.
-                            var introductionContext = new MemberInjectionContext(
-                                serviceProvider,
-                                diagnostics,
-                                injectionNameProvider,
-                                lexicalScopeFactory,
-                                aspectReferenceSyntaxProvider,
-                                syntaxGenerationContext,
-                                finalCompilationModel );
-
                             var injectedMembers = injectMemberTransformation.GetInjectedMembers( introductionContext )
                                 .Select( m => m.Syntax );
 
@@ -285,10 +297,17 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                 // Create a type. The wrapper tokens (keywords, braces) are constructed with explicit elastic
                 // trivia so the resulting tree's ToFullString is parseable C# without a per-type
                 // NormalizeWhitespace pass.
-                var typeDeclaration = CreatePartialType( declaringType, baseList, members, syntaxGenerationContext, typeDepth );
+                //
+                // The language has no partial enum and no partial delegate, so such a type is emitted from its own
+                // introduction transformation rather than re-created here. For an enum this also matters for
+                // correctness and not only for the modifier: its members are part of the declaration and come from
+                // the builder, so a declaration re-created from the member transformations would be empty.
+                var topDeclaration =
+                    CanBeDeclaredPartial( declaringType )
+                        ? CreatePartialType( declaringType, baseList, members, syntaxGenerationContext, typeDepth )
+                        : CreateNonPartialIntroducedType( declaringType, typeInjection, introductionContext );
 
                 // Add the type to its nesting type.
-                var topDeclaration = (MemberDeclarationSyntax) typeDeclaration;
                 var currentDepth = typeDepth;
 
                 for ( var containingType = declaringType.DeclaringType; containingType != null; containingType = containingType.DeclaringType )
@@ -692,6 +711,45 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
         private static ParameterListSyntax CreateExtensionBlockParameterList( IExtensionBlock extensionBlock, SyntaxGenerationContext syntaxGenerationContext )
         {
             return syntaxGenerationContext.SyntaxGenerator.ParameterList( [extensionBlock.ReceiverParameter], (CompilationModel) extensionBlock.Compilation );
+        }
+
+        /// <summary>
+        /// Determines whether the language allows the declaration of the given type to carry the partial modifier,
+        /// which every kind but an enum and a delegate does.
+        /// </summary>
+        private static bool CanBeDeclaredPartial( INamedType type ) => type.TypeKind is not (TypeKind.Enum or TypeKind.Delegate);
+
+        /// <summary>
+        /// Emits the declaration of an introduced type that the language cannot declare as partial, by asking the
+        /// transformation that introduces it for its syntax.
+        /// </summary>
+        private static MemberDeclarationSyntax CreateNonPartialIntroducedType(
+            INamedType type,
+            IInjectMemberTransformation? typeInjection,
+            MemberInjectionContext context )
+        {
+            if ( typeInjection == null )
+            {
+                throw new AssertionFailedException(
+                    $"The type '{type}' is of a kind that cannot be partial, so its declaration must come from its introduction transformation, and none was given." );
+            }
+
+            var injectedMembers = typeInjection.GetInjectedMembers( context ).ToReadOnlyList();
+
+            if ( injectedMembers.Count != 1 )
+            {
+                throw new AssertionFailedException(
+                    $"The introduction of the type '{type}' produced {injectedMembers.Count} declarations, and exactly one was expected." );
+            }
+
+            // The transformation wraps a top-level type in its namespace, because at build time it is injected into a
+            // compilation unit. The caller adds the namespace itself, so the wrapper is removed here rather than
+            // emitted twice.
+            var syntax = injectedMembers[0].Syntax;
+
+            return syntax.Kind() == SyntaxKind.NamespaceDeclaration && syntax is NamespaceDeclarationSyntax { Members: [var singleMember] }
+                ? singleMember
+                : syntax;
         }
 
         private static TypeDeclarationSyntax CreatePartialType(

@@ -259,7 +259,10 @@ internal static class ModifierHelper
                 AddToken( SyntaxKind.AbstractKeyword );
             }
 
-            if ( namedType.IsSealed )
+            // A struct, an enum and a delegate are implicitly sealed, and the code model reports them as sealed
+            // because Roslyn reports a type declared in source that way. The compiler rejects the modifier on such a
+            // declaration with CS0106, so it is emitted for the kinds that may carry it.
+            if ( namedType.IsSealed && namedType.TypeKind == TypeKind.Class )
             {
                 AddToken( SyntaxKind.SealedKeyword );
             }

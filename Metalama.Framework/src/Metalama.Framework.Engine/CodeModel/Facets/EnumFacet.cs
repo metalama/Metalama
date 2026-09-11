@@ -5,6 +5,7 @@
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Types;
 using Metalama.Framework.Engine.CodeModel.Abstractions;
+using Metalama.Framework.Engine.CodeModel.Introductions.Introduced;
 using Metalama.Framework.Engine.Utilities;
 using Microsoft.CodeAnalysis;
 using System;
@@ -42,11 +43,25 @@ internal sealed class EnumFacet : IEnumFacet
     private IReadOnlyList<IField> GetMembersCore()
     {
         // The order of INamedType.Fields depends on which fields a previous consumer resolved by name, so the order
-        // of declaration is taken from the symbol. Each field is then resolved through the code model, so that a
-        // member of this list is the same object as the one that INamedType.Fields returns for that name.
-        var symbol = (INamedTypeSymbol) ((ISymbolBasedCompilationElement) this.Type).Symbol;
+        // of declaration is taken from the symbol of a type read from source and from the builder data of an
+        // introduced one. Each field is then resolved through the code model, so that a member of this list is the
+        // same object as the one that INamedType.Fields returns for that name.
+        var names = this.Type switch
+        {
+            ISymbolBasedCompilationElement symbolBased => GetMemberNamesFromSymbol( (INamedTypeSymbol) symbolBased.Symbol ),
+            IntroducedNamedType introduced => introduced.EnumMemberNames,
+            _ => throw new AssertionFailedException( $"Cannot get the members of the enum '{this.Type}'." )
+        };
 
-        var builder = ImmutableArray.CreateBuilder<IField>();
+        return names.SelectAsImmutableArray( name => this.Type.Fields.OfName( name ).Single() );
+    }
+
+    /// <summary>
+    /// Gets the names of the members of an enum read from source, in the order of declaration.
+    /// </summary>
+    private static ImmutableArray<string> GetMemberNamesFromSymbol( INamedTypeSymbol symbol )
+    {
+        var builder = ImmutableArray.CreateBuilder<string>();
 
         foreach ( var member in symbol.GetMembers() )
         {
@@ -54,7 +69,7 @@ internal sealed class EnumFacet : IEnumFacet
             // underlying value, is not one of them.
             if ( member.Kind == SymbolKind.Field && member is IFieldSymbol { IsConst: true } )
             {
-                builder.Add( this.Type.Fields.OfName( member.Name ).Single() );
+                builder.Add( member.Name );
             }
         }
 

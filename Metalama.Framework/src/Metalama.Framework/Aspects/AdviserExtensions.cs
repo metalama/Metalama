@@ -1711,17 +1711,29 @@ public static class AdviserExtensions
             buildType );
 
     /// <summary>
-    /// Introduces a new interface into the current namespace (as a top-level type) or type (as a nested type).
-    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> or <see cref="WithNamespace"/> method to introduce the interface to a different type or namespace
+    /// Introduces a new enum into the current namespace (as a top-level type) or type (as a nested type).
+    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> or <see cref="WithNamespace"/> method to introduce the enum to a different type or namespace
     /// than the current one.
     /// </summary>
     /// <param name="adviser">An adviser for a named type or namespace.</param>
-    /// <param name="name">The interface name.</param>
-    /// <param name="whenExists">Determines the implementation strategy when an interface of the same name is already declared in the target type or namespace.
+    /// <param name="name">The enum name.</param>
+    /// <param name="whenExists">Determines the implementation strategy when a type of the same name is already declared in the target type or namespace.
     ///     The default strategy is to fail with a compile-time error.</param>
-    /// <param name="buildType">An optional delegate that modifies the <see cref="INamedTypeBuilder"/> that represents the introduced interface.</param>
+    /// <param name="buildEnum">An optional delegate that modifies the <see cref="IEnumBuilder"/> that represents the introduced enum. The members of the
+    ///     enum are added through this delegate.</param>
     /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> that exposes the outcome of the operation and the introduced <see cref="INamedType"/>.</returns>
     /// <seealso href="@introducing-types"/>
+    public static IIntroductionAdviceResult<INamedType> IntroduceEnum(
+        this IAdviser<INamespaceOrNamedType> adviser,
+        string name,
+        OverrideStrategy whenExists = OverrideStrategy.Default,
+        Action<IEnumBuilder>? buildEnum = null )
+        => ((IAdviserInternal) adviser).AdviceFactory.IntroduceEnum(
+            adviser.Target,
+            name,
+            whenExists,
+            buildEnum );
+
     /// <summary>
     /// Introduces a new struct into the current namespace (as a top-level type) or type (as a nested type).
     /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> or <see cref="WithNamespace"/> method to introduce the struct to a different type or namespace
@@ -1745,6 +1757,18 @@ public static class AdviserExtensions
             whenExists,
             buildType );
 
+    /// <summary>
+    /// Introduces a new interface into the current namespace (as a top-level type) or type (as a nested type).
+    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> or <see cref="WithNamespace"/> method to introduce the interface to a different type or namespace
+    /// than the current one.
+    /// </summary>
+    /// <param name="adviser">An adviser for a named type or namespace.</param>
+    /// <param name="name">The interface name.</param>
+    /// <param name="whenExists">Determines the implementation strategy when an interface of the same name is already declared in the target type or namespace.
+    ///     The default strategy is to fail with a compile-time error.</param>
+    /// <param name="buildType">An optional delegate that modifies the <see cref="INamedTypeBuilder"/> that represents the introduced interface.</param>
+    /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> that exposes the outcome of the operation and the introduced <see cref="INamedType"/>.</returns>
+    /// <seealso href="@introducing-types"/>
     public static IIntroductionAdviceResult<INamedType> IntroduceInterface(
         this IAdviser<INamespaceOrNamedType> adviser,
         string name,

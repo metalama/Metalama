@@ -17,6 +17,7 @@ using Metalama.Framework.Engine.CodeModel.Visitors;
 using Metalama.Framework.Engine.Utilities;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using SpecialType = Metalama.Framework.Code.SpecialType;
@@ -218,6 +219,12 @@ internal sealed class IntroducedNamedType : IntroducedMemberOrNamedType, INamedT
     public bool IsDelegate => this._namedTypeBuilderData.TypeKind == TypeKind.Delegate;
 
     public bool IsEnum => this._namedTypeBuilderData.TypeKind == TypeKind.Enum;
+
+    /// <summary>
+    /// Gets the names of the members of the enum, in the order in which the aspect added them, which is the order in
+    /// which <c>EnumFacet</c> reports them.
+    /// </summary>
+    public ImmutableArray<string> EnumMemberNames => this._namedTypeBuilderData.EnumMemberNames;
 
     public bool IsRecord => this._namedTypeBuilderData.IsRecord;
 

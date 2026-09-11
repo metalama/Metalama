@@ -655,8 +655,12 @@ internal sealed partial class LinkerInjectionStep
 
                         break;
 
-                    case SyntaxKind.NamespaceDeclaration when injectedNode is NamespaceDeclarationSyntax namespaceDeclaration:
-                        // This handles named types injected into a namespace.
+                    // This handles named types injected into a namespace. The declaration of an enum and of a
+                    // delegate is a MemberDeclarationSyntax that is not a TypeDeclarationSyntax, and neither kind
+                    // accepts an injected member or an injected interface, so such a declaration is taken as the
+                    // transformation produced it.
+                    case SyntaxKind.NamespaceDeclaration
+                        when injectedNode is NamespaceDeclarationSyntax { Members: [TypeDeclarationSyntax namespaceTypeDeclaration] } namespaceDeclaration:
 
                         var namespaceTypeBuilder = (NamedTypeBuilderData) injectedMember.BuilderData.AssertNotNull();
                         var injectedNamedTypeMembers = new List<MemberDeclarationSyntax>();
@@ -666,8 +670,6 @@ internal sealed partial class LinkerInjectionStep
                             originalSyntaxTree,
                             injectedNamedTypeMembers,
                             syntaxGenerationContext );
-
-                        var namespaceTypeDeclaration = (TypeDeclarationSyntax) namespaceDeclaration.Members.Single();
 
                         namespaceTypeDeclaration =
                             namespaceTypeDeclaration.WithMembers( namespaceTypeDeclaration.Members.AddRange( injectedNamedTypeMembers ) );

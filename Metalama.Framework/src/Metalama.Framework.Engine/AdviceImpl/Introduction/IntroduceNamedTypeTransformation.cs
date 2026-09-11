@@ -26,6 +26,46 @@ internal sealed class IntroduceNamedTypeTransformation : IntroduceDeclarationTra
 
     public override TransformationObservability Observability => TransformationObservability.Always;
 
+    /// <summary>
+    /// Builds the base list of an enum, which is its underlying integral type. The list is omitted when that type is
+    /// <c>int</c>, which the language implies.
+    /// </summary>
+    private static BaseListSyntax? GetEnumBaseList( INamedType introducedType, MemberInjectionContext context )
+    {
+        var underlyingType = introducedType.UnderlyingType;
+
+        return underlyingType.SpecialType == SpecialType.Int32
+            ? null
+            : BaseList( SingletonSeparatedList<BaseTypeSyntax>( SimpleBaseType( context.SyntaxGenerator.TypeSyntax( underlyingType ) ) ) );
+    }
+
+    /// <summary>
+    /// Builds the members of an enum, in the order in which the aspect added them, each with the value it was given
+    /// or none when the language assigns it.
+    /// </summary>
+    private static IEnumerable<EnumMemberDeclarationSyntax> GetEnumMembers( INamedType introducedType, MemberInjectionContext context )
+    {
+        // The order is taken from the facet and not from INamedType.Fields, because the order of that collection
+        // depends on which fields a previous consumer resolved by name, while the members of an enum are emitted in
+        // the order in which the aspect added them.
+        foreach ( var field in introducedType.Facets.Enum.AssertNotNull().Members )
+        {
+            var value = field.ConstantValue;
+
+            var equalsValue =
+                value is { IsInitialized: true, Value: not null }
+                    ? EqualsValueClause( context.SyntaxGenerator.TypedConstant( value.Value ) )
+                    : null;
+
+            yield return
+                EnumMemberDeclaration(
+                    AdviceSyntaxGenerator.GetAttributeLists( field, context ),
+                    default,
+                    SyntaxFactoryEx.SafeIdentifier( field.Name ),
+                    equalsValue );
+        }
+    }
+
     public override IEnumerable<InjectedMember> GetInjectedMembers( MemberInjectionContext context )
     {
         var introducedType = this.BuilderData.ToRef().GetTarget( context.FinalCompilation );
@@ -66,11 +106,14 @@ internal sealed class IntroduceNamedTypeTransformation : IntroduceDeclarationTra
                                 },
                                 SyntaxFactoryEx.SafeIdentifier( tp.Name ) ) ) ) );
 
+        // The local is a MemberDeclarationSyntax and not a TypeDeclarationSyntax, because an enum declaration is a
+        // BaseTypeDeclarationSyntax and a delegate declaration is neither. InjectedMember.Syntax is already typed that
+        // way, so nothing downstream changes.
         var type =
             (this.BuilderData.TypeKind switch
             {
                 TypeKind.Class =>
-                    (TypeDeclarationSyntax) ClassDeclaration(
+                    (MemberDeclarationSyntax) ClassDeclaration(
                         AdviceSyntaxGenerator.GetAttributeLists( introducedType, context ),
                         introducedType.GetSyntaxModifierList(),
                         SyntaxFactoryEx.SafeIdentifier( introducedType.Name ),
@@ -96,6 +139,20 @@ internal sealed class IntroduceNamedTypeTransformation : IntroduceDeclarationTra
                         baseList,
                         context.SyntaxGenerator.ConstraintClauses( introducedType ),
                         List<MemberDeclarationSyntax>() ),
+
+                // The members of an enum are part of the declaration, so they are emitted here rather than injected
+                // separately. The underlying type takes the place of the base list, which GetEnumBaseList supplies.
+                TypeKind.Enum =>
+                    EnumDeclaration(
+                        AdviceSyntaxGenerator.GetAttributeLists( introducedType, context ),
+                        introducedType.GetSyntaxModifierList(),
+                        Token( SyntaxKind.EnumKeyword ),
+                        SyntaxFactoryEx.SafeIdentifier( introducedType.Name ),
+                        GetEnumBaseList( introducedType, context ),
+                        Token( SyntaxKind.OpenBraceToken ),
+                        SeparatedList( GetEnumMembers( introducedType, context ) ),
+                        Token( SyntaxKind.CloseBraceToken ),
+                        default ),
                 _ => throw new AssertionFailedException( $"Unsupported type kind '{introducedType.TypeKind}'." )
             }).NormalizeWhitespaceIfNecessary( context.SyntaxGenerationContext );
 

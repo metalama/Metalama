@@ -33,6 +33,20 @@ internal sealed class NamedTypeBuilderData : MemberOrNamedTypeBuilderData
 
     public bool IsRef { get; }
 
+    /// <summary>
+    /// Gets the names of the members of an enum, in the order in which the aspect added them, or an empty array for
+    /// every other kind.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The order is stored here because it cannot be recovered afterwards. The members reach the compilation model as
+    /// separate transformations, and the order of <see cref="INamedType.Fields"/> depends on which fields a previous
+    /// consumer resolved by name, which is why <c>EnumFacet</c> takes the order of a type read from source from its
+    /// symbol rather than from that collection.
+    /// </para>
+    /// </remarks>
+    public ImmutableArray<string> EnumMemberNames { get; }
+
     public NamedTypeBuilderData( NamedTypeBuilder builder, IFullRef<IDeclaration> containingDeclaration ) : base( builder, containingDeclaration )
     {
         this._ref = builder.Ref;
@@ -50,6 +64,10 @@ internal sealed class NamedTypeBuilderData : MemberOrNamedTypeBuilderData
         // An enum reports its underlying integral type here; every other kind is its own underlying type and stores
         // nothing, so that the common case carries no reference.
         this.UnderlyingType = builder.TypeKind == TypeKind.Enum ? builder.UnderlyingType.ToFullRef() : null;
+
+        this.EnumMemberNames = builder is EnumBuilder enumBuilder
+            ? enumBuilder.MemberBuilders.SelectAsImmutableArray( m => m.Name )
+            : ImmutableArray<string>.Empty;
     }
 
     protected override IFullRef<IDeclaration> ToDeclarationFullRef() => this._ref;
