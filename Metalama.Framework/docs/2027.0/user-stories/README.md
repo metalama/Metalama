@@ -126,7 +126,10 @@ Introducing a union, and introducing a case into an existing union, is required,
 [`DECISIONS.md`](../DECISIONS.md). This is the largest single piece of C# 15
 work in the release and it is story S-29.
 
-What is still open is question Q1, the second half of that requirement.
+The second half of that requirement, which is introducing a case into a union that already exists, was question
+Q1 and is now answered: it does not ship, in either authoring form. Section 4 of [`DECISIONS.md`](../DECISIONS.md)
+records the answer, S-30 is withdrawn, and S-29 is narrowed to the introduction of a union written with the
+`union` keyword.
 
 - Option A, ship both authoring forms. For a type carrying the union attribute, adding a case is the introduction of
   a constructor, a generated partial part can express it, and the editor and the build agree. For a type declared
@@ -331,8 +334,8 @@ same time.
    2027.0 and which slips to 2027.1 if the release runs short. S-28, the introduction of a closed class, is the
    smallest and therefore the likeliest to survive a cut. Then S-29, the introduction of a union and of a case into a
    type carrying the union attribute, and S-30, the introduction of a case into a `union` declaration, which follows
-   S-29 and is filed only if question Q1 chooses Option A. This is the cut line of the release, and S-28 to S-30 are
-   consecutive so that a reader sees at once what may be dropped.
+   S-29 and is withdrawn, because question Q1 is answered and case introduction does not ship. This is the cut
+   line of the release, and S-28 to S-30 are consecutive so that a reader sees at once what may be dropped.
 
 Stage 9 is the one place where a story precedes a story it is blocked by, and the exception is deliberate. S-26 names
 S-28 and S-29 as blockers, and S-27 names S-29. They document what ships, so the sections that describe an
@@ -431,11 +434,11 @@ graph TD
 | [S-23](S-23-premium-union-and-closed-architecture-tests.md) | Metalama.Premium: union and closed architecture rule tests | S | `metalama/Metalama.Premium` | S-14, S-18-6 |
 | [S-24](S-24-platform-and-dependency-documentation.md) | Documentation: platform, dependency and extensibility documents | M | `metalama/Metalama` | S-13, S-15 |
 | [S-25](S-25-samples-target-frameworks.md) | Metalama.Samples: target frameworks of PB-2027.0 | M | `metalama/Metalama.Samples` | nothing. The story needs a published 2027.0 package to build against, which S-10, S-13 and S-15 gate in time but not in dependency. A sample that demonstrates a C# 15 feature, if the scope decides to add one, is written after S-15. |
-| [S-26](S-26-internal-architecture-documents.md) | Documentation: internal architecture documents | M | `metalama/Metalama` | S-18-1, S-18-3, S-18-5, S-28 and S-29, which are the stories whose result these documents describe, and S-30 if question Q1 of [`OPEN-QUESTIONS.md`](../OPEN-QUESTIONS.md) files it. |
+| [S-26](S-26-internal-architecture-documents.md) | Documentation: internal architecture documents | M | `metalama/Metalama` | S-18-1, S-18-3, S-18-5, S-28 and S-29, which are the stories whose result these documents describe, and not S-30, which is withdrawn. |
 | [S-27](S-27-conceptual-documentation-csharp-15.md) | Documentation: conceptual documentation of C# 15 and PB-2027.0 | L | `metalama/Metalama.Documentation` | S-15, S-16, S-19, S-21, S-24 and S-29 |
 | [S-28](S-28-introduce-closed-class.md) | C# 15 closed classes: introducing | M | `metalama/Metalama` | S-13, S-16 |
 | [S-29](S-29-introduce-union-and-case-attribute-form.md) | C# 15 unions: introducing a union and a case on the attribute form | L | `metalama/Metalama` | S-18-1, S-18-5 |
-| [S-30](S-30-introduce-case-into-union-declaration.md) | C# 15 unions: introducing a case into a `union` declaration | M | `metalama/Metalama` | S-29, and question Q1 of [`OPEN-QUESTIONS.md`](../OPEN-QUESTIONS.md) |
+| [S-30](S-30-introduce-case-into-union-declaration.md) | C# 15 unions: introducing a case into a `union` declaration. **Withdrawn on 2026-09-11**, because question Q1 is answered and case introduction does not ship. | M | `metalama/Metalama` | not filed |
 | [S-31](S-31-preview-roslyn-api-opt-in-flag.md) | Build: an opt-in flag to compile against the experimental Roslyn C# 15 API | S | `metalama/Metalama` | nothing. It runs beside S-10, and S-13 disables it without removing it. |
 
 ## Already in progress
