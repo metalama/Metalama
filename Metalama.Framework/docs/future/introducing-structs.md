@@ -236,13 +236,19 @@ an introduced struct answers `Constructors` as a struct read from source does. T
 Roslyn, which is the standard the code model is held to.
 
 It is not emitted as syntax. The compiler synthesizes the constructor of a struct from the declaration, so emitting
-one would declare it twice. This is the distinction that section 5.2 of
-[`introducing-types.md`](introducing-types.md) draws for every synthesized member of the five kinds, and the struct
-is the smallest instance of it, which is a further reason for this issue to be implemented first.
+one would declare it twice. Section 4.2 of [`introducing-types.md`](introducing-types.md) states the rule and the
+mechanism for all five kinds: the transformation implements `IIntroduceDeclarationTransformation`, does not
+implement `IInjectMemberTransformation`, and therefore reaches the code model while neither the linker nor the
+design-time generator emits it.
 
-The precedent is `IntroduceNamedTypeAdvice.IntroduceImplicitConstructorIfNeeded`, which materializes the
-parameterless constructor of an introduced class. It cannot be copied literally, because it adds a transformation
-that injects a member, and this one must register a builder without injecting anything.
+The struct is the smallest instance of that rule, with one member and no facet, which is a further reason for this
+issue to be implemented first. The prototype that story S-29 asks for belongs here rather than in the union work,
+because this is where it is cheapest to run.
+
+`IntroduceNamedTypeAdvice.IntroduceImplicitConstructorIfNeeded`, which materializes the parameterless constructor
+of an introduced class, is the precedent a reader reaches for and it is the wrong one: it derives from
+`IntroduceDeclarationTransformation<T>`, which implements both interfaces, so it emits the constructor as well.
+That is correct for a class and is not the shape this issue needs.
 
 ## 8. References
 

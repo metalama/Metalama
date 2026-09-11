@@ -232,8 +232,9 @@ contains for a delegate read from source.
 Materialized means present in the code model and not emitted as syntax. Metalama generates the delegate
 declaration, which is the `delegate` keyword and the signature, and the compiler synthesizes the `Invoke` method
 and the constructor from it exactly as it does for a delegate the user wrote. A transformation that injected the
-`Invoke` method as well would declare it twice, and a delegate declaration has no member list to put it in.
-Section 5.2 of [`introducing-types.md`](introducing-types.md) states the rule.
+`Invoke` method as well would declare it twice, and a delegate declaration has no member list to put it in at all,
+so the failure would be a syntax error rather than a duplicate member. Section 4.2 of
+[`introducing-types.md`](introducing-types.md) states the rule and the mechanism.
 
 `DelegateFacet` resolves the `Invoke` method by name today, through
 `this.Type.Methods.OfName( "Invoke" ).Single()`. That continues to work for an introduced delegate, because the

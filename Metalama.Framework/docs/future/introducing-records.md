@@ -270,8 +270,13 @@ is the reason the issue is sized larger than the other three.
 Materialized means present in the code model and not emitted as syntax. Metalama generates the record declaration,
 which is the `record` keyword, the name, the positional parameter list and the base list, and the compiler
 synthesizes the six members from it exactly as it does for a record the user wrote. A transformation that injected
-them as well would declare each of them twice. Section 5.2 of [`introducing-types.md`](introducing-types.md) states
-the rule, and the table below is therefore a description of the code model rather than of the generated code.
+them as well would declare each of them twice. Section 4.2 of [`introducing-types.md`](introducing-types.md) states
+the rule and the mechanism, and the table below is therefore a description of the code model rather than of the
+generated code.
+
+This kind registers the most: the six members that `IRecordFacet` names, the primary constructor, and `Equals`,
+`GetHashCode`, `ToString` and the equality operators, which are not part of the facet but which
+`INamedType.Methods` has to report.
 
 | `IRecordFacet` member | Record class | Record struct |
 | --- | --- | --- |
@@ -370,8 +375,9 @@ of the type is a defect rather than a limitation.
 The materialization stops at the code model. The generated code is the record declaration and nothing more, because
 the compiler synthesizes the six members from the `record` keyword. An implementation that emitted them would
 produce a duplicate declaration for each, and the failure would appear as a compiler error on generated code rather
-than as a defect in the code model, which is why the distinction is recorded as a decision rather than left to the
-implementer.
+than as a defect in the code model, which is why section 4.2 of
+[`introducing-types.md`](introducing-types.md) records the distinction as a decision with its mechanism rather than
+leaving it to the implementer.
 
 ## 7. Open questions
 

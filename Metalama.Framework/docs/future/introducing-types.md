@@ -219,6 +219,8 @@ it.
 
 ## 4. The emission machinery that the five kinds share
 
+### 4.1. The syntax that Metalama emits
+
 Four changes are common to the five documents, and the struct document owns them because it is the first of the
 five to be implemented.
 
@@ -240,6 +242,84 @@ easy to mistake for each other.
 Every new builder follows the freeze pattern that [`../compilation-model.md`](../compilation-model.md) describes: a
 mutable builder is handed to the aspect, is frozen at the end of the advice, and is snapshotted into an immutable
 builder data object that the compilation model stores.
+
+### 4.2. A member that the compiler synthesizes enters the code model and is emitted by nothing
+
+This is the decision that the five kinds share and that is easiest to implement backwards, so it is stated once
+here and each document names the members it applies to.
+
+Metalama emits the declaration of the type and nothing inside it. The compiler then synthesizes, from that
+declaration, exactly what it synthesizes for a type the user wrote: the `Invoke` method of a delegate, the
+`EqualityContract` property and the clone method of a record, the `Value` property and the per-case constructors of
+a union, the parameterless constructor of a struct. Those members must nevertheless exist in the code model,
+because the introduction pipeline never re-reads the final model from Roslyn, so an aspect that reads
+`INamedType.Facets` or `INamedType.Methods` on an introduced type would otherwise find nothing.
+
+A member that is registered in the code model and also emitted is declared twice, and the compiler reports the
+duplicate on generated code that the user cannot edit.
+
+The two are separate axes in the engine, which is what makes the rule implementable rather than a matter of care.
+
+| Question | What decides it |
+| --- | --- |
+| Is the member in the code model? | `CompilationModel.AddTransformation` ignores a transformation whose `Observability` is `TransformationObservability.None`, and registers any other. A transformation that implements `IIntroduceDeclarationTransformation` contributes its `DeclarationBuilderData`. |
+| Is the member emitted at build time? | `LinkerInjectionStep` collects the transformations that implement `IInjectMemberTransformation` and calls `GetInjectedMembers` on each. |
+| Is the member emitted at design time? | `DesignTimeSyntaxTreeGenerator` takes the transformations whose `Observability` is `TransformationObservability.Always` and switches on them; only the arm `case IInjectMemberTransformation` emits anything. |
+
+A synthesized member therefore needs a transformation that implements `IIntroduceDeclarationTransformation`, does
+**not** implement `IInjectMemberTransformation`, and whose `Observability` is not `None`. Both emitters are keyed
+on the same interface, so not implementing it satisfies both at once, and neither the linker nor the design-time
+generator needs a rule of its own.
+
+The precedent exists and is the one that story S-29 names:
+
+```csharp
+// Metalama.Framework.Engine/AdviceImpl/Introduction/IntroduceNamespaceTransformation.cs:15
+internal sealed class IntroduceNamespaceTransformation : BaseTransformation, IIntroduceDeclarationTransformation
+{
+    public override TransformationObservability Observability => TransformationObservability.Always;
+
+    DeclarationBuilderData IIntroduceDeclarationTransformation.DeclarationBuilderData => this._introducedDeclaration;
+}
+```
+
+It registers a namespace in the code model and emits nothing, because a namespace has no syntax of its own either.
+`Observability.Always` is correct there and here: the value decides whether the transformation reaches the code
+model and the design-time pipeline, and not whether syntax is produced, which the interface decides.
+
+The trap is the base class. `IntroduceDeclarationTransformation<T>`, which every existing introduce-declaration
+transformation derives from, implements both interfaces:
+
+```csharp
+// Metalama.Framework.Engine/AdviceImpl/Introduction/IntroduceDeclarationTransformation.cs:17
+internal abstract class IntroduceDeclarationTransformation<T> : BaseSyntaxTreeTransformation,
+                                                                IIntroduceDeclarationTransformation,
+                                                                IInjectMemberTransformation
+```
+
+So does `IntroduceNamedTypeAdvice.IntroduceImplicitConstructorIfNeeded`, which materializes the parameterless
+constructor of an introduced class and is the precedent a reader reaches for first. It adds a transformation built
+on that base, so it emits the constructor as well as registering it. That is correct for a class, whose
+parameterless constructor Metalama does declare, and it is not the shape the five kinds need. A document that
+cites it as the precedent, as an earlier revision of the record and union documents did, is citing the half of it
+that does not carry.
+
+Which members each kind registers without emitting:
+
+| Kind | Registered and not emitted |
+| --- | --- |
+| Struct | The implicit parameterless constructor. |
+| Delegate | The `Invoke` method and the constructor of the delegate. |
+| Record | The six members that `IRecordFacet` names, the primary constructor, and `Equals`, `GetHashCode`, `ToString` and the equality operators. |
+| Union | The `Value` property and one constructor per case. |
+| Enum | None. The members of an enum are written by the aspect author and are part of the declaration that Metalama emits, so they are emitted and registered like any declared member. |
+
+The enum is the exception that shows the rule is about the compiler and not about Metalama: a member is exempt
+from emission exactly when the compiler creates it.
+
+Story S-29 asks for this step to be prototyped before the rest of the union work, because whether a member builder
+with no injected member survives the linker injection registry was not verified. The prototype answers the
+question for all five kinds at once and is worth running before the record work starts as well.
 
 ## 5. Facets, on a builder and on an introduced type
 
@@ -295,19 +375,9 @@ comment already says that the type introduction stories add the facet of the kin
 
 The facet of an introduced type is built from the builder data and not from a Roslyn symbol, because the
 introduction pipeline never re-reads the final model from Roslyn. Every member that a facet exposes must therefore
-exist as a builder. That is the reason the record is the largest of the five: an `IRecordFacet` names six members
-that the compiler synthesizes, and each of them has to be materialized. The precedent is
-`IntroduceNamedTypeAdvice.IntroduceImplicitConstructorIfNeeded`, which already materializes the implicit
-constructor of an introduced class for exactly this reason.
-
-A member that the compiler synthesizes is materialized in the code model and is not emitted as syntax. Metalama
-generates the declaration of the type, which is the `record` or the `union` keyword and the header that follows it,
-and the compiler synthesizes the members from that declaration exactly as it does for a type the user wrote.
-Emitting them as well would declare them twice. The transformation that registers a builder without injecting a
-member is therefore a shape of its own, which story S-29 describes and models on the introduction of a namespace.
-This is the one point at which the code model and the generated code deliberately differ, and every document of
-this set states it for its own kind, because reading it the other way produces a type whose members are declared
-twice.
+exist as a builder, and must not be emitted, which is the decision of section 4.2. That is the reason the record is
+the largest of the five: an `IRecordFacet` names six members that the compiler synthesizes, and each of them has to
+be registered in the code model while the generated code stays a bare `record` declaration.
 
 ### 5.3. The facets are tested by unit tests and not by aspect tests
 

@@ -231,9 +231,9 @@ This is the substance of the story, and section 6.2 states why it is not free.
 Materialized means present in the code model and not emitted as syntax. Metalama generates the union declaration,
 which for the declaration form is the `union` keyword, the name and the case list, and the compiler synthesizes the
 `Value` property and one constructor per case from it exactly as it does for a union the user wrote. A
-transformation that injected them as well would declare each of them twice. Section 5.2 of
-[`introducing-types.md`](introducing-types.md) states the rule, and the table above therefore describes the code
-model rather than the generated code.
+transformation that injected them as well would declare each of them twice. Section 4.2 of
+[`introducing-types.md`](introducing-types.md) states the rule and the mechanism, and the table above therefore
+describes the code model rather than the generated code.
 
 `INamedType.IsUnion` reports `true`. `IType.TypeKind` reports `TypeKind.Struct` for a union declaration and the
 kind of the carrying type for the attribute form, because a union is not a kind of its own in the code model, which
@@ -286,23 +286,20 @@ changes.
 
 The introduction pipeline never re-reads the final model from Roslyn, so the `Value` property and the per-case
 creation members have to exist as builders. They must not be emitted, because the compiler synthesizes them from
-the union declaration that Metalama does emit. The operation is therefore a transformation that registers a builder
-into the code model and injects no member, which is a shape that does not exist yet.
+the union declaration that Metalama does emit. Section 4.2 of [`introducing-types.md`](introducing-types.md) states
+the mechanism, which is a transformation implementing `IIntroduceDeclarationTransformation` and not
+`IInjectMemberTransformation`, and names `IntroduceNamespaceTransformation` as the precedent that story S-29 also
+names.
 
-Story S-29 identifies the precedent as the introduction of a namespace, which registers a builder without injecting
-syntax, and not as the record materialization of
-[#1343](https://github.com/metalama/Metalama/issues/1343), which does not generalise because a user may not declare
-the synthesized union members at all and there is therefore no override to serve. The analysis in
-[`../2027.0/analysis-reports/11-introducing-unions-design.md`](../2027.0/analysis-reports/11-introducing-unions-design.md)
-states why the record precedent cannot be copied literally:
-`IntroduceNamedTypeAdvice.IntroduceImplicitConstructorIfNeeded` adds a transformation, and
-`IntroduceDeclarationTransformation<T>` implements both the interface that registers a declaration and the one that
-injects a member, so using it would emit the member as well.
+What is specific to the union is the scale and the risk. This kind registers one constructor per case, so the
+number of registered members depends on what the aspect declares, and the record materialization of
+[#1343](https://github.com/metalama/Metalama/issues/1343) does not generalise to it, because a user may not declare
+the synthesized union members at all and there is therefore no override to serve.
 
 S-29 asks for that step to be prototyped first, because whether a member builder with no injected member survives
 the linker injection registry was not verified. This document does not settle it, and it records that the answer
 decides whether the step is one day or three. Every other kind of this set needs the same shape, so the prototype
-is worth running before the record work starts as well.
+belongs with the struct work, which section 4.2 identifies as the cheapest place to run it.
 
 ### 6.3. One interface serves both authoring forms
 

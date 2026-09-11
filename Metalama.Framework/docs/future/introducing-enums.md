@@ -368,9 +368,12 @@ introduction pipeline never re-reads the final model from Roslyn.
 An enum is the one kind of this set whose members are emitted. The declaration that Metalama generates is
 `enum State { Idle, Running, Stopped = 10 }`, so the members are inside it, and they are registered in the code
 model from the same builders. That is not the case for a record, a union, a delegate or a struct, whose
-synthesized members the compiler creates from the declaration and which section 5.2 of
-[`introducing-types.md`](introducing-types.md) therefore keeps out of the generated code. The members of an enum
-are written by the aspect author rather than synthesized by the compiler, which is why they differ.
+synthesized members the compiler creates from the declaration and which section 4.2 of
+[`introducing-types.md`](introducing-types.md) therefore keeps out of the generated code.
+
+The reason for the difference is the one that section: a member is exempt from emission exactly when the compiler
+creates it. The members of an enum are written by the aspect author, so they are emitted and registered like any
+declared member, and the transformation that carries them is an ordinary injecting one.
 
 The synthetic field whose metadata name is `value__` is the exception, and it is neither emitted nor materialized.
 It is the field that the compiler synthesizes, `IEnumFacet.Members` excludes it by contract, and no consumer of the
