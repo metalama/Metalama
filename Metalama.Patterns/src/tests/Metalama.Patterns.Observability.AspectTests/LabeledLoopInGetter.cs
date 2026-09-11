@@ -7,15 +7,14 @@
 #endif
 
 // The getter of an observable property contains a labeled loop, a labeled break and a labeled continue. The dependency
-// walker of the Observability aspect reaches the label through the paths it already has: the identifier of a labeled
-// jump binds to a label symbol, which the classification of a reference chain marks unsupported, and a labeled
-// statement is visited like any other statement. No case of the walker is added for these constructs. See issue #1947.
+// walker of the Observability aspect reaches the label through the paths it already has: a labeled statement is visited
+// like any other statement, and the identifier of a labeled jump binds to a label symbol, which the classification of a
+// reference chain marks unsupported instead of reporting it. The dependency on Threshold and on Count is still found.
+// No case of the walker is added for these constructs. See issue #1947.
 //
 // The project compiles its own test sources at the language version of LangMaxVersion, which is 14.0 and does not
 // accept a labeled break. The project file therefore removes this file from the compilation. The test framework reads
 // the file from the source directory, so the test still runs.
-
-using System.Collections.Generic;
 
 namespace Metalama.Patterns.Observability.AspectTests.LabeledLoopInGetter;
 
@@ -24,7 +23,7 @@ public class ViewModel
 {
     public int Threshold { get; set; }
 
-    public List<int> Values { get; } = new();
+    public int Count { get; set; }
 
     public int FirstValueOverThreshold
     {
@@ -34,18 +33,21 @@ public class ViewModel
 
         outer:
 
-            for ( var i = 0; i < this.Values.Count; i++ )
+            for ( var i = 0; i < this.Count; i++ )
             {
-                for ( var j = i; j < this.Values.Count; j++ )
+                for ( var j = i; j < this.Count; j++ )
                 {
-                    if ( this.Values[j] <= this.Threshold )
+                    if ( j <= this.Threshold )
                     {
                         continue outer;
                     }
 
-                    result = this.Values[j];
+                    result = j;
 
-                    break outer;
+                    if ( result > this.Threshold )
+                    {
+                        break outer;
+                    }
                 }
             }
 
