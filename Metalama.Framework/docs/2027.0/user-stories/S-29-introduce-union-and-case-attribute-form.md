@@ -34,8 +34,12 @@ and it depends on a grammar rule that
 exactly one part of a partial union carries the case list, a second one is `CS8863`, and none is `CS9370`. The
 consequence is that a generated partial part can never add a case to a union declared with the `union` keyword, so
 that operation works at build time only, while the same operation on a type carrying the union attribute is ordinary
-member introduction whose design-time result is correct. Question Q1 chooses between shipping both forms and
-shipping the attribute form alone, and the build-time-only form is story S-30. About half of the work needs no
+member introduction whose design-time result is correct. Question Q1 chose between shipping both forms and
+shipping the attribute form alone, and the product owner answered on 2026-09-11 that neither ships, so the half of
+this story that adds a case is withdrawn and story S-30 is not filed. Section 4 of
+[`../DECISIONS.md`](../DECISIONS.md) records the answer, and sections 6.3 and 6.4 of
+[`../../future/introducing-unions.md`](../../future/introducing-unions.md) carry the design, which also narrows
+this story to the introduction of a union written with the `union` keyword. Issue #1951 is revised accordingly. About half of the work needs no
 C# 15 Roslyn member and can proceed before S-13.
 
 Two closed issues bound this work. #1622 reported that a constructor introduced into an introduced type was missing

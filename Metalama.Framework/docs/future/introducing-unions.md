@@ -14,8 +14,8 @@ The scope is narrower than that story, in two ways, and the story has to be revi
 S-29 carries two halves, which are introducing a whole union and adding a case to a union that already exists, and
 this design delivers the first half only. Section 6.4 states why, and what an aspect author does instead. Issue
 [#1952](https://github.com/metalama/Metalama/issues/1952), user story S-30, which carried the second half for a
-union declaration, is not implemented either, and question Q1 of
-[`../2027.0/OPEN-QUESTIONS.md`](../2027.0/OPEN-QUESTIONS.md) is answered by that decision.
+union declaration, is not implemented either. That was question Q1 of the release, the product owner answered it on
+2026-09-11, and section 4 of [`../2027.0/DECISIONS.md`](../2027.0/DECISIONS.md) records the answer.
 
 S-29 also names the attribute form of a union, which is a class or a struct carrying
 `System.Runtime.CompilerServices.UnionAttribute`. `IntroduceUnion` produces a union written with the `union`
@@ -348,10 +348,11 @@ There is no workaround for a union declaration. An aspect cannot add a case to o
 written in source. An aspect that needs a case set it controls introduces the whole union, which is what this
 document designs.
 
-This decision answers question Q1 of [`../2027.0/OPEN-QUESTIONS.md`](../2027.0/OPEN-QUESTIONS.md), which chose
-between shipping both authoring forms of case addition and shipping the attribute form alone. Neither ships. It
-should be revisited if the language ever lets a part of a partial union contribute cases, which would remove the
-reason.
+This was question Q1 of the release, which chose between shipping both authoring forms of case addition and
+shipping the attribute form alone. The product owner answered on 2026-09-11 that neither ships, so the question is
+closed and has left [`../2027.0/OPEN-QUESTIONS.md`](../2027.0/OPEN-QUESTIONS.md); section 4 of
+[`../2027.0/DECISIONS.md`](../2027.0/DECISIONS.md) records it. The decision should be revisited if the language
+ever lets a part of a partial union contribute cases, which would remove the reason.
 
 ## 7. Open questions
 

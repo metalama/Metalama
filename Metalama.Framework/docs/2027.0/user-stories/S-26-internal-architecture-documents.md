@@ -6,7 +6,7 @@
 - Repositories: `metalama/Metalama`
 - Size: M
 - Blocked by: S-18-1, S-18-3, S-18-5, S-28 and S-29, which are the stories whose result these documents describe, and
-  S-30 if question Q1 of [`OPEN-QUESTIONS.md`](../OPEN-QUESTIONS.md) files it. A documentation story is normally blocked
+  not S-30, which is withdrawn. A documentation story is normally blocked
   by the stories whose result it describes, because a document written before the code is a second thing to correct.
 - Findings: none
 
@@ -101,7 +101,7 @@ of this document.
   declaration. For a union declaration that parameter list is the case list and not a parameter list. S-18-3 requires
   the fallback path to preserve it and to stay out of the record and struct paths, and S-18-1 names
   `ImplicitLastOverrideReferenceInliner` and `LinkerLateTransformationRegistry` as the two consumers where the same
-  distinction applies. State the distinction in that section. If question Q1 files S-30, add to the section
+  distinction applies. State the distinction in that section. S-30 is withdrawn, so do not add to the section
   "Constructor Rewriting Flow", under "Source Constructors", that the case list of the part the user wrote is
   rewritten in the same field and by the same method as the parameter list of a partial constructor, which is the
   precedent S-30 follows.

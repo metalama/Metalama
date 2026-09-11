@@ -8,31 +8,6 @@ and what depends on it. An entry marked as blocking names the work that cannot s
 identifiers are stable, so a gap in the numbering means that a question has been answered and removed rather than
 that one is missing.
 
-## Product decisions
-
-### Q1. Does case introduction into a `union` declaration ship, given that it works at build time only?
-
-Blocking, for one story.
-
-Section 4 of [`DECISIONS.md`](DECISIONS.md) requires the introduction of a union case and establishes that the
-answer differs by the form of the union. For a type carrying `UnionAttribute`, adding a case is the introduction of
-a constructor, a generated partial part can express it, and the editor and the build agree. For a type declared
-with the `union` keyword, the case list lives in exactly one part and a generated part may not carry one, so the
-operation requires rewriting the part the user wrote. The build-time half is small, because the linker already
-rewrites a type parameter list in the same field and method for partial constructor parameter introduction. The
-design-time half cannot be expressed at all: every route from a generated part is closed by a compiler rule.
-
-- Option A, ship both forms. The attribute form has a correct design-time result. The declaration form is
-  build-time only and needs a design-time diagnostic saying that the editor cannot show the added case. The editor
-  and the build then disagree about conversions and about switch exhaustiveness, which the diagnostic reports but
-  does not repair.
-- Option B, ship the attribute form only. Nothing diverges, and an aspect cannot add a case to a union that a user
-  wrote with the concise syntax.
-
-The analysis recommends Option A, and states that if only one form fits the release it should be the attribute
-form. Under Option A the severity and the opt-out of that diagnostic are chosen when the story is written. Settled
-by the product owner.
-
 ## Measurements that the calendar settles
 
 ### Q5. Which Roslyn version and which private runtime does the November 2026 Visual Studio baseline carry?
