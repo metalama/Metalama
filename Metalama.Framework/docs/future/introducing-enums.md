@@ -282,7 +282,9 @@ The operations of `IDeclarationBuilder`, which are `AddAttribute`, `AddAttribute
 `Freeze`, are all valid. An enum carries attributes, and `IsFlags` is a shortcut for one of them.
 
 Every operation of `INamedTypeBuilder` is absent rather than failing, because `IEnumBuilder` does not derive from
-that interface. That is `BaseType`, `AddTypeParameter`, `IsClosed`, and the whole of `INamedType`.
+that interface. That is `BaseType`, `AddTypeParameter`, `IsClosed`, and the whole of `INamedType`, which includes
+`Facets`. A caller that reaches the engine object as an `INamedType` and reads `Facets` on it meets the
+`NotSupportedException` of section 5.1 of [`introducing-types.md`](introducing-types.md).
 
 The member introduction advices are refused by the rule of section 3 of
 [`introducing-types.md`](introducing-types.md), because they reach the introduced enum through the adviser and not
@@ -290,9 +292,13 @@ through this interface.
 
 ## 5. What the facet of the introduced enum reports
 
-The introduced type reports an `IEnumFacet` rather than the empty collection, which replaces implementation
-guideline 5 of [`type-facets.md`](type-facets.md) for this kind. Each member of the facet is built from the builder
-data.
+An enum builder declares no `Facets` member, because `IEnumBuilder` does not derive from `INamedType`. The engine
+class behind it does, and it throws a `NotSupportedException`, which section 5.1 of
+[`introducing-types.md`](introducing-types.md) states for every builder. The kind of a builder is read from
+`IsEnum`, which answers without allocating and does not throw.
+
+The introduced type reports an `IEnumFacet`. Each member of the facet is built from the builder data, because the
+introduction pipeline never re-reads the final model from Roslyn.
 
 | `IEnumFacet` member | Source |
 | --- | --- |
@@ -308,6 +314,13 @@ data.
 The synthetic field whose metadata name is `value__` is not materialized as a builder. `IEnumFacet.Members`
 excludes it by contract, and no consumer of the code model reaches it, so materializing it would add a field to
 `INamedType.Fields` that a source enum does not show there either.
+
+The facet is tested by unit tests and not by aspect tests, for the reason that section 5.3 of
+[`introducing-types.md`](introducing-types.md) gives: an aspect test compares generated code and cannot observe the
+code model that the pipeline built. The tests belong beside `EnumFacetTests.cs`, which issue
+[#1996](https://github.com/metalama/Metalama/issues/1996) added for an enum read from source. The assertion that
+matters most is that an introduced enum and the equivalent enum read from source report the same underlying type,
+the same members in the same order, the same values, and the same `IsFlags`.
 
 ## 6. Decisions
 
@@ -386,7 +399,8 @@ against the interface above.
 ## 8. References
 
 - [`introducing-types.md`](introducing-types.md), sections 2, 3 and 5.
-- [`type-facets.md`](type-facets.md), section 2.2 and implementation guideline 5.
+- [`type-facets.md`](type-facets.md), section 2.2. Its implementation guideline 5, which makes a builder return
+  the empty facet collection, is superseded by section 5.1 of [`introducing-types.md`](introducing-types.md).
 - `Metalama.Framework/Code/Types/IEnumFacet.cs`, the interface this design mirrors.
 - `Metalama.Framework/Code/DeclarationBuilders/IDeclarationBuilder.cs`, whose comment at line 35 records that there
   is no way to provide the value of an enum when the enum type exists at run time only. That comment concerns an

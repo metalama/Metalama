@@ -155,15 +155,31 @@ the same interface already declares and which throws when the type is not a clas
 - `IsAbstract` and `IsSealed` may not be set to `true`. A struct is implicitly sealed and may not be abstract.
 - `IsClosed` may not be set. The `closed` modifier applies to a class only, which the property already documents.
 - `IsStatic` may not be set to `true`. A static struct is not a language construct.
+- `Facets` may not be read. The getter throws a `NotSupportedException` on every builder, which section 5 states and
+  which this issue introduces.
 
 Implemented interfaces, type parameters, members and attributes are all valid, and no advice is refused on an
 introduced struct beyond what the language refuses on any struct.
 
-## 5. What the facet of the introduced type reports
+## 5. What the facet reports, and what this issue changes about facets
 
-Nothing. A struct has no facet, so `Facets` stays the empty collection and implementation guideline 5 of
-[`type-facets.md`](type-facets.md) is not replaced for this kind. This issue is the one case of the five in which
-the guideline holds unchanged.
+A struct has no facet, so an introduced struct reports the empty collection, as an introduced class and an
+introduced interface do. This is the one of the five kinds that adds no facet.
+
+It is nevertheless the issue that changes how a builder answers `Facets`, because section 4 gives it the machinery
+that the five kinds share and this is part of it. Section 5.1 of [`introducing-types.md`](introducing-types.md)
+states the change: `NamedTypeBuilder.Facets` throws a `NotSupportedException` instead of returning the empty
+collection, and the three readers listed there are guarded before the exception is introduced. Implementation
+guideline 5 of [`type-facets.md`](type-facets.md) is superseded by it.
+
+The flags stay as they are. `IsEnum`, `IsDelegate`, `IsRecord` and `IsUnion` are answered by a builder from its own
+kind, they allocate nothing, and this issue does not change them. That separation is what lets the structure throw
+without breaking a caller that only asks what kind a type is.
+
+The unit tests of this issue are therefore about the exception rather than about a facet:
+`TypeFacetTests.FacetsOfBuilderDoNotThrow` is rewritten to assert that the builder throws and that the four flags
+do not, and a test asserts that an introduced struct reports the empty collection. Section 5.3 of
+[`introducing-types.md`](introducing-types.md) states why these are unit tests and not aspect tests.
 
 ## 6. Decisions
 
@@ -224,7 +240,8 @@ step, and the answer belongs in the implementation rather than in this document.
 ## 8. References
 
 - [`introducing-types.md`](introducing-types.md), sections 2, 4 and 6.
-- [`type-facets.md`](type-facets.md), implementation guideline 5.
+- [`type-facets.md`](type-facets.md), section 2.2. Its implementation guideline 5, which makes a builder return
+  the empty facet collection, is superseded by section 5.1 of [`introducing-types.md`](introducing-types.md).
 - [`../2027.0/analysis-reports/10-introducing-closed-and-unions.md`](../2027.0/analysis-reports/10-introducing-closed-and-unions.md),
   which records that the struct path of the builder and of the transformation is reachable code that no public
   method reaches.

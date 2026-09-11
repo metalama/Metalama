@@ -186,20 +186,57 @@ Every new builder follows the freeze pattern that [`../compilation-model.md`](..
 mutable builder is handed to the aspect, is frozen at the end of the advice, and is snapshotted into an immutable
 builder data object that the compilation model stores.
 
-## 5. What an introduced type reports for `Facets`
+## 5. Facets, on a builder and on an introduced type
 
-Implementation guideline 5 of [`type-facets.md`](type-facets.md) states that the implementations of `INamedType`
-that back a builder return the empty facet collection rather than throwing. Each of the five documents replaces
-that guideline for its own kind: a type introduced as an enum reports an `IEnumFacet`, a type introduced as a
-record reports an `IRecordFacet`, and so on. The guideline continues to hold for a class and an interface, which
-have no facet.
+A builder and an introduced type answer `Facets` differently, and the difference is the subject of this section.
 
-Two sites implement it, and both carry a comment that names these stories:
+### 5.1. A builder throws
 
-- `Metalama.Framework.Engine/CodeModel/Introductions/Builders/NamedTypeBuilder.cs:336`, for the type under
-  construction.
-- `Metalama.Framework.Engine/CodeModel/Introductions/Introduced/IntroducedNamedType.cs:182`, for the introduced
-  type as the compilation model exposes it.
+`INamedType.Facets` throws a `NotSupportedException` on a type builder. A builder describes a type that is being
+constructed, whose members are not resolvable, so it has no structure to report and reporting an empty structure
+would be a false answer rather than an incomplete one. An aspect that reads the facet of a builder has made a
+mistake, and the exception says so at the place the mistake was made.
+
+This reverses implementation guideline 5 of [`type-facets.md`](type-facets.md), which states that the
+implementations of `INamedType` that back a builder return the empty collection rather than throwing. That
+guideline is superseded, and the one site that implements it,
+`Metalama.Framework.Engine/CodeModel/Introductions/Builders/NamedTypeBuilder.cs:336`, changes with it. The
+precedent for throwing is on the same class: `ExtensionBlocks`, a few lines above, already throws, and the comment
+that currently sits above `Facets` exists only to say that `Facets` does not follow it.
+
+The flags do not throw, and that distinction is what makes the change safe. `IsDelegate`, `IsEnum`, `IsRecord` and
+`IsUnion` are Boolean properties that a builder answers from its own kind without allocating anything, and section
+4.4 of [`type-facets.md`](type-facets.md) declares them for exactly this reason. A caller that asks what kind a type
+is keeps working on a builder; only a caller that asks for the structure meets the exception.
+
+Three readers have to be checked before the exception is introduced, because each of them reads `Facets` on a type
+that an aspect supplies:
+
+- `Metalama.Framework/Eligibility/EligibilityRuleFactory.cs:101` and `:105`, which read
+  `e.Type.Facets.Delegate?.ReturnType` and `e.Type.Facets.Delegate?.Parameters` for the eligibility of
+  `AdviceKind.OverrideEventInvoke`. These must test `e.Type.IsDelegate` first, so that a type that is not a
+  delegate reports that the advice is not eligible, as it does today, instead of throwing. Turning a clean
+  ineligibility into an exception would be a regression, and it is the failure that guideline 5 was written to
+  prevent.
+- `Metalama.Framework.Engine/CodeModel/Introductions/Builders/EventBuilder.cs:62`, which defines `Signature` as
+  `this.Type.Facets.Delegate.AssertNotNull().InvokeMethod`. The type of an event is supplied by the aspect through
+  `IEventBuilder.Type`.
+
+The hierarchy of section 2 bounds that risk rather than leaving it open. `IEnumBuilder` and `IDelegateBuilder` do
+not derive from `INamedType`, so they declare no `Facets` member at all and an aspect cannot pass either of them
+where a type is expected. A delegate builder can therefore never be the type of an event. The builders that remain
+reachable as a type are those of a class, a struct, a record and a union, and `Facets.Delegate` is meaningless on
+all four.
+
+### 5.2. An introduced type reports its facet
+
+`IntroducedNamedType`, which is how the compilation model exposes a type after the transformation is applied,
+reports the facet of its kind: a type introduced as an enum reports an `IEnumFacet`, a type introduced as a record
+reports an `IRecordFacet`, and so on. Each of the five documents states the mapping member by member. A type
+introduced as a class or an interface reports the empty collection, because those kinds have no facet.
+
+The site is `Metalama.Framework.Engine/CodeModel/Introductions/Introduced/IntroducedNamedType.cs:182`, whose
+comment already says that the type introduction stories add the facet of the kind that each of them introduces.
 
 The facet of an introduced type is built from the builder data and not from a Roslyn symbol, because the
 introduction pipeline never re-reads the final model from Roslyn. Every member that a facet exposes must therefore
@@ -207,6 +244,43 @@ exist as a builder. That is the reason the record is the largest of the five: an
 that the compiler synthesizes, and each of them has to be materialized. The precedent is
 `IntroduceNamedTypeAdvice.IntroduceImplicitConstructorIfNeeded`, which already materializes the implicit
 constructor of an introduced class for exactly this reason.
+
+### 5.3. The facets are tested by unit tests and not by aspect tests
+
+An aspect test compares generated code against an expected file. It proves that the right declaration was emitted,
+and it cannot observe the code model that the pipeline built on the way there, so it cannot assert that an
+introduced enum reports an `IEnumFacet` whose `Members` are in declaration order. Each of the five kinds therefore
+carries unit tests for its facet, and the aspect tests of the same issue cover the generated syntax alone.
+
+The suite is `Metalama.Framework.Tests.UnitTests/CodeModel/TypeFacetTests.cs` for the shared behaviour, beside
+`EnumFacetTests.cs`, `RecordFacetTests.cs` and `UnionTypeTests.cs`, which the facet issues of section 8.2 added.
+The pattern for reaching an introduced declaration from a unit test already exists in
+`CodeModelUpdateTests.IntroducedTypes.cs` and in `TypeFacetTests.cs` itself:
+
+```csharp
+using var testContext = this.CreateTestContext();
+
+var compilation = testContext.CreateCompilationModel( "" ).CreateMutableClone();
+
+var builder = new NamedTypeBuilder( null!, compilation.GlobalNamespace, "IntroducedType", TypeKind.Class );
+builder.Freeze();
+compilation.AddTransformation( builder.CreateTransformation() );
+
+var introducedType = compilation.Types.OfName( "IntroducedType" ).Single();
+```
+
+Each kind adds tests of three shapes:
+
+1. Reading `Facets` on the builder throws a `NotSupportedException`, while `IsEnum`, `IsDelegate`, `IsRecord` and
+   `IsUnion` answer on the builder without throwing.
+2. The introduced type reports the facet of its kind, and every member of that facet holds the value that the
+   builder was given. This is the table that each document states in its own section 5.
+3. The introduced type and the equivalent type read from source report the same thing, which is the assertion that
+   catches a facet built from builder data that diverges from one built from a symbol.
+
+The existing test `TypeFacetTests.FacetsOfBuilderDoNotThrow` pins the behaviour that section 5.1 reverses, and its
+documentation comment cites guideline 5. It is replaced rather than deleted: the same test becomes the one that
+asserts the exception, and it keeps its assertions that the flags do not throw.
 
 ## 6. Order of implementation
 

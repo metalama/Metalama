@@ -246,6 +246,7 @@ valid, and what is not depends on the authoring form.
 | `IsReadOnly` | The setter throws an `InvalidOperationException`, as it does for any class. | Valid, and produces a `readonly record struct`. |
 | `IsRef` | The setter throws an `InvalidOperationException`, as it does for any class. | The setter throws a `NotSupportedException`. The language has no `ref record struct`. |
 | `IsClosed` | See section 7.1, which records this as open. | The setter throws an `InvalidOperationException`, as it does for any type that is not a class. |
+| `Facets` | The getter throws a `NotSupportedException`, as it does on every builder. | Same. |
 
 `IsReadOnly` and `IsRef` are the two properties that [`introducing-structs.md`](introducing-structs.md) adds to
 `INamedTypeBuilder`, so this issue depends on that one for them as well as for the emission machinery.
@@ -256,10 +257,14 @@ constructors to an introduced record through the adviser in the ordinary way.
 
 ## 5. The synthesized members, and what the facet reports
 
-The introduced type reports an `IRecordFacet` rather than the empty collection, which replaces implementation
-guideline 5 of [`type-facets.md`](type-facets.md) for this kind. Every member the facet names has to be
-materialized as a builder, because the facet of an introduced type is built from the builder data. This is the
-substance of the issue, and it is the reason the issue is sized larger than the other three.
+A record builder throws a `NotSupportedException` from `Facets`, which section 5.1 of
+[`introducing-types.md`](introducing-types.md) states for every builder. Unlike an enum builder and a delegate
+builder, `IRecordBuilder` derives from `INamedType` and therefore declares the member, so the exception is reached
+through the public interface here. The kind of a builder is read from `IsRecord`, which does not throw.
+
+The introduced type reports an `IRecordFacet`. Every member the facet names has to be materialized as a builder,
+because the facet of an introduced type is built from the builder data. This is the substance of the issue, and it
+is the reason the issue is sized larger than the other three.
 
 | `IRecordFacet` member | Record class | Record struct |
 | --- | --- | --- |
@@ -289,6 +294,15 @@ The engine already carries the record flag from the builder to the introduced ty
 `isRecord` constructor parameter, `NamedTypeBuilderData` stores it and `IntroducedNamedType` reports it. What
 blocks the flag today is the assertion `Invariant.Assert( !isRecord )` beside it, and the missing arm in the
 transformation. This design therefore says what the existing flag becomes and adds no second flag.
+
+The facet is tested by unit tests and not by aspect tests, for the reason that section 5.3 of
+[`introducing-types.md`](introducing-types.md) gives, and this kind is the one for which the difference matters
+most. An aspect test shows the declaration that was emitted, and the six synthesized members do not appear in it,
+because the compiler synthesizes them from the `record` keyword rather than Metalama emitting them. Only a unit
+test can assert that they exist in the code model as builders, which is what this issue delivers. The tests belong
+beside `RecordFacetTests.cs`, which issue [#1997](https://github.com/metalama/Metalama/issues/1997) added for a
+record read from source, and the central assertion is that an introduced record and the equivalent record read from
+source report the same six members, with the same three of them null for a record struct.
 
 ## 6. Decisions
 
@@ -384,7 +398,8 @@ an aspect that needs it.
 - [`introducing-types.md`](introducing-types.md), sections 2, 4 and 5.
 - [`introducing-structs.md`](introducing-structs.md), section 3.2, which adds `IsReadOnly` and `IsRef` to
   `INamedTypeBuilder`.
-- [`type-facets.md`](type-facets.md), section 2.2 and implementation guideline 5.
+- [`type-facets.md`](type-facets.md), section 2.2. Its implementation guideline 5, which makes a builder return
+  the empty facet collection, is superseded by section 5.1 of [`introducing-types.md`](introducing-types.md).
 - `Metalama.Framework/Code/Types/IRecordFacet.cs`, the interface this design mirrors.
 
 Issues:

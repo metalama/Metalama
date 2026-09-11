@@ -260,6 +260,7 @@ it is the one that is most often misread.
 | `IsAbstract`, `IsSealed`, `IsStatic` | The setter throws a `NotSupportedException`. | Valid when the carrying type is a class, and refused otherwise, as for any struct. |
 | `IsReadOnly`, `IsRef` | The setter throws a `NotSupportedException`. | As for any struct or class. |
 | `IsClosed` | The setter throws an `InvalidOperationException`, as it does for any type that is not a class. | Valid when the carrying type is a class. |
+| `Facets` | The getter throws a `NotSupportedException`, as it does on every builder. | Same. |
 
 Member introduction through the adviser is valid on a union, and is restricted rather than refused. An instance
 field, an automatic property and a field-like event introduced into a union declaration produce the compiler error
@@ -269,8 +270,13 @@ is a further rule.
 
 ## 5. What the facet of the introduced union reports
 
-The introduced type reports an `IUnionFacet` rather than the empty collection, which replaces implementation
-guideline 5 of [`type-facets.md`](type-facets.md) for this kind.
+A union builder throws a `NotSupportedException` from `Facets`, which section 5.1 of
+[`introducing-types.md`](introducing-types.md) states for every builder. `IUnionBuilder` derives from `INamedType`
+and therefore declares the member, so the exception is reached through the public interface here. The cases that
+have been added so far are read from `IUnionBuilder.Cases`, which is the member that exists for that purpose, and
+the kind of a builder is read from `IsUnion`, which does not throw.
+
+The introduced type reports an `IUnionFacet`.
 
 | `IUnionFacet` member | Source |
 | --- | --- |
@@ -287,6 +293,13 @@ This is the substance of the story, and section 6.2 states why it is not free.
 `INamedType.IsUnion` reports `true`. `IType.TypeKind` reports `TypeKind.Struct` for a union declaration and the
 kind of the carrying type for the attribute form, because a union is not a kind of its own in the code model, which
 section 4.3 of [`type-facets.md`](type-facets.md) decides.
+
+The facet is tested by unit tests and not by aspect tests, for the reason that section 5.3 of
+[`introducing-types.md`](introducing-types.md) gives. The synthesized members of a union are in the same position
+as those of a record: the compiler creates them, an aspect test does not show them, and only a unit test can assert
+that they exist in the code model. The tests belong beside `UnionTypeTests.cs`, which issue
+[#1941](https://github.com/metalama/Metalama/issues/1941) added, and they cover both authoring forms, because the
+two differ in what the creation member of a case is.
 
 ## 6. Decisions
 

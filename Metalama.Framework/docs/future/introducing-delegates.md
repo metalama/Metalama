@@ -270,13 +270,24 @@ because `IMethodBuilder` is reused whole rather than narrowed. Section 6.2 state
 narrower interface here and not for the members of an enum.
 
 Every operation of `INamedTypeBuilder` is absent rather than failing, because `IDelegateBuilder` does not derive
-from that interface. The one operation of `INamedTypeBuilder` that a delegate genuinely needs is
-`AddTypeParameter`, which section 3.1 declares again.
+from that interface. That includes `Facets`: a caller that reaches the engine object as an `INamedType` and reads
+`Facets` on it meets the `NotSupportedException` of section 5.1 of
+[`introducing-types.md`](introducing-types.md). The one operation of `INamedTypeBuilder` that a delegate genuinely
+needs is `AddTypeParameter`, which section 3.1 declares again.
 
 ## 5. What the facet of the introduced delegate reports
 
-The introduced type reports an `IDelegateFacet` rather than the empty collection, which replaces implementation
-guideline 5 of [`type-facets.md`](type-facets.md) for this kind.
+A delegate builder declares no `Facets` member, because `IDelegateBuilder` does not derive from `INamedType`. The
+engine class behind it does, and it throws a `NotSupportedException`, which section 5.1 of
+[`introducing-types.md`](introducing-types.md) states for every builder. The kind of a builder is read from
+`IsDelegate`, which answers without allocating and does not throw.
+
+That the delegate builder is not a type also bounds the risk of the exception. Section 5.1 lists
+`EventBuilder.Signature` and the eligibility rule of `AdviceKind.OverrideEventInvoke` as the readers that take the
+type of an event from the aspect. An aspect cannot give a delegate builder as the type of an event, because the
+builder is not an `IType`, so neither reader can meet one.
+
+The introduced type reports an `IDelegateFacet`.
 
 | `IDelegateFacet` member | Source |
 | --- | --- |
@@ -296,6 +307,13 @@ method is a member of the type like any other. The facet needs no branch for an 
 `BeginInvoke` and `EndInvoke` are not materialized. The facet does not expose them, no consumer reaches them, and
 an introduced delegate is compiled for the target framework of the project rather than for .NET Framework
 specifically.
+
+The facet is tested by unit tests and not by aspect tests, for the reason that section 5.3 of
+[`introducing-types.md`](introducing-types.md) gives. Two assertions are specific to this kind. An event whose type
+is an introduced delegate reports the `Invoke` method of that delegate as its `Signature`, which is the shape that
+`TypeFacetTests.SignatureOfIntroducedEventIsTheInvokeMethodOfTheFacet` already tests for a delegate read from
+source. And an introduced delegate and the equivalent delegate read from source report the same return type and the
+same parameters.
 
 ## 6. Decisions
 
@@ -371,7 +389,8 @@ would be to refuse a signature that `IMethodBuilder` can already express.
 
 - [`introducing-types.md`](introducing-types.md), sections 2, 3 and 5.
 - [`introducing-enums.md`](introducing-enums.md), section 6.1, which this document contrasts with in section 6.2.
-- [`type-facets.md`](type-facets.md), section 2.2 and implementation guideline 5.
+- [`type-facets.md`](type-facets.md), section 2.2. Its implementation guideline 5, which makes a builder return
+  the empty facet collection, is superseded by section 5.1 of [`introducing-types.md`](introducing-types.md).
 - `Metalama.Framework/Code/Types/IDelegateFacet.cs`, the interface this design mirrors.
 - `Metalama.Framework.Engine/CodeModel/Facets/DelegateFacet.cs`, which resolves the `Invoke` method by name and is
   described there as the single site of the code model that does so.

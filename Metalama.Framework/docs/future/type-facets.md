@@ -504,6 +504,13 @@ These are constraints on the implementation, not a design of it.
    every type, so the common case must not allocate.
 5. The implementations of `INamedType` that back a builder return the empty collection rather than throwing.
    Eligibility rules and advice validation run against builders, so an exception there is reached in normal use.
+
+   > This guideline is superseded by section 5.1 of [`introducing-types.md`](introducing-types.md), which makes a
+   > builder throw a `NotSupportedException` instead: a builder describes a type whose members are not resolvable,
+   > so an empty structure is a false answer rather than an incomplete one. The concern that this guideline records
+   > is answered rather than dismissed. The flags of section 4.4 continue to answer on a builder without
+   > allocating, so a caller that asks what kind a type is keeps working, and the three readers that take a type
+   > from an aspect are guarded before the exception is introduced. That document names them.
 6. The facet interfaces name no Roslyn type. `Metalama.Framework` is not built per Roslyn version, while
    `Metalama.Framework.Engine` is, and the union facet reads `ITypeSymbol.IsUnion` and `ITypeSymbol.UnionCaseTypes`,
    which exist only in the latest variant. The conditional compilation is therefore confined to the construction of
@@ -533,7 +540,7 @@ behaviour before anything that cannot be revised is public.
 The four issues below are the type introduction backlog, which predates this proposal. They are named here because
 this document decides the shape of their builder interfaces, in section 2.4, and because each of them replaces
 implementation guideline 5 for its own kind: the type that the builder produces has to report the facet of that
-kind. They are not C# 15 work, they are not gated on the move to the stable Roslyn, and their milestone is a
+kind, and the builder itself throws rather than reporting an empty one. They are not C# 15 work, they are not gated on the move to the stable Roslyn, and their milestone is a
 separate decision.
 
 | Issue | Content | Blocked by |
