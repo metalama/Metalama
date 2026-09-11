@@ -32,8 +32,8 @@ public class GenerateStateEnumAttribute : TypeAspect
 }
 ```
 
-A flags enum sets one more property, and states every value, because the language computes no power of two on the
-author's behalf and neither does Metalama:
+A flags enum sets one more property, and states every value, because neither the language nor Metalama derives a
+power of two from the position of a member:
 
 ```csharp
 builder.IntroduceEnum(
@@ -43,10 +43,29 @@ builder.IntroduceEnum(
         e.Accessibility = Accessibility.Public;
         e.UnderlyingType = TypeFactory.GetType( SpecialType.Byte );
         e.IsFlags = true;
-        e.AddMember( "None", 0 );
-        e.AddMember( "Read", 1 );
-        e.AddMember( "Write", 2 );
-        e.AddMember( "Execute", 4 );
+        e.AddMember( "None", (byte) 0 );
+        e.AddMember( "Read", (byte) 1 );
+        e.AddMember( "Write", (byte) 2 );
+        e.AddMember( "Execute", (byte) 4 );
+    } );
+```
+
+An aspect that mirrors an enum of the domain copies the value of each member, which is a `TypedConstant`:
+
+```csharp
+var source = builder.Target.Facets.Enum!;
+
+builder.IntroduceEnum(
+    builder.Target.Name + "ViewModel",
+    buildEnum: e =>
+    {
+        e.Accessibility = Accessibility.Public;
+        e.UnderlyingType = source.UnderlyingType;
+
+        foreach ( var member in source.Members )
+        {
+            e.AddMember( member.Name, member.ConstantValue!.Value );
+        }
     } );
 ```
 
@@ -88,14 +107,13 @@ namespace Metalama.Framework.Code.DeclarationBuilders;
 /// This interface derives from <see cref="IMemberOrNamedTypeBuilder"/> and not from
 /// <see cref="INamedTypeBuilder"/>, because an enum declares no member that an aspect can introduce and has
 /// neither a base type nor type parameters. The operations that an enum does not have are therefore absent rather
-/// than present and failing. The operations that it inherits and does not have are listed below.
+/// than present and failing. The operations that it inherits and does not have are listed in the design document.
 /// </para>
 /// <para>
-/// The following inherited properties are not valid for an enum, and their setter throws a
-/// <see cref="NotSupportedException"/>: <see cref="IMemberOrNamedTypeBuilder.IsStatic"/>,
-/// <see cref="IMemberOrNamedTypeBuilder.IsSealed"/>, <see cref="IMemberOrNamedTypeBuilder.IsAbstract"/> and
-/// <see cref="IMemberOrNamedTypeBuilder.IsPartial"/>. An enum is implicitly sealed, it may not be abstract or
-/// static, and the language has no partial enum.
+/// Every overload of <c>AddMember</c> applies the same three rules. The name must be a valid C# identifier and
+/// must not be the name of a member already added, and a duplicate throws an <see cref="ArgumentException"/>. The
+/// value is converted to <see cref="UnderlyingType"/>, and a value that does not fit in that type throws an
+/// <see cref="ArgumentOutOfRangeException"/>. The members are declared in the order in which they were added.
 /// </para>
 /// <para>
 /// An enum builder is not an <see cref="INamedType"/>, so it may not be used where an <see cref="IType"/> is
@@ -103,7 +121,6 @@ namespace Metalama.Framework.Code.DeclarationBuilders;
 /// <see cref="Metalama.Framework.Advising.IIntroductionAdviceResult{T}.Declaration"/>.
 /// </para>
 /// </remarks>
-/// <seealso cref="IEnumMemberBuilder"/>
 /// <seealso cref="Metalama.Framework.Code.Types.IEnumFacet"/>
 /// <seealso href="@introducing-types"/>
 [InternalImplement]
@@ -145,75 +162,62 @@ public interface IEnumBuilder : IMemberOrNamedTypeBuilder
     bool IsFlags { get; set; }
 
     /// <summary>
-    /// Gets the members that have been added so far, in the order in which they were added.
-    /// </summary>
-    /// <seealso cref="Metalama.Framework.Code.Types.IEnumFacet.Members"/>
-    IReadOnlyList<IEnumMemberBuilder> Members { get; }
-
-    /// <summary>
-    /// Adds a member to the enum.
+    /// Adds a member whose value the language assigns, which is zero for the first member and the value of the
+    /// preceding member plus one for any other.
     /// </summary>
     /// <param name="name">The name of the member.</param>
-    /// <param name="value">The value of the member, or <c>null</c> to let the language assign it, which gives zero
-    ///     to the first member and the value of the preceding member plus one to any other. A value that does not
-    ///     fit in <see cref="UnderlyingType"/> throws an <see cref="ArgumentOutOfRangeException"/>. A value outside
-    ///     the range of <see cref="long"/>, which only an enum whose underlying type is <c>ulong</c> can have, is
-    ///     assigned through <see cref="IEnumMemberBuilder.Value"/> instead.</param>
-    /// <returns>An <see cref="IEnumMemberBuilder"/> that allows you to further build the new member, in particular
-    ///     to add custom attributes to it.</returns>
-    IEnumMemberBuilder AddMember( string name, long? value = null );
-}
-```
+    void AddMember( string name );
 
-### 3.2. `IEnumMemberBuilder`
-
-```csharp
-// Metalama.Framework/Code/DeclarationBuilders/IEnumMemberBuilder.cs
-namespace Metalama.Framework.Code.DeclarationBuilders;
-
-/// <summary>
-/// Allows to complete the construction of a member of an enum that has been created by
-/// <see cref="IEnumBuilder.AddMember"/>.
-/// </summary>
-/// <remarks>
-/// <para>
-/// A member of an enum is a constant field, and the code model reports it as an <see cref="IField"/> once the enum
-/// is introduced. This interface is nevertheless not an <see cref="IFieldBuilder"/>: a member of an enum has no
-/// type of its own, no accessibility of its own, no initializer and no modifier, so almost every operation of a
-/// field builder would be invalid on it. Section 6 of the design document states the decision.
-/// </para>
-/// </remarks>
-/// <seealso cref="IEnumBuilder.AddMember"/>
-/// <seealso cref="IField"/>
-/// <seealso href="@introducing-types"/>
-[InternalImplement]
-public interface IEnumMemberBuilder : IDeclarationBuilder
-{
     /// <summary>
-    /// Gets or sets the name of the member.
+    /// Adds a member of the given value.
     /// </summary>
-    string Name { get; set; }
+    /// <param name="name">The name of the member.</param>
+    /// <param name="value">The value of the member, converted to <see cref="UnderlyingType"/>.</param>
+    void AddMember( string name, sbyte value );
+
+    /// <inheritdoc cref="AddMember(string,sbyte)"/>
+    void AddMember( string name, byte value );
+
+    /// <inheritdoc cref="AddMember(string,sbyte)"/>
+    void AddMember( string name, short value );
+
+    /// <inheritdoc cref="AddMember(string,sbyte)"/>
+    void AddMember( string name, ushort value );
+
+    /// <inheritdoc cref="AddMember(string,sbyte)"/>
+    void AddMember( string name, int value );
+
+    /// <inheritdoc cref="AddMember(string,sbyte)"/>
+    void AddMember( string name, uint value );
+
+    /// <inheritdoc cref="AddMember(string,sbyte)"/>
+    void AddMember( string name, long value );
+
+    /// <inheritdoc cref="AddMember(string,sbyte)"/>
+    void AddMember( string name, ulong value );
 
     /// <summary>
-    /// Gets or sets the value of the member, or <c>null</c> when the language assigns it, which gives zero to the
-    /// first member and the value of the preceding member plus one to any other.
+    /// Adds a member whose value is given as a <see cref="TypedConstant"/>, which is the form in which the value of
+    /// a member of another enum is read.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// The value is converted to <see cref="IEnumBuilder.UnderlyingType"/>. A value that does not fit in that type,
-    /// or whose type is not an integral type, throws an <see cref="ArgumentOutOfRangeException"/>.
-    /// </para>
-    /// <para>
-    /// This property is the way to assign a value outside the range of <see cref="long"/>, which
-    /// <see cref="IEnumBuilder.AddMember"/> cannot express and which an enum whose underlying type is <c>ulong</c>
-    /// can have.
+    /// The type of the constant must be an integral type or an enum, and any other type throws an
+    /// <see cref="ArgumentException"/>. A constant that <see cref="TypedConstant.Create(IField)"/> produced
+    /// references the field rather than its value, and the generated code names that field, which is what the
+    /// language allows in the value of a member of an enum.
     /// </para>
     /// </remarks>
-    TypedConstant? Value { get; set; }
+    /// <param name="name">The name of the member.</param>
+    /// <param name="value">The value of the member, converted to <see cref="UnderlyingType"/>.</param>
+    void AddMember( string name, TypedConstant value );
 }
 ```
 
-### 3.3. The advice method
+There are eight integral overloads and not one, so that the value an author writes keeps the type the author gave
+it. There is no `Members` property either. Section 6.3 states both reasons.
+
+### 3.2. The advice method
 
 ```csharp
 // Metalama.Framework/Advising/IAdviceFactory.cs
@@ -303,7 +307,7 @@ introduction pipeline never re-reads the final model from Roslyn.
 | `IEnumFacet` member | Source |
 | --- | --- |
 | `UnderlyingType` | `IEnumBuilder.UnderlyingType`, or `int` when the aspect set none. |
-| `Members` | One `IField` per `IEnumMemberBuilder`, in the order in which they were added. The value of each field is the value that the builder assigned, or the value the language computes when the builder assigned none. |
+| `Members` | One `IField` per member added to the builder, in the order in which they were added. The value of each field is the value that the aspect assigned, converted to the underlying type, or the value the language computes when the aspect assigned none. |
 | `IsFlags` | Whether the attribute is present, which is what `IsFlags` on the builder sets. |
 | `FacetKind` | `TypeFacetKind.Enum`. |
 | `Type` | The introduced type. |
@@ -332,25 +336,24 @@ the same members in the same order, the same values, and the same `IsFlags`.
 
 ## 6. Decisions
 
-### 6.1. A member of an enum is built by `IEnumMemberBuilder` and not by `IFieldBuilder`
+### 6.1. `AddMember` returns nothing, and there is no builder for a member
 
-The read side reports a member of an enum as an `IField`, and `IEnumFacet` states that no interface of its own is
-declared for it. The write side does not follow, and the asymmetry is deliberate.
+A member of an enum is a name and a value. Both are given to `AddMember`, and nothing about a member remains to be
+chosen after it is added, so the method returns nothing and no interface describes a member under construction.
 
-`IFieldBuilder` derives from `IFieldOrPropertyBuilder`, from `IFieldOrPropertyOrIndexerBuilder`, from
-`IMemberBuilder` and from `IHasTypeBuilder`. A member of an enum has none of what those interfaces offer: its type
-is the enum and may not be set, its accessibility is that of the enum and may not be set, it has no initializer
-expression, it has no writeability to choose, and every modifier that `IMemberBuilder` adds is invalid on it. A
-field builder would present roughly fifteen operations of which one, the addition of an attribute, is valid.
+An earlier revision of this document declared an `IEnumMemberBuilder` carrying a settable name and a settable
+value. It carried nothing that the arguments of `AddMember` do not carry, and it existed only because the value
+could not be expressed in one parameter. The overloads of section 6.3 remove that reason.
 
-The reason the asymmetry is acceptable is that the two sides answer different questions. A reader asks what a
-member of an enum is, and it is a constant field, so `IField` is the right answer and a narrower interface would
-only remove members that the reader may legitimately ask for. A writer asks what may be chosen about a member, and
-the answer is its name, its value and its attributes, which is three things.
+Returning `IFieldBuilder` was rejected for a different reason, and the reason still holds. `IFieldBuilder` derives
+from `IFieldOrPropertyBuilder`, from `IFieldOrPropertyOrIndexerBuilder`, from `IMemberBuilder` and from
+`IHasTypeBuilder`. A member of an enum has none of what those interfaces offer: its type is the enum and may not be
+set, its accessibility is that of the enum and may not be set, it has no initializer expression, it has no
+writeability to choose, and every modifier that `IMemberBuilder` adds is invalid on it. A field builder would
+present roughly fifteen operations of which one is valid.
 
-The alternative, which is to declare `IFieldBuilder` as the return type and to throw on the invalid operations, is
-the shape that section 2 of [`introducing-types.md`](introducing-types.md) rejects at the level of the type. It is
-rejected here for the same reason and at a worse ratio.
+The read side is unaffected and reports a member of an enum as an `IField`, which is what it is. The two sides
+answer different questions: a reader asks what a member of an enum is, and a writer chooses a name and a number.
 
 ### 6.2. `IsFlags` is a property and not only an attribute
 
@@ -362,47 +365,54 @@ doing by hand what the reader is explicitly spared.
 The property and the attribute are one state and not two: the setter adds or removes the attribute, and the getter
 reports whether it is present. There is no third state in which they disagree.
 
-### 6.3. The underlying type is set on the builder and not passed to the advice method
+### 6.3. There are eight integral overloads, and no `Members` property
 
-`IntroduceEnum` takes the name, the conflict strategy and the callback, and nothing else, which is the shape of
-`IntroduceClass` and `IntroduceInterface`. The underlying type is configuration of the type, and configuration of
-the type is what the callback is for. Adding a parameter for it would make `IntroduceEnum` the only introduction
-method whose signature carries a property of the type being built.
+`AddMember` has one overload per integral type that the language allows as the underlying type of an enum, plus one
+that takes a `TypedConstant` and one that takes no value at all.
 
-### 6.4. The value of a member is validated when it is assigned
+One overload taking the widest integral type would not do. `ulong` cannot express a negative value and `long`
+cannot express a value above `long.MaxValue`, so a single overload of either type refuses a value that some enum
+can hold. Taking `object` would move every type error from the compiler to run time. Eight overloads let the author
+write the value in the type the enum actually has, the compiler picks the overload, and the builder converts to
+`UnderlyingType` and checks the range.
 
-`AddMember` and `IEnumMemberBuilder.Value` both validate the value against `UnderlyingType`, and
-`UnderlyingType` may not be set after a member has been added. The alternative is to validate every value when the
-builder is frozen, which reports the error at a place the author did not write.
+The `TypedConstant` overload is the one an aspect uses when it copies from another enum, because
+`IField.ConstantValue` is a `TypedConstant`. It also accepts a constant that
+`TypedConstant.Create(IField)` produced, which renders as a reference to that field rather than as a literal, and
+the language allows a member of an enum to be defined that way.
+
+There is no `Members` property on the builder. A member of an enum is a name and a value, the code model has no
+type for that pair, and inventing one is what removing `IEnumMemberBuilder` avoided. An aspect that adds a member
+knows what it added, a duplicate name is refused by `AddMember` rather than checked by the author, and the
+introduced type reports the members through `IEnumFacet.Members`.
+
+### 6.4. The value of a member is validated when it is added
+
+Every overload of `AddMember` validates the value against `UnderlyingType`, and `UnderlyingType` may not be set
+after a member has been added. The alternative is to validate every value when the builder is frozen, which reports
+the error at a place the author did not write.
 
 The cost is that an author who wants a non-default underlying type sets it before adding any member. The
 documentation of `UnderlyingType` states that, and the exception names it.
 
 ## 7. Open questions
 
-### 7.1. How does an aspect introduce an enum whose members are copied from another enum?
+### 7.1. Can an aspect put a custom attribute on a member of an enum?
 
-The motivating pattern of issue [#866](https://github.com/metalama/Metalama/issues/866) is a view model that
-mirrors an enum of the domain. Such an aspect reads `source.Facets.Enum!.Members` and calls `AddMember` for each,
-and the value of each member is an `IField.ConstantValue`, which is a `TypedConstant`. That works through
-`IEnumMemberBuilder.Value` and not through the `long?` parameter of `AddMember`.
+It cannot. `AddMember` returns nothing, so there is no object on which to call `AddAttribute`, and this is the one
+capability that removing `IEnumMemberBuilder` costs. It is not hypothetical: `[Display]`, `[Description]` and
+`[EnumMember]` on a member of an enum are ordinary in the patterns that issue
+[#866](https://github.com/metalama/Metalama/issues/866) exists for, such as a view model that mirrors an enum of
+the domain.
 
-Whether `AddMember` should take a `TypedConstant?` instead of a `long?`, or an overload of each, is not decided.
-The `long?` reads better for a literal, which is the common case in an aspect that writes the members itself, and
-the `TypedConstant` reads better for a copy. What would settle it is the balance of the two in the aspects that are
-written once the feature ships, which is not known now. The design above takes `long?` and leaves the copy to the
-property, because a property that is needed for `ulong` in any case costs nothing more.
+What would settle it is whether an aspect written against this interface needs one. If it does, the remedy is an
+overload of `AddMember` that takes the attribute constructions, in the manner of
+`IAdviceFactory.IntroduceParameter`, which takes an `ImmutableArray<AttributeConstruction>`. It is not a builder:
+a member of an enum still has nothing to configure after it is added, and reintroducing one for attributes alone
+would reverse section 6.1 for a reason it did not weigh.
 
-### 7.2. Is a member of an enum reachable as an `IFieldBuilder` during construction?
-
-Section 6.1 decides what `AddMember` returns. It does not decide whether the engine object behind an
-`IEnumMemberBuilder` is a `FieldBuilder`, which is an implementation question, nor whether an aspect that holds an
-`IEnumMemberBuilder` can obtain the eventual `IField` from it before the enum is introduced.
-
-The second half matters to an aspect that introduces an enum and then refers to one of its members in a template.
-The member exists as an `IField` once the advice completes, reachable through the introduced type, so the question
-is only whether the shorter path is needed. What would settle it is one sample aspect that does this, written
-against the interface above.
+The attributes of the enum itself are unaffected and are added through `IDeclarationBuilder.AddAttribute` on the
+builder.
 
 ## 8. References
 
