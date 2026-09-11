@@ -47,6 +47,23 @@ internal sealed partial class LinkerLinkingStep
             return node;
         }
 
+#if ROSLYN_5_11_0_OR_GREATER
+
+        // A union is rewritten like a struct, which is what the language reports it as. Without this override the
+        // type is passed through unrewritten, so the introduction of a member leaves both the member and the
+        // intermediate declaration that the injection step produced for it. See issue #1944.
+        public override SyntaxNode VisitUnionDeclaration( UnionDeclarationSyntax node )
+        {
+            var transformedMembers = this.GetMembersForTypeDeclaration( node );
+
+            var semanticModel = this._semanticModelProvider.GetSemanticModel( node.SyntaxTree );
+
+            var symbol = semanticModel.GetDeclaredSymbol( node ).AssertNotNull();
+
+            return LinkerRewritingDriver.RewriteUnion( node, symbol, transformedMembers );
+        }
+#endif
+
         public override SyntaxNode VisitClassDeclaration( ClassDeclarationSyntax node )
         {
             var transformedMembers = this.GetMembersForTypeDeclaration( node );

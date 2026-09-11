@@ -323,6 +323,15 @@ internal sealed partial class LinkerInjectionStep
 
         public override SyntaxNode VisitExtensionBlockDeclaration( ExtensionBlockDeclarationSyntax node ) => this.VisitTypeDeclaration( node );
 
+#if ROSLYN_5_11_0_OR_GREATER
+
+        // A union declaration is a type declaration like any other, and VisitTypeDeclaration already replaces the
+        // semicolon of a declaration that has no member list by a pair of braces when a member is injected into it,
+        // which is the form a union takes. The override exists only because Roslyn dispatches a virtual method per
+        // node kind. See issue #1944.
+        public override SyntaxNode VisitUnionDeclaration( UnionDeclarationSyntax node ) => this.VisitTypeDeclaration( node );
+#endif
+
         public override SyntaxNode VisitEnumDeclaration( EnumDeclarationSyntax node )
         {
             var originalNode = node;
@@ -638,8 +647,16 @@ internal sealed partial class LinkerInjectionStep
                             break;
                         }
 
+                    // The union kind is named under its own condition, in the manner of
+                    // SyntaxKindExtensions.IsTypeDeclaration, because the lower Roslyn variant does not declare it.
+                    // A union accepts injected members like any other type declaration, and VisitTypeDeclaration
+                    // replaces the semicolon of its declaration by a pair of braces. See issue #1944.
                     case SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration or SyntaxKind.RecordDeclaration
-                        or SyntaxKind.RecordStructDeclaration when injectedNode is TypeDeclarationSyntax typeDeclaration:
+                        or SyntaxKind.RecordStructDeclaration
+#if ROSLYN_5_11_0_OR_GREATER
+                        or SyntaxKind.UnionDeclaration
+#endif
+                        when injectedNode is TypeDeclarationSyntax typeDeclaration:
 
                         var typeBuilder = (NamedTypeBuilderData) injectedMember.BuilderData.AssertNotNull();
                         var injectedTypeMembers = new List<MemberDeclarationSyntax>();
@@ -651,6 +668,18 @@ internal sealed partial class LinkerInjectionStep
                             syntaxGenerationContext );
 
                         typeDeclaration = typeDeclaration.WithMembers( typeDeclaration.Members.AddRange( injectedTypeMembers ) );
+
+                        // A declaration that has no member list is written with a semicolon, which is the form an
+                        // introduced union takes, so the braces replace it once a member is injected.
+                        // VisitTypeDeclaration does the same for a declaration read from source.
+                        if ( injectedTypeMembers.Count > 0 && typeDeclaration.OpenBraceToken.IsKind( SyntaxKind.None ) )
+                        {
+                            typeDeclaration = typeDeclaration
+                                .WithOpenBraceToken( Token( SyntaxKind.OpenBraceToken ) )
+                                .WithCloseBraceToken( Token( SyntaxKind.CloseBraceToken ) )
+                                .WithSemicolonToken( default );
+                        }
+
                         injectedNode = AddInjectedInterfaces( typeBuilder, typeDeclaration );
 
                         break;
