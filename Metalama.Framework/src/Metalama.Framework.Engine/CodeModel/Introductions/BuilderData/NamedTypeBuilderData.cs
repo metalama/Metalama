@@ -65,6 +65,44 @@ internal sealed class NamedTypeBuilderData : MemberOrNamedTypeBuilderData
     /// </remarks>
     public IFullRef<IMethod>? InvokeMethod { get; }
 
+    /// <summary>
+    /// Gets the primary constructor of a record, or <c>null</c> for every other kind.
+    /// </summary>
+    public IFullRef<IConstructor>? PrimaryConstructor { get; }
+
+    /// <summary>
+    /// Gets the property carrying the equality contract of a record class, or <c>null</c> for every other kind and
+    /// for a record struct.
+    /// </summary>
+    public IFullRef<IProperty>? EqualityContractProperty { get; }
+
+    /// <summary>
+    /// Gets the method printing the members of a record, or <c>null</c> for every other kind.
+    /// </summary>
+    public IFullRef<IMethod>? PrintMembersMethod { get; }
+
+    /// <summary>
+    /// Gets the clone method of a record class, or <c>null</c> for every other kind and for a record struct.
+    /// </summary>
+    public IFullRef<IMethod>? CloneMethod { get; }
+
+    /// <summary>
+    /// Gets the copy constructor of a record class, or <c>null</c> for every other kind and for a record struct.
+    /// </summary>
+    public IFullRef<IConstructor>? CopyConstructor { get; }
+
+    /// <summary>
+    /// Gets the deconstructing method of a positional record, or <c>null</c> for every other kind and for a record
+    /// that declares no positional parameter.
+    /// </summary>
+    public IFullRef<IMethod>? DeconstructMethod { get; }
+
+    /// <summary>
+    /// Gets the properties that the positional parameters of a record declare, in order, or an empty array for
+    /// every other kind.
+    /// </summary>
+    public ImmutableArray<IFullRef<IProperty>> PositionalProperties { get; }
+
     public NamedTypeBuilderData( NamedTypeBuilder builder, IFullRef<IDeclaration> containingDeclaration ) : base( builder, containingDeclaration )
     {
         this._ref = builder.Ref;
@@ -88,6 +126,21 @@ internal sealed class NamedTypeBuilderData : MemberOrNamedTypeBuilderData
             : ImmutableArray<IFullRef<IField>>.Empty;
 
         this.InvokeMethod = builder is DelegateBuilder delegateBuilder ? delegateBuilder.InvokeMethodBuilder.BuilderData.ToRef() : null;
+
+        if ( builder is RecordBuilder recordBuilder )
+        {
+            this.PrimaryConstructor = recordBuilder.PrimaryConstructorBuilder.BuilderData.ToRef();
+            this.EqualityContractProperty = recordBuilder.EqualityContractProperty?.BuilderData.ToRef();
+            this.PrintMembersMethod = recordBuilder.PrintMembersMethod?.BuilderData.ToRef();
+            this.CloneMethod = recordBuilder.CloneMethod?.BuilderData.ToRef();
+            this.CopyConstructor = recordBuilder.CopyConstructor?.BuilderData.ToRef();
+            this.DeconstructMethod = recordBuilder.DeconstructMethod?.BuilderData.ToRef();
+            this.PositionalProperties = recordBuilder.PositionalPropertyBuilders.SelectAsImmutableArray( p => (IFullRef<IProperty>) p.BuilderData.ToRef() );
+        }
+        else
+        {
+            this.PositionalProperties = ImmutableArray<IFullRef<IProperty>>.Empty;
+        }
     }
 
     protected override IFullRef<IDeclaration> ToDeclarationFullRef() => this._ref;

@@ -8,6 +8,7 @@ using Metalama.Framework.Code.Types;
 using Metalama.Framework.Engine.CodeModel.Abstractions;
 using Metalama.Framework.Engine.CodeModel.GenericContexts;
 using Metalama.Framework.Engine.CodeModel.Helpers;
+using Metalama.Framework.Engine.CodeModel.Introductions.Introduced;
 using Metalama.Framework.Engine.Utilities;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -72,12 +73,38 @@ internal sealed class RecordFacet : IRecordFacet
     /// </summary>
     private bool IsRecordClass => this.Type.TypeKind == TypeKind.Class;
 
-    [Memo]
-    public IProperty? EqualityContractProperty
-        => this.IsRecordClass ? this.Type.Properties.OfName( _equalityContractPropertyName ).SingleOrDefault() : null;
+    /// <summary>
+    /// Gets the type as an introduced type, or <c>null</c> when it is read from source.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The members that the compiler synthesizes for an introduced record come from the builder data, which is the
+    /// only place that records them and which answers in every compilation that knows the record rather than only
+    /// in one to which the transformations that register them have been applied. Two of them cannot be recovered
+    /// from the code model at all: the name of the clone method is not a C# identifier, so
+    /// <see cref="INamedType.Methods"/> never contains it, and a positional property is told from an ordinary one
+    /// by its declaring syntax, which an introduced property does not have.
+    /// </para>
+    /// </remarks>
+    private IntroducedNamedType? IntroducedType => this.Type as IntroducedNamedType;
 
     [Memo]
-    public IMethod PrintMembersMethod => this.Type.Methods.OfName( _printMembersMethodName ).Single( IsPrintMembersMethod );
+    public IProperty? EqualityContractProperty => this.GetEqualityContractProperty();
+
+    private IProperty? GetEqualityContractProperty()
+    {
+        if ( !this.IsRecordClass )
+        {
+            return null;
+        }
+
+        return this.IntroducedType?.EqualityContractProperty
+               ?? this.Type.Properties.OfName( _equalityContractPropertyName ).SingleOrDefault();
+    }
+
+    [Memo]
+    public IMethod PrintMembersMethod
+        => this.IntroducedType?.PrintMembersMethod ?? this.Type.Methods.OfName( _printMembersMethodName ).Single( IsPrintMembersMethod );
 
     [Memo]
     public IMethod? CloneMethod => this.IsRecordClass ? this.GetCloneMethod() : null;
@@ -111,6 +138,11 @@ internal sealed class RecordFacet : IRecordFacet
 
     private IMethod? GetCloneMethod()
     {
+        if ( this.IntroducedType is { } introducedType )
+        {
+            return introducedType.CloneMethod;
+        }
+
         // The name of the clone method is not a C# identifier, so INamedType.Methods, which represents what can be
         // written in C#, does not contain it, and the facet resolves it from the symbol of the type. That symbol is
         // the generic definition when the type is a generic instance whose type arguments cannot be expressed as
@@ -143,10 +175,16 @@ internal sealed class RecordFacet : IRecordFacet
     /// type arguments.
     /// </para>
     /// </remarks>
-    private IConstructor? GetPrimaryConstructor() => this.Type.Constructors.SingleOrDefault( c => c.IsPrimary );
+    private IConstructor? GetPrimaryConstructor()
+        => this.IntroducedType != null ? this.Type.PrimaryConstructor : this.Type.Constructors.SingleOrDefault( c => c.IsPrimary );
 
     private IMethod? GetDeconstructMethod()
     {
+        if ( this.IntroducedType is { } introducedType )
+        {
+            return introducedType.DeconstructMethod;
+        }
+
         // A record is positional when it declares a parameter list, which is what gives it a primary constructor.
         // The Deconstruct method is then the method whose out parameters are the positional parameters.
         if ( this.GetPrimaryConstructor() is not { } primaryConstructor )
@@ -187,6 +225,11 @@ internal sealed class RecordFacet : IRecordFacet
 
     private IReadOnlyList<IProperty> GetPositionalProperties()
     {
+        if ( this.IntroducedType is { } introducedType )
+        {
+            return introducedType.PositionalProperties;
+        }
+
         if ( this.GetPrimaryConstructor() is not { } primaryConstructor || primaryConstructor.Parameters.Count == 0 )
         {
             return [];

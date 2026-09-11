@@ -2134,6 +2134,30 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         }
     }
 
+    public IIntroductionAdviceResult<INamedType> IntroduceRecord(
+        INamespaceOrNamedType targetNamespaceOrType,
+        string name,
+        RecordKind recordKind = RecordKind.Class,
+        OverrideStrategy whenExists = OverrideStrategy.Default,
+        Action<IRecordBuilder>? buildRecord = null )
+    {
+        using ( this.WithNonUserCode() )
+        {
+            this.ValidateNotExplicitInterfaceImplementation( AdviceKind.IntroduceType );
+
+            ValidateNotExtensionBlock( targetNamespaceOrType, "a record" );
+
+            return new IntroduceNamedTypeAdvice(
+                    this.GetAdviceConstructorParameters( targetNamespaceOrType ),
+                    name,
+                    whenExists,
+                    buildRecord == null ? null : b => buildRecord( (IRecordBuilder) b ),
+                    recordKind == RecordKind.Struct ? TypeKind.Struct : TypeKind.Class,
+                    recordKind )
+                .Execute( this._state );
+        }
+    }
+
     public IIntroductionAdviceResult<INamedType> IntroduceStruct(
         INamespaceOrNamedType targetNamespaceOrType,
         string name,

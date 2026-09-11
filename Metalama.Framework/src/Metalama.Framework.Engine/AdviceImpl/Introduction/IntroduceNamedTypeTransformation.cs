@@ -102,6 +102,19 @@ internal sealed class IntroduceNamedTypeTransformation : IntroduceDeclarationTra
         };
     }
 
+    /// <summary>
+    /// Builds the positional parameter list of a record, which is the parameter list of its primary constructor, or
+    /// returns <c>null</c> when the record declares no positional parameter and is therefore not positional.
+    /// </summary>
+    private static ParameterListSyntax? GetRecordParameterList( INamedType introducedType, MemberInjectionContext context )
+    {
+        var primaryConstructor = introducedType.PrimaryConstructor;
+
+        return primaryConstructor is not { Parameters.Count: > 0 }
+            ? null
+            : context.SyntaxGenerator.ParameterList( primaryConstructor, context.FinalCompilation );
+    }
+
     public override IEnumerable<InjectedMember> GetInjectedMembers( MemberInjectionContext context )
     {
         var introducedType = this.BuilderData.ToRef().GetTarget( context.FinalCompilation );
@@ -148,6 +161,27 @@ internal sealed class IntroduceNamedTypeTransformation : IntroduceDeclarationTra
         var type =
             (this.BuilderData.TypeKind switch
             {
+                // A record is emitted as a record declaration whose class or struct keyword names the authoring
+                // form. Its positional parameter list is the parameter list of the primary constructor, and every
+                // member the compiler synthesizes from it is registered in the code model and emitted by nothing.
+                TypeKind.Class or TypeKind.Struct when this.BuilderData.IsRecord =>
+                    RecordDeclaration(
+                        introducedType.TypeKind == TypeKind.Class ? SyntaxKind.RecordDeclaration : SyntaxKind.RecordStructDeclaration,
+                        AdviceSyntaxGenerator.GetAttributeLists( introducedType, context ),
+                        introducedType.GetSyntaxModifierList(),
+                        SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.RecordKeyword ),
+                        introducedType.TypeKind == TypeKind.Class
+                            ? default
+                            : SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.StructKeyword ),
+                        SyntaxFactoryEx.SafeIdentifier( introducedType.Name ),
+                        typeArgs,
+                        GetRecordParameterList( introducedType, context ),
+                        baseList,
+                        context.SyntaxGenerator.ConstraintClauses( introducedType ),
+                        Token( SyntaxKind.OpenBraceToken ),
+                        List<MemberDeclarationSyntax>(),
+                        Token( SyntaxKind.CloseBraceToken ),
+                        default ),
                 TypeKind.Class =>
                     (MemberDeclarationSyntax) ClassDeclaration(
                         AdviceSyntaxGenerator.GetAttributeLists( introducedType, context ),

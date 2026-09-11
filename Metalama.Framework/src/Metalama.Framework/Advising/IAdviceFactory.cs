@@ -1085,6 +1085,25 @@ namespace Metalama.Framework.Advising
             Action<IDelegateBuilder>? buildDelegate = null );
 
         /// <summary>
+        /// Introduces a new record to the target namespace or type.
+        /// </summary>
+        /// <param name="targetNamespaceOrType">The namespace or type into which the record must be introduced.</param>
+        /// <param name="name">The name of the introduced record.</param>
+        /// <param name="recordKind">Whether the record is a record class or a record struct. The default is a record class.</param>
+        /// <param name="whenExists">Determines the implementation strategy when a type of the same name is already declared in the target namespace or type.
+        ///     The default strategy is to fail with a compile-time error.</param>
+        /// <param name="buildRecord">An optional callback that allows you to configure the introduced record, such as adding positional parameters, members,
+        ///     base types, or custom attributes.</param>
+        /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> representing the result of the advice. The <see cref="IIntroductionAdviceResult{T}.Declaration"/> property provides access to the introduced record.
+        /// The <see cref="IIntroductionAdviceResult{T}"/> interface itself implements <see cref="IAdviser{T}"/> and can be used to introduce members to the record.</returns>
+        IIntroductionAdviceResult<INamedType> IntroduceRecord(
+            INamespaceOrNamedType targetNamespaceOrType,
+            string name,
+            RecordKind recordKind = RecordKind.Class,
+            OverrideStrategy whenExists = OverrideStrategy.Default,
+            Action<IRecordBuilder>? buildRecord = null );
+
+        /// <summary>
         /// Introduces a new extension block into a static class. Extension blocks allow adding
         /// extension members (methods, properties, indexers, operators) to a type (represented as an <see cref="IType"/>). Requires C# 14+ and Roslyn 5.0+, and C# 15+ for indexers.
         /// </summary>

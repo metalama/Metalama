@@ -118,7 +118,13 @@ internal sealed class ConstructorBuilder : MethodBaseBuilder, IConstructorBuilde
         this.InitializerArguments.Add( (expression, parameterName) );
     }
 
-    bool IConstructor.IsPrimary => false;
+    /// <summary>
+    /// Gets or sets a value indicating whether this constructor is the primary constructor of its declaring type,
+    /// which is what the primary constructor of an introduced record is.
+    /// </summary>
+    public bool IsPrimary { get; set; }
+
+    bool IConstructor.IsPrimary => this.IsPrimary;
 
     public override IMember? OverriddenMember => null;
 

@@ -156,7 +156,38 @@ internal sealed class IntroducedNamedType : IntroducedMemberOrNamedType, INamedT
     [Memo]
     public IMethodCollection AllMethods => new AllMethodsCollection( this );
 
-    IConstructor? INamedType.PrimaryConstructor => null;
+    IConstructor? INamedType.PrimaryConstructor => this.MapDeclaration( this._namedTypeBuilderData.PrimaryConstructor );
+
+    /// <summary>
+    /// Gets the property carrying the equality contract of the record, which <c>RecordFacet</c> reports.
+    /// </summary>
+    public IProperty? EqualityContractProperty => this.MapDeclaration( this._namedTypeBuilderData.EqualityContractProperty );
+
+    /// <summary>
+    /// Gets the method printing the members of the record, which <c>RecordFacet</c> reports.
+    /// </summary>
+    public IMethod? PrintMembersMethod => this.MapDeclaration( this._namedTypeBuilderData.PrintMembersMethod );
+
+    /// <summary>
+    /// Gets the clone method of the record, which <c>RecordFacet</c> reports.
+    /// </summary>
+    public IMethod? CloneMethod => this.MapDeclaration( this._namedTypeBuilderData.CloneMethod );
+
+    /// <summary>
+    /// Gets the copy constructor of the record, which <c>RecordFacet</c> reports.
+    /// </summary>
+    public IConstructor? CopyConstructor => this.MapDeclaration( this._namedTypeBuilderData.CopyConstructor );
+
+    /// <summary>
+    /// Gets the deconstructing method of the record, which <c>RecordFacet</c> reports.
+    /// </summary>
+    public IMethod? DeconstructMethod => this.MapDeclaration( this._namedTypeBuilderData.DeconstructMethod );
+
+    /// <summary>
+    /// Gets the properties that the positional parameters of the record declare, which <c>RecordFacet</c> reports.
+    /// </summary>
+    public ImmutableArray<IProperty> PositionalProperties
+        => this._namedTypeBuilderData.PositionalProperties.SelectAsImmutableArray( p => this.MapDeclaration( p ) );
 
     [Memo]
     public IConstructorCollection Constructors

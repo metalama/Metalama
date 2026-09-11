@@ -18,6 +18,11 @@ internal sealed class IntroduceNamedTypeAdvice : IntroduceDeclarationAdvice<INam
     private readonly string _explicitName;
     private readonly TypeKind _typeKind;
 
+    /// <summary>
+    /// The authoring form of a record, or <c>null</c> when the introduced type is not a record.
+    /// </summary>
+    private readonly RecordKind? _recordKind;
+
     public override AdviceKind AdviceKind => AdviceKind.IntroduceType;
 
     private OverrideStrategy OverrideStrategy { get; }
@@ -27,12 +32,14 @@ internal sealed class IntroduceNamedTypeAdvice : IntroduceDeclarationAdvice<INam
         string explicitName,
         OverrideStrategy overrideStrategy,
         Action<NamedTypeBuilder>? buildAction,
-        TypeKind typeKind )
+        TypeKind typeKind,
+        RecordKind? recordKind = null )
         : base( parameters, buildAction )
     {
         this._explicitName = explicitName;
         this.OverrideStrategy = overrideStrategy;
         this._typeKind = typeKind;
+        this._recordKind = recordKind;
     }
 
     protected override NamedTypeBuilder CreateBuilder()
@@ -41,6 +48,11 @@ internal sealed class IntroduceNamedTypeAdvice : IntroduceDeclarationAdvice<INam
 
         // Each kind whose builder carries state of its own has a class of its own. The compilation model requires an
         // INamedTypeImpl in every case, so each of them derives from NamedTypeBuilder and narrows what it exposes.
+        if ( this._recordKind is { } recordKind )
+        {
+            return new RecordBuilder( this.AspectLayerInstance, target, this._explicitName, recordKind );
+        }
+
         return this._typeKind switch
         {
             TypeKind.Enum => new EnumBuilder( this.AspectLayerInstance, target, this._explicitName ),
@@ -129,6 +141,16 @@ internal sealed class IntroduceNamedTypeAdvice : IntroduceDeclarationAdvice<INam
                 foreach ( var member in enumBuilder.MemberBuilders )
                 {
                     context.AddTransformation( new IntroduceSynthesizedDeclarationTransformation( this.AspectLayerInstance, member.BuilderData ) );
+                }
+
+                break;
+
+            case RecordBuilder recordBuilder:
+                // The compiler synthesizes every one of these from the record declaration, so each is registered in
+                // the code model and emitted by nothing.
+                foreach ( var member in recordBuilder.GetSynthesizedMemberData() )
+                {
+                    context.AddTransformation( new IntroduceSynthesizedDeclarationTransformation( this.AspectLayerInstance, member ) );
                 }
 
                 break;

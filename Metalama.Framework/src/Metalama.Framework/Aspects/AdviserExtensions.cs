@@ -1759,6 +1759,32 @@ public static class AdviserExtensions
             buildDelegate );
 
     /// <summary>
+    /// Introduces a new record into the current namespace (as a top-level type) or type (as a nested type).
+    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> or <see cref="WithNamespace"/> method to introduce the record to a different type or namespace
+    /// than the current one.
+    /// </summary>
+    /// <param name="adviser">An adviser for a named type or namespace.</param>
+    /// <param name="name">The record name.</param>
+    /// <param name="recordKind">Whether the record is a record class or a record struct. The default is a record class.</param>
+    /// <param name="whenExists">Determines the implementation strategy when a type of the same name is already declared in the target type or namespace.
+    ///     The default strategy is to fail with a compile-time error.</param>
+    /// <param name="buildRecord">An optional delegate that modifies the <see cref="IRecordBuilder"/> that represents the introduced record.</param>
+    /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> that exposes the outcome of the operation and the introduced <see cref="INamedType"/>.</returns>
+    /// <seealso href="@introducing-types"/>
+    public static IIntroductionAdviceResult<INamedType> IntroduceRecord(
+        this IAdviser<INamespaceOrNamedType> adviser,
+        string name,
+        RecordKind recordKind = RecordKind.Class,
+        OverrideStrategy whenExists = OverrideStrategy.Default,
+        Action<IRecordBuilder>? buildRecord = null )
+        => ((IAdviserInternal) adviser).AdviceFactory.IntroduceRecord(
+            adviser.Target,
+            name,
+            recordKind,
+            whenExists,
+            buildRecord );
+
+    /// <summary>
     /// Introduces a new struct into the current namespace (as a top-level type) or type (as a nested type).
     /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> or <see cref="WithNamespace"/> method to introduce the struct to a different type or namespace
     /// than the current one.
