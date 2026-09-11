@@ -60,6 +60,16 @@
         <!-- But still show them in solution explorer -->
         <None Include="$(MSBuildThisFileDirectory)/Tests/**/__*.cs" />
 
+        <!-- This test contains a labeled break and a labeled continue in run-time code. The statements are legal from C# 15
+             on, and this project is pinned to language version 14, so the compilation of the project reports an error for
+             them. The test framework reads the file from the source directory and not from the compilation, so removing
+             the file from the compilation does not remove the test. Remove these items when the project moves to a
+             language version that accepts the statements. See issues #1947 and #1937. -->
+        <Compile Remove="$(MSBuildThisFileDirectory)/Tests/Aspects/CSharp15/Labels/LabeledLoopInTarget.cs" />
+        <None Include="$(MSBuildThisFileDirectory)/Tests/Aspects/CSharp15/Labels/LabeledLoopInTarget.cs" />
+
+
+
         <!-- This test declares a static member with a body in an interface. The declaration is legal from C# 15 on,
              and this project is pinned to language version 14, so its net48 leg reports CS8652 for it. The test
              framework reads the file from the source directory and not from the compilation, so removing the file
