@@ -1785,6 +1785,30 @@ public static class AdviserExtensions
             buildRecord );
 
     /// <summary>
+    /// Introduces a new union, written with the <c>union</c> keyword, into the current namespace (as a top-level type) or type (as a nested type).
+    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> or <see cref="WithNamespace"/> method to introduce the union to a different type or namespace
+    /// than the current one.
+    /// </summary>
+    /// <param name="adviser">An adviser for a named type or namespace.</param>
+    /// <param name="name">The union name.</param>
+    /// <param name="buildUnion">A delegate that configures the introduced union. It must add at least one case, because the language requires a union to have
+    ///     one, which is why this parameter is required and precedes <paramref name="whenExists"/>.</param>
+    /// <param name="whenExists">Determines the implementation strategy when a type of the same name is already declared in the target type or namespace.
+    ///     The default strategy is to fail with a compile-time error.</param>
+    /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> that exposes the outcome of the operation and the introduced <see cref="INamedType"/>.</returns>
+    /// <seealso href="@introducing-types"/>
+    public static IIntroductionAdviceResult<INamedType> IntroduceUnion(
+        this IAdviser<INamespaceOrNamedType> adviser,
+        string name,
+        Action<IUnionBuilder> buildUnion,
+        OverrideStrategy whenExists = OverrideStrategy.Default )
+        => ((IAdviserInternal) adviser).AdviceFactory.IntroduceUnion(
+            adviser.Target,
+            name,
+            buildUnion,
+            whenExists );
+
+    /// <summary>
     /// Introduces a new struct into the current namespace (as a top-level type) or type (as a nested type).
     /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> or <see cref="WithNamespace"/> method to introduce the struct to a different type or namespace
     /// than the current one.

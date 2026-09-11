@@ -2158,6 +2158,34 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         }
     }
 
+    public IIntroductionAdviceResult<INamedType> IntroduceUnion(
+        INamespaceOrNamedType targetNamespaceOrType,
+        string name,
+        Action<IUnionBuilder> buildUnion,
+        OverrideStrategy whenExists = OverrideStrategy.Default )
+    {
+        if ( buildUnion == null )
+        {
+            throw new ArgumentNullException( nameof(buildUnion) );
+        }
+
+        using ( this.WithNonUserCode() )
+        {
+            this.ValidateNotExplicitInterfaceImplementation( AdviceKind.IntroduceType );
+
+            ValidateNotExtensionBlock( targetNamespaceOrType, "a union" );
+
+            return new IntroduceNamedTypeAdvice(
+                    this.GetAdviceConstructorParameters( targetNamespaceOrType ),
+                    name,
+                    whenExists,
+                    b => buildUnion( (IUnionBuilder) b ),
+                    TypeKind.Struct,
+                    isUnion: true )
+                .Execute( this._state );
+        }
+    }
+
     public IIntroductionAdviceResult<INamedType> IntroduceStruct(
         INamespaceOrNamedType targetNamespaceOrType,
         string name,

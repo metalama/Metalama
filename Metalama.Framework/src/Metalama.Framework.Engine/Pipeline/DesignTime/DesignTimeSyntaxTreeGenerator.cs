@@ -715,9 +715,17 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
 
         /// <summary>
         /// Determines whether the language allows the declaration of the given type to carry the partial modifier,
-        /// which every kind but an enum and a delegate does.
+        /// which every kind but an enum, a delegate and a union does.
         /// </summary>
-        private static bool CanBeDeclaredPartial( INamedType type ) => type.TypeKind is not (TypeKind.Enum or TypeKind.Delegate);
+        /// <remarks>
+        /// <para>
+        /// The union is the one of the three that is not told apart by its type kind. Roslyn reports a union as a
+        /// struct, so a union re-created here would be emitted as a partial struct against a union declaration,
+        /// which the compiler reports as CS0261.
+        /// </para>
+        /// </remarks>
+        private static bool CanBeDeclaredPartial( INamedType type )
+            => type.TypeKind is not (TypeKind.Enum or TypeKind.Delegate) && !type.IsUnion;
 
         /// <summary>
         /// Emits the declaration of an introduced type that the language cannot declare as partial, by asking the

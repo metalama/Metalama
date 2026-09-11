@@ -115,6 +115,25 @@ internal sealed class IntroduceNamedTypeTransformation : IntroduceDeclarationTra
             : context.SyntaxGenerator.ParameterList( primaryConstructor, context.FinalCompilation );
     }
 
+#if ROSLYN_5_11_0_OR_GREATER
+
+    /// <summary>
+    /// Builds the case list of a union, which the syntax model represents as a parameter list whose parameters
+    /// carry a type and no identifier.
+    /// </summary>
+    private static ParameterListSyntax GetUnionCaseList( INamedType introducedType, MemberInjectionContext context )
+        => ParameterList(
+            SeparatedList(
+                introducedType.Facets.Union.AssertNotNull()
+                    .Cases.SelectAsReadOnlyList(
+                        c => Parameter(
+                            List<AttributeListSyntax>(),
+                            default,
+                            context.SyntaxGenerator.TypeSyntax( c.Type ),
+                            default,
+                            null ) ) ) );
+#endif
+
     public override IEnumerable<InjectedMember> GetInjectedMembers( MemberInjectionContext context )
     {
         var introducedType = this.BuilderData.ToRef().GetTarget( context.FinalCompilation );
@@ -164,6 +183,25 @@ internal sealed class IntroduceNamedTypeTransformation : IntroduceDeclarationTra
                 // A record is emitted as a record declaration whose class or struct keyword names the authoring
                 // form. Its positional parameter list is the parameter list of the primary constructor, and every
                 // member the compiler synthesizes from it is registered in the code model and emitted by nothing.
+#if ROSLYN_5_11_0_OR_GREATER
+
+                // A union declaration is a struct in the code model, so the union flag tells it apart. The emission
+                // is compiled into the latest Roslyn variant only, because that is the one that declares the syntax.
+                TypeKind.Struct when this.BuilderData.IsUnion =>
+                    UnionDeclaration(
+                        AdviceSyntaxGenerator.GetAttributeLists( introducedType, context ),
+                        introducedType.GetSyntaxModifierList(),
+                        SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.UnionKeyword ),
+                        SyntaxFactoryEx.SafeIdentifier( introducedType.Name ),
+                        typeArgs,
+                        GetUnionCaseList( introducedType, context ),
+                        baseList,
+                        context.SyntaxGenerator.ConstraintClauses( introducedType ),
+                        default,
+                        List<MemberDeclarationSyntax>(),
+                        default,
+                        Token( SyntaxKind.SemicolonToken ) ),
+#endif
                 TypeKind.Class or TypeKind.Struct when this.BuilderData.IsRecord =>
                     RecordDeclaration(
                         introducedType.TypeKind == TypeKind.Class ? SyntaxKind.RecordDeclaration : SyntaxKind.RecordStructDeclaration,

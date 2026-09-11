@@ -1104,6 +1104,23 @@ namespace Metalama.Framework.Advising
             Action<IRecordBuilder>? buildRecord = null );
 
         /// <summary>
+        /// Introduces a new union, written with the <c>union</c> keyword, to the target namespace or type.
+        /// </summary>
+        /// <param name="targetNamespaceOrType">The namespace or type into which the union must be introduced.</param>
+        /// <param name="name">The name of the introduced union.</param>
+        /// <param name="buildUnion">A callback that configures the introduced union. It must add at least one case, because the language requires a union to
+        ///     have one. The parameter is required and precedes <paramref name="whenExists"/> for that reason: an advice that adds no case reports an error,
+        ///     so a call that omitted the callback could never succeed.</param>
+        /// <param name="whenExists">Determines the implementation strategy when a type of the same name is already declared in the target namespace or type.
+        ///     The default strategy is to fail with a compile-time error.</param>
+        /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> representing the result of the advice. The <see cref="IIntroductionAdviceResult{T}.Declaration"/> property provides access to the introduced union.</returns>
+        IIntroductionAdviceResult<INamedType> IntroduceUnion(
+            INamespaceOrNamedType targetNamespaceOrType,
+            string name,
+            Action<IUnionBuilder> buildUnion,
+            OverrideStrategy whenExists = OverrideStrategy.Default );
+
+        /// <summary>
         /// Introduces a new extension block into a static class. Extension blocks allow adding
         /// extension members (methods, properties, indexers, operators) to a type (represented as an <see cref="IType"/>). Requires C# 14+ and Roslyn 5.0+, and C# 15+ for indexers.
         /// </summary>

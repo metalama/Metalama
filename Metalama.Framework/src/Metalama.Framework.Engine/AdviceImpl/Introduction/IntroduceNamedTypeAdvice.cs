@@ -23,6 +23,12 @@ internal sealed class IntroduceNamedTypeAdvice : IntroduceDeclarationAdvice<INam
     /// </summary>
     private readonly RecordKind? _recordKind;
 
+    /// <summary>
+    /// A value indicating whether the introduced type is a union written with the <c>union</c> keyword, which the
+    /// language reports as a struct.
+    /// </summary>
+    private readonly bool _isUnion;
+
     public override AdviceKind AdviceKind => AdviceKind.IntroduceType;
 
     private OverrideStrategy OverrideStrategy { get; }
@@ -33,13 +39,15 @@ internal sealed class IntroduceNamedTypeAdvice : IntroduceDeclarationAdvice<INam
         OverrideStrategy overrideStrategy,
         Action<NamedTypeBuilder>? buildAction,
         TypeKind typeKind,
-        RecordKind? recordKind = null )
+        RecordKind? recordKind = null,
+        bool isUnion = false )
         : base( parameters, buildAction )
     {
         this._explicitName = explicitName;
         this.OverrideStrategy = overrideStrategy;
         this._typeKind = typeKind;
         this._recordKind = recordKind;
+        this._isUnion = isUnion;
     }
 
     protected override NamedTypeBuilder CreateBuilder()
@@ -48,6 +56,11 @@ internal sealed class IntroduceNamedTypeAdvice : IntroduceDeclarationAdvice<INam
 
         // Each kind whose builder carries state of its own has a class of its own. The compilation model requires an
         // INamedTypeImpl in every case, so each of them derives from NamedTypeBuilder and narrows what it exposes.
+        if ( this._isUnion )
+        {
+            return new UnionBuilder( this.AspectLayerInstance, target, this._explicitName );
+        }
+
         if ( this._recordKind is { } recordKind )
         {
             return new RecordBuilder( this.AspectLayerInstance, target, this._explicitName, recordKind );
@@ -141,6 +154,16 @@ internal sealed class IntroduceNamedTypeAdvice : IntroduceDeclarationAdvice<INam
                 foreach ( var member in enumBuilder.MemberBuilders )
                 {
                     context.AddTransformation( new IntroduceSynthesizedDeclarationTransformation( this.AspectLayerInstance, member.BuilderData ) );
+                }
+
+                break;
+
+            case UnionBuilder unionBuilder:
+                // The compiler synthesizes one constructor per case and the Value property from the union
+                // declaration, so each is registered in the code model and emitted by nothing.
+                foreach ( var member in unionBuilder.GetSynthesizedMemberData() )
+                {
+                    context.AddTransformation( new IntroduceSynthesizedDeclarationTransformation( this.AspectLayerInstance, member ) );
                 }
 
                 break;

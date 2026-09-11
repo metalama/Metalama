@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Types;
+using Metalama.Framework.Engine.CodeModel.Introductions.Introduced;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using System.Collections.Generic;
@@ -74,6 +75,14 @@ internal sealed class UnionFacet : IUnionFacet
 
     private static UnionKind GetUnionKind( INamedType type )
     {
+        // An introduced union is always written with the union keyword, because IntroduceUnion produces that form
+        // and no other. It has no symbol, so the reading below would report it as the attribute form, which is the
+        // silent failure that section 5 of Metalama.Framework/docs/future/introducing-unions.md names.
+        if ( type is IntroducedNamedType )
+        {
+            return UnionKind.Declaration;
+        }
+
         // The declaration form is recognized from the syntax of the declaration, because the compiled form of a union
         // is the same for the two forms: both carry the union attribute. A union that has no declaring syntax is read
         // from a referenced assembly and is therefore reported as the attribute form, which is the form that its
