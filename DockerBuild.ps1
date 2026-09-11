@@ -115,6 +115,19 @@
     Label to apply to the container for identification (e.g., for cleanup of orphaned build containers).
     The label is set as "postsharp.build=<value>" on the container.
 
+.PARAMETER MaxImageSpace
+    Budget for the Docker image store, in gigabytes. Before the image chain is built, if the image
+    store exceeds this budget, unused images are removed oldest first until the store is back within
+    the budget.
+    The budget is compared to the size that `docker system df` reports for images, which counts a
+    layer shared by several images only once.
+    The removal covers every image on the Docker engine, not only the images of this repository.
+    It never removes an image that this run needs, an image that any container references, or an
+    image created in the last two hours.
+    Gigabytes are decimal (1 GB = 1e9 bytes), which is the unit `docker system df` prints.
+    Set it to 0 to disable the cleanup.
+    Defaults to $env:DOCKER_MAX_IMAGE_SPACE if set, otherwise 100.
+
 .PARAMETER BuildArgs
     Arguments passed to Build.ps1 within the container (or Claude prompt if -Claude is specified).
 
@@ -167,6 +180,7 @@ param(
     [string[]]$Env, # Additional environment variables to pass from host to container.
     [string[]]$Ports, # Port mappings from host to container (e.g., "8080:80", "3000").
     [string]$Label, # Label to apply to the container (e.g., for identifying build containers for cleanup).
+    [string]$MaxImageSpace = $(if ($env:DOCKER_MAX_IMAGE_SPACE) { $env:DOCKER_MAX_IMAGE_SPACE } else { '100' }), # Budget for the Docker image store, in decimal GB. Unused images are removed oldest first before the build when the store exceeds it. 0 disables the cleanup. Defaults to $env:DOCKER_MAX_IMAGE_SPACE or 100.
     [Parameter(ValueFromRemainingArguments)]
     [string[]]$BuildArgs   # Arguments passed to `Build.ps1` within the container (or Claude prompt if -Claude is specified).
 )
@@ -312,6 +326,45 @@ try
         }
         $Cpus = $cpuInt
     }
+
+    # Validate and parse -MaxImageSpace. An empty value or 0 disables the image-space cleanup; anything else
+    # must be a whole number of gigabytes. An unparseable value is a hard error, as for -Cpus: this variable is
+    # normally set once for a whole build agent, so a typo that silently disabled the cleanup would only be
+    # discovered as a full disk, weeks later.
+    $maxImageSpaceBytes = [long]0
+    if (-not [string]::IsNullOrWhiteSpace($MaxImageSpace))
+    {
+        $maxImageSpaceGb = 0
+        if (-not [int]::TryParse($MaxImageSpace.Trim(), [ref]$maxImageSpaceGb) -or $maxImageSpaceGb -lt 0)
+        {
+            Write-Error "-MaxImageSpace must be a whole number of gigabytes, or 0 to disable the image-space cleanup. Got: '$MaxImageSpace'"
+            exit 1
+        }
+
+        # Docker prints sizes in DECIMAL gigabytes, so the budget uses the same unit as the number it is
+        # compared to. PowerShell's 1GB is binary, and would silently turn a budget of 100 into 107.4 of the
+        # gigabytes that `docker system df` reports.
+        $maxImageSpaceBytes = [long]$maxImageSpaceGb * 1000000000
+    }
+
+    # Images created within this window are never removed, and `docker image prune` is given the same window.
+    # This is what makes the cleanup safe against the concurrent DockerBuild runs that share a build agent. A
+    # sibling run's freshly built or pulled chain image, and its boot image between `docker build` and
+    # `docker run`, are referenced by no container, are absent from this run's keep set, and are invisible to
+    # everything else here. Two hours is much longer than that window, and costs nothing on an agent whose
+    # image store has grown over weeks.
+    $ImageCleanupGraceHours = 2
+
+    # How many measure-and-remove passes the cleanup makes. Each pass costs one `docker system df`, which is
+    # the expensive part, and each pass necessarily removes too little, because the size reported for an image
+    # includes the layers it shares with images that survive. A chain therefore loses one level per pass. The
+    # chains here are three deep, so four passes leave one to spare, and whatever is not freed by then is freed
+    # by the next build.
+    $ImageCleanupMaxPasses = 4
+
+    # Wall-clock budget for the whole cleanup. `docker system df` walks the layer store and can take minutes on
+    # an agent that holds hundreds of images. Freeing disk must never become the slowest part of the build.
+    $ImageCleanupTimeoutMinutes = 10
 
     # msbuild.ps1 budgets one MSBuild node per 4 GB of the container's memory.
     $MinMemoryPerCpuGb = 4
@@ -910,6 +963,38 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
         }
     }
 
+    # Parse the OS image a chain ROOT is built FROM, as declared by `ARG OS_IMAGE_REPOSITORY=` (the Windows
+    # default root, which takes its tag from WINDOWS_VERSION) or `ARG OS_IMAGE=` (every other root, which
+    # declares a complete reference). Returns $null for a Dockerfile that declares neither, which is every
+    # image that is not a chain root.
+    #
+    # Pure: it only reads the file. That is what lets the image-space cleanup protect the OS image before any
+    # image is built, without asking the daemon anything. ArgName tells the caller which build-arg the value
+    # belongs to, because the two spellings need different values (a repository, or a full reference).
+    function Get-OsImageSpec([string]$dfPath)
+    {
+        $content = Get-Content -Raw $dfPath -ErrorAction SilentlyContinue
+        if (-not $content) { return $null }
+
+        if ($windowsVersion -and ($content -match 'ARG\s+OS_IMAGE_REPOSITORY=(\S+)'))
+        {
+            return [pscustomobject]@{ Repository = $Matches[1]; Tag = $windowsVersion; ArgName = 'OS_IMAGE_REPOSITORY' }
+        }
+
+        if ($content -match 'ARG\s+OS_IMAGE=(\S+)')
+        {
+            # Split the trailing tag off the reference; a ':' before the last '/' belongs to a registry port.
+            $ref = $Matches[1]
+            $slash = $ref.LastIndexOf('/')
+            $colon = $ref.LastIndexOf(':')
+            if ($colon -gt $slash) { return [pscustomobject]@{ Repository = $ref.Substring(0, $colon); Tag = $ref.Substring($colon + 1); ArgName = 'OS_IMAGE' } }
+
+            return [pscustomobject]@{ Repository = $ref; Tag = 'latest'; ArgName = 'OS_IMAGE' }
+        }
+
+        return $null
+    }
+
     # Build one chain image from its STATIC Dockerfile, unmodified (per-image context, base build-arg).
     function Build-OneImage([string]$dfPath, [string]$tag, [string[]]$baseBuildArg)
     {
@@ -934,20 +1019,12 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
         # means the mirror is only consulted when a root image is genuinely being built. The Windows default
         # root takes its tag from WINDOWS_VERSION and so declares a repository; every other root (Linux, and
         # any product that pins its own base image) declares a complete reference.
-        if ($windowsVersion -and ($content -match 'ARG\s+OS_IMAGE_REPOSITORY=(\S+)'))
+        $osImageSpec = Get-OsImageSpec $dfPath
+        if ($osImageSpec)
         {
-            $cmd += @('--build-arg', "OS_IMAGE_REPOSITORY=$( (Get-OsImage $Matches[1] $windowsVersion).Repository )")
-        }
-        elseif ($content -match 'ARG\s+OS_IMAGE=(\S+)')
-        {
-            # Split the trailing tag off the reference; a ':' before the last '/' belongs to a registry port.
-            $ref = $Matches[1]
-            $slash = $ref.LastIndexOf('/')
-            $colon = $ref.LastIndexOf(':')
-            if ($colon -gt $slash) { $osRepository = $ref.Substring(0, $colon); $osTag = $ref.Substring($colon + 1) }
-            else { $osRepository = $ref; $osTag = 'latest' }
-
-            $cmd += @('--build-arg', "OS_IMAGE=$( (Get-OsImage $osRepository $osTag).Reference )")
+            $osImage = Get-OsImage $osImageSpec.Repository $osImageSpec.Tag
+            $osImageValue = if ($osImageSpec.ArgName -eq 'OS_IMAGE_REPOSITORY') { $osImage.Repository } else { $osImage.Reference }
+            $cmd += @('--build-arg', "$( $osImageSpec.ArgName )=$osImageValue")
         }
         $cmd += $baseBuildArg
         $cmd += @('-f', '-', $ctxDir)
@@ -1123,27 +1200,10 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
     # registry is on the LAN, so building from the mirror replaces an internet transfer with a local one.
     # Agents that configure no registry (the cloud ones) go straight to the upstream registry, as before.
     #
-    # Takes the upstream repository and tag, and returns an object with the Repository and the full Reference to
-    # build from - either the mirror or, when there is no registry (or the mirror cannot be created), upstream.
-    # Called only when a ROOT image is actually being built, so a run that pulls its whole chain never touches
-    # the mirror. Each distinct image is resolved once per run.
-    function Get-OsImage([string]$repository, [string]$tag)
+    # The repository the given upstream OS repository is mirrored under in $dockerRegistry. Split out of
+    # Get-OsImage so that the image-space cleanup can name the mirror without pulling or creating it.
+    function Get-OsMirrorRepository([string]$repository)
     {
-        $upstreamRef = "${repository}:${tag}"
-
-        if ($script:OsImages.ContainsKey($upstreamRef))
-        {
-            return $script:OsImages[$upstreamRef]
-        }
-
-        $upstream = [pscustomobject]@{ Repository = $repository; Reference = $upstreamRef }
-
-        if (-not $dockerRegistry)
-        {
-            $script:OsImages[$upstreamRef] = $upstream
-            return $upstream
-        }
-
         # Flatten the upstream repository into a single product-neutral name, dropping the registry host:
         # 'mcr.microsoft.com/windows/servercore' -> 'windows-servercore', 'ubuntu' -> 'ubuntu'. Every product
         # using this registry then shares the one mirror.
@@ -1168,7 +1228,31 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
             "-$architecture"
         }
 
-        $mirrorRepository = "$dockerRegistry/$( $segments -join '-' )$architectureSuffix"
+        return "$dockerRegistry/$( $segments -join '-' )$architectureSuffix"
+    }
+
+    # Takes the upstream repository and tag, and returns an object with the Repository and the full Reference to
+    # build from - either the mirror or, when there is no registry (or the mirror cannot be created), upstream.
+    # Called only when a ROOT image is actually being built, so a run that pulls its whole chain never touches
+    # the mirror. Each distinct image is resolved once per run.
+    function Get-OsImage([string]$repository, [string]$tag)
+    {
+        $upstreamRef = "${repository}:${tag}"
+
+        if ($script:OsImages.ContainsKey($upstreamRef))
+        {
+            return $script:OsImages[$upstreamRef]
+        }
+
+        $upstream = [pscustomobject]@{ Repository = $repository; Reference = $upstreamRef }
+
+        if (-not $dockerRegistry)
+        {
+            $script:OsImages[$upstreamRef] = $upstream
+            return $upstream
+        }
+
+        $mirrorRepository = Get-OsMirrorRepository $repository
         $mirror = [pscustomobject]@{ Repository = $mirrorRepository; Reference = "${mirrorRepository}:${tag}" }
 
         docker @dockerConfigArg manifest inspect $mirror.Reference *> $null
@@ -1292,6 +1376,452 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
             }
         }
         return $tag
+    }
+
+    # Docker prints sizes with go-units: "0B", "45.5kB", "12.34GB", "1.1TB". `system df`, `image ls` and
+    # `image prune` use the DECIMAL scale (kB = 1000); other Docker surfaces use the binary spellings ("1.1GiB").
+    # Both are accepted, rather than guessing which one produced a given string.
+    #
+    # Returns -1, not 0, for anything that is not a size. Every caller has to tell "Docker reported zero" from
+    # "Docker reported something this script does not understand", because the second one must disable the
+    # cleanup instead of making it believe the image store is empty.
+    function ConvertFrom-DockerSize([string]$text)
+    {
+        if ("$text" -notmatch '^\s*(\d+(?:\.\d+)?)\s*([kKmMgGtTpP]?)(i?)B\s*$')
+        {
+            return [long]-1
+        }
+
+        $exponent = switch ($Matches[2].ToUpperInvariant())
+        {
+            'K' { 1 }
+            'M' { 2 }
+            'G' { 3 }
+            'T' { 4 }
+            'P' { 5 }
+            default { 0 }
+        }
+
+        return [long]([double]$Matches[1] * [Math]::Pow($( if ($Matches[3]) { 1024 } else { 1000 } ), $exponent))
+    }
+
+    # Formats a byte count in the DECIMAL gigabytes Docker prints (1 GB = 1e9 bytes), not in PowerShell's binary
+    # 1GB, so that every line logged here agrees with the tool it quotes.
+    function Format-Gigabytes([long]$bytes)
+    {
+        return "$( [Math]::Round($bytes / 1e9, 1) ) GB"
+    }
+
+    # The size of the whole image store in bytes, or -1 when it cannot be determined.
+    #
+    # The Images row of `docker system df` reports what the image store occupies on disk, counting a layer
+    # shared by several images only once. Adding up the sizes from `docker image ls` instead would count each
+    # shared layer once per image, and would report roughly three times the truth for a three-deep chain.
+    #
+    # Deliberately not `docker system df -v`, which recomputes the shared and unique size of every image and
+    # takes minutes on an agent that holds hundreds of images. Deliberately not `--format json`, which only
+    # recent versions of the Docker command line accept; the per-row template below is what the default table
+    # is built from and has worked ever since `system df` was introduced.
+    function Get-ImageStoreSize
+    {
+        $rows = @(docker system df --format '{{.Type}}|{{.Size}}' 2>&1)
+
+        if ($LASTEXITCODE -ne 0)
+        {
+            Write-Host "Could not measure the Docker image store: $( ($rows -join ' ').Trim() )" -ForegroundColor Yellow
+            return [long]-1
+        }
+
+        foreach ($row in $rows)
+        {
+            $fields = "$row" -split '\|', 2
+            if ($fields.Count -ne 2 -or $fields[0].Trim() -ne 'Images')
+            {
+                continue
+            }
+
+            $size = ConvertFrom-DockerSize $fields[1]
+            if ($size -lt 0)
+            {
+                Write-Host "Could not parse the image store size '$( $fields[1].Trim() )' reported by 'docker system df'." -ForegroundColor Yellow
+            }
+
+            return $size
+        }
+
+        Write-Host "'docker system df' reported no Images row, so the image store cannot be measured." -ForegroundColor Yellow
+        return [long]-1
+    }
+
+    # Serializes the cleanup across the concurrent DockerBuild runs of one agent. Without it, two runs that both
+    # measure the store 50 GB over budget each remove 50 GB, and the agent loses twice what it had to.
+    #
+    # This is an optimization, not the guarantee of correctness: runs under different accounts resolve different
+    # temporary directories and never see each other's lock file. What actually keeps a sibling run's images
+    # alive is the grace window. The operating system releases the handle when the process ends, so the lock
+    # cannot go stale. Returns $null when another run holds it; the caller then skips the cleanup rather than
+    # waiting, because whatever the other run frees, it frees for both.
+    function Enter-ImageCleanupLock
+    {
+        try
+        {
+            # Resolved inside the try as well: a temporary directory that the platform rejects makes this throw
+            # rather than the Open below.
+            $lockPath = Join-Path ([System.IO.Path]::GetTempPath()) 'PostSharp.DockerBuild.ImageCleanup.lock'
+
+            return [System.IO.File]::Open($lockPath, [System.IO.FileMode]::OpenOrCreate, [System.IO.FileAccess]::ReadWrite, [System.IO.FileShare]::None)
+        }
+        catch [System.IO.IOException]
+        {
+            # The expected case: another run holds the lock. Sharing violations, and every other input/output
+            # error, arrive here.
+            return $null
+        }
+        catch
+        {
+            # Anything else, such as a temporary directory that this account cannot write to, or a path the
+            # platform rejects. UnauthorizedAccessException does not derive from IOException, so it would
+            # otherwise escape, and $ErrorActionPreference is 'Stop' - which would fail the build over a
+            # cleanup that is only ever best effort.
+            Write-Host "Skipping the image-space cleanup: the lock file could not be opened. $( $_.Exception.Message )" -ForegroundColor Yellow
+            return $null
+        }
+    }
+
+    # Every image reference this run is about to need, so that the cleanup does not remove what the build
+    # immediately rebuilds or pulls again.
+    #
+    # Docker already refuses to remove the ancestor of an image it keeps, so listing the whole chain only makes
+    # the log readable and saves failed removal attempts. The OS image is the entry that genuinely matters: on a
+    # run whose chain root is absent, no local image depends on the OS image yet, and on a Windows agent that
+    # image is both the largest and the oldest one on the machine. Without this it would be the first candidate
+    # removed, seconds before the root build asks for it.
+    function Get-ImageChainKeepSet
+    {
+        $keep = [System.Collections.Generic.List[string]]::new()
+
+        if ($RegistryImage)
+        {
+            # -RegistryImage skips all Dockerfile logic, so there is no chain to resolve and the single image
+            # this run uses is the whole keep set.
+            $keep.Add($RegistryImage)
+            return $keep
+        }
+
+        # Resolve-ImageTag is pure and memoized, and Get-BaseDockerfile only reads the file, so the complete set
+        # of tags this run needs is computed without a single call to the Docker engine.
+        $current = $dockerfileFullPath
+        $root = $current
+        while ($current)
+        {
+            $keep.Add((Resolve-ImageTag $current))
+            $root = $current
+            $current = Get-BaseDockerfile $current
+        }
+
+        # $root is now the chain root, the only Dockerfile that declares an OS image.
+        $osImageSpec = Get-OsImageSpec $root
+        if ($osImageSpec)
+        {
+            $keep.Add("$( $osImageSpec.Repository ):$( $osImageSpec.Tag )")
+            if ($dockerRegistry)
+            {
+                $keep.Add("$( Get-OsMirrorRepository $osImageSpec.Repository ):$( $osImageSpec.Tag )")
+            }
+        }
+
+        return $keep
+    }
+
+    # The images that may be removed, oldest first.
+    #
+    # Whatever Docker itself refuses to delete is left to Docker: `docker image rm` refuses to remove an image
+    # that a container references, or that a descendant is built on, and this function does not try to reproduce
+    # that reasoning. It only produces a sensible order and drops what is pointless to attempt.
+    #
+    # `docker image ls` without -a is deliberate: -a also lists the intermediate images of the classic builder,
+    # which are the whole build cache of the Windows engine.
+    function Get-EvictionCandidates([System.Collections.Generic.HashSet[string]]$keepReferences, [datetime]$graceCutoff)
+    {
+        $rows = @(docker image ls --no-trunc --format '{{.ID}}|{{.Repository}}|{{.Tag}}|{{.CreatedAt}}|{{.Size}}' 2>&1)
+        if ($LASTEXITCODE -ne 0)
+        {
+            Write-Host "Could not list the Docker images: $( ($rows -join ' ').Trim() )" -ForegroundColor Yellow
+            return @()
+        }
+
+        # The image identifier of every container on the engine, running or stopped, which includes the boot
+        # images of the other DockerBuild runs that share this agent. `docker ps -a --format '{{.Image}}'` would
+        # give the reference as it was typed when the container was created, which is often a tag that has since
+        # moved; inspecting the containers gives the identifier the container is really pinned to, which is also
+        # what `docker image ls` reports.
+        $inUse = [System.Collections.Generic.HashSet[string]]::new( [StringComparer]::OrdinalIgnoreCase )
+        $containerIds = @(docker ps -a -q 2>$null | Where-Object { $_ -and $_.Trim() -ne '' })
+        if ($containerIds.Count -gt 0)
+        {
+            foreach ($imageId in @(docker inspect --format '{{.Image}}' @containerIds 2>$null))
+            {
+                [void]$inUse.Add(("$imageId" -replace '^sha256:', ''))
+            }
+        }
+
+        # One row per TAG, so two rows can carry the same image identifier (the same image tagged both locally
+        # and with the registry prefix). They are grouped by identifier because the size must be counted once,
+        # and because removing only some of an image's tags frees nothing at all: only the last tag deletes it.
+        $byId = [ordered]@{ }
+        $dateWarningIssued = $false
+
+        foreach ($row in $rows)
+        {
+            $fields = "$row" -split '\|'
+            if ($fields.Count -lt 5) { continue }
+
+            $id = $fields[0] -replace '^sha256:', ''
+            $repository = $fields[1]
+            $tag = $fields[2]
+
+            # Dangling images are handled up front by `docker image prune`, which applies Docker's own
+            # definition of dangling. A '<none>' repository here is therefore already gone, or is the parent of
+            # something, and is not a candidate either way.
+            if ($repository -eq '<none>') { continue }
+
+            if ($inUse.Contains($id)) { continue }
+
+            $reference = "${repository}:${tag}"
+
+            if (-not $byId.Contains($id))
+            {
+                # Docker prints CreatedAt as "2026-05-13 09:21:33 +0200 CEST", a Go layout that .NET cannot
+                # parse as a whole. Every row is formatted in the same time zone, so the leading
+                # "yyyy-MM-dd HH:mm:ss" alone orders them correctly and is all that is read. A date that cannot
+                # be read is treated as brand new, and therefore never removed, rather than as ancient: if the
+                # format ever changes, the result must be "frees nothing", never "deletes the oldest image on
+                # the agent".
+                $created = [datetime]::MaxValue
+                if ($fields[3] -match '^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})')
+                {
+                    [void][datetime]::TryParseExact($Matches[1], 'yyyy-MM-dd HH:mm:ss', [cultureinfo]::InvariantCulture, [Globalization.DateTimeStyles]::None, [ref]$created)
+                }
+                elseif (-not $dateWarningIssued)
+                {
+                    $dateWarningIssued = $true
+                    Write-Host "Cannot read the creation date '$( $fields[3] )' that 'docker image ls' reports; an image whose date cannot be read is never removed." -ForegroundColor Yellow
+                }
+
+                $size = ConvertFrom-DockerSize $fields[4]
+
+                $byId[$id] = [pscustomobject]@{
+                    Id = $id
+                    References = [System.Collections.Generic.List[string]]::new()
+                    Created = $created
+                    Size = $( if ($size -lt 0) { [long]0 } else { $size } )   # an unreadable size contributes nothing to the target
+                    Keep = $false
+                    Removed = $false
+                }
+            }
+
+            # A tag in the keep set protects the whole image, not only that one tag: removing its other tags
+            # would free nothing and would leave a half-untagged image behind.
+            if ($keepReferences.Contains($reference)) { $byId[$id].Keep = $true }
+
+            if ($tag -ne '<none>') { $byId[$id].References.Add($reference) }
+        }
+
+        # Oldest first. The Docker API exposes no last-used time for an image, so age is the only signal
+        # available; the images this run is about to need are protected by the keep set instead.
+        return @($byId.Values |
+                Where-Object { -not $_.Keep -and $_.Created -lt $graceCutoff } |
+                Sort-Object Created)
+    }
+
+    # Frees image disk space when the image store is over budget. Best effort throughout: this frees disk, it
+    # does not gate the build, so nothing here may change the exit code of the script.
+    #
+    # Runs BEFORE the image chain is built, so that the space it frees is space this build can use, and before
+    # the registry login, because everything it does is local to the Docker engine and needs no credentials.
+    function Invoke-ImageSpaceCleanup([long]$budgetBytes, [string[]]$keepReferences)
+    {
+        $total = Get-ImageStoreSize
+        if ($total -lt 0)
+        {
+            Write-Host "Skipping the image-space cleanup: the image store could not be measured." -ForegroundColor Yellow
+            return
+        }
+
+        if ($total -le $budgetBytes)
+        {
+            Write-Host "Docker image store: $( Format-Gigabytes $total ) of the $( Format-Gigabytes $budgetBytes ) budget." -ForegroundColor Cyan
+            return
+        }
+
+        Write-Host "Docker image store is $( Format-Gigabytes $total ), over the $( Format-Gigabytes $budgetBytes ) budget; freeing space." -ForegroundColor Yellow
+
+        $lock = Enter-ImageCleanupLock
+        if (-not $lock)
+        {
+            Write-Host "Another DockerBuild run is already freeing image space; skipping the cleanup." -ForegroundColor Yellow
+            return
+        }
+
+        try
+        {
+            $started = [System.Diagnostics.Stopwatch]::StartNew()
+            $graceCutoff = (Get-Date).AddHours(-$ImageCleanupGraceHours)
+            $initial = $total
+
+            # Dangling images first, through Docker's own prune, which applies Docker's definition of dangling
+            # (untagged AND not the parent of anything) and so leaves the intermediate images of the Windows
+            # classic builder alone. The `until` filter applies the same grace window as the removal below, and
+            # closes the moment between a sibling run committing its last layer and tagging it, during which its
+            # image is briefly indistinguishable from an orphan.
+            #
+            # Done separately, and first, because a dangling image shares almost every layer with the image that
+            # replaced it. Inside the loop below its reported size would satisfy the whole overage on paper and
+            # free nothing at all, wasting a pass.
+            $pruneOutput = (docker image prune --force --filter "until=$( $ImageCleanupGraceHours )h" 2>&1 | Out-String)
+            if ($pruneOutput -match 'Total reclaimed space:\s*(\S+)')
+            {
+                $reclaimed = ConvertFrom-DockerSize $Matches[1]
+                if ($reclaimed -gt 0)
+                {
+                    Write-Host "  reclaimed $( Format-Gigabytes $reclaimed ) from dangling images" -ForegroundColor Gray
+
+                    # Measure again rather than subtract, so that the loop below never removes space that has
+                    # already been freed.
+                    $total = Get-ImageStoreSize
+                    if ($total -lt 0) { return }
+                }
+            }
+
+            # The ?? guards the HashSet constructor, which rejects a null collection: a caller that resolved no
+            # keep set at all must lose the cleanup, not the build.
+            $keep = [System.Collections.Generic.HashSet[string]]::new( [string[]]($keepReferences ?? @()), [StringComparer]::OrdinalIgnoreCase )
+            $candidates = Get-EvictionCandidates $keep $graceCutoff
+
+            for ($pass = 1; $pass -le $ImageCleanupMaxPasses -and $total -gt $budgetBytes; $pass++)
+            {
+                if ($started.Elapsed.TotalMinutes -ge $ImageCleanupTimeoutMinutes)
+                {
+                    Write-Host "Giving up on the image-space cleanup after $ImageCleanupTimeoutMinutes minutes." -ForegroundColor Yellow
+                    break
+                }
+
+                # Accumulate against the overage that was just measured. The size reported for an image includes
+                # the layers it shares with images that survive, so this sum overstates what removing the batch
+                # frees: the batch is guaranteed to free at most the overage, never more. That is the right
+                # direction to be wrong in, because it costs passes and not images, and it is why the true total
+                # is measured again after every pass instead of being tracked by subtraction.
+                $overage = $total - $budgetBytes
+                $batch = [System.Collections.Generic.List[object]]::new()
+                $accumulated = [long]0
+
+                foreach ($candidate in $candidates)
+                {
+                    if ($candidate.Removed) { continue }
+                    $batch.Add($candidate)
+                    $accumulated += $candidate.Size
+                    if ($accumulated -ge $overage) { break }
+                }
+
+                if ($batch.Count -eq 0)
+                {
+                    Write-Host "No image is left to remove; the image store stays at $( Format-Gigabytes $total )." -ForegroundColor Yellow
+                    break
+                }
+
+                Write-Host "Pass $pass`: removing up to $( $batch.Count ) unused image(s) to reclaim $( Format-Gigabytes $overage )." -ForegroundColor Cyan
+
+                # Issue the removals NEWEST first, although the order of selection is oldest first: an image
+                # cannot be removed while a descendant is built on it, and within a chain the descendant is the
+                # younger image. Issuing them oldest first would fail on every parent. Repeat while anything is
+                # still coming off, so that a parent freed by the removal of its child also goes in this pass.
+                $removedInPass = 0
+                for ($attempt = 0; $attempt -lt 4; $attempt++)
+                {
+                    $removedInAttempt = 0
+
+                    foreach ($candidate in ($batch | Sort-Object Created -Descending))
+                    {
+                        if ($candidate.Removed) { continue }
+
+                        # An image with no usable name and tag (a pull pinned to a digest) can only be addressed
+                        # by its identifier. Docker refuses that when several repositories reference the image,
+                        # which is handled below like any other refusal.
+                        $references = if ($candidate.References.Count -gt 0) { $candidate.References } else { @($candidate.Id) }
+
+                        $failure = $null
+                        foreach ($reference in $references)
+                        {
+                            $output = (docker image rm $reference 2>&1 | Out-String).Trim()
+
+                            # Deliberately not forced. `docker image rm -f` untags an image that a stopped
+                            # container still holds, which is exactly how a concurrent run gets broken: the
+                            # refusal below is the safety net that this whole function relies on.
+                            #
+                            # "No such image" means that another pass, or another run, got there first, which
+                            # counts as success.
+                            if ($LASTEXITCODE -ne 0 -and $output -notmatch 'No such image')
+                            {
+                                $failure = $output
+                            }
+                        }
+
+                        if ($failure)
+                        {
+                            # The two expected refusals are that a container holds the image, possibly a sibling
+                            # run's, and that a descendant protected by the keep set or the grace window is
+                            # built on it. Both mean the image was correctly skipped, and are reported as detail
+                            # rather than as a problem. An image that carries several tags loses the tags that
+                            # were removed before the refusal; that frees nothing, but it also breaks nothing,
+                            # because a container and a child image are both pinned to the identifier.
+                            if ($failure -notmatch 'being used by|dependent child images|No such image')
+                            {
+                                Write-Host "  could not remove $( $references[0] ): $failure" -ForegroundColor Yellow
+                            }
+                        }
+                        else
+                        {
+                            $candidate.Removed = $true
+                            $removedInAttempt++
+                            Write-Host "  removed $( $references -join ', ' )" -ForegroundColor Gray
+                        }
+                    }
+
+                    $removedInPass += $removedInAttempt
+                    if ($removedInAttempt -eq 0) { break }
+                }
+
+                if ($removedInPass -eq 0)
+                {
+                    # Every image in the batch was refused, and the list of candidates only ever shrinks, so
+                    # another pass would select the same images and be refused again.
+                    Write-Host "Nothing could be removed; the image store stays at $( Format-Gigabytes $total )." -ForegroundColor Yellow
+                    break
+                }
+
+                $total = Get-ImageStoreSize
+                if ($total -lt 0)
+                {
+                    # The store can no longer be measured, so there is no way to tell when to stop. Stopping is
+                    # the only safe answer.
+                    break
+                }
+            }
+
+            $freed = $initial - $total
+            if ($total -le $budgetBytes)
+            {
+                Write-Host "Freed $( Format-Gigabytes $freed ); the image store is now $( Format-Gigabytes $total ) of the $( Format-Gigabytes $budgetBytes ) budget." -ForegroundColor Green
+            }
+            else
+            {
+                Write-Host "Freed $( Format-Gigabytes $freed ), but the image store is still $( Format-Gigabytes $total ), over the $( Format-Gigabytes $budgetBytes ) budget." -ForegroundColor Yellow
+            }
+        }
+        finally
+        {
+            $lock.Dispose()
+        }
     }
 
     # Dictionary to track volume mounts with "writable wins" logic
@@ -2190,6 +2720,17 @@ $envVarAssignments$gitConfigCommands$postInitCommands
         {
             Write-Host "No existing container for $ImageTag."
         }
+    }
+
+    # Free image disk space before the chain is resolved, so that what is freed is available to the builds and
+    # pulls below rather than only to the next run. Everything the cleanup does is local to the Docker engine,
+    # so it runs before the registry login and needs no credentials.
+    #
+    # Skipped when an existing container is reused: nothing is built or pulled then, so there is no space to
+    # make room for, and the image of that container must stay untouched.
+    if ($maxImageSpaceBytes -gt 0 -and -not $existingContainerId)
+    {
+        Invoke-ImageSpaceCleanup $maxImageSpaceBytes (Get-ImageChainKeepSet)
     }
 
     # Registry authentication + image-chain resolution (build the ancestor chain; pull-or-build+push each level).
