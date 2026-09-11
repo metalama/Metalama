@@ -374,6 +374,13 @@ compiler reports CS9373 for them in a union declaration.
 `IDelegateBuilder`, `IEnumBuilder` and `IRecordBuilder` follow the same shape. They are not part of this proposal
 beyond the shape, because the introduction of those kinds is not currently supported.
 
+> The builder interfaces are now designed in [`introducing-types.md`](introducing-types.md) and in the five
+> documents it indexes, which supersede this section on two points. First, `IEnumBuilder` and `IDelegateBuilder`
+> derive from `IMemberOrNamedTypeBuilder` rather than from `INamedTypeBuilder`, for the reasons that section 2 of
+> that document gives; `IRecordBuilder` and `IUnionBuilder` derive from `INamedTypeBuilder` as drafted here.
+> Second, `IUnionBuilder.AddCase` returns a builder rather than an `IUnionCase`, because a case that is being
+> built has no creation member yet, which is the lifetime argument that the next paragraph of this section makes.
+
 The reason for keeping the writing surface off the facet is that the reader and the writer have different
 lifetimes. A facet describes a type that exists. A builder describes a type that is being constructed and whose
 members are not yet resolvable.
@@ -537,7 +544,14 @@ separate decision.
 | [#867](https://github.com/metalama/Metalama/issues/867) | Introduce a record, with `IRecordBuilder`. The largest of the four, because the synthesized members have to exist as builders. | #1997, #869 |
 
 `IUnionBuilder` belongs to the union introduction stories S-29 and S-30 of
-[`../2027.0/user-stories/README.md`](../2027.0/user-stories/README.md), and not to an issue of its own.
+[`../2027.0/user-stories/README.md`](../2027.0/user-stories/README.md), which are filed as issues
+[#1951](https://github.com/metalama/Metalama/issues/1951) and
+[#1952](https://github.com/metalama/Metalama/issues/1952).
+
+> This table is superseded by section 6 of [`introducing-types.md`](introducing-types.md), which adds the two union
+> issues to it and records the revised hierarchy of section 2.4. The blockers listed above are satisfied: #1995,
+> #1996, #1997 and #1941 are closed, so only #869 blocks the other four. Each of the five kinds is designed in a
+> document of its own, and section 8 of that document indexes every related issue.
 
 ### 6.3. What the first issue measures
 
