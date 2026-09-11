@@ -16,7 +16,7 @@ namespace Metalama.Framework.Tests.UnitTests.CodeModel;
 
 /// <summary>
 /// Tests of the builder of an introduced delegate. See issue #865 and the design document
-/// <c>Metalama.Framework/docs/future/introducing-delegates.md</c>.
+/// <c>Metalama.Framework/docs/introducing-delegates.md</c>.
 /// </summary>
 public sealed class IntroduceDelegateTests : UnitTestClass
 {
@@ -32,7 +32,7 @@ public sealed class IntroduceDelegateTests : UnitTestClass
     /// <remarks>
     /// <para>
     /// The <c>Invoke</c> method is registered as its own transformation and is emitted by nothing, which is section
-    /// 4.2 of <c>Metalama.Framework/docs/future/introducing-types.md</c>. That registration is what makes the method
+    /// 4.2 of <c>Metalama.Framework/docs/introducing-types.md</c>. That registration is what makes the method
     /// visible through <see cref="INamedType.Methods"/>, which is where the facet resolves it.
     /// </para>
     /// </remarks>
@@ -208,7 +208,7 @@ public sealed class IntroduceDelegateTests : UnitTestClass
 
     /// <summary>
     /// Verifies that the four modifiers that a delegate cannot carry throw a <see cref="NotSupportedException"/>,
-    /// which is the rule of section 5.1 of <c>Metalama.Framework/docs/future/introducing-types.md</c>.
+    /// which is the rule of section 5.1 of <c>Metalama.Framework/docs/introducing-types.md</c>.
     /// </summary>
     [Fact]
     public void ModifiersThatADelegateDoesNotHaveAreRefused()
@@ -252,7 +252,7 @@ public sealed class IntroduceDelegateTests : UnitTestClass
     /// <summary>
     /// Verifies that <see cref="INamedType.Facets"/> of a delegate builder throws, while the flags that the
     /// collection dispatches on answer without throwing. See section 5.1 of
-    /// <c>Metalama.Framework/docs/future/introducing-types.md</c>.
+    /// <c>Metalama.Framework/docs/introducing-types.md</c>.
     /// </summary>
     [Fact]
     public void FacetsOfDelegateBuilderThrow()

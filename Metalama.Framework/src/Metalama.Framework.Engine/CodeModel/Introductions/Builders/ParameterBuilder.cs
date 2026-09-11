@@ -69,7 +69,7 @@ internal sealed class ParameterBuilder : BaseParameterBuilder
     /// The reference kind of the return parameter of a method is fixed because the template decides it, and there is
     /// no template for a delegate: an aspect writes the whole signature through <c>IDelegateBuilder</c>, and the
     /// language allows a delegate to return by reference. Section 7 of
-    /// <c>Metalama.Framework/docs/future/introducing-delegates.md</c> records that a <c>ref</c> return is in scope
+    /// <c>Metalama.Framework/docs/introducing-delegates.md</c> records that a <c>ref</c> return is in scope
     /// for this kind.
     /// </para>
     /// </remarks>

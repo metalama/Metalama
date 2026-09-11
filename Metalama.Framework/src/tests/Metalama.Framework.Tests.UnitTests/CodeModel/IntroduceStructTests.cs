@@ -14,7 +14,7 @@ namespace Metalama.Framework.Tests.UnitTests.CodeModel;
 
 /// <summary>
 /// Tests of the builder of an introduced struct. See issue #869 and the design document
-/// <c>Metalama.Framework/docs/future/introducing-structs.md</c>.
+/// <c>Metalama.Framework/docs/introducing-structs.md</c>.
 /// </summary>
 public sealed class IntroduceStructTests : UnitTestClass
 {

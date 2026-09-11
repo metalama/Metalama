@@ -1,8 +1,7 @@
 # Introducing an enum
 
-This document designs the introduction of an enum, which is issue
-[#866](https://github.com/metalama/Metalama/issues/866). It is a design proposal. Nothing described here is
-implemented.
+This document describes the introduction of an enum, which is issue
+[#866](https://github.com/metalama/Metalama/issues/866), and which is implemented.
 
 The cross-cutting decisions are in [`introducing-types.md`](introducing-types.md), which this document does not
 repeat. The one that shapes the interface below is section 2 of that document: an enum builder derives from
@@ -468,7 +467,7 @@ describes.
 ## 8. References
 
 - [`introducing-types.md`](introducing-types.md), sections 2, 3 and 5.
-- [`type-facets.md`](type-facets.md), section 2.2. Its implementation guideline 5, which makes a builder return
+- [`type-facets.md`](future/type-facets.md), section 2.2. Its implementation guideline 5, which makes a builder return
   the empty facet collection, is superseded by section 5.1 of [`introducing-types.md`](introducing-types.md).
 - `Metalama.Framework/Code/Types/IEnumFacet.cs`, the interface this design mirrors.
 - `Metalama.Framework/Code/DeclarationBuilders/IDeclarationBuilder.cs`, whose comment at line 35 records that there

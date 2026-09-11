@@ -1,11 +1,10 @@
 # Introducing a union
 
-This document designs the introduction of a union of C# 15, which is issue
-[#1951](https://github.com/metalama/Metalama/issues/1951). It is a design proposal. Nothing described here is
-implemented.
+This document describes the introduction of a union of C# 15, which is issue
+[#1951](https://github.com/metalama/Metalama/issues/1951), and which is implemented.
 
 The issue is user story S-29 of the 2027.0 release, and the capability, the scope and the acceptance criteria are
-stated there rather than here. Section 11 of [`../2027.0/DECISIONS.md`](../2027.0/DECISIONS.md) rules that a story
+stated there rather than here. Section 11 of [`../2027.0/DECISIONS.md`](2027.0/DECISIONS.md) rules that a story
 states no application programming interface, so the shape is designed here and the story keeps its authority over
 the scope. This document does not restate it.
 
@@ -15,7 +14,7 @@ S-29 carries two halves, which are introducing a whole union and adding a case t
 this design delivers the first half only. Section 6.4 states why, and what an aspect author does instead. Issue
 [#1952](https://github.com/metalama/Metalama/issues/1952), user story S-30, which carried the second half for a
 union declaration, is not implemented either. That was question Q1 of the release, the product owner answered it on
-2026-09-11, and section 4 of [`../2027.0/DECISIONS.md`](../2027.0/DECISIONS.md) records the answer.
+2026-09-11, and section 4 of [`../2027.0/DECISIONS.md`](2027.0/DECISIONS.md) records the answer.
 
 S-29 also names the attribute form of a union, which is a class or a struct carrying
 `System.Runtime.CompilerServices.UnionAttribute`. `IntroduceUnion` produces a union written with the `union`
@@ -166,7 +165,7 @@ There is no `IntroduceUnionCase`, and section 6.4 states why.
 A union declaration is a struct, and the language forbids an instance field, an automatic property and a field-like
 event in it. Those restrictions belong to this form and not to the attribute form, which this advice does not
 introduce, so every rule this issue writes tests the form it has rather than `ITypeSymbol.IsUnion`. Section 3 of
-[`../2027.0/DECISIONS.md`](../2027.0/DECISIONS.md) requires that distinction, and it is the one most often misread.
+[`../2027.0/DECISIONS.md`](2027.0/DECISIONS.md) requires that distinction, and it is the one most often misread.
 
 | Member | State |
 | --- | --- |
@@ -214,7 +213,7 @@ transformation that injected them as well would declare each of them twice. Sect
 describes the code model rather than the generated code.
 
 `INamedType.IsUnion` reports `true`, and `IType.TypeKind` reports `TypeKind.Struct`, because a union is not a kind
-of its own in the code model, which section 4.3 of [`type-facets.md`](type-facets.md) decides.
+of its own in the code model, which section 4.3 of [`type-facets.md`](future/type-facets.md) decides.
 
 The facet is tested by unit tests and not by aspect tests, for the reason that section 5.3 of
 [`introducing-types.md`](introducing-types.md) gives. The synthesized members of a union are in the same position
@@ -227,7 +226,7 @@ two differ in what the creation member of a case is.
 
 ### 6.1. A case is a type, so there is no case builder and `AddCase` returns nothing
 
-Section 2.4 of [`type-facets.md`](type-facets.md) drafts `IUnionCase AddCase( IType caseType );`. This design
+Section 2.4 of [`type-facets.md`](future/type-facets.md) drafts `IUnionCase AddCase( IType caseType );`. This design
 returns nothing, and declares no builder for a case. Two findings settle it.
 
 The first is the grammar. The language defines the case list as bare types:
@@ -249,7 +248,7 @@ about a case except its type, which is the argument of `AddCase`.
 The second is that `IUnionCase` cannot be returned either. It declares `CreationMember`, which is synthesized when
 the union is introduced, so a case that is still being built cannot answer it. Returning it would hand the author
 an object with a property that throws, which is the failure that the lifetime argument of section 2.4 of
-[`type-facets.md`](type-facets.md) predicts two paragraphs after the draft that ignores it.
+[`type-facets.md`](future/type-facets.md) predicts two paragraphs after the draft that ignores it.
 
 What remains is `Cases`, typed as an ordered list of `IType`, which is what the builder needs to store and what the
 transformation needs to emit. The same analysis reaches that shape independently and contrasts it with
@@ -351,7 +350,7 @@ document designs.
 This was question Q1 of the release, which chose between shipping both authoring forms of case addition and
 shipping the attribute form alone. The product owner answered on 2026-09-11 that neither ships, so the question is
 closed and has left [`../2027.0/OPEN-QUESTIONS.md`](../2027.0/OPEN-QUESTIONS.md); section 4 of
-[`../2027.0/DECISIONS.md`](../2027.0/DECISIONS.md) records it. The decision should be revisited if the language
+[`../2027.0/DECISIONS.md`](2027.0/DECISIONS.md) records it. The decision should be revisited if the language
 ever lets a part of a partial union contribute cases, which would remove the reason.
 
 ## 7. Open questions
@@ -371,14 +370,14 @@ reason `IUnionCase` carries `Index` at all.
 - [`introducing-types.md`](introducing-types.md), sections 2 and 5.
 - [`introducing-records.md`](introducing-records.md), section 6.1, and
   [`introducing-enums.md`](introducing-enums.md), section 6.1, which take the same decisions for their kinds.
-- [`type-facets.md`](type-facets.md), sections 2.4 and 4.3, the first of which this document revises.
+- [`type-facets.md`](future/type-facets.md), sections 2.4 and 4.3, the first of which this document revises.
 - [`../2027.0/user-stories/S-29-introduce-union-and-case-attribute-form.md`](../2027.0/user-stories/S-29-introduce-union-and-case-attribute-form.md),
   whose first half this document designs, and
   [`../2027.0/user-stories/S-30-introduce-case-into-union-declaration.md`](../2027.0/user-stories/S-30-introduce-case-into-union-declaration.md),
   which section 6.4 withdraws.
 - [`../2027.0/analysis-reports/11-introducing-unions-design.md`](../2027.0/analysis-reports/11-introducing-unions-design.md),
   which records the derivation of the case set of the attribute form.
-- [`../2027.0/DECISIONS.md`](../2027.0/DECISIONS.md), sections 3, 4 and 11.
+- [`../2027.0/DECISIONS.md`](2027.0/DECISIONS.md), sections 3, 4 and 11.
 - `Metalama.Framework/Code/Types/IUnionFacet.cs` and `IUnionCase.cs`, the interfaces this design mirrors.
 - Issue [#1951](https://github.com/metalama/Metalama/issues/1951), which this document designs, and its blockers
   [#1941](https://github.com/metalama/Metalama/issues/1941) and

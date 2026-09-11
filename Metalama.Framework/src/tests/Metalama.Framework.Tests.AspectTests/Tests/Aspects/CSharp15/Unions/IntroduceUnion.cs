@@ -51,7 +51,7 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp15.Unions.Int
 
             // The constructor of each case and the Value property are synthesized by the compiler from the union
             // declaration, so they are registered in the code model and are absent from the output below. Section
-            // 4.2 of Metalama.Framework/docs/future/introducing-types.md states the rule.
+            // 4.2 of Metalama.Framework/docs/introducing-types.md states the rule.
         }
     }
 

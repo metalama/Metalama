@@ -1,8 +1,7 @@
 # Introducing a struct
 
-This document designs the introduction of a struct, which is issue
-[#869](https://github.com/metalama/Metalama/issues/869). It is a design proposal. Nothing described here is
-implemented.
+This document describes the introduction of a struct, which is issue
+[#869](https://github.com/metalama/Metalama/issues/869), and which is implemented.
 
 The cross-cutting decisions are in [`introducing-types.md`](introducing-types.md), which this document does not
 repeat. A record struct is not designed here: it is a record, and
@@ -183,7 +182,7 @@ It is nevertheless the issue that changes how a builder answers `Facets`, becaus
 that the five kinds share and this is part of it. Section 5.1 of [`introducing-types.md`](introducing-types.md)
 states the change: `NamedTypeBuilder.Facets` throws a `NotSupportedException` instead of returning the empty
 collection, and the three readers listed there are guarded before the exception is introduced. Implementation
-guideline 5 of [`type-facets.md`](type-facets.md) is superseded by it.
+guideline 5 of [`type-facets.md`](future/type-facets.md) is superseded by it.
 
 The flags stay as they are. `IsEnum`, `IsDelegate`, `IsRecord` and `IsUnion` are answered by a builder from its own
 kind, they allocate nothing, and this issue does not change them. That separation is what lets the structure throw
@@ -265,7 +264,7 @@ That is correct for a class and is not the shape this issue needs.
 ## 8. References
 
 - [`introducing-types.md`](introducing-types.md), sections 2, 4 and 6.
-- [`type-facets.md`](type-facets.md), section 2.2. Its implementation guideline 5, which makes a builder return
+- [`type-facets.md`](future/type-facets.md), section 2.2. Its implementation guideline 5, which makes a builder return
   the empty facet collection, is superseded by section 5.1 of [`introducing-types.md`](introducing-types.md).
 - [`../2027.0/analysis-reports/10-introducing-closed-and-unions.md`](../2027.0/analysis-reports/10-introducing-closed-and-unions.md),
   which records that the struct path of the builder and of the transformation is reachable code that no public

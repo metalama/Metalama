@@ -65,7 +65,7 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
             // transformation that implements IIntroduceDeclarationTransformation without implementing
             // IInjectMemberTransformation registers a declaration in the code model and emits no syntax, so it is
             // skipped here, exactly as LinkerInjectionStep skips it at build time. Section 4.2 of
-            // Metalama.Framework/docs/future/introducing-types.md states the rule.
+            // Metalama.Framework/docs/introducing-types.md states the rule.
             var transformationsByBucket =
                 transformations
                     .Where(

@@ -155,7 +155,7 @@ performs it today with `IntroduceConstructor`, because Roslyn derives the case s
 single-parameter constructors. Metalama declares no advice of its own for it, because one method that serves one
 authoring form and fails on the other reads as a defect rather than as a design, and because the operation it would
 perform is one an aspect can already perform. The design is section 6.4 of
-[`../future/introducing-unions.md`](../future/introducing-unions.md).
+[`../introducing-unions.md`](../introducing-unions.md).
 
 The consequence for the introduction of a whole union, which does ship, is section 6.3 of the same document: only
 the form written with the `union` keyword is introduced, because an advice that served both forms would carry an

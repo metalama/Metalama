@@ -141,7 +141,7 @@ internal sealed class IntroduceNamedTypeAdvice : IntroduceDeclarationAdvice<INam
     /// <para>
     /// The members of an enum are emitted inside the enum declaration rather than injected separately, which makes
     /// this kind the exception to section 4.2 of
-    /// <c>Metalama.Framework/docs/future/introducing-types.md</c>: they are written by the aspect author rather than
+    /// <c>Metalama.Framework/docs/introducing-types.md</c>: they are written by the aspect author rather than
     /// synthesized by the compiler. They are registered without injection here so that they reach
     /// <c>INamedType.Fields</c> exactly once.
     /// </para>
@@ -181,7 +181,7 @@ internal sealed class IntroduceNamedTypeAdvice : IntroduceDeclarationAdvice<INam
             case DelegateBuilder delegateBuilder:
                 // The compiler synthesizes the Invoke method from the delegate declaration, which has no member
                 // list to put one in, so the method is registered in the code model and emitted by nothing. This is
-                // section 4.2 of Metalama.Framework/docs/future/introducing-types.md, and it is what lets
+                // section 4.2 of Metalama.Framework/docs/introducing-types.md, and it is what lets
                 // DelegateFacet resolve the method through INamedType.Methods.
                 context.AddTransformation(
                     new IntroduceSynthesizedDeclarationTransformation( this.AspectLayerInstance, delegateBuilder.InvokeMethodBuilder.BuilderData ) );
@@ -217,7 +217,7 @@ internal sealed class IntroduceNamedTypeAdvice : IntroduceDeclarationAdvice<INam
             // The compiler synthesizes the parameterless constructor of a struct from the declaration, so this one is
             // registered in the code model and emitted by nothing. Emitting it as well would declare it twice, and
             // before C# 10 the language did not let a struct declare one at all. See section 4.2 of
-            // Metalama.Framework/docs/future/introducing-types.md.
+            // Metalama.Framework/docs/introducing-types.md.
             context.AddTransformation(
                 new IntroduceSynthesizedDeclarationTransformation( this.AspectLayerInstance, constructorBuilder.BuilderData ) );
         }

@@ -77,7 +77,7 @@ internal sealed class UnionFacet : IUnionFacet
     {
         // An introduced union is always written with the union keyword, because IntroduceUnion produces that form
         // and no other. It has no symbol, so the reading below would report it as the attribute form, which is the
-        // silent failure that section 5 of Metalama.Framework/docs/future/introducing-unions.md names.
+        // silent failure that section 5 of Metalama.Framework/docs/introducing-unions.md names.
         if ( type is IntroducedNamedType )
         {
             return UnionKind.Declaration;

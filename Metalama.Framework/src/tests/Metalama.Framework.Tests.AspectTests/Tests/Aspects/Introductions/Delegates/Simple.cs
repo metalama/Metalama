@@ -36,7 +36,7 @@ public class IntroductionAttribute : TypeAspect
 
         // The Invoke method and the constructor of a delegate are synthesized by the compiler from the declaration,
         // so they are registered in the code model and are absent from the output below. Section 4.2 of
-        // Metalama.Framework/docs/future/introducing-types.md states the rule.
+        // Metalama.Framework/docs/introducing-types.md states the rule.
     }
 }
 

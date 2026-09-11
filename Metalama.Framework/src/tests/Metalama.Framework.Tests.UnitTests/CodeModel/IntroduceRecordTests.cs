@@ -15,7 +15,7 @@ namespace Metalama.Framework.Tests.UnitTests.CodeModel;
 
 /// <summary>
 /// Tests of the builder of an introduced record. See issue #867 and the design document
-/// <c>Metalama.Framework/docs/future/introducing-records.md</c>.
+/// <c>Metalama.Framework/docs/introducing-records.md</c>.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -291,7 +291,7 @@ public sealed class IntroduceRecordTests : UnitTestClass
     /// <summary>
     /// Verifies that <see cref="INamedType.Facets"/> of a record builder throws, while
     /// <see cref="INamedType.IsRecord"/> answers without throwing. See section 5.1 of
-    /// <c>Metalama.Framework/docs/future/introducing-types.md</c>.
+    /// <c>Metalama.Framework/docs/introducing-types.md</c>.
     /// </summary>
     [Fact]
     public void FacetsOfRecordBuilderThrow()

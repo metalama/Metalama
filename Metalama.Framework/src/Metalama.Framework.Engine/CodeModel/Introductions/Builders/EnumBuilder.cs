@@ -27,7 +27,7 @@ namespace Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 /// <para>
 /// A member of an enum is a constant field. It is created as a <see cref="FieldBuilder"/> here and registered by the
 /// advice; the enum declaration emits the members itself, which makes this kind the exception to section 4.2 of
-/// <c>Metalama.Framework/docs/future/introducing-types.md</c>, because the members of an enum are written by the
+/// <c>Metalama.Framework/docs/introducing-types.md</c>, because the members of an enum are written by the
 /// aspect author rather than synthesized by the compiler.
 /// </para>
 /// </remarks>

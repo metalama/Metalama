@@ -64,7 +64,7 @@ public sealed class UnionTypeTests : UnitTestClass
     /// <remarks>
     /// <para>
     /// The builder throws from <c>Facets</c>, which is section 5.1 of
-    /// <c>Metalama.Framework/docs/future/introducing-types.md</c>, while <c>IsUnion</c> answers without throwing.
+    /// <c>Metalama.Framework/docs/introducing-types.md</c>, while <c>IsUnion</c> answers without throwing.
     /// The introduced type reports the facet of its kind, and a class has none.
     /// </para>
     /// </remarks>

@@ -1,11 +1,10 @@
 # Introducing types
 
-This document proposes the addition of five capabilities to the advice interface: introducing a struct, an enum, a
-delegate, a record and a union. It carries the decisions that the five are subject to together, and the design of
-each kind is a document of its own, listed in section 7. It is a design proposal. Nothing described here is
-implemented.
+This document describes five capabilities of the advice interface: introducing a struct, an enum, a delegate, a
+record and a union. It carries the decisions that the five are subject to together, and each kind is described by a
+document of its own, listed in section 7. All five are implemented.
 
-The companion document is [`type-facets.md`](type-facets.md), which designs the read side of the same five kinds.
+The companion document is [`type-facets.md`](future/type-facets.md), which designs the read side of the same five kinds.
 Section 2.4 of that document decided the shape of the builder interfaces, and section 2 below revises that decision
 for the enum and the delegate.
 
@@ -74,7 +73,7 @@ delegate does not even build the same thing as the other four.
 | Enum | `IEnumBuilder` | `IMemberOrNamedTypeBuilder` | the type |
 | Delegate | `IDelegateBuilder` | `IMethodBuilder` | the declaration, whose shape is a method signature |
 
-Section 2.4 of [`type-facets.md`](type-facets.md) decided that all four builders derive from `INamedTypeBuilder`
+Section 2.4 of [`type-facets.md`](future/type-facets.md) decided that all four builders derive from `INamedTypeBuilder`
 and that the inapplicable inherited operations throw, after the precedent of `IExtensionBlockBuilder`. That
 decision is kept for the record and the union and is revised for the enum and the delegate, for reasons that are
 not the same in the two cases. Sections 2.1 to 2.3 give them.
@@ -208,7 +207,7 @@ to reproduce the rules of the language would reproduce a part of them, would be 
 would refuse patterns that are valid in a context it did not model. The compiler is the authority on whether the
 generated code is valid, and its diagnostic names the generated declaration.
 
-Two exceptions are deliberate. Section 3 of [`../2027.0/DECISIONS.md`](../2027.0/DECISIONS.md) decides that the
+Two exceptions are deliberate. Section 3 of [`../2027.0/DECISIONS.md`](2027.0/DECISIONS.md) decides that the
 advices that a union declaration cannot carry are refused with a clear diagnostic, because the compiler reports
 those errors on generated code that the user cannot edit. And an operation whose result could not be expressed at
 all, rather than expressed and rejected, throws, which is what section 4 of each document lists.
@@ -263,7 +262,7 @@ skips it at build time by construction, because it enumerates the second interfa
 groups every observable transformation and then throws for one it does not recognise. The implicit parameterless
 constructor of an introduced struct is the smallest instance.
 
-Every new builder follows the freeze pattern that [`../compilation-model.md`](../compilation-model.md) describes: a
+Every new builder follows the freeze pattern that [`../compilation-model.md`](compilation-model.md) describes: a
 mutable builder is handed to the aspect, is frozen at the end of the advice, and is snapshotted into an immutable
 builder data object that the compilation model stores.
 
@@ -356,7 +355,7 @@ constructed, whose members are not resolvable, so it has no structure to report 
 would be a false answer rather than an incomplete one. An aspect that reads the facet of a builder has made a
 mistake, and the exception says so at the place the mistake was made.
 
-This reverses implementation guideline 5 of [`type-facets.md`](type-facets.md), which states that the
+This reverses implementation guideline 5 of [`type-facets.md`](future/type-facets.md), which states that the
 implementations of `INamedType` that back a builder return the empty collection rather than throwing. That
 guideline is superseded, and the one site that implements it,
 `Metalama.Framework.Engine/CodeModel/Introductions/Builders/NamedTypeBuilder.cs:336`, changes with it. The
@@ -365,7 +364,7 @@ that currently sits above `Facets` exists only to say that `Facets` does not fol
 
 The flags do not throw, and that distinction is what makes the change safe. `IsDelegate`, `IsEnum`, `IsRecord` and
 `IsUnion` are Boolean properties that a builder answers from its own kind without allocating anything, and section
-4.4 of [`type-facets.md`](type-facets.md) declares them for exactly this reason. A caller that asks what kind a type
+4.4 of [`type-facets.md`](future/type-facets.md) declares them for exactly this reason. A caller that asks what kind a type
 is keeps working on a builder; only a caller that asks for the structure meets the exception.
 
 Three readers have to be checked before the exception is introduced, because each of them reads `Facets` on a type
@@ -444,7 +443,7 @@ asserts the exception, and it keeps its assertions that the flags do not throw.
 
 ### 6.1. The order
 
-This table supersedes section 6.2 of [`type-facets.md`](type-facets.md), which does not include the union and which
+This table supersedes section 6.2 of [`type-facets.md`](future/type-facets.md), which does not include the union and which
 records the superseded hierarchy decision.
 
 | Issue | Content | Blocked by |
@@ -459,7 +458,7 @@ The struct is first because it carries the machinery, and because it is the only
 no public interface, so it exercises the emission path alone. The record is the largest, because it registers the
 most synthesized members.
 
-The facet issues of section 6.1 of [`type-facets.md`](type-facets.md) are delivered, so no document of this set is
+The facet issues of section 6.1 of [`type-facets.md`](future/type-facets.md) are delivered, so no document of this set is
 blocked by one.
 
 ### 6.2. What can be implemented concurrently
@@ -540,7 +539,7 @@ first phase is small enough to review closely, which is what it needs, because e
 
 The first four are imported issues that carry no body, and this set of documents is the design they lack. The last
 is a user story whose body states the capability, the scope and the acceptance criteria, and which states no
-application programming interface because section 11 of [`../2027.0/DECISIONS.md`](../2027.0/DECISIONS.md) forbids
+application programming interface because section 11 of [`../2027.0/DECISIONS.md`](2027.0/DECISIONS.md) forbids
 a story from doing so.
 
 One issue is withdrawn by this set rather than designed by it.
@@ -596,9 +595,9 @@ S-27, which is the conceptual documentation of C# 15, names S-29 among its block
 
 ## 9. References
 
-- [`type-facets.md`](type-facets.md), sections 2.4, 5 and 6.2.
-- [`../compilation-model.md`](../compilation-model.md), the builder and builder data freeze pattern.
-- [`../2027.0/DECISIONS.md`](../2027.0/DECISIONS.md), sections 4 and 11.
+- [`type-facets.md`](future/type-facets.md), sections 2.4, 5 and 6.2.
+- [`../compilation-model.md`](compilation-model.md), the builder and builder data freeze pattern.
+- [`../2027.0/DECISIONS.md`](2027.0/DECISIONS.md), sections 4 and 11.
 - [`../2027.0/user-stories/S-29-introduce-union-and-case-attribute-form.md`](../2027.0/user-stories/S-29-introduce-union-and-case-attribute-form.md),
   whose first half is designed here, and
   [`../2027.0/user-stories/S-30-introduce-case-into-union-declaration.md`](../2027.0/user-stories/S-30-introduce-case-into-union-declaration.md),

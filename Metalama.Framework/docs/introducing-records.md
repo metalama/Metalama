@@ -1,8 +1,7 @@
 # Introducing a record
 
-This document designs the introduction of a record class and of a record struct, which is issue
-[#867](https://github.com/metalama/Metalama/issues/867). It is a design proposal. Nothing described here is
-implemented.
+This document describes the introduction of a record class and of a record struct, which is issue
+[#867](https://github.com/metalama/Metalama/issues/867), and which is implemented.
 
 The cross-cutting decisions are in [`introducing-types.md`](introducing-types.md), which this document does not
 repeat. A record declares members that an aspect can introduce, so `IRecordBuilder` derives from
@@ -324,7 +323,7 @@ One builder interface and one advice method serve both forms, and the form is an
 
 The reason is symmetry with the reader, which has already taken this decision. `IRecordFacet` is one interface
 whose `EqualityContractProperty`, `CloneMethod` and `CopyConstructor` are `null` for a record struct, and section
-2.2 of [`type-facets.md`](type-facets.md) records that it is deliberately not split in two. Splitting the writer
+2.2 of [`type-facets.md`](future/type-facets.md) records that it is deliberately not split in two. Splitting the writer
 while the reader is unsplit would describe the same type by one structure when reading it and by two when writing
 it.
 
@@ -417,7 +416,7 @@ an aspect that needs it.
 - [`introducing-types.md`](introducing-types.md), sections 2, 4 and 5.
 - [`introducing-structs.md`](introducing-structs.md), section 3.2, which adds `IsReadOnly` and `IsRef` to
   `INamedTypeBuilder`.
-- [`type-facets.md`](type-facets.md), section 2.2. Its implementation guideline 5, which makes a builder return
+- [`type-facets.md`](future/type-facets.md), section 2.2. Its implementation guideline 5, which makes a builder return
   the empty facet collection, is superseded by section 5.1 of [`introducing-types.md`](introducing-types.md).
 - `Metalama.Framework/Code/Types/IRecordFacet.cs`, the interface this design mirrors.
 

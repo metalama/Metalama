@@ -210,7 +210,7 @@ internal sealed class IntroducedNamedType : IntroducedMemberOrNamedType, INamedT
     }
 
     // An introduced type reports the facet of its kind, which is section 5.2 of
-    // Metalama.Framework/docs/future/introducing-types.md. This is the same call that SourceNamedTypeImpl makes, and
+    // Metalama.Framework/docs/introducing-types.md. This is the same call that SourceNamedTypeImpl makes, and
     // it serves every kind at once, because the collection dispatches on the four flags above and constructs nothing
     // for a type that has none.
     [Memo]

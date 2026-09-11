@@ -22,7 +22,7 @@ namespace Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 /// list and the base list, and the compiler synthesizes the members from it exactly as it does for a record the
 /// user wrote. Those members must nevertheless exist in the code model, because the pipeline never re-reads the
 /// final model from Roslyn, so this class creates a builder for each of them and the advice registers it without
-/// emitting it. Section 4.2 of <c>Metalama.Framework/docs/future/introducing-types.md</c> states the rule.
+/// emitting it. Section 4.2 of <c>Metalama.Framework/docs/introducing-types.md</c> states the rule.
 /// </para>
 /// <para>
 /// The members are created when the builder is frozen rather than in the constructor, because the positional

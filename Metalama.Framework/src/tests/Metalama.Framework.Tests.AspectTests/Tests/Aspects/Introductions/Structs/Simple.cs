@@ -17,7 +17,7 @@ public class IntroductionAttribute : TypeAspect
 
         // The parameterless constructor that the compiler synthesizes for a struct is registered in the code model
         // and is not emitted, so it does not appear in the output below. Section 4.2 of
-        // Metalama.Framework/docs/future/introducing-types.md states the rule.
+        // Metalama.Framework/docs/introducing-types.md states the rule.
     }
 }
 

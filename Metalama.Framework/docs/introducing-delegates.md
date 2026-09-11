@@ -1,8 +1,7 @@
 # Introducing a delegate
 
-This document designs the introduction of a delegate, which is issue
-[#865](https://github.com/metalama/Metalama/issues/865). It is a design proposal. Nothing described here is
-implemented.
+This document describes the introduction of a delegate, which is issue
+[#865](https://github.com/metalama/Metalama/issues/865), and which is implemented.
 
 The cross-cutting decisions are in [`introducing-types.md`](introducing-types.md), which this document does not
 repeat. A delegate declaration is a method signature with the `delegate` keyword in front of it, so
@@ -370,7 +369,7 @@ and is answered by section 6.2. A `ref` return is in scope: a delegate may retur
 
 - [`introducing-types.md`](introducing-types.md), sections 2, 3 and 5.
 - [`introducing-enums.md`](introducing-enums.md), section 6.1, which this document contrasts with in section 6.2.
-- [`type-facets.md`](type-facets.md), section 2.2. Its implementation guideline 5, which makes a builder return
+- [`type-facets.md`](future/type-facets.md), section 2.2. Its implementation guideline 5, which makes a builder return
   the empty facet collection, is superseded by section 5.1 of [`introducing-types.md`](introducing-types.md).
 - `Metalama.Framework/Code/Types/IDelegateFacet.cs`, the interface this design mirrors.
 - `Metalama.Framework.Engine/CodeModel/Facets/DelegateFacet.cs`, which resolves the `Invoke` method by name and is

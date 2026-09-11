@@ -189,7 +189,7 @@ public sealed class TypeFacetTests : UnitTestClass
     }
 
     /// <summary>
-    /// Verifies section 5.1 of <c>Metalama.Framework/docs/future/introducing-types.md</c>, which supersedes
+    /// Verifies section 5.1 of <c>Metalama.Framework/docs/introducing-types.md</c>, which supersedes
     /// implementation guideline 5 of <c>type-facets.md</c>: a builder throws rather than reporting an empty
     /// collection, because it describes a type whose members are not resolvable, so an empty structure would be a
     /// false answer rather than an incomplete one.

@@ -15,7 +15,7 @@ namespace Metalama.Framework.Tests.UnitTests.CodeModel;
 /// <summary>
 /// Tests of <see cref="IntroduceSynthesizedDeclarationTransformation"/>, which registers a declaration in the code
 /// model without emitting any syntax for it. See section 4.2 of the design document
-/// <c>Metalama.Framework/docs/future/introducing-types.md</c>.
+/// <c>Metalama.Framework/docs/introducing-types.md</c>.
 /// </summary>
 /// <remarks>
 /// <para>

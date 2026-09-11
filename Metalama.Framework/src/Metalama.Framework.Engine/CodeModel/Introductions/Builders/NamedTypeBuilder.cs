@@ -172,7 +172,7 @@ internal class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, I
     /// <para>
     /// The value is set by the advice that introduces a union and not by an aspect, because a union is introduced by
     /// its own advice method rather than by configuring a struct. Only the form written with the <c>union</c> keyword
-    /// is introduced, which section 6.3 of <c>Metalama.Framework/docs/future/introducing-unions.md</c> decides, and
+    /// is introduced, which section 6.3 of <c>Metalama.Framework/docs/introducing-unions.md</c> decides, and
     /// the language reports that form as a struct.
     /// </para>
     /// </remarks>
@@ -228,7 +228,7 @@ internal class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, I
             typeKind is TypeKind.Class or TypeKind.Struct or TypeKind.Interface or TypeKind.Extension or TypeKind.Enum or TypeKind.Delegate );
 
         // A record is a class or a struct that carries the record modifier, which is how the code model represents it:
-        // TypeKind.RecordClass and TypeKind.RecordStruct are obsolete. See Metalama.Framework/docs/future/introducing-records.md.
+        // TypeKind.RecordClass and TypeKind.RecordStruct are obsolete. See Metalama.Framework/docs/introducing-records.md.
         Invariant.Assert( !isRecord || typeKind is TypeKind.Class or TypeKind.Struct );
 
         this.TypeKind = typeKind;
@@ -391,7 +391,7 @@ internal class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, I
     // A builder describes a type that is being constructed, whose members are not resolvable, so it has no structure
     // to report and reporting an empty structure would be a false answer rather than an incomplete one. An aspect that
     // reads the facet of a builder has made a mistake, and the exception says so at the place the mistake was made.
-    // See section 5.1 of Metalama.Framework/docs/future/introducing-types.md, which supersedes implementation
+    // See section 5.1 of Metalama.Framework/docs/introducing-types.md, which supersedes implementation
     // guideline 5 of type-facets.md. The flags below do not throw, which is what keeps a caller that asks what kind a
     // type is working: only a caller that asks for the structure meets the exception.
     public ITypeFacetCollection Facets

@@ -22,7 +22,7 @@ public class IntroductionAttribute : TypeAspect
             } );
 
         // The type of an event must be a delegate, which is the reader that section 5.1 of
-        // Metalama.Framework/docs/future/introducing-types.md names, so an introduced delegate has to work here.
+        // Metalama.Framework/docs/introducing-types.md names, so an introduced delegate has to work here.
         builder.IntroduceEvent(
             nameof(EventTemplate),
             buildEvent: e =>

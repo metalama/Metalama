@@ -46,7 +46,7 @@ public class IntroductionAttribute : TypeAspect
 
         // The members that the compiler synthesizes from a record declaration are registered in the code model and
         // are emitted by nothing, so none of them appears in the output below. Section 4.2 of
-        // Metalama.Framework/docs/future/introducing-types.md states the rule, and the unit tests assert that they
+        // Metalama.Framework/docs/introducing-types.md states the rule, and the unit tests assert that they
         // are nevertheless present in the code model.
     }
 }

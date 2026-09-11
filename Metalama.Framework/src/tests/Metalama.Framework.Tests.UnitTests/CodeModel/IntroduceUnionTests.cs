@@ -18,7 +18,7 @@ namespace Metalama.Framework.Tests.UnitTests.CodeModel;
 
 /// <summary>
 /// Tests of the builder of an introduced union. See issue #1951 and the design document
-/// <c>Metalama.Framework/docs/future/introducing-unions.md</c>.
+/// <c>Metalama.Framework/docs/introducing-unions.md</c>.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -180,7 +180,7 @@ public sealed class IntroduceUnionTests : UnitTestClass
     /// <summary>
     /// Verifies that <see cref="INamedType.Facets"/> of a union builder throws, while
     /// <see cref="INamedType.IsUnion"/> answers without throwing. See section 5.1 of
-    /// <c>Metalama.Framework/docs/future/introducing-types.md</c>.
+    /// <c>Metalama.Framework/docs/introducing-types.md</c>.
     /// </summary>
     [Fact]
     public void FacetsOfUnionBuilderThrow()

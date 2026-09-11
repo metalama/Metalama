@@ -25,7 +25,7 @@ namespace Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 /// Metalama emits the union declaration, which is the <c>union</c> keyword, the name and the case list, and the
 /// compiler synthesizes one constructor per case and the <c>Value</c> property from it. Those members are created
 /// here and registered by the advice without being emitted, which is section 4.2 of
-/// <c>Metalama.Framework/docs/future/introducing-types.md</c>. They are created when the builder is frozen, because
+/// <c>Metalama.Framework/docs/introducing-types.md</c>. They are created when the builder is frozen, because
 /// the cases decide the constructors and an aspect adds those at any point in the callback.
 /// </para>
 /// </remarks>

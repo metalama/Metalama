@@ -99,7 +99,7 @@ public static partial class EligibilityRuleFactory
             // InvalidOperationException in that case, which an eligibility rule reaches in normal use at design time.
             //
             // IsDelegate is tested first because a type that is still being built throws from Facets, which section
-            // 5.1 of Metalama.Framework/docs/future/introducing-types.md decides. The flag answers on a builder
+            // 5.1 of Metalama.Framework/docs/introducing-types.md decides. The flag answers on a builder
             // without allocating, so a type that is not a delegate stays ineligible instead of throwing, which is the
             // behaviour these two rules exist to provide.
             builder.MustSatisfy(

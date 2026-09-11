@@ -32,7 +32,7 @@ namespace Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 /// through <c>INamedType.Methods</c>, and the name that the code model reports is the one that
 /// <c>NamedDeclarationBuilderData</c> snapshots off the builder, so a builder carrying the name of the delegate
 /// would make the facet of every introduced delegate fail to resolve. Section 6.1 of
-/// <c>Metalama.Framework/docs/future/introducing-delegates.md</c> records that constraint.
+/// <c>Metalama.Framework/docs/introducing-delegates.md</c> records that constraint.
 /// </para>
 /// <para>
 /// The type parameters belong to the delegate and not to the <c>Invoke</c> method, which is what the language

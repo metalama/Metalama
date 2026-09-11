@@ -16,7 +16,7 @@ namespace Metalama.Framework.Tests.UnitTests.CodeModel;
 
 /// <summary>
 /// Tests of the builder of an introduced enum. See issue #866 and the design document
-/// <c>Metalama.Framework/docs/future/introducing-enums.md</c>.
+/// <c>Metalama.Framework/docs/introducing-enums.md</c>.
 /// </summary>
 public sealed class IntroduceEnumTests : UnitTestClass
 {
@@ -313,7 +313,7 @@ public sealed class IntroduceEnumTests : UnitTestClass
 
     /// <summary>
     /// Verifies that the four modifiers that an enum cannot carry throw a <see cref="NotSupportedException"/>, which
-    /// is the rule of section 5.1 of <c>Metalama.Framework/docs/future/introducing-types.md</c>.
+    /// is the rule of section 5.1 of <c>Metalama.Framework/docs/introducing-types.md</c>.
     /// </summary>
     [Fact]
     public void ModifiersThatAnEnumDoesNotHaveAreRefused()
@@ -361,7 +361,7 @@ public sealed class IntroduceEnumTests : UnitTestClass
     /// <summary>
     /// Verifies that <see cref="INamedType.Facets"/> of an enum builder throws, while the flags that the collection
     /// dispatches on answer without throwing. See section 5.1 of
-    /// <c>Metalama.Framework/docs/future/introducing-types.md</c>.
+    /// <c>Metalama.Framework/docs/introducing-types.md</c>.
     /// </summary>
     [Fact]
     public void FacetsOfEnumBuilderThrow()

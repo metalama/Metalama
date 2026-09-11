@@ -14,7 +14,7 @@ public class IntroductionAttribute : TypeAspect
         var introducedEnum = builder.IntroduceEnum( "IntroducedEnum", buildEnum: e => e.AddMember( "None" ) );
 
         // An enum declares no member that an aspect can introduce, which is the rule of section 3.1 of
-        // Metalama.Framework/docs/future/introducing-types.md. The eligibility rule of the advice reports it.
+        // Metalama.Framework/docs/introducing-types.md. The eligibility rule of the advice reports it.
         builder.With( introducedEnum.Declaration ).IntroduceMethod( nameof(MethodTemplate) );
     }
 
