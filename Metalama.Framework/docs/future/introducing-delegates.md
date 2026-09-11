@@ -5,13 +5,16 @@ This document designs the introduction of a delegate, which is issue
 implemented.
 
 The cross-cutting decisions are in [`introducing-types.md`](introducing-types.md), which this document does not
-repeat. The one that shapes the interface below is section 2 of that document: a delegate builder derives from
-`IMemberOrNamedTypeBuilder` and not from `INamedTypeBuilder`, because a delegate declaration has no member list.
+repeat. The one that shapes the interface below is section 2.3 of that document: a delegate builder is the builder
+of the `Invoke` method of the delegate, and it derives from `IMethodBuilder`.
 
 The read side of a delegate is `IDelegateFacet`, which is delivered. The design below mirrors it member for member,
 and section 5 states the mapping.
 
 ## 1. What the aspect author writes
+
+A delegate declaration is a method signature with the `delegate` keyword in front of it, so the builder is the
+builder of a method. The delegate type itself is reached through `DeclaringType`.
 
 ```csharp
 public class GenerateChangedEventAttribute : TypeAspect
@@ -22,7 +25,8 @@ public class GenerateChangedEventAttribute : TypeAspect
             "ValueChangedHandler",
             buildDelegate: d =>
             {
-                d.Accessibility = Accessibility.Public;
+                d.DeclaringType.Accessibility = Accessibility.Public;
+
                 d.ReturnType = TypeFactory.GetType( SpecialType.Void );
                 d.AddParameter( "sender", builder.Target );
                 d.AddParameter( "oldValue", typeof(object) );
@@ -34,23 +38,23 @@ public class GenerateChangedEventAttribute : TypeAspect
 }
 ```
 
-The introduced delegate is reached through `handler.Declaration`, which is an `INamedType`, and is used there as the
-type of an introduced field. The builder itself could not be used in that position, for the reason that section 2.4
-of [`introducing-types.md`](introducing-types.md) gives.
+The introduced delegate is read from `handler.Declaration`, which is an `INamedType`, and is used there as the type
+of an introduced field.
 
-A generic delegate adds type parameters to the type, and may give them variance:
+The type parameters of a delegate belong to the type and not to its `Invoke` method, so they are added through
+`DeclaringType` as well, and they may declare variance:
 
 ```csharp
 builder.IntroduceDelegate(
     "Transformer",
     buildDelegate: d =>
     {
-        d.Accessibility = Accessibility.Public;
+        d.DeclaringType.Accessibility = Accessibility.Public;
 
-        var input = d.AddTypeParameter( "TInput" );
+        var input = d.DeclaringType.AddTypeParameter( "TInput" );
         input.Variance = VarianceKind.In;
 
-        var output = d.AddTypeParameter( "TOutput" );
+        var output = d.DeclaringType.AddTypeParameter( "TOutput" );
         output.Variance = VarianceKind.Out;
 
         d.ReturnType = output;
@@ -80,34 +84,29 @@ public delegate TOutput Transformer<in TInput, out TOutput>( TInput value );
 namespace Metalama.Framework.Code.DeclarationBuilders;
 
 /// <summary>
-/// Allows to complete the construction of a delegate that has been created by an advice.
+/// Allows to complete the construction of a delegate that has been created by an advice. This interface builds the
+/// <c>Invoke</c> method of the delegate, which carries its signature, and the delegate type itself is reached
+/// through <see cref="DeclaringType"/>.
 /// </summary>
 /// <remarks>
 /// <para>
-/// This interface derives from <see cref="IMemberOrNamedTypeBuilder"/> and not from
-/// <see cref="INamedTypeBuilder"/>, because a delegate declaration has no member list and no base type that an
-/// author may choose. The operations that a delegate does not have are therefore absent rather than present and
-/// failing. The operations that it inherits and does not have are listed below.
+/// A delegate declaration is a method signature with the <c>delegate</c> keyword in front of it, so the members
+/// that configure it are the members that configure a method, and this interface derives from
+/// <see cref="IMethodBuilder"/> rather than declaring them again. The return type, the parameters and the custom
+/// attributes of the return value are set through the inherited members.
 /// </para>
 /// <para>
-/// The following inherited properties are not valid for a delegate, and their setter throws a
-/// <see cref="NotSupportedException"/>: <see cref="IMemberOrNamedTypeBuilder.IsStatic"/>,
-/// <see cref="IMemberOrNamedTypeBuilder.IsSealed"/>, <see cref="IMemberOrNamedTypeBuilder.IsAbstract"/> and
-/// <see cref="IMemberOrNamedTypeBuilder.IsPartial"/>. A delegate is implicitly sealed, it may not be abstract or
-/// static, and the language has no partial delegate.
+/// What belongs to the type and not to the method is set through <see cref="DeclaringType"/>: the name of the
+/// delegate, its accessibility, its custom attributes and its type parameters. The corresponding inherited members
+/// describe the <c>Invoke</c> method, whose name is <c>Invoke</c> and whose accessibility is public, and the
+/// language fixes both, so their setter throws a <see cref="NotSupportedException"/>. The operations that are not
+/// valid are listed in the design document.
 /// </para>
 /// <para>
 /// A delegate builder is not an <see cref="INamedType"/>, so it may not be used where an <see cref="IType"/> is
-/// expected. The introduced delegate is read from
-/// <see cref="Metalama.Framework.Advising.IIntroductionAdviceResult{T}.Declaration"/>, which is how an aspect gives
-/// the introduced delegate as the type of a field, of a property or of an event.
-/// </para>
-/// <para>
-/// The members below are the signature of the delegate, which is the signature of the <c>Invoke</c> method that the
-/// compiler synthesizes for it. They are the members of <see cref="IMethodBuilder"/> that apply to a delegate, and
-/// they carry the same names, so an aspect that configures a delegate writes what it would write for a method. The
-/// <c>Invoke</c> method itself is not exposed during construction: it is read from
-/// <see cref="Metalama.Framework.Code.Types.IDelegateFacet.InvokeMethod"/> on the introduced type.
+/// expected, and neither may <see cref="DeclaringType"/> be used as the finished type. The introduced delegate is
+/// read from <see cref="Metalama.Framework.Advising.IIntroductionAdviceResult{T}.Declaration"/>, which is how an
+/// aspect gives it as the type of a field, of a property or of an event.
 /// </para>
 /// <para>
 /// The <c>BeginInvoke</c> and <c>EndInvoke</c> methods are not exposed and are not built. They exist only for a
@@ -117,73 +116,27 @@ namespace Metalama.Framework.Code.DeclarationBuilders;
 /// <seealso cref="Metalama.Framework.Code.Types.IDelegateFacet"/>
 /// <seealso href="@introducing-types"/>
 [InternalImplement]
-public interface IDelegateBuilder : IMemberOrNamedTypeBuilder
+public interface IDelegateBuilder : IMethodBuilder
 {
     /// <summary>
-    /// Gets or sets the return type of the delegate. The default value is <c>void</c>.
+    /// Gets the builder of the delegate type that declares this <c>Invoke</c> method. The name of the delegate, its
+    /// accessibility, its custom attributes and its type parameters are set through this property.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// A delegate may return by reference. The reference kind of the return is set on
-    /// <see cref="ReturnParameter"/>, as it is on a method.
+    /// This property narrows <see cref="IMember.DeclaringType"/>, which reports an <see cref="INamedType"/>, to the
+    /// builder of that type, so that the type can be configured while it is being built.
     /// </para>
-    /// </remarks>
-    /// <seealso cref="Metalama.Framework.Code.Types.IDelegateFacet.ReturnType"/>
-    IType ReturnType { get; set; }
-
-    /// <summary>
-    /// Gets an object allowing to read and modify the return type and the custom attributes of the return value.
-    /// </summary>
-    IParameterBuilder ReturnParameter { get; }
-
-    /// <summary>
-    /// Gets the parameters of the delegate.
-    /// </summary>
-    /// <seealso cref="Metalama.Framework.Code.Types.IDelegateFacet.Parameters"/>
-    IParameterBuilderList Parameters { get; }
-
-    /// <summary>
-    /// Appends a parameter to the delegate.
-    /// </summary>
-    /// <param name="name">The name of the parameter.</param>
-    /// <param name="type">The type of the parameter.</param>
-    /// <param name="refKind">The reference kind of the parameter.</param>
-    /// <param name="defaultValue">The default value of the parameter, or <c>null</c> when it has none.</param>
-    /// <returns>An <see cref="IParameterBuilder"/> that allows you to further build the new parameter.</returns>
-    IParameterBuilder AddParameter(
-        string name,
-        IType type,
-        RefKind refKind = RefKind.None,
-        TypedConstant? defaultValue = default );
-
-    /// <summary>
-    /// Appends a parameter to the delegate.
-    /// </summary>
-    /// <param name="name">The name of the parameter.</param>
-    /// <param name="type">The type of the parameter.</param>
-    /// <param name="refKind">The reference kind of the parameter.</param>
-    /// <param name="defaultValue">The default value of the parameter, or <c>null</c> when it has none.</param>
-    /// <returns>An <see cref="IParameterBuilder"/> that allows you to further build the new parameter.</returns>
-    IParameterBuilder AddParameter(
-        string name,
-        Type type,
-        RefKind refKind = RefKind.None,
-        TypedConstant? defaultValue = null );
-
-    /// <summary>
-    /// Adds a type parameter to the delegate.
-    /// </summary>
-    /// <remarks>
     /// <para>
-    /// The type parameters of a delegate belong to the type and not to its <c>Invoke</c> method, which is why this
-    /// member exists on the builder of the type. A delegate is the one kind of type, besides an interface, whose
-    /// type parameters may declare variance, through <see cref="ITypeParameterBuilder.Variance"/>.
+    /// The following members of the returned builder are not valid for a delegate, and their setter throws a
+    /// <see cref="NotSupportedException"/>: <see cref="INamedTypeBuilder.BaseType"/>, because a delegate derives
+    /// from <see cref="System.MulticastDelegate"/> and the language allows no other base;
+    /// <see cref="INamedTypeBuilder.IsClosed"/>; and
+    /// <see cref="IMemberOrNamedTypeBuilder.IsStatic"/>, <see cref="IMemberOrNamedTypeBuilder.IsSealed"/>,
+    /// <see cref="IMemberOrNamedTypeBuilder.IsAbstract"/> and <see cref="IMemberOrNamedTypeBuilder.IsPartial"/>.
     /// </para>
     /// </remarks>
-    /// <param name="name">The name of the type parameter.</param>
-    /// <returns>An <see cref="ITypeParameterBuilder"/> that allows you to further configure the new type
-    ///     parameter, including its constraints and its variance.</returns>
-    ITypeParameterBuilder AddTypeParameter( string name );
+    new INamedTypeBuilder DeclaringType { get; }
 }
 ```
 
@@ -198,9 +151,10 @@ public interface IDelegateBuilder : IMemberOrNamedTypeBuilder
 /// <param name="name">The name of the introduced delegate.</param>
 /// <param name="whenExists">Determines the implementation strategy when a type of the same name is already declared
 ///     in the target namespace or type. The default strategy is to fail with a compile-time error.</param>
-/// <param name="buildDelegate">An optional callback that allows you to configure the introduced delegate, in
-///     particular to give it a return type and parameters. A delegate that the callback leaves unconfigured
-///     returns <c>void</c> and takes no parameter.</param>
+/// <param name="buildDelegate">An optional callback that allows you to configure the introduced delegate. The
+///     callback receives the builder of the <c>Invoke</c> method of the delegate, which carries its signature, and
+///     reaches the delegate type itself through <see cref="IDelegateBuilder.DeclaringType"/>. A delegate that the
+///     callback leaves unconfigured is internal, returns <c>void</c> and takes no parameter.</param>
 /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> representing the result of the advice. The
 /// <see cref="IIntroductionAdviceResult{T}.Declaration"/> property provides access to the introduced delegate.
 /// Unlike the result of introducing a class, this result must not be used to introduce members, because a delegate
@@ -223,8 +177,10 @@ IIntroductionAdviceResult<INamedType> IntroduceDelegate(
 /// <param name="name">The delegate name.</param>
 /// <param name="whenExists">Determines the implementation strategy when a type of the same name is already declared
 ///     in the target type or namespace. The default strategy is to fail with a compile-time error.</param>
-/// <param name="buildDelegate">An optional delegate that modifies the <see cref="IDelegateBuilder"/> that
-///     represents the introduced delegate. The signature of the delegate is given through this callback.</param>
+/// <param name="buildDelegate">An optional delegate that modifies the <see cref="IDelegateBuilder"/>, which is
+///     the builder of the <c>Invoke</c> method of the introduced delegate. The signature of the delegate is given
+///     through this callback, and the delegate type is reached through
+///     <see cref="IDelegateBuilder.DeclaringType"/>.</param>
 /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> that exposes the outcome of the operation and the
 /// introduced <see cref="INamedType"/>.</returns>
 /// <seealso href="@introducing-types"/>
@@ -242,48 +198,51 @@ public static IIntroductionAdviceResult<INamedType> IntroduceDelegate(
 
 ## 4. The inherited operations that are not valid
 
-`IDelegateBuilder` inherits six settable properties from `IMemberOrNamedTypeBuilder`. Two are valid and four are
-not.
+`IDelegateBuilder` inherits the whole of `IMethodBuilder`. The members that describe a signature are valid, and the
+members that describe a method as a member of a type are not, because the `Invoke` method of a delegate is
+synthesized and the language fixes every one of them.
 
 | Member | State |
 | --- | --- |
-| `Accessibility` | Valid. |
-| `Name` | Valid. |
-| `IsStatic` | The setter throws a `NotSupportedException`. A delegate is neither static nor an instance type. |
-| `IsSealed` | The setter throws a `NotSupportedException`. A delegate is implicitly sealed. |
-| `IsAbstract` | The setter throws a `NotSupportedException`. A delegate may not be abstract. |
-| `IsPartial` | The setter throws a `NotSupportedException`. The language has no partial delegate. |
+| `ReturnType`, `ReturnParameter` | Valid. `ReturnParameter` also carries the reference kind of a `ref` return and the custom attributes of the return value. |
+| `Parameters`, `AddParameter`, `InsertParameter` | Valid. These are the parameters of the delegate. |
+| `Name` | The setter throws a `NotSupportedException`. The getter reports `Invoke`. The name of the delegate is `DeclaringType.Name`. |
+| `Accessibility` | The setter throws a `NotSupportedException`. The `Invoke` method of a delegate is public. The accessibility of the delegate is `DeclaringType.Accessibility`. |
+| `AddTypeParameter` | The setter throws a `NotSupportedException`. The `Invoke` method of a delegate is never generic, and the type parameters of the delegate are added through `DeclaringType.AddTypeParameter`. |
+| `AddAttribute`, `AddAttributes`, `RemoveAttributes` | The methods throw a `NotSupportedException`. A delegate declaration has no place to write an attribute on the `Invoke` method. An attribute on the delegate is added through `DeclaringType`, and an attribute on the return value through `ReturnParameter`. |
+| `IsVirtual`, `IsExtern` | The setter throws a `NotSupportedException`. |
+| `IsStatic`, `IsSealed`, `IsAbstract`, `IsPartial` | The setter throws a `NotSupportedException`. |
+| `IsReadOnly` | The setter throws a `NotSupportedException`. It applies to a member of a struct. |
+| `OperatorKind` | The setter throws a `NotSupportedException`. |
 
-The operations of `IDeclarationBuilder` are all valid: a delegate carries attributes.
+`IMethod` derives from `IMethodInvoker`, so the builder inherits the operations that generate a call. They are not
+usable while the delegate is being built, because the type does not exist yet, and they are usable on the `Invoke`
+method that the facet of the introduced type reports. `MethodBuilder`, which backs every introduced method, already
+faces that question, so this design adds nothing to it.
 
-There is no `Invoke` method builder to restrict, because section 6.1 puts the signature on the builder of the type
-itself. The members that `IMethodBuilder` declares and that a delegate does not accept are therefore absent rather
-than failing: `IsReadOnly`, `OperatorKind`, and the modifiers that `IMemberBuilder` adds, which are `IsVirtual` and
-`IsExtern`.
-
-Every operation of `INamedTypeBuilder` is absent rather than failing, because `IDelegateBuilder` does not derive
-from that interface. That includes `Facets`: a caller that reaches the engine object as an `INamedType` and reads
-`Facets` on it meets the `NotSupportedException` of section 5.1 of
-[`introducing-types.md`](introducing-types.md). The one operation of `INamedTypeBuilder` that a delegate genuinely
-needs is `AddTypeParameter`, which section 3.1 declares again.
+Every operation of `INamedTypeBuilder` is reached through `DeclaringType` rather than being absent, which is the
+difference between this kind and the enum. The members of that builder that a delegate does not accept are listed
+in the documentation of `DeclaringType` in section 3.1.
 
 ## 5. What the facet of the introduced delegate reports
 
-A delegate builder declares no `Facets` member, because `IDelegateBuilder` does not derive from `INamedType`. The
-engine class behind it does, and it throws a `NotSupportedException`, which section 5.1 of
-[`introducing-types.md`](introducing-types.md) states for every builder. The kind of a builder is read from
-`IsDelegate`, which answers without allocating and does not throw.
+A delegate builder declares no `Facets` member, because `IDelegateBuilder` derives from `IMethodBuilder` and a
+method has no facet. `DeclaringType`, which is the delegate type under construction, does declare one, and it
+throws a `NotSupportedException`, which section 5.1 of [`introducing-types.md`](introducing-types.md) states for
+every builder. The kind of a builder is read from `IsDelegate`, which answers without allocating and does not
+throw.
 
-That the delegate builder is not a type also bounds the risk of the exception. Section 5.1 lists
+That neither object is usable as a finished type bounds the risk of the exception. Section 5.1 lists
 `EventBuilder.Signature` and the eligibility rule of `AdviceKind.OverrideEventInvoke` as the readers that take the
-type of an event from the aspect. An aspect cannot give a delegate builder as the type of an event, because the
-builder is not an `IType`, so neither reader can meet one.
+type of an event from the aspect. An aspect cannot give a delegate builder as the type of an event, because it is
+not an `IType` at all, and it does not give `DeclaringType` either, because the finished delegate is the result of
+the advice. Neither reader meets a builder in the course an aspect actually takes.
 
 The introduced type reports an `IDelegateFacet`.
 
 | `IDelegateFacet` member | Source |
 | --- | --- |
-| `InvokeMethod` | The `Invoke` method, materialized as a builder from the signature that the aspect gave to `IDelegateBuilder`, so that the facet can name it without re-reading the model from Roslyn. |
+| `InvokeMethod` | The `Invoke` method, which is what `IDelegateBuilder` built, materialized so that the facet can name it without re-reading the model from Roslyn. |
 | `ReturnType` | The return type of that method. |
 | `Parameters` | The parameters of that method. |
 | `FacetKind` | `TypeFacetKind.Delegate`. |
@@ -316,38 +275,46 @@ same parameters.
 
 ## 6. Decisions
 
-### 6.1. The signature is on the builder of the type, and the builder does not derive from `IMethodBuilder`
+### 6.1. The builder is the `Invoke` method, and it derives from `IMethodBuilder`
 
-A delegate declaration is a method signature with the `delegate` keyword in front of it, so the members that
-configure it are the members that configure a method. This design declares them on `IDelegateBuilder` with the
-names that `IMethodBuilder` uses, rather than exposing an `IMethodBuilder` for the `Invoke` method or deriving from
-that interface. Two alternatives were considered and both are rejected.
+A delegate declaration is a method signature with the `delegate` keyword in front of it. Everything an author
+chooses about the signature is what an author chooses about a method, so `IDelegateBuilder` derives from
+`IMethodBuilder` and declares one member of its own.
 
-The first alternative is `IDelegateBuilder : IMethodBuilder`, with the inapplicable operations made illegal. It
-would add no member of its own, which is what makes it attractive. It cannot be taken, because the chain
-`IMethodBuilder : IMethodBaseBuilder`, `IMethodBaseBuilder : IHasParametersBuilder`,
-`IHasParametersBuilder : IMemberBuilder`, `IMemberBuilder : IMember` ends at the interface that narrows the
-declaring type to a value that is not nullable, and a delegate declared in a namespace has no declaring type. That
-is the same obstacle that section 2.1 of [`introducing-types.md`](introducing-types.md) records against
-`IMemberBuilder`, reached through four interfaces instead of one. `IMethod` also derives from `IMethodInvoker`, so
-the builder of a delegate type would offer the operations that invoke a method.
+An earlier revision of this document rejected that base and gave a reason that does not hold. The reason was that
+`IMethodBuilder` reaches `IMember`, whose `DeclaringType` is not nullable, and that a delegate declared in a
+namespace has no declaring type. That confuses the delegate with its `Invoke` method. The builder is the `Invoke`
+method, its declaring type is the delegate, and a delegate always has one, so the obstacle that section 2.1 of
+[`introducing-types.md`](introducing-types.md) records against `IMemberBuilder` for an enum does not arise here.
+The same revision objected that `IMethod` derives from `IMethodInvoker`. That is not a cost either: generating a
+call to the `Invoke` method of a delegate is what `IDelegateFacet` exists for, and the facet documents it.
 
-The second alternative is an `InvokeMethod` property typed as `IMethodBuilder`, which an earlier revision of this
-document took. The `Invoke` method does not need to be reachable while the delegate is being built: everything an
-author sets on it is the signature, and the signature is what the members below are. Keeping the property would
-mean two ways to write the same thing, and a second object whose name, accessibility and modifiers are all invalid.
+Two alternatives were weighed against this one.
 
-What is lost is the symmetry with `IDelegateFacet`, which declares `InvokeMethod` first and documents `ReturnType`
-and `Parameters` as being those of the first. The asymmetry is accepted, and it is the same one that section 6.1 of
-[`introducing-enums.md`](introducing-enums.md) accepts: a reader asks what a delegate is made of, and the answer
-names the method, while a writer chooses a signature and never needs the method as an object. The `Invoke` method
-of an introduced delegate is reached through the facet as soon as the advice completes.
+Declaring the signature members on a builder of the type, which is what the earlier revision did, restates
+`ReturnType`, `ReturnParameter`, `Parameters`, `AddParameter` and `InsertParameter` on an interface that is not a
+method. It carries no member that `IMethodBuilder` does not already carry, and an aspect that copies a signature
+from an existing method has to transfer it member by member instead of using the operations it already knows.
 
-### 6.2. The type parameters belong to the type
+Exposing an `InvokeMethod` property typed as `IMethodBuilder`, which a revision before that one did, gives the same
+operations through one more indirection, and leaves the builder of the type carrying a name and an accessibility
+beside a method that has its own.
 
-`IDelegateBuilder.AddTypeParameter` adds a type parameter to the delegate and not to its `Invoke` method. The
-language places the type parameters of a delegate on the type: `Func<T, TResult>` is a generic type whose `Invoke`
-method is not generic.
+The cost of the decision is that what belongs to the type is set through `DeclaringType`, so making a delegate
+public is `d.DeclaringType.Accessibility = Accessibility.Public` rather than `d.Accessibility = ...`. That is
+accepted rather than hidden. Reinterpreting the inherited `Name` and `Accessibility` as the delegate's would make
+the builder report, while it is an `IMethod`, a name that is not the name of the method it is, and the code model
+does not say two things with one member.
+
+### 6.2. The type parameters belong to the type, so they are added through `DeclaringType`
+
+The language places the type parameters of a delegate on the type: `Func<T, TResult>` is a generic type whose
+`Invoke` method is not generic. `DeclaringType.AddTypeParameter` therefore adds them, and the inherited
+`IMethodBuilder.AddTypeParameter`, which would add one to the `Invoke` method, throws.
+
+Shadowing the inherited method and redefining it as the type's was considered and rejected. Two methods of the same
+name and signature, one of which silently means something the other does not, is harder to read than one that
+throws and one that is reached through the type.
 
 The consequence that the documentation states is that a delegate is the one kind of type, besides an interface,
 whose type parameters may declare variance, so `ITypeParameterBuilder.Variance` is meaningful here and nowhere
@@ -361,15 +328,19 @@ accept.
 
 ## 7. Open questions
 
-None. Two questions that an earlier revision recorded are answered, and section 6 carries both.
+### 7.1. Is `DeclaringType` the right way to configure the type?
 
-The `Invoke` method does not need to be reachable while the delegate is being built, which is why section 6.1
-removes the `InvokeMethod` property rather than keeping it for a case that does not arise. The method is reached
-through the facet of the introduced type as soon as the advice completes.
+Section 6.1 accepts that making a delegate public is `d.DeclaringType.Accessibility = Accessibility.Public`. That is
+the price of a builder that is honestly the `Invoke` method, and it is paid on every delegate an aspect introduces,
+because a delegate that is not public is rarely what the author wants.
 
-A `ref` return and a pointer parameter are in scope. A delegate may return by reference and may take a pointer
-parameter in an unsafe context, `ReturnParameter` and `AddParameter` express both, and the emission path handles
-them. Each is covered by a test rather than refused.
+What would settle whether the price is too high is the set of aspects written against this interface once it
+exists. If it is, the remedy is a second callback on the advice method, typed `Action<INamedTypeBuilder>`, for the
+type, rather than reinterpreting a member of the method builder as the type's.
+
+A `ref` return and a pointer parameter are in scope and are not open. A delegate may return by reference and may
+take a pointer parameter in an unsafe context, `ReturnParameter` and `AddParameter` express both, and each is
+covered by a test rather than refused.
 
 ## 8. References
 

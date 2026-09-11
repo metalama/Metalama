@@ -61,28 +61,29 @@ structs, delegates and enums will be added in a future release.
 
 ## 2. The builder hierarchy, and where it splits
 
-A record, a struct and a union declare members that an aspect can introduce. An enum and a delegate do not: the
-members of an enum are its own members and nothing else may be added, and a delegate declaration has no member
-list at all. The builders therefore derive from two different bases.
+A record, a struct and a union declare members that an aspect can introduce, and their builder is the builder of
+the type. An enum and a delegate do not: the members of an enum are its own members and nothing else may be added,
+and a delegate declaration has no member list at all. The builders therefore do not share one base, and the
+delegate does not even build the same thing as the other four.
 
-| Kind | Builder | Base |
-| --- | --- | --- |
-| Struct | none, `INamedTypeBuilder` is used directly | `INamedTypeBuilder` |
-| Record | `IRecordBuilder` | `INamedTypeBuilder` |
-| Union | `IUnionBuilder` | `INamedTypeBuilder` |
-| Enum | `IEnumBuilder` | `IMemberOrNamedTypeBuilder` |
-| Delegate | `IDelegateBuilder` | `IMemberOrNamedTypeBuilder` |
+| Kind | Builder | Base | What the builder is |
+| --- | --- | --- | --- |
+| Struct | none, `INamedTypeBuilder` is used directly | `INamedTypeBuilder` | the type |
+| Record | `IRecordBuilder` | `INamedTypeBuilder` | the type |
+| Union | `IUnionBuilder` | `INamedTypeBuilder` | the type |
+| Enum | `IEnumBuilder` | `IMemberOrNamedTypeBuilder` | the type |
+| Delegate | `IDelegateBuilder` | `IMethodBuilder` | the `Invoke` method of the type |
 
 Section 2.4 of [`type-facets.md`](type-facets.md) decided that all four builders derive from `INamedTypeBuilder`
 and that the inapplicable inherited operations throw, after the precedent of `IExtensionBlockBuilder`. That
-decision is kept for the record and the union and is revised for the enum and the delegate. Three findings support
-the revision, and each of them answers an alternative that a reader is likely to propose.
+decision is kept for the record and the union and is revised for the enum and the delegate, for reasons that are
+not the same in the two cases. Sections 2.1 to 2.3 give them.
 
-### 2.1. `IMemberBuilder` cannot serve
+### 2.1. An enum builder cannot derive from `IMemberBuilder`
 
 The first proposal a reader makes is that a builder for a kind without members should derive from `IMemberBuilder`
-rather than from `INamedTypeBuilder`. It cannot, because `IMemberBuilder` derives from `IMember`, which narrows the
-declaring type to a value that is not nullable:
+rather than from `INamedTypeBuilder`. For an enum it cannot, because `IMemberBuilder` derives from `IMember`, which
+narrows the declaring type to a value that is not nullable:
 
 ```csharp
 // Metalama.Framework/Code/IMemberOrNamedType.cs:49
@@ -92,12 +93,15 @@ INamedType? DeclaringType { get; }
 new INamedType DeclaringType { get; }
 ```
 
-An enum or a delegate declared in a namespace has no declaring type, so it cannot satisfy the second declaration.
+An enum declared in a namespace has no declaring type, so it cannot satisfy the second declaration.
 `IMemberBuilder` would also contribute `IsVirtual` and `IsExtern`, which apply to a type less than the members it
 would remove.
 
 `IMemberOrNamedTypeBuilder` is the common base of `IMemberBuilder` and `INamedTypeBuilder`, it keeps the nullable
-declaring type, and it is the base this document takes.
+declaring type, and it is the base the enum builder takes.
+
+This argument is about the enum and does not carry to the delegate, which section 2.3 settles differently. The
+difference is that an enum has no single member that carries its structure, while a delegate does.
 
 ### 2.2. The base does not decide whether members can be introduced
 
@@ -119,33 +123,56 @@ an aspect has to be able to use it as a type, so the result of introducing an en
 Refusing the operation is therefore an advice validation rule, described in section 3, and not a consequence of the
 hierarchy. The hierarchy decides what the callback that configures the type can do, and nothing more.
 
-### 2.3. The restriction is reduced and not removed
+### 2.3. A delegate builder is the builder of its `Invoke` method
+
+A delegate is the one kind of this set whose whole structure is one member. A delegate declaration is a method
+signature with the `delegate` keyword in front of it, and `IDelegateFacet` says the same thing on the read side:
+it declares `InvokeMethod`, and its `ReturnType` and `Parameters` are that method's.
+
+`IDelegateBuilder` therefore derives from `IMethodBuilder` and is the builder of the `Invoke` method. The
+obstacle of section 2.1 does not arise, because the declaring type of that method is the delegate, and a delegate
+always has one. What belongs to the type, which is its name, its accessibility, its custom attributes and its type
+parameters, is reached through `DeclaringType`, narrowed to `INamedTypeBuilder`.
+[`introducing-delegates.md`](introducing-delegates.md) carries the design and the cost.
+
+### 2.4. The restriction is reduced and not removed
+
+Neither choice produces a base on which every inherited member is valid, and no base in the hierarchy would. What
+each one does is make the invalid members few enough to list.
 
 `IMemberOrNamedTypeBuilder` declares six settable members: `Accessibility`, `Name`, `IsStatic`, `IsSealed`,
-`IsAbstract` and `IsPartial`. Two of them apply to an enum and to a delegate, and four do not, so four setters
-still throw. The choice does not produce a base on which every inherited member is valid, and no base in the
-hierarchy would.
+`IsAbstract` and `IsPartial`. Two of them apply to an enum and four do not, so four setters throw. What the choice
+removes is larger: compared with `INamedTypeBuilder`, the enum builder no longer inherits `BaseType`,
+`AddTypeParameter`, `IsClosed`, and the whole of `INamedType`, which is the member collections, the implemented
+interfaces, `PrimaryConstructor`, `ExtensionBlocks`, `MakeGenericInstance` and the type construction methods. That
+is approximately thirty members against the four that remain.
 
-What it removes is larger than what it leaves. Compared with `INamedTypeBuilder`, the enum builder and the delegate
-builder no longer inherit `BaseType`, `AddTypeParameter`, `IsClosed`, and the whole of `INamedType`, which is the
-member collections, the implemented interfaces, `PrimaryConstructor`, `ExtensionBlocks`, `MakeGenericInstance` and
-the type construction methods. That is approximately thirty members against the four that remain.
+The delegate trades differently, because its base is chosen for what it carries rather than for what it omits.
+`IMethodBuilder` gives the return type, the return parameter and the parameter operations, which are the whole of
+what an author configures on a delegate, and the members that throw are the ones that describe a method as a member
+of a type: its name, its accessibility, its own type parameters, its attributes and its modifiers. Section 4 of
+[`introducing-delegates.md`](introducing-delegates.md) lists them, and the count is close to the enum's.
 
-### 2.4. The consequence: the builder is not a type
+### 2.5. The consequence: neither builder is a type
 
-`INamedTypeBuilder` derives from `INamedType`, and `IMemberOrNamedTypeBuilder` does not. An `IEnumBuilder` and an
-`IDelegateBuilder` are therefore not types, and neither can be passed where an `IType` is expected. An aspect that
-needs the introduced type reads it from the result of the advice:
+`INamedTypeBuilder` derives from `INamedType`. Neither `IMemberOrNamedTypeBuilder` nor `IMethodBuilder` does, so an
+`IEnumBuilder` and an `IDelegateBuilder` are not types and neither can be passed where an `IType` is expected. An
+aspect that needs the introduced type reads it from the result of the advice:
 
 ```csharp
 var result = builder.IntroduceEnum( "Color" );
 var enumType = result.Declaration;
 ```
 
-This costs nothing in the implementation. The engine class still derives from `NamedTypeBuilder` and still
-implements `INamedTypeImpl`, because the compilation model requires it, so a builder nested inside it, such as the
-`Invoke` method builder of a delegate, resolves a declaring type that is not null in the ordinary way. The public
-interface is a narrowed view of an object that is a named type internally.
+`IDelegateBuilder.DeclaringType` is an `INamedTypeBuilder` and is therefore an `INamedType`, so it is a type in the
+sense of the compiler. It is not the finished delegate: it is the type under construction, whose members are not
+resolvable, so an aspect does not use it as the type of a declaration either. The result of the advice is the one
+object that is safe to use for that.
+
+This costs nothing in the implementation. The engine class behind a type builder derives from `NamedTypeBuilder`
+and implements `INamedTypeImpl`, because the compilation model requires it, so a builder nested inside it resolves
+a declaring type that is not null in the ordinary way. The public interface is a narrowed view of an object that is
+a named type internally.
 
 ## 3. What the framework refuses, and what it leaves to the aspect author
 
@@ -248,8 +275,9 @@ that an aspect supplies:
 The hierarchy of section 2 bounds that risk rather than leaving it open. `IEnumBuilder` and `IDelegateBuilder` do
 not derive from `INamedType`, so they declare no `Facets` member at all and an aspect cannot pass either of them
 where a type is expected. A delegate builder can therefore never be the type of an event. The builders that remain
-reachable as a type are those of a class, a struct, a record and a union, and `Facets.Delegate` is meaningless on
-all four.
+reachable as a type are those of a class, a struct, a record and a union, to which
+`IDelegateBuilder.DeclaringType` adds the delegate type under construction, and `Facets.Delegate` is meaningless on
+all of them while they are being built.
 
 ### 5.2. An introduced type reports its facet
 
