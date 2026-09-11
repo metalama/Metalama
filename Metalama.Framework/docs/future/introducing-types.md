@@ -418,6 +418,8 @@ asserts the exception, and it keeps its assertions that the flags do not throw.
 
 ## 6. Order of implementation
 
+### 6.1. The order
+
 This table supersedes section 6.2 of [`type-facets.md`](type-facets.md), which does not include the union and which
 records the superseded hierarchy decision.
 
@@ -430,12 +432,65 @@ records the superseded hierarchy decision.
 | [#1951](https://github.com/metalama/Metalama/issues/1951) | Introduce a union, with `IUnionBuilder`. This is user story S-29, narrowed to its first half: adding a case to a union that already exists is not supported, which section 6.5 of [`introducing-unions.md`](introducing-unions.md) decides. | #869, [#1941](https://github.com/metalama/Metalama/issues/1941), [#1945](https://github.com/metalama/Metalama/issues/1945) |
 
 The struct is first because it carries the machinery, and because it is the only one of the five whose design adds
-no public interface, so it exercises the emission path alone. The enum and the delegate are independent of each
-other and either may follow. The record is the last of the four issues, because it is the one that materializes
-synthesized members.
+no public interface, so it exercises the emission path alone. The record is the largest, because it registers the
+most synthesized members.
 
 The facet issues of section 6.1 of [`type-facets.md`](type-facets.md) are delivered, so no document of this set is
 blocked by one.
+
+### 6.2. What can be implemented concurrently
+
+The five are not independent, and they are not one piece of work either. The shared engine changes are few, they
+are all in the first issue, and once they are merged the remaining four touch mostly disjoint files.
+
+The changes that happen once, whatever the number of kinds, belong to
+[#869](https://github.com/metalama/Metalama/issues/869):
+
+| Site | Change |
+| --- | --- |
+| `NamedTypeBuilder.cs:186` | The assertion that restricts the kind is relaxed to accept every kind this set introduces. |
+| `NamedTypeBuilder.cs:336` | `Facets` throws, which is section 5.1. |
+| `IntroducedNamedType.cs:182` | `Facets` becomes `TypeFacetCollection.Create( this )`, which is what `SourceNamedTypeImpl` already does. |
+| `EligibilityRuleFactory.cs:101` and `:105` | The two rules test `IsDelegate` before reading the facet, which is section 5.1. |
+| A new transformation shape | Registers a builder without injecting a member, which is section 4.2. |
+| `IntroduceNamedTypeTransformation.cs:65` | The cast and the local widen to `MemberDeclarationSyntax`, which is section 4.1. |
+
+The third row is the one that decides the answer, and it is a single line rather than one line per kind.
+`TypeFacetCollection.Create` dispatches on `IsDelegate`, `IsUnion`, `IsRecord` and `IsEnum`, and
+`IntroducedNamedType` already declares all four. An introduced type therefore reports the facet of its kind as soon
+as its flag is correct, and no later issue edits that site.
+
+What each later issue adds, once those are merged:
+
+| Site | Which issues touch it |
+| --- | --- |
+| A public builder interface, an engine builder, a builder data type, and the tests | Each kind, in files of its own. |
+| The facet implementation, which needs a path that reads the code model rather than a Roslyn symbol | `EnumFacet`, `RecordFacet` and `UnionFacet`, one file each. `DelegateFacet` names no symbol and already works on an introduced type. |
+| `IAdviceFactory`, `AdviserExtensions` and `AdviceFactory` | Each kind, appending a method to a different part of each file. |
+| The arm of the switch in `IntroduceNamedTypeTransformation` | Each kind. |
+| The arm of `DesignTimeSyntaxTreeGenerator.CreatePartialType` | The enum and the delegate only. The class, struct, record class and record struct arms are already there. |
+| `ModifierHelper.GetTypeSyntaxModifierList` | The record only, for the `record` modifier. |
+
+The recommendation follows from the two tables. One issue first, implemented by one agent in one pull request,
+which is [#869](https://github.com/metalama/Metalama/issues/869) and which carries every row of the first table
+together with the struct itself. Then the enum, the delegate and the record concurrently, and the union beside them
+or after the record.
+
+Three things are worth knowing before that second phase starts.
+
+The textual conflicts are real but mechanical. Two agents adding an arm to the switch of
+`IntroduceNamedTypeTransformation` conflict, because the arms are adjacent lines, and so do two agents adding a
+field to `NamedTypeBuilderData`. Neither conflict is a design question, and a rebase resolves each of them.
+
+The semantic hazard is the reason the first phase exists. Section 4.2 is the part of this work that is easy to
+implement backwards, and an agent that meets it alone will implement it for its own kind. Two agents doing that
+independently produce two shapes for the same problem, and the second one to merge has to be rewritten rather than
+rebased. The struct issue settles it once, with one synthesized member and no facet to obscure it.
+
+Implementing all five in one pull request is the other way to avoid both, and it is not recommended. It produces a
+change of five public builder interfaces, five advice methods, four facet paths and the whole of the machinery
+above, which no reviewer can hold at once, and it serialises work that the tables show is mostly parallel. The
+first phase is small enough to review closely, which is what it needs, because every later issue is built on it.
 
 ## 7. The documents
 
