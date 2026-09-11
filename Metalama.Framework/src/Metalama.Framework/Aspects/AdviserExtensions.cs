@@ -1722,6 +1722,29 @@ public static class AdviserExtensions
     /// <param name="buildType">An optional delegate that modifies the <see cref="INamedTypeBuilder"/> that represents the introduced interface.</param>
     /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> that exposes the outcome of the operation and the introduced <see cref="INamedType"/>.</returns>
     /// <seealso href="@introducing-types"/>
+    /// <summary>
+    /// Introduces a new struct into the current namespace (as a top-level type) or type (as a nested type).
+    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> or <see cref="WithNamespace"/> method to introduce the struct to a different type or namespace
+    /// than the current one.
+    /// </summary>
+    /// <param name="adviser">An adviser for a named type or namespace.</param>
+    /// <param name="name">The struct name.</param>
+    /// <param name="whenExists">Determines the implementation strategy when a struct of the same name is already declared in the target type or namespace.
+    ///     The default strategy is to fail with a compile-time error.</param>
+    /// <param name="buildType">An optional delegate that modifies the <see cref="INamedTypeBuilder"/> that represents the introduced struct.</param>
+    /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> that exposes the outcome of the operation and the introduced <see cref="INamedType"/>.</returns>
+    /// <seealso href="@introducing-types"/>
+    public static IIntroductionAdviceResult<INamedType> IntroduceStruct(
+        this IAdviser<INamespaceOrNamedType> adviser,
+        string name,
+        OverrideStrategy whenExists = OverrideStrategy.Default,
+        Action<INamedTypeBuilder>? buildType = null )
+        => ((IAdviserInternal) adviser).AdviceFactory.IntroduceStruct(
+            adviser.Target,
+            name,
+            whenExists,
+            buildType );
+
     public static IIntroductionAdviceResult<INamedType> IntroduceInterface(
         this IAdviser<INamespaceOrNamedType> adviser,
         string name,

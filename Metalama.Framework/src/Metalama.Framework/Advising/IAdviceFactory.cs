@@ -1035,6 +1035,22 @@ namespace Metalama.Framework.Advising
             Action<INamedTypeBuilder>? buildType = null );
 
         /// <summary>
+        /// Introduces a new struct to the target namespace or type.
+        /// </summary>
+        /// <param name="targetNamespaceOrType">The namespace or type into which the struct must be introduced.</param>
+        /// <param name="name">The name of the introduced struct.</param>
+        /// <param name="whenExists">Determines the implementation strategy when a type of the same name is already declared in the target namespace or type.
+        ///     The default strategy is to fail with a compile-time error.</param>
+        /// <param name="buildType">An optional callback that allows you to configure the introduced struct, such as adding members, implemented interfaces, or custom attributes.</param>
+        /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> representing the result of the advice. The <see cref="IIntroductionAdviceResult{T}.Declaration"/> property provides access to the introduced struct.
+        /// The <see cref="IIntroductionAdviceResult{T}"/> interface itself implements <see cref="IAdviser{T}"/> and can be used to introduce members to the type.</returns>
+        IIntroductionAdviceResult<INamedType> IntroduceStruct(
+            INamespaceOrNamedType targetNamespaceOrType,
+            string name,
+            OverrideStrategy whenExists = OverrideStrategy.Default,
+            Action<INamedTypeBuilder>? buildType = null );
+
+        /// <summary>
         /// Introduces a new extension block into a static class. Extension blocks allow adding
         /// extension members (methods, properties, indexers, operators) to a type (represented as an <see cref="IType"/>). Requires C# 14+ and Roslyn 5.0+, and C# 15+ for indexers.
         /// </summary>

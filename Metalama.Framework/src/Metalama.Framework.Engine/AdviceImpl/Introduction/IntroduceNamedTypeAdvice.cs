@@ -103,17 +103,34 @@ internal sealed class IntroduceNamedTypeAdvice : IntroduceDeclarationAdvice<INam
 
     private void IntroduceImplicitConstructorIfNeeded( NamedTypeBuilder builder, AdviceImplementationContext context )
     {
-        // Non-static classes should have an implicit default constructor, just like source types
-        // that get their implicit constructor from Roslyn.
-        if ( builder is { TypeKind: TypeKind.Class, IsStatic: false } )
+        // A non-static class and a struct both have an implicit parameterless constructor, just like a source type
+        // that gets one from Roslyn. The pipeline never re-reads the final model from Roslyn, so the constructor has
+        // to exist as a builder for an aspect to see it.
+        if ( builder is not { TypeKind: TypeKind.Class or TypeKind.Struct, IsStatic: false } )
         {
-            var constructorBuilder = new ConstructorBuilder( this.AspectLayerInstance, builder, isImplicitlyDeclared: true )
-            {
-                Accessibility = Accessibility.Public
-            };
+            return;
+        }
 
-            constructorBuilder.Freeze();
+        var constructorBuilder = new ConstructorBuilder( this.AspectLayerInstance, builder, isImplicitlyDeclared: true )
+        {
+            Accessibility = Accessibility.Public
+        };
+
+        constructorBuilder.Freeze();
+
+        if ( builder.TypeKind == TypeKind.Class )
+        {
+            // Metalama declares the parameterless constructor of a class, so it is registered and emitted.
             context.AddTransformation( constructorBuilder.CreateTransformation() );
+        }
+        else
+        {
+            // The compiler synthesizes the parameterless constructor of a struct from the declaration, so this one is
+            // registered in the code model and emitted by nothing. Emitting it as well would declare it twice, and
+            // before C# 10 the language did not let a struct declare one at all. See section 4.2 of
+            // Metalama.Framework/docs/future/introducing-types.md.
+            context.AddTransformation(
+                new IntroduceSynthesizedDeclarationTransformation( this.AspectLayerInstance, constructorBuilder.BuilderData ) );
         }
     }
 }

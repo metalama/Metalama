@@ -30,9 +30,17 @@ internal sealed class IntroduceNamedTypeTransformation : IntroduceDeclarationTra
     {
         var introducedType = this.BuilderData.ToRef().GetTarget( context.FinalCompilation );
 
+        // A struct, an enum and a delegate emit no base list. The base that InitializeBaseType gives them, which is
+        // System.ValueType, System.Enum and System.MulticastDelegate, is the semantic base that the code model
+        // reports, and writing it in a base list is CS0527: the compiler derives it from the declaration instead.
+        // An enum writes its underlying integral type in that position, which the arm for that kind supplies.
         BaseListSyntax? baseList;
 
-        if ( introducedType.BaseType != null && introducedType.BaseType.SpecialType != SpecialType.Object )
+        if ( this.BuilderData.TypeKind is TypeKind.Struct or TypeKind.Enum or TypeKind.Delegate )
+        {
+            baseList = null;
+        }
+        else if ( introducedType.BaseType != null && introducedType.BaseType.SpecialType != SpecialType.Object )
         {
             baseList = BaseList(
                 SingletonSeparatedList<BaseTypeSyntax>( SimpleBaseType( context.SyntaxGenerator.TypeSyntax( introducedType.BaseType.ToNonNullable() ) ) ) );
