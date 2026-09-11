@@ -147,7 +147,9 @@ implements `INamedTypeImpl`, because the compilation model requires it, so a bui
 `Invoke` method builder of a delegate, resolves a declaring type that is not null in the ordinary way. The public
 interface is a narrowed view of an object that is a named type internally.
 
-## 3. Member introduction is refused by advice validation
+## 3. What the framework refuses, and what it leaves to the aspect author
+
+### 3.1. Member introduction into an enum or a delegate is refused by advice validation
 
 Section 2.2 establishes that `IntroduceMethod`, `IntroduceField`, `IntroduceProperty`, `IntroduceEvent`,
 `IntroduceConstructor`, `IntroduceIndexer` and `ImplementInterface` remain callable on the result of introducing an
@@ -161,6 +163,27 @@ the same reason.
 An enum does declare members, and they are nevertheless covered by the same rule. They are added through
 `IEnumBuilder` while the type is being constructed, and not through the adviser afterwards. The enum document
 states why.
+
+### 3.2. The framework does not prevent an aspect from generating invalid code
+
+A builder refuses an operation when the operation cannot be represented, and not when the code it would produce is
+invalid for a reason of the language. Setting a base type on a struct is refused, because a struct declaration has
+nowhere to put one. Introducing a ref struct as the type of a field of a class is not refused, because the
+declaration is representable and the compiler reports the error on it.
+
+The reason is that the aspect author is responsible for the code the aspect generates, and a framework that tried
+to reproduce the rules of the language would reproduce a part of them, would be wrong about some of that part, and
+would refuse patterns that are valid in a context it did not model. The compiler is the authority on whether the
+generated code is valid, and its diagnostic names the generated declaration.
+
+Two exceptions are deliberate. Section 3 of [`../2027.0/DECISIONS.md`](../2027.0/DECISIONS.md) decides that the
+advices that a union declaration cannot carry are refused with a clear diagnostic, because the compiler reports
+those errors on generated code that the user cannot edit. And an operation whose result could not be expressed at
+all, rather than expressed and rejected, throws, which is what section 4 of each document lists.
+
+The practical test is whether the operation has a syntax to produce. Setting a base type on a struct has none, so
+it throws. Introducing a ref struct as the type of a field has one, so it is generated and the compiler judges
+it.
 
 ## 4. The emission machinery that the five kinds share
 
@@ -245,6 +268,15 @@ that the compiler synthesizes, and each of them has to be materialized. The prec
 `IntroduceNamedTypeAdvice.IntroduceImplicitConstructorIfNeeded`, which already materializes the implicit
 constructor of an introduced class for exactly this reason.
 
+A member that the compiler synthesizes is materialized in the code model and is not emitted as syntax. Metalama
+generates the declaration of the type, which is the `record` or the `union` keyword and the header that follows it,
+and the compiler synthesizes the members from that declaration exactly as it does for a type the user wrote.
+Emitting them as well would declare them twice. The transformation that registers a builder without injecting a
+member is therefore a shape of its own, which story S-29 describes and models on the introduction of a namespace.
+This is the one point at which the code model and the generated code deliberately differ, and every document of
+this set states it for its own kind, because reading it the other way produces a type whose members are declared
+twice.
+
 ### 5.3. The facets are tested by unit tests and not by aspect tests
 
 An aspect test compares generated code against an expected file. It proves that the right declaration was emitted,
@@ -293,8 +325,7 @@ records the superseded hierarchy decision.
 | [#866](https://github.com/metalama/Metalama/issues/866) | Introduce an enum, with `IEnumBuilder`. | #869 |
 | [#865](https://github.com/metalama/Metalama/issues/865) | Introduce a delegate, with `IDelegateBuilder`. | #869 |
 | [#867](https://github.com/metalama/Metalama/issues/867) | Introduce a record class and a record struct, with `IRecordBuilder`. | #869 |
-| [#1951](https://github.com/metalama/Metalama/issues/1951) | Introduce a union, and a case on the attribute form, with `IUnionBuilder`. This is user story S-29. | #869, [#1941](https://github.com/metalama/Metalama/issues/1941), [#1945](https://github.com/metalama/Metalama/issues/1945) |
-| [#1952](https://github.com/metalama/Metalama/issues/1952) | Introduce a case into a `union` declaration. This is user story S-30, and it is filed only if question Q1 of [`OPEN-QUESTIONS.md`](../2027.0/OPEN-QUESTIONS.md) chooses to ship both authoring forms. | [#1951](https://github.com/metalama/Metalama/issues/1951) |
+| [#1951](https://github.com/metalama/Metalama/issues/1951) | Introduce a union, with `IUnionBuilder`. This is user story S-29, narrowed to its first half: adding a case to a union that already exists is not supported, which section 6.5 of [`introducing-unions.md`](introducing-unions.md) decides. | #869, [#1941](https://github.com/metalama/Metalama/issues/1941), [#1945](https://github.com/metalama/Metalama/issues/1945) |
 
 The struct is first because it carries the machinery, and because it is the only one of the five whose design adds
 no public interface, so it exercises the emission path alone. The enum and the delegate are independent of each
@@ -312,7 +343,7 @@ blocked by one.
 | [`introducing-enums.md`](introducing-enums.md) | Enum | [#866](https://github.com/metalama/Metalama/issues/866) |
 | [`introducing-delegates.md`](introducing-delegates.md) | Delegate | [#865](https://github.com/metalama/Metalama/issues/865) |
 | [`introducing-records.md`](introducing-records.md) | Record class and record struct | [#867](https://github.com/metalama/Metalama/issues/867) |
-| [`introducing-unions.md`](introducing-unions.md) | Union | [#1951](https://github.com/metalama/Metalama/issues/1951), [#1952](https://github.com/metalama/Metalama/issues/1952) |
+| [`introducing-unions.md`](introducing-unions.md) | Union | [#1951](https://github.com/metalama/Metalama/issues/1951) |
 
 ## 8. The issues
 
@@ -325,12 +356,20 @@ blocked by one.
 | [#865](https://github.com/metalama/Metalama/issues/865) | Type introduction: introduce delegate | open |
 | [#867](https://github.com/metalama/Metalama/issues/867) | Type introduction: introduce record struct/class | open |
 | [#1951](https://github.com/metalama/Metalama/issues/1951) | C# 15 unions: introducing a union and a case on the attribute form. User story S-29. | open |
-| [#1952](https://github.com/metalama/Metalama/issues/1952) | C# 15 unions: introducing a case into a `union` declaration. User story S-30. | open |
 
 The first four are imported issues that carry no body, and this set of documents is the design they lack. The last
-two are user stories whose body states the capability, the scope and the acceptance criteria, and which state no
+is a user story whose body states the capability, the scope and the acceptance criteria, and which states no
 application programming interface because section 11 of [`../2027.0/DECISIONS.md`](../2027.0/DECISIONS.md) forbids
 a story from doing so.
+
+One issue is withdrawn by this set rather than designed by it.
+[#1952](https://github.com/metalama/Metalama/issues/1952), user story S-30, which added a case to a type declared
+with the `union` keyword, is not implemented: the operation cannot be expressed in a generated partial part, so the
+editor and the build would disagree about the result. Section 6.5 of
+[`introducing-unions.md`](introducing-unions.md) carries the decision, the workaround for the other authoring form,
+and the condition under which it should be revisited. That section also narrows
+[#1951](https://github.com/metalama/Metalama/issues/1951), which carried the same operation for a type carrying the
+union attribute.
 
 ### 8.2. The issues that delivered the read side
 
@@ -368,7 +407,7 @@ are named so that a reader who implements one of the five knows what is adjacent
 | [#912](https://github.com/metalama/Metalama/issues/912) | Introductions: hidden visibility | Independent. |
 | [#1998](https://github.com/metalama/Metalama/issues/1998) | Code model: move the tuple type interfaces to the type namespace and add a tuple flag | A tuple is not declared and is not introduced, so it produces no document here. |
 | [#1999](https://github.com/metalama/Metalama/issues/1999) | Code model: an invoker on `IMethodBase` | It would let a consumer invoke the creation member of a union case, which [`introducing-unions.md`](introducing-unions.md) needs no more than the reader does. |
-| [#1954](https://github.com/metalama/Metalama/issues/1954) | Documentation: internal architecture documents. User story S-26. | It names S-28, S-29 and S-30 as blockers, so the sections it writes about an introduction interface follow the stories of this set. |
+| [#1954](https://github.com/metalama/Metalama/issues/1954) | Documentation: internal architecture documents. User story S-26. | It names S-28, S-29 and S-30 as blockers, so the sections it writes about an introduction interface follow the stories of this set. Its dependency on S-30 lapses, because section 6.5 of [`introducing-unions.md`](introducing-unions.md) withdraws that story. |
 
 The conceptual documentation of `metalama/Metalama.Documentation` carries a note that support for structs,
 delegates and enums will be added in a future release. Whichever of the five ships last removes it, and user story
@@ -379,8 +418,10 @@ S-27, which is the conceptual documentation of C# 15, names S-29 among its block
 - [`type-facets.md`](type-facets.md), sections 2.4, 5 and 6.2.
 - [`../compilation-model.md`](../compilation-model.md), the builder and builder data freeze pattern.
 - [`../2027.0/DECISIONS.md`](../2027.0/DECISIONS.md), sections 4 and 11.
-- [`../2027.0/user-stories/S-29-introduce-union-and-case-attribute-form.md`](../2027.0/user-stories/S-29-introduce-union-and-case-attribute-form.md)
-  and [`../2027.0/user-stories/S-30-introduce-case-into-union-declaration.md`](../2027.0/user-stories/S-30-introduce-case-into-union-declaration.md).
+- [`../2027.0/user-stories/S-29-introduce-union-and-case-attribute-form.md`](../2027.0/user-stories/S-29-introduce-union-and-case-attribute-form.md),
+  whose first half is designed here, and
+  [`../2027.0/user-stories/S-30-introduce-case-into-union-declaration.md`](../2027.0/user-stories/S-30-introduce-case-into-union-declaration.md),
+  which is withdrawn.
 - [`../2027.0/analysis-reports/10-introducing-closed-and-unions.md`](../2027.0/analysis-reports/10-introducing-closed-and-unions.md),
   the audit of what can be introduced today.
 

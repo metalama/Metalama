@@ -102,6 +102,17 @@ namespace Metalama.Framework.Code.DeclarationBuilders;
 /// <see cref="Metalama.Framework.Advising.IIntroductionAdviceResult{T}.Declaration"/>, which is how an aspect gives
 /// the introduced delegate as the type of a field, of a property or of an event.
 /// </para>
+/// <para>
+/// The members below are the signature of the delegate, which is the signature of the <c>Invoke</c> method that the
+/// compiler synthesizes for it. They are the members of <see cref="IMethodBuilder"/> that apply to a delegate, and
+/// they carry the same names, so an aspect that configures a delegate writes what it would write for a method. The
+/// <c>Invoke</c> method itself is not exposed during construction: it is read from
+/// <see cref="Metalama.Framework.Code.Types.IDelegateFacet.InvokeMethod"/> on the introduced type.
+/// </para>
+/// <para>
+/// The <c>BeginInvoke</c> and <c>EndInvoke</c> methods are not exposed and are not built. They exist only for a
+/// delegate compiled for .NET Framework, and they are the asynchronous pattern that preceded <c>async</c>.
+/// </para>
 /// </remarks>
 /// <seealso cref="Metalama.Framework.Code.Types.IDelegateFacet"/>
 /// <seealso href="@introducing-types"/>
@@ -109,44 +120,24 @@ namespace Metalama.Framework.Code.DeclarationBuilders;
 public interface IDelegateBuilder : IMemberOrNamedTypeBuilder
 {
     /// <summary>
-    /// Gets the builder of the <c>Invoke</c> method, which carries the signature of the delegate.
+    /// Gets or sets the return type of the delegate. The default value is <c>void</c>.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// This property is the complete signature of the delegate, and
-    /// <see cref="ReturnType"/>, <see cref="Parameters"/> and
-    /// <see cref="AddParameter(string,IType,Code.RefKind,TypedConstant?)"/>
-    /// are shortcuts onto it. It is exposed so that an aspect that already has an <see cref="IMethod"/> to copy, in
-    /// particular the <c>Invoke</c> method of another delegate, can configure the signature by the same operations
-    /// it would use on any method.
-    /// </para>
-    /// <para>
-    /// The following operations of the method builder are not valid on the <c>Invoke</c> method of a delegate, and
-    /// each of them throws a <see cref="NotSupportedException"/>:
-    /// <see cref="IMethodBuilder.AddTypeParameter"/>, because the type parameters of a delegate belong to the type
-    /// and are added by <see cref="AddTypeParameter"/> on this interface;
-    /// <see cref="IMemberOrNamedTypeBuilder.Name"/> and
-    /// <see cref="IMemberOrNamedTypeBuilder.Accessibility"/>, which the language fixes;
-    /// <see cref="IMethodBuilder.OperatorKind"/>; <see cref="IMethodBuilder.IsReadOnly"/>; and every modifier that
-    /// <see cref="IMemberBuilder"/> and <see cref="IMemberOrNamedTypeBuilder"/> declare.
-    /// </para>
-    /// <para>
-    /// The <c>BeginInvoke</c> and <c>EndInvoke</c> methods are not exposed and are not built. They exist only for a
-    /// delegate compiled for .NET Framework, and they are the asynchronous pattern that preceded <c>async</c>.
+    /// A delegate may return by reference. The reference kind of the return is set on
+    /// <see cref="ReturnParameter"/>, as it is on a method.
     /// </para>
     /// </remarks>
-    /// <seealso cref="Metalama.Framework.Code.Types.IDelegateFacet.InvokeMethod"/>
-    IMethodBuilder InvokeMethod { get; }
-
-    /// <summary>
-    /// Gets or sets the return type of the delegate, which is the return type of <see cref="InvokeMethod"/>. The
-    /// default value is <c>void</c>.
-    /// </summary>
     /// <seealso cref="Metalama.Framework.Code.Types.IDelegateFacet.ReturnType"/>
     IType ReturnType { get; set; }
 
     /// <summary>
-    /// Gets the parameters of the delegate, which are the parameters of <see cref="InvokeMethod"/>.
+    /// Gets an object allowing to read and modify the return type and the custom attributes of the return value.
+    /// </summary>
+    IParameterBuilder ReturnParameter { get; }
+
+    /// <summary>
+    /// Gets the parameters of the delegate.
     /// </summary>
     /// <seealso cref="Metalama.Framework.Code.Types.IDelegateFacet.Parameters"/>
     IParameterBuilderList Parameters { get; }
@@ -184,9 +175,9 @@ public interface IDelegateBuilder : IMemberOrNamedTypeBuilder
     /// </summary>
     /// <remarks>
     /// <para>
-    /// The type parameters of a delegate belong to the type and not to its <c>Invoke</c> method, so they are added
-    /// here. A delegate is the one kind of type whose type parameters may declare variance, through
-    /// <see cref="ITypeParameterBuilder.Variance"/>.
+    /// The type parameters of a delegate belong to the type and not to its <c>Invoke</c> method, which is why this
+    /// member exists on the builder of the type. A delegate is the one kind of type, besides an interface, whose
+    /// type parameters may declare variance, through <see cref="ITypeParameterBuilder.Variance"/>.
     /// </para>
     /// </remarks>
     /// <param name="name">The name of the type parameter.</param>
@@ -265,9 +256,10 @@ not.
 
 The operations of `IDeclarationBuilder` are all valid: a delegate carries attributes.
 
-The restrictions on `InvokeMethod` are listed in the documentation of that property in section 3.1, and they exist
-because `IMethodBuilder` is reused whole rather than narrowed. Section 6.2 states why reuse is preferred to a
-narrower interface here and not for the members of an enum.
+There is no `Invoke` method builder to restrict, because section 6.1 puts the signature on the builder of the type
+itself. The members that `IMethodBuilder` declares and that a delegate does not accept are therefore absent rather
+than failing: `IsReadOnly`, `OperatorKind`, and the modifiers that `IMemberBuilder` adds, which are `IsVirtual` and
+`IsExtern`.
 
 Every operation of `INamedTypeBuilder` is absent rather than failing, because `IDelegateBuilder` does not derive
 from that interface. That includes `Facets`: a caller that reaches the engine object as an `INamedType` and reads
@@ -291,7 +283,7 @@ The introduced type reports an `IDelegateFacet`.
 
 | `IDelegateFacet` member | Source |
 | --- | --- |
-| `InvokeMethod` | The method that `IDelegateBuilder.InvokeMethod` built, materialized as a builder so that the facet can name it without re-reading the model from Roslyn. |
+| `InvokeMethod` | The `Invoke` method, materialized as a builder from the signature that the aspect gave to `IDelegateBuilder`, so that the facet can name it without re-reading the model from Roslyn. |
 | `ReturnType` | The return type of that method. |
 | `Parameters` | The parameters of that method. |
 | `FacetKind` | `TypeFacetKind.Delegate`. |
@@ -300,9 +292,16 @@ The introduced type reports an `IDelegateFacet`.
 `INamedType.IsDelegate` reports `true`, and `INamedType.Methods` contains the `Invoke` method, which is what it
 contains for a delegate read from source.
 
+Materialized means present in the code model and not emitted as syntax. Metalama generates the delegate
+declaration, which is the `delegate` keyword and the signature, and the compiler synthesizes the `Invoke` method
+and the constructor from it exactly as it does for a delegate the user wrote. A transformation that injected the
+`Invoke` method as well would declare it twice, and a delegate declaration has no member list to put it in.
+Section 5.2 of [`introducing-types.md`](introducing-types.md) states the rule.
+
 `DelegateFacet` resolves the `Invoke` method by name today, through
 `this.Type.Methods.OfName( "Invoke" ).Single()`. That continues to work for an introduced delegate, because the
-method is a member of the type like any other. The facet needs no branch for an introduced delegate.
+method is a member of the type like any other once it is registered in the code model. The facet needs no branch
+for an introduced delegate.
 
 `BeginInvoke` and `EndInvoke` are not materialized. The facet does not expose them, no consumer reaches them, and
 an introduced delegate is compiled for the target framework of the project rather than for .NET Framework
@@ -317,47 +316,44 @@ same parameters.
 
 ## 6. Decisions
 
-### 6.1. The signature is the `Invoke` method and not a flat surface on the type
+### 6.1. The signature is on the builder of the type, and the builder does not derive from `IMethodBuilder`
 
-`IDelegateBuilder` could declare a return type and a parameter list of its own, with no `InvokeMethod` property.
-The design exposes the method instead, for two reasons.
+A delegate declaration is a method signature with the `delegate` keyword in front of it, so the members that
+configure it are the members that configure a method. This design declares them on `IDelegateBuilder` with the
+names that `IMethodBuilder` uses, rather than exposing an `IMethodBuilder` for the `Invoke` method or deriving from
+that interface. Two alternatives were considered and both are rejected.
 
-The first is symmetry with the reader. `IDelegateFacet` declares `InvokeMethod`, `ReturnType` and `Parameters`, in
-that order, with the second and the third documented as being those of the first. A writer that inverted the
-relation, making the flat members the truth and offering no method, would describe the same delegate by a different
-structure on each side.
+The first alternative is `IDelegateBuilder : IMethodBuilder`, with the inapplicable operations made illegal. It
+would add no member of its own, which is what makes it attractive. It cannot be taken, because the chain
+`IMethodBuilder : IMethodBaseBuilder`, `IMethodBaseBuilder : IHasParametersBuilder`,
+`IHasParametersBuilder : IMemberBuilder`, `IMemberBuilder : IMember` ends at the interface that narrows the
+declaring type to a value that is not nullable, and a delegate declared in a namespace has no declaring type. That
+is the same obstacle that section 2.1 of [`introducing-types.md`](introducing-types.md) records against
+`IMemberBuilder`, reached through four interfaces instead of one. `IMethod` also derives from `IMethodInvoker`, so
+the builder of a delegate type would offer the operations that invoke a method.
 
-The second is that an aspect that introduces a delegate usually has a signature to copy, and the thing it is
-copying from is an `IMethod`. Exposing an `IMethodBuilder` lets it use the operations it already knows, including
-`AddParameter` with a `RefKind` and a default value, and `ReturnParameter` for the attributes of the return value,
-which a flat surface would have to declare again.
+The second alternative is an `InvokeMethod` property typed as `IMethodBuilder`, which an earlier revision of this
+document took. The `Invoke` method does not need to be reachable while the delegate is being built: everything an
+author sets on it is the signature, and the signature is what the members below are. Keeping the property would
+mean two ways to write the same thing, and a second object whose name, accessibility and modifiers are all invalid.
 
-The shortcuts are declared nevertheless, because the common case is an aspect that writes a short signature by
-hand, and `d.ReturnType = ...` reads better than `d.InvokeMethod.ReturnType = ...` when repeated. The facet makes
-the same trade and for the same reason.
+What is lost is the symmetry with `IDelegateFacet`, which declares `InvokeMethod` first and documents `ReturnType`
+and `Parameters` as being those of the first. The asymmetry is accepted, and it is the same one that section 6.1 of
+[`introducing-enums.md`](introducing-enums.md) accepts: a reader asks what a delegate is made of, and the answer
+names the method, while a writer chooses a signature and never needs the method as an object. The `Invoke` method
+of an introduced delegate is reached through the facet as soon as the advice completes.
 
-### 6.2. `IMethodBuilder` is reused whole, and the members of an enum are not
+### 6.2. The type parameters belong to the type
 
-Section 6.1 of [`introducing-enums.md`](introducing-enums.md) rejects `IFieldBuilder` as the return type of
-`AddMember`, and this document accepts `IMethodBuilder` as the type of `InvokeMethod`. The two decisions are
-consistent, because the ratio of valid to invalid operations is not the same.
+`IDelegateBuilder.AddTypeParameter` adds a type parameter to the delegate and not to its `Invoke` method. The
+language places the type parameters of a delegate on the type: `Func<T, TResult>` is a generic type whose `Invoke`
+method is not generic.
 
-Of the operations of `IFieldBuilder`, one is valid for a member of an enum. Of the operations of `IMethodBuilder`,
-the parameters, the return type, the return parameter and the attributes are all valid, which is most of the
-interface, and the ones that are not are the name, the accessibility, the modifiers, the operator kind and the
-addition of a type parameter. An `Invoke` method genuinely is a method, with a signature that an author chooses
-freely. A member of an enum is a name and a number.
+The consequence that the documentation states is that a delegate is the one kind of type, besides an interface,
+whose type parameters may declare variance, so `ITypeParameterBuilder.Variance` is meaningful here and nowhere
+else among the five kinds.
 
-### 6.3. The type parameters belong to the type
-
-`IDelegateBuilder.AddTypeParameter` adds a type parameter to the delegate, and
-`IDelegateBuilder.InvokeMethod.AddTypeParameter` throws. The language places the type parameters of a delegate on
-the type: `Func<T, TResult>` is a generic type whose `Invoke` method is not generic.
-
-The consequence that the documentation states is that a delegate is the one kind of type whose type parameters may
-declare variance, so `ITypeParameterBuilder.Variance` is meaningful here and on an interface, and nowhere else.
-
-### 6.4. A delegate is introduced by its own advice method
+### 6.3. A delegate is introduced by its own advice method
 
 The reasoning is that of section 6.2 of [`introducing-structs.md`](introducing-structs.md). A delegate accepts a
 configuration that no other kind accepts, which is a signature, and it accepts almost nothing that the other kinds
@@ -365,25 +361,15 @@ accept.
 
 ## 7. Open questions
 
-### 7.1. Does the `Invoke` method need to be reachable before the advice completes?
+None. Two questions that an earlier revision recorded are answered, and section 6 carries both.
 
-The design exposes `InvokeMethod` as an `IMethodBuilder` during construction, and the introduced delegate exposes
-it as an `IMethod` afterwards. Whether an aspect needs to hold the eventual `IMethod` while the type is still being
-built is not known. It would matter to an aspect that introduces a delegate and, in the same `BuildAspect`, writes
-a template that calls it.
+The `Invoke` method does not need to be reachable while the delegate is being built, which is why section 6.1
+removes the `InvokeMethod` property rather than keeping it for a case that does not arise. The method is reached
+through the facet of the introduced type as soon as the advice completes.
 
-What would settle it is one sample aspect that introduces a delegate, an event of that type and a method that
-raises the event, written against the interface above. That aspect is worth writing before the interface is
-frozen, because it is the pattern the issue exists for.
-
-### 7.2. Is a `ref` return or a pointer parameter in scope?
-
-A delegate may return by reference and may take a pointer parameter in an unsafe context.
-`IMethodBuilder.ReturnType` and `AddParameter` accept a `RefKind`, so the interface expresses both, and whether the
-emission path handles them is an implementation question rather than a design one.
-
-What would settle it is a test of each. Neither is a reason to change the interface, because the alternative
-would be to refuse a signature that `IMethodBuilder` can already express.
+A `ref` return and a pointer parameter are in scope. A delegate may return by reference and may take a pointer
+parameter in an unsafe context, `ReturnParameter` and `AddParameter` express both, and the emission path handles
+them. Each is covered by a test rather than refused.
 
 ## 8. References
 

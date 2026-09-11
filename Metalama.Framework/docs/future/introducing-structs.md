@@ -117,8 +117,9 @@ issue uncomments them and documents them. `INamedType` already declares both as 
 /// <see cref="InvalidOperationException"/> when the type being built is not a struct.
 /// </para>
 /// <para>
-/// A readonly struct may declare no settable instance field and no automatic property that has a setter, so an
-/// advice that introduces one into such a type reports an error.
+/// A readonly struct may declare no settable instance field and no automatic property that has a setter. Metalama
+/// does not refuse an advice that introduces one, and the compiler reports the error on the generated
+/// declaration.
 /// </para>
 /// </remarks>
 new bool IsReadOnly { get; set; }
@@ -216,26 +217,32 @@ public advice method that reaches it, the two properties of section 3.2, and the
 
 ## 7. Open questions
 
-### 7.1. Does `IsRef` need a diagnostic of its own?
+None. Two questions that an earlier revision recorded are answered below.
 
-A ref struct carries restrictions that the compiler reports on generated code, which section 3.2 documents rather
-than enforces. Whether Metalama should refuse an advice that introduces a ref struct as a field of a class, which
-is the most likely mistake, is not decided here. What would settle it is the count of such mistakes that reach a
-user, which is not known before the feature ships.
+### 7.1. `IsRef` needs no diagnostic of its own
 
-The safe reading is that the compiler error is clear and names the generated declaration, so no Metalama diagnostic
-is added until one is asked for.
+A ref struct carries restrictions that the compiler reports on generated code, and Metalama does not refuse an
+advice that breaks one. Introducing a ref struct as the type of a field of a class is left to the aspect author,
+and the compiler reports the error on the generated declaration.
 
-### 7.2. Is the implicit parameterless constructor materialized?
+This is the general rule of section 3.2 of [`introducing-types.md`](introducing-types.md) rather than a decision
+about ref structs: the framework does not prevent an aspect author from generating invalid code, and a framework
+that reproduced the rules of the language would reproduce a part of them and be wrong about some of that part.
 
-`IntroduceNamedTypeAdvice.IntroduceImplicitConstructorIfNeeded` materializes a public parameterless constructor for
-an introduced class, because the final model is built from builders and is never re-read from Roslyn. A struct also
-has an implicit parameterless constructor, and whether the same treatment applies to it is not decided here.
+### 7.2. The implicit parameterless constructor is materialized in the code model and is not emitted
 
-What would settle it is whether an aspect can observe the difference. The constructor of a struct differs from the
-one of a class in that the language allows a struct to declare one explicitly only since C# 10, and in that it is
-not emitted into metadata. A test that reads `Constructors` on an introduced struct settles the question in one
-step, and the answer belongs in the implementation rather than in this document.
+A struct has an implicit parameterless constructor, and the code model of an introduced struct reports it, so that
+an introduced struct answers `Constructors` as a struct read from source does. That matches the behaviour of
+Roslyn, which is the standard the code model is held to.
+
+It is not emitted as syntax. The compiler synthesizes the constructor of a struct from the declaration, so emitting
+one would declare it twice. This is the distinction that section 5.2 of
+[`introducing-types.md`](introducing-types.md) draws for every synthesized member of the five kinds, and the struct
+is the smallest instance of it, which is a further reason for this issue to be implemented first.
+
+The precedent is `IntroduceNamedTypeAdvice.IntroduceImplicitConstructorIfNeeded`, which materializes the
+parameterless constructor of an introduced class. It cannot be copied literally, because it adds a transformation
+that injects a member, and this one must register a builder without injecting anything.
 
 ## 8. References
 

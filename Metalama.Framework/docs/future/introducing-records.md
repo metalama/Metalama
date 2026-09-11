@@ -149,8 +149,9 @@ public interface IRecordBuilder : INamedTypeBuilder
     /// </para>
     /// <para>
     /// A positional parameter whose name is that of a member already declared by the record, or by one of its base
-    /// records, declares no property, which is the rule of the language. The advice reports an error instead of
-    /// generating a declaration that the compiler would reject.
+    /// records, declares no property, which is the rule of the language. Metalama does not refuse it, and
+    /// <see cref="Metalama.Framework.Code.Types.IRecordFacet.PositionalProperties"/> then contributes no element
+    /// for that parameter, as it does for a record the user wrote.
     /// </para>
     /// </remarks>
     /// <param name="name">The name of the parameter, which is also the name of the property it declares.</param>
@@ -251,7 +252,7 @@ valid, and what is not depends on the authoring form.
 `IsReadOnly` and `IsRef` are the two properties that [`introducing-structs.md`](introducing-structs.md) adds to
 `INamedTypeBuilder`, so this issue depends on that one for them as well as for the emission machinery.
 
-Member introduction is valid on a record, unlike on an enum and on a delegate. The rule of section 3 of
+Member introduction is valid on a record, unlike on an enum and on a delegate. The rule of section 3.1 of
 [`introducing-types.md`](introducing-types.md) does not apply here, and an aspect may add methods, properties and
 constructors to an introduced record through the adviser in the ordinary way.
 
@@ -265,6 +266,12 @@ through the public interface here. The kind of a builder is read from `IsRecord`
 The introduced type reports an `IRecordFacet`. Every member the facet names has to be materialized as a builder,
 because the facet of an introduced type is built from the builder data. This is the substance of the issue, and it
 is the reason the issue is sized larger than the other three.
+
+Materialized means present in the code model and not emitted as syntax. Metalama generates the record declaration,
+which is the `record` keyword, the name, the positional parameter list and the base list, and the compiler
+synthesizes the six members from it exactly as it does for a record the user wrote. A transformation that injected
+them as well would declare each of them twice. Section 5.2 of [`introducing-types.md`](introducing-types.md) states
+the rule, and the table below is therefore a description of the code model rather than of the generated code.
 
 | `IRecordFacet` member | Record class | Record struct |
 | --- | --- | --- |
@@ -349,7 +356,7 @@ admits thirteen values that the method has to reject at run time. A two-member e
 time, and its documentation states its relation to `TypeKind` so that a reader does not take it for a second
 representation of a record in the code model.
 
-### 6.4. The synthesized members are materialized rather than discovered
+### 6.4. The synthesized members are materialized in the code model and are not emitted
 
 The pipeline never re-reads the final model from Roslyn, so a member that an aspect must see has to exist as a
 builder. The precedent is `IntroduceNamedTypeAdvice.IntroduceImplicitConstructorIfNeeded`, which materializes the
@@ -359,6 +366,12 @@ The alternative is to let the facet of an introduced record report `null` for th
 document that an introduced record is less complete than one the user wrote. That is rejected because the facet is
 the interface through which an aspect reads a record, and a facet that answers differently according to the origin
 of the type is a defect rather than a limitation.
+
+The materialization stops at the code model. The generated code is the record declaration and nothing more, because
+the compiler synthesizes the six members from the `record` keyword. An implementation that emitted them would
+produce a duplicate declaration for each, and the failure would appear as a compiler error on generated code rather
+than as a defect in the code model, which is why the distinction is recorded as a decision rather than left to the
+implementer.
 
 ## 7. Open questions
 

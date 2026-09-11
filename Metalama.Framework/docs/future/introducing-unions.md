@@ -1,21 +1,19 @@
 # Introducing a union
 
-This document designs the introduction of a union of C# 15, which is issues
-[#1951](https://github.com/metalama/Metalama/issues/1951) and
-[#1952](https://github.com/metalama/Metalama/issues/1952). It is a design proposal. Nothing described here is
+This document designs the introduction of a union of C# 15, which is issue
+[#1951](https://github.com/metalama/Metalama/issues/1951). It is a design proposal. Nothing described here is
 implemented.
 
-The two issues are user stories S-29 and S-30 of the 2027.0 release, and the capability, the scope and the
-acceptance criteria are stated there rather than here:
+The issue is user story S-29 of the 2027.0 release, and the capability, the scope and the acceptance criteria are
+stated there rather than here. Section 11 of [`../2027.0/DECISIONS.md`](../2027.0/DECISIONS.md) rules that a story
+states no application programming interface, so the shape is designed here and the story keeps its authority over
+the scope. This document does not restate it.
 
-| Issue | Story | Content |
-| --- | --- | --- |
-| [#1951](https://github.com/metalama/Metalama/issues/1951) | [S-29](../2027.0/user-stories/S-29-introduce-union-and-case-attribute-form.md) | Introducing a union type, and introducing a case into a type carrying the union attribute. |
-| [#1952](https://github.com/metalama/Metalama/issues/1952) | [S-30](../2027.0/user-stories/S-30-introduce-case-into-union-declaration.md) | Introducing a case into a type declared with the `union` keyword. Filed only if question Q1 of [`OPEN-QUESTIONS.md`](../2027.0/OPEN-QUESTIONS.md) chooses to ship both forms. |
-
-Section 11 of [`../2027.0/DECISIONS.md`](../2027.0/DECISIONS.md) rules that a story states no application
-programming interface, so the shape is designed here and the two stories keep their authority over the scope. This
-document does not restate them.
+The scope is narrower than that story. S-29 carries two halves, which are introducing a whole union and adding a
+case to a union that already exists, and this design delivers the first half only. Section 6.5 states why, and what
+an aspect author does instead. Issue [#1952](https://github.com/metalama/Metalama/issues/1952), user story S-30,
+which carried the second half for a type declared with the `union` keyword, is not implemented, and question Q1 of
+[`../2027.0/OPEN-QUESTIONS.md`](../2027.0/OPEN-QUESTIONS.md) is answered by that decision.
 
 The cross-cutting decisions are in [`introducing-types.md`](introducing-types.md). A union declares members that an
 aspect can introduce, within the limits that section 4 states, so `IUnionBuilder` derives from `INamedTypeBuilder`
@@ -36,8 +34,8 @@ public class GenerateResultAttribute : TypeAspect
             buildUnion: u =>
             {
                 u.Accessibility = Accessibility.Public;
-                u.AddCase( TypeFactory.GetType( typeof(int) ) );
-                u.AddCase( TypeFactory.GetType( typeof(string) ) );
+                u.AddCase( typeof(int) );
+                u.AddCase( typeof(string) );
                 u.AddCase( builder.Target );
             } );
     }
@@ -54,17 +52,13 @@ builder.IntroduceUnion(
     buildUnion: u =>
     {
         u.Accessibility = Accessibility.Public;
-        u.AddCase( TypeFactory.GetType( typeof(int) ) );
-        u.AddCase( TypeFactory.GetType( typeof(string) ) );
+        u.AddCase( typeof(int) );
+        u.AddCase( typeof(string) );
     } );
 ```
 
-Adding a case to a union that already exists is the second half of the work, and it is an advice on that type
-rather than a type introduction:
-
-```csharp
-builder.With( existingUnion ).IntroduceUnionCase( TypeFactory.GetType( typeof(decimal) ) );
-```
+There is no advice that adds a case to a union that already exists. Section 6.5 states why, and gives what an
+aspect author writes instead for a type carrying the union attribute.
 
 ## 2. What Metalama produces
 
@@ -121,10 +115,19 @@ public interface IUnionBuilder : INamedTypeBuilder
     UnionKind UnionKind { get; }
 
     /// <summary>
-    /// Gets the cases that have been added so far, in the order in which they were added.
+    /// Gets the case types that have been added so far, in the order in which they were added.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The list holds types and not cases. A case of a union is a type and nothing else, which section 6.1 of the
+    /// design document establishes from the grammar of the language, so there is nothing else for an element of
+    /// this list to carry. <see cref="Metalama.Framework.Code.Types.IUnionCase"/>, which the introduced type
+    /// reports, carries the index and the creation member in addition, and neither exists while the union is being
+    /// built.
+    /// </para>
+    /// </remarks>
     /// <seealso cref="Metalama.Framework.Code.Types.IUnionFacet.Cases"/>
-    IReadOnlyList<IUnionCaseBuilder> Cases { get; }
+    IReadOnlyList<IType> Cases { get; }
 
     /// <summary>
     /// Adds a case to the union.
@@ -139,64 +142,17 @@ public interface IUnionBuilder : INamedTypeBuilder
     /// </para>
     /// </remarks>
     /// <param name="caseType">The type of the case.</param>
-    /// <returns>An <see cref="IUnionCaseBuilder"/> that allows you to further build the new case.</returns>
-    IUnionCaseBuilder AddCase( IType caseType );
+    void AddCase( IType caseType );
 
     /// <summary>
     /// Adds a case to the union.
     /// </summary>
     /// <param name="caseType">The type of the case.</param>
-    /// <returns>An <see cref="IUnionCaseBuilder"/> that allows you to further build the new case.</returns>
-    IUnionCaseBuilder AddCase( Type caseType );
+    void AddCase( Type caseType );
 }
 ```
 
-### 3.2. `IUnionCaseBuilder`
-
-```csharp
-// Metalama.Framework/Code/DeclarationBuilders/IUnionCaseBuilder.cs
-namespace Metalama.Framework.Code.DeclarationBuilders;
-
-/// <summary>
-/// Allows to complete the construction of a case of a union that has been created by
-/// <see cref="IUnionBuilder.AddCase(IType)"/> or by the advice that adds a case to an existing union.
-/// </summary>
-/// <remarks>
-/// <para>
-/// This interface is the counterpart of <see cref="Metalama.Framework.Code.Types.IUnionCase"/>, and it is not that
-/// interface. A case that is being built has no creation member yet, because the member is synthesized when the
-/// union is introduced, so an interface that declared
-/// <see cref="Metalama.Framework.Code.Types.IUnionCase.CreationMember"/> could not answer it. The creation member
-/// of an introduced union is read from the facet of the introduced type.
-/// </para>
-/// <para>
-/// Like <see cref="Metalama.Framework.Code.Types.IUnionCase"/>, and unlike every other builder of this namespace,
-/// this interface does not derive from <see cref="IDeclarationBuilder"/>. A case of a union is not a declaration:
-/// it declares no type, and the declaration that carries it is its creation member. The interface therefore
-/// carries no operation to add a custom attribute, because a case of a union takes none.
-/// </para>
-/// </remarks>
-/// <seealso cref="IUnionBuilder.AddCase(IType)"/>
-/// <seealso cref="Metalama.Framework.Code.Types.IUnionCase"/>
-[CompileTime]
-[InternalImplement]
-public interface IUnionCaseBuilder
-{
-    /// <summary>
-    /// Gets the type of the case.
-    /// </summary>
-    /// <seealso cref="Metalama.Framework.Code.Types.IUnionCase.Type"/>
-    IType Type { get; }
-
-    /// <summary>
-    /// Gets the zero-based index of the case, in the order in which the cases were added.
-    /// </summary>
-    /// <seealso cref="Metalama.Framework.Code.Types.IUnionCase.Index"/>
-    int Index { get; }
-}
-```
-
-### 3.3. The advice methods
+### 3.2. The advice method
 
 ```csharp
 // Metalama.Framework/Advising/IAdviceFactory.cs
@@ -220,30 +176,12 @@ IIntroductionAdviceResult<INamedType> IntroduceUnion(
     UnionKind unionKind,
     OverrideStrategy whenExists = OverrideStrategy.Default,
     Action<IUnionBuilder>? buildUnion = null );
-
-/// <summary>
-/// Adds a case to a union that already exists.
-/// </summary>
-/// <remarks>
-/// <para>
-/// For a type carrying the union attribute, the case is a constructor, a generated partial part expresses it, and
-/// the editor and the build agree about the result.
-/// </para>
-/// <para>
-/// For a type declared with the <c>union</c> keyword, exactly one part of the type carries the case list, so a
-/// generated partial part cannot add a case and the operation rewrites the part that the user wrote. It therefore
-/// takes effect at build time only, and the editor does not show the added case. A design-time diagnostic reports
-/// that divergence.
-/// </para>
-/// </remarks>
-/// <param name="targetUnion">The union into which the case must be added.</param>
-/// <param name="caseType">The type of the case.</param>
-/// <returns>An <see cref="IIntroductionAdviceResult{T}"/> exposing the added case.</returns>
-IIntroductionAdviceResult<IUnionCase> IntroduceUnionCase( INamedType targetUnion, IType caseType );
 ```
 
-The matching extension methods on `AdviserExtensions` follow the pattern of the other four documents:
-`IntroduceUnion` extends `IAdviser<INamespaceOrNamedType>` and `IntroduceUnionCase` extends `IAdviser<INamedType>`.
+The matching extension method on `AdviserExtensions` follows the pattern of the other four documents:
+`IntroduceUnion` extends `IAdviser<INamespaceOrNamedType>`.
+
+There is no `IntroduceUnionCase`, and section 6.5 states why.
 
 ## 4. The inherited operations that are not valid
 
@@ -281,7 +219,7 @@ The introduced type reports an `IUnionFacet`.
 | `IUnionFacet` member | Source |
 | --- | --- |
 | `UnionKind` | `IUnionBuilder.UnionKind`. |
-| `Cases` | One `IUnionCase` per `IUnionCaseBuilder`, in the order in which they were added. |
+| `Cases` | One `IUnionCase` per case type added to the builder, in the order in which they were added. Each one carries its index and its creation member, which the builder does not. |
 | `ValueProperty` | The `Value` property, materialized as a builder. |
 | `FacetKind` | `TypeFacetKind.Union`. |
 | `Type` | The introduced type. |
@@ -289,6 +227,13 @@ The introduced type reports an `IUnionFacet`.
 `IUnionCase.CreationMember` is the member that creates a value of the case, and it is materialized: a constructor
 that the compiler synthesizes for a union declaration, and the single-parameter constructor of the attribute form.
 This is the substance of the story, and section 6.2 states why it is not free.
+
+Materialized means present in the code model and not emitted as syntax. Metalama generates the union declaration,
+which for the declaration form is the `union` keyword, the name and the case list, and the compiler synthesizes the
+`Value` property and one constructor per case from it exactly as it does for a union the user wrote. A
+transformation that injected them as well would declare each of them twice. Section 5.2 of
+[`introducing-types.md`](introducing-types.md) states the rule, and the table above therefore describes the code
+model rather than the generated code.
 
 `INamedType.IsUnion` reports `true`. `IType.TypeKind` reports `TypeKind.Struct` for a union declaration and the
 kind of the carrying type for the attribute form, because a union is not a kind of its own in the code model, which
@@ -303,32 +248,61 @@ two differ in what the creation member of a case is.
 
 ## 6. Decisions
 
-### 6.1. `AddCase` returns a builder and not an `IUnionCase`
+### 6.1. A case is a type, so there is no case builder and `AddCase` returns nothing
 
 Section 2.4 of [`type-facets.md`](type-facets.md) drafts `IUnionCase AddCase( IType caseType );`. This design
-returns an `IUnionCaseBuilder` instead, and the reason is the one that the same section states two paragraphs
-later: a facet describes a type that exists, and a builder describes a type that is being constructed and whose
-members are not yet resolvable.
+returns nothing, and declares no builder for a case. Two findings settle it.
 
-`IUnionCase` declares `CreationMember`. That member is synthesized when the union is introduced, so a case that is
-still being built cannot answer it, and returning `IUnionCase` from `AddCase` would hand the author an object with
-one property that throws. The draft did not weigh that, because the interface it returned was designed for the
-reader.
+The first is the grammar. The language defines the case list as bare types:
 
-The same reasoning produces `IEnumMemberBuilder` in [`introducing-enums.md`](introducing-enums.md), where the
-member that cannot be answered during construction is the field.
+```antlr
+case_types
+    : type (',' type)*
+    ;
+```
 
-### 6.2. The synthesized members are materialized, and that is the risk of the story
+A case carries no attribute, no modifier and no name, the proposal states no plan to allow any of the three, and
+the analysis in
+[`../2027.0/analysis-reports/11-introducing-unions-design.md`](../2027.0/analysis-reports/11-introducing-unions-design.md)
+reaches the same conclusion from the other direction: Roslyn parses the case list as a parameter list whose
+parameters carry a type and no identifier, so a case has no name, no default value, no reference kind and no
+attribute list. A builder exists to carry what an author may choose about a declaration. An author chooses nothing
+about a case except its type, which is the argument of `AddCase`.
+
+The second is that `IUnionCase` cannot be returned either. It declares `CreationMember`, which is synthesized when
+the union is introduced, so a case that is still being built cannot answer it. Returning it would hand the author
+an object with a property that throws, which is the failure that the lifetime argument of section 2.4 of
+[`type-facets.md`](type-facets.md) predicts two paragraphs after the draft that ignores it.
+
+What remains is `Cases`, typed as an ordered list of `IType`, which is what the builder needs to store and what the
+transformation needs to emit. The same analysis reaches that shape independently and contrasts it with
+`TypeParameters`, whose elements are declarations the builder owns.
+
+This decision should be revisited if the language gains attributes or modifiers on a case. At that point a case
+becomes a declaration, a builder for it carries those, and `AddCase` returns one. Nothing else in this design
+changes.
+
+### 6.2. The synthesized members enter the code model without being emitted, and that is the risk of the story
 
 The introduction pipeline never re-reads the final model from Roslyn, so the `Value` property and the per-case
-creation members have to exist as builders. Story S-29 identifies the precedent as the introduction of a namespace,
-which registers a builder without injecting syntax, and not as the record materialization of
+creation members have to exist as builders. They must not be emitted, because the compiler synthesizes them from
+the union declaration that Metalama does emit. The operation is therefore a transformation that registers a builder
+into the code model and injects no member, which is a shape that does not exist yet.
+
+Story S-29 identifies the precedent as the introduction of a namespace, which registers a builder without injecting
+syntax, and not as the record materialization of
 [#1343](https://github.com/metalama/Metalama/issues/1343), which does not generalise because a user may not declare
-the synthesized union members at all and there is therefore no override to serve.
+the synthesized union members at all and there is therefore no override to serve. The analysis in
+[`../2027.0/analysis-reports/11-introducing-unions-design.md`](../2027.0/analysis-reports/11-introducing-unions-design.md)
+states why the record precedent cannot be copied literally:
+`IntroduceNamedTypeAdvice.IntroduceImplicitConstructorIfNeeded` adds a transformation, and
+`IntroduceDeclarationTransformation<T>` implements both the interface that registers a declaration and the one that
+injects a member, so using it would emit the member as well.
 
 S-29 asks for that step to be prototyped first, because whether a member builder with no injected member survives
 the linker injection registry was not verified. This document does not settle it, and it records that the answer
-decides whether the step is one day or three.
+decides whether the step is one day or three. Every other kind of this set needs the same shape, so the prototype
+is worth running before the record work starts as well.
 
 ### 6.3. One interface serves both authoring forms
 
@@ -347,36 +321,63 @@ The parameter has no default value, unlike the `RecordKind` parameter of
 accepts afterwards and neither is the obvious choice. S-29 delivers the attribute form first, and that is a
 delivery order rather than a default.
 
+### 6.5. Adding a case to a union that already exists is not supported
+
+No advice adds a case to a union that the user wrote. An earlier revision of this design carried one, named
+`IntroduceUnionCase`, and it is withdrawn. The reason is that the two authoring forms cannot both be served.
+
+For a type declared with the `union` keyword the operation is not expressible at design time. Exactly one part of a
+partial union carries the case list: a second part carrying one is CS8863, and a part carrying none while no other
+part carries one is CS9370. A generated partial part therefore cannot add a case, so the operation would have to
+rewrite the part that the user wrote. It would take effect at build time only, the editor would show the union
+without the added case, and the code that the aspect generated against that case would not compile in the editor.
+An advice about which the editor and the build disagree is worse than no advice.
+
+For a type carrying the union attribute the operation is expressible. Roslyn derives the case set of that form from
+the public single-parameter constructors, so adding a case is adding such a constructor, and a generated partial
+part carries it. Metalama nevertheless declares no advice, because one method that works on one authoring form and
+reports an error on the other reads as a defect rather than as a design, and because the operation it would perform
+is one an aspect can already perform.
+
+That is the workaround, and it is not restricted. An aspect adds a case to a type carrying the union attribute by
+introducing the constructor that defines it:
+
+```csharp
+[Template]
+public void UnionCaseConstructor( decimal value ) { }
+
+// in BuildAspect:
+builder.With( existingUnion )
+    .IntroduceConstructor(
+        nameof(this.UnionCaseConstructor),
+        buildConstructor: c => c.Accessibility = Accessibility.Public );
+```
+
+The compiler reads the new case from that constructor, the generated partial part carries it, and the editor and
+the build agree. This follows the rule of section 3.2 of [`introducing-types.md`](introducing-types.md): the
+framework does not prevent an aspect author from generating code, and it declares no advice of its own only
+because the advice would be uneven across the two forms.
+
+There is no workaround for a type declared with the `union` keyword. An aspect cannot add a case to it, and the
+case list has to be written in source. An aspect that needs a case set it controls introduces the whole union, which
+is what this document designs.
+
+This decision answers question Q1 of [`../2027.0/OPEN-QUESTIONS.md`](../2027.0/OPEN-QUESTIONS.md), which chose
+between shipping both authoring forms of case addition and shipping the attribute form alone. Neither ships. It
+should be revisited if the language ever lets a part of a partial union contribute cases, which would remove the
+reason.
+
 ## 7. Open questions
 
-### 7.1. Does story S-30 ship at all?
+### 7.1. Does the order of `Cases` survive the round trip?
 
-Question Q1 of [`../2027.0/OPEN-QUESTIONS.md`](../2027.0/OPEN-QUESTIONS.md) chooses between shipping both
-authoring forms and shipping the attribute form alone. `IntroduceUnionCase` on a union declaration works at build
-time only, and the editor cannot show the added case, which needs a design-time diagnostic that reports the
-divergence without repairing it.
+`IUnionBuilder.Cases` is in the order of addition, and `IUnionFacet.Cases` on the introduced type is in the order
+that the creation members declare, which `IUnionCase.Index` numbers. The compiler reports the case types of a union
+as a set, and `AddCase` refuses a duplicate, so the two orders should agree for an introduced union.
 
-The recommendation recorded in the story README is to ship both, taking the attribute form first. If only one form
-fits the release it is the attribute form, and [#1952](https://github.com/metalama/Metalama/issues/1952) is then
-not implemented. The interface above is unchanged either way: the method exists and reports that the operation is
-not supported on a union declaration.
-
-### 7.2. Is `IntroduceUnionCase` the right name and shape?
-
-The method adds a case to a type that already exists, so it is closer to `IntroduceParameter`, which changes the
-signature of a constructor the user wrote, than to the introduction of a declaration. Whether it should be named
-for the case or for the operation on the union is not decided, and neither is whether it should take a callback.
-
-What would settle it is the aspect that S-29 uses as its acceptance test. The precedent that S-29 names for the
-operation is the introduction of a parameter into a partial constructor, delivered for C# 14 in
-metalama/Metalama#1143, and the name of that advice is `IntroduceParameter`.
-
-### 7.3. What does `Cases` report while the union is being built?
-
-`IUnionCaseBuilder.Index` is the position in the order of addition. The compiler reports the case types of a union
-as a set, and `AddCase` refuses a duplicate, so the two orders agree for an introduced union. Whether they agree
-for a union that gains a case through `IntroduceUnionCase`, where the existing cases come from the source and the
-added one does not, is not verified here.
+What would settle it is a unit test that adds three cases and reads the index of each from the facet of the
+introduced type. The order matters, because the index of a case is not recoverable from its type, which is the
+reason `IUnionCase` carries `Index` at all.
 
 ## 8. References
 
@@ -384,15 +385,18 @@ added one does not, is not verified here.
 - [`introducing-records.md`](introducing-records.md), section 6.1, and
   [`introducing-enums.md`](introducing-enums.md), section 6.1, which take the same decisions for their kinds.
 - [`type-facets.md`](type-facets.md), sections 2.4 and 4.3, the first of which this document revises.
-- [`../2027.0/user-stories/S-29-introduce-union-and-case-attribute-form.md`](../2027.0/user-stories/S-29-introduce-union-and-case-attribute-form.md)
-  and [`../2027.0/user-stories/S-30-introduce-case-into-union-declaration.md`](../2027.0/user-stories/S-30-introduce-case-into-union-declaration.md).
+- [`../2027.0/user-stories/S-29-introduce-union-and-case-attribute-form.md`](../2027.0/user-stories/S-29-introduce-union-and-case-attribute-form.md),
+  whose first half this document designs, and
+  [`../2027.0/user-stories/S-30-introduce-case-into-union-declaration.md`](../2027.0/user-stories/S-30-introduce-case-into-union-declaration.md),
+  which section 6.5 withdraws.
 - [`../2027.0/analysis-reports/11-introducing-unions-design.md`](../2027.0/analysis-reports/11-introducing-unions-design.md),
   which records the derivation of the case set of the attribute form.
 - [`../2027.0/DECISIONS.md`](../2027.0/DECISIONS.md), sections 3, 4 and 11.
 - `Metalama.Framework/Code/Types/IUnionFacet.cs` and `IUnionCase.cs`, the interfaces this design mirrors.
-- Issues [#1951](https://github.com/metalama/Metalama/issues/1951) and
-  [#1952](https://github.com/metalama/Metalama/issues/1952), and their blockers
+- Issue [#1951](https://github.com/metalama/Metalama/issues/1951), which this document designs, and its blockers
   [#1941](https://github.com/metalama/Metalama/issues/1941) and
   [#1945](https://github.com/metalama/Metalama/issues/1945).
+- Issue [#1952](https://github.com/metalama/Metalama/issues/1952), which section 6.5 withdraws. It is closed
+  without being implemented, and the reason is recorded there.
 
 — Claude for @gfraiteur

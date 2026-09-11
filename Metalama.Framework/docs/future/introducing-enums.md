@@ -286,7 +286,7 @@ that interface. That is `BaseType`, `AddTypeParameter`, `IsClosed`, and the whol
 `Facets`. A caller that reaches the engine object as an `INamedType` and reads `Facets` on it meets the
 `NotSupportedException` of section 5.1 of [`introducing-types.md`](introducing-types.md).
 
-The member introduction advices are refused by the rule of section 3 of
+The member introduction advices are refused by the rule of section 3.1 of
 [`introducing-types.md`](introducing-types.md), because they reach the introduced enum through the adviser and not
 through this interface.
 
@@ -311,9 +311,17 @@ introduction pipeline never re-reads the final model from Roslyn.
 `INamedType.IsEnum` reports `true`, and `INamedType.UnderlyingType` reports the same type as
 `IEnumFacet.UnderlyingType`, which is what it reports for an enum read from source.
 
-The synthetic field whose metadata name is `value__` is not materialized as a builder. `IEnumFacet.Members`
-excludes it by contract, and no consumer of the code model reaches it, so materializing it would add a field to
-`INamedType.Fields` that a source enum does not show there either.
+An enum is the one kind of this set whose members are emitted. The declaration that Metalama generates is
+`enum State { Idle, Running, Stopped = 10 }`, so the members are inside it, and they are registered in the code
+model from the same builders. That is not the case for a record, a union, a delegate or a struct, whose
+synthesized members the compiler creates from the declaration and which section 5.2 of
+[`introducing-types.md`](introducing-types.md) therefore keeps out of the generated code. The members of an enum
+are written by the aspect author rather than synthesized by the compiler, which is why they differ.
+
+The synthetic field whose metadata name is `value__` is the exception, and it is neither emitted nor materialized.
+It is the field that the compiler synthesizes, `IEnumFacet.Members` excludes it by contract, and no consumer of the
+code model reaches it, so materializing it would add a field to `INamedType.Fields` that a source enum does not
+show there either.
 
 The facet is tested by unit tests and not by aspect tests, for the reason that section 5.3 of
 [`introducing-types.md`](introducing-types.md) gives: an aspect test compares generated code and cannot observe the
