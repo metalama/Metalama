@@ -67,11 +67,7 @@ public sealed class UnionVisitorInventoryTests
             ["Metalama.Framework.Engine.Templating.TemplatingCodeValidator+Visitor"] =
                 "Issue #1942 owns the templating theme, of which this validator is part.",
             ["Metalama.Framework.Engine.Formatting.TextSpanClassifier"] =
-                "Issue #1942 corrects the classifier, and it cannot be corrected before the template annotator.",
-            ["Metalama.Framework.Engine.Linking.LinkerInjectionStep+Rewriter"] =
-                "Issue #1944 gives the injection rewriter its union dispatch.",
-            ["Metalama.Framework.Engine.Linking.LinkerLinkingStep+LinkingRewriter"] =
-                "Issue #1944 gives the linking rewriter its union dispatch."
+                "Issue #1942 corrects the classifier, and it cannot be corrected before the template annotator."
         };
 
     /// <summary>
