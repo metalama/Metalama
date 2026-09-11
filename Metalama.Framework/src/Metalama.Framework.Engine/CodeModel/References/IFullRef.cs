@@ -7,7 +7,6 @@ using Metalama.Framework.Engine.CodeModel.GenericContexts;
 using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 
 namespace Metalama.Framework.Engine.CodeModel.References;
 
@@ -60,17 +59,6 @@ internal interface IFullRef : ISdkRef
     /// the code model.
     /// </summary>
     ResolvedAttributeRef GetAttributes();
-
-    /// <summary>
-    /// Calls <see cref="GetAttributes"/>, unless the reference has no symbol in the compilation, in which case this
-    /// method returns <c>false</c>.
-    /// </summary>
-    /// <remarks>
-    /// A reference built from a syntax node has a symbol only when the semantic model binds that node. Invalid code
-    /// can contain a declaration that the parser accepts but the semantic model does not bind, for instance a
-    /// duplicate <c>get</c> accessor, and a reference to such a declaration has no symbol.
-    /// </remarks>
-    bool TryGetAttributes( [NotNullWhen( true )] out ResolvedAttributeRef? attributes );
 
     /// <summary>
     /// Gets a value indicating whether the current reference points to a definition, as opposed to a generic construct.

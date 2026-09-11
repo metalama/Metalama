@@ -10,7 +10,6 @@ using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
-using System.Diagnostics.CodeAnalysis;
 
 namespace Metalama.Framework.Engine.CodeModel.References;
 
@@ -44,16 +43,19 @@ internal sealed partial class SyntaxRef<T> : FullRef<T>
         return this.Symbol;
     }
 
-    protected override bool TryGetSymbolIgnoringRefKind( CompilationContext compilationContext, [NotNullWhen( true )] out ISymbol? symbol )
-    {
-        Invariant.Assert( this.CompilationContext == compilationContext );
-
-        symbol = this.SymbolOrNull;
-
-        return symbol != null;
-    }
-
     public override SyntaxTree PrimarySyntaxTree => this._syntaxNode.SyntaxTree;
+
+    /// <summary>
+    /// Gets a value indicating whether the semantic model binds the syntax node of the current reference, and therefore
+    /// whether the reference has a symbol.
+    /// </summary>
+    /// <remarks>
+    /// The property is declared on <see cref="SyntaxRef{T}"/> and not on <see cref="FullRef{T}"/>, because this kind
+    /// of reference is the only one for which the question has a dynamic answer. A reference built from a symbol always
+    /// has one, and a reference to an introduced declaration or to a constructed type is not a reference to a symbol at
+    /// all, so neither supports the operations that require one.
+    /// </remarks>
+    public bool HasSymbol => this.SymbolOrNull != null;
 
     private ISymbol Symbol
         => this.SymbolOrNull ?? throw new AssertionFailedException( $"Cannot get a symbol for {this._syntaxNode.GetType().Name}." );

@@ -38,8 +38,14 @@ internal sealed class SyntaxAttributeRef : AttributeRef
         this._targetKind = targetKind;
     }
 
+    public override IRef<IDeclaration> ContainingDeclaration => this.ContainingDeclarationRef;
+
+    /// <summary>
+    /// Gets the reference to the declaration on which the attribute is written, typed as an <see cref="IFullRef{T}"/>
+    /// so that the kind of the reference can be tested.
+    /// </summary>
     [Memo]
-    public override IRef<IDeclaration> ContainingDeclaration
+    private IFullRef<IDeclaration> ContainingDeclarationRef
         => this._targetKind switch
         {
             RefTargetKind.Module or RefTargetKind.Assembly => this._refFactory.ForCompilation(),
@@ -62,15 +68,19 @@ internal sealed class SyntaxAttributeRef : AttributeRef
             }
         }
 
-        // Find the parent declaration. The declaration has no symbol when the semantic model does not bind the syntax
-        // node the attribute is written on, for instance a duplicate `get` accessor of invalid code. There is then no
-        // declaration to attach the attribute to, so the attribute is skipped instead of aborting the code model.
-        if ( !this.ContainingDeclaration.ToFullRef( this._refFactory ).TryGetAttributes( out var resolved ) )
+        // The semantic model does not bind a declaration written in invalid code, for instance a duplicate get
+        // accessor, so a reference to that declaration has no symbol and there is no declaration to which the
+        // attribute can be attached. The attribute is then skipped instead of aborting the code model. Only a
+        // reference built from a syntax node can be in that situation.
+        if ( this.ContainingDeclarationRef is SyntaxRef<IDeclaration> { HasSymbol: false } )
         {
             this._resolvedRef = ResolvedAttributeRef.Invalid;
 
             return null;
         }
+
+        // Find the parent declaration.
+        var resolved = this.ContainingDeclarationRef.GetAttributes();
 
         // In the parent, find the AttributeData corresponding to the current item.
 
