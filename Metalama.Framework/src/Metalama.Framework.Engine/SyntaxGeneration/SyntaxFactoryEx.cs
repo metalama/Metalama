@@ -205,6 +205,16 @@ public static partial class SyntaxFactoryEx
     /// <param name="name">The identifier name.</param>
 #pragma warning disable LAMA0850 // False positive: passing SyntaxToken from SafeIdentifier, not a string
     internal static IdentifierNameSyntax SafeIdentifierName( string name ) => SyntaxFactory.IdentifierName( SafeIdentifier( name ) );
+
+    /// <summary>
+    /// Creates a safe identifier name syntax from a name, escaping it with @ prefix if it's a C# keyword.
+    /// Preserves the specified leading and trailing trivia.
+    /// </summary>
+    /// <param name="leading">Leading trivia.</param>
+    /// <param name="name">The identifier name.</param>
+    /// <param name="trailing">Trailing trivia.</param>
+    internal static IdentifierNameSyntax SafeIdentifierName( SyntaxTriviaList leading, string name, SyntaxTriviaList trailing )
+        => SyntaxFactory.IdentifierName( SafeIdentifier( leading, name, trailing ) );
 #pragma warning restore LAMA0850
 
     /// <summary>
