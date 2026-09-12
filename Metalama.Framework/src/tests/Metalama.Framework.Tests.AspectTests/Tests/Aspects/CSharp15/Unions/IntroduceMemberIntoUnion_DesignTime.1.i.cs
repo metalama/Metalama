@@ -1,4 +1,4 @@
-namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp15.Unions.IntroduceUnion_DesignTime
+namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp15.Unions.IntroduceMemberIntoUnion_DesignTime
 {
   partial class TargetType
   {

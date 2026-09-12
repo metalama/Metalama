@@ -238,23 +238,32 @@ wrong.
 
 A nested introduced type is emitted by `IntroduceNamedTypeTransformation.GetInjectedMembers`, which is the same
 method the build uses, as a member of the generated partial part of its containing type.
-`DesignTimeSyntaxTreeGenerator.AddPartialModifierToTypes` then adds `partial` to the members it recognises. That
-method tests the syntax kind and falls through unchanged for anything that is not a class, a struct, an interface
-or a record, so a nested introduced enum or delegate works untouched and correctly receives no `partial` modifier.
+`DesignTimeSyntaxTreeGenerator.AddPartialModifierToTypes` then adds `partial` to the members it recognises, which
+are a class, a struct, an interface, a record and a union. That method tests the syntax kind and falls through
+unchanged for anything else, so a nested introduced enum or delegate works untouched and correctly receives no
+`partial` modifier, which is what the language requires of those two kinds.
 
-A top-level introduced type is routed by `ProcessTransformationsOnNamespace` into `ProcessTransformationsOnType`,
-which re-creates the declaration through `CreatePartialType`. That is how a top-level introduced type appears in
-the editor at all. `CreatePartialType` returns a `TypeDeclarationSyntax`, emits the `partial` modifier, and
-switches on `TypeKind`, so a top-level introduced enum or delegate falls to the default arm and throws.
+A nested introduced type that another transformation targets is also the key of a bucket of its own, and that
+bucket produces a second generated part. That part is created by `CreatePartialType`, carries the members and is
+declared partial, while the part described above carries the declaration. For a union this is what makes an
+introduced union able to receive a member at design time, and the division of labour between the two parts is the
+one that section 6.4 of [`introducing-unions.md`](introducing-unions.md) describes: exactly one part carries the
+case list, and it is the part that the introduction transformation emits.
 
-Skipping the routing, which an earlier revision of this section proposed, would make the type vanish from the
-editor instead of crashing, which is not better. `ProcessTransformationsOnType` therefore emits the declaration
-from the introduction transformation for a kind that cannot be partial, rather than re-creating it, and
-`CreatePartialType` gains no arm. For an enum this also matters for correctness and not only for the modifier:
-`CreatePartialType` builds the body from member transformations, and the members of an enum come from the builder,
-so a re-created enum would be emitted empty. The transformation wraps a top-level type in its namespace, because at
-build time it is injected into a compilation unit, and the caller adds the namespace itself, so the wrapper is
-removed.
+A top-level introduced type is routed by `ProcessTransformationsOnNamespace` into `ProcessTransformationsOnType`.
+Such a type has no declaration outside the generated file, so the file carries the declaration itself rather than a
+partial part of it: `ProcessTransformationsOnType` takes the declaration from the introduction transformation and
+adds to it the interfaces and the members that other transformations contribute. Re-creating the declaration
+through `CreatePartialType`, which an earlier revision of this section proposed for the kinds that can be partial,
+is wrong for every kind and not only for the two that cannot, because the transformation is the only place that
+knows the modifiers, the base list, the positional parameter list of a record, the case list of a union and the
+members of an enum. The transformation wraps a top-level type in its namespace, because at build time it is
+injected into a compilation unit, and the caller adds the namespace itself, so the wrapper is removed.
+
+The bucket of a top-level introduced type is moved out of the list of buckets before they are processed and is
+handed to the transformation that introduces the type. Left as a bucket of its own it would produce a partial part
+with no other part to join, which for a record or a union does not compile at all: a record part carrying no
+positional parameter list declares a different record, and a union part carrying no case list is CS9370.
 
 The design-time generator must also skip a transformation that implements `IIntroduceDeclarationTransformation`
 without implementing `IInjectMemberTransformation`, which is the mechanism of section 4.2. `LinkerInjectionStep`
@@ -491,7 +500,7 @@ What each later issue adds, once those are merged:
 | The facet implementation, which needs a path that reads the code model rather than a Roslyn symbol | `EnumFacet`, `RecordFacet` and `UnionFacet`, one file each. `DelegateFacet` names no symbol and already works on an introduced type. |
 | `IAdviceFactory`, `AdviserExtensions` and `AdviceFactory` | Each kind, appending a method to a different part of each file. |
 | The arm of the switch in `IntroduceNamedTypeTransformation` | Each kind. |
-| Emitting a kind that cannot be partial from its own transformation in `DesignTimeSyntaxTreeGenerator.ProcessTransformationsOnType`, and skipping a transformation that injects no member | The enum and the delegate. Section 4.1 states why `CreatePartialType` gains nothing, and why the nested route already works. |
+| Emitting a top-level introduced type from its own transformation in `DesignTimeSyntaxTreeGenerator.ProcessTransformationsOnType`, and skipping a transformation that injects no member | Every kind. Section 4.1 states why `CreatePartialType` serves the nested route alone. |
 | `ModifierHelper.GetTypeSyntaxModifierList` | The record only, for the `record` modifier. |
 
 The recommendation follows from the two tables. One issue first, implemented by one agent in one pull request,

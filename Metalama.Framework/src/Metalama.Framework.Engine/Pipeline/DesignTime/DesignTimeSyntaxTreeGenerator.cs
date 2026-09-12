@@ -83,6 +83,35 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                         RefEqualityComparer<INamespaceOrNamedType>.Default )
                     .ToDictionary( g => g.Key!, g => g.AsEnumerable(), RefEqualityComparer<INamespaceOrNamedType>.Default );
 
+            // A type introduced into a namespace has no declaration outside the generated file, so a bucket of its own
+            // would produce a partial part with no other part to join, and for a kind that carries a parameter list or
+            // a case list that part would not even compile. Such a bucket is therefore moved out of the list and is
+            // processed together with the transformation that introduces the type, which supplies the declaration.
+            var transformationsOnTopLevelIntroducedTypes =
+                new Dictionary<IRef<INamespaceOrNamedType>, IEnumerable<ITransformation>>( RefEqualityComparer<INamespaceOrNamedType>.Default );
+
+            foreach ( var bucket in transformationsByBucket.ToReadOnlyList() )
+            {
+                if ( bucket.Key is not IFullRef<INamespace> )
+                {
+                    continue;
+                }
+
+                foreach ( var transformation in bucket.Value )
+                {
+                    if ( transformation is IIntroduceDeclarationTransformation { DeclarationBuilderData: NamedTypeBuilderData introducedType } )
+                    {
+                        var introducedTypeRef = introducedType.ToFullRef().As<INamespaceOrNamedType>();
+
+                        if ( transformationsByBucket.TryGetValue( introducedTypeRef, out var typeBucket ) )
+                        {
+                            transformationsOnTopLevelIntroducedTypes[introducedTypeRef] = typeBucket;
+                            transformationsByBucket.Remove( introducedTypeRef );
+                        }
+                    }
+                }
+            }
+
             var taskScheduler = serviceProvider.GetRequiredService<IConcurrentTaskRunner>();
 
             await taskScheduler.RunConcurrentlyAsync( transformationsByBucket, ProcessTransformationsOnTypeOrNamespace, cancellationToken );
@@ -144,14 +173,17 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                     if ( transformation is IIntroduceDeclarationTransformation
                          {
                              DeclarationBuilderData: NamedTypeBuilderData namedTypeBuilder
-                         } introduceDeclarationTransformation
-                         && !transformationsByBucket.ContainsKey(
-                             introduceDeclarationTransformation.DeclarationBuilderData.ToFullRef().As<INamespaceOrNamedType>() ) )
+                         } introduceDeclarationTransformation )
                     {
-                        // If this is an introduced type that does not have any transformations, we will "process" it to get the empty type.
+                        // The declaration of the type comes from its introduction transformation, and its members come
+                        // from the bucket of the type itself, which is empty when no other transformation targets it.
+                        var introducedTypeRef = namedTypeBuilder.ToFullRef().As<INamespaceOrNamedType>();
+
                         ProcessTransformationsOnType(
                             namedTypeBuilder.ToRef().GetTarget( finalCompilationModel ),
-                            Array.Empty<ITransformation>(),
+                            transformationsOnTopLevelIntroducedTypes.TryGetValue( introducedTypeRef, out var typeTransformations )
+                                ? typeTransformations
+                                : Array.Empty<ITransformation>(),
                             introduceDeclarationTransformation as IInjectMemberTransformation );
                     }
                 }
@@ -298,14 +330,25 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                 // trivia so the resulting tree's ToFullString is parseable C# without a per-type
                 // NormalizeWhitespace pass.
                 //
-                // The language has no partial enum and no partial delegate, so such a type is emitted from its own
-                // introduction transformation rather than re-created here. For an enum this also matters for
-                // correctness and not only for the modifier: its members are part of the declaration and come from
-                // the builder, so a declaration re-created from the member transformations would be empty.
+                // A type whose declaration this file carries is emitted from its own introduction transformation
+                // rather than re-created here, because the transformation is the only place that knows the modifiers,
+                // the base list, the positional parameter list of a record, the case list of a union and the members
+                // of an enum. Every other type already has a declaration, in source or in another generated file, so
+                // this file carries a partial part of it instead.
                 var topDeclaration =
-                    CanBeDeclaredPartial( declaringType )
-                        ? CreatePartialType( declaringType, baseList, members, syntaxGenerationContext, typeDepth )
-                        : CreateNonPartialIntroducedType( declaringType, typeInjection, introductionContext );
+                    typeInjection != null
+                        ? CreateIntroducedTypeDeclaration(
+                            declaringType,
+                            typeInjection,
+                            introductionContext,
+                            baseList,
+                            members,
+                            syntaxGenerationContext,
+                            typeDepth )
+                        : CanBeDeclaredPartial( declaringType )
+                            ? CreatePartialType( declaringType, baseList, members, syntaxGenerationContext, typeDepth )
+                            : throw new AssertionFailedException(
+                                $"The type '{declaringType}' is of a kind that cannot be partial, so its declaration must come from its introduction transformation, and none was given." );
 
                 // Add the type to its nesting type.
                 var currentDepth = typeDepth;
@@ -526,8 +569,13 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
         {
             foreach ( var member in injectedMembers )
             {
+                // The union kind is named under its own condition, in the manner of
+                // SyntaxKindExtensions.IsTypeDeclaration, because the lower Roslyn variant does not declare it.
                 if ( member.Kind() is SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration
                          or SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration
+#if ROSLYN_5_11_0_OR_GREATER
+                         or SyntaxKind.UnionDeclaration
+#endif
                      && member is TypeDeclarationSyntax typeDeclaration
                      && !typeDeclaration.Modifiers.Any( SyntaxKind.PartialKeyword ) )
                 {
@@ -724,24 +772,32 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
         /// which the compiler reports as CS0261.
         /// </para>
         /// </remarks>
-        private static bool CanBeDeclaredPartial( INamedType type )
-            => type.TypeKind is not (TypeKind.Enum or TypeKind.Delegate) && !type.IsUnion;
+        /// <summary>
+        /// Determines whether the language lets the type be declared as partial, which decides whether the generated
+        /// source can carry a partial part of it.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// An enum and a delegate are the two kinds that the language cannot declare as partial. A union can be
+        /// declared as partial, and one part of it carries the case list while the other carries the members, so a
+        /// union takes the same route as a class.
+        /// </para>
+        /// </remarks>
+        private static bool CanBeDeclaredPartial( INamedType type ) => type.TypeKind is not (TypeKind.Enum or TypeKind.Delegate);
 
         /// <summary>
-        /// Emits the declaration of an introduced type that the language cannot declare as partial, by asking the
-        /// transformation that introduces it for its syntax.
+        /// Emits the declaration of an introduced type by asking the transformation that introduces it for its
+        /// syntax, and adds to it the interfaces and the members that other transformations contribute.
         /// </summary>
-        private static MemberDeclarationSyntax CreateNonPartialIntroducedType(
+        private static MemberDeclarationSyntax CreateIntroducedTypeDeclaration(
             INamedType type,
-            IInjectMemberTransformation? typeInjection,
-            MemberInjectionContext context )
+            IInjectMemberTransformation typeInjection,
+            MemberInjectionContext context,
+            BaseListSyntax? baseList,
+            SyntaxList<MemberDeclarationSyntax> members,
+            SyntaxGenerationContext syntaxGenerationContext,
+            int typeDepth )
         {
-            if ( typeInjection == null )
-            {
-                throw new AssertionFailedException(
-                    $"The type '{type}' is of a kind that cannot be partial, so its declaration must come from its introduction transformation, and none was given." );
-            }
-
             var injectedMembers = typeInjection.GetInjectedMembers( context ).ToReadOnlyList();
 
             if ( injectedMembers.Count != 1 )
@@ -755,9 +811,51 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
             // emitted twice.
             var syntax = injectedMembers[0].Syntax;
 
-            return syntax.Kind() == SyntaxKind.NamespaceDeclaration && syntax is NamespaceDeclarationSyntax { Members: [var singleMember] }
-                ? singleMember
-                : syntax;
+            if ( syntax.Kind() == SyntaxKind.NamespaceDeclaration && syntax is NamespaceDeclarationSyntax { Members: [var singleMember] } )
+            {
+                syntax = singleMember;
+            }
+
+            // A second generated file carries a partial part of the type whenever another aspect layer targets it, so
+            // the declaration is declared partial for every kind that the language lets be partial. An enum and a
+            // delegate fall through unchanged, because neither can be partial and neither can receive a second part.
+            syntax = AddPartialModifierToTypes( [syntax] ).Single();
+
+            if ( syntax is not TypeDeclarationSyntax typeDeclaration )
+            {
+                // An enum and a delegate are the two kinds whose declaration is not a TypeDeclarationSyntax, and
+                // neither accepts an introduced member or an introduced interface.
+                Invariant.Assert(
+                    members.Count == 0 && baseList == null,
+                    $"The type '{type}' is of a kind that accepts neither a member nor an interface." );
+
+                return syntax;
+            }
+
+            if ( baseList is { Types.Count: > 0 } )
+            {
+                typeDeclaration = (TypeDeclarationSyntax) typeDeclaration.AddBaseListTypes( baseList.Types.ToArray() );
+            }
+
+            if ( members.Count > 0 )
+            {
+                typeDeclaration = typeDeclaration.WithMembers( typeDeclaration.Members.AddRange( members ) );
+
+                // A declaration that has no member list is written with a semicolon, which is the form an introduced
+                // record and an introduced union take, so the braces replace it once a member is added.
+                if ( typeDeclaration.OpenBraceToken.IsKind( SyntaxKind.None ) )
+                {
+                    var typeLineLeading = GetNewLineAndIndentTriviaList( syntaxGenerationContext, typeDepth );
+
+                    typeDeclaration = typeDeclaration
+                        .WithOpenBraceToken( Token( typeLineLeading, SyntaxKind.OpenBraceToken, default ) )
+                        .WithCloseBraceToken(
+                            Token( typeLineLeading, SyntaxKind.CloseBraceToken, syntaxGenerationContext.OptionalElasticEndOfLineTriviaList ) )
+                        .WithSemicolonToken( default );
+                }
+            }
+
+            return typeDeclaration;
         }
 
         private static TypeDeclarationSyntax CreatePartialType(
@@ -812,6 +910,24 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                     members,
                     closeBraceToken: closeBrace,
                     semicolonToken: default ),
+#if ROSLYN_5_11_0_OR_GREATER
+                // A union is reported as a struct, so it is named before the struct arm, which would otherwise emit
+                // a partial struct against a partial union and make the compiler report CS0261. The partial part
+                // carries no case list, because the part that the introduction transformation emits carries it.
+                TypeKind.Struct when type.IsUnion => UnionDeclaration(
+                    attributeLists: default,
+                    modifiers,
+                    keyword: SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.UnionKeyword ),
+                    SyntaxFactoryEx.SafeIdentifier( type.Name ),
+                    CreateTypeParameters( type ),
+                    parameterList: null,
+                    baseList,
+                    constraintClauses: default,
+                    openBraceToken: openBrace,
+                    members,
+                    closeBraceToken: closeBrace,
+                    semicolonToken: default ),
+#endif
                 TypeKind.Struct when !type.IsRecord => StructDeclaration(
                     attributeLists: default,
                     modifiers,
