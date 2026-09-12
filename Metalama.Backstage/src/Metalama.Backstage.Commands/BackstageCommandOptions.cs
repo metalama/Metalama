@@ -26,7 +26,29 @@ public sealed class BackstageCommandOptions
         IApplicationInfo applicationInfo,
         TextWriter? standardOutput = null,
         TextWriter? errorOutput = null,
-        AnsiSupport ansiSupport = AnsiSupport.Detect ) : this( new CommandServiceProvider( applicationInfo ), standardOutput, errorOutput, ansiSupport ) { }
+        AnsiSupport ansiSupport = AnsiSupport.Detect ) : this( applicationInfo, MetalamaProduct.Profile, standardOutput, errorOutput, ansiSupport ) { }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="BackstageCommandOptions"/> class for a given product.
+    /// </summary>
+    public BackstageCommandOptions(
+        IApplicationInfo applicationInfo,
+        ProductProfile productProfile,
+        TextWriter? standardOutput = null,
+        TextWriter? errorOutput = null,
+        AnsiSupport ansiSupport = AnsiSupport.Detect ) : this(
+        new CommandServiceProvider( applicationInfo, productProfile ),
+        standardOutput,
+        errorOutput,
+        ansiSupport )
+    {
+        this.ProductProfile = productProfile;
+    }
+
+    /// <summary>
+    /// Gets the profile of the product, whose name appears in the descriptions of the commands.
+    /// </summary>
+    public ProductProfile ProductProfile { get; } = MetalamaProduct.Profile;
 
     internal BackstageCommandOptions(
         ICommandServiceProviderProvider serviceProvider,

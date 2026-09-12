@@ -41,27 +41,5 @@ public static class MetalamaPathUtilities
     /// Callers that have a service provider at hand should resolve <see cref="IStandardDirectories.TempDirectory" /> themselves
     /// and pass it here, rather than relying on the parameterless overload, which requires the backstage services to be initialized.
     /// </summary>
-    public static string GetTempFileName( string directory )
-    {
-        Directory.CreateDirectory( directory );
-
-        // https://stackoverflow.com/a/10152460/4100001
-        var attempt = 0;
-
-        while ( true )
-        {
-            var path = Path.Combine( directory, $"{Guid.NewGuid()}.tmp" );
-
-            try
-            {
-                using ( var newFile = new FileStream( path, FileMode.Create ) )
-                {
-                    newFile.Close();
-                }
-            }
-            catch ( IOException ) when ( ++attempt < 10 ) { continue; }
-
-            return path;
-        }
-    }
+    public static string GetTempFileName( string directory ) => TempFileUtilities.GetTempFileName( directory );
 }

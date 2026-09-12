@@ -80,7 +80,7 @@ internal sealed partial class App
         // rather than rely on the ProcessExit handler having time to run. See #1751.
         if ( BackstageServiceFactory.IsInitialized )
         {
-            await BackstageBackgroundTasksService.Default.CompleteAsync();
+            await BackstageServiceFactory.ServiceProvider.GetRequiredBackstageService<BackstageBackgroundTasksService>().CompleteAsync();
         }
     }
 

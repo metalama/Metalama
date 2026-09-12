@@ -11,7 +11,7 @@ public class DocsCommand : BaseCommand<BaseCommandSettings>
 {
     protected override void Execute( ExtendedCommandContext context, BaseCommandSettings settings )
     {
-        var links = context.ServiceProvider.GetRequiredBackstageService<WebLinks>();
+        var links = context.ServiceProvider.GetRequiredBackstageService<IWebLinks>();
         context.ServiceProvider.GetRequiredBackstageService<IUserInterfaceService>().OpenExternalWebPage( links.Documentation, BrowserMode.Default );
     }
 

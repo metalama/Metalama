@@ -1,0 +1,486 @@
+// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+// SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
+// Refer to LICENSE.md in the repository root for complete details.
+
+using Metalama.Backstage.Configuration;
+using Metalama.Backstage.Diagnostics;
+using Metalama.Backstage.Extensibility;
+using Metalama.Backstage.Infrastructure;
+using Metalama.Testing.Hooks;
+using Metalama.Backstage.Tools;
+using Metalama.Backstage.Utilities;
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.IO.Packaging;
+using System.Linq;
+using System.Net.Http;
+using System.Net.Mime;
+using System.Security.Cryptography;
+using System.Text;
+using System.Threading.Tasks;
+using IHttpClientFactory = Metalama.Backstage.Infrastructure.IHttpClientFactory;
+using RandomNumberGenerator = Metalama.Backstage.Infrastructure.RandomNumberGenerator;
+
+namespace Metalama.Backstage.Telemetry
+{
+    internal sealed class TelemetryUploader : ITelemetryUploader
+    {
+        private readonly IServiceProvider _serviceProvider;
+        private readonly IStandardDirectories _directories;
+        private readonly IFileSystem _fileSystem;
+        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly IDateTimeProvider _time;
+        private readonly ILogger _logger;
+        private readonly TelemetryInitializationOptions _options;
+        private readonly IConfigurationManager _configurationManager;
+        private readonly List<(string File, Exception Reason)> _failedFiles = [];
+        private readonly TelemetryLogger _telemetryLogger;
+        private readonly BackstageBackgroundTasksService _backgroundTasksService;
+        private readonly RandomNumberGenerator _randomNumberGenerator;
+        private readonly ITestSynchronizationProvider? _testSynchronizationProvider;
+
+        /// <summary>
+        /// The sync point reached by <see cref="StartUpload"/> after it has claimed the upload but before it enqueues
+        /// the start of the upload process. See #1764.
+        /// </summary>
+        internal const string BeforeEnqueueUploadSyncPoint = "TelemetryUploader.StartUpload:BeforeEnqueue";
+
+        public TelemetryUploader( IServiceProvider serviceProvider )
+        {
+            this._configurationManager = serviceProvider.GetRequiredBackstageService<IConfigurationManager>();
+            this._options = serviceProvider.GetRequiredBackstageService<TelemetryInitializationOptions>();
+
+            this._serviceProvider = serviceProvider;
+            this._directories = serviceProvider.GetRequiredBackstageService<IStandardDirectories>();
+            this._fileSystem = serviceProvider.GetRequiredBackstageService<IFileSystem>();
+            this._httpClientFactory = serviceProvider.GetRequiredBackstageService<IHttpClientFactory>();
+            this._time = serviceProvider.GetRequiredBackstageService<IDateTimeProvider>();
+            this._logger = serviceProvider.GetLoggerFactory().Telemetry();
+            this._telemetryLogger = serviceProvider.GetRequiredBackstageService<TelemetryLogger>();
+            this._backgroundTasksService = serviceProvider.GetRequiredBackstageService<BackstageBackgroundTasksService>();
+            this._randomNumberGenerator = serviceProvider.GetRequiredBackstageService<RandomNumberGenerator>();
+
+            // Never registered in production, so this stays null there.
+            // Resolved untyped, because ITestSynchronizationProvider is shared with the layers above and therefore
+            // cannot derive from IBackstageService.
+            this._testSynchronizationProvider = (ITestSynchronizationProvider?) serviceProvider.GetService( typeof(ITestSynchronizationProvider) );
+        }
+
+        private static void CopyStream( Stream inputStream, Stream outputStream )
+        {
+            const int bufferLen = 16 * 1024;
+            var buffer = new byte[bufferLen];
+            int bytesRead;
+
+            while ( (bytesRead = inputStream.Read( buffer, 0, bufferLen )) > 0 )
+            {
+                outputStream.Write( buffer, 0, bytesRead );
+            }
+        }
+
+        private void EncryptFile( string inputFile, string outputFile )
+        {
+            using ( var inputStream = this._fileSystem.OpenRead( inputFile ) )
+            using ( var outputStream = this._fileSystem.CreateFile( outputFile ) )
+            {
+                this.EncryptStream( inputStream, outputStream );
+            }
+        }
+
+        private void EncryptStream( Stream inputStream, Stream outputStream )
+        {
+            var cryptoStream = this.GetCryptoStream( outputStream );
+            CopyStream( inputStream, cryptoStream );
+            cryptoStream.FlushFinalBlock();
+        }
+
+        private CryptoStream GetCryptoStream( Stream outputStream )
+        {
+            // Create a symmetric random key. This is a security-sensitive value, so it must come from a CSPRNG.
+            var symmetricKey = new byte[256 / 8];
+            this._randomNumberGenerator.NextCryptographicBytes( symmetricKey );
+
+            // Retrieve the public key from the host product.
+            var publicKey = this._options.GetUploadEncryptionPublicKey();
+            string publicKeyXml;
+
+            using ( var keyReader = new StreamReader( new MemoryStream( publicKey ) ) )
+            {
+                publicKeyXml = keyReader.ReadToEnd();
+            }
+
+            // Compute a hash of the public key.
+            var sha = SHA512.Create();
+            var publicKeyHash = sha.ComputeHash( publicKey );
+
+            // Encrypt the random key using the public key.
+            using var rsa = RSA.Create();
+            rsa.FromXmlString( publicKeyXml );
+
+            var encryptedSymmetricKey = rsa.Encrypt( symmetricKey, RSAEncryptionPadding.Pkcs1 );
+
+            var aes = Aes.Create();
+            aes.GenerateIV();
+
+            var writer = new BinaryWriter( outputStream );
+
+            // Write the version.
+            // 0 = Windows-specific PostSharp implementation.
+            // 1 = Metalama multi-platform implementation. 
+            writer.Write( 1 );
+
+            // Write the public key hash.
+            writer.Write( publicKeyHash.Length );
+            writer.Write( publicKeyHash );
+
+            // Write the encrypted key
+            writer.Write( encryptedSymmetricKey.Length );
+            writer.Write( encryptedSymmetricKey );
+
+            // Write the initial vector.
+            writer.Write( aes.IV.Length );
+            writer.Write( aes.IV );
+
+            // Encrypt the package content.
+            return new CryptoStream(
+                outputStream,
+                aes.CreateEncryptor( symmetricKey, aes.IV ),
+                CryptoStreamMode.Write );
+        }
+
+        private bool TryCreatePackage( IReadOnlyList<string> files, string outputPath, out IReadOnlyList<string> filesToDelete )
+        {
+            var filesToDeleteLocal = new List<string>();
+            string? tempPackagePath = null;
+            Stream? packageStream = null;
+            Package? package = null;
+
+            try
+            {
+                foreach ( var file in files )
+                {
+                    this._logger.Trace?.Log( $"Packing '{file}'." );
+
+                    // Attempt to open that file. Skip the file if we can't open it.
+                    try
+                    {
+                        using ( var stream = this._fileSystem.Open( file, FileMode.Open, FileAccess.Read, FileShare.None ) )
+                        {
+                            // Create a ZIP package if it does not exist yet.
+                            if ( package == null )
+                            {
+                                if ( packageStream != null )
+                                {
+                                    throw new InvalidOperationException( "Package stream has to be assigned along with package." );
+                                }
+
+                                this._logger.Trace?.Log( $"Creating package." );
+                                tempPackagePath = this._fileSystem.GetTempFileName();
+                                this._logger.Trace?.Log( $"The package is stored at '{tempPackagePath}'." );
+                                packageStream = this._fileSystem.Open( tempPackagePath, FileMode.Create );
+                                package = Package.Open( packageStream, FileMode.Create );
+                            }
+
+                            string? mime = null;
+
+                            // Add the file to the zip.
+                            this._logger.Trace?.Log( $"Adding '{file}' file to '{tempPackagePath}' package." );
+
+                            var packagePart =
+                                package.CreatePart(
+                                    new Uri( "/" + Uri.EscapeDataString( Path.GetFileName( file ) ), UriKind.Relative ),
+                                    mime ?? MediaTypeNames.Application.Octet,
+                                    CompressionOption.Maximum );
+
+                            // ReSharper disable once PossibleNullReferenceException
+                            using ( var packagePartStream = packagePart.GetStream( FileMode.Create ) )
+                            {
+                                CopyStream( stream, packagePartStream );
+                            }
+                        }
+
+                        filesToDeleteLocal.Add( file );
+
+                        this._logger.Trace?.Log( $"'{file}' file added to '{tempPackagePath}' package." );
+                    }
+                    catch ( Exception e )
+                    {
+                        this._logger.LogException( e, $"Cannot pack file '{file}'" );
+                        this._failedFiles.Add( (file, e) );
+                    }
+                }
+
+                filesToDelete = filesToDeleteLocal;
+
+                if ( package == null )
+                {
+                    // We did not find any file.
+                    this._logger.Trace?.Log( "No file found." );
+
+                    return false;
+                }
+
+                this._logger.Trace?.Log( $"Closing '{tempPackagePath}' package." );
+                package.Close();
+                packageStream!.Close();
+
+                // Encrypt the package.
+                this._logger.Trace?.Log( $"Encrypting '{tempPackagePath}' package to '{outputPath}'." );
+                this.EncryptFile( tempPackagePath!, outputPath );
+
+                this._logger.Trace?.Log( $"'{outputPath}' package created." );
+
+                return true;
+            }
+            finally
+            {
+                this._logger.Trace?.Log( $"Disposing temporary package stream." );
+                packageStream?.Dispose();
+
+                if ( tempPackagePath != null && this._fileSystem.FileExists( tempPackagePath ) )
+                {
+                    this._logger.Trace?.Log( $"Deleting temporary package '{tempPackagePath}'." );
+                    this._fileSystem.DeleteFile( tempPackagePath );
+                }
+            }
+        }
+
+        /// <inheritdoc />
+        public bool StartUpload( bool force = false )
+        {
+            var toolExecutor = this._serviceProvider.GetBackstageService<IBackstageToolsExecutor>();
+
+            if ( toolExecutor == null )
+            {
+                this._logger.Trace?.Log( $"Do not upload now because there is no IWorkerProgram service." );
+
+                return false;
+            }
+
+            var now = this._time.UtcNow;
+
+            this._logger.Trace?.Log( "Acquiring mutex." );
+
+            // Claiming the upload by writing LastUploadTime is what stops two processes from uploading at the same time,
+            // so it has to happen before the upload is started rather than after. The claim is therefore optimistic and
+            // is released below if the upload turns out not to start at all.
+            DateTime? previousUploadTime = null;
+
+            if ( !this._configurationManager.UpdateIf<TelemetryConfiguration>(
+                    c => force ||
+                         c.LastUploadTime == null ||
+                         c.LastUploadTime.Value.AddDays( 1 ) < now,
+                    c =>
+                    {
+                        // Captured here, and not from a separate read, because this transformation runs inside the
+                        // lock protecting the file: the value it receives is the value the write replaces.
+                        // Releasing the wrong one would hand the day to a process that never uploaded.
+                        previousUploadTime = c.LastUploadTime;
+
+                        // 'now', not a second reading of the clock: the value we claim with must be the one the
+                        // condition was evaluated against, and must be known here so that the release below can tell
+                        // our own claim from somebody else's.
+                        return c with { LastUploadTime = now };
+                    } ) )
+            {
+                // UpdateIf tells us that this call did not perform the transition, but not why: the throttle may not
+                // have elapsed, another process may have claimed the upload, or the file may have failed to be
+                // locked or written. Claiming a single one of those in the message sends whoever reads the trace
+                // after it, as it did in #1764.
+                this._logger.Trace?.Log( "Not uploading the telemetry now: it is not time yet, or another process has claimed the upload." );
+
+                return false;
+            }
+
+            // This method usually runs as a background task itself, because BackstageServicesInitializer enqueues it, so
+            // the enqueue below is a nested one. It used to be refused when the process started shutting down in
+            // between, and since the resulting exception was raised in a task nobody observes, the upload process was
+            // simply never started. The sync point lets a test hold us exactly here while it begins shutdown, rather
+            // than hope for that interleaving. See #1764.
+            this._testSynchronizationProvider?.SyncPoint( BeforeEnqueueUploadSyncPoint );
+
+            this._backgroundTasksService.Enqueue( () => this.StartUploadProcess( toolExecutor, previousUploadTime, claimedUploadTime: now ) );
+
+            return true;
+        }
+
+        /// <summary>
+        /// Starts the process that performs the upload, and releases the claim made by <see cref="StartUpload"/> if it
+        /// cannot be started.
+        /// </summary>
+        /// <remarks>
+        /// Without the release, a start that fails (for instance because the tools have not been extracted) would still
+        /// consume the once-a-day upload budget for the whole machine, so a single unlucky process in the morning would
+        /// silence uploads until the next day. The failure was also entirely silent, because this runs in a task nobody
+        /// observes. See #1764.
+        /// </remarks>
+        private void StartUploadProcess( IBackstageToolsExecutor toolExecutor, DateTime? previousUploadTime, DateTime claimedUploadTime )
+        {
+            try
+            {
+                toolExecutor.Start( BackstageTool.Worker, "upload" );
+            }
+            catch ( Exception e )
+            {
+                this._logger.LogException( e, "Cannot start the telemetry upload process" );
+
+                // Release the claim only while it is still ours: another process may have claimed the upload since, and
+                // that claim must stand.
+                this._configurationManager.UpdateIf<TelemetryConfiguration>(
+                    c => c.LastUploadTime == claimedUploadTime,
+                    c => c with { LastUploadTime = previousUploadTime } );
+            }
+        }
+
+        private static string ComputeHash( string packageName )
+        {
+            // ReSharper disable once StringLiteralTypo
+            const string salt = @"<27e\)$a<=b9&zyVwjzaJ`!WW`rwHh~;Z5QAC.J5TQ`.NY"")]~FGA);AKSSmbV$M";
+
+            var sha = SHA512.Create();
+            var data = sha.ComputeHash( Encoding.UTF8.GetBytes( packageName + salt ) );
+            var builder = new StringBuilder();
+
+            foreach ( var t in data )
+            {
+                builder.Append( t.ToString( "x2", CultureInfo.InvariantCulture ) );
+            }
+
+            return builder.ToString();
+        }
+
+        /// <inheritdoc />
+        public async Task UploadAsync()
+        {
+            // The uploader is a singleton, so the per-upload failure list must be reset at the start of each upload.
+            // Otherwise a single pack failure would persist and, in DEBUG, keep throwing from the finally block,
+            // making the post-upload deletion of sent files below unreachable on every subsequent upload.
+            this._failedFiles.Clear();
+
+            if ( !this._fileSystem.DirectoryExists( this._directories.TelemetryUploadQueueDirectory ) )
+            {
+                this._logger.Trace?.Log(
+                    $"The telemetry upload queue directory '{this._directories.TelemetryUploadQueueDirectory}' doesn't exist. Assuming there's nothing to upload." );
+
+                return;
+            }
+
+            this._logger.Trace?.Log( $"Creating upload directory '{this._directories.TelemetryUploadPackagesDirectory}'" );
+            this._fileSystem.CreateDirectory( this._directories.TelemetryUploadPackagesDirectory );
+
+            var packageId = this._randomNumberGenerator.NextGuid().ToString();
+            var packageName = packageId + ".psf";
+            var packagePath = Path.Combine( this._directories.TelemetryUploadPackagesDirectory, packageName );
+
+            IReadOnlyList<string> filesToDelete;
+
+            try
+            {
+                var files = this._fileSystem.GetFiles( this._directories.TelemetryUploadQueueDirectory );
+
+                if ( files.Length == 0 )
+                {
+                    this._logger.Trace?.Log( $"No files found to be uploaded in '{this._directories.TelemetryUploadQueueDirectory}'." );
+
+                    return;
+                }
+
+                // TODO: Stream the data directly to HTTP
+                if ( !this.TryCreatePackage( files, packagePath, out filesToDelete ) )
+                {
+                    return;
+                }
+
+                this._logger.Trace?.Log( "Preparing request content." );
+                using var formData = new MultipartFormDataContent();
+
+                this._logger.Trace?.Log( $"Adding '{packagePath}' package as '{packageName}', ID '{packageId}'." );
+
+                // ReSharper disable once UseAwaitUsing
+                using var packageFile = this._fileSystem.OpenRead( packagePath );
+                var streamContent = new StreamContent( packageFile );
+                formData.Add( streamContent, packageId, packageName );
+
+                // ReSharper disable once StringLiteralTypo
+                this._logger.Trace?.Log( $"Computing hash of '{packageName}'." );
+                var check = ComputeHash( packageName );
+
+                this._logger.Trace?.Log( $"Creating client." );
+                using var client = this._httpClientFactory.Create();
+
+                this._logger.Trace?.Log( $"Uploading." );
+                var response = await client.PutAsync( $"{this._options.UploadUri}?check={check}", formData );
+
+                if ( !response.IsSuccessStatusCode )
+                {
+                    throw new InvalidOperationException( $"Request failed: {response.StatusCode} {response.ReasonPhrase}" );
+                }
+
+                this._telemetryLogger.WriteLine( $"Uploaded '{packageName}' containing: {string.Join( ", ", files.Select( f => $"'{f}'" ) )}" );
+                this._logger.Trace?.Log( $"Upload succeeded." );
+            }
+            catch ( Exception exception )
+            {
+                this._logger.LogException( exception );
+                this._telemetryLogger.WriteLine( $"Upload failure: {exception.Message}" );
+
+                throw;
+            }
+            finally
+            {
+                RetryHelper.RetryWithLockDetection(
+                    packagePath,
+                    f =>
+                    {
+                        if ( this._fileSystem.FileExists( packagePath ) )
+                        {
+                            this._logger.Trace?.Log( $"Deleting '{packagePath}' package." );
+                            this._fileSystem.DeleteFile( f );
+                        }
+                    },
+                    this._serviceProvider,
+                    logger: this._logger );
+
+#if DEBUG
+                var failedFileExceptions = new List<Exception>();
+#endif
+
+                foreach ( var failedFile in this._failedFiles )
+                {
+                    var exception = new TelemetryFilePackingFailedException(
+                        $"Failed to pack '{failedFile.File}' telemetry file: {failedFile.Reason.Message}",
+                        failedFile.Reason );
+
+                    // A telemetry-packing failure is about the tooling itself: report through the tooling policy. See #1701.
+                    this._serviceProvider.ReportToolingException( exception );
+
+#if DEBUG
+                    failedFileExceptions.Add( exception );
+#endif
+                }
+
+#if DEBUG
+                if ( failedFileExceptions.Count > 0 )
+                {
+                    throw new AggregateException( "No all files have been packed. See inner exceptions for the failed files.", failedFileExceptions );
+                }
+#endif
+            }
+
+            // Delete the files that have just been sent.
+            RetryHelper.RetryWithLockDetection(
+                filesToDelete,
+                f =>
+                {
+                    this._logger.Trace?.Log( $"Deleting sent file '{f}'." );
+                    this._fileSystem.DeleteFile( f );
+                },
+                this._serviceProvider,
+                logger: this._logger );
+
+            this._logger.Trace?.Log( "Telemetry upload finished." );
+        }
+    }
+}

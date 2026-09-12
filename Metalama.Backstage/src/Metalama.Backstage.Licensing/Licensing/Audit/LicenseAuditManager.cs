@@ -1,0 +1,126 @@
+// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+// SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
+// Refer to LICENSE.md in the repository root for complete details.
+
+using Metalama.Backstage.Application;
+using Metalama.Backstage.Configuration;
+using Metalama.Backstage.Diagnostics;
+using Metalama.Backstage.Extensibility;
+using Metalama.Backstage.Infrastructure;
+using Metalama.Backstage.Licensing.Consumption;
+using Metalama.Backstage.Telemetry;
+using System;
+
+namespace Metalama.Backstage.Licensing.Audit;
+
+internal sealed class LicenseAuditManager : ILicenseAuditManager
+{
+    private readonly IServiceProvider _serviceProvider;
+    private readonly IConfigurationManager _configurationManager;
+    private readonly IApplicationInfo _applicationInfo;
+    private readonly IDateTimeProvider _time;
+    private readonly ILoggerFactory _loggerFactory;
+    private readonly ILogger _logger;
+    private readonly TelemetryReportUploader _telemetryReportUploader;
+    private readonly MatomoUploader? _matomoAuditUploader;
+    private readonly BackstageBackgroundTasksService _backgroundTasksService;
+    private readonly ITelemetryConfigurationService _telemetryConfigurationService;
+
+    public LicenseAuditManager( IServiceProvider serviceProvider )
+    {
+        this._serviceProvider = serviceProvider;
+        this._configurationManager = serviceProvider.GetRequiredBackstageService<IConfigurationManager>();
+        this._applicationInfo = serviceProvider.GetRequiredBackstageService<IApplicationInfoProvider>().CurrentApplication;
+        this._time = serviceProvider.GetRequiredBackstageService<IDateTimeProvider>();
+        this._loggerFactory = serviceProvider.GetLoggerFactory();
+        this._logger = this._loggerFactory.Licensing();
+        this._telemetryReportUploader = serviceProvider.GetRequiredBackstageService<TelemetryReportUploader>();
+        this._matomoAuditUploader = serviceProvider.GetBackstageService<MatomoUploader>();
+        this._backgroundTasksService = serviceProvider.GetRequiredBackstageService<BackstageBackgroundTasksService>();
+        this._telemetryConfigurationService = serviceProvider.GetRequiredBackstageService<ITelemetryConfigurationService>();
+    }
+
+    public void ReportLicense( LicenseConsumptionProperties license )
+    {
+        if ( !license.IsAuditable )
+        {
+            this._logger.Trace?.Log( $"License audit disabled because the license '{license.DisplayName}' is not auditable." );
+
+            return;
+        }
+
+        if ( this._applicationInfo.IsUnattendedProcess( this._loggerFactory ) )
+        {
+            this._logger.Trace?.Log( "License audit disabled because the current process is unattended." );
+
+            return;
+        }
+
+        if ( !this._applicationInfo.IsTelemetryEnabled )
+        {
+            this._logger.Trace?.Log( $"License audit disabled because telemetry is disabled for the current build." );
+
+            return;
+        }
+
+        // We are about to report a license audit, so make sure telemetry is activated (the DeviceId and salts exist).
+        // Activation is lazy so that a process which never reports also never creates a device identifier. Without this,
+        // the report would hash the user and device with a zeroed salt and an empty DeviceId, producing identical
+        // pseudonyms across all first-time users with the same username. See #1711.
+        this._telemetryConfigurationService.EnsureActivated();
+
+        var report = new LicenseAuditTelemetryReport( this._serviceProvider, license );
+
+        if ( report.ReportedComponent.PackageVersion == null )
+        {
+            throw new InvalidOperationException( $"Version of '{report.ReportedComponent.Name}' application is unknown." );
+        }
+
+        // Perform detailed audit.
+        var mustPerformAudit = this._configurationManager.UpdateIf<LicenseAuditConfiguration>(
+            c => !c.LastAuditTimes.TryGetValue( report.AuditHashCode, out var lastReportTime )
+                 || lastReportTime <= this._time.UtcNow.AddDays( -1 ),
+            c => c with { LastAuditTimes = c.LastAuditTimes.SetItem( report.AuditHashCode, this._time.UtcNow ) } );
+
+        if ( !mustPerformAudit )
+        {
+            this._logger.Trace?.Log( $"License audit disabled because the license '{license.DisplayName}' has been recently audited." );
+        }
+        else
+        {
+            this._logger.Trace?.Log( $"Uploading license audit report." );
+            this._backgroundTasksService.Enqueue( () => this._telemetryReportUploader.Upload( report ) );
+        }
+
+        // Perform aggregate audit to Matomo. We intentionally upload one report per day irrespective of the version used 
+        // (which means that the version number being reported may be random if the user uses several version) because
+        // we are more interested in having correct aggregates on Matomo than correct version usage statistics.
+        if ( this._matomoAuditUploader != null )
+        {
+            var mustPerformAggregateAudit = this._configurationManager.UpdateIf<LicenseAuditConfiguration>(
+                c => c.LastMatomoAuditTime == null || c.LastMatomoAuditTime <= this._time.UtcNow.AddDays( -1 ),
+                c => c with { LastMatomoAuditTime = this._time.UtcNow } );
+
+            if ( mustPerformAggregateAudit )
+            {
+                var licensedProduct = report.License.LicenseProduct switch
+                {
+                    LicenseProduct.PostSharpFramework => "PostSharpFramework",
+                    LicenseProduct.PostSharpUltimate => "PostSharpUltimate",
+                    _ => report.License.LicenseProduct.ToString()
+                };
+
+                var licenseType = report.License.LicenseType switch
+                {
+                    // Avoid ambiguities due to duplicate names.
+                    LicenseType.Business => nameof(LicenseType.Business),
+                    LicenseType.Community => nameof(LicenseType.Community),
+                    _ => report.License.LicenseType.ToString()
+                };
+
+                this._backgroundTasksService.Enqueue(
+                    () => this._matomoAuditUploader.SendAsync( report, "license", newVisit: false, (1, licensedProduct), (2, licenseType) ) );
+            }
+        }
+    }
+}

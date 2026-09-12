@@ -54,6 +54,12 @@ public static class BackstageServiceFactory
         return serviceProvider;
     }
 
+    /// <summary>
+    /// Creates and initializes an independent service provider. The provider is not shared with
+    /// <see cref="ServiceProvider"/>, and several providers can coexist in a process. The returned object implements
+    /// <see cref="IDisposable"/>; disposing it disposes the services that it created, releases the process-wide hooks
+    /// that they registered, and stops their background work from being drained at process exit.
+    /// </summary>
     public static IServiceProvider CreateServiceProvider( BackstageInitializationOptions options )
     {
         var serviceProviderBuilder = new SimpleServiceProviderBuilder();

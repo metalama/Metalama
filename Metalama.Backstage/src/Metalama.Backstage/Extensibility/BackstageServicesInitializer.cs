@@ -5,6 +5,8 @@
 using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Infrastructure;
 using Metalama.Backstage.Telemetry;
+using Metalama.Backstage.UserInterface;
+using Metalama.Backstage.UserInterface.Rss;
 using System;
 
 namespace Metalama.Backstage.Extensibility;
@@ -36,6 +38,11 @@ internal sealed class BackstageServicesInitializer : IBackstageService
         this._profilingService?.Initialize();
         this._telemetryConfigurationService?.Initialize();
         this._shutdownService?.Initialize();
+
+        // The subscribers of the event dispatcher are created eagerly, because a service that nobody resolves is never
+        // created and would therefore never subscribe.
+        _ = this._serviceProvider.GetBackstageService<UserInterfaceEventSubscriber>();
+        _ = this._serviceProvider.GetBackstageService<IRssClient>();
 
         // The license manager may enqueue a file but be unable to start the process.
         var telemetryUploader = this._serviceProvider.GetBackstageService<ITelemetryUploader>();

@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Backstage.Application;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Maintenance;
 
@@ -11,12 +12,14 @@ internal class KillCommand : BaseCommand<KillCommandSettings>
 {
     protected override void Execute( ExtendedCommandContext context, KillCommandSettings settings )
     {
-        context.Console.WriteHeading( "Killing Metalama processes" );
+        var productName = context.ServiceProvider.GetRequiredBackstageService<ProductProfile>().Name;
+
+        context.Console.WriteHeading( $"Killing {productName} processes" );
 
         var processManager = context.ServiceProvider.GetRequiredBackstageService<IProcessManager>();
 
         processManager.KillCompilerProcesses( !settings.NoWarn );
 
-        context.Console.WriteSuccess( "Metalama processes have been killed." );
+        context.Console.WriteSuccess( $"{productName} processes have been killed." );
     }
 }

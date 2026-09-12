@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Backstage.Application;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Licensing;
 using Metalama.Backstage.Licensing.Registration;
@@ -17,6 +18,7 @@ namespace Metalama.Backstage.Commands.Licensing
         protected override void Execute( ExtendedCommandContext context, BaseCommandSettings settings )
         {
             var licenseRegistrationService = context.ServiceProvider.GetRequiredBackstageService<ILicenseRegistrationService>();
+            var productName = context.ServiceProvider.GetRequiredBackstageService<ProductProfile>().Name;
             var licenses = licenseRegistrationService.RegisteredLicenses.ToList();
             var unsupportedVersions = licenseRegistrationService.UnsupportedRegisteredLicenseVersions.ToList();
 
@@ -84,7 +86,7 @@ namespace Metalama.Backstage.Commands.Licensing
             }
             else if ( unsupportedVersions.Count == 0 )
             {
-                context.Console.WriteWarning( "No Metalama license is currently registered." );
+                context.Console.WriteWarning( $"No {productName} license is currently registered." );
             }
 
             // A license key of an unsupported group is not deserialized, so the minimal version of the group is the
@@ -92,8 +94,8 @@ namespace Metalama.Backstage.Commands.Licensing
             foreach ( var unsupportedVersion in unsupportedVersions )
             {
                 context.Console.WriteWarning(
-                    $"A registered license key requires Metalama {unsupportedVersion} or later. "
-                    + "Upgrade Metalama to this version to use that license key." );
+                    $"A registered license key requires {productName} {unsupportedVersion} or later. "
+                    + $"Upgrade {productName} to this version to use that license key." );
             }
         }
     }

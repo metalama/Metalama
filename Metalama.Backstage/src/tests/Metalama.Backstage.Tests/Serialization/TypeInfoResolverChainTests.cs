@@ -154,8 +154,8 @@ public sealed partial class TypeInfoResolverChainTests
     [Fact]
     public void JsonSerializationService_ThrowsForUnregisteredType_WhenNoResolver()
     {
-        // Arrange - Create service with no additional resolvers
-        var service = new JsonSerializationService( [] );
+        // Arrange - Create service with the Backstage context only
+        var service = new JsonSerializationService( [BackstageJsonContext.Default] );
 
         // Act & Assert - should throw for unregistered type
         // System.Text.Json throws NotSupportedException before our check

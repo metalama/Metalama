@@ -156,6 +156,10 @@ public sealed class ReportExceptionTests : TestsBase
         var action = this.ServiceProvider.GetRequiredBackstageService<ITelemetryConfigurationService>().GetEffectiveConsent( scenario );
 
         reporter.Capture( ExceptionClassifier.Classify( exception ?? new InvalidOperationException() ), kind, action, writeLocalReport: true, adapter: null );
+
+        // The notification is delivered by the event dispatcher asynchronously, so the tests that assert on it wait here.
+        // Blocking is acceptable in a test, and the same pattern is used for the background tasks in other tests.
+        this.DrainEventsAsync().GetAwaiter().GetResult();
     }
 
     [Theory]
@@ -197,7 +201,7 @@ public sealed class ReportExceptionTests : TestsBase
     [Theory]
     [InlineData( ExceptionReportingKind.Exception )]
     [InlineData( ExceptionReportingKind.PerformanceProblem )]
-    public void ReportIsNotCapturedNorToastShownWhenCategoryIsOptedOut( ExceptionReportingKind exceptionReportingKind )
+    public async Task ReportIsNotCapturedNorToastShownWhenCategoryIsOptedOut( ExceptionReportingKind exceptionReportingKind )
     {
         // #1701: When the category is explicitly opted out (ReportingAction.No), the report is NOT even captured and no
         // review toast is shown — the user has chosen not to be asked. (The local crash report is independent of
@@ -209,6 +213,7 @@ public sealed class ReportExceptionTests : TestsBase
         Assert.DoesNotContain( this.FileSystem.Mock.AllFiles, f => f.EndsWith( ".xml", StringComparison.Ordinal ) );
 
         // And the user is not asked.
+        await this.DrainEventsAsync();
         Assert.Empty( this.UserInterface.Notifications );
     }
 
@@ -287,7 +292,7 @@ public sealed class ReportExceptionTests : TestsBase
     [Theory]
     [InlineData( ExceptionReportingKind.Exception )]
     [InlineData( ExceptionReportingKind.PerformanceProblem )]
-    public void ToastOpensReviewPage( ExceptionReportingKind exceptionReportingKind )
+    public async Task ToastOpensReviewPage( ExceptionReportingKind exceptionReportingKind )
     {
         this.TelemetryConfigurationService.SetConsent( TelemetryConsent.Default );
 
@@ -295,6 +300,7 @@ public sealed class ReportExceptionTests : TestsBase
         // (instead of opening the raw report file). The toast Uri carries only the bare report file name (token-safe);
         // the category is stored in the report itself, and the desktop command builds the review-page path from the id.
         this.RecordException( kind: exceptionReportingKind );
+        await this.DrainEventsAsync();
 
         var toast = Assert.Single( this.UserInterface.Notifications );
         Assert.Equal( ToastNotificationKinds.ExceptionReport.Name, toast.Kind.Name );

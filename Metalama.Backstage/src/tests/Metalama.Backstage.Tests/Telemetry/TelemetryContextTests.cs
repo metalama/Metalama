@@ -24,7 +24,7 @@ public sealed class TelemetryContextTests : TestsBase
 
     public TelemetryContextTests( ITestOutputHelper logger ) : base( logger, new TestApplicationInfo { IsTelemetryEnabled = true } ) { }
 
-    protected override void ConfigureServices( ServiceProviderBuilder services ) => services.AddTelemetryServices();
+    protected override void ConfigureServices( ServiceProviderBuilder services ) => services.AddTelemetryServices( this.InitializationOptions.TelemetryOptions );
 
     private ITelemetryService TelemetryService => this.ServiceProvider.GetRequiredBackstageService<ITelemetryService>();
 

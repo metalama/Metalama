@@ -3,17 +3,21 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using JetBrains.Annotations;
-using Metalama.Backstage.Extensibility;
 
 namespace Metalama.Backstage.UserInterface;
 
 #pragma warning disable CA1822
 
 // ReSharper disable MemberCanBeMadeStatic.Global
+/// <summary>
+/// The web links of Metalama. This is the implementation of <see cref="IWebLinks"/> for the Metalama product family.
+/// </summary>
 [PublicAPI]
-public sealed class WebLinks : IBackstageService
+public sealed class WebLinks : IWebLinks
 {
     public const string TrackingQueryString = "utm_source=app&utm_medium=app&utm_campaign=backstage";
+
+    string IWebLinks.TrackingQueryString => TrackingQueryString;
 
     // We don't add campaign tracking query string parameters so we do not override the attribution to the original campaign.
     public string Welcome => GetLink( "metalama-oss-welcome", false );

@@ -15,6 +15,11 @@ namespace Metalama.Backstage.Tests.Telemetry
     // Unit tests for the conservative redaction applied to the remote exception report payload (#1680).
     public sealed class ExceptionReportContentTests
     {
+        /// <summary>
+        /// The scrubber of the Metalama product family, which the report of a Metalama process uses.
+        /// </summary>
+        private static readonly ExceptionSensitiveDataHelper _scrubber = ExceptionSensitiveDataHelper.ForProfile( MetalamaProduct.Profile );
+
         private static string WriteExceptionXml( Exception exception )
         {
             var builder = new StringBuilder();
@@ -22,7 +27,7 @@ namespace Metalama.Backstage.Tests.Telemetry
             using ( var writer = XmlWriter.Create( builder, new XmlWriterSettings { Indent = true } ) )
             {
                 writer.WriteStartElement( "Exception" );
-                ExceptionXmlFormatter.WriteException( writer, exception );
+                ExceptionXmlFormatter.WriteException( writer, exception, _scrubber );
                 writer.WriteEndElement();
             }
 
@@ -86,7 +91,7 @@ namespace Metalama.Backstage.Tests.Telemetry
         [InlineData( "", false )]
         [InlineData( null, false )]
         public void AssemblyNameClassification( string? name, bool expectedSafe )
-            => Assert.Equal( expectedSafe, ExceptionReporter.IsKnownSafeAssemblyName( name ) );
+            => Assert.Equal( expectedSafe, _scrubber.IsKnownSafePrefix( name ) );
 
         [Fact]
         public void UserAssemblyDetailsAreRedacted()
@@ -98,7 +103,7 @@ namespace Metalama.Backstage.Tests.Telemetry
                 writer.WriteStartElement( "Assemblies" );
 
                 // A single-token user assembly name with a version and a file version.
-                ExceptionReporter.WriteAssemblyElement( writer, "MyApp", new Version( 1, 2, 3, 4 ), "1.2.3.4-customer" );
+                ExceptionReporter.WriteAssemblyElement( writer, "MyApp", new Version( 1, 2, 3, 4 ), "1.2.3.4-customer", _scrubber );
 
                 writer.WriteEndElement();
             }
@@ -122,7 +127,7 @@ namespace Metalama.Backstage.Tests.Telemetry
             using ( var writer = XmlWriter.Create( builder, new XmlWriterSettings { Indent = true } ) )
             {
                 writer.WriteStartElement( "Assemblies" );
-                ExceptionReporter.WriteAssemblyElement( writer, "System.Private.CoreLib", new Version( 8, 0, 0, 0 ), "8.0.0.0" );
+                ExceptionReporter.WriteAssemblyElement( writer, "System.Private.CoreLib", new Version( 8, 0, 0, 0 ), "8.0.0.0", _scrubber );
                 writer.WriteEndElement();
             }
 

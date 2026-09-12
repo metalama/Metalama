@@ -1,0 +1,46 @@
+// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+// SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
+// Refer to LICENSE.md in the repository root for complete details.
+
+using Metalama.Backstage.Diagnostics;
+using Metalama.Backstage.Utilities;
+using System.Collections.Immutable;
+using System.Reflection;
+using ILoggerFactory = Metalama.Backstage.Diagnostics.ILoggerFactory;
+
+namespace Metalama.Backstage.Application
+{
+    /// <summary>
+    /// Implementation of <see cref="IApplicationInfo" /> interface with build information
+    /// initialized from assembly metadata using <see cref="AssemblyMetadataReader" />.
+    /// </summary>
+    public abstract class ApplicationInfoBase : ComponentInfoBase, IApplicationInfo
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ApplicationInfoBase"/> class.
+        /// </summary>
+        /// <param name="metadataAssembly">The assembly whose metadata describes the application.</param>
+        /// <param name="productProfile">The profile of the product family that the application belongs to.</param>
+        protected ApplicationInfoBase( Assembly metadataAssembly, ProductProfile productProfile ) : base( metadataAssembly, productProfile ) { }
+
+        /// <inheritdoc />
+        public virtual ProcessKind ProcessKind => ProcessUtilities.ProcessKind;
+
+        /// <inheritdoc />
+        public virtual bool IsLongRunningProcess => false;
+
+        /// <inheritdoc />
+        public virtual bool IsUnattendedProcess( ILoggerFactory loggerFactory ) => ProcessUtilities.IsCurrentProcessUnattended( loggerFactory );
+
+        /// <inheritdoc />
+        public virtual bool IsTelemetryEnabled => true;
+
+        /// <inheritdoc />
+        public virtual bool IsLicenseAuditEnabled => false;
+
+        /// <inheritdoc />
+        public virtual bool ShouldCreateLocalCrashReports => true;
+
+        public virtual ImmutableArray<IComponentInfo> Components => ImmutableArray<IComponentInfo>.Empty;
+    }
+}

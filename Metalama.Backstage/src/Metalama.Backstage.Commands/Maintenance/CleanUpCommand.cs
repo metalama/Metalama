@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Backstage.Application;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Maintenance;
 
@@ -13,7 +14,7 @@ internal class CleanUpCommand : BaseCommand<CleanUpCommandSettings>
     {
         if ( settings is { All: true, DoNotKill: false } )
         {
-            context.Console.WriteHeading( "Killing Metalama processes" );
+            context.Console.WriteHeading( $"Killing {context.ServiceProvider.GetRequiredBackstageService<ProductProfile>().Name} processes" );
 
             // Automatically kill processes before Cleanup unless --no-kill option is used.
             var processManager = context.ServiceProvider.GetRequiredBackstageService<IProcessManager>();
