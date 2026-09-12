@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFrameworks>netframework4.7.2;net10.0;netstandard2.0</TargetFrameworks>
+        <PackageDescription>The user interface services of Metalama.Backstage: notifications, news, welcome page and setup. This package should only be installed as a dependency.</PackageDescription>
+        <RootNamespace>Metalama.Backstage</RootNamespace>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="\" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Metalama.Backstage.Core\Metalama.Backstage.Core.csproj" />
+        <ProjectReference Include="..\Metalama.Backstage.Configuration\Metalama.Backstage.Configuration.csproj" />
+        <ProjectReference Include="..\Metalama.Backstage.Telemetry\Metalama.Backstage.Telemetry.csproj" />
+        <ProjectReference Include="..\Metalama.Backstage.Licensing\Metalama.Backstage.Licensing.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="System.IO.Hashing" />
+        <PackageReference Include="System.Collections.Immutable" />
+        <PackageReference Include="JetBrains.Annotations" PrivateAssets="all" />
+        <PackageReference Include="JetBrains.Profiler.SelfApi" Condition="'$(TargetFramework)'!='netstandard2.0'" />
+        <PackageReference Include="Microsoft.Bcl.HashCode" />
+        <PackageReference Include="System.Text.Json" VersionOverride="$(SystemTextJsonMinVersion)" NoWarn="NU1903" />
+        <PackageReference Include="System.IO.Packaging" />
+        <PackageReference Include="System.DirectoryServices" />
+        <PackageReference Include="Microsoft.Win32.Registry" Condition="'$(TargetFramework)'=='netstandard2.0'" />
+        <PackageReference Include="System.Threading.AccessControl" />
+        <PackageReference Include="System.Threading.Tasks.Extensions" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- The Backstage packages form one family and share their internal types; the test projects need them too. -->
+        <InternalsVisibleTo Include="Metalama.Backstage" />
+        <InternalsVisibleTo Include="Metalama.Backstage.Core" />
+        <InternalsVisibleTo Include="Metalama.Backstage.Configuration" />
+        <InternalsVisibleTo Include="Metalama.Backstage.Telemetry" />
+        <InternalsVisibleTo Include="Metalama.Backstage.Licensing" />
+        <InternalsVisibleTo Include="Metalama.Backstage.Tests" />
+        <InternalsVisibleTo Include="Metalama.Backstage.Testing" />
+    </ItemGroup>
+
+</Project>

@@ -2,343 +2,79 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Backstage.Application;
 using Metalama.Backstage.Configuration;
-using Metalama.Backstage.Diagnostics;
-using Metalama.Backstage.Infrastructure;
 using Metalama.Backstage.Licensing;
-using Metalama.Backstage.Licensing.Audit;
-using Metalama.Backstage.Licensing.Consumption;
-using Metalama.Backstage.Licensing.Licenses;
-using Metalama.Backstage.Licensing.Registration;
-using Metalama.Backstage.Maintenance;
-using Metalama.Backstage.Repositories;
 using Metalama.Backstage.Serialization;
 using Metalama.Backstage.Telemetry;
-using Metalama.Backstage.Threading;
-using Metalama.Backstage.Tools;
 using Metalama.Backstage.UserInterface;
-using Metalama.Backstage.UserInterface.Rss;
-using Metalama.Backstage.UserInterface.Toasts;
-using Metalama.Backstage.Utilities;
-using Metalama.Backstage.Welcome;
 using System;
-using System.Collections.Immutable;
-using System.Linq;
-using System.Runtime.InteropServices;
+using System.Collections.Generic;
+using System.Text.Json.Serialization.Metadata;
 
 namespace Metalama.Backstage.Extensibility;
 
 /// <summary>
-/// Extension methods for setting up default services in an <see cref="ServiceProviderBuilder" />.
+/// Extension methods for setting up the Backstage services in a <see cref="ServiceProviderBuilder" />. This is the
+/// umbrella over the registration methods of the packages: <see cref="RegisterCoreServices.AddCoreServices"/>,
+/// <see cref="RegisterConfigurationServices.AddConfigurationServices"/>,
+/// <see cref="RegisterTelemetryServices.AddTelemetryServices"/>, <see cref="RegisterLicensingServices.AddLicensingServices"/>
+/// and <see cref="RegisterUserInterfaceServices.AddUserInterfaceServices"/>.
 /// </summary>
 public static class RegisterServiceExtensions
 {
-    internal static ServiceProviderBuilder AddSingleton<T>(
-        this ServiceProviderBuilder serviceProviderBuilder,
-        T instance )
-        where T : IBackstageService
-    {
-        serviceProviderBuilder.AddService( typeof(T), instance );
-
-        return serviceProviderBuilder;
-    }
-
-    internal static ServiceProviderBuilder AddSingleton<T>(
-        this ServiceProviderBuilder serviceProviderBuilder,
-        Func<IServiceProvider, T> func )
-        where T : IBackstageService
-    {
-        serviceProviderBuilder.AddService( typeof(T), serviceProvider => func( serviceProvider ) );
-
-        return serviceProviderBuilder;
-    }
-
-    internal static void AddDiagnostics(
-        this ServiceProviderBuilder serviceProviderBuilder,
-        ProcessKind processKind,
-        DiagnosticsInitializationOptions options )
-    {
-        serviceProviderBuilder.AddSingleton<ILoggerFactory>(
-            serviceProvider =>
-            {
-                var dateTimeProvider = serviceProvider.GetRequiredBackstageService<IDateTimeProvider>();
-
-                var configurationManager = serviceProvider.GetRequiredBackstageService<IConfigurationManager>();
-                var configuration = configurationManager.Get<DiagnosticsConfiguration>();
-
-                DebuggerHelper.Launch( configuration, processKind );
-
-                var consoleTracing = Environment.GetEnvironmentVariable( "METALAMA_CONSOLE_TRACE" );
-
-                ILoggerFactory loggerFactory;
-
-                if ( !string.IsNullOrWhiteSpace( consoleTracing ) )
-                {
-                    var traceCategories = consoleTracing.Split( ' ', ',', ';' ).ToImmutableHashSet();
-                    loggerFactory = new ConsoleLoggerFactory( Console.Out, traceCategories );
-                }
-                else if ( options.TraceAction != null )
-                {
-                    loggerFactory = new DelegateLoggerFactory( options.TraceAction, ImmutableHashSet.Create( "*" ) );
-                }
-                else
-                {
-                    // Automatically stop logging after a while.
-                    var lastAcceptableModificationTime = dateTimeProvider.UtcNow.AddHours( -configuration.Logging.StopLoggingAfterHours );
-
-                    if ( configuration.Timestamp != null && configuration.Timestamp.Value.ToUtcDateTime() < lastAcceptableModificationTime )
-                    {
-                        configurationManager.UpdateIf<DiagnosticsConfiguration>(
-                            c => c.Logging.Processes.Any( p => p.Value ),
-                            c => c with { Logging = c.Logging with { Processes = c.Logging.Processes.ToImmutableDictionary( x => x.Key, _ => false ) } } );
-
-                        configuration = configurationManager.Get<DiagnosticsConfiguration>();
-                    }
-
-                    var applicationInfo = serviceProvider.GetRequiredBackstageService<IApplicationInfoProvider>().CurrentApplication;
-
-                    loggerFactory = new LoggerFactory(
-                        serviceProvider,
-                        configuration,
-                        applicationInfo.ProcessKind );
-                }
-
-                serviceProvider.GetBackstageService<EarlyLoggerFactory>()?.Replace( loggerFactory );
-
-                return loggerFactory;
-            } );
-
-        serviceProviderBuilder.AddSingleton<IProfilingService>( serviceProvider => new ProfilingService( serviceProvider ) );
-    }
-
     /// <summary>
-    /// Adds the minimal set of services required by logging and telemetry.
+    /// Registers the services selected by the options.
     /// </summary>
-    private static void AddCommonServices(
-        this ServiceProviderBuilder serviceProviderBuilder,
-        IApplicationInfo applicationInfo,
-        BackstageInitializationOptions options )
-        => _ = serviceProviderBuilder
-            .AddSingleton( _ => new BackstageInitializationOptionsProvider( options ) )
-            .AddSingleton( _ => new EarlyLoggerFactory() )
-            .AddSingleton( _ => new RandomNumberGenerator() )
-            .AddSingleton<IEnvironmentVariableProvider>( new EnvironmentVariableProvider() )
-            .AddSingleton<IRuntimeInformation>( _ => new RuntimeInformationProvider() )
-            .AddSingleton<IMachineIdProvider>( CreateMachineIdProvider )
-            .AddSingleton<IRecoverableExceptionService>( serviceProvider => new RecoverableExceptionService( serviceProvider ) )
-            .AddSingleton<IApplicationInfoProvider>( new ApplicationInfoProvider( applicationInfo ) )
-            .AddSingleton<IUserDeviceDetectionService>( serviceProvider => new WindowsUserDeviceDetectionService( serviceProvider ) )
-            .AddSingleton<IDateTimeProvider>( new CurrentDateTimeProvider() )
-            .AddSingleton<IFileSystem>( serviceProvider => new FileSystem( serviceProvider ) )
-            .AddSingleton<IStandardDirectories>( serviceProvider => new StandardDirectories( serviceProvider ) )
-            .AddSingleton<IProcessExecutor>( new ProcessExecutor() )
-            .AddSingleton<IHttpClientFactory>( new HttpClientFactory() )
-            .AddSingleton<IJsonSerializationService>( _ => new JsonSerializationService( options.AdditionalJsonTypeInfoResolvers ) )
-            .AddSingleton<INamedLockService>( CreateNamedLockService )
-            .AddSingleton<IConfigurationManager>( serviceProvider => new ConfigurationManager( serviceProvider ) )
-            .AddSingleton<IPlatformInfo>( serviceProvider => new PlatformInfo( serviceProvider ) )
-            .AddSingleton<BackstageBackgroundTasksService>( _ => BackstageBackgroundTasksService.Default )
-            .AddSingleton<WebLinks>( _ => new WebLinks() )
-            .AddSingleton<ITempFileManager>( serviceProvider => new TempFileManager( serviceProvider ) )
-            .AddSingleton( serviceProvider => new ShutdownService( serviceProvider ) );
-
-    /// <summary>
-    /// Creates the implementation of <see cref="IMachineIdProvider"/> that reads the identifier of the machine on the
-    /// current operating system.
-    /// </summary>
-    /// <param name="serviceProvider">The service provider.</param>
-    /// <returns>The service.</returns>
-    private static IMachineIdProvider CreateMachineIdProvider( IServiceProvider serviceProvider )
-    {
-        if ( RuntimeInformation.IsOSPlatform( OSPlatform.Windows ) )
-        {
-            return new WindowsMachineIdProvider( serviceProvider );
-        }
-        else if ( RuntimeInformation.IsOSPlatform( OSPlatform.Linux ) )
-        {
-            return new LinuxMachineIdProvider( serviceProvider );
-        }
-        else if ( RuntimeInformation.IsOSPlatform( OSPlatform.OSX ) )
-        {
-            return new MacMachineIdProvider( serviceProvider );
-        }
-        else
-        {
-            return new MachineNameMachineIdProvider( serviceProvider );
-        }
-    }
-
-    /// <summary>
-    /// Creates the named lock service and routes its events to the log.
-    /// </summary>
-    /// <param name="serviceProvider">The service provider.</param>
-    /// <returns>The service.</returns>
-    /// <remarks>
-    /// <para>
-    /// The logger comes from <see cref="EarlyLoggerFactory"/>, which buffers until the real logging services are
-    /// available. That is necessary because <see cref="IConfigurationManager"/> is a consumer of this service and
-    /// is itself a dependency of the logging services, so resolving a real logger here would be a cycle.
-    /// </para>
-    /// <para>
-    /// The filter keeps the routine acquisitions and releases from being reported at all unless tracing is on.
-    /// Without it, subscribing would cost one event object per acquisition on the critical path of every
-    /// compilation, only for the logger to discard it.
-    /// </para>
-    /// </remarks>
-    private static INamedLockService CreateNamedLockService( IServiceProvider serviceProvider )
-    {
-        var service = new NamedLockService( serviceProvider );
-        var logger = serviceProvider.GetRequiredBackstageService<EarlyLoggerFactory>().GetLogger( "NamedLock" );
-
-        service.ReportFilter = kind => logger.Trace != null || LockEventArgs.IsWarningKind( kind );
-
-        service.LockEventReported += ( _, lockEvent ) =>
-        {
-            if ( lockEvent.IsWarning )
-            {
-                logger.Warning?.Log( lockEvent.ToString() );
-            }
-            else
-            {
-                logger.Trace?.Log( lockEvent.ToString() );
-            }
-        };
-
-        return service;
-    }
-
-    private static void AddLicensing(
-        this ServiceProviderBuilder serviceProviderBuilder,
-        LicensingInitializationOptions options,
-        IApplicationInfo applicationInfo )
-    {
-        serviceProviderBuilder.AddSingleton<ILicensingAuthorityProvider>(
-            serviceProvider => options.UseTestAuthority
-                ? new TestLicensingAuthorityProvider( serviceProvider )
-                : new ProductionLicensingAuthorityProvider( serviceProvider ) );
-
-        if ( applicationInfo.IsLicenseAuditEnabled )
-        {
-            serviceProviderBuilder.AddSingleton<ILicenseAuditManager>( serviceProvider => new LicenseAuditManager( serviceProvider ) );
-        }
-
-        serviceProviderBuilder.AddSingleton( serviceProvider => LicenseConsumptionServiceFactory.Create( serviceProvider, options ) );
-        serviceProviderBuilder.AddSingleton<ILicenseRegistrationService>( serviceProvider => new LicenseRegistrationService( serviceProvider ) );
-    }
-
     public static void AddBackstageServices( this ServiceProviderBuilder serviceProviderBuilder, BackstageInitializationOptions options )
     {
-        // Add base services.
         var applicationInfo = options.ApplicationInfo;
 
-        serviceProviderBuilder.AddCommonServices( applicationInfo, options );
+        var jsonTypeInfoResolvers = new List<IJsonTypeInfoResolver> { BackstageJsonContext.Default };
+        jsonTypeInfoResolvers.AddRange( options.AdditionalJsonTypeInfoResolvers );
 
-        // Add diagnostics.
+        var coreOptions = new CoreInitializationOptions( options.ProductProfile, applicationInfo )
+        {
+            AddDiagnostics = options.AddSupportServices,
+            AddDumper = options.AddDumperService,
+            AddTools = options.AddSupportServices || options.AddUserInterface,
+            IsDevelopmentEnvironment = options.IsDevelopmentEnvironment,
+            AddToolsExtractor = options.AddToolsExtractor,
+            DiagnosticsOptions = options.DiagnosticsOptions,
+            JsonTypeInfoResolvers = jsonTypeInfoResolvers
+        };
+
+        serviceProviderBuilder
+            .AddCoreServices( coreOptions )
+            .AddConfigurationServices();
+
         if ( options.AddSupportServices )
         {
-            if ( options.DiagnosticsOptions.CreateLoggingFactory == null )
-            {
-                serviceProviderBuilder.AddDiagnostics( applicationInfo.ProcessKind, options.DiagnosticsOptions );
-            }
-            else
-            {
-                serviceProviderBuilder.AddSingleton<ILoggerFactory>(
-                    serviceProvider =>
-                    {
-                        var loggerFactory = options.DiagnosticsOptions.CreateLoggingFactory( serviceProvider );
-                        serviceProvider.GetBackstageService<EarlyLoggerFactory>()?.Replace( loggerFactory );
-
-                        return loggerFactory;
-                    } );
-            }
+            serviceProviderBuilder.AddTelemetryServices( options.TelemetryOptions );
         }
 
-        // Add file locking detection.
-        if ( LockingProcessDetector.IsSupported )
+        var userInterfaceOptions = options.UserInterfaceOptions with
         {
-            serviceProviderBuilder.AddService( typeof(ILockingProcessDetector), _ => new LockingProcessDetector() );
-        }
+            OpenWelcomePage = options.OpenWelcomePage,
+            DetectToastNotifications = options.DetectToastNotifications,
+            AddRssClient = options.AddRssClient
+        };
 
-        if ( options.AddDumperService || options.AddSupportServices )
+        if ( options.AddRssClient && !options.AddSupportServices )
         {
-            serviceProviderBuilder.AddService( typeof(IMiniDumper), serviceProvider => new MiniDumper( serviceProvider ) );
+            throw new ArgumentOutOfRangeException(
+                nameof(options),
+                $"{nameof(options.AddRssClient)} requires {nameof(options.AddSupportServices)}." );
         }
 
-        // Add support services.
-        if ( options.AddSupportServices )
-        {
-            serviceProviderBuilder.AddTelemetryServices();
-        }
-
-        // Add tools.
-        if ( options.AddSupportServices || options.AddUserInterface )
-        {
-            if ( options.IsDevelopmentEnvironment )
-            {
-                serviceProviderBuilder.AddService( typeof(IBackstageToolsLocator), _ => new DevBackstageToolsLocator() );
-            }
-            else
-            {
-                serviceProviderBuilder.AddService( typeof(IBackstageToolsLocator), serviceProvider => new BackstageToolsLocator( serviceProvider ) );
-            }
-
-            serviceProviderBuilder.AddService( typeof(IBackstageToolsExecutor), serviceProvider => new BackstageToolsExecutor( serviceProvider ) );
-            options.AddToolsExtractor?.Invoke( serviceProviderBuilder );
-        }
-
-        // Add user interface.
         if ( options.AddUserInterface )
         {
-            if ( options.OpenWelcomePage )
-            {
-                serviceProviderBuilder.AddSingleton( serviceProvider => new WelcomePageService( serviceProvider ) );
-            }
-
-            serviceProviderBuilder.AddService(
-                typeof(IToastNotificationStatusService),
-                serviceProvider => new ToastNotificationStatusService( serviceProvider ) );
-
-            serviceProviderBuilder.AddService( typeof(IToastNotificationService), serviceProvider => new ToastNotificationService( serviceProvider ) );
-
-            if ( options.DetectToastNotifications )
-            {
-                serviceProviderBuilder.AddService(
-                    typeof(IToastNotificationDetectionService),
-                    serviceProvider => new ToastNotificationDetectionService( serviceProvider ) );
-            }
-
-            if ( RuntimeInformation.IsOSPlatform( OSPlatform.Windows ) )
-            {
-                serviceProviderBuilder.AddService( typeof(IIdeExtensionStatusService), serviceProvider => new IdeExtensionStatusService( serviceProvider ) );
-                serviceProviderBuilder.AddService( typeof(IUserInterfaceService), serviceProvider => new WindowsUserInterfaceService( serviceProvider ) );
-            }
-            else if ( RuntimeInformation.IsOSPlatform( OSPlatform.Linux ) )
-            {
-                serviceProviderBuilder.AddService( typeof(IUserInterfaceService), serviceProvider => new LinuxUserInterfaceService( serviceProvider ) );
-            }
-            else
-            {
-                serviceProviderBuilder.AddService( typeof(IUserInterfaceService), serviceProvider => new BrowserBasedUserInterfaceService( serviceProvider ) );
-            }
+            serviceProviderBuilder.AddUserInterfaceServices( userInterfaceOptions, options.WebLinks );
         }
-
-        if ( options.AddRssClient )
+        else if ( options.AddRssClient )
         {
-            if ( !options.AddSupportServices )
-            {
-                throw new ArgumentOutOfRangeException(
-                    nameof(options),
-                    $"{nameof(options.AddRssClient)} requires {nameof(options.AddSupportServices)}." );
-            }
-
-            serviceProviderBuilder.AddSingleton<IRssClient>( serviceProvider => new RssClient( serviceProvider ) );
+            serviceProviderBuilder.AddRssClientServices( userInterfaceOptions, options.WebLinks );
         }
 
-        // Add process management service.
-        serviceProviderBuilder.TryAddProcessManagerService();
-
-        // Add licensing.
         if ( options.AddLicensing )
         {
             if ( applicationInfo.IsLicenseAuditEnabled && !options.AddSupportServices )
@@ -346,51 +82,9 @@ public static class RegisterServiceExtensions
                 throw new InvalidOperationException( "License audit requires support services." );
             }
 
-            serviceProviderBuilder.AddLicensing( options.LicensingOptions, applicationInfo );
+            serviceProviderBuilder.AddLicensingServices( options.LicensingOptions, applicationInfo );
         }
 
-        // Add initialization services.
         serviceProviderBuilder.AddSingleton( serviceProvider => new BackstageServicesInitializer( serviceProvider, options ) );
-    }
-
-    internal static void AddTelemetryServices( this ServiceProviderBuilder serviceProviderBuilder )
-    {
-        // Add telemetry.
-        serviceProviderBuilder
-            .AddSingleton<IRepositoryConfigurationService>( serviceProvider => new RepositoryConfigurationService( serviceProvider ) )
-            .AddSingleton( serviceProvider => new TelemetryLogger( serviceProvider ) )
-            .AddSingleton<LocalExceptionReporter>( serviceProvider => new LocalExceptionReporter( serviceProvider ) )
-
-            // A single ExceptionReporter instance is exposed under both IExceptionReportManager (review/upload, used by
-            // the worker and CLI) and IExceptionCapturer (capture, used by the telemetry context). See #1701.
-            .AddSingleton<ExceptionReporter>( serviceProvider => new ExceptionReporter( new TelemetryQueue( serviceProvider ), serviceProvider ) )
-            .AddSingleton<IExceptionReportManager>( serviceProvider => serviceProvider.GetRequiredBackstageService<ExceptionReporter>() )
-            .AddSingleton<IExceptionCapturer>( serviceProvider => serviceProvider.GetRequiredBackstageService<ExceptionReporter>() )
-            .AddSingleton<ITelemetryUploader>( serviceProvider => new TelemetryUploader( serviceProvider ) )
-            .AddSingleton<IUsageSessionFactory>( serviceProvider => new UsageSessionFactory( serviceProvider ) )
-            .AddSingleton<ITelemetryConfigurationService>( serviceProvider => new TelemetryConfigurationService( serviceProvider ) )
-            .AddSingleton<ITelemetryService>( serviceProvider => new TelemetryService( serviceProvider ) )
-            .AddSingleton<TelemetryReportUploader>( serviceProvider => new TelemetryReportUploader( serviceProvider ) )
-            .AddSingleton<MatomoUploader>( serviceProvider => new MatomoUploader( serviceProvider ) );
-    }
-
-    private static void TryAddProcessManagerService( this ServiceProviderBuilder serviceProviderBuilder )
-    {
-        if ( RuntimeInformation.IsOSPlatform( OSPlatform.Windows ) )
-        {
-            serviceProviderBuilder.AddSingleton<IProcessManager>( serviceProvider => new WindowsProcessManager( serviceProvider ) );
-        }
-        else if ( RuntimeInformation.IsOSPlatform( OSPlatform.Linux ) )
-        {
-            serviceProviderBuilder.AddSingleton<IProcessManager>( serviceProvider => new LinuxProcessManager( serviceProvider ) );
-        }
-        else if ( RuntimeInformation.IsOSPlatform( OSPlatform.OSX ) )
-        {
-            serviceProviderBuilder.AddSingleton<IProcessManager>( serviceProvider => new MacProcessManager( serviceProvider ) );
-        }
-        else
-        {
-            // Not supported.
-        }
     }
 }

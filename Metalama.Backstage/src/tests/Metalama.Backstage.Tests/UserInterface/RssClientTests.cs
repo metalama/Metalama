@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -74,8 +74,8 @@ public sealed class RssClientTests : TestsBase
     {
         this.TelemetryConfigurationService.SetConsent( TelemetryConsent.Yes );
         this.UpdateRssConfiguration( c => c with { LastFetchTime = DateTime.MinValue, PreferredFeed = RssFeed.Briefs } );
-        this.RegisterHttpResponse( RssClient.BriefsUrl, _validRssXml );
-        this.RegisterHttpResponse( RssClient.PostsUrl, _validRssXml );
+        this.RegisterHttpResponse( MetalamaProduct.BriefsFeedUrl, _validRssXml );
+        this.RegisterHttpResponse( MetalamaProduct.PostsFeedUrl, _validRssXml );
     }
 
     private void RegisterHttpResponse( string url, string response )
@@ -190,8 +190,8 @@ public sealed class RssClientTests : TestsBase
     /// (https://metalama.net/briefs.xml for Briefs, https://metalama.net/feed.xml for Posts).
     /// </summary>
     [Theory]
-    [InlineData( RssFeed.Briefs, RssClient.BriefsUrl )]
-    [InlineData( RssFeed.Posts, RssClient.PostsUrl )]
+    [InlineData( RssFeed.Briefs, MetalamaProduct.BriefsFeedUrl )]
+    [InlineData( RssFeed.Posts, MetalamaProduct.PostsFeedUrl )]
     public async Task RssClientUsesCorrectFeedUrl( RssFeed preferredFeed, string expectedFeed )
     {
         this.EnsureNewsWillBeChecked();
@@ -217,7 +217,7 @@ public sealed class RssClientTests : TestsBase
         await rssClient.DisplayUnreadLatestNewsAsync( this._telemetryContext );
         var request = Assert.Single( this.HttpClientFactory.ProcessedRequests ).Request;
 
-        Assert.Equal( RssClient.BriefsUrl, request.RequestUri!.ToString() );
+        Assert.Equal( MetalamaProduct.BriefsFeedUrl, request.RequestUri!.ToString() );
     }
 
     // RSS Parsing Tests
@@ -280,7 +280,7 @@ public sealed class RssClientTests : TestsBase
 
         this.EnsureNewsWillBeChecked();
 
-        this.RegisterHttpResponse( RssClient.BriefsUrl, rssXml );
+        this.RegisterHttpResponse( MetalamaProduct.BriefsFeedUrl, rssXml );
         this.Time.Set( new DateTime( 2025, 11, 2, 0, 0, 0, DateTimeKind.Utc ) );
 
         var rssClient = new RssClient( this.ServiceProvider );
@@ -318,7 +318,7 @@ public sealed class RssClientTests : TestsBase
 
         this.EnsureNewsWillBeChecked();
 
-        this.RegisterHttpResponse( RssClient.BriefsUrl, rssXml );
+        this.RegisterHttpResponse( MetalamaProduct.BriefsFeedUrl, rssXml );
         this.Time.Set( new DateTime( 2025, 11, 2, 0, 0, 0, DateTimeKind.Utc ) );
 
         var rssClient = new RssClient( this.ServiceProvider );
@@ -346,7 +346,7 @@ public sealed class RssClientTests : TestsBase
 
         this.EnsureNewsWillBeChecked();
 
-        this.RegisterHttpResponse( RssClient.BriefsUrl, rssXml );
+        this.RegisterHttpResponse( MetalamaProduct.BriefsFeedUrl, rssXml );
         this.Time.Set( new DateTime( 2025, 11, 2, 0, 0, 0, DateTimeKind.Utc ) );
 
         var rssClient = new RssClient( this.ServiceProvider );
@@ -376,7 +376,7 @@ public sealed class RssClientTests : TestsBase
 
         this.EnsureNewsWillBeChecked();
 
-        this.RegisterHttpResponse( RssClient.BriefsUrl, rssXml );
+        this.RegisterHttpResponse( MetalamaProduct.BriefsFeedUrl, rssXml );
         this.Time.Set( new DateTime( 2025, 11, 2, 0, 0, 0, DateTimeKind.Utc ) );
 
         var rssClient = new RssClient( this.ServiceProvider );
@@ -406,7 +406,7 @@ public sealed class RssClientTests : TestsBase
 
         this.EnsureNewsWillBeChecked();
 
-        this.RegisterHttpResponse( RssClient.BriefsUrl, rssXml );
+        this.RegisterHttpResponse( MetalamaProduct.BriefsFeedUrl, rssXml );
         this.Time.Set( new DateTime( 2025, 11, 2, 0, 0, 0, DateTimeKind.Utc ) );
 
         var rssClient = new RssClient( this.ServiceProvider );
@@ -437,7 +437,7 @@ public sealed class RssClientTests : TestsBase
 
         this.EnsureNewsWillBeChecked();
 
-        this.RegisterHttpResponse( RssClient.BriefsUrl, rssXml );
+        this.RegisterHttpResponse( MetalamaProduct.BriefsFeedUrl, rssXml );
         this.Time.Set( new DateTime( 2025, 11, 2, 0, 0, 0, DateTimeKind.Utc ) );
 
         var rssClient = new RssClient( this.ServiceProvider );
@@ -468,7 +468,7 @@ public sealed class RssClientTests : TestsBase
 
         this.EnsureNewsWillBeChecked();
 
-        this.RegisterHttpResponse( RssClient.BriefsUrl, rssXml );
+        this.RegisterHttpResponse( MetalamaProduct.BriefsFeedUrl, rssXml );
         this.Time.Set( new DateTime( 2025, 11, 2, 0, 0, 0, DateTimeKind.Utc ) );
 
         var rssClient = new RssClient( this.ServiceProvider );
@@ -494,7 +494,7 @@ public sealed class RssClientTests : TestsBase
 
         this.EnsureNewsWillBeChecked();
 
-        this.RegisterHttpResponse( RssClient.BriefsUrl, rssXml );
+        this.RegisterHttpResponse( MetalamaProduct.BriefsFeedUrl, rssXml );
         this.Time.Set( new DateTime( 2025, 11, 2, 0, 0, 0, DateTimeKind.Utc ) );
 
         var rssClient = new RssClient( this.ServiceProvider );
@@ -520,7 +520,7 @@ public sealed class RssClientTests : TestsBase
 
         // First, set up an exception response
         this.HttpClientFactory.InsertHook(
-            r => r.RequestUri!.ToString().StartsWith( RssClient.BriefsUrl, StringComparison.Ordinal ),
+            r => r.RequestUri!.ToString().StartsWith( MetalamaProduct.BriefsFeedUrl, StringComparison.Ordinal ),
             ( _, _ ) => throw new HttpRequestException( "Network error" ) );
 
         this.Time.Set( new DateTime( 2025, 11, 1, 0, 0, 0, DateTimeKind.Utc ) );
@@ -554,7 +554,7 @@ public sealed class RssClientTests : TestsBase
 
         this.HttpClientFactory.ClearHooks();
         this.HttpClientFactory.ClearProcessedRequests();
-        this.RegisterHttpResponse( RssClient.BriefsUrl, rssXml );
+        this.RegisterHttpResponse( MetalamaProduct.BriefsFeedUrl, rssXml );
 
         await rssClient.DisplayUnreadLatestNewsAsync( this._telemetryContext );
 
@@ -575,7 +575,7 @@ public sealed class RssClientTests : TestsBase
 
         // First, set up an error response (500 Internal Server Error)
         this.HttpClientFactory.InsertHook(
-            r => r.RequestUri!.ToString().StartsWith( RssClient.BriefsUrl, StringComparison.Ordinal ),
+            r => r.RequestUri!.ToString().StartsWith( MetalamaProduct.BriefsFeedUrl, StringComparison.Ordinal ),
             ( _, _ ) => Task.FromResult(
                 new HttpResponseMessage( HttpStatusCode.InternalServerError ) { Content = new StringContent( "Internal Server Error" ) } ) );
 
@@ -610,7 +610,7 @@ public sealed class RssClientTests : TestsBase
 
         this.HttpClientFactory.ClearProcessedRequests();
         this.HttpClientFactory.ClearHooks();
-        this.RegisterHttpResponse( RssClient.BriefsUrl, rssXml );
+        this.RegisterHttpResponse( MetalamaProduct.BriefsFeedUrl, rssXml );
 
         await rssClient.DisplayUnreadLatestNewsAsync( this._telemetryContext );
 
@@ -640,7 +640,7 @@ public sealed class RssClientTests : TestsBase
                               </rss>
                               """;
 
-        this.RegisterHttpResponse( RssClient.BriefsUrl, rssXml );
+        this.RegisterHttpResponse( MetalamaProduct.BriefsFeedUrl, rssXml );
 
         var expectedTime = new DateTime( 2025, 11, 2, 10, 30, 0, DateTimeKind.Utc );
         this.Time.Set( expectedTime );
@@ -679,7 +679,7 @@ public sealed class RssClientTests : TestsBase
 
         this.EnsureNewsWillBeChecked();
 
-        this.RegisterHttpResponse( RssClient.BriefsUrl, initialRssXml );
+        this.RegisterHttpResponse( MetalamaProduct.BriefsFeedUrl, initialRssXml );
         this.Time.Set( new DateTime( 2025, 11, 1, 0, 0, 0, DateTimeKind.Utc ) );
 
         var rssClient = new RssClient( this.ServiceProvider );
@@ -714,7 +714,7 @@ public sealed class RssClientTests : TestsBase
                                      """;
 
         this.HttpClientFactory.ClearHooks();
-        this.RegisterHttpResponse( RssClient.BriefsUrl, updatedRssXml );
+        this.RegisterHttpResponse( MetalamaProduct.BriefsFeedUrl, updatedRssXml );
         this.HttpClientFactory.ClearProcessedRequests();
 
         await rssClient.DisplayUnreadLatestNewsAsync( this._telemetryContext );
@@ -747,7 +747,7 @@ public sealed class RssClientTests : TestsBase
 
         this.EnsureNewsWillBeChecked();
 
-        this.RegisterHttpResponse( RssClient.BriefsUrl, rssXml );
+        this.RegisterHttpResponse( MetalamaProduct.BriefsFeedUrl, rssXml );
         this.Time.Set( new DateTime( 2025, 11, 2, 0, 0, 0, DateTimeKind.Utc ) );
 
         var rssClient = new RssClient( this.ServiceProvider );
@@ -812,7 +812,7 @@ public sealed class RssClientTests : TestsBase
                               </rss>
                               """;
 
-        this.RegisterHttpResponse( RssClient.BriefsUrl, rssXml );
+        this.RegisterHttpResponse( MetalamaProduct.BriefsFeedUrl, rssXml );
         this.Time.Set( new DateTime( 2025, 11, 1, 0, 0, 0, DateTimeKind.Utc ) );
 
         // Set LastFetchTime to very recent (normally would prevent fetching)
@@ -853,7 +853,7 @@ public sealed class RssClientTests : TestsBase
                               </rss>
                               """;
 
-        this.RegisterHttpResponse( RssClient.BriefsUrl, rssXml );
+        this.RegisterHttpResponse( MetalamaProduct.BriefsFeedUrl, rssXml );
         this.Time.Set( new DateTime( 2025, 11, 1, 0, 0, 0, DateTimeKind.Utc ) );
         this.UpdateRssConfiguration( c => c with { PreferredFeed = RssFeed.Briefs } );
 

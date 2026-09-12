@@ -1,0 +1,324 @@
+// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+// SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
+// Refer to LICENSE.md in the repository root for complete details.
+
+using Metalama.Backstage.Configuration;
+using Metalama.Backstage.Diagnostics;
+using Metalama.Backstage.Extensibility;
+using Metalama.Backstage.Infrastructure;
+using Metalama.Backstage.Telemetry;
+using Metalama.Backstage.UserInterface.Toasts;
+using Metalama.Backstage.Utilities;
+using System;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Xml;
+using System.Xml.Linq;
+
+namespace Metalama.Backstage.UserInterface.Rss;
+
+internal sealed class RssClient : IRssClient
+{
+    private readonly IConfigurationManager _configurationManager;
+    private readonly IWebLinks _webLinks;
+    private readonly UserInterfaceInitializationOptions _options;
+    private readonly IDateTimeProvider _dateTimeProvider;
+    private readonly ILogger _logger;
+    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IToastNotificationService? _toastNotificationService;
+    private readonly IToastNotificationStatusService? _toastNotificationStatusService;
+    private readonly IUserDeviceDetectionService? _userDeviceDetectionService;
+
+    public RssClient( IServiceProvider serviceProvider )
+    {
+        this._configurationManager = serviceProvider.GetRequiredBackstageService<IConfigurationManager>();
+        this._dateTimeProvider = serviceProvider.GetRequiredBackstageService<IDateTimeProvider>();
+        this._logger = serviceProvider.GetLoggerFactory().GetLogger( nameof(RssClient) );
+        this._httpClientFactory = serviceProvider.GetRequiredBackstageService<IHttpClientFactory>();
+        this._webLinks = serviceProvider.GetRequiredBackstageService<IWebLinks>();
+        this._options = serviceProvider.GetRequiredBackstageService<UserInterfaceInitializationOptions>();
+        
+        // Not always available in configuration-only scenarios.
+        this._toastNotificationService = serviceProvider.GetBackstageService<IToastNotificationService>();
+        this._userDeviceDetectionService = serviceProvider.GetBackstageService<IUserDeviceDetectionService>();
+        this._toastNotificationStatusService = serviceProvider.GetBackstageService<IToastNotificationStatusService>();
+
+        // The subscription lives as long as the service provider, like the client itself.
+        serviceProvider.GetRequiredBackstageService<IEventDispatcher>().Subscribe<TelemetryActivated>( _ => this.TryEnable() );
+    }
+
+    public Task DisplayUnreadLatestNewsAsync( ITelemetryContext context )
+    {
+        if ( this.GetDisabledReason( context ) != TelemetryDisabledReason.None )
+        {
+            return Task.CompletedTask;
+        }
+
+        return this.DisplayNewsAsync( false );
+    }
+
+    public Task<bool> DisplayLatestNewsAsync() => this.DisplayNewsAsync( true );
+
+    public void Disable() => this._configurationManager.Update<RssClientConfiguration>( c => c with { PreferredFeed = RssFeed.None } );
+
+    public bool TryEnable()
+    {
+        this._configurationManager.Update<RssClientConfiguration>( c => c with { PreferredFeed = RssFeed.Briefs } );
+
+        return true;
+    }
+
+    public TelemetryDisabledReason GetDisabledReason( ITelemetryContext telemetryContext ) 
+    {
+        var usageConsent = telemetryContext.Policy.GetConsentAndReason( TelemetryScenario.Usage );
+
+        if ( usageConsent.Consent == TelemetryConsent.No && usageConsent.Reason != TelemetryDisabledReason.UserOptOut )
+        {
+            this._logger.Trace?.Log( $"Usage telemetry is disabled because {usageConsent.Reason}. Do not fetch news." );
+
+            return usageConsent.Reason;
+        }
+        
+        var configuration = this._configurationManager.Get<RssClientConfiguration>();
+        
+        if ( configuration.PreferredFeed == RssFeed.None )
+        {
+            this._logger.Trace?.Log( "The RSS client has been disabled." );
+
+            return TelemetryDisabledReason.UserOptOut;
+        }
+
+        return TelemetryDisabledReason.None;
+    }
+
+    private async Task<bool> DisplayNewsAsync( bool skipPreconditions )
+    {
+        if ( this._toastNotificationStatusService == null || this._userDeviceDetectionService == null || this._toastNotificationService == null )
+        {
+            throw new InvalidOperationException( "UI services are not available." );
+        }
+        
+        var configuration = this._configurationManager.Get<RssClientConfiguration>();
+
+        if ( !skipPreconditions )
+        {
+            // Check preconditions.
+            if ( !this._userDeviceDetectionService.IsInteractiveDevice )
+            {
+                this._logger.Trace?.Log( "This is an unattended session. Do not fetch news." );
+
+                return false;
+            }
+
+            if ( !this._toastNotificationStatusService.CanDisplayLowPriorityNotifications )
+            {
+                this._logger.Trace?.Log( "Not a good time to display low-priority news. Do not fetch news." );
+
+                return false;
+            }
+
+            if ( configuration.LastFetchTime == null )
+            {
+                this._logger.Trace?.Log( "This is the first time RssClient fetches news. Do not report any past news." );
+
+                // Never display past items upon first fetch.
+                this._configurationManager.Update<RssClientConfiguration>(
+                    c => c with { LastFetchTime = this._dateTimeProvider.UtcNow, PreferredFeed = c.PreferredFeed ?? RssFeed.Briefs } );
+
+                return false;
+            }
+            else if ( configuration.LastFetchTime.Value.AddDays( 1 ) > this._dateTimeProvider.UtcNow )
+            {
+                this._logger.Trace?.Log( $"News were already checked on {configuration.LastFetchTime}." );
+
+                return false;
+            }
+        }
+
+        // Select feed URL. The product may have no feed at all.
+        var url = configuration.PreferredFeed switch
+        {
+            RssFeed.Posts => this._options.PostsFeedUrl,
+            _ => this._options.BriefsFeedUrl
+        };
+
+        if ( url == null )
+        {
+            this._logger.Trace?.Log( "The product has no news feed." );
+
+            return false;
+        }
+
+        try
+        {
+            // Fetch content.
+            var httpClient = this._httpClientFactory.Create();
+            var response = await httpClient.GetAsync( url );
+
+            if ( !response.IsSuccessStatusCode )
+            {
+                this._logger.Trace?.Log( $"Cannot get '{url}': {response.ReasonPhrase}." );
+
+                return false;
+            }
+
+            if ( response.Content == null! || response.Content.Headers.ContentLength == 0 )
+            {
+                this._logger.Trace?.Log( $"Cannot get '{url}': content is null or empty." );
+
+                return false;
+            }
+
+            var content = await response.Content.ReadAsStringAsync();
+
+            // Try to parse the item.
+            if ( !this.TryParseContent( content, out var title, out var link, out var pubDate ) )
+            {
+                return false;
+            }
+
+            // Only notify if the item was published after the last fetch time.
+            if ( configuration.LastFetchTime != null && pubDate != null && pubDate.Value <= configuration.LastFetchTime!.Value )
+            {
+                this._logger.Trace?.Log(
+                    $"Item published on {pubDate} is not newer than last fetch time {configuration.LastFetchTime}. Skipping notification." );
+
+                return false;
+            }
+
+            // Create and show a toast notification.
+            var notification = new ToastNotification( ToastNotificationKinds.News, title, null, link );
+
+            return this._toastNotificationService.Show( notification );
+        }
+        catch ( Exception e )
+        {
+            this._logger.LogException( e, "Failed to fetch or parse RSS feed" );
+
+            return false;
+        }
+        finally
+        {
+            // Do not try more than once per day -- both in case of success or failure.
+            this._configurationManager.Update<RssClientConfiguration>( c => c with { LastFetchTime = this._dateTimeProvider.UtcNow } );
+        }
+    }
+
+    private bool TryParseContent(
+        string content,
+        out string? title,
+        out string? url,
+        out DateTime? pubDate )
+    {
+        // Read as XML with restrictive settings security.
+        var settings = new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null, MaxCharactersFromEntities = 1024 };
+
+        using var stringReader = new StringReader( content );
+        using var xmlReader = XmlReader.Create( stringReader, settings );
+
+        var xml = XDocument.Load( xmlReader );
+
+        // Parse RSS feed and get the most recent item.
+        var channel = xml.Root?.Element( "channel" );
+
+        if ( channel == null )
+        {
+            this._logger.Warning?.Log( "RSS feed does not contain a channel element." );
+
+            title = null;
+            url = null;
+            pubDate = null;
+
+            return false;
+        }
+
+        var items = channel.Elements( "item" ).ToList();
+
+        if ( items.Count == 0 )
+        {
+            this._logger.Trace?.Log( "No items found in RSS feed." );
+
+            title = null;
+            url = null;
+            pubDate = null;
+
+            return false;
+        }
+
+        // Get the most recent item (first item in the feed).
+        var item = items[0];
+
+        // Extract title.
+        title = item.Element( "title" )?.Value;
+
+        if ( string.IsNullOrEmpty( title ) )
+        {
+            this._logger.Warning?.Log( "RSS item does not contain a title." );
+            url = null;
+            pubDate = null;
+
+            return false;
+        }
+
+        // Extract link.
+        url = item.Element( "link" )?.Value;
+
+        if ( string.IsNullOrEmpty( url ) )
+        {
+            this._logger.Warning?.Log( "RSS item does not contain a link." );
+            pubDate = null;
+
+            return false;
+        }
+
+        // Validate that the link is an absolute http/https URI. A hijacked or MITM'd feed could otherwise supply a dangerous
+        // scheme (e.g. 'ms-msdt:', 'search-ms:', 'file://') that would be passed to Windows protocol activation when the user
+        // clicks the toast. See issue #1647.
+        if ( !UrlHelper.IsSafe( url, out var linkUri ) )
+        {
+            this._logger.Warning?.Log( $"RSS item link '{url}' is not a valid absolute http or https URL. Skipping." );
+            pubDate = null;
+
+            return false;
+        }
+
+        // Append tracking query string parameters using UriBuilder for robustness.
+        var uriBuilder = new UriBuilder( linkUri );
+
+        if ( string.IsNullOrEmpty( uriBuilder.Query ) )
+        {
+            uriBuilder.Query = this._webLinks.TrackingQueryString;
+        }
+        else
+        {
+            // Remove leading '?' from Query property before appending.
+            uriBuilder.Query = uriBuilder.Query.TrimStart( '?' ) + "&" + this._webLinks.TrackingQueryString;
+        }
+
+        url = uriBuilder.Uri.ToString();
+
+        // Extract pubDate (optional).
+        var pubDateString = item.Element( "pubDate" )?.Value;
+
+        if ( !string.IsNullOrEmpty( pubDateString ) )
+        {
+            if ( DateTime.TryParse( pubDateString, out var parsedDate ) )
+            {
+                pubDate = parsedDate.ToUniversalTime();
+            }
+            else
+            {
+                this._logger.Warning?.Log( $"Failed to parse pubDate: {pubDateString}" );
+                pubDate = null;
+            }
+        }
+        else
+        {
+            this._logger.Trace?.Log( "RSS item does not contain a pubDate element." );
+            pubDate = null;
+        }
+
+        return true;
+    }
+}

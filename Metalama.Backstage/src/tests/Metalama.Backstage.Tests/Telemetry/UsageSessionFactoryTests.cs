@@ -5,7 +5,6 @@
 using Metalama.Backstage.Application;
 using Metalama.Backstage.Configuration;
 using Metalama.Backstage.Extensibility;
-using Metalama.Backstage.Licensing.Audit;
 using Metalama.Backstage.Telemetry;
 using Metalama.Backstage.Telemetry.Metrics;
 using Metalama.Backstage.Testing;

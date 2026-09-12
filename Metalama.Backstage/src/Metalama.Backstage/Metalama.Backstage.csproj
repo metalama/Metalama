@@ -1,20 +1,28 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <TargetFrameworks>netframework4.7.2;net10.0;netstandard2.0</TargetFrameworks>
-		<!-- Packaging -->
-		<PackageDescription>A Metalama package providing licensing, telemetry and other configuration settings for projects using Metalama.</PackageDescription>
-        
-        <MetalamaBackstageDirectory Condition="'$(MetalamaBackstageDirectory)'==''">$(MSBuildProjectDirectory)</MetalamaBackstageDirectory>
+        <!-- Packaging -->
+        <PackageDescription>A Metalama package providing licensing, telemetry and other configuration settings for projects using Metalama.</PackageDescription>
+        <RootNamespace>Metalama.Backstage</RootNamespace>
 
+        <MetalamaBackstageDirectory Condition="'$(MetalamaBackstageDirectory)'==''">$(MSBuildProjectDirectory)</MetalamaBackstageDirectory>
     </PropertyGroup>
+
+    <!-- This project is the compatibility facade over the Backstage packages: it composes them for the Metalama
+         product family, keeps the umbrella initialization API, and forwards every public type that moved to a
+         package, so that a consumer compiled against an earlier version keeps binding. -->
 
     <ItemGroup>
         <None Include="README.md" Pack="true" PackagePath="\" />
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\Metalama.Testing.Hooks\Metalama.Testing.Hooks.csproj" />
+        <ProjectReference Include="..\Metalama.Backstage.Core\Metalama.Backstage.Core.csproj" />
+        <ProjectReference Include="..\Metalama.Backstage.Configuration\Metalama.Backstage.Configuration.csproj" />
+        <ProjectReference Include="..\Metalama.Backstage.Telemetry\Metalama.Backstage.Telemetry.csproj" />
+        <ProjectReference Include="..\Metalama.Backstage.Licensing\Metalama.Backstage.Licensing.csproj" />
+        <ProjectReference Include="..\Metalama.Backstage.UserInterface\Metalama.Backstage.UserInterface.csproj" />
     </ItemGroup>
 
     <ItemGroup>
@@ -31,33 +39,20 @@
         <PackageReference Include="System.Threading.Tasks.Extensions" />
     </ItemGroup>
 
-    <PropertyGroup>
-        <RootNamespace>Metalama.Backstage</RootNamespace>
-        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-
-        <!-- The files under Threading/ are also compiled into Metalama.Framework.CompilerExtensions and
-             Metalama.Framework.DesignTime.Contracts, which can reference nothing. This symbol marks the copy that
-             is part of Metalama.Backstage, and therefore the only one that takes part in dependency injection. -->
-        <DefineConstants>$(DefineConstants);METALAMA_BACKSTAGE</DefineConstants>
-
-        <!-- Marks a copy of those files that can reference Metalama.Testing.Hooks, and therefore has the test
-             synchronization points. This is deliberately a separate symbol, because whether an assembly is
-             Metalama.Backstage and whether it has the hooks are two independent questions: any project that
-             compiles these files and gains a reference to Metalama.Testing.Hooks should define this one too. -->
-        <DefineConstants>$(DefineConstants);HAS_METALAMA_TESTING_HOOKS</DefineConstants>
-    </PropertyGroup>
-
     <ItemGroup>
         <None Remove="Telemetry\public.key" />
         <EmbeddedResource Include="$(MetalamaBackstageDirectory)\Telemetry\public.key" LogicalName="Metalama.Backstage.Telemetry.public.key" />
     </ItemGroup>
-    
 
     <ItemGroup>
-        <!-- By convention, we use InternalsVisibleTo only for test projects that must have access to internals. -->
+        <!-- The Backstage packages form one family and share their internal types; the test projects need them too. -->
+        <InternalsVisibleTo Include="Metalama.Backstage.Core" />
+        <InternalsVisibleTo Include="Metalama.Backstage.Configuration" />
+        <InternalsVisibleTo Include="Metalama.Backstage.Telemetry" />
+        <InternalsVisibleTo Include="Metalama.Backstage.Licensing" />
+        <InternalsVisibleTo Include="Metalama.Backstage.UserInterface" />
         <InternalsVisibleTo Include="Metalama.Backstage.Tests" />
         <InternalsVisibleTo Include="Metalama.Backstage.Testing" />
     </ItemGroup>
-
 
 </Project>
