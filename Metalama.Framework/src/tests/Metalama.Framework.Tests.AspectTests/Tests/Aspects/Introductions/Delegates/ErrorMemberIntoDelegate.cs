@@ -11,7 +11,7 @@ public class IntroductionAttribute : TypeAspect
 {
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        var introducedDelegate = builder.IntroduceDelegate( "IntroducedHandler" );
+        var introducedDelegate = builder.IntroduceDelegate( "IntroducedHandler", d => d.ReturnType = TypeFactory.GetType( SpecialType.Void ) );
 
         // A delegate declares no member that an aspect can introduce, which is the rule of section 3.1 of
         // Metalama.Framework/docs/introducing-types.md. The eligibility rule of the advice reports it.

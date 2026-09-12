@@ -7,7 +7,7 @@ using Metalama.Framework.Aspects;
 namespace Metalama.Framework.Code.DeclarationBuilders
 {
     /// <summary>
-    /// Allows you to configure a constructor that has been created by an advice.
+    /// Allows you to configure a constructor that has been created by the <see cref="Metalama.Framework.Aspects.AdviserExtensions.IntroduceConstructor"/> advice.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -25,8 +25,6 @@ namespace Metalama.Framework.Code.DeclarationBuilders
     /// <seealso cref="AdviserExtensions.AddInitializer(IAdviser{IConstructor}, string, object?, object?)"/>
     /// <seealso href="@introducing-constructor-parameters"/>
     /// <seealso href="@initializers"/>
-    /// <seealso cref="Metalama.Framework.Advising.IAdviceFactory.IntroduceConstructor"/>
-    /// <seealso cref="Metalama.Framework.Aspects.AdviserExtensions.IntroduceConstructor"/>
     public interface IConstructorBuilder : IConstructor, IMethodBaseBuilder
     {
         /// <summary>

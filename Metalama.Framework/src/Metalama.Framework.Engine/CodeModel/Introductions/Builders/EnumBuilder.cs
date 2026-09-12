@@ -47,7 +47,7 @@ internal sealed class EnumBuilder : NamedTypeBuilder, IEnumBuilder, ITypeBuilder
     /// </summary>
     protected override void InitializeBaseType()
     {
-        this.BaseType = this.Compilation.Factory.GetSpecialType( InternalSpecialType.Enum );
+        this.BaseType = this.Compilation.Factory.GetSpecialType( SpecialType.Enum );
     }
 
     public override INamedType UnderlyingType => this.Compilation.Factory.GetSpecialType( this._underlyingType );

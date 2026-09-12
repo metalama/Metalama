@@ -9,7 +9,7 @@ using System.Collections.Generic;
 namespace Metalama.Framework.Code.DeclarationBuilders;
 
 /// <summary>
-/// Allows to complete the construction of a union that has been created by an advice.
+/// Allows to complete the construction of a union that has been created by the <see cref="Metalama.Framework.Aspects.AdviserExtensions.IntroduceUnion"/> advice.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -26,8 +26,6 @@ namespace Metalama.Framework.Code.DeclarationBuilders;
 /// <see cref="INamedType.Facets"/> on the introduced type.
 /// </para>
 /// </remarks>
-/// <seealso cref="Metalama.Framework.Advising.IAdviceFactory.IntroduceUnion"/>
-/// <seealso cref="Metalama.Framework.Aspects.AdviserExtensions.IntroduceUnion"/>
 /// <seealso cref="Metalama.Framework.Code.Types.IUnionFacet"/>
 /// <seealso href="@introducing-types"/>
 [InternalImplement]

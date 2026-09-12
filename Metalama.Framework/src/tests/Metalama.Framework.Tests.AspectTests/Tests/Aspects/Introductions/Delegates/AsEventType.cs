@@ -13,7 +13,7 @@ public class IntroductionAttribute : TypeAspect
     {
         var handler = builder.IntroduceDelegate(
             "ValueChangedHandler",
-            buildDelegate: d =>
+            d =>
             {
                 d.Accessibility = Accessibility.Public;
                 d.ReturnType = TypeFactory.GetType( SpecialType.Void );

@@ -237,7 +237,7 @@ internal class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, I
         // This class represents a class, an interface, a struct and an extension block, so it decides between the
         // two bases those four kinds have. An enum and a delegate have a class of their own and override this.
         this.BaseType = this.TypeKind == TypeKind.Struct
-            ? this.Compilation.Factory.GetSpecialType( InternalSpecialType.ValueType )
+            ? this.Compilation.Factory.GetSpecialType( SpecialType.ValueType )
             : this.Compilation.Factory.GetSpecialType( SpecialType.Object );
     }
 

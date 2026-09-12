@@ -15,7 +15,7 @@ public class IntroductionAttribute : TypeAspect
         // variance, and the type parameters belong to the type rather than to the Invoke method.
         builder.IntroduceDelegate(
             "Transformer",
-            buildDelegate: d =>
+            d =>
             {
                 d.Accessibility = Accessibility.Public;
 
@@ -31,7 +31,7 @@ public class IntroductionAttribute : TypeAspect
 
         builder.IntroduceDelegate(
             "Consumer",
-            buildDelegate: d =>
+            d =>
             {
                 d.Accessibility = Accessibility.Public;
 

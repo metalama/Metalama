@@ -7,13 +7,11 @@ using Metalama.Framework.Aspects;
 namespace Metalama.Framework.Code.DeclarationBuilders
 {
     /// <summary>
-    /// Allows to complete the construction of a field that has been created by an advice.
+    /// Allows to complete the construction of a field that has been created by the <see cref="Metalama.Framework.Aspects.AdviserExtensions.IntroduceField(Metalama.Framework.Aspects.IAdviser{Metalama.Framework.Code.INamedType},string,Metalama.Framework.Aspects.IntroductionScope,Metalama.Framework.Aspects.OverrideStrategy,System.Action{Metalama.Framework.Code.DeclarationBuilders.IFieldBuilder},object)"/> advice.
     /// </summary>
     /// <seealso cref="IField"/>
     /// <seealso cref="IFieldOrPropertyBuilder"/>
     /// <seealso cref="AdviserExtensions.IntroduceField(IAdviser{INamedType}, string, IntroductionScope, OverrideStrategy, System.Action{IFieldBuilder}?, object?)"/>
     /// <seealso href="@introducing-members"/>
-    /// <seealso cref="Metalama.Framework.Advising.IAdviceFactory.IntroduceField(Metalama.Framework.Code.INamedType,string,Metalama.Framework.Aspects.IntroductionScope,Metalama.Framework.Aspects.OverrideStrategy,System.Action{Metalama.Framework.Code.DeclarationBuilders.IFieldBuilder},object)"/>
-    /// <seealso cref="Metalama.Framework.Aspects.AdviserExtensions.IntroduceField(Metalama.Framework.Aspects.IAdviser{Metalama.Framework.Code.INamedType},string,Metalama.Framework.Aspects.IntroductionScope,Metalama.Framework.Aspects.OverrideStrategy,System.Action{Metalama.Framework.Code.DeclarationBuilders.IFieldBuilder},object)"/>
     public interface IFieldBuilder : IFieldOrPropertyBuilder, IField;
 }

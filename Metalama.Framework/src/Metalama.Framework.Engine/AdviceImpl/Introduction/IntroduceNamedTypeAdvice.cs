@@ -140,14 +140,12 @@ internal sealed class IntroduceNamedTypeAdvice : IntroduceDeclarationAdvice<INam
     /// </summary>
     private void RegisterOwnedMembers( NamedTypeBuilder builder, AdviceImplementationContext context )
     {
-        if ( builder is not ITypeBuilderWithSynthesizedMembers builderWithSynthesizedMembers )
+        if ( builder is ITypeBuilderWithSynthesizedMembers builderWithSynthesizedMembers )
         {
-            return;
-        }
-
-        foreach ( var member in builderWithSynthesizedMembers.GetSynthesizedMemberData() )
-        {
-            context.AddTransformation( new IntroduceSynthesizedDeclarationTransformation( this.AspectLayerInstance, member ) );
+            foreach ( var member in builderWithSynthesizedMembers.GetSynthesizedMemberData() )
+            {
+                context.AddTransformation( new IntroduceSynthesizedDeclarationTransformation( this.AspectLayerInstance, member ) );
+            }
         }
     }
 

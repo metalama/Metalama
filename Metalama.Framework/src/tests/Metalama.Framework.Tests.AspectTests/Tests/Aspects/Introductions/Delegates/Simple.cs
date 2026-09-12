@@ -11,12 +11,12 @@ public class IntroductionAttribute : TypeAspect
 {
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        // A delegate that the callback leaves unconfigured is internal, returns void and takes no parameter.
-        builder.IntroduceDelegate( "DefaultDelegate" );
+        // A delegate that the callback configures no further is internal, returns void and takes no parameter.
+        builder.IntroduceDelegate( "DefaultDelegate", d => d.ReturnType = TypeFactory.GetType( SpecialType.Void ) );
 
         builder.IntroduceDelegate(
             "ValueChangedHandler",
-            buildDelegate: d =>
+            d =>
             {
                 d.Accessibility = Accessibility.Public;
                 d.ReturnType = TypeFactory.GetType( SpecialType.Void );
@@ -27,7 +27,7 @@ public class IntroductionAttribute : TypeAspect
 
         builder.IntroduceDelegate(
             "Predicate",
-            buildDelegate: d =>
+            d =>
             {
                 d.Accessibility = Accessibility.Public;
                 d.ReturnType = TypeFactory.GetType( SpecialType.Boolean );

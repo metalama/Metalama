@@ -1,10 +1,12 @@
-﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Collections;
 using Metalama.Framework.Code.Types;
+using Metalama.Framework.Engine.CodeModel.Introductions.Introduced;
+using Metalama.Framework.Engine.CodeModel.Source;
 using Metalama.Framework.Engine.Utilities;
 using System.Collections;
 using System.Collections.Generic;
@@ -25,46 +27,64 @@ namespace Metalama.Framework.Engine.CodeModel.Facets;
 /// Each facet of a type that has one is constructed on first read and memoized, so a type whose facets are never
 /// read allocates the collection only.
 /// </para>
+/// <para>
+/// The derived class decides which implementation of each facet to construct, and <see cref="Create"/> is the
+/// single site that reads the source of a type. No facet and no collection routes on it afterwards.
+/// </para>
 /// </remarks>
-internal sealed class TypeFacetCollection : ITypeFacetCollection
+internal abstract class TypeFacetCollection : ITypeFacetCollection
 {
     /// <summary>
     /// Gets the collection returned by every type that has no facet.
     /// </summary>
     public static ITypeFacetCollection Empty { get; } = new EmptyTypeFacetCollection();
 
-    private readonly INamedType _type;
+    protected INamedType Type { get; }
 
-    public TypeFacetCollection( INamedType type )
+    protected TypeFacetCollection( INamedType type )
     {
-        this._type = type;
+        this.Type = type;
     }
 
     /// <summary>
     /// Creates the collection of facets of a type, or returns <see cref="Empty"/> when the type has no facet.
     /// </summary>
     public static ITypeFacetCollection Create( INamedType type )
-        => type.IsDelegate || type.IsUnion || type.IsRecord || type.IsEnum ? new TypeFacetCollection( type ) : Empty;
+    {
+        if ( !(type.IsDelegate || type.IsUnion || type.IsRecord || type.IsEnum) )
+        {
+            return Empty;
+        }
 
-    // Each facet has one implementation for a type read from source and one for an introduced type, and the static
-    // Create method of the facet picks between them. This is the single site that routes on the source of a type:
-    // no implementation does.
-    [Memo]
-    public IDelegateFacet? Delegate => this._type.IsDelegate ? DelegateFacet.Create( this._type ) : null;
+        return type is IntroducedNamedType introducedType
+            ? new IntroducedTypeFacetCollection( introducedType )
+            : new SourceTypeFacetCollection( type );
+    }
+
+    protected abstract IDelegateFacet CreateDelegateFacet();
+
+    protected abstract IUnionFacet CreateUnionFacet();
+
+    protected abstract IRecordFacet CreateRecordFacet();
+
+    protected abstract IEnumFacet CreateEnumFacet();
 
     [Memo]
-    public IUnionFacet? Union => this._type.IsUnion ? UnionFacet.Create( this._type ) : null;
+    public IDelegateFacet? Delegate => this.Type.IsDelegate ? this.CreateDelegateFacet() : null;
 
     [Memo]
-    public IRecordFacet? Record => this._type.IsRecord ? RecordFacet.Create( this._type ) : null;
+    public IUnionFacet? Union => this.Type.IsUnion ? this.CreateUnionFacet() : null;
 
     [Memo]
-    public IEnumFacet? Enum => this._type.IsEnum ? EnumFacet.Create( this._type ) : null;
+    public IRecordFacet? Record => this.Type.IsRecord ? this.CreateRecordFacet() : null;
+
+    [Memo]
+    public IEnumFacet? Enum => this.Type.IsEnum ? this.CreateEnumFacet() : null;
 
     // The count is answered from the discriminators of the type and not from the typed properties, so that counting
     // the facets of a type does not construct them.
     public int Count
-        => (this._type.IsDelegate ? 1 : 0) + (this._type.IsUnion ? 1 : 0) + (this._type.IsRecord ? 1 : 0) + (this._type.IsEnum ? 1 : 0);
+        => (this.Type.IsDelegate ? 1 : 0) + (this.Type.IsUnion ? 1 : 0) + (this.Type.IsRecord ? 1 : 0) + (this.Type.IsEnum ? 1 : 0);
 
     public IEnumerator<ITypeFacet> GetEnumerator()
     {

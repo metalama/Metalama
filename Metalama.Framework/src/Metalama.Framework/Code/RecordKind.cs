@@ -8,7 +8,7 @@ namespace Metalama.Framework.Code;
 
 /// <summary>
 /// Authoring forms of a record, given to
-/// <see cref="Metalama.Framework.Advising.IAdviceFactory.IntroduceRecord"/>.
+/// <see cref="Metalama.Framework.Aspects.AdviserExtensions.IntroduceRecord"/>.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -22,13 +22,13 @@ public enum RecordKind
 {
     /// <summary>
     /// The type is not a record. This is the default value of the enumeration, and it is not a form that
-    /// <see cref="Metalama.Framework.Advising.IAdviceFactory.IntroduceRecord"/> accepts.
+    /// <see cref="Metalama.Framework.Aspects.AdviserExtensions.IntroduceRecord"/> accepts.
     /// </summary>
     None = 0,
 
     /// <summary>
     /// The record is a reference type, declared as <c>record</c> or <c>record class</c>. This is the form that
-    /// <see cref="Metalama.Framework.Advising.IAdviceFactory.IntroduceRecord"/> introduces by default.
+    /// <see cref="Metalama.Framework.Aspects.AdviserExtensions.IntroduceRecord"/> introduces by default.
     /// </summary>
     Class,
 

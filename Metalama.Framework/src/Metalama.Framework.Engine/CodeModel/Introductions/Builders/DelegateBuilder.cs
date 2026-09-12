@@ -73,7 +73,7 @@ internal sealed class DelegateBuilder : NamedTypeBuilder, IDelegateBuilder, ITyp
     /// </summary>
     protected override void InitializeBaseType()
     {
-        this.BaseType = this.Compilation.Factory.GetSpecialType( InternalSpecialType.MulticastDelegate );
+        this.BaseType = this.Compilation.Factory.GetSpecialType( SpecialType.MulticastDelegate );
     }
 
     public IType ReturnType

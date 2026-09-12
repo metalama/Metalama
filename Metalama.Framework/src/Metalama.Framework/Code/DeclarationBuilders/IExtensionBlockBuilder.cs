@@ -25,8 +25,6 @@ namespace Metalama.Framework.Code.DeclarationBuilders;
 /// </remarks>
 /// <seealso cref="IExtensionBlock"/>
 /// <seealso cref="INamedTypeBuilder"/>
-/// <seealso cref="Metalama.Framework.Advising.IAdviceFactory.IntroduceExtensionBlock(Metalama.Framework.Code.INamedType,Metalama.Framework.Code.IType,string,System.Action{Metalama.Framework.Code.DeclarationBuilders.IExtensionBlockBuilder})"/>
-/// <seealso cref="Metalama.Framework.Aspects.AdviserExtensions.IntroduceExtensionBlock(Metalama.Framework.Aspects.IAdviser{Metalama.Framework.Code.INamedType},Metalama.Framework.Code.IType,string,System.Action{Metalama.Framework.Code.DeclarationBuilders.IExtensionBlockBuilder})"/>
 [InternalImplement]
 public interface IExtensionBlockBuilder : INamedTypeBuilder, IExtensionBlock
 {

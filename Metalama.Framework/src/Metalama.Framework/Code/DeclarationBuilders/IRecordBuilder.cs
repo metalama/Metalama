@@ -8,7 +8,7 @@ using System;
 namespace Metalama.Framework.Code.DeclarationBuilders;
 
 /// <summary>
-/// Allows to complete the construction of a record that has been created by an advice. One interface serves a
+/// Allows to complete the construction of a record that has been created by the <see cref="Metalama.Framework.Aspects.AdviserExtensions.IntroduceRecord"/> advice. One interface serves a
 /// record class and a record struct.
 /// </summary>
 /// <remarks>
@@ -21,8 +21,6 @@ namespace Metalama.Framework.Code.DeclarationBuilders;
 /// that the user wrote.
 /// </para>
 /// </remarks>
-/// <seealso cref="Metalama.Framework.Advising.IAdviceFactory.IntroduceRecord"/>
-/// <seealso cref="Metalama.Framework.Aspects.AdviserExtensions.IntroduceRecord"/>
 /// <seealso cref="Metalama.Framework.Code.Types.IRecordFacet"/>
 /// <seealso href="@introducing-types"/>
 [InternalImplement]

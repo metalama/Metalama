@@ -8,13 +8,11 @@ using System;
 namespace Metalama.Framework.Code.DeclarationBuilders;
 
 /// <summary>
-/// Allows to complete the construction of an indexer that has been created by an advice.
+/// Allows to complete the construction of an indexer that has been created by the <see cref="Metalama.Framework.Aspects.AdviserExtensions.IntroduceIndexer(Metalama.Framework.Aspects.IAdviser{Metalama.Framework.Code.INamedType},Metalama.Framework.Code.IType,string,string,Metalama.Framework.Aspects.IntroductionScope,Metalama.Framework.Aspects.OverrideStrategy,System.Action{Metalama.Framework.Code.DeclarationBuilders.IIndexerBuilder},object,object)"/> advice.
 /// </summary>
 /// <seealso cref="IIndexer"/>
 /// <seealso cref="IPropertyOrIndexerBuilder"/>
 /// <seealso cref="AdviserExtensions.IntroduceIndexer(IAdviser{Metalama.Framework.Code.INamedType}, Metalama.Framework.Code.IType, string?, string?, IntroductionScope, OverrideStrategy, Action{Metalama.Framework.Code.DeclarationBuilders.IIndexerBuilder}?, object?, object?)"/>
-/// <seealso cref="Metalama.Framework.Advising.IAdviceFactory.IntroduceIndexer(Metalama.Framework.Code.INamedType,Metalama.Framework.Code.IType,string,string,Metalama.Framework.Aspects.IntroductionScope,Metalama.Framework.Aspects.OverrideStrategy,System.Action{Metalama.Framework.Code.DeclarationBuilders.IIndexerBuilder},object,object)"/>
-/// <seealso cref="Metalama.Framework.Aspects.AdviserExtensions.IntroduceIndexer(Metalama.Framework.Aspects.IAdviser{Metalama.Framework.Code.INamedType},Metalama.Framework.Code.IType,string,string,Metalama.Framework.Aspects.IntroductionScope,Metalama.Framework.Aspects.OverrideStrategy,System.Action{Metalama.Framework.Code.DeclarationBuilders.IIndexerBuilder},object,object)"/>
 public interface IIndexerBuilder : IPropertyOrIndexerBuilder, IIndexer, IHasParametersBuilder
 {
     /// <summary>

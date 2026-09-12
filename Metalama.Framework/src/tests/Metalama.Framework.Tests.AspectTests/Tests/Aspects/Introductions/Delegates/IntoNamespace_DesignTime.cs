@@ -22,7 +22,7 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Introductions.Deleg
             builder.With( builder.Target.ContainingNamespace )
                 .IntroduceDelegate(
                     "TopLevelHandler",
-                    buildDelegate: d =>
+                    d =>
                     {
                         d.Accessibility = Accessibility.Public;
                         d.ReturnType = TypeFactory.GetType( SpecialType.Void );

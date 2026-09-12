@@ -9,7 +9,7 @@ using System.Collections.Generic;
 namespace Metalama.Framework.Code.DeclarationBuilders;
 
 /// <summary>
-/// Allows to complete the construction of an enum that has been created by an advice.
+/// Allows to complete the construction of an enum that has been created by the <see cref="Metalama.Framework.Aspects.AdviserExtensions.IntroduceEnum"/> advice.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -25,8 +25,6 @@ namespace Metalama.Framework.Code.DeclarationBuilders;
 /// <see cref="Metalama.Framework.Advising.IIntroductionAdviceResult{T}.Declaration"/>.
 /// </para>
 /// </remarks>
-/// <seealso cref="Metalama.Framework.Advising.IAdviceFactory.IntroduceEnum"/>
-/// <seealso cref="Metalama.Framework.Aspects.AdviserExtensions.IntroduceEnum"/>
 /// <seealso cref="IEnumMemberBuilder"/>
 /// <seealso cref="Metalama.Framework.Code.Types.IEnumFacet"/>
 /// <seealso href="@introducing-types"/>

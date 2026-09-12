@@ -4,8 +4,6 @@
 
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Types;
-using Metalama.Framework.Engine.CodeModel.Introductions.Introduced;
-using Metalama.Framework.Engine.CodeModel.Source;
 using System.Collections.Generic;
 using TypeKind = Metalama.Framework.Code.TypeKind;
 
@@ -27,12 +25,6 @@ internal abstract class RecordFacet : IRecordFacet
     {
         this.Type = type;
     }
-
-    /// <summary>
-    /// Creates the facet of a record, which is the implementation for the source of that type.
-    /// </summary>
-    public static RecordFacet Create( INamedType type )
-        => type is IntroducedNamedType introducedType ? new IntroducedRecordFacet( introducedType ) : new SourceRecordFacet( type );
 
     public TypeFacetKind FacetKind => TypeFacetKind.Record;
 

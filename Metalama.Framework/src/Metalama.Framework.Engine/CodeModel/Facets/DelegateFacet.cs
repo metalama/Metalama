@@ -5,8 +5,6 @@
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Collections;
 using Metalama.Framework.Code.Types;
-using Metalama.Framework.Engine.CodeModel.Introductions.Introduced;
-using Metalama.Framework.Engine.CodeModel.Source;
 
 namespace Metalama.Framework.Engine.CodeModel.Facets;
 
@@ -26,12 +24,6 @@ internal abstract class DelegateFacet : IDelegateFacet
     {
         this.Type = type;
     }
-
-    /// <summary>
-    /// Creates the facet of a delegate, which is the implementation for the source of that type.
-    /// </summary>
-    public static DelegateFacet Create( INamedType type )
-        => type is IntroducedNamedType introducedType ? new IntroducedDelegateFacet( introducedType ) : new SourceDelegateFacet( type );
 
     public TypeFacetKind FacetKind => TypeFacetKind.Delegate;
 

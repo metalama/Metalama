@@ -21,7 +21,7 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Introductions.Deleg
         {
             builder.IntroduceDelegate(
                 "GeneratedHandler",
-                buildDelegate: d =>
+                d =>
                 {
                     d.Accessibility = Accessibility.Public;
                     d.ReturnType = TypeFactory.GetType( SpecialType.Void );

@@ -4,8 +4,6 @@
 
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Types;
-using Metalama.Framework.Engine.CodeModel.Introductions.Introduced;
-using Metalama.Framework.Engine.CodeModel.Source;
 using Metalama.Framework.Engine.Utilities;
 using System.Collections.Generic;
 using System.Linq;
@@ -52,12 +50,6 @@ internal abstract class UnionFacet : IUnionFacet
     {
         this.Type = type;
     }
-
-    /// <summary>
-    /// Creates the facet of a union, which is the implementation for the source of that type.
-    /// </summary>
-    public static UnionFacet Create( INamedType type )
-        => type is IntroducedNamedType introducedType ? new IntroducedUnionFacet( introducedType ) : new SourceUnionFacet( type );
 
     public TypeFacetKind FacetKind => TypeFacetKind.Union;
 

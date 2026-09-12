@@ -11,12 +11,6 @@ namespace Metalama.Framework.Code.DeclarationBuilders;
 /// <seealso cref="IMemberOrNamedTypeBuilder"/>
 /// <seealso cref="AdviserExtensions.IntroduceClass(IAdviser{Metalama.Framework.Code.INamespaceOrNamedType}, string, OverrideStrategy, System.Action{Metalama.Framework.Code.DeclarationBuilders.INamedTypeBuilder}?)"/>
 /// <seealso href="@introducing-types"/>
-/// <seealso cref="Metalama.Framework.Advising.IAdviceFactory.IntroduceClass"/>
-/// <seealso cref="Metalama.Framework.Aspects.AdviserExtensions.IntroduceClass"/>
-/// <seealso cref="Metalama.Framework.Advising.IAdviceFactory.IntroduceInterface"/>
-/// <seealso cref="Metalama.Framework.Aspects.AdviserExtensions.IntroduceInterface"/>
-/// <seealso cref="Metalama.Framework.Advising.IAdviceFactory.IntroduceStruct"/>
-/// <seealso cref="Metalama.Framework.Aspects.AdviserExtensions.IntroduceStruct"/>
 public interface INamedTypeBuilder : IMemberOrNamedTypeBuilder, INamedType
 {
     /// <summary>

@@ -4,8 +4,6 @@
 
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Types;
-using Metalama.Framework.Engine.CodeModel.Introductions.Introduced;
-using Metalama.Framework.Engine.CodeModel.Source;
 using Metalama.Framework.Engine.Utilities;
 using System;
 using System.Collections.Generic;
@@ -28,12 +26,6 @@ internal abstract class EnumFacet : IEnumFacet
     {
         this.Type = type;
     }
-
-    /// <summary>
-    /// Creates the facet of an enum, which is the implementation for the source of that type.
-    /// </summary>
-    public static EnumFacet Create( INamedType type )
-        => type is IntroducedNamedType introducedType ? new IntroducedEnumFacet( introducedType ) : new SourceEnumFacet( type );
 
     public TypeFacetKind FacetKind => TypeFacetKind.Enum;
 

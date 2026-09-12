@@ -176,6 +176,21 @@ namespace Metalama.Framework.Code
 
         Nullable_T,
 
+        /// <summary>
+        /// <see cref="System.ValueType"/>, which is the base type of a struct and of an enum.
+        /// </summary>
+        ValueType,
+
+        /// <summary>
+        /// <see cref="System.Enum"/>, which is the base type of an enum.
+        /// </summary>
+        Enum,
+
+        /// <summary>
+        /// <see cref="System.MulticastDelegate"/>, which is the base type of a delegate.
+        /// </summary>
+        MulticastDelegate,
+
         // Must be last.
 
         /// <summary>

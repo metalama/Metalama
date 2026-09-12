@@ -15,7 +15,7 @@ public class IntroductionAttribute : TypeAspect
         // expressed rather than refused.
         builder.IntroduceDelegate(
             "RefReturning",
-            buildDelegate: d =>
+            d =>
             {
                 d.Accessibility = Accessibility.Public;
                 d.ReturnType = TypeFactory.GetType( SpecialType.Int32 );
@@ -25,7 +25,7 @@ public class IntroductionAttribute : TypeAspect
 
         builder.IntroduceDelegate(
             "RefReadOnlyReturning",
-            buildDelegate: d =>
+            d =>
             {
                 d.Accessibility = Accessibility.Public;
                 d.ReturnType = TypeFactory.GetType( SpecialType.Int32 );
@@ -35,7 +35,7 @@ public class IntroductionAttribute : TypeAspect
 
         builder.IntroduceDelegate(
             "WithRefParameters",
-            buildDelegate: d =>
+            d =>
             {
                 d.Accessibility = Accessibility.Public;
                 d.ReturnType = TypeFactory.GetType( SpecialType.Void );
@@ -46,7 +46,7 @@ public class IntroductionAttribute : TypeAspect
 
         builder.IntroduceDelegate(
             "WithDefaultValue",
-            buildDelegate: d =>
+            d =>
             {
                 d.Accessibility = Accessibility.Public;
                 d.ReturnType = TypeFactory.GetType( SpecialType.Void );

@@ -119,13 +119,6 @@ public sealed partial class DeclarationFactory : IDeclarationFactory, ISdkDeclar
         => specialType switch
         {
             InternalSpecialType.ITemplateAttribute => this.GetNamedTypeByReflectionType( typeof(ITemplateAttribute) ),
-
-            // The three bases below are special types of Roslyn as well, so they are resolved through the
-            // compilation rather than through a reflection type.
-            InternalSpecialType.ValueType => this.GetNamedType( this.RoslynCompilation.GetSpecialType( Microsoft.CodeAnalysis.SpecialType.System_ValueType ) ),
-            InternalSpecialType.Enum => this.GetNamedType( this.RoslynCompilation.GetSpecialType( Microsoft.CodeAnalysis.SpecialType.System_Enum ) ),
-            InternalSpecialType.MulticastDelegate => this.GetNamedType(
-                this.RoslynCompilation.GetSpecialType( Microsoft.CodeAnalysis.SpecialType.System_MulticastDelegate ) ),
             _ => throw new ArgumentOutOfRangeException( nameof(specialType) )
         };
 
