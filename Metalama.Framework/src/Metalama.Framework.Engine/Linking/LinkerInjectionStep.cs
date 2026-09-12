@@ -10,6 +10,7 @@ using Metalama.Framework.Engine.AdviceImpl.Introduction;
 using Metalama.Framework.Engine.AdviceImpl.Introduction.Constructors;
 using Metalama.Framework.Engine.AdviceImpl.Override;
 using Metalama.Framework.Engine.CodeModel;
+using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.Diagnostics;
@@ -218,6 +219,20 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
             // Include all transformation with observable canonical target declaration.
             return input.Transformations.OfType<ISyntaxTreeTransformation>()
                 .Where( t => observedCanonicalTargetDeclarations.Contains( GetCanonicalTargetDeclaration( t.TargetDeclaration ) ) );
+        }
+
+        // A transformation that registers a declaration in the code model and emits no syntax is not an
+        // ISyntaxTreeTransformation, so the pass above does not reach it. It must nevertheless enter the map from
+        // builder data to transformation, because that map is how a transformation that replaces the declaration
+        // resolves it. The pass runs before the one that groups transformations by syntax tree, because
+        // IndexReplaceTransformation reads the map. A namespace is left out: it is never replaced nor overridden,
+        // and several transformations introduce the same namespace, which the map does not admit.
+        foreach ( var transformation in input.Transformations.OfType<IIntroduceDeclarationTransformation>() )
+        {
+            if ( transformation is not ISyntaxTreeTransformation && transformation.DeclarationBuilderData is not NamespaceBuilderData )
+            {
+                transformationCollection.AddIntroduceTransformation( transformation.DeclarationBuilderData, transformation );
+            }
         }
 
         await this._concurrentTaskRunner.RunConcurrentlyAsync( transformationsByCanonicalSyntaxTree, IndexTransformationsInSyntaxTree, cancellationToken );

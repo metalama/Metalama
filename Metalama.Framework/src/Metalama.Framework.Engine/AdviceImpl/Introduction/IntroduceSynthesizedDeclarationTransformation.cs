@@ -38,23 +38,22 @@ namespace Metalama.Framework.Engine.AdviceImpl.Introduction;
 /// model and the design-time pipeline, and not whether syntax is produced, which the interface decides.
 /// </para>
 /// <para>
-/// The base class is <see cref="BaseSyntaxTreeTransformation"/> rather than <see cref="BaseTransformation"/>,
-/// although this transformation produces no syntax, because <c>LinkerInjectionStep</c> enumerates
-/// <see cref="ISyntaxTreeTransformation"/> alone when it builds the map from builder data to transformation. A
-/// transformation that is absent from that map makes the linker throw when another transformation replaces the
-/// declaration, which happens when an aspect introduces a field into an introduced struct and the implicit
-/// parameterless constructor of that struct is replaced.
+/// The base class is <see cref="BaseTransformation"/> and not <see cref="BaseSyntaxTreeTransformation"/>, because
+/// this transformation produces no syntax and therefore has no syntax tree to name. The declaration nevertheless
+/// enters the map from builder data to transformation that <c>LinkerInjectionStep</c> builds, because a
+/// transformation that replaces the declaration resolves it through that map, which happens when an aspect
+/// introduces a field into an introduced struct and the implicit parameterless constructor of that struct is
+/// replaced. <c>LinkerInjectionStep</c> indexes such a transformation in a pass of its own, rather than in the pass
+/// that groups transformations by syntax tree.
 /// </para>
 /// </remarks>
 /// <seealso href="@introducing-types"/>
-internal sealed class IntroduceSynthesizedDeclarationTransformation : BaseSyntaxTreeTransformation, IIntroduceDeclarationTransformation
+internal sealed class IntroduceSynthesizedDeclarationTransformation : BaseTransformation, IIntroduceDeclarationTransformation
 {
     private readonly NamedDeclarationBuilderData _introducedDeclaration;
 
     public IntroduceSynthesizedDeclarationTransformation( AspectLayerInstance aspectLayerInstance, NamedDeclarationBuilderData introducedDeclaration ) :
-        base(
-            aspectLayerInstance,
-            introducedDeclaration.PrimarySyntaxTree.AssertNotNull( "Introduced declarations must have a PrimarySyntaxTree assigned upfront." ) )
+        base( aspectLayerInstance )
     {
         this._introducedDeclaration = introducedDeclaration.AssertNotNull();
     }
