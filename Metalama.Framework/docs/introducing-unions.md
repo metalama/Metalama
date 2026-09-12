@@ -182,8 +182,10 @@ declaration to declare at least one case, and leaving the refusal to the compile
 code, which section 3.2 of [`introducing-types.md`](introducing-types.md) forbids.
 
 Member introduction through the adviser is restricted rather than refused. An instance field, an automatic property
-and a field-like event introduced into a union produce the compiler error CS9373, so the eligibility rules refuse
-them and report a Metalama diagnostic instead. An explicit constructor must chain to a generated one, which is a
+and a field-like event introduced into a union produce the compiler error CS9373, so Metalama refuses the three
+instead. An instance field is refused by the eligibility rule of `IntroduceField`, which is the one advice kind whose
+target type alone decides the answer. An automatic property and a field-like event are refused by their advice, with
+the diagnostic LAMA0555, because the shape of the member is known there and not in an eligibility rule. An explicit constructor must chain to a generated one, which is a
 further rule. These are the exception that section 3.2 of [`introducing-types.md`](introducing-types.md) names:
 the compiler reports those errors on generated code that the user cannot edit.
 

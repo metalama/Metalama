@@ -125,6 +125,35 @@ public static partial class EligibilityRuleFactory
         } );
 
     /// <summary>
+    /// The rule of <see cref="AdviceKind.IntroduceField"/>. It is separate from <c>_introduceRule</c> because a
+    /// union declaration is the one target that accepts every other introduced member and no instance field.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The language forbids an instance field, an automatic property and a field-like event in a union declaration
+    /// and reports CS9373, which is an error on generated code that the user cannot edit. Section 4 of
+    /// <c>Metalama.Framework/docs/introducing-unions.md</c> requires Metalama to refuse the three instead. A field
+    /// is refused here, because an advice that introduces one always introduces an instance field; an automatic
+    /// property and a field-like event are refused by their advice, which is the only place that knows the shape of
+    /// the member.
+    /// </para>
+    /// </remarks>
+    private static readonly IEligibilityRule<IDeclaration> _introduceFieldRule = CreateRule<IDeclaration, INamedType>(
+        builder =>
+        {
+            builder.MustSatisfy(
+                t => t.TypeKind is TypeKind.Class or TypeKind.Struct or TypeKind.Interface or TypeKind.Extension,
+                t => $"'{t}' must be a class, struct, interface, or extension block" );
+
+            builder.MustSatisfy(
+                t => !t.IsUnion,
+                t => $"'{t}' must not be a union, because the language does not permit an instance field in a union declaration" );
+
+            builder.MustBeExplicitlyDeclared();
+            builder.MustBeRunTimeOnly();
+        } );
+
+    /// <summary>
     /// The rule of <see cref="AdviceKind.IntroduceIndexer"/>. It is separate from <c>_introduceRule</c>, which eight
     /// other advice kinds share, because an indexer is the only introduced member that an extension block cannot
     /// always accept. An indexer is always an instance member, and an extension block declares the receiver of its
@@ -272,7 +301,7 @@ public static partial class EligibilityRuleFactory
 #pragma warning disable CS0618 // IntroduceOperator is obsolete but needs to be handled for backward compatibility
             AdviceKind.IntroduceOperator => _introduceRule,
 #pragma warning restore CS0618
-            AdviceKind.IntroduceField => _introduceRule,
+            AdviceKind.IntroduceField => _introduceFieldRule,
             AdviceKind.IntroduceEvent => _introduceRule,
             AdviceKind.IntroduceProperty => _introduceRule,
             AdviceKind.IntroduceIndexer => _introduceIndexerRule,

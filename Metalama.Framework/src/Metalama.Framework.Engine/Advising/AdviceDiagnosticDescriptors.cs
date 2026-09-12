@@ -379,5 +379,15 @@ namespace Metalama.Framework.Engine.Advising
                 + "which the compiler reports as CS9370 when it does not. Call 'AddCase' at least once in the callback that builds the union.",
                 _category,
                 Error );
+
+        internal static readonly DiagnosticDefinition<(string AspectType, string MemberKind, IDeclaration TargetType)>
+            CannotIntroduceStateIntoUnion = new(
+                "LAMA0555",
+                "Cannot introduce an instance field, an automatic property or a field-like event into a union.",
+                "The aspect '{0}' cannot introduce {1} into the union '{2}' because the language does not permit an instance field, "
+                + "an automatic property or a field-like event in a union declaration, and reports CS9373 when it finds one. "
+                + "Introduce a property with accessors of its own, or an event with accessors of its own.",
+                _category,
+                Error );
     }
 }
