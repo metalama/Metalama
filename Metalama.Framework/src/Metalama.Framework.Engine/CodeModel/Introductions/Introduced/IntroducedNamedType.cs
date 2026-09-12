@@ -41,6 +41,11 @@ internal sealed class IntroducedNamedType : IntroducedMemberOrNamedType, INamedT
 
     public override DeclarationBuilderData BuilderData => this._namedTypeBuilderData;
 
+    /// <summary>
+    /// Gets the immutable data of the builder that introduced this type, which the facet of its kind reads.
+    /// </summary>
+    internal NamedTypeBuilderData NamedTypeBuilderData => this._namedTypeBuilderData;
+
     protected override MemberOrNamedTypeBuilderData MemberOrNamedTypeBuilderData => this._namedTypeBuilderData;
 
     protected override NamedDeclarationBuilderData NamedDeclarationBuilderData => this._namedTypeBuilderData;
@@ -156,38 +161,8 @@ internal sealed class IntroducedNamedType : IntroducedMemberOrNamedType, INamedT
     [Memo]
     public IMethodCollection AllMethods => new AllMethodsCollection( this );
 
-    IConstructor? INamedType.PrimaryConstructor => this.MapDeclaration( this._namedTypeBuilderData.PrimaryConstructor );
-
-    /// <summary>
-    /// Gets the property carrying the equality contract of the record, which <c>RecordFacet</c> reports.
-    /// </summary>
-    public IProperty? EqualityContractProperty => this.MapDeclaration( this._namedTypeBuilderData.EqualityContractProperty );
-
-    /// <summary>
-    /// Gets the method printing the members of the record, which <c>RecordFacet</c> reports.
-    /// </summary>
-    public IMethod? PrintMembersMethod => this.MapDeclaration( this._namedTypeBuilderData.PrintMembersMethod );
-
-    /// <summary>
-    /// Gets the clone method of the record, which <c>RecordFacet</c> reports.
-    /// </summary>
-    public IMethod? CloneMethod => this.MapDeclaration( this._namedTypeBuilderData.CloneMethod );
-
-    /// <summary>
-    /// Gets the copy constructor of the record, which <c>RecordFacet</c> reports.
-    /// </summary>
-    public IConstructor? CopyConstructor => this.MapDeclaration( this._namedTypeBuilderData.CopyConstructor );
-
-    /// <summary>
-    /// Gets the deconstructing method of the record, which <c>RecordFacet</c> reports.
-    /// </summary>
-    public IMethod? DeconstructMethod => this.MapDeclaration( this._namedTypeBuilderData.DeconstructMethod );
-
-    /// <summary>
-    /// Gets the properties that the positional parameters of the record declare, which <c>RecordFacet</c> reports.
-    /// </summary>
-    public ImmutableArray<IProperty> PositionalProperties
-        => this._namedTypeBuilderData.PositionalProperties.SelectAsImmutableArray( p => this.MapDeclaration( p ) );
+    IConstructor? INamedType.PrimaryConstructor
+        => this._namedTypeBuilderData is RecordBuilderData recordBuilderData ? this.MapDeclaration( recordBuilderData.PrimaryConstructor ) : null;
 
     [Memo]
     public IConstructorCollection Constructors
@@ -228,7 +203,7 @@ internal sealed class IntroducedNamedType : IntroducedMemberOrNamedType, INamedT
     // here would report itself as its own underlying type.
     [Memo]
     public INamedType UnderlyingType
-        => this._namedTypeBuilderData.UnderlyingType is { } underlyingType
+        => this._namedTypeBuilderData is EnumBuilderData { UnderlyingType: { } underlyingType }
             ? this.MapDeclaration( underlyingType ).AssertNotNull()
             : this.Definition;
 
@@ -251,17 +226,6 @@ internal sealed class IntroducedNamedType : IntroducedMemberOrNamedType, INamedT
 
     public bool IsEnum => this._namedTypeBuilderData.TypeKind == TypeKind.Enum;
 
-    /// <summary>
-    /// Gets the members of the enum, in the order in which the aspect added them, which is the order in which
-    /// <c>EnumFacet</c> reports them.
-    /// </summary>
-    public ImmutableArray<IField> EnumMembers => this._namedTypeBuilderData.EnumMembers.SelectAsImmutableArray( f => this.MapDeclaration( f ) );
-
-    /// <summary>
-    /// Gets the <c>Invoke</c> method of the delegate, which is what <c>DelegateFacet</c> reports, or <c>null</c>
-    /// when this type is not a delegate.
-    /// </summary>
-    public IMethod? InvokeMethod => this.MapDeclaration( this._namedTypeBuilderData.InvokeMethod );
 
     public bool IsRecord => this._namedTypeBuilderData.IsRecord;
 

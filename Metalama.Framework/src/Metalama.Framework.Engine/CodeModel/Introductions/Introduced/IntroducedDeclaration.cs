@@ -60,12 +60,12 @@ internal abstract class IntroducedDeclaration : BaseDeclaration
     }
 
     [return: NotNullIfNotNull( nameof(declaration) )]
-    protected T? MapDeclaration<T>( IRef<T>? declaration )
+    internal T? MapDeclaration<T>( IRef<T>? declaration )
         where T : class, ICompilationElement
         => declaration?.GetTarget( this.Compilation, this.GenericContext );
 
 #pragma warning disable CS8619 // Nullability of reference types in value doesn't match target type.
-    protected ImmutableArray<T> MapDeclarationList<T>( IReadOnlyList<IRef<T>> refs )
+    internal ImmutableArray<T> MapDeclarationList<T>( IReadOnlyList<IRef<T>> refs )
         where T : class, ICompilationElement
         => refs.Count == 0 ? ImmutableArray<T>.Empty : refs.SelectAsImmutableArray( this.MapDeclaration );
 #pragma warning restore CS8619 // Nullability of reference types in value doesn't match target type.

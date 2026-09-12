@@ -7,6 +7,7 @@ using Metalama.Framework.Code.Collections;
 using Metalama.Framework.Code.DeclarationBuilders;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
+using Metalama.Framework.Engine.CodeModel.References;
 using System;
 using System.Collections.Generic;
 using TypeKind = Metalama.Framework.Code.TypeKind;
@@ -151,6 +152,9 @@ internal sealed class DelegateBuilder : NamedTypeBuilder, IDelegateBuilder, ITyp
     /// </summary>
     private static NotSupportedException NotSupported( string propertyName, string reason )
         => new( $"The '{propertyName}' property cannot be set on a delegate builder, because {reason}." );
+
+    protected override NamedTypeBuilderData CreateBuilderData( IFullRef<IDeclaration> containingDeclaration )
+        => new DelegateBuilderData( this, containingDeclaration );
 
     protected override void FreezeChildren()
     {

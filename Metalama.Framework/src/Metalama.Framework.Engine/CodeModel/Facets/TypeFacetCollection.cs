@@ -46,17 +46,20 @@ internal sealed class TypeFacetCollection : ITypeFacetCollection
     public static ITypeFacetCollection Create( INamedType type )
         => type.IsDelegate || type.IsUnion || type.IsRecord || type.IsEnum ? new TypeFacetCollection( type ) : Empty;
 
+    // Each facet has one implementation for a type read from source and one for an introduced type, and the static
+    // Create method of the facet picks between them. This is the single site that routes on the source of a type:
+    // no implementation does.
     [Memo]
-    public IDelegateFacet? Delegate => this._type.IsDelegate ? new DelegateFacet( this._type ) : null;
+    public IDelegateFacet? Delegate => this._type.IsDelegate ? DelegateFacet.Create( this._type ) : null;
 
     [Memo]
-    public IUnionFacet? Union => this._type.IsUnion ? new UnionFacet( this._type ) : null;
+    public IUnionFacet? Union => this._type.IsUnion ? UnionFacet.Create( this._type ) : null;
 
     [Memo]
-    public IRecordFacet? Record => this._type.IsRecord ? new RecordFacet( this._type ) : null;
+    public IRecordFacet? Record => this._type.IsRecord ? RecordFacet.Create( this._type ) : null;
 
     [Memo]
-    public IEnumFacet? Enum => this._type.IsEnum ? new EnumFacet( this._type ) : null;
+    public IEnumFacet? Enum => this._type.IsEnum ? EnumFacet.Create( this._type ) : null;
 
     // The count is answered from the discriminators of the type and not from the typed properties, so that counting
     // the facets of a type does not construct them.

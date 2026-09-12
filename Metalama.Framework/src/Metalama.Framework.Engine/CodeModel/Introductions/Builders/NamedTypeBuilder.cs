@@ -523,8 +523,15 @@ internal class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, I
 
     protected override void EnsureReferenceInitialized()
     {
-        this.Ref.BuilderData = new NamedTypeBuilderData( this, this.ContainingDeclaration.ToFullRef() );
+        this.Ref.BuilderData = this.CreateBuilderData( this.ContainingDeclaration.ToFullRef() );
     }
+
+    /// <summary>
+    /// Creates the immutable data of this builder. A kind that carries more than <see cref="NamedTypeBuilderData"/>
+    /// overrides this method and returns the derived class of that kind.
+    /// </summary>
+    protected virtual NamedTypeBuilderData CreateBuilderData( IFullRef<IDeclaration> containingDeclaration )
+        => new( this, containingDeclaration );
 
     public NamedTypeBuilderData BuilderData => (NamedTypeBuilderData) this.Ref.BuilderData;
 }

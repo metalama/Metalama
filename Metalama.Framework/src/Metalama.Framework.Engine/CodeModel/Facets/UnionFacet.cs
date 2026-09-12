@@ -5,8 +5,8 @@
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Types;
 using Metalama.Framework.Engine.CodeModel.Introductions.Introduced;
+using Metalama.Framework.Engine.CodeModel.Source;
 using Metalama.Framework.Engine.Utilities;
-using Metalama.Framework.Engine.Utilities.Roslyn;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -28,7 +28,7 @@ namespace Metalama.Framework.Engine.CodeModel.Facets;
 /// Reading the Roslyn member instead becomes possible with issue #1936.
 /// </para>
 /// </remarks>
-internal sealed class UnionFacet : IUnionFacet
+internal abstract class UnionFacet : IUnionFacet
 {
     /// <summary>
     /// The identifier of the property that holds the value of the case that a union currently carries. The compiler
@@ -48,17 +48,26 @@ internal sealed class UnionFacet : IUnionFacet
     /// </summary>
     private const string _creationMethodName = "Create";
 
-    public UnionFacet( INamedType type )
+    protected UnionFacet( INamedType type )
     {
         this.Type = type;
     }
+
+    /// <summary>
+    /// Creates the facet of a union, which is the implementation for the source of that type.
+    /// </summary>
+    public static UnionFacet Create( INamedType type )
+        => type is IntroducedNamedType introducedType ? new IntroducedUnionFacet( introducedType ) : new SourceUnionFacet( type );
 
     public TypeFacetKind FacetKind => TypeFacetKind.Union;
 
     public INamedType Type { get; }
 
-    [Memo]
-    public UnionKind UnionKind => GetUnionKind( this.Type );
+    /// <summary>
+    /// Gets the authoring form of the union, which the derived class reads from the declaration of a union read
+    /// from source and which is always the declaration form for an introduced union.
+    /// </summary>
+    public abstract UnionKind UnionKind { get; }
 
     [Memo]
     public IReadOnlyList<IUnionCase> Cases => this.GetCases();
@@ -72,33 +81,6 @@ internal sealed class UnionFacet : IUnionFacet
     /// </summary>
     [Memo]
     private INamedType? MemberProviderInterface => this.GetMemberProviderInterface();
-
-    private static UnionKind GetUnionKind( INamedType type )
-    {
-        // An introduced union is always written with the union keyword, because IntroduceUnion produces that form
-        // and no other. It has no symbol, so the reading below would report it as the attribute form, which is the
-        // silent failure that section 5 of Metalama.Framework/docs/introducing-unions.md names.
-        if ( type is IntroducedNamedType )
-        {
-            return UnionKind.Declaration;
-        }
-
-        // The declaration form is recognized from the syntax of the declaration, because the compiled form of a union
-        // is the same for the two forms: both carry the union attribute. A union that has no declaring syntax is read
-        // from a referenced assembly and is therefore reported as the attribute form, which is the form that its
-        // compiled shape has.
-        var declaringSyntaxReferences = type.Definition.GetSymbol()?.DeclaringSyntaxReferences ?? default;
-
-        foreach ( var declaringSyntaxReference in declaringSyntaxReferences )
-        {
-            if ( declaringSyntaxReference.GetSyntax().SyntaxKind.IsUnionDeclaration )
-            {
-                return UnionKind.Declaration;
-            }
-        }
-
-        return UnionKind.Attribute;
-    }
 
     private IReadOnlyList<IUnionCase> GetCases()
     {

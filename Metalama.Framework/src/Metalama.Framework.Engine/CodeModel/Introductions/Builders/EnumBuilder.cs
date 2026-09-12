@@ -6,6 +6,7 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Code.DeclarationBuilders;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
+using Metalama.Framework.Engine.CodeModel.References;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -318,6 +319,8 @@ internal sealed class EnumBuilder : NamedTypeBuilder, IEnumBuilder, ITypeBuilder
 
         return member;
     }
+
+    protected override NamedTypeBuilderData CreateBuilderData( IFullRef<IDeclaration> containingDeclaration ) => new EnumBuilderData( this, containingDeclaration );
 
     protected override void FreezeChildren()
     {

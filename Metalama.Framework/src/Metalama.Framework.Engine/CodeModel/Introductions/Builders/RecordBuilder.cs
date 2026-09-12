@@ -6,6 +6,7 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Code.DeclarationBuilders;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
+using Metalama.Framework.Engine.CodeModel.References;
 using System;
 using System.Collections.Generic;
 using RecordKind = Metalama.Framework.Code.RecordKind;
@@ -189,6 +190,9 @@ internal sealed class RecordBuilder : NamedTypeBuilder, IRecordBuilder, ITypeBui
     /// Gets the deconstructing method, or <c>null</c> when the record declares no positional parameter.
     /// </summary>
     public MethodBuilder? DeconstructMethod { get; private set; }
+
+    protected override NamedTypeBuilderData CreateBuilderData( IFullRef<IDeclaration> containingDeclaration )
+        => new RecordBuilderData( this, containingDeclaration );
 
     protected override void FreezeChildren()
     {
