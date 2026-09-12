@@ -98,6 +98,56 @@ public sealed class IntroduceUnionTests : UnitTestClass
     }
 
     /// <summary>
+    /// Verifies that the builder refuses every modifier that the language does not give a union declaration, which
+    /// is the table of section 4 of <c>Metalama.Framework/docs/introducing-unions.md</c>.
+    /// </summary>
+    [Fact]
+    public void UnionBuilderRefusesTheModifiersOfOtherKinds()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var compilation = testContext.CreateCompilationModel( "" ).CreateMutableClone();
+
+        var builder = CreateUnionBuilder( compilation );
+
+        Assert.Throws<NotSupportedException>( () => builder.BaseType = compilation.Factory.GetSpecialType( SpecialType.Object ) );
+        Assert.Throws<NotSupportedException>( () => builder.IsAbstract = true );
+        Assert.Throws<NotSupportedException>( () => builder.IsSealed = true );
+        Assert.Throws<NotSupportedException>( () => builder.IsStatic = true );
+        Assert.Throws<NotSupportedException>( () => builder.IsReadOnly = true );
+        Assert.Throws<NotSupportedException>( () => builder.IsRef = true );
+
+        // The accessibility and the name are valid, so the refusals above are not a blanket one.
+        builder.Accessibility = Accessibility.Public;
+        Assert.Equal( Accessibility.Public, builder.Accessibility );
+    }
+
+    /// <summary>
+    /// Verifies that the cases of a union are reported in the order in which they were added when there are three of
+    /// them, which is the number at which the index of a case stops coinciding with the position of either order.
+    /// </summary>
+    [Fact]
+    public void ThreeCasesAreReportedInTheOrderInWhichTheyWereAdded()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var compilation = testContext.CreateCompilationModel( "" ).CreateMutableClone();
+
+        var builder = new UnionBuilder( null!, compilation.GlobalNamespace, "ThreeCases" );
+        builder.AddCase( compilation.Factory.GetSpecialType( SpecialType.String ) );
+        builder.AddCase( compilation.Factory.GetSpecialType( SpecialType.Int32 ) );
+        builder.AddCase( compilation.Factory.GetSpecialType( SpecialType.Double ) );
+
+        var cases = Introduce( compilation, builder ).Facets.Union!.Cases;
+
+        Assert.Equal( 3, cases.Count );
+        Assert.Equal( SpecialType.String, cases[0].Type.SpecialType );
+        Assert.Equal( SpecialType.Int32, cases[1].Type.SpecialType );
+        Assert.Equal( SpecialType.Double, cases[2].Type.SpecialType );
+        Assert.Equal( [0, 1, 2], cases.SelectAsArray( c => c.Index ) );
+    }
+
+    /// <summary>
     /// Verifies that the facet of an introduced union answers in a compilation to which the transformations that
     /// register its synthesized members have not been applied.
     /// </summary>

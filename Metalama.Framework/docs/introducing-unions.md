@@ -177,6 +177,10 @@ introduce, so every rule this issue writes tests the form it has rather than `IT
 | `IsClosed` | The setter throws an `InvalidOperationException`, as it does for any type that is not a class. |
 | `Facets` | The getter throws a `NotSupportedException`, as it does on every builder. |
 
+A union that declares no case is refused by the advice, with the diagnostic LAMA0554. The language requires a union
+declaration to declare at least one case, and leaving the refusal to the compiler would report CS9370 on generated
+code, which section 3.2 of [`introducing-types.md`](introducing-types.md) forbids.
+
 Member introduction through the adviser is restricted rather than refused. An instance field, an automatic property
 and a field-like event introduced into a union produce the compiler error CS9373, so the eligibility rules refuse
 them and report a Metalama diagnostic instead. An explicit constructor must chain to a generated one, which is a

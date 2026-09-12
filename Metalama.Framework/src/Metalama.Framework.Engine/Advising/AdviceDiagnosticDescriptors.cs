@@ -370,5 +370,14 @@ namespace Metalama.Framework.Engine.Advising
                 "Introduce the record without a positional parameter, or introduce a constructor of its own and put the logic in the template of that constructor.",
                 _category,
                 Error );
+
+        internal static readonly DiagnosticDefinition<(string AspectType, string TypeName)>
+            UnionMustDeclareACase = new(
+                "LAMA0554",
+                "Cannot introduce a union that declares no case.",
+                "The aspect '{0}' cannot introduce the union '{1}' because it declares no case. A union declaration must declare at least one case, "
+                + "which the compiler reports as CS9370 when it does not. Call 'AddCase' at least once in the callback that builds the union.",
+                _category,
+                Error );
     }
 }

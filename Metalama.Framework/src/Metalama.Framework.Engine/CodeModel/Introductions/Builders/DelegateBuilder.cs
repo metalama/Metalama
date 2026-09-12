@@ -64,7 +64,13 @@ internal sealed class DelegateBuilder : NamedTypeBuilder, IDelegateBuilder, ITyp
     public DelegateBuilder( AspectLayerInstance aspectLayerInstance, INamespaceOrNamedType declaringNamespaceOrType, string name )
         : base( aspectLayerInstance, declaringNamespaceOrType, name, TypeKind.Delegate )
     {
-        this.InvokeMethodBuilder = new MethodBuilder( aspectLayerInstance, this, _invokeMethodName ) { Accessibility = Accessibility.Public };
+        // The method kind is what tells the Invoke method of a delegate from an ordinary method, and several
+        // eligibility rules read it. A method that reported MethodKind.Default would accept a contract on one of its
+        // parameters, and the contract would be added to a method that nothing emits.
+        this.InvokeMethodBuilder = new MethodBuilder( aspectLayerInstance, this, _invokeMethodName, MethodKind.DelegateInvoke )
+        {
+            Accessibility = Accessibility.Public
+        };
     }
 
     /// <summary>

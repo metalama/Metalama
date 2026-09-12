@@ -236,10 +236,23 @@ internal class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, I
     {
         // This class represents a class, an interface, a struct and an extension block, so it decides between the
         // two bases those four kinds have. An enum and a delegate have a class of their own and override this.
-        this.BaseType = this.TypeKind == TypeKind.Struct
-            ? this.Compilation.Factory.GetSpecialType( SpecialType.ValueType )
-            : this.Compilation.Factory.GetSpecialType( SpecialType.Object );
+        this.SetBaseTypeCore(
+            this.TypeKind == TypeKind.Struct
+                ? this.Compilation.Factory.GetSpecialType( SpecialType.ValueType )
+                : this.Compilation.Factory.GetSpecialType( SpecialType.Object ) );
     }
+
+    /// <summary>
+    /// Assigns the base type without passing through the setter of <see cref="BaseType"/>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A kind whose language form has no base list refuses every assignment through the setter, and the base type of
+    /// such a kind is still what the code model reports, so the initialization assigns the field instead of the
+    /// property.
+    /// </para>
+    /// </remarks>
+    protected void SetBaseTypeCore( INamedType? baseType ) => this._baseType = baseType;
 
     protected override void FreezeChildren()
     {

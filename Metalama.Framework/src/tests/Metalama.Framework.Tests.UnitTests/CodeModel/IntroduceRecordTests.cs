@@ -221,6 +221,41 @@ public sealed class IntroduceRecordTests : UnitTestClass
     }
 
     /// <summary>
+    /// Verifies that the builder refuses the modifiers that the language does not give a record struct and the one
+    /// that it gives neither authoring form, which is the table of section 4 of
+    /// <c>Metalama.Framework/docs/introducing-records.md</c>.
+    /// </summary>
+    [Fact]
+    public void RecordBuilderRefusesTheModifiersOfOtherKinds()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var compilation = testContext.CreateCompilationModel( "" ).CreateMutableClone();
+
+        var recordStruct = CreatePositionalRecord( compilation, RecordKind.Struct, "Struct" );
+
+        Assert.Throws<NotSupportedException>( () => recordStruct.BaseType = compilation.Factory.GetSpecialType( SpecialType.Object ) );
+        Assert.Throws<NotSupportedException>( () => recordStruct.IsAbstract = true );
+        Assert.Throws<NotSupportedException>( () => recordStruct.IsSealed = true );
+        Assert.Throws<NotSupportedException>( () => recordStruct.IsStatic = true );
+        Assert.Throws<InvalidOperationException>( () => recordStruct.IsRef = true );
+
+        // A record struct accepts the readonly modifier, so the refusals above are not a blanket one.
+        recordStruct.IsReadOnly = true;
+        Assert.True( recordStruct.IsReadOnly );
+
+        var recordClass = CreatePositionalRecord( compilation, RecordKind.Class, "Class" );
+
+        Assert.Throws<NotSupportedException>( () => recordClass.IsStatic = true );
+        Assert.Throws<InvalidOperationException>( () => recordClass.IsReadOnly = true );
+        Assert.Throws<InvalidOperationException>( () => recordClass.IsRef = true );
+
+        // A record class accepts the three modifiers that a record struct refuses.
+        recordClass.IsAbstract = true;
+        Assert.True( recordClass.IsAbstract );
+    }
+
+    /// <summary>
     /// Verifies that the copy constructor of an introduced record class is recognized as one.
     /// </summary>
     /// <remarks>

@@ -98,8 +98,23 @@ internal sealed class IntroducedNamedType : IntroducedMemberOrNamedType, INamedT
 
     INamedTypeCollection INamedType.NestedTypes => this.Types;
 
+    /// <summary>
+    /// Gets the full name of the type, which is the full name of the declaration that contains it followed by its
+    /// own name.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The containing declaration is read as an <see cref="INamespaceOrNamedType"/> and not as an
+    /// <c>INamespaceOrNamedTypeImpl</c>, because a namespace read from source implements the first and not the
+    /// second, so a top-level introduced type would throw. The global namespace contributes no prefix, because its
+    /// own full name is the empty string.
+    /// </para>
+    /// </remarks>
     [Memo]
-    public string FullName => ((INamespaceOrNamedTypeImpl) this.ContainingDeclaration.AssertNotNull()).FullName + "." + this.Name;
+    public string FullName
+        => this.ContainingDeclaration is { DeclarationKind: DeclarationKind.Namespace } and INamespace { IsGlobalNamespace: true }
+            ? this.Name
+            : ((INamespaceOrNamedType) this.ContainingDeclaration.AssertNotNull()).FullName + "." + this.Name;
 
     [Memo]
     public INamedTypeCollection Types
@@ -305,6 +320,20 @@ internal sealed class IntroducedNamedType : IntroducedMemberOrNamedType, INamedT
     public IArrayType MakeArrayType( int rank = 1 ) => new ConstructedArrayType( this.Compilation, this.Ref, rank );
 
     public IPointerType MakePointerType() => new ConstructedPointerType( this.Compilation, this.Ref );
+
+    /// <summary>
+    /// Translates the type to another compilation.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The reference of the type is resolved rather than the reference of its builder data, because the builder
+    /// data carries no nullable annotation and the type does. A field or a parameter typed by the nullable form of
+    /// an introduced type is translated to the compilation of the declaration that is being built, so a
+    /// translation that dropped the annotation would emit the type without its question mark.
+    /// </para>
+    /// </remarks>
+    internal override ICompilationElement Translate( CompilationModel newCompilation, IGenericContext? genericContext = null )
+        => this.Ref.GetTarget( newCompilation, this.CombineGenericContext( genericContext ) );
 
     IType IType.ToNullable() => this.ToNullable();
 

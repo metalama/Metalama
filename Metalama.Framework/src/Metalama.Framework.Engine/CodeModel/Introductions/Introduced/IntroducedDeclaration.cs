@@ -118,26 +118,30 @@ internal abstract class IntroducedDeclaration : BaseDeclaration
     internal override ICompilationElement Translate(
         CompilationModel newCompilation,
         IGenericContext? genericContext = null )
+        => this.BuilderData.ToFullRef().GetTarget( newCompilation, this.CombineGenericContext( genericContext ) );
+
+    /// <summary>
+    /// Combines the generic context of the declaration with the one that a translation supplies.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The two are combined only when one of them is empty, because there is no rule for composing two
+    /// substitutions here.
+    /// </para>
+    /// </remarks>
+    private protected GenericContext CombineGenericContext( IGenericContext? genericContext )
     {
-        GenericContext combinedGenericContext;
-
-        if ( genericContext is { IsEmptyOrIdentity: false } )
+        if ( genericContext is not { IsEmptyOrIdentity: false } )
         {
-            if ( this.GenericContext.IsEmptyOrIdentity )
-            {
-                combinedGenericContext = (GenericContext) genericContext;
-            }
-            else
-            {
-                throw new AssertionFailedException( "Don't know how to combine generic contexts." );
-            }
-        }
-        else
-        {
-            combinedGenericContext = this.GenericContext;
+            return this.GenericContext;
         }
 
-        return this.BuilderData.ToFullRef().GetTarget( newCompilation, combinedGenericContext );
+        if ( !this.GenericContext.IsEmptyOrIdentity )
+        {
+            throw new AssertionFailedException( "Don't know how to combine generic contexts." );
+        }
+
+        return (GenericContext) genericContext;
     }
 
     internal sealed override DeclarationImplementationKind ImplementationKind => DeclarationImplementationKind.Introduced;

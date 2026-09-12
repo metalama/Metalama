@@ -114,6 +114,88 @@ internal sealed class RecordBuilder : NamedTypeBuilder, IRecordBuilder, ITypeBui
     }
 
     /// <summary>
+    /// Gets or sets the base type of the record. A record class accepts one; the setter throws a
+    /// <see cref="NotSupportedException"/> on a record struct, which derives from <see cref="System.ValueType"/> and
+    /// has no base list to emit.
+    /// </summary>
+    public override INamedType? BaseType
+    {
+        get => base.BaseType;
+        set
+        {
+            if ( !this.IsRecordClass )
+            {
+                throw this.NotSupported( nameof(this.BaseType) );
+            }
+
+            base.BaseType = value;
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the record is abstract. A record class accepts the modifier; the
+    /// setter throws a <see cref="NotSupportedException"/> on a record struct, which the language never declares
+    /// abstract.
+    /// </summary>
+    public override bool IsAbstract
+    {
+        get => base.IsAbstract;
+        set
+        {
+            if ( !this.IsRecordClass )
+            {
+                throw this.NotSupported( nameof(this.IsAbstract) );
+            }
+
+            base.IsAbstract = value;
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the record is sealed. A record class accepts the modifier; the setter
+    /// throws a <see cref="NotSupportedException"/> on a record struct, which is implicitly sealed.
+    /// </summary>
+    public override bool IsSealed
+    {
+        get => base.IsSealed;
+        set
+        {
+            if ( !this.IsRecordClass )
+            {
+                throw this.NotSupported( nameof(this.IsSealed) );
+            }
+
+            base.IsSealed = value;
+        }
+    }
+
+    /// <summary>
+    /// Always <c>false</c>. The setter throws a <see cref="NotSupportedException"/>, because the language has no
+    /// static record in either of its two authoring forms.
+    /// </summary>
+    public override bool IsStatic
+    {
+        get => false;
+        set => throw this.NotSupported( nameof(this.IsStatic) );
+    }
+
+    /// <summary>
+    /// A record class derives from <see cref="object"/> and a record struct from <see cref="System.ValueType"/>. The
+    /// field is assigned rather than the property, whose setter refuses an assignment on a record struct. The type
+    /// kind is read and not <see cref="RecordKind"/>, because this method runs from the constructor of the base
+    /// class, before the authoring form is stored.
+    /// </summary>
+    protected override void InitializeBaseType()
+        => this.SetBaseTypeCore(
+            this.TypeKind == TypeKind.Struct
+                ? this.Compilation.Factory.GetSpecialType( SpecialType.ValueType )
+                : this.Compilation.Factory.GetSpecialType( SpecialType.Object ) );
+
+    private NotSupportedException NotSupported( string propertyName )
+        => new(
+            $"The property '{propertyName}' is not supported on the record '{this.Name}', because the language does not give that modifier to a {(this.IsRecordClass ? "record class" : "record struct")}." );
+
+    /// <summary>
     /// Gets a value indicating whether the record is a reference type, which decides the members that the compiler
     /// synthesizes for it.
     /// </summary>

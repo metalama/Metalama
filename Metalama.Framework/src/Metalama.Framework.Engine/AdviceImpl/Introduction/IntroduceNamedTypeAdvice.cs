@@ -79,6 +79,17 @@ internal sealed class IntroduceNamedTypeAdvice : IntroduceDeclarationAdvice<INam
     {
         var targetDeclaration = (INamespaceOrNamedType) this.TargetDeclaration.ForCompilation( context.MutableCompilation );
 
+        // The case list of a union is what the declaration carries, and the language requires at least one case. The
+        // refusal is reported here rather than left to the compiler, which would report CS9370 on generated code.
+        if ( builder is UnionBuilder { Cases.Count: 0 } )
+        {
+            return this.CreateFailedResult(
+                AdviceDiagnosticDescriptors.UnionMustDeclareACase.CreateRoslynDiagnostic(
+                    targetDeclaration.GetDiagnosticLocation(),
+                    (this.AspectInstance.AspectClass.ShortName, builder.Name),
+                    this ) );
+        }
+
         var existingType =
             targetDeclaration.DeclarationKind switch
             {

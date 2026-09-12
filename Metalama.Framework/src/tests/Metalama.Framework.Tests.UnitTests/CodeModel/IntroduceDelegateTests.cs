@@ -48,6 +48,37 @@ public sealed class IntroduceDelegateTests : UnitTestClass
     }
 
     /// <summary>
+    /// Verifies that the <c>Invoke</c> method of an introduced delegate reports the method kind of a delegate
+    /// invocation, which is what tells it from an ordinary method.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Several eligibility rules read the method kind. A method that reported
+    /// <see cref="MethodKind.Default"/> would accept a contract on one of its parameters, and the contract would be
+    /// added to a method that nothing emits.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void InvokeMethodOfIntroducedDelegateReportsTheMethodKindOfASourceDelegate()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var compilation = testContext.CreateCompilationModel( "delegate void SourceDelegate( int value );" ).CreateMutableClone();
+
+        var builder = CreateDelegateBuilder( compilation );
+        builder.ReturnType = compilation.Factory.GetSpecialType( SpecialType.Void );
+        builder.AddParameter( "value", compilation.Factory.GetSpecialType( SpecialType.Int32 ) );
+
+        var introducedType = Introduce( compilation, builder );
+
+        var sourceInvokeMethod = compilation.Types.OfName( "SourceDelegate" ).Single().Facets.Delegate!.InvokeMethod;
+        var introducedInvokeMethod = introducedType.Facets.Delegate!.InvokeMethod;
+
+        Assert.Equal( MethodKind.DelegateInvoke, sourceInvokeMethod.MethodKind );
+        Assert.Equal( sourceInvokeMethod.MethodKind, introducedInvokeMethod.MethodKind );
+    }
+
+    /// <summary>
     /// Verifies that the return parameter of a delegate refuses an input or an output reference kind.
     /// </summary>
     /// <remarks>

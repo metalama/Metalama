@@ -59,6 +59,77 @@ internal sealed class UnionBuilder : NamedTypeBuilder, IUnionBuilder, ITypeBuild
     /// </summary>
     public override bool IsUnion => true;
 
+    /// <summary>
+    /// Always <c>null</c>. The setter throws a <see cref="NotSupportedException"/>, because a union declaration is a
+    /// struct and there is no base list to emit. Section 4 of
+    /// <c>Metalama.Framework/docs/introducing-unions.md</c> states the rule.
+    /// </summary>
+    public override INamedType? BaseType
+    {
+        get => base.BaseType;
+        set => throw this.NotSupported( nameof(this.BaseType) );
+    }
+
+    /// <summary>
+    /// Always <c>false</c>. The setter throws a <see cref="NotSupportedException"/>, because the language has no
+    /// abstract union.
+    /// </summary>
+    public override bool IsAbstract
+    {
+        get => false;
+        set => throw this.NotSupported( nameof(this.IsAbstract) );
+    }
+
+    /// <summary>
+    /// Always <c>false</c>. The setter throws a <see cref="NotSupportedException"/>, because a union declaration is
+    /// a struct and is therefore implicitly sealed.
+    /// </summary>
+    public override bool IsSealed
+    {
+        get => false;
+        set => throw this.NotSupported( nameof(this.IsSealed) );
+    }
+
+    /// <summary>
+    /// Always <c>false</c>. The setter throws a <see cref="NotSupportedException"/>, because the language has no
+    /// static union.
+    /// </summary>
+    public override bool IsStatic
+    {
+        get => false;
+        set => throw this.NotSupported( nameof(this.IsStatic) );
+    }
+
+    /// <summary>
+    /// Always <c>false</c>. The setter throws a <see cref="NotSupportedException"/>, because the language has no
+    /// readonly union.
+    /// </summary>
+    public override bool IsReadOnly
+    {
+        get => false;
+        set => throw this.NotSupported( nameof(this.IsReadOnly) );
+    }
+
+    /// <summary>
+    /// Always <c>false</c>. The setter throws a <see cref="NotSupportedException"/>, because the language has no
+    /// ref union.
+    /// </summary>
+    public override bool IsRef
+    {
+        get => false;
+        set => throw this.NotSupported( nameof(this.IsRef) );
+    }
+
+    /// <summary>
+    /// A union declaration is a struct, so it derives from <see cref="System.ValueType"/>. The field is assigned
+    /// rather than the property, whose setter refuses every assignment.
+    /// </summary>
+    protected override void InitializeBaseType()
+        => this.SetBaseTypeCore( this.Compilation.Factory.GetSpecialType( SpecialType.ValueType ) );
+
+    private NotSupportedException NotSupported( string propertyName )
+        => new( $"The property '{propertyName}' is not supported on the union '{this.Name}', because the language does not give that modifier to a union." );
+
     public IReadOnlyList<IType> Cases => this._cases;
 
     /// <summary>
