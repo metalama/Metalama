@@ -57,6 +57,10 @@ public sealed class ToastNotificationDetectionServiceTests : LicensingTestsBase
         }
 
         await this._toastNotificationDetectionService.DetectAsync();
+
+        // The detection may be throttled and return at once, in which case the notifications raised by the license
+        // consumption above are still being delivered.
+        await this.DrainEventsAsync();
     }
 
     [Theory]

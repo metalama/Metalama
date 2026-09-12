@@ -20,6 +20,7 @@ internal sealed class ToastNotificationDetectionService : IToastNotificationDete
 {
     private readonly IToastNotificationService _toastNotificationService;
     private readonly IToastNotificationStatusService _toastNotificationStatusService;
+    private readonly IEventDispatcher _eventDispatcher;
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly IUserDeviceDetectionService _userDeviceDetectionService;
     private readonly IIdeExtensionStatusService? _ideExtensionStatusService;
@@ -41,6 +42,7 @@ internal sealed class ToastNotificationDetectionService : IToastNotificationDete
         this._ideExtensionStatusService = serviceProvider.GetBackstageService<IIdeExtensionStatusService>();
         this._toastNotificationService = serviceProvider.GetRequiredBackstageService<IToastNotificationService>();
         this._toastNotificationStatusService = serviceProvider.GetRequiredBackstageService<IToastNotificationStatusService>();
+        this._eventDispatcher = serviceProvider.GetRequiredBackstageService<IEventDispatcher>();
         this._backgroundTasksService = serviceProvider.GetRequiredBackstageService<BackstageBackgroundTasksService>();
         this._webLinks = serviceProvider.GetRequiredBackstageService<IWebLinks>();
         this._productName = serviceProvider.GetRequiredBackstageService<ProductProfile>().Name;
@@ -56,6 +58,12 @@ internal sealed class ToastNotificationDetectionService : IToastNotificationDete
 
         try
         {
+            // The notifications that react to an event (the first-run telemetry notice, the missing license) are
+            // shown by a subscriber of the event dispatcher, which delivers asynchronously. The detection below
+            // decides whether a low-priority notification may be shown from the notifications shown so far, so it
+            // must observe every notification whose event was published before it was requested.
+            await this._eventDispatcher.CompleteAsync( CancellationToken.None );
+
             if ( !this._userDeviceDetectionService.IsInteractiveDevice )
             {
                 this._logger.Trace?.Log( "Skipping detection because the session is not interactive." );
