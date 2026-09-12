@@ -16,7 +16,12 @@ namespace Metalama.Backstage.Application
     /// </summary>
     public abstract class ApplicationInfoBase : ComponentInfoBase, IApplicationInfo
     {
-        protected ApplicationInfoBase( Assembly metadataAssembly ) : base( metadataAssembly ) {}
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ApplicationInfoBase"/> class.
+        /// </summary>
+        /// <param name="metadataAssembly">The assembly whose metadata describes the application.</param>
+        /// <param name="productProfile">The profile of the product family that the application belongs to.</param>
+        protected ApplicationInfoBase( Assembly metadataAssembly, ProductProfile productProfile ) : base( metadataAssembly, productProfile ) { }
 
         /// <inheritdoc />
         public virtual ProcessKind ProcessKind => ProcessUtilities.ProcessKind;

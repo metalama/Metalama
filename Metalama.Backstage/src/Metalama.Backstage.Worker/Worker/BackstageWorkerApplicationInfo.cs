@@ -10,7 +10,7 @@ namespace Metalama.Backstage.Worker
     internal sealed class BackstageWorkerApplicationInfo : ApplicationInfoBase
     {
         public BackstageWorkerApplicationInfo()
-            : base( typeof(BackstageWorkerApplicationInfo).Assembly ) { }
+            : base( typeof(BackstageWorkerApplicationInfo).Assembly, MetalamaProduct.Profile ) { }
 
         public override string Name => "Metalama Backstage Worker";
 

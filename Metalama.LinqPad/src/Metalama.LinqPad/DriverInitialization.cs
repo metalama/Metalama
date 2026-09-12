@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using LINQPad;
+using Metalama.Backstage;
 using Metalama.Backstage.Application;
 using Metalama.Backstage.Extensibility;
 using Metalama.Extensions.Metrics;
@@ -49,7 +50,7 @@ internal static class DriverInitialization
 
     private sealed class LinqPadApplicationInfo : ApplicationInfoBase
     {
-        public LinqPadApplicationInfo() : base( typeof(LinqPadApplicationInfo).Assembly ) { }
+        public LinqPadApplicationInfo() : base( typeof(LinqPadApplicationInfo).Assembly, MetalamaProduct.Profile ) { }
 
         public override string Name => "Metalama.LinqPad";
     }
