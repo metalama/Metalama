@@ -6,6 +6,7 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Code.DeclarationBuilders;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
+using Metalama.Framework.Engine.CodeModel.References;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -61,6 +62,12 @@ internal sealed class UnionBuilder : NamedTypeBuilder, IUnionBuilder, ITypeBuild
     public IReadOnlyList<IType> Cases => this._cases;
 
     /// <summary>
+    /// Gets the constructor of each case, in the order in which the aspect added the cases. The list is empty until
+    /// the builder is frozen.
+    /// </summary>
+    public IReadOnlyList<ConstructorBuilder> CaseConstructorBuilders => this._caseConstructors;
+
+    /// <summary>
     /// Gets the property holding the value of the case that the union carries. The property is <c>null</c> until
     /// the builder is frozen.
     /// </summary>
@@ -110,6 +117,9 @@ internal sealed class UnionBuilder : NamedTypeBuilder, IUnionBuilder, ITypeBuild
             yield return this.ValueProperty.BuilderData;
         }
     }
+
+    protected override NamedTypeBuilderData CreateBuilderData( IFullRef<IDeclaration> containingDeclaration )
+        => new UnionBuilderData( this, containingDeclaration );
 
     protected override void FreezeChildren()
     {

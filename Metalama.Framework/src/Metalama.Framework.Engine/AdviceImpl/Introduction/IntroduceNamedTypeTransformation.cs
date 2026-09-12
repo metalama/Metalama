@@ -141,7 +141,7 @@ internal sealed class IntroduceNamedTypeTransformation : IntroduceDeclarationTra
                         List<MemberDeclarationSyntax>() ),
 
                 // The members of an enum are part of the declaration, so they are emitted here rather than injected
-                // separately. The underlying type takes the place of the base list, which GetEnumBaseList supplies.
+                // separately. The underlying type takes the place of the base list, which EnumHelper.GetBaseList supplies.
                 TypeKind.Enum =>
                     EnumDeclaration(
                         AdviceSyntaxGenerator.GetAttributeLists( introducedType, context ),

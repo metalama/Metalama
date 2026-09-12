@@ -946,7 +946,11 @@ internal sealed class LinkerInjectionRegistry
                     {
                         var namedTypeSymbol = (INamedTypeSymbol) symbol;
 
-                        if ( namedTypeSymbol.IsGenericType )
+                        if ( !namedTypeSymbol.IsGenericType )
+                        {
+                            return (TSymbol?) symbol;
+                        }
+
                         {
                             var typeArguments = new ITypeSymbol[namedTypeSymbol.TypeArguments.Length];
 

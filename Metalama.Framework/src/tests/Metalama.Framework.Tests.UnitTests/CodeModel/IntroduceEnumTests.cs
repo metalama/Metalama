@@ -351,6 +351,37 @@ public sealed class IntroduceEnumTests : UnitTestClass
     }
 
     /// <summary>
+    /// Verifies that a member whose value is given as a constant created from a constant field takes the value of
+    /// that field.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <see cref="TypedConstant.Create(IField)"/> stores the field itself and not its value, so the value has to be
+    /// read from the field before it is converted. A member of an enum takes a value and not an expression, so the
+    /// reference to the field is dropped.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void MemberWhoseValueIsAConstantFieldTakesTheValueOfTheField()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var compilation = testContext.CreateCompilationModel( "class Constants { public const int Answer = 42; }" ).CreateMutableClone();
+
+        var constantField = compilation.Types.OfName( "Constants" ).Single().Fields.OfName( "Answer" ).Single();
+
+        var builder = new EnumBuilder( null!, compilation.GlobalNamespace, "IntroducedEnum" );
+        builder.AddMember( "FromField", TypedConstant.Create( constantField ) );
+
+        var introducedType = Introduce( compilation, builder );
+
+        var member = introducedType.Facets.Enum!.Members.Single();
+
+        Assert.Equal( "FromField", member.Name );
+        Assert.Equal( 42, member.ConstantValue!.Value.Value );
+    }
+
+    /// <summary>
     /// Verifies that <see cref="INamedType.Facets"/> of an enum builder throws, while the flags that the collection
     /// dispatches on answer without throwing. See section 5.1 of
     /// <c>Metalama.Framework/docs/introducing-types.md</c>.

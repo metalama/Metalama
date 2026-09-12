@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Diagnostics;
@@ -357,6 +358,16 @@ namespace Metalama.Framework.Engine.Advising
                 "Cannot override a compiler-synthesized record member that cannot be declared explicitly.",
                 "The aspect '{0}' cannot override '{1}' because the C# compiler adds this member to record '{2}' unconditionally, so it cannot be declared explicitly. " +
                 "Override the strongly typed 'Equals' overload instead. The equality operators and 'Equals(object)' both call it.",
+                _category,
+                Error );
+
+        internal static readonly DiagnosticDefinition<(string AspectType, AdviceKind AdviceKind, IDeclaration TargetType)>
+            CannotReplaceIntroducedPrimaryConstructor = new(
+                "LAMA0553",
+                "Cannot replace the primary constructor of a record that an aspect introduces.",
+                "The aspect '{0}' cannot apply the advice '{1}' to '{2}' because it replaces the primary constructor of that record by an explicit one, " +
+                "and that replacement rewrites the declaration of the record as it is written in source, which a record introduced by an aspect does not have. " +
+                "Introduce the record without a positional parameter, or introduce a constructor of its own and put the logic in the template of that constructor.",
                 _category,
                 Error );
     }

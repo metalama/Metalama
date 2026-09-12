@@ -159,6 +159,14 @@ internal sealed class IntroduceNamedTypeAdvice : IntroduceDeclarationAdvice<INam
             return;
         }
 
+        // A positional record class declares a primary constructor, which is a declared constructor, so the compiler
+        // gives it no parameterless one. A record struct receives a parameterless constructor in every case, because
+        // every struct does, and a record class that declares no positional parameter receives one as well.
+        if ( builder is RecordBuilder { RecordKind: RecordKind.Class, HasPositionalParameters: true } )
+        {
+            return;
+        }
+
         var constructorBuilder = new ConstructorBuilder( this.AspectLayerInstance, builder, isImplicitlyDeclared: true )
         {
             Accessibility = Accessibility.Public

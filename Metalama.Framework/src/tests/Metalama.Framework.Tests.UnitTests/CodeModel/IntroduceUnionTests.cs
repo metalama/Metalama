@@ -98,6 +98,42 @@ public sealed class IntroduceUnionTests : UnitTestClass
     }
 
     /// <summary>
+    /// Verifies that the facet of an introduced union answers in a compilation to which the transformations that
+    /// register its synthesized members have not been applied.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The member collections of an introduced type come from the compilation model, so they are empty in such a
+    /// compilation, and an aspect that reads the facet of a union it has just introduced reads it there. The facet
+    /// therefore reads the builder data, which answers in every compilation that knows the union.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void FacetAnswersBeforeTheSynthesizedMembersAreRegistered()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var compilation = testContext.CreateCompilationModel( "" ).CreateMutableClone();
+
+        var builder = CreateUnionBuilder( compilation );
+        builder.Freeze();
+        compilation.AddTransformation( builder.CreateTransformation() );
+
+        var introducedType = compilation.Types.OfName( builder.Name ).Single();
+
+        Assert.Empty( introducedType.Constructors );
+        Assert.Empty( introducedType.Properties );
+
+        var facet = introducedType.Facets.Union!;
+
+        Assert.Equal( 2, facet.Cases.Count );
+        Assert.Equal( SpecialType.Int32, facet.Cases[0].Type.SpecialType );
+        Assert.Equal( SpecialType.String, facet.Cases[1].Type.SpecialType );
+        Assert.NotNull( facet.ValueProperty );
+        Assert.Equal( SpecialType.Object, facet.ValueProperty.Type.SpecialType );
+    }
+
+    /// <summary>
     /// Verifies that the cases of an introduced union are reported in the order in which they were added, each with
     /// the constructor that creates it.
     /// </summary>

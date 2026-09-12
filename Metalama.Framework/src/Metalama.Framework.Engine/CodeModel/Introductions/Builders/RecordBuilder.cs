@@ -56,10 +56,20 @@ internal sealed class RecordBuilder : NamedTypeBuilder, IRecordBuilder, ITypeBui
     private readonly ConstructorBuilder _primaryConstructor;
     private readonly List<PropertyBuilder> _positionalProperties = [];
 
-    // The three lists are typed, because each builder class declares its own BuilderData property and no common
-    // base declares one.
+    /// <summary>
+    /// The properties that the compiler synthesizes from the record declaration. The three lists below are typed,
+    /// because each builder class declares its own <c>BuilderData</c> property and no common base declares one.
+    /// </summary>
     private readonly List<PropertyBuilder> _synthesizedProperties = [];
+
+    /// <summary>
+    /// The methods that the compiler synthesizes from the record declaration.
+    /// </summary>
     private readonly List<MethodBuilder> _synthesizedMethods = [];
+
+    /// <summary>
+    /// The constructors that the compiler synthesizes from the record declaration.
+    /// </summary>
     private readonly List<ConstructorBuilder> _synthesizedConstructors = [];
 
     public RecordBuilder(
@@ -113,6 +123,12 @@ internal sealed class RecordBuilder : NamedTypeBuilder, IRecordBuilder, ITypeBui
     /// Gets the primary constructor, whose parameters are the positional parameters of the record.
     /// </summary>
     public ConstructorBuilder PrimaryConstructorBuilder => this._primaryConstructor;
+
+    /// <summary>
+    /// Gets a value indicating whether the record declares at least one positional parameter, which is what decides
+    /// whether the declaration carries a parameter list and therefore whether the record has a primary constructor.
+    /// </summary>
+    public bool HasPositionalParameters => this._primaryConstructor.Parameters.Count > 0;
 
     /// <summary>
     /// Gets the immutable data of every member that the compiler synthesizes and that the advice registers in the
@@ -200,9 +216,16 @@ internal sealed class RecordBuilder : NamedTypeBuilder, IRecordBuilder, ITypeBui
 
         base.FreezeChildren();
 
+        // The primary constructor is frozen even when it is not a synthesized member of the record, because a record
+        // that declares no positional parameter still owns the builder and an unfrozen builder has no data.
+        this._primaryConstructor.Freeze();
+
         foreach ( var constructor in this._synthesizedConstructors )
         {
-            constructor.Freeze();
+            if ( !ReferenceEquals( constructor, this._primaryConstructor ) )
+            {
+                constructor.Freeze();
+            }
         }
 
         foreach ( var property in this._synthesizedProperties )
@@ -221,7 +244,13 @@ internal sealed class RecordBuilder : NamedTypeBuilder, IRecordBuilder, ITypeBui
     /// </summary>
     private void MaterializeSynthesizedMembers()
     {
-        this._synthesizedConstructors.Add( this._primaryConstructor );
+        // A record declares a primary constructor only when it declares a positional parameter list. Metalama emits
+        // no parameter list for a record that has no positional parameter, so that record has no primary constructor
+        // and receives the implicit parameterless one instead, exactly as a record read from source does.
+        if ( this.HasPositionalParameters )
+        {
+            this._synthesizedConstructors.Add( this._primaryConstructor );
+        }
 
         this.MaterializePositionalProperties();
         this.MaterializeEqualityContractProperty();
@@ -329,7 +358,10 @@ internal sealed class RecordBuilder : NamedTypeBuilder, IRecordBuilder, ITypeBui
         this.CloneMethod = cloneMethod;
         this._synthesizedMethods.Add( cloneMethod );
 
-        var copyConstructor = new ConstructorBuilder( this.AspectLayerInstance, this )
+        // The copy constructor is marked as implicitly declared, which is one of the four conditions that
+        // DeclarationExtensions.IsRecordCopyConstructor tests. Three places in the engine filter the constructors of
+        // a type through that method, and a copy constructor that fails the test is treated as an ordinary one.
+        var copyConstructor = new ConstructorBuilder( this.AspectLayerInstance, this, isImplicitlyDeclared: true )
         {
             Accessibility = this.IsSealed ? Accessibility.Private : Accessibility.Protected
         };
@@ -346,7 +378,7 @@ internal sealed class RecordBuilder : NamedTypeBuilder, IRecordBuilder, ITypeBui
     /// </summary>
     private void MaterializeDeconstructMethod()
     {
-        if ( this._primaryConstructor.Parameters.Count == 0 )
+        if ( !this.HasPositionalParameters )
         {
             return;
         }

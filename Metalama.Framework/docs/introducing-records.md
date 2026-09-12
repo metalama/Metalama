@@ -255,6 +255,30 @@ Member introduction is valid on a record, unlike on an enum and on a delegate. T
 [`introducing-types.md`](introducing-types.md) does not apply here, and an aspect may add methods, properties and
 constructors to an introduced record through the adviser in the ordinary way.
 
+Two advices are refused on the primary constructor of an introduced record: `AddInitializer` with
+`InitializerKind.BeforeInstanceConstructor`, and `Override` on the constructor itself. Both replace the primary
+constructor by an explicit one, and the linker performs that replacement by rewriting the declaration of the record
+as the user wrote it, which an introduced record does not have. Metalama reports LAMA0553 from the advice rather
+than failing in the linker. The two ways around it are to introduce the record without a positional parameter,
+which gives it the implicit parameterless constructor that both advices do serve, and to introduce a constructor of
+its own and put the statements in the template of that constructor.
+
+### 4.1. The constructors that an introduced record has
+
+The compiler gives a record the constructors that its declaration implies, and an introduced record reports the
+same set.
+
+| Authoring form | Primary constructor | Parameterless constructor | Copy constructor |
+| --- | --- | --- | --- |
+| `record R( int X )` | Yes, with the positional parameters. | No, because the record declares a constructor. | Yes. |
+| `record R` | No, because the declaration carries no parameter list. | Yes. | Yes. |
+| `record struct R( int X )` | Yes, with the positional parameters. | Yes, because every struct has one. | No. |
+| `record struct R` | No. | Yes. | No. |
+
+The copy constructor is reported as implicitly declared, which is one of the four conditions that
+`DeclarationExtensions.IsRecordCopyConstructor` tests. Three places in the engine filter the constructors of a type
+through that method, so a copy constructor that failed the test would be treated as an ordinary constructor.
+
 ## 5. The synthesized members, and what the facet reports
 
 A record builder throws a `NotSupportedException` from `Facets`, which section 5.1 of

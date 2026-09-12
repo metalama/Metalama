@@ -212,14 +212,24 @@ internal sealed class EnumBuilder : NamedTypeBuilder, IEnumBuilder, ITypeBuilder
                 nameof(value) );
         }
 
+        // A TypedConstant created by TypedConstant.Create(IField) carries the field itself rather than its value, so
+        // the value is read from the field before it is converted. The reference to the field is dropped, because the
+        // member of an enum takes a value and not an expression.
+        var rawValue = value.RawValue is IField field ? field.ConstantValue?.Value : value.Value;
+
+        if ( rawValue == null )
+        {
+            return this.AddMemberCore( name, null );
+        }
+
         // The value of a constant of an enum is its underlying value, so a constant read from another enum and a
         // constant of an integral type are converted the same way. The type of the constant is replaced by the
         // underlying type of this enum, because the language converts neither one enum to another nor an enum to an
         // integral type implicitly, and the declaration would not compile otherwise.
-        return value.Value switch
+        return rawValue switch
         {
             ulong unsignedValue => this.AddUnsignedMember( name, unsignedValue ),
-            _ => this.AddIntegralMember( name, Convert.ToInt64( value.Value, CultureInfo.InvariantCulture ) )
+            _ => this.AddIntegralMember( name, Convert.ToInt64( rawValue, CultureInfo.InvariantCulture ) )
         };
     }
 

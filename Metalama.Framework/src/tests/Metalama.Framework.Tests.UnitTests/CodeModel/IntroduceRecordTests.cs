@@ -221,6 +221,55 @@ public sealed class IntroduceRecordTests : UnitTestClass
     }
 
     /// <summary>
+    /// Verifies that the copy constructor of an introduced record class is recognized as one.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <see cref="DeclarationExtensions.IsRecordCopyConstructor"/> requires the constructor to be implicitly
+    /// declared, and three places in the engine filter the constructors of a type through that method, so a copy
+    /// constructor that fails the test is treated as an ordinary one.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void CopyConstructorOfIntroducedRecordIsRecognizedAsOne()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var compilation = testContext.CreateCompilationModel( "" ).CreateMutableClone();
+
+        var introducedType = Introduce( compilation, CreatePositionalRecord( compilation, RecordKind.Class ) );
+
+        var copyConstructor = introducedType.Facets.Record!.CopyConstructor;
+
+        Assert.NotNull( copyConstructor );
+        Assert.True( copyConstructor.IsImplicitlyDeclared );
+        Assert.True( copyConstructor.IsRecordCopyConstructor() );
+    }
+
+    /// <summary>
+    /// Verifies that a record that declares no positional parameter has no primary constructor, which is what the
+    /// language gives it: the declaration carries no parameter list, so the compiler declares none.
+    /// </summary>
+    [Fact]
+    public void NonPositionalRecordHasNoPrimaryConstructor()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var compilation = testContext.CreateCompilationModel( "" ).CreateMutableClone();
+
+        var builder = new RecordBuilder( null!, compilation.GlobalNamespace, "NonPositional", RecordKind.Class );
+        var introducedType = Introduce( compilation, builder );
+
+        Assert.Null( introducedType.PrimaryConstructor );
+        Assert.DoesNotContain( introducedType.Constructors, c => c.IsPrimary );
+
+        // The only constructor that the record itself synthesizes is the copy constructor. The parameterless one
+        // comes from the advice, in the way it does for an introduced class.
+        Assert.Single( introducedType.Constructors );
+        Assert.True( introducedType.Constructors.Single().IsRecordCopyConstructor() );
+    }
+
+    /// <summary>
     /// Verifies that <c>PrintMembers</c> is <c>protected virtual</c> on a record class that is not sealed and
     /// <c>private</c> on one that is, and always <c>private</c> on a record struct.
     /// </summary>

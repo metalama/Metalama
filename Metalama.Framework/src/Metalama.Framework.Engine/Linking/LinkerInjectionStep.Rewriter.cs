@@ -325,10 +325,16 @@ internal sealed partial class LinkerInjectionStep
 
 #if ROSLYN_5_11_0_OR_GREATER
 
-        // A union declaration is a type declaration like any other, and VisitTypeDeclaration already replaces the
-        // semicolon of a declaration that has no member list by a pair of braces when a member is injected into it,
-        // which is the form a union takes. The override exists only because Roslyn dispatches a virtual method per
-        // node kind. See issue #1944.
+        /// <summary>
+        /// Visits a union declaration, which is a type declaration like any other.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <c>VisitTypeDeclaration</c> already replaces the semicolon of a declaration that has no member list by a
+        /// pair of braces when a member is injected into it, which is the form a union takes. The override exists
+        /// only because Roslyn dispatches a virtual method per node kind. See issue #1944.
+        /// </para>
+        /// </remarks>
         public override SyntaxNode VisitUnionDeclaration( UnionDeclarationSyntax node ) => this.VisitTypeDeclaration( node );
 #endif
 
@@ -667,18 +673,7 @@ internal sealed partial class LinkerInjectionStep
                             injectedTypeMembers,
                             syntaxGenerationContext );
 
-                        typeDeclaration = typeDeclaration.WithMembers( typeDeclaration.Members.AddRange( injectedTypeMembers ) );
-
-                        // A declaration that has no member list is written with a semicolon, which is the form an
-                        // introduced union takes, so the braces replace it once a member is injected.
-                        // VisitTypeDeclaration does the same for a declaration read from source.
-                        if ( injectedTypeMembers.Count > 0 && typeDeclaration.OpenBraceToken.IsKind( SyntaxKind.None ) )
-                        {
-                            typeDeclaration = typeDeclaration
-                                .WithOpenBraceToken( Token( SyntaxKind.OpenBraceToken ) )
-                                .WithCloseBraceToken( Token( SyntaxKind.CloseBraceToken ) )
-                                .WithSemicolonToken( default );
-                        }
+                        typeDeclaration = AddMembers( typeDeclaration, injectedTypeMembers );
 
                         injectedNode = AddInjectedInterfaces( typeBuilder, typeDeclaration );
 
@@ -700,8 +695,7 @@ internal sealed partial class LinkerInjectionStep
                             injectedNamedTypeMembers,
                             syntaxGenerationContext );
 
-                        namespaceTypeDeclaration =
-                            namespaceTypeDeclaration.WithMembers( namespaceTypeDeclaration.Members.AddRange( injectedNamedTypeMembers ) );
+                        namespaceTypeDeclaration = AddMembers( namespaceTypeDeclaration, injectedNamedTypeMembers );
 
                         namespaceTypeDeclaration = AddInjectedInterfaces( namespaceTypeBuilder, namespaceTypeDeclaration );
 
@@ -711,6 +705,29 @@ internal sealed partial class LinkerInjectionStep
                 }
 
                 targetList.Add( (T) injectedNode );
+
+                static TypeDeclarationSyntax AddMembers( TypeDeclarationSyntax typeDeclaration, List<MemberDeclarationSyntax> injectedMembers )
+                {
+                    if ( injectedMembers.Count == 0 )
+                    {
+                        return typeDeclaration;
+                    }
+
+                    typeDeclaration = typeDeclaration.WithMembers( typeDeclaration.Members.AddRange( injectedMembers ) );
+
+                    // A declaration that has no member list is written with a semicolon, which is the form an
+                    // introduced union takes, so the braces replace it once a member is injected.
+                    // VisitTypeDeclaration does the same for a declaration read from source.
+                    if ( typeDeclaration.OpenBraceToken.IsKind( SyntaxKind.None ) )
+                    {
+                        typeDeclaration = typeDeclaration
+                            .WithOpenBraceToken( Token( SyntaxKind.OpenBraceToken ) )
+                            .WithCloseBraceToken( Token( SyntaxKind.CloseBraceToken ) )
+                            .WithSemicolonToken( default );
+                    }
+
+                    return typeDeclaration;
+                }
 
                 TypeDeclarationSyntax AddInjectedInterfaces( NamedTypeBuilderData typeBuilder, TypeDeclarationSyntax typeDeclaration )
                 {

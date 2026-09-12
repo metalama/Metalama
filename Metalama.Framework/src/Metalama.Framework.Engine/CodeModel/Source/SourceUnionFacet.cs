@@ -7,6 +7,7 @@ using Metalama.Framework.Code.Types;
 using Metalama.Framework.Engine.CodeModel.Facets;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Roslyn;
+using System.Collections.Generic;
 
 namespace Metalama.Framework.Engine.CodeModel.Source;
 
@@ -30,6 +31,12 @@ internal sealed class SourceUnionFacet : UnionFacet
     /// </remarks>
     [Memo]
     public override UnionKind UnionKind => this.GetUnionKindCore();
+
+    [Memo]
+    public override IReadOnlyList<IUnionCase> Cases => this.GetCasesFromMembers();
+
+    [Memo]
+    public override IProperty? ValueProperty => this.GetValuePropertyFromMembers();
 
     private UnionKind GetUnionKindCore()
     {

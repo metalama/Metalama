@@ -389,6 +389,7 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
         var lateTransformationRegistry =
             new LinkerLateTransformationRegistry(
                 intermediateCompilation,
+                injectionRegistry,
                 transformationCollection.LateTypeLevelTransformations );
 
         var projectOptions = this._serviceProvider.GetService<IProjectOptions>();
@@ -609,7 +610,7 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
             auxiliaryMemberTransformations.GetOrAdd( overriddenConstructorRef, _ => new AuxiliaryMemberTransformations() ).InjectAuxiliarySourceMember();
 
             transformationCollection
-                .GetOrAddLateTypeLevelTransformations( (ISymbolRef<INamedType>) overriddenConstructorRef.ContainingDeclaration.AssertNotNull() )
+                .GetOrAddLateTypeLevelTransformations( overriddenConstructorRef.ContainingDeclaration.AssertNotNull().As<INamedType>() )
                 .RemovePrimaryConstructor();
         }
 
@@ -887,7 +888,7 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
             auxiliaryMemberTransformations.GetOrAdd( overriddenConstructor.ToFullRef(), _ => new AuxiliaryMemberTransformations() )
                 .InjectAuxiliarySourceMember();
 
-            transformationCollection.GetOrAddLateTypeLevelTransformations( (ISymbolRef<INamedType>) overriddenConstructor.DeclaringType.ToRef() )
+            transformationCollection.GetOrAddLateTypeLevelTransformations( overriddenConstructor.DeclaringType.ToFullRef() )
                 .RemovePrimaryConstructor();
         }
 
@@ -1032,7 +1033,7 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
                                 .InjectAuxiliarySourceMember();
 
                             var lateTransformations = transformationCollection
-                                .GetOrAddLateTypeLevelTransformations( (ISymbolRef<INamedType>) primaryCtor.DeclaringType.ToRef() );
+                                .GetOrAddLateTypeLevelTransformations( primaryCtor.DeclaringType.ToFullRef() );
 
                             lateTransformations.RemovePrimaryConstructor();
                             lateTransformations.AddNonMaterializedIntroducedParameter( introduceParameterTransformation.Parameter.Name );
@@ -1043,7 +1044,7 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
                             // emission can differentiate the all-non-materialized case (where the compensator
                             // alone is sufficient) from the mixed / all-materialized case.
                             var lateTransformations = transformationCollection
-                                .GetOrAddLateTypeLevelTransformations( (ISymbolRef<INamedType>) primaryCtor.DeclaringType.ToRef() );
+                                .GetOrAddLateTypeLevelTransformations( primaryCtor.DeclaringType.ToFullRef() );
 
                             lateTransformations.MarkMaterializedIntroducedParameterOnPrimary();
                         }

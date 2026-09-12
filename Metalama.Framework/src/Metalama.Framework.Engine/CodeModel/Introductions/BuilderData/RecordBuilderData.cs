@@ -25,9 +25,10 @@ namespace Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 internal sealed class RecordBuilderData : NamedTypeBuilderData
 {
     /// <summary>
-    /// Gets the primary constructor of the record, whose parameters are its positional parameters.
+    /// Gets the primary constructor of the record, whose parameters are its positional parameters, or <c>null</c>
+    /// when the record declares no positional parameter and therefore has no primary constructor.
     /// </summary>
-    public IFullRef<IConstructor> PrimaryConstructor { get; }
+    public IFullRef<IConstructor>? PrimaryConstructor { get; }
 
     /// <summary>
     /// Gets the property carrying the equality contract, or <c>null</c> for a record struct, which has none.
@@ -61,7 +62,7 @@ internal sealed class RecordBuilderData : NamedTypeBuilderData
 
     public RecordBuilderData( RecordBuilder builder, IFullRef<IDeclaration> containingDeclaration ) : base( builder, containingDeclaration )
     {
-        this.PrimaryConstructor = builder.PrimaryConstructorBuilder.BuilderData.ToRef();
+        this.PrimaryConstructor = builder.HasPositionalParameters ? builder.PrimaryConstructorBuilder.BuilderData.ToRef() : null;
         this.EqualityContractProperty = builder.EqualityContractProperty?.BuilderData.ToRef();
         this.PrintMembersMethod = builder.PrintMembersMethod.AssertNotNull().BuilderData.ToRef();
         this.CloneMethod = builder.CloneMethod?.BuilderData.ToRef();

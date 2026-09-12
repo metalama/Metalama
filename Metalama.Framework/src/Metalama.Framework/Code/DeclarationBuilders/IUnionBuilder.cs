@@ -36,10 +36,9 @@ public interface IUnionBuilder : INamedTypeBuilder
     /// </summary>
     /// <remarks>
     /// <para>
-    /// The list holds types and not cases. A case of a union is a type and nothing else, so there is nothing else
-    /// for an element of this list to carry. <see cref="Metalama.Framework.Code.Types.IUnionCase"/>, which the
-    /// introduced type reports, carries the index and the creation member in addition, and neither exists while the
-    /// union is being built.
+    /// The list holds types and not cases, because a case of a union under construction is fully described by its
+    /// type. <see cref="Metalama.Framework.Code.Types.IUnionCase"/>, which the introduced type reports, carries the
+    /// index and the creation member in addition, and neither exists while the union is being built.
     /// </para>
     /// </remarks>
     /// <seealso cref="Metalama.Framework.Code.Types.IUnionFacet.Cases"/>

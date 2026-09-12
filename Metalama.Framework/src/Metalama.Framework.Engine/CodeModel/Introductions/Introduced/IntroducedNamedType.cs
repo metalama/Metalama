@@ -162,7 +162,9 @@ internal sealed class IntroducedNamedType : IntroducedMemberOrNamedType, INamedT
     public IMethodCollection AllMethods => new AllMethodsCollection( this );
 
     IConstructor? INamedType.PrimaryConstructor
-        => this._namedTypeBuilderData is RecordBuilderData recordBuilderData ? this.MapDeclaration( recordBuilderData.PrimaryConstructor ) : null;
+        => this._namedTypeBuilderData is RecordBuilderData { PrimaryConstructor: { } primaryConstructor }
+            ? this.MapDeclaration( primaryConstructor )
+            : null;
 
     [Memo]
     public IConstructorCollection Constructors
@@ -184,10 +186,17 @@ internal sealed class IntroducedNamedType : IntroducedMemberOrNamedType, INamedT
         return new ExtensionBlockCollection( this, collection.ToImmutableArray() );
     }
 
-    // An introduced type reports the facet of its kind, which is section 5.2 of
-    // Metalama.Framework/docs/introducing-types.md. This is the same call that SourceNamedTypeImpl makes, and
-    // it serves every kind at once, because the collection dispatches on the four flags above and constructs nothing
-    // for a type that has none.
+    /// <summary>
+    /// Gets the facet of the type, which is the structure that its kind gives it.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// An introduced type reports the facet of its kind, which is section 5.2 of
+    /// <c>Metalama.Framework/docs/introducing-types.md</c>. This is the same call that <c>SourceNamedTypeImpl</c>
+    /// makes, and it serves every kind at once, because the collection dispatches on the four flags above and
+    /// constructs nothing for a type that has none.
+    /// </para>
+    /// </remarks>
     [Memo]
     public ITypeFacetCollection Facets => TypeFacetCollection.Create( this );
 
@@ -198,9 +207,16 @@ internal sealed class IntroducedNamedType : IntroducedMemberOrNamedType, INamedT
 
     protected override IMemberOrNamedType GetDefinition() => this.Definition;
 
-    // The underlying type of an enum is its underlying integral type, which the builder data carries. Every other
-    // kind is its own underlying type. IEnumFacet.UnderlyingType reads this property, so an enum that answered itself
-    // here would report itself as its own underlying type.
+    /// <summary>
+    /// Gets the underlying type, which for an enum is the underlying integral type that the builder data carries and
+    /// for every other kind is the type itself.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <see cref="Metalama.Framework.Code.Types.IEnumFacet.UnderlyingType"/> reads this property, so an enum that
+    /// answered itself here would report itself as its own underlying type.
+    /// </para>
+    /// </remarks>
     [Memo]
     public INamedType UnderlyingType
         => this._namedTypeBuilderData is EnumBuilderData { UnderlyingType: { } underlyingType }
@@ -213,10 +229,23 @@ internal sealed class IntroducedNamedType : IntroducedMemberOrNamedType, INamedT
 
     public Type ToType() => throw new NotImplementedException();
 
-    // A delegate is a reference type, so the test names it beside the class. Getting this wrong is not cosmetic:
-    // ToNullable below branches on it, so a delegate reported as a value type would produce Nullable<TDelegate>,
-    // which the language does not accept. See #1840 for the same class of defect.
-    public bool? IsReferenceType => this._namedTypeBuilderData.TypeKind is TypeKind.Class or TypeKind.Interface or TypeKind.Delegate;
+    /// <summary>
+    /// Gets a value indicating whether the type is a reference type.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The test names the two value kinds rather than the reference ones, which is the rule Roslyn applies to a
+    /// symbol, so a kind that is added later is reported as a reference type by default. A class, an interface and a
+    /// delegate are all reference types, and a struct and an enum are not. A union is reported as a struct, so it is
+    /// a value type as well.
+    /// </para>
+    /// <para>
+    /// The value decides more than what this property returns, because <c>ToNullable</c> below branches on it: a
+    /// delegate reported as a value type would produce <c>Nullable&lt;TDelegate&gt;</c>, which the language does not
+    /// accept. Issue #1840 records the same class of defect.
+    /// </para>
+    /// </remarks>
+    public bool? IsReferenceType => this._namedTypeBuilderData.TypeKind is not (TypeKind.Struct or TypeKind.Enum);
 
     public bool IsReadOnly => this._namedTypeBuilderData.IsReadOnly;
 

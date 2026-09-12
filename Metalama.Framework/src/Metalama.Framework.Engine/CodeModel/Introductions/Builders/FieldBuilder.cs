@@ -23,8 +23,15 @@ using MethodKind = Metalama.Framework.Code.MethodKind;
 
 namespace Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 
-// The class is not sealed, because EnumMemberBuilder derives from it: a member of an enum is a constant field whose
-// type is the enum, so it reuses the whole of this builder and fixes what the language fixes.
+/// <summary>
+/// Builds a field that an advice introduces.
+/// </summary>
+/// <remarks>
+/// <para>
+/// The class is not sealed, because <c>EnumMemberBuilder</c> derives from it: a member of an enum is a constant
+/// field whose type is the enum, so it reuses the whole of this builder and fixes what the language fixes.
+/// </para>
+/// </remarks>
 internal class FieldBuilder : MemberBuilder, IFieldBuilder, IFieldImpl
 {
     private IType _type;

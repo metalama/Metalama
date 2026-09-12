@@ -48,6 +48,52 @@ public sealed class IntroduceDelegateTests : UnitTestClass
     }
 
     /// <summary>
+    /// Verifies that the return parameter of a delegate refuses an input or an output reference kind.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The language lets a return parameter be returned by value, by reference or by read-only reference, and lets
+    /// an argument alone be an input or an output one. The refusal is reported by the setter, because a value that
+    /// the language does not accept would otherwise produce an error on generated code.
+    /// </para>
+    /// </remarks>
+    [Theory]
+    [InlineData( RefKind.In )]
+    [InlineData( RefKind.Out )]
+    public void ReturnParameterRefusesAnInputOrOutputReferenceKind( RefKind refKind )
+    {
+        using var testContext = this.CreateTestContext();
+
+        var compilation = testContext.CreateCompilationModel( "" ).CreateMutableClone();
+
+        var builder = CreateDelegateBuilder( compilation );
+        builder.ReturnType = compilation.Factory.GetSpecialType( SpecialType.Int32 );
+
+        Assert.Throws<InvalidOperationException>( () => builder.ReturnParameter.RefKind = refKind );
+    }
+
+    /// <summary>
+    /// Verifies that the return parameter of a delegate accepts the three reference kinds that the language allows
+    /// on a return.
+    /// </summary>
+    [Theory]
+    [InlineData( RefKind.None )]
+    [InlineData( RefKind.Ref )]
+    [InlineData( RefKind.RefReadOnly )]
+    public void ReturnParameterAcceptsTheReferenceKindsOfAReturn( RefKind refKind )
+    {
+        using var testContext = this.CreateTestContext();
+
+        var compilation = testContext.CreateCompilationModel( "" ).CreateMutableClone();
+
+        var builder = CreateDelegateBuilder( compilation );
+        builder.ReturnType = compilation.Factory.GetSpecialType( SpecialType.Int32 );
+        builder.ReturnParameter.RefKind = refKind;
+
+        Assert.Equal( refKind, builder.ReturnParameter.RefKind );
+    }
+
+    /// <summary>
     /// Verifies that an introduced delegate reports the flags of a delegate and that it is a reference type.
     /// </summary>
     /// <remarks>

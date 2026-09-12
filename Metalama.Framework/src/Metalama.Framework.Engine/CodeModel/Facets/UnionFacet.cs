@@ -61,11 +61,17 @@ internal abstract class UnionFacet : IUnionFacet
     /// </summary>
     public abstract UnionKind UnionKind { get; }
 
-    [Memo]
-    public IReadOnlyList<IUnionCase> Cases => this.GetCases();
+    /// <summary>
+    /// Gets the cases of the union, which the derived class derives from the members of a union read from source and
+    /// reads from the builder data of an introduced one.
+    /// </summary>
+    public abstract IReadOnlyList<IUnionCase> Cases { get; }
 
-    [Memo]
-    public IProperty? ValueProperty => this.GetValueProperty();
+    /// <summary>
+    /// Gets the property holding the value of the case that the union carries, which the derived class derives from
+    /// the members of a union read from source and reads from the builder data of an introduced one.
+    /// </summary>
+    public abstract IProperty? ValueProperty { get; }
 
     /// <summary>
     /// Gets the union member provider interface of the union, or <c>null</c> when the union has none, in which case
@@ -74,7 +80,10 @@ internal abstract class UnionFacet : IUnionFacet
     [Memo]
     private INamedType? MemberProviderInterface => this.GetMemberProviderInterface();
 
-    private IReadOnlyList<IUnionCase> GetCases()
+    /// <summary>
+    /// Derives the cases of the union from its members, which is how a union read from source reports them.
+    /// </summary>
+    protected IReadOnlyList<IUnionCase> GetCasesFromMembers()
     {
         var cases = new List<IUnionCase>();
 
@@ -208,7 +217,11 @@ internal abstract class UnionFacet : IUnionFacet
     /// interface and the interfaces that it inherits when the union has one, and in the union and its base types
     /// otherwise.
     /// </summary>
-    private IProperty? GetValueProperty()
+    /// <summary>
+    /// Derives the property holding the value of the case from the members of the union, which is how a union read
+    /// from source reports it.
+    /// </summary>
+    protected IProperty? GetValuePropertyFromMembers()
     {
         var memberProviderInterface = this.MemberProviderInterface;
 

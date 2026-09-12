@@ -38,17 +38,23 @@ namespace Metalama.Framework.Engine.AdviceImpl.Introduction;
 /// model and the design-time pipeline, and not whether syntax is produced, which the interface decides.
 /// </para>
 /// <para>
-/// The precedent is <see cref="IntroduceNamespaceTransformation"/>, which registers a namespace and emits nothing
-/// because a namespace has no syntax of its own either.
+/// The base class is <see cref="BaseSyntaxTreeTransformation"/> rather than <see cref="BaseTransformation"/>,
+/// although this transformation produces no syntax, because <c>LinkerInjectionStep</c> enumerates
+/// <see cref="ISyntaxTreeTransformation"/> alone when it builds the map from builder data to transformation. A
+/// transformation that is absent from that map makes the linker throw when another transformation replaces the
+/// declaration, which happens when an aspect introduces a field into an introduced struct and the implicit
+/// parameterless constructor of that struct is replaced.
 /// </para>
 /// </remarks>
 /// <seealso href="@introducing-types"/>
-internal sealed class IntroduceSynthesizedDeclarationTransformation : BaseTransformation, IIntroduceDeclarationTransformation
+internal sealed class IntroduceSynthesizedDeclarationTransformation : BaseSyntaxTreeTransformation, IIntroduceDeclarationTransformation
 {
     private readonly NamedDeclarationBuilderData _introducedDeclaration;
 
     public IntroduceSynthesizedDeclarationTransformation( AspectLayerInstance aspectLayerInstance, NamedDeclarationBuilderData introducedDeclaration ) :
-        base( aspectLayerInstance )
+        base(
+            aspectLayerInstance,
+            introducedDeclaration.PrimarySyntaxTree.AssertNotNull( "Introduced declarations must have a PrimarySyntaxTree assigned upfront." ) )
     {
         this._introducedDeclaration = introducedDeclaration.AssertNotNull();
     }

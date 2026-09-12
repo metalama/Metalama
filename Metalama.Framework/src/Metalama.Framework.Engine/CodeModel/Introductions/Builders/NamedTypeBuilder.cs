@@ -357,12 +357,22 @@ internal class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, I
 
     public IExtensionBlockCollection ExtensionBlocks => throw new NotImplementedException();
 
-    // A builder describes a type that is being constructed, whose members are not resolvable, so it has no structure
-    // to report and reporting an empty structure would be a false answer rather than an incomplete one. An aspect that
-    // reads the facet of a builder has made a mistake, and the exception says so at the place the mistake was made.
-    // See section 5.1 of Metalama.Framework/docs/introducing-types.md, which supersedes implementation
-    // guideline 5 of type-facets.md. The flags below do not throw, which is what keeps a caller that asks what kind a
-    // type is working: only a caller that asks for the structure meets the exception.
+    /// <summary>
+    /// Gets the facet of the type, which a builder does not have.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A builder describes a type that is being constructed, whose members are not resolvable, so it has no
+    /// structure to report, and reporting an empty structure would be a false answer rather than an incomplete one.
+    /// An aspect that reads the facet of a builder has made a mistake, and the exception says so at the place the
+    /// mistake was made.
+    /// </para>
+    /// <para>
+    /// See section 5.1 of <c>Metalama.Framework/docs/introducing-types.md</c>, which supersedes implementation
+    /// guideline 5 of <c>type-facets.md</c>. The flags below do not throw, which is what keeps a caller that asks
+    /// what kind a type is working: only a caller that asks for the structure meets the exception.
+    /// </para>
+    /// </remarks>
     public ITypeFacetCollection Facets
         => throw new NotSupportedException(
             $"The type '{this.Name}' is still being constructed, so it has no facet. Read the facet of the introduced type, which the advice returns." );
@@ -425,10 +435,23 @@ internal class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, I
 
     public SpecialType SpecialType => SpecialType.None;
 
-    // A delegate is a reference type, so the test names it beside the class. Getting this wrong is not cosmetic:
-    // ToNullable branches on it, so a delegate reported as a value type would produce Nullable<TDelegate>, which the
-    // language does not accept. See #1840 for the same class of defect.
-    public bool? IsReferenceType => this.TypeKind is TypeKind.Class or TypeKind.Interface or TypeKind.Delegate;
+    /// <summary>
+    /// Gets a value indicating whether the type is a reference type.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The test names the two value kinds rather than the reference ones, which is the rule Roslyn applies to a
+    /// symbol, so a kind that is added later is reported as a reference type by default. A class, an interface, a
+    /// delegate and an extension block are all reference types, and a struct and an enum are not. A union is
+    /// reported as a struct, so it is a value type as well.
+    /// </para>
+    /// <para>
+    /// The value decides more than what this property returns, because <c>ToNullable</c> branches on it: a delegate
+    /// reported as a value type would produce <c>Nullable&lt;TDelegate&gt;</c>, which the language does not accept.
+    /// Issue #1840 records the same class of defect.
+    /// </para>
+    /// </remarks>
+    public bool? IsReferenceType => this.TypeKind is not (TypeKind.Struct or TypeKind.Enum);
 
     public bool? IsNullable => false;
 
