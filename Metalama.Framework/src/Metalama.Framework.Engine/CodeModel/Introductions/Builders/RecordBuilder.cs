@@ -57,6 +57,12 @@ internal sealed class RecordBuilder : NamedTypeBuilder, IRecordBuilder, ITypeBui
     private readonly List<PropertyBuilder> _positionalProperties = [];
 
     /// <summary>
+    /// The arguments that the record passes to the primary constructor of its base record, in the order in which
+    /// the aspect added them.
+    /// </summary>
+    private readonly List<(IExpression Expression, string? ParameterName)> _baseArguments = [];
+
+    /// <summary>
     /// The properties that the compiler synthesizes from the record declaration. The three lists below are typed,
     /// because each builder class declares its own <c>BuilderData</c> property and no common base declares one.
     /// </summary>
@@ -260,6 +266,34 @@ internal sealed class RecordBuilder : NamedTypeBuilder, IRecordBuilder, ITypeBui
     }
 
     /// <summary>
+    /// Gets the arguments that the record passes to the primary constructor of its base record.
+    /// </summary>
+    public IReadOnlyList<(IExpression Expression, string? ParameterName)> BaseArguments => this._baseArguments;
+
+    public void AddBaseArgument( IExpression argument, string? parameterName = null )
+    {
+        this.CheckNotFrozen();
+
+        if ( argument == null )
+        {
+            throw new ArgumentNullException( nameof(argument) );
+        }
+
+        if ( !this.IsRecordClass )
+        {
+            throw this.NotSupported( nameof(this.AddBaseArgument) );
+        }
+
+        if ( this.BaseType is null or { SpecialType: SpecialType.Object } )
+        {
+            throw new InvalidOperationException(
+                $"The record '{this.Name}' cannot pass an argument to the constructor of its base type, because its base type is '{this.BaseType?.ToDisplayString() ?? "null"}'. Set the BaseType property before calling this method." );
+        }
+
+        this._baseArguments.Add( (argument, parameterName) );
+    }
+
+    /// <summary>
     /// Gets the property that a positional parameter declares, in the order in which the parameters were added.
     /// </summary>
     public IReadOnlyList<PropertyBuilder> PositionalPropertyBuilders => this._positionalProperties;
@@ -295,6 +329,26 @@ internal sealed class RecordBuilder : NamedTypeBuilder, IRecordBuilder, ITypeBui
     protected override void FreezeChildren()
     {
         this.MaterializeSynthesizedMembers();
+
+        // Every member below is synthesized by the compiler from the record declaration and has no declaration of
+        // its own. The property that a positional parameter declares is deliberately left out: the parameter is a
+        // declaration, and an attribute added to the property is written on it.
+        this._primaryConstructor.IsSynthesizedByCompiler = true;
+
+        foreach ( var constructor in this._synthesizedConstructors )
+        {
+            constructor.IsSynthesizedByCompiler = true;
+        }
+
+        foreach ( var method in this._synthesizedMethods )
+        {
+            method.IsSynthesizedByCompiler = true;
+        }
+
+        foreach ( var property in this._synthesizedProperties )
+        {
+            property.IsSynthesizedByCompiler = !this._positionalProperties.Contains( property );
+        }
 
         base.FreezeChildren();
 
@@ -347,6 +401,12 @@ internal sealed class RecordBuilder : NamedTypeBuilder, IRecordBuilder, ITypeBui
     /// </summary>
     private void MaterializePositionalProperties()
     {
+        // The setter is an init accessor on a record class and on a readonly record struct, and an ordinary setter
+        // on a record struct that is not readonly, which is what a record read from source reports. Neither accessor
+        // is marked as implicitly declared: that marking produces the ConstructorOnly writeability, which belongs to
+        // an automatic property that has no setter of its own and not to this one.
+        var hasInitOnlySetter = this.IsRecordClass || this.IsReadOnly;
+
         foreach ( var parameter in this._primaryConstructor.Parameters )
         {
             var property = new PropertyBuilder(
@@ -356,9 +416,9 @@ internal sealed class RecordBuilder : NamedTypeBuilder, IRecordBuilder, ITypeBui
                 hasGetter: true,
                 hasSetter: true,
                 isAutoProperty: true,
-                hasInitOnlySetter: true,
-                hasImplicitGetter: true,
-                hasImplicitSetter: true )
+                hasInitOnlySetter,
+                hasImplicitGetter: false,
+                hasImplicitSetter: false )
             {
                 Type = parameter.Type,
                 Accessibility = Accessibility.Public

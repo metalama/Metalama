@@ -168,8 +168,19 @@ public interface IRecordBuilder : INamedTypeBuilder
     /// <param name="defaultValue">The default value of the parameter, or <c>null</c> when it has none.</param>
     /// <returns>An <see cref="IParameterBuilder"/> that allows you to further build the new parameter.</returns>
     IParameterBuilder AddPositionalParameter( string name, Type type, TypedConstant? defaultValue = null );
+
+    /// <summary>
+    /// Adds an argument that the record passes to the primary constructor of its base record, which the language
+    /// writes in the base list of the declaration, as in <c>record Derived( int X ) : BaseRecord( X )</c>.
+    /// </summary>
+    void AddBaseArgument( IExpression argument, string? parameterName = null );
 }
 ```
+
+`AddBaseArgument` exists because a record class that derives from a record whose only constructor is a primary
+constructor has to pass arguments to it, and the compiler reports CS1729 on the generated declaration when it does
+not. It throws a `NotSupportedException` on a record struct, which has no base list, and an
+`InvalidOperationException` when the base type is still `object`, so the aspect sets `BaseType` first.
 
 ### 3.3. The advice method
 
@@ -239,7 +250,7 @@ valid, and what is not depends on the authoring form.
 | --- | --- | --- |
 | `Accessibility`, `Name`, `IsPartial` | Valid. | Valid. |
 | `AddTypeParameter` | Valid. | Valid. |
-| `BaseType` | Valid. The language requires the base of a record class to be a record class, and Metalama does not refuse a base that is not one, because a base list is representable and section 3.2 of [`introducing-types.md`](introducing-types.md) leaves such a case to the compiler, which reports CS8867 on the generated declaration. | The setter throws a `NotSupportedException`. A record struct derives from `System.ValueType`, and there is no base list to emit. |
+| `BaseType` | Valid. The language requires the base of a record class to be a record class, and Metalama does not refuse a base that is not one, because a base list is representable and section 3.2 of [`introducing-types.md`](introducing-types.md) leaves such a case to the compiler, which reports CS8867 on the generated declaration. Use `AddBaseArgument` when the base declares a primary constructor. | The setter throws a `NotSupportedException`. A record struct derives from `System.ValueType`, and there is no base list to emit. |
 | `IsAbstract` | Valid. | The setter throws a `NotSupportedException`. |
 | `IsSealed` | Valid. | The setter throws a `NotSupportedException`. A record struct is implicitly sealed. |
 | `IsStatic` | The setter throws a `NotSupportedException`. A record is never static. | Same. |
@@ -262,6 +273,12 @@ as the user wrote it, which an introduced record does not have. Metalama reports
 than failing in the linker. The two ways around it are to introduce the record without a positional parameter,
 which gives it the implicit parameterless constructor that both advices do serve, and to introduce a constructor of
 its own and put the statements in the template of that constructor.
+
+A custom attribute added to the property that a positional parameter declares is written on the parameter with
+the `property` target, as in `record R( [property: Obsolete] int Value )`, which is the form the language provides
+and the only place the attribute can go. Every other member that section 4.2 of
+[`introducing-types.md`](introducing-types.md) registers has no declaration at all, so an attribute added to one of
+them is refused with the diagnostic LAMA0556 rather than dropped in silence.
 
 ### 4.1. The constructors that an introduced record has
 

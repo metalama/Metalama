@@ -9,6 +9,7 @@ using Metalama.Framework.Engine.AdviceImpl.Introduction;
 using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
+using Metalama.Framework.Engine.CodeModel.Introductions.Introduced;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.Diagnostics;
 using Microsoft.CodeAnalysis;
@@ -35,6 +36,17 @@ internal sealed class AddAttributeAdvice : Advice<AddAttributeAdviceResult>
     {
         var targetDeclaration = this.TargetDeclaration;
         var contextCopy = context;
+
+        // A member that the compiler synthesizes from the declaration of its type has no declaration on which to
+        // write the attribute, and nothing emits one for it, so the attribute would be dropped without a word.
+        if ( targetDeclaration is IntroducedDeclaration { BuilderData.IsSynthesizedByCompiler: true } )
+        {
+            return this.CreateFailedResult(
+                AdviceDiagnosticDescriptors.CannotIntroduceAttributeOnSynthesizedMember.CreateRoslynDiagnostic(
+                    targetDeclaration.GetDiagnosticLocation(),
+                    (this.AspectInstance.AspectClass.ShortName, targetDeclaration),
+                    this ) );
+        }
 
         if ( this._overrideStrategy != OverrideStrategy.New )
         {

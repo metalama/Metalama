@@ -60,6 +60,12 @@ internal sealed class RecordBuilderData : NamedTypeBuilderData
     /// </summary>
     public ImmutableArray<IFullRef<IProperty>> PositionalProperties { get; }
 
+    /// <summary>
+    /// Gets the arguments that the record passes to the primary constructor of its base record, which the language
+    /// writes in the base list of the declaration.
+    /// </summary>
+    public ImmutableArray<(IExpression Expression, string? ParameterName)> BaseArguments { get; }
+
     public RecordBuilderData( RecordBuilder builder, IFullRef<IDeclaration> containingDeclaration ) : base( builder, containingDeclaration )
     {
         this.PrimaryConstructor = builder.HasPositionalParameters ? builder.PrimaryConstructorBuilder.BuilderData.ToRef() : null;
@@ -69,5 +75,6 @@ internal sealed class RecordBuilderData : NamedTypeBuilderData
         this.CopyConstructor = builder.CopyConstructor?.BuilderData.ToRef();
         this.DeconstructMethod = builder.DeconstructMethod?.BuilderData.ToRef();
         this.PositionalProperties = builder.PositionalPropertyBuilders.SelectAsImmutableArray( p => (IFullRef<IProperty>) p.BuilderData.ToRef() );
+        this.BaseArguments = builder.BaseArguments.ToImmutableArray();
     }
 }

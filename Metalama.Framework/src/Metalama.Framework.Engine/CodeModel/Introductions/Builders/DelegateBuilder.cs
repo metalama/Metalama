@@ -69,7 +69,11 @@ internal sealed class DelegateBuilder : NamedTypeBuilder, IDelegateBuilder, ITyp
         // parameters, and the contract would be added to a method that nothing emits.
         this.InvokeMethodBuilder = new MethodBuilder( aspectLayerInstance, this, _invokeMethodName, MethodKind.DelegateInvoke )
         {
-            Accessibility = Accessibility.Public
+            Accessibility = Accessibility.Public,
+
+            // The compiler synthesizes the Invoke method from the delegate declaration, which has no member list to
+            // put one in, so the method has no declaration of its own.
+            IsSynthesizedByCompiler = true
         };
     }
 

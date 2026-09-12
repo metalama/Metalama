@@ -180,7 +180,11 @@ internal sealed class IntroduceNamedTypeAdvice : IntroduceDeclarationAdvice<INam
 
         var constructorBuilder = new ConstructorBuilder( this.AspectLayerInstance, builder, isImplicitlyDeclared: true )
         {
-            Accessibility = Accessibility.Public
+            Accessibility = Accessibility.Public,
+
+            // Neither form has a declaration of its own: the compiler synthesizes the constructor of a struct from
+            // the declaration, and the one of a class is emitted by nothing because it is implicitly declared.
+            IsSynthesizedByCompiler = true
         };
 
         constructorBuilder.Freeze();

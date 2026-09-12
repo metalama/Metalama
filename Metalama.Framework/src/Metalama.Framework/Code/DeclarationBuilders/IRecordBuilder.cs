@@ -58,4 +58,25 @@ public interface IRecordBuilder : INamedTypeBuilder
 
     /// <inheritdoc cref="AddPositionalParameter(string,IType,TypedConstant?)"/>
     IParameterBuilder AddPositionalParameter( string name, Type type, TypedConstant? defaultValue = null );
+
+    /// <summary>
+    /// Adds an argument that the record passes to the primary constructor of its base record, which the language
+    /// writes in the base list of the declaration, as in <c>record Derived( int X ) : BaseRecord( X )</c>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A record class that derives from a record whose only constructor is a primary constructor has to pass
+    /// arguments to it, and the compiler reports CS1729 on the generated declaration when it does not.
+    /// </para>
+    /// <para>
+    /// Set <see cref="INamedTypeBuilder.BaseType"/> before calling this method. The method throws a
+    /// <see cref="NotSupportedException"/> on a record struct, which has no base list, and an
+    /// <see cref="InvalidOperationException"/> when the base type is still <see cref="object"/>.
+    /// </para>
+    /// </remarks>
+    /// <param name="argument">The expression to pass as an argument. A positional parameter of the record is
+    ///     referenced through the <see cref="IParameterBuilder"/> that <c>AddPositionalParameter</c> returns.</param>
+    /// <param name="parameterName">The optional name of the parameter of the base constructor to which the argument
+    ///     is assigned. When <c>null</c>, the arguments are assigned positionally.</param>
+    void AddBaseArgument( IExpression argument, string? parameterName = null );
 }

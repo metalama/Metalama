@@ -196,6 +196,17 @@ internal sealed class UnionBuilder : NamedTypeBuilder, IUnionBuilder, ITypeBuild
     {
         this.MaterializeSynthesizedMembers();
 
+        // The compiler synthesizes the two below from the union declaration, so neither has a declaration of its own.
+        foreach ( var constructor in this._caseConstructors )
+        {
+            constructor.IsSynthesizedByCompiler = true;
+        }
+
+        if ( this.ValueProperty != null )
+        {
+            this.ValueProperty.IsSynthesizedByCompiler = true;
+        }
+
         base.FreezeChildren();
 
         foreach ( var constructor in this._caseConstructors )

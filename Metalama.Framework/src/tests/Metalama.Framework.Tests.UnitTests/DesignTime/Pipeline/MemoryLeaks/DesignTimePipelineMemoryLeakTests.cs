@@ -67,7 +67,99 @@ public sealed class DesignTimePipelineMemoryLeakTests : DesignTimeTestBase
                                        }
                                        """;
 
+    /// <summary>
+    /// An aspect that introduces a type of each kind whose builder data holds a reference of its own. The enum holds
+    /// its underlying type, the record holds the data of every member the compiler synthesizes from it, and the
+    /// delegate holds its <c>Invoke</c> method.
+    /// </summary>
+    private const string _introduceTypesAspectCode = """
+                                                     using Metalama.Framework.Aspects;
+                                                     using Metalama.Framework.Code;
+
+                                                     public class IntroduceTypesAttribute : TypeAspect
+                                                     {
+                                                         public override void BuildAspect( IAspectBuilder<INamedType> builder )
+                                                         {
+                                                             builder.IntroduceEnum(
+                                                                 "Level",
+                                                                 e =>
+                                                                 {
+                                                                     e.UnderlyingType = SpecialType.Byte;
+                                                                     e.AddMember( "None" );
+                                                                 } );
+
+                                                             builder.IntroduceRecord(
+                                                                 "Snapshot",
+                                                                 buildRecord: r => r.AddPositionalParameter( "Value", typeof(int) ) );
+
+                                                             builder.IntroduceDelegate(
+                                                                 "Handler",
+                                                                 d => d.ReturnType = TypeFactory.GetType( SpecialType.Void ) );
+                                                         }
+                                                     }
+                                                     """;
+
+    /// <summary>
+    /// Returns the content of the run-time file of <see cref="RuntimeEdits_CompilationIsCollectedWhenAnAspectIntroducesTypes"/>.
+    /// </summary>
+    private static string GetIntroduceTypesTargetCode( int version )
+        => $$"""
+             [IntroduceTypes]
+             public partial class Target
+             {
+                 public int Method()
+                 {
+                     var x = {{version}};
+                     return x;
+                 }
+             }
+             """;
+
     public DesignTimePipelineMemoryLeakTests( ITestOutputHelper logger ) : base( logger ) { }
+
+    /// <summary>
+    /// Verifies that the compilations of an editing session are collected when an aspect introduces types.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The builder data of an introduced type outlives the compilation that produced it, because the design-time
+    /// pipeline keeps the result of the previous run. A reference that resolved to a Roslyn symbol rather than to a
+    /// declaration would therefore retain the whole compilation of the edit that created it. The underlying type of
+    /// an enum is the reference most at risk, because an integral type is always a symbol.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void RuntimeEdits_CompilationIsCollectedWhenAnAspectIntroducesTypes()
+    {
+        using var testContext = this.CreateTestContext();
+        using var factory = new TestDesignTimeAspectPipelineFactory( testContext );
+
+        var code = new Dictionary<string, string>
+        {
+            [_aspectFileName] = _introduceTypesAspectCode, [_targetFileName] = GetIntroduceTypesTargetCode( 0 )
+        };
+
+        var simulator = new DesignTimeEditingSimulator(
+            testContext,
+            factory,
+            nameof(this.RuntimeEdits_CompilationIsCollectedWhenAnAspectIntroducesTypes),
+            code );
+
+        var initialCompilation = simulator.GetWeakReferenceToCurrentCompilation();
+        simulator.Execute();
+
+        var firstEditCompilation = simulator.EditAndExecute( _targetFileName, GetIntroduceTypesTargetCode( 1 ) );
+
+        const int editCount = 10;
+
+        for ( var version = 2; version <= editCount; version++ )
+        {
+            simulator.ApplyEdit( _targetFileName, GetIntroduceTypesTargetCode( version ) );
+        }
+
+        MemoryLeakAssert.Collected( initialCompilation, "The initial compilation", ("pipelineFactory", factory) );
+        MemoryLeakAssert.Collected( firstEditCompilation, "The compilation of the first edit", ("pipelineFactory", factory) );
+    }
 
     /// <summary>
     /// Returns the content of the run-time file that the tests edit, for a given version.

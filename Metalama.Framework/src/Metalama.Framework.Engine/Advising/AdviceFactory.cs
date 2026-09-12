@@ -533,6 +533,31 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         }
     }
 
+    /// <summary>
+    /// Refuses a target that declares no member at all, which is an enum and a delegate.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Section 3.1 of <c>Metalama.Framework/docs/introducing-types.md</c> states the rule and requires the message
+    /// to name the kind of the target, because an aspect author who reaches it has usually introduced the wrong kind
+    /// of type. The check runs before the eligibility rule, whose message lists the kinds that are accepted instead.
+    /// </para>
+    /// <para>
+    /// A nested type is a member and is covered by the same rule. The advices that introduce a type consult no
+    /// eligibility rule at all, because their target is a namespace as often as a type, and the linker asserts when
+    /// it reaches a member of a declaration that has no member list.
+    /// </para>
+    /// </remarks>
+    private static void ValidateNotEnumOrDelegate( IDeclaration declaration, string introduced )
+    {
+        if ( declaration is INamedType { TypeKind: TypeKind.Enum or TypeKind.Delegate } namedType )
+        {
+            throw new InvalidOperationException(
+                MetalamaStringFormatter.Format(
+                    $"Cannot introduce {introduced} into '{declaration}' because it is {(namedType.TypeKind == TypeKind.Enum ? "an enum" : "a delegate")}, which declares no member that an aspect can introduce." ) );
+        }
+    }
+
     private static void ValidateNotExtensionBlockReceiver( IDeclaration declaration, string introduced )
     {
         if ( declaration.DeclarationKind == DeclarationKind.Parameter && declaration is IParameter { DeclaringMember: null } )
@@ -708,6 +733,8 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
     {
         using ( this.WithNonUserCode() )
         {
+            ValidateNotEnumOrDelegate( targetType, "a method" );
+
             this.Validate( targetType, AdviceKind.IntroduceMethod );
 
             var template = this.ValidateTemplateName( defaultTemplate, TemplateKind.Default, true )
@@ -736,6 +763,8 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
     {
         using ( this.WithNonUserCode() )
         {
+            ValidateNotEnumOrDelegate( targetType, "a finalizer" );
+
             this.Validate( targetType, AdviceKind.IntroduceFinalizer );
 
             var template = this.ValidateRequiredTemplateName( defaultTemplate, TemplateKind.Default )
@@ -952,6 +981,8 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
     {
         using ( this.WithNonUserCode() )
         {
+            ValidateNotEnumOrDelegate( targetType, "a constructor" );
+
             this.Validate( targetType, AdviceKind.IntroduceConstructor );
 
             ValidateNotExtensionBlock( targetType, "a constructor" );
@@ -1123,6 +1154,8 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
     {
         using ( this.WithNonUserCode() )
         {
+            ValidateNotEnumOrDelegate( targetType, "a field" );
+
             this.Validate( targetType, AdviceKind.IntroduceField );
 
             ValidateNotExtensionBlock( targetType, "a field" );
@@ -1153,6 +1186,8 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
     {
         using ( this.WithNonUserCode() )
         {
+            ValidateNotEnumOrDelegate( targetType, "a field" );
+
             this.Validate( targetType, AdviceKind.IntroduceField );
 
             ValidateNotExtensionBlock( targetType, "a field" );
@@ -1201,6 +1236,8 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
     {
         using ( this.WithNonUserCode() )
         {
+            ValidateNotEnumOrDelegate( targetType, "a property" );
+
             this.Validate( targetType, AdviceKind.IntroduceProperty );
 
             ValidateNotExtensionBlock( targetType, "an automatic property" );
@@ -1248,6 +1285,8 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
     {
         using ( this.WithNonUserCode() )
         {
+            ValidateNotEnumOrDelegate( targetType, "a property" );
+
             this.Validate( targetType, AdviceKind.IntroduceProperty );
 
             var propertyTemplate = this.ValidateRequiredTemplateName( defaultTemplate, TemplateKind.Default )
@@ -1288,6 +1327,8 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
             {
                 throw new ArgumentNullException( nameof(getTemplate), "Either getTemplate or setTemplate must be provided." );
             }
+
+            ValidateNotEnumOrDelegate( targetType, "a property" );
 
             this.Validate( targetType, AdviceKind.IntroduceProperty );
 
@@ -1401,6 +1442,8 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                 throw new ArgumentNullException( nameof(getTemplate), "Either getTemplate or setTemplate must be provided." );
             }
 
+            ValidateNotEnumOrDelegate( targetType, "an indexer" );
+
             this.Validate( targetType, AdviceKind.IntroduceIndexer );
 
             var boundGetTemplate = this.ValidateTemplateName( getTemplate, TemplateKind.Default )
@@ -1483,6 +1526,8 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
     {
         using ( this.WithNonUserCode() )
         {
+            ValidateNotEnumOrDelegate( targetType, "an event" );
+
             this.Validate( targetType, AdviceKind.IntroduceEvent );
 
             ValidateNotExtensionBlock( targetType, "an event" );
@@ -1528,6 +1573,8 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                 throw new NotImplementedException( "Using raiseTemplate is not currently supported." );
             }
 
+            ValidateNotEnumOrDelegate( targetType, "an event" );
+
             this.Validate( targetType, AdviceKind.IntroduceEvent );
 
             var boundAddTemplate =
@@ -1568,6 +1615,8 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
     {
         using ( this.WithNonUserCode() )
         {
+            ValidateNotEnumOrDelegate( targetType, "an interface implementation" );
+
             this.Validate( targetType, AdviceKind.ImplementInterface );
 
             var advice = new ImplementInterfaceAdvice(
@@ -2056,6 +2105,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
             this.ValidateNotExplicitInterfaceImplementation( AdviceKind.IntroduceType );
 
             ValidateNotExtensionBlock( targetNamespaceOrType, "a class" );
+            ValidateNotEnumOrDelegate( targetNamespaceOrType, "a class" );
 
             return
                 new IntroduceNamedTypeAdvice(
@@ -2079,6 +2129,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
             this.ValidateNotExplicitInterfaceImplementation( AdviceKind.IntroduceType );
 
             ValidateNotExtensionBlock( targetNamespaceOrType, "an interface" );
+            ValidateNotEnumOrDelegate( targetNamespaceOrType, "an interface" );
 
             return new IntroduceNamedTypeAdvice(
                     this.GetAdviceConstructorParameters( targetNamespaceOrType ),
@@ -2106,6 +2157,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
             this.ValidateNotExplicitInterfaceImplementation( AdviceKind.IntroduceType );
 
             ValidateNotExtensionBlock( targetNamespaceOrType, "an enum" );
+            ValidateNotEnumOrDelegate( targetNamespaceOrType, "an enum" );
 
             return new IntroduceNamedTypeAdvice(
                     this.GetAdviceConstructorParameters( targetNamespaceOrType ),
@@ -2133,6 +2185,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
             this.ValidateNotExplicitInterfaceImplementation( AdviceKind.IntroduceType );
 
             ValidateNotExtensionBlock( targetNamespaceOrType, "a delegate" );
+            ValidateNotEnumOrDelegate( targetNamespaceOrType, "a delegate" );
 
             return new IntroduceNamedTypeAdvice(
                     this.GetAdviceConstructorParameters( targetNamespaceOrType ),
@@ -2156,6 +2209,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
             this.ValidateNotExplicitInterfaceImplementation( AdviceKind.IntroduceType );
 
             ValidateNotExtensionBlock( targetNamespaceOrType, "a record" );
+            ValidateNotEnumOrDelegate( targetNamespaceOrType, "a record" );
 
             return new IntroduceNamedTypeAdvice(
                     this.GetAdviceConstructorParameters( targetNamespaceOrType ),
@@ -2184,6 +2238,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
             this.ValidateNotExplicitInterfaceImplementation( AdviceKind.IntroduceType );
 
             ValidateNotExtensionBlock( targetNamespaceOrType, "a union" );
+            ValidateNotEnumOrDelegate( targetNamespaceOrType, "a union" );
 
             return new IntroduceNamedTypeAdvice(
                     this.GetAdviceConstructorParameters( targetNamespaceOrType ),
@@ -2207,6 +2262,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
             this.ValidateNotExplicitInterfaceImplementation( AdviceKind.IntroduceType );
 
             ValidateNotExtensionBlock( targetNamespaceOrType, "a struct" );
+            ValidateNotEnumOrDelegate( targetNamespaceOrType, "a struct" );
 
             return new IntroduceNamedTypeAdvice(
                     this.GetAdviceConstructorParameters( targetNamespaceOrType ),

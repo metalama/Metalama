@@ -82,15 +82,19 @@ public sealed class IntroduceRecordTests : UnitTestClass
     /// of the issue.
     /// </summary>
     [Theory]
-    [InlineData( RecordKind.Class, "record SourceRecord( string Name, int Count );" )]
-    [InlineData( RecordKind.Struct, "record struct SourceRecord( string Name, int Count );" )]
-    public void FacetOfIntroducedRecordAgreesWithTheFacetOfASourceRecord( RecordKind recordKind, string sourceCode )
+    [InlineData( RecordKind.Class, false, "record SourceRecord( string Name, int Count );" )]
+    [InlineData( RecordKind.Struct, false, "record struct SourceRecord( string Name, int Count );" )]
+    [InlineData( RecordKind.Struct, true, "readonly record struct SourceRecord( string Name, int Count );" )]
+    public void FacetOfIntroducedRecordAgreesWithTheFacetOfASourceRecord( RecordKind recordKind, bool isReadOnly, string sourceCode )
     {
         using var testContext = this.CreateTestContext();
 
         var compilation = testContext.CreateCompilationModel( sourceCode ).CreateMutableClone();
 
-        var introducedType = Introduce( compilation, CreatePositionalRecord( compilation, recordKind ) );
+        var builder = CreatePositionalRecord( compilation, recordKind );
+        builder.IsReadOnly = isReadOnly;
+
+        var introducedType = Introduce( compilation, builder );
 
         var sourceFacet = compilation.Types.OfName( "SourceRecord" ).Single().Facets.Record;
         var introducedFacet = introducedType.Facets.Record;
@@ -116,6 +120,36 @@ public sealed class IntroduceRecordTests : UnitTestClass
         Assert.Equal(
             sourceFacet.PositionalProperties.SelectAsArray( p => p.Type.SpecialType ),
             introducedFacet.PositionalProperties.SelectAsArray( p => p.Type.SpecialType ) );
+
+        // The shape of each member, and not only its presence. A member that existed with the wrong accessibility or
+        // the wrong virtuality would pass the assertions above.
+        Assert.Equal( sourceFacet.PrintMembersMethod.Accessibility, introducedFacet.PrintMembersMethod.Accessibility );
+        Assert.Equal( sourceFacet.PrintMembersMethod.IsVirtual, introducedFacet.PrintMembersMethod.IsVirtual );
+
+        Assert.Equal( sourceFacet.EqualityContractProperty?.Accessibility, introducedFacet.EqualityContractProperty?.Accessibility );
+        Assert.Equal( sourceFacet.EqualityContractProperty?.IsVirtual, introducedFacet.EqualityContractProperty?.IsVirtual );
+
+        Assert.Equal( sourceFacet.CopyConstructor?.Accessibility, introducedFacet.CopyConstructor?.Accessibility );
+        Assert.Equal( sourceFacet.CopyConstructor?.Parameters.Count, introducedFacet.CopyConstructor?.Parameters.Count );
+
+        Assert.Equal( sourceFacet.CloneMethod?.Accessibility, introducedFacet.CloneMethod?.Accessibility );
+        Assert.Equal( sourceFacet.CloneMethod?.IsVirtual, introducedFacet.CloneMethod?.IsVirtual );
+
+        Assert.Equal(
+            sourceFacet.DeconstructMethod!.Parameters.SelectAsArray( p => p.RefKind ),
+            introducedFacet.DeconstructMethod!.Parameters.SelectAsArray( p => p.RefKind ) );
+
+        Assert.Equal(
+            sourceFacet.DeconstructMethod.Parameters.SelectAsArray( p => p.Name ),
+            introducedFacet.DeconstructMethod.Parameters.SelectAsArray( p => p.Name ) );
+
+        Assert.Equal(
+            sourceFacet.PositionalProperties.SelectAsArray( p => p.Writeability ),
+            introducedFacet.PositionalProperties.SelectAsArray( p => p.Writeability ) );
+
+        Assert.Equal(
+            sourceFacet.PositionalProperties.SelectAsArray( p => p.Accessibility ),
+            introducedFacet.PositionalProperties.SelectAsArray( p => p.Accessibility ) );
     }
 
     /// <summary>
@@ -165,10 +199,14 @@ public sealed class IntroduceRecordTests : UnitTestClass
         Assert.Equal( SpecialType.String, positionalProperties[0].Type.SpecialType );
         Assert.Equal( SpecialType.Int32, positionalProperties[1].Type.SpecialType );
 
-        // A positional parameter declares a public property that can be written by an initializer only, which is
-        // what a positional property of a record read from source reports.
+        // A positional parameter declares a public property whose setter is an init accessor on a record class and
+        // an ordinary setter on a record struct that is not readonly, which is what a record read from source
+        // reports.
         Assert.All( positionalProperties, p => Assert.Equal( Accessibility.Public, p.Accessibility ) );
-        Assert.All( positionalProperties, p => Assert.Equal( Writeability.ConstructorOnly, p.Writeability ) );
+
+        Assert.All(
+            positionalProperties,
+            p => Assert.Equal( recordKind == RecordKind.Class ? Writeability.InitOnly : Writeability.All, p.Writeability ) );
     }
 
     /// <summary>

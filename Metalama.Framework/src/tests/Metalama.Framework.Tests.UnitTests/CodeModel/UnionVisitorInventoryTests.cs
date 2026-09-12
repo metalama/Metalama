@@ -21,8 +21,7 @@ namespace Metalama.Framework.Tests.UnitTests.CodeModel;
 /// <remarks>
 /// <para>
 /// The test is a reflection over the two assemblies that are compiled once per Roslyn variant. It runs in the latest
-/// variant only, because the lower one has no <c>VisitUnionDeclaration</c> method to override, and it requires the
-/// opt-in of <c>eng/RoslynPreview.props</c>, because the overrides are compiled under that symbol.
+/// variant only, because the lower one has no <c>VisitUnionDeclaration</c> method to override.
 /// </para>
 /// <para>
 /// A visitor that must not handle a union is named in <see cref="_visitorsThatDoNotVisitAUnion"/> with the reason.

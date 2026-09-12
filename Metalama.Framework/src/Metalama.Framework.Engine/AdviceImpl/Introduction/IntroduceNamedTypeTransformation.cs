@@ -40,6 +40,12 @@ internal sealed class IntroduceNamedTypeTransformation : IntroduceDeclarationTra
         {
             baseList = null;
         }
+        else if ( this.BuilderData is RecordBuilderData { BaseArguments.IsDefaultOrEmpty: false } recordBuilderData )
+        {
+            // A record that passes arguments to the primary constructor of its base record writes them in the base
+            // list, which the syntax model represents as a form of its own.
+            baseList = RecordHelper.GetBaseList( introducedType, recordBuilderData, context );
+        }
         else if ( introducedType.BaseType != null && introducedType.BaseType.SpecialType != SpecialType.Object )
         {
             baseList = BaseList(

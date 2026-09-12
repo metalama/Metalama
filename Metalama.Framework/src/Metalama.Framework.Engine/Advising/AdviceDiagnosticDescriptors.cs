@@ -389,5 +389,15 @@ namespace Metalama.Framework.Engine.Advising
                 + "Introduce a property with accessors of its own, or an event with accessors of its own.",
                 _category,
                 Error );
+
+        internal static readonly DiagnosticDefinition<(string AspectType, IDeclaration Member)>
+            CannotIntroduceAttributeOnSynthesizedMember = new(
+                "LAMA0556",
+                "Cannot introduce a custom attribute on a member that the compiler synthesizes.",
+                "The aspect '{0}' cannot introduce a custom attribute on '{1}' because the compiler synthesizes that member from the declaration "
+                + "of the type that contains it, so there is no declaration on which to write the attribute. The property that a positional "
+                + "parameter of a record declares is the exception, because the attribute is written on the parameter.",
+                _category,
+                Error );
     }
 }
