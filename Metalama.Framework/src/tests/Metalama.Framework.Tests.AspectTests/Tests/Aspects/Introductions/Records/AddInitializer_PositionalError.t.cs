@@ -1,0 +1,2 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0553 on `TargetType`: `The aspect 'Introduction' cannot apply the advice 'AddInitializer' to 'TargetType.Positional' because it replaces the primary constructor of that record by an explicit one, and that replacement rewrites the declaration of the record as it is written in source, which a record introduced by an aspect does not have. Introduce the record without a positional parameter, or introduce a constructor of its own and put the logic in the template of that constructor.`

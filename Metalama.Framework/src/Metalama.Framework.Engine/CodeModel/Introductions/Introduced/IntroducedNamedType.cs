@@ -17,6 +17,7 @@ using Metalama.Framework.Engine.CodeModel.Visitors;
 using Metalama.Framework.Engine.Utilities;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using SpecialType = Metalama.Framework.Code.SpecialType;
@@ -39,6 +40,11 @@ internal sealed class IntroducedNamedType : IntroducedMemberOrNamedType, INamedT
     }
 
     public override DeclarationBuilderData BuilderData => this._namedTypeBuilderData;
+
+    /// <summary>
+    /// Gets the immutable data of the builder that introduced this type, which the facet of its kind reads.
+    /// </summary>
+    internal NamedTypeBuilderData NamedTypeBuilderData => this._namedTypeBuilderData;
 
     protected override MemberOrNamedTypeBuilderData MemberOrNamedTypeBuilderData => this._namedTypeBuilderData;
 
@@ -92,8 +98,23 @@ internal sealed class IntroducedNamedType : IntroducedMemberOrNamedType, INamedT
 
     INamedTypeCollection INamedType.NestedTypes => this.Types;
 
+    /// <summary>
+    /// Gets the full name of the type, which is the full name of the declaration that contains it followed by its
+    /// own name.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The containing declaration is read as an <see cref="INamespaceOrNamedType"/> and not as an
+    /// <c>INamespaceOrNamedTypeImpl</c>, because a namespace read from source implements the first and not the
+    /// second, so a top-level introduced type would throw. The global namespace contributes no prefix, because its
+    /// own full name is the empty string.
+    /// </para>
+    /// </remarks>
     [Memo]
-    public string FullName => ((INamespaceOrNamedTypeImpl) this.ContainingDeclaration.AssertNotNull()).FullName + "." + this.Name;
+    public string FullName
+        => this.ContainingDeclaration is { DeclarationKind: DeclarationKind.Namespace } and INamespace { IsGlobalNamespace: true }
+            ? this.Name
+            : ((INamespaceOrNamedType) this.ContainingDeclaration.AssertNotNull()).FullName + "." + this.Name;
 
     [Memo]
     public INamedTypeCollection Types
@@ -155,7 +176,10 @@ internal sealed class IntroducedNamedType : IntroducedMemberOrNamedType, INamedT
     [Memo]
     public IMethodCollection AllMethods => new AllMethodsCollection( this );
 
-    IConstructor? INamedType.PrimaryConstructor => null;
+    IConstructor? INamedType.PrimaryConstructor
+        => this._namedTypeBuilderData is RecordBuilderData { PrimaryConstructor: { } primaryConstructor }
+            ? this.MapDeclaration( primaryConstructor )
+            : null;
 
     [Memo]
     public IConstructorCollection Constructors
@@ -177,9 +201,19 @@ internal sealed class IntroducedNamedType : IntroducedMemberOrNamedType, INamedT
         return new ExtensionBlockCollection( this, collection.ToImmutableArray() );
     }
 
-    // A type introduced by an aspect has no facet today, because a builder produces a class, a struct, an interface or
-    // an extension block only. The type introduction stories add the facet of the kind that each of them introduces.
-    public ITypeFacetCollection Facets => TypeFacetCollection.Empty;
+    /// <summary>
+    /// Gets the facet of the type, which is the structure that its kind gives it.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// An introduced type reports the facet of its kind, which is section 5.2 of
+    /// <c>Metalama.Framework/docs/introducing-types.md</c>. This is the same call that <c>SourceNamedTypeImpl</c>
+    /// makes, and it serves every kind at once, because the collection dispatches on the four flags above and
+    /// constructs nothing for a type that has none.
+    /// </para>
+    /// </remarks>
+    [Memo]
+    public ITypeFacetCollection Facets => TypeFacetCollection.Create( this );
 
     public INamedType TypeDefinition => this.Definition;
 
@@ -188,7 +222,21 @@ internal sealed class IntroducedNamedType : IntroducedMemberOrNamedType, INamedT
 
     protected override IMemberOrNamedType GetDefinition() => this.Definition;
 
-    public INamedType UnderlyingType => this.Definition;
+    /// <summary>
+    /// Gets the underlying type, which for an enum is the underlying integral type that the builder data carries and
+    /// for every other kind is the type itself.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <see cref="Metalama.Framework.Code.Types.IEnumFacet.UnderlyingType"/> reads this property, so an enum that
+    /// answered itself here would report itself as its own underlying type.
+    /// </para>
+    /// </remarks>
+    [Memo]
+    public INamedType UnderlyingType
+        => this._namedTypeBuilderData is EnumBuilderData { UnderlyingType: { } underlyingType }
+            ? this.MapDeclaration( underlyingType ).AssertNotNull()
+            : this.Definition;
 
     public TypeKind TypeKind => this._namedTypeBuilderData.TypeKind;
 
@@ -196,7 +244,23 @@ internal sealed class IntroducedNamedType : IntroducedMemberOrNamedType, INamedT
 
     public Type ToType() => throw new NotImplementedException();
 
-    public bool? IsReferenceType => this._namedTypeBuilderData.TypeKind is TypeKind.Class;
+    /// <summary>
+    /// Gets a value indicating whether the type is a reference type.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The test names the two value kinds rather than the reference ones, which is the rule Roslyn applies to a
+    /// symbol, so a kind that is added later is reported as a reference type by default. A class, an interface and a
+    /// delegate are all reference types, and a struct and an enum are not. A union is reported as a struct, so it is
+    /// a value type as well.
+    /// </para>
+    /// <para>
+    /// The value decides more than what this property returns, because <c>ToNullable</c> below branches on it: a
+    /// delegate reported as a value type would produce <c>Nullable&lt;TDelegate&gt;</c>, which the language does not
+    /// accept. Issue #1840 records the same class of defect.
+    /// </para>
+    /// </remarks>
+    public bool? IsReferenceType => this._namedTypeBuilderData.TypeKind is not (TypeKind.Struct or TypeKind.Enum);
 
     public bool IsReadOnly => this._namedTypeBuilderData.IsReadOnly;
 
@@ -206,13 +270,12 @@ internal sealed class IntroducedNamedType : IntroducedMemberOrNamedType, INamedT
 
     public bool IsEnum => this._namedTypeBuilderData.TypeKind == TypeKind.Enum;
 
+
     public bool IsRecord => this._namedTypeBuilderData.IsRecord;
 
     public bool IsClosed => this._namedTypeBuilderData.IsClosed;
 
-    // Introducing a union is not supported yet, so the value is a constant rather than a read of the builder data.
-    // The story that adds the writer adds it to the builder data at the same time.
-    public bool IsUnion => false;
+    public bool IsUnion => this._namedTypeBuilderData.IsUnion;
 
     public bool? IsNullable { get; }
 
@@ -257,6 +320,20 @@ internal sealed class IntroducedNamedType : IntroducedMemberOrNamedType, INamedT
     public IArrayType MakeArrayType( int rank = 1 ) => new ConstructedArrayType( this.Compilation, this.Ref, rank );
 
     public IPointerType MakePointerType() => new ConstructedPointerType( this.Compilation, this.Ref );
+
+    /// <summary>
+    /// Translates the type to another compilation.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The reference of the type is resolved rather than the reference of its builder data, because the builder
+    /// data carries no nullable annotation and the type does. A field or a parameter typed by the nullable form of
+    /// an introduced type is translated to the compilation of the declaration that is being built, so a
+    /// translation that dropped the annotation would emit the type without its question mark.
+    /// </para>
+    /// </remarks>
+    internal override ICompilationElement Translate( CompilationModel newCompilation, IGenericContext? genericContext = null )
+        => this.Ref.GetTarget( newCompilation, this.CombineGenericContext( genericContext ) );
 
     IType IType.ToNullable() => this.ToNullable();
 

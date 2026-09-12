@@ -101,8 +101,19 @@ internal sealed class IntroducedExtensionBlock : IntroducedMemberOrNamedType, IE
 
     INamedTypeCollection INamedType.NestedTypes => this.Types;
 
+    /// <summary>
+    /// Gets the full name of the extension block, which is the full name of the declaration that contains it
+    /// followed by the name that the language gives an extension block.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The containing declaration is read as an <see cref="INamespaceOrNamedType"/> and not as an
+    /// <c>INamespaceOrNamedTypeImpl</c>, because a namespace read from source implements the first and not the
+    /// second.
+    /// </para>
+    /// </remarks>
     [Memo]
-    public string FullName => ((INamespaceOrNamedTypeImpl) this.ContainingDeclaration.AssertNotNull()).FullName + ".<extension>";
+    public string FullName => ((INamespaceOrNamedType) this.ContainingDeclaration.AssertNotNull()).FullName + ".<extension>";
 
     [Memo]
     public INamedTypeCollection Types => new EmptyNamedTypeCollection();

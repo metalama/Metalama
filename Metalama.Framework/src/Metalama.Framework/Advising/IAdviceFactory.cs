@@ -1035,6 +1035,94 @@ namespace Metalama.Framework.Advising
             Action<INamedTypeBuilder>? buildType = null );
 
         /// <summary>
+        /// Introduces a new struct to the target namespace or type.
+        /// </summary>
+        /// <param name="targetNamespaceOrType">The namespace or type into which the struct must be introduced.</param>
+        /// <param name="name">The name of the introduced struct.</param>
+        /// <param name="whenExists">Determines the implementation strategy when a type of the same name is already declared in the target namespace or type.
+        ///     The default strategy is to fail with a compile-time error.</param>
+        /// <param name="buildType">An optional callback that allows you to configure the introduced struct, such as adding members, implemented interfaces, or custom attributes.</param>
+        /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> representing the result of the advice. The <see cref="IIntroductionAdviceResult{T}.Declaration"/> property provides access to the introduced struct.
+        /// The <see cref="IIntroductionAdviceResult{T}"/> interface itself implements <see cref="IAdviser{T}"/> and can be used to introduce members to the type.</returns>
+        IIntroductionAdviceResult<INamedType> IntroduceStruct(
+            INamespaceOrNamedType targetNamespaceOrType,
+            string name,
+            OverrideStrategy whenExists = OverrideStrategy.Default,
+            Action<INamedTypeBuilder>? buildType = null );
+
+        /// <summary>
+        /// Introduces a new enum to the target namespace or type.
+        /// </summary>
+        /// <param name="targetNamespaceOrType">The namespace or type into which the enum must be introduced.</param>
+        /// <param name="name">The name of the introduced enum.</param>
+        /// <param name="buildEnum">A callback that configures the introduced enum. It must add at least one member, because an enum that declares none is a type
+        ///     that nothing can have a value of. The parameter is required and precedes <paramref name="whenExists"/> for that reason: the callback is the only
+        ///     way to add a member, so a call that omitted it could only produce an empty enum.</param>
+        /// <param name="whenExists">Determines the implementation strategy when a type of the same name is already declared in the target namespace or type.
+        ///     The default strategy is to fail with a compile-time error.</param>
+        /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> representing the result of the advice. The <see cref="IIntroductionAdviceResult{T}.Declaration"/> property provides access to the introduced enum.
+        /// Unlike the result of introducing a class, this result must not be used to introduce members, because an enum accepts none.</returns>
+        IIntroductionAdviceResult<INamedType> IntroduceEnum(
+            INamespaceOrNamedType targetNamespaceOrType,
+            string name,
+            Action<IEnumBuilder> buildEnum,
+            OverrideStrategy whenExists = OverrideStrategy.Default );
+
+        /// <summary>
+        /// Introduces a new delegate to the target namespace or type.
+        /// </summary>
+        /// <param name="targetNamespaceOrType">The namespace or type into which the delegate must be introduced.</param>
+        /// <param name="name">The name of the introduced delegate.</param>
+        /// <param name="buildDelegate">A callback that configures the introduced delegate, which means its accessibility, its custom attributes, its type
+        ///     parameters and its signature. The parameter is required and precedes <paramref name="whenExists"/>, because the signature is the substance of a
+        ///     delegate and the callback is the only way to give it one.</param>
+        /// <param name="whenExists">Determines the implementation strategy when a type of the same name is already declared in the target namespace or type.
+        ///     The default strategy is to fail with a compile-time error.</param>
+        /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> representing the result of the advice. The <see cref="IIntroductionAdviceResult{T}.Declaration"/> property provides access to the introduced delegate.
+        /// Unlike the result of introducing a class, this result must not be used to introduce members, because a delegate accepts none.</returns>
+        IIntroductionAdviceResult<INamedType> IntroduceDelegate(
+            INamespaceOrNamedType targetNamespaceOrType,
+            string name,
+            Action<IDelegateBuilder> buildDelegate,
+            OverrideStrategy whenExists = OverrideStrategy.Default );
+
+        /// <summary>
+        /// Introduces a new record to the target namespace or type.
+        /// </summary>
+        /// <param name="targetNamespaceOrType">The namespace or type into which the record must be introduced.</param>
+        /// <param name="name">The name of the introduced record.</param>
+        /// <param name="recordKind">Whether the record is a record class or a record struct. The default is a record class.</param>
+        /// <param name="whenExists">Determines the implementation strategy when a type of the same name is already declared in the target namespace or type.
+        ///     The default strategy is to fail with a compile-time error.</param>
+        /// <param name="buildRecord">An optional callback that allows you to configure the introduced record, such as adding positional parameters, members,
+        ///     base types, or custom attributes.</param>
+        /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> representing the result of the advice. The <see cref="IIntroductionAdviceResult{T}.Declaration"/> property provides access to the introduced record.
+        /// The <see cref="IIntroductionAdviceResult{T}"/> interface itself implements <see cref="IAdviser{T}"/> and can be used to introduce members to the record.</returns>
+        IIntroductionAdviceResult<INamedType> IntroduceRecord(
+            INamespaceOrNamedType targetNamespaceOrType,
+            string name,
+            RecordKind recordKind = RecordKind.Class,
+            OverrideStrategy whenExists = OverrideStrategy.Default,
+            Action<IRecordBuilder>? buildRecord = null );
+
+        /// <summary>
+        /// Introduces a new union, written with the <c>union</c> keyword, to the target namespace or type.
+        /// </summary>
+        /// <param name="targetNamespaceOrType">The namespace or type into which the union must be introduced.</param>
+        /// <param name="name">The name of the introduced union.</param>
+        /// <param name="buildUnion">A callback that configures the introduced union. It must add at least one case, because the language requires a union to
+        ///     have one. The parameter is required and precedes <paramref name="whenExists"/> for that reason: an advice that adds no case reports an error,
+        ///     so a call that omitted the callback could never succeed.</param>
+        /// <param name="whenExists">Determines the implementation strategy when a type of the same name is already declared in the target namespace or type.
+        ///     The default strategy is to fail with a compile-time error.</param>
+        /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> representing the result of the advice. The <see cref="IIntroductionAdviceResult{T}.Declaration"/> property provides access to the introduced union.</returns>
+        IIntroductionAdviceResult<INamedType> IntroduceUnion(
+            INamespaceOrNamedType targetNamespaceOrType,
+            string name,
+            Action<IUnionBuilder> buildUnion,
+            OverrideStrategy whenExists = OverrideStrategy.Default );
+
+        /// <summary>
         /// Introduces a new extension block into a static class. Extension blocks allow adding
         /// extension members (methods, properties, indexers, operators) to a type (represented as an <see cref="IType"/>). Requires C# 14+ and Roslyn 5.0+, and C# 15+ for indexers.
         /// </summary>

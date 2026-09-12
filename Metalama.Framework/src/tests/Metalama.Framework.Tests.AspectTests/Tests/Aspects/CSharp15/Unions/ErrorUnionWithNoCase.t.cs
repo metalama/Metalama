@@ -1,0 +1,2 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0554 on `TargetType`: `The aspect 'Introduction' cannot introduce the union 'Empty' because it declares no case. A union declaration must declare at least one case, which the compiler reports as CS9370 when it does not. Call 'AddCase' at least once in the callback that builds the union.`

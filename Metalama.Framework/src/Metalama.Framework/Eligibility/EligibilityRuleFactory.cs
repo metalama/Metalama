@@ -97,12 +97,17 @@ public static partial class EligibilityRuleFactory
             // The facet is null when the type of the event is not a well-formed delegate, and both rules then return
             // false. Before the facet existed they resolved the Invoke method by its identifier and threw
             // InvalidOperationException in that case, which an eligibility rule reaches in normal use at design time.
+            //
+            // IsDelegate is tested first because a type that is still being built throws from Facets, which section
+            // 5.1 of Metalama.Framework/docs/introducing-types.md decides. The flag answers on a builder
+            // without allocating, so a type that is not a delegate stays ineligible instead of throwing, which is the
+            // behaviour these two rules exist to provide.
             builder.MustSatisfy(
-                e => e.Type.Facets.Delegate?.ReturnType.SpecialType == SpecialType.Void,
+                e => e.Type.IsDelegate && e.Type.Facets.Delegate?.ReturnType.SpecialType == SpecialType.Void,
                 e => $"'{e}' must have delegate type with void return value" );
 
             builder.MustSatisfy(
-                e => e.Type.Facets.Delegate?.Parameters.All( p => p.RefKind == RefKind.None ) ?? false,
+                e => e.Type.IsDelegate && (e.Type.Facets.Delegate?.Parameters.All( p => p.RefKind == RefKind.None ) ?? false),
                 e => $"'{e}' must have delegate type without a parameter of out/ref/in/pointer type" );
 
             builder.DeclaringType().AddRule( _overrideDeclaringTypeRule );
@@ -114,6 +119,35 @@ public static partial class EligibilityRuleFactory
             builder.MustSatisfy(
                 t => t.TypeKind is TypeKind.Class or TypeKind.Struct or TypeKind.Interface or TypeKind.Extension,
                 t => $"'{t}' must be a class, struct, interface, or extension block" );
+
+            builder.MustBeExplicitlyDeclared();
+            builder.MustBeRunTimeOnly();
+        } );
+
+    /// <summary>
+    /// The rule of <see cref="AdviceKind.IntroduceField"/>. It is separate from <c>_introduceRule</c> because a
+    /// union declaration is the one target that accepts every other introduced member and no instance field.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The language forbids an instance field, an automatic property and a field-like event in a union declaration
+    /// and reports CS9373, which is an error on generated code that the user cannot edit. Section 4 of
+    /// <c>Metalama.Framework/docs/introducing-unions.md</c> requires Metalama to refuse the three instead. A field
+    /// is refused here, because an advice that introduces one always introduces an instance field; an automatic
+    /// property and a field-like event are refused by their advice, which is the only place that knows the shape of
+    /// the member.
+    /// </para>
+    /// </remarks>
+    private static readonly IEligibilityRule<IDeclaration> _introduceFieldRule = CreateRule<IDeclaration, INamedType>(
+        builder =>
+        {
+            builder.MustSatisfy(
+                t => t.TypeKind is TypeKind.Class or TypeKind.Struct or TypeKind.Interface or TypeKind.Extension,
+                t => $"'{t}' must be a class, struct, interface, or extension block" );
+
+            builder.MustSatisfy(
+                t => !t.IsUnion,
+                t => $"'{t}' must not be a union, because the language does not permit an instance field in a union declaration" );
 
             builder.MustBeExplicitlyDeclared();
             builder.MustBeRunTimeOnly();
@@ -267,7 +301,7 @@ public static partial class EligibilityRuleFactory
 #pragma warning disable CS0618 // IntroduceOperator is obsolete but needs to be handled for backward compatibility
             AdviceKind.IntroduceOperator => _introduceRule,
 #pragma warning restore CS0618
-            AdviceKind.IntroduceField => _introduceRule,
+            AdviceKind.IntroduceField => _introduceFieldRule,
             AdviceKind.IntroduceEvent => _introduceRule,
             AdviceKind.IntroduceProperty => _introduceRule,
             AdviceKind.IntroduceIndexer => _introduceIndexerRule,

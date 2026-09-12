@@ -27,7 +27,8 @@ internal sealed class LinkerLateTransformationRegistry
 
     public LinkerLateTransformationRegistry(
         PartialCompilation intermediateCompilation,
-        IReadOnlyDictionary<ISymbolRef<INamedType>, LateTypeLevelTransformations> lateTypeLevelTransformations )
+        LinkerInjectionRegistry injectionRegistry,
+        IReadOnlyDictionary<IFullRef<INamedType>, LateTypeLevelTransformations> lateTypeLevelTransformations )
     {
         // TODO: Parallelize.
         HashSet<INamedTypeSymbol> typesWithRemovedPrimaryConstructor;
@@ -50,7 +51,10 @@ internal sealed class LinkerLateTransformationRegistry
             var type = lateTypeLevelTransformationPair.Key;
             var transformations = lateTypeLevelTransformationPair.Value;
 
-            var typeSymbol = (INamedTypeSymbol) intermediateCompilation.CompilationContext.SymbolTranslator.Translate( type.Symbol ).AssertNotNull();
+            // The type is read from source in most cases and is introduced by an aspect in the rest, and the two are
+            // resolved differently: a source type is translated from its own symbol, and an introduced one is
+            // resolved through the injected member that carries its declaration in the intermediate compilation.
+            var typeSymbol = injectionRegistry.GetIntermediateCompilationSymbol<INamedTypeSymbol>( type.Definition ).AssertNotNull();
 
             if ( transformations.NonMaterializedIntroducedParameterNames.Count > 0 )
             {

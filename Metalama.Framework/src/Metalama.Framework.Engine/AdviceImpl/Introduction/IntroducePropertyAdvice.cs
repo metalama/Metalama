@@ -280,6 +280,16 @@ internal sealed class IntroducePropertyAdvice : IntroduceMemberAdvice<IProperty,
         var templateDeclaration = this.Template?.GetDeclaration( this.SourceCompilation );
         var isAutoProperty = this._isProgrammaticAutoProperty || templateDeclaration is { IsAutoPropertyOrField: true };
 
+        // An automatic property holds a field, and the language does not permit one in a union declaration.
+        if ( isAutoProperty && !builder.IsStatic && targetDeclaration.IsUnion )
+        {
+            return this.CreateFailedResult(
+                AdviceDiagnosticDescriptors.CannotIntroduceStateIntoUnion.CreateRoslynDiagnostic(
+                    targetDeclaration.GetDiagnosticLocation(),
+                    (this.AspectInstance.AspectClass.ShortName, $"the automatic property '{builder.Name}'", targetDeclaration),
+                    this ) );
+        }
+
         // TODO: Introduce attributes that are added not present on the existing member?
         if ( existingDeclaration == null )
         {

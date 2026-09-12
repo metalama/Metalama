@@ -5,7 +5,6 @@
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Types;
 using Metalama.Framework.Engine.Utilities;
-using Metalama.Framework.Engine.Utilities.Roslyn;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -27,7 +26,7 @@ namespace Metalama.Framework.Engine.CodeModel.Facets;
 /// Reading the Roslyn member instead becomes possible with issue #1936.
 /// </para>
 /// </remarks>
-internal sealed class UnionFacet : IUnionFacet
+internal abstract class UnionFacet : IUnionFacet
 {
     /// <summary>
     /// The identifier of the property that holds the value of the case that a union currently carries. The compiler
@@ -47,7 +46,7 @@ internal sealed class UnionFacet : IUnionFacet
     /// </summary>
     private const string _creationMethodName = "Create";
 
-    public UnionFacet( INamedType type )
+    protected UnionFacet( INamedType type )
     {
         this.Type = type;
     }
@@ -56,14 +55,23 @@ internal sealed class UnionFacet : IUnionFacet
 
     public INamedType Type { get; }
 
-    [Memo]
-    public UnionKind UnionKind => GetUnionKind( this.Type );
+    /// <summary>
+    /// Gets the authoring form of the union, which the derived class reads from the declaration of a union read
+    /// from source and which is always the declaration form for an introduced union.
+    /// </summary>
+    public abstract UnionKind UnionKind { get; }
 
-    [Memo]
-    public IReadOnlyList<IUnionCase> Cases => this.GetCases();
+    /// <summary>
+    /// Gets the cases of the union, which the derived class derives from the members of a union read from source and
+    /// reads from the builder data of an introduced one.
+    /// </summary>
+    public abstract IReadOnlyList<IUnionCase> Cases { get; }
 
-    [Memo]
-    public IProperty? ValueProperty => this.GetValueProperty();
+    /// <summary>
+    /// Gets the property holding the value of the case that the union carries, which the derived class derives from
+    /// the members of a union read from source and reads from the builder data of an introduced one.
+    /// </summary>
+    public abstract IProperty? ValueProperty { get; }
 
     /// <summary>
     /// Gets the union member provider interface of the union, or <c>null</c> when the union has none, in which case
@@ -72,26 +80,10 @@ internal sealed class UnionFacet : IUnionFacet
     [Memo]
     private INamedType? MemberProviderInterface => this.GetMemberProviderInterface();
 
-    private static UnionKind GetUnionKind( INamedType type )
-    {
-        // The declaration form is recognized from the syntax of the declaration, because the compiled form of a union
-        // is the same for the two forms: both carry the union attribute. A union that has no declaring syntax is read
-        // from a referenced assembly and is therefore reported as the attribute form, which is the form that its
-        // compiled shape has.
-        var declaringSyntaxReferences = type.Definition.GetSymbol()?.DeclaringSyntaxReferences ?? default;
-
-        foreach ( var declaringSyntaxReference in declaringSyntaxReferences )
-        {
-            if ( declaringSyntaxReference.GetSyntax().SyntaxKind.IsUnionDeclaration )
-            {
-                return UnionKind.Declaration;
-            }
-        }
-
-        return UnionKind.Attribute;
-    }
-
-    private IReadOnlyList<IUnionCase> GetCases()
+    /// <summary>
+    /// Derives the cases of the union from its members, which is how a union read from source reports them.
+    /// </summary>
+    protected IReadOnlyList<IUnionCase> GetCasesFromMembers()
     {
         var cases = new List<IUnionCase>();
 
@@ -225,7 +217,11 @@ internal sealed class UnionFacet : IUnionFacet
     /// interface and the interfaces that it inherits when the union has one, and in the union and its base types
     /// otherwise.
     /// </summary>
-    private IProperty? GetValueProperty()
+    /// <summary>
+    /// Derives the property holding the value of the case from the members of the union, which is how a union read
+    /// from source reports it.
+    /// </summary>
+    protected IProperty? GetValuePropertyFromMembers()
     {
         var memberProviderInterface = this.MemberProviderInterface;
 

@@ -50,15 +50,40 @@ internal sealed class ParameterBuilder : BaseParameterBuilder
 
             if ( this._refKind != value )
             {
-                if ( this.IsReturnParameter )
+                if ( this.IsReturnParameter && !this.IsReturnParameterOfADelegate )
                 {
                     throw new InvalidOperationException( $"Changing the {nameof(this.RefKind)} property of a return parameter is not supported." );
+                }
+
+                // The language lets a return parameter be returned by value, by reference or by read-only reference,
+                // and an argument alone may be an input or an output one. The check is made here rather than at
+                // emission, where an unsupported value produces an error on generated code.
+                if ( this.IsReturnParameter && value is not (RefKind.None or RefKind.Ref or RefKind.RefReadOnly) )
+                {
+                    throw new InvalidOperationException(
+                        $"The {nameof(this.RefKind)} property of a return parameter must be {nameof(RefKind.None)}, {nameof(RefKind.Ref)} or {nameof(RefKind.RefReadOnly)}, and not {value}." );
                 }
 
                 this._refKind = value;
             }
         }
     }
+
+    /// <summary>
+    /// Gets a value indicating whether this is the return parameter of the <c>Invoke</c> method of a delegate that
+    /// an advice introduces, which is the one return parameter whose reference kind may be set.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The reference kind of the return parameter of a method is fixed because the template decides it, and there is
+    /// no template for a delegate: an aspect writes the whole signature through <c>IDelegateBuilder</c>, and the
+    /// language allows a delegate to return by reference. Section 7 of
+    /// <c>Metalama.Framework/docs/introducing-delegates.md</c> records that a <c>ref</c> return is in scope
+    /// for this kind.
+    /// </para>
+    /// </remarks>
+    private bool IsReturnParameterOfADelegate
+        => this.DeclaringMember is IMember { DeclaringType.TypeKind: Metalama.Framework.Code.TypeKind.Delegate };
 
     public override IType Type
     {

@@ -7,6 +7,7 @@ using Metalama.Framework.Code.Types;
 using Metalama.Framework.Engine.AdviceImpl.Introduction;
 using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 using Metalama.Testing.UnitTesting;
+using System;
 using System.Linq;
 using Xunit;
 using TypeKind = Metalama.Framework.Code.TypeKind;
@@ -57,22 +58,30 @@ public sealed class UnionTypeTests : UnitTestClass
     }
 
     /// <summary>
-    /// Verifies that a type introduced by an aspect is not a union and has no union facet, which is its value until
-    /// an introduction story adds the writer, and that the builder and the introduced type agree.
+    /// Verifies that a class introduced by an aspect is not a union and has no union facet, and that the builder
+    /// refuses to report a facet at all.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The builder throws from <c>Facets</c>, which is section 5.1 of
+    /// <c>Metalama.Framework/docs/introducing-types.md</c>, while <c>IsUnion</c> answers without throwing.
+    /// The introduced type reports the facet of its kind, and a class has none.
+    /// </para>
+    /// </remarks>
     [Fact]
-    public void UnionMembersAreEmptyForIntroducedType()
+    public void UnionMembersAreEmptyForIntroducedClass()
     {
         using var testContext = this.CreateTestContext();
 
         var compilation = testContext.CreateCompilationModel( "" ).CreateMutableClone();
 
         var builder = new NamedTypeBuilder( null!, compilation.GlobalNamespace, "IntroducedType", TypeKind.Class );
-        builder.Freeze();
-        compilation.AddTransformation( builder.CreateTransformation() );
 
         Assert.False( builder.IsUnion );
-        Assert.Null( builder.Facets.Union );
+        Assert.Throws<NotSupportedException>( () => builder.Facets );
+
+        builder.Freeze();
+        compilation.AddTransformation( builder.CreateTransformation() );
 
         var introducedType = compilation.Types.OfName( "IntroducedType" ).Single();
 

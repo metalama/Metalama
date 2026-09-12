@@ -1,0 +1,2 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0555 on `TargetType`: `The aspect 'Introduction' cannot introduce the field-like event 'FieldLikeEvent' into the union 'TargetType.Result' because the language does not permit an instance field, an automatic property or a field-like event in a union declaration, and reports CS9373 when it finds one. Introduce a property with accessors of its own, or an event with accessors of its own.`

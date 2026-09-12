@@ -323,6 +323,21 @@ internal sealed partial class LinkerInjectionStep
 
         public override SyntaxNode VisitExtensionBlockDeclaration( ExtensionBlockDeclarationSyntax node ) => this.VisitTypeDeclaration( node );
 
+#if ROSLYN_5_11_0_OR_GREATER
+
+        /// <summary>
+        /// Visits a union declaration, which is a type declaration like any other.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <c>VisitTypeDeclaration</c> already replaces the semicolon of a declaration that has no member list by a
+        /// pair of braces when a member is injected into it, which is the form a union takes. The override exists
+        /// only because Roslyn dispatches a virtual method per node kind. See issue #1944.
+        /// </para>
+        /// </remarks>
+        public override SyntaxNode VisitUnionDeclaration( UnionDeclarationSyntax node ) => this.VisitTypeDeclaration( node );
+#endif
+
         public override SyntaxNode VisitEnumDeclaration( EnumDeclarationSyntax node )
         {
             var originalNode = node;
@@ -638,8 +653,16 @@ internal sealed partial class LinkerInjectionStep
                             break;
                         }
 
+                    // The union kind is named under its own condition, in the manner of
+                    // SyntaxKindExtensions.IsTypeDeclaration, because the lower Roslyn variant does not declare it.
+                    // A union accepts injected members like any other type declaration, and VisitTypeDeclaration
+                    // replaces the semicolon of its declaration by a pair of braces. See issue #1944.
                     case SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration or SyntaxKind.RecordDeclaration
-                        or SyntaxKind.RecordStructDeclaration when injectedNode is TypeDeclarationSyntax typeDeclaration:
+                        or SyntaxKind.RecordStructDeclaration
+#if ROSLYN_5_11_0_OR_GREATER
+                        or SyntaxKind.UnionDeclaration
+#endif
+                        when injectedNode is TypeDeclarationSyntax typeDeclaration:
 
                         var typeBuilder = (NamedTypeBuilderData) injectedMember.BuilderData.AssertNotNull();
                         var injectedTypeMembers = new List<MemberDeclarationSyntax>();
@@ -650,13 +673,18 @@ internal sealed partial class LinkerInjectionStep
                             injectedTypeMembers,
                             syntaxGenerationContext );
 
-                        typeDeclaration = typeDeclaration.WithMembers( typeDeclaration.Members.AddRange( injectedTypeMembers ) );
+                        typeDeclaration = AddMembers( typeDeclaration, injectedTypeMembers );
+
                         injectedNode = AddInjectedInterfaces( typeBuilder, typeDeclaration );
 
                         break;
 
-                    case SyntaxKind.NamespaceDeclaration when injectedNode is NamespaceDeclarationSyntax namespaceDeclaration:
-                        // This handles named types injected into a namespace.
+                    // This handles named types injected into a namespace. The declaration of an enum and of a
+                    // delegate is a MemberDeclarationSyntax that is not a TypeDeclarationSyntax, and neither kind
+                    // accepts an injected member or an injected interface, so such a declaration is taken as the
+                    // transformation produced it.
+                    case SyntaxKind.NamespaceDeclaration
+                        when injectedNode is NamespaceDeclarationSyntax { Members: [TypeDeclarationSyntax namespaceTypeDeclaration] } namespaceDeclaration:
 
                         var namespaceTypeBuilder = (NamedTypeBuilderData) injectedMember.BuilderData.AssertNotNull();
                         var injectedNamedTypeMembers = new List<MemberDeclarationSyntax>();
@@ -667,10 +695,7 @@ internal sealed partial class LinkerInjectionStep
                             injectedNamedTypeMembers,
                             syntaxGenerationContext );
 
-                        var namespaceTypeDeclaration = (TypeDeclarationSyntax) namespaceDeclaration.Members.Single();
-
-                        namespaceTypeDeclaration =
-                            namespaceTypeDeclaration.WithMembers( namespaceTypeDeclaration.Members.AddRange( injectedNamedTypeMembers ) );
+                        namespaceTypeDeclaration = AddMembers( namespaceTypeDeclaration, injectedNamedTypeMembers );
 
                         namespaceTypeDeclaration = AddInjectedInterfaces( namespaceTypeBuilder, namespaceTypeDeclaration );
 
@@ -680,6 +705,29 @@ internal sealed partial class LinkerInjectionStep
                 }
 
                 targetList.Add( (T) injectedNode );
+
+                static TypeDeclarationSyntax AddMembers( TypeDeclarationSyntax typeDeclaration, List<MemberDeclarationSyntax> injectedMembers )
+                {
+                    if ( injectedMembers.Count == 0 )
+                    {
+                        return typeDeclaration;
+                    }
+
+                    typeDeclaration = typeDeclaration.WithMembers( typeDeclaration.Members.AddRange( injectedMembers ) );
+
+                    // A declaration that has no member list is written with a semicolon, which is the form an
+                    // introduced union takes, so the braces replace it once a member is injected.
+                    // VisitTypeDeclaration does the same for a declaration read from source.
+                    if ( typeDeclaration.OpenBraceToken.IsKind( SyntaxKind.None ) )
+                    {
+                        typeDeclaration = typeDeclaration
+                            .WithOpenBraceToken( Token( SyntaxKind.OpenBraceToken ) )
+                            .WithCloseBraceToken( Token( SyntaxKind.CloseBraceToken ) )
+                            .WithSemicolonToken( default );
+                    }
+
+                    return typeDeclaration;
+                }
 
                 TypeDeclarationSyntax AddInjectedInterfaces( NamedTypeBuilderData typeBuilder, TypeDeclarationSyntax typeDeclaration )
                 {

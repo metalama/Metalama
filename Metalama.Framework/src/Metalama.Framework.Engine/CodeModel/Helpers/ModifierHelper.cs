@@ -214,6 +214,19 @@ internal static class ModifierHelper
             AddToken( SyntaxKind.StaticKeyword );
         }
 
+        // The language orders these after the accessibility and before partial, and it orders readonly before ref, as
+        // in "public readonly ref struct S". Both apply to a struct only, which the setters of
+        // INamedTypeBuilder.IsReadOnly and IsRef enforce.
+        if ( namedType.IsReadOnly && (categories & ModifierCategories.ReadOnly) != 0 )
+        {
+            AddToken( SyntaxKind.ReadOnlyKeyword );
+        }
+
+        if ( namedType.IsRef )
+        {
+            AddToken( SyntaxKind.RefKeyword );
+        }
+
         if ( (categories & ModifierCategories.Inheritance) != 0 )
         {
             if ( namedType.HasNewKeyword == true )
@@ -246,7 +259,10 @@ internal static class ModifierHelper
                 AddToken( SyntaxKind.AbstractKeyword );
             }
 
-            if ( namedType.IsSealed )
+            // A struct, an enum and a delegate are implicitly sealed, and the code model reports them as sealed
+            // because Roslyn reports a type declared in source that way. The compiler rejects the modifier on such a
+            // declaration with CS0106, so it is emitted for the kinds that may carry it.
+            if ( namedType.IsSealed && namedType.TypeKind == TypeKind.Class )
             {
                 AddToken( SyntaxKind.SealedKeyword );
             }

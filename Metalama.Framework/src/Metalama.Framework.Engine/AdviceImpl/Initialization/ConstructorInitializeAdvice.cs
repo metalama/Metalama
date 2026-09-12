@@ -77,6 +77,16 @@ internal abstract class ConstructorInitializeAdvice : Advice<AddInitializerAdvic
 
         foreach ( var ctor in constructors )
         {
+            if ( IntroducedPrimaryConstructorValidator.IsIntroducedPrimaryConstructor( ctor ) )
+            {
+                return this.CreateFailedResult(
+                    IntroducedPrimaryConstructorValidator.CreateRefusalDiagnostic(
+                        ctor,
+                        this.AdviceKind,
+                        this.AspectInstance.AspectClass.ShortName,
+                        this ) );
+            }
+
             IConstructor targetCtor;
 
             if ( ctor.IsImplicitInstanceConstructor() )

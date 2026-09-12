@@ -23,10 +23,20 @@ using MethodKind = Metalama.Framework.Code.MethodKind;
 
 namespace Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 
-internal sealed class FieldBuilder : MemberBuilder, IFieldBuilder, IFieldImpl
+/// <summary>
+/// Builds a field that an advice introduces.
+/// </summary>
+/// <remarks>
+/// <para>
+/// The class is not sealed, because <c>EnumMemberBuilder</c> derives from it: a member of an enum is a constant
+/// field whose type is the enum, so it reuses the whole of this builder and fixes what the language fixes.
+/// </para>
+/// </remarks>
+internal class FieldBuilder : MemberBuilder, IFieldBuilder, IFieldImpl
 {
     private IType _type;
     private Writeability _writeability = Writeability.All;
+    private TypedConstant? _constantValue;
 
     public IntroducedRef<IField> Ref { get; }
 
@@ -141,8 +151,25 @@ internal sealed class FieldBuilder : MemberBuilder, IFieldBuilder, IFieldImpl
 
     public FieldInfo ToFieldInfo() => CompileTimeFieldInfo.Create( this );
 
-    // TODO: If we support introducing const fields, implement ConstantValue.
-    public TypedConstant? ConstantValue => null;
+    /// <summary>
+    /// Gets or sets the value of a constant field, or <c>null</c> when the field is not a constant.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A member of an enum is a constant field, which is what this property serves. The builder data and the
+    /// introduced field already carried it, so the value reaches the code model as soon as the builder holds one.
+    /// </para>
+    /// </remarks>
+    public TypedConstant? ConstantValue
+    {
+        get => this._constantValue;
+        set
+        {
+            this.CheckNotFrozen();
+
+            this._constantValue = value;
+        }
+    }
 
     IField IField.Definition => this;
 

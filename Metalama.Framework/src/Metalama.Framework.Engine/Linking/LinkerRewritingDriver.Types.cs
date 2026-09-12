@@ -43,6 +43,25 @@ internal sealed partial class LinkerRewritingDriver
         return classDeclaration;
     }
 
+#if ROSLYN_5_11_0_OR_GREATER
+
+    /// <summary>
+    /// Rewrites a union declaration, which the language reports as a struct and which therefore follows the rules of
+    /// <see cref="RewriteStruct"/>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A union declaration has no primary constructor that the pipeline can remove, because the language forbids a
+    /// union to declare one, so the members are the whole of the rewriting.
+    /// </para>
+    /// </remarks>
+    public static UnionDeclarationSyntax RewriteUnion(
+        UnionDeclarationSyntax unionDeclaration,
+        INamedTypeSymbol symbol,
+        IReadOnlyList<MemberDeclarationSyntax> transformedMembers )
+        => unionDeclaration.WithMembers( List( transformedMembers ) );
+#endif
+
     public StructDeclarationSyntax RewriteStruct(
         StructDeclarationSyntax structDeclaration,
         INamedTypeSymbol symbol,

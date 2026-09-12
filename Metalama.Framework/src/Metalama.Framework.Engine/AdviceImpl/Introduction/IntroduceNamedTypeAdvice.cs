@@ -18,6 +18,17 @@ internal sealed class IntroduceNamedTypeAdvice : IntroduceDeclarationAdvice<INam
     private readonly string _explicitName;
     private readonly TypeKind _typeKind;
 
+    /// <summary>
+    /// The authoring form of a record, or <see cref="RecordKind.None"/> when the introduced type is not a record.
+    /// </summary>
+    private readonly RecordKind _recordKind;
+
+    /// <summary>
+    /// A value indicating whether the introduced type is a union written with the <c>union</c> keyword, which the
+    /// language reports as a struct.
+    /// </summary>
+    private readonly bool _isUnion;
+
     public override AdviceKind AdviceKind => AdviceKind.IntroduceType;
 
     private OverrideStrategy OverrideStrategy { get; }
@@ -27,26 +38,57 @@ internal sealed class IntroduceNamedTypeAdvice : IntroduceDeclarationAdvice<INam
         string explicitName,
         OverrideStrategy overrideStrategy,
         Action<NamedTypeBuilder>? buildAction,
-        TypeKind typeKind )
+        TypeKind typeKind,
+        RecordKind recordKind = RecordKind.None,
+        bool isUnion = false )
         : base( parameters, buildAction )
     {
         this._explicitName = explicitName;
         this.OverrideStrategy = overrideStrategy;
         this._typeKind = typeKind;
+        this._recordKind = recordKind;
+        this._isUnion = isUnion;
     }
 
     protected override NamedTypeBuilder CreateBuilder()
     {
-        return new NamedTypeBuilder(
-            this.AspectLayerInstance,
-            (INamespaceOrNamedType) this.TargetDeclaration.AssertNotNull(),
-            this._explicitName,
-            this._typeKind );
+        var target = (INamespaceOrNamedType) this.TargetDeclaration.AssertNotNull();
+
+        // Each kind whose builder carries state of its own has a class of its own. The compilation model requires an
+        // INamedTypeImpl in every case, so each of them derives from NamedTypeBuilder and narrows what it exposes.
+        if ( this._isUnion )
+        {
+            return new UnionBuilder( this.AspectLayerInstance, target, this._explicitName );
+        }
+        else if ( this._recordKind != RecordKind.None )
+        {
+            return new RecordBuilder( this.AspectLayerInstance, target, this._explicitName, this._recordKind );
+        }
+        else
+        {
+            return this._typeKind switch
+            {
+                TypeKind.Enum => new EnumBuilder( this.AspectLayerInstance, target, this._explicitName ),
+                TypeKind.Delegate => new DelegateBuilder( this.AspectLayerInstance, target, this._explicitName ),
+                _ => new NamedTypeBuilder( this.AspectLayerInstance, target, this._explicitName, this._typeKind )
+            };
+        }
     }
 
     protected override IntroductionAdviceResult<INamedType> ImplementCore( NamedTypeBuilder builder, AdviceImplementationContext context )
     {
         var targetDeclaration = (INamespaceOrNamedType) this.TargetDeclaration.ForCompilation( context.MutableCompilation );
+
+        // The case list of a union is what the declaration carries, and the language requires at least one case. The
+        // refusal is reported here rather than left to the compiler, which would report CS9370 on generated code.
+        if ( builder is UnionBuilder { Cases.Count: 0 } )
+        {
+            return this.CreateFailedResult(
+                AdviceDiagnosticDescriptors.UnionMustDeclareACase.CreateRoslynDiagnostic(
+                    targetDeclaration.GetDiagnosticLocation(),
+                    (this.AspectInstance.AspectClass.ShortName, builder.Name),
+                    this ) );
+        }
 
         var existingType =
             targetDeclaration.DeclarationKind switch
@@ -68,6 +110,7 @@ internal sealed class IntroduceNamedTypeAdvice : IntroduceDeclarationAdvice<INam
 
             context.AddTransformation( builder.CreateTransformation() );
 
+            this.RegisterOwnedMembers( builder, context );
             this.IntroduceImplicitConstructorIfNeeded( builder, context );
 
             return this.CreateSuccessResult( AdviceOutcome.Default, builder );
@@ -91,6 +134,7 @@ internal sealed class IntroduceNamedTypeAdvice : IntroduceDeclarationAdvice<INam
                     builder.Freeze();
                     context.AddTransformation( builder.CreateTransformation() );
 
+                    this.RegisterOwnedMembers( builder, context );
                     this.IntroduceImplicitConstructorIfNeeded( builder, context );
 
                     return this.CreateSuccessResult( AdviceOutcome.Default, builder );
@@ -101,19 +145,63 @@ internal sealed class IntroduceNamedTypeAdvice : IntroduceDeclarationAdvice<INam
         }
     }
 
+    /// <summary>
+    /// Registers in the code model the members that the declaration of the introduced type carries and that nothing
+    /// emits, which is section 4.2 of <c>Metalama.Framework/docs/introducing-types.md</c>.
+    /// </summary>
+    private void RegisterOwnedMembers( NamedTypeBuilder builder, AdviceImplementationContext context )
+    {
+        if ( builder is ITypeBuilderWithSynthesizedMembers builderWithSynthesizedMembers )
+        {
+            foreach ( var member in builderWithSynthesizedMembers.GetSynthesizedMemberData() )
+            {
+                context.AddTransformation( new IntroduceSynthesizedDeclarationTransformation( this.AspectLayerInstance, member ) );
+            }
+        }
+    }
+
     private void IntroduceImplicitConstructorIfNeeded( NamedTypeBuilder builder, AdviceImplementationContext context )
     {
-        // Non-static classes should have an implicit default constructor, just like source types
-        // that get their implicit constructor from Roslyn.
-        if ( builder is { TypeKind: TypeKind.Class, IsStatic: false } )
+        // A non-static class and a struct both have an implicit parameterless constructor, just like a source type
+        // that gets one from Roslyn. The pipeline never re-reads the final model from Roslyn, so the constructor has
+        // to exist as a builder for an aspect to see it.
+        if ( builder is not { TypeKind: TypeKind.Class or TypeKind.Struct, IsStatic: false } )
         {
-            var constructorBuilder = new ConstructorBuilder( this.AspectLayerInstance, builder, isImplicitlyDeclared: true )
-            {
-                Accessibility = Accessibility.Public
-            };
+            return;
+        }
 
-            constructorBuilder.Freeze();
+        // A positional record class declares a primary constructor, which is a declared constructor, so the compiler
+        // gives it no parameterless one. A record struct receives a parameterless constructor in every case, because
+        // every struct does, and a record class that declares no positional parameter receives one as well.
+        if ( builder is RecordBuilder { RecordKind: RecordKind.Class, HasPositionalParameters: true } )
+        {
+            return;
+        }
+
+        var constructorBuilder = new ConstructorBuilder( this.AspectLayerInstance, builder, isImplicitlyDeclared: true )
+        {
+            Accessibility = Accessibility.Public,
+
+            // Neither form has a declaration of its own: the compiler synthesizes the constructor of a struct from
+            // the declaration, and the one of a class is emitted by nothing because it is implicitly declared.
+            IsSynthesizedByCompiler = true
+        };
+
+        constructorBuilder.Freeze();
+
+        if ( builder.TypeKind == TypeKind.Class )
+        {
+            // Metalama declares the parameterless constructor of a class, so it is registered and emitted.
             context.AddTransformation( constructorBuilder.CreateTransformation() );
+        }
+        else
+        {
+            // The compiler synthesizes the parameterless constructor of a struct from the declaration, so this one is
+            // registered in the code model and emitted by nothing. Emitting it as well would declare it twice, and
+            // before C# 10 the language did not let a struct declare one at all. See section 4.2 of
+            // Metalama.Framework/docs/introducing-types.md.
+            context.AddTransformation(
+                new IntroduceSynthesizedDeclarationTransformation( this.AspectLayerInstance, constructorBuilder.BuilderData ) );
         }
     }
 }

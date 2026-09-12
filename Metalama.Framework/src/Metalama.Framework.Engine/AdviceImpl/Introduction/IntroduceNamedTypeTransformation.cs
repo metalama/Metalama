@@ -30,9 +30,23 @@ internal sealed class IntroduceNamedTypeTransformation : IntroduceDeclarationTra
     {
         var introducedType = this.BuilderData.ToRef().GetTarget( context.FinalCompilation );
 
+        // A struct, an enum and a delegate emit no base list. The base that InitializeBaseType gives them, which is
+        // System.ValueType, System.Enum and System.MulticastDelegate, is the semantic base that the code model
+        // reports, and writing it in a base list is CS0527: the compiler derives it from the declaration instead.
+        // An enum writes its underlying integral type in that position, which the arm for that kind supplies.
         BaseListSyntax? baseList;
 
-        if ( introducedType.BaseType != null && introducedType.BaseType.SpecialType != SpecialType.Object )
+        if ( this.BuilderData.TypeKind is TypeKind.Struct or TypeKind.Enum or TypeKind.Delegate )
+        {
+            baseList = null;
+        }
+        else if ( this.BuilderData is RecordBuilderData { BaseArguments.IsDefaultOrEmpty: false } recordBuilderData )
+        {
+            // A record that passes arguments to the primary constructor of its base record writes them in the base
+            // list, which the syntax model represents as a form of its own.
+            baseList = RecordHelper.GetBaseList( introducedType, recordBuilderData, context );
+        }
+        else if ( introducedType.BaseType != null && introducedType.BaseType.SpecialType != SpecialType.Object )
         {
             baseList = BaseList(
                 SingletonSeparatedList<BaseTypeSyntax>( SimpleBaseType( context.SyntaxGenerator.TypeSyntax( introducedType.BaseType.ToNonNullable() ) ) ) );
@@ -58,11 +72,54 @@ internal sealed class IntroduceNamedTypeTransformation : IntroduceDeclarationTra
                                 },
                                 SyntaxFactoryEx.SafeIdentifier( tp.Name ) ) ) ) );
 
+        // The local is a MemberDeclarationSyntax and not a TypeDeclarationSyntax, because an enum declaration is a
+        // BaseTypeDeclarationSyntax and a delegate declaration is neither. InjectedMember.Syntax is already typed that
+        // way, so nothing downstream changes.
         var type =
             (this.BuilderData.TypeKind switch
             {
+                // A record is emitted as a record declaration whose class or struct keyword names the authoring
+                // form. Its positional parameter list is the parameter list of the primary constructor, and every
+                // member the compiler synthesizes from it is registered in the code model and emitted by nothing.
+#if ROSLYN_5_11_0_OR_GREATER
+
+                // A union declaration is a struct in the code model, so the union flag tells it apart. The emission
+                // is compiled into the latest Roslyn variant only, because that is the one that declares the syntax.
+                TypeKind.Struct when this.BuilderData.IsUnion =>
+                    UnionDeclaration(
+                        AdviceSyntaxGenerator.GetAttributeLists( introducedType, context ),
+                        introducedType.GetSyntaxModifierList(),
+                        SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.UnionKeyword ),
+                        SyntaxFactoryEx.SafeIdentifier( introducedType.Name ),
+                        typeArgs,
+                        UnionHelper.GetCaseList( introducedType, context ),
+                        baseList,
+                        context.SyntaxGenerator.ConstraintClauses( introducedType ),
+                        default,
+                        List<MemberDeclarationSyntax>(),
+                        default,
+                        Token( SyntaxKind.SemicolonToken ) ),
+#endif
+                TypeKind.Class or TypeKind.Struct when this.BuilderData.IsRecord =>
+                    RecordDeclaration(
+                        introducedType.TypeKind == TypeKind.Class ? SyntaxKind.RecordDeclaration : SyntaxKind.RecordStructDeclaration,
+                        AdviceSyntaxGenerator.GetAttributeLists( introducedType, context ),
+                        introducedType.GetSyntaxModifierList(),
+                        SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.RecordKeyword ),
+                        introducedType.TypeKind == TypeKind.Class
+                            ? default
+                            : SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.StructKeyword ),
+                        SyntaxFactoryEx.SafeIdentifier( introducedType.Name ),
+                        typeArgs,
+                        RecordHelper.GetParameterList( introducedType, context ),
+                        baseList,
+                        context.SyntaxGenerator.ConstraintClauses( introducedType ),
+                        Token( SyntaxKind.OpenBraceToken ),
+                        List<MemberDeclarationSyntax>(),
+                        Token( SyntaxKind.CloseBraceToken ),
+                        default ),
                 TypeKind.Class =>
-                    (TypeDeclarationSyntax) ClassDeclaration(
+                    (MemberDeclarationSyntax) ClassDeclaration(
                         AdviceSyntaxGenerator.GetAttributeLists( introducedType, context ),
                         introducedType.GetSyntaxModifierList(),
                         SyntaxFactoryEx.SafeIdentifier( introducedType.Name ),
@@ -88,6 +145,36 @@ internal sealed class IntroduceNamedTypeTransformation : IntroduceDeclarationTra
                         baseList,
                         context.SyntaxGenerator.ConstraintClauses( introducedType ),
                         List<MemberDeclarationSyntax>() ),
+
+                // The members of an enum are part of the declaration, so they are emitted here rather than injected
+                // separately. The underlying type takes the place of the base list, which EnumHelper.GetBaseList supplies.
+                TypeKind.Enum =>
+                    EnumDeclaration(
+                        AdviceSyntaxGenerator.GetAttributeLists( introducedType, context ),
+                        introducedType.GetSyntaxModifierList(),
+                        Token( SyntaxKind.EnumKeyword ),
+                        SyntaxFactoryEx.SafeIdentifier( introducedType.Name ),
+                        EnumHelper.GetBaseList( introducedType, context ),
+                        Token( SyntaxKind.OpenBraceToken ),
+                        SeparatedList( EnumHelper.GetMembers( introducedType, context ) ),
+                        Token( SyntaxKind.CloseBraceToken ),
+                        default ),
+
+                // A delegate declaration is a method signature with the delegate keyword in front of it. The
+                // signature comes from the Invoke method, which the advice registers in the code model without
+                // emitting it, because this declaration has no member list to put it in.
+                TypeKind.Delegate =>
+                    DelegateDeclaration(
+                        AdviceSyntaxGenerator.GetAttributeLists( introducedType, context ),
+                        introducedType.GetSyntaxModifierList(),
+                        Token( SyntaxKind.DelegateKeyword ),
+                        DelegateHelper.GetReturnType( introducedType, context )
+                            .WithOptionalTrailingTrivia( ElasticSpace, context.SyntaxGenerationContext.Options ),
+                        SyntaxFactoryEx.SafeIdentifier( introducedType.Name ),
+                        typeArgs,
+                        context.SyntaxGenerator.ParameterList( DelegateHelper.GetInvokeMethod( introducedType ), context.FinalCompilation ),
+                        context.SyntaxGenerator.ConstraintClauses( introducedType ),
+                        Token( SyntaxKind.SemicolonToken ) ),
                 _ => throw new AssertionFailedException( $"Unsupported type kind '{introducedType.TypeKind}'." )
             }).NormalizeWhitespaceIfNecessary( context.SyntaxGenerationContext );
 

@@ -11,7 +11,17 @@ using System.Linq;
 
 namespace Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 
-internal sealed class NamedTypeBuilderData : MemberOrNamedTypeBuilderData
+/// <summary>
+/// The immutable data of an introduced type, which carries what every kind has.
+/// </summary>
+/// <remarks>
+/// <para>
+/// A kind that carries more than this has a derived class of its own, which the builder of that kind creates in
+/// <see cref="NamedTypeBuilder.CreateBuilderData"/>. The facet of that kind reads the derived class, which is where
+/// the members that the compiler synthesizes are recorded.
+/// </para>
+/// </remarks>
+internal class NamedTypeBuilderData : MemberOrNamedTypeBuilderData
 {
     private readonly IntroducedRef<INamedType> _ref;
 
@@ -23,17 +33,9 @@ internal sealed class NamedTypeBuilderData : MemberOrNamedTypeBuilderData
 
     public TypeKind TypeKind { get; }
 
-    // The following members can return a constant value at the moment.
+    public bool IsReadOnly { get; }
 
-#pragma warning disable CA1822
-
-    // ReSharper disable once MemberCanBeMadeStatic.Global
-    public bool IsReadOnly => false;
-
-    // ReSharper disable once MemberCanBeMadeStatic.Global
-    public bool IsRef => false;
-
-#pragma warning restore CA1822
+    public bool IsRef { get; }
 
     public NamedTypeBuilderData( NamedTypeBuilder builder, IFullRef<IDeclaration> containingDeclaration ) : base( builder, containingDeclaration )
     {
@@ -45,6 +47,9 @@ internal sealed class NamedTypeBuilderData : MemberOrNamedTypeBuilderData
         this.TypeKind = builder.TypeKind;
         this.IsRecord = builder.IsRecord;
         this.IsClosed = builder.IsClosed;
+        this.IsUnion = builder.IsUnion;
+        this.IsReadOnly = builder.IsReadOnly;
+        this.IsRef = builder.IsRef;
     }
 
     protected override IFullRef<IDeclaration> ToDeclarationFullRef() => this._ref;
@@ -56,6 +61,8 @@ internal sealed class NamedTypeBuilderData : MemberOrNamedTypeBuilderData
     public bool IsRecord { get; }
 
     public bool IsClosed { get; }
+
+    public bool IsUnion { get; }
 
     public override IEnumerable<DeclarationBuilderData> GetOwnedDeclarations() => base.GetOwnedDeclarations().Concat( this.TypeParameters );
 }

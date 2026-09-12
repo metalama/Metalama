@@ -56,7 +56,7 @@ internal sealed partial class LinkerInjectionStep
         private readonly ConcurrentDictionary<IRef<IDeclaration>, List<InjectedMember>> _injectedMembersByTargetDeclaration;
         private readonly ConcurrentDictionary<IRef<IDeclaration>, IReadOnlyList<IntroduceParameterTransformation>> _introducedParametersByTargetDeclaration;
 
-        private readonly ConcurrentDictionary<ISymbolRef<INamedType>, LateTypeLevelTransformations> _lateTypeLevelTransformations;
+        private readonly ConcurrentDictionary<IFullRef<INamedType>, LateTypeLevelTransformations> _lateTypeLevelTransformations;
 
         private readonly HashSet<ITransformation> _transformationsCausingAuxiliaryOverrides;
 
@@ -84,7 +84,7 @@ internal sealed partial class LinkerInjectionStep
         public IReadOnlyDictionary<IRef<IDeclaration>, IReadOnlyList<IntroduceParameterTransformation>> IntroducedParametersByTargetDeclaration
             => this._introducedParametersByTargetDeclaration;
 
-        public IReadOnlyDictionary<ISymbolRef<INamedType>, LateTypeLevelTransformations> LateTypeLevelTransformations => this._lateTypeLevelTransformations;
+        public IReadOnlyDictionary<IFullRef<INamedType>, LateTypeLevelTransformations> LateTypeLevelTransformations => this._lateTypeLevelTransformations;
 
         // ReSharper disable once InconsistentlySynchronizedField
         public ISet<ITransformation> TransformationsCausingAuxiliaryOverrides => this._transformationsCausingAuxiliaryOverrides;
@@ -119,7 +119,7 @@ internal sealed partial class LinkerInjectionStep
                 new ConcurrentDictionary<IRef<IDeclaration>, IReadOnlyList<IntroduceParameterTransformation>>( RefEqualityComparer<IDeclaration>.Default );
 
             this._lateTypeLevelTransformations =
-                new ConcurrentDictionary<ISymbolRef<INamedType>, LateTypeLevelTransformations>( RefEqualityComparer<INamedType>.Default );
+                new ConcurrentDictionary<IFullRef<INamedType>, LateTypeLevelTransformations>( RefEqualityComparer<INamedType>.Default );
 
             this._transformationsCausingAuxiliaryOverrides = [];
             this._introducedSyntaxTrees = [];
@@ -433,7 +433,7 @@ internal sealed partial class LinkerInjectionStep
         private MemberLevelTransformations GetOrAddMemberLevelTransformations( DeclarationBuilderData declarationBuilder )
             => this._introductionMemberLevelTransformations.GetOrAdd( declarationBuilder, static _ => new MemberLevelTransformations() );
 
-        public LateTypeLevelTransformations GetOrAddLateTypeLevelTransformations( ISymbolRef<INamedType> type )
+        public LateTypeLevelTransformations GetOrAddLateTypeLevelTransformations( IFullRef<INamedType> type )
             => this._lateTypeLevelTransformations.GetOrAdd( type, static _ => new LateTypeLevelTransformations() );
 
         /// <summary>

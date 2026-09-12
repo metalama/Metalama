@@ -9,7 +9,6 @@ using Metalama.Framework.Code.DeclarationBuilders;
 using Metalama.Framework.Code.Types;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel.Abstractions;
-using Metalama.Framework.Engine.CodeModel.Facets;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 using Metalama.Framework.Engine.CodeModel.Introductions.Collections;
@@ -32,6 +31,8 @@ internal class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, I
 {
     private INamedType? _baseType;
     private bool _isClosed;
+    private bool _isReadOnly;
+    private bool _isRef;
 
     public TypeKind TypeKind { get; }
 
@@ -164,10 +165,17 @@ internal class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, I
     }
 
     /// <summary>
-    /// Gets a value indicating whether the introduced type is a union. The property always returns <c>false</c>,
-    /// because introducing a union is not supported yet.
+    /// Gets a value indicating whether the introduced type is a union written with the <c>union</c> keyword, which
+    /// <c>UnionBuilder</c> is and no other builder is.
     /// </summary>
-    public bool IsUnion => false;
+    /// <remarks>
+    /// <para>
+    /// The language reports a union declaration as a struct, so the type kind alone does not tell a union apart.
+    /// Only the form written with the <c>union</c> keyword is introduced, which section 6.3 of
+    /// <c>Metalama.Framework/docs/introducing-unions.md</c> decides.
+    /// </para>
+    /// </remarks>
+    public virtual bool IsUnion => false;
 
     public IntroducedRef<INamedType> Ref { get; }
 
@@ -183,8 +191,12 @@ internal class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, I
         declaringNamespaceOrType as INamedType,
         name )
     {
-        Invariant.Assert( typeKind is TypeKind.Class or TypeKind.Struct or TypeKind.Interface or TypeKind.Extension );
-        Invariant.Assert( !isRecord ); // Introducing records is not yet supported.
+        Invariant.Assert(
+            typeKind is TypeKind.Class or TypeKind.Struct or TypeKind.Interface or TypeKind.Extension or TypeKind.Enum or TypeKind.Delegate );
+
+        // A record is a class or a struct that carries the record modifier, which is how the code model represents it:
+        // TypeKind.RecordClass and TypeKind.RecordStruct are obsolete. See Metalama.Framework/docs/introducing-records.md.
+        Invariant.Assert( !isRecord || typeKind is TypeKind.Class or TypeKind.Struct );
 
         this.TypeKind = typeKind;
         this.IsRecord = isRecord;
@@ -209,10 +221,38 @@ internal class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, I
         }
     }
 
+    /// <summary>
+    /// Sets the base type that the language gives to a type of this kind. The value is the semantic base, which is
+    /// what the code model reports, and not the base list that is emitted: a struct, an enum and a delegate emit no
+    /// base list, and an enum emits its underlying type in that position instead.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A kind that has a builder class of its own overrides this method rather than adding an arm here, so that
+    /// the class of the kind carries what the language gives that kind.
+    /// </para>
+    /// </remarks>
     protected virtual void InitializeBaseType()
     {
-        this.BaseType = ((CompilationModel) this.ContainingNamespace.Compilation).Factory.GetSpecialType( SpecialType.Object );
+        // This class represents a class, an interface, a struct and an extension block, so it decides between the
+        // two bases those four kinds have. An enum and a delegate have a class of their own and override this.
+        this.SetBaseTypeCore(
+            this.TypeKind == TypeKind.Struct
+                ? this.Compilation.Factory.GetSpecialType( SpecialType.ValueType )
+                : this.Compilation.Factory.GetSpecialType( SpecialType.Object ) );
     }
+
+    /// <summary>
+    /// Assigns the base type without passing through the setter of <see cref="BaseType"/>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A kind whose language form has no base list refuses every assignment through the setter, and the base type of
+    /// such a kind is still what the code model reports, so the initialization assigns the field instead of the
+    /// property.
+    /// </para>
+    /// </remarks>
+    protected void SetBaseTypeCore( INamedType? baseType ) => this._baseType = baseType;
 
     protected override void FreezeChildren()
     {
@@ -330,14 +370,67 @@ internal class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, I
 
     public IExtensionBlockCollection ExtensionBlocks => throw new NotImplementedException();
 
-    // Unlike ExtensionBlocks above, this property does not throw, because eligibility rules and advice validation run
-    // against builders. A builder produces no type that has a facet today: the constructor accepts a class, a struct,
-    // an interface or an extension block only.
-    public ITypeFacetCollection Facets => TypeFacetCollection.Empty;
+    /// <summary>
+    /// Gets the facet of the type, which a builder does not have.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A builder describes a type that is being constructed, whose members are not resolvable, so it has no
+    /// structure to report, and reporting an empty structure would be a false answer rather than an incomplete one.
+    /// An aspect that reads the facet of a builder has made a mistake, and the exception says so at the place the
+    /// mistake was made.
+    /// </para>
+    /// <para>
+    /// See section 5.1 of <c>Metalama.Framework/docs/introducing-types.md</c>, which supersedes implementation
+    /// guideline 5 of <c>type-facets.md</c>. The flags below do not throw, which is what keeps a caller that asks
+    /// what kind a type is working: only a caller that asks for the structure meets the exception.
+    /// </para>
+    /// </remarks>
+    public ITypeFacetCollection Facets
+        => throw new NotSupportedException(
+            $"The type '{this.Name}' is still being constructed, so it has no facet. Read the facet of the introduced type, which the advice returns." );
 
-    public bool IsReadOnly => false;
+    /// <summary>
+    /// Gets or sets a value indicating whether the type is declared with the <c>readonly</c> modifier, which the
+    /// language allows on a struct only.
+    /// </summary>
+    public virtual bool IsReadOnly
+    {
+        get => this._isReadOnly;
+        set
+        {
+            this.CheckNotFrozen();
 
-    public bool IsRef => false;
+            if ( value && this.TypeKind != TypeKind.Struct )
+            {
+                throw new InvalidOperationException(
+                    $"The type '{this.Name}' cannot be readonly because the language allows the readonly modifier on a struct only." );
+            }
+
+            this._isReadOnly = value;
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the type is declared with the <c>ref</c> modifier, which the language
+    /// allows on a struct that is not a record.
+    /// </summary>
+    public virtual bool IsRef
+    {
+        get => this._isRef;
+        set
+        {
+            this.CheckNotFrozen();
+
+            if ( value && this.TypeKind != TypeKind.Struct )
+            {
+                throw new InvalidOperationException(
+                    $"The type '{this.Name}' cannot be a ref struct because the language allows the ref modifier on a struct only." );
+            }
+
+            this._isRef = value;
+        }
+    }
 
     public bool IsDelegate => this.TypeKind == TypeKind.Delegate;
 
@@ -347,11 +440,31 @@ internal class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, I
 
     public INamedType Definition => this;
 
-    public INamedType UnderlyingType => this;
+    /// <summary>
+    /// Gets the underlying type, which an enum overrides with its underlying integral type. Every other kind is its
+    /// own underlying type.
+    /// </summary>
+    public virtual INamedType UnderlyingType => this;
 
     public SpecialType SpecialType => SpecialType.None;
 
-    public bool? IsReferenceType => true;
+    /// <summary>
+    /// Gets a value indicating whether the type is a reference type.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The test names the two value kinds rather than the reference ones, which is the rule Roslyn applies to a
+    /// symbol, so a kind that is added later is reported as a reference type by default. A class, an interface, a
+    /// delegate and an extension block are all reference types, and a struct and an enum are not. A union is
+    /// reported as a struct, so it is a value type as well.
+    /// </para>
+    /// <para>
+    /// The value decides more than what this property returns, because <c>ToNullable</c> branches on it: a delegate
+    /// reported as a value type would produce <c>Nullable&lt;TDelegate&gt;</c>, which the language does not accept.
+    /// Issue #1840 records the same class of defect.
+    /// </para>
+    /// </remarks>
+    public bool? IsReferenceType => this.TypeKind is not (TypeKind.Struct or TypeKind.Enum);
 
     public bool? IsNullable => false;
 
@@ -446,8 +559,15 @@ internal class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, I
 
     protected override void EnsureReferenceInitialized()
     {
-        this.Ref.BuilderData = new NamedTypeBuilderData( this, this.ContainingDeclaration.ToFullRef() );
+        this.Ref.BuilderData = this.CreateBuilderData( this.ContainingDeclaration.ToFullRef() );
     }
+
+    /// <summary>
+    /// Creates the immutable data of this builder. A kind that carries more than <see cref="NamedTypeBuilderData"/>
+    /// overrides this method and returns the derived class of that kind.
+    /// </summary>
+    protected virtual NamedTypeBuilderData CreateBuilderData( IFullRef<IDeclaration> containingDeclaration )
+        => new( this, containingDeclaration );
 
     public NamedTypeBuilderData BuilderData => (NamedTypeBuilderData) this.Ref.BuilderData;
 }

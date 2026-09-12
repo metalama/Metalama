@@ -7,7 +7,7 @@ using Metalama.Framework.Aspects;
 namespace Metalama.Framework.Code.DeclarationBuilders
 {
     /// <summary>
-    /// Allows to complete the construction of a method that has been created by an advice.
+    /// Allows to complete the construction of a method that has been created by the <see cref="Metalama.Framework.Aspects.AdviserExtensions.IntroduceMethod"/> advice.
     /// </summary>
     /// <seealso cref="IMethod"/>
     /// <seealso cref="IMethodBaseBuilder"/>

@@ -1711,6 +1711,127 @@ public static class AdviserExtensions
             buildType );
 
     /// <summary>
+    /// Introduces a new enum into the current namespace (as a top-level type) or type (as a nested type).
+    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> or <see cref="WithNamespace"/> method to introduce the enum to a different type or namespace
+    /// than the current one.
+    /// </summary>
+    /// <param name="adviser">An adviser for a named type or namespace.</param>
+    /// <param name="name">The enum name.</param>
+    /// <param name="buildEnum">A delegate that configures the introduced enum. It must add at least one member, because an enum that declares none is a type
+    ///     that nothing can have a value of, which is why this parameter is required and precedes <paramref name="whenExists"/>.</param>
+    /// <param name="whenExists">Determines the implementation strategy when a type of the same name is already declared in the target type or namespace.
+    ///     The default strategy is to fail with a compile-time error.</param>
+    /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> that exposes the outcome of the operation and the introduced <see cref="INamedType"/>.</returns>
+    /// <seealso href="@introducing-types"/>
+    public static IIntroductionAdviceResult<INamedType> IntroduceEnum(
+        this IAdviser<INamespaceOrNamedType> adviser,
+        string name,
+        Action<IEnumBuilder> buildEnum,
+        OverrideStrategy whenExists = OverrideStrategy.Default )
+        => ((IAdviserInternal) adviser).AdviceFactory.IntroduceEnum(
+            adviser.Target,
+            name,
+            buildEnum,
+            whenExists );
+
+    /// <summary>
+    /// Introduces a new delegate into the current namespace (as a top-level type) or type (as a nested type).
+    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> or <see cref="WithNamespace"/> method to introduce the delegate to a different type or namespace
+    /// than the current one.
+    /// </summary>
+    /// <param name="adviser">An adviser for a named type or namespace.</param>
+    /// <param name="name">The delegate name.</param>
+    /// <param name="buildDelegate">A delegate that modifies the <see cref="IDelegateBuilder"/> that represents the introduced delegate. The signature of the
+    ///     introduced delegate is given through this callback, which is why this parameter is required and precedes <paramref name="whenExists"/>.</param>
+    /// <param name="whenExists">Determines the implementation strategy when a type of the same name is already declared in the target type or namespace.
+    ///     The default strategy is to fail with a compile-time error.</param>
+    /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> that exposes the outcome of the operation and the introduced <see cref="INamedType"/>.</returns>
+    /// <seealso href="@introducing-types"/>
+    public static IIntroductionAdviceResult<INamedType> IntroduceDelegate(
+        this IAdviser<INamespaceOrNamedType> adviser,
+        string name,
+        Action<IDelegateBuilder> buildDelegate,
+        OverrideStrategy whenExists = OverrideStrategy.Default )
+        => ((IAdviserInternal) adviser).AdviceFactory.IntroduceDelegate(
+            adviser.Target,
+            name,
+            buildDelegate,
+            whenExists );
+
+    /// <summary>
+    /// Introduces a new record into the current namespace (as a top-level type) or type (as a nested type).
+    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> or <see cref="WithNamespace"/> method to introduce the record to a different type or namespace
+    /// than the current one.
+    /// </summary>
+    /// <param name="adviser">An adviser for a named type or namespace.</param>
+    /// <param name="name">The record name.</param>
+    /// <param name="recordKind">Whether the record is a record class or a record struct. The default is a record class.</param>
+    /// <param name="whenExists">Determines the implementation strategy when a type of the same name is already declared in the target type or namespace.
+    ///     The default strategy is to fail with a compile-time error.</param>
+    /// <param name="buildRecord">An optional delegate that modifies the <see cref="IRecordBuilder"/> that represents the introduced record.</param>
+    /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> that exposes the outcome of the operation and the introduced <see cref="INamedType"/>.</returns>
+    /// <seealso href="@introducing-types"/>
+    public static IIntroductionAdviceResult<INamedType> IntroduceRecord(
+        this IAdviser<INamespaceOrNamedType> adviser,
+        string name,
+        RecordKind recordKind = RecordKind.Class,
+        OverrideStrategy whenExists = OverrideStrategy.Default,
+        Action<IRecordBuilder>? buildRecord = null )
+        => ((IAdviserInternal) adviser).AdviceFactory.IntroduceRecord(
+            adviser.Target,
+            name,
+            recordKind,
+            whenExists,
+            buildRecord );
+
+    /// <summary>
+    /// Introduces a new union, written with the <c>union</c> keyword, into the current namespace (as a top-level type) or type (as a nested type).
+    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> or <see cref="WithNamespace"/> method to introduce the union to a different type or namespace
+    /// than the current one.
+    /// </summary>
+    /// <param name="adviser">An adviser for a named type or namespace.</param>
+    /// <param name="name">The union name.</param>
+    /// <param name="buildUnion">A delegate that configures the introduced union. It must add at least one case, because the language requires a union to have
+    ///     one, which is why this parameter is required and precedes <paramref name="whenExists"/>.</param>
+    /// <param name="whenExists">Determines the implementation strategy when a type of the same name is already declared in the target type or namespace.
+    ///     The default strategy is to fail with a compile-time error.</param>
+    /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> that exposes the outcome of the operation and the introduced <see cref="INamedType"/>.</returns>
+    /// <seealso href="@introducing-types"/>
+    public static IIntroductionAdviceResult<INamedType> IntroduceUnion(
+        this IAdviser<INamespaceOrNamedType> adviser,
+        string name,
+        Action<IUnionBuilder> buildUnion,
+        OverrideStrategy whenExists = OverrideStrategy.Default )
+        => ((IAdviserInternal) adviser).AdviceFactory.IntroduceUnion(
+            adviser.Target,
+            name,
+            buildUnion,
+            whenExists );
+
+    /// <summary>
+    /// Introduces a new struct into the current namespace (as a top-level type) or type (as a nested type).
+    /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> or <see cref="WithNamespace"/> method to introduce the struct to a different type or namespace
+    /// than the current one.
+    /// </summary>
+    /// <param name="adviser">An adviser for a named type or namespace.</param>
+    /// <param name="name">The struct name.</param>
+    /// <param name="whenExists">Determines the implementation strategy when a struct of the same name is already declared in the target type or namespace.
+    ///     The default strategy is to fail with a compile-time error.</param>
+    /// <param name="buildType">An optional delegate that modifies the <see cref="INamedTypeBuilder"/> that represents the introduced struct.</param>
+    /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> that exposes the outcome of the operation and the introduced <see cref="INamedType"/>.</returns>
+    /// <seealso href="@introducing-types"/>
+    public static IIntroductionAdviceResult<INamedType> IntroduceStruct(
+        this IAdviser<INamespaceOrNamedType> adviser,
+        string name,
+        OverrideStrategy whenExists = OverrideStrategy.Default,
+        Action<INamedTypeBuilder>? buildType = null )
+        => ((IAdviserInternal) adviser).AdviceFactory.IntroduceStruct(
+            adviser.Target,
+            name,
+            whenExists,
+            buildType );
+
+    /// <summary>
     /// Introduces a new interface into the current namespace (as a top-level type) or type (as a nested type).
     /// Use the <see cref="IAdviser.With{TNewDeclaration}"/> or <see cref="WithNamespace"/> method to introduce the interface to a different type or namespace
     /// than the current one.
