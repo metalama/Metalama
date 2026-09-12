@@ -135,59 +135,19 @@ internal sealed class IntroduceNamedTypeAdvice : IntroduceDeclarationAdvice<INam
     }
 
     /// <summary>
-    /// Registers in the code model the members that the builder of a kind owns, which today is the members of an
-    /// enum.
+    /// Registers in the code model the members that the declaration of the introduced type carries and that nothing
+    /// emits, which is section 4.2 of <c>Metalama.Framework/docs/introducing-types.md</c>.
     /// </summary>
-    /// <remarks>
-    /// <para>
-    /// The members of an enum are emitted inside the enum declaration rather than injected separately, which makes
-    /// this kind the exception to section 4.2 of
-    /// <c>Metalama.Framework/docs/introducing-types.md</c>: they are written by the aspect author rather than
-    /// synthesized by the compiler. They are registered without injection here so that they reach
-    /// <c>INamedType.Fields</c> exactly once.
-    /// </para>
-    /// </remarks>
     private void RegisterOwnedMembers( NamedTypeBuilder builder, AdviceImplementationContext context )
     {
-        switch ( builder )
+        if ( builder is not ITypeBuilderWithSynthesizedMembers builderWithSynthesizedMembers )
         {
-            case EnumBuilder enumBuilder:
-                foreach ( var member in enumBuilder.MemberBuilders )
-                {
-                    context.AddTransformation( new IntroduceSynthesizedDeclarationTransformation( this.AspectLayerInstance, member.BuilderData ) );
-                }
+            return;
+        }
 
-                break;
-
-            case UnionBuilder unionBuilder:
-                // The compiler synthesizes one constructor per case and the Value property from the union
-                // declaration, so each is registered in the code model and emitted by nothing.
-                foreach ( var member in unionBuilder.GetSynthesizedMemberData() )
-                {
-                    context.AddTransformation( new IntroduceSynthesizedDeclarationTransformation( this.AspectLayerInstance, member ) );
-                }
-
-                break;
-
-            case RecordBuilder recordBuilder:
-                // The compiler synthesizes every one of these from the record declaration, so each is registered in
-                // the code model and emitted by nothing.
-                foreach ( var member in recordBuilder.GetSynthesizedMemberData() )
-                {
-                    context.AddTransformation( new IntroduceSynthesizedDeclarationTransformation( this.AspectLayerInstance, member ) );
-                }
-
-                break;
-
-            case DelegateBuilder delegateBuilder:
-                // The compiler synthesizes the Invoke method from the delegate declaration, which has no member
-                // list to put one in, so the method is registered in the code model and emitted by nothing. This is
-                // section 4.2 of Metalama.Framework/docs/introducing-types.md, and it is what lets
-                // DelegateFacet resolve the method through INamedType.Methods.
-                context.AddTransformation(
-                    new IntroduceSynthesizedDeclarationTransformation( this.AspectLayerInstance, delegateBuilder.InvokeMethodBuilder.BuilderData ) );
-
-                break;
+        foreach ( var member in builderWithSynthesizedMembers.GetSynthesizedMemberData() )
+        {
+            context.AddTransformation( new IntroduceSynthesizedDeclarationTransformation( this.AspectLayerInstance, member ) );
         }
     }
 

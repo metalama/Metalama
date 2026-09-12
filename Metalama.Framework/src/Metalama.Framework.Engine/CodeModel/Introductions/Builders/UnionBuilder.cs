@@ -29,7 +29,7 @@ namespace Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 /// the cases decide the constructors and an aspect adds those at any point in the callback.
 /// </para>
 /// </remarks>
-internal sealed class UnionBuilder : NamedTypeBuilder, IUnionBuilder
+internal sealed class UnionBuilder : NamedTypeBuilder, IUnionBuilder, ITypeBuilderWithSynthesizedMembers
 {
     /// <summary>
     /// The name that the compiler gives to the property holding the value of the case that the union carries.

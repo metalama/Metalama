@@ -36,9 +36,9 @@ public sealed class IntroduceEnumTests : UnitTestClass
         builder.Freeze();
         compilation.AddTransformation( builder.CreateTransformation() );
 
-        foreach ( var member in builder.MemberBuilders )
+        foreach ( var member in builder.GetSynthesizedMemberData() )
         {
-            compilation.AddTransformation( new IntroduceSynthesizedDeclarationTransformation( null!, member.BuilderData ) );
+            compilation.AddTransformation( new IntroduceSynthesizedDeclarationTransformation( null!, member ) );
         }
 
         return compilation.Types.OfName( builder.Name ).Single();

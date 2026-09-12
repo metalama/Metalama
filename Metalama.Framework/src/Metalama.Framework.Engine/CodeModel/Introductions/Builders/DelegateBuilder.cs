@@ -6,7 +6,9 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Code.Collections;
 using Metalama.Framework.Code.DeclarationBuilders;
 using Metalama.Framework.Engine.Aspects;
+using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 using System;
+using System.Collections.Generic;
 using TypeKind = Metalama.Framework.Code.TypeKind;
 
 namespace Metalama.Framework.Engine.CodeModel.Introductions.Builders;
@@ -39,7 +41,7 @@ namespace Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 /// declares, so the <c>AddTypeParameter</c> method adds them to the type.
 /// </para>
 /// </remarks>
-internal sealed class DelegateBuilder : NamedTypeBuilder, IDelegateBuilder
+internal sealed class DelegateBuilder : NamedTypeBuilder, IDelegateBuilder, ITypeBuilderWithSynthesizedMembers
 {
     /// <summary>
     /// The name that the language gives to the method of a delegate, and that <c>DelegateFacet</c> resolves.
@@ -50,6 +52,13 @@ internal sealed class DelegateBuilder : NamedTypeBuilder, IDelegateBuilder
     /// Gets the builder of the <c>Invoke</c> method, which carries the signature of the delegate.
     /// </summary>
     public MethodBuilder InvokeMethodBuilder { get; }
+
+    public IEnumerable<NamedDeclarationBuilderData> GetSynthesizedMemberData()
+    {
+        // The compiler synthesizes the Invoke method from the delegate declaration, which has no member list to put
+        // one in.
+        yield return this.InvokeMethodBuilder.BuilderData;
+    }
 
     public DelegateBuilder( AspectLayerInstance aspectLayerInstance, INamespaceOrNamedType declaringNamespaceOrType, string name )
         : base( aspectLayerInstance, declaringNamespaceOrType, name, TypeKind.Delegate )

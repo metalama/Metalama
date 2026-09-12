@@ -29,7 +29,7 @@ namespace Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 /// parameters decide several of them and an aspect adds those at any point in the callback.
 /// </para>
 /// </remarks>
-internal sealed class RecordBuilder : NamedTypeBuilder, IRecordBuilder
+internal sealed class RecordBuilder : NamedTypeBuilder, IRecordBuilder, ITypeBuilderWithSynthesizedMembers
 {
     /// <summary>
     /// The name that the compiler gives to the property carrying the equality contract of a record class.

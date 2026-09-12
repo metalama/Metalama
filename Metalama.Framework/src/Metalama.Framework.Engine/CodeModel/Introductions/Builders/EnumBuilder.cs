@@ -5,6 +5,7 @@
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.DeclarationBuilders;
 using Metalama.Framework.Engine.Aspects;
+using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -31,7 +32,7 @@ namespace Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 /// aspect author rather than synthesized by the compiler.
 /// </para>
 /// </remarks>
-internal sealed class EnumBuilder : NamedTypeBuilder, IEnumBuilder
+internal sealed class EnumBuilder : NamedTypeBuilder, IEnumBuilder, ITypeBuilderWithSynthesizedMembers
 {
     private readonly List<EnumMemberBuilder> _members = [];
     private SpecialType _underlyingType = SpecialType.Int32;
@@ -169,6 +170,14 @@ internal sealed class EnumBuilder : NamedTypeBuilder, IEnumBuilder
     /// emits.
     /// </summary>
     public IReadOnlyList<EnumMemberBuilder> MemberBuilders => this._members;
+
+    public IEnumerable<NamedDeclarationBuilderData> GetSynthesizedMemberData()
+    {
+        foreach ( var member in this._members )
+        {
+            yield return member.BuilderData;
+        }
+    }
 
     public IEnumMemberBuilder AddMember( string name ) => this.AddMemberCore( name, null );
 
