@@ -418,28 +418,25 @@ either forbids something the language allows or emits a modifier the compiler re
 
 Pull request metalama/Metalama#1879 makes `meta.Proceed()` work in an aspect that overrides a
 compiler-synthesized member of a record, and every gate of that mechanism is keyed on whether the type is a record.
-That work targets a record the user wrote.
+That work targets a record the user wrote. It serves an introduced record as well, and the question is closed.
 
-The test that settles it was written, and the answer is that the mechanism does not serve an introduced record
-today. An aspect that introduces a positional record and then calls
-`IntroduceMethod( nameof(PrintMembersTemplate), whenExists: OverrideStrategy.Override )` on it fails in
-`LinkerInjectionRegistry`, with `KeyNotFoundException: The given key 'Positional.PrintMembers(StringBuilder)' was
-not present in the dictionary`.
+The body is not the difficulty. It is reproduced from a symbol of the intermediate compilation, and that compilation
+holds the declaration that Metalama emits, so the compiler synthesizes the member on it exactly as it does for a
+record read from source. The step before it was what was missing: an override transformation names its target by the
+builder data of the member, and `LinkerInjectionRegistry` resolved builder data through the injected member that
+carries its syntax. A member that section 4.2 registers has no injected member, by construction, so the lookup found
+nothing and the linker failed with a `KeyNotFoundException`.
 
-The reason is not where the body comes from. The body is reproduced from a symbol of the intermediate compilation,
-and that compilation does hold the declaration of the introduced record, so the compiler synthesizes the member on
-it exactly as it does for a record read from source. What is missing is the step before: an override transformation
-names its target by the builder data of the member, and `LinkerInjectionRegistry.GetFromBuilder` resolves that
-builder data through the injected member that carries its syntax. A member that section 4.2 registers has no
-injected member, by construction, so the lookup finds nothing.
+`LinkerInjectionRegistry` now resolves such a member by looking it up on the symbol of the declaring type, whose
+declaration is injected, by name and by signature. The signature is compared and not only the number of parameters,
+because a record has two members named `Equals` that take one parameter each and only the parameter type tells them
+apart. The resolution is not specific to a record: it serves every member that section 4.2 registers, which includes
+the `Value` property and the per-case constructors of a union, the `Invoke` method of a delegate and the implicit
+parameterless constructor of a struct.
 
-Serving it means resolving the builder data of such a member to the symbol that the compiler synthesized on the
-emitted declaration, which is a lookup by name and signature on the symbol of the declaring type. That lookup has to
-run while the registry is being built, it has to tell one overload of `Equals` from the other, and it serves the
-other kinds as well, namely the `Value` property and the per-case constructors of a union, the `Invoke` method of a
-delegate and the implicit parameterless constructor of a struct. It is therefore an issue of its own and not part of
-this one. Until it is done, an aspect that overrides a synthesized member of an introduced record fails in the
-linker rather than reporting a diagnostic.
+The aspect test `Introductions/Records/OverrideSynthesizedMember` overrides `PrintMembers`, `GetHashCode`,
+`EqualityContract`, the strongly typed `Equals`, `ToString` and `Deconstruct` of an introduced positional record, and
+`meta.Proceed()` reaches the synthesized implementation of each of them.
 
 ### 7.3. Does a positional parameter accept an attribute target?
 

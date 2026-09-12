@@ -22,6 +22,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
 using MethodKind = Microsoft.CodeAnalysis.MethodKind;
@@ -387,7 +388,11 @@ internal sealed class LinkerInjectionRegistry
 
             ISymbol? GetFromBuilder( DeclarationBuilderData builder )
             {
-                var introducedBuilder = builderToInjectedMemberMap[builder];
+                if ( !builderToInjectedMemberMap.TryGetValue( builder, out var introducedBuilder ) )
+                {
+                    return GetSynthesizedMemberSymbol( builder );
+                }
+
                 var sourceSyntaxTree = builder.PrimarySyntaxTree.AssertNotNull();
                 var intermediateSyntaxTree = this._transformedSyntaxTreeMap[sourceSyntaxTree];
                 var intermediateNode = intermediateSyntaxTree.GetRoot().GetCurrentNode( introducedBuilder.Syntax );
@@ -403,6 +408,82 @@ internal sealed class LinkerInjectionRegistry
                 };
 
                 return intermediateSemanticModel.GetDeclaredSymbol( symbolNode ).GetCanonicalDefinition();
+            }
+
+            // Returns the symbol that the compiler synthesized for a member that is registered in the code model and
+            // that nothing emits, or null when the member cannot be resolved. Such a member has no injected member of
+            // its own, which is the mechanism of section 4.2 of Metalama.Framework/docs/introducing-types.md, so it
+            // cannot be resolved from the syntax that a transformation produced for it. Its symbol exists in the
+            // intermediate compilation all the same, because the compiler synthesizes it from the declaration of the
+            // type, which is injected. The member is therefore looked up by name and by signature on the symbol of
+            // the declaring type, which is how an aspect that overrides a synthesized member of an introduced type
+            // reaches the original implementation.
+            ISymbol? GetSynthesizedMemberSymbol( DeclarationBuilderData builder )
+            {
+                if ( builder is not NamedDeclarationBuilderData namedBuilder
+                     || builder.DeclaringType is not IIntroducedRef declaringTypeRef
+                     || GetFromBuilder( declaringTypeRef.BuilderData ) is not INamedTypeSymbol declaringTypeSymbol )
+                {
+                    return null;
+                }
+
+                var parameters = builder switch
+                {
+                    MethodBuilderData method => method.Parameters,
+                    ConstructorBuilderData constructor => constructor.Parameters,
+                    _ => ImmutableArray<ParameterBuilderData>.Empty
+                };
+
+                // The compiler names a constructor by its metadata name, and every other member by the name that the
+                // builder carries.
+                var name = builder.DeclarationKind == DeclarationKind.Constructor
+                    ? WellKnownMemberNames.InstanceConstructorName
+                    : namedBuilder.Name;
+
+                foreach ( var candidate in declaringTypeSymbol.GetMembers( name ) )
+                {
+                    if ( candidate.Kind == SymbolKind.Method )
+                    {
+                        var method = (IMethodSymbol) candidate;
+
+                        if ( SignatureMatches( method.Parameters, parameters ) )
+                        {
+                            return method;
+                        }
+                    }
+                    else if ( parameters.Length == 0 )
+                    {
+                        return candidate;
+                    }
+                }
+
+                return null;
+            }
+
+            // Returns a value indicating whether the parameters of a candidate symbol are those of the member that the
+            // builder data describes. Two overloads of Equals differ by their single parameter alone, so the number
+            // of parameters is not enough.
+            bool SignatureMatches( ImmutableArray<IParameterSymbol> candidateParameters, ImmutableArray<ParameterBuilderData> builderParameters )
+            {
+                if ( candidateParameters.Length != builderParameters.Length )
+                {
+                    return false;
+                }
+
+                for ( var i = 0; i < candidateParameters.Length; i++ )
+                {
+                    var builderParameterType = this.GetIntermediateCompilationSymbol<ITypeSymbol>( builderParameters[i].Type.Definition );
+
+                    if ( builderParameterType == null
+                         || !this._intermediateCompilation.CompilationContext.SymbolComparer.Equals(
+                             candidateParameters[i].Type,
+                             builderParameterType ) )
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
             }
         }
 
