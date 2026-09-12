@@ -14,7 +14,6 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Generic;
 using System.Linq;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
-using RefKind = Metalama.Framework.Code.RefKind;
 using SpecialType = Metalama.Framework.Code.SpecialType;
 
 namespace Metalama.Framework.Engine.AdviceImpl.Introduction;
@@ -26,113 +25,6 @@ internal sealed class IntroduceNamedTypeTransformation : IntroduceDeclarationTra
         introducedDeclaration ) { }
 
     public override TransformationObservability Observability => TransformationObservability.Always;
-
-    /// <summary>
-    /// Builds the base list of an enum, which is its underlying integral type. The list is omitted when that type is
-    /// <c>int</c>, which the language implies.
-    /// </summary>
-    private static BaseListSyntax? GetEnumBaseList( INamedType introducedType, MemberInjectionContext context )
-    {
-        var underlyingType = introducedType.UnderlyingType;
-
-        return underlyingType.SpecialType == SpecialType.Int32
-            ? null
-            : BaseList( SingletonSeparatedList<BaseTypeSyntax>( SimpleBaseType( context.SyntaxGenerator.TypeSyntax( underlyingType ) ) ) );
-    }
-
-    /// <summary>
-    /// Builds the members of an enum, in the order in which the aspect added them, each with the value it was given
-    /// or none when the language assigns it.
-    /// </summary>
-    private static IEnumerable<EnumMemberDeclarationSyntax> GetEnumMembers( INamedType introducedType, MemberInjectionContext context )
-    {
-        // The order is taken from the facet and not from INamedType.Fields, because the order of that collection
-        // depends on which fields a previous consumer resolved by name, while the members of an enum are emitted in
-        // the order in which the aspect added them.
-        foreach ( var field in introducedType.Facets.Enum.AssertNotNull().Members )
-        {
-            var value = field.ConstantValue;
-
-            var equalsValue =
-                value is { IsInitialized: true, Value: not null }
-                    ? EqualsValueClause( context.SyntaxGenerator.TypedConstant( value.Value ) )
-                    : null;
-
-            yield return
-                EnumMemberDeclaration(
-                    AdviceSyntaxGenerator.GetAttributeLists( field, context ),
-                    default,
-                    SyntaxFactoryEx.SafeIdentifier( field.Name ),
-                    equalsValue );
-        }
-    }
-
-    /// <summary>
-    /// Gets the <c>Invoke</c> method of an introduced delegate, which carries its signature.
-    /// </summary>
-    private static IMethod GetInvokeMethod( INamedType introducedType ) => introducedType.Facets.Delegate.AssertNotNull().InvokeMethod;
-
-    /// <summary>
-    /// Builds the return type of a delegate declaration, including the <c>ref</c> and <c>ref readonly</c> modifiers
-    /// of a return by reference, which the declaration writes before the return type.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// <c>ContextualSyntaxGenerator.ReturnType</c> is not used, because it emits the type alone. Metalama does not
-    /// introduce a method that returns by reference, which is why the setter of
-    /// <c>ParameterBuilder.RefKind</c> refuses a return parameter for every kind but a delegate, and a delegate is
-    /// therefore the one declaration that needs the modifier emitted here.
-    /// </para>
-    /// </remarks>
-    private static TypeSyntax GetDelegateReturnType( INamedType introducedType, MemberInjectionContext context )
-    {
-        var returnParameter = GetInvokeMethod( introducedType ).ReturnParameter;
-        var returnType = context.SyntaxGenerator.TypeSyntax( returnParameter.Type );
-
-        return returnParameter.RefKind switch
-        {
-            RefKind.None => returnType,
-            RefKind.Ref => RefType( SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.RefKeyword ), default, returnType ),
-            RefKind.RefReadOnly => RefType(
-                SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.RefKeyword ),
-                SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.ReadOnlyKeyword ),
-                returnType ),
-            _ => throw new AssertionFailedException(
-                $"Unsupported reference kind '{returnParameter.RefKind}' on the return value of the delegate '{introducedType}'." )
-        };
-    }
-
-    /// <summary>
-    /// Builds the positional parameter list of a record, which is the parameter list of its primary constructor, or
-    /// returns <c>null</c> when the record declares no positional parameter and is therefore not positional.
-    /// </summary>
-    private static ParameterListSyntax? GetRecordParameterList( INamedType introducedType, MemberInjectionContext context )
-    {
-        var primaryConstructor = introducedType.PrimaryConstructor;
-
-        return primaryConstructor is not { Parameters.Count: > 0 }
-            ? null
-            : context.SyntaxGenerator.ParameterList( primaryConstructor, context.FinalCompilation );
-    }
-
-#if ROSLYN_5_11_0_OR_GREATER
-
-    /// <summary>
-    /// Builds the case list of a union, which the syntax model represents as a parameter list whose parameters
-    /// carry a type and no identifier.
-    /// </summary>
-    private static ParameterListSyntax GetUnionCaseList( INamedType introducedType, MemberInjectionContext context )
-        => ParameterList(
-            SeparatedList(
-                introducedType.Facets.Union.AssertNotNull()
-                    .Cases.SelectAsReadOnlyList(
-                        c => Parameter(
-                            List<AttributeListSyntax>(),
-                            default,
-                            context.SyntaxGenerator.TypeSyntax( c.Type ),
-                            default,
-                            null ) ) ) );
-#endif
 
     public override IEnumerable<InjectedMember> GetInjectedMembers( MemberInjectionContext context )
     {
@@ -194,7 +86,7 @@ internal sealed class IntroduceNamedTypeTransformation : IntroduceDeclarationTra
                         SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.UnionKeyword ),
                         SyntaxFactoryEx.SafeIdentifier( introducedType.Name ),
                         typeArgs,
-                        GetUnionCaseList( introducedType, context ),
+                        UnionHelper.GetCaseList( introducedType, context ),
                         baseList,
                         context.SyntaxGenerator.ConstraintClauses( introducedType ),
                         default,
@@ -213,7 +105,7 @@ internal sealed class IntroduceNamedTypeTransformation : IntroduceDeclarationTra
                             : SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.StructKeyword ),
                         SyntaxFactoryEx.SafeIdentifier( introducedType.Name ),
                         typeArgs,
-                        GetRecordParameterList( introducedType, context ),
+                        RecordHelper.GetParameterList( introducedType, context ),
                         baseList,
                         context.SyntaxGenerator.ConstraintClauses( introducedType ),
                         Token( SyntaxKind.OpenBraceToken ),
@@ -256,9 +148,9 @@ internal sealed class IntroduceNamedTypeTransformation : IntroduceDeclarationTra
                         introducedType.GetSyntaxModifierList(),
                         Token( SyntaxKind.EnumKeyword ),
                         SyntaxFactoryEx.SafeIdentifier( introducedType.Name ),
-                        GetEnumBaseList( introducedType, context ),
+                        EnumHelper.GetBaseList( introducedType, context ),
                         Token( SyntaxKind.OpenBraceToken ),
-                        SeparatedList( GetEnumMembers( introducedType, context ) ),
+                        SeparatedList( EnumHelper.GetMembers( introducedType, context ) ),
                         Token( SyntaxKind.CloseBraceToken ),
                         default ),
 
@@ -270,11 +162,11 @@ internal sealed class IntroduceNamedTypeTransformation : IntroduceDeclarationTra
                         AdviceSyntaxGenerator.GetAttributeLists( introducedType, context ),
                         introducedType.GetSyntaxModifierList(),
                         Token( SyntaxKind.DelegateKeyword ),
-                        GetDelegateReturnType( introducedType, context )
+                        DelegateHelper.GetReturnType( introducedType, context )
                             .WithOptionalTrailingTrivia( ElasticSpace, context.SyntaxGenerationContext.Options ),
                         SyntaxFactoryEx.SafeIdentifier( introducedType.Name ),
                         typeArgs,
-                        context.SyntaxGenerator.ParameterList( GetInvokeMethod( introducedType ), context.FinalCompilation ),
+                        context.SyntaxGenerator.ParameterList( DelegateHelper.GetInvokeMethod( introducedType ), context.FinalCompilation ),
                         context.SyntaxGenerator.ConstraintClauses( introducedType ),
                         Token( SyntaxKind.SemicolonToken ) ),
                 _ => throw new AssertionFailedException( $"Unsupported type kind '{introducedType.TypeKind}'." )
