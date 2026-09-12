@@ -27,13 +27,6 @@ public sealed class IntroduceEnumTests : UnitTestClass
         => new( null!, compilation.GlobalNamespace, name );
 
     /// <summary>
-    /// Gets a special type as an <see cref="INamedType"/>, which is what <see cref="IEnumBuilder.UnderlyingType"/>
-    /// takes.
-    /// </summary>
-    private static INamedType GetNamedType( CompilationModel compilation, SpecialType specialType )
-        => compilation.Factory.GetSpecialType( specialType );
-
-    /// <summary>
     /// Registers an enum and its members in the compilation and returns the introduced type. The members are
     /// registered as their own transformations, which is what makes them visible through
     /// <see cref="INamedType.Fields"/>.
@@ -87,7 +80,7 @@ public sealed class IntroduceEnumTests : UnitTestClass
             .CreateMutableClone();
 
         var builder = CreateEnumBuilder( compilation );
-        ((IEnumBuilder) builder).UnderlyingType = GetNamedType( compilation, SpecialType.Byte );
+        ((IEnumBuilder) builder).UnderlyingType = SpecialType.Byte;
         builder.IsFlags = true;
         builder.AddMember( "None", (byte) 0 );
         builder.AddMember( "First", (byte) 1 );
@@ -189,16 +182,15 @@ public sealed class IntroduceEnumTests : UnitTestClass
         var compilation = testContext.CreateCompilationModel( "" ).CreateMutableClone();
 
         var builder = (IEnumBuilder) CreateEnumBuilder( compilation );
-        var type = GetNamedType( compilation, specialType );
 
         if ( isValid )
         {
-            builder.UnderlyingType = type;
-            Assert.Equal( specialType, builder.UnderlyingType.SpecialType );
+            builder.UnderlyingType = specialType;
+            Assert.Equal( specialType, builder.UnderlyingType );
         }
         else
         {
-            Assert.Throws<ArgumentOutOfRangeException>( () => builder.UnderlyingType = type );
+            Assert.Throws<ArgumentOutOfRangeException>( () => builder.UnderlyingType = specialType );
         }
     }
 
@@ -217,7 +209,7 @@ public sealed class IntroduceEnumTests : UnitTestClass
         builder.AddMember( "First" );
 
         Assert.Throws<InvalidOperationException>(
-            () => builder.UnderlyingType = GetNamedType( compilation, SpecialType.Byte ) );
+            () => builder.UnderlyingType = SpecialType.Byte );
     }
 
     /// <summary>
@@ -231,7 +223,7 @@ public sealed class IntroduceEnumTests : UnitTestClass
         var compilation = testContext.CreateCompilationModel( "" ).CreateMutableClone();
 
         var builder = (IEnumBuilder) CreateEnumBuilder( compilation );
-        builder.UnderlyingType = GetNamedType( compilation, SpecialType.Byte );
+        builder.UnderlyingType = SpecialType.Byte;
 
         Assert.Throws<ArgumentOutOfRangeException>( () => builder.AddMember( "TooLarge", 256 ) );
         Assert.Throws<ArgumentOutOfRangeException>( () => builder.AddMember( "Negative", -1 ) );
@@ -255,7 +247,7 @@ public sealed class IntroduceEnumTests : UnitTestClass
 
         var enumBuilder = CreateEnumBuilder( compilation );
         var builder = (IEnumBuilder) enumBuilder;
-        builder.UnderlyingType = GetNamedType( compilation, SpecialType.Int64 );
+        builder.UnderlyingType = SpecialType.Int64;
 
         builder.AddMember( "Min", long.MinValue );
         builder.AddMember( "Max", long.MaxValue );
@@ -355,7 +347,7 @@ public sealed class IntroduceEnumTests : UnitTestClass
         Assert.Throws<InvalidOperationException>( () => builder.IsFlags = true );
 
         Assert.Throws<InvalidOperationException>(
-            () => builder.UnderlyingType = GetNamedType( compilation, SpecialType.Byte ) );
+            () => builder.UnderlyingType = SpecialType.Byte );
     }
 
     /// <summary>

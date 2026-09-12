@@ -5,13 +5,14 @@ public class TargetType
   {
     None
   }
-  public enum EmptyEnum
-  {
-  }
   public enum PublicEnum
   {
     First,
     Second,
     Third
+  }
+  public enum SingleMemberEnum
+  {
+    Only
   }
 }

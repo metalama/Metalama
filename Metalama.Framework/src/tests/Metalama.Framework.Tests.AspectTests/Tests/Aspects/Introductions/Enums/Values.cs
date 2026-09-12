@@ -15,7 +15,7 @@ public class IntroductionAttribute : TypeAspect
         // declaration written by hand.
         builder.IntroduceEnum(
             "ExplicitValues",
-            buildEnum: e =>
+            e =>
             {
                 e.Accessibility = Accessibility.Public;
                 e.AddMember( "Zero", 0 );

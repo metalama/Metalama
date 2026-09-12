@@ -13,6 +13,8 @@ namespace Metalama.Framework.Code.DeclarationBuilders
     /// <seealso cref="IMemberBuilder"/>
     /// <seealso cref="AdviserExtensions.IntroduceEvent(IAdviser{INamedType}, string, IntroductionScope, OverrideStrategy, System.Action{IEventBuilder}?, object?)"/>
     /// <seealso href="@introducing-members"/>
+    /// <seealso cref="Metalama.Framework.Advising.IAdviceFactory.IntroduceEvent(Metalama.Framework.Code.INamedType,string,Metalama.Framework.Aspects.IntroductionScope,Metalama.Framework.Aspects.OverrideStrategy,System.Action{Metalama.Framework.Code.DeclarationBuilders.IEventBuilder},object)"/>
+    /// <seealso cref="Metalama.Framework.Aspects.AdviserExtensions.IntroduceEvent(Metalama.Framework.Aspects.IAdviser{Metalama.Framework.Code.INamedType},string,Metalama.Framework.Aspects.IntroductionScope,Metalama.Framework.Aspects.OverrideStrategy,System.Action{Metalama.Framework.Code.DeclarationBuilders.IEventBuilder},object)"/>
     public interface IEventBuilder : IMemberBuilder, IEvent, IHasTypeBuilder
     {
         /// <summary>

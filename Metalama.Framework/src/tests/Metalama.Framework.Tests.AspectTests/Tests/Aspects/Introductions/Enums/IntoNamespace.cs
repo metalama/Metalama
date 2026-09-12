@@ -16,7 +16,7 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Introductions.Enums
             builder.With( builder.Target.ContainingNamespace )
                 .IntroduceEnum(
                     "TopLevelEnum",
-                    buildEnum: e =>
+                    e =>
                     {
                         e.Accessibility = Accessibility.Public;
                         e.AddMember( "First" );

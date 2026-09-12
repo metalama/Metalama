@@ -21,7 +21,7 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Introductions.Enums
         {
             builder.IntroduceEnum(
                 "GeneratedEnum",
-                buildEnum: e =>
+                e =>
                 {
                     e.Accessibility = Accessibility.Public;
                     e.AddMember( "None" );

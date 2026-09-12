@@ -19,9 +19,9 @@ internal sealed class IntroduceNamedTypeAdvice : IntroduceDeclarationAdvice<INam
     private readonly TypeKind _typeKind;
 
     /// <summary>
-    /// The authoring form of a record, or <c>null</c> when the introduced type is not a record.
+    /// The authoring form of a record, or <see cref="RecordKind.None"/> when the introduced type is not a record.
     /// </summary>
-    private readonly RecordKind? _recordKind;
+    private readonly RecordKind _recordKind;
 
     /// <summary>
     /// A value indicating whether the introduced type is a union written with the <c>union</c> keyword, which the
@@ -39,7 +39,7 @@ internal sealed class IntroduceNamedTypeAdvice : IntroduceDeclarationAdvice<INam
         OverrideStrategy overrideStrategy,
         Action<NamedTypeBuilder>? buildAction,
         TypeKind typeKind,
-        RecordKind? recordKind = null,
+        RecordKind recordKind = RecordKind.None,
         bool isUnion = false )
         : base( parameters, buildAction )
     {
@@ -60,18 +60,19 @@ internal sealed class IntroduceNamedTypeAdvice : IntroduceDeclarationAdvice<INam
         {
             return new UnionBuilder( this.AspectLayerInstance, target, this._explicitName );
         }
-
-        if ( this._recordKind is { } recordKind )
+        else if ( this._recordKind != RecordKind.None )
         {
-            return new RecordBuilder( this.AspectLayerInstance, target, this._explicitName, recordKind );
+            return new RecordBuilder( this.AspectLayerInstance, target, this._explicitName, this._recordKind );
         }
-
-        return this._typeKind switch
+        else
         {
-            TypeKind.Enum => new EnumBuilder( this.AspectLayerInstance, target, this._explicitName ),
-            TypeKind.Delegate => new DelegateBuilder( this.AspectLayerInstance, target, this._explicitName ),
-            _ => new NamedTypeBuilder( this.AspectLayerInstance, target, this._explicitName, this._typeKind )
-        };
+            return this._typeKind switch
+            {
+                TypeKind.Enum => new EnumBuilder( this.AspectLayerInstance, target, this._explicitName ),
+                TypeKind.Delegate => new DelegateBuilder( this.AspectLayerInstance, target, this._explicitName ),
+                _ => new NamedTypeBuilder( this.AspectLayerInstance, target, this._explicitName, this._typeKind )
+            };
+        }
     }
 
     protected override IntroductionAdviceResult<INamedType> ImplementCore( NamedTypeBuilder builder, AdviceImplementationContext context )

@@ -13,6 +13,10 @@ namespace Metalama.Framework.Code.DeclarationBuilders
     /// <seealso cref="IMethodBaseBuilder"/>
     /// <seealso cref="AdviserExtensions.IntroduceMethod(IAdviser{INamedType}, string, IntroductionScope, OverrideStrategy, System.Action{IMethodBuilder}?, object?, object?)"/>
     /// <seealso href="@introducing-members"/>
+    /// <seealso cref="Metalama.Framework.Advising.IAdviceFactory.IntroduceMethod"/>
+    /// <seealso cref="Metalama.Framework.Aspects.AdviserExtensions.IntroduceMethod"/>
+    /// <seealso cref="Metalama.Framework.Advising.IAdviceFactory.IntroduceFinalizer"/>
+    /// <seealso cref="Metalama.Framework.Aspects.AdviserExtensions.IntroduceFinalizer"/>
     public interface IMethodBuilder : IMethod, IMethodBaseBuilder
     {
         // TODO: Add an overload for adding generic parameter which would initialize it with values for covariance/contravariance and constraints.

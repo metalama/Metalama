@@ -13,7 +13,7 @@ public class IntroductionAttribute : TypeAspect
     {
         var result = builder.IntroduceEnum(
             "IntroducedEnum",
-            buildEnum: e =>
+            e =>
             {
                 e.Accessibility = Accessibility.Public;
                 e.AddMember( "None" );

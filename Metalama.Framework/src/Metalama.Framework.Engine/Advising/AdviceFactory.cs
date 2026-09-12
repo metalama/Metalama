@@ -2093,9 +2093,14 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
     public IIntroductionAdviceResult<INamedType> IntroduceEnum(
         INamespaceOrNamedType targetNamespaceOrType,
         string name,
-        OverrideStrategy whenExists = OverrideStrategy.Default,
-        Action<IEnumBuilder>? buildEnum = null )
+        Action<IEnumBuilder> buildEnum,
+        OverrideStrategy whenExists = OverrideStrategy.Default )
     {
+        if ( buildEnum == null )
+        {
+            throw new ArgumentNullException( nameof(buildEnum) );
+        }
+
         using ( this.WithNonUserCode() )
         {
             this.ValidateNotExplicitInterfaceImplementation( AdviceKind.IntroduceType );
@@ -2106,7 +2111,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                     this.GetAdviceConstructorParameters( targetNamespaceOrType ),
                     name,
                     whenExists,
-                    buildEnum == null ? null : b => buildEnum( (IEnumBuilder) b ),
+                    b => buildEnum( (IEnumBuilder) b ),
                     TypeKind.Enum )
                 .Execute( this._state );
         }

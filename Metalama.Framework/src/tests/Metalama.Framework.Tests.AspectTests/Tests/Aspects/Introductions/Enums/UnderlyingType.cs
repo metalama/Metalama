@@ -13,20 +13,20 @@ public class IntroductionAttribute : TypeAspect
     {
         builder.IntroduceEnum(
             "ByteEnum",
-            buildEnum: e =>
+            e =>
             {
                 e.Accessibility = Accessibility.Public;
-                e.UnderlyingType = (INamedType) TypeFactory.GetType( SpecialType.Byte );
+                e.UnderlyingType = SpecialType.Byte;
                 e.AddMember( "Small", (byte) 1 );
                 e.AddMember( "Large", (byte) 255 );
             } );
 
         builder.IntroduceEnum(
             "LongEnum",
-            buildEnum: e =>
+            e =>
             {
                 e.Accessibility = Accessibility.Public;
-                e.UnderlyingType = (INamedType) TypeFactory.GetType( SpecialType.Int64 );
+                e.UnderlyingType = SpecialType.Int64;
                 e.AddMember( "Max", long.MaxValue );
                 e.AddMember( "Min", long.MinValue );
             } );
@@ -34,10 +34,10 @@ public class IntroductionAttribute : TypeAspect
         // The underlying type int is the default one and the language implies it, so no base list is emitted.
         builder.IntroduceEnum(
             "IntEnum",
-            buildEnum: e =>
+            e =>
             {
                 e.Accessibility = Accessibility.Public;
-                e.UnderlyingType = (INamedType) TypeFactory.GetType( SpecialType.Int32 );
+                e.UnderlyingType = SpecialType.Int32;
                 e.AddMember( "Value", 1 );
             } );
     }

@@ -11,11 +11,11 @@ public class IntroductionAttribute : TypeAspect
 {
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        builder.IntroduceEnum( "DefaultEnum", buildEnum: e => e.AddMember( "None" ) );
+        builder.IntroduceEnum( "DefaultEnum", e => e.AddMember( "None" ) );
 
         builder.IntroduceEnum(
             "PublicEnum",
-            buildEnum: e =>
+            e =>
             {
                 e.Accessibility = Accessibility.Public;
                 e.AddMember( "First" );
@@ -23,8 +23,15 @@ public class IntroductionAttribute : TypeAspect
                 e.AddMember( "Third" );
             } );
 
-        // An enum that declares no member is a valid declaration.
-        builder.IntroduceEnum( "EmptyEnum", buildEnum: e => e.Accessibility = Accessibility.Public );
+        // A single-member enum is the smallest one an aspect can introduce, because the callback that adds the
+        // members is required.
+        builder.IntroduceEnum(
+            "SingleMemberEnum",
+            e =>
+            {
+                e.Accessibility = Accessibility.Public;
+                e.AddMember( "Only" );
+            } );
     }
 }
 

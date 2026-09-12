@@ -28,7 +28,7 @@ public class IntroductionAttribute : TypeAspect
         // IEnumMemberBuilder declares no member of its own.
         builder.IntroduceEnum(
             "MarkedEnum",
-            buildEnum: e =>
+            e =>
             {
                 e.Accessibility = Accessibility.Public;
 

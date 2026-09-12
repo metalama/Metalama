@@ -21,6 +21,8 @@ namespace Metalama.Framework.Code.DeclarationBuilders;
 /// that the user wrote.
 /// </para>
 /// </remarks>
+/// <seealso cref="Metalama.Framework.Advising.IAdviceFactory.IntroduceRecord"/>
+/// <seealso cref="Metalama.Framework.Aspects.AdviserExtensions.IntroduceRecord"/>
 /// <seealso cref="Metalama.Framework.Code.Types.IRecordFacet"/>
 /// <seealso href="@introducing-types"/>
 [InternalImplement]

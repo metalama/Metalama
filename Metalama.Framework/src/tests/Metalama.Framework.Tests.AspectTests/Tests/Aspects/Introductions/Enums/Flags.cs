@@ -15,7 +15,7 @@ public class IntroductionAttribute : TypeAspect
         // assigned explicitly.
         builder.IntroduceEnum(
             "Permissions",
-            buildEnum: e =>
+            e =>
             {
                 e.Accessibility = Accessibility.Public;
                 e.IsFlags = true;

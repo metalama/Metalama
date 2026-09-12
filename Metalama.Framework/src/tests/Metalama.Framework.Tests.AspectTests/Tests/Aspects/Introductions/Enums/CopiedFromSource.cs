@@ -24,7 +24,7 @@ public class IntroductionAttribute : TypeAspect
         // takes one accepts directly.
         builder.IntroduceEnum(
             "CopiedEnum",
-            buildEnum: e =>
+            e =>
             {
                 e.Accessibility = Accessibility.Public;
 

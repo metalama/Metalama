@@ -34,17 +34,20 @@ namespace Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 internal sealed class EnumBuilder : NamedTypeBuilder, IEnumBuilder
 {
     private readonly List<EnumMemberBuilder> _members = [];
-    private INamedType _underlyingType;
+    private SpecialType _underlyingType = SpecialType.Int32;
 
     public EnumBuilder( AspectLayerInstance aspectLayerInstance, INamespaceOrNamedType declaringNamespaceOrType, string name )
-        : base( aspectLayerInstance, declaringNamespaceOrType, name, TypeKind.Enum )
-    {
-        this._underlyingType = this.Compilation.Factory.GetSpecialType( SpecialType.Int32 );
-    }
+        : base( aspectLayerInstance, declaringNamespaceOrType, name, TypeKind.Enum ) { }
 
-    public override INamedType UnderlyingType => this._underlyingType;
+    public override INamedType UnderlyingType => this.Compilation.Factory.GetSpecialType( this._underlyingType );
 
-    INamedType IEnumBuilder.UnderlyingType
+    /// <summary>
+    /// Gets the underlying integral type of the enum as a special type, which is the form in which the aspect gives
+    /// it and in which the validation of a member reads it. <see cref="UnderlyingType"/> resolves it to a type.
+    /// </summary>
+    public SpecialType UnderlyingSpecialType => this._underlyingType;
+
+    SpecialType IEnumBuilder.UnderlyingType
     {
         get => this._underlyingType;
         set
@@ -55,7 +58,7 @@ internal sealed class EnumBuilder : NamedTypeBuilder, IEnumBuilder
             {
                 throw new ArgumentOutOfRangeException(
                     nameof(value),
-                    $"The type '{value}' cannot be the underlying type of an enum. The language allows byte, sbyte, short, ushort, int, uint, long and ulong." );
+                    $"The value '{value}' cannot be the underlying type of an enum. The language allows byte, sbyte, short, ushort, int, uint, long and ulong." );
             }
 
             if ( this._members.Count > 0 )
@@ -69,11 +72,11 @@ internal sealed class EnumBuilder : NamedTypeBuilder, IEnumBuilder
     }
 
     /// <summary>
-    /// Determines whether a type is one of the eight integral types that the language allows as the underlying type of
-    /// an enum.
+    /// Determines whether a special type is one of the eight integral types that the language allows as the
+    /// underlying type of an enum.
     /// </summary>
-    private static bool IsValidUnderlyingType( INamedType type )
-        => type.SpecialType is SpecialType.Byte or SpecialType.SByte or SpecialType.Int16 or SpecialType.UInt16 or SpecialType.Int32 or SpecialType.UInt32
+    private static bool IsValidUnderlyingType( SpecialType specialType )
+        => specialType is SpecialType.Byte or SpecialType.SByte or SpecialType.Int16 or SpecialType.UInt16 or SpecialType.Int32 or SpecialType.UInt32
             or SpecialType.Int64 or SpecialType.UInt64;
 
     /// <summary>
@@ -183,7 +186,7 @@ internal sealed class EnumBuilder : NamedTypeBuilder, IEnumBuilder
             return this.AddMemberCore( name, null );
         }
 
-        if ( value.Type is not INamedType namedType || !(namedType.IsEnum || IsValidUnderlyingType( namedType )) )
+        if ( value.Type is not INamedType namedType || !(namedType.IsEnum || IsValidUnderlyingType( namedType.SpecialType )) )
         {
             throw new ArgumentException(
                 $"The value of the member '{name}' of the enum '{this.Name}' must be of an integral type or of an enum, and '{value.Type}' is neither.",
@@ -213,7 +216,7 @@ internal sealed class EnumBuilder : NamedTypeBuilder, IEnumBuilder
 
         this.CheckValueFitsInUnderlyingType( name, value < 0, magnitude );
 
-        return this.AddMemberCore( name, TypedConstant.Create( ConvertToUnderlyingType( value, this._underlyingType ), this._underlyingType ) );
+        return this.AddMemberCore( name, TypedConstant.Create( ConvertToUnderlyingType( value, this._underlyingType ), this.UnderlyingType ) );
     }
 
     /// <summary>
@@ -225,14 +228,14 @@ internal sealed class EnumBuilder : NamedTypeBuilder, IEnumBuilder
     {
         this.CheckValueFitsInUnderlyingType( name, false, value );
 
-        return this.AddMemberCore( name, TypedConstant.Create( ConvertToUnsignedUnderlyingType( value, this._underlyingType ), this._underlyingType ) );
+        return this.AddMemberCore( name, TypedConstant.Create( ConvertToUnsignedUnderlyingType( value, this._underlyingType ), this.UnderlyingType ) );
     }
 
     private void CheckValueFitsInUnderlyingType( string name, bool isNegative, ulong magnitude )
     {
         // The first element is the magnitude of the most negative value the type can hold, which is zero for an
         // unsigned type, and the second is the largest value it can hold.
-        (ulong MinMagnitude, ulong Max) range = this._underlyingType.SpecialType switch
+        (ulong MinMagnitude, ulong Max) range = this._underlyingType switch
         {
             SpecialType.Byte => (0UL, byte.MaxValue),
             SpecialType.SByte => ((ulong) sbyte.MaxValue + 1, (ulong) sbyte.MaxValue),
@@ -255,8 +258,8 @@ internal sealed class EnumBuilder : NamedTypeBuilder, IEnumBuilder
         }
     }
 
-    private static object ConvertToUnderlyingType( long value, INamedType underlyingType )
-        => underlyingType.SpecialType switch
+    private static object ConvertToUnderlyingType( long value, SpecialType underlyingType )
+        => underlyingType switch
         {
             SpecialType.Byte => (byte) value,
             SpecialType.SByte => (sbyte) value,
@@ -269,8 +272,8 @@ internal sealed class EnumBuilder : NamedTypeBuilder, IEnumBuilder
             _ => throw new AssertionFailedException( $"Unsupported underlying type '{underlyingType}'." )
         };
 
-    private static object ConvertToUnsignedUnderlyingType( ulong value, INamedType underlyingType )
-        => underlyingType.SpecialType switch
+    private static object ConvertToUnsignedUnderlyingType( ulong value, SpecialType underlyingType )
+        => underlyingType switch
         {
             SpecialType.Byte => (byte) value,
             SpecialType.SByte => (sbyte) value,

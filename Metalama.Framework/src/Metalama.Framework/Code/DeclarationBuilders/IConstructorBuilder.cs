@@ -25,6 +25,8 @@ namespace Metalama.Framework.Code.DeclarationBuilders
     /// <seealso cref="AdviserExtensions.AddInitializer(IAdviser{IConstructor}, string, object?, object?)"/>
     /// <seealso href="@introducing-constructor-parameters"/>
     /// <seealso href="@initializers"/>
+    /// <seealso cref="Metalama.Framework.Advising.IAdviceFactory.IntroduceConstructor"/>
+    /// <seealso cref="Metalama.Framework.Aspects.AdviserExtensions.IntroduceConstructor"/>
     public interface IConstructorBuilder : IConstructor, IMethodBaseBuilder
     {
         /// <summary>

@@ -13,5 +13,7 @@ namespace Metalama.Framework.Code.DeclarationBuilders
     /// <seealso cref="IFieldOrPropertyBuilder"/>
     /// <seealso cref="AdviserExtensions.IntroduceField(IAdviser{INamedType}, string, IntroductionScope, OverrideStrategy, System.Action{IFieldBuilder}?, object?)"/>
     /// <seealso href="@introducing-members"/>
+    /// <seealso cref="Metalama.Framework.Advising.IAdviceFactory.IntroduceField(Metalama.Framework.Code.INamedType,string,Metalama.Framework.Aspects.IntroductionScope,Metalama.Framework.Aspects.OverrideStrategy,System.Action{Metalama.Framework.Code.DeclarationBuilders.IFieldBuilder},object)"/>
+    /// <seealso cref="Metalama.Framework.Aspects.AdviserExtensions.IntroduceField(Metalama.Framework.Aspects.IAdviser{Metalama.Framework.Code.INamedType},string,Metalama.Framework.Aspects.IntroductionScope,Metalama.Framework.Aspects.OverrideStrategy,System.Action{Metalama.Framework.Code.DeclarationBuilders.IFieldBuilder},object)"/>
     public interface IFieldBuilder : IFieldOrPropertyBuilder, IField;
 }

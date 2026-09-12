@@ -37,6 +37,8 @@ namespace Metalama.Framework.Code.DeclarationBuilders;
 /// delegate compiled for .NET Framework, and they are the asynchronous pattern that preceded <c>async</c>.
 /// </para>
 /// </remarks>
+/// <seealso cref="Metalama.Framework.Advising.IAdviceFactory.IntroduceDelegate"/>
+/// <seealso cref="Metalama.Framework.Aspects.AdviserExtensions.IntroduceDelegate"/>
 /// <seealso cref="Metalama.Framework.Code.Types.IDelegateFacet"/>
 /// <seealso href="@introducing-types"/>
 [InternalImplement]

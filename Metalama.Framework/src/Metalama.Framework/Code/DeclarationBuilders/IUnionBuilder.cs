@@ -26,6 +26,8 @@ namespace Metalama.Framework.Code.DeclarationBuilders;
 /// <see cref="INamedType.Facets"/> on the introduced type.
 /// </para>
 /// </remarks>
+/// <seealso cref="Metalama.Framework.Advising.IAdviceFactory.IntroduceUnion"/>
+/// <seealso cref="Metalama.Framework.Aspects.AdviserExtensions.IntroduceUnion"/>
 /// <seealso cref="Metalama.Framework.Code.Types.IUnionFacet"/>
 /// <seealso href="@introducing-types"/>
 [InternalImplement]

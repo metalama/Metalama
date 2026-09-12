@@ -13,5 +13,9 @@ namespace Metalama.Framework.Code.DeclarationBuilders
     /// <seealso cref="IFieldOrPropertyBuilder"/>
     /// <seealso cref="AdviserExtensions.IntroduceProperty(IAdviser{INamedType}, string, IntroductionScope, OverrideStrategy, System.Action{IPropertyBuilder}?, object?)"/>
     /// <seealso href="@introducing-members"/>
+    /// <seealso cref="Metalama.Framework.Advising.IAdviceFactory.IntroduceProperty(Metalama.Framework.Code.INamedType,string,Metalama.Framework.Aspects.IntroductionScope,Metalama.Framework.Aspects.OverrideStrategy,System.Action{Metalama.Framework.Code.DeclarationBuilders.IPropertyBuilder},object)"/>
+    /// <seealso cref="Metalama.Framework.Aspects.AdviserExtensions.IntroduceProperty(Metalama.Framework.Aspects.IAdviser{Metalama.Framework.Code.INamedType},string,Metalama.Framework.Aspects.IntroductionScope,Metalama.Framework.Aspects.OverrideStrategy,System.Action{Metalama.Framework.Code.DeclarationBuilders.IPropertyBuilder},object)"/>
+    /// <seealso cref="Metalama.Framework.Advising.IAdviceFactory.IntroduceAutomaticProperty(Metalama.Framework.Code.INamedType,string,System.Type,Metalama.Framework.Aspects.IntroductionScope,Metalama.Framework.Aspects.OverrideStrategy,System.Action{Metalama.Framework.Code.DeclarationBuilders.IPropertyBuilder},object)"/>
+    /// <seealso cref="Metalama.Framework.Aspects.AdviserExtensions.IntroduceAutomaticProperty(Metalama.Framework.Aspects.IAdviser{Metalama.Framework.Code.INamedType},string,System.Type,Metalama.Framework.Aspects.IntroductionScope,Metalama.Framework.Aspects.OverrideStrategy,System.Action{Metalama.Framework.Code.DeclarationBuilders.IPropertyBuilder},object)"/>
     public interface IPropertyBuilder : IFieldOrPropertyBuilder, IProperty, IPropertyOrIndexerBuilder;
 }

@@ -11,7 +11,7 @@ public class IntroductionAttribute : TypeAspect
 {
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        var introducedEnum = builder.IntroduceEnum( "IntroducedEnum", buildEnum: e => e.AddMember( "None" ) );
+        var introducedEnum = builder.IntroduceEnum( "IntroducedEnum", e => e.AddMember( "None" ) );
 
         // An enum declares no member that an aspect can introduce, which is the rule of section 3.1 of
         // Metalama.Framework/docs/introducing-types.md. The eligibility rule of the advice reports it.

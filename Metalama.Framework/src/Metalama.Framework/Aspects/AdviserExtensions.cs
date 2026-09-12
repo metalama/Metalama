@@ -1717,22 +1717,22 @@ public static class AdviserExtensions
     /// </summary>
     /// <param name="adviser">An adviser for a named type or namespace.</param>
     /// <param name="name">The enum name.</param>
+    /// <param name="buildEnum">A delegate that configures the introduced enum. It must add at least one member, because an enum that declares none is a type
+    ///     that nothing can have a value of, which is why this parameter is required and precedes <paramref name="whenExists"/>.</param>
     /// <param name="whenExists">Determines the implementation strategy when a type of the same name is already declared in the target type or namespace.
     ///     The default strategy is to fail with a compile-time error.</param>
-    /// <param name="buildEnum">An optional delegate that modifies the <see cref="IEnumBuilder"/> that represents the introduced enum. The members of the
-    ///     enum are added through this delegate.</param>
     /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> that exposes the outcome of the operation and the introduced <see cref="INamedType"/>.</returns>
     /// <seealso href="@introducing-types"/>
     public static IIntroductionAdviceResult<INamedType> IntroduceEnum(
         this IAdviser<INamespaceOrNamedType> adviser,
         string name,
-        OverrideStrategy whenExists = OverrideStrategy.Default,
-        Action<IEnumBuilder>? buildEnum = null )
+        Action<IEnumBuilder> buildEnum,
+        OverrideStrategy whenExists = OverrideStrategy.Default )
         => ((IAdviserInternal) adviser).AdviceFactory.IntroduceEnum(
             adviser.Target,
             name,
-            whenExists,
-            buildEnum );
+            buildEnum,
+            whenExists );
 
     /// <summary>
     /// Introduces a new delegate into the current namespace (as a top-level type) or type (as a nested type).
