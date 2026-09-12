@@ -33,7 +33,6 @@ internal class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, I
     private bool _isClosed;
     private bool _isReadOnly;
     private bool _isRef;
-    private bool _isUnion;
 
     public TypeKind TypeKind { get; }
 
@@ -166,49 +165,17 @@ internal class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, I
     }
 
     /// <summary>
-    /// Gets or sets a value indicating whether the introduced type is a union written with the <c>union</c> keyword.
+    /// Gets a value indicating whether the introduced type is a union written with the <c>union</c> keyword, which
+    /// <c>UnionBuilder</c> is and no other builder is.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// The value is set by the advice that introduces a union and not by an aspect, because a union is introduced by
-    /// its own advice method rather than by configuring a struct. Only the form written with the <c>union</c> keyword
-    /// is introduced, which section 6.3 of <c>Metalama.Framework/docs/introducing-unions.md</c> decides, and
-    /// the language reports that form as a struct.
+    /// The language reports a union declaration as a struct, so the type kind alone does not tell a union apart.
+    /// Only the form written with the <c>union</c> keyword is introduced, which section 6.3 of
+    /// <c>Metalama.Framework/docs/introducing-unions.md</c> decides.
     /// </para>
     /// </remarks>
-    public bool IsUnion
-    {
-        get => this._isUnion;
-        set
-        {
-            this.CheckNotFrozen();
-
-            if ( value )
-            {
-#if !ROSLYN_5_11_0_OR_GREATER
-
-                // The emission of a union declaration is compiled into the latest Roslyn variant only, for the reason
-                // that the setter of IsClosed above gives. The writer refuses the request instead of producing an
-                // ordinary struct, so an aspect never silently obtains a type other than the one it asked for.
-                throw new InvalidOperationException(
-                    $"The type '{this.Name}' cannot be a union because the host that runs Metalama uses a version of Roslyn that does not support the unions of C# 15. At design time, that host is the integrated development environment." );
-#else
-                if ( this.TypeKind != TypeKind.Struct )
-                {
-                    throw new InvalidOperationException(
-                        $"The type '{this.Name}' cannot be a union because the language reports a union declaration as a struct." );
-                }
-
-                if ( this.IsRecord )
-                {
-                    throw new InvalidOperationException( $"The type '{this.Name}' cannot be both a record and a union declaration." );
-                }
-#endif
-            }
-
-            this._isUnion = value;
-        }
-    }
+    public virtual bool IsUnion => false;
 
     public IntroducedRef<INamedType> Ref { get; }
 
@@ -259,17 +226,19 @@ internal class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, I
     /// what the code model reports, and not the base list that is emitted: a struct, an enum and a delegate emit no
     /// base list, and an enum emits its underlying type in that position instead.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A kind that has a builder class of its own overrides this method rather than adding an arm here, so that
+    /// the class of the kind carries what the language gives that kind.
+    /// </para>
+    /// </remarks>
     protected virtual void InitializeBaseType()
     {
-        var factory = ((CompilationModel) this.ContainingNamespace.Compilation).Factory;
-
-        this.BaseType = this.TypeKind switch
-        {
-            TypeKind.Struct => factory.GetTypeByReflectionName( "System.ValueType" ),
-            TypeKind.Enum => factory.GetTypeByReflectionName( "System.Enum" ),
-            TypeKind.Delegate => factory.GetTypeByReflectionName( "System.MulticastDelegate" ),
-            _ => factory.GetSpecialType( SpecialType.Object )
-        };
+        // This class represents a class, an interface, a struct and an extension block, so it decides between the
+        // two bases those four kinds have. An enum and a delegate have a class of their own and override this.
+        this.BaseType = this.TypeKind == TypeKind.Struct
+            ? this.Compilation.Factory.GetSpecialType( InternalSpecialType.ValueType )
+            : this.Compilation.Factory.GetSpecialType( SpecialType.Object );
     }
 
     protected override void FreezeChildren()
@@ -402,7 +371,7 @@ internal class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, I
     /// Gets or sets a value indicating whether the type is declared with the <c>readonly</c> modifier, which the
     /// language allows on a struct only.
     /// </summary>
-    public bool IsReadOnly
+    public virtual bool IsReadOnly
     {
         get => this._isReadOnly;
         set
@@ -423,25 +392,17 @@ internal class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, I
     /// Gets or sets a value indicating whether the type is declared with the <c>ref</c> modifier, which the language
     /// allows on a struct that is not a record.
     /// </summary>
-    public bool IsRef
+    public virtual bool IsRef
     {
         get => this._isRef;
         set
         {
             this.CheckNotFrozen();
 
-            if ( value )
+            if ( value && this.TypeKind != TypeKind.Struct )
             {
-                if ( this.TypeKind != TypeKind.Struct )
-                {
-                    throw new InvalidOperationException(
-                        $"The type '{this.Name}' cannot be a ref struct because the language allows the ref modifier on a struct only." );
-                }
-
-                if ( this.IsRecord )
-                {
-                    throw new InvalidOperationException( $"The type '{this.Name}' cannot be a ref struct because the language has no ref record struct." );
-                }
+                throw new InvalidOperationException(
+                    $"The type '{this.Name}' cannot be a ref struct because the language allows the ref modifier on a struct only." );
             }
 
             this._isRef = value;

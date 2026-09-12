@@ -57,6 +57,15 @@ internal sealed class DelegateBuilder : NamedTypeBuilder, IDelegateBuilder
         this.InvokeMethodBuilder = new MethodBuilder( aspectLayerInstance, this, _invokeMethodName ) { Accessibility = Accessibility.Public };
     }
 
+    /// <summary>
+    /// The base of a delegate is <see cref="System.MulticastDelegate"/>, which the code model reports and which the
+    /// declaration does not write.
+    /// </summary>
+    protected override void InitializeBaseType()
+    {
+        this.BaseType = this.Compilation.Factory.GetSpecialType( InternalSpecialType.MulticastDelegate );
+    }
+
     public IType ReturnType
     {
         get => this.InvokeMethodBuilder.ReturnType;

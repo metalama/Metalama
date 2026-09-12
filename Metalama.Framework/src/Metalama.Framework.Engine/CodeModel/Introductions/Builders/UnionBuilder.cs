@@ -42,8 +42,21 @@ internal sealed class UnionBuilder : NamedTypeBuilder, IUnionBuilder
     public UnionBuilder( AspectLayerInstance aspectLayerInstance, INamespaceOrNamedType declaringNamespaceOrType, string name )
         : base( aspectLayerInstance, declaringNamespaceOrType, name, TypeKind.Struct )
     {
-        this.IsUnion = true;
+#if !ROSLYN_5_11_0_OR_GREATER
+
+        // The emission of a union declaration is compiled into the latest Roslyn variant only, for the reason that
+        // the setter of NamedTypeBuilder.IsClosed gives. The writer refuses the request instead of producing an
+        // ordinary struct, so an aspect never silently obtains a type other than the one it asked for.
+        throw new InvalidOperationException(
+            $"The type '{name}' cannot be a union because the host that runs Metalama uses a version of Roslyn that does not support the unions of C# 15. At design time, that host is the integrated development environment." );
+#endif
     }
+
+    /// <summary>
+    /// Always <c>true</c>. This class is the one builder that represents a union, which the language reports as a
+    /// struct, so the type kind alone does not tell it apart.
+    /// </summary>
+    public override bool IsUnion => true;
 
     public IReadOnlyList<IType> Cases => this._cases;
 

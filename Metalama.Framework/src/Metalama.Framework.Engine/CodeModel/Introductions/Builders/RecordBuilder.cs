@@ -85,6 +85,24 @@ internal sealed class RecordBuilder : NamedTypeBuilder, IRecordBuilder
     public RecordKind RecordKind { get; }
 
     /// <summary>
+    /// Always <c>false</c>. The setter throws an <see cref="InvalidOperationException"/>, because the language has
+    /// no ref record struct.
+    /// </summary>
+    public override bool IsRef
+    {
+        get => false;
+        set
+        {
+            this.CheckNotFrozen();
+
+            if ( value )
+            {
+                throw new InvalidOperationException( $"The type '{this.Name}' cannot be a ref struct because the language has no ref record struct." );
+            }
+        }
+    }
+
+    /// <summary>
     /// Gets a value indicating whether the record is a reference type, which decides the members that the compiler
     /// synthesizes for it.
     /// </summary>

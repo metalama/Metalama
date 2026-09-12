@@ -39,6 +39,15 @@ internal sealed class EnumBuilder : NamedTypeBuilder, IEnumBuilder
     public EnumBuilder( AspectLayerInstance aspectLayerInstance, INamespaceOrNamedType declaringNamespaceOrType, string name )
         : base( aspectLayerInstance, declaringNamespaceOrType, name, TypeKind.Enum ) { }
 
+    /// <summary>
+    /// The base of an enum is <see cref="System.Enum"/>, which the code model reports and which the declaration does
+    /// not write: the position of a base list carries the underlying integral type instead.
+    /// </summary>
+    protected override void InitializeBaseType()
+    {
+        this.BaseType = this.Compilation.Factory.GetSpecialType( InternalSpecialType.Enum );
+    }
+
     public override INamedType UnderlyingType => this.Compilation.Factory.GetSpecialType( this._underlyingType );
 
     /// <summary>
