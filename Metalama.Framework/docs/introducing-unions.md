@@ -93,11 +93,10 @@ public interface IUnionBuilder : INamedTypeBuilder
     /// </summary>
     /// <remarks>
     /// <para>
-    /// The list holds types and not cases. A case of a union is a type and nothing else, which section 6.1 of the
-    /// design document establishes from the grammar of the language, so there is nothing else for an element of
-    /// this list to carry. <see cref="Metalama.Framework.Code.Types.IUnionCase"/>, which the introduced type
-    /// reports, carries the index and the creation member in addition, and neither exists while the union is being
-    /// built.
+    /// The list holds types and not cases, because a case of a union under construction is fully described by its
+    /// type, which section 6.1 of the design document establishes from the grammar of the language.
+    /// <see cref="Metalama.Framework.Code.Types.IUnionCase"/>, which the introduced type reports, carries the index
+    /// and the creation member in addition, and neither exists while the union is being built.
     /// </para>
     /// </remarks>
     /// <seealso cref="Metalama.Framework.Code.Types.IUnionFacet.Cases"/>
@@ -359,17 +358,17 @@ closed and has left [`../2027.0/OPEN-QUESTIONS.md`](../2027.0/OPEN-QUESTIONS.md)
 [`../2027.0/DECISIONS.md`](2027.0/DECISIONS.md) records it. The decision should be revisited if the language
 ever lets a part of a partial union contribute cases, which would remove the reason.
 
-## 7. Open questions
+## 7. Questions that were open
 
 ### 7.1. Does the order of `Cases` survive the round trip?
 
-`IUnionBuilder.Cases` is in the order of addition, and `IUnionFacet.Cases` on the introduced type is in the order
-that the creation members declare, which `IUnionCase.Index` numbers. The compiler reports the case types of a union
-as a set, and `AddCase` refuses a duplicate, so the two orders should agree for an introduced union.
+It does, and the question is closed. `IUnionBuilder.Cases` is in the order of addition, and `IUnionFacet.Cases` on
+the introduced type is in the order that the creation members declare, which `IUnionCase.Index` numbers. The
+compiler reports the case types of a union as a set, and `AddCase` refuses a duplicate, so the two orders agree.
 
-What would settle it is a unit test that adds three cases and reads the index of each from the facet of the
-introduced type. The order matters, because the index of a case is not recoverable from its type, which is the
-reason `IUnionCase` carries `Index` at all.
+`IntroduceUnionTests.ThreeCasesAreReportedInTheOrderInWhichTheyWereAdded` settles it. Three cases are what it takes:
+with two, the index of a case coincides with its position under either order. The order matters because the index of
+a case is not recoverable from its type, which is the reason `IUnionCase` carries `Index` at all.
 
 ## 8. References
 

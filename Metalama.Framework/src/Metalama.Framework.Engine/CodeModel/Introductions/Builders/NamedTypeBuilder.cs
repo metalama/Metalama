@@ -128,7 +128,10 @@ internal class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, I
     /// </summary>
     public override bool IsSealed
     {
-        get => base.IsSealed;
+        // A struct, an enum and a delegate are sealed whether or not the aspect says so, which is what Roslyn reports
+        // for a symbol of those three kinds. The modifier is not emitted for them, because the language refuses it.
+        get => base.IsSealed || this.TypeKind is TypeKind.Struct or TypeKind.Enum or TypeKind.Delegate;
+
         set
         {
             this.CheckNotFrozen();

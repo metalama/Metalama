@@ -195,6 +195,17 @@ An enum does declare members, and they are nevertheless covered by the same rule
 `IEnumBuilder` while the type is being constructed, and not through the adviser afterwards. The enum document
 states why.
 
+### 3.1.1. A conflict with an existing type is decided by the name and the number of type parameters
+
+`OverrideStrategy` compares the introduced type with an existing one by its name and by the number of its type
+parameters, and not by its kind. The rule follows the language: a nested type hides an inherited one by name, and
+two nested types of one type cannot share a name whatever their kinds are. An aspect that introduces an enum named
+`X` into a type whose base class declares a class named `X` therefore reports `AdviceOutcome.Ignore` under `Ignore`,
+with the existing class as the result, and emits `new enum X` under `New`, which the compiler accepts.
+
+An aspect that has to know what it obtained reads `AdviceOutcome` and the kind of the returned type. The advice
+result is typed `IIntroductionAdviceResult<INamedType>` for every kind, so no cast is involved.
+
 ### 3.2. The framework does not prevent an aspect from generating invalid code
 
 A builder refuses an operation when the operation cannot be represented, and not when the code it would produce is

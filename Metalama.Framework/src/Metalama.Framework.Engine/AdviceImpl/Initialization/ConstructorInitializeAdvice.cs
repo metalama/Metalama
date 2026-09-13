@@ -75,7 +75,11 @@ internal abstract class ConstructorInitializeAdvice : Advice<AddInitializerAdvic
                 _ => throw new AssertionFailedException( $"Unexpected declaration: '{targetDeclaration}'." )
             };
 
-        foreach ( var ctor in constructors )
+        // The refusal is decided over the whole set before any transformation is added, so that a constructor that
+        // precedes the refused one in the enumeration does not receive one.
+        var constructorList = constructors.ToReadOnlyList();
+
+        foreach ( var ctor in constructorList )
         {
             if ( IntroducedPrimaryConstructorValidator.IsIntroducedPrimaryConstructor( ctor ) )
             {
@@ -86,7 +90,10 @@ internal abstract class ConstructorInitializeAdvice : Advice<AddInitializerAdvic
                         this.AspectInstance.AspectClass.ShortName,
                         this ) );
             }
+        }
 
+        foreach ( var ctor in constructorList )
+        {
             IConstructor targetCtor;
 
             if ( ctor.IsImplicitInstanceConstructor() )

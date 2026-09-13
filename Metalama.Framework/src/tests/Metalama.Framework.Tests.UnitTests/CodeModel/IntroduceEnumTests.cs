@@ -382,6 +382,66 @@ public sealed class IntroduceEnumTests : UnitTestClass
     }
 
     /// <summary>
+    /// Verifies that a member whose value is an uninitialized constant has no explicit value, which is what a member
+    /// declared without one has.
+    /// </summary>
+    [Fact]
+    public void MemberWhoseValueIsAnUninitializedConstantHasNoExplicitValue()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var compilation = testContext.CreateCompilationModel( "" ).CreateMutableClone();
+
+        var builder = new EnumBuilder( null!, compilation.GlobalNamespace, "IntroducedEnum" );
+        builder.AddMember( "First", 5 );
+        builder.AddMember( "Second", default(TypedConstant) );
+
+        var members = Introduce( compilation, builder ).Facets.Enum!.Members;
+
+        Assert.Equal( 5, members[0].ConstantValue!.Value.Value );
+        Assert.Null( members[1].ConstantValue );
+    }
+
+    /// <summary>
+    /// Verifies that a member whose value is a constant of a type that is neither integral nor an enum is refused.
+    /// </summary>
+    [Fact]
+    public void MemberWhoseValueIsNotIntegralIsRefused()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var compilation = testContext.CreateCompilationModel( "" ).CreateMutableClone();
+
+        var builder = new EnumBuilder( null!, compilation.GlobalNamespace, "IntroducedEnum" );
+
+        Assert.Throws<ArgumentException>( () => builder.AddMember( "Text", TypedConstant.Create( "not an integer", compilation.Factory.GetSpecialType( SpecialType.String ) ) ) );
+    }
+
+    /// <summary>
+    /// Verifies that a value that does not fit in the underlying type is refused, for each width that the language
+    /// gives an enum beyond the byte that the test above covers.
+    /// </summary>
+    [Theory]
+    [InlineData( SpecialType.SByte, sbyte.MaxValue )]
+    [InlineData( SpecialType.Int16, short.MaxValue )]
+    [InlineData( SpecialType.UInt16, ushort.MaxValue )]
+    [InlineData( SpecialType.Int32, int.MaxValue )]
+    [InlineData( SpecialType.UInt32, uint.MaxValue )]
+    public void ValueThatDoesNotFitInTheUnderlyingTypeIsRefusedForEveryWidth( SpecialType underlyingType, long maximum )
+    {
+        using var testContext = this.CreateTestContext();
+
+        var compilation = testContext.CreateCompilationModel( "" ).CreateMutableClone();
+
+        var builder = (IEnumBuilder) CreateEnumBuilder( compilation );
+        builder.UnderlyingType = underlyingType;
+
+        builder.AddMember( "Max", maximum );
+
+        Assert.Throws<ArgumentOutOfRangeException>( () => builder.AddMember( "TooLarge", maximum + 1 ) );
+    }
+
+    /// <summary>
     /// Verifies that <see cref="INamedType.Facets"/> of an enum builder throws, while the flags that the collection
     /// dispatches on answer without throwing. See section 5.1 of
     /// <c>Metalama.Framework/docs/introducing-types.md</c>.

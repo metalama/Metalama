@@ -33,6 +33,14 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Introductions.Struc
                     t.Accessibility = Accessibility.Public;
                     t.IsReadOnly = true;
                 } );
+
+            target.IntroduceStruct(
+                "TopLevelRefStruct",
+                buildType: t =>
+                {
+                    t.Accessibility = Accessibility.Public;
+                    t.IsRef = true;
+                } );
         }
     }
 

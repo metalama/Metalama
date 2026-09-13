@@ -95,6 +95,10 @@ public sealed class DesignTimePipelineMemoryLeakTests : DesignTimeTestBase
                                                              builder.IntroduceDelegate(
                                                                  "Handler",
                                                                  d => d.ReturnType = TypeFactory.GetType( SpecialType.Void ) );
+
+                                                             builder.IntroduceStruct(
+                                                                 "Point",
+                                                                 buildType: t => t.IsReadOnly = true );
                                                          }
                                                      }
                                                      """;

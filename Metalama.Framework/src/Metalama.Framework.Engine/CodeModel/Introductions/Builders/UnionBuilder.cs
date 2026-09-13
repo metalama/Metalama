@@ -81,12 +81,12 @@ internal sealed class UnionBuilder : NamedTypeBuilder, IUnionBuilder, ITypeBuild
     }
 
     /// <summary>
-    /// Always <c>false</c>. The setter throws a <see cref="NotSupportedException"/>, because a union declaration is
-    /// a struct and is therefore implicitly sealed.
+    /// Always <c>true</c>, because a union declaration is a struct and a struct is implicitly sealed. The setter
+    /// throws a <see cref="NotSupportedException"/>, because the language refuses the modifier.
     /// </summary>
     public override bool IsSealed
     {
-        get => false;
+        get => true;
         set => throw this.NotSupported( nameof(this.IsSealed) );
     }
 

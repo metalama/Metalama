@@ -472,7 +472,11 @@ internal sealed class LinkerInjectionRegistry
 
                 for ( var i = 0; i < candidateParameters.Length; i++ )
                 {
-                    var builderParameterType = this.GetIntermediateCompilationSymbol<ITypeSymbol>( builderParameters[i].Type.Definition );
+                    // The constructed declaration is resolved and not the definition, because the definition of a
+                    // constructed type is its generic definition: a parameter of type List<int> would be compared
+                    // against List<T> and would never match.
+                    var builderParameterType =
+                        this.GetIntermediateCompilationSymbol<ITypeSymbol>( builderParameters[i].Type.ConstructedDeclaration );
 
                     if ( builderParameterType == null
                          || !this._intermediateCompilation.CompilationContext.SymbolComparer.Equals(
@@ -1032,23 +1036,21 @@ internal sealed class LinkerInjectionRegistry
                             return (TSymbol?) symbol;
                         }
 
+                        var typeArguments = new ITypeSymbol[namedTypeSymbol.TypeArguments.Length];
+
+                        for ( var i = 0; i < typeArguments.Length; i++ )
                         {
-                            var typeArguments = new ITypeSymbol[namedTypeSymbol.TypeArguments.Length];
+                            var typeArgumentSymbol = this.GetIntermediateCompilationSymbol<ITypeSymbol>( introducedNamedType.TypeArguments[i] );
 
-                            for ( var i = 0; i < typeArguments.Length; i++ )
+                            if ( typeArgumentSymbol is not { } typeArgument )
                             {
-                                var typeArgumentSymbol = this.GetIntermediateCompilationSymbol<ITypeSymbol>( introducedNamedType.TypeArguments[i] );
-
-                                if ( typeArgumentSymbol is not { } typeArgument )
-                                {
-                                    return null;
-                                }
-
-                                typeArguments[i] = typeArgument;
+                                return null;
                             }
 
-                            return (TSymbol?) namedTypeSymbol.Construct( typeArguments );
+                            typeArguments[i] = typeArgument;
                         }
+
+                        return (TSymbol?) namedTypeSymbol.Construct( typeArguments );
                     }
                 }
 

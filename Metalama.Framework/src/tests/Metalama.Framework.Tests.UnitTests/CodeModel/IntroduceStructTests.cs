@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.AdviceImpl.Introduction;
+using Metalama.Framework.Engine.CodeModel.Abstractions;
 using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 using Metalama.Testing.UnitTesting;
 using System;
@@ -18,6 +19,38 @@ namespace Metalama.Framework.Tests.UnitTests.CodeModel;
 /// </summary>
 public sealed class IntroduceStructTests : UnitTestClass
 {
+    /// <summary>
+    /// Verifies that an introduced type of an implicitly sealed kind reports itself as sealed and as not inheritable,
+    /// which is what a type read from source reports.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A struct, an enum and a delegate are sealed whether or not the aspect says so, and no type is ever derived
+    /// from a value type, so <c>CanBeInherited</c> is false for all three. An aspect reads that property to decide
+    /// whether it has to consider a derived type it cannot see.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void ImplicitlySealedKindsAreSealedAndNotInheritable()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var compilation = testContext.CreateCompilationModel( "public struct SourceStruct { } public enum SourceEnum { None } public delegate void SourceDelegate();" )
+            .CreateMutableClone();
+
+        var builder = new NamedTypeBuilder( null!, compilation.GlobalNamespace, "IntroducedStruct", TypeKind.Struct );
+        builder.Freeze();
+        compilation.AddTransformation( builder.CreateTransformation() );
+
+        var introduced = compilation.Types.OfName( "IntroducedStruct" ).Single();
+        var source = compilation.Types.OfName( "SourceStruct" ).Single();
+
+        Assert.True( introduced.IsSealed );
+        Assert.Equal( source.IsSealed, introduced.IsSealed );
+        Assert.Equal( ((IDeclarationImpl) source).CanBeInherited, ((IDeclarationImpl) introduced).CanBeInherited );
+        Assert.False( ((IDeclarationImpl) introduced).CanBeInherited );
+    }
+
     /// <summary>
     /// Verifies that a struct builder reports the flags of a value type. <c>IsReferenceType</c> decides what
     /// <c>ToNullable</c> produces, so a struct reported as a reference type would give an annotated reference type

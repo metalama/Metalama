@@ -212,15 +212,16 @@ internal abstract class UnionFacet : IUnionFacet
     private static bool IsSuitableCreationParameter( IParameter parameter ) => parameter.RefKind is RefKind.None or RefKind.In;
 
     /// <summary>
-    /// Returns the <c>Value</c> property of the union, or <c>null</c> when the union has none, which the compiler
-    /// reports as an error. The property is looked up the way the compiler looks it up: in the member provider
-    /// interface and the interfaces that it inherits when the union has one, and in the union and its base types
-    /// otherwise.
-    /// </summary>
-    /// <summary>
     /// Derives the property holding the value of the case from the members of the union, which is how a union read
     /// from source reports it.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The property is looked up the way the compiler looks it up: in the member provider interface and the
+    /// interfaces that it inherits when the union has one, and in the union and its base types otherwise. The
+    /// compiler reports an error when a union has none.
+    /// </para>
+    /// </remarks>
     protected IProperty? GetValuePropertyFromMembers()
     {
         var memberProviderInterface = this.MemberProviderInterface;

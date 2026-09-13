@@ -402,7 +402,17 @@ internal sealed class IntroducedNamedType : IntroducedMemberOrNamedType, INamedT
 
     public bool Equals( INamedType? other ) => this.Compilation.Comparers.Default.Equals( this, other );
 
-    public override bool CanBeInherited => !this.IsSealed;
+    /// <summary>
+    /// Gets a value indicating whether a type outside the current project can derive from this type, which decides
+    /// whether an aspect has to consider a derived type it cannot see.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The rule is the one that a type read from source follows: a value type is never inherited, and a reference
+    /// type is inherited unless it is sealed.
+    /// </para>
+    /// </remarks>
+    public override bool CanBeInherited => this.IsReferenceType.GetValueOrDefault() && !this.IsSealed;
 
     public override IEnumerable<IDeclaration> GetDerivedDeclarations( DerivedTypesOptions options = DerivedTypesOptions.Default )
         => Array.Empty<IDeclaration>(); // TODO

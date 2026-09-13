@@ -80,6 +80,19 @@ internal sealed class IntroduceFieldAdvice : IntroduceMemberAdvice<IField, IFiel
     protected override IntroductionAdviceResult<IField> ImplementCore( FieldBuilder builder, AdviceImplementationContext context )
     {
         var targetDeclaration = this.TargetDeclaration.ForCompilation( context.MutableCompilation );
+
+        // An instance field is what the language does not permit in a union declaration. A static field holds no
+        // state of the value and is permitted, so the refusal is decided here, where the shape of the member is
+        // known, and not by an eligibility rule, which sees the target type alone.
+        if ( !builder.IsStatic && targetDeclaration.IsUnion )
+        {
+            return this.CreateFailedResult(
+                AdviceDiagnosticDescriptors.CannotIntroduceStateIntoUnion.CreateRoslynDiagnostic(
+                    targetDeclaration.GetDiagnosticLocation(),
+                    (this.AspectInstance.AspectClass.ShortName, $"the instance field '{builder.Name}'", targetDeclaration),
+                    this ) );
+        }
+
         var existingDeclaration = targetDeclaration.FindClosestUniquelyNamedMember( builder.Name );
 
         if ( existingDeclaration != null )
