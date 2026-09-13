@@ -9,6 +9,7 @@ public class TargetType
     global::System.Console.WriteLine(snapshot);
     global::System.Console.WriteLine(new Metalama.Framework.Tests.AspectTests.Tests.Aspects.Introductions.Records.RunTimeUseInTemplate.TargetType.Snapshot(1)with { Value = 2 });
     global::System.Console.WriteLine(new Metalama.Framework.Tests.AspectTests.Tests.Aspects.Introductions.Records.RunTimeUseInTemplate.TargetType.Handler(x => x + 1));
+    global::System.Console.WriteLine((new Metalama.Framework.Tests.AspectTests.Tests.Aspects.Introductions.Records.RunTimeUseInTemplate.TargetType.Handler(x => x + 1))(41));
   }
   public delegate global::System.Int32 Handler(global::System.Int32 value);
   public enum Level

@@ -156,7 +156,7 @@ internal sealed class IntroduceNamedTypeTransformation : IntroduceDeclarationTra
                         SyntaxFactoryEx.SafeIdentifier( introducedType.Name ),
                         EnumHelper.GetBaseList( introducedType, context ),
                         Token( SyntaxKind.OpenBraceToken ),
-                        SeparatedList( EnumHelper.GetMembers( introducedType, context ) ),
+                        SeparatedList( EnumHelper.GetMembers( introducedType, (EnumBuilderData) this.BuilderData, context ) ),
                         Token( SyntaxKind.CloseBraceToken ),
                         default ),
 

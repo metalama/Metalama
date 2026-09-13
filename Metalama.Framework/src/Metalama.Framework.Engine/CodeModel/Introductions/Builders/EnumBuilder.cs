@@ -180,7 +180,47 @@ internal sealed class EnumBuilder : NamedTypeBuilder, IEnumBuilder, ITypeBuilder
         }
     }
 
-    public IEnumMemberBuilder AddMember( string name ) => this.AddMemberCore( name, null );
+    public IEnumMemberBuilder AddMember( string name )
+    {
+        this.CheckNotFrozen();
+
+        // The language gives a member declared without a value the value zero when it is the first member and the
+        // value of the preceding member plus one otherwise, and the code model reports it as it does for a member of
+        // an enum read from source. The declaration is still emitted without a value, which HasExplicitValue records.
+        if ( this._members.Count == 0 )
+        {
+            return this.AddIntegralMember( name, 0, hasExplicitValue: false );
+        }
+
+        var previousValue = this._members[this._members.Count - 1].ConstantValue.AssertNotNull().Value.AssertNotNull();
+
+        if ( this._underlyingType == SpecialType.UInt64 )
+        {
+            var previous = Convert.ToUInt64( previousValue, CultureInfo.InvariantCulture );
+
+            if ( previous == ulong.MaxValue )
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(name),
+                    $"The member '{name}' of the enum '{this.Name}' has no value of its own, and the value that follows the preceding member does not fit in '{this.UnderlyingType}'." );
+            }
+
+            return this.AddUnsignedMember( name, previous + 1, hasExplicitValue: false );
+        }
+        else
+        {
+            var previous = Convert.ToInt64( previousValue, CultureInfo.InvariantCulture );
+
+            if ( previous == long.MaxValue )
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(name),
+                    $"The member '{name}' of the enum '{this.Name}' has no value of its own, and the value that follows the preceding member does not fit in '{this.UnderlyingType}'." );
+            }
+
+            return this.AddIntegralMember( name, previous + 1, hasExplicitValue: false );
+        }
+    }
 
     public IEnumMemberBuilder AddMember( string name, sbyte value ) => this.AddIntegralMember( name, value );
 
@@ -202,7 +242,7 @@ internal sealed class EnumBuilder : NamedTypeBuilder, IEnumBuilder, ITypeBuilder
     {
         if ( !value.IsInitialized || value.Value == null )
         {
-            return this.AddMemberCore( name, null );
+            return this.AddMember( name );
         }
 
         if ( value.Type is not INamedType namedType || !(namedType.IsEnum || IsValidUnderlyingType( namedType.SpecialType )) )
@@ -219,7 +259,7 @@ internal sealed class EnumBuilder : NamedTypeBuilder, IEnumBuilder, ITypeBuilder
 
         if ( rawValue == null )
         {
-            return this.AddMemberCore( name, null );
+            return this.AddMember( name );
         }
 
         // The value of a constant of an enum is its underlying value, so a constant read from another enum and a
@@ -237,7 +277,7 @@ internal sealed class EnumBuilder : NamedTypeBuilder, IEnumBuilder, ITypeBuilder
     /// Adds a member whose value is given as a signed integral value, which every overload but the one that takes
     /// <see cref="ulong"/> reaches.
     /// </summary>
-    private IEnumMemberBuilder AddIntegralMember( string name, long value )
+    private IEnumMemberBuilder AddIntegralMember( string name, long value, bool hasExplicitValue = true )
     {
         // The magnitude is computed by negating in unsigned arithmetic rather than through Math.Abs, which throws for
         // long.MinValue, whose magnitude is one more than long.MaxValue and therefore not a long.
@@ -245,7 +285,7 @@ internal sealed class EnumBuilder : NamedTypeBuilder, IEnumBuilder, ITypeBuilder
 
         this.CheckValueFitsInUnderlyingType( name, value < 0, magnitude );
 
-        return this.AddMemberCore( name, TypedConstant.Create( ConvertToUnderlyingType( value, this._underlyingType ), this.UnderlyingType ) );
+        return this.AddMemberCore( name, TypedConstant.Create( ConvertToUnderlyingType( value, this._underlyingType ), this.UnderlyingType ), hasExplicitValue );
     }
 
     /// <summary>
@@ -253,11 +293,11 @@ internal sealed class EnumBuilder : NamedTypeBuilder, IEnumBuilder, ITypeBuilder
     /// <see cref="AddIntegralMember"/> cannot express, because a value above <see cref="long.MaxValue"/> does not fit
     /// in a <see cref="long"/>.
     /// </summary>
-    private IEnumMemberBuilder AddUnsignedMember( string name, ulong value )
+    private IEnumMemberBuilder AddUnsignedMember( string name, ulong value, bool hasExplicitValue = true )
     {
         this.CheckValueFitsInUnderlyingType( name, false, value );
 
-        return this.AddMemberCore( name, TypedConstant.Create( ConvertToUnsignedUnderlyingType( value, this._underlyingType ), this.UnderlyingType ) );
+        return this.AddMemberCore( name, TypedConstant.Create( ConvertToUnsignedUnderlyingType( value, this._underlyingType ), this.UnderlyingType ), hasExplicitValue );
     }
 
     private void CheckValueFitsInUnderlyingType( string name, bool isNegative, ulong magnitude )
@@ -315,7 +355,7 @@ internal sealed class EnumBuilder : NamedTypeBuilder, IEnumBuilder, ITypeBuilder
             _ => throw new AssertionFailedException( $"Unsupported underlying type '{underlyingType}'." )
         };
 
-    private IEnumMemberBuilder AddMemberCore( string name, TypedConstant? value )
+    private IEnumMemberBuilder AddMemberCore( string name, TypedConstant? value, bool hasExplicitValue )
     {
         this.CheckNotFrozen();
 
@@ -324,7 +364,7 @@ internal sealed class EnumBuilder : NamedTypeBuilder, IEnumBuilder, ITypeBuilder
             throw new ArgumentException( $"The enum '{this.Name}' already declares a member named '{name}'.", nameof(name) );
         }
 
-        var member = new EnumMemberBuilder( this.AspectLayerInstance, this, name, value );
+        var member = new EnumMemberBuilder( this.AspectLayerInstance, this, name, value, hasExplicitValue );
         this._members.Add( member );
 
         return member;

@@ -38,17 +38,31 @@ public sealed class IntroduceStructTests : UnitTestClass
         var compilation = testContext.CreateCompilationModel( "public struct SourceStruct { } public enum SourceEnum { None } public delegate void SourceDelegate();" )
             .CreateMutableClone();
 
-        var builder = new NamedTypeBuilder( null!, compilation.GlobalNamespace, "IntroducedStruct", TypeKind.Struct );
-        builder.Freeze();
-        compilation.AddTransformation( builder.CreateTransformation() );
+        foreach ( var (typeKind, sourceName) in new[]
+                  {
+                      (TypeKind.Struct, "SourceStruct"), (TypeKind.Enum, "SourceEnum"), (TypeKind.Delegate, "SourceDelegate")
+                  } )
+        {
+            var introducedName = "Introduced" + typeKind;
 
-        var introduced = compilation.Types.OfName( "IntroducedStruct" ).Single();
-        var source = compilation.Types.OfName( "SourceStruct" ).Single();
+            var builder = typeKind switch
+            {
+                TypeKind.Enum => new EnumBuilder( null!, compilation.GlobalNamespace, introducedName ),
+                TypeKind.Delegate => new DelegateBuilder( null!, compilation.GlobalNamespace, introducedName ),
+                _ => new NamedTypeBuilder( null!, compilation.GlobalNamespace, introducedName, typeKind )
+            };
 
-        Assert.True( introduced.IsSealed );
-        Assert.Equal( source.IsSealed, introduced.IsSealed );
-        Assert.Equal( ((IDeclarationImpl) source).CanBeInherited, ((IDeclarationImpl) introduced).CanBeInherited );
-        Assert.False( ((IDeclarationImpl) introduced).CanBeInherited );
+            builder.Freeze();
+            compilation.AddTransformation( builder.CreateTransformation() );
+
+            var introduced = compilation.Types.OfName( introducedName ).Single();
+            var source = compilation.Types.OfName( sourceName ).Single();
+
+            Assert.True( introduced.IsSealed );
+            Assert.Equal( source.IsSealed, introduced.IsSealed );
+            Assert.Equal( ((IDeclarationImpl) source).CanBeInherited, ((IDeclarationImpl) introduced).CanBeInherited );
+            Assert.False( ((IDeclarationImpl) introduced).CanBeInherited );
+        }
     }
 
     /// <summary>

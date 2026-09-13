@@ -382,24 +382,73 @@ public sealed class IntroduceEnumTests : UnitTestClass
     }
 
     /// <summary>
-    /// Verifies that a member whose value is an uninitialized constant has no explicit value, which is what a member
-    /// declared without one has.
+    /// Verifies that a member added without a value reports the value that the language gives it, which is what a
+    /// member of an enum read from source reports.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The compiler computes the value of a member declared without one, so
+    /// <see cref="IField.ConstantValue"/> is never null on a member of an enum read from source. An introduced enum
+    /// whose members reported null would break every reader that the enum document shows, which dereference the
+    /// value.
+    /// </para>
+    /// </remarks>
+    [Theory]
+    [InlineData( "enum SourceEnum { First = 5, Second, Third }" )]
+    public void MemberAddedWithoutAValueReportsTheValueTheLanguageGivesIt( string sourceCode )
+    {
+        using var testContext = this.CreateTestContext();
+
+        var compilation = testContext.CreateCompilationModel( sourceCode ).CreateMutableClone();
+
+        var builder = new EnumBuilder( null!, compilation.GlobalNamespace, "IntroducedEnum" );
+        builder.AddMember( "First", 5 );
+        builder.AddMember( "Second", default(TypedConstant) );
+        builder.AddMember( "Third" );
+
+        var sourceMembers = compilation.Types.OfName( "SourceEnum" ).Single().Facets.Enum!.Members;
+        var introducedMembers = Introduce( compilation, builder ).Facets.Enum!.Members;
+
+        Assert.Equal(
+            sourceMembers.SelectAsArray( m => m.ConstantValue!.Value.Value ),
+            introducedMembers.SelectAsArray( m => m.ConstantValue!.Value.Value ) );
+
+        Assert.Equal( [5, 6, 7], introducedMembers.SelectAsArray( m => (int) m.ConstantValue!.Value.Value! ) );
+    }
+
+    /// <summary>
+    /// Verifies that the first member of an enum takes the value zero when it is added without one, which is what the
+    /// language gives it.
     /// </summary>
     [Fact]
-    public void MemberWhoseValueIsAnUninitializedConstantHasNoExplicitValue()
+    public void FirstMemberAddedWithoutAValueIsZero()
     {
         using var testContext = this.CreateTestContext();
 
         var compilation = testContext.CreateCompilationModel( "" ).CreateMutableClone();
 
         var builder = new EnumBuilder( null!, compilation.GlobalNamespace, "IntroducedEnum" );
-        builder.AddMember( "First", 5 );
-        builder.AddMember( "Second", default(TypedConstant) );
+        builder.AddMember( "None" );
 
-        var members = Introduce( compilation, builder ).Facets.Enum!.Members;
+        Assert.Equal( 0, Introduce( compilation, builder ).Facets.Enum!.Members.Single().ConstantValue!.Value.Value );
+    }
 
-        Assert.Equal( 5, members[0].ConstantValue!.Value.Value );
-        Assert.Null( members[1].ConstantValue );
+    /// <summary>
+    /// Verifies that a member added without a value is refused when the value that follows the preceding member does
+    /// not fit in the underlying type, which the compiler reports for an enum read from source.
+    /// </summary>
+    [Fact]
+    public void MemberAddedWithoutAValueIsRefusedWhenTheValueDoesNotFit()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var compilation = testContext.CreateCompilationModel( "" ).CreateMutableClone();
+
+        var builder = (IEnumBuilder) CreateEnumBuilder( compilation );
+        builder.UnderlyingType = SpecialType.Byte;
+        builder.AddMember( "Max", 255 );
+
+        Assert.Throws<ArgumentOutOfRangeException>( () => builder.AddMember( "TooLarge" ) );
     }
 
     /// <summary>

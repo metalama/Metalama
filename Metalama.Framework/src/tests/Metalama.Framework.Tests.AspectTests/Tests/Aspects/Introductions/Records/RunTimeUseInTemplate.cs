@@ -69,6 +69,9 @@ public class IntroductionAttribute : TypeAspect
 
         var handler = ExpressionFactory.Parse( $"new {delegateType.FullName}( x => x + 1 )" );
         Console.WriteLine( handler.Value );
+
+        var invoked = ExpressionFactory.Parse( $"(new {delegateType.FullName}( x => x + 1 ))( 41 )" );
+        Console.WriteLine( invoked.Value );
     }
 }
 

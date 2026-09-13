@@ -12,7 +12,8 @@ using Metalama.Framework.Code;
 
 // Verifies that an instance field introduced into a union is refused. The language forbids an instance field in a
 // union declaration and reports CS9373, which is an error on generated code that the user cannot edit, so section 4
-// of Metalama.Framework/docs/introducing-unions.md requires the eligibility rule to refuse it instead.
+// of Metalama.Framework/docs/introducing-unions.md requires the advice to refuse it instead. A static field holds no
+// state of the value and is permitted, which StaticFieldIntoUnion covers.
 
 #if TESTRUNNER
 namespace System.Runtime.CompilerServices

@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Code;
+using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Transformations;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -34,17 +35,27 @@ internal static class EnumHelper
     /// Builds the members of an enum, in the order in which the aspect added them, each with the value it was given
     /// or none when the language assigns it.
     /// </summary>
-    public static IEnumerable<EnumMemberDeclarationSyntax> GetMembers( INamedType introducedType, MemberInjectionContext context )
+    public static IEnumerable<EnumMemberDeclarationSyntax> GetMembers(
+        INamedType introducedType,
+        EnumBuilderData builderData,
+        MemberInjectionContext context )
     {
         // The order is taken from the facet and not from INamedType.Fields, because the order of that collection
         // depends on which fields a previous consumer resolved by name, while the members of an enum are emitted in
-        // the order in which the aspect added them.
-        foreach ( var field in introducedType.Facets.Enum.AssertNotNull().Members )
+        // the order in which the aspect added them. The builder data lists the members in that same order, which is
+        // what makes the flag below usable by index.
+        var members = introducedType.Facets.Enum.AssertNotNull().Members;
+
+        for ( var i = 0; i < members.Count; i++ )
         {
+            var field = members[i];
             var value = field.ConstantValue;
 
+            // The code model reports the value of every member, including one that the aspect added without a value,
+            // so the declaration is written with a value only when the aspect supplied one. A member of an enum read
+            // from source is written the same way.
             var equalsValue =
-                value is { IsInitialized: true, Value: not null }
+                builderData.MemberHasExplicitValue[i] && value is { IsInitialized: true, Value: not null }
                     ? EqualsValueClause( context.SyntaxGenerator.TypedConstant( value.Value ) )
                     : null;
 

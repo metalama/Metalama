@@ -126,10 +126,14 @@ internal class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, I
     /// Gets or sets a value indicating whether the introduced type is sealed. The setter refuses a closed type,
     /// because the language forbids the two modifiers together.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A struct, an enum and a delegate are sealed whether or not the aspect says so, which is what Roslyn reports
+    /// for a symbol of those three kinds. The modifier is not emitted for them, because the language refuses it.
+    /// </para>
+    /// </remarks>
     public override bool IsSealed
     {
-        // A struct, an enum and a delegate are sealed whether or not the aspect says so, which is what Roslyn reports
-        // for a symbol of those three kinds. The modifier is not emitted for them, because the language refuses it.
         get => base.IsSealed || this.TypeKind is TypeKind.Struct or TypeKind.Enum or TypeKind.Delegate;
 
         set

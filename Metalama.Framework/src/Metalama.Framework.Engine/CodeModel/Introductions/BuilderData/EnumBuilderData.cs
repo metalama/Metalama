@@ -39,9 +39,23 @@ internal sealed class EnumBuilderData : NamedTypeBuilderData
     /// </remarks>
     public ImmutableArray<IFullRef<IField>> Members { get; }
 
+    /// <summary>
+    /// Gets, for each member of <see cref="Members"/> and in the same order, a value indicating whether the aspect
+    /// supplied the value of that member.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A member whose value is the one that the language gives a member declared without one is emitted without a
+    /// value, which is also how such a member of an enum read from source is written. The code model reports the
+    /// value in both cases, so the flag cannot be recovered from the member itself.
+    /// </para>
+    /// </remarks>
+    public ImmutableArray<bool> MemberHasExplicitValue { get; }
+
     public EnumBuilderData( EnumBuilder builder, IFullRef<IDeclaration> containingDeclaration ) : base( builder, containingDeclaration )
     {
         this.UnderlyingType = builder.UnderlyingType.ToFullRef();
         this.Members = builder.MemberBuilders.SelectAsImmutableArray( m => (IFullRef<IField>) m.BuilderData.ToRef() );
+        this.MemberHasExplicitValue = builder.MemberBuilders.SelectAsImmutableArray( m => m.HasExplicitValue );
     }
 }
