@@ -87,15 +87,6 @@ namespace Metalama.Backstage.Licensing.Licenses
         }
 
         /// <summary>
-        /// Converts the data of a license key to its registration properties, with the display names of the catalog
-        /// of PostSharp Technologies. This overload exists for compatibility; the overload that takes a catalog serves
-        /// every product family.
-        /// </summary>
-        [PublicAPI( "Used by BusinessSystems.LicenseAuditLoader" )]
-        public static LicenseRegistrationProperties ToLicenseRegistrationProperties( this LicenseKeyData licenseKeyData, string? licenseString = null )
-            => licenseKeyData.ToLicenseRegistrationProperties( PostSharpTechnologiesLicenseProductCatalog.Instance, licenseString );
-
-        /// <summary>
         /// Converts the data of a license key to its registration properties.
         /// </summary>
         /// <param name="licenseKeyData">The data of the license key.</param>

@@ -145,7 +145,7 @@ public sealed class TelemetryContextTests : TestsBase
     public void RepositoryOptIn_DoesNotOverrideEnvironmentVariableOptOut()
     {
         // The environment variable keeps absolute priority: an explicit repository opt-in cannot re-enable telemetry.
-        this.EnvironmentVariableProvider.Environment[Backstage.Telemetry.TelemetryConfigurationService.OptOutEnvironmentVariable] = "1";
+        this.EnvironmentVariableProvider.Environment[MetalamaProduct.Profile.GetEnvironmentVariableName( TelemetryConfiguration.OptOutEnvironmentVariable )] = "1";
         this.CreateRepository( telemetryEnabled: true );
 
         Assert.Equal(
@@ -285,7 +285,7 @@ public sealed class TelemetryContextTests : TestsBase
     public void Reason_EnvironmentVariableOptOut()
     {
         // The repository does not opt out, so the reason comes from the env-var gate resolved by the configuration service.
-        this.EnvironmentVariableProvider.Environment[Backstage.Telemetry.TelemetryConfigurationService.OptOutEnvironmentVariable] = "1";
+        this.EnvironmentVariableProvider.Environment[MetalamaProduct.Profile.GetEnvironmentVariableName( TelemetryConfiguration.OptOutEnvironmentVariable )] = "1";
         this.CreateRepository( telemetryEnabled: true );
 
         var (consent, reason) = this.TelemetryService.GetPolicy( _projectDirectory ).GetConsentAndReason( TelemetryScenario.Usage );

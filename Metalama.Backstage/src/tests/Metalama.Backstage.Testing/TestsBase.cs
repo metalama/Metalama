@@ -174,12 +174,9 @@ namespace Metalama.Backstage.Testing
         protected virtual void ConfigureServices( ServiceProviderBuilder services ) { }
 
         /// <summary>
-        /// Method invoked just after the services are instantiated.
+        /// Method invoked just after the services are instantiated and initialized.
         /// </summary>
-        protected virtual void OnAfterServicesCreated( Services services )
-        {
-            services.ServiceProvider.GetRequiredBackstageService<BackstageServicesInitializer>().Initialize();
-        }
+        protected virtual void OnAfterServicesCreated( Services services ) { }
 
         protected void EnsureServicesInitialized()
         {
@@ -324,7 +321,7 @@ namespace Metalama.Backstage.Testing
                 .AddSingleton<IJsonSerializationService>( _ => new JsonSerializationService( [BackstageJsonContext.Default, .. options.AdditionalJsonTypeInfoResolvers] ) )
                 .AddSingleton<IConfigurationManager>( serviceProvider => new InMemoryConfigurationManager( serviceProvider ) )
                 .AddSingleton<ITempFileManager>( serviceProvider => new TempFileManager( serviceProvider ) )
-                .AddSingleton<ILicenseProductCatalog>( options.LicensingOptions.ProductCatalog )
+                .AddSingleton<ILicenseProductCatalog>( options.LicensingOptions.ProductCatalog ?? MetalamaProduct.LicenseProductCatalog )
                 .AddSingleton<ILicenseRegistrationService>( serviceProvider => new LicenseRegistrationService( serviceProvider ) )
                 .AddSingleton<ILicenseConsumptionService>(
                     serviceProvider => LicenseConsumptionServiceFactory.Create(

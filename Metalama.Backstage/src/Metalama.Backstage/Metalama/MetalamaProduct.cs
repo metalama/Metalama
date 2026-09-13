@@ -48,15 +48,17 @@ public static class MetalamaProduct
         LicensePropertyName: "MetalamaLicense",
         AssemblyNamePrefix: "Metalama" )
     {
+        LongName = "Metalama by PostSharp",
         LegacyDataDirectoryName = ".metalama",
         RepositoryConfigurationFileName = "metalama.json",
+        HasLegacyConfigurationLock = true,
         TrustedAssemblyNamePrefixes = ImmutableArray.Create( "PostSharp", "Metalama" )
     };
 
     /// <summary>
     /// Gets the catalog of the products whose license keys Metalama consumes.
     /// </summary>
-    public static ILicenseProductCatalog LicenseProductCatalog { get; } = PostSharpTechnologiesLicenseProductCatalog.Instance;
+    public static ILicenseProductCatalog LicenseProductCatalog { get; } = MetalamaLicenseProductCatalog.Instance;
 
     /// <summary>
     /// Gets the web links of Metalama.

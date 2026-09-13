@@ -22,6 +22,9 @@ public abstract class ComponentInfoBase : IComponentInfo
         this.PackageVersion = reader.PackageVersion;
         this.AssemblyVersion = reader.AssemblyVersion;
 
+        // TODO: Check that these overrides cannot be abused to bypass licensing, for instance by presenting a release
+        // build as a prerelease build to obtain the preview license, or by moving the build date. See #2018.
+
         // IsPrerelease flag can be overridden for testing purposes.
         var isPrereleaseEnvironmentVariableValue = Environment.GetEnvironmentVariable( productProfile.GetEnvironmentVariableName( "IS_PRERELEASE" ) );
         bool? isPrereleaseOverriddenValue = isPrereleaseEnvironmentVariableValue == null ? null : bool.Parse( isPrereleaseEnvironmentVariableValue );

@@ -15,8 +15,8 @@ namespace Metalama.Backstage.Extensibility;
 
 /// <summary>
 /// Extension methods for setting up the Backstage services in a <see cref="ServiceProviderBuilder" />. This is the
-/// umbrella over the registration methods of the packages: <see cref="RegisterCoreServices.AddCoreServices"/>,
-/// <see cref="RegisterConfigurationServices.AddConfigurationServices"/>,
+/// umbrella over the registration methods of the packages: <see cref="RegisterCoreServices.AddCoreServices"/> and
+/// <see cref="RegisterConfigurationServices.AddConfigurationServices"/> of the core package,
 /// <see cref="RegisterTelemetryServices.AddTelemetryServices"/>, <see cref="RegisterLicensingServices.AddLicensingServices"/>
 /// and <see cref="RegisterUserInterfaceServices.AddUserInterfaceServices"/>.
 /// </summary>
@@ -82,7 +82,11 @@ public static class RegisterServiceExtensions
                 throw new InvalidOperationException( "License audit requires support services." );
             }
 
-            serviceProviderBuilder.AddLicensingServices( options.LicensingOptions, applicationInfo );
+            var licensingOptions = options.LicensingOptions.ProductCatalog != null
+                ? options.LicensingOptions
+                : options.LicensingOptions with { ProductCatalog = MetalamaProduct.LicenseProductCatalog };
+
+            serviceProviderBuilder.AddLicensingServices( licensingOptions, applicationInfo );
         }
 
         serviceProviderBuilder.AddSingleton( serviceProvider => new BackstageServicesInitializer( serviceProvider, options ) );

@@ -276,7 +276,7 @@ internal sealed class ExceptionReporter : IExceptionReportManager, IExceptionCap
     /// is the bare name of the file, which identifies the report on the review page. See #1674.
     /// </summary>
     private void ShowToastNotification( string reportFileName, TelemetryScenario scenario, string applicationName, bool autoSent )
-        => this._eventDispatcher.Publish( new ExceptionReportCaptured( reportFileName, scenario, applicationName, autoSent ) );
+        => this._eventDispatcher.Publish( new ExceptionReportCapturedEvent( reportFileName, scenario, applicationName, autoSent ) );
 
     /// <summary>
     /// Writes the element that describes an assembly. An assembly is safe to disclose (name and version) when its name

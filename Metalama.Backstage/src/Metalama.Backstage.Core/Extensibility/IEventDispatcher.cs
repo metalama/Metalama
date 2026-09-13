@@ -39,10 +39,10 @@ public interface IEventDispatcher : IBackstageService
     /// <summary>
     /// Enqueues an event for delivery to the subscribers of its type.
     /// </summary>
-    /// <typeparam name="TEvent">The type of the event, declared by the publisher.</typeparam>
+    /// <typeparam name="TEvent">The type of the event, declared by the publisher and marked with <see cref="IDispatcherEvent"/>.</typeparam>
     /// <param name="event">The event.</param>
     void Publish<TEvent>( TEvent @event )
-        where TEvent : class;
+        where TEvent : class, IDispatcherEvent;
 
     /// <summary>
     /// Subscribes a handler to the events of a type. The handler runs on the queue of the dispatcher, never on the
@@ -52,7 +52,7 @@ public interface IEventDispatcher : IBackstageService
     /// <param name="handler">The handler.</param>
     /// <returns>An object whose disposal removes the subscription.</returns>
     IDisposable Subscribe<TEvent>( Action<TEvent> handler )
-        where TEvent : class;
+        where TEvent : class, IDispatcherEvent;
 
     /// <summary>
     /// Waits until every event published so far has been delivered. Events can still be published afterwards.

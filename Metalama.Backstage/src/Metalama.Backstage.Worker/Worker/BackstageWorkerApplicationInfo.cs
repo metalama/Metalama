@@ -7,6 +7,8 @@ using Metalama.Backstage.Diagnostics;
 
 namespace Metalama.Backstage.Worker
 {
+    // TODO: The worker is bound to the Metalama product profile. A simple way to create the worker of another product,
+    // such as PostSharp, is needed. See #2018.
     internal sealed class BackstageWorkerApplicationInfo : ApplicationInfoBase
     {
         public BackstageWorkerApplicationInfo()

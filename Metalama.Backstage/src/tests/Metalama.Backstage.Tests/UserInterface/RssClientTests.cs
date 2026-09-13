@@ -106,7 +106,7 @@ public sealed class RssClientTests : TestsBase
     [Fact]
     public async Task RssClientDoesNotFetchWhenTelemetryIsDisabled()
     {
-        this.EnvironmentVariableProvider.Environment[Backstage.Telemetry.TelemetryConfigurationService.OptOutEnvironmentVariable] = "1";
+        this.EnvironmentVariableProvider.Environment[MetalamaProduct.Profile.GetEnvironmentVariableName( TelemetryConfiguration.OptOutEnvironmentVariable )] = "1";
         this.EnsureNewsWillBeChecked();
 
         var rssClient = new RssClient( this.ServiceProvider );

@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using JetBrains.Annotations;
+using Metalama.Backstage.Extensibility;
 
 namespace Metalama.Backstage.Licensing.Consumption;
 
@@ -13,4 +14,4 @@ namespace Metalama.Backstage.Licensing.Consumption;
 /// <param name="Requirement">The requirement that was not satisfied.</param>
 /// <param name="Message">The message that explains what is not licensed and which products are eligible.</param>
 [PublicAPI]
-public sealed record LicenseRequirementNotSatisfied( LicenseRequirement Requirement, string Message );
+public sealed record LicenseRequirementNotSatisfiedEvent( LicenseRequirement Requirement, string Message ) : IDispatcherEvent;

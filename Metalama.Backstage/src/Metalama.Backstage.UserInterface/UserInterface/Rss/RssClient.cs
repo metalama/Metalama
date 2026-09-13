@@ -29,6 +29,8 @@ internal sealed class RssClient : IRssClient
     private readonly IToastNotificationService? _toastNotificationService;
     private readonly IToastNotificationStatusService? _toastNotificationStatusService;
     private readonly IUserDeviceDetectionService? _userDeviceDetectionService;
+    private readonly IEventDispatcher _eventDispatcher;
+    private bool _isInitialized;
 
     public RssClient( IServiceProvider serviceProvider )
     {
@@ -44,8 +46,23 @@ internal sealed class RssClient : IRssClient
         this._userDeviceDetectionService = serviceProvider.GetBackstageService<IUserDeviceDetectionService>();
         this._toastNotificationStatusService = serviceProvider.GetBackstageService<IToastNotificationStatusService>();
 
-        // The subscription lives as long as the service provider, like the client itself.
-        serviceProvider.GetRequiredBackstageService<IEventDispatcher>().Subscribe<TelemetryActivated>( _ => this.TryEnable() );
+        this._eventDispatcher = serviceProvider.GetRequiredBackstageService<IEventDispatcher>();
+    }
+
+    /// <summary>
+    /// Subscribes to the activation of telemetry, which enables the news. It is called once by the initializer of the
+    /// services; the subscription lives as long as the service provider, like the client itself.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">The method has already been called.</exception>
+    internal void Initialize()
+    {
+        if ( this._isInitialized )
+        {
+            throw new InvalidOperationException( $"The {nameof(RssClient)} has already been initialized." );
+        }
+
+        this._isInitialized = true;
+        this._eventDispatcher.Subscribe<TelemetryActivatedEvent>( _ => this.TryEnable() );
     }
 
     public Task DisplayUnreadLatestNewsAsync( ITelemetryContext context )

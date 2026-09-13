@@ -15,10 +15,10 @@ public record LicensingInitializationOptions
     public static LicensingInitializationOptions Default { get; } = new();
 
     /// <summary>
-    /// Gets the catalog of the products whose license keys the product family consumes. The default is the catalog of
-    /// the products of PostSharp Technologies, as consumed by Metalama.
+    /// Gets the catalog of the products whose license keys the product family consumes. The host that composes the
+    /// packages must set it; the Metalama umbrella sets the Metalama catalog when it is <c>null</c>.
     /// </summary>
-    public ILicenseProductCatalog ProductCatalog { get; init; } = PostSharpTechnologiesLicenseProductCatalog.Instance;
+    public ILicenseProductCatalog? ProductCatalog { get; init; }
 
     /// <summary>
     /// Gets a delegate that creates the provider of the licensing authorities, that is, of the public keys that

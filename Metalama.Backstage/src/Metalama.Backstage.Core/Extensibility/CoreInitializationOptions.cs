@@ -16,6 +16,9 @@ namespace Metalama.Backstage.Extensibility;
 /// </summary>
 /// <param name="ProductProfile">The profile of the product family that hosts the services.</param>
 /// <param name="ApplicationInfo">The description of the host process.</param>
+/// <remarks>
+/// TODO: The name of this type is to be reviewed. See #2018.
+/// </remarks>
 [PublicAPI]
 public sealed record CoreInitializationOptions( ProductProfile ProductProfile, IApplicationInfo ApplicationInfo )
 {

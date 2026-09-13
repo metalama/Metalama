@@ -23,15 +23,10 @@ public class ConfigurationFileAttribute : Attribute
     public string Alias { get; }
 
     /// <summary>
-    /// Gets or sets the full name of the environment variable whose value overrides the content of the file, or
-    /// <c>null</c> when the file has no such variable or when <see cref="EnvironmentVariableSuffix"/> is set.
+    /// Gets or sets the name, without the prefix of the product, of the environment variable whose value overrides
+    /// the content of the file. The full name is obtained by prepending the environment variable prefix of the
+    /// product profile, so the same configuration type serves every product family. The value is <c>null</c> when
+    /// the file has no such variable.
     /// </summary>
     public string? EnvironmentVariableName { get; set; }
-
-    /// <summary>
-    /// Gets or sets the suffix of the environment variable whose value overrides the content of the file. The full
-    /// name is obtained by prepending the environment variable prefix of the product profile, so the same
-    /// configuration type serves every product family. The value is <c>null</c> when the file has no such variable.
-    /// </summary>
-    public string? EnvironmentVariableSuffix { get; set; }
 }

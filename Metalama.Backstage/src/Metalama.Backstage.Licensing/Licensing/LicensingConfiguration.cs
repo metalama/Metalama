@@ -71,13 +71,6 @@ internal sealed record LicensingConfiguration : ConfigurationFile
     public CommunityLicenseReason CommunityLicenseReason { get; init; }
 
     /// <summary>
-    /// Registers a license key according to the rules of the catalog of PostSharp Technologies. This overload exists
-    /// for compatibility; the overload that takes a catalog serves every product family.
-    /// </summary>
-    public LicensingConfiguration SetLicense( LicenseRegistrationProperties license )
-        => this.SetLicense( license, PostSharpTechnologiesLicenseProductCatalog.Instance );
-
-    /// <summary>
     /// Registers a license key, removing the keys of the products that do not co-exist with it, and storing the key
     /// where the versions that support its product read it.
     /// </summary>

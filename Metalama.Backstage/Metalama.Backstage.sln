@@ -39,8 +39,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Metalama.Testing.Hooks.Test
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Metalama.Backstage.Core", "src\Metalama.Backstage.Core\Metalama.Backstage.Core.csproj", "{F0B5ABA8-E8E4-4D79-BC43-8EE8D056BE4B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Metalama.Backstage.Configuration", "src\Metalama.Backstage.Configuration\Metalama.Backstage.Configuration.csproj", "{45C31B34-B05D-4031-BD08-81FF71406B32}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Metalama.Backstage.Telemetry", "src\Metalama.Backstage.Telemetry\Metalama.Backstage.Telemetry.csproj", "{6FA627F4-A04D-4E0F-9E2C-105ED2440C3B}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Metalama.Backstage.Licensing", "src\Metalama.Backstage.Licensing\Metalama.Backstage.Licensing.csproj", "{AF370903-0FC5-4D79-93F2-CC811388B44D}"
@@ -237,18 +235,6 @@ Global
 		{F0B5ABA8-E8E4-4D79-BC43-8EE8D056BE4B}.Release|x64.Build.0 = Release|Any CPU
 		{F0B5ABA8-E8E4-4D79-BC43-8EE8D056BE4B}.Release|x86.ActiveCfg = Release|Any CPU
 		{F0B5ABA8-E8E4-4D79-BC43-8EE8D056BE4B}.Release|x86.Build.0 = Release|Any CPU
-		{45C31B34-B05D-4031-BD08-81FF71406B32}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{45C31B34-B05D-4031-BD08-81FF71406B32}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{45C31B34-B05D-4031-BD08-81FF71406B32}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{45C31B34-B05D-4031-BD08-81FF71406B32}.Debug|x64.Build.0 = Debug|Any CPU
-		{45C31B34-B05D-4031-BD08-81FF71406B32}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{45C31B34-B05D-4031-BD08-81FF71406B32}.Debug|x86.Build.0 = Debug|Any CPU
-		{45C31B34-B05D-4031-BD08-81FF71406B32}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{45C31B34-B05D-4031-BD08-81FF71406B32}.Release|Any CPU.Build.0 = Release|Any CPU
-		{45C31B34-B05D-4031-BD08-81FF71406B32}.Release|x64.ActiveCfg = Release|Any CPU
-		{45C31B34-B05D-4031-BD08-81FF71406B32}.Release|x64.Build.0 = Release|Any CPU
-		{45C31B34-B05D-4031-BD08-81FF71406B32}.Release|x86.ActiveCfg = Release|Any CPU
-		{45C31B34-B05D-4031-BD08-81FF71406B32}.Release|x86.Build.0 = Release|Any CPU
 		{6FA627F4-A04D-4E0F-9E2C-105ED2440C3B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{6FA627F4-A04D-4E0F-9E2C-105ED2440C3B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6FA627F4-A04D-4E0F-9E2C-105ED2440C3B}.Debug|x64.ActiveCfg = Debug|Any CPU

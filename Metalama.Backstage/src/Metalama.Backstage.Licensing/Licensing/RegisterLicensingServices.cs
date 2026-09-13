@@ -8,6 +8,7 @@ using Metalama.Backstage.Licensing.Audit;
 using Metalama.Backstage.Licensing.Consumption;
 using Metalama.Backstage.Licensing.Licenses;
 using Metalama.Backstage.Licensing.Registration;
+using System;
 
 namespace Metalama.Backstage.Licensing;
 
@@ -21,12 +22,17 @@ public static class RegisterLicensingServices
     /// registration, and the audit when the application enables it. It requires the core, configuration and
     /// telemetry services.
     /// </summary>
+    /// <exception cref="ArgumentException"><see cref="LicensingInitializationOptions.ProductCatalog"/> is not set.</exception>
     public static ServiceProviderBuilder AddLicensingServices(
         this ServiceProviderBuilder serviceProviderBuilder,
         LicensingInitializationOptions options,
         IApplicationInfo applicationInfo )
     {
-        serviceProviderBuilder.AddSingleton( options.ProductCatalog );
+        serviceProviderBuilder.AddSingleton(
+            options.ProductCatalog
+            ?? throw new ArgumentException(
+                $"{nameof(LicensingInitializationOptions)}.{nameof(LicensingInitializationOptions.ProductCatalog)} must be set.",
+                nameof(options) ) );
 
         serviceProviderBuilder.AddSingleton<ILicensingAuthorityProvider>(
             serviceProvider => options.UseTestAuthority

@@ -27,25 +27,38 @@ internal sealed class UserInterfaceEventSubscriber : IBackstageService, IDisposa
     private readonly IToastNotificationService _toastNotificationService;
     private readonly WelcomePageService? _welcomePageService;
     private readonly ILicenseProductCatalog? _catalog;
-    private readonly IDisposable[] _subscriptions;
+    private readonly IEventDispatcher _dispatcher;
+    private IDisposable[]? _subscriptions;
 
     public UserInterfaceEventSubscriber( IServiceProvider serviceProvider )
     {
         this._toastNotificationService = serviceProvider.GetRequiredBackstageService<IToastNotificationService>();
         this._welcomePageService = serviceProvider.GetBackstageService<WelcomePageService>();
         this._catalog = serviceProvider.GetBackstageService<ILicenseProductCatalog>();
+        this._dispatcher = serviceProvider.GetRequiredBackstageService<IEventDispatcher>();
+    }
 
-        var dispatcher = serviceProvider.GetRequiredBackstageService<IEventDispatcher>();
+    /// <summary>
+    /// Subscribes to the events. It is called once by the initializer of the services; the subscriptions live until
+    /// the service is disposed.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">The method has already been called.</exception>
+    public void Initialize()
+    {
+        if ( this._subscriptions != null )
+        {
+            throw new InvalidOperationException( $"The {nameof(UserInterfaceEventSubscriber)} has already been initialized." );
+        }
 
         this._subscriptions =
         [
-            dispatcher.Subscribe<ExceptionReportCaptured>( this.OnExceptionReportCaptured ),
-            dispatcher.Subscribe<TelemetryActivated>( this.OnTelemetryActivated ),
-            dispatcher.Subscribe<LicenseRequirementNotSatisfied>( this.OnLicenseRequirementNotSatisfied )
+            this._dispatcher.Subscribe<ExceptionReportCapturedEvent>( this.OnExceptionReportCaptured ),
+            this._dispatcher.Subscribe<TelemetryActivatedEvent>( this.OnTelemetryActivated ),
+            this._dispatcher.Subscribe<LicenseRequirementNotSatisfiedEvent>( this.OnLicenseRequirementNotSatisfied )
         ];
     }
 
-    private void OnExceptionReportCaptured( ExceptionReportCaptured @event )
+    private void OnExceptionReportCaptured( ExceptionReportCapturedEvent @event )
     {
         var category = @event.Scenario == TelemetryScenario.Performance ? "performance problem" : "exception";
 
@@ -64,13 +77,13 @@ internal sealed class UserInterfaceEventSubscriber : IBackstageService, IDisposa
                 Uri: @event.ReportFileName ) );
     }
 
-    private void OnTelemetryActivated( TelemetryActivated @event )
+    private void OnTelemetryActivated( TelemetryActivatedEvent @event )
     {
         this._toastNotificationService.Show( new ToastNotification( ToastNotificationKinds.TelemetryNotice ) );
         this._welcomePageService?.OpenWelcomePageOnce();
     }
 
-    private void OnLicenseRequirementNotSatisfied( LicenseRequirementNotSatisfied @event )
+    private void OnLicenseRequirementNotSatisfied( LicenseRequirementNotSatisfiedEvent @event )
     {
         this._toastNotificationService.Show(
             new ToastNotification(
@@ -81,9 +94,16 @@ internal sealed class UserInterfaceEventSubscriber : IBackstageService, IDisposa
 
     public void Dispose()
     {
+        if ( this._subscriptions == null )
+        {
+            return;
+        }
+
         foreach ( var subscription in this._subscriptions )
         {
             subscription.Dispose();
         }
+
+        this._subscriptions = null;
     }
 }

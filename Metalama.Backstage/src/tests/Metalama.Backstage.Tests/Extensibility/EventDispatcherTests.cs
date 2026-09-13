@@ -21,9 +21,9 @@ public sealed class EventDispatcherTests : TestsBase
 {
     public EventDispatcherTests( ITestOutputHelper logger ) : base( logger ) { }
 
-    private sealed record TestEvent( int Number );
+    private sealed record TestEvent( int Number ) : IDispatcherEvent;
 
-    private sealed record UnobservedEvent;
+    private sealed record UnobservedEvent : IDispatcherEvent;
 
     [Fact]
     public async Task EventsAreDeliveredInTheOrderOfPublication()

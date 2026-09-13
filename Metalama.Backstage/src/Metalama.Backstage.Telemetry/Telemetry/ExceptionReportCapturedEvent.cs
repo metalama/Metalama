@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using JetBrains.Annotations;
+using Metalama.Backstage.Extensibility;
 
 namespace Metalama.Backstage.Telemetry;
 
@@ -15,4 +16,4 @@ namespace Metalama.Backstage.Telemetry;
 /// <param name="ApplicationName">The name of the application in which the exception occurred.</param>
 /// <param name="AutoSent">A value indicating whether the report was sent automatically because the user had consented in advance, in which case the notification is informational only.</param>
 [PublicAPI]
-public sealed record ExceptionReportCaptured( string ReportFileName, TelemetryScenario Scenario, string ApplicationName, bool AutoSent );
+public sealed record ExceptionReportCapturedEvent( string ReportFileName, TelemetryScenario Scenario, string ApplicationName, bool AutoSent ) : IDispatcherEvent;

@@ -46,7 +46,7 @@ public sealed class TelemetryConfigurationTests : TestsBase
     {
         if ( value != null )
         {
-            this.EnvironmentVariableProvider.Environment[Backstage.Telemetry.TelemetryConfigurationService.OptOutEnvironmentVariable] = value;
+            this.EnvironmentVariableProvider.Environment[MetalamaProduct.Profile.GetEnvironmentVariableName( TelemetryConfiguration.OptOutEnvironmentVariable )] = value;
         }
 
         this.TelemetryConfigurationService.SetConsent( TelemetryConsent.Yes );

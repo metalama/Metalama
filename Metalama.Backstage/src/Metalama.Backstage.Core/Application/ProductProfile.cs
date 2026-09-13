@@ -62,10 +62,23 @@ public sealed record ProductProfile(
     public ImmutableArray<string> TrustedAssemblyNamePrefixes { get; init; } = ImmutableArray<string>.Empty;
 
     /// <summary>
-    /// Gets the name of an environment variable of the product from its suffix, by prepending
-    /// <see cref="EnvironmentVariablePrefix"/>.
+    /// Gets the long display name of the product, for instance <c>Metalama by PostSharp</c>, used where the product
+    /// is presented on its own, such as in the title of a window. The default is <see cref="Name"/>.
     /// </summary>
-    /// <param name="suffix">The suffix of the variable, for instance <c>TEMP</c>.</param>
+    public string LongName { get; init; } = Name;
+
+    /// <summary>
+    /// Gets a value indicating whether the versions of the product that preceded the per-file configuration locks
+    /// used a single lock for the whole configuration directory, which the current version can take as well when the
+    /// <c>LEGACY_CONFIGURATION_LOCK</c> environment variable of the product is set. The default is <c>false</c>.
+    /// </summary>
+    public bool HasLegacyConfigurationLock { get; init; }
+
+    /// <summary>
+    /// Gets the full name of an environment variable of the product by prepending <see cref="EnvironmentVariablePrefix"/>
+    /// to its name.
+    /// </summary>
+    /// <param name="name">The name of the variable without the prefix, for instance <c>TEMP</c>.</param>
     /// <returns>The full name of the variable, for instance <c>METALAMA_TEMP</c>.</returns>
-    public string GetEnvironmentVariableName( string suffix ) => this.EnvironmentVariablePrefix + suffix;
+    public string GetEnvironmentVariableName( string name ) => this.EnvironmentVariablePrefix + name;
 }

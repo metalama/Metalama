@@ -12,20 +12,15 @@ using System.Text.Json.Serialization;
 
 namespace Metalama.Backstage.Diagnostics;
 
-[ConfigurationFile( "diagnostics.json", EnvironmentVariableSuffix = EnvironmentVariableSuffix )]
+[ConfigurationFile( "diagnostics.json", EnvironmentVariableName = EnvironmentVariableName )]
 [Description( "Logging and debugging options of the product itself." )]
 public sealed record DiagnosticsConfiguration : ConfigurationFile
 {
     /// <summary>
-    /// The suffix of the environment variable whose value overrides this file. The full name is the suffix prefixed
-    /// by the environment variable prefix of the product profile, for instance <c>METALAMA_DIAGNOSTICS</c>.
+    /// The name, without the prefix of the product, of the environment variable whose value overrides this file. The
+    /// full name is obtained from the product profile, for instance <c>METALAMA_DIAGNOSTICS</c>.
     /// </summary>
-    public const string EnvironmentVariableSuffix = "DIAGNOSTICS";
-
-    /// <summary>
-    /// The name of the environment variable whose value overrides this file for the Metalama product family.
-    /// </summary>
-    public const string EnvironmentVariableName = "METALAMA_DIAGNOSTICS";
+    public const string EnvironmentVariableName = "DIAGNOSTICS";
 
     /// <summary>
     /// Gets the options of the logging of Metalama itself.

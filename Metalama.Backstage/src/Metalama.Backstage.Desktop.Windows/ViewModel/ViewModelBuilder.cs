@@ -36,9 +36,11 @@ internal static class ViewModelBuilder
         }
         else if ( settings.Kind == ToastNotificationKinds.VsxNotInstalled.Name )
         {
+            // TODO: The name of the extension and the list of its features are specific to Metalama and PostSharp, and are not
+            // product neutral. See #2018.
             viewModel = new NotificationViewModel(
                 settings.Kind,
-                $"Install {productName} Tools for Visual Studio",
+                $"Install Visual Studio Tools for {productName}",
                 $"to enhance your {productName} coding experience: syntax highlighting, CodeLens, and diff preview.",
                 new UriActionViewModel( "Install", webLinks.InstallVsx ) );
 

@@ -22,7 +22,7 @@ public sealed class WebLinks : IWebLinks
     // We don't add campaign tracking query string parameters so we do not override the attribution to the original campaign.
     public string Welcome => GetLink( "metalama-oss-welcome", false );
 
-    public string GetTeamTeamTrial => GetLink( "metalama-team-evaluation" );
+    public string GetTeamTrial => GetLink( "metalama-team-evaluation" );
 
     public string VisualStudioMarketplace => GetLink( "metalama-download-vsx" );
 

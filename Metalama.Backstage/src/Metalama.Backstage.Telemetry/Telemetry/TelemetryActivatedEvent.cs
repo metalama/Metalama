@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using JetBrains.Annotations;
+using Metalama.Backstage.Extensibility;
 
 namespace Metalama.Backstage.Telemetry;
 
@@ -12,4 +13,4 @@ namespace Metalama.Backstage.Telemetry;
 /// news client subscribes to it to enable itself.
 /// </summary>
 [PublicAPI]
-public sealed record TelemetryActivated;
+public sealed record TelemetryActivatedEvent : IDispatcherEvent;

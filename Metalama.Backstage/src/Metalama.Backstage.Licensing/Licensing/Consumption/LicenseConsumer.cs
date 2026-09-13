@@ -103,7 +103,7 @@ internal sealed class LicenseConsumer : ILicenseConsumer
         // Publish the event, so that the user interface can show a notification, unless the application provides its own UI.
         if ( showsToastNotification )
         {
-            this._eventDispatcher.Publish( new LicenseRequirementNotSatisfied( requirement, messageText ) );
+            this._eventDispatcher.Publish( new LicenseRequirementNotSatisfiedEvent( requirement, messageText ) );
         }
 
         return false;

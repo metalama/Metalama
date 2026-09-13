@@ -125,7 +125,6 @@ var product = new Product( MetalamaDependencies.Metalama )
     PublicArtifacts = Pattern.Create(
         "Metalama.Backstage.$(PackageVersion).nupkg",
         "Metalama.Backstage.Core.$(PackageVersion).nupkg",
-        "Metalama.Backstage.Configuration.$(PackageVersion).nupkg",
         "Metalama.Backstage.Telemetry.$(PackageVersion).nupkg",
         "Metalama.Backstage.Licensing.$(PackageVersion).nupkg",
         "Metalama.Backstage.UserInterface.$(PackageVersion).nupkg",

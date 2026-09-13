@@ -28,7 +28,7 @@ public interface IWebLinks : IBackstageService
     /// <summary>
     /// Gets the address of the page from which a team can request an evaluation license.
     /// </summary>
-    string GetTeamTeamTrial { get; }
+    string GetTeamTrial { get; }
 
     /// <summary>
     /// Gets the address of the extension of the product in the Visual Studio Marketplace.

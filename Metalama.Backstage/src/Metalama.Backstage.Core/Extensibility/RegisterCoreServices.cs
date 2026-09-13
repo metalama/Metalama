@@ -47,8 +47,8 @@ public static class RegisterCoreServices
     /// <summary>
     /// Registers the core services: the product profile, the application information, the event dispatcher, the
     /// infrastructure services, the temporary file manager, and optionally the diagnostics, the crash dump service and
-    /// the tool services. The configuration manager is not registered here; a host registers the one of the
-    /// configuration package, or an in-memory one.
+    /// the tool services. The configuration manager is not registered here; a host registers the file-based one with
+    /// <see cref="RegisterConfigurationServices.AddConfigurationServices"/>, or an in-memory one.
     /// </summary>
     public static ServiceProviderBuilder AddCoreServices( this ServiceProviderBuilder serviceProviderBuilder, CoreInitializationOptions options )
     {

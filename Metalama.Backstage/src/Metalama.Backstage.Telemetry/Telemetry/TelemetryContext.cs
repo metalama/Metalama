@@ -124,7 +124,7 @@ internal sealed class TelemetryContext : ITelemetryContext
         if ( this._telemetryConfigurationService.CompareExchangeConsent( TelemetryScenario.Usage, TelemetryConsent.Yes, TelemetryConsent.Default ) )
         {
             this._logger.Trace?.Log( $"Enabling telemetry now." );
-            this._eventDispatcher.Publish( new TelemetryActivated() );
+            this._eventDispatcher.Publish( new TelemetryActivatedEvent() );
         }
         else
         {

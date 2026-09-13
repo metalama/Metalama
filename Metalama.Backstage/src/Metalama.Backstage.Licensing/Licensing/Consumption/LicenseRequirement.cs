@@ -49,13 +49,6 @@ public abstract class LicenseRequirement
     protected abstract IReadOnlyList<LicenseProduct> GetEligibleProducts();
 
     /// <summary>
-    /// Gets the display names of the eligible products, as named by the catalog of PostSharp Technologies. This
-    /// property exists for compatibility; <see cref="GetEligibleProductNames"/> takes the catalog of the current
-    /// product family.
-    /// </summary>
-    public IReadOnlyList<string> EligibleProductNames => this.GetEligibleProductNames( PostSharpTechnologiesLicenseProductCatalog.Instance );
-
-    /// <summary>
     /// Gets the display names of the products that satisfy the current requirement, as named by a given catalog.
     /// </summary>
     public IReadOnlyList<string> GetEligibleProductNames( ILicenseProductCatalog catalog )

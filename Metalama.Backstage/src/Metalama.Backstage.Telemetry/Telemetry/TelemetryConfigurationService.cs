@@ -14,8 +14,6 @@ namespace Metalama.Backstage.Telemetry;
 
 internal sealed class TelemetryConfigurationService : ITelemetryConfigurationService
 {
-    public const string OptOutEnvironmentVariable = TelemetryConfiguration.OptOutEnvironmentVariableName;
-
     private readonly IConfigurationManager _configurationManager;
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger _logger;
@@ -114,7 +112,7 @@ internal sealed class TelemetryConfigurationService : ITelemetryConfigurationSer
 
         // Check if there is an environment variable opt-out.
         var optOutEnvironmentVariableName = this._serviceProvider.GetRequiredBackstageService<ProductProfile>()
-            .GetEnvironmentVariableName( TelemetryConfiguration.OptOutEnvironmentVariableSuffix );
+            .GetEnvironmentVariableName( TelemetryConfiguration.OptOutEnvironmentVariable );
 
         var telemetryOptOutEnvironmentVariableValue = this._serviceProvider.GetRequiredBackstageService<IEnvironmentVariableProvider>()
             .GetEnvironmentVariable( optOutEnvironmentVariableName );

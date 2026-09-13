@@ -8,28 +8,21 @@ using System.Collections.Immutable;
 namespace Metalama.Backstage.Licensing;
 
 /// <summary>
-/// The catalog of the products of PostSharp Technologies, as consumed by the Metalama product family: the Metalama
-/// editions, and the PostSharp editions whose license keys are also valid for Metalama.
+/// The catalog of the products of PostSharp Technologies: the members that are common to the Metalama and PostSharp
+/// product families, such as the display names of every product. The members that depend on the product family,
+/// such as the edition that a trial gives, are implemented by the derived class of each family.
 /// </summary>
 /// <remarks>
-/// This class describes the products of one company. It is defined in the licensing package because
-/// <see cref="LicenseProduct"/>, the enumeration of the products that a license key can name, is defined there too;
-/// both belong to a package of the company once the enumeration is no longer part of the license key format.
+/// This class is defined in the licensing package because <see cref="LicenseProduct"/>, the enumeration of the
+/// products that a license key can name, is defined there too.
 /// </remarks>
 [PublicAPI]
-public sealed class PostSharpTechnologiesLicenseProductCatalog : ILicenseProductCatalog
+public abstract class PostSharpTechnologiesLicenseProductCatalog : ILicenseProductCatalog
 {
-    /// <summary>
-    /// Gets the single instance of the catalog.
-    /// </summary>
-    public static PostSharpTechnologiesLicenseProductCatalog Instance { get; } = new();
-
-    private PostSharpTechnologiesLicenseProductCatalog() { }
-
 #pragma warning disable CS0618 // Type or member is obsolete: the catalog must name the products that are no longer offered.
 
     /// <inheritdoc />
-    public string GetDisplayName( LicenseProduct product )
+    public virtual string GetDisplayName( LicenseProduct product )
         => product switch
         {
             LicenseProduct.MetalamaCommunity => "Metalama Community",
@@ -49,18 +42,17 @@ public sealed class PostSharpTechnologiesLicenseProductCatalog : ILicenseProduct
         };
 
     /// <inheritdoc />
-    public string GetLicenseDisplayName( LicenseProduct product, LicenseType licenseType )
+    public virtual string GetLicenseDisplayName( LicenseProduct product, LicenseType licenseType )
         => product switch
         {
             LicenseProduct.MetalamaProfessional => $"Metalama Professional, {licenseType.GetLicenseTypeName()}",
             LicenseProduct.MetalamaUltimate => $"Metalama Ultimate, {licenseType.GetLicenseTypeName()}",
             LicenseProduct.MetalamaStarter => $"Metalama Starter, {licenseType.GetLicenseTypeName()}",
-            LicenseProduct.None => "Metalama Open Source",
             _ => this.GetDisplayName( product )
         };
 
     /// <inheritdoc />
-    public ServicingPhase GetDefaultServicingPhase( LicenseProduct product )
+    public virtual ServicingPhase GetDefaultServicingPhase( LicenseProduct product )
         => product switch
         {
             // Metalama Enterprise is Metalama Professional with a ServicingPhase field set to LongTerm.
@@ -72,7 +64,7 @@ public sealed class PostSharpTechnologiesLicenseProductCatalog : ILicenseProduct
         };
 
     /// <inheritdoc />
-    public bool CanHaveLongTermSupportOption( LicenseProduct product )
+    public virtual bool CanHaveLongTermSupportOption( LicenseProduct product )
         => product switch
         {
             LicenseProduct.PostSharpUltimate => true,
@@ -81,55 +73,28 @@ public sealed class PostSharpTechnologiesLicenseProductCatalog : ILicenseProduct
         };
 
     /// <inheritdoc />
-    public bool IsProductOfFamily( LicenseProduct product )
-        => product switch
-        {
-            LicenseProduct.MetalamaCommunity => true,
-            LicenseProduct.MetalamaProfessional => true,
-            LicenseProduct.MetalamaEnterprise => true,
-            LicenseProduct.PostSharpFramework => true,
-            LicenseProduct.PostSharpUltimate => true,
-
-            // No longer issued but existing keys are fully supported.
-            LicenseProduct.MetalamaUltimate => true,
-            LicenseProduct.MetalamaStarter => true,
-            LicenseProduct.MetalamaFree => true,
-            _ => false
-        };
+    public abstract bool IsProductOfFamily( LicenseProduct product );
 
     /// <inheritdoc />
-    public bool IsFreeProduct( LicenseProduct product ) => product is LicenseProduct.MetalamaCommunity or LicenseProduct.MetalamaFree;
+    public abstract bool IsFreeProduct( LicenseProduct product );
 
     /// <inheritdoc />
-    /// <remarks>
-    /// Metalama Community was introduced in Metalama 2025.1, so its keys are stored where earlier versions do not read.
-    /// </remarks>
-    public bool RequiresVersionSpecificRegistration( LicenseProduct product ) => product is LicenseProduct.MetalamaCommunity;
+    public abstract bool RequiresVersionSpecificRegistration( LicenseProduct product );
 
     /// <inheritdoc />
-    /// <remarks>
-    /// Metalama Community and Metalama Free co-exist for backward compatibility: a version that supports only one of
-    /// them keeps consuming its own key.
-    /// </remarks>
-    public ImmutableArray<LicenseProduct> GetProductsCoexistingWith( LicenseProduct product )
-        => product switch
-        {
-            LicenseProduct.MetalamaCommunity => ImmutableArray.Create( LicenseProduct.MetalamaFree ),
-            LicenseProduct.MetalamaFree => ImmutableArray.Create( LicenseProduct.MetalamaCommunity ),
-            _ => ImmutableArray<LicenseProduct>.Empty
-        };
+    public abstract ImmutableArray<LicenseProduct> GetProductsCoexistingWith( LicenseProduct product );
 
     /// <inheritdoc />
-    public string PremiumEditionDisplayName => "Metalama Professional";
+    public abstract string PremiumEditionDisplayName { get; }
 
     /// <inheritdoc />
-    public LicenseProduct EvaluationProduct => LicenseProduct.MetalamaProfessional;
+    public abstract LicenseProduct EvaluationProduct { get; }
 
     /// <inheritdoc />
-    public LicenseProduct? CommunityProduct => LicenseProduct.MetalamaCommunity;
+    public abstract LicenseProduct? CommunityProduct { get; }
 
     /// <inheritdoc />
-    public LicenseProduct? LegacyFreeProduct => LicenseProduct.MetalamaFree;
+    public abstract LicenseProduct? LegacyFreeProduct { get; }
 
 #pragma warning restore CS0618
 }

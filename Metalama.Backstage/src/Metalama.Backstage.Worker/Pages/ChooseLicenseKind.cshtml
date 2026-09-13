@@ -1,7 +1,9 @@
 @page
+@using Metalama.Backstage.Licensing
 @using Metalama.Backstage.Licensing.Registration
 @model ChooseLicenseKindPageModel
 @inject ILicenseRegistrationService LicenseRegistrationService
+@inject ILicenseProductCatalog Catalog
 
 <script>
     function submitForm(buttonValue) {
@@ -14,6 +16,9 @@
     <input type="hidden" id="action" name="action" value=""/>
 
     <div class="arrow-buttons">
+        @* TODO: The open source option is specific to Metalama: PostSharp has no such edition. The licensing options of a
+           product family need an abstraction that decides which choices are offered here and which commands the
+           command line offers. See #2018. *@
         <div onclick="submitForm('UseOpenSource')">
             <h4>Stay with @Profile.Name Open Source</h4>
             <p>
@@ -26,11 +31,11 @@
         @if (LicenseRegistrationService.CanRegisterTrialEdition)
         {
             <div onclick="submitForm('StartTrial')">
-                <h4>Start a 45-day Trial of @Profile.Name Professional</h4>
-                <p>Discover the full capabilities of @Profile.Name Professional.</p>
+                <h4>Start a 45-day Trial of @Catalog.GetDisplayName(Catalog.EvaluationProduct)</h4>
+                <p>Discover the full capabilities of @Catalog.GetDisplayName(Catalog.EvaluationProduct).</p>
                 <p>
                     For teams with extended procurement processes, request a
-                    <a href="@Model.WebLinks.GetTeamTeamTrial" target="_blank" onclick="event.stopPropagation()">
+                    <a href="@Model.WebLinks.GetTeamTrial" target="_blank" onclick="event.stopPropagation()">
                         60-day
                         renewable team evaluation key
                     </a>

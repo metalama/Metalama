@@ -13,7 +13,6 @@
 
     <ItemGroup>
         <ProjectReference Include="..\Metalama.Backstage.Core\Metalama.Backstage.Core.csproj" />
-        <ProjectReference Include="..\Metalama.Backstage.Configuration\Metalama.Backstage.Configuration.csproj" />
     </ItemGroup>
 
     <ItemGroup>
@@ -34,7 +33,6 @@
         <!-- The Backstage packages form one family and share their internal types; the test projects need them too. -->
         <InternalsVisibleTo Include="Metalama.Backstage" />
         <InternalsVisibleTo Include="Metalama.Backstage.Core" />
-        <InternalsVisibleTo Include="Metalama.Backstage.Configuration" />
         <InternalsVisibleTo Include="Metalama.Backstage.Licensing" />
         <InternalsVisibleTo Include="Metalama.Backstage.UserInterface" />
         <InternalsVisibleTo Include="Metalama.Backstage.Tests" />

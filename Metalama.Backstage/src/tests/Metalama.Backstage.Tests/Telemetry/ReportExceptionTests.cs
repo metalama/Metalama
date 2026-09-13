@@ -434,7 +434,7 @@ public sealed class ReportExceptionTests : TestsBase
     [Fact]
     public void ExceptionsAreNotReportedWhenOptOutEnvironmentVariableIsSet()
     {
-        this.EnvironmentVariableProvider.Environment[TelemetryConfiguration.OptOutEnvironmentVariableName] = "true";
+        this.EnvironmentVariableProvider.Environment[MetalamaProduct.Profile.GetEnvironmentVariableName( TelemetryConfiguration.OptOutEnvironmentVariable )] = "true";
         this.AssertReportingDisabled();
     }
 

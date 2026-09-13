@@ -23,7 +23,7 @@ namespace Metalama.Backstage.Extensibility;
 internal sealed class EventDispatcher : IEventDispatcher, IDisposable
 {
     private readonly ConcurrentQueue<object> _queue = new();
-    private readonly ConcurrentDictionary<Type, ImmutableList<Subscription>> _subscriptions = new();
+    private readonly ConcurrentDictionary<Type, ImmutableArray<Subscription>> _subscriptions = new();
     private readonly object _consumerLock = new();
     private readonly ILogger _logger;
     private readonly IEventDispatcherObserver? _observer;
@@ -43,7 +43,7 @@ internal sealed class EventDispatcher : IEventDispatcher, IDisposable
 
     /// <inheritdoc />
     public void Publish<TEvent>( TEvent @event )
-        where TEvent : class
+        where TEvent : class, IDispatcherEvent
     {
         if ( @event == null )
         {
@@ -67,13 +67,13 @@ internal sealed class EventDispatcher : IEventDispatcher, IDisposable
 
     /// <inheritdoc />
     public IDisposable Subscribe<TEvent>( Action<TEvent> handler )
-        where TEvent : class
+        where TEvent : class, IDispatcherEvent
     {
         var subscription = new Subscription( typeof(TEvent), e => handler( (TEvent) e ), this );
 
         this._subscriptions.AddOrUpdate(
             typeof(TEvent),
-            _ => ImmutableList.Create( subscription ),
+            _ => ImmutableArray.Create( subscription ),
             ( _, list ) => list.Add( subscription ) );
 
         return subscription;
@@ -152,7 +152,7 @@ internal sealed class EventDispatcher : IEventDispatcher, IDisposable
 
     private void Deliver( object @event )
     {
-        if ( !this._subscriptions.TryGetValue( @event.GetType(), out var subscriptions ) || subscriptions.IsEmpty )
+        if ( !this._subscriptions.TryGetValue( @event.GetType(), out var subscriptions ) || subscriptions.IsDefaultOrEmpty )
         {
             this._logger.Warning?.Log( $"The event '{@event}' was published but nothing has subscribed to '{@event.GetType().Name}'." );
             this._observer?.OnEventUnhandled( @event );

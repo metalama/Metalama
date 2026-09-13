@@ -17,17 +17,19 @@ namespace Metalama.Backstage.Telemetry;
 public sealed record TelemetryConfiguration : ConfigurationFile
 {
     /// <summary>
-    /// The name of the environment variable that opts the whole machine out of telemetry, regardless of the per-category
-    /// configuration. A non-empty value other than <c>false</c>/<c>0</c> disables telemetry at the process level.
+    /// The name of the environment variable that opts the whole machine out of telemetry for the Metalama product
+    /// family. Every product family has its own variable: see <see cref="OptOutEnvironmentVariable"/>.
     /// </summary>
+    [Obsolete( "Use ProductProfile.GetEnvironmentVariableName( TelemetryConfiguration.OptOutEnvironmentVariable )." )]
     public const string OptOutEnvironmentVariableName = "METALAMA_TELEMETRY_OPT_OUT";
 
     /// <summary>
-    /// The suffix of the environment variable that opts the whole machine out of telemetry. The full name is the
-    /// suffix prefixed by the environment variable prefix of the product profile, for instance
+    /// The name, without the prefix of the product, of the environment variable that opts the whole machine out of
+    /// telemetry, regardless of the per-category configuration. A non-empty value other than <c>false</c>/<c>0</c>
+    /// disables telemetry at the process level. The full name is obtained from the product profile, for instance
     /// <c>METALAMA_TELEMETRY_OPT_OUT</c>.
     /// </summary>
-    public const string OptOutEnvironmentVariableSuffix = "TELEMETRY_OPT_OUT";
+    public const string OptOutEnvironmentVariable = "TELEMETRY_OPT_OUT";
 
     [JsonPropertyName( "ExceptionReportingAction" )]
     public TelemetryConsent ExceptionConsent { get; init; } = TelemetryConsent.Default;

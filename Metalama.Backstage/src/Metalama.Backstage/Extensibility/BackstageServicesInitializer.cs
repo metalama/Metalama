@@ -19,6 +19,7 @@ internal sealed class BackstageServicesInitializer : IBackstageService
     private readonly IProfilingService? _profilingService;
     private readonly ITelemetryConfigurationService? _telemetryConfigurationService;
     private readonly ShutdownService? _shutdownService;
+    private bool _isInitialized;
 
     public BackstageServicesInitializer( IServiceProvider serviceProvider, BackstageInitializationOptions options )
     {
@@ -30,8 +31,20 @@ internal sealed class BackstageServicesInitializer : IBackstageService
         this._telemetryConfigurationService = serviceProvider.GetBackstageService<ITelemetryConfigurationService>();
     }
 
+    /// <summary>
+    /// Initializes the services that need it, in the order of their dependencies. It is called once, after the
+    /// service provider is built.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">The method has already been called.</exception>
     public void Initialize()
     {
+        if ( this._isInitialized )
+        {
+            throw new InvalidOperationException( "The Backstage services have already been initialized." );
+        }
+
+        this._isInitialized = true;
+
         // Before anything is enqueued, so that a background task that fails is reported instead of vanishing. See #1765.
         this._backgroundTasksService.SetLogger( this._serviceProvider.GetLoggerFactory().GetLogger( "BackgroundTasks" ) );
 
@@ -39,10 +52,10 @@ internal sealed class BackstageServicesInitializer : IBackstageService
         this._telemetryConfigurationService?.Initialize();
         this._shutdownService?.Initialize();
 
-        // The subscribers of the event dispatcher are created eagerly, because a service that nobody resolves is never
-        // created and would therefore never subscribe.
-        _ = this._serviceProvider.GetBackstageService<UserInterfaceEventSubscriber>();
-        _ = this._serviceProvider.GetBackstageService<IRssClient>();
+        // The subscribers of the event dispatcher subscribe when they are initialized, because a service that nobody
+        // resolves is never created and would therefore never subscribe by itself.
+        this._serviceProvider.GetBackstageService<UserInterfaceEventSubscriber>()?.Initialize();
+        (this._serviceProvider.GetBackstageService<IRssClient>() as RssClient)?.Initialize();
 
         // The license manager may enqueue a file but be unable to start the process.
         var telemetryUploader = this._serviceProvider.GetBackstageService<ITelemetryUploader>();

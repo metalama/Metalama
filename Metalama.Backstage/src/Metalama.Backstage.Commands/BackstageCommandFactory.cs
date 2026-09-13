@@ -49,6 +49,10 @@ public static class BackstageCommandFactory
                             .WithData( options )
                             .WithDescription( $"Activates the {productName} trial period." );
 
+                        // TODO: The "community" and "free" commands, like the setup page that offers the open source option, are
+                        // specific to the Metalama editions: PostSharp has no community edition. The licensing options of a
+                        // product family need an abstraction that decides which commands and which setup choices are offered.
+                        // See #2018.
                         license.AddCommand<RegisterCommunityCommand>( "community" )
                             .WithData( options )
                             .WithDescription( $"Switches to the {productName} Community edition." );

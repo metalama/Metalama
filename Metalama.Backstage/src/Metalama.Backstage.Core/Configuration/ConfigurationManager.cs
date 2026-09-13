@@ -55,7 +55,7 @@ namespace Metalama.Backstage.Configuration
     /// This is accepted by default, because the remedy is to acquire the lock of the previous generation in
     /// addition to the per-file one, which reintroduces for every write the directory-wide serialization that this
     /// class exists to remove. The remedy is available on demand: setting the
-    /// <see cref="LegacyLockEnvironmentVariableName"/> environment variable to <c>true</c> makes every update take
+    /// <c>LEGACY_CONFIGURATION_LOCK</c> environment variable of the product to <c>true</c> makes every update take
     /// that lock as well, which restores mutual exclusion with the older versions at that cost. A machine running
     /// two generations of Metalama against one data directory is the case to consider first when a configuration
     /// file is reported as having reverted to its default content, and that variable is the first thing to try.
@@ -92,29 +92,25 @@ namespace Metalama.Backstage.Configuration
         private static int _nextInstanceId;
 
         /// <summary>
-        /// The name of the environment variable that makes an update additionally acquire the lock that the
-        /// versions of Metalama preceding this class use, so that the two generations exclude each other.
+        /// The name, without the prefix of the product, of the environment variable that makes an update additionally
+        /// acquire the lock that the versions of the product preceding this class use, so that the two generations
+        /// exclude each other. The variable is read only when <see cref="ProductProfile.HasLegacyConfigurationLock"/>
+        /// is <c>true</c>.
         /// </summary>
         /// <remarks>
         /// It is off by default because it reintroduces, for writes, the directory-wide serialization that this
         /// class exists to remove: every update of every configuration file waits for every other. It exists so
-        /// that a machine on which two generations of Metalama share a data directory, and on which the settings
+        /// that a machine on which two generations of the product share a data directory, and on which the settings
         /// of the older one are being lost, can be repaired without a new build. See the remarks of
         /// <see cref="ConfigurationManager"/> for what is lost when it is off.
         /// </remarks>
-        public const string LegacyLockEnvironmentVariableName = "METALAMA_LEGACY_CONFIGURATION_LOCK";
-
-        /// <summary>
-        /// The suffix of <see cref="LegacyLockEnvironmentVariableName"/>. The full name is obtained from the
-        /// <see cref="ProductProfile"/>, so that every product family has its own variable.
-        /// </summary>
-        internal const string LegacyLockEnvironmentVariableSuffix = "LEGACY_CONFIGURATION_LOCK";
+        internal const string LegacyLockEnvironmentVariable = "LEGACY_CONFIGURATION_LOCK";
 
         private readonly ProductProfile _productProfile;
 
         /// <summary>
-        /// Whether <see cref="LegacyLockEnvironmentVariableName"/> is set, read once because an environment
-        /// variable does not change during the lifetime of a process.
+        /// Whether the product has a legacy lock and its environment variable is set, read once because an
+        /// environment variable does not change during the lifetime of a process.
         /// </summary>
         private readonly bool _useLegacyDirectoryLock;
 
@@ -179,8 +175,10 @@ namespace Metalama.Backstage.Configuration
             // cannot derive from IBackstageService.
             this._testSynchronizationProvider = (ITestSynchronizationProvider?) serviceProvider.GetService( typeof(ITestSynchronizationProvider) );
 
-            this._useLegacyDirectoryLock = IsEnabled(
-                this._environmentVariableProvider.GetEnvironmentVariable( this._productProfile.GetEnvironmentVariableName( LegacyLockEnvironmentVariableSuffix ) ) );
+            this._useLegacyDirectoryLock = this._productProfile.HasLegacyConfigurationLock
+                                           && IsEnabled(
+                                               this._environmentVariableProvider.GetEnvironmentVariable(
+                                                   this._productProfile.GetEnvironmentVariableName( LegacyLockEnvironmentVariable ) ) );
 
             this.InstanceContext = string.Format( CultureInfo.InvariantCulture, "instance-{0}", Interlocked.Increment( ref _nextInstanceId ) );
 
@@ -406,9 +404,9 @@ namespace Metalama.Backstage.Configuration
                             ?? throw new InvalidOperationException(
                                 $"'{nameof(ConfigurationFileAttribute)}' custom attribute not found for '{type.FullName}' type." );
 
-            return attribute.EnvironmentVariableSuffix != null
-                ? this._productProfile.GetEnvironmentVariableName( attribute.EnvironmentVariableSuffix )
-                : attribute.EnvironmentVariableName;
+            return attribute.EnvironmentVariableName != null
+                ? this._productProfile.GetEnvironmentVariableName( attribute.EnvironmentVariableName )
+                : null;
         }
 
         /// <summary>

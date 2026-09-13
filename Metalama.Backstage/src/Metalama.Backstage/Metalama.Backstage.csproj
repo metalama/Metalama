@@ -19,7 +19,6 @@
 
     <ItemGroup>
         <ProjectReference Include="..\Metalama.Backstage.Core\Metalama.Backstage.Core.csproj" />
-        <ProjectReference Include="..\Metalama.Backstage.Configuration\Metalama.Backstage.Configuration.csproj" />
         <ProjectReference Include="..\Metalama.Backstage.Telemetry\Metalama.Backstage.Telemetry.csproj" />
         <ProjectReference Include="..\Metalama.Backstage.Licensing\Metalama.Backstage.Licensing.csproj" />
         <ProjectReference Include="..\Metalama.Backstage.UserInterface\Metalama.Backstage.UserInterface.csproj" />
@@ -47,7 +46,6 @@
     <ItemGroup>
         <!-- The Backstage packages form one family and share their internal types; the test projects need them too. -->
         <InternalsVisibleTo Include="Metalama.Backstage.Core" />
-        <InternalsVisibleTo Include="Metalama.Backstage.Configuration" />
         <InternalsVisibleTo Include="Metalama.Backstage.Telemetry" />
         <InternalsVisibleTo Include="Metalama.Backstage.Licensing" />
         <InternalsVisibleTo Include="Metalama.Backstage.UserInterface" />
