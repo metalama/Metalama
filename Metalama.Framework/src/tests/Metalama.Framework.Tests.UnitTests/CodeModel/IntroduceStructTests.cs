@@ -109,6 +109,44 @@ public sealed class IntroduceStructTests : UnitTestClass
     }
 
     /// <summary>
+    /// Verifies that an introduced type that carries no nullable annotation still carries none after a round trip
+    /// through its reference, which is how the type reaches another compilation.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <see cref="Metalama.Framework.Code.IType.StripNullabilityAnnotation"/> produces the state in which the type
+    /// is neither annotated nor explicitly non-annotated, which the code model reports as <c>null</c>. The reference
+    /// carries the three states and not the two of a boolean, because a type that came back explicitly
+    /// non-nullable would report a nullability that the aspect did not ask for.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void TypeWithoutNullableAnnotationKeepsItThroughItsReference()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var compilation = testContext.CreateCompilationModel( "" ).CreateMutableClone();
+
+        var builder = new NamedTypeBuilder( null!, compilation.GlobalNamespace, "IntroducedClass", TypeKind.Class );
+        builder.Freeze();
+        compilation.AddTransformation( builder.CreateTransformation() );
+
+        var introducedType = compilation.Types.OfName( "IntroducedClass" ).Single();
+
+        // The three states, each of which has to survive the round trip.
+        foreach ( var type in new[] { introducedType.StripNullabilityAnnotation(), introducedType.ToNullable(), introducedType.ToNonNullable() } )
+        {
+            var roundTripped = (INamedType) type.ToRef().GetTarget( compilation );
+
+            Assert.Equal( type.IsNullable, roundTripped.IsNullable );
+        }
+
+        Assert.Null( introducedType.StripNullabilityAnnotation().IsNullable );
+        Assert.True( introducedType.ToNullable().IsNullable );
+        Assert.False( introducedType.ToNonNullable().IsNullable );
+    }
+
+    /// <summary>
     /// Verifies that <see cref="Metalama.Framework.Code.DeclarationBuilders.INamedTypeBuilder.IsReadOnly"/> and
     /// <see cref="Metalama.Framework.Code.DeclarationBuilders.INamedTypeBuilder.IsRef"/> are accepted on a struct and
     /// refused on every other kind, which is the rule of the language.
