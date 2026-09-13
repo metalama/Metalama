@@ -45,19 +45,40 @@ internal sealed partial class SyntaxRef<T> : FullRef<T>
 
     public override SyntaxTree PrimarySyntaxTree => this._syntaxNode.SyntaxTree;
 
-    [Memo]
-    private ISymbol Symbol => this.GetSymbol();
+    /// <summary>
+    /// Gets a value indicating whether the semantic model binds the syntax node of the current reference, and therefore
+    /// whether the reference has a symbol.
+    /// </summary>
+    /// <remarks>
+    /// The property is declared on <see cref="SyntaxRef{T}"/> and not on <see cref="FullRef{T}"/>, because this kind
+    /// of reference is the only one for which the question has a dynamic answer. A reference built from a symbol always
+    /// has one, and a reference to an introduced declaration or to a constructed type is not a reference to a symbol at
+    /// all, so neither supports the operations that require one.
+    /// </remarks>
+    public bool HasSymbol => this.SymbolOrNull != null;
 
-    private ISymbol GetSymbol()
+    private ISymbol Symbol
+        => this.SymbolOrNull ?? throw new AssertionFailedException( $"Cannot get a symbol for {this._syntaxNode.GetType().Name}." );
+
+    /// <summary>
+    /// Gets the symbol of the syntax node, or <c>null</c> if the semantic model does not bind the node.
+    /// </summary>
+    /// <remarks>
+    /// Invalid code can contain a declaration that the parser accepts but the semantic model does not bind, for
+    /// instance a duplicate <c>get</c> accessor. A reference to such a declaration has no symbol.
+    /// </remarks>
+    [Memo]
+    private ISymbol? SymbolOrNull => this.GetSymbolOrNull();
+
+    private ISymbol? GetSymbolOrNull()
     {
         var semanticModel =
             this.CompilationContext.SemanticModelProvider.GetSemanticModel( this._syntaxNode.SyntaxTree )
             ?? throw new AssertionFailedException( $"Cannot get a semantic model for '{this._syntaxNode.SyntaxTree.FilePath}'." );
 
-        return (this._syntaxNode.SyntaxKind.IsLambdaExpression && this._syntaxNode is LambdaExpressionSyntax
-                   ? semanticModel.GetSymbolInfo( this._syntaxNode ).Symbol
-                   : semanticModel.GetDeclaredSymbol( this._syntaxNode ))
-               ?? throw new AssertionFailedException( $"Cannot get a symbol for {this._syntaxNode.GetType().Name}." );
+        return this._syntaxNode.SyntaxKind.IsLambdaExpression && this._syntaxNode is LambdaExpressionSyntax
+            ? semanticModel.GetSymbolInfo( this._syntaxNode ).Symbol
+            : semanticModel.GetDeclaredSymbol( this._syntaxNode );
     }
 
     protected override ICompilationElement? Resolve(
