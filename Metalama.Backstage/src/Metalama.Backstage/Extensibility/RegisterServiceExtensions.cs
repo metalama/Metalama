@@ -15,8 +15,8 @@ namespace Metalama.Backstage.Extensibility;
 
 /// <summary>
 /// Extension methods for setting up the Backstage services in a <see cref="ServiceProviderBuilder" />. This is the
-/// umbrella over the registration methods of the packages: <see cref="RegisterCoreServices.AddCoreServices"/> and
-/// <see cref="RegisterConfigurationServices.AddConfigurationServices"/> of the core package,
+/// umbrella over the registration methods of the core package: <see cref="RegisterCoreServices.AddCoreServices"/>,
+/// <see cref="RegisterConfigurationServices.AddConfigurationServices"/>,
 /// <see cref="RegisterTelemetryServices.AddTelemetryServices"/>, <see cref="RegisterLicensingServices.AddLicensingServices"/>
 /// and <see cref="RegisterUserInterfaceServices.AddUserInterfaceServices"/>.
 /// </summary>

@@ -7,6 +7,7 @@ using Metalama.Backstage.Configuration;
 using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Infrastructure;
+using Metalama.Backstage.Telemetry;
 using Metalama.Backstage.Threading;
 using Metalama.Backstage.Utilities;
 using System;
@@ -31,13 +32,6 @@ public sealed class TempFileManager : ITempFileManager
     private readonly BackstageBackgroundTasksService _backgroundTasksService;
     private readonly string _applicationVersion;
     private readonly string _backstageVersion;
-    private readonly ITelemetryRetentionPolicy? _telemetryRetentionPolicy;
-
-    /// <summary>
-    /// The retention period of the telemetry directories when no <see cref="ITelemetryRetentionPolicy"/> is
-    /// registered.
-    /// </summary>
-    internal const int DefaultTelemetryRetentionPeriodInDays = 30;
 
     public TempFileManager( IServiceProvider serviceProvider )
     {
@@ -49,7 +43,6 @@ public sealed class TempFileManager : ITempFileManager
         this._standardDirectories = serviceProvider.GetRequiredBackstageService<IStandardDirectories>();
         this._backgroundTasksService = serviceProvider.GetRequiredBackstageService<BackstageBackgroundTasksService>();
         this._lockService = serviceProvider.GetRequiredBackstageService<INamedLockService>();
-        this._telemetryRetentionPolicy = serviceProvider.GetBackstageService<ITelemetryRetentionPolicy>();
 
         var application = serviceProvider.GetRequiredBackstageService<IApplicationInfoProvider>().CurrentApplication;
 
@@ -449,14 +442,15 @@ public sealed class TempFileManager : ITempFileManager
     }
 
     /// <summary>
-    /// Enforces the telemetry data retention policy, reading the retention period live from the registered
-    /// <see cref="ITelemetryRetentionPolicy"/>, so that a change of the configuration takes effect on the next sweep.
+    /// Enforces the telemetry data retention policy, reading the retention period live from <c>telemetry.json</c>,
+    /// so that a change of <see cref="TelemetryConfiguration.RetentionPeriodInDays"/> takes effect on the next sweep.
     /// </summary>
     private void CleanTelemetryDirectories()
     {
-        var retention = this._telemetryRetentionPolicy?.RetentionPeriod ?? TimeSpan.FromDays( DefaultTelemetryRetentionPeriodInDays );
+        var retentionInDays = this._configurationManager.Get<TelemetryConfiguration>().RetentionPeriodInDays
+                              ?? TelemetryConfiguration.DefaultRetentionPeriodInDays;
 
-        this.CleanTelemetryDirectories( retention < TimeSpan.Zero ? TimeSpan.Zero : retention );
+        this.CleanTelemetryDirectories( TimeSpan.FromDays( Math.Max( 0, retentionInDays ) ) );
     }
 
     /// <summary>

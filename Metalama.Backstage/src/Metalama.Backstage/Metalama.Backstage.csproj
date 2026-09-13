@@ -9,9 +9,8 @@
         <MetalamaBackstageDirectory Condition="'$(MetalamaBackstageDirectory)'==''">$(MSBuildProjectDirectory)</MetalamaBackstageDirectory>
     </PropertyGroup>
 
-    <!-- This project is the compatibility facade over the Backstage packages: it composes them for the Metalama
-         product family, keeps the umbrella initialization API, and forwards every public type that moved to a
-         package, so that a consumer compiled against an earlier version keeps binding. -->
+    <!-- This project is the Metalama composition of the Backstage services: it holds the Metalama-specific values and
+         implementations and the umbrella initialization API over Metalama.Backstage.Core. -->
 
     <ItemGroup>
         <None Include="README.md" Pack="true" PackagePath="\" />
@@ -19,9 +18,6 @@
 
     <ItemGroup>
         <ProjectReference Include="..\Metalama.Backstage.Core\Metalama.Backstage.Core.csproj" />
-        <ProjectReference Include="..\Metalama.Backstage.Telemetry\Metalama.Backstage.Telemetry.csproj" />
-        <ProjectReference Include="..\Metalama.Backstage.Licensing\Metalama.Backstage.Licensing.csproj" />
-        <ProjectReference Include="..\Metalama.Backstage.UserInterface\Metalama.Backstage.UserInterface.csproj" />
     </ItemGroup>
 
     <ItemGroup>
@@ -46,9 +42,6 @@
     <ItemGroup>
         <!-- The Backstage packages form one family and share their internal types; the test projects need them too. -->
         <InternalsVisibleTo Include="Metalama.Backstage.Core" />
-        <InternalsVisibleTo Include="Metalama.Backstage.Telemetry" />
-        <InternalsVisibleTo Include="Metalama.Backstage.Licensing" />
-        <InternalsVisibleTo Include="Metalama.Backstage.UserInterface" />
         <InternalsVisibleTo Include="Metalama.Backstage.Tests" />
         <InternalsVisibleTo Include="Metalama.Backstage.Testing" />
     </ItemGroup>

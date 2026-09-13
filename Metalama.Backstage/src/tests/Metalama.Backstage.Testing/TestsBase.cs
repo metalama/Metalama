@@ -300,7 +300,6 @@ namespace Metalama.Backstage.Testing
                         DetectToastNotifications = options.DetectToastNotifications,
                         AddRssClient = options.AddRssClient
                     } )
-                .AddSingleton<ITelemetryRetentionPolicy>( serviceProvider => new TelemetryRetentionPolicy( serviceProvider ) )
                 .AddSingleton<IDateTimeProvider>( this.Time )
                 .AddSingleton<IProcessExecutor>( this.ProcessExecutor )
                 .AddSingleton<IRuntimeInformation>( _ => new TestRuntimeInformation() )

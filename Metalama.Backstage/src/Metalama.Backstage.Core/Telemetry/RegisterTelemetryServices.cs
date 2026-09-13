@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Backstage.Extensibility;
-using Metalama.Backstage.Maintenance;
 using Metalama.Backstage.Repositories;
 
 namespace Metalama.Backstage.Telemetry;
@@ -20,7 +19,6 @@ public static class RegisterTelemetryServices
     public static ServiceProviderBuilder AddTelemetryServices( this ServiceProviderBuilder serviceProviderBuilder, TelemetryInitializationOptions options )
         => serviceProviderBuilder
             .AddSingleton( options )
-            .AddSingleton<ITelemetryRetentionPolicy>( serviceProvider => new TelemetryRetentionPolicy( serviceProvider ) )
             .AddSingleton<IRepositoryConfigurationService>( serviceProvider => new RepositoryConfigurationService( serviceProvider ) )
             .AddSingleton( serviceProvider => new TelemetryLogger( serviceProvider ) )
             .AddSingleton<LocalExceptionReporter>( serviceProvider => new LocalExceptionReporter( serviceProvider ) )

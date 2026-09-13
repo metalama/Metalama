@@ -2,7 +2,7 @@
 
     <PropertyGroup>
         <TargetFrameworks>netframework4.7.2;net10.0;netstandard2.0</TargetFrameworks>
-        <PackageDescription>The core infrastructure services of Metalama.Backstage: dependency injection, diagnostics, file system, named locks, temporary files and the configuration manager. This package should only be installed as a dependency.</PackageDescription>
+        <PackageDescription>The product-independent services of Metalama.Backstage: dependency injection, diagnostics, configuration, telemetry, licensing and user interface. This package should only be installed as a dependency.</PackageDescription>
         <RootNamespace>Metalama.Backstage</RootNamespace>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
@@ -42,11 +42,8 @@
     </ItemGroup>
 
     <ItemGroup>
-        <!-- The Backstage packages form one family and share their internal types; the test projects need them too. -->
+        <!-- The Metalama composition and the test projects need the internal types. -->
         <InternalsVisibleTo Include="Metalama.Backstage" />
-        <InternalsVisibleTo Include="Metalama.Backstage.Telemetry" />
-        <InternalsVisibleTo Include="Metalama.Backstage.Licensing" />
-        <InternalsVisibleTo Include="Metalama.Backstage.UserInterface" />
         <InternalsVisibleTo Include="Metalama.Backstage.Tests" />
         <InternalsVisibleTo Include="Metalama.Backstage.Testing" />
     </ItemGroup>
