@@ -17,9 +17,14 @@ namespace Metalama.Framework.Engine.Advising;
 /// <remarks>
 /// <para>
 /// An initializer that runs before an instance constructor, and an override of the constructor itself, both replace
-/// the primary constructor of a record by an explicit one. The linker performs that replacement by rewriting the
-/// declaration of the record as it is written in source, and a record that an aspect introduces has no such
-/// declaration, so the advice is refused with a diagnostic rather than left to fail inside the linker.
+/// the primary constructor of a record with an explicit one. The linker performs that replacement for a record read
+/// from source, as the aspect test <c>Initialization/BeforeInstanceConstructor_Record_Primary</c> shows, and the
+/// obstacle for an introduced record is one step of it:
+/// <c>LinkerInjectionStep.AuxiliaryMemberFactory.GetAuxiliarySourceConstructor</c> reads the positional parameter
+/// list from the declaring syntax of the constructor, and the declaration of an introduced record is produced by the
+/// same injection step rather than read from source, so that syntax carries no parameter list. The advice is refused
+/// with a diagnostic rather than left to fail there with an assertion. Serving it would mean taking the parameter
+/// list from the builder data instead, which is issue #2020.
 /// </para>
 /// </remarks>
 internal static class IntroducedPrimaryConstructorValidator

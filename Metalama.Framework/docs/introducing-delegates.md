@@ -4,7 +4,7 @@ This document describes the introduction of a delegate, which is issue
 [#865](https://github.com/metalama/Metalama/issues/865), and which is implemented.
 
 The cross-cutting decisions are in [`introducing-types.md`](introducing-types.md), which this document does not
-repeat. A delegate declaration is a method signature with the `delegate` keyword in front of it, so
+repeat. A delegate declaration is a method signature preceded by the `delegate` keyword, so
 `IDelegateBuilder` declares the members of a signature. It derives from `IMemberOrNamedTypeBuilder` and not from
 `IMethodBuilder`, for the reason that section 6.1 gives.
 
@@ -102,7 +102,7 @@ namespace Metalama.Framework.Code.DeclarationBuilders;
 /// <remarks>
 /// <para>
 /// This interface derives from <see cref="IMemberOrNamedTypeBuilder"/> and declares the members of a signature
-/// itself. A delegate declaration is a method signature with the <c>delegate</c> keyword in front of it, so the
+/// itself. A delegate declaration is a method signature preceded by the <c>delegate</c> keyword, so the
 /// return type, the return parameter and the parameters describe the <c>Invoke</c> method that the compiler
 /// synthesizes, while the name, the accessibility, the custom attributes and the type parameters describe the
 /// delegate type.
@@ -147,11 +147,11 @@ public interface IDelegateBuilder : IMemberOrNamedTypeBuilder
 ```
 
 The seven members above are the whole surface. The engine class `DelegateBuilder` derives from `NamedTypeBuilder`,
-because the compilation model requires an `INamedTypeImpl`, and owns an internal `MethodBuilder` named `Invoke` in
-the way `ExtensionBlockBuilder` owns its receiver parameter builder: created in the constructor, frozen in
-`FreezeChildren`, and registered as its own transformation. `ReturnType`, `ReturnParameter`, `Parameters` and the
-two `AddParameter` overloads forward to it, so no logic is duplicated. `AddTypeParameter` and `TypeParameters` go
-to the type, which is where the language places them.
+because the compilation model requires an `INamedTypeImpl`, and owns an internal `MethodBuilder` named `Invoke` in the
+way `ExtensionBlockBuilder` owns its receiver parameter builder: created in the constructor, frozen in
+`FreezeChildren`, and registered as its own transformation. `ReturnType`, `ReturnParameter`, `Parameters` and the two
+`AddParameter` overloads forward to it, so no logic is duplicated. `AddTypeParameter` and `TypeParameters` are
+declared on the type, which is where the language places them.
 
 ### 3.2. The advice method
 
@@ -241,7 +241,7 @@ answers without allocating and does not throw.
 That no object reachable during construction is usable as a finished type bounds the risk of the exception. Section
 5.1 lists `EventBuilder.Signature` and the eligibility rule of `AdviceKind.OverrideEventInvoke` as the readers that
 take the type of an event from the aspect. A delegate builder cannot be given as the type of an event, because it
-is not an `IType` at all. Neither reader meets a builder in the course an aspect actually takes.
+is not an `IType` at all. Neither reader receives a builder on the path that an aspect takes.
 
 The introduced type reports an `IDelegateFacet`.
 
@@ -290,8 +290,8 @@ same parameters.
 ### 6.1. The builder declares the signature and does not derive from `IMethodBuilder`
 
 An earlier revision of this document specified `IDelegateBuilder : IMethodBuilder`, with the inherited `Name`
-carrying the name of the delegate. That shape cannot be implemented, and the obstacle is specific rather than
-aesthetic.
+carrying the name of the delegate. That shape cannot be implemented. The obstacle is the name under which the
+facet resolves the method, which the next paragraph states.
 
 `DelegateFacet` resolves the `Invoke` method by the literal name `Invoke`, through
 `this.Type.Methods.OfName( "Invoke" ).Single()`, and that literal is the point of issue
@@ -306,7 +306,7 @@ Keeping the base and naming the method `Invoke` would mean that `IDelegateBuilde
 than the name of the delegate, so an author could not rename the delegate and the property would contradict every
 other builder in the namespace.
 
-The shape that ships keeps the ergonomics and drops the contradiction. `IDelegateBuilder` derives from
+The shape that is implemented keeps the same operations and removes the contradiction. `IDelegateBuilder` derives from
 `IMemberOrNamedTypeBuilder` and declares the five signature members itself; the engine class owns a `MethodBuilder`
 named `Invoke` and forwards to it. The five declarations are the whole cost, `Name` is the name of the delegate
 with no conflict, and `DelegateFacet` resolves the method under the name the language gives it.
@@ -327,8 +327,8 @@ never disagree, because the `Invoke` method has exactly one possible name, acces
 language names it `Invoke`, makes it public, gives it no attribute and forbids it to be generic.
 
 The cost of the shape is that five members are declared on `IDelegateBuilder` that `IMethodBuilder` also declares.
-That is accepted. It buys an interface whose every member is valid, which is what distinguishes it from the two
-alternatives: a builder deriving from `IMethodBuilder` inherits `IsVirtual`, `IsExtern`, `IsReadOnly`,
+That is accepted, because it gives an interface whose every member is valid. That is what distinguishes it from
+the two alternatives: a builder deriving from `IMethodBuilder` inherits `IsVirtual`, `IsExtern`, `IsReadOnly`,
 `OperatorKind`, `DeclarationKind`, `Definition`, `ToRef`, the conversion to a reflection object and the invoker,
 none of which describes a delegate, and a builder exposing an `InvokeMethod` property carries a second object whose
 name, accessibility and modifiers are all invalid.

@@ -29,7 +29,8 @@ namespace Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 /// <remarks>
 /// <para>
 /// The class is not sealed, because <c>EnumMemberBuilder</c> derives from it: a member of an enum is a constant
-/// field whose type is the enum, so it reuses the whole of this builder and fixes what the language fixes.
+/// field whose type is the enum, so it reuses the whole of this builder and assigns the values that the language
+/// imposes.
 /// </para>
 /// </remarks>
 internal class FieldBuilder : MemberBuilder, IFieldBuilder, IFieldImpl

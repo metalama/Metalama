@@ -38,7 +38,7 @@ internal sealed class AddAttributeAdvice : Advice<AddAttributeAdviceResult>
         var contextCopy = context;
 
         // A member that the compiler synthesizes from the declaration of its type has no declaration on which to
-        // write the attribute, and nothing emits one for it, so the attribute would be dropped without a word.
+        // write the attribute, and nothing emits one for it, so the attribute would be ignored silently.
         if ( targetDeclaration is IntroducedDeclaration { BuilderData.IsSynthesizedByCompiler: true } )
         {
             return this.CreateFailedResult(

@@ -55,9 +55,9 @@ internal sealed class ParameterBuilder : BaseParameterBuilder
                     throw new InvalidOperationException( $"Changing the {nameof(this.RefKind)} property of a return parameter is not supported." );
                 }
 
-                // The language lets a return parameter be returned by value, by reference or by read-only reference,
-                // and an argument alone may be an input or an output one. The check is made here rather than at
-                // emission, where an unsupported value produces an error on generated code.
+                // The language lets a return parameter be returned by value, by reference or by read-only
+                // reference. The In and Out reference kinds apply to an ordinary parameter alone. The check is made
+                // here rather than at emission, where an unsupported value produces an error on generated code.
                 if ( this.IsReturnParameter && value is not (RefKind.None or RefKind.Ref or RefKind.RefReadOnly) )
                 {
                     throw new InvalidOperationException(

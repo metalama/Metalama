@@ -244,8 +244,7 @@ of the switch quoted in section 1, and the type of the local variable it produce
 modifiers and belong to the syntax factory call of their arm.
 
 An introduced type reaches the editor by two different routes, and only one of them was examined when this section
-was first written. Both are described here, because this is the point at which an implementer is most likely to go
-wrong.
+was first written. Both are described below.
 
 A nested introduced type is emitted by `IntroduceNamedTypeTransformation.GetInjectedMembers`, which is the same
 method the build uses, as a member of the generated partial part of its containing type.
@@ -254,27 +253,36 @@ are a class, a struct, an interface, a record and a union. That method tests the
 unchanged for anything else, so a nested introduced enum or delegate works untouched and correctly receives no
 `partial` modifier, which is what the language requires of those two kinds.
 
-A nested introduced type that another transformation targets is also the key of a bucket of its own, and that
-bucket produces a second generated part. That part is created by `CreatePartialType`, carries the members and is
-declared partial, while the part described above carries the declaration. For a union this is what makes an
-introduced union able to receive a member at design time, and the division of labour between the two parts is the
-one that section 6.4 of [`introducing-unions.md`](introducing-unions.md) describes: exactly one part carries the
-case list, and it is the part that the introduction transformation emits.
+A nested introduced type that another transformation targets is also the key of a bucket of its own, which holds the
+members that were introduced into it. That bucket is processed together with the transformation that introduces the
+type, so one generated document carries the declaration and the members. `ProcessTransformationsOnType` takes the
+declaration from the introduction transformation and adds the interfaces and the members to it, and the introduction
+transformation is removed from the bucket of the containing type so that the declaration is not emitted twice.
 
-A top-level introduced type is routed by `ProcessTransformationsOnNamespace` into `ProcessTransformationsOnType`.
-Such a type has no declaration outside the generated file, so the file carries the declaration itself rather than a
-partial part of it: `ProcessTransformationsOnType` takes the declaration from the introduction transformation and
-adds to it the interfaces and the members that other transformations contribute. Re-creating the declaration
-through `CreatePartialType`, which an earlier revision of this section proposed for the kinds that can be partial,
-is wrong for every kind and not only for the two that cannot, because the transformation is the only place that
-knows the modifiers, the base list, the positional parameter list of a record, the case list of a union and the
-members of an enum. The transformation wraps a top-level type in its namespace, because at build time it is
-injected into a compilation unit, and the caller adds the namespace itself, so the wrapper is removed.
+Emitting the two in separate buckets is the alternative, and it was the behaviour until the members were moved into
+the declaration. It produces two generated documents for one type, one holding the declaration and one holding a
+partial part that carries the members. Both compile, but the reader of the generated source sees one type split over
+two documents, and the part carrying the members shows neither the accessibility of the type nor the positional
+parameter list of a record.
 
-The bucket of a top-level introduced type is moved out of the list of buckets before they are processed and is
-handed to the transformation that introduces the type. Left as a bucket of its own it would produce a partial part
-with no other part to join, which for a record or a union does not compile at all: a record part carrying no
-positional parameter list declares a different record, and a union part carrying no case list is CS9370.
+A bucket of the containing type that is left with no transformation at all is still processed, because processing it
+is what reports a containing type that is not declared partial. It emits no document in that case. A bucket that is
+empty for any other reason still emits one: the aspect test `DesignTime/IntroduceParameter_Conflicting` asserts an
+empty generated part, which is how it shows that the conflicting constructor was not generated.
+
+A top-level introduced type is routed by `ProcessTransformationsOnNamespace` into `ProcessTransformationsOnType`, and
+takes the same path for the same reason. Such a type has no declaration outside the generated file, so the file
+carries the declaration itself rather than a partial part of it. An earlier revision of this section proposed
+re-creating the declaration through `CreatePartialType` for the kinds that can be partial. That is wrong for every
+kind, and not only for an enum and a delegate. The transformation is the only place that knows the modifiers, the base
+list, the positional parameter list of a record, the case list of a union and the members of an enum. The
+transformation wraps a top-level type in its namespace, because at build time it is injected into a compilation unit,
+and the caller adds the namespace itself, so the wrapper is removed.
+
+Separating the two is not merely inconvenient for a top-level introduced type. Its bucket left on its own would
+produce a partial part with no other part to join, which for a record or a union does not compile at all: a record
+part carrying no positional parameter list declares a different record, and a union part carrying no case list
+produces the compiler error CS9370.
 
 The design-time generator must also skip a transformation that implements `IIntroduceDeclarationTransformation`
 without implementing `IInjectMemberTransformation`, which is the mechanism of section 4.2. `LinkerInjectionStep`

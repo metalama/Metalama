@@ -21,7 +21,7 @@ namespace Metalama.Framework.Tests.UnitTests.CodeModel;
 /// <para>
 /// The members that the compiler synthesizes for a record are registered in the code model and are emitted by
 /// nothing, so an aspect test cannot see them at all. Section 5 of the design document states that this kind is the
-/// one for which that difference matters most, and these tests are what proves that the members exist.
+/// one for which that difference matters most. These tests are therefore the only proof that the members exist.
 /// </para>
 /// </remarks>
 public sealed class IntroduceRecordTests : UnitTestClass
@@ -278,7 +278,7 @@ public sealed class IntroduceRecordTests : UnitTestClass
         Assert.Throws<NotSupportedException>( () => recordStruct.IsStatic = true );
         Assert.Throws<InvalidOperationException>( () => recordStruct.IsRef = true );
 
-        // A record struct accepts the readonly modifier, so the refusals above are not a blanket one.
+        // A record struct accepts the readonly modifier, so the refusals above do not apply to every modifier.
         recordStruct.IsReadOnly = true;
         Assert.True( recordStruct.IsReadOnly );
 

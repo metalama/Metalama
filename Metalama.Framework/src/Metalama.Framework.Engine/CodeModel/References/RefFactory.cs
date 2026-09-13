@@ -75,10 +75,13 @@ namespace Metalama.Framework.Engine.CodeModel.References
             where T : class, IDeclaration
             => new IntroducedRef<T>( builder, this, genericContext, isNullable );
 
+        /// <summary>
+        /// Creates an <see cref="IRef{T}"/> from an <see cref="IntroducedDeclaration"/>.
+        /// </summary>
         /// <remarks>
         /// <para>
         /// The nullability of an introduced named type is carried by the reference, because it is part of the type and
-        /// not of the builder, and a reference that dropped it resolved the nullable form of the type to the
+        /// not of the builder. A reference that dropped it would resolve the nullable form of the type to the
         /// non-nullable one. See issue #1840.
         /// </para>
         /// <para>

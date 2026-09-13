@@ -62,6 +62,15 @@ internal sealed class IntroduceSynthesizedDeclarationTransformation : BaseTransf
 
     DeclarationBuilderData IIntroduceDeclarationTransformation.DeclarationBuilderData => this._introducedDeclaration;
 
+    /// <inheritdoc />
+    /// <remarks>
+    /// <para>
+    /// Always <c>true</c>. This class is the transformation that registers a declaration without emitting it, so
+    /// the two emitters skip it and neither needs to test the interfaces that this class implements.
+    /// </para>
+    /// </remarks>
+    bool IIntroduceDeclarationTransformation.IsCompilerSynthesized => true;
+
     public override IFullRef<IDeclaration> TargetDeclaration => this._introducedDeclaration.ContainingDeclaration.AssertNotNull();
 
     public override IntrospectionTransformationKind TransformationKind => IntrospectionTransformationKind.IntroduceMember;

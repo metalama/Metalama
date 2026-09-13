@@ -177,7 +177,7 @@ namespace Metalama.Framework.Code
         Nullable_T,
 
         /// <summary>
-        /// <see cref="System.ValueType"/>, which is the base type of a struct and of an enum.
+        /// <see cref="System.ValueType"/>, which is the base type of a struct.
         /// </summary>
         ValueType,
 

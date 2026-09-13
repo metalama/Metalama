@@ -172,8 +172,8 @@ internal class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, I
     }
 
     /// <summary>
-    /// Gets a value indicating whether the introduced type is a union written with the <c>union</c> keyword, which
-    /// <c>UnionBuilder</c> is and no other builder is.
+    /// Gets a value indicating whether the introduced type is a union written with the <c>union</c> keyword.
+    /// <c>UnionBuilder</c> returns <c>true</c> and every other builder returns <c>false</c>.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -198,8 +198,7 @@ internal class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, I
         declaringNamespaceOrType as INamedType,
         name )
     {
-        Invariant.Assert(
-            typeKind is TypeKind.Class or TypeKind.Struct or TypeKind.Interface or TypeKind.Extension or TypeKind.Enum or TypeKind.Delegate );
+        Invariant.Assert( typeKind.IsNamedTypeOrExtension );
 
         // A record is a class or a struct that carries the record modifier, which is how the code model represents it:
         // TypeKind.RecordClass and TypeKind.RecordStruct are obsolete. See Metalama.Framework/docs/introducing-records.md.
@@ -389,8 +388,8 @@ internal class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, I
     /// </para>
     /// <para>
     /// See section 5.1 of <c>Metalama.Framework/docs/introducing-types.md</c>, which supersedes implementation
-    /// guideline 5 of <c>type-facets.md</c>. The flags below do not throw, which is what keeps a caller that asks
-    /// what kind a type is working: only a caller that asks for the structure meets the exception.
+    /// guideline 5 of <c>type-facets.md</c>. The flags below do not throw, so a caller that asks only what kind a
+    /// type is still receives an answer. The exception reaches a caller that asks for the structure.
     /// </para>
     /// </remarks>
     public ITypeFacetCollection Facets

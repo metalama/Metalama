@@ -2,7 +2,7 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Introductions.Recor
 {
   partial class TargetType
   {
-    partial record class Positional
+    public partial record Positional(global::System.Int32 Value)
     {
       public global::System.Int32 MethodTemplate()
       {

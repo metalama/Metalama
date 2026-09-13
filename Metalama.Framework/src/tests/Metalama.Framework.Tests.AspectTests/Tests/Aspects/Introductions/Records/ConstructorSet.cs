@@ -15,8 +15,8 @@ public class IntroductionAttribute : TypeAspect
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
         // The constructors of an introduced record are registered in the code model and emitted by nothing, so a
-        // template that reads them at compile time is the only way an aspect test sees them. The advice is what
-        // decides the set, which section 4.1 of Metalama.Framework/docs/introducing-records.md tabulates.
+        // template that reads them at compile time is the only way an aspect test sees them. The advice decides
+        // the set, which section 4.1 of Metalama.Framework/docs/introducing-records.md tabulates.
         Report( builder, "PositionalClass", builder.IntroduceRecord( "PositionalClass", buildRecord: r => r.AddPositionalParameter( "Value", typeof(int) ) ).Declaration );
         Report( builder, "NonPositionalClass", builder.IntroduceRecord( "NonPositionalClass" ).Declaration );
 

@@ -178,7 +178,7 @@ public interface IRecordBuilder : INamedTypeBuilder
 ```
 
 `AddBaseArgument` exists because a record class that derives from a record whose only constructor is a primary
-constructor has to pass arguments to it, and the compiler reports CS1729 on the generated declaration when it does
+constructor must pass arguments to it, and the compiler reports CS1729 on the generated declaration when it does
 not. It throws a `NotSupportedException` on a record struct, which has no base list, and an
 `InvalidOperationException` when the base type is still `object`, so the aspect sets `BaseType` first.
 
@@ -268,17 +268,25 @@ constructors to an introduced record through the adviser in the ordinary way.
 
 Two advices are refused on the primary constructor of an introduced record: `AddInitializer` with
 `InitializerKind.BeforeInstanceConstructor`, and `Override` on the constructor itself. Both replace the primary
-constructor by an explicit one, and the linker performs that replacement by rewriting the declaration of the record
-as the user wrote it, which an introduced record does not have. Metalama reports LAMA0553 from the advice rather
-than failing in the linker. The two ways around it are to introduce the record without a positional parameter,
-which gives it the implicit parameterless constructor that both advices do serve, and to introduce a constructor of
-its own and put the statements in the template of that constructor.
+constructor with an explicit one. The linker performs that replacement for a record read from source, which the aspect
+test `Initialization/BeforeInstanceConstructor_Record_Primary` shows: the record declaration loses its positional
+parameter list and gains the positional property, the `Deconstruct` method and an explicit constructor. The obstacle
+for an introduced record is one step of that work.
+`LinkerInjectionStep.AuxiliaryMemberFactory.GetAuxiliarySourceConstructor` reads the positional parameter list from
+the declaring syntax of the constructor, and the declaration of an introduced record is produced by the same injection
+step rather than read from source, so that syntax carries no parameter list and the step fails with an assertion.
+Metalama reports LAMA0553 from the advice rather than failing there. Serving the two advices would mean taking the
+parameter list from the builder data instead, which is issue #2020.
+
+Two alternatives are available. The first is to introduce the record without a positional parameter, which gives it
+the implicit parameterless constructor that both advices do serve. The second is to introduce a constructor of its own
+and to put the statements in the template of that constructor.
 
 A custom attribute added to the property that a positional parameter declares is written on the parameter with
 the `property` target, as in `record R( [property: Obsolete] int Value )`, which is the form the language provides
 and the only place the attribute can go. Every other member that section 4.2 of
 [`introducing-types.md`](introducing-types.md) registers has no declaration at all, so an attribute added to one of
-them is refused with the diagnostic LAMA0556 rather than dropped in silence.
+them is refused with the diagnostic LAMA0556 rather than ignored silently.
 
 ### 4.1. The constructors that an introduced record has
 
@@ -437,10 +445,10 @@ Pull request metalama/Metalama#1879 makes `meta.Proceed()` work in an aspect tha
 compiler-synthesized member of a record, and every gate of that mechanism is keyed on whether the type is a record.
 That work targets a record the user wrote. It serves an introduced record as well, and the question is closed.
 
-The body is not the difficulty. It is reproduced from a symbol of the intermediate compilation, and that compilation
-holds the declaration that Metalama emits, so the compiler synthesizes the member on it exactly as it does for a
-record read from source. The step before it was what was missing: an override transformation names its target by the
-builder data of the member, and `LinkerInjectionRegistry` resolved builder data through the injected member that
+The body of the override already worked. It is reproduced from a symbol of the intermediate compilation, and that
+compilation holds the declaration that Metalama emits, so the compiler synthesizes the member on it exactly as it does
+for a record read from source. The missing step was the one before it. An override transformation names its target by
+the builder data of the member, and `LinkerInjectionRegistry` resolved builder data through the injected member that
 carries its syntax. A member that section 4.2 registers has no injected member, by construction, so the lookup found
 nothing and the linker failed with a `KeyNotFoundException`.
 

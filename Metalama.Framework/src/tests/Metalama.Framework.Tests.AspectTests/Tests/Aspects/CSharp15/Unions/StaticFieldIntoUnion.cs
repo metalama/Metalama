@@ -13,27 +13,6 @@ using Metalama.Framework.Code;
 // Verifies that a static field is introduced into a union. The language forbids an instance field in a union
 // declaration, because it holds the state of the value, and permits a static field, which does not.
 
-#if TESTRUNNER
-namespace System.Runtime.CompilerServices
-{
-    /// <summary>
-    /// Stands for the interface that the compiler requires a union to implement. No target framework declares it
-    /// yet, and the compiler reports CS0518 when it cannot find it.
-    /// </summary>
-    public interface IUnion
-    {
-        object Value { get; }
-    }
-
-    /// <summary>
-    /// Stands for the attribute that the compiler emits on a union. No target framework declares it yet, and the
-    /// compiler reports CS0656 when it cannot find its constructor.
-    /// </summary>
-    [AttributeUsage( AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = false, Inherited = false )]
-    public sealed class UnionAttribute : Attribute { }
-}
-#endif
-
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp15.Unions.StaticFieldIntoUnion
 {
     public class IntroductionAttribute : TypeAspect

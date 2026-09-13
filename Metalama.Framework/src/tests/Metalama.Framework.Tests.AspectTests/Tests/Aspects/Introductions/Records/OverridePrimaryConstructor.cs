@@ -13,7 +13,8 @@ public class IntroductionAttribute : TypeAspect
 {
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        // Overriding the primary constructor of a record replaces it by an explicit one, which is the same
+        // Issue #2020 tracks serving this advice on an introduced record.
+        // Overriding the primary constructor of a record replaces it with an explicit one, which is the same
         // replacement that an initializer placed before an instance constructor performs.
         var positional = builder.IntroduceRecord(
             "Positional",

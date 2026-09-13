@@ -27,5 +27,19 @@ public static class TypeKindExtensions
         /// Gets a value indicating whether the type kind represents a class or struct.
         /// </summary>
         public bool IsClassOrStruct => kind is TypeKind.Class or TypeKind.Struct;
+
+        /// <summary>
+        /// Gets a value indicating whether the type kind represents a named type or an extension block, which
+        /// together are the kinds that an aspect can introduce and that <c>NamedTypeBuilder</c> represents.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// The property above does not include <see cref="TypeKind.Extension"/>, and must not: the visitors of the
+        /// code model test it before they test the extension block, so an extension block reported as a named type
+        /// would be visited as one. A member declared in an extension block cannot be the target of a cref, which is
+        /// why it is named here in prose.
+        /// </para>
+        /// </remarks>
+        public bool IsNamedTypeOrExtension => kind.IsNamedType || kind is TypeKind.Extension;
     }
 }

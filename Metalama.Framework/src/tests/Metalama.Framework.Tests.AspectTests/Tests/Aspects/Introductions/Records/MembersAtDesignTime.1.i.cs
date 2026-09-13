@@ -2,7 +2,7 @@ namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Introductions.Recor
 {
   partial class TargetType
   {
-    partial struct Struct
+    public partial struct Struct
     {
       public global::System.Int32 MethodTemplate()
       {

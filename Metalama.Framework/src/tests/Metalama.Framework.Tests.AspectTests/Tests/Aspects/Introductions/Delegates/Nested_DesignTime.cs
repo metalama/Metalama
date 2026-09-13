@@ -11,7 +11,7 @@ using Metalama.Framework.Code;
 
 // Verifies that a nested introduced delegate reaches the design-time generated source. A nested introduced type is
 // emitted as a member of the partial wrapper of its containing type, and the generator adds the partial modifier to
-// a class, a struct, an interface and a record only, so the delegate correctly receives none.
+// a class, a struct, an interface, a record and a union only, so the delegate correctly receives none.
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Introductions.Delegates.Nested_DesignTime
 {

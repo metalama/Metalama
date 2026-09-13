@@ -23,6 +23,9 @@ internal class TestIntroduceDeclarationTransformation : TestTransformationBase, 
 
     public DeclarationBuilderData DeclarationBuilderData { get; }
 
+    /// <inheritdoc />
+    public bool IsCompilerSynthesized => false;
+
     public TestIntroduceDeclarationTransformation(
         AspectLayerInstance aspectLayerInstance,
         InsertPosition insertPosition,

@@ -32,8 +32,8 @@ public sealed class IntroduceDelegateTests : UnitTestClass
     /// <remarks>
     /// <para>
     /// The <c>Invoke</c> method is registered as its own transformation and is emitted by nothing, which is section
-    /// 4.2 of <c>Metalama.Framework/docs/introducing-types.md</c>. That registration is what makes the method
-    /// visible through <see cref="INamedType.Methods"/>, which is where the facet resolves it.
+    /// 4.2 of <c>Metalama.Framework/docs/introducing-types.md</c>. The registration makes the method visible
+    /// through <see cref="INamedType.Methods"/>, which is where the facet resolves it.
     /// </para>
     /// </remarks>
     private static INamedType Introduce( CompilationModel compilation, DelegateBuilder builder )
@@ -83,9 +83,10 @@ public sealed class IntroduceDelegateTests : UnitTestClass
     /// </summary>
     /// <remarks>
     /// <para>
-    /// The language lets a return parameter be returned by value, by reference or by read-only reference, and lets
-    /// an argument alone be an input or an output one. The refusal is reported by the setter, because a value that
-    /// the language does not accept would otherwise produce an error on generated code.
+    /// The language lets a return parameter be returned by value, by reference or by read-only reference. The
+    /// <c>In</c> and <c>Out</c> reference kinds apply to an ordinary parameter alone. The refusal is reported by the
+    /// setter, because a value that the language does not accept would otherwise produce an error on generated
+    /// code.
     /// </para>
     /// </remarks>
     [Theory]

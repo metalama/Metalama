@@ -14,7 +14,7 @@ public class IntroductionAttribute : TypeAspect
 {
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        // A record class that derives from a positional record has to pass arguments to the primary constructor of
+        // A record class that derives from a positional record must pass arguments to the primary constructor of
         // its base, which the language writes in the base list.
         builder.IntroduceRecord(
             "Derived",

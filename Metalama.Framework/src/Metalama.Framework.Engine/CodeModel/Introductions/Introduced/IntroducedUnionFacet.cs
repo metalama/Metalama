@@ -39,7 +39,7 @@ internal sealed class IntroducedUnionFacet : UnionFacet
 
     /// <summary>
     /// Gets the cases of the union, one per case constructor, in the order in which the aspect added them. The
-    /// deduplication that a union read from source needs is not needed here, because
+    /// deduplication that a union read from source requires does not apply here, because
     /// <see cref="Metalama.Framework.Code.DeclarationBuilders.IUnionBuilder.AddCase(Metalama.Framework.Code.IType)"/>
     /// refuses a case type that is already a case.
     /// </summary>

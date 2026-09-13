@@ -25,7 +25,7 @@ namespace Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 /// a named type internally.
 /// </para>
 /// <para>
-/// The signature lives on an owned <see cref="MethodBuilder"/> named <c>Invoke</c>, in the way
+/// The signature is carried by an owned <see cref="MethodBuilder"/> named <c>Invoke</c>, in the way
 /// <see cref="ExtensionBlockBuilder"/> owns its receiver parameter builder: it is created in the constructor,
 /// frozen in <see cref="FreezeChildren"/>, and registered as its own transformation by the advice. The members of
 /// <see cref="IDelegateBuilder"/> that describe a signature forward to it, so no logic is duplicated.

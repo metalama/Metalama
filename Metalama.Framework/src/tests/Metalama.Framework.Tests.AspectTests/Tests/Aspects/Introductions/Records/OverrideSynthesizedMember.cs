@@ -15,8 +15,8 @@ using System.Text;
 // read from source serves an introduced one as well once the member is resolved to that symbol. This is the question
 // of section 7.2 of Metalama.Framework/docs/introducing-records.md.
 //
-// The strongly typed Equals is what proves the resolution by signature: the record has two members named Equals that
-// take one parameter each, and only the parameter type tells them apart.
+// The strongly typed Equals proves the resolution by signature. The record has two members named Equals that take
+// one parameter each, and only the parameter type tells them apart.
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Introductions.Records.OverrideSynthesizedMember;
 

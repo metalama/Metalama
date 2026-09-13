@@ -65,7 +65,7 @@ public interface IRecordBuilder : INamedTypeBuilder
     /// </summary>
     /// <remarks>
     /// <para>
-    /// A record class that derives from a record whose only constructor is a primary constructor has to pass
+    /// A record class that derives from a record whose only constructor is a primary constructor must pass
     /// arguments to it, and the compiler reports CS1729 on the generated declaration when it does not.
     /// </para>
     /// <para>

@@ -13,8 +13,8 @@ namespace Metalama.Framework.Code.DeclarationBuilders;
 /// <remarks>
 /// <para>
 /// This interface declares no member of its own. It exists for the custom attributes that
-/// <see cref="IDeclarationBuilder"/> declares, which are the only thing about a member of an enum that remains to be
-/// chosen after it is added: its name and its value are arguments of <c>AddMember</c>.
+/// <see cref="IDeclarationBuilder"/> declares. The custom attributes are all that remains to be chosen once a
+/// member is added, because its name and its value are arguments of <c>AddMember</c>.
 /// </para>
 /// <para>
 /// A member of an enum is a constant field, and the code model reports it as an <see cref="IField"/> once the enum is

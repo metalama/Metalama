@@ -11,9 +11,9 @@ public class IntroductionAttribute : TypeAspect
 {
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        // A record struct is the second sibling of the path that replaces the implicit parameterless constructor of
-        // a struct when a field is introduced, which is the member that section 4.2 of
-        // Metalama.Framework/docs/introducing-types.md registers and that nothing emits.
+        // Introducing a field into a record struct replaces the implicit parameterless constructor of that
+        // record struct, which is the same path that an ordinary struct takes. That constructor is the member that
+        // section 4.2 of Metalama.Framework/docs/introducing-types.md registers and that nothing emits.
         var record = builder.IntroduceRecord(
             "PositionalStruct",
             RecordKind.Struct,

@@ -29,7 +29,8 @@ namespace Metalama.Framework.Engine.CodeModel.Facets;
 /// </para>
 /// <para>
 /// The derived class decides which implementation of each facet to construct, and <see cref="Create"/> is the
-/// single site that reads the source of a type. No facet and no collection routes on it afterwards.
+/// single site that tests whether a type is read from source or introduced. No facet and no collection tests it
+/// again afterwards.
 /// </para>
 /// </remarks>
 internal abstract class TypeFacetCollection : ITypeFacetCollection

@@ -14,7 +14,8 @@ namespace Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 /// <remarks>
 /// <para>
 /// A member of an enum is a constant field whose type is the enum, so the class derives from
-/// <see cref="FieldBuilder"/> and fixes everything the language fixes. The interface it exposes to an aspect is
+/// <see cref="FieldBuilder"/> and assigns every value that the language imposes. The interface it exposes to an
+/// aspect is
 /// <see cref="IEnumMemberBuilder"/>, which carries the custom attributes and nothing else, because the name and the
 /// value of a member are arguments of <c>AddMember</c>.
 /// </para>
@@ -45,7 +46,7 @@ internal sealed class EnumMemberBuilder : FieldBuilder, IEnumMemberBuilder
         this.HasExplicitValue = hasExplicitValue;
 
         // The type of a member of an enum is the enum itself, its accessibility is that of the enum, and it is a
-        // constant, which Writeability.None reports. The language fixes all three.
+        // constant, which Writeability.None reports. The language imposes all three.
         this.Type = declaringEnum;
         this.Accessibility = Accessibility.Public;
         this.IsStatic = true;

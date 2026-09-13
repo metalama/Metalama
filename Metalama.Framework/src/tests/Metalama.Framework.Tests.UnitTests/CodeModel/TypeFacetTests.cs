@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -196,9 +196,9 @@ public sealed class TypeFacetTests : UnitTestClass
     /// </summary>
     /// <remarks>
     /// <para>
-    /// The flags are asserted beside the exception because they are what keeps the reversal safe. They answer on a
-    /// builder without allocating, so a caller that asks what kind a type is keeps working and only a caller that
-    /// asks for the structure meets the exception. The two eligibility rules of
+    /// The flags are asserted beside the exception because they are what makes the reversal safe. They answer on a
+    /// builder without allocating, so a caller that asks only what kind a type is still receives an answer, and the
+    /// exception reaches a caller that asks for the structure. The two eligibility rules of
     /// <see cref="AdviceKind.OverrideEventInvoke"/> rely on exactly that, and
     /// <see cref="EventOfMalformedDelegateTypeIsNotEligibleForOverrideEventInvoke"/> pins the behaviour they give.
     /// </para>

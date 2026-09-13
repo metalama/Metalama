@@ -81,7 +81,7 @@ internal sealed class IntroduceFieldAdvice : IntroduceMemberAdvice<IField, IFiel
     {
         var targetDeclaration = this.TargetDeclaration.ForCompilation( context.MutableCompilation );
 
-        // An instance field is what the language does not permit in a union declaration. A static field holds no
+        // The language does not permit an instance field in a union declaration. A static field holds no
         // state of the value and is permitted, so the refusal is decided here, where the shape of the member is
         // known, and not by an eligibility rule, which sees the target type alone.
         if ( !builder.IsStatic && targetDeclaration.IsUnion )

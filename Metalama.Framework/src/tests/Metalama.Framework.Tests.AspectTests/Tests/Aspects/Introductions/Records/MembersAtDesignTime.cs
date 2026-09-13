@@ -10,8 +10,10 @@ using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 
 // Verifies that members introduced into a nested introduced record and into a nested introduced struct reach the
-// design-time generated source. Such a type is the key of a bucket of its own, which produces a second generated
-// part that carries the members, while the part of the containing type carries the declaration.
+// design-time generated source. Such a type is the key of a bucket of its own, and that bucket is processed together
+// with the transformation that introduces the type, so one generated document per introduced type carries the
+// declaration and the members. The record shows that the declaration keeps its accessibility and its positional
+// parameter list in that document.
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Introductions.Records.MembersAtDesignTime
 {

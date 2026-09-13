@@ -202,7 +202,7 @@ internal sealed class EnumBuilder : NamedTypeBuilder, IEnumBuilder, ITypeBuilder
             {
                 throw new ArgumentOutOfRangeException(
                     nameof(name),
-                    $"The member '{name}' of the enum '{this.Name}' has no value of its own, and the value that follows the preceding member does not fit in '{this.UnderlyingType}'." );
+                    $"The member '{name}' of the enum '{this.Name}' is added without a value, and the value that follows the preceding member does not fit in '{this.UnderlyingType}'." );
             }
 
             return this.AddUnsignedMember( name, previous + 1, hasExplicitValue: false );
@@ -215,7 +215,7 @@ internal sealed class EnumBuilder : NamedTypeBuilder, IEnumBuilder, ITypeBuilder
             {
                 throw new ArgumentOutOfRangeException(
                     nameof(name),
-                    $"The member '{name}' of the enum '{this.Name}' has no value of its own, and the value that follows the preceding member does not fit in '{this.UnderlyingType}'." );
+                    $"The member '{name}' of the enum '{this.Name}' is added without a value, and the value that follows the preceding member does not fit in '{this.UnderlyingType}'." );
             }
 
             return this.AddIntegralMember( name, previous + 1, hasExplicitValue: false );

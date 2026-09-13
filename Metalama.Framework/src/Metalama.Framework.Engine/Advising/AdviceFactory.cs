@@ -534,7 +534,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
     }
 
     /// <summary>
-    /// Refuses a target that declares no member at all, which is an enum and a delegate.
+    /// Refuses a target that declares no member at all, which is the case for an enum and for a delegate.
     /// </summary>
     /// <remarks>
     /// <para>

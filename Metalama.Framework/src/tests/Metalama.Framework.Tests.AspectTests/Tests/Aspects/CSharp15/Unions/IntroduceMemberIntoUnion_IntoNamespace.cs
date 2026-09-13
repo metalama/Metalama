@@ -15,27 +15,6 @@ using Metalama.Framework.Code;
 // that serves a type injected into a namespace has to replace that semicolon by a pair of braces, in the way the
 // arm that serves a nested type does.
 
-#if TESTRUNNER
-namespace System.Runtime.CompilerServices
-{
-    /// <summary>
-    /// Stands for the interface that the compiler requires a union to implement. No target framework declares it
-    /// yet, and the compiler reports CS0518 when it cannot find it.
-    /// </summary>
-    public interface IUnion
-    {
-        object Value { get; }
-    }
-
-    /// <summary>
-    /// Stands for the attribute that the compiler emits on a union. No target framework declares it yet, and the
-    /// compiler reports CS0656 when it cannot find its constructor.
-    /// </summary>
-    [AttributeUsage( AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = false, Inherited = false )]
-    public sealed class UnionAttribute : Attribute { }
-}
-#endif
-
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp15.Unions.IntroduceMemberIntoUnion_IntoNamespace
 {
     public class IntroductionAttribute : TypeAspect

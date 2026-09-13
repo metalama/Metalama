@@ -388,9 +388,9 @@ public sealed class IntroduceEnumTests : UnitTestClass
     /// <remarks>
     /// <para>
     /// The compiler computes the value of a member declared without one, so
-    /// <see cref="IField.ConstantValue"/> is never null on a member of an enum read from source. An introduced enum
-    /// whose members reported null would break every reader that the enum document shows, which dereference the
-    /// value.
+    /// <see cref="IField.ConstantValue"/> is never null on a member of an enum read from source. The readers that
+    /// section 1 of <c>Metalama.Framework/docs/introducing-enums.md</c> shows all dereference that value, so an
+    /// introduced enum whose members reported null would break every one of them.
     /// </para>
     /// </remarks>
     [Theory]

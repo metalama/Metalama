@@ -117,14 +117,14 @@ public sealed class IntroduceUnionTests : UnitTestClass
         Assert.Throws<NotSupportedException>( () => builder.IsReadOnly = true );
         Assert.Throws<NotSupportedException>( () => builder.IsRef = true );
 
-        // The accessibility and the name are valid, so the refusals above are not a blanket one.
+        // The accessibility and the name are valid, so the refusals above do not apply to every member.
         builder.Accessibility = Accessibility.Public;
         Assert.Equal( Accessibility.Public, builder.Accessibility );
     }
 
     /// <summary>
     /// Verifies that the cases of a union are reported in the order in which they were added when there are three of
-    /// them, which is the number at which the index of a case stops coinciding with the position of either order.
+    /// them. Three is the smallest number of cases for which the index of a case can differ from its position.
     /// </summary>
     [Fact]
     public void ThreeCasesAreReportedInTheOrderInWhichTheyWereAdded()
@@ -283,8 +283,8 @@ public sealed class IntroduceUnionTests : UnitTestClass
 #else
 
     /// <summary>
-    /// Verifies that introducing a union reports that the operation is not supported on the Roslyn variant whose
-    /// Roslyn cannot emit a union declaration.
+    /// Verifies that introducing a union reports that the operation is not supported on the Roslyn variant that
+    /// cannot emit a union declaration.
     /// </summary>
     /// <remarks>
     /// <para>

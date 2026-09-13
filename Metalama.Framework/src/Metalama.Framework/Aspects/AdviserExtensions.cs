@@ -1717,8 +1717,8 @@ public static class AdviserExtensions
     /// </summary>
     /// <param name="adviser">An adviser for a named type or namespace.</param>
     /// <param name="name">The enum name.</param>
-    /// <param name="buildEnum">A delegate that configures the introduced enum. It must add at least one member, because an enum that declares none is a type
-    ///     that nothing can have a value of, which is why this parameter is required and precedes <paramref name="whenExists"/>.</param>
+    /// <param name="buildEnum">A callback that configures the introduced enum. It must add at least one member, because an enum that declares no member
+    ///     has no possible value, which is why this parameter is required and precedes <paramref name="whenExists"/>.</param>
     /// <param name="whenExists">Determines the implementation strategy when a type of the same name is already declared in the target type or namespace.
     ///     The default strategy is to fail with a compile-time error.</param>
     /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> that exposes the outcome of the operation and the introduced <see cref="INamedType"/>.</returns>
@@ -1741,7 +1741,7 @@ public static class AdviserExtensions
     /// </summary>
     /// <param name="adviser">An adviser for a named type or namespace.</param>
     /// <param name="name">The delegate name.</param>
-    /// <param name="buildDelegate">A delegate that modifies the <see cref="IDelegateBuilder"/> that represents the introduced delegate. The signature of the
+    /// <param name="buildDelegate">A callback that modifies the <see cref="IDelegateBuilder"/> that represents the introduced delegate. The signature of the
     ///     introduced delegate is given through this callback, which is why this parameter is required and precedes <paramref name="whenExists"/>.</param>
     /// <param name="whenExists">Determines the implementation strategy when a type of the same name is already declared in the target type or namespace.
     ///     The default strategy is to fail with a compile-time error.</param>
@@ -1791,7 +1791,7 @@ public static class AdviserExtensions
     /// </summary>
     /// <param name="adviser">An adviser for a named type or namespace.</param>
     /// <param name="name">The union name.</param>
-    /// <param name="buildUnion">A delegate that configures the introduced union. It must add at least one case, because the language requires a union to have
+    /// <param name="buildUnion">A callback that configures the introduced union. It must add at least one case, because the language requires a union to have
     ///     one, which is why this parameter is required and precedes <paramref name="whenExists"/>.</param>
     /// <param name="whenExists">Determines the implementation strategy when a type of the same name is already declared in the target type or namespace.
     ///     The default strategy is to fail with a compile-time error.</param>

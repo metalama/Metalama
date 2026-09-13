@@ -404,7 +404,7 @@ internal sealed class RecordBuilder : NamedTypeBuilder, IRecordBuilder, ITypeBui
         // The setter is an init accessor on a record class and on a readonly record struct, and an ordinary setter
         // on a record struct that is not readonly, which is what a record read from source reports. Neither accessor
         // is marked as implicitly declared: that marking produces the ConstructorOnly writeability, which belongs to
-        // an automatic property that has no setter of its own and not to this one.
+        // an automatic property that declares no setter at all and not to this one.
         var hasInitOnlySetter = this.IsRecordClass || this.IsReadOnly;
 
         foreach ( var parameter in this._primaryConstructor.Parameters )

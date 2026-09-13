@@ -20,7 +20,7 @@ namespace Metalama.Framework.Tests.UnitTests.CodeModel;
 /// <remarks>
 /// <para>
 /// The five type introduction issues depend on this shape, because the compiler synthesizes the members of a
-/// delegate, a record, a union and a struct from the declaration that Metalama emits, so those members have to
+/// delegate, a record, a union and a struct from the declaration that Metalama emits, so those members must
 /// reach the code model without being emitted a second time. Story S-29 asks whether a member builder with no
 /// injected member survives the pipeline, and these tests are the answer.
 /// </para>
@@ -91,8 +91,8 @@ public sealed class SynthesizedDeclarationTests : UnitTestClass
         Assert.IsNotAssignableFrom<IInjectMemberTransformation>( transformation );
         Assert.IsAssignableFrom<IIntroduceDeclarationTransformation>( transformation );
 
-        // The observability is what puts the declaration in the code model. A transformation whose observability is
-        // None is ignored by CompilationModel.AddTransformation.
+        // The observability puts the declaration in the code model. A transformation whose observability is None
+        // is ignored by CompilationModel.AddTransformation.
         Assert.Equal( TransformationObservability.Always, transformation.Observability );
     }
 }

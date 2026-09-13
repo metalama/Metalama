@@ -79,7 +79,7 @@ internal sealed class IntroduceNamedTypeAdvice : IntroduceDeclarationAdvice<INam
     {
         var targetDeclaration = (INamespaceOrNamedType) this.TargetDeclaration.ForCompilation( context.MutableCompilation );
 
-        // The case list of a union is what the declaration carries, and the language requires at least one case. The
+        // The declaration of a union carries its case list, and the language requires at least one case. The
         // refusal is reported here rather than left to the compiler, which would report CS9370 on generated code.
         if ( builder is UnionBuilder { Cases.Count: 0 } )
         {
@@ -162,9 +162,9 @@ internal sealed class IntroduceNamedTypeAdvice : IntroduceDeclarationAdvice<INam
 
     private void IntroduceImplicitConstructorIfNeeded( NamedTypeBuilder builder, AdviceImplementationContext context )
     {
-        // A non-static class and a struct both have an implicit parameterless constructor, just like a source type
-        // that gets one from Roslyn. The pipeline never re-reads the final model from Roslyn, so the constructor has
-        // to exist as a builder for an aspect to see it.
+        // A non-static class and a struct both have an implicit parameterless constructor, as a type read from
+        // source does. The pipeline never re-reads the final model from Roslyn, so the constructor must exist as a
+        // builder for an aspect to see it.
         if ( builder is not { TypeKind: TypeKind.Class or TypeKind.Struct, IsStatic: false } )
         {
             return;
@@ -182,9 +182,10 @@ internal sealed class IntroduceNamedTypeAdvice : IntroduceDeclarationAdvice<INam
         {
             Accessibility = Accessibility.Public,
 
-            // Neither form has a declaration of its own: the compiler synthesizes the constructor of a struct from
-            // the declaration, and the one of a class is emitted by nothing because it is implicitly declared.
-            IsSynthesizedByCompiler = true
+            // The compiler synthesizes the parameterless constructor of a struct from the declaration of the type, so
+            // that constructor has no declaration of its own and an advice that needs one is refused on it. Metalama
+            // emits the parameterless constructor of a class, so that one has a declaration and the flag stays false.
+            IsSynthesizedByCompiler = builder.TypeKind != TypeKind.Class
         };
 
         constructorBuilder.Freeze();

@@ -62,15 +62,14 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
             var aspectReferenceSyntaxProvider = new LinkerAspectReferenceSyntaxProvider();
 
             // Get all transformations that are observable at design time and group them by future target file. A
-            // transformation that implements IIntroduceDeclarationTransformation without implementing
-            // IInjectMemberTransformation registers a declaration in the code model and emits no syntax, so it is
-            // skipped here, exactly as LinkerInjectionStep skips it at build time. Section 4.2 of
+            // transformation whose declaration the compiler synthesizes is registered in the code model and emits no
+            // syntax, so it is skipped here, exactly as LinkerInjectionStep skips it at build time. Section 4.2 of
             // Metalama.Framework/docs/introducing-types.md states the rule.
             var transformationsByBucket =
                 transformations
                     .Where(
                         t => t.Observability == TransformationObservability.Always
-                             && t is not (IIntroduceDeclarationTransformation and not IInjectMemberTransformation) )
+                             && t is not IIntroduceDeclarationTransformation { IsCompilerSynthesized: true } )
                     .GroupBy(
                         t =>
                             t.TargetDeclaration switch
@@ -83,32 +82,87 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                         RefEqualityComparer<INamespaceOrNamedType>.Default )
                     .ToDictionary( g => g.Key!, g => g.AsEnumerable(), RefEqualityComparer<INamespaceOrNamedType>.Default );
 
-            // A type introduced into a namespace has no declaration outside the generated file, so a bucket of its own
-            // would produce a partial part with no other part to join, and for a kind that carries a parameter list or
-            // a case list that part would not even compile. Such a bucket is therefore moved out of the list and is
-            // processed together with the transformation that introduces the type, which supplies the declaration.
+            // An introduced type that another transformation targets has a bucket of its own, and that bucket is
+            // processed together with the transformation that introduces the type, so that one generated file carries
+            // the declaration of the type and the members that were introduced into it. Leaving the two in separate
+            // buckets produces two files, one holding the declaration and one holding a partial part that carries the
+            // members, which compiles but splits one type over two generated documents.
+            //
+            // For a type introduced into a namespace the separation is not merely inconvenient. Such a type has no
+            // declaration outside the generated file, so a bucket of its own would produce a partial part with no
+            // other part to join, and for a kind that carries a parameter list or a case list that part would not
+            // even compile.
             var transformationsOnTopLevelIntroducedTypes =
                 new Dictionary<IRef<INamespaceOrNamedType>, IEnumerable<ITransformation>>( RefEqualityComparer<INamespaceOrNamedType>.Default );
 
+            // The introduction transformation of a nested introduced type whose bucket carries members. The bucket of
+            // the containing type no longer emits the declaration as one of its members, because the bucket of the
+            // introduced type emits it with those members inside.
+            var nestedIntroducedTypeInjections =
+                new Dictionary<IRef<INamespaceOrNamedType>, IInjectMemberTransformation>( RefEqualityComparer<INamespaceOrNamedType>.Default );
+
+            var transformationsMovedOutOfTheirBucket = new HashSet<ITransformation>();
+
+            // The buckets whose every transformation introduced a nested type that now emits a file of its own. They
+            // are still processed, because processing them reports a containing type that is not declared partial,
+            // but they emit no file. A bucket that is empty for any other reason still emits one: an empty generated
+            // part is what IntroduceParameter_Conflicting asserts, where it shows that the conflicting constructor
+            // was not generated.
+            var bucketsEmptiedByMoveOut = new HashSet<IRef<INamespaceOrNamedType>>( RefEqualityComparer<INamespaceOrNamedType>.Default );
+
             foreach ( var bucket in transformationsByBucket.ToReadOnlyList() )
             {
-                if ( bucket.Key is not IFullRef<INamespace> )
+                foreach ( var transformation in bucket.Value )
+                {
+                    if ( transformation is not IIntroduceDeclarationTransformation { DeclarationBuilderData: NamedTypeBuilderData introducedType } )
+                    {
+                        continue;
+                    }
+
+                    var introducedTypeRef = introducedType.ToFullRef().As<INamespaceOrNamedType>();
+
+                    if ( !transformationsByBucket.TryGetValue( introducedTypeRef, out var typeBucket ) )
+                    {
+                        // Nothing was introduced into the type, so its declaration is emitted where it is now: as a
+                        // member of the generated part of the containing type, or from the namespace bucket.
+                        continue;
+                    }
+
+                    if ( bucket.Key is IFullRef<INamespace> )
+                    {
+                        // A top-level introduced type is emitted from the namespace bucket, which is the only place
+                        // that holds its declaration, so its own bucket is handed to that code and removed here.
+                        transformationsOnTopLevelIntroducedTypes[introducedTypeRef] = typeBucket;
+                        transformationsByBucket.Remove( introducedTypeRef );
+                    }
+                    else
+                    {
+                        // A nested introduced type keeps its bucket, which now emits the declaration as well as the
+                        // members. The introduction transformation of a nested type is an IInjectMemberTransformation,
+                        // because the declaration is injected into the containing type, and it is removed from the
+                        // bucket of that containing type so that the declaration is not emitted twice.
+                        nestedIntroducedTypeInjections[introducedTypeRef] = (IInjectMemberTransformation) transformation;
+                        transformationsMovedOutOfTheirBucket.Add( transformation );
+                    }
+                }
+            }
+
+            foreach ( var bucket in transformationsByBucket.ToReadOnlyList() )
+            {
+                var remaining = bucket.Value.Where( t => !transformationsMovedOutOfTheirBucket.Contains( t ) ).ToReadOnlyList();
+
+                if ( remaining.Count == bucket.Value.Count() )
                 {
                     continue;
                 }
 
-                foreach ( var transformation in bucket.Value )
-                {
-                    if ( transformation is IIntroduceDeclarationTransformation { DeclarationBuilderData: NamedTypeBuilderData introducedType } )
-                    {
-                        var introducedTypeRef = introducedType.ToFullRef().As<INamespaceOrNamedType>();
+                // A bucket that becomes empty is kept rather than removed, because processing it is what reports
+                // that the containing type is not declared partial.
+                transformationsByBucket[bucket.Key] = remaining;
 
-                        if ( transformationsByBucket.TryGetValue( introducedTypeRef, out var typeBucket ) )
-                        {
-                            transformationsOnTopLevelIntroducedTypes[introducedTypeRef] = typeBucket;
-                            transformationsByBucket.Remove( introducedTypeRef );
-                        }
-                    }
+                if ( remaining.Count == 0 )
+                {
+                    bucketsEmptiedByMoveOut.Add( bucket.Key );
                 }
             }
 
@@ -148,7 +202,11 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                 switch ( target.DeclarationKind )
                 {
                     case DeclarationKind.NamedType or DeclarationKind.ExtensionBlock when target is INamedType namedType:
-                        ProcessTransformationsOnType( namedType, transformationGroup.Value );
+                        ProcessTransformationsOnType(
+                            namedType,
+                            transformationGroup.Value,
+                            nestedIntroducedTypeInjections.GetValueOrDefault( transformationGroup.Key ),
+                            bucketsEmptiedByMoveOut.Contains( transformationGroup.Key ) );
 
                         break;
 
@@ -192,7 +250,8 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
             void ProcessTransformationsOnType(
                 INamedType declaringTypeOrExtensionBlock,
                 IEnumerable<ITransformation> typeTransformations,
-                IInjectMemberTransformation? typeInjection = null )
+                IInjectMemberTransformation? typeInjection = null,
+                bool emptiedByMoveOut = false )
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
@@ -272,6 +331,14 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
 
                 members = members.AddRange(
                     CreateInjectedConstructors( initialCompilationModel, finalCompilationModel, syntaxGenerationContext, declaringType ) );
+
+                if ( emptiedByMoveOut && members.Count == 0 && baseList == null )
+                {
+                    // Every transformation of the bucket introduced a nested type that emits a file of its own, so a
+                    // partial part emitted here would carry nothing. The checks above still ran, so a containing type
+                    // that is not declared partial was reported.
+                    return;
+                }
 
                 // Compute the indent level of the innermost type's members, so injected members can be
                 // indented and brace placement can match the surrounding nesting depth without a
@@ -762,25 +829,16 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
         }
 
         /// <summary>
-        /// Determines whether the language allows the declaration of the given type to carry the partial modifier,
-        /// which every kind but an enum, a delegate and a union does.
-        /// </summary>
-        /// <remarks>
-        /// <para>
-        /// The union is the one of the three that is not told apart by its type kind. Roslyn reports a union as a
-        /// struct, so a union re-created here would be emitted as a partial struct against a union declaration,
-        /// which the compiler reports as CS0261.
-        /// </para>
-        /// </remarks>
-        /// <summary>
         /// Determines whether the language lets the type be declared as partial, which decides whether the generated
         /// source can carry a partial part of it.
         /// </summary>
         /// <remarks>
         /// <para>
         /// An enum and a delegate are the two kinds that the language cannot declare as partial. A union can be
-        /// declared as partial, and one part of it carries the case list while the other carries the members, so a
-        /// union takes the same route as a class.
+        /// declared as partial, so a union takes the same route as a class. Roslyn reports a union as a struct, so
+        /// the type kind alone does not tell a union apart, which is why a union is never re-created here: its
+        /// declaration comes from the transformation that introduces it, and a partial struct emitted against a union
+        /// declaration is CS0261.
         /// </para>
         /// </remarks>
         private static bool CanBeDeclaredPartial( INamedType type ) => type.TypeKind is not (TypeKind.Enum or TypeKind.Delegate);

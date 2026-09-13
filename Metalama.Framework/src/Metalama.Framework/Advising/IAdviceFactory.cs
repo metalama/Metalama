@@ -1055,8 +1055,8 @@ namespace Metalama.Framework.Advising
         /// </summary>
         /// <param name="targetNamespaceOrType">The namespace or type into which the enum must be introduced.</param>
         /// <param name="name">The name of the introduced enum.</param>
-        /// <param name="buildEnum">A callback that configures the introduced enum. It must add at least one member, because an enum that declares none is a type
-        ///     that nothing can have a value of. The parameter is required and precedes <paramref name="whenExists"/> for that reason: the callback is the only
+        /// <param name="buildEnum">A callback that configures the introduced enum. It must add at least one member, because an enum that declares no member
+        ///     has no possible value. The parameter is required and precedes <paramref name="whenExists"/> for that reason: the callback is the only
         ///     way to add a member, so a call that omitted it could only produce an empty enum.</param>
         /// <param name="whenExists">Determines the implementation strategy when a type of the same name is already declared in the target namespace or type.
         ///     The default strategy is to fail with a compile-time error.</param>
@@ -1074,8 +1074,8 @@ namespace Metalama.Framework.Advising
         /// <param name="targetNamespaceOrType">The namespace or type into which the delegate must be introduced.</param>
         /// <param name="name">The name of the introduced delegate.</param>
         /// <param name="buildDelegate">A callback that configures the introduced delegate, which means its accessibility, its custom attributes, its type
-        ///     parameters and its signature. The parameter is required and precedes <paramref name="whenExists"/>, because the signature is the substance of a
-        ///     delegate and the callback is the only way to give it one.</param>
+        ///     parameters and its signature. The parameter is required and precedes <paramref name="whenExists"/>, because a delegate is defined by its
+        ///     signature and the callback is the only way to give it one.</param>
         /// <param name="whenExists">Determines the implementation strategy when a type of the same name is already declared in the target namespace or type.
         ///     The default strategy is to fail with a compile-time error.</param>
         /// <returns>An <see cref="IIntroductionAdviceResult{T}"/> representing the result of the advice. The <see cref="IIntroductionAdviceResult{T}.Declaration"/> property provides access to the introduced delegate.

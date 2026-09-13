@@ -164,7 +164,7 @@ There is no `IntroduceUnionCase`, and section 6.4 states why.
 A union declaration is a struct, and the language forbids an instance field, an automatic property and a field-like
 event in it. Those restrictions belong to this form and not to the attribute form, which this advice does not
 introduce, so every rule this issue writes tests the form it has rather than `ITypeSymbol.IsUnion`. Section 3 of
-[`../2027.0/DECISIONS.md`](2027.0/DECISIONS.md) requires that distinction, and it is the one most often misread.
+[`../2027.0/DECISIONS.md`](2027.0/DECISIONS.md) requires that distinction.
 
 | Member | State |
 | --- | --- |
@@ -184,7 +184,7 @@ Member introduction through the adviser is restricted rather than refused. An in
 and a field-like event introduced into a union produce the compiler error CS9373, so Metalama refuses the three
 instead, each with the diagnostic LAMA0555. The refusal is reported by the advice of the member and not by an
 eligibility rule, because a rule sees the target type alone and the answer depends on the member: a static field
-holds no state of the value and is permitted, as is a property or an event whose accessors are written. An explicit
+holds no state of the value and is permitted, as is a property or an event whose accessors have a body. An explicit
 constructor must chain to a generated one, which is a further rule. These are the exception that section 3.2 of
 [`introducing-types.md`](introducing-types.md) names: the compiler reports those errors on generated code that the
 user cannot edit.
@@ -367,9 +367,9 @@ It does, and the question is closed. `IUnionBuilder.Cases` is in the order of ad
 the introduced type is in the order that the creation members declare, which `IUnionCase.Index` numbers. The
 compiler reports the case types of a union as a set, and `AddCase` refuses a duplicate, so the two orders agree.
 
-`IntroduceUnionTests.ThreeCasesAreReportedInTheOrderInWhichTheyWereAdded` settles it. Three cases are what it takes:
-with two, the index of a case coincides with its position under either order. The order matters because the index of
-a case is not recoverable from its type, which is the reason `IUnionCase` carries `Index` at all.
+`IntroduceUnionTests.ThreeCasesAreReportedInTheOrderInWhichTheyWereAdded` settles it. The test declares three cases,
+because with two cases the index of a case coincides with its position under either order. The order matters because
+the index of a case is not recoverable from its type, which is the reason `IUnionCase` carries `Index` at all.
 
 ## 8. References
 

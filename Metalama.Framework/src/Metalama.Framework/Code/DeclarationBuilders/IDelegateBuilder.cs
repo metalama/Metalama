@@ -14,7 +14,7 @@ namespace Metalama.Framework.Code.DeclarationBuilders;
 /// <remarks>
 /// <para>
 /// This interface derives from <see cref="IMemberOrNamedTypeBuilder"/> and declares the members of a signature
-/// itself. A delegate declaration is a method signature with the <c>delegate</c> keyword in front of it, so the
+/// itself. A delegate declaration is a method signature preceded by the <c>delegate</c> keyword, so the
 /// return type, the return parameter and the parameters describe the <c>Invoke</c> method that the compiler
 /// synthesizes, while the name, the accessibility, the custom attributes and the type parameters describe the
 /// delegate type.

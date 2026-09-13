@@ -365,7 +365,7 @@ namespace Metalama.Framework.Engine.Advising
             CannotReplaceIntroducedPrimaryConstructor = new(
                 "LAMA0553",
                 "Cannot replace the primary constructor of a record that an aspect introduces.",
-                "The aspect '{0}' cannot apply the advice '{1}' to '{2}' because it replaces the primary constructor of that record by an explicit one, " +
+                "The aspect '{0}' cannot apply the advice '{1}' to '{2}' because it replaces the primary constructor of that record with an explicit one, " +
                 "and that replacement rewrites the declaration of the record as it is written in source, which a record introduced by an aspect does not have. " +
                 "Introduce the record without a positional parameter, or introduce a constructor of its own and put the logic in the template of that constructor.",
                 _category,
@@ -376,7 +376,7 @@ namespace Metalama.Framework.Engine.Advising
                 "LAMA0554",
                 "Cannot introduce a union that declares no case.",
                 "The aspect '{0}' cannot introduce the union '{1}' because it declares no case. A union declaration must declare at least one case, "
-                + "which the compiler reports as CS9370 when it does not. Call 'AddCase' at least once in the callback that builds the union.",
+                + "and the compiler reports CS9370 when it declares none. Call 'AddCase' at least once in the callback that builds the union.",
                 _category,
                 Error );
 
@@ -386,7 +386,7 @@ namespace Metalama.Framework.Engine.Advising
                 "Cannot introduce an instance field, an automatic property or a field-like event into a union.",
                 "The aspect '{0}' cannot introduce {1} into the union '{2}' because the language does not permit an instance field, "
                 + "an automatic property or a field-like event in a union declaration, and reports CS9373 when it finds one. "
-                + "Introduce a property with accessors of its own, or an event with accessors of its own.",
+                + "Introduce a property whose accessors have a body, or an event whose accessors have a body.",
                 _category,
                 Error );
 

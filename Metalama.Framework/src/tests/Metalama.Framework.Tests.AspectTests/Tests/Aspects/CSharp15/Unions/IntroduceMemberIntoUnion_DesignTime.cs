@@ -12,29 +12,8 @@ using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 
 // Verifies that an introduced union that receives a member reaches the design-time generated source. The union is
-// the key of a bucket of its own because a transformation targets it, and the language lets a union be declared as
-// partial, so the generated source carries a partial part of the union that holds the member.
-
-#if TESTRUNNER
-namespace System.Runtime.CompilerServices
-{
-    /// <summary>
-    /// Stands for the interface that the compiler requires a union to implement. No target framework declares it
-    /// yet, and the compiler reports CS0518 when it cannot find it.
-    /// </summary>
-    public interface IUnion
-    {
-        object Value { get; }
-    }
-
-    /// <summary>
-    /// Stands for the attribute that the compiler emits on a union. No target framework declares it yet, and the
-    /// compiler reports CS0656 when it cannot find its constructor.
-    /// </summary>
-    [AttributeUsage( AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = false, Inherited = false )]
-    public sealed class UnionAttribute : Attribute { }
-}
-#endif
+// the key of a bucket of its own because a transformation targets it, and that bucket is processed together with the
+// transformation that introduces the union, so one generated document carries the case list and the member.
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp15.Unions.IntroduceMemberIntoUnion_DesignTime
 {

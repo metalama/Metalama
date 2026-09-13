@@ -43,7 +43,7 @@ internal abstract class EnumFacet : IEnumFacet
         // The attribute type is matched by its name first, because that comparison is the cheapest one, and by its
         // namespace afterwards. Matching by typeof(FlagsAttribute) would resolve the reflection type through the
         // compilation, which costs more. The attributes of an introduced type are reported the same way as those of
-        // a type read from source, so this member needs no implementation per source.
+        // a type read from source, so this member needs no separate implementation in the two derived classes.
         foreach ( var attribute in this.Type.Attributes )
         {
             if ( attribute.Type.Name == nameof(FlagsAttribute) && attribute.Type.ContainingNamespace.FullName == "System" )

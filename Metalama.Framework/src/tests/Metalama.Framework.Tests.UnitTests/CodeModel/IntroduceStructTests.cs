@@ -99,8 +99,8 @@ public sealed class IntroduceStructTests : UnitTestClass
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <c>ToNullable</c> branches on <c>IsReferenceType</c>, so this assertion is what a defect in that property
-    /// would break. <c>CodeModelConsistencyTests.ToNullableOnAValueTypeAgreesBetweenSourceAndIntroduced</c> compares
+    /// <c>ToNullable</c> branches on <c>IsReferenceType</c>, so a defect in that property would break this
+    /// assertion. <c>CodeModelConsistencyTests.ToNullableOnAValueTypeAgreesBetweenSourceAndIntroduced</c> compares
     /// the two forms in more detail; this test pins the one property that the branch reads.
     /// </para>
     /// </remarks>

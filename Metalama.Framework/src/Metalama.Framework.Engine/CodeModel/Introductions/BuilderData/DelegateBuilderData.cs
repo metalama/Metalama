@@ -18,7 +18,7 @@ internal sealed class DelegateBuilderData : NamedTypeBuilderData
     /// </summary>
     /// <remarks>
     /// <para>
-    /// It is stored here so that the facet can resolve it in any compilation that knows the delegate.
+    /// The method is stored here so that the facet can resolve it in any compilation that knows the delegate.
     /// <see cref="INamedType.Methods"/> is empty in a compilation to which the transformation that registers the
     /// method has not been applied, and an aspect that types an event by a delegate it has just introduced reads
     /// the facet in exactly such a compilation.
