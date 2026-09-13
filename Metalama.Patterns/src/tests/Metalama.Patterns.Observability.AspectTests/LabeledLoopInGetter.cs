@@ -11,10 +11,6 @@
 // like any other statement, and the identifier of a labeled jump binds to a label symbol, which the classification of a
 // reference chain marks unsupported instead of reporting it. The dependency on Threshold and on Count is still found.
 // No case of the walker is added for these constructs. See issue #1947.
-//
-// The project compiles its own test sources at the language version of LangMaxVersion, which is 14.0 and does not
-// accept a labeled break. The project file therefore removes this file from the compilation. The test framework reads
-// the file from the source directory, so the test still runs.
 
 namespace Metalama.Patterns.Observability.AspectTests.LabeledLoopInGetter;
 

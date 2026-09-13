@@ -5,6 +5,11 @@
         <TargetFramework>net10.0</TargetFramework>
         <Configurations>Debug;Release;LamaDebug</Configurations>
         <NoWarn>SA1402,SA1649,SA1623,SA1629</NoWarn>
+        <!-- This project compiles the test input files so that they can be edited and analysed, so a test of a
+             language feature that is still in preview needs the preview language version here. The value has no
+             effect on the language version of an aspect test, which the test framework takes from the
+             @LanguageVersion directive of the test file. See issues #1947 and #1949. -->
+        <LangVersion>preview</LangVersion>
     </PropertyGroup>
 
     <ItemGroup>        
@@ -18,16 +23,6 @@
 
     <ItemGroup>
       <ProjectReference Include="..\..\Metalama.Patterns.Observability\Metalama.Patterns.Observability.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <!-- This test contains a labeled break and a labeled continue. The statements are legal from C# 15 on, and this
-             project is pinned to language version 14, so the compilation of the project reports an error for them. The
-             test framework reads the file from the source directory and not from the compilation, so removing the file
-             from the compilation does not remove the test. Remove these items when the project moves to a language
-             version that accepts the statements. See issues #1947 and #1937. -->
-        <Compile Remove="LabeledLoopInGetter.cs" />
-        <None Include="LabeledLoopInGetter.cs" />
     </ItemGroup>
 
     <ItemGroup>

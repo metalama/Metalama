@@ -9,10 +9,6 @@
 // The target method carries a labeled loop, a labeled break and a labeled continue, and two aspects override it. The
 // template annotator runs inside a template only, so it does not report the run-time code of the target, and the
 // inlining has to keep the jumps targeting the loop they targeted in the source. See issue #1947.
-//
-// The project compiles its own test sources at the language version of LangMaxVersion, which is 14.0 and does not
-// accept a labeled break. The project file therefore removes this file from the compilation. The test framework
-// reads the file from the source directory, so the test still runs.
 
 using Metalama.Framework.Aspects;
 using System;
