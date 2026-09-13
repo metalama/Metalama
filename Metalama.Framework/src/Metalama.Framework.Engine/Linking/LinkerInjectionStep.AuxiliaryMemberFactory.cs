@@ -59,33 +59,40 @@ internal sealed partial class LinkerInjectionStep
         {
             // The positional parameter list of a record read from source is taken from its declaration. A record that
             // an aspect introduces has no declaration in the source compilation, because the declaration is produced
-            // by this injection step, so the parameter list is taken from the code model instead. See issue #2020.
-            var syntax = constructor is IIntroducedRef ? null : (TypeDeclarationSyntax) constructor.GetPrimaryDeclarationSyntax().AssertNotNull();
+            // by this injection step, so its parameter list is taken from the code model instead. See issue #2020.
+            // The constructor chains to the one that the record declares, which takes the positional parameters alone,
+            // so thisArguments holds those parameters and parameters holds them plus any that an aspect appends.
+            SyntaxGenerationContext syntaxGenerationContext;
+            ParameterListSyntax parameters;
+            SeparatedSyntaxList<ParameterSyntax> thisArguments;
 
-            var syntaxGenerationContext =
-                syntax != null
-                    ? this.CompilationContext.GetSyntaxGenerationContext( this.SyntaxGenerationOptions, syntax )
-                    : this.CompilationContext.GetSyntaxGenerationContext( this.SyntaxGenerationOptions );
+            if ( constructor is IIntroducedRef )
+            {
+                syntaxGenerationContext = this.CompilationContext.GetSyntaxGenerationContext( this.SyntaxGenerationOptions );
 
-            var parameters =
-                syntax != null
-                    ? syntax.ParameterList.AssertNotNull()
-                    : syntaxGenerationContext.SyntaxGenerator.ParameterList(
+                parameters =
+                    syntaxGenerationContext.SyntaxGenerator.ParameterList(
                         constructor.GetTarget( this._finalCompilationModel ),
                         this._finalCompilationModel );
 
-            // The constructor chains to the one that the record declares, which takes the positional parameters alone.
-            // A parameter that an aspect appends is therefore not passed on, which is what the source path did when it
-            // read the arguments from the declaration of the record.
-            var thisArguments = parameters.Parameters;
-
-            if ( syntax != null
-                 && this._transformationCollection.TryGetMemberLevelTransformations( syntax, out var memberTransformations )
-                 && memberTransformations.Parameters.Length > 0 )
+                thisArguments = parameters.Parameters;
+            }
+            else
             {
-                parameters =
-                    parameters.AddParameters(
-                        memberTransformations.Parameters.SelectAsArray( p => p.ToSyntax( syntaxGenerationContext, this._finalCompilationModel ) ) );
+                var syntax = (TypeDeclarationSyntax) constructor.GetPrimaryDeclarationSyntax().AssertNotNull();
+
+                syntaxGenerationContext = this.CompilationContext.GetSyntaxGenerationContext( this.SyntaxGenerationOptions, syntax );
+                parameters = syntax.ParameterList.AssertNotNull();
+                thisArguments = parameters.Parameters;
+
+                if ( this._transformationCollection.TryGetMemberLevelTransformations( syntax, out var memberTransformations )
+                     && memberTransformations.Parameters.Length > 0 )
+                {
+                    parameters =
+                        parameters.AddParameters(
+                            memberTransformations.Parameters.SelectAsArray(
+                                p => p.ToSyntax( syntaxGenerationContext, this._finalCompilationModel ) ) );
+                }
             }
 
             parameters =

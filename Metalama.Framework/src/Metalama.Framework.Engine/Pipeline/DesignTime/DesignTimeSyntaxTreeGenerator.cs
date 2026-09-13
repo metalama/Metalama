@@ -304,9 +304,11 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
 
                             if ( injectMemberTransformation is IIntroduceDeclarationTransformation { DeclarationBuilderData: NamedTypeBuilderData } )
                             {
-                                // TODO: This is not optimal - the injected member should be skipped instead.
-                                //       However, determining whether the type should be injected as a member depends on transformations after this
-                                //       one, so we would need two passes.
+                                // The introduced type reaches this point only when nothing was introduced into it,
+                                // because the pass that reads the buckets hands the transformation of a type that has
+                                // a bucket of its own to that bucket. The declaration is emitted here as a member of
+                                // the containing type, and it is declared partial so that another generated file can
+                                // carry a part of it.
                                 injectedMembers = AddPartialModifierToTypes( injectedMembers );
                             }
 

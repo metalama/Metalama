@@ -653,16 +653,9 @@ internal sealed partial class LinkerInjectionStep
                             break;
                         }
 
-                    // The union kind is named under its own condition, in the manner of
-                    // SyntaxKindExtensions.IsTypeDeclaration, because the lower Roslyn variant does not declare it.
                     // A union accepts injected members like any other type declaration, and VisitTypeDeclaration
                     // replaces the semicolon of its declaration by a pair of braces. See issue #1944.
-                    case SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration or SyntaxKind.RecordDeclaration
-                        or SyntaxKind.RecordStructDeclaration
-#if ROSLYN_5_11_0_OR_GREATER
-                        or SyntaxKind.UnionDeclaration
-#endif
-                        when injectedNode is TypeDeclarationSyntax typeDeclaration:
+                    case var typeDeclarationKind when typeDeclarationKind.IsTypeDeclaration && injectedNode is TypeDeclarationSyntax typeDeclaration:
 
                         var typeBuilder = (NamedTypeBuilderData) injectedMember.BuilderData.AssertNotNull();
                         var injectedTypeMembers = new List<MemberDeclarationSyntax>();

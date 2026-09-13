@@ -364,8 +364,8 @@ namespace Metalama.Framework.Engine.Advising
             UnionMustDeclareACase = new(
                 "LAMA0554",
                 "Cannot introduce a union that declares no case.",
-                "The aspect '{0}' cannot introduce the union '{1}' because it declares no case. A union declaration must declare at least one case, "
-                + "and the compiler reports CS9370 when it declares none. Call 'AddCase' at least once in the callback that builds the union.",
+                "The aspect '{0}' cannot introduce the union '{1}' because a union declaration must declare at least one case. "
+                + "Call 'AddCase' at least once in the callback that builds the union.",
                 _category,
                 Error );
 
@@ -373,9 +373,9 @@ namespace Metalama.Framework.Engine.Advising
             CannotIntroduceStateIntoUnion = new(
                 "LAMA0555",
                 "Cannot introduce an instance field, an automatic property or a field-like event into a union.",
-                "The aspect '{0}' cannot introduce {1} into the union '{2}' because the language does not permit an instance field, "
-                + "an automatic property or a field-like event in a union declaration, and reports CS9373 when it finds one. "
-                + "Introduce a property whose accessors have a body, or an event whose accessors have a body.",
+                "The aspect '{0}' cannot introduce {1} into the union '{2}' because a union declaration permits no instance field, "
+                + "no automatic property and no field-like event. Introduce a property whose accessors have a body, or an event whose "
+                + "accessors have a body.",
                 _category,
                 Error );
 

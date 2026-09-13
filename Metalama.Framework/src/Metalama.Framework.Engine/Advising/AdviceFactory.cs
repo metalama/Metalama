@@ -554,7 +554,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         {
             throw new InvalidOperationException(
                 MetalamaStringFormatter.Format(
-                    $"Cannot introduce {introduced} into '{declaration}' because it is {(namedType.TypeKind == TypeKind.Enum ? "an enum" : "a delegate")}, which declares no member that an aspect can introduce." ) );
+                    $"Cannot introduce {introduced} into '{declaration}' because it is {namedType.TypeKind.GetDisplayName( true )}, which declares no member that an aspect can introduce." ) );
         }
     }
 
