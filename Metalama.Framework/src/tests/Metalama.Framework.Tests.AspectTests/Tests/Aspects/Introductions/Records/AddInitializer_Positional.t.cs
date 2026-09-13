@@ -11,7 +11,7 @@ public class TargetType
     public Positional(global::System.Int32 Value)
     {
       this.Value = Value;
-      global::System.Console.WriteLine("Constructing Positional.");
+      global::System.Console.WriteLine("Initializing Positional.");
     }
   }
 }

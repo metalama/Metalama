@@ -29,16 +29,6 @@ internal sealed class OverrideConstructorAdvice : OverrideMemberAdvice<IConstruc
     {
         var constructor = this.TargetDeclaration;
 
-        if ( IntroducedPrimaryConstructorValidator.IsIntroducedPrimaryConstructor( constructor ) )
-        {
-            return this.CreateFailedResult(
-                IntroducedPrimaryConstructorValidator.CreateRefusalDiagnostic(
-                    constructor,
-                    this.AdviceKind,
-                    this.AspectInstance.AspectClass.ShortName,
-                    this ) );
-        }
-
         if ( constructor.IsImplicitInstanceConstructor() )
         {
             // Missing implicit ctor.

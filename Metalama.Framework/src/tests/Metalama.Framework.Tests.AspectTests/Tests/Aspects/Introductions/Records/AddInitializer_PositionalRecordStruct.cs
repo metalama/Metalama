@@ -2,39 +2,36 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using System;
-using System.Linq;
 
-namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Introductions.Records.OverridePrimaryConstructor;
+namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Introductions.Records.AddInitializer_PositionalRecordStruct;
 
 public class IntroductionAttribute : TypeAspect
 {
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        // Overriding the primary constructor of a record replaces it with an explicit one, which is the same
-        // replacement that an initializer placed before an instance constructor performs. The body that
-        // meta.Proceed() reaches is the one that assigns the positional parameters to their properties.
+        // The record struct is the second authoring form of the replacement that AddInitializer_Positional covers on
+        // a record class. A record struct has a parameterless constructor of its own, because every struct has one,
+        // so the declaration carries it beside the constructor that takes the positional parameter.
         var positional = builder.IntroduceRecord(
             "Positional",
-            RecordKind.Class,
+            RecordKind.Struct,
             buildRecord: r =>
             {
                 r.Accessibility = Accessibility.Public;
                 r.AddPositionalParameter( "Value", typeof(int) );
             } );
 
-        var primaryConstructor = positional.Declaration.Constructors.Single( c => c.IsPrimary );
-
-        builder.With( primaryConstructor ).Override( nameof(Template) );
+        builder.With( positional.Declaration ).AddInitializer( nameof(Template), InitializerKind.BeforeInstanceConstructor );
     }
 
     [Template]
     public void Template()
     {
-        Console.WriteLine( $"Constructing {meta.Target.Type.Name}." );
-        meta.Proceed();
+        Console.WriteLine( $"Initializing {meta.Target.Type.Name}." );
     }
 }
 

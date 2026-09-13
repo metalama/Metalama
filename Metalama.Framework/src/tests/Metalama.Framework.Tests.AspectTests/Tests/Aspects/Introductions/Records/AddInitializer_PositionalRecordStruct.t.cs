@@ -1,7 +1,7 @@
 [Introduction]
 public class TargetType
 {
-  public record Positional
+  public record struct Positional
   {
     public global::System.Int32 Value { get; init; }
     public void Deconstruct(out global::System.Int32 Value)
@@ -11,7 +11,11 @@ public class TargetType
     public Positional(global::System.Int32 Value)
     {
       this.Value = Value;
-      global::System.Console.WriteLine("Constructing Positional.");
+      global::System.Console.WriteLine("Initializing Positional.");
+    }
+    public Positional()
+    {
+      global::System.Console.WriteLine("Initializing Positional.");
     }
   }
 }

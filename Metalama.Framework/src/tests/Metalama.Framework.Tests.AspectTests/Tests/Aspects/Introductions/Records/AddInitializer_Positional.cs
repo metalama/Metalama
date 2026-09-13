@@ -7,18 +7,17 @@ using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using System;
 
-namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Introductions.Records.AddInitializer_PositionalError;
+namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Introductions.Records.AddInitializer_Positional;
 
 public class IntroductionAttribute : TypeAspect
 {
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        // An initializer that runs before an instance constructor replaces the primary constructor with an
-        // explicit one. The linker performs that replacement for a record read from source, which
-        // Initialization/BeforeInstanceConstructor_Record_Primary covers, and the step that builds the explicit
-        // constructor reads the positional parameter list from the declaring syntax, which an introduced record does
-        // not have. The advice therefore reports LAMA0553 instead of failing inside the linker. Issue #2020 tracks
-        // serving the advice by taking that parameter list from the builder data.
+        // An initializer that runs before an instance constructor replaces the primary constructor of the record
+        // with an explicit one, exactly as it does for a record read from source, which
+        // Initialization/BeforeInstanceConstructor_Record_Primary covers. The declaration therefore loses its
+        // positional parameter list and gains the positional property, the Deconstruct method and the constructor
+        // that runs the initializer.
         var positional = builder.IntroduceRecord(
             "Positional",
             RecordKind.Class,

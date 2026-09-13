@@ -57,13 +57,30 @@ internal sealed partial class LinkerInjectionStep
 
         public ConstructorDeclarationSyntax GetAuxiliarySourceConstructor( IFullRef<IConstructor> constructor )
         {
-            var syntax = (TypeDeclarationSyntax) constructor.GetPrimaryDeclarationSyntax().AssertNotNull();
+            // The positional parameter list of a record read from source is taken from its declaration. A record that
+            // an aspect introduces has no declaration in the source compilation, because the declaration is produced
+            // by this injection step, so the parameter list is taken from the code model instead. See issue #2020.
+            var syntax = constructor is IIntroducedRef ? null : (TypeDeclarationSyntax) constructor.GetPrimaryDeclarationSyntax().AssertNotNull();
 
-            var syntaxGenerationContext = this.CompilationContext.GetSyntaxGenerationContext( this.SyntaxGenerationOptions, syntax );
+            var syntaxGenerationContext =
+                syntax != null
+                    ? this.CompilationContext.GetSyntaxGenerationContext( this.SyntaxGenerationOptions, syntax )
+                    : this.CompilationContext.GetSyntaxGenerationContext( this.SyntaxGenerationOptions );
 
-            var parameters = syntax.ParameterList.AssertNotNull();
+            var parameters =
+                syntax != null
+                    ? syntax.ParameterList.AssertNotNull()
+                    : syntaxGenerationContext.SyntaxGenerator.ParameterList(
+                        constructor.GetTarget( this._finalCompilationModel ),
+                        this._finalCompilationModel );
 
-            if ( this._transformationCollection.TryGetMemberLevelTransformations( syntax, out var memberTransformations )
+            // The constructor chains to the one that the record declares, which takes the positional parameters alone.
+            // A parameter that an aspect appends is therefore not passed on, which is what the source path did when it
+            // read the arguments from the declaration of the record.
+            var thisArguments = parameters.Parameters;
+
+            if ( syntax != null
+                 && this._transformationCollection.TryGetMemberLevelTransformations( syntax, out var memberTransformations )
                  && memberTransformations.Parameters.Length > 0 )
             {
                 parameters =
@@ -93,7 +110,7 @@ internal sealed partial class LinkerInjectionStep
                     SyntaxKind.ThisConstructorInitializer,
                     ArgumentList(
                         SeparatedList(
-                            syntax.ParameterList.Parameters.SelectAsArray(
+                            thisArguments.SelectAsArray(
                                 p =>
                                     Argument(
                                         null,

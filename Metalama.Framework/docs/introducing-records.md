@@ -266,21 +266,21 @@ Member introduction is valid on a record, unlike on an enum and on a delegate. T
 [`introducing-types.md`](introducing-types.md) does not apply here, and an aspect may add methods, properties and
 constructors to an introduced record through the adviser in the ordinary way.
 
-Two advices are refused on the primary constructor of an introduced record: `AddInitializer` with
-`InitializerKind.BeforeInstanceConstructor`, and `Override` on the constructor itself. Both replace the primary
-constructor with an explicit one. The linker performs that replacement for a record read from source, which the aspect
-test `Initialization/BeforeInstanceConstructor_Record_Primary` shows: the record declaration loses its positional
-parameter list and gains the positional property, the `Deconstruct` method and an explicit constructor. The obstacle
-for an introduced record is one step of that work.
-`LinkerInjectionStep.AuxiliaryMemberFactory.GetAuxiliarySourceConstructor` reads the positional parameter list from
-the declaring syntax of the constructor, and the declaration of an introduced record is produced by the same injection
-step rather than read from source, so that syntax carries no parameter list and the step fails with an assertion.
-Metalama reports LAMA0553 from the advice rather than failing there. Serving the two advices would mean taking the
-parameter list from the builder data instead, which is issue #2020.
+Two advices replace the primary constructor of an introduced record with an explicit one: `AddInitializer` with
+`InitializerKind.BeforeInstanceConstructor`, and `Override` on the constructor itself. Both are served, and both
+produce the same shape as they do for a record read from source: the declaration loses its positional parameter
+list and gains the positional property, the `Deconstruct` method and an explicit constructor that carries the
+statements. The aspect tests `Introductions/Records/AddInitializer_Positional` and
+`Introductions/Records/OverridePrimaryConstructor` show it, beside
+`Initialization/BeforeInstanceConstructor_Record_Primary` and
+`Initialization/BeforeInstanceConstructor_RecordStruct_Primary`, which show the same two records read from source.
 
-Two alternatives are available. The first is to introduce the record without a positional parameter, which gives it
-the implicit parameterless constructor that both advices do serve. The second is to introduce a constructor of its own
-and to put the statements in the template of that constructor.
+`LinkerInjectionStep.AuxiliaryMemberFactory.GetAuxiliarySourceConstructor` builds the explicit constructor. It
+reads the positional parameter list from the declaring syntax of the constructor for a record read from source, and
+from the code model for an introduced record, whose declaration is produced by the same injection step and
+therefore carries no parameter list at that point. `LinkerInjectionRegistry` resolves the symbol of an introduced
+primary constructor from the builder data, in a pass that runs after the one that indexes the injected members,
+because that pass fills the map the resolution reads. Issue #2020 covers this work.
 
 A custom attribute added to the property that a positional parameter declares is written on the parameter with
 the `property` target, as in `record R( [property: Obsolete] int Value )`, which is the form the language provides
