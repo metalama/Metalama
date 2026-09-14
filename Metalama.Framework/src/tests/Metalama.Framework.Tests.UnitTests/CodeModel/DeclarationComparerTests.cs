@@ -8,6 +8,11 @@ using Metalama.Testing.UnitTesting;
 using System.Collections.Generic;
 using System.Linq;
 using Xunit;
+#if ROSLYN_5_11_0_OR_GREATER && NET7_0_OR_GREATER
+using Metalama.Framework.Engine.Utilities;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+#endif
 
 // ReSharper disable InconsistentNaming
 
@@ -498,5 +503,86 @@ class B : A, I
             // B to int is NOT identical (even though there's an implicit operator).
             Assert.False( comparer.IsConvertibleTo( typeB, typeof(int), ConversionKind.Identical, bypassSymbols ) );
         }
+
+#if ROSLYN_5_11_0_OR_GREATER && NET7_0_OR_GREATER
+
+        // The union is a C# 15 feature, so only the latest Roslyn variant parses it. The test is further restricted
+        // to .NET 7 and later, because the compiler emits CompilerFeatureRequiredAttribute on the members of a union
+        // and .NET Framework does not declare that type.
+
+        /// <summary>
+        /// The declarations that the compiler requires of a union. No target framework declares them yet, and the
+        /// compiler reports CS0656 when it cannot find them, so the compilation declares them.
+        /// </summary>
+        private const string _unionSupportCode = @"
+using System;
+
+namespace System.Runtime.CompilerServices
+{
+    [AttributeUsage( AttributeTargets.Class | AttributeTargets.Struct )]
+    public sealed class UnionAttribute : Attribute { }
+
+    public interface IUnion { }
+}
+";
+
+        private const string _unionCode = @"
+union Pet( Cat, Dog );
+
+record Cat( string Name );
+
+record Dog( string Name );
+
+record Fish( string Name );
+";
+
+        /// <summary>
+        /// Verifies the conversions that the language grants a union, which issue #1945 asks for. The conversion from
+        /// a case type to its union is implicit and is not a conversion operator, so the reimplementation that answers
+        /// when the delegation to Roslyn is suppressed has to know it.
+        /// </summary>
+        [Theory]
+        [InlineData( false )]
+        [InlineData( true )]
+        public void ConversionsOfAUnion( bool bypassSymbols )
+        {
+            using var testContext = this.CreateTestContext();
+
+            var parseOptions = SupportedCSharpVersions.DefaultParseOptions;
+
+            var roslynCompilation = testContext.CreateEmptyCSharpCompilation( null )
+                .AddSyntaxTrees(
+                    CSharpSyntaxTree.ParseText( _unionSupportCode, parseOptions, "support.cs" ),
+                    CSharpSyntaxTree.ParseText( _unionCode, parseOptions, "unions.cs" ) );
+
+            Assert.Empty( roslynCompilation.GetDiagnostics().Where( d => d.Severity == DiagnosticSeverity.Error ) );
+
+            var compilation = testContext.CreateCompilationModel( roslynCompilation );
+
+            var pet = compilation.Types.OfName( "Pet" ).Single();
+            var cat = compilation.Types.OfName( "Cat" ).Single();
+            var dog = compilation.Types.OfName( "Dog" ).Single();
+            var fish = compilation.Types.OfName( "Fish" ).Single();
+
+            var comparer = (DeclarationEqualityComparer) compilation.CompilationContext.Comparers.Default;
+
+            // Each case type converts implicitly to the union.
+            Assert.True( comparer.IsConvertibleTo( cat, pet, ConversionKind.Implicit, bypassSymbols ) );
+            Assert.True( comparer.IsConvertibleTo( dog, pet, ConversionKind.Implicit, bypassSymbols ) );
+
+            // A type that is not a case of the union does not.
+            Assert.False( comparer.IsConvertibleTo( fish, pet, ConversionKind.Implicit, bypassSymbols ) );
+
+            // The conversion has no reverse.
+            Assert.False( comparer.IsConvertibleTo( pet, cat, ConversionKind.Implicit, bypassSymbols ) );
+
+            // The conversion creates a new value, so it is neither a reference conversion nor a conversion that the
+            // 'is' operator accepts, and it is not an identity conversion either.
+            Assert.False( comparer.IsConvertibleTo( cat, pet, ConversionKind.Default, bypassSymbols ) );
+            Assert.False( comparer.IsConvertibleTo( cat, pet, ConversionKind.Reference, bypassSymbols ) );
+            Assert.False( comparer.IsConvertibleTo( cat, pet, ConversionKind.Identical, bypassSymbols ) );
+        }
+
+#endif
     }
 }
