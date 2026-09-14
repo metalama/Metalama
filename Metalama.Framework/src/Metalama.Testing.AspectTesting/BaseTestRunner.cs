@@ -386,17 +386,45 @@ internal abstract partial class BaseTestRunner
             {
                 // ReSharper enable UnusedParameter.Local
                 // Add system documents.
+                //
+                // The test runner compiles the test source files into a compilation of its own, whose references are
+                // the references of the test project. The system type polyfills that the test project compiles are
+                // therefore not visible here, because the assembly of the test project is not one of those
+                // references. A type that the reference assemblies of the target framework do not declare has to be
+                // declared in this compilation instead.
+                //
+                // Each declaration below is compiled under the condition of the target framework that lacks the type,
+                // so that it disappears once the reference assemblies declare it.
+                var systemTypes = new StringBuilder();
+
 #if NETFRAMEWORK
+                // .NET Framework does not declare IsExternalInit, which an init accessor requires.
+                systemTypes.Append( "namespace System.Runtime.CompilerServices { internal static class IsExternalInit {} }" );
+#endif
+
+#if !NET11_0_OR_GREATER
+
+                // IUnion and UnionAttribute belong to .NET 11. The compiler requires both of a union declaration, and
+                // reports CS0518 for the interface and CS0656 for the constructor of the attribute when they are
+                // absent.
+                systemTypes.Append(
+                    "namespace System.Runtime.CompilerServices { internal interface IUnion { object? Value { get; } } "
+                    + "[AttributeUsage( AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = false, Inherited = false )] "
+                    + "internal sealed class UnionAttribute : Attribute { } }" );
+#endif
+
+                if ( systemTypes.Length == 0 )
+                {
+                    return project;
+                }
+
                 var (newProject, _) = await AddDocumentAsync(
                     project,
                     parseOptions,
                     "___Platform.cs",
-                    "namespace System.Runtime.CompilerServices { internal static class IsExternalInit {}}" );
+                    "using System;" + systemTypes );
 
                 return newProject;
-#else
-                return project;
-#endif
             }
 #pragma warning restore CS1998
 

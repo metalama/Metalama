@@ -1,6 +1,0 @@
-{
-    // The two types that the compiler requires of a union declaration are declared once, in a file that every test of
-    // this directory receives. See the comment at the top of that file for why the polyfill that
-    // PostSharp.Engineering ships does not serve a test compilation.
-    "IncludedFiles": [ "../../../Common/__UnionSystemTypes.cs" ]
-}
