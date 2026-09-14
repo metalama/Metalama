@@ -428,8 +428,15 @@ namespace Metalama.Framework.Engine.CompileTime
                     // System.Runtime.CompilerServices.RuntimeFeature. The C# compiler therefore reports that the target runtime
                     // does not support inline array types. The attribute is detected on the symbol, so that the diagnostic is
                     // reported whether the attribute comes from the framework or from a declaration of the user.
+                    // A partial type is visited once for each of its declarations, and the symbol carries the attributes of all
+                    // of them, so only the declaration that contains the attribute reports the diagnostic. Without this condition,
+                    // the diagnostic would be reported once per declaration.
                     if ( symbol.GetAttributes()
-                        .Any( a => a.AttributeClass?.GetFullName() == "System.Runtime.CompilerServices.InlineArrayAttribute" ) )
+                        .Any(
+                            a => a.AttributeClass?.GetFullName() == "System.Runtime.CompilerServices.InlineArrayAttribute"
+                                 && a.ApplicationSyntaxReference is { } applicationSyntaxReference
+                                 && applicationSyntaxReference.SyntaxTree == node.SyntaxTree
+                                 && node.Span.Contains( applicationSyntaxReference.Span ) ) )
                     {
                         this._diagnosticAdder.Report(
                             TemplatingDiagnosticDescriptors.LanguageFeatureNotSupportedInCompileTimeCode.CreateRoslynDiagnostic(
