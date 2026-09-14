@@ -13,9 +13,13 @@ using System.Runtime.CompilerServices;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 
-// Having a custom InlineArrayAttribute that is RunTimeOrCompileTime still doesn't allow using it at compile-time
-// (because it's considered system type and is removed from the compile-time compilation).
-// This does not seem to be an important use-case, so it's probably not worth fixing.
+// An inline array cannot be used at compile time, whether or not the code declares an InlineArrayAttribute of its
+// own that is RunTimeOrCompileTime. The compile-time compilation targets a runtime that does not support an inline
+// array, so the compiler reports CS9171 and the member that the indexer lowers to is missing.
+//
+// Until PostSharp.Engineering 2023.2.450 the attribute was not resolved at all, and the errors were CS0246 and
+// CS0021 instead. That version polyfills the system types of .NET 11 and earlier, InlineArrayAttribute among them.
+// The use case fails either way and is not important enough to serve.
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp12.InlineArrays_CompileTime_CustomAttribute
 {
