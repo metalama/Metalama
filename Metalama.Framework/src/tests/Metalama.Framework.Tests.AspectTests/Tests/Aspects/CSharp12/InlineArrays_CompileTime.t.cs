@@ -1,2 +1,2 @@
 // CompileTimeAspectPipeline.ExecuteAsync failed.
-// Error LAMA0281 on `InlineArray( 10 )`: `The attribute 'InlineArrayAttribute' is not allowed on the compile-time declaration 'Buffer', because it wouldn't have the expected effect.`
+// Error LAMA0294 on `Buffer`: `The declaration 'Buffer' cannot use the C# feature 'inline arrays', because compile-time code is compiled for netstandard2.0, which does not support this feature.`
