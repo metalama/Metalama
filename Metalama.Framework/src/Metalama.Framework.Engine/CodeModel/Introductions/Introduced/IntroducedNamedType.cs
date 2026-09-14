@@ -8,7 +8,6 @@ using Metalama.Framework.Code.Comparers;
 using Metalama.Framework.Code.Types;
 using Metalama.Framework.Engine.CodeModel.Abstractions;
 using Metalama.Framework.Engine.CodeModel.Collections;
-using Metalama.Framework.Engine.CodeModel.Facets;
 using Metalama.Framework.Engine.CodeModel.GenericContexts;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 using Metalama.Framework.Engine.CodeModel.Introductions.ConstructedTypes;
@@ -17,7 +16,6 @@ using Metalama.Framework.Engine.CodeModel.Visitors;
 using Metalama.Framework.Engine.Utilities;
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using SpecialType = Metalama.Framework.Code.SpecialType;
@@ -213,7 +211,7 @@ internal sealed class IntroducedNamedType : IntroducedMemberOrNamedType, INamedT
     /// </para>
     /// </remarks>
     [Memo]
-    public ITypeFacetCollection Facets => TypeFacetCollection.Create( this );
+    public ITypeFacetCollection Facets => IntroducedTypeFacetCollection.Create( this );
 
     public INamedType TypeDefinition => this.Definition;
 
@@ -269,7 +267,6 @@ internal sealed class IntroducedNamedType : IntroducedMemberOrNamedType, INamedT
     public bool IsDelegate => this._namedTypeBuilderData.TypeKind == TypeKind.Delegate;
 
     public bool IsEnum => this._namedTypeBuilderData.TypeKind == TypeKind.Enum;
-
 
     public bool IsRecord => this._namedTypeBuilderData.IsRecord;
 
