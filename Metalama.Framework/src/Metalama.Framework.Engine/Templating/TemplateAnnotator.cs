@@ -1373,10 +1373,35 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
     }
 
     public override SyntaxNode VisitBreakStatement( BreakStatementSyntax node )
-        => node.AddScopeAnnotation( this._currentScopeContext.CurrentBreakOrContinueScope );
+    {
+#if ROSLYN_5_11_0_OR_GREATER
+
+        // A labeled break is reported instead of being classified. The label belongs to a loop whose scope may differ
+        // from the scope of this statement, so the annotator cannot decide the scope of the statement. See section 5 of
+        // Metalama.Framework/docs/2027.0/DECISIONS.md. The Name property is declared by the latest Roslyn variant only,
+        // because the labeled jump is a C# 15 feature.
+        if ( node.Name != null )
+        {
+            this.ReportUnsupportedLanguageFeature( node.Name, "labeled break" );
+        }
+#endif
+
+        return node.AddScopeAnnotation( this._currentScopeContext.CurrentBreakOrContinueScope );
+    }
 
     public override SyntaxNode VisitContinueStatement( ContinueStatementSyntax node )
-        => node.AddScopeAnnotation( this._currentScopeContext.CurrentBreakOrContinueScope );
+    {
+#if ROSLYN_5_11_0_OR_GREATER
+
+        // See the comment of VisitBreakStatement.
+        if ( node.Name != null )
+        {
+            this.ReportUnsupportedLanguageFeature( node.Name, "labeled continue" );
+        }
+#endif
+
+        return node.AddScopeAnnotation( this._currentScopeContext.CurrentBreakOrContinueScope );
+    }
 
     public override SyntaxNode VisitForEachStatement( ForEachStatementSyntax node )
     {
@@ -2603,6 +2628,17 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
         this.ReportUnsupportedLanguageFeature( node.GotoKeyword, "goto" );
 
         return base.VisitGotoStatement( node );
+    }
+
+    public override SyntaxNode? VisitLabeledStatement( LabeledStatementSyntax node )
+    {
+        // A label is reported for the same reason as a labeled break or a labeled continue: the annotator cannot decide
+        // whether the label is run-time or compile-time. See section 5 of Metalama.Framework/docs/2027.0/DECISIONS.md.
+        // This override reports the label that the aspect author wrote. The labeled statement that
+        // TemplateCompilerRewriter generates does not pass through the annotator and is not affected.
+        this.ReportUnsupportedLanguageFeature( node.Identifier, "label" );
+
+        return base.VisitLabeledStatement( node );
     }
 
     public override SyntaxNode VisitLocalFunctionStatement( LocalFunctionStatementSyntax node )
