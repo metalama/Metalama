@@ -972,10 +972,14 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                     closeBraceToken: closeBrace,
                     semicolonToken: default ),
 #if ROSLYN_5_11_0_OR_GREATER
-                // A union is reported as a struct, so it is named before the struct arm, which would otherwise emit
-                // a partial struct against a partial union and make the compiler report CS0261. The partial part
-                // carries no case list, because the part that the introduction transformation emits carries it.
-                TypeKind.Struct when type.IsUnion => UnionDeclaration(
+                // A union declaration is reported as a struct, so it is named before the struct arm, which would
+                // otherwise emit a partial struct against a partial union and make the compiler report CS0261. The
+                // partial part carries no case list, because the part that the introduction transformation emits
+                // carries it.
+                //
+                // The attribute form is excluded, because it is an ordinary class or struct in the source and a
+                // partial part written with the union keyword would be the CS0261 that this arm exists to avoid.
+                TypeKind.Struct when type.Facets.Union?.UnionKind == Code.Types.UnionKind.Declaration => UnionDeclaration(
                     attributeLists: default,
                     modifiers,
                     keyword: SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.UnionKeyword ),

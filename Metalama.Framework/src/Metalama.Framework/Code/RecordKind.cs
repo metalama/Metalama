@@ -21,16 +21,11 @@ namespace Metalama.Framework.Code;
 public enum RecordKind
 {
     /// <summary>
-    /// The type is not a record. This is the default value of the enumeration, and it is not a form that
-    /// <see cref="Metalama.Framework.Aspects.AdviserExtensions.IntroduceRecord"/> accepts.
-    /// </summary>
-    None = 0,
-
-    /// <summary>
-    /// The record is a reference type, declared as <c>record</c> or <c>record class</c>. This is the form that
+    /// The record is a reference type, declared as <c>record</c> or <c>record class</c>. This is the default value
+    /// of the enumeration and the form that
     /// <see cref="Metalama.Framework.Aspects.AdviserExtensions.IntroduceRecord"/> introduces by default.
     /// </summary>
-    Class,
+    Class = 0,
 
     /// <summary>
     /// The record is a value type, declared as <c>record struct</c>.

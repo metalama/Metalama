@@ -6,6 +6,7 @@ using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.DeclarationBuilders;
+using Metalama.Framework.Code.Types;
 using Metalama.Framework.Engine.AdviceImpl.Override;
 using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.CodeModel.Helpers;
@@ -84,7 +85,10 @@ internal sealed class IntroduceFieldAdvice : IntroduceMemberAdvice<IField, IFiel
         // The language does not permit an instance field in a union declaration. A static field holds no
         // state of the value and is permitted, so the refusal is decided here, where the shape of the member is
         // known, and not by an eligibility rule, which sees the target type alone.
-        if ( !builder.IsStatic && targetDeclaration.IsUnion )
+        //
+        // The restriction belongs to the declaration form only. The attribute form is a class or a struct that the
+        // author writes, including its storage, so an instance field is legal there.
+        if ( !builder.IsStatic && targetDeclaration.Facets.Union?.UnionKind == UnionKind.Declaration )
         {
             return this.CreateFailedResult(
                 AdviceDiagnosticDescriptors.CannotIntroduceStateIntoUnion.CreateRoslynDiagnostic(

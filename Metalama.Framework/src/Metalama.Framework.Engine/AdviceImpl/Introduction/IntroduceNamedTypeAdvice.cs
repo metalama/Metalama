@@ -19,9 +19,9 @@ internal sealed class IntroduceNamedTypeAdvice : IntroduceDeclarationAdvice<INam
     private readonly TypeKind _typeKind;
 
     /// <summary>
-    /// The authoring form of a record, or <see cref="RecordKind.None"/> when the introduced type is not a record.
+    /// The authoring form of a record, or <c>null</c> when the introduced type is not a record.
     /// </summary>
-    private readonly RecordKind _recordKind;
+    private readonly RecordKind? _recordKind;
 
     /// <summary>
     /// A value indicating whether the introduced type is a union written with the <c>union</c> keyword, which the
@@ -39,7 +39,7 @@ internal sealed class IntroduceNamedTypeAdvice : IntroduceDeclarationAdvice<INam
         OverrideStrategy overrideStrategy,
         Action<NamedTypeBuilder>? buildAction,
         TypeKind typeKind,
-        RecordKind recordKind = RecordKind.None,
+        RecordKind? recordKind = null,
         bool isUnion = false )
         : base( parameters, buildAction )
     {
@@ -60,9 +60,9 @@ internal sealed class IntroduceNamedTypeAdvice : IntroduceDeclarationAdvice<INam
         {
             return new UnionBuilder( this.AspectLayerInstance, target, this._explicitName );
         }
-        else if ( this._recordKind != RecordKind.None )
+        else if ( this._recordKind != null )
         {
-            return new RecordBuilder( this.AspectLayerInstance, target, this._explicitName, this._recordKind );
+            return new RecordBuilder( this.AspectLayerInstance, target, this._explicitName, this._recordKind.Value );
         }
         else
         {

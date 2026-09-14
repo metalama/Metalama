@@ -6,6 +6,7 @@ using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.DeclarationBuilders;
+using Metalama.Framework.Code.Types;
 using Metalama.Framework.Engine.AdviceImpl.Override;
 using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.CodeModel;
@@ -185,8 +186,10 @@ internal sealed class IntroduceEventAdvice : IntroduceMemberAdvice<IEvent, IEven
         var isEventField = eventTemplateDeclaration == null || eventTemplateDeclaration.IsEventField() == true;
         var hasNoOverrideSemantics = hasNoBody || (eventTemplateDeclaration != null && eventTemplateDeclaration.IsEventField() == true);
 
-        // A field-like event holds a field, and the language does not permit one in a union declaration.
-        if ( isEventField && !builder.IsStatic && targetDeclaration.IsUnion )
+        // A field-like event holds a field, and the language does not permit one in a union declaration. The
+        // restriction belongs to the declaration form only, because the attribute form is a class or a struct that
+        // the author writes, including its storage.
+        if ( isEventField && !builder.IsStatic && targetDeclaration.Facets.Union?.UnionKind == UnionKind.Declaration )
         {
             return this.CreateFailedResult(
                 AdviceDiagnosticDescriptors.CannotIntroduceStateIntoUnion.CreateRoslynDiagnostic(
