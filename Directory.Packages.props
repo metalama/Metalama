@@ -13,7 +13,8 @@
          repository cannot consume it yet. The remarks of its CollectionBuilderAttribute reference ReadOnlySpan<T>
          through a cref, netstandard2.0 declares no such type, and CodeQuality.targets promotes the resulting CS1574
          to an error under ContinuousIntegrationBuild, so every project that targets netstandard2.0 fails to build.
-         Raise the version once that reference is written in a form that resolves in every target framework. -->
+         Raise the version once that reference is written in a form that resolves in every target framework, which is
+         postsharp-ops/PostSharp.Engineering#136. -->
     <PostSharpEngineeringVersion Condition="'$(PostSharpEngineeringVersion)'==''">2023.2.448</PostSharpEngineeringVersion>
 
 
