@@ -753,6 +753,20 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
 
     public override SyntaxNode VisitEnumDeclaration( EnumDeclarationSyntax node ) => this.VisitTypeDeclaration( node, n => base.VisitEnumDeclaration( n ) );
 
+#if ROSLYN_5_11_0_OR_GREATER
+    /// <summary>
+    /// Visits a union declaration, which is annotated with the scope of its declaration exactly as a struct
+    /// declaration is.
+    /// </summary>
+    /// <remarks>
+    /// The override exists only because Roslyn dispatches a virtual method per node kind. The default path annotates
+    /// an unhandled type declaration from its context rather than from its own symbol, and
+    /// <see cref="TextSpanClassifier" /> reads that annotation. See issue #1942.
+    /// </remarks>
+    public override SyntaxNode VisitUnionDeclaration( UnionDeclarationSyntax node )
+        => this.VisitTypeDeclaration( node, n => base.VisitUnionDeclaration( n ) );
+#endif
+
     private T VisitTypeDeclaration<T>( T node, Func<T, SyntaxNode?> callBase )
         where T : SyntaxNode
     {

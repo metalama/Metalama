@@ -1,0 +1,3 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0231 on `NestedUnion`: `The compile-time type 'TargetCode.NestedUnion' cannot be nested in a run-time type. The only compile-time type that can be nested in run-time type is a class inheriting 'TypeFabric'.`
+// Error LAMA0231 on `NestedStruct`: `The compile-time type 'TargetCode.NestedStruct' cannot be nested in a run-time type. The only compile-time type that can be nested in run-time type is a class inheriting 'TypeFabric'.`
