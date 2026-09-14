@@ -46,6 +46,14 @@
 
     </ItemGroup>
 
+    <!-- The system types are embedded as managed resources so that a test can request one with the @IncludePolyfill
+         option. See the Polyfills class. -->
+    <Import Sdk="PostSharp.Engineering.Sdk" Project="Assets.props" />
+
+    <ItemGroup>
+        <EmbeddedResource Include="$(AssetsDirectory)/system-types/*.cs" Link="(Resources)/%(Filename)" />
+    </ItemGroup>
+
     <ItemGroup>
         <InternalsVisibleTo Include="Metalama.Framework.Tests.AspectTests.$(ThisRoslynVersionNoPreview)" />
         <InternalsVisibleTo Include="Metalama.Framework.Tests.LinkerTests.$(ThisRoslynVersionNoPreview)" />

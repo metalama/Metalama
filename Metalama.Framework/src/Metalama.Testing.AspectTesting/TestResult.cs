@@ -92,27 +92,16 @@ internal class TestResult : IDisposable
             return false;
         }
 
-        // A file whose name begins with an underscore is added to the compilation by the test framework and is not
-        // part of the test. ___Polyfills.cs, which declares the system types that the reference assemblies of the
-        // target framework do not declare, and ___GlobalUsings.cs are the current ones. A warning reported on such a
-        // file belongs to no test and would otherwise appear in the expected output of every test that reports its
-        // diagnostics. An error is still reported, because it means the framework itself is broken.
-        if ( diagnostic.Severity < DiagnosticSeverity.Error && IsInTestFrameworkFile( diagnostic ) )
+        // A warning reported on a file that the test framework adds to the compilation belongs to no test and would
+        // otherwise appear in the expected output of every test that reports its diagnostics. An error is still
+        // reported, because it means that the framework itself is broken.
+        if ( diagnostic.Severity < DiagnosticSeverity.Error
+             && TestFrameworkFile.IsTestFrameworkFile( diagnostic.Location.SourceTree?.FilePath ) )
         {
             return false;
         }
 
         return true;
-    }
-
-    /// <summary>
-    /// Determines whether a diagnostic is reported on a file that the test framework adds to the compilation.
-    /// </summary>
-    private static bool IsInTestFrameworkFile( Diagnostic diagnostic )
-    {
-        var path = diagnostic.Location.SourceTree?.FilePath;
-
-        return path != null && Path.GetFileName( path ).StartsWith( "_", StringComparison.Ordinal );
     }
 
     // We don't add the CompileTimeCompilationDiagnostics to Diagnostics because they are already in PipelineDiagnostics.

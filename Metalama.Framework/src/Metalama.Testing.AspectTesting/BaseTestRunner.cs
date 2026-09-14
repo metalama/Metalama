@@ -238,7 +238,8 @@ internal abstract partial class BaseTestRunner
                 CSharpParseOptions parseOptions,
                 string fileName,
                 string sourceCode,
-                bool acceptFileWithoutMember = false )
+                bool acceptFileWithoutMember = false,
+                bool alwaysRemovePreprocessorDirectives = false )
             {
                 if ( fileName.EndsWith( FileExtensions.TransformedCode, StringComparison.OrdinalIgnoreCase ) ||
                      fileName.EndsWith( FileExtensions.IntroducedCode, StringComparison.OrdinalIgnoreCase ) )
@@ -250,8 +251,13 @@ internal abstract partial class BaseTestRunner
                 // which is more difficult to test.
                 var parsedSyntaxTree = CSharpSyntaxTree.ParseText( sourceCode, parseOptions, fileName, Encoding.UTF8 );
 
+                // The KeepDisabledCode option is about the source of the test. A file that the test framework adds to
+                // the compilation has its directives removed in any case, because SyntaxTreeStructureVerifier
+                // re-parses the string of the root of each syntax tree, and that string does not carry the leading
+                // trivia of the first token, so the #if directive of such a file would be lost while its #else and
+                // #endif would remain.
                 var prunedSyntaxRoot =
-                    testInput.Options.KeepDisabledCode != true
+                    testInput.Options.KeepDisabledCode != true || alwaysRemovePreprocessorDirectives
                         ? new RemovePreprocessorDirectivesRewriter( SyntaxKind.PragmaWarningDirectiveTrivia, SyntaxKind.NullableDirectiveTrivia )
                             .Visit( await parsedSyntaxTree.GetRootAsync() )!
                         : await parsedSyntaxTree.GetRootAsync();
@@ -378,74 +384,51 @@ internal abstract partial class BaseTestRunner
                 return project;
             }
 
-#pragma warning disable CS1998
 
-            // ReSharper disable once UnusedParameter.Local
             // ReSharper disable once LocalFunctionCanBeMadeStatic
             async Task<Project> AddPolyfillsAsync( Project project, CSharpParseOptions parseOptions )
             {
-                // ReSharper enable UnusedParameter.Local
-                // Add the polyfills, i.e. the system types that the reference assemblies of the target framework do
-                // not declare.
+                // Add the polyfills, that is, the system types that the reference assemblies of the target framework
+                // do not declare and that the test requests with the @IncludePolyfill option. The source files are
+                // the ones that PostSharp.Engineering ships. See the Polyfills class.
                 //
-                // The test runner compiles the test source files into a compilation of its own, whose references are
-                // the references of the test project. The polyfills that the test project itself compiles are
-                // therefore not visible here, because the assembly of the test project is not one of those
-                // references. A type that the reference assemblies of the target framework do not declare has to be
-                // declared in this compilation instead.
-                var polyfills = new StringBuilder();
+                // EMBED_SYSTEM_TYPES is removed from the preprocessor symbols because it adds the [Embedded]
+                // attribute, whose type is declared by the project of a polyfill and not by a test compilation. The
+                // other symbols of the test project are kept, so that the condition of each source file answers for
+                // the target framework of the test.
+                var polyfillParseOptions = parseOptions.WithPreprocessorSymbols(
+                    parseOptions.PreprocessorSymbolNames.Where( s => s != "EMBED_SYSTEM_TYPES" ) );
+
+                var polyfillNames = testInput.Options.IncludedPolyfills.AsEnumerable();
 
 #if NETFRAMEWORK
-                // .NET Framework does not declare IsExternalInit, which an init accessor requires. This type is added
-                // to every test because it declares no member, so it changes no test that enumerates the members of
-                // the compilation.
-                polyfills.Append( "namespace System.Runtime.CompilerServices { internal static class IsExternalInit {} }" );
+                // .NET Framework does not declare IsExternalInit, which an init accessor requires. Every test receives
+                // it, because it declares no member and therefore changes no test that enumerates the members of a
+                // type.
+                polyfillNames = polyfillNames.Append( "IsExternalInit" );
 #endif
 
-                // The polyfills below declare members, so an aspect or a fabric that enumerates the types of the
-                // compilation sees them. A test therefore receives them only when it asks for them with the
-                // @IncludePolyfill option.
-                foreach ( var polyfill in testInput.Options.IncludedPolyfills )
+                foreach ( var polyfillName in polyfillNames )
                 {
-                    switch ( polyfill )
-                    {
-                        case "Union":
-#if !NET11_0_OR_GREATER
+                    var polyfillSource = Polyfills.GetSourceOrNull( polyfillName )
+                                         ?? throw new InvalidTestOptionException(
+                                             $"There is no polyfill named '{polyfillName}'. The available polyfills are: "
+                                             + string.Join( ", ", Polyfills.Names.OrderBy( n => n, StringComparer.Ordinal ) )
+                                             + "." );
 
-                            // IUnion and UnionAttribute belong to .NET 11. The compiler requires both of them for a
-                            // union declaration, and reports CS0518 for the interface and CS0656 for the constructor
-                            // of the attribute when they are absent.
-                            //
-                            // The declaration carries no using directive. The types below are declared in a namespace
-                            // under System, so Attribute and the two enumerations resolve without one, and an
-                            // unnecessary using directive would add a hidden CS8019 to the test.
-                            polyfills.Append(
-                                "namespace System.Runtime.CompilerServices { internal interface IUnion { object? Value { get; } } "
-                                + "[AttributeUsage( AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = false, Inherited = false )] "
-                                + "internal sealed class UnionAttribute : Attribute { } }" );
-#endif
-
-                            break;
-
-                        default:
-                            throw new InvalidTestOptionException( $"Unknown polyfill '{polyfill}' in the @IncludePolyfill option." );
-                    }
+                    // The name of the document begins with an underscore, which is how TestResult recognizes a file
+                    // that the test framework adds to the compilation and not a file of the test.
+                    (project, _) = await AddDocumentAsync(
+                        project,
+                        polyfillParseOptions,
+                        $"___Polyfill_{polyfillName}.cs",
+                        polyfillSource,
+                        true,
+                        true );
                 }
 
-                if ( polyfills.Length == 0 )
-                {
-                    return project;
-                }
-
-                var (newProject, _) = await AddDocumentAsync(
-                    project,
-                    parseOptions,
-                    "___Polyfills.cs",
-                    polyfills.ToString() );
-
-                return newProject;
+                return project;
             }
-#pragma warning restore CS1998
 
             async Task<(bool Success, Project Project, ImmutableArray<MetadataReference> References)> AddDependencyProjectAsync(
                 Project baseProject,
