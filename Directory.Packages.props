@@ -7,9 +7,6 @@
     <RestorePrerelease>true</RestorePrerelease>
   </PropertyGroup>
   <PropertyGroup>
-    <!-- 2023.2.398 is the first version that exposes ManySolutions and TestableSolution, which the design-time
-         scenarios under Metalama.Framework/src/tests/DesignTimeStandalone derive from. 2023.2.451 polyfills the
-         system types of .NET 11, which include IUnion and UnionAttribute. -->
     <PostSharpEngineeringVersion Condition="'$(PostSharpEngineeringVersion)'==''">2023.2.451</PostSharpEngineeringVersion>
 
 
