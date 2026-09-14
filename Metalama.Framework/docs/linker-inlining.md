@@ -803,9 +803,11 @@ public override SyntaxNode Substitute(SyntaxNode currentNode, SubstitutionContex
 
     // 3. Let the inliner transform the body
     var inlinedBody = this._specification.Inliner.Inline(..., substitutedBody);
-    statements.Add(inlinedBody);
 
-    // 4. Add return label if needed (complex inlining with early returns)
+    // 4. Rename the labels that the destination body also declares
+    statements.Add(this.RenameCollidingLabels(inlinedBody));
+
+    // 5. Add return label if needed (complex inlining with early returns)
     if (this._specification.ReturnLabelIdentifier != null)
     {
         statements.Add(LabeledStatement(returnLabel, EmptyStatement()));
@@ -814,6 +816,33 @@ public override SyntaxNode Substitute(SyntaxNode currentNode, SubstitutionContex
     return syntaxGenerator.FormattedBlock(statements);
 }
 ```
+
+#### Why a label of the inlined body is renamed
+
+The inlined body is returned inside a block that carries the flattenable flag, and the cleanup rewriter splices such a
+block into the statement list of the destination body. A label that the inlined body declares therefore reaches the
+declaration space of the destination. When the destination declares a label of the same name, the compiler reports
+CS0140 for two declarations in one declaration space, or CS0158 when one of the two shadows the other from a contained
+scope. Both are reported on the labeled statement itself and are independent of any statement that names the label.
+
+The collision became realistic with C# 15, which lets a `break` and a `continue` statement name a label, so a labeled
+loop is now an ordinary idiom in the run-time code that an aspect transforms. A template may not declare a label: the
+template annotator reports LAMA0101 for a label, for a labeled `break` and for a labeled `continue`, for the reason
+given in section 5 of [`2027.0/DECISIONS.md`](2027.0/DECISIONS.md). The collision therefore arises between the body of
+an overridden method and the body of another overridden method of the same chain.
+
+`RenameCollidingLabels` allocates the new name from the identifier of the inlining, which is unique within the
+destination body and is allocated deterministically. The lexical scope factory is not used, because it is constructed
+by the injection step and is not available to the linking step. The rewrite covers the three places where a label name
+appears: the identifier of the labeled statement, the target of a `goto` statement, and the name of a `break` or of a
+`continue` statement. Dropping the name of a `break` or of a `continue` statement produces no diagnostic and silently
+retargets the jump to the innermost enclosing loop, so the three have to be rewritten together.
+
+Two labels are excluded from the rename. A label that the linker generated is excluded, because the linker allocates
+its name and because the return label of an inlining is added after the inlined body while the `goto` statements that
+target it are inside that body. A label that the replaced node itself contains is excluded from the destination,
+because the inlined body takes the place of that node. The second exclusion is what keeps the implicit reference to the
+last override from renaming anything: the replaced node of that reference is the whole body of the destination.
 
 ### ReturnStatementSubstitution
 

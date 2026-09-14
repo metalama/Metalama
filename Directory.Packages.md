@@ -73,9 +73,9 @@ The constraint that does exist is at the build of that repository. It enables `C
 
 The rules that choose the Visual Studio floor, and the floor of every other platform axis, are in
 [`Metalama.Framework/docs/platform-support.md`](Metalama.Framework/docs/platform-support.md). They used to be
-stated here as four rules about Visual Studio alone. They are now eight rules that apply to every axis, together
-with the worked evaluation for the current release and the rule that governs how a long-term support branch
-follows the vendor calendar on the way out.
+stated here as four rules about Visual Studio alone. They are now nine rules that apply to every axis, together
+with the worked evaluation for the current release, the rule that fixes the supported set at the general
+availability date, and the rule that allows a shipped target framework to sit below the floor of its axis.
 
 Consult that document before changing a floor. Consult this one for what the chosen floor implies about the
 package versions we may reference.
