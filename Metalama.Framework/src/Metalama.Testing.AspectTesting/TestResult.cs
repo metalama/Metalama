@@ -92,6 +92,15 @@ internal class TestResult : IDisposable
             return false;
         }
 
+        // A warning reported on a file that the test framework adds to the compilation belongs to no test and would
+        // otherwise appear in the expected output of every test that reports its diagnostics. An error is still
+        // reported, because it means that the framework itself is broken.
+        if ( diagnostic.Severity < DiagnosticSeverity.Error
+             && TestFrameworkFile.IsTestFrameworkFile( diagnostic.Location.SourceTree?.FilePath ) )
+        {
+            return false;
+        }
+
         return true;
     }
 

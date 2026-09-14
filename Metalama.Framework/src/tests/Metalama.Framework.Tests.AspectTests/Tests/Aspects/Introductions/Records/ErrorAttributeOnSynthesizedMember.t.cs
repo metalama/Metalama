@@ -1,0 +1,2 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0556 on `TargetType`: `The aspect 'Introduction' cannot introduce a custom attribute on 'TargetType.Positional.PrintMembers(StringBuilder)' because the compiler synthesizes that member and there is no declaration on which to write the attribute.`

@@ -38,7 +38,7 @@ member introduction whose design-time result is correct. Question Q1 chose betwe
 shipping the attribute form alone, and the product owner answered on 2026-09-11 that neither ships, so the half of
 this story that adds a case is withdrawn and story S-30 is not filed. Section 4 of
 [`../DECISIONS.md`](../DECISIONS.md) records the answer, and sections 6.3 and 6.4 of
-[`../../future/introducing-unions.md`](../../future/introducing-unions.md) carry the design, which also narrows
+[`../../introducing-unions.md`](../../introducing-unions.md) carry the design, which also narrows
 this story to the introduction of a union written with the `union` keyword. Issue #1951 is revised accordingly. About half of the work needs no
 C# 15 Roslyn member and can proceed before S-13.
 

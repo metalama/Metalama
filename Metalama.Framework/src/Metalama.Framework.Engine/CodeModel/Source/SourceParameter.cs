@@ -6,6 +6,7 @@ using Metalama.Framework.Code;
 using Metalama.Framework.CompileTimeContracts;
 using Metalama.Framework.Engine.CodeModel.Abstractions;
 using Metalama.Framework.Engine.CodeModel.GenericContexts;
+using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.ReflectionMocks;
 using Metalama.Framework.Engine.SyntaxGeneration;
@@ -13,11 +14,11 @@ using Metalama.Framework.Engine.SyntaxSerialization;
 using Metalama.Framework.Engine.Templating.Expressions;
 using Metalama.Framework.Engine.Utilities;
 using Microsoft.CodeAnalysis;
-using System;
+using RefKind = Metalama.Framework.Code.RefKind;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using RefKind = Metalama.Framework.Code.RefKind;
+using System;
 using TypedConstant = Metalama.Framework.Code.TypedConstant;
 
 namespace Metalama.Framework.Engine.CodeModel.Source
@@ -47,16 +48,7 @@ namespace Metalama.Framework.Engine.CodeModel.Source
             this._parameterSymbol = symbol;
         }
 
-        public RefKind RefKind
-            => this._parameterSymbol.RefKind switch
-            {
-                Microsoft.CodeAnalysis.RefKind.None => RefKind.None,
-                Microsoft.CodeAnalysis.RefKind.Ref => RefKind.Ref,
-                Microsoft.CodeAnalysis.RefKind.Out => RefKind.Out,
-                Microsoft.CodeAnalysis.RefKind.In => RefKind.In,
-                Microsoft.CodeAnalysis.RefKind.RefReadOnlyParameter => RefKind.RefReadOnly,
-                _ => throw new InvalidOperationException( $"Roslyn RefKind {this._parameterSymbol.RefKind} not recognized." )
-            };
+        public RefKind RefKind => this._parameterSymbol.RefKind.ToOurParameterRefKind();
 
         [Memo]
         public IType Type => this.Compilation.Factory.GetIType( this._parameterSymbol.Type, this.GenericContextForSymbolMapping, defaultNullability: null );

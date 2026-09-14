@@ -39,6 +39,7 @@ internal abstract class DeclarationBuilderData
         this.ContainingDeclaration = containingDeclaration.AssertNotNull();
         this.PrimarySyntaxTree = builder.PrimarySyntaxTree;
         this.IsDesignTimeObservable = builder.IsDesignTimeObservable;
+        this.IsSynthesizedByCompiler = builder.IsSynthesizedByCompiler;
     }
 
     public IFullRef<IDeclaration> ToFullRef() => this.ToDeclarationFullRef();
@@ -50,6 +51,9 @@ internal abstract class DeclarationBuilderData
     protected virtual IRef<IDeclaration> ToDeclarationRef() => this.ToDeclarationFullRef();
 
     public bool IsDesignTimeObservable { get; }
+
+    /// <inheritdoc cref="IDeclarationBuilderImpl.IsSynthesizedByCompiler"/>
+    public bool IsSynthesizedByCompiler { get; }
 
     /// <summary>
     /// Gets the declarations that are owned by the current <see cref="DeclarationBuilderData"/>, i.e. children that

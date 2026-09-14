@@ -359,5 +359,33 @@ namespace Metalama.Framework.Engine.Advising
                 "Override the strongly typed 'Equals' overload instead. The equality operators and 'Equals(object)' both call it.",
                 _category,
                 Error );
+
+        internal static readonly DiagnosticDefinition<(string AspectType, string TypeName)>
+            UnionMustDeclareACase = new(
+                "LAMA0554",
+                "Cannot introduce a union that declares no case.",
+                "The aspect '{0}' cannot introduce the union '{1}' because a union declaration must declare at least one case. "
+                + "Call 'AddCase' at least once in the callback that builds the union.",
+                _category,
+                Error );
+
+        internal static readonly DiagnosticDefinition<(string AspectType, string MemberKind, IDeclaration TargetType)>
+            CannotIntroduceStateIntoUnion = new(
+                "LAMA0555",
+                "Cannot introduce an instance field, an automatic property or a field-like event into a union.",
+                "The aspect '{0}' cannot introduce {1} into the union '{2}' because a union declaration permits no instance field, "
+                + "no automatic property and no field-like event. Introduce a property whose accessors have a body, or an event whose "
+                + "accessors have a body.",
+                _category,
+                Error );
+
+        internal static readonly DiagnosticDefinition<(string AspectType, IDeclaration Member)>
+            CannotIntroduceAttributeOnSynthesizedMember = new(
+                "LAMA0556",
+                "Cannot introduce a custom attribute on a member that the compiler synthesizes.",
+                "The aspect '{0}' cannot introduce a custom attribute on '{1}' because the compiler synthesizes that member and there is "
+                + "no declaration on which to write the attribute.",
+                _category,
+                Error );
     }
 }

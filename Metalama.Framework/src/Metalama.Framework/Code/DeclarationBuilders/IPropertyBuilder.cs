@@ -7,7 +7,7 @@ using Metalama.Framework.Aspects;
 namespace Metalama.Framework.Code.DeclarationBuilders
 {
     /// <summary>
-    /// Allows to complete the construction of a property that has been created by an advice.
+    /// Allows to complete the construction of a property that has been created by the <see cref="Metalama.Framework.Aspects.AdviserExtensions.IntroduceProperty(Metalama.Framework.Aspects.IAdviser{Metalama.Framework.Code.INamedType},string,Metalama.Framework.Aspects.IntroductionScope,Metalama.Framework.Aspects.OverrideStrategy,System.Action{Metalama.Framework.Code.DeclarationBuilders.IPropertyBuilder},object)"/> advice.
     /// </summary>
     /// <seealso cref="IProperty"/>
     /// <seealso cref="IFieldOrPropertyBuilder"/>

@@ -57,18 +57,42 @@ internal sealed partial class LinkerInjectionStep
 
         public ConstructorDeclarationSyntax GetAuxiliarySourceConstructor( IFullRef<IConstructor> constructor )
         {
-            var syntax = (TypeDeclarationSyntax) constructor.GetPrimaryDeclarationSyntax().AssertNotNull();
+            // The positional parameter list of a record read from source is taken from its declaration. A record that
+            // an aspect introduces has no declaration in the source compilation, because the declaration is produced
+            // by this injection step, so its parameter list is taken from the code model instead. See issue #2020.
+            // The constructor chains to the one that the record declares, which takes the positional parameters alone,
+            // so thisArguments holds those parameters and parameters holds them plus any that an aspect appends.
+            SyntaxGenerationContext syntaxGenerationContext;
+            ParameterListSyntax parameters;
+            SeparatedSyntaxList<ParameterSyntax> thisArguments;
 
-            var syntaxGenerationContext = this.CompilationContext.GetSyntaxGenerationContext( this.SyntaxGenerationOptions, syntax );
-
-            var parameters = syntax.ParameterList.AssertNotNull();
-
-            if ( this._transformationCollection.TryGetMemberLevelTransformations( syntax, out var memberTransformations )
-                 && memberTransformations.Parameters.Length > 0 )
+            if ( constructor is IIntroducedRef )
             {
+                syntaxGenerationContext = this.CompilationContext.GetSyntaxGenerationContext( this.SyntaxGenerationOptions );
+
                 parameters =
-                    parameters.AddParameters(
-                        memberTransformations.Parameters.SelectAsArray( p => p.ToSyntax( syntaxGenerationContext, this._finalCompilationModel ) ) );
+                    syntaxGenerationContext.SyntaxGenerator.ParameterList(
+                        constructor.GetTarget( this._finalCompilationModel ),
+                        this._finalCompilationModel );
+
+                thisArguments = parameters.Parameters;
+            }
+            else
+            {
+                var syntax = (TypeDeclarationSyntax) constructor.GetPrimaryDeclarationSyntax().AssertNotNull();
+
+                syntaxGenerationContext = this.CompilationContext.GetSyntaxGenerationContext( this.SyntaxGenerationOptions, syntax );
+                parameters = syntax.ParameterList.AssertNotNull();
+                thisArguments = parameters.Parameters;
+
+                if ( this._transformationCollection.TryGetMemberLevelTransformations( syntax, out var memberTransformations )
+                     && memberTransformations.Parameters.Length > 0 )
+                {
+                    parameters =
+                        parameters.AddParameters(
+                            memberTransformations.Parameters.SelectAsArray(
+                                p => p.ToSyntax( syntaxGenerationContext, this._finalCompilationModel ) ) );
+                }
             }
 
             parameters =
@@ -93,7 +117,7 @@ internal sealed partial class LinkerInjectionStep
                     SyntaxKind.ThisConstructorInitializer,
                     ArgumentList(
                         SeparatedList(
-                            syntax.ParameterList.Parameters.SelectAsArray(
+                            thisArguments.SelectAsArray(
                                 p =>
                                     Argument(
                                         null,

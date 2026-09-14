@@ -5,5 +5,5 @@ public class TargetClass
   {
     this._targetClassCompanion = targetClassCompanion;
   }
-  private TargetClassCompanion _targetClassCompanion;
+  private TargetClassCompanion? _targetClassCompanion;
 }

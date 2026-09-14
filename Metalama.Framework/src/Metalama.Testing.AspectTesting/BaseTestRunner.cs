@@ -238,7 +238,8 @@ internal abstract partial class BaseTestRunner
                 CSharpParseOptions parseOptions,
                 string fileName,
                 string sourceCode,
-                bool acceptFileWithoutMember = false )
+                bool acceptFileWithoutMember = false,
+                bool alwaysRemovePreprocessorDirectives = false )
             {
                 if ( fileName.EndsWith( FileExtensions.TransformedCode, StringComparison.OrdinalIgnoreCase ) ||
                      fileName.EndsWith( FileExtensions.IntroducedCode, StringComparison.OrdinalIgnoreCase ) )
@@ -250,8 +251,13 @@ internal abstract partial class BaseTestRunner
                 // which is more difficult to test.
                 var parsedSyntaxTree = CSharpSyntaxTree.ParseText( sourceCode, parseOptions, fileName, Encoding.UTF8 );
 
+                // The KeepDisabledCode option is about the source of the test. A file that the test framework adds to
+                // the compilation has its directives removed in any case, because SyntaxTreeStructureVerifier
+                // re-parses the string of the root of each syntax tree, and that string does not carry the leading
+                // trivia of the first token, so the #if directive of such a file would be lost while its #else and
+                // #endif would remain.
                 var prunedSyntaxRoot =
-                    testInput.Options.KeepDisabledCode != true
+                    testInput.Options.KeepDisabledCode != true || alwaysRemovePreprocessorDirectives
                         ? new RemovePreprocessorDirectivesRewriter( SyntaxKind.PragmaWarningDirectiveTrivia, SyntaxKind.NullableDirectiveTrivia )
                             .Visit( await parsedSyntaxTree.GetRootAsync() )!
                         : await parsedSyntaxTree.GetRootAsync();
@@ -322,8 +328,8 @@ internal abstract partial class BaseTestRunner
 
             if ( testInput.Options.SkipAddingSystemFiles != true )
             {
-                // Add system files.
-                mainProject = await AddPlatformDocumentsAsync( mainProject, mainParseOptions );
+                // Add the polyfills.
+                mainProject = await AddPolyfillsAsync( mainProject, mainParseOptions );
             }
 
             mainProject = await AddAdditionalDocumentsAsync( mainProject, mainParseOptions );
@@ -378,27 +384,51 @@ internal abstract partial class BaseTestRunner
                 return project;
             }
 
-#pragma warning disable CS1998
 
-            // ReSharper disable once UnusedParameter.Local
             // ReSharper disable once LocalFunctionCanBeMadeStatic
-            async Task<Project> AddPlatformDocumentsAsync( Project project, CSharpParseOptions parseOptions )
+            async Task<Project> AddPolyfillsAsync( Project project, CSharpParseOptions parseOptions )
             {
-                // ReSharper enable UnusedParameter.Local
-                // Add system documents.
-#if NETFRAMEWORK
-                var (newProject, _) = await AddDocumentAsync(
-                    project,
-                    parseOptions,
-                    "___Platform.cs",
-                    "namespace System.Runtime.CompilerServices { internal static class IsExternalInit {}}" );
+                // Add the polyfills, that is, the system types that the reference assemblies of the target framework
+                // do not declare and that the test requests with the @IncludePolyfill option. The source files are
+                // the ones that PostSharp.Engineering ships. See the Polyfills class.
+                //
+                // EMBED_SYSTEM_TYPES is removed from the preprocessor symbols because it adds the [Embedded]
+                // attribute, whose type is declared by the project of a polyfill and not by a test compilation. The
+                // other symbols of the test project are kept, so that the condition of each source file answers for
+                // the target framework of the test.
+                var polyfillParseOptions = parseOptions.WithPreprocessorSymbols(
+                    parseOptions.PreprocessorSymbolNames.Where( s => s != "EMBED_SYSTEM_TYPES" ) );
 
-                return newProject;
-#else
-                return project;
+                var polyfillNames = testInput.Options.IncludedPolyfills.AsEnumerable();
+
+#if NETFRAMEWORK
+                // .NET Framework does not declare IsExternalInit, which an init accessor requires. Every test receives
+                // it, because it declares no member and therefore changes no test that enumerates the members of a
+                // type.
+                polyfillNames = polyfillNames.Append( "IsExternalInit" );
 #endif
+
+                foreach ( var polyfillName in polyfillNames )
+                {
+                    var polyfillSource = Polyfills.GetSourceOrNull( polyfillName )
+                                         ?? throw new InvalidTestOptionException(
+                                             $"There is no polyfill named '{polyfillName}'. The available polyfills are: "
+                                             + string.Join( ", ", Polyfills.Names.OrderBy( n => n, StringComparer.Ordinal ) )
+                                             + "." );
+
+                    // The name of the document begins with an underscore, which is how TestResult recognizes a file
+                    // that the test framework adds to the compilation and not a file of the test.
+                    (project, _) = await AddDocumentAsync(
+                        project,
+                        polyfillParseOptions,
+                        $"___Polyfill_{polyfillName}.cs",
+                        polyfillSource,
+                        true,
+                        true );
+                }
+
+                return project;
             }
-#pragma warning restore CS1998
 
             async Task<(bool Success, Project Project, ImmutableArray<MetadataReference> References)> AddDependencyProjectAsync(
                 Project baseProject,
@@ -427,7 +457,7 @@ internal abstract partial class BaseTestRunner
 
                 if ( testInput.Options.SkipAddingSystemFiles != true )
                 {
-                    dependencyProject = await AddPlatformDocumentsAsync( dependencyProject, dependencyParseOptions );
+                    dependencyProject = await AddPolyfillsAsync( dependencyProject, dependencyParseOptions );
                 }
 
                 dependencyProject = await AddAdditionalDocumentsAsync( dependencyProject, dependencyParseOptions );

@@ -14,4 +14,17 @@ namespace Metalama.Framework.Engine.Transformations;
 internal interface IIntroduceDeclarationTransformation : ITransformation
 {
     DeclarationBuilderData DeclarationBuilderData { get; }
+
+    /// <summary>
+    /// Gets a value indicating whether the compiler synthesizes the declaration from the declaration of the type that
+    /// contains it, so that this transformation registers it in the code model and nothing emits syntax for it.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Both emitters skip such a transformation: <c>LinkerInjectionStep</c> at build time and
+    /// <c>DesignTimeSyntaxTreeGenerator</c> at design time. Section 4.2 of
+    /// <c>Metalama.Framework/docs/introducing-types.md</c> states the rule and names the members concerned.
+    /// </para>
+    /// </remarks>
+    bool IsCompilerSynthesized { get; }
 }

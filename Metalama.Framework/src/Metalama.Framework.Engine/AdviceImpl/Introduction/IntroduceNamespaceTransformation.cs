@@ -25,6 +25,15 @@ internal sealed class IntroduceNamespaceTransformation : BaseTransformation, IIn
 
     DeclarationBuilderData IIntroduceDeclarationTransformation.DeclarationBuilderData => this._introducedDeclaration;
 
+    /// <inheritdoc />
+    /// <remarks>
+    /// <para>
+    /// Always <c>false</c>. A namespace is not a member that the compiler synthesizes from the declaration of a
+    /// type, and the code that wraps a declaration in its namespace emits it.
+    /// </para>
+    /// </remarks>
+    bool IIntroduceDeclarationTransformation.IsCompilerSynthesized => false;
+
     public override IFullRef<IDeclaration> TargetDeclaration => this._introducedDeclaration.ContainingDeclaration.AssertNotNull();
 
     public override IntrospectionTransformationKind TransformationKind => IntrospectionTransformationKind.IntroduceMember;

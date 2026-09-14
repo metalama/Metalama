@@ -75,17 +75,30 @@ namespace Metalama.Framework.Engine.CodeModel.References
             where T : class, IDeclaration
             => new IntroducedRef<T>( builder, this, genericContext, isNullable );
 
+        /// <summary>
+        /// Creates an <see cref="IRef{T}"/> from an <see cref="IntroducedDeclaration"/>.
+        /// </summary>
         /// <remarks>
+        /// <para>
         /// The nullability of an introduced named type is carried by the reference, because it is part of the type and
-        /// not of the builder, and a reference that dropped it resolved the nullable form of the type to the
+        /// not of the builder. A reference that dropped it would resolve the nullable form of the type to the
         /// non-nullable one. See issue #1840.
+        /// </para>
+        /// <para>
+        /// The three states of the flag are preserved for a named type, and not only the two that a boolean has:
+        /// <c>null</c> means that the type carries no annotation, which is what
+        /// <see cref="Metalama.Framework.Code.IType.StripNullabilityAnnotation"/> produces, and is not the same as
+        /// the type being explicitly non-nullable. Every other kind of declaration keeps <c>false</c>, because the
+        /// flag is meaningless for it and takes part in the equality and in the serializable identifier of the
+        /// reference.
+        /// </para>
         /// </remarks>
         public FullRef<T> FromIntroducedDeclaration<T>( IntroducedDeclaration introducedDeclaration )
             where T : class, IDeclaration
             => this.FromBuilderData<T>(
                 introducedDeclaration.BuilderData,
                 introducedDeclaration.GenericContext,
-                (introducedDeclaration as IntroducedNamedType)?.IsNullable ?? false );
+                introducedDeclaration is IntroducedNamedType namedType ? namedType.IsNullable : false );
 
         public FullRef<T> FromConstructedType<T>( ConstructedType constructedType )
             where T : class, IType
