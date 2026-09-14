@@ -1,0 +1,8 @@
+{
+    // The compiler requires System.Runtime.CompilerServices.IUnion and
+    // System.Runtime.CompilerServices.UnionAttribute for a union declaration, and the reference assemblies of a
+    // target framework older than .NET 11 do not declare them. The test framework declares them in the test
+    // compilation on request. They are not added to every test because they declare members, which an aspect or a
+    // fabric that enumerates the types of the compilation would then see.
+    "IncludedPolyfills": [ "Union" ]
+}

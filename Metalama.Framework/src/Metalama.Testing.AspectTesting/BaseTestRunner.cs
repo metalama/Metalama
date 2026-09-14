@@ -322,8 +322,8 @@ internal abstract partial class BaseTestRunner
 
             if ( testInput.Options.SkipAddingSystemFiles != true )
             {
-                // Add system files.
-                mainProject = await AddPlatformDocumentsAsync( mainProject, mainParseOptions );
+                // Add the polyfills.
+                mainProject = await AddPolyfillsAsync( mainProject, mainParseOptions );
             }
 
             mainProject = await AddAdditionalDocumentsAsync( mainProject, mainParseOptions );
@@ -382,38 +382,57 @@ internal abstract partial class BaseTestRunner
 
             // ReSharper disable once UnusedParameter.Local
             // ReSharper disable once LocalFunctionCanBeMadeStatic
-            async Task<Project> AddPlatformDocumentsAsync( Project project, CSharpParseOptions parseOptions )
+            async Task<Project> AddPolyfillsAsync( Project project, CSharpParseOptions parseOptions )
             {
                 // ReSharper enable UnusedParameter.Local
-                // Add system documents.
+                // Add the polyfills, i.e. the system types that the reference assemblies of the target framework do
+                // not declare.
                 //
                 // The test runner compiles the test source files into a compilation of its own, whose references are
-                // the references of the test project. The system type polyfills that the test project compiles are
+                // the references of the test project. The polyfills that the test project itself compiles are
                 // therefore not visible here, because the assembly of the test project is not one of those
                 // references. A type that the reference assemblies of the target framework do not declare has to be
                 // declared in this compilation instead.
-                //
-                // Each declaration below is compiled under the condition of the target framework that lacks the type,
-                // so that it disappears once the reference assemblies declare it.
-                var systemTypes = new StringBuilder();
+                var polyfills = new StringBuilder();
 
 #if NETFRAMEWORK
-                // .NET Framework does not declare IsExternalInit, which an init accessor requires.
-                systemTypes.Append( "namespace System.Runtime.CompilerServices { internal static class IsExternalInit {} }" );
+                // .NET Framework does not declare IsExternalInit, which an init accessor requires. This type is added
+                // to every test because it declares no member, so it changes no test that enumerates the members of
+                // the compilation.
+                polyfills.Append( "namespace System.Runtime.CompilerServices { internal static class IsExternalInit {} }" );
 #endif
 
+                // The polyfills below declare members, so an aspect or a fabric that enumerates the types of the
+                // compilation sees them. A test therefore receives them only when it asks for them with the
+                // @IncludePolyfill option.
+                foreach ( var polyfill in testInput.Options.IncludedPolyfills )
+                {
+                    switch ( polyfill )
+                    {
+                        case "Union":
 #if !NET11_0_OR_GREATER
 
-                // IUnion and UnionAttribute belong to .NET 11. The compiler requires both of a union declaration, and
-                // reports CS0518 for the interface and CS0656 for the constructor of the attribute when they are
-                // absent.
-                systemTypes.Append(
-                    "namespace System.Runtime.CompilerServices { internal interface IUnion { object? Value { get; } } "
-                    + "[AttributeUsage( AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = false, Inherited = false )] "
-                    + "internal sealed class UnionAttribute : Attribute { } }" );
+                            // IUnion and UnionAttribute belong to .NET 11. The compiler requires both of them for a
+                            // union declaration, and reports CS0518 for the interface and CS0656 for the constructor
+                            // of the attribute when they are absent.
+                            //
+                            // The declaration carries no using directive. The types below are declared in a namespace
+                            // under System, so Attribute and the two enumerations resolve without one, and an
+                            // unnecessary using directive would add a hidden CS8019 to the test.
+                            polyfills.Append(
+                                "namespace System.Runtime.CompilerServices { internal interface IUnion { object? Value { get; } } "
+                                + "[AttributeUsage( AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = false, Inherited = false )] "
+                                + "internal sealed class UnionAttribute : Attribute { } }" );
 #endif
 
-                if ( systemTypes.Length == 0 )
+                            break;
+
+                        default:
+                            throw new InvalidTestOptionException( $"Unknown polyfill '{polyfill}' in the @IncludePolyfill option." );
+                    }
+                }
+
+                if ( polyfills.Length == 0 )
                 {
                     return project;
                 }
@@ -421,8 +440,8 @@ internal abstract partial class BaseTestRunner
                 var (newProject, _) = await AddDocumentAsync(
                     project,
                     parseOptions,
-                    "___Platform.cs",
-                    "using System;" + systemTypes );
+                    "___Polyfills.cs",
+                    polyfills.ToString() );
 
                 return newProject;
             }
@@ -455,7 +474,7 @@ internal abstract partial class BaseTestRunner
 
                 if ( testInput.Options.SkipAddingSystemFiles != true )
                 {
-                    dependencyProject = await AddPlatformDocumentsAsync( dependencyProject, dependencyParseOptions );
+                    dependencyProject = await AddPolyfillsAsync( dependencyProject, dependencyParseOptions );
                 }
 
                 dependencyProject = await AddAdditionalDocumentsAsync( dependencyProject, dependencyParseOptions );

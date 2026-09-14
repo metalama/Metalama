@@ -13,6 +13,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace Metalama.Testing.AspectTesting;
@@ -84,8 +85,17 @@ public class TestOptions
     public List<string> IncludedFiles { get; } = new();
 
     /// <summary>
-    /// Gets or sets a value indicating whether adding system files to the test compilation should be skipped.
-    /// Namely, there is one file that adds the <c>System.Runtime.CompilerServices.IsExternalInit</c> type on .Net Framework.
+    /// Gets the list of polyfills that must be declared in the test compilation. A polyfill is a system type that the
+    /// reference assemblies of the target framework do not declare. The only supported value is <c>Union</c>, which
+    /// declares <c>System.Runtime.CompilerServices.IUnion</c> and <c>System.Runtime.CompilerServices.UnionAttribute</c>.
+    /// To add items into this collection from a test, add this comment to your test file: <c>// @IncludePolyfill(name1,name2)</c>.
+    /// </summary>
+    public List<string> IncludedPolyfills { get; } = new();
+
+    /// <summary>
+    /// Gets or sets a value indicating whether adding the polyfill file to the test compilation should be skipped.
+    /// That file adds the <c>System.Runtime.CompilerServices.IsExternalInit</c> type on .NET Framework, and the types
+    /// requested by <see cref="IncludedPolyfills"/>.
     /// To enable this option in a test, add this comment to your test file: <c>// @SkipAddingSystemFiles</c>. 
     /// </summary>
     public bool? SkipAddingSystemFiles { get; set; }
@@ -428,6 +438,8 @@ public class TestOptions
 
         this.IncludedFiles.AddRange( baseOptions.IncludedFiles );
 
+        this.IncludedPolyfills.AddRange( baseOptions.IncludedPolyfills );
+
         this.References.AddRange( baseOptions.References );
 
         this.AllowCompileTimeDynamicCode ??= baseOptions.AllowCompileTimeDynamicCode;
@@ -544,6 +556,11 @@ public class TestOptions
 
                 case "Include":
                     this.IncludedFiles.Add( optionArg );
+
+                    break;
+
+                case "IncludePolyfill":
+                    this.IncludedPolyfills.AddRange( optionArg.Split( ',' ).Select( s => s.Trim() ).Where( s => s.Length > 0 ) );
 
                     break;
 
