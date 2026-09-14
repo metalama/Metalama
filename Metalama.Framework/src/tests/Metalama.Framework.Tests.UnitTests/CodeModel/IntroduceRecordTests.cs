@@ -77,6 +77,13 @@ public sealed class IntroduceRecordTests : UnitTestClass
     }
 
     /// <summary>
+    /// The declaration of <c>IsExternalInit</c>, which the reference assemblies of .NET Framework do not define and
+    /// which the <c>init</c> accessor of a positional record requires. This project is tested against
+    /// <c>net48</c> as well as <c>net10.0</c>, so a test whose source code declares a positional record appends it.
+    /// </summary>
+    private const string _isExternalInitDeclaration = " namespace System.Runtime.CompilerServices { internal static class IsExternalInit {} }";
+
+    /// <summary>
     /// Verifies that the facet of an introduced record reports the same six members as the facet of the equivalent
     /// record read from source, with the same three of them null for a record struct. This is the central assertion
     /// of the issue.
@@ -89,7 +96,7 @@ public sealed class IntroduceRecordTests : UnitTestClass
     {
         using var testContext = this.CreateTestContext();
 
-        var compilation = testContext.CreateCompilationModel( sourceCode ).CreateMutableClone();
+        var compilation = testContext.CreateCompilationModel( sourceCode + _isExternalInitDeclaration ).CreateMutableClone();
 
         var builder = CreatePositionalRecord( compilation, recordKind );
         builder.IsReadOnly = isReadOnly;

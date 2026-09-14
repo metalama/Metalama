@@ -24,17 +24,20 @@ public class IntroductionAttribute : TypeAspect
         // between two kinds. OverrideStrategy matches by name and by the number of type parameters, and not by kind.
         var ignored = builder.IntroduceEnum( "Conflicting", e => e.AddMember( "None" ), whenExists: OverrideStrategy.Ignore );
 
+        // The outcome is compared rather than rendered. AdviceOutcome declares Ignored as a synonym of Ignore, and
+        // Enum.ToString chooses between two names of one value differently on .NET Framework and on .NET, so a test
+        // that rendered it would expect a different output under each target framework of this project.
         builder.IntroduceMethod(
             nameof(ReportTemplate),
-            args: new { outcome = ignored.Outcome.ToString(), typeKind = ignored.Declaration.TypeKind.ToString() } );
+            args: new { isIgnored = ignored.Outcome == AdviceOutcome.Ignore, typeKind = ignored.Declaration.TypeKind.ToString() } );
 
         builder.IntroduceEnum( "OtherConflicting", e => e.AddMember( "None" ), whenExists: OverrideStrategy.New );
     }
 
     [Template]
-    public void ReportTemplate( [CompileTime] string outcome, [CompileTime] string typeKind )
+    public void ReportTemplate( [CompileTime] bool isIgnored, [CompileTime] string typeKind )
     {
-        Console.WriteLine( $"Ignore returned {outcome}, a {typeKind}." );
+        Console.WriteLine( $"Ignore reported the ignored outcome: {isIgnored}. The existing type is a {typeKind}." );
     }
 }
 
