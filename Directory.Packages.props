@@ -8,9 +8,13 @@
   </PropertyGroup>
   <PropertyGroup>
     <!-- 2023.2.398 is the first version that exposes ManySolutions and TestableSolution, which the design-time
-         scenarios under Metalama.Framework/src/tests/DesignTimeStandalone derive from. 2023.2.450 is the first that
-         polyfills the system types of .NET 11, which include IUnion and UnionAttribute. -->
-    <PostSharpEngineeringVersion Condition="'$(PostSharpEngineeringVersion)'==''">2023.2.450</PostSharpEngineeringVersion>
+         scenarios under Metalama.Framework/src/tests/DesignTimeStandalone derive from.
+         2023.2.450 polyfills the system types of .NET 11, which include IUnion and UnionAttribute, and this
+         repository cannot consume it yet. The remarks of its CollectionBuilderAttribute reference ReadOnlySpan<T>
+         through a cref, netstandard2.0 declares no such type, and CodeQuality.targets promotes the resulting CS1574
+         to an error under ContinuousIntegrationBuild, so every project that targets netstandard2.0 fails to build.
+         Raise the version once that reference is written in a form that resolves in every target framework. -->
+    <PostSharpEngineeringVersion Condition="'$(PostSharpEngineeringVersion)'==''">2023.2.448</PostSharpEngineeringVersion>
 
 
     <!-- We must match the version used by the lowest version of Visual Studio supported by the VSX, i.e. VS 17.14. -->
