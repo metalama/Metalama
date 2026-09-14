@@ -374,6 +374,15 @@ compiler reports CS9373 for them in a union declaration.
 `IDelegateBuilder`, `IEnumBuilder` and `IRecordBuilder` follow the same shape. They are not part of this proposal
 beyond the shape, because the introduction of those kinds is not currently supported.
 
+> The builder interfaces are now designed in [`introducing-types.md`](introducing-types.md) and in the five
+> documents it indexes, which supersede this section on two points. First, `IEnumBuilder` and `IDelegateBuilder`
+> derive from `IMemberOrNamedTypeBuilder` rather than from `INamedTypeBuilder`, for the reasons that section 2 of
+> that document gives; `IRecordBuilder` and `IUnionBuilder` derive from `INamedTypeBuilder` as drafted here.
+> Second, `IUnionBuilder.AddCase` returns nothing, and no interface describes a case under construction. A case is
+> a bare type in the grammar of the language, so there is nothing for a builder to carry, and `IUnionCase` cannot
+> be returned either, because a case that is being built has no creation member yet, which is the lifetime argument
+> that the next paragraph of this section makes.
+
 The reason for keeping the writing surface off the facet is that the reader and the writer have different
 lifetimes. A facet describes a type that exists. A builder describes a type that is being constructed and whose
 members are not yet resolvable.
@@ -497,6 +506,13 @@ These are constraints on the implementation, not a design of it.
    every type, so the common case must not allocate.
 5. The implementations of `INamedType` that back a builder return the empty collection rather than throwing.
    Eligibility rules and advice validation run against builders, so an exception there is reached in normal use.
+
+   > This guideline is superseded by section 5.1 of [`introducing-types.md`](introducing-types.md), which makes a
+   > builder throw a `NotSupportedException` instead: a builder describes a type whose members are not resolvable,
+   > so an empty structure is a false answer rather than an incomplete one. The concern that this guideline records
+   > is answered rather than dismissed. The flags of section 4.4 continue to answer on a builder without
+   > allocating, so a caller that asks what kind a type is keeps working, and the three readers that take a type
+   > from an aspect are guarded before the exception is introduced. That document names them.
 6. The facet interfaces name no Roslyn type. `Metalama.Framework` is not built per Roslyn version, while
    `Metalama.Framework.Engine` is, and the union facet reads `ITypeSymbol.IsUnion` and `ITypeSymbol.UnionCaseTypes`,
    which exist only in the latest variant. The conditional compilation is therefore confined to the construction of
@@ -526,7 +542,7 @@ behaviour before anything that cannot be revised is public.
 The four issues below are the type introduction backlog, which predates this proposal. They are named here because
 this document decides the shape of their builder interfaces, in section 2.4, and because each of them replaces
 implementation guideline 5 for its own kind: the type that the builder produces has to report the facet of that
-kind. They are not C# 15 work, they are not gated on the move to the stable Roslyn, and their milestone is a
+kind, and the builder itself throws rather than reporting an empty one. They are not C# 15 work, they are not gated on the move to the stable Roslyn, and their milestone is a
 separate decision.
 
 | Issue | Content | Blocked by |
@@ -537,7 +553,15 @@ separate decision.
 | [#867](https://github.com/metalama/Metalama/issues/867) | Introduce a record, with `IRecordBuilder`. The largest of the four, because the synthesized members have to exist as builders. | #1997, #869 |
 
 `IUnionBuilder` belongs to the union introduction stories S-29 and S-30 of
-[`../2027.0/user-stories/README.md`](../2027.0/user-stories/README.md), and not to an issue of its own.
+[`../2027.0/user-stories/README.md`](../2027.0/user-stories/README.md), which are filed as issues
+[#1951](https://github.com/metalama/Metalama/issues/1951) and
+[#1952](https://github.com/metalama/Metalama/issues/1952).
+
+> This table is superseded by section 6 of [`introducing-types.md`](introducing-types.md), which adds the union to
+> it and records the revised hierarchy of section 2.4. The facet blockers listed above are satisfied, because
+> #1995, #1996, #1997 and #1941 are closed, so #869 alone blocks the enum, the delegate and the record. The union
+> is blocked by #869 and also by #1945, which is open. Each of the five kinds is designed in a document of its own,
+> and section 8 of that document indexes every related issue.
 
 ### 6.3. What the first issue measures
 

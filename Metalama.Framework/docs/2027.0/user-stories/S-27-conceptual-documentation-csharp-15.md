@@ -46,7 +46,7 @@ present in the environment of that analysis. It is still not present, so the que
 answered.
 
 The C# 15 subjects come from stories that this one follows. C# 15 as a supported language version is S-15. Reading a
-union in the code model is S-18-1 and introducing one is S-29, with S-30 conditional on question Q1. Reading a closed
+union in the code model is S-18-1 and introducing one is S-29. S-30 is withdrawn. Reading a closed
 hierarchy is S-16 and introducing a closed class is S-28. Extension indexers are S-21. The rejection of a labeled
 `break` or `continue` in a template is S-19, which follows section 5 of [`DECISIONS.md`](../DECISIONS.md).
 
@@ -91,7 +91,7 @@ reader has to be told before using the feature.
   aspect transforms is not affected.
 - State, on every page of the C# 15 set, which design-time hosts show the feature, and that a host whose Roslyn
   predates C# 15 reports the code as an error of its own rather than being reported by Metalama.
-- State that a case added to a `union` declaration is a build-time-only change, if question Q1 chooses to ship that
+- State that an aspect cannot add a case to a union that already exists, and what it writes instead for the
   form and S-30 is delivered.
 - Publish the page list, so that S-29, S-24 and S-30 reference this issue instead of enumerating pages in their own
   pull request descriptions.

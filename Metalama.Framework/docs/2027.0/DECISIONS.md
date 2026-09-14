@@ -64,16 +64,18 @@ producing code that the compiler rejects. Both halves are in scope.
 
 ## 4. Introducing unions, union cases and closed classes
 
-An aspect may introduce a closed class, a union, and a case into a union. All three are in scope for 2027.0 and all
-three are discretionary under section 2, in the order given: the closed class is the smallest and therefore the
-likeliest to survive a cut, and the two union stories go together, because the second is meaningless without the
-first.
+An aspect may introduce a closed class and a union. Both are in scope for 2027.0 and both are discretionary under
+section 2, in the order given: the closed class is the smallest and therefore the likeliest to survive a cut.
+
+Introducing a case into a union that already exists is not in scope, in either authoring form. That was question Q1
+of [`OPEN-QUESTIONS.md`](OPEN-QUESTIONS.md), the product owner answered it on 2026-09-11, and the subsection below
+records the answer and its reason.
 
 The four open introduction issues #865, #866, #867 and #869, which ask for enums, delegates, records and structs,
 stay out of scope. Union introduction is not grouped with them.
 
-Two documentation stories name a discretionary story as a blocker. The internal architecture documents wait on all
-three, and the conceptual documentation waits on the union introduction. They document what ships, so the sections
+Two documentation stories name a discretionary story as a blocker. The internal architecture documents wait on
+both, and the conceptual documentation waits on the union introduction. They document what ships, so the sections
 that describe an introduction interface slip with the story that delivers it, and the rest of each document does
 not wait for it.
 
@@ -138,10 +140,29 @@ property or a case constructor at all, so there is no override to serve and no b
 Nothing is imposed on the user in this case: the aspect emits the attribute form, the user never writes it, and the
 design-time result is correct.
 
-### Introducing a case into an existing union
+### Introducing a case into an existing union does not ship
 
-The two forms differ in kind here, and the difference is what question Q1 of
-[`OPEN-QUESTIONS.md`](OPEN-QUESTIONS.md) has to settle.
+No advice adds a case to a union that already exists, in either authoring form. This was question Q1 of
+[`OPEN-QUESTIONS.md`](OPEN-QUESTIONS.md), which asked whether case introduction into a `union` declaration ships
+given that it works at build time only. The answer is that it does not, and the attribute form does not ship
+either. The question is closed and has left that document.
+
+The reason for the `union` declaration is the one Q1 stated: the design-time half cannot be expressed at all, so
+the editor and the build would disagree, and an advice about which they disagree is worse than no advice.
+
+The reason for the attribute form is not the one Q1 weighed. Adding a case there is expressible, and an aspect
+performs it today with `IntroduceConstructor`, because Roslyn derives the case set of that form from the public
+single-parameter constructors. Metalama declares no advice of its own for it, because one method that serves one
+authoring form and fails on the other reads as a defect rather than as a design, and because the operation it would
+perform is one an aspect can already perform. The design is section 6.4 of
+[`../future/introducing-unions.md`](../future/introducing-unions.md).
+
+The consequence for the introduction of a whole union, which does ship, is section 6.3 of the same document: only
+the form written with the `union` keyword is introduced, because an advice that served both forms would carry an
+argument that changes which of its own members are valid, in exchange for an attribute and a naming convention.
+
+The paragraphs below record what the two forms would have required, because the analysis stands and the decision
+should be revisited if the language ever lets a part of a partial union contribute cases.
 
 For a type carrying the attribute, adding a case is the introduction of a constructor. That is ordinary member
 introduction, it is expressible in a generated partial part, and the editor and the build therefore agree. None of
@@ -157,7 +178,8 @@ the editor and the build disagree about conversions and about switch exhaustiven
 
 Telling a user that an aspect can add a case only if they abandon `union Pet(Cat, Dog)` for the attribute form is a
 poor answer, because the attribute form requires the author to write the case constructors and the `Value` property
-by hand. That is the usability cost that question Q1 weighs against a build-time-only capability.
+by hand. That was the usability cost that question Q1 weighed against a build-time-only capability, and the answer
+above declines both sides of it.
 
 The design analysis is in
 [`analysis-reports/11-introducing-unions-design.md`](analysis-reports/11-introducing-unions-design.md), which

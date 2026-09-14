@@ -7,13 +7,21 @@
 - Size: M
 - Priority: nice to have for 2027.0. It is discretionary under the doctrine of section 2 of
   [`DECISIONS.md`](../DECISIONS.md) and slips to 2027.1 if the release runs short.
-- Blocked by: S-29, and question Q1 of [`OPEN-QUESTIONS.md`](../OPEN-QUESTIONS.md)
+- Status: **withdrawn on 2026-09-11.** Not filed, and issue #1952 is closed without being implemented.
 - Findings: none. The design is
   [`analysis-reports/11-introducing-unions-design.md`](../analysis-reports/11-introducing-unions-design.md).
 
 ---
 
-This story is filed only if question Q1 chooses Option A, which is to ship both authoring forms of case
+> This story is withdrawn. Question Q1 of [`OPEN-QUESTIONS.md`](../OPEN-QUESTIONS.md) asked whether case
+> introduction into a `union` declaration ships given that it works at build time only, and the product owner
+> answered on 2026-09-11 that it does not. Section 4 of [`DECISIONS.md`](../DECISIONS.md) records the answer, which
+> also declines the attribute form that S-29 carried, and section 6.4 of
+> [`../../future/introducing-unions.md`](../../future/introducing-unions.md) carries the design and what an aspect
+> writes instead. The text below is kept as the record of what the story would have required, because the analysis
+> stands and the decision should be revisited if the language ever lets a part of a partial union contribute cases.
+
+This story would have been filed only if question Q1 had chosen Option A, which is to ship both authoring forms of case
 introduction. It adds a case to a type declared with the `union` keyword, which S-29 leaves out because that
 operation works at build time only.
 
