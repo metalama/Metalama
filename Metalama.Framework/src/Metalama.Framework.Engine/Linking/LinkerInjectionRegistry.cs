@@ -4,28 +4,29 @@
 
 using Metalama.Compiler;
 using Metalama.Framework.Aspects;
-using Metalama.Framework.Code;
 using Metalama.Framework.Code.Comparers;
+using Metalama.Framework.Code;
 using Metalama.Framework.Engine.AdviceImpl.Introduction;
-using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.Abstractions;
+using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 using Metalama.Framework.Engine.CodeModel.Introductions.ConstructedTypes;
 using Metalama.Framework.Engine.CodeModel.Introductions.Introduced;
 using Metalama.Framework.Engine.CodeModel.References;
+using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.Utilities.Comparers;
 using Metalama.Framework.Engine.Utilities.Threading;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
+using MethodKind = Microsoft.CodeAnalysis.MethodKind;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
-using MethodKind = Microsoft.CodeAnalysis.MethodKind;
+using System;
 
 namespace Metalama.Framework.Engine.Linking;
 
@@ -512,6 +513,15 @@ internal sealed class LinkerInjectionRegistry
 
             for ( var i = 0; i < candidateParameters.Length; i++ )
             {
+                // The reference kind is part of the signature. Two members of one type may differ by nothing else,
+                // which OverrideSynthesizedMember_RefKindOverload writes: a record declares Deconstruct with out
+                // parameters, and an aspect may introduce an overload that takes the same types by value. Without
+                // this comparison the member that the enumeration reaches first would be accepted.
+                if ( candidateParameters[i].RefKind.ToOurParameterRefKind() != builderParameters[i].RefKind )
+                {
+                    return false;
+                }
+
                 // The constructed declaration is resolved and not the definition, because the definition of a
                 // constructed type is its generic definition: a parameter of type List<int> would be compared
                 // against List<T> and would never match.

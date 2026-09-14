@@ -93,7 +93,7 @@ internal sealed class EnumBuilder : NamedTypeBuilder, IEnumBuilder, ITypeBuilder
     /// <summary>
     /// Gets the type of <see cref="FlagsAttribute"/> in the compilation under construction.
     /// </summary>
-    private INamedType FlagsAttributeType => this.Compilation.Factory.GetTypeByReflectionName( "System.FlagsAttribute" );
+    private INamedType FlagsAttributeType => this.Compilation.Cache.SystemFlagsAttributeType;
 
     public bool IsFlags
     {
@@ -192,33 +192,17 @@ internal sealed class EnumBuilder : NamedTypeBuilder, IEnumBuilder, ITypeBuilder
             return this.AddIntegralMember( name, 0, hasExplicitValue: false );
         }
 
+        // The value is validated against the underlying type by the method that adds the member, which is where
+        // every other overload is validated as well.
         var previousValue = this._members[this._members.Count - 1].ConstantValue.AssertNotNull().Value.AssertNotNull();
 
         if ( this._underlyingType == SpecialType.UInt64 )
         {
-            var previous = Convert.ToUInt64( previousValue, CultureInfo.InvariantCulture );
-
-            if ( previous == ulong.MaxValue )
-            {
-                throw new ArgumentOutOfRangeException(
-                    nameof(name),
-                    $"The member '{name}' of the enum '{this.Name}' is added without a value, and the value that follows the preceding member does not fit in '{this.UnderlyingType}'." );
-            }
-
-            return this.AddUnsignedMember( name, previous + 1, hasExplicitValue: false );
+            return this.AddUnsignedMember( name, Convert.ToUInt64( previousValue, CultureInfo.InvariantCulture ) + 1, hasExplicitValue: false );
         }
         else
         {
-            var previous = Convert.ToInt64( previousValue, CultureInfo.InvariantCulture );
-
-            if ( previous == long.MaxValue )
-            {
-                throw new ArgumentOutOfRangeException(
-                    nameof(name),
-                    $"The member '{name}' of the enum '{this.Name}' is added without a value, and the value that follows the preceding member does not fit in '{this.UnderlyingType}'." );
-            }
-
-            return this.AddIntegralMember( name, previous + 1, hasExplicitValue: false );
+            return this.AddIntegralMember( name, Convert.ToInt64( previousValue, CultureInfo.InvariantCulture ) + 1, hasExplicitValue: false );
         }
     }
 

@@ -714,8 +714,8 @@ internal sealed partial class LinkerInjectionStep
                     if ( typeDeclaration.OpenBraceToken.IsKind( SyntaxKind.None ) )
                     {
                         typeDeclaration = typeDeclaration
-                            .WithOpenBraceToken( Token( SyntaxKind.OpenBraceToken ) )
-                            .WithCloseBraceToken( Token( SyntaxKind.CloseBraceToken ) )
+                            .WithOpenBraceToken( Token( SyntaxKind.OpenBraceToken ).AddColoringAnnotation( TextSpanClassification.GeneratedCode ) )
+                            .WithCloseBraceToken( Token( SyntaxKind.CloseBraceToken ).AddColoringAnnotation( TextSpanClassification.GeneratedCode ) )
                             .WithSemicolonToken( default );
                     }
 

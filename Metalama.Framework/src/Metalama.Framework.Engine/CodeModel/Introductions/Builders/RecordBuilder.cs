@@ -114,7 +114,7 @@ internal sealed class RecordBuilder : NamedTypeBuilder, IRecordBuilder, ITypeBui
 
             if ( value )
             {
-                throw new InvalidOperationException( $"The type '{this.Name}' cannot be a ref struct because the language has no ref record struct." );
+                throw new InvalidOperationException( $"The type '{this.Name}' cannot be a ref struct." );
             }
         }
     }
@@ -131,7 +131,7 @@ internal sealed class RecordBuilder : NamedTypeBuilder, IRecordBuilder, ITypeBui
         {
             if ( !this.IsRecordClass )
             {
-                throw this.NotSupported( nameof(this.BaseType) );
+                throw this.ModifierNotSupported( nameof(this.BaseType) );
             }
 
             base.BaseType = value;
@@ -150,7 +150,7 @@ internal sealed class RecordBuilder : NamedTypeBuilder, IRecordBuilder, ITypeBui
         {
             if ( !this.IsRecordClass )
             {
-                throw this.NotSupported( nameof(this.IsAbstract) );
+                throw this.ModifierNotSupported( nameof(this.IsAbstract) );
             }
 
             base.IsAbstract = value;
@@ -168,7 +168,7 @@ internal sealed class RecordBuilder : NamedTypeBuilder, IRecordBuilder, ITypeBui
         {
             if ( !this.IsRecordClass )
             {
-                throw this.NotSupported( nameof(this.IsSealed) );
+                throw this.ModifierNotSupported( nameof(this.IsSealed) );
             }
 
             base.IsSealed = value;
@@ -182,7 +182,7 @@ internal sealed class RecordBuilder : NamedTypeBuilder, IRecordBuilder, ITypeBui
     public override bool IsStatic
     {
         get => false;
-        set => throw this.NotSupported( nameof(this.IsStatic) );
+        set => throw this.ModifierNotSupported( nameof(this.IsStatic) );
     }
 
     /// <summary>
@@ -197,9 +197,9 @@ internal sealed class RecordBuilder : NamedTypeBuilder, IRecordBuilder, ITypeBui
                 ? this.Compilation.Factory.GetSpecialType( SpecialType.ValueType )
                 : this.Compilation.Factory.GetSpecialType( SpecialType.Object ) );
 
-    private NotSupportedException NotSupported( string propertyName )
+    private NotSupportedException ModifierNotSupported( string propertyName )
         => new(
-            $"The property '{propertyName}' is not supported on the record '{this.Name}', because the language does not give that modifier to a {(this.IsRecordClass ? "record class" : "record struct")}." );
+            $"The property '{propertyName}' is not supported on the record '{this.Name}', because the language does not support that modifier for a {(this.IsRecordClass ? "record class" : "record struct")}." );
 
     /// <summary>
     /// Gets a value indicating whether the record is a reference type, which decides the members that the compiler
@@ -281,7 +281,7 @@ internal sealed class RecordBuilder : NamedTypeBuilder, IRecordBuilder, ITypeBui
 
         if ( !this.IsRecordClass )
         {
-            throw this.NotSupported( nameof(this.AddBaseArgument) );
+            throw this.ModifierNotSupported( nameof(this.AddBaseArgument) );
         }
 
         if ( this.BaseType is null or { SpecialType: SpecialType.Object } )
@@ -474,7 +474,7 @@ internal sealed class RecordBuilder : NamedTypeBuilder, IRecordBuilder, ITypeBui
             ReturnType = this.Compilation.Factory.GetSpecialType( SpecialType.Boolean )
         };
 
-        method.AddParameter( "builder", this.Compilation.Factory.GetTypeByReflectionName( "System.Text.StringBuilder" ) );
+        method.AddParameter( "builder", this.Compilation.Cache.SystemTextStringBuilderType );
 
         this.PrintMembersMethod = method;
         this._synthesizedMethods.Add( method );

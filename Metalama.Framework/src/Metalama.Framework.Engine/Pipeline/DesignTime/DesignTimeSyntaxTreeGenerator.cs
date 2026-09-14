@@ -281,8 +281,9 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                 var members = List<MemberDeclarationSyntax>();
                 var syntaxGenerationContext = finalCompilationModel.CompilationContext.GetSyntaxGenerationContext( SyntaxGenerationOptions.Formatted, true );
 
-                // TODO: Provide other implementations or allow nulls (because this pipeline should not execute anything).
-                // TODO: Implement support for initializable transformations.
+                // The name provider and the reference provider are the ones that the build-time linker uses. This
+                // pipeline runs no linker, so nothing consumes the names and the references they produce. Issue #2021
+                // tracks giving this pipeline providers of its own, or letting the two be null.
                 var introductionContext = new MemberInjectionContext(
                     serviceProvider,
                     diagnostics,

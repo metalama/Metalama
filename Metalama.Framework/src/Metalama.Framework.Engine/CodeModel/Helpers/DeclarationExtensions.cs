@@ -225,6 +225,21 @@ public static class DeclarationExtensions
             _ => throw new InvalidOperationException( $"Roslyn RefKind {roslynRefKind} not recognized here." )
         };
 
+    /// <summary>
+    /// Converts Roslyn <see cref="Microsoft.CodeAnalysis.RefKind"/> to Metalama <see cref="RefKind"/> for parameters,
+    /// which accept <c>out</c> and <c>in</c> where a member and a return parameter do not.
+    /// </summary>
+    internal static RefKind ToOurParameterRefKind( this Microsoft.CodeAnalysis.RefKind roslynRefKind )
+        => roslynRefKind switch
+        {
+            Microsoft.CodeAnalysis.RefKind.None => RefKind.None,
+            Microsoft.CodeAnalysis.RefKind.Ref => RefKind.Ref,
+            Microsoft.CodeAnalysis.RefKind.Out => RefKind.Out,
+            Microsoft.CodeAnalysis.RefKind.In => RefKind.In,
+            Microsoft.CodeAnalysis.RefKind.RefReadOnlyParameter => RefKind.RefReadOnly,
+            _ => throw new InvalidOperationException( $"Roslyn RefKind {roslynRefKind} not recognized here." )
+        };
+
     internal static Accessibility ToOurAccessibility( this Microsoft.CodeAnalysis.Accessibility accessibility )
         => accessibility switch
         {

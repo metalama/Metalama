@@ -67,7 +67,7 @@ internal sealed class UnionBuilder : NamedTypeBuilder, IUnionBuilder, ITypeBuild
     public override INamedType? BaseType
     {
         get => base.BaseType;
-        set => throw this.NotSupported( nameof(this.BaseType) );
+        set => throw this.ModifierNotSupported( nameof(this.BaseType) );
     }
 
     /// <summary>
@@ -77,7 +77,7 @@ internal sealed class UnionBuilder : NamedTypeBuilder, IUnionBuilder, ITypeBuild
     public override bool IsAbstract
     {
         get => false;
-        set => throw this.NotSupported( nameof(this.IsAbstract) );
+        set => throw this.ModifierNotSupported( nameof(this.IsAbstract) );
     }
 
     /// <summary>
@@ -87,7 +87,7 @@ internal sealed class UnionBuilder : NamedTypeBuilder, IUnionBuilder, ITypeBuild
     public override bool IsSealed
     {
         get => true;
-        set => throw this.NotSupported( nameof(this.IsSealed) );
+        set => throw this.ModifierNotSupported( nameof(this.IsSealed) );
     }
 
     /// <summary>
@@ -97,7 +97,7 @@ internal sealed class UnionBuilder : NamedTypeBuilder, IUnionBuilder, ITypeBuild
     public override bool IsStatic
     {
         get => false;
-        set => throw this.NotSupported( nameof(this.IsStatic) );
+        set => throw this.ModifierNotSupported( nameof(this.IsStatic) );
     }
 
     /// <summary>
@@ -107,7 +107,7 @@ internal sealed class UnionBuilder : NamedTypeBuilder, IUnionBuilder, ITypeBuild
     public override bool IsReadOnly
     {
         get => false;
-        set => throw this.NotSupported( nameof(this.IsReadOnly) );
+        set => throw this.ModifierNotSupported( nameof(this.IsReadOnly) );
     }
 
     /// <summary>
@@ -117,7 +117,7 @@ internal sealed class UnionBuilder : NamedTypeBuilder, IUnionBuilder, ITypeBuild
     public override bool IsRef
     {
         get => false;
-        set => throw this.NotSupported( nameof(this.IsRef) );
+        set => throw this.ModifierNotSupported( nameof(this.IsRef) );
     }
 
     /// <summary>
@@ -127,8 +127,8 @@ internal sealed class UnionBuilder : NamedTypeBuilder, IUnionBuilder, ITypeBuild
     protected override void InitializeBaseType()
         => this.SetBaseTypeCore( this.Compilation.Factory.GetSpecialType( SpecialType.ValueType ) );
 
-    private NotSupportedException NotSupported( string propertyName )
-        => new( $"The property '{propertyName}' is not supported on the union '{this.Name}', because the language does not give that modifier to a union." );
+    private NotSupportedException ModifierNotSupported( string propertyName )
+        => new( $"The property '{propertyName}' is not supported on the union '{this.Name}', because the language does not support that modifier for a union." );
 
     public IReadOnlyList<IType> Cases => this._cases;
 
