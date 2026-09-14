@@ -8,7 +8,5 @@ internal enum InternalSpecialType
 {
     // ReSharper disable once InconsistentNaming
     ITemplateAttribute,
-    FlagsAttribute,
-    StringBuilder,
     Count
 }

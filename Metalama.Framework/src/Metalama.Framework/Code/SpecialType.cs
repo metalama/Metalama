@@ -191,6 +191,17 @@ namespace Metalama.Framework.Code
         /// </summary>
         MulticastDelegate,
 
+        /// <summary>
+        /// <see cref="System.FlagsAttribute"/>, which marks an enum whose members are combined as a bit field.
+        /// </summary>
+        FlagsAttribute,
+
+        /// <summary>
+        /// <see cref="System.Text.StringBuilder"/>, which is the parameter type of the <c>PrintMembers</c> method
+        /// that the compiler synthesizes for a record.
+        /// </summary>
+        StringBuilder,
+
         // Must be last.
 
         /// <summary>

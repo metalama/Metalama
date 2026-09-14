@@ -110,6 +110,8 @@ public sealed partial class DeclarationFactory : IDeclarationFactory, ISdkDeclar
                     SpecialType.Type => this.GetNamedTypeByReflectionType( typeof(Type) ),
                     SpecialType.IAsyncEnumerable_T => this.GetTypeByReflectionName( "System.Collections.Generic.IAsyncEnumerable`1" ),
                     SpecialType.IAsyncEnumerator_T => this.GetTypeByReflectionName( "System.Collections.Generic.IAsyncEnumerator`1" ),
+                    SpecialType.FlagsAttribute => this.GetNamedTypeByReflectionType( typeof(FlagsAttribute) ),
+                    SpecialType.StringBuilder => this.GetNamedTypeByReflectionType( typeof(System.Text.StringBuilder) ),
                     _ => throw new ArgumentOutOfRangeException( nameof(specialType) )
                 };
         }
@@ -119,8 +121,6 @@ public sealed partial class DeclarationFactory : IDeclarationFactory, ISdkDeclar
         => specialType switch
         {
             InternalSpecialType.ITemplateAttribute => this.GetNamedTypeByReflectionType( typeof(ITemplateAttribute) ),
-            InternalSpecialType.FlagsAttribute => this.GetNamedTypeByReflectionType( typeof(FlagsAttribute) ),
-            InternalSpecialType.StringBuilder => this.GetNamedTypeByReflectionType( typeof(System.Text.StringBuilder) ),
             _ => throw new ArgumentOutOfRangeException( nameof(specialType) )
         };
 

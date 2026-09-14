@@ -65,8 +65,8 @@ internal sealed class DeclarationCache : IDeclarationCache
     public INamedType SystemStringType => this.GetOrAdd( static c => c.Factory.GetSpecialType( SpecialType.String ) );
 
     [Memo]
-    public INamedType SystemFlagsAttributeType => this.GetOrAdd( static c => c.Factory.GetSpecialType( InternalSpecialType.FlagsAttribute ) );
+    public INamedType SystemFlagsAttributeType => this.GetOrAdd( static c => c.Factory.GetSpecialType( SpecialType.FlagsAttribute ) );
 
     [Memo]
-    public INamedType SystemTextStringBuilderType => this.GetOrAdd( static c => c.Factory.GetSpecialType( InternalSpecialType.StringBuilder ) );
+    public INamedType SystemTextStringBuilderType => this.GetOrAdd( static c => c.Factory.GetSpecialType( SpecialType.StringBuilder ) );
 }
