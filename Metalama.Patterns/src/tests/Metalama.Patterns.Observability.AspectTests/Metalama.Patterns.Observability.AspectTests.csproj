@@ -26,6 +26,16 @@
     </ItemGroup>
 
     <ItemGroup>
+        <!-- This test applies [Observable] to a union declaration, which is a struct, and the attribute does not
+             declare AttributeTargets.Struct. The compiler reports CS0592, which is the first of the two diagnostics
+             that the test pins, so the file cannot be part of this compilation. The test framework reads the file
+             from the source directory rather than from the compilation, so removing it here does not remove the
+             test. See issue #1946. -->
+        <Compile Remove="Diagnostics/UnionIsNotObservable.cs" />
+        <None Include="Diagnostics/UnionIsNotObservable.cs" />
+    </ItemGroup>
+
+    <ItemGroup>
       <Compile Update="ObservableRecipientBase.cs">
         <DependentUpon>$([System.String]::Copy('ObservableRecipientBase').Substring( %(Filename.IndexOf('.') ).cs</DependentUpon>
         <SubType>Code</SubType>

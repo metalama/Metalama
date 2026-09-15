@@ -1,0 +1,1 @@
+// Error LAMA0037 on `Observable`: `The aspect 'Observable' cannot be applied to the type 'Result' because .`

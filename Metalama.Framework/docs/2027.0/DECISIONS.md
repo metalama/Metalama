@@ -515,3 +515,40 @@ enabling of C# 15 as a supported language version belongs to the new meta issue,
 that the platform move makes possible.
 
 No issue is created until the stories are approved, which is the standing rule of this analysis.
+
+## 13. The implicit parameterless constructor of a union is excluded by the multicast selector
+
+An assembly-level multicast aspect whose targets include `MulticastTargets.InstanceConstructor` selected the
+implicit parameterless constructor of a union, and an aspect that materializes that constructor produces code that
+the compiler rejects with CS9375, because a constructor declared in a union must chain through a `this(...)`
+initializer. Finding UT-14d offered two remedies: restrict the selector of `Metalama.Extensions.Multicast`, or make
+constructor advice ineligible on a union in the engine.
+
+The selector is restricted, and the engine is not changed. Two reasons decide it.
+
+The selector admits an implicitly declared constructor only when it has no parameter, and it does so on the
+assumption that materializing that constructor produces a declaration the user could have written. A union is the
+one type for which the assumption is false, so the exclusion belongs where the assumption is stated.
+
+An eligibility rule in the engine would forbid more than the defect requires. An aspect that overrides a case
+constructor of a union, which the user declares in the union header, produces valid code, and an engine rule on
+constructor advice would have to distinguish the two cases to avoid refusing it. The engine rule is also the wider
+change, and section 2 states that an eligibility rule is written where it protects the pipeline or turns a compiler
+error into a message that the aspect author can act on, not as a systematic restatement of the language rules.
+
+The exclusion tests the declaration form only. The attribute form of a union is an ordinary class or struct, whose
+constructors the language does not restrict.
+
+### The exclusion is provisional
+
+`Metalama.Extensions.Multicast` exists to reproduce the multicasting of PostSharp, so that an aspect migrated from
+PostSharp selects the same targets. PostSharp does not support the unions of C# 15, so the exclusion was derived from
+the language rules rather than from a behaviour to match. Two questions are therefore open: whether PostSharp selects
+the implicit parameterless constructor of a union at all, and whether it treats the case constructors of a union as
+multicast targets, which the current selection does not, because they are implicitly declared and take one parameter
+each.
+
+Issue #2031 asks for the comparison once PostSharp supports unions, and for the selection to be aligned or the
+difference to be recorded as intended. The aspect test `Union.cs` of `Metalama.Extensions.Multicast.AspectTests` pins
+the current selection, including the contrast case of an ordinary struct whose implicit parameterless constructor is
+selected, so a later alignment changes a test whose expected output states the behaviour.
