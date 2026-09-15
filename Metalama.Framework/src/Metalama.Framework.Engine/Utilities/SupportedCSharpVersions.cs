@@ -164,11 +164,16 @@ public static class SupportedCSharpVersions
     /// <summary>
     /// Gets the maximum C# language version supported by a given Roslyn version.
     /// </summary>
+    /// <remarks>
+    /// A major version above the highest one listed here is mapped to the highest language version that this build
+    /// knows. A minor version restarts at zero in a new major version, so an arm that required both a major bound
+    /// and a minor bound would map such a Roslyn to a lower language version than the previous major version gets.
+    /// </remarks>
     internal static LanguageVersion GetMaxLanguageVersion( Version roslynVersion )
         => (roslynVersion.Major, roslynVersion.Minor) switch
         {
-            (>= 5, >= 11) => AllLanguageVersions.CSharp15,
-            (>= 5, _) => AllLanguageVersions.CSharp14,
+            (> 5, _) or (5, >= 11) => AllLanguageVersions.CSharp15,
+            (5, _) => AllLanguageVersions.CSharp14,
             (4, >= 12) => AllLanguageVersions.CSharp13,
             (4, >= 8) => AllLanguageVersions.CSharp12,
             (4, >= 4) => AllLanguageVersions.CSharp11,
