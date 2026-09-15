@@ -122,6 +122,24 @@ namespace Metalama.Framework.Engine.Formatting
             }
         }
 
+#if ROSLYN_5_11_0_OR_GREATER
+        /// <summary>
+        /// Classifies a compile-time union declaration, whose case list is carried by the parameter list of the header,
+        /// as the positional parameters of a record are.
+        /// </summary>
+        /// <remarks>
+        /// The override exists only because Roslyn dispatches a virtual method per node kind. A run-time union is left
+        /// unclassified, as a run-time struct is. See issue #1942.
+        /// </remarks>
+        public override void VisitUnionDeclaration( UnionDeclarationSyntax node )
+        {
+            if ( this.VisitTypeDeclaration( node, n => base.VisitUnionDeclaration( n ) ) )
+            {
+                this.Mark( node.ParameterList, TextSpanClassification.CompileTime );
+            }
+        }
+#endif
+
         private void VisitSimpleTypeDeclaration<T>( T node, Action<T> visitBase )
             where T : SyntaxNode
         {

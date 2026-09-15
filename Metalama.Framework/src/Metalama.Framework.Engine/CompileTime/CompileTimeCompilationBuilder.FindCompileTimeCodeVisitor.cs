@@ -97,6 +97,16 @@ namespace Metalama.Framework.Engine.CompileTime
             public override void VisitRecordDeclaration( RecordDeclarationSyntax node ) => this.VisitTypeDeclaration( node );
 
             public override void VisitInterfaceDeclaration( InterfaceDeclarationSyntax node ) => this.VisitTypeDeclaration( node );
+
+#if ROSLYN_5_11_0_OR_GREATER
+            /// <summary>
+            /// Visits a union declaration, which is classified exactly as a struct declaration is.
+            /// </summary>
+            /// <remarks>
+            /// The override exists only because Roslyn dispatches a virtual method per node kind. See issue #1942.
+            /// </remarks>
+            public override void VisitUnionDeclaration( UnionDeclarationSyntax node ) => this.VisitTypeDeclaration( node );
+#endif
         }
     }
 }

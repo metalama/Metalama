@@ -246,22 +246,26 @@ internal sealed class ExecuteAspectLayerPipelineStep : PipelineStep
                     return 0;
                 }
 
-                // Implicitly declared record methods have the same span, compare them by signature.
-                if ( x.TargetDeclaration.DeclarationKind == DeclarationKind.Method
-                     && y.TargetDeclaration.DeclarationKind == DeclarationKind.Method
-                     && x.TargetDeclaration is IMethod xMethod && y.TargetDeclaration is IMethod yMethod )
+                // Several declarations can carry the span of one type declaration. A record declares Equals,
+                // GetHashCode, ToString, PrintMembers, the equality operators, the copy constructor and the
+                // EqualityContract property implicitly, and each of them carries the span of the record declaration,
+                // so the pair is not always a pair of methods. The Value property of a union carries the span of the
+                // union declaration in the same way. See issue #1945.
+                //
+                // A declaration that the user wrote comes before one that the compiler declared, and two declarations
+                // of the same origin are ordered by signature, which orders two symbols of different kinds by kind.
+                if ( x.TargetDeclaration.IsImplicitlyDeclared != y.TargetDeclaration.IsImplicitlyDeclared )
                 {
-                    Invariant.Assert(
-                        ReferenceEquals( xMethod.DeclaringType, yMethod.DeclaringType )
-                        && xMethod.DeclaringType.IsRecord
-                        && xMethod.IsImplicitlyDeclared && yMethod.IsImplicitlyDeclared );
+                    return x.TargetDeclaration.IsImplicitlyDeclared ? 1 : -1;
+                }
 
-                    var signatureComparison = StructuralSymbolComparer.Signature.Compare( xMethod.GetSymbol(), yMethod.GetSymbol() );
+                var signatureComparison = StructuralSymbolComparer.Signature.Compare(
+                    x.TargetDeclaration.GetSymbol(),
+                    y.TargetDeclaration.GetSymbol() );
 
-                    if ( signatureComparison != 0 )
-                    {
-                        return signatureComparison;
-                    }
+                if ( signatureComparison != 0 )
+                {
+                    return signatureComparison;
                 }
 
                 throw new AssertionFailedException( $"The pair {x} and {y} is not ordered." );

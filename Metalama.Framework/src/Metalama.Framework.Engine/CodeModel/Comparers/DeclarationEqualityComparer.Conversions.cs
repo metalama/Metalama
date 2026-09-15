@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Code;
+using Metalama.Framework.Code.DeclarationBuilders;
 using Metalama.Framework.Code.Types;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.Utilities.Comparers;
@@ -58,6 +59,13 @@ internal partial class DeclarationEqualityComparer
 
             if ( kind is ConversionKind.Implicit )
             {
+                // The conversion from a case type of a union to the union is granted by the language and is not an
+                // implicit conversion operator, so the enumeration of the operators below does not find it.
+                if ( this.HasUnionCaseConversion( left, right ) )
+                {
+                    return true;
+                }
+
                 if ( this.HasUserDefinedImplicitConversion( left, right ) )
                 {
                     return true;
@@ -68,6 +76,50 @@ internal partial class DeclarationEqualityComparer
         }
 
         private static bool IsClass( IType type ) => type.TypeKind is TypeKind.Class;
+
+        /// <summary>
+        /// Determines whether the language grants an implicit conversion from <paramref name="left"/> to
+        /// <paramref name="right"/> because <paramref name="right"/> is a union and <paramref name="left"/> is one of
+        /// its case types. See issue #1945.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// The source of the conversion is any type that converts to a case type, and not the case type alone.
+        /// Roslyn classifies the conversion from a type derived from a case type as implicit, which
+        /// <c>ComparerAgreesWithRoslynTests</c> pins, so the case type is compared with the helper that answers an
+        /// identity or an implicit reference conversion rather than with the identity helper.
+        /// </para>
+        /// <para>
+        /// A union that is still being built reports no conversion, because section 5.1 of
+        /// <c>Metalama.Framework/docs/introducing-types.md</c> decides that a builder has no structure to report and
+        /// throws from its facet collection. The conversion is answered for the introduced type that the advice
+        /// returns.
+        /// </para>
+        /// </remarks>
+        private bool HasUnionCaseConversion( IType left, IType right )
+        {
+            if ( right is not INamedType { IsUnion: true } union || right is IDeclarationBuilder )
+            {
+                return false;
+            }
+
+            var cases = union.Facets.Union?.Cases;
+
+            if ( cases == null )
+            {
+                return false;
+            }
+
+            foreach ( var unionCase in cases )
+            {
+                if ( this.HasIdentityOrImplicitReferenceConversion( left, unionCase.Type ) )
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
 
         private bool HasIdentityOrImplicitReferenceConversion( IType left, IType right )
         {

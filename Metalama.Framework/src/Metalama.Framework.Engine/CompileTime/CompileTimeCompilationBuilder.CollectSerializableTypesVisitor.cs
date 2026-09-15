@@ -79,6 +79,21 @@ namespace Metalama.Framework.Engine.CompileTime
                 base.VisitRecordDeclaration( node );
             }
 
+#if ROSLYN_5_11_0_OR_GREATER
+            /// <summary>
+            /// Visits a union declaration, whose serializable members are collected exactly as those of a struct
+            /// declaration are.
+            /// </summary>
+            /// <remarks>
+            /// The override exists only because Roslyn dispatches a virtual method per node kind. See issue #1942.
+            /// </remarks>
+            public override void VisitUnionDeclaration( UnionDeclarationSyntax node )
+            {
+                this.ProcessTypeDeclaration( node );
+                base.VisitUnionDeclaration( node );
+            }
+#endif
+
             public override void VisitMethodDeclaration( MethodDeclarationSyntax node ) { }
 
             public override void VisitFieldDeclaration( FieldDeclarationSyntax node ) { }
