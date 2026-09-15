@@ -9,7 +9,7 @@ namespace Metalama.Backstage.Desktop.Windows;
 
 internal sealed class DesktopWindowsApplicationInfo : ApplicationInfoBase
 {
-    public DesktopWindowsApplicationInfo() : base( typeof(DesktopWindowsApplicationInfo).Assembly ) { }
+    public DesktopWindowsApplicationInfo() : base( typeof(DesktopWindowsApplicationInfo).Assembly, MetalamaProduct.Profile ) { }
 
     public override string Name => "Metalama.Backstage.Desktop.Windows";
 

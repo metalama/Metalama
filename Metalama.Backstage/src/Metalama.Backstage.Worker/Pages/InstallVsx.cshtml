@@ -1,6 +1,6 @@
-﻿@page
+@page
 @using Metalama.Backstage.UserInterface
-@inject WebLinks WebLinks
+@inject IWebLinks WebLinks
 
 <script>
     function onArrowClicked() {
@@ -10,7 +10,7 @@
 
 </script>
 
-<p>Install <b>Visual Studio Tools for Metalama and PostSharp</b> for an enhanced development experience:</p>
+<p>Install <b>Visual Studio Tools for @Profile.Name</b> for an enhanced development experience:</p>
 <ul>
     <li>Syntax highlighting,</li>
     <li>CodeLens integration,</li>

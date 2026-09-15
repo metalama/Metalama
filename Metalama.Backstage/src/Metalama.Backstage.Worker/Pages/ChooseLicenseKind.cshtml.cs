@@ -13,12 +13,12 @@ namespace Metalama.Backstage.Pages;
 
 public class ChooseLicenseKindPageModel : PageModel
 {
-    public ChooseLicenseKindPageModel( WebLinks webLinks )
+    public ChooseLicenseKindPageModel( IWebLinks webLinks )
     {
         this.WebLinks = webLinks;
     }
 
-    public WebLinks WebLinks { get; }
+    public IWebLinks WebLinks { get; }
 
     public IActionResult OnPost( string action )
     {

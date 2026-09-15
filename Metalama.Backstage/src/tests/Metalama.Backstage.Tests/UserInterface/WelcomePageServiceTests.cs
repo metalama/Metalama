@@ -23,7 +23,7 @@ public sealed class WelcomePageServiceTests : TestsBase
         this.InitializationOptions = this.InitializationOptions with { OpenWelcomePage = true };
     }
 
-    protected override void ConfigureServices( ServiceProviderBuilder services ) => services.AddTelemetryServices();
+    protected override void ConfigureServices( ServiceProviderBuilder services ) => services.AddTelemetryServices( this.InitializationOptions.TelemetryOptions );
 
     protected override void OnAfterServicesCreated( Services services )
     {
@@ -39,8 +39,8 @@ public sealed class WelcomePageServiceTests : TestsBase
         var telemetryContext = telemetryService.OpenContext( telemetryService.GetPolicy( "C:\\Src" ) );
         telemetryContext.StartUsageSession( "Test" );
 
-        // Opening web pages is done from a backgronud thread, so we need to wait.
-        await this.BackgroundTasks.WhenNoPendingTaskAsync();
+        // The activation is an event, and opening web pages is done from a background thread, so we need to wait.
+        await this.DrainEventsAsync();
     }
 
     [Fact]

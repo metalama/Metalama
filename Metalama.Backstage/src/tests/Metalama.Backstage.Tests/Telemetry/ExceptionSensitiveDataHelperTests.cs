@@ -40,7 +40,7 @@ namespace Metalama.Backstage.Tests.Telemetry
             "   at #user(#user param) in :line 16707565" )]
         public void SensitiveDataIsRemoved( string input, string expectedOutput )
         {
-            var actualOutput = ExceptionSensitiveDataHelper.Instance.RemoveSensitiveData( input );
+            var actualOutput = ExceptionSensitiveDataHelper.ForProfile( MetalamaProduct.Profile ).RemoveSensitiveData( input );
 
             Assert.Equal( expectedOutput, actualOutput );
         }
@@ -56,7 +56,7 @@ namespace Metalama.Backstage.Tests.Telemetry
         [InlineData( @"foo C:\WindowsPathWithoutSpaces\file.extension bar", "foo #path" )]
         public void SensitiveDataIsRemovedOnWindows( string input, string expectedOutput )
         {
-            var actualOutput = new ExceptionSensitiveDataHelper( isWindows: true ).RemoveSensitiveData( input );
+            var actualOutput = new ExceptionSensitiveDataHelper( MetalamaProduct.Profile.TrustedAssemblyNamePrefixes, isWindows: true ).RemoveSensitiveData( input );
 
             Assert.Equal( expectedOutput, actualOutput );
         }
@@ -72,7 +72,7 @@ namespace Metalama.Backstage.Tests.Telemetry
         [InlineData( @"foo /var/UnixPathWithoutSpaces/file.extension bar", "foo #path bar" )]
         public void SensitiveDataIsRemovedOnUnix( string input, string expectedOutput )
         {
-            var actualOutput = new ExceptionSensitiveDataHelper( isWindows: false ).RemoveSensitiveData( input );
+            var actualOutput = new ExceptionSensitiveDataHelper( MetalamaProduct.Profile.TrustedAssemblyNamePrefixes, isWindows: false ).RemoveSensitiveData( input );
 
             Assert.Equal( expectedOutput, actualOutput );
         }
@@ -97,7 +97,7 @@ namespace Metalama.Backstage.Tests.Telemetry
         [InlineData( "   at JetBrains.Annotations.NotNullAttribute..ctor(String message) in :line 16707565" )]
         public void NonSensitiveDataIsNotRemoved( string input )
         {
-            var actualOutput = ExceptionSensitiveDataHelper.Instance.RemoveSensitiveData( input );
+            var actualOutput = ExceptionSensitiveDataHelper.ForProfile( MetalamaProduct.Profile ).RemoveSensitiveData( input );
 
             Assert.Equal( input, actualOutput );
         }
@@ -128,7 +128,7 @@ namespace Metalama.Backstage.Tests.Telemetry
         [InlineData( "Server=myserver;Password=p@ssw0rd;Database=db", "Server=myserver;Password=#secret;Database=db" )]
         public void SecretsAreRedacted( string input, string expectedOutput )
         {
-            var actualOutput = ExceptionSensitiveDataHelper.Instance.RemoveSensitiveData( input );
+            var actualOutput = ExceptionSensitiveDataHelper.ForProfile( MetalamaProduct.Profile ).RemoveSensitiveData( input );
 
             Assert.Equal( expectedOutput, actualOutput );
         }
@@ -178,10 +178,10 @@ namespace Metalama.Backstage.Tests.Telemetry
                 unixExpectedResultBuilder.AppendLine( data[1] );
             }
 
-            var actualWindowsOutput = new ExceptionSensitiveDataHelper( isWindows: true ).RemoveSensitiveData( windowsInputBuilder.ToString() );
+            var actualWindowsOutput = new ExceptionSensitiveDataHelper( MetalamaProduct.Profile.TrustedAssemblyNamePrefixes, isWindows: true ).RemoveSensitiveData( windowsInputBuilder.ToString() );
             Assert.Equal( actualWindowsOutput, windowsExpectedResultBuilder.ToString() );
 
-            var actualUnixOutput = new ExceptionSensitiveDataHelper( isWindows: false ).RemoveSensitiveData( unixExpectedResultBuilder.ToString() );
+            var actualUnixOutput = new ExceptionSensitiveDataHelper( MetalamaProduct.Profile.TrustedAssemblyNamePrefixes, isWindows: false ).RemoveSensitiveData( unixExpectedResultBuilder.ToString() );
             Assert.Equal( actualUnixOutput, unixExpectedResultBuilder.ToString() );
         }
     }

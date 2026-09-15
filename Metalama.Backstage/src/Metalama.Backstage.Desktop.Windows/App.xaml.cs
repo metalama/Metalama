@@ -29,6 +29,11 @@ internal sealed partial class App
         MessageBox.Show( e.Exception.Message );
     }
 
+    // TODO: This process, like the worker, is bound to the Metalama product profile through DesktopWindowsApplicationInfo
+    // and the defaults of BackstageInitializationOptions; nothing injects the profile of another product. Two options
+    // are considered: turning these applications into libraries that a product bootstraps with its own options, or
+    // making them accept the assembly of the product profile as a command line option (the less attractive one).
+    // To be discussed. See #2018.
     public static IServiceProvider GetBackstageServices( BaseSettings settings )
     {
         BackstageServiceFactory.Initialize(
@@ -80,7 +85,7 @@ internal sealed partial class App
         // rather than rely on the ProcessExit handler having time to run. See #1751.
         if ( BackstageServiceFactory.IsInitialized )
         {
-            await BackstageBackgroundTasksService.Default.CompleteAsync();
+            await BackstageServiceFactory.ServiceProvider.GetRequiredBackstageService<BackstageBackgroundTasksService>().CompleteAsync();
         }
     }
 

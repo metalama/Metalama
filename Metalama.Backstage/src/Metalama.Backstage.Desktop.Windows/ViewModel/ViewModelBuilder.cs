@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Backstage.Application;
 using Metalama.Backstage.Desktop.Windows.Commands;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.UserInterface;
@@ -20,28 +21,27 @@ internal static class ViewModelBuilder
         [NotNullWhen( true )] out NotificationViewModel? viewModel )
     {
         var activationArguments = new ActivationArguments( settings );
-        var webLinks = serviceProvider.GetRequiredBackstageService<WebLinks>();
+        var webLinks = serviceProvider.GetRequiredBackstageService<IWebLinks>();
+        var productName = serviceProvider.GetRequiredBackstageService<ProductProfile>().Name;
 
         if ( settings.Kind == ToastNotificationKinds.RequiresLicense.Name )
         {
             viewModel = new NotificationViewModel(
                 settings.Kind,
-                "Metalama Professional",
-                """
-                This project uses a premium Metalama feature. Try Metalama Professional for 45 days or register a license key.
-                """,
+                $"{productName} Professional",
+                $"This project uses a premium {productName} feature. Try {productName} Professional for 45 days or register a license key.",
                 new CommandActionViewModel( "Options", activationArguments.Setup ) );
 
             return true;
         }
         else if ( settings.Kind == ToastNotificationKinds.VsxNotInstalled.Name )
         {
+            // TODO: The name of the extension and the list of its features are specific to Metalama and PostSharp, and are not
+            // product neutral. See #2018.
             viewModel = new NotificationViewModel(
                 settings.Kind,
-                "Install Metalama Tools for Visual Studio",
-                """
-                to enhance your Metalama coding experience: syntax highlighting, CodeLens, and diff preview.
-                """,
+                $"Install Visual Studio Tools for {productName}",
+                $"to enhance your {productName} coding experience: syntax highlighting, CodeLens, and diff preview.",
                 new UriActionViewModel( "Install", webLinks.InstallVsx ) );
 
             return true;
@@ -50,8 +50,8 @@ internal static class ViewModelBuilder
         {
             viewModel = new NotificationViewModel(
                 settings.Kind,
-                settings.Title ?? "Your Metalama license is expiring",
-                settings.Text ?? "Renew your Metalama subscription",
+                settings.Title ?? $"Your {productName} license is expiring",
+                settings.Text ?? $"Renew your {productName} subscription",
                 new UriActionViewModel( "Renew", webLinks.RenewSubscription ) );
 
             return true;
@@ -60,8 +60,8 @@ internal static class ViewModelBuilder
         {
             viewModel = new NotificationViewModel(
                 settings.Kind,
-                settings.Title ?? "Your Metalama trial is expiring",
-                settings.Text ?? "Register a license key or activate Metalama Free.",
+                settings.Title ?? $"Your {productName} trial is expiring",
+                settings.Text ?? $"Register a license key or activate {productName} Free.",
                 new CommandActionViewModel( "Open", activationArguments.Setup ) );
 
             return true;
@@ -70,7 +70,7 @@ internal static class ViewModelBuilder
         {
             viewModel = new NotificationViewModel(
                 settings.Kind,
-                settings.Title ?? "Your Metalama subscription is expiring",
+                settings.Title ?? $"Your {productName} subscription is expiring",
                 settings.Text ?? "Renew your subscription to benefit from continued updates and support.",
                 new CommandActionViewModel( "Open", activationArguments.Setup ) );
 
@@ -93,8 +93,8 @@ internal static class ViewModelBuilder
             // that opting an issue out costs a page visit while opting in does not. See #1751.
             viewModel = new NotificationViewModel(
                 settings.Kind,
-                settings.Title ?? "Metalama failed",
-                settings.Text ?? "Metalama encountered an unhandled exception.",
+                settings.Title ?? $"{productName} failed",
+                settings.Text ?? $"{productName} encountered an unhandled exception.",
                 new CommandActionViewModel( "Review", activationArguments.OpenExceptionReport ),
                 new CommandActionViewModel( "Report", activationArguments.ReportException ) ) { CanMute = false, CanSnooze = false };
 
@@ -104,10 +104,8 @@ internal static class ViewModelBuilder
         {
             viewModel = new NotificationViewModel(
                 settings.Kind,
-                "Welcome to Metalama",
-                """
-                To improve the product, Metalama collects anonymous usage data. Click to learn more or opt out.
-                """,
+                $"Welcome to {productName}",
+                $"To improve the product, {productName} collects anonymous usage data. Click to learn more or opt out.",
                 new CommandActionViewModel( "Privacy options", activationArguments.OpenPrivacyOptions ),
                 new UriActionViewModel( "Learn more", webLinks.DisableTelemetryInstructions ) ) { CanMute = false, CanSnooze = false };
 

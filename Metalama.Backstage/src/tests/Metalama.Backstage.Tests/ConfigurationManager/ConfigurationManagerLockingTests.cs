@@ -230,7 +230,7 @@ public sealed class ConfigurationManagerLockingTests : TestsBase, IDisposable
     public void TheEnvironmentVariableMakesAnUpdateTakeTheLegacyLock()
     {
         this.Locks.EnforceDiscipline = false;
-        this.EnvironmentVariableProvider.Environment[Configuration.ConfigurationManager.LegacyLockEnvironmentVariableName] = "true";
+        this.EnvironmentVariableProvider.Environment[MetalamaProduct.Profile.GetEnvironmentVariableName( Configuration.ConfigurationManager.LegacyLockEnvironmentVariable )] = "true";
 
         using var configurationManager = this.CreateConfigurationManager();
 
@@ -264,7 +264,7 @@ public sealed class ConfigurationManagerLockingTests : TestsBase, IDisposable
     [InlineData( "yes" )]
     public void AValueThatDoesNotExpressAssentLeavesTheLegacyLockAlone( string value )
     {
-        this.EnvironmentVariableProvider.Environment[Configuration.ConfigurationManager.LegacyLockEnvironmentVariableName] = value;
+        this.EnvironmentVariableProvider.Environment[MetalamaProduct.Profile.GetEnvironmentVariableName( Configuration.ConfigurationManager.LegacyLockEnvironmentVariable )] = value;
 
         using var configurationManager = this.CreateConfigurationManager();
 
@@ -285,7 +285,7 @@ public sealed class ConfigurationManagerLockingTests : TestsBase, IDisposable
     public void AnUpdateWaitsForTheLegacyLockWhenItIsHeldElsewhere()
     {
         this.Locks.EnforceDiscipline = false;
-        this.EnvironmentVariableProvider.Environment[Configuration.ConfigurationManager.LegacyLockEnvironmentVariableName] = "true";
+        this.EnvironmentVariableProvider.Environment[MetalamaProduct.Profile.GetEnvironmentVariableName( Configuration.ConfigurationManager.LegacyLockEnvironmentVariable )] = "true";
 
         using var configurationManager = this.CreateConfigurationManager();
 

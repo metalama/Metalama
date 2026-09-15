@@ -37,7 +37,7 @@ namespace Metalama.Backstage.Tests.Telemetry
             using ( var writer = XmlWriter.Create( builder, new XmlWriterSettings { Indent = true } ) )
             {
                 writer.WriteStartElement( "Exception" );
-                ExceptionXmlFormatter.WriteException( writer, exception );
+                ExceptionXmlFormatter.WriteException( writer, exception, ExceptionSensitiveDataHelper.ForProfile( MetalamaProduct.Profile ) );
                 writer.WriteEndElement();
             }
 

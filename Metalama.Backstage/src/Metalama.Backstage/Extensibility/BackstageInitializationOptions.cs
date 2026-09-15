@@ -6,6 +6,8 @@ using JetBrains.Annotations;
 using Metalama.Backstage.Application;
 using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Licensing;
+using Metalama.Backstage.Telemetry;
+using Metalama.Backstage.UserInterface;
 using Metalama.Backstage.UserInterface.Toasts;
 using System;
 using System.Collections.Generic;
@@ -20,6 +22,26 @@ namespace Metalama.Backstage.Extensibility;
 [PublicAPI]
 public record BackstageInitializationOptions( IApplicationInfo ApplicationInfo )
 {
+    /// <summary>
+    /// Gets the profile of the product family that hosts the services. The default is the profile of Metalama.
+    /// </summary>
+    public ProductProfile ProductProfile { get; init; } = MetalamaProduct.Profile;
+
+    /// <summary>
+    /// Gets the web links of the product. The default is the web links of Metalama.
+    /// </summary>
+    public IWebLinks WebLinks { get; init; } = MetalamaProduct.WebLinks;
+
+    /// <summary>
+    /// Gets the telemetry endpoints of the product. The default is the endpoints of Metalama.
+    /// </summary>
+    public TelemetryInitializationOptions TelemetryOptions { get; init; } = MetalamaProduct.TelemetryOptions;
+
+    /// <summary>
+    /// Gets the user interface addresses of the product. The default is the addresses of Metalama.
+    /// </summary>
+    public UserInterfaceInitializationOptions UserInterfaceOptions { get; init; } = MetalamaProduct.UserInterfaceOptions;
+
     /// <summary>
     /// Gets a value indicating whether logging and telemetry services should be registered.
     /// </summary>

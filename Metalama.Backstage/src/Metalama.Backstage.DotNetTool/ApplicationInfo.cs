@@ -8,7 +8,7 @@ namespace Metalama.Backstage.DotNetTool;
 
 internal sealed class ApplicationInfo : ApplicationInfoBase
 {
-    public ApplicationInfo() : base( typeof(ApplicationInfo).Assembly ) { }
+    public ApplicationInfo() : base( typeof(ApplicationInfo).Assembly, MetalamaProduct.Profile ) { }
 
     public override string Name => typeof(ApplicationInfo).Assembly.GetName().Name!;
 

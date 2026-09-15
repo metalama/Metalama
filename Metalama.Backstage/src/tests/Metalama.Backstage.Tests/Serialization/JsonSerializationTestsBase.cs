@@ -27,7 +27,7 @@ public abstract class JsonSerializationTestsBase
     {
         this.Output = output;
         this.JsonOptions = BackstageJsonContext.CreateCombinedOptions( writeIndented: true, [] );
-        this.JsonService = new JsonSerializationService( [] );
+        this.JsonService = new JsonSerializationService( [BackstageJsonContext.Default] );
     }
 
     /// <summary>

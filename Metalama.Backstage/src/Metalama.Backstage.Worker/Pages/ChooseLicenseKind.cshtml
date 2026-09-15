@@ -1,7 +1,9 @@
-﻿@page
+@page
+@using Metalama.Backstage.Licensing
 @using Metalama.Backstage.Licensing.Registration
 @model ChooseLicenseKindPageModel
 @inject ILicenseRegistrationService LicenseRegistrationService
+@inject ILicenseProductCatalog Catalog
 
 <script>
     function submitForm(buttonValue) {
@@ -14,11 +16,14 @@
     <input type="hidden" id="action" name="action" value=""/>
 
     <div class="arrow-buttons">
+        @* TODO: The open source option is specific to Metalama: PostSharp has no such edition. The licensing options of a
+           product family need an abstraction that decides which choices are offered here and which commands the
+           command line offers. See #2018. *@
         <div onclick="submitForm('UseOpenSource')">
-            <h4>Stay with Metalama Open Source</h4>
+            <h4>Stay with @Profile.Name Open Source</h4>
             <p>
-                Metalama Open Source is free for everyone, but you won't be able to use the advanced features of Visual
-                Studio Tools for Metalama, architecture validation, or custom code fixes. Ideal for an initial foray,
+                @Profile.Name Open Source is free for everyone, but you won't be able to use the advanced features of Visual
+                Studio Tools for @Profile.Name, architecture validation, or custom code fixes. Ideal for an initial foray,
                 with an easy upgrade path when you're ready for more.
             </p>
         </div>
@@ -26,11 +31,11 @@
         @if (LicenseRegistrationService.CanRegisterTrialEdition)
         {
             <div onclick="submitForm('StartTrial')">
-                <h4>Start a 45-day Trial of Metalama Professional</h4>
-                <p>Discover the full capabilities of Metalama Professional.</p>
+                <h4>Start a 45-day Trial of @Catalog.GetDisplayName(Catalog.EvaluationProduct)</h4>
+                <p>Discover the full capabilities of @Catalog.GetDisplayName(Catalog.EvaluationProduct).</p>
                 <p>
                     For teams with extended procurement processes, request a
-                    <a href="@Model.WebLinks.GetTeamTeamTrial" target="_blank" onclick="event.stopPropagation()">
+                    <a href="@Model.WebLinks.GetTeamTrial" target="_blank" onclick="event.stopPropagation()">
                         60-day
                         renewable team evaluation key
                     </a>
@@ -47,7 +52,7 @@
         <div onclick="submitForm('Skip')">
             <h4>Choose Repository-Based Licensing</h4>
             <p>
-                Choose this option to streamline Metalama license key management through your source repositories,
+                Choose this option to streamline @Profile.Name license key management through your source repositories,
                 eliminating those licensing notifications.
             </p>
         </div>
