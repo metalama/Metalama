@@ -62,6 +62,23 @@ public sealed class UnionSerializerTests
     }
 
     /// <summary>
+    /// Verifies that a case whose type is a nullable value type survives the round trip.
+    /// </summary>
+    /// <remarks>
+    /// Boxing a <see cref="Nullable{T}"/> that has a value produces a boxed value of the underlying type, so the
+    /// <c>Value</c> property of the union reports <c>int</c> for a case declared <c>int?</c>. The constructor that
+    /// takes the case therefore has no parameter of the reported type, and
+    /// <see cref="Type.IsAssignableFrom"/> is false between a nullable value type and its underlying type.
+    /// </remarks>
+    [Fact]
+    public void ANullableCaseSurvivesTheRoundTrip()
+    {
+        var roundTrip = (SerializedNullableNumber) RoundTrip( new SerializedNullableNumber( 1 ) )!;
+
+        Assert.Equal( 1, roundTrip.Value );
+    }
+
+    /// <summary>
     /// Verifies that the default value of a union, whose <c>Value</c> property is <c>null</c>, survives the round trip.
     /// </summary>
     [Fact]
@@ -80,3 +97,5 @@ public record SerializedSquare( double Side );
 public union SerializedShape( SerializedCircle, SerializedSquare );
 
 public union SerializedNumber( int, long );
+
+public union SerializedNullableNumber( int?, string );

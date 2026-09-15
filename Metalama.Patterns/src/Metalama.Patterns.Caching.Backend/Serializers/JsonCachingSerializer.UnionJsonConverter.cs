@@ -30,6 +30,12 @@ namespace Metalama.Patterns.Caching.Serializers
         /// null <c>Value</c> as well, so the two are indistinguishable through the interface that the compiler
         /// provides.
         /// </para>
+        /// <para>
+        /// The case is identified by the run-time type of its value, which two cases can share. A union that declares
+        /// both <c>object</c> and <c>int?</c> reports <c>int</c> for a value of either case, and the round trip then
+        /// yields the more specific of the two, which is <c>int?</c>. The <c>Value</c> property carries no case
+        /// identifier, so no reading of it can do better.
+        /// </para>
         /// </remarks>
         private sealed class UnionJsonConverter<TUnion> : JsonConverter<TUnion>
         {
@@ -140,8 +146,21 @@ namespace Metalama.Patterns.Caching.Serializers
             private static object CreateUnion( Type caseType, object? caseValue )
                 => _caseConstructors.GetOrAdd( caseType, GetCaseConstructor ).Invoke( new[] { caseValue } );
 
+            /// <remarks>
+            /// <para>
+            /// The constructor is searched in three steps, from the most specific match to the least specific one, so
+            /// that the result does not depend on the order in which <see cref="Type.GetConstructors()"/> returns the
+            /// constructors, which the runtime does not define.
+            /// </para>
+            /// <para>
+            /// The second step exists because boxing a <see cref="Nullable{T}"/> that has a value produces a boxed
+            /// value of the underlying type. A case declared <c>int?</c> therefore reports <c>int</c> as the type of
+            /// its value, and the constructor that takes it has a parameter of type <c>int?</c>.
+            /// </para>
+            /// </remarks>
             private static ConstructorInfo GetCaseConstructor( Type caseType )
             {
+                ConstructorInfo? nullableConstructor = null;
                 ConstructorInfo? assignableConstructor = null;
 
                 foreach ( var constructor in typeof(TUnion).GetConstructors( BindingFlags.Public | BindingFlags.Instance ) )
@@ -153,21 +172,28 @@ namespace Metalama.Patterns.Caching.Serializers
                         continue;
                     }
 
-                    if ( parameters[0].ParameterType == caseType )
+                    var parameterType = parameters[0].ParameterType;
+
+                    if ( parameterType == caseType )
                     {
                         return constructor;
                     }
 
+                    if ( nullableConstructor == null && Nullable.GetUnderlyingType( parameterType ) == caseType )
+                    {
+                        nullableConstructor = constructor;
+                    }
+
                     // A case type may be a base type or an interface of the type of the value, in which case there is
-                    // no exact match. The first constructor that accepts the value is then taken, and the exact match
-                    // still wins because the loop continues.
-                    if ( assignableConstructor == null && parameters[0].ParameterType.IsAssignableFrom( caseType ) )
+                    // no more specific match.
+                    if ( assignableConstructor == null && parameterType.IsAssignableFrom( caseType ) )
                     {
                         assignableConstructor = constructor;
                     }
                 }
 
-                return assignableConstructor
+                return nullableConstructor
+                       ?? assignableConstructor
                        ?? throw new InvalidCacheItemException(
                            $"The union '{typeof(TUnion)}' declares no constructor that takes a value of type '{caseType}'." );
             }
