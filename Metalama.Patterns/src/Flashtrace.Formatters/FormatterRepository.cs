@@ -112,10 +112,8 @@ public sealed partial class FormatterRepository : IFormatterRepository
             return new AnonymousTypeFormatter( this, type );
         }
 
-        var caseValueGetter = UnionReflection.GetCaseValueGetterOrNull( type );
-
-        return caseValueGetter != null
-            ? new UnionFormatter( this, caseValueGetter )
+        return UnionHelper.TryGetValuePropertyGetter( type, out var getValue )
+            ? new UnionFormatter( this, getValue )
             : (IFormatter) Activator.CreateInstance(
                 typeof(DefaultFormatter<>).MakeGenericType( type ),
                 this )!;
@@ -128,9 +126,7 @@ public sealed partial class FormatterRepository : IFormatterRepository
             return new AnonymousTypeFormatter( this, typeof(T) );
         }
 
-        var caseValueGetter = UnionReflection.GetCaseValueGetterOrNull( typeof(T) );
-
-        return caseValueGetter != null ? new UnionFormatter( this, caseValueGetter ) : new DefaultFormatter<T>( this );
+        return UnionHelper.TryGetValuePropertyGetter( typeof(T), out var getValue ) ? new UnionFormatter( this, getValue ) : new DefaultFormatter<T>( this );
     }
 
     private abstract class InvariantFormatterCacheEntry

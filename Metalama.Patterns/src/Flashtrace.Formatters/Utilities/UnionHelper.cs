@@ -4,21 +4,23 @@
 
 using JetBrains.Annotations;
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reflection;
 
 namespace Flashtrace.Formatters.Utilities;
 
 /// <summary>
-/// Recognizes a union of C# 15 at run time and reads the value of the case that it currently carries.
+/// Recognizes a union of C# 15 at run time and reads its <c>Value</c> property, which holds the value of the case that
+/// the union currently carries.
 /// </summary>
 /// <remarks>
 /// <para>
 /// The compiler makes every union implement <c>System.Runtime.CompilerServices.IUnion</c>, which declares the
-/// <c>Value</c> property that returns the value of the current case. That interface belongs to the base class library
-/// of .NET 11, while this assembly targets .NET Framework 4.7.2, .NET Standard 2.0 and .NET 10, so it cannot be named
-/// in source. The interface is therefore matched by its full name over the interfaces that the type implements, which
-/// gives the same answer when the .NET 10 assembly is loaded into a .NET 11 application.
+/// <c>Value</c> property. That interface belongs to the base class library of .NET 11, while this assembly targets
+/// .NET Framework 4.7.2, .NET Standard 2.0 and .NET 10, so it cannot be named in source. The interface is therefore
+/// matched by its full name over the interfaces that the type implements, which gives the same answer when the .NET 10
+/// assembly is loaded into a .NET 11 application.
 /// </para>
 /// <para>
 /// A type of another assembly that declares an interface of the same full name is recognized as a union as well. That
@@ -30,30 +32,36 @@ namespace Flashtrace.Formatters.Utilities;
 /// </para>
 /// </remarks>
 [PublicAPI]
-public static class UnionReflection
+public static class UnionHelper
 {
     private const string _unionInterfaceFullName = "System.Runtime.CompilerServices.IUnion";
     private const string _valuePropertyName = "Value";
 
-    private static readonly ConcurrentDictionary<Type, Func<object, object?>?> _caseValueGetters = new();
+    private static readonly ConcurrentDictionary<Type, Func<object, object?>?> _valuePropertyGetters = new();
 
     /// <summary>
-    /// Returns a function that reads the value of the current case of a union, or <c>null</c> when the type is not a
-    /// union.
+    /// Gets a function that reads the <c>Value</c> property of a union.
     /// </summary>
     /// <param name="type">The type to evaluate.</param>
-    /// <returns>A function whose parameter is the union, boxed when it is a value type, and whose return value is the
-    /// value of the current case, or <c>null</c> when <paramref name="type"/> is not a union.</returns>
-    public static Func<object, object?>? GetCaseValueGetterOrNull( Type type ) => _caseValueGetters.GetOrAdd( type, CreateCaseValueGetter );
+    /// <param name="getter">When this method returns <c>true</c>, a function whose parameter is the union, boxed when
+    /// it is a value type, and whose return value is the value of the case that the union currently carries; otherwise,
+    /// <c>null</c>.</param>
+    /// <returns><c>true</c> if <paramref name="type"/> is a union; otherwise, <c>false</c>.</returns>
+    public static bool TryGetValuePropertyGetter( Type type, [NotNullWhen( true )] out Func<object, object?>? getter )
+    {
+        getter = _valuePropertyGetters.GetOrAdd( type, CreateValuePropertyGetter );
+
+        return getter != null;
+    }
 
     /// <summary>
     /// Determines whether a type is a union.
     /// </summary>
     /// <param name="type">The type to evaluate.</param>
     /// <returns><c>true</c> if <paramref name="type"/> is a union; otherwise, <c>false</c>.</returns>
-    public static bool IsUnion( Type type ) => GetCaseValueGetterOrNull( type ) != null;
+    public static bool IsUnion( Type type ) => TryGetValuePropertyGetter( type, out _ );
 
-    private static Func<object, object?>? CreateCaseValueGetter( Type type )
+    private static Func<object, object?>? CreateValuePropertyGetter( Type type )
     {
         var unionInterface = GetUnionInterfaceOrNull( type );
 

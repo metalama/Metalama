@@ -29,7 +29,7 @@ internal sealed class UnionFormatter : IFormatter
     /// </summary>
     /// <param name="repository">The repository from which the formatter of the case value is obtained.</param>
     /// <param name="getCaseValue">The function that reads the value of the current case, obtained from
-    /// <see cref="Utilities.UnionReflection.GetCaseValueGetterOrNull"/>.</param>
+    /// <see cref="Utilities.UnionHelper.TryGetValuePropertyGetter"/>.</param>
     public UnionFormatter( IFormatterRepository repository, Func<object, object?> getCaseValue )
     {
         this.Repository = repository ?? throw new ArgumentNullException( nameof(repository) );

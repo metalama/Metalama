@@ -45,9 +45,13 @@ namespace Metalama.Patterns.Caching.Serializers
             {
                 this._serializer = serializer;
 
-                this._getCaseValue = UnionReflection.GetCaseValueGetterOrNull( typeof(TUnion) )
-                                     ?? throw new InvalidCacheItemException(
-                                         $"The type '{typeof(TUnion)}' is not a union, so it cannot be converted by the union converter." );
+                if ( !UnionHelper.TryGetValuePropertyGetter( typeof(TUnion), out var getValue ) )
+                {
+                    throw new InvalidCacheItemException(
+                        $"The type '{typeof(TUnion)}' is not a union, so it cannot be converted by the union converter." );
+                }
+
+                this._getCaseValue = getValue;
             }
 
             public override void Write( Utf8JsonWriter writer, TUnion value, JsonSerializerOptions options )

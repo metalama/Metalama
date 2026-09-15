@@ -35,7 +35,7 @@ namespace Metalama.Patterns.Caching.Serializers
             }
 
             public override bool CanConvert( Type typeToConvert )
-                => UnionReflection.IsUnion( typeToConvert ) && HasSingleParameterConstructor( typeToConvert );
+                => UnionHelper.IsUnion( typeToConvert ) && HasSingleParameterConstructor( typeToConvert );
 
             public override JsonConverter CreateConverter( Type typeToConvert, JsonSerializerOptions options )
                 => (JsonConverter) Activator.CreateInstance(
