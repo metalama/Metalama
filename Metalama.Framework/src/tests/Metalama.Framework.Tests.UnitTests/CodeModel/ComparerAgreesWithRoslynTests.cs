@@ -272,16 +272,32 @@ public sealed class ComparerAgreesWithRoslynTests : UnitTestClass
         // The pairwise check proves that the two implementations agree, which a pair that neither of them converts
         // also satisfies. These assertions pin what the answer is, so that the case cannot pass because the
         // conversion disappeared from both sides.
+        //
+        // The derived case type is pinned explicitly, because the rule is not obvious and was read the other way
+        // round during review. Roslyn classifies the conversion from Siamese to Pet as implicit, so the source of
+        // the conversion is any type that converts to a case type and not the case type alone. The three lines
+        // below are the ones that would fail if the reimplementation required an identity conversion instead.
         var pet = compilation.Types.OfName( "Pet" ).Single();
         var cat = compilation.Types.OfName( "Cat" ).Single();
+        var siamese = compilation.Types.OfName( "Siamese" ).Single();
         var fish = compilation.Types.OfName( "Fish" ).Single();
         var comparer = (DeclarationEqualityComparer) compilation.CompilationContext.Comparers.Default;
+
+        var roslynSaysSiameseConvertsToPet = ((CSharpCompilation) compilation.RoslynCompilation)
+            .ClassifyConversion( siamese.GetSymbol()!, pet.GetSymbol()! )
+            .IsImplicit;
+
+        Assert.True( roslynSaysSiameseConvertsToPet, "Roslyn should grant an implicit conversion from 'Siamese' to 'Pet'." );
 
         foreach ( var bypassSymbols in new[] { false, true } )
         {
             Assert.True(
                 comparer.IsConvertibleTo( cat, pet, ConversionKind.Implicit, bypassSymbols ),
                 $"'Cat' should be implicitly convertible to 'Pet' with bypassSymbols={bypassSymbols}." );
+
+            Assert.True(
+                comparer.IsConvertibleTo( siamese, pet, ConversionKind.Implicit, bypassSymbols ),
+                $"'Siamese' should be implicitly convertible to 'Pet' with bypassSymbols={bypassSymbols}." );
 
             Assert.False(
                 comparer.IsConvertibleTo( fish, pet, ConversionKind.Implicit, bypassSymbols ),

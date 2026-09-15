@@ -84,6 +84,12 @@ internal partial class DeclarationEqualityComparer
         /// </summary>
         /// <remarks>
         /// <para>
+        /// The source of the conversion is any type that converts to a case type, and not the case type alone.
+        /// Roslyn classifies the conversion from a type derived from a case type as implicit, which
+        /// <c>ComparerAgreesWithRoslynTests</c> pins, so the case type is compared with the helper that answers an
+        /// identity or an implicit reference conversion rather than with the identity helper.
+        /// </para>
+        /// <para>
         /// A union that is still being built reports no conversion, because section 5.1 of
         /// <c>Metalama.Framework/docs/introducing-types.md</c> decides that a builder has no structure to report and
         /// throws from its facet collection. The conversion is answered for the introduced type that the advice
