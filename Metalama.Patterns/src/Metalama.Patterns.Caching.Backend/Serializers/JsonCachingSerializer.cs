@@ -15,10 +15,13 @@ namespace Metalama.Patterns.Caching.Serializers;
 /// allowing for polymorphic deserialization of cached values.</para>
 /// <para>To customize type name resolution (for example, for type forwarding scenarios),
 /// override the <see cref="GetTypeName"/> and <see cref="ResolveTypeName"/> methods.</para>
+/// <para>A union of C# 15 is serialized by a converter of this class rather than by the default object
+/// conversion of <see cref="JsonSerializer"/>. The <c>Value</c> property of a union has no setter, so the default
+/// conversion writes the value of the current case and deserializes the default value of the union.</para>
 /// </remarks>
 /// <seealso cref="ICachingSerializer"/>
 [PublicAPI]
-public class JsonCachingSerializer : ICachingSerializer
+public partial class JsonCachingSerializer : ICachingSerializer
 {
     private const byte _nullMarker = 0;
     private const byte _objectMarker = 1;
@@ -30,9 +33,16 @@ public class JsonCachingSerializer : ICachingSerializer
     /// </summary>
     /// <param name="options">Optional <see cref="JsonSerializerOptions"/> to customize JSON serialization.
     /// If <c>null</c>, default options are used.</param>
+    /// <remarks>
+    /// The options given by the caller are copied, because this constructor adds the converter of the unions of
+    /// C# 15 to them, and modifying the instance of the caller would change the behaviour of every other use of it.
+    /// A modification that the caller makes to its own instance after this constructor returns has no effect on this
+    /// serializer.
+    /// </remarks>
     public JsonCachingSerializer( JsonSerializerOptions? options = null )
     {
-        this._options = options ?? new JsonSerializerOptions();
+        this._options = options == null ? new JsonSerializerOptions() : new JsonSerializerOptions( options );
+        this._options.Converters.Add( new UnionJsonConverterFactory( this ) );
     }
 
     /// <inheritdoc />

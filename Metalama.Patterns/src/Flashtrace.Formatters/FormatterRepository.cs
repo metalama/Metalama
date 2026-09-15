@@ -4,6 +4,7 @@
 
 using Flashtrace.Formatters.Implementations;
 using Flashtrace.Formatters.TypeExtensions;
+using Flashtrace.Formatters.Utilities;
 using JetBrains.Annotations;
 using System.Collections.Concurrent;
 
@@ -105,16 +106,32 @@ public sealed partial class FormatterRepository : IFormatterRepository
     }
 
     private IFormatter CreateDefaultFormatter( Type type )
-        => type.IsAnonymous()
-            ? new AnonymousTypeFormatter( this, type )
+    {
+        if ( type.IsAnonymous() )
+        {
+            return new AnonymousTypeFormatter( this, type );
+        }
+
+        var caseValueGetter = UnionReflection.GetCaseValueGetterOrNull( type );
+
+        return caseValueGetter != null
+            ? new UnionFormatter( this, caseValueGetter )
             : (IFormatter) Activator.CreateInstance(
                 typeof(DefaultFormatter<>).MakeGenericType( type ),
                 this )!;
+    }
 
     private IFormatter CreateDefaultFormatter<T>()
-        => typeof(T).IsAnonymous()
-            ? new AnonymousTypeFormatter( this, typeof(T) )
-            : new DefaultFormatter<T>( this );
+    {
+        if ( typeof(T).IsAnonymous() )
+        {
+            return new AnonymousTypeFormatter( this, typeof(T) );
+        }
+
+        var caseValueGetter = UnionReflection.GetCaseValueGetterOrNull( typeof(T) );
+
+        return caseValueGetter != null ? new UnionFormatter( this, caseValueGetter ) : new DefaultFormatter<T>( this );
+    }
 
     private abstract class InvariantFormatterCacheEntry
     {

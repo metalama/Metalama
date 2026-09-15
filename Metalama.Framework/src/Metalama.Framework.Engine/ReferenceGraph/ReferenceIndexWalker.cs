@@ -275,13 +275,14 @@ internal sealed class ReferenceIndexWalker : SafeSyntaxWalker
     // explained in section 6 of Metalama.Framework/docs/2027.0/DECISIONS.md.
     //
     // The override does not share the body of VisitStructDeclaration, because the parameter list of a union holds the
-    // case types and not primary constructor parameters. Visiting it as a parameter list would enter a declaration
-    // for a parameter that declares nothing.
+    // case types and not primary constructor parameters. Visiting it as a parameter list would call VisitParameter,
+    // which enters the parameter as the current declaration, and a union case parameter declares no symbol, so the
+    // index builder would discard every reference that the case type produces.
     //
-    // The case types are not indexed either. No member of ReferenceKinds names the relation between a union and one
-    // of its case types: a case type is neither a base type nor a parameter type, and recording it under one of those
-    // names would give a wrong answer to an architecture rule. Adding a member to ReferenceKinds changes the public
-    // application programming interface and belongs to the story that adds the union to the reference graph.
+    // The case types are indexed under ReferenceKinds.UnionCaseType while the union is the current declaration, which
+    // is what makes the reference from the union to a case type reach an architecture rule placed on the case type.
+    // They are indexed outside the test on MustDescendIntoMembers, because the case list is part of the declaration
+    // header, like the base list, and not a member.
     public override void VisitUnionDeclaration( UnionDeclarationSyntax node )
     {
         using ( this.EnterTypeDeclarationDefinition( node ) )
@@ -289,6 +290,15 @@ internal sealed class ReferenceIndexWalker : SafeSyntaxWalker
             this.Visit( node.AttributeLists );
             this.Visit( node.BaseList );
             this.Visit( node.ConstraintClauses );
+
+            if ( node.ParameterList != null )
+            {
+                foreach ( var caseParameter in node.ParameterList.Parameters )
+                {
+                    this.VisitTypeReference( caseParameter.Type, ReferenceKinds.UnionCaseType );
+                    this.Visit( caseParameter.AttributeLists );
+                }
+            }
 
             if ( this._options.MustDescendIntoMembers() )
             {

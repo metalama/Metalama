@@ -5,6 +5,7 @@
 using JetBrains.Annotations;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
+using Metalama.Framework.Code.Types;
 using Metalama.Framework.Eligibility;
 using Metalama.Framework.Utilities;
 using System;
@@ -159,6 +160,34 @@ public sealed class MulticastImplementation
 
     private static bool FilterDeclaringType( INamedType type, MulticastAttributeGroup attributeGroup, MulticastTargets targets )
         => attributeGroup.IsMatch( type, targets ) && type.IsAspectEligible( attributeGroup.AspectClass.Type );
+
+    /// <summary>
+    /// Determines whether a constructor can be a target of <see cref="MulticastTargets.InstanceConstructor"/>, before
+    /// the other filters are applied.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// An explicitly declared constructor is always a candidate. An implicitly declared one is a candidate only when it
+    /// has no parameter, which is the parameterless constructor that the compiler adds to a type that declares none.
+    /// Materializing that constructor produces a declaration that the user could have written.
+    /// </para>
+    /// <para>
+    /// A union declared with the <c>union</c> keyword is the exception. The compiler adds the same parameterless
+    /// constructor to it, because every case constructor of a union takes one parameter, but the language requires a
+    /// constructor declared in a union to chain through a <c>this(...)</c> initializer, so materializing the
+    /// parameterless constructor produces code that the compiler rejects with CS9375. The attribute form of a union is
+    /// an ordinary class or struct and carries no such restriction, so the test is on the declaration form only.
+    /// </para>
+    /// <para>
+    /// The exception is provisional. This library reproduces the multicasting of PostSharp, and PostSharp does not
+    /// support the unions of C# 15, so there is no behaviour to compare this rule against. Issue #2031 asks for the
+    /// comparison once PostSharp supports them.
+    /// </para>
+    /// </remarks>
+    private static bool IsCandidateInstanceConstructor( IConstructor constructor )
+        => !constructor.IsImplicitlyDeclared
+           || (constructor.Parameters.Count == 0
+               && constructor.DeclaringType.Facets.Union is not { UnionKind: UnionKind.Declaration });
 
     private bool FilterType( INamedType type, MulticastAttributeGroup attributeGroup, MulticastTargets targets )
         => this.MatchesTypeKind( type, targets ) && attributeGroup.IsMatch( type, targets );
@@ -350,7 +379,7 @@ public sealed class MulticastImplementation
                         .Where( t => FilterDeclaringType( t, attributeGroup, MulticastTargets.InstanceConstructor ) )
                         .SelectMany(
                             t => t.Constructors.Where(
-                                c => (!c.IsImplicitlyDeclared || c.Parameters.Count == 0) && Filter(
+                                c => IsCandidateInstanceConstructor( c ) && Filter(
                                     c,
                                     attributeGroup,
                                     MulticastTargets.InstanceConstructor ) ) ) )
@@ -438,7 +467,7 @@ public sealed class MulticastImplementation
             builder
                 .Outbound.SelectMany(
                     t => t.Constructors.Where(
-                        c => (!c.IsImplicitlyDeclared || c.Parameters.Count == 0) && Filter( c, attributeGroup, MulticastTargets.InstanceConstructor ) ) )
+                        c => IsCandidateInstanceConstructor( c ) && Filter( c, attributeGroup, MulticastTargets.InstanceConstructor ) ) )
                 .AddAspectIfEligible( attributeGroup.AspectClass.Type, attributeGroup.GetMatchingAspect );
         }
 

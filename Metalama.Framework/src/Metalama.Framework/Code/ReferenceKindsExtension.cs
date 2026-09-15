@@ -67,6 +67,7 @@ public static class ReferenceKindsExtension
         ConsiderKind( ReferenceKinds.ArrayCreation, nameof(ReferenceKinds.ArrayCreation) );
         ConsiderKind( ReferenceKinds.CastType, nameof(ReferenceKinds.CastType) );
         ConsiderKind( ReferenceKinds.IsType, nameof(ReferenceKinds.IsType) );
+        ConsiderKind( ReferenceKinds.UnionCaseType, nameof(ReferenceKinds.UnionCaseType) );
 
         if ( consideredKinds != kinds )
         {

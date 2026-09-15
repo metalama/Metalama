@@ -162,6 +162,17 @@ namespace Metalama.Framework.Code
         /// <summary>
         /// <c>is T</c> or <c>is T {}</c> pattern matching.
         /// </summary>
-        IsType = 1 << 26
+        IsType = 1 << 26,
+
+        /// <summary>
+        /// Case type of a union declared with the <c>union</c> keyword. The reference points to the case type, and the
+        /// declaration from which the reference originates is the union that lists it.
+        /// </summary>
+        /// <remarks>
+        /// A case type is neither a base type nor a parameter type, so it has a kind of its own. The attribute form of
+        /// a union declares its cases through creation members instead of a case list, so the case types of that form
+        /// are reported under the kind of the member that declares them and not under this kind.
+        /// </remarks>
+        UnionCaseType = 1 << 27
     }
 }

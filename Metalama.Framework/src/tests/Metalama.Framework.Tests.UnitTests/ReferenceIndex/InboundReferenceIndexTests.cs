@@ -350,6 +350,74 @@ public sealed class InboundReferenceIndexTests : UnitTestClass
 
     // TODO: other reference kinds.
 
+#if ROSLYN_5_11_0_OR_GREATER && NET7_0_OR_GREATER
+
+    // The union is a C# 15 feature, so only the latest Roslyn variant parses it. The test is further restricted to
+    // .NET 7 and later, because the compiler emits CompilerFeatureRequiredAttribute on the members of a union and
+    // .NET Framework does not declare that type.
+
+    /// <summary>
+    /// The declarations that the compiler requires of a union. No target framework declares them yet, and the
+    /// compiler reports CS0656 when it cannot find them, so the compilation declares them.
+    /// </summary>
+    private const string _unionSupportCode = """
+                                             #nullable enable
+
+                                             namespace System.Runtime.CompilerServices
+                                             {
+                                                 [AttributeUsage( AttributeTargets.Class | AttributeTargets.Struct )]
+                                                 public sealed class UnionAttribute : Attribute { }
+
+                                                 public interface IUnion
+                                                 {
+                                                     object? Value { get; }
+                                                 }
+                                             }
+                                             """;
+
+    /// <summary>
+    /// Verifies that the reference from a union declaration to one of its case types is indexed under
+    /// <see cref="ReferenceKinds.UnionCaseType"/>, and that its origin is the union and not the case parameter, which
+    /// declares no symbol. See finding PR-12 of issue #1946.
+    /// </summary>
+    [Fact]
+    public void UnionCaseType()
+    {
+        var code = new Dictionary<string, string>
+        {
+            ["Support.cs"] = _unionSupportCode, ["A.cs"] = "record A;", ["B.cs"] = "record B;", ["C.cs"] = "record C;", ["U.cs"] = "union U( A, B );"
+        };
+
+        var result = this.BuildIndex( code, compilation => compilation.Types.OfName( "A" ), ReferenceKinds.UnionCaseType );
+
+        Assert.Single( result.ReferencingSymbols, "U" );
+
+        // A type that the union does not list is not referenced by it.
+        var unreferenced = this.BuildIndex( code, compilation => compilation.Types.OfName( "C" ), ReferenceKinds.UnionCaseType );
+
+        Assert.Empty( unreferenced.ReferencingSymbols );
+    }
+
+    /// <summary>
+    /// Verifies that the case types of a union are not reported under <see cref="ReferenceKinds.ParameterType"/>,
+    /// which is the kind that the parameter list of a primary constructor produces. The two kinds must stay apart, so
+    /// that an architecture rule can require one without matching the other.
+    /// </summary>
+    [Fact]
+    public void UnionCaseTypeIsNotAParameterType()
+    {
+        var code = new Dictionary<string, string>
+        {
+            ["Support.cs"] = _unionSupportCode, ["A.cs"] = "record A;", ["B.cs"] = "record B;", ["U.cs"] = "union U( A, B );"
+        };
+
+        var result = this.BuildIndex( code, compilation => compilation.Types.OfName( "A" ), ReferenceKinds.ParameterType );
+
+        Assert.Empty( result.ReferencingSymbols );
+    }
+
+#endif
+
     private (InboundReferenceIndex Index, ReferenceIndexObserver Observer, IReadOnlyCollection<string> ReferencingSymbols ) BuildIndex(
         Dictionary<string, string> code,
         Func<ICompilation, IEnumerable<IDeclaration>> getDeclarations,
