@@ -1497,7 +1497,10 @@ public class ReferencedClass
 
             using var testContext = this.CreateTestContext();
 
-            var roslynCompilation = testContext.CreateCSharpCompilation( code );
+            // On .NET Framework, the reference assemblies of the test host do not declare RuntimeFeature.InlineArray, so the C# compiler
+            // reports CS9171 on the run-time compilation. That error is irrelevant here, because this test counts the diagnostics that
+            // the compile-time pipeline reports.
+            var roslynCompilation = testContext.CreateCSharpCompilation( code, ignoreErrors: true );
 
             var diagnostics = new DiagnosticBag();
 
