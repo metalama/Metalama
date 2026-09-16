@@ -350,10 +350,18 @@ class MyClass {}" );
             static IEnumerable<string> GetReferences( IDeclaration d ) => d.GetInboundReferences().Select( x => x.ToString()! ).OrderBy( x => x );
         }
 
+        /// <summary>
+        /// Asserts that the workspace loaded without a diagnostic. The assertions project the diagnostics to their
+        /// messages, because the failure output of xUnit shows only the first properties of an object and the message
+        /// of a workspace diagnostic is not among them.
+        /// </summary>
         private static void CheckWorkspace( Workspace workspace )
         {
-            Assert.Empty( workspace.WorkspaceDiagnostics );
-            Assert.Empty( workspace.Projects.SelectMany( c => c.RoslynCompilation.GetDiagnostics().Where( d => d.Severity == DiagnosticSeverity.Error ) ) );
+            Assert.Empty( workspace.WorkspaceDiagnostics.Select( d => $"{d.Severity}: {d.Message}" ) );
+
+            Assert.Empty(
+                workspace.Projects.SelectMany( c => c.RoslynCompilation.GetDiagnostics().Where( d => d.Severity == DiagnosticSeverity.Error ) )
+                    .Select( d => d.ToString() ) );
         }
     }
 }
