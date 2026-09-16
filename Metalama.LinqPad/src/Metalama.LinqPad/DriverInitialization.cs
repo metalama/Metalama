@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using LINQPad;
+using Metalama.Backstage;
 using Metalama.Backstage.Application;
 using Metalama.Backstage.Extensibility;
 using Metalama.Extensions.Metrics;
@@ -37,7 +38,7 @@ internal static class DriverInitialization
                 // Don't enforce licensing in workspaces.
 
                 BackstageServiceFactoryInitializer.Initialize(
-                    new BackstageInitializationOptions( new LinqPadApplicationInfo() ) { AddSupportServices = true } );
+                    new BackstageInitializationOptions( new LinqPadApplicationInfo(), MetalamaProduct.Instance ) { AddSupportServices = true } );
             }
 
             // Register standard metric providers with the default workspace collection.
@@ -49,7 +50,7 @@ internal static class DriverInitialization
 
     private sealed class LinqPadApplicationInfo : ApplicationInfoBase
     {
-        public LinqPadApplicationInfo() : base( typeof(LinqPadApplicationInfo).Assembly ) { }
+        public LinqPadApplicationInfo() : base( typeof(LinqPadApplicationInfo).Assembly, MetalamaProduct.Profile ) { }
 
         public override string Name => "Metalama.LinqPad";
     }

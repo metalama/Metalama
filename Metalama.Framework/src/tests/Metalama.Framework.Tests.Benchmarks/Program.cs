@@ -17,6 +17,7 @@ using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Running;
 using BenchmarkDotNet.Toolchains.InProcess.Emit;
 using JetBrains.Profiler.Api;
+using Metalama.Backstage;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Licensing;
 using Metalama.Framework.Engine.Utilities.Diagnostics;
@@ -35,7 +36,7 @@ if ( args.Contains( "--test" ) )
     Console.WriteLine( "Running quick test mode..." );
 
     BackstageServiceFactoryInitializer.Initialize(
-        new BackstageInitializationOptions( new BenchmarkApplicationInfo() )
+        new BackstageInitializationOptions( new BenchmarkApplicationInfo(), MetalamaProduct.Instance )
         {
             AddSupportServices = true,
             AddLicensing = false,

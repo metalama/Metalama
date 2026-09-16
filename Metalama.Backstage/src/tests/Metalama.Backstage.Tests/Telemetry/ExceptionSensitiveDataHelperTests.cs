@@ -40,7 +40,7 @@ namespace Metalama.Backstage.Tests.Telemetry
             "   at #user(#user param) in :line 16707565" )]
         public void SensitiveDataIsRemoved( string input, string expectedOutput )
         {
-            var actualOutput = ExceptionSensitiveDataHelper.Instance.RemoveSensitiveData( input );
+            var actualOutput = ExceptionSensitiveDataHelper.Default.RemoveSensitiveData( input );
 
             Assert.Equal( expectedOutput, actualOutput );
         }
@@ -83,6 +83,7 @@ namespace Metalama.Backstage.Tests.Telemetry
         [InlineData( "   at PostSharp.Type.<MethodName>d__25.MoveNext(String param) in :line 16707565" )]
         [InlineData( "   at PostSharp.Type.Method(String message) in :line 16707565" )]
         [InlineData( "   at Metalama.Type.Method(String message) in :line 16707565" )]
+        [InlineData( "   at SharpCrafters.Type.Method(String message) in :line 16707565" )]
         [InlineData( "   at Microsoft.Type.Method(String message) in :line 16707565" )]
         [InlineData( "   at MS.Type.Method(String message) in :line 16707565" )]
         [InlineData( "   at System.Type.Method(String message) in :line 16707565" )]
@@ -97,7 +98,7 @@ namespace Metalama.Backstage.Tests.Telemetry
         [InlineData( "   at JetBrains.Annotations.NotNullAttribute..ctor(String message) in :line 16707565" )]
         public void NonSensitiveDataIsNotRemoved( string input )
         {
-            var actualOutput = ExceptionSensitiveDataHelper.Instance.RemoveSensitiveData( input );
+            var actualOutput = ExceptionSensitiveDataHelper.Default.RemoveSensitiveData( input );
 
             Assert.Equal( input, actualOutput );
         }
@@ -128,7 +129,7 @@ namespace Metalama.Backstage.Tests.Telemetry
         [InlineData( "Server=myserver;Password=p@ssw0rd;Database=db", "Server=myserver;Password=#secret;Database=db" )]
         public void SecretsAreRedacted( string input, string expectedOutput )
         {
-            var actualOutput = ExceptionSensitiveDataHelper.Instance.RemoveSensitiveData( input );
+            var actualOutput = ExceptionSensitiveDataHelper.Default.RemoveSensitiveData( input );
 
             Assert.Equal( expectedOutput, actualOutput );
         }

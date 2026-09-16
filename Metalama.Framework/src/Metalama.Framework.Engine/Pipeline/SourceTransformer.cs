@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using JetBrains.Annotations;
+using Metalama.Backstage;
 using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Telemetry;
@@ -46,7 +47,7 @@ public sealed partial class SourceTransformer : ISourceTransformerWithServices
             {
                 var applicationInfo = new SourceTransformerApplicationInfo( context.Options.IsLongRunningProcess );
 
-                var backstageOptions = new BackstageInitializationOptions( applicationInfo )
+                var backstageOptions = new BackstageInitializationOptions( applicationInfo, MetalamaProduct.Instance )
                 {
                     AddLicensing = false, 
                     AddUserInterface = true, 

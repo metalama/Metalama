@@ -81,8 +81,9 @@ public sealed class WebServerAuthenticationTests : TestsBase
     {
         var appData = new AppData( (ServiceCollection) this.CloneServiceCollection(), this.ServiceProvider );
 
+        // The pages are compiled into the library, which the test process loads as its application.
         var builder = WebApplication.CreateBuilder(
-            new WebApplicationOptions() { ApplicationName = "Metalama.Backstage.Worker", ContentRootPath = contentRoot } );
+            new WebApplicationOptions() { ApplicationName = "Metalama.Backstage.Core.Worker", ContentRootPath = contentRoot } );
 
         builder.WebHost.UseTestServer();
 

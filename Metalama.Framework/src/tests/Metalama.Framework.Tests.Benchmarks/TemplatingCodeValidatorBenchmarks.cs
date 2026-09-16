@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using BenchmarkDotNet.Attributes;
+using Metalama.Backstage;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Licensing;
 using Metalama.Framework.Engine.Observers;
@@ -60,7 +61,7 @@ public class TemplatingCodeValidatorBenchmarks : IDisposable
         if ( !this._backstageInitialized )
         {
             BackstageServiceFactoryInitializer.Initialize(
-                new BackstageInitializationOptions( new BenchmarkApplicationInfo() )
+                new BackstageInitializationOptions( new BenchmarkApplicationInfo(), MetalamaProduct.Instance )
                 {
                     AddSupportServices = true,
                     AddLicensing = false,

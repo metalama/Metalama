@@ -41,7 +41,8 @@ public sealed class RegisterServiceExtensionsTests
     {
         var options =
             new BackstageInitializationOptions(
-                new TestApplicationInfo( "Test", true, "1.0", DateTime.Today ) { IsLicenseAuditEnabled = !disableLicenseAudit } )
+                new TestApplicationInfo( "Test", true, "1.0", DateTime.Today ) { IsLicenseAuditEnabled = !disableLicenseAudit },
+                MetalamaProduct.Instance )
             {
                 AddLicensing = addLicensing,
                 AddSupportServices = addSupportServices,
@@ -52,7 +53,12 @@ public sealed class RegisterServiceExtensionsTests
 
         if ( addToolsExtractor && (addSupportServices || addUserInterface) )
         {
-            options = options with { AddToolsExtractor = b => b.AddService( typeof(IBackstageToolsExtractor), p => new BackstageToolsExtractor( p ) ) };
+            options = options with
+            {
+                AddToolsExtractor = b => b.AddService(
+                    typeof(IBackstageToolsExtractor),
+                    p => new BackstageToolsExtractor( p, typeof(BackstageToolsExtensions).Assembly ) )
+            };
         }
 
         var serviceProviderBuilder = CreateServiceCollectionBuilder();

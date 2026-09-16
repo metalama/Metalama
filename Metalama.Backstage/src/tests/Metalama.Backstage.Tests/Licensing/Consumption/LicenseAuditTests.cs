@@ -251,7 +251,7 @@ public sealed class LicenseAuditTests : LicenseConsumptionServiceTestsBase
     [Fact]
     public void LicenseIsReportedWhenOptOutEnvironmentVariableIsSet()
     {
-        this.EnvironmentVariableProvider.Environment[TelemetryConfiguration.OptOutEnvironmentVariableName] = "true";
+        this.EnvironmentVariableProvider.Environment[MetalamaProduct.Profile.GetEnvironmentVariableName( TelemetryConfiguration.OptOutEnvironmentVariable )] = "true";
         this.ConsumeAndAssertReportsCount( 1 );
     }
 

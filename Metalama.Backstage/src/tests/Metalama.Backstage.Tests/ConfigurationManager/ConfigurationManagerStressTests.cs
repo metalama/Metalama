@@ -137,6 +137,7 @@ public sealed class ConfigurationManagerStressTests : IDisposable
         services.AddSingleton<IDateTimeProvider>( new TestDateTimeProvider() );
         services.AddSingleton<IEnvironmentVariableProvider>( new EnvironmentVariableProvider() );
         services.AddSingleton<IRuntimeInformation>( new RuntimeInformationProvider() );
+        services.AddSingleton( MetalamaProduct.Profile );
         services.AddSingleton<EarlyLoggerFactory>();
         services.AddSingleton<IStandardDirectories>( new StressDirectories( this._directory ) );
 

@@ -20,7 +20,7 @@ public sealed class ConsoleLoggerTests : TestsBase
     {
         var textWriter = new StringWriter();
         var enabledCategories = ImmutableHashSet<string>.Empty.Add( "Cat1" );
-        var loggerFactory = new ConsoleLoggerFactory( textWriter, enabledCategories, false );
+        var loggerFactory = new ConsoleLoggerFactory( "Metalama", textWriter, enabledCategories, false );
 
         var logger1 = loggerFactory.GetLogger( "Cat1" );
         Assert.NotNull( logger1.Trace );

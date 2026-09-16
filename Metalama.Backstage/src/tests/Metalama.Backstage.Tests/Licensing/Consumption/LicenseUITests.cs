@@ -5,6 +5,7 @@
 using Metalama.Backstage.Licensing.Consumption;
 using Metalama.Backstage.UserInterface.Toasts;
 using System.Linq;
+using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -16,19 +17,21 @@ public sealed class LicenseUITests : LicenseConsumptionServiceTestsBase
     public LicenseUITests( ITestOutputHelper logger ) : base( logger ) { }
 
     [Fact]
-    public void NotificationShownWhenMissingRequirement()
+    public async Task NotificationShownWhenMissingRequirement()
     {
         var consumer = this.CreateConsumptionService().CreateConsumer();
         Assert.False( consumer.TryConsume( new DelegateLicenseRequirement( _ => false ) ) );
+        await this.DrainEventsAsync();
         Assert.NotEmpty( this.UserInterface.Notifications );
         Assert.Equal( ToastNotificationKinds.RequiresLicense, this.UserInterface.Notifications.Single().Kind );
     }
 
     [Fact]
-    public void NotificationNotShownWhenFulfilledRequirement()
+    public async Task NotificationNotShownWhenFulfilledRequirement()
     {
         var consumer = this.CreateConsumptionService( LicenseKeyProvider.MetalamaProfessionalBusiness ).CreateConsumer();
         Assert.True( consumer.TryConsume( LicenseRequirement.Any ) );
+        await this.DrainEventsAsync();
         Assert.Empty( this.UserInterface.Notifications );
     }
 }

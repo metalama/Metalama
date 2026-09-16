@@ -1,0 +1,124 @@
+// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+// SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
+// Refer to LICENSE.md in the repository root for complete details.
+
+using JetBrains.Annotations;
+using Metalama.Backstage.Diagnostics;
+using Metalama.Backstage.Extensibility;
+using Metalama.Backstage.Infrastructure;
+using Metalama.Backstage.Telemetry;
+using Metalama.Backstage.Worker.Upload;
+using Metalama.Backstage.Worker.WebServer;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Spectre.Console.Cli;
+using System;
+using System.Threading.Tasks;
+
+namespace Metalama.Backstage.Worker;
+
+/// <summary>
+/// The entry point of the worker application, which the executable of a product calls from its <c>Main</c> method.
+/// The worker hosts the setup web server (<c>web</c> command) and uploads the telemetry (<c>upload</c> command).
+/// </summary>
+[PublicAPI]
+public static class BackstageWorkerProgram
+{
+    private static bool _canIgnoreRecoverableExceptions = true;
+
+    /// <summary>
+    /// Runs the worker with the given command line.
+    /// </summary>
+    /// <param name="args">The command line arguments.</param>
+    /// <param name="applicationInfo">The description of the worker process, which gives the product.</param>
+    /// <returns>The exit code of the process.</returns>
+    public static async Task<int> RunAsync( string[] args, BackstageWorkerApplicationInfo applicationInfo )
+    {
+        var serviceCollection = new ServiceCollection();
+
+#pragma warning disable ASP0000
+        var serviceProviderBuilder = new ServiceProviderBuilder(
+            ( type, instance ) => serviceCollection.Add( new ServiceDescriptor( type, instance, ServiceLifetime.Singleton ) ) );
+#pragma warning restore ASP0000
+
+        var initializationOptions = new BackstageInitializationOptions( applicationInfo, applicationInfo.Product )
+        {
+            AddSupportServices = true, AddLicensing = true, AddUserInterface = true
+        };
+
+        serviceProviderBuilder.AddBackstageServices( initializationOptions );
+
+#pragma warning disable ASP0000
+        var serviceProvider = serviceCollection
+            .BuildServiceProvider()
+            .InitializeBackstageServices();
+#pragma warning restore ASP0000
+        _canIgnoreRecoverableExceptions = serviceProvider.GetRequiredBackstageService<IRecoverableExceptionService>().CanIgnore;
+
+        try
+        {
+            var appData = new AppData( serviceCollection, serviceProvider );
+            var app = new CommandApp();
+
+            app.Configure(
+                configuration =>
+                {
+                    configuration.PropagateExceptions();
+                    configuration.AddCommand<UploadCommand>( "upload" ).WithData( appData );
+                    configuration.AddCommand<WebServerCommand>( "web" ).WithData( appData );
+                } );
+
+            return await app.RunAsync( args );
+        }
+        catch ( Exception e )
+        {
+            if ( !HandleException( serviceProvider, e ) )
+            {
+                throw;
+            }
+
+            if ( !_canIgnoreRecoverableExceptions )
+            {
+                throw;
+            }
+
+            return -1;
+        }
+    }
+
+    private static bool HandleException( IServiceProvider? serviceProvider, Exception e )
+    {
+        try
+        {
+            // A worker crash is telemetry about the tooling itself: report through the tooling policy. See #1701.
+            if ( serviceProvider != null )
+            {
+                serviceProvider.ReportToolingException( e );
+
+                return true;
+            }
+        }
+        catch when ( _canIgnoreRecoverableExceptions )
+        {
+            // We don't want failing telemetry to disturb users.
+        }
+
+        try
+        {
+            var log = serviceProvider?.GetLoggerFactory().GetLogger( "BackstageWorker" ).Error;
+
+            if ( log != null )
+            {
+                log.Log( $"Unhandled exception: {e}" );
+
+                return true;
+            }
+        }
+        catch when ( _canIgnoreRecoverableExceptions )
+        {
+            // We don't want failing telemetry to disturb users.
+        }
+
+        return false;
+    }
+}

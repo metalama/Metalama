@@ -1,0 +1,31 @@
+@page
+@using Metalama.Backstage.UserInterface
+@inject IWebLinks WebLinks
+
+<script>
+    function onArrowClicked() {
+        window.open('@WebLinks.VisualStudioMarketplace', '_blank');
+        $('#continueButton').text('Continue');
+    }
+
+</script>
+
+<p>Install <b>Visual Studio Tools for @Profile.Name</b> for an enhanced development experience:</p>
+<ul>
+    <li>Syntax highlighting,</li>
+    <li>CodeLens integration,</li>
+    <li>Aspect Explorer,</li>
+    <li>Generated code preview and diff.</li>
+</ul>
+
+<div class="arrow-buttons" style="margin: 40px 0">
+    <div onclick="onArrowClicked()">
+        <h4>Go To Visual Studio Marketplace</h4>
+    </div>
+</div>
+
+<p>You can install it later at any time.</p>
+
+<div class="continue-button">
+    <button id="continueButton" type="button" onclick="window.location.href='/Done'">Skip</button>
+</div>

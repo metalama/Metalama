@@ -18,12 +18,12 @@
         <!-- The directory holding the source files that Metalama.Backstage shares, by linked compilation rather
              than by assembly reference, with the projects that run before Metalama.Backstage has been extracted
              and that can therefore reference nothing. See the remarks of Metalama.Backstage.Threading.INamedLockService. -->
-        <MetalamaSharedThreadingSourceDirectory>$(MSBuildThisFileDirectory)..\Metalama.Backstage\src\Metalama.Backstage\Threading\</MetalamaSharedThreadingSourceDirectory>
+        <MetalamaSharedThreadingSourceDirectory>$(MSBuildThisFileDirectory)..\Metalama.Backstage\src\Metalama.Backstage.Core\Threading\</MetalamaSharedThreadingSourceDirectory>
 
         <!-- The directory holding the source files that carry the classification of the host process, which
              Metalama.Backstage shares with Metalama.Framework.CompilerExtensions for the same reason. See the
              remarks of Metalama.Backstage.Diagnostics.ProcessKindDetector. -->
-        <MetalamaSharedProcessKindSourceDirectory>$(MSBuildThisFileDirectory)..\Metalama.Backstage\src\Metalama.Backstage\Diagnostics\</MetalamaSharedProcessKindSourceDirectory>
+        <MetalamaSharedProcessKindSourceDirectory>$(MSBuildThisFileDirectory)..\Metalama.Backstage\src\Metalama.Backstage.Core\Diagnostics\</MetalamaSharedProcessKindSourceDirectory>
 
     </PropertyGroup>
 

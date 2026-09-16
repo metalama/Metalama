@@ -87,6 +87,9 @@ public sealed partial class TestNamedLockService : INamedLockService
     }
 
     /// <inheritdoc />
+    public string GlobalLockNamePrefix { get; init; } = MetalamaProduct.Profile.GlobalLockNamePrefix;
+
+    /// <inheritdoc />
     public INamedLock GetLock( string name, CancellationToken cancellationToken = default )
     {
         cancellationToken.ThrowIfCancellationRequested();

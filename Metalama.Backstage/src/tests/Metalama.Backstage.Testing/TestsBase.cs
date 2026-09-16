@@ -9,7 +9,6 @@ using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Infrastructure;
 using Metalama.Backstage.Licensing;
-using Metalama.Backstage.Licensing.Audit;
 using Metalama.Backstage.Licensing.Consumption;
 using Metalama.Backstage.Licensing.Consumption.Sources;
 using Metalama.Backstage.Licensing.Licenses;
@@ -28,6 +27,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using System;
 using System.Collections.Immutable;
+using System.Threading;
+using System.Threading.Tasks;
 using Xunit.Abstractions;
 using ILoggerFactory = Metalama.Backstage.Diagnostics.ILoggerFactory;
 
@@ -75,6 +76,29 @@ namespace Metalama.Backstage.Testing
         protected TestUserInterfaceService UserInterface => this._defaultTestContext.Value.UserInterface;
 
         protected BackstageBackgroundTasksService BackgroundTasks { get; } = new();
+
+        /// <summary>
+        /// Gets the observer that records the failures of the event dispatcher.
+        /// </summary>
+        protected TestEventDispatcherObserver EventObserver { get; } = new();
+
+        /// <summary>
+        /// Gets the event dispatcher of the test service provider.
+        /// </summary>
+        protected IEventDispatcher EventDispatcher => this.ServiceProvider.GetRequiredBackstageService<IEventDispatcher>();
+
+        /// <summary>
+        /// Waits until every published event has been delivered and every background task has completed. Events are
+        /// delivered asynchronously, so a test that asserts on a reaction to an event must wait first.
+        /// </summary>
+        protected async Task DrainEventsAsync()
+        {
+            await this.EventDispatcher.CompleteAsync( CancellationToken.None );
+            await this.BackgroundTasks.WhenNoPendingTaskAsync();
+
+            // A handler of an event may have published another event.
+            await this.EventDispatcher.CompleteAsync( CancellationToken.None );
+        }
 
         protected TestHttpClientFactory HttpClientFactory => this._defaultTestContext.Value.HttpClientFactory;
 
@@ -142,7 +166,7 @@ namespace Metalama.Backstage.Testing
         }
 
         protected TestsBase( ITestOutputHelper logger, IApplicationInfo? applicationInfo = null )
-            : this( logger, new BackstageInitializationOptions( applicationInfo ?? new TestApplicationInfo() ) { AutoUploadTelemetry = false } ) { }
+            : this( logger, new BackstageInitializationOptions( applicationInfo ?? new TestApplicationInfo(), MetalamaProduct.Instance ) { AutoUploadTelemetry = false } ) { }
 
         /// <summary>
         /// Method that can add services. 
@@ -150,12 +174,9 @@ namespace Metalama.Backstage.Testing
         protected virtual void ConfigureServices( ServiceProviderBuilder services ) { }
 
         /// <summary>
-        /// Method invoked just after the services are instantiated.
+        /// Method invoked just after the services are instantiated and initialized.
         /// </summary>
-        protected virtual void OnAfterServicesCreated( Services services )
-        {
-            services.ServiceProvider.GetRequiredBackstageService<BackstageServicesInitializer>().Initialize();
-        }
+        protected virtual void OnAfterServicesCreated( Services services ) { }
 
         protected void EnsureServicesInitialized()
         {
@@ -170,7 +191,7 @@ namespace Metalama.Backstage.Testing
             this.Locks = new TestNamedLockService( logger.WriteLine );
 
             this._configureServicesAction = this.ConfigureServices;
-            this._initializationOptions = options ?? new BackstageInitializationOptions( new TestApplicationInfo() );
+            this._initializationOptions = options ?? new BackstageInitializationOptions( new TestApplicationInfo(), MetalamaProduct.Instance );
 
             this._defaultTestContext = new Lazy<Services>(
                 () =>
@@ -262,13 +283,23 @@ namespace Metalama.Backstage.Testing
             BackstageInitializationOptions? options = null )
         {
             var serviceCollection = new ServiceCollection();
-            options ??= new BackstageInitializationOptions( new TestApplicationInfo() );
+            options ??= new BackstageInitializationOptions( new TestApplicationInfo(), MetalamaProduct.Instance );
 
             serviceCollection
                 .AddSingleton( new EarlyLoggerFactory( this.Log ) )
+                .AddSingleton<IEventDispatcherObserver>( this.EventObserver )
+                .AddSingleton<IEventDispatcher>( serviceProvider => new EventDispatcher( serviceProvider ) )
+                .AddSingleton( serviceProvider => new UserInterfaceEventSubscriber( serviceProvider ) )
                 .AddSingleton<ILoggerFactory>( this.Log )
                 .AddSingleton<IApplicationInfoProvider>( new ApplicationInfoProvider( options.ApplicationInfo ) )
-                .AddSingleton( new BackstageInitializationOptionsProvider( options ) )
+                .AddSingleton( options.Product.TelemetryOptions )
+                .AddSingleton(
+                    options.Product.UserInterfaceOptions with
+                    {
+                        OpenWelcomePage = options.OpenWelcomePage,
+                        DetectToastNotifications = options.DetectToastNotifications,
+                        AddRssClient = options.AddRssClient
+                    } )
                 .AddSingleton<IDateTimeProvider>( this.Time )
                 .AddSingleton<IProcessExecutor>( this.ProcessExecutor )
                 .AddSingleton<IRuntimeInformation>( _ => new TestRuntimeInformation() )
@@ -276,7 +307,8 @@ namespace Metalama.Backstage.Testing
                 .AddSingleton<IPlatformInfo>( serviceProvider => new PlatformInfo( serviceProvider ) )
                 .AddSingleton( this.BackgroundTasks )
                 .AddSingleton<IHttpClientFactory>( serviceProvider => new TestHttpClientFactory( serviceProvider ) )
-                .AddSingleton<WebLinks>( _ => new WebLinks() )
+                .AddSingleton( options.Product.Profile )
+                .AddSingleton<IWebLinks>( options.Product.WebLinks )
                 .AddSingleton( _ => new RandomNumberGenerator( 0 ) )
 
                 // We must always have a single instance of the file system even if we use CloneServiceCollection.
@@ -285,9 +317,10 @@ namespace Metalama.Backstage.Testing
                 .AddSingleton<IEnvironmentVariableProvider>( this.EnvironmentVariableProvider )
                 .AddSingleton<IRecoverableExceptionService>( new TestRecoverableExceptionService() )
                 .AddSingleton<IUserDeviceDetectionService>( this.UserDeviceDetection )
-                .AddSingleton<IJsonSerializationService>( _ => new JsonSerializationService( options.AdditionalJsonTypeInfoResolvers ) )
+                .AddSingleton<IJsonSerializationService>( _ => new JsonSerializationService( [BackstageJsonContext.Default, .. options.AdditionalJsonTypeInfoResolvers] ) )
                 .AddSingleton<IConfigurationManager>( serviceProvider => new InMemoryConfigurationManager( serviceProvider ) )
                 .AddSingleton<ITempFileManager>( serviceProvider => new TempFileManager( serviceProvider ) )
+                .AddSingleton<ILicenseProductCatalog>( options.LicensingOptions.ProductCatalog ?? options.Product.LicenseProductCatalog )
                 .AddSingleton<ILicenseRegistrationService>( serviceProvider => new LicenseRegistrationService( serviceProvider ) )
                 .AddSingleton<ILicenseConsumptionService>(
                     serviceProvider => LicenseConsumptionServiceFactory.Create(
@@ -302,12 +335,14 @@ namespace Metalama.Backstage.Testing
                 .AddSingleton<IIdeExtensionStatusService>( serviceProvider => new IdeExtensionStatusService( serviceProvider ) )
                 .AddSingleton<IToastNotificationDetectionService>( serviceProvider => new ToastNotificationDetectionService( serviceProvider ) )
                 .AddSingleton<IStandardDirectories>( serviceProvider => new StandardDirectories( serviceProvider ) )
-                .AddSingleton<IBackstageToolsExtractor>( serviceProvider => new BackstageToolsExtractor( serviceProvider ) )
+                .AddSingleton<IBackstageToolsExtractor>(
+                    serviceProvider => new BackstageToolsExtractor( serviceProvider, typeof(BackstageToolsExtensions).Assembly ) )
                 .AddSingleton<ITelemetryConfigurationService>( serviceProvider => new TelemetryConfigurationService( serviceProvider ) )
                 .AddSingleton<ITelemetryService>( serviceProvider => new TelemetryService( serviceProvider ) )
                 .AddSingleton<IRepositoryConfigurationService>( serviceProvider => new RepositoryConfigurationService( serviceProvider ) )
                 .AddSingleton<IUsageSessionFactory>( serviceProvider => new UsageSessionFactory( serviceProvider ) )
                 .AddSingleton<IExceptionCapturer>( _ => new TestExceptionCapturer() )
+                .AddSingleton( serviceProvider => new ExceptionSensitiveDataHelper( serviceProvider ) )
                 .AddSingleton<TelemetryReportUploader>( serviceProvider => new TelemetryReportUploader( serviceProvider ) )
                 .AddSingleton<ITelemetryUploader>( serviceProvider => new TelemetryUploader( serviceProvider ) )
                 .AddSingleton<TelemetryLogger>( serviceProvider => new TelemetryLogger( serviceProvider ) )

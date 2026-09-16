@@ -39,7 +39,7 @@ public sealed class EnvironmentVariableConfigurationTests : TestsBase
         };
 
         this.EnvironmentVariableProvider.Environment.Add(
-            DiagnosticsConfiguration.EnvironmentVariableName,
+            MetalamaProduct.Profile.GetEnvironmentVariableName( DiagnosticsConfiguration.EnvironmentVariableName ),
             jsonService.Serialize( environmentConfiguration, typeof(DiagnosticsConfiguration) ) );
     }
 

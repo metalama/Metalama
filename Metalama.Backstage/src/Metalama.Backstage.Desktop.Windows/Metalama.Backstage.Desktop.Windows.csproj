@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <OutputType>WinExe</OutputType>
@@ -14,49 +14,29 @@
         <IsPackable>false</IsPackable>
     </PropertyGroup>
 
+    <!-- This project is the executable of the desktop notifier of Metalama. The notifier itself is the
+         Metalama.Backstage.Core.Desktop.Windows library; this project binds it to the Metalama product, gives it the
+         Metalama icon, and packages it as the zip archive that Metalama.Backstage.Tools embeds. -->
+
     <!-- It seems the WinRT source generator runs when it shouldn't and causes bogus warnings, see https://github.com/dotnet/sdk/issues/44026, so we disable it. -->
     <!-- This can be removed once that bug is fixed. -->
-	<Target Name="DisableWinRTSourceGenerator" BeforeTargets="CoreCompile">
-		<ItemGroup>
-			<Analyzer Remove="@(Analyzer)"
-					  Condition="'%(FileName)%(Extension)' == 'WinRT.SourceGenerator.dll'"/>
-		</ItemGroup>
-	</Target>    
-
-    <ItemGroup>
-        <PackageReference Include="JetBrains.Annotations" />
-        <PackageReference Include="Microsoft.Toolkit.Uwp.Notifications" />
-        <PackageReference Include="Microsoft.Web.WebView2" />
-        <PackageReference Include="Spectre.Console.Cli" />
-        <PackageReference Include="Newtonsoft.Json" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <None Remove="logo.png"/>
-    </ItemGroup>
+    <Target Name="DisableWinRTSourceGenerator" BeforeTargets="CoreCompile">
+        <ItemGroup>
+            <Analyzer Remove="@(Analyzer)"
+                      Condition="'%(FileName)%(Extension)' == 'WinRT.SourceGenerator.dll'"/>
+        </ItemGroup>
+    </Target>
 
     <ItemGroup>
         <ProjectReference Include="..\Metalama.Backstage\Metalama.Backstage.csproj"/>
+        <ProjectReference Include="..\Metalama.Backstage.Core.Desktop.Windows\Metalama.Backstage.Core.Desktop.Windows.csproj"/>
 
         <!-- We need the Worker project to be built first because we invoke it as an executable. -->
         <ProjectReference Include="..\Metalama.Backstage.Worker\Metalama.Backstage.Worker.csproj"
                           ReferenceOutputAssembly="false"
                           SkipGetTargetFrameworkProperties="true"
                           PrivateAssets="all"/>
-
     </ItemGroup>
-
-    <ItemGroup>
-        <None Remove="Resources\logo.svg"/>
-    </ItemGroup>
-
-    <ItemGroup>
-        <None Remove="Resources\logo.png"/>
-        <Content Include="Resources\logo.png">
-            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </Content>
-    </ItemGroup>
-
 
     <Target Name="ResolveZipInputFiles" AfterTargets="Build" Condition="'$(IsCrossTargetingBuild)'!='true'">
         <ItemGroup>

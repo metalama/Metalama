@@ -26,7 +26,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\Metalama.Backstage.Worker\Metalama.Backstage.Worker.csproj" />
+        <ProjectReference Include="..\..\Metalama.Backstage.Core.Worker\Metalama.Backstage.Core.Worker.csproj" />
         <ProjectReference Include="..\Metalama.Backstage.Testing\Metalama.Backstage.Testing.csproj" />
     </ItemGroup>
 
