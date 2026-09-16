@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!-- The counterpart of LangVersionClamp for a language version that the clamp accepts. The clamp of
+         Metalama.Framework.targets rewrites to 12.0 every implicitly set language version that is outside its
+         accepted list, so a target framework whose implied version is added to that list must be verified, and not
+         only one whose implied version is rewritten.
+
+         The .NET 11 software development kit implies 15.0 for net11.0. Before issue #1937 the clamp did not list
+         that value, so this project was compiled at C# 12 and reported LAMA0603, and the labeled jump of Class1.cs
+         did not compile. The target framework is written out rather than derived from NETCoreAppMaximumVersion,
+         because the scenario verifies one value of the list and not the newest target framework.
+         See https://github.com/metalama/Metalama/issues/1937. -->
+
+    <PropertyGroup>
+        <TargetFramework>net11.0</TargetFramework>
+        <OutputType>Library</OutputType>
+
+        <!-- Reset the language version set by engineering, so that it is implied from the target framework. -->
+        <LangVersion></LangVersion>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Metalama.Framework" />
+    </ItemGroup>
+
+</Project>
