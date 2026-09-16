@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Backstage.Application;
 using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Infrastructure;
@@ -21,6 +22,7 @@ internal sealed class BackstageToolsExecutor : IBackstageToolsExecutor
     private readonly IProcessExecutor _processExecutor;
     private readonly IBackstageToolsLocator _locator;
     private readonly IFileSystem _fileSystem;
+    private readonly ProductProfile _productProfile;
 
     private static readonly char[] _charactersRequiringQuoting = { ' ', '\t', '\n', '\v', '"' };
 
@@ -32,6 +34,7 @@ internal sealed class BackstageToolsExecutor : IBackstageToolsExecutor
         this._processExecutor = serviceProvider.GetRequiredBackstageService<IProcessExecutor>();
         this._locator = serviceProvider.GetRequiredBackstageService<IBackstageToolsLocator>();
         this._fileSystem = serviceProvider.GetRequiredBackstageService<IFileSystem>();
+        this._productProfile = serviceProvider.GetRequiredBackstageService<ProductProfile>();
     }
 
     public IProcess Start( BackstageTool tool, params string[] arguments )
@@ -45,7 +48,7 @@ internal sealed class BackstageToolsExecutor : IBackstageToolsExecutor
 
         var workerDirectory = this._locator.GetToolDirectory( tool );
 
-        var programPath = Path.Combine( workerDirectory, $"{tool.Name}.{(tool.IsExe ? "exe" : "dll")}" );
+        var programPath = Path.Combine( workerDirectory, $"{tool.GetAssemblyName( this._productProfile )}.{(tool.IsExe ? "exe" : "dll")}" );
 
         if ( !this._fileSystem.FileExists( programPath ) )
         {

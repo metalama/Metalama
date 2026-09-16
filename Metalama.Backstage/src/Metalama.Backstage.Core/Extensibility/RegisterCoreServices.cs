@@ -111,7 +111,7 @@ public static class RegisterCoreServices
         {
             if ( options.IsDevelopmentEnvironment )
             {
-                serviceProviderBuilder.AddService( typeof(IBackstageToolsLocator), _ => new DevBackstageToolsLocator() );
+                serviceProviderBuilder.AddService( typeof(IBackstageToolsLocator), serviceProvider => new DevBackstageToolsLocator( serviceProvider ) );
             }
             else
             {

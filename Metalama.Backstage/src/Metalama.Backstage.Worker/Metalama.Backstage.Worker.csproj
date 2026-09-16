@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+<Project Sdk="Microsoft.NET.Sdk.Web">
 
     <PropertyGroup>
         <MetalamaBackstageDirectory>$(MSBuildProjectDirectory)\..\Metalama.Backstage</MetalamaBackstageDirectory>
@@ -12,9 +12,11 @@
         <DebugType>portable</DebugType>
         <RollForward>Major</RollForward>
     </PropertyGroup>
-    
 
-    <!-- <Import Project="$(MetalamaBackstageDirectory)\Metalama.Backstage.csproj" /> -->
+    <!-- This project is the executable of the worker of Metalama. The worker itself is the Metalama.Backstage.Core.Worker
+         library; this project binds it to the Metalama product and packages it as the zip archive that
+         Metalama.Backstage.Tools embeds. -->
+
     <Import Project="$(MetalamaBackstageDirectory)\Metalama.Backstage.Common.props" />
 
     <PropertyGroup>
@@ -26,56 +28,26 @@
         <OutputZipFile>bin\$(MSBuildProjectName).zip</OutputZipFile>
     </PropertyGroup>
 
-   
-    
-    <ItemGroup Condition="'$(TargetFramework)'=='netframework4.7.2'">
-        <Reference Include="System.IO.Compression" />
-        <Reference Include="System.Net.Http" />
-    </ItemGroup>
-
     <ItemGroup>
-        <PackageReference Include="System.IO.Hashing" />
         <PackageReference Include="JetBrains.Annotations" PrivateAssets="all" />
-        <PackageReference Include="Newtonsoft.Json" />
-    	<PackageReference Include="Spectre.Console.Cli" />
     </ItemGroup>
 
     <ItemGroup>
-      <_ContentIncludedByDefault Remove="Worker\WebServer\Pages\Error.cshtml" />
-      <_ContentIncludedByDefault Remove="Worker\WebServer\Pages\Index.cshtml" />
-      <_ContentIncludedByDefault Remove="Worker\WebServer\Pages\Shared\_Layout.cshtml" />
-      <_ContentIncludedByDefault Remove="Worker\WebServer\Pages\Shared\_ValidationScriptsPartial.cshtml" />
-      <_ContentIncludedByDefault Remove="Worker\WebServer\Pages\_ViewImports.cshtml" />
-      <_ContentIncludedByDefault Remove="Worker\WebServer\Pages\_ViewStart.cshtml" />
+        <ProjectReference Include="..\Metalama.Backstage\Metalama.Backstage.csproj" />
+        <ProjectReference Include="..\Metalama.Backstage.Core.Worker\Metalama.Backstage.Core.Worker.csproj" />
     </ItemGroup>
 
     <ItemGroup>
-      <AdditionalFiles Include="Pages\Error.cshtml" />
-      <AdditionalFiles Include="Pages\Index.cshtml" />
-      <AdditionalFiles Include="Pages\Shared\_Layout.cshtml" />
-      <AdditionalFiles Include="Pages\Shared\_ValidationScriptsPartial.cshtml" />
-      <AdditionalFiles Include="Pages\_ViewImports.cshtml" />
-      <AdditionalFiles Include="Pages\_ViewStart.cshtml" />
+        <None Remove="Properties\launchSettings.json" />
     </ItemGroup>
 
-    <ItemGroup>
-      <ProjectReference Include="..\Metalama.Backstage\Metalama.Backstage.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <InternalsVisibleTo Include="Metalama.Backstage.Worker.Tests" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <None Remove="Properties\launchSettings.json" />
-    </ItemGroup>
-
-    
     <Import Project="../../../eng/DeterministicZip.tasks"/>
 
     <Target Name="PackAndZip" AfterTargets="Build">
-        
-        <!-- We need to create a web archive that contains static assets. -->
+
+        <!-- We need to create a web archive that contains static assets. The directory is deleted first, so that the
+             archive does not carry the files of an earlier build. -->
+        <RemoveDir Directories="$(OutputPath)Packed" />
         <Exec Command="dotnet publish $(ProjectPath) --no-build -o $(OutputPath)Packed -c $(Configuration)" />
 
         <ItemGroup>
@@ -85,5 +57,5 @@
         <CreateDeterministicZip SourceDirectory="$(OutputPath)Packed" DestinationFile="$(OutputZipFile)" PackageBuildDate="$(MetalamaBuildDate)" />
         <Message Text="$(MSBuildProjectName) -&gt; $(MSBuildProjectDirectory)\$(OutputZipFile)" Importance="High" />
     </Target>
-    
+
 </Project>

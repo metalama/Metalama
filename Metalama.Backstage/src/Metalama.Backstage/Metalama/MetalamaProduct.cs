@@ -50,7 +50,10 @@ public static class MetalamaProduct
         LongName = "Metalama by PostSharp",
         LegacyDataDirectoryName = ".metalama",
         RepositoryConfigurationFileName = "metalama.json",
-        HasLegacyConfigurationLock = true
+        HasLegacyConfigurationLock = true,
+        ToolAssemblyNamePrefix = "Metalama.Backstage",
+        CommandLineToolName = "metalama",
+        LogoName = "metalama"
     };
 
     /// <summary>

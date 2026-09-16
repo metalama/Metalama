@@ -67,6 +67,25 @@ public sealed record ProductProfile(
     public bool HasLegacyConfigurationLock { get; init; }
 
     /// <summary>
+    /// Gets the prefix of the assembly names of the tool applications of the product: the worker is
+    /// <c>{prefix}.Worker</c> and the desktop notifier <c>{prefix}.Desktop.Windows</c>. The default is
+    /// <see cref="Name"/> followed by <c>.Backstage</c>, for instance <c>Metalama.Backstage</c>.
+    /// </summary>
+    public string ToolAssemblyNamePrefix { get; init; } = Name + ".Backstage";
+
+    /// <summary>
+    /// Gets the name of the command line tool of the product, for instance <c>metalama</c>, or <c>null</c> when the
+    /// product has no such tool. The setup pages mention it when it exists.
+    /// </summary>
+    public string? CommandLineToolName { get; init; }
+
+    /// <summary>
+    /// Gets the name of the logo that the tool applications display, which selects one of the logos that they ship,
+    /// for instance <c>metalama</c> or <c>postsharp</c>. The default is <see cref="Name"/> in lower case.
+    /// </summary>
+    public string LogoName { get; init; } = Name.ToLowerInvariant();
+
+    /// <summary>
     /// Gets the full name of an environment variable of the product by prepending <see cref="EnvironmentVariablePrefix"/>
     /// to its name.
     /// </summary>

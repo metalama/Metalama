@@ -17,7 +17,11 @@ namespace Metalama.Backstage.Maintenance;
 
 internal abstract partial class ProcessManagerBase : IProcessManager
 {
-    private static readonly ImmutableArray<KillableProcessSpec> _processesToKill = ImmutableArray.Create(
+    /// <summary>
+    /// The processes that every product stops or reports. The tool applications of the product are added by the
+    /// constructor, because their names depend on the product.
+    /// </summary>
+    private static readonly ImmutableArray<KillableProcessSpec> _commonProcessesToKill = ImmutableArray.Create(
         new KillableProcessSpec( "VBCSCompiler", KillableModuleKind.Both, true, true ),
         new KillableProcessSpec( "MSBuild", KillableModuleKind.Both, false, true ),
         new KillableProcessSpec( "servicehub.roslyncodeanalysisservice", KillableModuleKind.Both, false, false, "Visual Studio" ),
@@ -41,13 +45,12 @@ internal abstract partial class ProcessManagerBase : IProcessManager
             KillableModuleKind.Both,
             false,
             false,
-            "Visual Studio Code / C# Dev Kit" ),
+            "Visual Studio Code / C# Dev Kit" ) );
 
-        // The Backstage Worker runs under 'dotnet' (hosting Metalama.Backstage.Worker.dll), so it is matched as a DotNet module.
-        new KillableProcessSpec( "Metalama.Backstage.Worker", KillableModuleKind.DotNet, false, true ),
-
-        // The Backstage Desktop tray app is a standalone '.exe'.
-        new KillableProcessSpec( "Metalama.Backstage.Desktop.Windows", KillableModuleKind.StandaloneProcess, false, true ) );
+    /// <summary>
+    /// The common processes followed by the tool applications of the product.
+    /// </summary>
+    private readonly ImmutableArray<KillableProcessSpec> _processesToKill;
 
     protected ILogger Logger { get; }
 
@@ -61,6 +64,17 @@ internal abstract partial class ProcessManagerBase : IProcessManager
     {
         this.Logger = serviceProvider.GetLoggerFactory().GetLogger( "ProcessManager" );
         this._productProfile = serviceProvider.GetRequiredBackstageService<ProductProfile>();
+
+        this._processesToKill = _commonProcessesToKill.AddRange(
+            // The Backstage Worker runs under 'dotnet' (hosting the worker assembly), so it is matched as a DotNet module.
+            new KillableProcessSpec( Tools.BackstageTool.Worker.GetAssemblyName( this._productProfile ), KillableModuleKind.DotNet, false, true ),
+
+            // The Backstage Desktop tray app is a standalone '.exe'.
+            new KillableProcessSpec(
+                Tools.BackstageTool.DesktopWindows.GetAssemblyName( this._productProfile ),
+                KillableModuleKind.StandaloneProcess,
+                false,
+                true ) );
     }
 
     protected virtual bool TryGetModulePaths( Process process, [NotNullWhen( true )] out List<string>? modules )
@@ -214,7 +228,7 @@ internal abstract partial class ProcessManagerBase : IProcessManager
 
     public virtual void KillCompilerProcesses( bool shouldEmitWarnings )
     {
-        foreach ( var process in this.GetProcesses( _processesToKill ) )
+        foreach ( var process in this.GetProcesses( this._processesToKill ) )
         {
             if ( process.Spec.CanShutdownOrKill )
             {

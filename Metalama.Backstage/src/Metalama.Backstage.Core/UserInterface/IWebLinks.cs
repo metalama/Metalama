@@ -69,4 +69,14 @@ public interface IWebLinks : IBackstageService
     /// Gets the address of the page that explains how to disable telemetry.
     /// </summary>
     string DisableTelemetryInstructions { get; }
+
+    /// <summary>
+    /// Gets the address of the page that lists the past blog posts of the product.
+    /// </summary>
+    string NewsPosts { get; }
+
+    /// <summary>
+    /// Gets the address of the page that lists the past brief news of the product.
+    /// </summary>
+    string NewsBriefs { get; }
 }

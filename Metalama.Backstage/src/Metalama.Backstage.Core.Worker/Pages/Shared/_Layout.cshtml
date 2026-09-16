@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=800, height=800, initial-scale=1.0"/>
+    <title>@Profile.LongName</title>
+    <link rel="icon" href="~/_content/Metalama.Backstage.Core.Worker/img/@(Profile.LogoName).ico"/>
+    <link rel="stylesheet" href="~/_content/Metalama.Backstage.Core.Worker/lib/bootstrap/dist/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="~/_content/Metalama.Backstage.Core.Worker/css/site.css" asp-append-version="true"/>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <div class="logo">
+            <img src="~/_content/Metalama.Backstage.Core.Worker/img/@(Profile.LogoName).svg" alt="@Profile.Name"/>
+        </div>
+    </header>
+    <main role="main" class="pb-3">
+        @RenderBody()
+    </main>
+</div>
+
+
+<script src="~/_content/Metalama.Backstage.Core.Worker/lib/jquery/dist/jquery.min.js"></script>
+<script src="~/_content/Metalama.Backstage.Core.Worker/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+<script src="~/_content/Metalama.Backstage.Core.Worker/js/site.js" asp-append-version="true"></script>
+<script>
+    // Keeps the server alive.
+    $(document).ready(function () {
+        setInterval(function () {
+            $.ajax({
+                url: 'ping',
+                type: 'GET'
+            });
+        }, 10000);
+    });
+</script>
+
+@await RenderSectionAsync( "Scripts", required: false )
+</body>
+</html>

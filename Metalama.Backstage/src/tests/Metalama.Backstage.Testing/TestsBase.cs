@@ -335,7 +335,8 @@ namespace Metalama.Backstage.Testing
                 .AddSingleton<IIdeExtensionStatusService>( serviceProvider => new IdeExtensionStatusService( serviceProvider ) )
                 .AddSingleton<IToastNotificationDetectionService>( serviceProvider => new ToastNotificationDetectionService( serviceProvider ) )
                 .AddSingleton<IStandardDirectories>( serviceProvider => new StandardDirectories( serviceProvider ) )
-                .AddSingleton<IBackstageToolsExtractor>( serviceProvider => new BackstageToolsExtractor( serviceProvider ) )
+                .AddSingleton<IBackstageToolsExtractor>(
+                    serviceProvider => new BackstageToolsExtractor( serviceProvider, typeof(BackstageToolsExtensions).Assembly ) )
                 .AddSingleton<ITelemetryConfigurationService>( serviceProvider => new TelemetryConfigurationService( serviceProvider ) )
                 .AddSingleton<ITelemetryService>( serviceProvider => new TelemetryService( serviceProvider ) )
                 .AddSingleton<IRepositoryConfigurationService>( serviceProvider => new RepositoryConfigurationService( serviceProvider ) )

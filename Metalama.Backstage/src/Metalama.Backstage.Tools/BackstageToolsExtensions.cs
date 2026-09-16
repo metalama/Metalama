@@ -7,12 +7,17 @@ using Metalama.Backstage.Extensibility;
 
 namespace Metalama.Backstage.Tools;
 
+/// <summary>
+/// Registers the extractor of the tool applications of Metalama, which this assembly embeds as zip archives.
+/// </summary>
 [PublicAPI]
 public static class BackstageToolsExtensions
 {
     public static ServiceProviderBuilder AddTools( this ServiceProviderBuilder builder )
     {
-        builder.AddService( typeof(IBackstageToolsExtractor), serviceProvider => new BackstageToolsExtractor( serviceProvider ) );
+        builder.AddService(
+            typeof(IBackstageToolsExtractor),
+            serviceProvider => new BackstageToolsExtractor( serviceProvider, typeof(BackstageToolsExtensions).Assembly ) );
 
         return builder;
     }

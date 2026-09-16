@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Backstage.Extensibility;
 using Metalama.Backstage.Testing;
 using Metalama.Backstage.Worker.WebServer;
 using Microsoft.AspNetCore.Builder;
@@ -35,10 +36,11 @@ public sealed class WebServerHostFilteringTests : TestsBase
 
         try
         {
-            var appData = new AppData( (ServiceCollection) this.CloneServiceCollection(), this.ServiceProvider );
+            var appData = new AppData( (ServiceCollection) this.CloneServiceCollection(), this.ServiceProvider, serviceProvider => serviceProvider.InitializeBackstageServices() );
 
+            // The pages are compiled into the library, which the test process loads as its application.
             var builder = WebApplication.CreateBuilder(
-                new WebApplicationOptions() { ApplicationName = "Metalama.Backstage.Worker", ContentRootPath = contentRoot } );
+                new WebApplicationOptions() { ApplicationName = "Metalama.Backstage.Core.Worker", ContentRootPath = contentRoot } );
 
             builder.WebHost.UseTestServer();
 

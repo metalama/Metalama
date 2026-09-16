@@ -52,7 +52,12 @@ public sealed class RegisterServiceExtensionsTests
 
         if ( addToolsExtractor && (addSupportServices || addUserInterface) )
         {
-            options = options with { AddToolsExtractor = b => b.AddService( typeof(IBackstageToolsExtractor), p => new BackstageToolsExtractor( p ) ) };
+            options = options with
+            {
+                AddToolsExtractor = b => b.AddService(
+                    typeof(IBackstageToolsExtractor),
+                    p => new BackstageToolsExtractor( p, typeof(BackstageToolsExtensions).Assembly ) )
+            };
         }
 
         var serviceProviderBuilder = CreateServiceCollectionBuilder();

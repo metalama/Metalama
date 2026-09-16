@@ -40,6 +40,10 @@ public sealed class WebLinks : IWebLinks
 
     public string DisableTelemetryInstructions => GetLink( "metalama-disable-telemetry" );
 
+    public string NewsPosts => "https://metalama.net/blog";
+
+    public string NewsBriefs => "https://metalama.net/briefs";
+
     private static string GetLink( string alias, bool trackCampaign = true, string? queryString = null )
     {
         var url = $"https://www.postsharp.net/links/{alias}";
