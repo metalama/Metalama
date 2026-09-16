@@ -45,8 +45,24 @@
     <Import Sdk="PostSharp.Engineering.Sdk" Project="SourceLink.props"/>
 
     <PropertyGroup>
-        <!-- The maximal language version supported by this Metalama version.
-             The LangMaxVersion property is exported to other repos. -->
+        <!-- The language version in which the sources of this repository are written. It is exported to the other
+             repositories as the LangMaxVersion property, and three other solutions of this repository consume it.
+
+             Three ceilings exist, and each one has its own purpose and its own bound. Two of them hold the
+             value 14.0 today, which follows from the versions currently in use and is not a rule.
+
+             This one is bounded by the compiler that builds this repository, which is Metalama.Compiler built on
+             RoslynApiMaxVersion of Directory.Packages.props. Raising it requires that compiler to accept the
+             option. It is not bounded by RoslynApiMinVersion, because the Roslyn 5.0.0 shim projects recompile the
+             same sources with the same compiler and override no language version.
+
+             SupportedCSharpVersions.Latest is the ceiling that Metalama offers to a user project. It is C# 15 in
+             the latest Roslyn variant and C# 14 in the Roslyn 5.0 variant, because the engine passes it to
+             CSharpParseOptions and a parser accepts only a version that its own Roslyn declares.
+
+             MetalamaTemplateLanguageVersion, in the Directory.Build.props of the repository root, is the ceiling of
+             the templates of this repository. It is bounded by RoslynApiMinVersion, because a template is compiled
+             by the Roslyn of the host and Rider presents the lowest one. See issue #1937. -->
         <LangMaxVersion>14.0</LangMaxVersion>
         <LangVersion>$(LangMaxVersion)</LangVersion>
 
