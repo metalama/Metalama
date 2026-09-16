@@ -75,7 +75,9 @@ internal abstract class ConstructorInitializeAdvice : Advice<AddInitializerAdvic
                 _ => throw new AssertionFailedException( $"Unexpected declaration: '{targetDeclaration}'." )
             };
 
-        foreach ( var ctor in constructors )
+        var constructorList = constructors.ToReadOnlyList();
+
+        foreach ( var ctor in constructorList )
         {
             IConstructor targetCtor;
 

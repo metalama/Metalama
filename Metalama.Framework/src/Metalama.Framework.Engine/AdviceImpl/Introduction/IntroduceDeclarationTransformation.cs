@@ -33,6 +33,16 @@ internal abstract class IntroduceDeclarationTransformation<T> : BaseSyntaxTreeTr
 
     DeclarationBuilderData IIntroduceDeclarationTransformation.DeclarationBuilderData => this.BuilderData;
 
+    /// <inheritdoc />
+    /// <remarks>
+    /// <para>
+    /// Always <c>false</c>. This transformation emits the declaration it introduces.
+    /// <c>IntroduceSynthesizedDeclarationTransformation</c> is the one that registers a declaration without
+    /// emitting it.
+    /// </para>
+    /// </remarks>
+    bool IIntroduceDeclarationTransformation.IsCompilerSynthesized => false;
+
     public override IFullRef<IDeclaration> TargetDeclaration => this.BuilderData.ContainingDeclaration.AssertNotNull();
 
     public override IntrospectionTransformationKind TransformationKind => IntrospectionTransformationKind.IntroduceMember;

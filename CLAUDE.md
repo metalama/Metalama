@@ -159,23 +159,31 @@ When starting work on a GitHub issue:
 - Never await without cancellation token - ever
 - For assertions, use `Invariant.Assert` / `Invariant.AssertNotNull` (`Metalama.Framework.Engine`) instead of the `System.Diagnostics.Debug` assert methods, so the compiler and the `MetalamaAssertionAnalyzer` can track control flow. In projects that don't reference the engine (e.g. `Metalama.Patterns.Caching.Backend`), throw `CachingAssertionFailedException` instead; `System.Diagnostics.Debug` is only acceptable there in already-ported code that uses it throughout.
 - Github comments and issues and PRs must be signed by Claude - not commits. No ad link, just the signature `— Claude for @gfraiteur`.
-- **Warnings: ignore them while coding, but zero warnings is a gate for any push to a PR.** While writing and testing code, don't lose time on cosmetic warnings (such as redundant usings). But the CI build runs with `-p:ContinuousIntegrationBuild=True`, which promotes analyzer suggestions to errors: `IDE0005` ("using directive is unnecessary") is invisible in a local build and *fails* the CI build. A green local build and a green test suite therefore prove nothing about CI.
+- **Every compiler and analyzer warning must be addressed before a push to a PR.** While writing and testing code, do not lose time on cosmetic warnings (such as redundant usings), but leave none behind when you are done. This is the whole rule; there is nothing more to the continuous integration build than this.
 
-  The mechanism is worth knowing, because it gives a cheaper check than running the whole CI configuration:
-  `CodeQuality.targets` sets `TreatWarningsAsErrors` when `ContinuousIntegrationBuild` is true. Every warning is
-  therefore a CI error, so an ordinary local build already shows them, as warnings. `Build.ps1 <command> --ci`
-  simulates the switch, but it also changes dependency resolution to the continuous integration artifact sources,
-  which fails on a developer machine, so prefer reading the warnings of a normal build.
+  **Never build the same project twice in two modes.** `-p:ContinuousIntegrationBuild=True` has exactly one effect:
+  `CodeQuality.targets` sets `TreatWarningsAsErrors`. Analyzers and code style are enabled in every build, because
+  the same file sets `EnableNETAnalyzers`, `EnforceCodeStyleInBuild` and `RunAnalyzersDuringBuild` unconditionally.
+  An ordinary local build therefore reports every diagnostic that fails continuous integration, as a warning.
+  A second build with the switch added recompiles the project from scratch, because the property set differs from
+  the incremental build, and it reports nothing new. Read the warnings of the build you are already running.
 
-  So, before creating a PR **and before every push to an existing PR**, build every project you touched in CI mode and get zero warnings:
+  **Keep the warnings of the builds you already run, and review them when preparing the pull request.** A build
+  reports a warning only for the projects it actually recompiles, so a later incremental build prints nothing for
+  code compiled earlier, and rebuilding only to see those warnings again costs what a second mode would. Add a
+  warnings-only file logger to every build and keep the file:
 
   ```powershell
-  dotnet build <project> -c Debug -p:ContinuousIntegrationBuild=True -nodeReuse:false
+  dotnet build <project-or-solution> -c Debug -nodeReuse:false "-flp:logfile=<log-directory>\<name>.warn.log;warningsonly;verbosity=normal"
   ```
 
-  Do this for test projects too: they are not built by `Build.ps1 build`, so new test code is the most likely place for such a diagnostic to hide. Do not push and let CI find them; a red CI build costs far more than the check.
+  The file logger requires a Windows path. An empty file means that the build reported no warning. Before creating
+  a pull request, and before every push to an existing one, read the kept files and resolve what they report.
 
-  **Re-run it for every project, every time.** Checking one project and then adding a file to another defeats the purpose: `CS0618` on an obsolete API (`TypeFactory.ToNullableType`) is also only an error under this switch, and it failed a build that way. The diagnostics that behave like this are the ones invisible in a normal build, so the check has to follow the code you touched, not the code you remember touching.
+  **Build `Metalama.Framework/Metalama.Framework.sln`, not one project at a time.** `Build.ps1 build` builds only
+  the packable projects, so it never reports a warning in test code. That solution contains the test projects, so a
+  single build of it covers everything touched in it. Building the whole solution is cheap, because `dotnet build`
+  is incremental: it recompiles only the projects whose inputs changed, and reports the warnings of exactly those.
 - `Build.ps1 build` does not build test projects, only packable projects.
 - `Build.ps1 test` implicitly does a clean rebuild (not incremental), so do NOT chain it after `Build.ps1 build` — they overlap. After `Build.ps1 build`, run individual test projects with `dotnet test <project> --no-build`. Only re-run `Build.ps1 build` when you need a cross-solution rebuild.
 

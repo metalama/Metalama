@@ -220,6 +220,18 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
                 .Where( t => observedCanonicalTargetDeclarations.Contains( GetCanonicalTargetDeclaration( t.TargetDeclaration ) ) );
         }
 
+        // A transformation that registers a declaration in the code model and emits no syntax has no syntax tree, so
+        // the pass above does not reach it. It must nevertheless enter the map from builder data to transformation,
+        // because that map is how a transformation that replaces the declaration resolves it. The pass runs before the
+        // one that groups transformations by syntax tree, because IndexReplaceTransformation reads the map.
+        foreach ( var transformation in input.Transformations.OfType<IIntroduceDeclarationTransformation>() )
+        {
+            if ( transformation.IsCompilerSynthesized )
+            {
+                transformationCollection.AddIntroduceTransformation( transformation.DeclarationBuilderData, transformation );
+            }
+        }
+
         await this._concurrentTaskRunner.RunConcurrentlyAsync( transformationsByCanonicalSyntaxTree, IndexTransformationsInSyntaxTree, cancellationToken );
 
         // Finalize non-auxiliary transformations (sorting).
@@ -389,6 +401,7 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
         var lateTransformationRegistry =
             new LinkerLateTransformationRegistry(
                 intermediateCompilation,
+                injectionRegistry,
                 transformationCollection.LateTypeLevelTransformations );
 
         var projectOptions = this._serviceProvider.GetService<IProjectOptions>();
@@ -609,7 +622,7 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
             auxiliaryMemberTransformations.GetOrAdd( overriddenConstructorRef, _ => new AuxiliaryMemberTransformations() ).InjectAuxiliarySourceMember();
 
             transformationCollection
-                .GetOrAddLateTypeLevelTransformations( (ISymbolRef<INamedType>) overriddenConstructorRef.ContainingDeclaration.AssertNotNull() )
+                .GetOrAddLateTypeLevelTransformations( overriddenConstructorRef.ContainingDeclaration.AssertNotNull().As<INamedType>() )
                 .RemovePrimaryConstructor();
         }
 
@@ -887,7 +900,7 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
             auxiliaryMemberTransformations.GetOrAdd( overriddenConstructor.ToFullRef(), _ => new AuxiliaryMemberTransformations() )
                 .InjectAuxiliarySourceMember();
 
-            transformationCollection.GetOrAddLateTypeLevelTransformations( (ISymbolRef<INamedType>) overriddenConstructor.DeclaringType.ToRef() )
+            transformationCollection.GetOrAddLateTypeLevelTransformations( overriddenConstructor.DeclaringType.ToFullRef() )
                 .RemovePrimaryConstructor();
         }
 
@@ -1032,7 +1045,7 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
                                 .InjectAuxiliarySourceMember();
 
                             var lateTransformations = transformationCollection
-                                .GetOrAddLateTypeLevelTransformations( (ISymbolRef<INamedType>) primaryCtor.DeclaringType.ToRef() );
+                                .GetOrAddLateTypeLevelTransformations( primaryCtor.DeclaringType.ToFullRef() );
 
                             lateTransformations.RemovePrimaryConstructor();
                             lateTransformations.AddNonMaterializedIntroducedParameter( introduceParameterTransformation.Parameter.Name );
@@ -1043,7 +1056,7 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
                             // emission can differentiate the all-non-materialized case (where the compensator
                             // alone is sufficient) from the mixed / all-materialized case.
                             var lateTransformations = transformationCollection
-                                .GetOrAddLateTypeLevelTransformations( (ISymbolRef<INamedType>) primaryCtor.DeclaringType.ToRef() );
+                                .GetOrAddLateTypeLevelTransformations( primaryCtor.DeclaringType.ToFullRef() );
 
                             lateTransformations.MarkMaterializedIntroducedParameterOnPrimary();
                         }

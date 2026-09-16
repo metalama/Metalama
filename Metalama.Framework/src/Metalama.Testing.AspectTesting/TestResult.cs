@@ -92,6 +92,15 @@ internal class TestResult : IDisposable
             return false;
         }
 
+        // A warning reported on a file that the test framework adds to the compilation belongs to no test and would
+        // otherwise appear in the expected output of every test that reports its diagnostics. An error is still
+        // reported, because it means that the framework itself is broken.
+        if ( diagnostic.Severity < DiagnosticSeverity.Error
+             && TestFrameworkFile.IsTestFrameworkFile( diagnostic.Location.SourceTree?.FilePath ) )
+        {
+            return false;
+        }
+
         return true;
     }
 
@@ -553,6 +562,13 @@ internal class TestResult : IDisposable
                         case SyntaxKind.InterfaceDeclaration:
                         case SyntaxKind.RecordDeclaration:
                         case SyntaxKind.RecordStructDeclaration:
+#if ROSLYN_5_11_0_OR_GREATER
+
+                        // The union declaration is a member declaration like any other. The kind is named only in the
+                        // Roslyn variant that declares it, because a case label names a constant and the lower variant
+                        // declares no such constant. See issue #1942.
+                        case SyntaxKind.UnionDeclaration:
+#endif
                         case SyntaxKind.EnumDeclaration:
                         case SyntaxKind.DelegateDeclaration:
                         case SyntaxKind.EnumMemberDeclaration:

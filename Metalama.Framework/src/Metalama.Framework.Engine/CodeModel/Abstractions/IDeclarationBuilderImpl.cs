@@ -15,5 +15,21 @@ namespace Metalama.Framework.Engine.CodeModel.Abstractions
         new AttributeBuilderCollection Attributes { get; }
 
         bool IsDesignTimeObservable { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether the compiler synthesizes the declaration from the declaration of the type
+        /// that contains it, so that nothing emits syntax of its own for it.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Section 4.2 of <c>Metalama.Framework/docs/introducing-types.md</c> names those members: the
+        /// <c>Invoke</c> method of a delegate, the members that a record declaration implies, the <c>Value</c>
+        /// property and the per-case constructors of a union, and the parameterless constructor of a struct. An
+        /// advice that needs a declaration of its own, such as one that adds a custom attribute, is refused on such
+        /// a member. The property that a positional parameter of a record declares is not one of them, because the
+        /// parameter is a declaration on which an attribute can be written.
+        /// </para>
+        /// </remarks>
+        bool IsSynthesizedByCompiler { get; }
     }
 }

@@ -4,10 +4,6 @@ namespace Metalama.Framework.IntegrationTests.Aspects.DesignTime.IntroduceExtens
   {
     extension(global::System.String self)
     {
-      public global::System.Int32 GetDoubleLength()
-      {
-        return default(global::System.Int32);
-      }
     }
   }
 }

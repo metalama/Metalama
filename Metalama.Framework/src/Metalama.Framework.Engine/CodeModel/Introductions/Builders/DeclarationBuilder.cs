@@ -35,6 +35,13 @@ internal abstract class DeclarationBuilder : IDeclarationBuilderImpl
 
     public abstract bool IsDesignTimeObservable { get; }
 
+    /// <summary>
+    /// Gets or sets a value indicating whether the compiler synthesizes the declaration from the declaration of the
+    /// type that contains it, so that nothing emits syntax of its own for it. The builder of the type sets it on
+    /// the members it materializes.
+    /// </summary>
+    public bool IsSynthesizedByCompiler { get; internal set; }
+
     protected DeclarationBuilder( AspectLayerInstance aspectLayerInstance )
     {
         this.AspectLayerInstance = aspectLayerInstance;

@@ -4,7 +4,6 @@
 
 #if TEST_OPTIONS
 // @LanguageVersion(preview)
-// @RequiredConstant(ALLOW_PREVIEW_LANG_VERSION)
 #endif
 
 using Metalama.Framework.Aspects;
@@ -26,8 +25,7 @@ using System.Collections.Generic;
  * rule belongs to collection expressions in general and not to the with-element, and the compile-time scope is
  * covered by CollectionExpressionArguments_CompileTime.
  *
- * The test requires ALLOW_PREVIEW_LANG_VERSION for the reason given in CollectionExpressionArguments_RunTime. See
- * issue #1948.
+ * See issue #1948.
  */
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp15.CollectionExpressionArguments_Mixed;

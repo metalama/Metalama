@@ -24,6 +24,11 @@ internal sealed class ConstructorBuilderData : MemberBuilderData
 
     public bool IsImplicitlyDeclared { get; }
 
+    /// <summary>
+    /// Gets a value indicating whether this constructor is the primary constructor of its declaring type.
+    /// </summary>
+    public bool IsPrimary { get; }
+
     public ImmutableArray<(IExpression Expression, string? ParameterName)> InitializerArguments { get; }
 
     protected override IFullRef<IDeclaration> ToDeclarationFullRef() => this._ref;
@@ -44,6 +49,7 @@ internal sealed class ConstructorBuilderData : MemberBuilderData
         this.InitializerArguments = builder.InitializerArguments.ToImmutableArray();
         this.Attributes = builder.Attributes.ToImmutable( this._ref );
         this.IsImplicitlyDeclared = builder.IsImplicitlyDeclared;
+        this.IsPrimary = builder.IsPrimary;
     }
 
     public override IRef<IMember>? OverriddenMember => null;

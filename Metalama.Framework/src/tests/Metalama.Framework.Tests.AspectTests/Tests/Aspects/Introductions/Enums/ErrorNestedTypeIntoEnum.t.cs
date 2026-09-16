@@ -1,0 +1,2 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0041 on `TargetType`: `'Exception of type 'System.InvalidOperationException' thrown while executing BuildAspect for aspect [IntroductionAttribute] applied to 'TargetType': Cannot introduce a class into 'TargetType.IntroducedEnum' because it is an enum, which declares no member that an aspect can introduce. Exception details are in '(none)'. To attach a debugger to the compiler, use the  '-p:MetalamaDebugCompiler=True' command-line option.`

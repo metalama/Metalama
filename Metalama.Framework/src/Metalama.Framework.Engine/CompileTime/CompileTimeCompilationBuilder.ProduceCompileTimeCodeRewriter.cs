@@ -162,20 +162,6 @@ namespace Metalama.Framework.Engine.CompileTime
                     {
                         if ( this.SymbolClassifier.GetTemplatingScope( attributeSymbol ) == TemplatingScope.RunTimeOnly )
                         {
-                            var attributeTypeSymbol = attributeSymbol.GetClosestContainingType();
-
-                            if ( attributeTypeSymbol?.GetFullName() == "System.Runtime.CompilerServices.InlineArrayAttribute" )
-                            {
-                                var containingDeclaration = node.Parent == null ? null : semanticModel.GetDeclaredSymbol( node.Parent );
-
-                                this._diagnosticAdder.Report(
-                                    TemplatingDiagnosticDescriptors.AttributeNotAllowedOnCompileTimeCode.CreateRoslynDiagnostic(
-                                        attribute.GetDiagnosticLocation(),
-                                        (attributeTypeSymbol, containingDeclaration) ) );
-
-                                this.Success = false;
-                            }
-
                             continue;
                         }
                     }
@@ -208,6 +194,18 @@ namespace Metalama.Framework.Engine.CompileTime
             public override SyntaxNode? VisitInterfaceDeclaration( InterfaceDeclarationSyntax node ) => this.VisitTypeDeclaration( node ).SingleOrDefault();
 
             public override SyntaxNode? VisitRecordDeclaration( RecordDeclarationSyntax node ) => this.VisitTypeDeclaration( node ).SingleOrDefault();
+
+#if ROSLYN_5_11_0_OR_GREATER
+            /// <summary>
+            /// Visits a union declaration, which is classified by its templating scope exactly as a struct declaration is.
+            /// </summary>
+            /// <remarks>
+            /// The override exists only because Roslyn dispatches a virtual method per node kind. A union that a
+            /// namespace or a compilation unit declares is routed to the same method by its syntax kind, so the
+            /// override is what covers the positions that are reached through the untyped visit. See issue #1942.
+            /// </remarks>
+            public override SyntaxNode? VisitUnionDeclaration( UnionDeclarationSyntax node ) => this.VisitTypeDeclaration( node ).SingleOrDefault();
+#endif
 
             public override SyntaxNode? VisitEnumDeclaration( EnumDeclarationSyntax node )
             {
@@ -353,8 +351,10 @@ namespace Metalama.Framework.Engine.CompileTime
                                 break;
                             }
 
-                        case SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration or SyntaxKind.RecordDeclaration
-                            or SyntaxKind.RecordStructDeclaration or SyntaxKind.EnumDeclaration or SyntaxKind.DelegateDeclaration:
+                        // Every type declaration other than a class, which the previous arm handles. The predicate covers
+                        // the union declaration in the Roslyn variant that parses one, so a compile-time union nested in a
+                        // run-time type is reported instead of being dropped silently. See issue #1942.
+                        case var childKind when childKind.IsBaseTypeDeclaration:
                             Invariant.Assert( childSymbol != null );
 
                             if ( this.SymbolClassifier.GetTemplatingScope( childSymbol ).GetExpressionExecutionScope() == TemplatingScope.CompileTimeOnly )
@@ -438,6 +438,28 @@ namespace Metalama.Framework.Engine.CompileTime
                 }
                 else
                 {
+                    // The compile-time compilation targets netstandard2.0, whose netstandard.library 2.0.3 does not declare
+                    // System.Runtime.CompilerServices.RuntimeFeature. The C# compiler therefore reports that the target runtime
+                    // does not support inline array types. The attribute is detected on the symbol, so that the diagnostic is
+                    // reported whether the attribute comes from the framework or from a declaration of the user.
+                    // A partial type is visited once for each of its declarations, and the symbol carries the attributes of all
+                    // of them, so only the declaration that contains the attribute reports the diagnostic. Without this condition,
+                    // the diagnostic would be reported once per declaration.
+                    if ( symbol.GetAttributes()
+                        .Any(
+                            a => a.AttributeClass?.GetFullName() == "System.Runtime.CompilerServices.InlineArrayAttribute"
+                                 && a.ApplicationSyntaxReference is { } applicationSyntaxReference
+                                 && applicationSyntaxReference.SyntaxTree == node.SyntaxTree
+                                 && node.Span.Contains( applicationSyntaxReference.Span ) ) )
+                    {
+                        this._diagnosticAdder.Report(
+                            TemplatingDiagnosticDescriptors.LanguageFeatureNotSupportedInCompileTimeCode.CreateRoslynDiagnostic(
+                                symbol.GetDiagnosticLocation(),
+                                ("inline arrays", symbol) ) );
+
+                        this.Success = false;
+                    }
+
                     this.AddToManifestIfNecessary( symbol, null );
 
                     var transformedNode = this.TransformCompileTimeType( node, symbol, scope );
@@ -537,8 +559,9 @@ namespace Metalama.Framework.Engine.CompileTime
 
                                 break;
 
-                            case SyntaxKind.ClassDeclaration or SyntaxKind.StructDeclaration or SyntaxKind.InterfaceDeclaration
-                                or SyntaxKind.RecordDeclaration or SyntaxKind.RecordStructDeclaration when member is TypeDeclarationSyntax nestedType:
+                            // The predicate covers the union declaration in the Roslyn variant that parses one, and excludes the
+                            // extension block, which declares no type of its own and is handled by the default arm.
+                            case var nestedTypeKind when nestedTypeKind.IsTypeDeclaration && member is TypeDeclarationSyntax nestedType:
                                 members.AddRange( this.VisitTypeDeclaration( nestedType ) );
 
                                 break;
