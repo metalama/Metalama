@@ -246,6 +246,94 @@ class C< [MyAttribute(4)]T>
                 targets );
         }
 
+        /// <summary>
+        /// Verifies that an attribute written on an accessor that the semantic model does not bind to a symbol does
+        /// not abort the construction of the code model, and that the other attributes of the compilation are still
+        /// discovered.
+        /// </summary>
+        /// <remarks>
+        /// Issue #2002 reports that such an attribute was costing the user every design-time service of the project.
+        /// An accessor is a legal attribute target, so the attribute cannot be filtered out by its syntax kind the way
+        /// issue #709 filtered out a statement. The accessor has no symbol only because the surrounding code is
+        /// invalid, and a design-time compilation is invalid most of the time.
+        /// </remarks>
+        [Theory]
+        [InlineData( "class Broken { public int P { get => 0; [MyAttribute] get => 1; } }" )]
+        [InlineData( "class Broken { public int P { [MyAttribute] unknown { } } }" )]
+        [InlineData( "class Broken { public event System.EventHandler E { add { } [MyAttribute] add { } remove { } } }" )]
+        public void AttributeOnAccessorWithoutSymbolDoesNotAbortTheCodeModel( string brokenCode )
+        {
+            using var testContext = this.CreateTestContext();
+
+            var code = new Dictionary<string, string>
+            {
+                { "MyAttribute.cs", "class MyAttribute : System.Attribute { }" },
+                { "Broken.cs", brokenCode },
+                { "Healthy.cs", "[MyAttribute] class Healthy { }" }
+            };
+
+            var compilation = testContext.CreateCompilationModel( code, ignoreErrors: true );
+
+            // The type that declares the attribute on the accessor without a symbol is still part of the code model.
+            Assert.Equal(
+                ["Broken", "Healthy", "MyAttribute"],
+                compilation.GlobalNamespace.Types.SelectAsArray( t => t.Name ).OrderBy( name => name, StringComparer.Ordinal ) );
+
+            var myAttribute = compilation.Types.OfName( "MyAttribute" ).Single();
+
+            var targets = compilation.GetAllAttributesOfType( myAttribute )
+                .Select( a => a.ContainingDeclaration.ToDisplayString() )
+                .OrderBy( name => name, StringComparer.Ordinal )
+                .ToArray();
+
+            // The attribute on the accessor without a symbol is skipped, but the attribute of the other file is
+            // discovered.
+            Assert.Equal( ["Healthy"], targets );
+        }
+
+        /// <summary>
+        /// Verifies that an attribute written on an accessor that the semantic model does bind to a symbol is
+        /// resolved to that accessor.
+        /// </summary>
+        /// <remarks>
+        /// An accessor without a symbol is now skipped instead of throwing, as issue #2002 requires, so this test
+        /// guards the accessors that do have a symbol against being skipped by mistake.
+        /// </remarks>
+        [Fact]
+        public void AttributeOnAccessorIsResolved()
+        {
+            using var testContext = this.CreateTestContext();
+
+            const string code =
+                """
+                class MyAttribute : System.Attribute { public MyAttribute( int id ) { } }
+
+                class C
+                {
+                    public int P { [MyAttribute(1)] get => 0; [MyAttribute(2)] set { } }
+
+                    public event System.EventHandler E { [MyAttribute(3)] add { } [MyAttribute(4)] remove { } }
+                }
+                """;
+
+            var compilation = testContext.CreateCompilationModel( code );
+            var myAttribute = compilation.Types.OfName( "MyAttribute" ).Single();
+
+            var targets = compilation.GetAllAttributesOfType( myAttribute )
+                .Select( a => a.ConstructorArguments[0].Value + ":" + a.ContainingDeclaration.ToDisplayString() )
+                .OrderBy( target => target, StringComparer.Ordinal )
+                .ToArray();
+
+            Assert.Equal(
+                [
+                    "1:C.P.get",
+                    "2:C.P.set",
+                    "3:C.E.add",
+                    "4:C.E.remove"
+                ],
+                targets );
+        }
+
         [Fact]
         public void GetAllAttributesOfType_Derived()
         {
