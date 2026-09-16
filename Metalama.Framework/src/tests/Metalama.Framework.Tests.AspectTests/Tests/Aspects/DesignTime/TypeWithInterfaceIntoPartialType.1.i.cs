@@ -3,8 +3,5 @@ namespace Metalama.Framework.IntegrationTests.Aspects.DesignTime.TypeWithInterfa
   partial class TargetClass
   {
     private global::System.Int32 TestProperty { get; set; }
-    partial class TestType
-    {
-    }
   }
 }

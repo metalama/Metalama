@@ -21,8 +21,7 @@ namespace Metalama.Framework.Tests.UnitTests.CodeModel;
 /// <remarks>
 /// <para>
 /// The test is a reflection over the two assemblies that are compiled once per Roslyn variant. It runs in the latest
-/// variant only, because the lower one has no <c>VisitUnionDeclaration</c> method to override, and it requires the
-/// opt-in of <c>eng/RoslynPreview.props</c>, because the overrides are compiled under that symbol.
+/// variant only, because the lower one has no <c>VisitUnionDeclaration</c> method to override.
 /// </para>
 /// <para>
 /// A visitor that must not handle a union is named in <see cref="_visitorsThatDoNotVisitAUnion"/> with the reason.
@@ -48,31 +47,16 @@ public sealed class UnionVisitorInventoryTests
 
     /// <summary>
     /// The visitors that override the struct declaration and deliberately do not override the union declaration. Each
-    /// entry names the issue that owns the visitor, because the visitors of the other themes are corrected by the
-    /// sub-issues of #1940 and not by #1941.
+    /// entry names the issue that owns the visitor.
     /// </summary>
+    /// <remarks>
+    /// The list is empty since issue #1942 gave the compile-time classification, the compile-time rewriter, the two
+    /// serializable member collections, the template annotator, the templating code validator and the text span
+    /// classifier their union dispatch. It is kept so that a visitor which must not handle a union is named here with
+    /// the reason rather than left out of the guard.
+    /// </remarks>
     private static readonly IReadOnlyDictionary<string, string> _visitorsThatDoNotVisitAUnion =
-        new Dictionary<string, string>( StringComparer.Ordinal )
-        {
-            ["Metalama.Framework.Engine.CompileTime.CompileTimeCompilationBuilder+FindCompileTimeCodeVisitor"] =
-                "Issue #1942 gives the compile-time classification its union dispatch.",
-            ["Metalama.Framework.Engine.CompileTime.CompileTimeCompilationBuilder+ProduceCompileTimeCodeRewriter"] =
-                "Issue #1942 gives the compile-time rewriter its union dispatch.",
-            ["Metalama.Framework.Engine.CompileTime.CompileTimeCompilationBuilder+CollectSerializableTypesVisitor"] =
-                "Issue #1942 owns the compile-time compilation, of which the serializable type collection is part.",
-            ["Metalama.Framework.Engine.CompileTime.CompileTimeCompilationBuilder+CollectSerializableFieldsVisitor"] =
-                "Issue #1942 owns the compile-time compilation, of which the serializable field collection is part.",
-            ["Metalama.Framework.Engine.Templating.TemplateAnnotator"] =
-                "Issue #1942 gives the template annotator its union dispatch.",
-            ["Metalama.Framework.Engine.Templating.TemplatingCodeValidator+Visitor"] =
-                "Issue #1942 owns the templating theme, of which this validator is part.",
-            ["Metalama.Framework.Engine.Formatting.TextSpanClassifier"] =
-                "Issue #1942 corrects the classifier, and it cannot be corrected before the template annotator.",
-            ["Metalama.Framework.Engine.Linking.LinkerInjectionStep+Rewriter"] =
-                "Issue #1944 gives the injection rewriter its union dispatch.",
-            ["Metalama.Framework.Engine.Linking.LinkerLinkingStep+LinkingRewriter"] =
-                "Issue #1944 gives the linking rewriter its union dispatch."
-        };
+        new Dictionary<string, string>( StringComparer.Ordinal );
 
     /// <summary>
     /// The assemblies that are compiled once per Roslyn variant and can therefore name the union node.

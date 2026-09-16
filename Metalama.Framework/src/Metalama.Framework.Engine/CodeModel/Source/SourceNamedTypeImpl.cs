@@ -9,7 +9,6 @@ using Metalama.Framework.Code.Types;
 using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.CodeModel.Abstractions;
 using Metalama.Framework.Engine.CodeModel.Collections;
-using Metalama.Framework.Engine.CodeModel.Facets;
 using Metalama.Framework.Engine.CodeModel.GenericContexts;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.References;
@@ -344,11 +343,10 @@ internal class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeImpl
     public IExtensionBlockCollection ExtensionBlocks => this.GetExtensionBlocksCore();
 
     [Memo]
-    public ITypeFacetCollection Facets => TypeFacetCollection.Create( this.Facade );
+    public ITypeFacetCollection Facets => SourceTypeFacetCollection.Create( this.Facade );
 
     private IExtensionBlockCollection GetExtensionBlocksCore()
     {
-
         // Use the updatable collection which includes both source and introduced extension blocks
         var allBlocks = this.Compilation.GetExtensionBlockCollection( this.Ref );
 

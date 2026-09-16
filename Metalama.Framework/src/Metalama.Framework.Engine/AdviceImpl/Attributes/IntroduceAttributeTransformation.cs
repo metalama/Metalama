@@ -31,6 +31,16 @@ internal sealed class IntroduceAttributeTransformation : BaseSyntaxTreeTransform
 
     public DeclarationBuilderData DeclarationBuilderData => this.BuilderData;
 
+    /// <inheritdoc />
+    /// <remarks>
+    /// <para>
+    /// Always <c>false</c>. This transformation emits the declaration it introduces.
+    /// <c>IntroduceSynthesizedDeclarationTransformation</c> is the one that registers a declaration without
+    /// emitting it.
+    /// </para>
+    /// </remarks>
+    bool IIntroduceDeclarationTransformation.IsCompilerSynthesized => false;
+
     public override FormattableString ToDisplayString()
         => $"Introduce attribute of type '{this.BuilderData.Type}' into '{this.TargetDeclaration.Definition.ToDisplayString()}'";
 }

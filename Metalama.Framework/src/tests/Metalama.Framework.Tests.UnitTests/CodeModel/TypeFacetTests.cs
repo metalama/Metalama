@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -9,6 +9,7 @@ using Metalama.Framework.Eligibility;
 using Metalama.Framework.Engine.AdviceImpl.Introduction;
 using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 using Metalama.Testing.UnitTesting;
+using System;
 using System.Linq;
 using Xunit;
 using TypeKind = Metalama.Framework.Code.TypeKind;
@@ -188,25 +189,41 @@ public sealed class TypeFacetTests : UnitTestClass
     }
 
     /// <summary>
-    /// Verifies implementation guideline 5 of the design document: the implementations of <see cref="INamedType"/>
-    /// that back a builder return the empty collection rather than throwing, because eligibility rules and advice
-    /// validation run against builders.
+    /// Verifies section 5.1 of <c>Metalama.Framework/docs/introducing-types.md</c>, which supersedes
+    /// implementation guideline 5 of <c>type-facets.md</c>: a builder throws rather than reporting an empty
+    /// collection, because it describes a type whose members are not resolvable, so an empty structure would be a
+    /// false answer rather than an incomplete one.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The flags are asserted beside the exception because they are what makes the reversal safe. They answer on a
+    /// builder without allocating, so a caller that asks only what kind a type is still receives an answer, and the
+    /// exception reaches a caller that asks for the structure. The two eligibility rules of
+    /// <see cref="AdviceKind.OverrideEventInvoke"/> rely on exactly that, and
+    /// <see cref="EventOfMalformedDelegateTypeIsNotEligibleForOverrideEventInvoke"/> pins the behaviour they give.
+    /// </para>
+    /// </remarks>
     [Fact]
-    public void FacetsOfBuilderDoNotThrow()
+    public void FacetsOfBuilderThrow()
     {
         using var testContext = this.CreateTestContext();
 
         var compilation = testContext.CreateCompilationModel( "" ).CreateMutableClone();
 
         var builder = new NamedTypeBuilder( null!, compilation.GlobalNamespace, "IntroducedType", TypeKind.Class );
+
+        Assert.Throws<NotSupportedException>( () => builder.Facets );
+
+        Assert.False( builder.IsDelegate );
+        Assert.False( builder.IsEnum );
+        Assert.False( builder.IsRecord );
+        Assert.False( builder.IsUnion );
+
         builder.Freeze();
         compilation.AddTransformation( builder.CreateTransformation() );
 
-        Assert.Empty( builder.Facets );
-        Assert.False( builder.IsDelegate );
-        Assert.False( builder.IsEnum );
-
+        // The introduced type reports the facet of its kind, which is section 5.2 of the same document. A class has
+        // no facet, so the collection is empty rather than absent.
         var introducedType = compilation.Types.OfName( "IntroducedType" ).Single();
 
         Assert.Empty( introducedType.Facets );

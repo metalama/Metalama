@@ -1,0 +1,10 @@
+{
+    // The union is a C# 15 feature, so these tests run in the Roslyn variant that declares that language version
+    // only. See the metalamaTests.json of Tests/Aspects/CSharp15.
+    "RequiredConstants": [ "ROSLYN_5_11_0_OR_GREATER" ],
+
+    // The compiler requires System.Runtime.CompilerServices.IUnion and
+    // System.Runtime.CompilerServices.UnionAttribute for a union declaration, and the reference assemblies of a
+    // target framework older than .NET 11 do not declare them.
+    "IncludedPolyfills": [ "IUnion", "UnionAttribute" ]
+}

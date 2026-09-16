@@ -4,6 +4,8 @@
         <TargetFrameworks>net472;net10.0</TargetFrameworks>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <!-- UnionFormatterTests declares unions, which is a C# 15 feature. See issue #1946. -->
+        <LangVersion>15.0</LangVersion>
     </PropertyGroup>
 
     <ItemGroup>

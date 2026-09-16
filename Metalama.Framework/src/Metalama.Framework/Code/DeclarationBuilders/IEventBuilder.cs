@@ -7,7 +7,7 @@ using Metalama.Framework.Aspects;
 namespace Metalama.Framework.Code.DeclarationBuilders
 {
     /// <summary>
-    /// Allows to complete the construction of an event that has been created by an advice.
+    /// Allows to complete the construction of an event that has been created by the <see cref="Metalama.Framework.Aspects.AdviserExtensions.IntroduceEvent(Metalama.Framework.Aspects.IAdviser{Metalama.Framework.Code.INamedType},string,Metalama.Framework.Aspects.IntroductionScope,Metalama.Framework.Aspects.OverrideStrategy,System.Action{Metalama.Framework.Code.DeclarationBuilders.IEventBuilder},object)"/> advice.
     /// </summary>
     /// <seealso cref="IEvent"/>
     /// <seealso cref="IMemberBuilder"/>

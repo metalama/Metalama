@@ -1462,6 +1462,55 @@ public class ReferencedClass
             AssertTemplateType( TemplateAttributeType.Template, aspect1Type.Methods.Single() );
         }
 
+        /// <summary>
+        /// Verifies that a compile-time inline array declared as a partial type is reported exactly once, although
+        /// the rewriter visits the type once for each of its declarations.
+        /// </summary>
+        [Fact]
+        public void InlineArrayInPartialCompileTimeTypeIsReportedOnce()
+        {
+            var code = $$"""
+                         using Metalama.Framework.Aspects;
+                         using System;
+
+                         namespace System.Runtime.CompilerServices
+                         {
+                             [AttributeUsage( AttributeTargets.Struct )]
+                             internal sealed class InlineArrayAttribute : Attribute
+                             {
+                                 public InlineArrayAttribute( int length ) { }
+                             }
+                         }
+
+                         namespace NS_{{Guid.NewGuid():N}}
+                         {
+                             [CompileTime]
+                             internal partial struct Buffer
+                             {
+                                 private int _element0;
+                             }
+
+                             [System.Runtime.CompilerServices.InlineArray( 10 )]
+                             internal partial struct Buffer { }
+                         }
+                         """;
+
+            using var testContext = this.CreateTestContext();
+
+            // On .NET Framework, the reference assemblies of the test host do not declare RuntimeFeature.InlineArray, so the C# compiler
+            // reports CS9171 on the run-time compilation. That error is irrelevant here, because this test counts the diagnostics that
+            // the compile-time pipeline reports.
+            var roslynCompilation = testContext.CreateCSharpCompilation( code, ignoreErrors: true );
+
+            var diagnostics = new DiagnosticBag();
+
+            using var domain = testContext.Domain;
+
+            CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, roslynCompilation, diagnostics );
+
+            Assert.Single( diagnostics, d => d.Id == "LAMA0294" );
+        }
+
         [Fact]
         public void DiagnosticsAreCached()
         {

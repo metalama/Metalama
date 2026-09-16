@@ -43,18 +43,26 @@ generalise the Visual Studio floor rules previously stated in `Directory.Package
    defects. A version in a security-only phase, such as Visual Studio extended support or the second year of a
    Visual Studio long-term servicing channel, is not in the supported set: we cannot get a Roslyn defect fixed
    there, so we cannot support it.
-6. Grace on the way out. Within a release we do not withdraw support from a platform sooner than three months
-   after it leaves vendor mainstream support. Rule 3 governs what a new release takes on. Rule 6 governs what a
-   shipped release keeps. A long-term support branch does not freeze its declared floor: as the vendor drops a
-   version, our supported set drops with it, and we keep testing against the floor that was current at the
-   long-term support general availability date.
+6. The supported set is fixed at general availability. Rule 3 governs what a new release takes on. Rule 6
+   governs what a shipped release keeps: the set is decided once, at the general availability date, and it is
+   not revised during the life of the release as the vendor calendars move. A customer who cannot meet a floor
+   stays on the previous release, which keeps its own fixed set. Neither the supported set nor the test matrix
+   changes during the life of the release, so a difference between the two is a decision recorded at general
+   availability rather than a drift.
 7. Roslyn follows fast. A new stable Roslyn version is supported within three weeks of its stable release.
 8. An axis enters the matrix only if some shipped asset depends on it. Before adding a target framework, a Roslyn
    variant or a version cap for a platform, name the asset whose selection actually changes. Most of our surface
    is `netstandard2.0` and is host-agnostic. See "What actually varies" below.
+9. Enabling a target framework is not supporting it. A shipped target framework may sit below the floor of its
+   axis when the asset is compatible with the floor and a real user base targets it. Such a target framework is
+   enabled, which means that it builds and runs, and it is not in the supported set, which means that the test
+   matrix does not exercise it. Every enabled target framework is named in this document, and the build reports
+   it to the user. See "Enabled target frameworks" below.
 
 The supported set is the union over each axis of the versions satisfying rules 1 to 5, and the floor of an axis is
-the lowest such version. Shipped target frameworks are then derived from the floors, never chosen independently.
+the lowest such version. Shipped target frameworks are then derived from the floors, never chosen independently,
+except where rule 9 applies. Where the test matrix does not exercise the whole supported set, the difference is
+named in the baseline as a testing gap, so that it is a recorded decision and not an oversight.
 
 ## The axes
 
@@ -64,7 +72,7 @@ the lowest such version. Shipped target frameworks are then derived from the flo
 | Other design-time hosts | The same, for Rider and the Visual Studio Code C# Dev Kit | The user's integrated development environment |
 | .NET SDK | The runtime MSBuild executes on, and therefore the toolset and build-task target framework | `global.json` and the installed SDKs |
 | .NET runtime | What a user application may target | The user's project |
-| .NET Framework | The `net472` floor, and the binding-redirect ceilings of `devenv.exe` | Windows, and the user's project |
+| .NET Framework | The .NET Framework floor, the shipped `net472` target framework, and the binding-redirect ceilings of `devenv.exe` | Windows, and the user's project |
 | Roslyn API | Which per-Roslyn variant of our payload NuGet resolves | The host's Roslyn version |
 
 ## What actually varies
@@ -94,11 +102,41 @@ packages, the analyzer shim itself, and the compile-time compilation, which alwa
 [`compile-time-target-frameworks.md`](compile-time-target-frameworks.md) for why the compile-time compilation is
 a separate concern from this baseline.
 
+## Enabled target frameworks
+
+A target framework is enabled when our packages expose an asset for it and the build does not reject it. It is
+supported when it is also at or above the floor of its axis and the test matrix exercises it. The two sets are
+equal on every axis except .NET Framework, where rule 9 applies.
+
+.NET Framework is the exception because a .NET Framework target framework is a minimum-version contract rather
+than a support declaration. Versions 4.6.2 and later are in-place updates of a single runtime, so an assembly
+built for `net472` runs unchanged on 4.8 and on 4.8.1, and a project that targets `net472` cannot consume an
+asset built for `net48`. Raising the shipped target framework to the floor would remove consumers without adding
+any capability.
+
+The consequence is stated in full in the ".NET Framework" section below: the floor is 4.8, the shipped target
+framework is `net472`, and the versions between them are enabled and untested. A defect that reproduces only on
+.NET Framework 4.7.2 is outside the supported set, and the remedy offered to the customer is the in-place update
+to 4.8, which requires no recompilation.
+
+An enabled target framework is not the same thing as a testing gap, and the .NET Framework axis has one of each
+under PB-2027.0. A version below the floor is outside the supported set, and a defect specific to it is not
+fixed. A version at or above the floor that the test matrix does not exercise is inside the supported set, and a
+defect specific to it is fixed; it is recorded in the baseline as a testing gap. Only the first of the two is
+reported by the build.
+
+The build reports the gap to the user. `Metalama.Framework.props` declares the platform matrix as a
+`MetalamaPlatformRequirement` item, and `Metalama.Framework.targets` compares the project against that item and
+reports `LAMA0600` for a target framework outside the matrix. An enabled target framework is inside the matrix
+and below the tested floor, which is a third state that the mechanism does not yet distinguish. Aligning the
+mechanism with this rule is tracked by issue [#2023](https://github.com/metalama/Metalama/issues/2023).
+
 ## Denomination
 
 Each release names its supported set a platform baseline, written `PB-<release>`, whose canonical short form
-lists the floor of each of the six axes in a fixed order, followed by the shipped target frameworks derived
-from them:
+lists the floor of each of the six axes in a fixed order, followed by the shipped target frameworks. A shipped
+target framework equals the floor of its axis on every axis except .NET Framework, where rule 9 allows the two
+to differ, so the short form carries both numbers:
 
 ```
 PB-<release> = <VS floor> · <other-IDE floor> · <SDK floor> · User=<tfm> · <.NET Framework floor> ·
@@ -112,7 +150,7 @@ PB-2027.0", and change its contents only through this document.
 
 ```
 PB-2027.0 = VS 2026 LTSC · VS Code C# Dev Kit / Rider current · .NET 10 SDK · User=net10.0 ·
-            .NET Framework 4.7.2 · Roslyn 5.0–5.x · Core=net10.0 / Desktop=net472
+            .NET Framework 4.8 · Roslyn 5.0–5.x · Core=net10.0 / Desktop=net472
 ```
 
 ### Visual Studio
@@ -229,10 +267,42 @@ a Windows Presentation Foundation application on .NET 8 or .NET 9 with no compat
 
 ### .NET Framework
 
-The floor stays 4.7.2. .NET Framework 4.6.2 reaches end of support on 2027-01-12 and is already below our floor.
-Versions 4.7.2, 4.8 and 4.8.1 are supported for the lifetime of the operating systems that carry them. The
-`net472` assets serve `devenv.exe`, `MSBuild.exe` and user projects that target .NET Framework, and they also fix
-the binding-redirect ceilings on the out-of-band package family documented in
+The floor is 4.8 and the shipped target framework is `net472`. These are two separate statements, and rule 9
+is what allows them to differ. This section derives each one.
+
+.NET Framework 4.5.2 and later are components of the Windows operating system and have no support calendar of
+their own, so the vendor phase of a version is the phase of the newest operating system that carries it.
+Versions 4.6.2, 4.7 and 4.7.1 are carried by no operating system still in mainstream support, and the newest one
+with a long-term lifecycle is Windows Server 2016, whose mainstream support ended on 2022-01-12. The newest
+carriers of 4.7.2 are Windows Server 2019 and Windows 10 version 1809, whose mainstream support ended on
+2024-01-10. The newest carriers of 4.8 and 4.8.1 are Windows 11 and Windows Server 2022 and 2025, which are in
+mainstream support. Rule 5 therefore gives 4.8.
+
+Raising the floor to 4.8 excludes no operating system. Microsoft supports 4.8 on every operating system that
+carries 4.7.2, including Windows Server 2019 and Windows 10 version 1809, and it is an in-place update that
+requires no recompilation, so a customer below the floor has a remedy that costs nothing.
+
+The test matrix does not cover the whole of the supported set on this axis, and the difference is recorded here
+as a testing gap. We run the .NET Framework tests on Windows Server 2025 only, whose in-box version is 4.8.1.
+Windows Server 2022 carries 4.8 in the box and is in vendor mainstream support, and Windows 10 version 22H2 does
+the same, so .NET Framework 4.8 is supported and is not exercised by any test. A defect reported on 4.8 is
+accepted and fixed, as it is for any supported version; what is missing is the coverage that would find it
+first. The gap is accepted for 2027.0, and closing it means adding a second image that carries 4.8. That
+decision is deferred, not implied by this floor.
+
+The floor states which runtime version we support and fix defects on. It says nothing about which target
+framework a project may declare.
+
+The shipped target framework stays `net472`, by rule 9, and two bounds meet at that value. Microsoft recommends
+that a .NET Framework project consuming .NET Standard 2.0 libraries target 4.7.2 or later, and most of our
+surface is `netstandard2.0`, so a lower value would place our consumers in a configuration that Microsoft
+advises against. A higher value would cost consumers and return nothing: a project that targets `net472` cannot
+consume a `net48` asset, and moving to `net48` would unlock no package version, because no package in the
+out-of-band family publishes a .NET Framework asset above `lib/net462`. That inventory was measured on
+2026-09-14, across the twelve packages of the family.
+
+The `net472` assets serve `devenv.exe`, `MSBuild.exe` and user projects that target .NET Framework, and they also
+fix the binding-redirect ceilings on the out-of-band package family documented in
 [`Directory.Packages.md`](../../Directory.Packages.md).
 
 ### Roslyn API
@@ -310,6 +380,8 @@ in [`extensibility.md`](extensibility.md); that list is derived from this table 
 - The `net8.0` and `net9.0` user target frameworks.
 - The `net8.0` embedded Core flavour.
 - The `Roslyn.4.12.0` variant, replaced by a Roslyn 5.0 variant, which is what Rider presents.
+- .NET Framework 4.7.2 as a supported runtime version, by rule 5 applied through the carrier operating system.
+  The `net472` assets stay, by rule 9, so no project has to change its target framework.
 
 ## What this means in this repository
 
@@ -405,6 +477,11 @@ Rules 1 to 8 are applied against calendars. These three items are applied agains
 - [Visual Studio product lifecycle and servicing, 2026 and later](https://learn.microsoft.com/en-us/visualstudio/releases/2026/servicing-vs)
 - [Visual Studio channels and release rhythm, 2026 and later](https://learn.microsoft.com/en-us/visualstudio/releases/2026/release-rhythm)
 - [.NET Framework lifecycle frequently asked questions](https://learn.microsoft.com/en-us/lifecycle/faq/dotnet-framework)
+- [.NET Standard overview](https://learn.microsoft.com/en-us/dotnet/standard/net-standard), whose note on the
+  .NET Standard 2.0 version table recommends .NET Framework 4.7.2 or later for a project consuming .NET Standard
+  2.0 libraries
+- [Windows Server 2016 lifecycle](https://learn.microsoft.com/en-us/lifecycle/products/windows-server-2016) and
+  [Windows Server 2019 lifecycle](https://learn.microsoft.com/en-us/lifecycle/products/windows-server-2019)
 - [Roslyn target framework strategy](https://github.com/dotnet/roslyn/blob/main/docs/contributing/target-framework-strategy.md)
 - [dotnet/roslyn#84192, move the Visual Studio private runtime off .NET 8](https://github.com/dotnet/roslyn/pull/84192)
 - [Metalama requirements, public documentation](https://doc.metalama.net/conceptual/requirements)

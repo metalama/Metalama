@@ -88,6 +88,13 @@ internal sealed class OutputFormatterAspectTestRunner : AspectTestRunner
         {
             foreach ( var sourceDocument in testResult.OutputProject.Documents )
             {
+                // A file that the test framework adds to the compilation carries the end of lines of the source file
+                // it comes from, which is not the formatting that the test verifies.
+                if ( TestFrameworkFile.IsTestFrameworkFile( sourceDocument.Name ) )
+                {
+                    continue;
+                }
+
                 var outputSource = (await sourceDocument.GetTextAsync()).ToString();
 
                 var sourceSoFar = new StringBuilder();

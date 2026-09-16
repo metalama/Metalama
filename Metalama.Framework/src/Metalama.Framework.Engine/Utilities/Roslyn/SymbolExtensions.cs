@@ -71,6 +71,9 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
                 RoslynSpecialType.System_Collections_Generic_IEnumerable_T => SpecialType.IEnumerable_T,
                 RoslynSpecialType.System_Collections_Generic_IEnumerator_T => SpecialType.IEnumerator_T,
                 RoslynSpecialType.System_Nullable_T => SpecialType.Nullable_T,
+                RoslynSpecialType.System_ValueType => SpecialType.ValueType,
+                RoslynSpecialType.System_Enum => SpecialType.Enum,
+                RoslynSpecialType.System_MulticastDelegate => SpecialType.MulticastDelegate,
                 _ => SpecialType.None
             };
 
@@ -98,6 +101,9 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn
                 SpecialType.IEnumerable_T => RoslynSpecialType.System_Collections_Generic_IEnumerable_T,
                 SpecialType.IEnumerator_T => RoslynSpecialType.System_Collections_Generic_IEnumerator_T,
                 SpecialType.Nullable_T => RoslynSpecialType.System_Nullable_T,
+                SpecialType.ValueType => RoslynSpecialType.System_ValueType,
+                SpecialType.Enum => RoslynSpecialType.System_Enum,
+                SpecialType.MulticastDelegate => RoslynSpecialType.System_MulticastDelegate,
 
                 // Note that we have special types that Roslyn does not have.
                 _ => RoslynSpecialType.None

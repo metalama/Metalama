@@ -4,27 +4,29 @@
 
 using Metalama.Compiler;
 using Metalama.Framework.Aspects;
-using Metalama.Framework.Code;
 using Metalama.Framework.Code.Comparers;
+using Metalama.Framework.Code;
 using Metalama.Framework.Engine.AdviceImpl.Introduction;
-using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.Abstractions;
+using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 using Metalama.Framework.Engine.CodeModel.Introductions.ConstructedTypes;
 using Metalama.Framework.Engine.CodeModel.Introductions.Introduced;
 using Metalama.Framework.Engine.CodeModel.References;
+using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.Utilities.Comparers;
 using Metalama.Framework.Engine.Utilities.Threading;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
+using MethodKind = Microsoft.CodeAnalysis.MethodKind;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
-using MethodKind = Microsoft.CodeAnalysis.MethodKind;
+using System;
 
 namespace Metalama.Framework.Engine.Linking;
 
@@ -116,6 +118,10 @@ internal sealed class LinkerInjectionRegistry
         var auxiliarySourceMemberMap = new ConcurrentDictionary<ISymbol, ISymbol>( intermediateCompilation.CompilationContext.SymbolComparer );
 
         this._auxiliarySourceMembers = auxiliarySourceMembers = new HashSet<ISymbol>( intermediateCompilation.CompilationContext.SymbolComparer );
+
+        // The auxiliary members whose declaration an aspect introduced. They are resolved after the pass that indexes
+        // the injected members, because the resolution reads the map that the pass fills.
+        var deferredAuxiliarySourceMembers = new ConcurrentBag<(InjectedMember InjectedMember, ISymbol InjectedMemberSymbol)>();
 
         this._overrideTargetToOverrideListMap = overrideMap =
             new ConcurrentDictionary<ISymbol, IReadOnlyList<ISymbol>>( intermediateCompilation.CompilationContext.SymbolComparer );
@@ -221,6 +227,17 @@ internal sealed class LinkerInjectionRegistry
 
             if ( injectedMember is { Transformation: null, Semantic: InjectedMemberSemantic.AuxiliaryBody } )
             {
+                if ( injectedMember.Declaration is IIntroducedRef )
+                {
+                    // The declaration was introduced by an aspect, so it has no symbol in the source compilation to
+                    // translate. Its symbol is resolved from the builder data after this pass, because the resolution
+                    // reads the map from builder data to injected member that this pass fills. The primary constructor
+                    // of an introduced record reaches this point. See issue #2020.
+                    deferredAuxiliarySourceMembers.Add( (injectedMember, injectedMemberSymbol) );
+
+                    return;
+                }
+
                 var originalDeclaration = (ISymbolRef<IDeclaration>) injectedMember.Declaration;
                 ISymbol translatedSymbol;
 
@@ -255,6 +272,18 @@ internal sealed class LinkerInjectionRegistry
 #pragma warning disable VSTHRD002 // Avoid problematic synchronous waits
         concurrentTaskRunner.RunConcurrentlyAsync( this._injectedMembers, ProcessInjectedMember, cancellationToken ).Wait( cancellationToken );
 #pragma warning restore VSTHRD002 // Avoid problematic synchronous waits
+
+        foreach ( var (injectedMember, injectedMemberSymbol) in deferredAuxiliarySourceMembers )
+        {
+            var declaration = (IIntroducedRef) injectedMember.Declaration.AssertNotNull();
+
+            var translatedSymbol =
+                GetIntroducedDeclarationSymbol( declaration.BuilderData )
+                ?? throw new AssertionFailedException( $"Could not resolve the introduced declaration '{declaration}' to a symbol." );
+
+            auxiliarySourceMemberMap[translatedSymbol] = injectedMemberSymbol;
+            auxiliarySourceMembers.Add( injectedMemberSymbol );
+        }
 
         void ProcessOverride( KeyValuePair<IFullRef<IDeclaration>, List<ISymbol>> value )
         {
@@ -379,31 +408,136 @@ internal sealed class LinkerInjectionRegistry
                     }
 
                 case IIntroducedRef builtMember:
-                    return GetFromBuilder( builtMember.BuilderData );
+                    {
+                        var symbol = GetIntroducedDeclarationSymbol( builtMember.BuilderData );
+
+                        // The auxiliary source member carries the body of the declaration that it replaces, so an
+                        // override of that declaration targets it. The symbol path above does the same. The primary
+                        // constructor of an introduced record reaches this point. See issue #2020.
+                        if ( symbol != null && auxiliarySourceMemberMap.TryGetValue( symbol, out var auxiliaryFromBuilder ) )
+                        {
+                            return auxiliaryFromBuilder;
+                        }
+
+                        return symbol;
+                    }
 
                 default:
                     throw new AssertionFailedException( $"Unexpected declaration: '{overrideTarget}'." );
             }
+        }
 
-            ISymbol? GetFromBuilder( DeclarationBuilderData builder )
+        ISymbol? GetIntroducedDeclarationSymbol( DeclarationBuilderData builder )
+        {
+            if ( !builderToInjectedMemberMap.TryGetValue( builder, out var introducedBuilder ) )
             {
-                var introducedBuilder = builderToInjectedMemberMap[builder];
-                var sourceSyntaxTree = builder.PrimarySyntaxTree.AssertNotNull();
-                var intermediateSyntaxTree = this._transformedSyntaxTreeMap[sourceSyntaxTree];
-                var intermediateNode = intermediateSyntaxTree.GetRoot().GetCurrentNode( introducedBuilder.Syntax );
-
-                var intermediateSemanticModel =
-                    this._intermediateCompilation.CompilationContext.SemanticModelProvider.GetSemanticModel( intermediateSyntaxTree );
-
-                var symbolNode = intermediateNode.AssertNotNull().Kind() switch
-                {
-                    SyntaxKind.EventFieldDeclaration when intermediateNode is EventFieldDeclarationSyntax eventFieldNode => (SyntaxNode) eventFieldNode
-                        .Declaration.Variables.First(),
-                    _ => intermediateNode
-                };
-
-                return intermediateSemanticModel.GetDeclaredSymbol( symbolNode ).GetCanonicalDefinition();
+                return GetSynthesizedMemberSymbol( builder );
             }
+
+            var sourceSyntaxTree = builder.PrimarySyntaxTree.AssertNotNull();
+            var intermediateSyntaxTree = this._transformedSyntaxTreeMap[sourceSyntaxTree];
+            var intermediateNode = intermediateSyntaxTree.GetRoot().GetCurrentNode( introducedBuilder.Syntax );
+
+            var intermediateSemanticModel =
+                this._intermediateCompilation.CompilationContext.SemanticModelProvider.GetSemanticModel( intermediateSyntaxTree );
+
+            var symbolNode = intermediateNode.AssertNotNull().Kind() switch
+            {
+                SyntaxKind.EventFieldDeclaration when intermediateNode is EventFieldDeclarationSyntax eventFieldNode => (SyntaxNode) eventFieldNode
+                    .Declaration.Variables.First(),
+                _ => intermediateNode
+            };
+
+            return intermediateSemanticModel.GetDeclaredSymbol( symbolNode ).GetCanonicalDefinition();
+        }
+
+        // Returns the symbol that the compiler synthesized for a member that is registered in the code model and
+        // that nothing emits, or null when the member cannot be resolved. Such a member has no injected member of
+        // its own, which is the mechanism of section 4.2 of Metalama.Framework/docs/introducing-types.md, so it
+        // cannot be resolved from the syntax that a transformation produced for it. Its symbol exists in the
+        // intermediate compilation all the same, because the compiler synthesizes it from the declaration of the
+        // type, which is injected. The member is therefore looked up by name and by signature on the symbol of
+        // the declaring type, which is how an aspect that overrides a synthesized member of an introduced type
+        // reaches the original implementation.
+        ISymbol? GetSynthesizedMemberSymbol( DeclarationBuilderData builder )
+        {
+            if ( builder is not NamedDeclarationBuilderData namedBuilder
+                 || builder.DeclaringType is not IIntroducedRef declaringTypeRef
+                 || GetIntroducedDeclarationSymbol( declaringTypeRef.BuilderData ) is not INamedTypeSymbol declaringTypeSymbol )
+            {
+                return null;
+            }
+
+            var parameters = builder switch
+            {
+                MethodBuilderData method => method.Parameters,
+                ConstructorBuilderData constructor => constructor.Parameters,
+                _ => ImmutableArray<ParameterBuilderData>.Empty
+            };
+
+            // The compiler names a constructor by its metadata name, and every other member by the name that the
+            // builder carries.
+            var name = builder.DeclarationKind == DeclarationKind.Constructor
+                ? WellKnownMemberNames.InstanceConstructorName
+                : namedBuilder.Name;
+
+            foreach ( var candidate in declaringTypeSymbol.GetMembers( name ) )
+            {
+                if ( candidate.Kind == SymbolKind.Method )
+                {
+                    var method = (IMethodSymbol) candidate;
+
+                    if ( SignatureMatches( method.Parameters, parameters ) )
+                    {
+                        return method;
+                    }
+                }
+                else if ( parameters.Length == 0 )
+                {
+                    return candidate;
+                }
+            }
+
+            return null;
+        }
+
+        // Returns a value indicating whether the parameters of a candidate symbol are those of the member that the
+        // builder data describes. Two overloads of Equals differ by their single parameter alone, so the number
+        // of parameters is not enough.
+        bool SignatureMatches( ImmutableArray<IParameterSymbol> candidateParameters, ImmutableArray<ParameterBuilderData> builderParameters )
+        {
+            if ( candidateParameters.Length != builderParameters.Length )
+            {
+                return false;
+            }
+
+            for ( var i = 0; i < candidateParameters.Length; i++ )
+            {
+                // The reference kind is part of the signature. Two members of one type may differ by nothing else,
+                // which OverrideSynthesizedMember_RefKindOverload writes: a record declares Deconstruct with out
+                // parameters, and an aspect may introduce an overload that takes the same types by value. Without
+                // this comparison the member that the enumeration reaches first would be accepted.
+                if ( candidateParameters[i].RefKind.ToOurParameterRefKind() != builderParameters[i].RefKind )
+                {
+                    return false;
+                }
+
+                // The constructed declaration is resolved and not the definition, because the definition of a
+                // constructed type is its generic definition: a parameter of type List<int> would be compared
+                // against List<T> and would never match.
+                var builderParameterType =
+                    this.GetIntermediateCompilationSymbol<ITypeSymbol>( builderParameters[i].Type.ConstructedDeclaration );
+
+                if ( builderParameterType == null
+                     || !this._intermediateCompilation.CompilationContext.SymbolComparer.Equals(
+                         candidateParameters[i].Type,
+                         builderParameterType ) )
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         IMethodSymbol? TranslateConstructor( IMethodSymbol originalConstructor, IReadOnlyList<IntroduceParameterTransformation> introducedParameters )
@@ -946,24 +1080,26 @@ internal sealed class LinkerInjectionRegistry
                     {
                         var namedTypeSymbol = (INamedTypeSymbol) symbol;
 
-                        if ( namedTypeSymbol.IsGenericType )
+                        if ( !namedTypeSymbol.IsGenericType )
                         {
-                            var typeArguments = new ITypeSymbol[namedTypeSymbol.TypeArguments.Length];
+                            return (TSymbol?) symbol;
+                        }
 
-                            for ( var i = 0; i < typeArguments.Length; i++ )
+                        var typeArguments = new ITypeSymbol[namedTypeSymbol.TypeArguments.Length];
+
+                        for ( var i = 0; i < typeArguments.Length; i++ )
+                        {
+                            var typeArgumentSymbol = this.GetIntermediateCompilationSymbol<ITypeSymbol>( introducedNamedType.TypeArguments[i] );
+
+                            if ( typeArgumentSymbol is not { } typeArgument )
                             {
-                                var typeArgumentSymbol = this.GetIntermediateCompilationSymbol<ITypeSymbol>( introducedNamedType.TypeArguments[i] );
-
-                                if ( typeArgumentSymbol is not { } typeArgument )
-                                {
-                                    return null;
-                                }
-
-                                typeArguments[i] = typeArgument;
+                                return null;
                             }
 
-                            return (TSymbol?) namedTypeSymbol.Construct( typeArguments );
+                            typeArguments[i] = typeArgument;
                         }
+
+                        return (TSymbol?) namedTypeSymbol.Construct( typeArguments );
                     }
                 }
 

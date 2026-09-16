@@ -717,5 +717,15 @@ namespace Metalama.Framework.Engine.Templating
                     + "Use a dedicated async iterator template or restructure the template to avoid wrapping 'meta.Proceed()' in a try-catch block.",
                     _category,
                     Error );
+
+        internal static readonly DiagnosticDefinition<(string Feature, ISymbol Declaration)>
+            LanguageFeatureNotSupportedInCompileTimeCode
+                = new(
+                    "LAMA0294",
+                    "The C# language feature is not supported in compile-time code.",
+                    "The declaration '{1}' cannot use the C# feature '{0}', because compile-time code is compiled for "
+                    + "netstandard2.0, which does not support this feature.",
+                    _category,
+                    Error );
     }
 }

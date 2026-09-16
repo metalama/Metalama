@@ -5,8 +5,6 @@
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Collections;
 using Metalama.Framework.Code.Types;
-using Metalama.Framework.Engine.Utilities;
-using System.Linq;
 
 namespace Metalama.Framework.Engine.CodeModel.Facets;
 
@@ -15,19 +13,14 @@ namespace Metalama.Framework.Engine.CodeModel.Facets;
 /// </summary>
 /// <remarks>
 /// <para>
-/// This class stores the type only. Every other member is resolved on first read and memoized, so constructing the
-/// facet of a type whose signature is never read costs one allocation and no resolution.
+/// This class stores the type only. <see cref="InvokeMethod"/> is resolved by the derived class, from the symbol of
+/// a type read from source and from the builder data of an introduced one, so constructing the facet of a type
+/// whose signature is never read costs one allocation and no resolution.
 /// </para>
 /// </remarks>
-internal sealed class DelegateFacet : IDelegateFacet
+internal abstract class DelegateFacet : IDelegateFacet
 {
-    /// <summary>
-    /// The identifier of the method that carries the signature of a delegate. This class is the single site of the
-    /// code model that resolves it: every other consumer reaches the method through the facet.
-    /// </summary>
-    private const string _invokeMethodName = nameof(System.Action.Invoke);
-
-    public DelegateFacet( INamedType type )
+    protected DelegateFacet( INamedType type )
     {
         this.Type = type;
     }
@@ -36,8 +29,7 @@ internal sealed class DelegateFacet : IDelegateFacet
 
     public INamedType Type { get; }
 
-    [Memo]
-    public IMethod InvokeMethod => this.Type.Methods.OfName( _invokeMethodName ).Single();
+    public abstract IMethod InvokeMethod { get; }
 
     public IType ReturnType => this.InvokeMethod.ReturnType;
 

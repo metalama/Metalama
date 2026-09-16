@@ -5,6 +5,11 @@
         <TargetFramework>net10.0</TargetFramework>
         <Configurations>Debug;Release;LamaDebug</Configurations>
         <NoWarn>SA1402,SA1649,SA1623,SA1629</NoWarn>
+        <!-- This project compiles the test input files so that they can be edited and analysed, so a test of a
+             language feature that is still in preview needs the preview language version here. The value has no
+             effect on the language version of an aspect test, which the test framework takes from the
+             @LanguageVersion directive of the test file. See issues #1947 and #1949. -->
+        <LangVersion>preview</LangVersion>
     </PropertyGroup>
 
     <ItemGroup>        
@@ -18,6 +23,16 @@
 
     <ItemGroup>
       <ProjectReference Include="..\..\Metalama.Patterns.Observability\Metalama.Patterns.Observability.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- This test applies [Observable] to a union declaration, which is a struct, and the attribute does not
+             declare AttributeTargets.Struct. The compiler reports CS0592, which is the first of the two diagnostics
+             that the test pins, so the file cannot be part of this compilation. The test framework reads the file
+             from the source directory rather than from the compilation, so removing it here does not remove the
+             test. See issue #1946. -->
+        <Compile Remove="Diagnostics/UnionIsNotObservable.cs" />
+        <None Include="Diagnostics/UnionIsNotObservable.cs" />
     </ItemGroup>
 
     <ItemGroup>

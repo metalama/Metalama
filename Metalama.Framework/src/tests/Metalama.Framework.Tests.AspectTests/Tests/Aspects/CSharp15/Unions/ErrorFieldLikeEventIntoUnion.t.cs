@@ -1,0 +1,2 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0555 on `TargetType`: `The aspect 'Introduction' cannot introduce the field-like event 'FieldLikeEvent' into the union 'TargetType.Result' because a union declaration permits no instance field, no automatic property and no field-like event. Introduce a property whose accessors have a body, or an event whose accessors have a body.`

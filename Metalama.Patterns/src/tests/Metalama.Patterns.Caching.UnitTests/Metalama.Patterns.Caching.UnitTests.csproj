@@ -6,6 +6,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <Configurations>Debug;Release;LamaDebug</Configurations>
+    <!-- Serializers/UnionSerializerTests.cs declares unions, which is a C# 15 feature. See issue #1946. -->
+    <LangVersion>15.0</LangVersion>
   </PropertyGroup>
 
   <PropertyGroup>

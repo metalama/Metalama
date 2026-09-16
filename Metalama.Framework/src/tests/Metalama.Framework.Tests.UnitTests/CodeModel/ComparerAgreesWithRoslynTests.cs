@@ -12,6 +12,10 @@ using System.Linq;
 using Xunit;
 using Xunit.Abstractions;
 using SymbolEqualityComparer = Microsoft.CodeAnalysis.SymbolEqualityComparer;
+#if ROSLYN_5_11_0_OR_GREATER && NET7_0_OR_GREATER
+using Metalama.Framework.Engine.Utilities;
+using Microsoft.CodeAnalysis;
+#endif
 
 namespace Metalama.Framework.Tests.UnitTests.CodeModel;
 
@@ -90,7 +94,16 @@ public sealed class ComparerAgreesWithRoslynTests : UnitTestClass
         using var testContext = this.CreateTestContext();
         var compilation = testContext.CreateCompilationModel( _code );
 
-        var corpus = compilation.Types.OfName( "Corpus" ).Single();
+        this.CheckEveryPair( compilation, "Corpus" );
+    }
+
+    /// <summary>
+    /// Checks every pair of the types of the fields of the type named <paramref name="corpusTypeName"/>, and reports
+    /// every disagreement at once rather than stopping at the first.
+    /// </summary>
+    private void CheckEveryPair( CompilationModel compilation, string corpusTypeName )
+    {
+        var corpus = compilation.Types.OfName( corpusTypeName ).Single();
 
         var types = corpus.Fields
             .Where( f => !f.IsImplicitlyDeclared )
@@ -179,4 +192,118 @@ public sealed class ComparerAgreesWithRoslynTests : UnitTestClass
 
         Assert.Empty( mismatches );
     }
+
+#if ROSLYN_5_11_0_OR_GREATER && NET7_0_OR_GREATER
+
+    // The union is a C# 15 feature, so only the latest Roslyn variant parses it. The case is further restricted to
+    // .NET 7 and later, because the compiler emits CompilerFeatureRequiredAttribute on the members of a union and
+    // .NET Framework does not declare that type.
+
+    /// <summary>
+    /// The declarations that the compiler requires of a union. No target framework declares them yet, and the
+    /// compiler reports CS0656 when it cannot find them, so the compilation of the union corpus declares them.
+    /// </summary>
+    private const string _unionSupportCode = """
+                                             using System;
+
+                                             namespace System.Runtime.CompilerServices
+                                             {
+                                                 [AttributeUsage( AttributeTargets.Class | AttributeTargets.Struct )]
+                                                 public sealed class UnionAttribute : Attribute;
+
+                                                 public interface IUnion;
+                                             }
+                                             """;
+
+    /// <summary>
+    /// The union corpus. Two unions have the same case list, so that a conversion between two unions is checked as
+    /// well as a conversion from a case type. One record derives from a case type and one record is a case of
+    /// neither union, so that the corpus separates a case type from a type that merely converts to one and from a
+    /// type that does not convert at all.
+    /// </summary>
+    private const string _unionCode = """
+                                      union Pet( Cat, Dog );
+
+                                      union Animal( Cat, Dog );
+
+                                      record Cat( string Name );
+
+                                      record Siamese( string Name ) : Cat( Name );
+
+                                      record Dog( string Name );
+
+                                      record Fish( string Name );
+
+                                      class UnionCorpus
+                                      {
+                                          public Pet Pet;
+                                          public Animal Animal;
+                                          public Cat Cat = null!;
+                                          public Siamese Siamese = null!;
+                                          public Dog Dog = null!;
+                                          public Fish Fish = null!;
+                                          public object Object = null!;
+                                      }
+                                      """;
+
+    /// <summary>
+    /// The union case that issue #1945 asks for. The conversion from a case type to its union is granted by the
+    /// language and is not an <c>op_Implicit</c> method, so the reimplementation that answers for a type with no
+    /// symbol has to know it.
+    /// </summary>
+    [Fact]
+    public void TheCodeModelAnswersWhatRoslynAnswersForAUnion()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var parseOptions = SupportedCSharpVersions.DefaultParseOptions;
+
+        var roslynCompilation = testContext.CreateEmptyCSharpCompilation( null )
+            .AddSyntaxTrees(
+                CSharpSyntaxTree.ParseText( _unionSupportCode, parseOptions, "support.cs" ),
+                CSharpSyntaxTree.ParseText( _unionCode, parseOptions, "unions.cs" ) );
+
+        Assert.Empty( roslynCompilation.GetDiagnostics().Where( d => d.Severity == DiagnosticSeverity.Error ) );
+
+        var compilation = testContext.CreateCompilationModel( roslynCompilation );
+
+        this.CheckEveryPair( compilation, "UnionCorpus" );
+
+        // The pairwise check proves that the two implementations agree, which a pair that neither of them converts
+        // also satisfies. These assertions pin what the answer is, so that the case cannot pass because the
+        // conversion disappeared from both sides.
+        //
+        // The derived case type is pinned explicitly, because the rule is not obvious and was read the other way
+        // round during review. Roslyn classifies the conversion from Siamese to Pet as implicit, so the source of
+        // the conversion is any type that converts to a case type and not the case type alone. The three lines
+        // below are the ones that would fail if the reimplementation required an identity conversion instead.
+        var pet = compilation.Types.OfName( "Pet" ).Single();
+        var cat = compilation.Types.OfName( "Cat" ).Single();
+        var siamese = compilation.Types.OfName( "Siamese" ).Single();
+        var fish = compilation.Types.OfName( "Fish" ).Single();
+        var comparer = (DeclarationEqualityComparer) compilation.CompilationContext.Comparers.Default;
+
+        var roslynSaysSiameseConvertsToPet = ((CSharpCompilation) compilation.RoslynCompilation)
+            .ClassifyConversion( siamese.GetSymbol()!, pet.GetSymbol()! )
+            .IsImplicit;
+
+        Assert.True( roslynSaysSiameseConvertsToPet, "Roslyn should grant an implicit conversion from 'Siamese' to 'Pet'." );
+
+        foreach ( var bypassSymbols in new[] { false, true } )
+        {
+            Assert.True(
+                comparer.IsConvertibleTo( cat, pet, ConversionKind.Implicit, bypassSymbols ),
+                $"'Cat' should be implicitly convertible to 'Pet' with bypassSymbols={bypassSymbols}." );
+
+            Assert.True(
+                comparer.IsConvertibleTo( siamese, pet, ConversionKind.Implicit, bypassSymbols ),
+                $"'Siamese' should be implicitly convertible to 'Pet' with bypassSymbols={bypassSymbols}." );
+
+            Assert.False(
+                comparer.IsConvertibleTo( fish, pet, ConversionKind.Implicit, bypassSymbols ),
+                $"'Fish' should not be implicitly convertible to 'Pet' with bypassSymbols={bypassSymbols}." );
+        }
+    }
+
+#endif
 }

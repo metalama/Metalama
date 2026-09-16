@@ -62,7 +62,7 @@ internal sealed class IntroducedConstructor : IntroducedMember, IConstructorImpl
 
     public ConstructorInitializerKind InitializerKind => this._builderData.InitializerKind;
 
-    bool IConstructor.IsPrimary => false;
+    bool IConstructor.IsPrimary => this._builderData.IsPrimary;
 
     public ConstructorInfo ToConstructorInfo() => CompileTimeConstructorInfo.Create( this );
 

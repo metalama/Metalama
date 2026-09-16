@@ -6,6 +6,7 @@
         <RootNamespace>Metalama.Extensions.Multicast.AspectTests</RootNamespace>
         <NoWarn>IDE0051,CS8618,CS0169,CS0649,CA1822,IDE0079,CS0067</NoWarn>
         <Configurations>Debug;Release;LamaDebug</Configurations>
+        <LangVersion>15.0</LangVersion>
     </PropertyGroup>
 
 

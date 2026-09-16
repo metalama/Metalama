@@ -43,17 +43,38 @@ public interface INamedTypeBuilder : IMemberOrNamedTypeBuilder, INamedType
     /// </remarks>
     new bool IsClosed { get; set; }
 
-    // TODO: Struct introduction
+    /// <summary>
+    /// Gets or sets a value indicating whether the type is declared with the <c>readonly</c> modifier.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The language allows the <c>readonly</c> modifier on a struct only. The setter throws an
+    /// <see cref="InvalidOperationException"/> when the type being built is not a struct.
+    /// </para>
+    /// <para>
+    /// A readonly struct may declare no settable instance field and no automatic property that has a setter.
+    /// Metalama does not refuse an advice that introduces one, and the compiler reports the error on the generated
+    /// declaration.
+    /// </para>
+    /// </remarks>
+    new bool IsReadOnly { get; set; }
 
-    ///// <summary>
-    ///// Gets or sets a value indicating whether the type is <c>readonly</c>.
-    ///// </summary>
-    // new bool IsReadOnly { get; set; }
-
-    ///// <summary>
-    ///// Gets or sets a value indicating whether the type is a <c>ref</c> struct.
-    ///// </summary>
-    // new bool IsRef { get; set; }
+    /// <summary>
+    /// Gets or sets a value indicating whether the type is declared with the <c>ref</c> modifier, which makes it a
+    /// type that may live on the stack only.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The language allows the <c>ref</c> modifier on a struct that is not a record. The setter throws an
+    /// <see cref="InvalidOperationException"/> in any other case.
+    /// </para>
+    /// <para>
+    /// A ref struct may not be used as a type argument, may not be a field of a type that is not itself a ref
+    /// struct, and may not be boxed. Metalama does not verify those restrictions on the code that an aspect
+    /// generates, so the compiler reports them on the generated code.
+    /// </para>
+    /// </remarks>
+    new bool IsRef { get; set; }
 
     /// <summary>
     /// Gets or sets the type from which the current type derives.

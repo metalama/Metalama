@@ -13,9 +13,9 @@ using System.Runtime.CompilerServices;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 
-// Having a custom InlineArrayAttribute that is RunTimeOrCompileTime still doesn't allow using it at compile-time
-// (because it's considered system type and is removed from the compile-time compilation).
-// This does not seem to be an important use-case, so it's probably not worth fixing.
+// An inline array cannot be used in compile-time code, whether the InlineArrayAttribute comes from the framework
+// or from a declaration of the user that is RunTimeOrCompileTime. The diagnostic is reported on the attribute of
+// the symbol, so both cases are detected.
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.CSharp12.InlineArrays_CompileTime_CustomAttribute
 {

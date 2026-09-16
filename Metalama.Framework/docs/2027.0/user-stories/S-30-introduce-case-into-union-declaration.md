@@ -17,7 +17,7 @@
 > introduction into a `union` declaration ships given that it works at build time only, and the product owner
 > answered on 2026-09-11 that it does not. Section 4 of [`DECISIONS.md`](../DECISIONS.md) records the answer, which
 > also declines the attribute form that S-29 carried, and section 6.4 of
-> [`../../future/introducing-unions.md`](../../future/introducing-unions.md) carries the design and what an aspect
+> [`../../introducing-unions.md`](../../introducing-unions.md) carries the design and what an aspect
 > writes instead. The text below is kept as the record of what the story would have required, because the analysis
 > stands and the decision should be revisited if the language ever lets a part of a partial union contribute cases.
 
