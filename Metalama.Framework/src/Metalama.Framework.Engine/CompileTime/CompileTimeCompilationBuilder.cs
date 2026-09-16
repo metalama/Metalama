@@ -2,12 +2,6 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using System.IO.Hashing;
-using Metalama.Backstage.Diagnostics;
-using Metalama.Backstage.Extensibility;
-using Metalama.Backstage.Maintenance;
-using Metalama.Backstage.Threading;
-using Metalama.Backstage.Utilities;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.CompileTime.Manifest;
 using Metalama.Framework.Engine.CompileTime.Serialization;
@@ -30,11 +24,17 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Emit;
 using Microsoft.CodeAnalysis.Text;
+using SharpCrafters.Backstage.Diagnostics;
+using SharpCrafters.Backstage.Extensibility;
+using SharpCrafters.Backstage.Maintenance;
+using SharpCrafters.Backstage.Threading;
+using SharpCrafters.Backstage.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
+using System.IO.Hashing;
 using System.Linq;
 using System.Runtime.Versioning;
 using System.Text;

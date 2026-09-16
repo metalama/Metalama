@@ -212,8 +212,9 @@ var product = new Product( MetalamaDependencies.Metalama )
     [
         new DependentPackageExclusion( "Metalama.Framework", "Current repository." ),
         new DependentPackageExclusion( "Metalama.Extensions", "Current repository." ),
-        new DependentPackageExclusion( "Metalama.Backstage", "See notices in <https://github.com/postsharp-ops/SharpCrafters.Foundations>." ),
-        new DependentPackageExclusion( "Metalama.Testing.Hooks", "See notices in <https://github.com/postsharp-ops/SharpCrafters.Foundations>." ),
+        new DependentPackageExclusion( "SharpCrafters.Backstage", "See notices in <https://github.com/postsharp-ops/SharpCrafters.Backstage>." ),
+        new DependentPackageExclusion( "Metalama.Backstage", "See notices in <https://github.com/postsharp-ops/SharpCrafters.Backstage>." ),
+        new DependentPackageExclusion( "SharpCrafters.Common", "See notices in <https://github.com/postsharp-ops/SharpCrafters.Backstage>." ),
         new DependentPackageExclusion( "Metalama.Compiler", "See notices in <https://github.com/metalama/Metalama.Compiler>." ),
 
         new DependentPackageExclusion( "Flashtrace", "Current repository." )

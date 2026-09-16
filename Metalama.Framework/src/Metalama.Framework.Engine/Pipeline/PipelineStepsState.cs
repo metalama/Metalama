@@ -2,7 +2,6 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Backstage.Diagnostics;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Collections;
@@ -21,6 +20,7 @@ using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Microsoft.CodeAnalysis;
+using SharpCrafters.Backstage.Diagnostics;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;

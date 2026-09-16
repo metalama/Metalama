@@ -9,14 +9,14 @@ namespace Metalama.Framework.Engine.Services;
 
 internal sealed class LoggerAdapter : ILogger
 {
-    public LoggerAdapter( Backstage.Diagnostics.ILogger backstageLogger )
+    public LoggerAdapter( SharpCrafters.Backstage.Diagnostics.ILogger backstageLogger )
     {
         this.Trace = CreateWriter( () => backstageLogger.Trace );
         this.Info = CreateWriter( () => backstageLogger.Info );
         this.Warning = CreateWriter( () => backstageLogger.Warning );
         this.Error = CreateWriter( () => backstageLogger.Error );
 
-        static ILogWriter CreateWriter( Func<Backstage.Diagnostics.ILogWriter?> getBackstageWriter ) => new LogWriterAdapter( getBackstageWriter );
+        static ILogWriter CreateWriter( Func<SharpCrafters.Backstage.Diagnostics.ILogWriter?> getBackstageWriter ) => new LogWriterAdapter( getBackstageWriter );
     }
 
     public ILogWriter Trace { get; }

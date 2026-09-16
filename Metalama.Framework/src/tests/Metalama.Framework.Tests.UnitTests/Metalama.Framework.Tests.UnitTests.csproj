@@ -44,7 +44,7 @@
         <PackageReference Include="xunit" />
         <PackageReference Include="xunit.runner.visualstudio" />
         <PackageReference Include="Metalama.Compiler.Sdk" />
-        <PackageReference Include="Metalama.Backstage.Testing" />
+        <PackageReference Include="SharpCrafters.Backstage.Testing" />
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" VersionOverride="$(ThisRoslynVersion)" />
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" VersionOverride="$(ThisRoslynVersion)" />
         <PackageReference Include="Xunit.SkippableFact" />

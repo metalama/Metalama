@@ -3,7 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using JetBrains.Annotations;
-using Metalama.Backstage.Diagnostics;
+using SharpCrafters.Backstage.Diagnostics;
 
 namespace Metalama.Framework.DesignTime.Rpc;
 

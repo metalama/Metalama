@@ -31,7 +31,7 @@
         <PackageReference Include="xunit" />
         <PackageReference Include="xunit.runner.visualstudio" />
         <PackageReference Include="Metalama.Compiler.Sdk" />
-        <PackageReference Include="Metalama.Backstage.Testing" />
+        <PackageReference Include="SharpCrafters.Backstage.Testing" />
 
         <!-- These packages are used in tests -->
         <PackageReference Include="Microsoft.Win32.Registry" />

@@ -3,8 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using JetBrains.Annotations;
-using Metalama.Backstage.Diagnostics;
-using Metalama.Backstage.Extensibility;
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.CompileTime;
@@ -17,6 +15,8 @@ using Microsoft.Build.Evaluation;
 using Microsoft.Build.Locator;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.MSBuild;
+using SharpCrafters.Backstage.Diagnostics;
+using SharpCrafters.Backstage.Extensibility;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -24,7 +24,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using ILogger = Metalama.Backstage.Diagnostics.ILogger;
+using ILogger = SharpCrafters.Backstage.Diagnostics.ILogger;
 
 namespace Metalama.Framework.Workspaces
 {

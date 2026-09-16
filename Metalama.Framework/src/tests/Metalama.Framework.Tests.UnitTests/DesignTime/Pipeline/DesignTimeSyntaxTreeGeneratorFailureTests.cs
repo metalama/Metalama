@@ -2,7 +2,6 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Backstage.Telemetry;
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Pipeline;
@@ -10,8 +9,9 @@ using Metalama.Framework.Engine.Pipeline.CompileTime;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.Utilities.Threading;
-using Metalama.Framework.Tests.UnitTestHelpers.TestClasses;
 using Metalama.Framework.Tests.UnitTestHelpers.Mocks;
+using Metalama.Framework.Tests.UnitTestHelpers.TestClasses;
+using SharpCrafters.Backstage.Telemetry;
 using System;
 using System.Collections.Generic;
 using System.Linq;

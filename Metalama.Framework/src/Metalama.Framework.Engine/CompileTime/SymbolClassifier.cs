@@ -25,7 +25,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
-using ILogger = Metalama.Backstage.Diagnostics.ILogger;
+using ILogger = SharpCrafters.Backstage.Diagnostics.ILogger;
 
 namespace Metalama.Framework.Engine.CompileTime;
 

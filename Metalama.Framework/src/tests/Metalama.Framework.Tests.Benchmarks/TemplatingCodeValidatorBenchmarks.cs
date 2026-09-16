@@ -4,8 +4,6 @@
 
 using BenchmarkDotNet.Attributes;
 using Metalama.Backstage;
-using Metalama.Backstage.Extensibility;
-using Metalama.Backstage.Licensing;
 using Metalama.Framework.Engine.Observers;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Templating;
@@ -15,6 +13,8 @@ using Metalama.Framework.Engine.Utilities.Threading;
 using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.MSBuild;
+using SharpCrafters.Backstage.Extensibility;
+using SharpCrafters.Backstage.Licensing;
 
 namespace Metalama.Framework.Tests.Benchmarks;
 

@@ -3,7 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Microsoft.Build.Framework;
-using ILogger = Metalama.Backstage.Diagnostics.ILogger;
+using ILogger = SharpCrafters.Backstage.Diagnostics.ILogger;
 
 namespace Metalama.Framework.Workspaces;
 

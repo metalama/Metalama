@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using JetBrains.Annotations;
-using Metalama.Backstage.Diagnostics;
 using Metalama.Framework.DesignTime.Rpc;
 using Metalama.Framework.DesignTime.VisualStudio.AspectExplorer;
 using Metalama.Framework.DesignTime.VisualStudio.CodeLens;
@@ -15,6 +14,7 @@ using Metalama.Framework.DesignTime.VisualStudio.ServiceHub;
 using Metalama.Framework.DesignTime.VisualStudio.SourceGenerating;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.Threading;
+using SharpCrafters.Backstage.Diagnostics;
 using System.Collections.Immutable;
 
 namespace Metalama.Framework.DesignTime.VisualStudio.ServiceProvider;

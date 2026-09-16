@@ -128,7 +128,7 @@ is unreachable from a batch build, and it is a further instance of the family in
 
 ## Logging and telemetry
 
-Metalama.Backstage logs to the **console** in this process instead of to a log file, and does not report telemetry.
+Backstage logs to the **console** in this process instead of to a log file, and does not report telemetry.
 Both are configured by setting the environment variables Backstage already honours, in `SimulateCommand`, before
 any analyzer assembly is loaded:
 
@@ -137,7 +137,7 @@ any analyzer assembly is loaded:
 | `METALAMA_CONSOLE_TRACE` | `--trace`, default `none` | Selects `ConsoleLoggerFactory`. A log file in a temporary directory is of no use for a process that exists to be read, and useless on a build agent. |
 | `METALAMA_TELEMETRY_OPT_OUT` | `1` | This process reproduces crashes on purpose, so its telemetry would be indistinguishable from a real user's crash in the very reports these scenarios are written from. |
 
-Nothing in Metalama.Backstage knows about this process. A variable already set by the caller is left alone, so both
+Nothing in Backstage knows about this process. A variable already set by the caller is left alone, so both
 can be overridden from outside, and child processes started for `--permutations` inherit them.
 
 The value of `METALAMA_CONSOLE_TRACE` is a trace-category filter, and it selects the console logger by being

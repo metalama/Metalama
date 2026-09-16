@@ -3,13 +3,13 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using JetBrains.Annotations;
-using Metalama.Backstage.Diagnostics;
 using Metalama.Framework.DesignTime.Diagnostics;
 using Metalama.Framework.DesignTime.Rpc;
 using Metalama.Framework.DesignTime.Rpc.Notifications;
 using Metalama.Framework.DesignTime.Utilities;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Services;
+using SharpCrafters.Backstage.Diagnostics;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 

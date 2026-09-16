@@ -9,7 +9,7 @@ using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Services;
-using Metalama.Testing.Hooks;
+using SharpCrafters.Common;
 using System;
 using System.Runtime.CompilerServices;
 using Xunit.Abstractions;

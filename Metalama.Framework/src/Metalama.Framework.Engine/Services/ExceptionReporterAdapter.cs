@@ -9,9 +9,9 @@ namespace Metalama.Framework.Engine.Services;
 
 internal sealed class ExceptionReporterAdapter : IExceptionReporter
 {
-    private readonly Backstage.Telemetry.ITelemetryContext _telemetryContext;
+    private readonly SharpCrafters.Backstage.Telemetry.ITelemetryContext _telemetryContext;
 
-    public ExceptionReporterAdapter( Backstage.Telemetry.ITelemetryContext telemetryContext )
+    public ExceptionReporterAdapter( SharpCrafters.Backstage.Telemetry.ITelemetryContext telemetryContext )
     {
         this._telemetryContext = telemetryContext;
     }

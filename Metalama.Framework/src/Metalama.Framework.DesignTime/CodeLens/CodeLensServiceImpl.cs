@@ -2,8 +2,6 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Framework.Engine.CodeModel;
-using Metalama.Backstage.Diagnostics;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.DesignTime.Contracts.CodeLens;
@@ -11,6 +9,7 @@ using Metalama.Framework.DesignTime.Pipeline;
 using Metalama.Framework.DesignTime.Preview;
 using Metalama.Framework.DesignTime.Rpc;
 using Metalama.Framework.Engine;
+using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Introspection;
 using Metalama.Framework.Engine.SerializableIds;
@@ -20,6 +19,7 @@ using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Metalama.Framework.Introspection;
 using Microsoft.CodeAnalysis;
+using SharpCrafters.Backstage.Diagnostics;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 

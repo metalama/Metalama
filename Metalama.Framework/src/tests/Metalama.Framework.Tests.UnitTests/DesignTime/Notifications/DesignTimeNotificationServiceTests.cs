@@ -2,12 +2,12 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Backstage.Diagnostics;
 using Metalama.Framework.DesignTime.Contracts.Notifications;
 using Metalama.Framework.DesignTime.Rpc;
 using Metalama.Framework.DesignTime.Rpc.Notifications;
 using Metalama.Framework.DesignTime.VisualStudio.Notifications;
 using Metalama.Testing.UnitTesting;
+using SharpCrafters.Backstage.Diagnostics;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;

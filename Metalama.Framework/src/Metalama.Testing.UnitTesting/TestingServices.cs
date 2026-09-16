@@ -3,11 +3,11 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Backstage;
-using Metalama.Backstage.Extensibility;
-using Metalama.Backstage.Licensing;
-using Metalama.Backstage.Maintenance;
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Utilities.Diagnostics;
+using SharpCrafters.Backstage.Extensibility;
+using SharpCrafters.Backstage.Licensing;
+using SharpCrafters.Backstage.Maintenance;
 using System;
 
 namespace Metalama.Testing.UnitTesting;

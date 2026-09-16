@@ -3,10 +3,10 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using LibGit2Sharp;
-using Metalama.Backstage.Commands;
-using Metalama.Backstage.Diagnostics;
 using Metalama.Compiler;
 using Newtonsoft.Json;
+using SharpCrafters.Backstage.Commands;
+using SharpCrafters.Backstage.Diagnostics;
 using System;
 using System.IO;
 using System.Linq;

@@ -3,9 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using JetBrains.Annotations;
-using Metalama.Backstage.Configuration;
-using Metalama.Backstage.Infrastructure;
-using Metalama.Backstage.Utilities;
+using Metalama.Backstage;
 using Metalama.Framework.ConfigurationFiles;
 using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.Diagnostics;
@@ -20,6 +18,8 @@ using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using SharpCrafters.Backstage.Configuration;
+using SharpCrafters.Backstage.Infrastructure;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
