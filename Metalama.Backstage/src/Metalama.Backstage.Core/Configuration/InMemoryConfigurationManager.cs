@@ -16,7 +16,7 @@ namespace Metalama.Backstage.Configuration;
 /// memory. This implementation is useful to build tests.
 /// </summary>
 /// <remarks>
-/// It must behave like <see cref="T:Metalama.Backstage.Configuration.ConfigurationManager"/> in everything a test can observe, so it increments the
+/// It must behave like <see cref="ConfigurationManager"/> in everything a test can observe, so it increments the
 /// version on every update, dispatches <see cref="ConfigurationFileChanged"/> outside its monitor, and guards every
 /// access to its dictionary rather than only the updates.
 /// </remarks>

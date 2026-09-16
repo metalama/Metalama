@@ -30,7 +30,7 @@ public interface IMachineIdProvider : IBackstageService
     /// The license audit hashes this value to count the devices of one user, which the end-user license agreement
     /// limits. See issue #1873. This is not the anonymized device identifier reported to the third-party analytics
     /// platform, which is a random value rotated every month. See
-    /// <see cref="P:Metalama.Backstage.Telemetry.ITelemetryConfigurationService.DeviceId"/>.
+    /// <see cref="Telemetry.ITelemetryConfigurationService.DeviceId"/>.
     /// </para>
     /// </remarks>
     string MachineId { get; }

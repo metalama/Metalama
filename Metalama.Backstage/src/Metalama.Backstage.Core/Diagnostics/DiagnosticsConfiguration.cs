@@ -30,7 +30,7 @@ public sealed record DiagnosticsConfiguration : ConfigurationFile
     /// property as a constructor parameter and assigns all of them unconditionally, so a file that omits the section
     /// would otherwise set the property to <c>null</c>. A property initializer alone is not enough. The consequence is
     /// more severe than a null property: <see cref="Validate"/> dereferences the value, and
-    /// <see cref="T:Metalama.Backstage.Configuration.ConfigurationManager"/> catches the resulting exception and discards the whole file.
+    /// <see cref="ConfigurationManager"/> catches the resulting exception and discards the whole file.
     /// See #1777.
     /// </remarks>
     [JsonPropertyName( "logging" )]

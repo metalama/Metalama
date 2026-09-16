@@ -14,7 +14,7 @@ namespace Metalama.Backstage.Configuration;
 /// <remarks>
 /// The rules live here, and not in each implementation, because a substitute that enforces them less strictly than
 /// the real implementation is worse than no substitute at all: a test written against it passes while the product
-/// fails. Both <see cref="T:Metalama.Backstage.Configuration.ConfigurationManager"/> and <see cref="InMemoryConfigurationManager"/> therefore call
+/// fails. Both <see cref="ConfigurationManager"/> and <see cref="InMemoryConfigurationManager"/> therefore call
 /// into this class rather than reproducing the behaviour.
 /// </remarks>
 internal static class ConfigurationUpdateScope
