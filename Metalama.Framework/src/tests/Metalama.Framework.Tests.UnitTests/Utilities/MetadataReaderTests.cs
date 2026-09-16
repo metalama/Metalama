@@ -5,7 +5,6 @@
 using Metalama.Backstage;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Testing.UnitTesting;
-using SharpCrafters.Backstage.Utilities;
 using System.IO;
 using Xunit;
 

@@ -17,7 +17,6 @@ using Metalama.Framework.Engine.Utilities;
 using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using SharpCrafters.Backstage.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
