@@ -4,7 +4,6 @@
 
 using JetBrains.Annotations;
 using Metalama.Backstage.Extensibility;
-using System.Collections.Immutable;
 
 namespace Metalama.Backstage.Application;
 
@@ -53,13 +52,6 @@ public sealed record ProductProfile(
     /// instance <c>metalama.json</c>, or <c>null</c> when the product has no repository configuration file.
     /// </summary>
     public string? RepositoryConfigurationFileName { get; init; }
-
-    /// <summary>
-    /// Gets the prefixes of the names of the assemblies and namespaces that an exception report may disclose because
-    /// they belong to the vendor. The names of other assemblies and namespaces are redacted from the reports. The
-    /// framework assemblies are always disclosed and do not need to be listed.
-    /// </summary>
-    public ImmutableArray<string> TrustedAssemblyNamePrefixes { get; init; } = ImmutableArray<string>.Empty;
 
     /// <summary>
     /// Gets the long display name of the product, for instance <c>Metalama by PostSharp</c>, used where the product

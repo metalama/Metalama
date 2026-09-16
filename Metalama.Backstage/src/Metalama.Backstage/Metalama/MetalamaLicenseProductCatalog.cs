@@ -13,7 +13,7 @@ namespace Metalama.Backstage;
 /// editions, and the PostSharp editions whose license keys are also valid for Metalama.
 /// </summary>
 [PublicAPI]
-public sealed class MetalamaLicenseProductCatalog : PostSharpTechnologiesLicenseProductCatalog
+public sealed class MetalamaLicenseProductCatalog : LicenseProductCatalog
 {
     /// <summary>
     /// Gets the single instance of the catalog.

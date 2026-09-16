@@ -54,7 +54,7 @@ internal sealed class ExceptionReporter : IExceptionReportManager, IExceptionCap
         this._canIgnoreRecoverableExceptions = serviceProvider.GetRequiredBackstageService<IRecoverableExceptionService>().CanIgnore;
         this._localExceptionReporter = serviceProvider.GetBackstageService<LocalExceptionReporter>();
         this._eventDispatcher = serviceProvider.GetRequiredBackstageService<IEventDispatcher>();
-        this._scrubber = ExceptionSensitiveDataHelper.ForProfile( serviceProvider.GetRequiredBackstageService<ProductProfile>() );
+        this._scrubber = serviceProvider.GetRequiredBackstageService<ExceptionSensitiveDataHelper>();
     }
 
     // The full, unscrubbed local rendering is stored next to the scrubbed report with this suffix, so the review page
@@ -298,7 +298,7 @@ internal sealed class ExceptionReporter : IExceptionReportManager, IExceptionCap
         // withheld from the upload payload. The upload payload discloses only framework/runtime assemblies; any other
         // assembly is user/third-party code whose name, version and file version can identify the user's product or
         // build, so it is redacted. See #1674, #1680.
-        if ( !scrubber.IsEnabled || scrubber.IsKnownSafePrefix( name ) )
+        if ( !scrubber.IsEnabled || ExceptionSensitiveDataHelper.IsKnownSafePrefix( name ) )
         {
             xmlWriter.WriteElementString( "Name", name );
             xmlWriter.WriteElementString( "Version", version?.ToString() ?? "<unknown>" );

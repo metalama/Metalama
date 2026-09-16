@@ -8,7 +8,6 @@ using Metalama.Backstage.Licensing;
 using Metalama.Backstage.Telemetry;
 using Metalama.Backstage.UserInterface;
 using System;
-using System.Collections.Immutable;
 using System.IO;
 
 namespace Metalama.Backstage;
@@ -51,8 +50,7 @@ public static class MetalamaProduct
         LongName = "Metalama by PostSharp",
         LegacyDataDirectoryName = ".metalama",
         RepositoryConfigurationFileName = "metalama.json",
-        HasLegacyConfigurationLock = true,
-        TrustedAssemblyNamePrefixes = ImmutableArray.Create( "PostSharp", "Metalama" )
+        HasLegacyConfigurationLock = true
     };
 
     /// <summary>

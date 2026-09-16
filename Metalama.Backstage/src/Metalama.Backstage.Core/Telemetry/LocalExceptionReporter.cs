@@ -33,9 +33,8 @@ internal sealed class LocalExceptionReporter : IBackstageService
         this._logger = this._loggerFactory.GetLogger( nameof(LocalExceptionReporter) );
         this._fileSystem = serviceProvider.GetRequiredBackstageService<IFileSystem>();
 
-        var productProfile = serviceProvider.GetRequiredBackstageService<ProductProfile>();
-        this._scrubber = ExceptionSensitiveDataHelper.ForProfile( productProfile );
-        this._productName = productProfile.Name;
+        this._scrubber = serviceProvider.GetRequiredBackstageService<ExceptionSensitiveDataHelper>();
+        this._productName = serviceProvider.GetRequiredBackstageService<ProductProfile>().Name;
     }
 
     public void ReportException( Exception exception )

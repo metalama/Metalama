@@ -21,6 +21,7 @@ public static class RegisterTelemetryServices
             .AddSingleton( options )
             .AddSingleton<IRepositoryConfigurationService>( serviceProvider => new RepositoryConfigurationService( serviceProvider ) )
             .AddSingleton( serviceProvider => new TelemetryLogger( serviceProvider ) )
+            .AddSingleton( serviceProvider => new ExceptionSensitiveDataHelper( serviceProvider ) )
             .AddSingleton<LocalExceptionReporter>( serviceProvider => new LocalExceptionReporter( serviceProvider ) )
 
             // A single ExceptionReporter instance is exposed under both IExceptionReportManager (review/upload, used by

@@ -17,7 +17,7 @@ namespace Metalama.Backstage.Licensing;
 /// products that a license key can name, is defined there too.
 /// </remarks>
 [PublicAPI]
-public abstract class PostSharpTechnologiesLicenseProductCatalog : ILicenseProductCatalog
+public abstract class LicenseProductCatalog : ILicenseProductCatalog
 {
 #pragma warning disable CS0618 // Type or member is obsolete: the catalog must name the products that are no longer offered.
 

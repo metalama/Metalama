@@ -2,16 +2,21 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Backstage.Application;
+using Metalama.Backstage.Extensibility;
+using Metalama.Backstage.Infrastructure;
 using System;
-using System.Collections.Immutable;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 
 namespace Metalama.Backstage.Telemetry
 {
-    internal sealed class ExceptionSensitiveDataHelper
+    /// <summary>
+    /// Redacts from a text the identifiers that could identify the user or the user's product: namespaces and
+    /// assembly names that are neither those of the framework nor those of the vendor, file paths, and secrets. It is
+    /// a service because the shape of a path depends on the platform, which comes from <see cref="IRuntimeInformation"/>.
+    /// </summary>
+    internal sealed class ExceptionSensitiveDataHelper : IBackstageService
     {
         // The Windows regex takes all words delimited by space after the path.
         private const string _windowsPathRegex = @"(?:[a-zA-Z]\:)?\\[^\:;\r\n"",'\]\}]+";
@@ -30,9 +35,12 @@ namespace Metalama.Backstage.Telemetry
             "JetBrains", "Newtonsoft", "MessagePack", "StreamJsonRpc", "Nerdbank", "Mono", "xunit", "testhost", "Roslyn"
         };
 
-        // The framework prefixes above followed by the prefixes of the vendor of the product, which come from the
-        // product profile.
-        private readonly string[] _knownSafePrefixes;
+        // The prefixes of the assemblies and namespaces of the vendor, which are the same for every product of the
+        // vendor and are therefore not part of the product profile.
+        private static readonly string[] _vendorSafePrefixes = { "PostSharp", "Metalama", "SharpCrafters" };
+
+        // The framework prefixes followed by the vendor prefixes.
+        private static readonly string[] _knownSafePrefixes = _frameworkSafePrefixes.Concat( _vendorSafePrefixes ).ToArray();
 
         // Framework assembly families whose members extend the prefix without a separator — e.g. PresentationFramework /
         // PresentationCore / PresentationUI, WindowsBase / Windows.UI.*, EnvDTE / EnvDTE80 / EnvDTE90. These are matched
@@ -43,11 +51,10 @@ namespace Metalama.Backstage.Telemetry
         // textual order and the constructor reads those arrays.
 
         /// <summary>
-        /// The scrubber that trusts the framework prefixes only, and therefore redacts the namespaces of every vendor.
-        /// It serves the callers that have no product profile, such as <see cref="DefaultExceptionAdapter"/>; the
-        /// services obtain their scrubber from the profile with <see cref="ForProfile"/>.
+        /// The scrubber of the current platform, for the callers that have no service provider, such as
+        /// <see cref="DefaultExceptionAdapter"/>. The services resolve the registered instance instead.
         /// </summary>
-        public static readonly ExceptionSensitiveDataHelper WithoutTrustedPrefixes = new( ImmutableArray<string>.Empty );
+        public static readonly ExceptionSensitiveDataHelper Default = new( RuntimeInformation.IsOSPlatform( OSPlatform.Windows ) );
 
         // A dotted identifier (e.g. a namespace-qualified type in a stack trace) is redacted to "#user" unless it is on
         // the safe list. The negative-lookahead allow-list is built from the same two arrays as IsKnownSafePrefix:
@@ -57,7 +64,7 @@ namespace Metalama.Backstage.Telemetry
         // An identity scrubber that leaves the input unchanged. It is used to render the full, unscrubbed local report
         // shown side-by-side with the scrubbed upload payload on the review page, so the user can see exactly what the
         // scrubber removes before anything leaves the machine. See #1674.
-        public static readonly ExceptionSensitiveDataHelper Disabled = new( ImmutableArray<string>.Empty, enabled: false );
+        public static readonly ExceptionSensitiveDataHelper Disabled = new( isWindows: false, enabled: false );
 
         // Redacts the value following an HTTP "Bearer" authentication scheme (e.g. "Bearer eyJ...").
         // These tokens are non-dotted and would otherwise pass through the heuristic above. See #1680.
@@ -83,37 +90,34 @@ namespace Metalama.Backstage.Telemetry
         public bool IsEnabled => this._enabled;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ExceptionSensitiveDataHelper"/> class.
+        /// Initializes a new instance of the <see cref="ExceptionSensitiveDataHelper"/> class for the platform given by
+        /// <see cref="IRuntimeInformation"/>.
         /// </summary>
-        /// <param name="trustedPrefixes">The prefixes of the assemblies and namespaces of the vendor, which are disclosed in addition to the framework ones. See <see cref="ProductProfile.TrustedAssemblyNamePrefixes"/>.</param>
-        /// <param name="isWindows">Whether the paths are Windows paths, or <c>null</c> to detect the current platform.</param>
+        public ExceptionSensitiveDataHelper( IServiceProvider serviceProvider ) : this(
+            serviceProvider.GetRequiredBackstageService<IRuntimeInformation>().IsOSPlatform( OSPlatform.Windows ) ) { }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ExceptionSensitiveDataHelper"/> class for a given platform.
+        /// </summary>
+        /// <param name="isWindows">Whether the paths are Windows paths.</param>
         /// <param name="enabled">Whether the scrubber redacts its input at all.</param>
-        internal ExceptionSensitiveDataHelper( ImmutableArray<string> trustedPrefixes, bool? isWindows = null, bool enabled = true )
+        internal ExceptionSensitiveDataHelper( bool isWindows, bool enabled = true )
         {
             this._enabled = enabled;
-            this._knownSafePrefixes = _frameworkSafePrefixes.Concat( trustedPrefixes ).ToArray();
 
             if ( enabled )
             {
-                isWindows ??= RuntimeInformation.IsOSPlatform( OSPlatform.Windows );
-
-                this._pathRegex = new Regex( isWindows.Value ? _windowsPathRegex : _unixPathRegex );
+                this._pathRegex = new Regex( isWindows ? _windowsPathRegex : _unixPathRegex );
 
                 // A dotted identifier (e.g. a namespace-qualified type in a stack trace) is redacted to "#user" unless it is
                 // on the safe list. The negative-lookahead allow-list is built from the same two arrays as IsKnownSafePrefix:
                 // boundary-matched roots (with a trailing (?![A-Za-z])) and open-matched framework families.
                 this._userNameRegEx =
                     new Regex(
-                        @"(?<![\.\^0-9a-zA-Z<>_`])(?![0-9]|(?:" + string.Join( "|", this._knownSafePrefixes ) + @")(?![A-Za-z])|(?:"
+                        @"(?<![\.\^0-9a-zA-Z<>_`])(?![0-9]|(?:" + string.Join( "|", _knownSafePrefixes ) + @")(?![A-Za-z])|(?:"
                         + string.Join( "|", _knownSafePrefixFamilies ) + @")|`)[a-zA-Z0-9\$`@_\?]+(?:\.(?![0-9])\.?[a-zA-Z0-9\$`@<>_]+)+(?![\.\^0-9a-zA-Z`@_\$])" );
             }
         }
-
-        /// <summary>
-        /// Creates the scrubber of a product, which discloses the assemblies and namespaces of the vendor of that
-        /// product.
-        /// </summary>
-        public static ExceptionSensitiveDataHelper ForProfile( ProductProfile profile ) => new( profile.TrustedAssemblyNamePrefixes );
 
         /// <exclude />
         public string RemoveSensitiveData( string? input )
@@ -139,14 +143,14 @@ namespace Metalama.Backstage.Telemetry
         // at a name boundary: the name is exactly the prefix, or the next character is not a letter (so "EnvDTE80" and
         // "System.Private.CoreLib" match, but a user assembly such as "SystemwideTool" does not). This is the assembly-list
         // counterpart of the namespace scrubber's allow-list, sharing the same prefix list and boundary rule. See #1680.
-        internal bool IsKnownSafePrefix( string? name )
+        internal static bool IsKnownSafePrefix( string? name )
         {
             if ( string.IsNullOrEmpty( name ) )
             {
                 return false;
             }
 
-            foreach ( var prefix in this._knownSafePrefixes )
+            foreach ( var prefix in _knownSafePrefixes )
             {
                 // Boundary match: the name is exactly the prefix, or the next character is not a letter (so "System.X"
                 // passes but "SystemwideTool" does not).

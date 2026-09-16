@@ -21,9 +21,9 @@ public sealed class DefaultExceptionAdapter : IExceptionAdapter
     public string? GetStackTrace( Exception e ) => e.StackTrace;
 
     /// <summary>
-    /// Writes the exception with the scrubber that trusts no vendor prefix. <see cref="ExceptionReporter"/> does not
-    /// call this method for this adapter: it writes the exception itself with the scrubber of the product profile.
+    /// Writes the exception with the scrubber of the current platform. <see cref="ExceptionReporter"/> does not call
+    /// this method for this adapter: it writes the exception itself with the registered scrubber.
     /// </summary>
     public void WriteException( XmlWriter writer, Exception e )
-        => ExceptionXmlFormatter.WriteException( writer, e, ExceptionSensitiveDataHelper.WithoutTrustedPrefixes );
+        => ExceptionXmlFormatter.WriteException( writer, e, ExceptionSensitiveDataHelper.Default );
 }

@@ -16,9 +16,9 @@ namespace Metalama.Backstage.Tests.Telemetry
     public sealed class ExceptionReportContentTests
     {
         /// <summary>
-        /// The scrubber of the Metalama product family, which the report of a Metalama process uses.
+        /// The scrubber of the current platform, which the report of a process uses.
         /// </summary>
-        private static readonly ExceptionSensitiveDataHelper _scrubber = ExceptionSensitiveDataHelper.ForProfile( MetalamaProduct.Profile );
+        private static readonly ExceptionSensitiveDataHelper _scrubber = ExceptionSensitiveDataHelper.Default;
 
         private static string WriteExceptionXml( Exception exception )
         {
@@ -91,7 +91,7 @@ namespace Metalama.Backstage.Tests.Telemetry
         [InlineData( "", false )]
         [InlineData( null, false )]
         public void AssemblyNameClassification( string? name, bool expectedSafe )
-            => Assert.Equal( expectedSafe, _scrubber.IsKnownSafePrefix( name ) );
+            => Assert.Equal( expectedSafe, ExceptionSensitiveDataHelper.IsKnownSafePrefix( name ) );
 
         [Fact]
         public void UserAssemblyDetailsAreRedacted()
