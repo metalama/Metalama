@@ -1,8 +1,0 @@
-﻿<Project>
-
-    <!-- TODO: This could all be in Metalama.Backstage.csproj, which can then be referenced itself.
-         Hower, Rider cannot load such project. To be reported to JetBarins along with 
-         Metalama.Framework.DesignTime and Metalama.Framework.DesignTime.VisualStudio projects in Metalama repo. -->
-
-
-</Project>

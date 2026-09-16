@@ -50,7 +50,7 @@ var product = new Product( MetalamaDependencies.Metalama )
 
             // Required by some tests.
             new VisualStudioBuildToolsComponent(
-                VisualStudioBuildToolsComponentVersion.v18_9_2,
+                VisualStudioBuildToolsComponentVersion.v18_9,
                 [
                     // Required to test MSBuild. Microsoft.NetCore.Component.SDK cannot be omitted: without it
                     // the MSBuild.exe of the Build Tools has no C:\BuildTools\MSBuild\Sdks directory and fails
@@ -78,7 +78,6 @@ var product = new Product( MetalamaDependencies.Metalama )
     MSBuildVersion = new Version( 18, 9 ),
     Solutions =
     [
-        new DotNetSolution( "Metalama.Backstage/Metalama.Backstage.sln" ) { SupportsTestCoverage = true, CanFormatCode = true },
         new DotNetSolution( "Metalama.Framework/Metalama.Framework.sln" )
         {
             SolutionFilterPathForInspectCode = "Metalama.Framework/Metalama.Framework.LatestRoslyn.slnf",
@@ -123,14 +122,6 @@ var product = new Product( MetalamaDependencies.Metalama )
         new DotNetSolution( "Metalama.LinqPad/Metalama.LinqPad.sln" ) { CanFormatCode = true }
     ],
     PublicArtifacts = Pattern.Create(
-        "Metalama.Backstage.$(PackageVersion).nupkg",
-        "Metalama.Backstage.Core.$(PackageVersion).nupkg",
-        "Metalama.Backstage.Core.Worker.$(PackageVersion).nupkg",
-        "Metalama.Backstage.Core.Desktop.Windows.$(PackageVersion).nupkg",
-        "Metalama.Backstage.Commands.$(PackageVersion).nupkg", // Required by SourceLink in Metalama.Framework.
-        "Metalama.Backstage.Testing.$(PackageVersion).nupkg",  // Required by SourceLink in Metalama.Framework.
-        "Metalama.Backstage.Tools.$(PackageVersion).nupkg",    // Required by Metalama.Testing.AspectTesting via Metalama.Framework.Engine.
-        "Metalama.Testing.Hooks.$(PackageVersion).nupkg",      // Required by Metalama.Framework.Engine and Metalama.Patterns.Caching.Backend.
         "Metalama.Framework.$(PackageVersion).nupkg",
         "Metalama.Testing.UnitTesting.$(PackageVersion).nupkg",
         "Metalama.Testing.AspectTesting.$(PackageVersion).nupkg",
@@ -212,11 +203,6 @@ var product = new Product( MetalamaDependencies.Metalama )
 
         // This is the Metalama CLI tool.
         new ProjectUsageInfo( @"^metalama$", DependentPackageUsageKind.Development, ["Metalama CLI"] ),
-        new ProjectUsageInfo(
-            @"Metalama\.Backstage",
-            DependentPackageUsageKind.Development,
-            ["Metalama.Framework", "Metalama CLI"] ),
-        new ProjectUsageInfo( @"Metalama\.Backstage\.Testing", DependentPackageUsageKind.Private ),
 
         // We consider test helpers as private dependencies for Metalama.Premium because using them in other scenarios is not officially supported.
         new ProjectUsageInfo( @".*TestHelpers.*", DependentPackageUsageKind.Private )
@@ -226,7 +212,8 @@ var product = new Product( MetalamaDependencies.Metalama )
     [
         new DependentPackageExclusion( "Metalama.Framework", "Current repository." ),
         new DependentPackageExclusion( "Metalama.Extensions", "Current repository." ),
-        new DependentPackageExclusion( "Metalama.Backstage", "Current repository." ),
+        new DependentPackageExclusion( "Metalama.Backstage", "See notices in <https://github.com/postsharp-ops/SharpCrafters.Foundations>." ),
+        new DependentPackageExclusion( "Metalama.Testing.Hooks", "See notices in <https://github.com/postsharp-ops/SharpCrafters.Foundations>." ),
         new DependentPackageExclusion( "Metalama.Compiler", "See notices in <https://github.com/metalama/Metalama.Compiler>." ),
 
         new DependentPackageExclusion( "Flashtrace", "Current repository." )

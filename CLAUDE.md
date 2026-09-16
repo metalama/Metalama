@@ -11,7 +11,6 @@ Before starting work:
 2. **Check branch**: Before making any modifications, verify you're on a feature branch (`topic/YYYY.N/XXXX-description`). If on `develop/*` or `release/*`, propose creating/switching to a topic branch first.
 
 **Main solutions:**
-- `Metalama.Backstage`: infrastructure (licensing, logging, telemetry)
 - `Metalama.Framework`: core framework
 - `Metalama.Extensions`: extensions built on the core framework
 - `Metalama.Patterns`: aspects built on `Metalama.Framework`
@@ -20,6 +19,7 @@ Before starting work:
 - `eng`: build orchestration (not a solution)
 
 **Related repos** (in `..` or `../..`):
+- `SharpCrafters.Foundations`: infrastructure (licensing, logging, telemetry), formerly the `Metalama.Backstage` solution of this repository; consumed as the `Metalama.Backstage.*` packages
 - `Metalama.Premium`: premium features
 - `Metalama.Vsx`: Visual Studio Tools for Metalama
 - `PostSharp.Engineering`: build orchestration SDK
