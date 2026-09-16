@@ -117,9 +117,15 @@ internal sealed class Generator
         // Process syntax types that are not common to all Roslyn versions.
         foreach ( var type in this._syntax.Types.OfType<Node>().Where( IsVersionSpecificType ) )
         {
-            writer.WriteLine( $"\tpublic override void Visit{RemoveSuffix( type.Name, "Syntax" )}( {type.Name} node )" );
+            var methodName = $"Visit{RemoveSuffix( type.Name, "Syntax" )}";
+
+            writer.WriteLine( $"\tpublic override void {methodName}( {type.Name} node )" );
             writer.WriteLine( "\t{" );
             writer.WriteLine( $"\t\tthis.VisitVersionSpecificNode( node, {type.MinimalRoslynVersion!.QualifiedEnumValue} );" );
+
+            // The base implementation visits the children of the node. Without this call, the walk would stop at the
+            // first version-specific node, and no version-specific syntax below it would be detected.
+            writer.WriteLine( $"\t\tbase.{methodName}( node );" );
             writer.WriteLine( "\t}" );
         }
 
@@ -127,7 +133,9 @@ internal sealed class Generator
         foreach ( var type in this._syntax.Types.OfType<Node>()
                      .Where( t => !IsVersionSpecificType( t ) && t.Fields.Any( f => IsVersionSpecificField( f ) || GetVersionSpecificKinds( f ).Any() ) ) )
         {
-            writer.WriteLine( $"\tpublic override void Visit{RemoveSuffix( type.Name, "Syntax" )}( {type.Name} node )" );
+            var methodName = $"Visit{RemoveSuffix( type.Name, "Syntax" )}";
+
+            writer.WriteLine( $"\tpublic override void {methodName}( {type.Name} node )" );
             writer.WriteLine( "\t{" );
 
             foreach ( var field in type.Fields.Where( f => IsVersionSpecificField( f ) || GetVersionSpecificKinds( f ).Any() ) )
@@ -152,6 +160,9 @@ internal sealed class Generator
                 }
             }
 
+            // The base implementation visits the children of the node. Without this call, the walk would stop at the
+            // first node that carries a version-specific field, and no version-specific syntax below it would be detected.
+            writer.WriteLine( $"\t\tbase.{methodName}( node );" );
             writer.WriteLine( "\t}" );
         }
 
