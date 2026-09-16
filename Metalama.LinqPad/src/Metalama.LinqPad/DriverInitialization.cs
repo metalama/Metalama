@@ -38,7 +38,7 @@ internal static class DriverInitialization
                 // Don't enforce licensing in workspaces.
 
                 BackstageServiceFactoryInitializer.Initialize(
-                    new BackstageInitializationOptions( new LinqPadApplicationInfo() ) { AddSupportServices = true } );
+                    new BackstageInitializationOptions( new LinqPadApplicationInfo(), MetalamaProduct.Instance ) { AddSupportServices = true } );
             }
 
             // Register standard metric providers with the default workspace collection.

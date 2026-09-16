@@ -23,7 +23,7 @@ public sealed class WelcomePageServiceTests : TestsBase
         this.InitializationOptions = this.InitializationOptions with { OpenWelcomePage = true };
     }
 
-    protected override void ConfigureServices( ServiceProviderBuilder services ) => services.AddTelemetryServices( this.InitializationOptions.TelemetryOptions );
+    protected override void ConfigureServices( ServiceProviderBuilder services ) => services.AddTelemetryServices( this.InitializationOptions.Product.TelemetryOptions );
 
     protected override void OnAfterServicesCreated( Services services )
     {

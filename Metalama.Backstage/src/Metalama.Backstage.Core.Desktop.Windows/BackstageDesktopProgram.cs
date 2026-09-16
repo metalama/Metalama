@@ -8,13 +8,6 @@ using System;
 namespace Metalama.Backstage.Desktop.Windows;
 
 /// <summary>
-/// The options of <see cref="BackstageDesktopProgram.Run"/>, which a product supplies from its executable.
-/// </summary>
-/// <param name="CreateBackstageServices">Creates the Backstage services of the product. The parameter indicates whether the <c>--dev</c> option was given, in which case the services locate the worker in the build output of the repository. The notifier needs the support services and the user interface services, without the detection of the toast notifications.</param>
-[PublicAPI]
-public sealed record BackstageDesktopOptions( Func<bool, IServiceProvider> CreateBackstageServices );
-
-/// <summary>
 /// The entry point of the desktop notifier, which the executable of a product calls from its <c>Main</c> method. The
 /// notifier shows the toast notifications (<c>notify</c> command), reacts to their buttons (<c>snooze</c>, <c>mute</c>,
 /// <c>setup</c>, <c>rss</c>, <c>privacy</c>, <c>exception-report</c>, <c>report-exception</c> commands), and stays
@@ -28,11 +21,11 @@ public static class BackstageDesktopProgram
     /// thread, which the <c>Main</c> method of the executable obtains with <see cref="STAThreadAttribute"/>.
     /// </summary>
     /// <param name="args">The command line arguments.</param>
-    /// <param name="options">The options that bind the notifier to a product.</param>
+    /// <param name="applicationInfo">The description of the notifier process, which gives the product.</param>
     /// <returns>The exit code of the process.</returns>
-    public static int Run( string[] args, BackstageDesktopOptions options )
+    public static int Run( string[] args, BackstageDesktopApplicationInfo applicationInfo )
     {
-        DesktopServices.Initialize( options );
+        DesktopServices.Initialize( applicationInfo );
 
         var application = new DesktopApplication( args );
 

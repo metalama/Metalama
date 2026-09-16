@@ -3,15 +3,16 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Backstage.Desktop.Windows;
-using System;
 
 namespace Metalama.Backstage;
 
 /// <summary>
-/// The entry point of the desktop notifier of Metalama, which binds the notifier library to the Metalama product.
+/// The description of the desktop notifier process of Metalama.
 /// </summary>
-internal static class Program
+internal sealed class MetalamaDesktopApplicationInfo : BackstageDesktopApplicationInfo
 {
-    [STAThread]
-    public static int Main( string[] args ) => BackstageDesktopProgram.Run( args, new MetalamaDesktopApplicationInfo() );
+    public MetalamaDesktopApplicationInfo() : base( typeof(MetalamaDesktopApplicationInfo).Assembly, MetalamaProduct.Instance ) { }
+
+    /// <inheritdoc />
+    public override string Name => "Metalama.Backstage.Desktop.Windows";
 }

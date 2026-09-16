@@ -20,6 +20,13 @@ namespace Metalama.Backstage.Extensibility;
 /// <see cref="RegisterTelemetryServices.AddTelemetryServices"/>, <see cref="RegisterLicensingServices.AddLicensingServices"/>
 /// and <see cref="RegisterUserInterfaceServices.AddUserInterfaceServices"/>.
 /// </summary>
+/// <summary>
+/// Extension methods for setting up the Backstage services in a <see cref="ServiceProviderBuilder" />. This is the
+/// umbrella over the registration methods of the packages: <see cref="RegisterCoreServices.AddCoreServices"/>,
+/// <see cref="RegisterConfigurationServices.AddConfigurationServices"/>,
+/// <see cref="RegisterTelemetryServices.AddTelemetryServices"/>, <see cref="RegisterLicensingServices.AddLicensingServices"/>
+/// and <see cref="RegisterUserInterfaceServices.AddUserInterfaceServices"/>.
+/// </summary>
 public static class RegisterServiceExtensions
 {
     /// <summary>
@@ -32,7 +39,9 @@ public static class RegisterServiceExtensions
         var jsonTypeInfoResolvers = new List<IJsonTypeInfoResolver> { BackstageJsonContext.Default };
         jsonTypeInfoResolvers.AddRange( options.AdditionalJsonTypeInfoResolvers );
 
-        var coreOptions = new CoreInitializationOptions( options.ProductProfile, applicationInfo )
+        var product = options.Product;
+
+        var coreOptions = new CoreInitializationOptions( product.Profile, applicationInfo )
         {
             AddDiagnostics = options.AddSupportServices,
             AddDumper = options.AddDumperService,
@@ -49,10 +58,10 @@ public static class RegisterServiceExtensions
 
         if ( options.AddSupportServices )
         {
-            serviceProviderBuilder.AddTelemetryServices( options.TelemetryOptions );
+            serviceProviderBuilder.AddTelemetryServices( product.TelemetryOptions );
         }
 
-        var userInterfaceOptions = options.UserInterfaceOptions with
+        var userInterfaceOptions = product.UserInterfaceOptions with
         {
             OpenWelcomePage = options.OpenWelcomePage,
             DetectToastNotifications = options.DetectToastNotifications,
@@ -68,11 +77,11 @@ public static class RegisterServiceExtensions
 
         if ( options.AddUserInterface )
         {
-            serviceProviderBuilder.AddUserInterfaceServices( userInterfaceOptions, options.WebLinks );
+            serviceProviderBuilder.AddUserInterfaceServices( userInterfaceOptions, product.WebLinks );
         }
         else if ( options.AddRssClient )
         {
-            serviceProviderBuilder.AddRssClientServices( userInterfaceOptions, options.WebLinks );
+            serviceProviderBuilder.AddRssClientServices( userInterfaceOptions, product.WebLinks );
         }
 
         if ( options.AddLicensing )
@@ -84,7 +93,7 @@ public static class RegisterServiceExtensions
 
             var licensingOptions = options.LicensingOptions.ProductCatalog != null
                 ? options.LicensingOptions
-                : options.LicensingOptions with { ProductCatalog = MetalamaProduct.LicenseProductCatalog };
+                : options.LicensingOptions with { ProductCatalog = product.LicenseProductCatalog };
 
             serviceProviderBuilder.AddLicensingServices( licensingOptions, applicationInfo );
         }

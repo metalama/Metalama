@@ -15,12 +15,12 @@ namespace Metalama.Backstage.Commands
     internal sealed class CommandServiceProvider : ICommandServiceProviderProvider
     {
         private readonly IApplicationInfo _applicationInfo;
-        private readonly ProductProfile _productProfile;
+        private readonly BackstageProduct _product;
 
-        public CommandServiceProvider( IApplicationInfo applicationInfo, ProductProfile productProfile )
+        public CommandServiceProvider( IApplicationInfo applicationInfo, BackstageProduct product )
         {
             this._applicationInfo = applicationInfo;
-            this._productProfile = productProfile;
+            this._product = product;
         }
 
         public IServiceProvider GetServiceProvider( CommandServiceProviderArgs args )
@@ -35,9 +35,8 @@ namespace Metalama.Backstage.Commands
             serviceProviderBuilder.AddService( typeof(ILoggerFactory), new AnsiConsoleLoggerFactory( args.Console, args.Settings ) );
             var loggerFactory = serviceCollection.BuildServiceProvider().GetLoggerFactory();
 
-            var initializationOptions = new BackstageInitializationOptions( this._applicationInfo )
+            var initializationOptions = new BackstageInitializationOptions( this._applicationInfo, this._product )
             {
-                ProductProfile = this._productProfile,
                 AddLicensing = true,
                 AddSupportServices = true,
                 DiagnosticsOptions = new DiagnosticsInitializationOptions { CreateLoggingFactory = _ => loggerFactory },

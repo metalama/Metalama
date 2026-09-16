@@ -52,7 +52,7 @@ public sealed class TelemetryUploaderTests : TestsBase, IDisposable
 
     protected override void ConfigureServices( ServiceProviderBuilder services )
     {
-        services.AddTelemetryServices( this.InitializationOptions.TelemetryOptions );
+        services.AddTelemetryServices( this.InitializationOptions.Product.TelemetryOptions );
         services.AddTools();
         // Registered untyped, because ITestSynchronizationProvider is shared with the layers above and therefore
         // cannot derive from IBackstageService.

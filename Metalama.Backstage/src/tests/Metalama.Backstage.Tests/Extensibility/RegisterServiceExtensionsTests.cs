@@ -41,7 +41,8 @@ public sealed class RegisterServiceExtensionsTests
     {
         var options =
             new BackstageInitializationOptions(
-                new TestApplicationInfo( "Test", true, "1.0", DateTime.Today ) { IsLicenseAuditEnabled = !disableLicenseAudit } )
+                new TestApplicationInfo( "Test", true, "1.0", DateTime.Today ) { IsLicenseAuditEnabled = !disableLicenseAudit },
+                MetalamaProduct.Instance )
             {
                 AddLicensing = addLicensing,
                 AddSupportServices = addSupportServices,

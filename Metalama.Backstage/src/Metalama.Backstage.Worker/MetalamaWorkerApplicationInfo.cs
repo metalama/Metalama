@@ -3,14 +3,16 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Backstage.Worker;
-using System.Threading.Tasks;
 
 namespace Metalama.Backstage;
 
 /// <summary>
-/// The entry point of the worker of Metalama, which binds the worker library to the Metalama product.
+/// The description of the worker process of Metalama.
 /// </summary>
-internal static class Program
+internal sealed class MetalamaWorkerApplicationInfo : BackstageWorkerApplicationInfo
 {
-    public static Task<int> Main( string[] args ) => BackstageWorkerProgram.RunAsync( args, new MetalamaWorkerApplicationInfo() );
+    public MetalamaWorkerApplicationInfo() : base( typeof(MetalamaWorkerApplicationInfo).Assembly, MetalamaProduct.Instance ) { }
+
+    /// <inheritdoc />
+    public override string Name => "Metalama Backstage Worker";
 }

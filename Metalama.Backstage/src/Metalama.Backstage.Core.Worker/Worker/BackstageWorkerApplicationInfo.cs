@@ -10,26 +10,26 @@ using System.Reflection;
 namespace Metalama.Backstage.Worker;
 
 /// <summary>
-/// The description of the worker process of a product. The executable of the product creates it with its own
-/// profile and passes it to the initialization options of the Backstage services.
+/// The description of the worker process of a product. The executable of the product derives a class from it that
+/// gives the product and the display name, and passes an instance to <see cref="BackstageWorkerProgram.RunAsync"/>.
 /// </summary>
 [PublicAPI]
-public sealed class BackstageWorkerApplicationInfo : ApplicationInfoBase
+public abstract class BackstageWorkerApplicationInfo : ApplicationInfoBase
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="BackstageWorkerApplicationInfo"/> class.
     /// </summary>
     /// <param name="metadataAssembly">The assembly whose metadata gives the version of the worker, normally the executable.</param>
-    /// <param name="productProfile">The profile of the product.</param>
-    /// <param name="name">The display name of the worker, for instance <c>Metalama Backstage Worker</c>.</param>
-    public BackstageWorkerApplicationInfo( Assembly metadataAssembly, ProductProfile productProfile, string name )
-        : base( metadataAssembly, productProfile )
+    /// <param name="product">The product family.</param>
+    protected BackstageWorkerApplicationInfo( Assembly metadataAssembly, BackstageProduct product ) : base( metadataAssembly, product.Profile )
     {
-        this.Name = name;
+        this.Product = product;
     }
 
-    /// <inheritdoc />
-    public override string Name { get; }
+    /// <summary>
+    /// Gets the product family, which binds the Backstage services of the worker.
+    /// </summary>
+    public BackstageProduct Product { get; }
 
     /// <inheritdoc />
     public override ProcessKind ProcessKind => ProcessKind.BackstageWorker;

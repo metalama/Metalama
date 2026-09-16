@@ -166,7 +166,7 @@ namespace Metalama.Backstage.Testing
         }
 
         protected TestsBase( ITestOutputHelper logger, IApplicationInfo? applicationInfo = null )
-            : this( logger, new BackstageInitializationOptions( applicationInfo ?? new TestApplicationInfo() ) { AutoUploadTelemetry = false } ) { }
+            : this( logger, new BackstageInitializationOptions( applicationInfo ?? new TestApplicationInfo(), MetalamaProduct.Instance ) { AutoUploadTelemetry = false } ) { }
 
         /// <summary>
         /// Method that can add services. 
@@ -191,7 +191,7 @@ namespace Metalama.Backstage.Testing
             this.Locks = new TestNamedLockService( logger.WriteLine );
 
             this._configureServicesAction = this.ConfigureServices;
-            this._initializationOptions = options ?? new BackstageInitializationOptions( new TestApplicationInfo() );
+            this._initializationOptions = options ?? new BackstageInitializationOptions( new TestApplicationInfo(), MetalamaProduct.Instance );
 
             this._defaultTestContext = new Lazy<Services>(
                 () =>
@@ -283,7 +283,7 @@ namespace Metalama.Backstage.Testing
             BackstageInitializationOptions? options = null )
         {
             var serviceCollection = new ServiceCollection();
-            options ??= new BackstageInitializationOptions( new TestApplicationInfo() );
+            options ??= new BackstageInitializationOptions( new TestApplicationInfo(), MetalamaProduct.Instance );
 
             serviceCollection
                 .AddSingleton( new EarlyLoggerFactory( this.Log ) )
@@ -292,9 +292,9 @@ namespace Metalama.Backstage.Testing
                 .AddSingleton( serviceProvider => new UserInterfaceEventSubscriber( serviceProvider ) )
                 .AddSingleton<ILoggerFactory>( this.Log )
                 .AddSingleton<IApplicationInfoProvider>( new ApplicationInfoProvider( options.ApplicationInfo ) )
-                .AddSingleton( options.TelemetryOptions )
+                .AddSingleton( options.Product.TelemetryOptions )
                 .AddSingleton(
-                    options.UserInterfaceOptions with
+                    options.Product.UserInterfaceOptions with
                     {
                         OpenWelcomePage = options.OpenWelcomePage,
                         DetectToastNotifications = options.DetectToastNotifications,
@@ -307,8 +307,8 @@ namespace Metalama.Backstage.Testing
                 .AddSingleton<IPlatformInfo>( serviceProvider => new PlatformInfo( serviceProvider ) )
                 .AddSingleton( this.BackgroundTasks )
                 .AddSingleton<IHttpClientFactory>( serviceProvider => new TestHttpClientFactory( serviceProvider ) )
-                .AddSingleton( options.ProductProfile )
-                .AddSingleton<IWebLinks>( options.WebLinks )
+                .AddSingleton( options.Product.Profile )
+                .AddSingleton<IWebLinks>( options.Product.WebLinks )
                 .AddSingleton( _ => new RandomNumberGenerator( 0 ) )
 
                 // We must always have a single instance of the file system even if we use CloneServiceCollection.
@@ -320,7 +320,7 @@ namespace Metalama.Backstage.Testing
                 .AddSingleton<IJsonSerializationService>( _ => new JsonSerializationService( [BackstageJsonContext.Default, .. options.AdditionalJsonTypeInfoResolvers] ) )
                 .AddSingleton<IConfigurationManager>( serviceProvider => new InMemoryConfigurationManager( serviceProvider ) )
                 .AddSingleton<ITempFileManager>( serviceProvider => new TempFileManager( serviceProvider ) )
-                .AddSingleton<ILicenseProductCatalog>( options.LicensingOptions.ProductCatalog ?? MetalamaProduct.LicenseProductCatalog )
+                .AddSingleton<ILicenseProductCatalog>( options.LicensingOptions.ProductCatalog ?? options.Product.LicenseProductCatalog )
                 .AddSingleton<ILicenseRegistrationService>( serviceProvider => new LicenseRegistrationService( serviceProvider ) )
                 .AddSingleton<ILicenseConsumptionService>(
                     serviceProvider => LicenseConsumptionServiceFactory.Create(

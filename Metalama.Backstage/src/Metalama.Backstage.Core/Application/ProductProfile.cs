@@ -16,7 +16,7 @@ namespace Metalama.Backstage.Application;
 /// The profile is a different axis than <see cref="IApplicationInfo"/>. The application info describes the host
 /// process (the compiler, the design-time process, a command-line tool), and one product family has many host
 /// processes. The profile describes the product family, and it is the same for all of its host processes. The host
-/// passes the profile in <see cref="CoreInitializationOptions.ProductProfile"/>, and the services resolve it
+/// passes the profile in <see cref="BackstageProduct.Profile"/>, and the services resolve it
 /// through the service provider.
 /// </para>
 /// <para>

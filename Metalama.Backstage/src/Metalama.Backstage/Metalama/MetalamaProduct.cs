@@ -85,6 +85,11 @@ public static class MetalamaProduct
     };
 
     /// <summary>
+    /// Gets the Metalama product family, which binds the Backstage services to the values above.
+    /// </summary>
+    public static BackstageProduct Instance { get; } = new( Profile, WebLinks, TelemetryOptions, UserInterfaceOptions, LicenseProductCatalog );
+
+    /// <summary>
     /// Reads the public key that encrypts the telemetry packages from the resources of the current assembly.
     /// </summary>
     /// <returns>The public key, in the <c>RSAKeyValue</c> XML format.</returns>

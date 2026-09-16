@@ -143,7 +143,7 @@ internal class WebServerCommand : AsyncCommand<WebServerCommandSettings>
         // than reusing the ones of the process. Initialize them here too, otherwise services that require initialization
         // (e.g. ITelemetryConfigurationService) throw when first used, for instance when the Privacy page saves a consent
         // and calls SetConsent, whose EnsureInitialized() would fail. See #1707.
-        appData.InitializeBackstageServices( app.Services );
+        app.Services.InitializeBackstageServices();
 
         // Reject requests whose 'Host' header does not target the loopback interface. This must run before any other
         // middleware so that rejected requests never reach the application.

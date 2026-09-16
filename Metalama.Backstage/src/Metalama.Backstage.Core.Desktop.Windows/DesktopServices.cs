@@ -3,48 +3,36 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Backstage.Desktop.Windows.Commands;
+using Metalama.Backstage.Diagnostics;
+using Metalama.Backstage.Extensibility;
 using System;
 
 namespace Metalama.Backstage.Desktop.Windows;
 
 /// <summary>
-/// Holds the Backstage services of the notifier process. They are created once, on the first command, from the
-/// delegate that the product supplies in <see cref="BackstageDesktopOptions"/>.
+/// Creates the Backstage services of the notifier process in the process-wide <see cref="BackstageServiceFactory"/>
+/// from the application info that the product supplies to <see cref="BackstageDesktopProgram.Run"/>.
 /// </summary>
 internal static class DesktopServices
 {
-    private static readonly object _lock = new();
-    private static BackstageDesktopOptions? _options;
-    private static IServiceProvider? _serviceProvider;
+    private static BackstageDesktopApplicationInfo? _applicationInfo;
 
     /// <summary>
     /// Gets the service provider when it has been created, or <c>null</c> when no command has requested it yet.
     /// </summary>
-    public static IServiceProvider? ServiceProvider
-    {
-        get
-        {
-            lock ( _lock )
-            {
-                return _serviceProvider;
-            }
-        }
-    }
+    public static IServiceProvider? ServiceProvider => BackstageServiceFactory.IsInitialized ? BackstageServiceFactory.ServiceProvider : null;
 
     /// <summary>
-    /// Stores the options of the product. It is called once by <see cref="BackstageDesktopProgram.Run"/>.
+    /// Stores the application info. It is called once by <see cref="BackstageDesktopProgram.Run"/>.
     /// </summary>
-    public static void Initialize( BackstageDesktopOptions options )
+    public static void Initialize( BackstageDesktopApplicationInfo applicationInfo )
     {
-        lock ( _lock )
+        if ( _applicationInfo != null )
         {
-            if ( _options != null )
-            {
-                throw new InvalidOperationException( "The desktop services have already been initialized." );
-            }
-
-            _options = options;
+            throw new InvalidOperationException( "The desktop services have already been initialized." );
         }
+
+        _applicationInfo = applicationInfo;
     }
 
     /// <summary>
@@ -53,21 +41,27 @@ internal static class DesktopServices
     /// <exception cref="InvalidOperationException"><see cref="Initialize"/> has not been called.</exception>
     public static IServiceProvider Get( BaseSettings settings )
     {
-        lock ( _lock )
-        {
-            if ( _serviceProvider != null )
+        var applicationInfo = _applicationInfo
+                              ?? throw new InvalidOperationException(
+                                  $"{nameof(BackstageDesktopProgram)}.{nameof(BackstageDesktopProgram.Run)} has not been called." );
+
+        BackstageServiceFactory.Initialize(
+            new BackstageInitializationOptions( applicationInfo, applicationInfo.Product )
             {
-                return _serviceProvider;
-            }
+                AddLicensing = false,
+                IsDevelopmentEnvironment = settings.IsDevelopmentEnvironment,
+                AddSupportServices = true,
+                AddUserInterface = true,
 
-            if ( _options == null )
-            {
-                throw new InvalidOperationException( $"{nameof(BackstageDesktopProgram)}.{nameof(BackstageDesktopProgram.Run)} has not been called." );
-            }
+                // We don't want to open more toast notifications.
+                DetectToastNotifications = false
+            },
+            applicationInfo.Name );
 
-            _serviceProvider = _options.CreateBackstageServices( settings.IsDevelopmentEnvironment );
+        var serviceProvider = BackstageServiceFactory.ServiceProvider;
+        var logger = serviceProvider.GetLoggerFactory().GetLogger( "App" );
+        logger.Trace?.Log( $"Executing: {string.Join( ' ', Environment.GetCommandLineArgs() )}" );
 
-            return _serviceProvider;
-        }
+        return serviceProvider;
     }
 }

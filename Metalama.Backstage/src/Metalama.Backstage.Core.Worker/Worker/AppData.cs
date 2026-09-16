@@ -12,5 +12,4 @@ namespace Metalama.Backstage.Worker;
 /// </summary>
 /// <param name="ServiceCollection">The registrations of the Backstage services, which the web server copies into its own container.</param>
 /// <param name="ServiceProvider">The Backstage services of the worker process.</param>
-/// <param name="InitializeBackstageServices">The delegate that initializes the Backstage services of a container, supplied by the product.</param>
-internal sealed record AppData( ServiceCollection ServiceCollection, IServiceProvider ServiceProvider, Action<IServiceProvider> InitializeBackstageServices );
+internal sealed record AppData( ServiceCollection ServiceCollection, IServiceProvider ServiceProvider );

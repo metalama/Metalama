@@ -18,16 +18,6 @@ using System.Threading.Tasks;
 namespace Metalama.Backstage.Worker;
 
 /// <summary>
-/// The options of <see cref="BackstageWorkerProgram.RunAsync"/>, which a product supplies from its executable.
-/// </summary>
-/// <param name="AddBackstageServices">Registers the Backstage services of the product. The worker needs the support services, the licensing services and the user interface services.</param>
-/// <param name="InitializeBackstageServices">Initializes the Backstage services of a container after it is built. It is invoked for the container of the process and for the container of the web server.</param>
-[PublicAPI]
-public sealed record BackstageWorkerOptions(
-    Action<ServiceProviderBuilder> AddBackstageServices,
-    Action<IServiceProvider> InitializeBackstageServices );
-
-/// <summary>
 /// The entry point of the worker application, which the executable of a product calls from its <c>Main</c> method.
 /// The worker hosts the setup web server (<c>web</c> command) and uploads the telemetry (<c>upload</c> command).
 /// </summary>
@@ -40,9 +30,9 @@ public static class BackstageWorkerProgram
     /// Runs the worker with the given command line.
     /// </summary>
     /// <param name="args">The command line arguments.</param>
-    /// <param name="options">The options that bind the worker to a product.</param>
+    /// <param name="applicationInfo">The description of the worker process, which gives the product.</param>
     /// <returns>The exit code of the process.</returns>
-    public static async Task<int> RunAsync( string[] args, BackstageWorkerOptions options )
+    public static async Task<int> RunAsync( string[] args, BackstageWorkerApplicationInfo applicationInfo )
     {
         var serviceCollection = new ServiceCollection();
 
@@ -51,17 +41,23 @@ public static class BackstageWorkerProgram
             ( type, instance ) => serviceCollection.Add( new ServiceDescriptor( type, instance, ServiceLifetime.Singleton ) ) );
 #pragma warning restore ASP0000
 
-        options.AddBackstageServices( serviceProviderBuilder );
+        var initializationOptions = new BackstageInitializationOptions( applicationInfo, applicationInfo.Product )
+        {
+            AddSupportServices = true, AddLicensing = true, AddUserInterface = true
+        };
+
+        serviceProviderBuilder.AddBackstageServices( initializationOptions );
 
 #pragma warning disable ASP0000
-        var serviceProvider = serviceCollection.BuildServiceProvider();
+        var serviceProvider = serviceCollection
+            .BuildServiceProvider()
+            .InitializeBackstageServices();
 #pragma warning restore ASP0000
-        options.InitializeBackstageServices( serviceProvider );
         _canIgnoreRecoverableExceptions = serviceProvider.GetRequiredBackstageService<IRecoverableExceptionService>().CanIgnore;
 
         try
         {
-            var appData = new AppData( serviceCollection, serviceProvider, options.InitializeBackstageServices );
+            var appData = new AppData( serviceCollection, serviceProvider );
             var app = new CommandApp();
 
             app.Configure(

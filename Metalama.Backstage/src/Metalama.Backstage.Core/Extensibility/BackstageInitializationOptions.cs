@@ -6,8 +6,6 @@ using JetBrains.Annotations;
 using Metalama.Backstage.Application;
 using Metalama.Backstage.Diagnostics;
 using Metalama.Backstage.Licensing;
-using Metalama.Backstage.Telemetry;
-using Metalama.Backstage.UserInterface;
 using Metalama.Backstage.UserInterface.Toasts;
 using System;
 using System.Collections.Generic;
@@ -16,31 +14,13 @@ using System.Text.Json.Serialization.Metadata;
 namespace Metalama.Backstage.Extensibility;
 
 /// <summary>
-/// Initialization options for the <see cref="RegisterServiceExtensions.AddBackstageServices"/> method.
+/// The options of <see cref="RegisterServiceExtensions.AddBackstageServices"/>.
 /// </summary>
-/// <param name="ApplicationInfo">The <see cref="IApplicationInfo"/> of the caller.</param>
+/// <param name="ApplicationInfo">The description of the host process.</param>
+/// <param name="Product">The product family that hosts the services, for instance <c>MetalamaProduct.Instance</c>.</param>
 [PublicAPI]
-public record BackstageInitializationOptions( IApplicationInfo ApplicationInfo )
+public record BackstageInitializationOptions( IApplicationInfo ApplicationInfo, BackstageProduct Product )
 {
-    /// <summary>
-    /// Gets the profile of the product family that hosts the services. The default is the profile of Metalama.
-    /// </summary>
-    public ProductProfile ProductProfile { get; init; } = MetalamaProduct.Profile;
-
-    /// <summary>
-    /// Gets the web links of the product. The default is the web links of Metalama.
-    /// </summary>
-    public IWebLinks WebLinks { get; init; } = MetalamaProduct.WebLinks;
-
-    /// <summary>
-    /// Gets the telemetry endpoints of the product. The default is the endpoints of Metalama.
-    /// </summary>
-    public TelemetryInitializationOptions TelemetryOptions { get; init; } = MetalamaProduct.TelemetryOptions;
-
-    /// <summary>
-    /// Gets the user interface addresses of the product. The default is the addresses of Metalama.
-    /// </summary>
-    public UserInterfaceInitializationOptions UserInterfaceOptions { get; init; } = MetalamaProduct.UserInterfaceOptions;
 
     /// <summary>
     /// Gets a value indicating whether logging and telemetry services should be registered.
