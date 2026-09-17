@@ -4,7 +4,7 @@ using System.Threading;
 namespace MutexProbe;
 
 /// <summary>
-/// Creates a global named mutex the same way <c>Metalama.Backstage.Threading.NamedLockService</c>
+/// Creates a global named mutex the same way <c>SharpCrafters.Backstage.Threading.NamedLockService</c>
 /// does, and reports the outcome.
 /// </summary>
 /// <remarks>

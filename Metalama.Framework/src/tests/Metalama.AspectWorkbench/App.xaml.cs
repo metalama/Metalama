@@ -3,9 +3,9 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Backstage;
-using Metalama.Backstage.Application;
-using Metalama.Backstage.Extensibility;
 using Metalama.Framework.Engine.Pipeline.CompileTime;
+using SharpCrafters.Backstage.Application;
+using SharpCrafters.Backstage.Extensibility;
 
 namespace Metalama.AspectWorkbench
 {

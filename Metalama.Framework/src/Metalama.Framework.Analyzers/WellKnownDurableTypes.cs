@@ -166,7 +166,7 @@ namespace Metalama.Framework.Analyzers.Durability
 
             Durable( "Metalama.Framework.Services.IProjectService", serviceReason );
             Durable( "Metalama.Framework.Services.IGlobalService", serviceReason );
-            Durable( "Metalama.Backstage.Extensibility.IBackstageService", serviceReason );
+            Durable( "SharpCrafters.Backstage.Extensibility.IBackstageService", serviceReason );
 
             // The identity field of a SymbolDictionaryKey is declared as object and holds a string when the key was
             // created by CreatePersistentKey and a symbol when it was created by CreateLookupKey. One type, two
@@ -207,8 +207,8 @@ namespace Metalama.Framework.Analyzers.Durability
             Durable( "Metalama.Framework.Engine.CompileTime.CompileTimeProject", _boundaryReason );
             Durable( "Metalama.Framework.Engine.CompileTime.CompileTimeDomain", _boundaryReason );
             Durable( "Metalama.Framework.Engine.CompileTime.ITemplateReflectionContext", _boundaryReason );
-            Durable( "Metalama.Backstage.Diagnostics.ILogger", _boundaryReason );
-            Durable( "Metalama.Backstage.Diagnostics.ILoggerFactory", _boundaryReason );
+            Durable( "SharpCrafters.Backstage.Diagnostics.ILogger", _boundaryReason );
+            Durable( "SharpCrafters.Backstage.Diagnostics.ILoggerFactory", _boundaryReason );
 
             // ---------------------------------------------------------------------------------------------------
             // Never durable: Roslyn.

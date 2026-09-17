@@ -4,7 +4,6 @@
 
 #if DEBUG // These tests are debug-only because TestableCancellationToken is testable in the DEBUG config only.
 
-using Metalama.Backstage.Utilities;
 using Metalama.Framework.DesignTime;
 using Metalama.Framework.DesignTime.Pipeline;
 using Metalama.Framework.DesignTime.SourceGeneration;
@@ -18,6 +17,7 @@ using Metalama.Framework.Engine.Utilities.Threading;
 using Metalama.Framework.Tests.UnitTestHelpers.Mocks;
 using Metalama.Framework.Tests.UnitTestHelpers.TestClasses;
 using Metalama.Testing.UnitTesting;
+using SharpCrafters.Backstage.Utilities;
 using System;
 using System.Collections.Generic;
 using System.IO;

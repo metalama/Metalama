@@ -3,8 +3,8 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Backstage;
-using Metalama.Backstage.Extensibility;
 using Metalama.Framework.Engine.Utilities.Diagnostics;
+using SharpCrafters.Backstage.Extensibility;
 
 namespace Metalama.Framework.Workspaces;
 

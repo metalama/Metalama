@@ -2,9 +2,9 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Backstage.Threading;
 using Metalama.Framework.Engine.Utilities.AssemblyLoaders;
 using Microsoft.CodeAnalysis;
+using SharpCrafters.Backstage.Threading;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -82,7 +82,7 @@ public static class ResourceExtractor
     private static string GetTempDirectory( string purpose )
         => Path.Combine( GetTempBaseDirectory(), purpose, _buildId, _isNetFramework ? "desktop" : "core" );
 
-    // Mirrors Metalama.Backstage.Utilities.MetalamaPathUtilities.GetTempDirectory (we cannot reference Metalama.Backstage here).
+    // Mirrors SharpCrafters.Backstage.Utilities.MetalamaPathUtilities.GetTempDirectory (we cannot reference Metalama.Backstage here).
     // The directory holds assemblies that Metalama loads and executes, so on Unix it must not live under the world-writable
     // /tmp (issue #1650); we use the per-user application-data directory instead. On Windows the temp directory is already
     // specific to the current user.

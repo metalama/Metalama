@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using JetBrains.Annotations;
-using Metalama.Backstage.Diagnostics;
 using Metalama.Compiler;
 using Metalama.Framework.DesignTime.Pipeline;
 using Metalama.Framework.DesignTime.Services;
@@ -20,6 +19,7 @@ using Metalama.Framework.Engine.Utilities.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
+using SharpCrafters.Backstage.Diagnostics;
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 

@@ -7,7 +7,7 @@
     <RestorePrerelease>true</RestorePrerelease>
   </PropertyGroup>
   <PropertyGroup>
-    <PostSharpEngineeringVersion Condition="'$(PostSharpEngineeringVersion)'==''">2023.2.451</PostSharpEngineeringVersion>
+    <PostSharpEngineeringVersion Condition="'$(PostSharpEngineeringVersion)'==''">2023.2.454</PostSharpEngineeringVersion>
 
 
     <!-- We must match the version used by the lowest version of Visual Studio supported by the VSX, i.e. VS 17.14. -->
@@ -132,7 +132,7 @@
     <PackageVersion Include="Microsoft.Toolkit.Uwp.Notifications" Version="7.1.3" />
     <!-- Microsoft.Toolkit.Uwp.Notifications 7.1.3 references vulnerable System.Drawing.Common 4.7.0, so update it here. -->
     <!-- See also #35587 for updating the above package. -->
-    <!-- The only consumer is Metalama.Backstage.Desktop.Windows, a net10.0-windows executable that we host
+    <!-- The only consumer is Metalama.Backstage.Windows, a net10.0-windows executable that we host
          ourselves, so no design-time host constrains this version. It follows the .NET 10.0 line used
          throughout this file. -->
     <PackageVersion Include="System.Drawing.Common" Version="10.0.8" />
@@ -250,7 +250,7 @@
          all three, and 10.0.8 is the NuGet version whose lib/net462 asset carries exactly that. No headroom: do
          not take a version above it before a Visual Studio release ships one and moves the redirect.
          Metalama.Vsx constrains these values at its build and not at its deployment.
-         It does not constrain them at deployment. Metalama.Vsx merges Metalama.Backstage, Metalama.Backstage.Tools
+         It does not constrain them at deployment. Metalama.Vsx merges SharpCrafters.Backstage, SharpCrafters.Common, Metalama.Backstage, Metalama.Backstage.Tools
          and Metalama.Framework.DesignTime.Rpc into a single Metalama.Repacked assembly with its own identity, so
          an installed extension carries its own copy of that code and the versions pinned here do not reach it.
          Nor does it ship these three packages: an installed Metalama.Vsx 2026.1.5 holds 65 files, among which
@@ -265,13 +265,14 @@
     <PackageVersion Include="Microsoft.Bcl.AsyncInterfaces" Version="10.0.8" />
 
 
-    <PackageVersion Include="Metalama.Backstage" Version="$(MetalamaVersion)" />
-    <PackageVersion Include="Metalama.Backstage.Commands" Version="$(MetalamaVersion)" />
-    <PackageVersion Include="Metalama.Backstage.Tools" Version="$(MetalamaVersion)" />
+    <PackageVersion Include="Metalama.Backstage" Version="$(BackstageVersion)" />
+    <PackageVersion Include="SharpCrafters.Backstage" Version="$(BackstageVersion)" />
+    <PackageVersion Include="SharpCrafters.Backstage.Commands" Version="$(BackstageVersion)" />
+    <PackageVersion Include="Metalama.Backstage.Tools" Version="$(BackstageVersion)" />
     <PackageVersion Include="Metalama.Compiler" Version="$(MetalamaCompilerVersion)" />
     <PackageVersion Include="Metalama.Compiler.Sdk" Version="$(MetalamaCompilerVersion)" />
-    <PackageVersion Include="Metalama.Backstage.Testing" Version="$(MetalamaVersion)" />
-    <PackageVersion Include="Metalama.Testing.Hooks" Version="$(MetalamaVersion)" />
+    <PackageVersion Include="SharpCrafters.Backstage.Testing" Version="$(BackstageVersion)" />
+    <PackageVersion Include="SharpCrafters.Common" Version="$(BackstageVersion)" />
     <PackageVersion Include="Metalama.Framework" Version="$(MetalamaVersion)" />
     <PackageVersion Include="Metalama.Framework.Redist" Version="$(MetalamaVersion)" />
     <PackageVersion Include="Metalama.Framework.Workspaces" Version="$(MetalamaVersion)" />

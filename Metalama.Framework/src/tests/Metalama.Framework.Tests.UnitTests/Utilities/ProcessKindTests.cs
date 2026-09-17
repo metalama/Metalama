@@ -8,8 +8,8 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using Xunit;
-using BackstageProcessKind = Metalama.Backstage.Diagnostics.ProcessKind;
-using BackstageProcessKindDetector = Metalama.Backstage.Diagnostics.ProcessKindDetector;
+using BackstageProcessKind = SharpCrafters.Backstage.Diagnostics.ProcessKind;
+using BackstageProcessKindDetector = SharpCrafters.Backstage.Diagnostics.ProcessKindDetector;
 
 namespace Metalama.Framework.Tests.UnitTests.Utilities;
 

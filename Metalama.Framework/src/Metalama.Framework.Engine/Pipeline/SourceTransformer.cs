@@ -4,9 +4,6 @@
 
 using JetBrains.Annotations;
 using Metalama.Backstage;
-using Metalama.Backstage.Diagnostics;
-using Metalama.Backstage.Extensibility;
-using Metalama.Backstage.Telemetry;
 using Metalama.Compiler;
 using Metalama.Framework.Engine.AdditionalOutputs;
 using Metalama.Framework.Engine.Diagnostics;
@@ -19,7 +16,10 @@ using Metalama.Framework.Engine.Utilities.Diagnostics;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Metalama.Framework.Engine.Utilities.UserCode;
 using Metalama.Framework.Project;
-using Metalama.Testing.Hooks;
+using SharpCrafters.Backstage.Diagnostics;
+using SharpCrafters.Backstage.Extensibility;
+using SharpCrafters.Backstage.Telemetry;
+using SharpCrafters.Common;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;

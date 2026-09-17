@@ -3,7 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using JetBrains.Annotations;
-using Metalama.Backstage.Commands;
+using SharpCrafters.Backstage.Commands;
 using System.IO;
 
 namespace Metalama.Tool.Divorce;

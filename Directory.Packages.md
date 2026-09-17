@@ -65,7 +65,7 @@ Within the chosen .NET line we take the **highest available patch** that the lim
 
 Metalama.Vsx constrains the flowed transitive dependencies of `Metalama.Framework.DesignTime.Rpc` at its build and not at its deployment. Those dependencies are `System.IO.Pipelines`, `System.Diagnostics.DiagnosticSource`, `Microsoft.Bcl.AsyncInterfaces` and `System.Threading.Tasks.Extensions`, and the distinction is worth stating explicitly, because the extension ships on its own cadence and the opposite conclusion costs four pins a whole major line of headroom.
 
-Metalama.Vsx merges `Metalama.Backstage`, `Metalama.Backstage.Tools` and `Metalama.Framework.DesignTime.Rpc` into a single `Metalama.Repacked` assembly carrying its own identity, so an installed extension holds its own copy of that code and the versions we pin do not reach it. Nor does it ship the four packages: an installed Metalama.Vsx 2026.1.5 contains 65 files, and none of them is among those four. The only loose framework assemblies it carries are `Microsoft.Bcl.HashCode`, `System.Configuration.ConfigurationManager`, `System.IO.Hashing`, `System.Reflection.MetadataLoadContext`, `System.Resources.Extensions`, `System.Text.Encodings.Web` and `System.Text.Json`. Visual Studio provides the rest, under the same binding redirects that govern the out-of-band family.
+Metalama.Vsx merges `SharpCrafters.Backstage`, `SharpCrafters.Common`, `Metalama.Backstage`, `Metalama.Backstage.Tools` and `Metalama.Framework.DesignTime.Rpc` into a single `Metalama.Repacked` assembly carrying its own identity, so an installed extension holds its own copy of that code and the versions we pin do not reach it. Nor does it ship the four packages: an installed Metalama.Vsx 2026.1.5 contains 65 files, and none of them is among those four. The only loose framework assemblies it carries are `Microsoft.Bcl.HashCode`, `System.Configuration.ConfigurationManager`, `System.IO.Hashing`, `System.Reflection.MetadataLoadContext`, `System.Resources.Extensions`, `System.Text.Encodings.Web` and `System.Text.Json`. Visual Studio provides the rest, under the same binding redirects that govern the out-of-band family.
 
 The constraint that does exist is at the build of that repository. It enables `CentralPackageTransitivePinningEnabled`, so its own central pins must not sit below what our published packages require, or its restore fails with NU1605. A change to any pin shared with it therefore belongs in a pull request on `metalama/Metalama.Vsx` as well, and the two have to merge together. Moving that traffic onto `Metalama.Framework.DesignTime.Contracts`, which is Guid-marked and COM type-equivalent, would remove even that coupling; see `Metalama.Framework/docs/cross-process-communication.md` and metalama/Metalama#1605.
 
@@ -351,7 +351,7 @@ Refresh the cap derivation when the floor VS version changes, when MS releases a
 2. **`dotnet restore` on each top-level `.sln`** (NOT an `.slnf`; the filtered solutions skip projects that may surface conflicts):
    ```powershell
    dotnet restore Metalama.Framework\Metalama.Framework.sln
-   # repeat for each top-level solution: Metalama.Backstage, Metalama.Extensions, Metalama.Patterns, Metalama.LinqPad, Metalama.Migration
+   # repeat for each top-level solution: Metalama.Extensions, Metalama.Patterns, Metalama.LinqPad, Metalama.Migration
    ```
 3. **Resolve every restore warning** before moving on:
    - `NU1605` (detected package downgrade) — bump the lower pin or unify

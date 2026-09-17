@@ -4,10 +4,10 @@
 
 using JetBrains.Annotations;
 using JetBrains.Profiler.SelfApi;
-using Metalama.Backstage.Diagnostics;
-using Metalama.Backstage.Extensibility;
-using Metalama.Backstage.Utilities;
+using Metalama.Backstage;
 using Metalama.Framework.Engine;
+using SharpCrafters.Backstage.Diagnostics;
+using SharpCrafters.Backstage.Extensibility;
 using System.IO;
 using System.Threading;
 

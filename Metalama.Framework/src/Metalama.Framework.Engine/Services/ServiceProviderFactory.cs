@@ -3,8 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using JetBrains.Annotations;
-using Metalama.Backstage.Extensibility;
-using Metalama.Backstage.Maintenance;
 using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel.Introductions.Helpers;
@@ -27,6 +25,8 @@ using Metalama.Framework.Engine.Utilities.Threading;
 using Metalama.Framework.Engine.Utilities.UserCode;
 using Metalama.Framework.Services;
 using Microsoft.CodeAnalysis;
+using SharpCrafters.Backstage.Extensibility;
+using SharpCrafters.Backstage.Maintenance;
 using System;
 using System.Collections.Generic;
 using System.Linq;

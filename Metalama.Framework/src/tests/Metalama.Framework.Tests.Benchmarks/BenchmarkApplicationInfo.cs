@@ -3,7 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Backstage;
-using Metalama.Backstage.Application;
+using SharpCrafters.Backstage.Application;
 
 namespace Metalama.Framework.Tests.Benchmarks;
 

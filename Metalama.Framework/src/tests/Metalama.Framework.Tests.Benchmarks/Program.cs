@@ -18,11 +18,11 @@ using BenchmarkDotNet.Running;
 using BenchmarkDotNet.Toolchains.InProcess.Emit;
 using JetBrains.Profiler.Api;
 using Metalama.Backstage;
-using Metalama.Backstage.Extensibility;
-using Metalama.Backstage.Licensing;
 using Metalama.Framework.Engine.Utilities.Diagnostics;
 using Metalama.Framework.Tests.Benchmarks;
 using Microsoft.Build.Locator;
+using SharpCrafters.Backstage.Extensibility;
+using SharpCrafters.Backstage.Licensing;
 using System.Diagnostics;
 
 // Register MSBuild before anything else

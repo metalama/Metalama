@@ -11,7 +11,6 @@ Before starting work:
 2. **Check branch**: Before making any modifications, verify you're on a feature branch (`topic/YYYY.N/XXXX-description`). If on `develop/*` or `release/*`, propose creating/switching to a topic branch first.
 
 **Main solutions:**
-- `Metalama.Backstage`: infrastructure (licensing, logging, telemetry)
 - `Metalama.Framework`: core framework
 - `Metalama.Extensions`: extensions built on the core framework
 - `Metalama.Patterns`: aspects built on `Metalama.Framework`
@@ -20,6 +19,7 @@ Before starting work:
 - `eng`: build orchestration (not a solution)
 
 **Related repos** (in `..` or `../..`):
+- `SharpCrafters.Backstage`: infrastructure (licensing, logging, telemetry), formerly the `Metalama.Backstage` solution of this repository; consumed as the `SharpCrafters.Backstage*`, `SharpCrafters.Common` and `Metalama.Backstage*` packages
 - `Metalama.Premium`: premium features
 - `Metalama.Vsx`: Visual Studio Tools for Metalama
 - `PostSharp.Engineering`: build orchestration SDK
@@ -219,7 +219,7 @@ The testing strategies and every test suite (unit, aspect, template, linker, sta
 - **Aspect tests** are discovered by `.cs` file path under `Tests/`; the test name is the file name without extension. Filter with the bare name (`dotnet test <project> -f net10.0 --filter "ReplaceParameter_Covariant"`), not `Name~`, and rebuild after adding a new `.cs` test file.
 - **Never commit a new aspect test without running it first and committing its expected output.** An aspect test compares the transformed code against an expected file beside it, so a test committed without one fails on every run, including CI. Run the test, read the actual output under `obj/transformed/<tfm>/...`, check that it is what the test is meant to prove, then copy it next to the `.cs`. A `@TestScenario(DesignTime)` test needs the generated partial classes as well (`<Name>.0.i.cs` and so on), because the design-time pipeline cannot change the signature of an existing declaration and exposes what it introduces as an overload in a separate document. Read the output rather than copying it blindly: a test whose baseline was adopted without being read asserts whatever the code happened to do, including a defect.
 - **Unit tests** inherit `UnitTestClass` and use `CreateTestContext()` / `CreateCompilationModel(code)`.
-- To emit output from a test, use `ITestOutputService`; for deterministic timing use the sync points of `Metalama.Testing.Hooks.ITestSynchronizationProvider`, never hardcoded delays. The same package holds `ITestFaultInjector`, for deterministically throwing at a chosen place. Both services are shared by every layer, so they derive from no dependency injection marker interface and are registered and resolved untyped.
+- To emit output from a test, use `ITestOutputService`; for deterministic timing use the sync points of `SharpCrafters.Common.ITestSynchronizationProvider`, never hardcoded delays. The same package holds `ITestFaultInjector`, for deterministically throwing at a chosen place. Both services are shared by every layer, so they derive from no dependency injection marker interface and are registered and resolved untyped.
 
 ## Design-Time Memory
 

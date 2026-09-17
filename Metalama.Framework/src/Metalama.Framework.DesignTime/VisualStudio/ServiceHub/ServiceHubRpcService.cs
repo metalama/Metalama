@@ -3,12 +3,12 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using JetBrains.Annotations;
-using Metalama.Backstage.Diagnostics;
 using Metalama.Framework.DesignTime.Rpc;
 using Metalama.Framework.DesignTime.Rpc.Notifications;
 using Metalama.Framework.DesignTime.VisualStudio.ServiceProvider;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.Threading;
+using SharpCrafters.Backstage.Diagnostics;
 using System.Collections.Concurrent;
 
 namespace Metalama.Framework.DesignTime.VisualStudio.ServiceHub;

@@ -50,7 +50,7 @@
         <MetalamaTestExcludedReference Include="FakeItEasy" />
         <MetalamaTestExcludedReference Include="FakeItEasy.Analyzer.CSharp" />
         <!-- Test utilities that are not part of the user-facing API -->
-        <MetalamaTestExcludedReference Include="Metalama.Backstage.Testing" />
+        <MetalamaTestExcludedReference Include="SharpCrafters.Backstage.Testing" />
         <MetalamaTestExcludedReference Include="coverlet.collector" />
     </ItemGroup>
 

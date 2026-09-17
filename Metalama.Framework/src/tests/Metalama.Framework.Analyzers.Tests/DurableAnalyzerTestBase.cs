@@ -55,7 +55,7 @@ public abstract class DurableAnalyzerTestBase
                 MetadataReference.CreateFromFile( typeof(Metalama.Framework.Engine.CodeModel.CompilationModel).Assembly.Location ) );
 
             references.Add(
-                MetadataReference.CreateFromFile( typeof(Metalama.Backstage.Diagnostics.ILogger).Assembly.Location ) );
+                MetadataReference.CreateFromFile( typeof(SharpCrafters.Backstage.Diagnostics.ILogger).Assembly.Location ) );
 
             // ServiceProvider is declared in Metalama.Framework.Sdk, not in the engine.
             references.Add(

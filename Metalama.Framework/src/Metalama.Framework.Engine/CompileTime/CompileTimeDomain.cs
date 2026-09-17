@@ -3,14 +3,14 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using JetBrains.Annotations;
-using Metalama.Backstage.Diagnostics;
-using Metalama.Backstage.Utilities;
 using Metalama.Framework.Engine.Collections;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.AssemblyLoaders;
 using Metalama.Framework.Engine.Utilities.Diagnostics;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
+using SharpCrafters.Backstage.Diagnostics;
+using SharpCrafters.Backstage.Utilities;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;

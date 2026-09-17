@@ -43,7 +43,7 @@
     <ReferencePath Include="X:\Packages\.nuget\packages\jetbrains.profiler.selfapi\2.5.14\lib\netcoreapp3.0\JetBrains.Profiler.SelfApi.dll" />
     <ReferencePath Include="X:\Packages\.nuget\packages\k4os.hash.xxhash\1.0.8\lib\net6.0\K4os.Hash.xxHash.dll" />
     <ReferencePath Include="X:\Packages\.nuget\packages\metalama.backstage\2026.0.6.1413-local-gaelfraiteur-debug\lib\net8.0\Metalama.Backstage.dll" />
-    <ReferencePath Include="X:\Packages\.nuget\packages\metalama.backstage.testing\2026.0.6.1413-local-gaelfraiteur-debug\lib\net8.0\Metalama.Backstage.Testing.dll" />
+    <ReferencePath Include="X:\Packages\.nuget\packages\metalama.backstage.testing\2026.0.6.1413-local-gaelfraiteur-debug\lib\net8.0\SharpCrafters.Backstage.Testing.dll" />
     <ReferencePath Include="X:\Packages\.nuget\packages\metalama.backstage.tools\2026.0.6.1413-local-gaelfraiteur-debug\lib\netstandard2.0\Metalama.Backstage.Tools.dll" />
     <ReferencePath Include="X:\Packages\.nuget\packages\metalama.compiler.sdk\2026.0.4-dev-release-60\lib\netstandard2.0\Metalama.Compiler.Interface.dll" />
     <ReferencePath Include="X:\src\Metalama-2026.0\Metalama\Metalama.Framework\src\Metalama.Framework.CompileTimeContracts\bin\Debug\netstandard2.0\Metalama.Framework.CompileTimeContracts.dll" />

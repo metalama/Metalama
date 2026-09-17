@@ -3,13 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using JetBrains.Annotations;
-using Metalama.Backstage.Application;
-using Metalama.Backstage.Configuration;
-using Metalama.Backstage.Diagnostics;
-using Metalama.Backstage.Extensibility;
-using Metalama.Backstage.Infrastructure;
-using Metalama.Backstage.Maintenance;
-using Metalama.Backstage.Threading;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.SyntaxBuilders;
 using Metalama.Framework.Engine;
@@ -23,8 +16,15 @@ using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Metalama.Framework.Engine.Utilities.UserCode;
 using Metalama.Framework.Project;
-using Metalama.Testing.Hooks;
 using Microsoft.CodeAnalysis;
+using SharpCrafters.Backstage.Application;
+using SharpCrafters.Backstage.Configuration;
+using SharpCrafters.Backstage.Diagnostics;
+using SharpCrafters.Backstage.Extensibility;
+using SharpCrafters.Backstage.Infrastructure;
+using SharpCrafters.Backstage.Maintenance;
+using SharpCrafters.Backstage.Threading;
+using SharpCrafters.Common;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;

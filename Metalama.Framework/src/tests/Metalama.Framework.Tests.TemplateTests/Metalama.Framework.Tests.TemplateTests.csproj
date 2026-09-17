@@ -34,7 +34,7 @@
         <PackageReference Include="Metalama.Compiler.Sdk" />
         <PackageReference Include="FakeItEasy" />
         <PackageReference Include="FakeItEasy.Analyzer.CSharp" />
-        <PackageReference Include="Metalama.Backstage.Testing" />
+        <PackageReference Include="SharpCrafters.Backstage.Testing" />
 
         <!-- These packages ared used in tests -->
         <PackageReference Include="Microsoft.Win32.Registry" />

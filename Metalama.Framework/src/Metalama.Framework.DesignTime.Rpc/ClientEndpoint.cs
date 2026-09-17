@@ -3,8 +3,8 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using JetBrains.Annotations;
-using Metalama.Backstage.Diagnostics;
 using Microsoft.VisualStudio.Threading;
+using SharpCrafters.Backstage.Diagnostics;
 using StreamJsonRpc;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;

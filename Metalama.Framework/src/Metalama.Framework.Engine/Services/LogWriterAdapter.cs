@@ -9,9 +9,9 @@ namespace Metalama.Framework.Engine.Services;
 
 internal sealed class LogWriterAdapter : ILogWriter
 {
-    private readonly Func<Backstage.Diagnostics.ILogWriter?> _getBackstageWriter;
+    private readonly Func<SharpCrafters.Backstage.Diagnostics.ILogWriter?> _getBackstageWriter;
 
-    public LogWriterAdapter( Func<Backstage.Diagnostics.ILogWriter?> getBackstageWriter )
+    public LogWriterAdapter( Func<SharpCrafters.Backstage.Diagnostics.ILogWriter?> getBackstageWriter )
     {
         this._getBackstageWriter = getBackstageWriter;
     }

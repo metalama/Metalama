@@ -30,7 +30,7 @@ Two supporting projects are not test suites themselves but underpin the above: [
 - `Metalama.Framework/Metalama.Framework.LatestRoslyn.slnf` — a solution filter for fast local builds, which includes only the projects built against the latest Roslyn version. It is not a registered solution, so `Build.ps1` neither builds nor tests it; it is used by developers and as the `SolutionFilterPathForInspectCode` of the solution above.
 - `Metalama.Framework.TestApp.sln` — registered **twice**, once as a `DotNetSolution` and once as a `MsbuildSolution`, both `TestMethod = BuildMethod.Build` (build-only). The MSBuild duplicate exists "because there can be different errors".
 - `ManyDotNetSolutions("…/Standalone")` and `ManyDesignTimeSolutions("…/DesignTimeStandalone")` — expand each scenario directory at run time (see below).
-- Other product solutions (`Metalama.Backstage`, `Metalama.Patterns`, `Metalama.Extensions`, `Metalama.Migration`, `Metalama.LinqPad`) each carry their own tests.
+- Other product solutions (`Metalama.Patterns`, `Metalama.Extensions`, `Metalama.Migration`, `Metalama.LinqPad`) each carry their own tests. The Backstage tests live in the SharpCrafters.Backstage repository.
 
 Flag semantics: `IsTestOnly` = built only in the test phase (not packaged); `TestMethod = None` = build but do not run tests; `TestMethod = Build` = the test *is* that it builds; `SupportsTestCoverage` = collect coverage instrumentation for that solution.
 
@@ -263,7 +263,6 @@ A scenario asserts on the diagnostics of the simulation itself through a **`desi
 
 Each product solution ships its own tests, discovered by the same conventions:
 
-- **Metalama.Backstage** — `Metalama.Backstage.Tests`, `…Commands.Tests`, `…Worker.Tests`, plus the packable `Metalama.Backstage.Testing` helper. Coverage enabled at the solution level.
 - **Metalama.Patterns** and **Metalama.Extensions** — a mix of `*.UnitTests` (xUnit) and `*.AspectTests` that reuse the core `Metalama.Testing.AspectTesting` framework and directives (which is why those solutions carry `FormatExclusions` for the test payloads).
 
 ## Shared configuration

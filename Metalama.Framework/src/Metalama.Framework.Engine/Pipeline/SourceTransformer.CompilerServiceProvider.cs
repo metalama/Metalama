@@ -2,16 +2,16 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Backstage.Diagnostics;
-using Metalama.Backstage.Extensibility;
-using Metalama.Backstage.Telemetry;
-using Metalama.Backstage.UserInterface.Toasts;
 using Metalama.Compiler.Services;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Services;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
+using SharpCrafters.Backstage.Diagnostics;
+using SharpCrafters.Backstage.Extensibility;
+using SharpCrafters.Backstage.Telemetry;
+using SharpCrafters.Backstage.UserInterface.Toasts;
 using System;
 using System.Collections.Generic;
 using System.IO;

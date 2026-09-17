@@ -3,8 +3,8 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 #if NET5_0_OR_GREATER
-using Metalama.Backstage.Utilities;
 using Metalama.Framework.Engine.Services;
+using SharpCrafters.Backstage.Utilities;
 using System;
 using System.IO;
 using System.Reflection;

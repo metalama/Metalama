@@ -4,11 +4,11 @@
 
 using LINQPad;
 using Metalama.Backstage;
-using Metalama.Backstage.Application;
-using Metalama.Backstage.Extensibility;
 using Metalama.Extensions.Metrics;
 using Metalama.Framework.Engine.Utilities.Diagnostics;
 using Metalama.Framework.Workspaces;
+using SharpCrafters.Backstage.Application;
+using SharpCrafters.Backstage.Extensibility;
 
 namespace Metalama.LinqPad;
 

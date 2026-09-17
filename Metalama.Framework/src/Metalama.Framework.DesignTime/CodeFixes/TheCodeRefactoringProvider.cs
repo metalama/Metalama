@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using JetBrains.Annotations;
-using Metalama.Backstage.Diagnostics;
 using Metalama.Framework.DesignTime.Extensibility;
 using Metalama.Framework.DesignTime.Services;
 using Metalama.Framework.DesignTime.Utilities;
@@ -13,6 +12,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CodeRefactorings;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using SharpCrafters.Backstage.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
 namespace Metalama.Framework.DesignTime.CodeFixes
