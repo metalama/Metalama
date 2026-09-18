@@ -3684,7 +3684,26 @@ $envVarAssignments$gitConfigCommands$postInitCommands
                 $dockerCmd += @('-w', $ContainerCallingDir, $ImageTag, $pwshPath, '-Command', $inlineScript)
             }
 
-            Write-Host "Executing: ``docker $( $dockerCmd -join ' ' )" -ForegroundColor Cyan
+            # The value of every -e is replaced by *** for the echo only. A test container receives the whole
+            # container environment, so this line would otherwise put credentials on the console: TeamCity masks
+            # the values it knows are password parameters, which covers a CI run but not a developer running the
+            # suite locally, where they appear in clear and stay in whatever captured that console. The keys are
+            # kept because knowing what was passed is the reason to print the command at all, and they are
+            # already listed on their own a few lines above. Only the echo changes; docker receives $dockerCmd.
+            $displayCmd = @()
+            for ($i = 0; $i -lt $dockerCmd.Count; $i++)
+            {
+                if ($i -gt 0 -and $dockerCmd[$i - 1] -eq '-e' -and $dockerCmd[$i] -match '^([^=]+)=')
+                {
+                    $displayCmd += "$( $Matches[1] )=***"
+                }
+                else
+                {
+                    $displayCmd += $dockerCmd[$i]
+                }
+            }
+
+            Write-Host "Executing: ``docker $( $displayCmd -join ' ' )" -ForegroundColor Cyan
             & docker @dockerCmd
         }
         $dockerExitCode = $LASTEXITCODE
