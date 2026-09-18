@@ -1,4 +1,4 @@
-$ErrorActionPreference = 'Stop'
+﻿$ErrorActionPreference = 'Stop'
 
 Push-Location $PSScriptRoot
 try {
@@ -7,9 +7,19 @@ try {
     $nugetConfig = $null
 
     while ($currentDir) {
-        $candidatePath = Join-Path $currentDir "nuget.wsl.config"
-        if (Test-Path $candidatePath) {
-            $nugetConfig = $candidatePath
+        # Two names are tried, in this order. On a development machine the Linux engine is the one inside WSL,
+        # so the local feeds are reached by their /mnt paths and Build.ps1 writes those into nuget.wsl.config.
+        # On a Linux agent there is no such translation and no such file: the harness copies
+        # nuget.restored.config to the repository root as nuget.config, whose paths are already native.
+        foreach ($candidateName in @("nuget.wsl.config", "nuget.config")) {
+            $candidatePath = Join-Path $currentDir $candidateName
+            if (Test-Path $candidatePath) {
+                $nugetConfig = $candidatePath
+                break
+            }
+        }
+
+        if ($nugetConfig) {
             break
         }
 
@@ -21,7 +31,7 @@ try {
     }
 
     if (-not $nugetConfig) {
-        Write-Error "Could not find nuget.wsl.config in any parent directory"
+        Write-Error "Could not find nuget.wsl.config or nuget.config in any parent directory. Prepare the repository before running the Docker tests."
         exit 1
     }
 

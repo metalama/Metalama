@@ -31,7 +31,6 @@ ENV DOTNET_NOLOGO=1
 ENV SDK_X64=$SDK_X64
 ENV SDK_X86=$SDK_X86
 
-WORKDIR C:/app
-COPY test.ps1 C:/app/test.ps1
-
-ENTRYPOINT ["C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe", "-NoProfile", "-File", "C:\\app\\test.ps1"]
+# The script is not copied in and there is no entry point. The repository is mounted, so the test is run from
+# there by the command the harness passes, and the image holds the tool chain and nothing else. That also keeps
+# the build context to this directory, which is what makes the content hash of the image small and stable.

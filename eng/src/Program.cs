@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -220,25 +220,29 @@ var product = new Product( MetalamaDependencies.Metalama )
         new DependentPackageExclusion( "Flashtrace", "Current repository." )
     ],
     AddWslSupport = true,
-    AdditionalCiBuildConfigurations =
-    [
-        new PowershellAdditionalCiBuildConfiguration(
-            "DockerTestsWinX64",
-            "Docker-based tests on Windows X64",
-            ".\\Metalama.Framework\\src\\tests\\docker\\DockerTests.ps1",
-            "win-x64" )
+    // The Docker tests. Declaring these is also what makes generate-scripts emit eng/RunDockerTests.ps1, the
+    // launcher that discovers the tests, selects the ones a platform runs and reports each of them.
+    //
+    // The requirements are the plain ones the constructor derives from the platform, deliberately not a
+    // ContainerHostRequirements: that would make the generator run the launcher inside the product build
+    // container, and every test would then have to nest one engine inside another to get a container of its own.
+    AdditionalCiBuildConfigurations = DockerTestsAdditionalCiBuildConfiguration.WithCompositeConfiguration(
+        new DockerTestsAdditionalCiBuildConfiguration(
+            "DockerTestsLinuxX64",
+            "Docker Tests (Linux x64)",
+            DockerTestPlatform.LinuxX64,
+            "Metalama.Framework/src/tests/docker" )
         {
-            BuildAgentRequirements = new ContainerHostRequirements( ContainerHostKind.Windows ), BuildSnapshotDependency = BuildConfiguration.Debug
+            BuildSnapshotDependency = BuildConfiguration.Debug, TimeoutInMinutes = 180
         },
-        new PowershellAdditionalCiBuildConfiguration(
-            "DockerTestsWslX64",
-            "Docker-based tests on WSL X64",
-            "./Metalama.Framework/src/tests/docker/DockerTests.ps1",
-            "linux-x64 -Wsl" )
+        new DockerTestsAdditionalCiBuildConfiguration(
+            "DockerTestsWindowsX64",
+            "Docker Tests (Windows x64)",
+            DockerTestPlatform.WindowsX64,
+            "Metalama.Framework/src/tests/docker" )
         {
-            BuildAgentRequirements = new ContainerHostRequirements( ContainerHostKind.Windows ), BuildSnapshotDependency = BuildConfiguration.Debug
-        }
-    ]
+            BuildSnapshotDependency = BuildConfiguration.Debug, TimeoutInMinutes = 180
+        } )
 };
 
 product.PrepareCompleted += OnPrepareCompleted;

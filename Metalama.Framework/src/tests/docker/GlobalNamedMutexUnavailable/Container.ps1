@@ -1,4 +1,4 @@
-# Regression test for https://github.com/metalama/Metalama/issues/272.
+﻿# Regression test for https://github.com/metalama/Metalama/issues/272.
 #
 # Metalama acquires machine-wide named mutexes (the "Global\" prefix) while initializing its
 # Backstage services. On Unix the .NET runtime implements those mutexes with files under
@@ -102,10 +102,19 @@ function Invoke-Build {
 Push-Location $PSScriptRoot
 
 try {
+    # Two names are tried, in this order. On a development machine the Linux engine is the one inside WSL, so the
+    # local feeds are reached by their /mnt paths and Build.ps1 writes those into nuget.wsl.config. On a Linux
+    # agent there is no such translation and no such file: the harness copies nuget.restored.config to the
+    # repository root as nuget.config, whose paths are already native. Both sit at the root, so searching for one
+    # and then the other reaches the same place as looking for either at each level would.
     $nugetConfig = Find-FileInParents 'nuget.wsl.config'
 
     if ( -not $nugetConfig ) {
-        throw 'Could not find nuget.wsl.config in any parent directory.'
+        $nugetConfig = Find-FileInParents 'nuget.config'
+    }
+
+    if ( -not $nugetConfig ) {
+        throw 'Could not find nuget.wsl.config or nuget.config in any parent directory. Prepare the repository before running the Docker tests.'
     }
 
     Write-Host 'Restoring...'

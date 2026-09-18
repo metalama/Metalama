@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project>
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
@@ -7,7 +7,7 @@
     <RestorePrerelease>true</RestorePrerelease>
   </PropertyGroup>
   <PropertyGroup>
-    <PostSharpEngineeringVersion Condition="'$(PostSharpEngineeringVersion)'==''">2023.2.454</PostSharpEngineeringVersion>
+    <PostSharpEngineeringVersion Condition="'$(PostSharpEngineeringVersion)'==''">2023.2.460</PostSharpEngineeringVersion>
 
 
     <!-- We must match the version used by the lowest version of Visual Studio supported by the VSX, i.e. VS 17.14. -->
