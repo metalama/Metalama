@@ -35,20 +35,6 @@ RUN dotnet --version
 ENV DOTNET_CLI_TELEMETRY_OPTOUT=1
 ENV DOTNET_NOLOGO=1
 
-# Create directories for mountpoints
-ARG MOUNTPOINTS
-RUN if [ -n "$MOUNTPOINTS" ]; then \
-        OLD_IFS="$IFS"; \
-        IFS=':'; \
-        set -- $MOUNTPOINTS; \
-        IFS="$OLD_IFS"; \
-        for dir in "$@"; do \
-            if [ -n "$dir" ]; then \
-                echo "Creating directory $dir."; \
-                mkdir -p "$dir"; \
-            fi; \
-        done; \
-    fi
 
 WORKDIR /app
 

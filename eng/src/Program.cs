@@ -205,25 +205,9 @@ var product = new Product( MetalamaDependencies.Metalama )
         new DependentPackageExclusion( "Flashtrace", "Current repository." )
     ],
     AddWslSupport = true,
-    AdditionalCiBuildConfigurations =
-    [
-        new PowershellAdditionalCiBuildConfiguration(
-            "DockerTestsWinX64",
-            "Docker-based tests on Windows X64",
-            ".\\Metalama.Framework\\src\\tests\\docker\\DockerTests.ps1",
-            "win-x64" )
-        {
-            BuildAgentRequirements = new ContainerHostRequirements( ContainerHostKind.Windows ), BuildSnapshotDependency = BuildConfiguration.Debug
-        },
-        new PowershellAdditionalCiBuildConfiguration(
-            "DockerTestsWslX64",
-            "Docker-based tests on WSL X64",
-            "./Metalama.Framework/src/tests/docker/DockerTests.ps1",
-            "linux-x64 -Wsl" )
-        {
-            BuildAgentRequirements = new ContainerHostRequirements( ContainerHostKind.Windows ), BuildSnapshotDependency = BuildConfiguration.Debug
-        }
-    ]
+    AdditionalCiBuildConfigurations = DockerTestsAdditionalCiBuildConfiguration.WithCompositeConfiguration(
+        CreateDockerTestConfiguration( DockerTestPlatform.WindowsX64, "Windows x64" ),
+        CreateDockerTestConfiguration( DockerTestPlatform.LinuxX64, "Linux x64" ) )
 };
 
 product.PrepareCompleted += OnPrepareCompleted;
@@ -254,3 +238,22 @@ static void OnPrepareCompleted( PrepareCompletedEventArgs args )
 
     GenerateMetaSyntaxRewriter.Generate( srcDirectory );
 }
+
+/// <summary>
+/// Creates the configuration that runs the Docker-based tests of one platform.
+/// </summary>
+/// <remarks>
+/// The agent requirements are derived from the platform rather than stated here, and are deliberately not a
+/// <see cref="ContainerHostRequirements"/>. That is what the previous configurations used, and it makes the
+/// generator wrap the step in a container of the product image, so a test needing a container of its own would
+/// have to nest one engine inside another. The launcher runs on the agent instead.
+/// </remarks>
+static DockerTestsAdditionalCiBuildConfiguration CreateDockerTestConfiguration( DockerTestPlatform platform, string title )
+    => new(
+        $"DockerTests{platform}",
+        $"Docker Tests ({title})",
+        platform,
+        "Metalama.Framework/src/tests/docker" )
+    {
+        BuildSnapshotDependency = BuildConfiguration.Debug
+    };

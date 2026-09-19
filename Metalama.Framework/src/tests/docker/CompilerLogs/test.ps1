@@ -44,8 +44,17 @@ try {
     $env:METALAMA_DIAGNOSTICS = $diagnosticsJson
     Write-Host "METALAMA_DIAGNOSTICS set to: $env:METALAMA_DIAGNOSTICS"
 
+    # Where Backstage keeps its temporary files, which is where the compiler writes its logs. The two
+    # branches mirror StandardDirectories.TempDirectory: Windows keeps them under the system temporary
+    # directory, while Unix moved to the local application data directory in #1650. Asking for the former
+    # on Unix finds the pre-#1650 location, which nothing writes to any more.
+    $logsDir = if ($IsWindows) {
+        Join-Path ([System.IO.Path]::GetTempPath()) "Metalama"
+    } else {
+        Join-Path ([System.Environment]::GetFolderPath("LocalApplicationData")) "Metalama" "Temp"
+    }
+
     # Clear any pre-existing logs
-    $logsDir = Join-Path ([System.IO.Path]::GetTempPath()) "Metalama"
     if (Test-Path $logsDir) {
         Remove-Item -Recurse -Force $logsDir
     }
@@ -61,7 +70,6 @@ try {
 
     # Check for compiler log files
     Write-Host "`nSearching for Metalama log files..."
-    $logsDir = Join-Path ([System.IO.Path]::GetTempPath()) "Metalama"
     Write-Host "Looking in: $logsDir"
 
     if (-not (Test-Path $logsDir)) {
