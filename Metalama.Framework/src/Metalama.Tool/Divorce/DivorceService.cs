@@ -4,18 +4,20 @@
 
 using LibGit2Sharp;
 using Metalama.Compiler;
-using Newtonsoft.Json;
 using SharpCrafters.Backstage.Commands;
 using SharpCrafters.Backstage.Diagnostics;
 using System;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 using System.Xml.Linq;
 
 namespace Metalama.Tool.Divorce;
 
 internal sealed class DivorceService
 {
+    private static readonly JsonSerializerOptions _fileMapSerializerOptions = new() { PropertyNameCaseInsensitive = true };
+
     private readonly ILogger _logger;
     private readonly string _path;
 
@@ -42,10 +44,12 @@ internal sealed class DivorceService
 
     private static TransformedFilesMap ReadFileMap( string fileMapPath )
     {
-        using var streamReader = File.OpenText( fileMapPath );
-        using var jsonReader = new JsonTextReader( streamReader );
+        using var stream = File.OpenRead( fileMapPath );
 
-        return new JsonSerializer().Deserialize<TransformedFilesMap>( jsonReader )!;
+        // The file is written by Metalama.Compiler with Newtonsoft.Json, which names each member as declared.
+        // System.Text.Json binds those to the single constructor of each type; the comparison is made
+        // case-insensitive because the constructor parameters are camel-cased and the members are not.
+        return JsonSerializer.Deserialize<TransformedFilesMap>( stream, _fileMapSerializerOptions )!;
     }
 
     private static void DisableMetalamaInProject( string projectPath )
