@@ -68,25 +68,65 @@
 .PARAMETER Dockerfile
     Path to a custom Dockerfile. Defaults to Dockerfile or Dockerfile.claude based on -Claude.
 
+.PARAMETER OS
+    The operating system of the containers this run builds and starts: windows or linux. Defaults to the
+    operating system of the host.
+
+    A build agent runs one engine, so there the default is the only possibility and anything else fails with
+    that reason. A development machine is the case that differs: Windows containers run on Docker Desktop
+    while Linux containers run on the Docker engine inside WSL. Asking for linux on a Windows development
+    machine therefore re-executes this script inside WSL, after checking that WSL, PowerShell 7 and a Linux
+    Docker engine of the host's own architecture are all there.
+
+.PARAMETER Test
+    Runs a Docker test container instead of the product build. Requires -Dockerfile and -Command.
+    The image is built and cached exactly as a product image is, with the same content-hash tag and the same
+    registry push and pull. What differs is that no product image chain is resolved and no product environment
+    variable is passed: the container gets what -Env asks for and nothing else, so the product credentials stay
+    out of it. The mounts are those of an ordinary build -- the repository, the caches and the dependency
+    repositories -- and the command runs with the repository as its working directory, so a test addresses what
+    it needs by a path relative to the repository root. Use it for a test that needs a container of its own.
+
+.PARAMETER Context
+    (-Test) The Docker build context directory. Defaults to the directory containing the Dockerfile.
+
+.PARAMETER Command
+    (-Test) The command line executed in the test container, instead of the build script. Mutually exclusive
+    with -Script: -Script names a PowerShell file that the container runs through pwsh, which the image must
+    therefore carry, while -Command is a command line run through the container's own shell, which any image
+    has. -Test requires -Command; -Script belongs to an ordinary build. The container's exit code
+    becomes the exit code of this script.
+
 .PARAMETER RegistryImage
     Use a pre-built image from a registry, skipping Dockerfile build entirely.
+
+.PARAMETER NoRegistry
+    Ignore DOCKER_REGISTRY, DOCKER_USERNAME and DOCKER_PASSWORD, and build every image locally under a local
+    tag: no authentication, no pull of an ancestor image, no push of what is built. Use it on a host that
+    cannot reach the registry, or cannot verify its certificate, so that the build proceeds without the layer
+    reuse the registry would otherwise give it.
 
 .PARAMETER NoInit
     Do not generate or call Init.g.ps1 (skips environment variables, git config, safe.directory, etc).
 
 .PARAMETER Isolation
-    Docker isolation mode: 'process' or 'hyperv'.
+    Docker isolation mode: 'process' or 'hyperv'. Windows only; ignored on Linux and macOS.
     When not specified, defaults to 'hyperv' on Windows Desktop and 'process' on Windows Server.
-    Memory and CPU limits only apply to hyperv isolation.
+    On Windows, -Memory and a static -Cpus only apply under hyperv isolation.
 
 .PARAMETER Memory
-    Docker memory limit (e.g., "8g"). Only used with hyperv isolation.
+    Docker memory limit (e.g., "8g"). Applied on Linux and macOS, and on Windows under
+    hyperv isolation; Windows process isolation ignores it.
+    Clamped to the memory that the Docker engine reports, so a default larger than the
+    machine does not produce a limit the engine cannot honour. The MSBuild node count
+    passed to the container as MAX_BUILD_PARALLELISM is derived from the result, at one
+    node per 4 GB.
     Defaults to $env:BuildAgentMemory (an integer in GB) if set, otherwise 24g.
 
 .PARAMETER Cpus
     Docker CPU limit. Use a positive integer for a static limit, or "dynamic" for
     automatic allocation that rebalances CPUs across all managed containers.
-    Only used with hyperv isolation (static) or any isolation (dynamic).
+    A static limit is applied wherever -Memory is; "dynamic" applies under any isolation.
     Defaults to $env:BuildAgentCpus if set, otherwise the host processor count.
 
 .PARAMETER Mount
@@ -103,6 +143,22 @@
 .PARAMETER Label
     Label to apply to the container for identification (e.g., for cleanup of orphaned build containers).
     The label is set as "postsharp.build=<value>" on the container.
+
+.PARAMETER MaxImageSpace
+    Budget for the Docker image store, in gigabytes. Before the image chain is built, if the image
+    store exceeds this budget, unused images are removed LEAST RECENTLY USED first until the store
+    is down to 70% of the budget. The gap is deliberate: freeing only to the budget would run a
+    cleanup on every build once the store settled just above the line.
+    The last use of an image is recorded by this script, because the Docker engine exposes none; an
+    image that no run has recorded yet falls back to its creation date.
+    The budget is compared to the size that `docker system df` reports for images, which counts a
+    layer shared by several images only once.
+    The removal covers every image on the Docker engine, not only the images of this repository.
+    It never removes an image that this run needs, an image that any container references, or an
+    image created or used in the last two hours.
+    Gigabytes are decimal (1 GB = 1e9 bytes), which is the unit `docker system df` prints.
+    Set it to 0 to disable the cleanup.
+    Defaults to $env:DOCKER_MAX_IMAGE_SPACE if set, otherwise 100.
 
 .PARAMETER BuildArgs
     Arguments passed to Build.ps1 within the container (or Claude prompt if -Claude is specified).
@@ -146,15 +202,22 @@ param(
     [switch]$StartVsmon, # Enable the remote debugger.
     [string]$Script = 'Build.ps1', # The build script to be executed inside Docker.
     [string]$Dockerfile, # Path to custom Dockerfile (defaults to Dockerfile or Dockerfile.claude based on -Claude).
+    [ValidateSet('windows', 'linux')]
+    [string]$OS, # The operating system of the containers. Defaults to the host's. On a Windows development machine, 'linux' re-executes this script inside WSL.
+    [switch]$Test, # Run an isolated Docker test container. Requires -Dockerfile and -Command. Builds no product image chain, mounts no repository directory, and passes no product environment variable.
+    [string]$Context, # (-Test) The Docker build context directory. Defaults to the directory containing the Dockerfile.
+    [string]$Command, # (-Test) The command line executed in the test container, instead of the build script.
     [string]$RegistryImage, # Use a pre-built image from a registry, skipping Dockerfile build entirely.
+    [switch]$NoRegistry, # Ignore DOCKER_REGISTRY and its credentials; build locally without pulling or pushing.
     [switch]$NoInit, # Do not generate or call Init.g.ps1 (skips git config, safe.directory, etc).
-    [string]$Isolation = 'process', # Docker isolation mode (process or hyperv). When not specified, defaults to hyperv on Windows Desktop and process on Windows Server. Memory/CPU limits only apply to hyperv.
-    [string]$Memory = $(if ($env:BuildAgentMemory) { "${env:BuildAgentMemory}g" } else { '24g' }), # Docker memory limit (e.g., "8g"). Only used with hyperv isolation. Defaults to $env:BuildAgentMemory (in GB) or 24g.
+    [string]$Isolation = 'process', # Docker isolation mode (process or hyperv). Windows only. When not specified, defaults to hyperv on Windows Desktop and process on Windows Server. Memory/CPU limits only apply to hyperv.
+    [string]$Memory = $(if ($env:BuildAgentMemory) { "${env:BuildAgentMemory}g" } else { '24g' }), # Docker memory limit (e.g., "8g"). Applied except under Windows process isolation, and clamped to the memory reported by the Docker engine. Defaults to $env:BuildAgentMemory (in GB) or 24g.
     [string]$Cpus = $(if ($env:BuildAgentCpus) { $env:BuildAgentCpus } else { [Environment]::ProcessorCount }), # Docker CPU limit. Use a positive integer or "dynamic". Defaults to $env:BuildAgentCpus or host processor count.
     [string[]]$Mount, # Additional directories to mount from host (readonly by default, append :w for writable). Supports * and ** glob patterns.
     [string[]]$Env, # Additional environment variables to pass from host to container.
     [string[]]$Ports, # Port mappings from host to container (e.g., "8080:80", "3000").
     [string]$Label, # Label to apply to the container (e.g., for identifying build containers for cleanup).
+    [string]$MaxImageSpace = $(if ($env:DOCKER_MAX_IMAGE_SPACE) { $env:DOCKER_MAX_IMAGE_SPACE } else { '100' }), # Budget for the Docker image store, in decimal GB. Unused images are removed least recently used first, before the build, down to 70% of the budget when the store exceeds it. 0 disables the cleanup. Defaults to $env:DOCKER_MAX_IMAGE_SPACE or 100.
     [Parameter(ValueFromRemainingArguments)]
     [string[]]$BuildArgs   # Arguments passed to `Build.ps1` within the container (or Claude prompt if -Claude is specified).
 )
@@ -203,6 +266,203 @@ if ($null -eq $IsWindows)
 }
 $IsUnix = -not $IsWindows  # Covers both Linux and macOS
 
+# Converts a host path to the form WSL sees it under: C:\src\x becomes /mnt/c/src/x. Used only when this
+# script hands its own arguments to a copy of itself running inside WSL, where every path it was given names
+# a Windows location that the Linux side reaches through /mnt.
+# Quotes a value as a PowerShell single-quoted literal, doubling any apostrophe it contains. The WSL hop builds
+# a command line rather than passing arguments, so every value it forwards goes through here: a path holding an
+# apostrophe would otherwise end the literal early and have its remainder parsed as PowerShell.
+function ConvertTo-PowerShellLiteral([string]$value)
+{
+    return "'" + ( $value -replace "'", "''" ) + "'"
+}
+
+function ConvertTo-WslHostPath([string]$path)
+{
+    if ($path -match '^([A-Za-z]):[\\/](.*)$')
+    {
+        return "/mnt/$( $Matches[1].ToLowerInvariant() )/$( $Matches[2] -replace '\\', '/' )"
+    }
+
+    return $path -replace '\\', '/'
+}
+
+# A caller that splats an ARRAY -- `& ./DockerBuild.ps1 @arguments` where $arguments is @('-Test', ...) -- does not
+# bind these parameters by name. -BuildArgs takes the remaining arguments, so every value lands there and this
+# script goes on to run an ordinary product build, mounting the source tree and forwarding the product secrets,
+# instead of whatever mode was asked for. That failure is silent and its consequences are not, so it is refused
+# here. Callers splat a hashtable: @{ Test = $true; OS = 'linux' }.
+# The parameter names are read from the command rather than from $MyInvocation, whose MyCommand.Parameters is
+# empty at script scope and silently matched nothing.
+$declaredParameters = ( Get-Command -Name $PSCommandPath ).Parameters.Keys
+
+$misboundArguments = @( $BuildArgs | Where-Object {
+    $_ -and $_.StartsWith('-') -and $declaredParameters -contains $_.Substring(1)
+} )
+
+if ($misboundArguments.Count -gt 0)
+{
+    Write-Host "These arguments name parameters of this script but were not bound to them: $( $misboundArguments -join ', ' )" -ForegroundColor Red
+    Write-Host "That happens when a caller splats an array. Splat a hashtable instead, for example:" -ForegroundColor Red
+    Write-Host "  `$arguments = @{ Test = `$true; OS = 'linux' }; ./DockerBuild.ps1 @arguments" -ForegroundColor Red
+    exit 1
+}
+
+# The operating system of the containers. The host's own is the default and, on a build agent, the only
+# possibility: an agent runs one engine, and a build that needs the other one is routed to another agent.
+#
+# A development machine is where the two can differ, because Windows containers run on Docker Desktop while
+# Linux containers run on the Docker engine inside WSL. Rather than special-casing every place that branches
+# on the host -- the isolation flag, the escape character, the base image tag, the path conversion -- this
+# script re-executes itself inside WSL, where it is running on a genuine Linux host and none of those places
+# needs to know that a Windows machine started it.
+$hostOs = if ($IsWindows) { 'windows' } else { 'linux' }
+
+if (-not $OS)
+{
+    $OS = $hostOs
+}
+
+if ($OS -ne $hostOs)
+{
+    if ($IsUnix)
+    {
+        Write-Host "This host runs $hostOs containers, and -OS $OS was requested." -ForegroundColor Red
+        Write-Host "Windows containers need a Windows host. There is no counterpart of WSL in that direction." -ForegroundColor Red
+        exit 1
+    }
+
+    # Switching on an agent would run the build on an engine other than the one it was routed to, and would
+    # hide a wrong agent requirement behind a silent fallback. It is refused with the reason instead.
+    if ($env:IS_TEAMCITY_AGENT)
+    {
+        Write-Host "This agent runs $hostOs containers, and -OS $OS was requested." -ForegroundColor Red
+        Write-Host "A build agent does not switch. Route this build to an agent whose engine is $OS." -ForegroundColor Red
+        exit 1
+    }
+
+    if (-not (Get-Command wsl.exe -ErrorAction SilentlyContinue))
+    {
+        Write-Host "Linux containers on a Windows development machine run on the Docker engine inside WSL, and wsl.exe was not found." -ForegroundColor Red
+        Write-Host "Install it with 'wsl --install', then install PowerShell 7 and a Docker engine inside the distribution." -ForegroundColor Red
+        exit 1
+    }
+
+    $wslPwsh = (& wsl.exe -- sh -c 'command -v pwsh' 2>&1 | Out-String).Trim()
+
+    if ($LASTEXITCODE -ne 0 -or -not $wslPwsh)
+    {
+        Write-Host "PowerShell 7 is not installed inside the WSL distribution, so this script cannot run there." -ForegroundColor Red
+        Write-Host "Install pwsh in the distribution and try again." -ForegroundColor Red
+        exit 1
+    }
+
+    $wslEngineOs = (& wsl.exe -- docker version --format '{{.Server.Os}}' 2>&1 | Out-String).Trim()
+
+    if ($LASTEXITCODE -ne 0 -or $wslEngineOs -ne 'linux')
+    {
+        Write-Host "The Docker engine inside WSL did not answer, or is not a Linux engine: $wslEngineOs" -ForegroundColor Red
+        Write-Host "Start it inside the distribution, for example with 'sudo service docker start'." -ForegroundColor Red
+        exit 1
+    }
+
+    # An engine of another architecture would build images this machine cannot run, and the failure would come
+    # much later and name something else, so it is checked here.
+    $wslEngineArch = (& wsl.exe -- docker version --format '{{.Server.Arch}}' 2>&1 | Out-String).Trim()
+
+    $hostArch = switch ([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)
+    {
+        'X64' { 'amd64' }
+        'Arm64' { 'arm64' }
+        default { $null }
+    }
+
+    if ($hostArch -and $wslEngineArch -and $wslEngineArch -ne $hostArch)
+    {
+        Write-Host "The Docker engine inside WSL reports $wslEngineArch while this host is $hostArch." -ForegroundColor Red
+        Write-Host "An emulated engine produces images of the wrong architecture, so the run is refused." -ForegroundColor Red
+        exit 1
+    }
+
+    # Rebuild the invocation for the Linux side. Everything is forwarded as it was given except -OS, which has
+    # been answered by the hop itself, and the parameters holding a path, which name Windows locations.
+    $pathParameters = @('Dockerfile', 'Context', 'PostInit', 'BuildAgentPath')
+    $wslArguments = @()
+
+    foreach ($parameter in $PSBoundParameters.GetEnumerator())
+    {
+        if ($parameter.Key -eq 'OS' -or $parameter.Key -eq 'BuildArgs')
+        {
+            continue
+        }
+
+        $value = $parameter.Value
+
+        if ($value -is [System.Management.Automation.SwitchParameter])
+        {
+            if ($value.IsPresent)
+            {
+                $wslArguments += "-$( $parameter.Key )"
+            }
+
+            continue
+        }
+
+        $items = @()
+
+        foreach ($item in @($value))
+        {
+            $text = [string]$item
+
+            if ($pathParameters -contains $parameter.Key)
+            {
+                $text = ConvertTo-WslHostPath $text
+            }
+            elseif ($parameter.Key -eq 'Mount')
+            {
+                # A mount is a host directory, optionally followed by ':w'. Only the directory is a path.
+                if ($text -match '^(.*):w$')
+                {
+                    $text = ( ConvertTo-WslHostPath $Matches[1] ) + ':w'
+                }
+                else
+                {
+                    $text = ConvertTo-WslHostPath $text
+                }
+            }
+
+            $items += $text
+        }
+
+        # A collection is written as an array literal, and a single value as a scalar. Joining with commas will
+        # not do: `pwsh -File` passes arguments as literal strings, so '-Mount a,b' arrives as the one element
+        # 'a,b' rather than as two mounts, and the second would silently become part of a path that does not
+        # exist. Repeating the parameter is not an option either -- `pwsh -File` rejects that outright -- so the
+        # hop goes through -Command, where an array literal means what it says.
+        if ($items.Count -gt 1)
+        {
+            $wslArguments += "-$( $parameter.Key ) @(" + ( ( $items | ForEach-Object { ConvertTo-PowerShellLiteral $_ } ) -join ',' ) + ")"
+        }
+        else
+        {
+            $wslArguments += "-$( $parameter.Key ) " + ( ConvertTo-PowerShellLiteral $items[0] )
+        }
+    }
+
+    foreach ($buildArg in $BuildArgs)
+    {
+        $wslArguments += ConvertTo-PowerShellLiteral ([string]$buildArg)
+    }
+
+    Write-Host "Linux containers run on the Docker engine inside WSL; re-executing this script there." -ForegroundColor Cyan
+
+    $wslCommand = "& " + ( ConvertTo-PowerShellLiteral ( ConvertTo-WslHostPath $PSCommandPath ) ) + " " + ( $wslArguments -join ' ' )
+
+    & wsl.exe -- $wslPwsh -NoProfile -Command $wslCommand
+
+    exit $LASTEXITCODE
+}
+
 # Docker isolation is Windows-only. Windows Server supports process isolation (faster,
 # no per-container VM); Windows Desktop (client) only reliably runs hyperv isolation.
 # Auto-detect by Windows edition unless -Isolation was passed explicitly.
@@ -221,6 +481,14 @@ else
 {
     ""
 }
+
+# --memory and --cpus are honoured by the Linux and macOS engines whatever $Isolation says: isolation modes
+# are a Windows concept and nothing outside $isolationArg acts on the value there. On Windows the limits only
+# take effect under hyperv isolation - a process-isolated container shares the host kernel and the daemon
+# silently drops both flags. Guarding on $Isolation alone would therefore leave every Linux container
+# unlimited, which also loses MAX_BUILD_PARALLELISM (msbuild.ps1 derives the node count from the memory
+# budget, and falls back to one node per CPU when there is none).
+$supportsResourceLimits = $IsUnix -or $Isolation -ne 'process'
 
 # Set BuildAgentPath default based on platform
 if ( [string]::IsNullOrEmpty($BuildAgentPath))
@@ -274,6 +542,52 @@ try
         exit 1
     }
 
+    # -Test shares this script's image caching and registry handling, and nothing else. What it excludes is
+    # implied rather than requested, so that a test cannot acquire the build container's credentials by
+    # forgetting a flag.
+    if ($Test)
+    {
+        if (-not $Dockerfile)
+        {
+            Write-Error "-Test requires -Dockerfile."
+            exit 1
+        }
+
+        if (-not $Command)
+        {
+            Write-Error "-Test requires -Command."
+            exit 1
+        }
+
+        foreach ($excluded in @('Claude', 'Interactive', 'BuildImage', 'StartVsmon', 'PostInit', 'KeepInit', 'Script'))
+        {
+            if ( $PSBoundParameters.ContainsKey($excluded))
+            {
+                Write-Error "-Test cannot be combined with -$excluded."
+                exit 1
+            }
+        }
+
+        $testContext = if ($Context) { $Context } else { Split-Path -Parent $Dockerfile }
+
+        if (-not (Test-Path -LiteralPath $testContext -PathType Container))
+        {
+            Write-Error "The build context directory '$testContext' does not exist."
+            exit 1
+        }
+
+        $script:TestContextDirectory = (Resolve-Path -LiteralPath $testContext).Path
+
+        # Init.g.ps1 is not invoked in a test container, because a test image is chosen for the tool chain under
+        # test and is not required to carry PowerShell 7. That is the only reason. The environment it would have
+        # inlined reaches the container as -e arguments instead, so a test container is configured like a build
+        # container: this repository builds it from a Dockerfile it owns and runs it, and it is trusted the same
+        # way. Withholding the environment bought no isolation worth the cost, because NUGET_PACKAGES is in that
+        # set and without it NuGet falls back to $HOME/.nuget/packages and the host cache mapped below is never
+        # read -- every test restored over the network, the opposite of what the mount is for.
+        $NoInit = $true
+    }
+
     # Validate and parse -Cpus parameter
     $isDynamicCpus = $false
     if ($Cpus -eq 'dynamic')
@@ -291,6 +605,88 @@ try
             exit 1
         }
         $Cpus = $cpuInt
+    }
+
+    # Validate and parse -MaxImageSpace. An empty value or 0 disables the image-space cleanup; anything else
+    # must be a whole number of gigabytes. An unparseable value is a hard error, as for -Cpus: this variable is
+    # normally set once for a whole build agent, so a typo that silently disabled the cleanup would only be
+    # discovered as a full disk, weeks later.
+    $maxImageSpaceBytes = [long]0
+    if (-not [string]::IsNullOrWhiteSpace($MaxImageSpace))
+    {
+        $maxImageSpaceGb = 0
+        if (-not [int]::TryParse($MaxImageSpace.Trim(), [ref]$maxImageSpaceGb) -or $maxImageSpaceGb -lt 0)
+        {
+            Write-Error "-MaxImageSpace must be a whole number of gigabytes, or 0 to disable the image-space cleanup. Got: '$MaxImageSpace'"
+            exit 1
+        }
+
+        # Docker prints sizes in DECIMAL gigabytes, so the budget uses the same unit as the number it is
+        # compared to. PowerShell's 1GB is binary, and would silently turn a budget of 100 into 107.4 of the
+        # gigabytes that `docker system df` reports.
+        $maxImageSpaceBytes = [long]$maxImageSpaceGb * 1000000000
+    }
+
+    # Images created within this window are never removed, and `docker image prune` is given the same window.
+    # This is what makes the cleanup safe against the concurrent DockerBuild runs that share a build agent. A
+    # sibling run's freshly built or pulled chain image, and its boot image between `docker build` and
+    # `docker run`, are referenced by no container, are absent from this run's keep set, and are invisible to
+    # everything else here. Two hours is much longer than that window, and costs nothing on an agent whose
+    # image store has grown over weeks.
+    $ImageCleanupGraceHours = 2
+
+    # Once the store is over budget, the cleanup frees down to this fraction of the budget rather than to just
+    # under the line. Without the gap, a store resting a little above the budget runs a cleanup on EVERY build
+    # and frees almost nothing each time - the measuring alone (`docker system df`) is the expensive part. At a
+    # budget of 100 GB this frees at least 30 GB, which buys roughly thirty quiet builds.
+    $ImageCleanupTargetFraction = 0.70
+
+    # How many measure-and-remove passes the cleanup makes. Each pass costs one `docker system df`, which is
+    # the expensive part, and each pass necessarily removes too little, because the size reported for an image
+    # includes the layers it shares with images that survive. A chain therefore loses one level per pass. The
+    # chains here are three deep, so four passes leave one to spare, and whatever is not freed by then is freed
+    # by the next build.
+    $ImageCleanupMaxPasses = 4
+
+    # Wall-clock budget for the whole cleanup. `docker system df` walks the layer store and can take minutes on
+    # an agent that holds hundreds of images. Freeing disk must never become the slowest part of the build.
+    $ImageCleanupTimeoutMinutes = 10
+
+    # msbuild.ps1 budgets one MSBuild node per 4 GB of the container's memory.
+    $MinMemoryPerCpuGb = 4
+
+    # -Memory defaults to 24g, which is more than several agents have. A limit above what the engine can honour is
+    # worse than no limit at all on Linux: the cgroup ceiling is then unreachable, so nothing constrains the build,
+    # and the node count below would be derived from memory the container can never use. Ask the engine what it
+    # actually has and clamp to it. A failure to reach the engine leaves the requested value untouched.
+    $memoryGb = 0
+    if ($supportsResourceLimits -and $Memory -match '^\s*(\d+(?:\.\d+)?)\s*([gm])b?\s*$')
+    {
+        $memoryGb = [double]$Matches[1]
+        if ($Matches[2] -eq 'm') { $memoryGb = $memoryGb / 1024 }
+
+        $engineMemoryBytes = [long]0
+        $engineMemoryRaw = "$( docker info --format '{{.MemTotal}}' 2>$null )".Trim()
+        if ([long]::TryParse($engineMemoryRaw, [ref]$engineMemoryBytes) -and $engineMemoryBytes -gt 0)
+        {
+            $engineMemoryGb = $engineMemoryBytes / 1GB
+            if ($memoryGb -gt $engineMemoryGb)
+            {
+                $clampedGb = [int][Math]::Max(1, [Math]::Floor($engineMemoryGb))
+                Write-Host "Requested --memory=$Memory exceeds the $( [Math]::Round($engineMemoryGb, 1) )g reported by the Docker engine; clamping to ${clampedGb}g" -ForegroundColor Yellow
+                $Memory = "${clampedGb}g"
+                $memoryGb = $clampedGb
+            }
+        }
+    }
+
+    # Derive the node count here, where the container's memory budget is known. Inside the container msbuild.ps1
+    # cannot read the cgroup limit, so without this it falls back to the processor count and over-subscribes a
+    # small agent - 16 nodes against 7 GB on the cell that reported this.
+    $maxBuildParallelism = 0
+    if ($memoryGb -gt 0)
+    {
+        $maxBuildParallelism = [int][Math]::Max(1, [Math]::Floor($memoryGb / $MinMemoryPerCpuGb))
     }
 
     if ($env:IS_TEAMCITY_AGENT)
@@ -599,6 +995,19 @@ try
         }
     }
 
+    # The directory where this script keeps the state it must not lose between runs: the weekly timestamp file
+    # and the image-usage records. Mirrors PathHelper.GetEngineeringDataDirectory() in the build tools, and is
+    # the directory mounted into the container further down, so both sides of the mount agree on one location.
+    function Get-EngineeringDataDirectory
+    {
+        if ($IsUnix)
+        {
+            return (Join-Path $env:HOME ".local/share/PostSharp.Engineering")
+        }
+
+        return (Join-Path $env:LOCALAPPDATA "PostSharp.Engineering")
+    }
+
     function Get-TimestampFile
     {
         # Persists $script:DayStamp (the single source of truth, also mixed
@@ -606,14 +1015,7 @@ try
         # Dockerfile.claude can COPY it in and invalidate inner layers on
         # the same week boundary as the outer image tag.
 
-        $timestampDir = if ($IsUnix)
-        {
-            Join-Path $env:HOME ".local/share/PostSharp.Engineering"
-        }
-        else
-        {
-            Join-Path $env:LOCALAPPDATA "PostSharp.Engineering"
-        }
+        $timestampDir = Get-EngineeringDataDirectory
         $timestampFile = Join-Path $timestampDir "update.timestamp"
 
         # Ensure directory exists
@@ -724,6 +1126,13 @@ try
     # directory is treated as an empty context by Get-ContentHash, and Build-OneImage creates it before building.
     function Get-ContextDirFor([string]$dfPath)
     {
+        # A test image takes its context from the test's own directory. The test owns the files its Dockerfile
+        # copies, and it is not part of the repository's image chain.
+        if ($Test)
+        {
+            return $script:TestContextDirectory
+        }
+
         return Join-Path $dockerContextDirectory (Get-DockerfileStem $dfPath)
     }
 
@@ -798,7 +1207,18 @@ try
 
         # OS discriminator so ltsc2025 / ltsc2022 produce distinct tags of the same image name. Propagates to
         # descendants through $baseFold.
-        $extra = "os=$windowsVersion|base=$baseFold"
+        #
+        # The architecture discriminates too, always, including amd64. The content hash is otherwise identical
+        # for the same Dockerfile built on x64 and on ARM64: both agents compute one tag, the first pushes an
+        # image of its own architecture, and the second pulls it and fails -- with "no matching manifest" if the
+        # registry rejects it, or, worse, with "exec /bin/sh: exec format error" once it has been pulled, which
+        # names neither the image nor the architecture.
+        #
+        # Folding it in only for non-amd64 was tried and is not enough: it gives a future ARM64 build its own
+        # tag, but leaves amd64 on the name an ARM64 build may already have pushed to, so the poisoning survives
+        # the fix. Including it everywhere changes every tag once, which is a rebuild, and is what actually
+        # abandons the bad ones.
+        $extra = "os=$windowsVersion|arch=$( Get-DockerArchitecture )|base=$baseFold"
 
         # Fold the weekly stamp only for images that bake the update.timestamp cache-buster (the Claude leaf), so
         # @latest npm installs of the Claude CLI and plug-ins refresh once per UTC week.
@@ -807,7 +1227,10 @@ try
         $hash = Get-ContentHash -DockerfilePath $dfPath -ContextDirectory (Get-ContextDirFor $dfPath) -DayStamp $hashDayStamp -ExtraInput $extra
         # The image NAME carries the product/version prefix ($DockerImagePrefix); the Dockerfile file stem does
         # not. e.g. stem 'build' -> image '<prefix>-build'. ARG BASE_IMAGE references stems (prefix-free).
-        $imageName = "$DockerImagePrefix-$( Get-DockerfileStem $dfPath )"
+        # Lower-cased because a Docker repository name must be lower case, while the stem is the file name as
+        # written: a custom -Dockerfile named 'Dockerfile', which is the conventional name and the one the
+        # container tests use, would otherwise produce an invalid tag and fail the build.
+        $imageName = "$DockerImagePrefix-$( Get-DockerfileStem $dfPath )".ToLowerInvariant()
         $tag = if ($dockerRegistry) { "${dockerRegistry}/${imageName}:${hash}" } else { "${imageName}:${hash}" }
         $script:resolvedTags[$key] = $tag
         return $tag
@@ -822,6 +1245,12 @@ try
         {
             return @"
 ARG MOUNTPOINTS
+# The RUN below is PowerShell, so the shell has to be declared. A Windows image inherits whatever SHELL its base
+# declares, and that differs between the images this script is pointed at: the .NET Framework SDK images declare
+# PowerShell, while the .NET SDK images leave the Docker default of cmd, which fails on the first brace. The
+# product build image happens to declare PowerShell, which is why this only surfaced once a test container -- on
+# an arbitrary base image -- was given mounts and therefore a boot image.
+SHELL ["powershell", "-Command", "`$ErrorActionPreference = 'Stop';"]
 RUN if (`$env:MOUNTPOINTS) { ``
         `$mounts = `$env:MOUNTPOINTS -split ';'; ``
         foreach (`$dir in `$mounts) { ``
@@ -853,6 +1282,38 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
         }
     }
 
+    # Parse the OS image a chain ROOT is built FROM, as declared by `ARG OS_IMAGE_REPOSITORY=` (the Windows
+    # default root, which takes its tag from WINDOWS_VERSION) or `ARG OS_IMAGE=` (every other root, which
+    # declares a complete reference). Returns $null for a Dockerfile that declares neither, which is every
+    # image that is not a chain root.
+    #
+    # Pure: it only reads the file. That is what lets the image-space cleanup protect the OS image before any
+    # image is built, without asking the daemon anything. ArgName tells the caller which build-arg the value
+    # belongs to, because the two spellings need different values (a repository, or a full reference).
+    function Get-OsImageSpec([string]$dfPath)
+    {
+        $content = Get-Content -Raw $dfPath -ErrorAction SilentlyContinue
+        if (-not $content) { return $null }
+
+        if ($windowsVersion -and ($content -match 'ARG\s+OS_IMAGE_REPOSITORY=(\S+)'))
+        {
+            return [pscustomobject]@{ Repository = $Matches[1]; Tag = $windowsVersion; ArgName = 'OS_IMAGE_REPOSITORY' }
+        }
+
+        if ($content -match 'ARG\s+OS_IMAGE=(\S+)')
+        {
+            # Split the trailing tag off the reference; a ':' before the last '/' belongs to a registry port.
+            $ref = $Matches[1]
+            $slash = $ref.LastIndexOf('/')
+            $colon = $ref.LastIndexOf(':')
+            if ($colon -gt $slash) { return [pscustomobject]@{ Repository = $ref.Substring(0, $colon); Tag = $ref.Substring($colon + 1); ArgName = 'OS_IMAGE' } }
+
+            return [pscustomobject]@{ Repository = $ref; Tag = 'latest'; ArgName = 'OS_IMAGE' }
+        }
+
+        return $null
+    }
+
     # Build one chain image from its STATIC Dockerfile, unmodified (per-image context, base build-arg).
     function Build-OneImage([string]$dfPath, [string]$tag, [string[]]$baseBuildArg)
     {
@@ -866,7 +1327,7 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
         Copy-TimestampToContext $dfPath
         $cmd = @('build', '-t', $tag)
         if ($isolationArg) { $cmd += $isolationArg }
-        if ($Memory -and $Isolation -ne 'process') { $cmd += "--memory=$Memory" }
+        if ($Memory -and $supportsResourceLimits) { $cmd += "--memory=$Memory" }
         # Pass WINDOWS_VERSION only to the root image that declares it (avoids 'unconsumed build-arg' warnings).
         if ($IsWindows -and $windowsVersion -and ($content -match 'ARG\s+WINDOWS_VERSION'))
         {
@@ -877,20 +1338,12 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
         # means the mirror is only consulted when a root image is genuinely being built. The Windows default
         # root takes its tag from WINDOWS_VERSION and so declares a repository; every other root (Linux, and
         # any product that pins its own base image) declares a complete reference.
-        if ($windowsVersion -and ($content -match 'ARG\s+OS_IMAGE_REPOSITORY=(\S+)'))
+        $osImageSpec = Get-OsImageSpec $dfPath
+        if ($osImageSpec)
         {
-            $cmd += @('--build-arg', "OS_IMAGE_REPOSITORY=$( (Get-OsImage $Matches[1] $windowsVersion).Repository )")
-        }
-        elseif ($content -match 'ARG\s+OS_IMAGE=(\S+)')
-        {
-            # Split the trailing tag off the reference; a ':' before the last '/' belongs to a registry port.
-            $ref = $Matches[1]
-            $slash = $ref.LastIndexOf('/')
-            $colon = $ref.LastIndexOf(':')
-            if ($colon -gt $slash) { $osRepository = $ref.Substring(0, $colon); $osTag = $ref.Substring($colon + 1) }
-            else { $osRepository = $ref; $osTag = 'latest' }
-
-            $cmd += @('--build-arg', "OS_IMAGE=$( (Get-OsImage $osRepository $osTag).Reference )")
+            $osImage = Get-OsImage $osImageSpec.Repository $osImageSpec.Tag
+            $osImageValue = if ($osImageSpec.ArgName -eq 'OS_IMAGE_REPOSITORY') { $osImage.Repository } else { $osImage.Reference }
+            $cmd += @('--build-arg', "$( $osImageSpec.ArgName )=$osImageValue")
         }
         $cmd += $baseBuildArg
         $cmd += @('-f', '-', $ctxDir)
@@ -936,7 +1389,7 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
         {
             $cmd = @('build', '-t', $bootTag)
             if ($isolationArg) { $cmd += $isolationArg }
-            if ($Memory -and $Isolation -ne 'process') { $cmd += "--memory=$Memory" }
+            if ($Memory -and $supportsResourceLimits) { $cmd += "--memory=$Memory" }
             $cmd += @('--build-arg', "MOUNTPOINTS=$mountPointsAsString", '-f', '-', $bootCtx)
             Write-Host "Building boot image $bootTag (bind-mount dirs) over $baseTag" -ForegroundColor Green
             # Its FROM is the local chain leaf, so no credentials are needed - but the config dir is passed for
@@ -1019,11 +1472,84 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
         $script:RegistryPushJobs = @()
     }
 
+    # The processor architecture of the Docker engine, in the naming Docker itself uses ('amd64', 'arm64').
+    # It is the architecture of the OS image a mirror ends up holding, because `docker pull` of a
+    # multi-architecture manifest selects the engine's own platform.
+    #
+    # The engine is asked rather than the host, because the two differ on macOS: the engine runs in a Linux
+    # virtual machine (Docker Desktop, Colima, Rancher Desktop), and the images are of the virtual machine's
+    # architecture, not of the architecture the PowerShell process happens to run under. Queried once per run.
+    function Get-DockerArchitecture
+    {
+        if ($script:DockerArchitecture)
+        {
+            return $script:DockerArchitecture
+        }
+
+        # '{{.Server.Arch}}' is the daemon's own Go architecture name, the same vocabulary an image manifest
+        # uses. `docker info --format '{{.Architecture}}'` is not interchangeable with it: that one reports the
+        # uname form, 'x86_64' rather than 'amd64', which is why the result is normalized below.
+        $architecture = (docker version --format '{{.Server.Arch}}' 2>$null | Select-Object -Last 1)
+
+        if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($architecture))
+        {
+            # The daemon could not be asked: it is not running, or on Linux the user is not in the docker
+            # group. The host architecture is the next best answer, and is the right one wherever the daemon
+            # runs on the host itself, which covers Linux and Windows.
+            $architecture = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString()
+            Write-Host "Could not read the Docker engine architecture; assuming the host's, $architecture." -ForegroundColor Yellow
+        }
+
+        $architecture = $architecture.Trim()
+
+        # Accept every spelling the two sources above can produce, including the .NET enum names ('X64',
+        # 'Arm64') that the fallback returns.
+        $script:DockerArchitecture = switch -Regex ($architecture)
+        {
+            '^(amd64|x64|x86_64)$' { 'amd64' }
+            '^(arm64|aarch64)$' { 'arm64' }
+            default { $architecture.ToLowerInvariant() }
+        }
+
+        return $script:DockerArchitecture
+    }
+
     # Resolve the OS image a root image is built FROM, mirroring it into the configured registry the first time
     # it is needed. On a fresh agent the OS image is the most expensive download of the whole build, and the
     # registry is on the LAN, so building from the mirror replaces an internet transfer with a local one.
     # Agents that configure no registry (the cloud ones) go straight to the upstream registry, as before.
     #
+    # The repository the given upstream OS repository is mirrored under in $dockerRegistry. Split out of
+    # Get-OsImage so that the image-space cleanup can name the mirror without pulling or creating it.
+    function Get-OsMirrorRepository([string]$repository)
+    {
+        # Flatten the upstream repository into a single product-neutral name, dropping the registry host:
+        # 'mcr.microsoft.com/windows/servercore' -> 'windows-servercore', 'ubuntu' -> 'ubuntu'. Every product
+        # using this registry then shares the one mirror.
+        $segments = $repository -split '/'
+        if ($segments.Length -gt 1 -and ($segments[0] -match '[.:]'))
+        {
+            $segments = $segments[1..($segments.Length - 1)]
+        }
+
+        # A repository holds one manifest per tag, and the mirror is single-platform: whichever agent creates
+        # it decides the architecture every later agent gets, with no error until a command runs in a
+        # container built from it. So the architecture belongs in the mirror name. amd64 keeps the unsuffixed
+        # name, which every mirror already in the registry was pushed under:
+        #   amd64 -> <registry>/ubuntu, arm64 -> <registry>/ubuntu-arm64.
+        $architecture = Get-DockerArchitecture
+        $architectureSuffix = if ($architecture -eq 'amd64')
+        {
+            ''
+        }
+        else
+        {
+            "-$architecture"
+        }
+
+        return "$dockerRegistry/$( $segments -join '-' )$architectureSuffix"
+    }
+
     # Takes the upstream repository and tag, and returns an object with the Repository and the full Reference to
     # build from - either the mirror or, when there is no registry (or the mirror cannot be created), upstream.
     # Called only when a ROOT image is actually being built, so a run that pulls its whole chain never touches
@@ -1045,16 +1571,7 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
             return $upstream
         }
 
-        # Flatten the upstream repository into a single product-neutral name, dropping the registry host:
-        # 'mcr.microsoft.com/windows/servercore' -> 'windows-servercore', 'ubuntu' -> 'ubuntu'. Every product
-        # using this registry then shares the one mirror.
-        $segments = $repository -split '/'
-        if ($segments.Length -gt 1 -and ($segments[0] -match '[.:]'))
-        {
-            $segments = $segments[1..($segments.Length - 1)]
-        }
-
-        $mirrorRepository = "$dockerRegistry/$( $segments -join '-' )"
+        $mirrorRepository = Get-OsMirrorRepository $repository
         $mirror = [pscustomobject]@{ Repository = $mirrorRepository; Reference = "${mirrorRepository}:${tag}" }
 
         docker @dockerConfigArg manifest inspect $mirror.Reference *> $null
@@ -1103,6 +1620,32 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
 
     # Ensure the image and its ancestors exist (parent first): use local, else pull, else build; start a push
     # when building in registry mode. Returns the image tag.
+    # True when $tag exists in the registry. A miss is the ordinary case (the image has not been pushed yet)
+    # and stays quiet, but any OTHER failure - experimental CLI gating, an untrusted certificate, a lost
+    # session, an unreachable host - is reported once. Silencing those made a broken registry look exactly like
+    # a cache miss, so every agent rebuilt the whole ancestor chain on every run and nobody could see why.
+    function Test-ImageInRegistry([string]$tag)
+    {
+        $output = (docker @dockerConfigArg manifest inspect $tag 2>&1 | Out-String).Trim()
+
+        if ($LASTEXITCODE -eq 0)
+        {
+            return $true
+        }
+
+        # A genuine "not in the registry" answer. Anything else is a configuration or connectivity fault.
+        if ($output -notmatch 'manifest unknown|no such manifest|not found|manifest for .* not found')
+        {
+            if (-not $script:RegistryProbeWarned)
+            {
+                $script:RegistryProbeWarned = $true
+                Write-Host "Warning: cannot query the registry for '$tag', so cached images cannot be reused and every layer will be rebuilt locally. $output" -ForegroundColor Yellow
+            }
+        }
+
+        return $false
+    }
+
     function Ensure-Image([string]$dfPath)
     {
         $baseBuildArg = @()
@@ -1128,7 +1671,7 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
         {
             Write-Host "  found locally" -ForegroundColor Green
         }
-        elseif (-not $isClaudeLeaf -and $dockerRegistry -and (& { docker @dockerConfigArg manifest inspect $tag *> $null; $LASTEXITCODE -eq 0 }))
+        elseif (-not $isClaudeLeaf -and $dockerRegistry -and (Test-ImageInRegistry $tag))
         {
             Write-Host "  pulling from registry" -ForegroundColor Green
             docker @dockerConfigArg pull $tag 2>&1 | Out-Host
@@ -1146,13 +1689,667 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
         # never enters the registry.
         if ($dockerRegistry -and -not $isClaudeLeaf)
         {
-            docker @dockerConfigArg manifest inspect $tag *> $null
-            if ($LASTEXITCODE -ne 0)
+            if (-not (Test-ImageInRegistry $tag))
             {
                 Start-AsyncPush $tag
             }
         }
         return $tag
+    }
+
+    # Docker prints sizes with go-units: "0B", "45.5kB", "12.34GB", "1.1TB". `system df`, `image ls` and
+    # `image prune` use the DECIMAL scale (kB = 1000); other Docker surfaces use the binary spellings ("1.1GiB").
+    # Both are accepted, rather than guessing which one produced a given string.
+    #
+    # Returns -1, not 0, for anything that is not a size. Every caller has to tell "Docker reported zero" from
+    # "Docker reported something this script does not understand", because the second one must disable the
+    # cleanup instead of making it believe the image store is empty.
+    function ConvertFrom-DockerSize([string]$text)
+    {
+        if ("$text" -notmatch '^\s*(\d+(?:\.\d+)?)\s*([kKmMgGtTpP]?)(i?)B\s*$')
+        {
+            return [long]-1
+        }
+
+        $exponent = switch ($Matches[2].ToUpperInvariant())
+        {
+            'K' { 1 }
+            'M' { 2 }
+            'G' { 3 }
+            'T' { 4 }
+            'P' { 5 }
+            default { 0 }
+        }
+
+        return [long]([double]$Matches[1] * [Math]::Pow($( if ($Matches[3]) { 1024 } else { 1000 } ), $exponent))
+    }
+
+    # Formats a byte count in the DECIMAL gigabytes Docker prints (1 GB = 1e9 bytes), not in PowerShell's binary
+    # 1GB, so that every line logged here agrees with the tool it quotes.
+    function Format-Gigabytes([long]$bytes)
+    {
+        return "$( [Math]::Round($bytes / 1e9, 1) ) GB"
+    }
+
+    # Where the image-usage records live: one file per image, named after the image identifier with the
+    # "sha256:" prefix stripped. The first line is the round-trip UTC time of the last use; the lines below it
+    # are the references the image carried at that moment, kept only so that the directory can be read by hand.
+    #
+    # Docker exposes no last-used time for an image - `docker system df -v` reports when an image was CREATED
+    # and nothing else - so recording the use as it happens is the only way for the cleanup to evict by
+    # recency. The records sit beside the weekly timestamp file rather than under the Docker root because they
+    # have to survive `docker system prune`, and because they describe how this build system uses the engine
+    # rather than any state of the engine itself.
+    #
+    # Deliberately pure: it computes the path and does not create the directory, so that the read paths can
+    # test for its existence instead of conjuring an empty one on a machine that has never recorded anything.
+    function Get-ImageUsageDirectory
+    {
+        return (Join-Path (Get-EngineeringDataDirectory) "docker-image-usage")
+    }
+
+    # Records that this run used the given image references.
+    #
+    # Keyed by image identifier, not by reference, because the identifier names the bits and is what
+    # Get-EvictionCandidates groups by. A tag here is a hash of the RECIPE - Get-ContentHash over the
+    # Dockerfile, its context and its parent - so the same tag points at a new image after any rebuild; and one
+    # image routinely carries several references, because an OS image mirrored into the registry keeps its
+    # upstream name as well. A record per reference would therefore write several records for one image and
+    # lose track of it the moment a tag moved. A reference is not a legal file name either, and escaping the
+    # '/' and ':' it contains would let two different references collide on one record.
+    #
+    # Best effort throughout: a record that cannot be written costs the LRU signal for one image, which the
+    # cleanup absorbs by falling back to that image's creation date. It must never cost the build.
+    function Touch-ImageUsage([string[]]$references)
+    {
+        $wanted = @($references | Where-Object { $_ -and "$_".Trim() -ne '' } | Select-Object -Unique)
+        if ($wanted.Count -eq 0)
+        {
+            return
+        }
+
+        try
+        {
+            # One call for the whole chain. The format makes every line self-describing - the identifier
+            # followed by that image's own tags - so no line has to be paired back up with the reference that
+            # produced it. A reference that does not resolve writes to stderr and sets a non-zero exit code
+            # while the lines for the others still arrive on stdout, which is why the exit code is ignored
+            # here: recording four images out of five is worth more than recording none.
+            $rows = @(docker image inspect --format '{{.Id}} {{join .RepoTags ","}}' @wanted 2>$null)
+
+            $directory = Get-ImageUsageDirectory
+            if (-not (Test-Path $directory))
+            {
+                New-Item -ItemType Directory -Path $directory -Force | Out-Null
+            }
+
+            # Round-trip ("o") so that the value reads back exactly, and UTC so that a record written either
+            # side of a daylight-saving change still orders correctly.
+            $now = (Get-Date).ToUniversalTime().ToString('o')
+            $written = [System.Collections.Generic.HashSet[string]]::new( [StringComparer]::OrdinalIgnoreCase )
+
+            foreach ($row in $rows)
+            {
+                $fields = "$row".Trim() -split ' ', 2
+                $id = ($fields[0] -replace '^sha256:', '').Trim()
+
+                # Two references that resolve to one image - the registry mirror and its upstream name -
+                # produce two identical rows. One image gets one record.
+                if ($id -notmatch '^[0-9a-f]{64}$' -or -not $written.Add($id))
+                {
+                    continue
+                }
+
+                $tags = if ($fields.Count -gt 1) { @("$( $fields[1] )" -split ',' | Where-Object { $_ }) } else { @() }
+
+                Set-Content -Path (Join-Path $directory $id) -Value (@($now) + $tags) -Force
+            }
+        }
+        catch
+        {
+            Write-Host "Could not record the Docker image usage: $( $_.Exception.Message )" -ForegroundColor Yellow
+        }
+    }
+
+    # The usage records, as a map from image identifier to the LOCAL time at which the image was last used.
+    #
+    # Local, because the caller compares the result against the creation dates that `docker image ls` prints in
+    # the host's own zone and against a cutoff derived from Get-Date. A UTC value here would make every record
+    # look one or two hours staler than it is on a European agent.
+    #
+    # A record that is missing, unreadable or malformed is simply absent from the map, and the caller falls
+    # back to the creation date for that image - which is exactly what the cleanup did before these records
+    # existed.
+    function Get-ImageUsageRecords
+    {
+        $usage = @{ }
+        $directory = Get-ImageUsageDirectory
+
+        if (-not (Test-Path $directory))
+        {
+            return $usage
+        }
+
+        try
+        {
+            foreach ($file in @(Get-ChildItem -Path $directory -File -ErrorAction SilentlyContinue))
+            {
+                $firstLine = "$( Get-Content -Path $file.FullName -TotalCount 1 -ErrorAction SilentlyContinue )".Trim()
+
+                $parsed = [datetime]::MinValue
+                if ($firstLine -and [datetime]::TryParse($firstLine, [cultureinfo]::InvariantCulture, [Globalization.DateTimeStyles]::RoundtripKind, [ref]$parsed))
+                {
+                    $usage[$file.Name] = $parsed.ToLocalTime()
+                }
+                else
+                {
+                    # The content is the signal, so that anything which rewrites modification times - a backup,
+                    # a file sync - cannot reorder the eviction. The modification time is only the fallback for
+                    # a record whose first line will not parse.
+                    $usage[$file.Name] = $file.LastWriteTime
+                }
+            }
+        }
+        catch
+        {
+            Write-Host "Could not read the Docker image usage records: $( $_.Exception.Message )" -ForegroundColor Yellow
+        }
+
+        return $usage
+    }
+
+    # Drops the records of images that are no longer on the engine. Called from the cleanup, which is already
+    # talking to Docker about every image anyway.
+    #
+    # There is no age cap: the number of records is bounded by the number of images, because every record whose
+    # image is gone is removed here. A record for an image that is still present is kept however old it is -
+    # "last used two hundred days ago" is precisely the signal the eviction order wants, and discarding it
+    # would send that image back to its creation date and make it look younger than it really is.
+    function Remove-StaleImageUsageRecords
+    {
+        $directory = Get-ImageUsageDirectory
+
+        if (-not (Test-Path $directory))
+        {
+            return
+        }
+
+        try
+        {
+            $ids = @(docker image ls --no-trunc --format '{{.ID}}' 2>$null)
+            if ($LASTEXITCODE -ne 0)
+            {
+                # Without a trustworthy list of what exists, removing anything risks discarding the usage of a
+                # live image. Leaving the records alone costs a few kilobytes.
+                return
+            }
+
+            $live = [System.Collections.Generic.HashSet[string]]::new( [StringComparer]::OrdinalIgnoreCase )
+            foreach ($id in $ids)
+            {
+                [void]$live.Add(("$id".Trim() -replace '^sha256:', ''))
+            }
+
+            foreach ($file in @(Get-ChildItem -Path $directory -File -ErrorAction SilentlyContinue))
+            {
+                if (-not $live.Contains($file.Name))
+                {
+                    Remove-Item -Path $file.FullName -Force -ErrorAction SilentlyContinue
+                }
+            }
+        }
+        catch
+        {
+            Write-Host "Could not tidy the Docker image usage records: $( $_.Exception.Message )" -ForegroundColor Yellow
+        }
+    }
+
+    # The size of the whole image store in bytes, or -1 when it cannot be determined.
+    #
+    # The Images row of `docker system df` reports what the image store occupies on disk, counting a layer
+    # shared by several images only once. Adding up the sizes from `docker image ls` instead would count each
+    # shared layer once per image, and would report roughly three times the truth for a three-deep chain.
+    #
+    # Deliberately not `docker system df -v`, which recomputes the shared and unique size of every image and
+    # takes minutes on an agent that holds hundreds of images. Deliberately not `--format json`, which only
+    # recent versions of the Docker command line accept; the per-row template below is what the default table
+    # is built from and has worked ever since `system df` was introduced.
+    function Get-ImageStoreSize
+    {
+        $rows = @(docker system df --format '{{.Type}}|{{.Size}}' 2>&1)
+
+        if ($LASTEXITCODE -ne 0)
+        {
+            Write-Host "Could not measure the Docker image store: $( ($rows -join ' ').Trim() )" -ForegroundColor Yellow
+            return [long]-1
+        }
+
+        foreach ($row in $rows)
+        {
+            $fields = "$row" -split '\|', 2
+            if ($fields.Count -ne 2 -or $fields[0].Trim() -ne 'Images')
+            {
+                continue
+            }
+
+            $size = ConvertFrom-DockerSize $fields[1]
+            if ($size -lt 0)
+            {
+                Write-Host "Could not parse the image store size '$( $fields[1].Trim() )' reported by 'docker system df'." -ForegroundColor Yellow
+            }
+
+            return $size
+        }
+
+        Write-Host "'docker system df' reported no Images row, so the image store cannot be measured." -ForegroundColor Yellow
+        return [long]-1
+    }
+
+    # Serializes the cleanup across the concurrent DockerBuild runs of one agent. Without it, two runs that both
+    # measure the store 50 GB over budget each remove 50 GB, and the agent loses twice what it had to.
+    #
+    # This is an optimization, not the guarantee of correctness: runs under different accounts resolve different
+    # temporary directories and never see each other's lock file. What actually keeps a sibling run's images
+    # alive is the grace window. The operating system releases the handle when the process ends, so the lock
+    # cannot go stale. Returns $null when another run holds it; the caller then skips the cleanup rather than
+    # waiting, because whatever the other run frees, it frees for both.
+    function Enter-ImageCleanupLock
+    {
+        try
+        {
+            # Resolved inside the try as well: a temporary directory that the platform rejects makes this throw
+            # rather than the Open below.
+            $lockPath = Join-Path ([System.IO.Path]::GetTempPath()) 'PostSharp.DockerBuild.ImageCleanup.lock'
+
+            return [System.IO.File]::Open($lockPath, [System.IO.FileMode]::OpenOrCreate, [System.IO.FileAccess]::ReadWrite, [System.IO.FileShare]::None)
+        }
+        catch [System.IO.IOException]
+        {
+            # The expected case: another run holds the lock. Sharing violations, and every other input/output
+            # error, arrive here.
+            return $null
+        }
+        catch
+        {
+            # Anything else, such as a temporary directory that this account cannot write to, or a path the
+            # platform rejects. UnauthorizedAccessException does not derive from IOException, so it would
+            # otherwise escape, and $ErrorActionPreference is 'Stop' - which would fail the build over a
+            # cleanup that is only ever best effort.
+            Write-Host "Skipping the image-space cleanup: the lock file could not be opened. $( $_.Exception.Message )" -ForegroundColor Yellow
+            return $null
+        }
+    }
+
+    # Every image reference this run is about to need, so that the cleanup does not remove what the build
+    # immediately rebuilds or pulls again.
+    #
+    # Docker already refuses to remove the ancestor of an image it keeps, so listing the whole chain only makes
+    # the log readable and saves failed removal attempts. The OS image is the entry that genuinely matters: on a
+    # run whose chain root is absent, no local image depends on the OS image yet, and on a Windows agent that
+    # image is both the largest and the oldest one on the machine. Without this it would be the first candidate
+    # removed, seconds before the root build asks for it.
+    function Get-ImageChainKeepSet
+    {
+        $keep = [System.Collections.Generic.List[string]]::new()
+
+        if ($RegistryImage)
+        {
+            # -RegistryImage skips all Dockerfile logic, so there is no chain to resolve and the single image
+            # this run uses is the whole keep set.
+            $keep.Add($RegistryImage)
+            return $keep
+        }
+
+        # Resolve-ImageTag is pure and memoized, and Get-BaseDockerfile only reads the file, so the complete set
+        # of tags this run needs is computed without a single call to the Docker engine.
+        $current = $dockerfileFullPath
+        $root = $current
+        while ($current)
+        {
+            $keep.Add((Resolve-ImageTag $current))
+            $root = $current
+            $current = Get-BaseDockerfile $current
+        }
+
+        # $root is now the chain root, the only Dockerfile that declares an OS image.
+        $osImageSpec = Get-OsImageSpec $root
+        if ($osImageSpec)
+        {
+            $keep.Add("$( $osImageSpec.Repository ):$( $osImageSpec.Tag )")
+            if ($dockerRegistry)
+            {
+                $keep.Add("$( Get-OsMirrorRepository $osImageSpec.Repository ):$( $osImageSpec.Tag )")
+            }
+        }
+
+        return $keep
+    }
+
+    # The images that may be removed, least recently used first.
+    #
+    # Whatever Docker itself refuses to delete is left to Docker: `docker image rm` refuses to remove an image
+    # that a container references, or that a descendant is built on, and this function does not try to reproduce
+    # that reasoning. It only produces a sensible order and drops what is pointless to attempt.
+    #
+    # `docker image ls` without -a is deliberate: -a also lists the intermediate images of the classic builder,
+    # which are the whole build cache of the Windows engine.
+    function Get-EvictionCandidates([System.Collections.Generic.HashSet[string]]$keepReferences, [datetime]$graceCutoff)
+    {
+        $rows = @(docker image ls --no-trunc --format '{{.ID}}|{{.Repository}}|{{.Tag}}|{{.CreatedAt}}|{{.Size}}' 2>&1)
+        if ($LASTEXITCODE -ne 0)
+        {
+            Write-Host "Could not list the Docker images: $( ($rows -join ' ').Trim() )" -ForegroundColor Yellow
+            return @()
+        }
+
+        # The image identifier of every container on the engine, running or stopped, which includes the boot
+        # images of the other DockerBuild runs that share this agent. `docker ps -a --format '{{.Image}}'` would
+        # give the reference as it was typed when the container was created, which is often a tag that has since
+        # moved; inspecting the containers gives the identifier the container is really pinned to, which is also
+        # what `docker image ls` reports.
+        $inUse = [System.Collections.Generic.HashSet[string]]::new( [StringComparer]::OrdinalIgnoreCase )
+        $containerIds = @(docker ps -a -q 2>$null | Where-Object { $_ -and $_.Trim() -ne '' })
+        if ($containerIds.Count -gt 0)
+        {
+            foreach ($imageId in @(docker inspect --format '{{.Image}}' @containerIds 2>$null))
+            {
+                [void]$inUse.Add(("$imageId" -replace '^sha256:', ''))
+            }
+        }
+
+        # One row per TAG, so two rows can carry the same image identifier (the same image tagged both locally
+        # and with the registry prefix). They are grouped by identifier because the size must be counted once,
+        # and because removing only some of an image's tags frees nothing at all: only the last tag deletes it.
+        # Read once, before the loop: one directory listing serves the whole candidate set.
+        $usage = Get-ImageUsageRecords
+
+        $byId = [ordered]@{ }
+        $dateWarningIssued = $false
+
+        foreach ($row in $rows)
+        {
+            $fields = "$row" -split '\|'
+            if ($fields.Count -lt 5) { continue }
+
+            $id = $fields[0] -replace '^sha256:', ''
+            $repository = $fields[1]
+            $tag = $fields[2]
+
+            # Dangling images are handled up front by `docker image prune`, which applies Docker's own
+            # definition of dangling. A '<none>' repository here is therefore already gone, or is the parent of
+            # something, and is not a candidate either way.
+            if ($repository -eq '<none>') { continue }
+
+            if ($inUse.Contains($id)) { continue }
+
+            $reference = "${repository}:${tag}"
+
+            if (-not $byId.Contains($id))
+            {
+                # Docker prints CreatedAt as "2026-05-13 09:21:33 +0200 CEST", a Go layout that .NET cannot
+                # parse as a whole. Every row is formatted in the same time zone, so the leading
+                # "yyyy-MM-dd HH:mm:ss" alone orders them correctly and is all that is read. A date that cannot
+                # be read is treated as brand new, and therefore never removed, rather than as ancient: if the
+                # format ever changes, the result must be "frees nothing", never "deletes the oldest image on
+                # the agent".
+                $created = [datetime]::MaxValue
+                if ($fields[3] -match '^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})')
+                {
+                    [void][datetime]::TryParseExact($Matches[1], 'yyyy-MM-dd HH:mm:ss', [cultureinfo]::InvariantCulture, [Globalization.DateTimeStyles]::None, [ref]$created)
+                }
+                elseif (-not $dateWarningIssued)
+                {
+                    $dateWarningIssued = $true
+                    Write-Host "Cannot read the creation date '$( $fields[3] )' that 'docker image ls' reports; an image whose date cannot be read is never removed." -ForegroundColor Yellow
+                }
+
+                $size = ConvertFrom-DockerSize $fields[4]
+
+                # The recorded time of the last use, falling back to the creation date for an image that no run
+                # has recorded yet. That fallback is what makes this safe to introduce: every image already on
+                # an agent is unrecorded, so the order starts out exactly as it was and sharpens into a true
+                # LRU as builds record what they use.
+                $lastUsed = if ($usage.Contains($id)) { [datetime]$usage[$id] } else { $created }
+
+                $byId[$id] = [pscustomobject]@{
+                    Id = $id
+                    References = [System.Collections.Generic.List[string]]::new()
+                    Created = $created
+                    LastUsed = $lastUsed
+                    Size = $( if ($size -lt 0) { [long]0 } else { $size } )   # an unreadable size contributes nothing to the target
+                    Keep = $false
+                    Removed = $false
+                }
+            }
+
+            # A tag in the keep set protects the whole image, not only that one tag: removing its other tags
+            # would free nothing and would leave a half-untagged image behind.
+            if ($keepReferences.Contains($reference)) { $byId[$id].Keep = $true }
+
+            if ($tag -ne '<none>') { $byId[$id].References.Add($reference) }
+        }
+
+        # Least recently used first. The Docker engine exposes no last-used time of its own, so the order comes
+        # from the usage records this script writes as it runs, and an image that no run has recorded yet falls
+        # back to its creation date.
+        #
+        # Age alone was a poor proxy for value: a stable base image is built once and then reused by every
+        # build for months, which made it simultaneously the OLDEST image on the agent and the most expensive
+        # one to lose. The images this run is about to need are protected by the keep set either way.
+        #
+        # The grace window is applied to BOTH times. Against Created it spares a sibling run's freshly built
+        # image, which is what it has always done. Against LastUsed it spares an old image that a sibling run
+        # is using right now - a case a creation date cannot see at all.
+        return @($byId.Values |
+                Where-Object { -not $_.Keep -and $_.Created -lt $graceCutoff -and $_.LastUsed -lt $graceCutoff } |
+                Sort-Object LastUsed)
+    }
+
+    # Frees image disk space when the image store is over budget. Best effort throughout: this frees disk, it
+    # does not gate the build, so nothing here may change the exit code of the script.
+    #
+    # Runs BEFORE the image chain is built, so that the space it frees is space this build can use, and before
+    # the registry login, because everything it does is local to the Docker engine and needs no credentials.
+    function Invoke-ImageSpaceCleanup([long]$budgetBytes, [string[]]$keepReferences)
+    {
+        $total = Get-ImageStoreSize
+        if ($total -lt 0)
+        {
+            Write-Host "Skipping the image-space cleanup: the image store could not be measured." -ForegroundColor Yellow
+            return
+        }
+
+        if ($total -le $budgetBytes)
+        {
+            Write-Host "Docker image store: $( Format-Gigabytes $total ) of the $( Format-Gigabytes $budgetBytes ) budget." -ForegroundColor Cyan
+            return
+        }
+
+        # Over budget: free down to the target rather than to just under the line, so that the next several
+        # dozen builds find the store under budget and skip the cleanup entirely.
+        $targetBytes = [long]($budgetBytes * $ImageCleanupTargetFraction)
+
+        Write-Host "Docker image store is $( Format-Gigabytes $total ), over the $( Format-Gigabytes $budgetBytes ) budget; freeing down to $( Format-Gigabytes $targetBytes )." -ForegroundColor Yellow
+
+        $lock = Enter-ImageCleanupLock
+        if (-not $lock)
+        {
+            Write-Host "Another DockerBuild run is already freeing image space; skipping the cleanup." -ForegroundColor Yellow
+            return
+        }
+
+        try
+        {
+            $started = [System.Diagnostics.Stopwatch]::StartNew()
+            $graceCutoff = (Get-Date).AddHours(-$ImageCleanupGraceHours)
+            $initial = $total
+
+            # Dangling images first, through Docker's own prune, which applies Docker's definition of dangling
+            # (untagged AND not the parent of anything) and so leaves the intermediate images of the Windows
+            # classic builder alone. The `until` filter applies the same grace window as the removal below, and
+            # closes the moment between a sibling run committing its last layer and tagging it, during which its
+            # image is briefly indistinguishable from an orphan.
+            #
+            # Done separately, and first, because a dangling image shares almost every layer with the image that
+            # replaced it. Inside the loop below its reported size would satisfy the whole overage on paper and
+            # free nothing at all, wasting a pass.
+            $pruneOutput = (docker image prune --force --filter "until=$( $ImageCleanupGraceHours )h" 2>&1 | Out-String)
+            if ($pruneOutput -match 'Total reclaimed space:\s*(\S+)')
+            {
+                $reclaimed = ConvertFrom-DockerSize $Matches[1]
+                if ($reclaimed -gt 0)
+                {
+                    Write-Host "  reclaimed $( Format-Gigabytes $reclaimed ) from dangling images" -ForegroundColor Gray
+
+                    # Measure again rather than subtract, so that the loop below never removes space that has
+                    # already been freed.
+                    $total = Get-ImageStoreSize
+                    if ($total -lt 0) { return }
+                }
+            }
+
+            # The ?? guards the HashSet constructor, which rejects a null collection: a caller that resolved no
+            # keep set at all must lose the cleanup, not the build.
+            $keep = [System.Collections.Generic.HashSet[string]]::new( [string[]]($keepReferences ?? @()), [StringComparer]::OrdinalIgnoreCase )
+            $candidates = Get-EvictionCandidates $keep $graceCutoff
+
+            # Both the prune above and the removals below change what exists, so the records are tidied here,
+            # after the listing that Get-EvictionCandidates just made and before this run's own images are
+            # recorded. Nothing downstream reads the records again in this run.
+            Remove-StaleImageUsageRecords
+
+            for ($pass = 1; $pass -le $ImageCleanupMaxPasses -and $total -gt $targetBytes; $pass++)
+            {
+                if ($started.Elapsed.TotalMinutes -ge $ImageCleanupTimeoutMinutes)
+                {
+                    Write-Host "Giving up on the image-space cleanup after $ImageCleanupTimeoutMinutes minutes." -ForegroundColor Yellow
+                    break
+                }
+
+                # Accumulate against the overage that was just measured. The size reported for an image includes
+                # the layers it shares with images that survive, so this sum overstates what removing the batch
+                # frees: the batch is guaranteed to free at most the overage, never more. That is the right
+                # direction to be wrong in, because it costs passes and not images, and it is why the true total
+                # is measured again after every pass instead of being tracked by subtraction.
+                $overage = $total - $targetBytes
+                $batch = [System.Collections.Generic.List[object]]::new()
+                $accumulated = [long]0
+
+                foreach ($candidate in $candidates)
+                {
+                    if ($candidate.Removed) { continue }
+                    $batch.Add($candidate)
+                    $accumulated += $candidate.Size
+                    if ($accumulated -ge $overage) { break }
+                }
+
+                if ($batch.Count -eq 0)
+                {
+                    Write-Host "No image is left to remove; the image store stays at $( Format-Gigabytes $total )." -ForegroundColor Yellow
+                    break
+                }
+
+                Write-Host "Pass $pass`: removing up to $( $batch.Count ) unused image(s) to reclaim $( Format-Gigabytes $overage )." -ForegroundColor Cyan
+
+                # Issue the removals NEWEST first, although the batch was SELECTED least-recently-used first.
+                # Sorting on Created here is deliberate and is not the eviction policy: an image cannot be
+                # removed while a descendant is built on it, and within a chain the descendant is always the
+                # younger image, so this is the topological order in which Docker will accept the removals.
+                # Ordering this loop by LastUsed instead would fail on every parent. Repeat while anything is
+                # still coming off, so that a parent freed by the removal of its child also goes in this pass.
+                $removedInPass = 0
+                for ($attempt = 0; $attempt -lt 4; $attempt++)
+                {
+                    $removedInAttempt = 0
+
+                    foreach ($candidate in ($batch | Sort-Object Created -Descending))
+                    {
+                        if ($candidate.Removed) { continue }
+
+                        # An image with no usable name and tag (a pull pinned to a digest) can only be addressed
+                        # by its identifier. Docker refuses that when several repositories reference the image,
+                        # which is handled below like any other refusal.
+                        $references = if ($candidate.References.Count -gt 0) { $candidate.References } else { @($candidate.Id) }
+
+                        $failure = $null
+                        foreach ($reference in $references)
+                        {
+                            $output = (docker image rm $reference 2>&1 | Out-String).Trim()
+
+                            # Deliberately not forced. `docker image rm -f` untags an image that a stopped
+                            # container still holds, which is exactly how a concurrent run gets broken: the
+                            # refusal below is the safety net that this whole function relies on.
+                            #
+                            # "No such image" means that another pass, or another run, got there first, which
+                            # counts as success.
+                            if ($LASTEXITCODE -ne 0 -and $output -notmatch 'No such image')
+                            {
+                                $failure = $output
+                            }
+                        }
+
+                        if ($failure)
+                        {
+                            # The two expected refusals are that a container holds the image, possibly a sibling
+                            # run's, and that a descendant protected by the keep set or the grace window is
+                            # built on it. Both mean the image was correctly skipped, and are reported as detail
+                            # rather than as a problem. An image that carries several tags loses the tags that
+                            # were removed before the refusal; that frees nothing, but it also breaks nothing,
+                            # because a container and a child image are both pinned to the identifier.
+                            if ($failure -notmatch 'being used by|dependent child images|No such image')
+                            {
+                                Write-Host "  could not remove $( $references[0] ): $failure" -ForegroundColor Yellow
+                            }
+                        }
+                        else
+                        {
+                            $candidate.Removed = $true
+                            $removedInAttempt++
+                            Write-Host "  removed $( $references -join ', ' )" -ForegroundColor Gray
+                        }
+                    }
+
+                    $removedInPass += $removedInAttempt
+                    if ($removedInAttempt -eq 0) { break }
+                }
+
+                if ($removedInPass -eq 0)
+                {
+                    # Every image in the batch was refused, and the list of candidates only ever shrinks, so
+                    # another pass would select the same images and be refused again.
+                    Write-Host "Nothing could be removed; the image store stays at $( Format-Gigabytes $total )." -ForegroundColor Yellow
+                    break
+                }
+
+                $total = Get-ImageStoreSize
+                if ($total -lt 0)
+                {
+                    # The store can no longer be measured, so there is no way to tell when to stop. Stopping is
+                    # the only safe answer.
+                    break
+                }
+            }
+
+            $freed = $initial - $total
+            if ($total -le $targetBytes)
+            {
+                Write-Host "Freed $( Format-Gigabytes $freed ); the image store is now $( Format-Gigabytes $total ) of the $( Format-Gigabytes $budgetBytes ) budget." -ForegroundColor Green
+            }
+            elseif ($total -le $budgetBytes)
+            {
+                # Under budget but short of the target, so the next build will not run a cleanup and the one
+                # after a few more images may. Worth reporting, but it is not a failure.
+                Write-Host "Freed $( Format-Gigabytes $freed ); the image store is now $( Format-Gigabytes $total ), within the $( Format-Gigabytes $budgetBytes ) budget but short of the $( Format-Gigabytes $targetBytes ) target." -ForegroundColor Green
+            }
+            else
+            {
+                Write-Host "Freed $( Format-Gigabytes $freed ), but the image store is still $( Format-Gigabytes $total ), over the $( Format-Gigabytes $budgetBytes ) budget." -ForegroundColor Yellow
+            }
+        }
+        finally
+        {
+            $lock.Dispose()
+        }
     }
 
     # Dictionary to track volume mounts with "writable wins" logic
@@ -1175,6 +2372,9 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
     # Get-OsImage.
     $script:OsImages = @{ }
 
+    # The Docker engine architecture, resolved on first use by Get-DockerArchitecture.
+    $script:DockerArchitecture = $null
+
     # Tags already handed to Start-AsyncPush, so that resolving the same image twice (the run step resolves the
     # chain again) does not push it twice.
     $script:PushedTags = [System.Collections.Generic.HashSet[string]]::new( [StringComparer]::Ordinal )
@@ -1187,7 +2387,8 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
         param(
             [Parameter(Mandatory = $true)]
             [string]$Path,
-            [switch]$Writable
+            [switch]$Writable,
+            [switch]$Requested   # Asked for by -Mount, rather than part of the default build-container set.
         )
 
         $normalizedPath = $Path.TrimEnd('\', '/')
@@ -1282,7 +2483,17 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
 
         # Resolve the Docker registry for build images (env-based). Registry mode is off (local image tags) if
         # not set. Set before Resolve-ImageTag, which uses it to form the tag.
-        $dockerRegistry = $env:DOCKER_REGISTRY
+        # -NoRegistry suppresses the environment, which is how a host that cannot reach or verify the registry
+        # still builds: the cost is that it builds every layer itself instead of pulling the ones already made.
+        if ($NoRegistry)
+        {
+            Write-Host "Registry disabled by -NoRegistry; building images locally." -ForegroundColor Yellow
+            $dockerRegistry = $null
+        }
+        else
+        {
+            $dockerRegistry = $env:DOCKER_REGISTRY
+        }
 
         # Compute the target image tag (and, transitively, its ancestors' tags via ARG BASE_IMAGE). The image
         # name is the Dockerfile stem; the tag is its content hash (folding the parent tag, OS and day-stamp).
@@ -1330,6 +2541,7 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
         }
 
         if ($Claude)
+
         {
             # Use Claude-specific environment variables (filtered and renamed)
             New-ClaudeEnvHashtable
@@ -1448,14 +2660,7 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
     }
 
     # Mount PostSharp.Engineering data directory (for version counters)
-    $hostEngineeringDataDir = if ($IsUnix)
-    {
-        Join-Path $env:HOME ".local/share/PostSharp.Engineering"
-    }
-    else
-    {
-        Join-Path $env:LOCALAPPDATA "PostSharp.Engineering"
-    }
+    $hostEngineeringDataDir = Get-EngineeringDataDirectory
 
     if (-not (Test-Path $hostEngineeringDataDir))
     {
@@ -1645,7 +2850,7 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
                                 "readonly"
                             }
                             Write-Host "Mounting from -Mount pattern '$pattern': $dirPath ($rwStatus)" -ForegroundColor Cyan
-                            Add-VolumeMount -Path $dirPath -Writable:$isWritable
+                            Add-VolumeMount -Path $dirPath -Writable:$isWritable -Requested
                         }
                     }
                 }
@@ -1668,7 +2873,7 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
                         "readonly"
                     }
                     Write-Host "Mounting from -Mount: $pattern ($rwStatus)" -ForegroundColor Cyan
-                    Add-VolumeMount -Path $pattern -Writable:$isWritable
+                    Add-VolumeMount -Path $pattern -Writable:$isWritable -Requested
                 }
                 else
                 {
@@ -1699,7 +2904,8 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
         }
     }
 
-    # Execute auto-generated DockerMounts.g.ps1 script to add more directory mounts.
+    # Execute auto-generated DockerMounts.g.ps1 script to add more directory mounts. A test container gets these
+    # like any other build: a test that consumes a source dependency needs the same repositories the build needs.
     $dockerMountsScript = Join-Path $EngPath 'DockerMounts.g.ps1'
     if (Test-Path $dockerMountsScript)
     {
@@ -1810,7 +3016,13 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
     }
 
     # Handle path transformations (platform-specific)
+    #
+    # Two flavours of the same commands. $substCommandsInline is separated by "; " for the pwsh -Command that
+    # -Script and -Claude run. $substCommandsCmd is separated by "&&" for the container's own cmd, which is what
+    # -Test runs, because a test image is chosen for the tool chain under test and is not required to carry
+    # PowerShell 7. Both stay empty on Linux, and on Windows when everything already lives on C:.
     $substCommandsInline = ""
+    $substCommandsCmd = ""
 
     if ($IsWindows)
     {
@@ -1888,6 +3100,7 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
         foreach ($letter in $driveLetters.Keys | Sort-Object)
         {
             $substCommandsInline += "C:\Windows\System32\subst.exe ${letter}: C:\$letter; "
+            $substCommandsCmd += "C:\Windows\System32\subst.exe ${letter}: C:\$letter && "
         }
         if ($driveLetters.Keys.Count -gt 0)
         {
@@ -1957,9 +3170,12 @@ RUN if [ -n "`$MOUNTPOINTS" ]; then \
         {
             if ($dir)
             {
-                # Normalize path: convert backslashes to forward slashes, add trailing slash
-                $normalizedDir = ($dir -replace '\\', '/').TrimEnd('/') + '/'
+                # Git compares safe.directory against the repository path exactly, and the path it reports has
+                # no trailing separator: registering only the trailing-slash form leaves the exception unmatched
+                # and the repository still refused as dubiously owned. Register both forms.
+                $normalizedDir = ($dir -replace '\\', '/').TrimEnd('/')
                 $gitConfigCommands += "git config --global --add safe.directory '$normalizedDir'`n"
+                $gitConfigCommands += "git config --global --add safe.directory '$normalizedDir/'`n"
             }
         }
 
@@ -2037,6 +3253,17 @@ $envVarAssignments$gitConfigCommands$postInitCommands
         }
     }
 
+    # Free image disk space before the chain is resolved, so that what is freed is available to the builds and
+    # pulls below rather than only to the next run. Everything the cleanup does is local to the Docker engine,
+    # so it runs before the registry login and needs no credentials.
+    #
+    # Skipped when an existing container is reused: nothing is built or pulled then, so there is no space to
+    # make room for, and the image of that container must stay untouched.
+    if ($maxImageSpaceBytes -gt 0 -and -not $existingContainerId)
+    {
+        Invoke-ImageSpaceCleanup $maxImageSpaceBytes (Get-ImageChainKeepSet)
+    }
+
     # Registry authentication + image-chain resolution (build the ancestor chain; pull-or-build+push each level).
     $builtNewImage = $false
     $dockerConfigArg = @()
@@ -2100,6 +3327,13 @@ $envVarAssignments$gitConfigCommands$postInitCommands
         Write-Host "Skipping image build (using pre-built registry image $ImageTag)." -ForegroundColor Yellow
     }
 
+    # Record the images this run just used, now that all three paths above have converged and every image in
+    # the chain is present locally. The keep set is exactly the right set to record: it is resolved without a
+    # single call to the Docker engine, and it already carries the base OS image and its registry mirror, which
+    # are the entries the eviction order most needs to know are in daily use. The per-run boot image built just
+    # below is deliberately not recorded - it is removed again when the container exits.
+    Touch-ImageUsage (Get-ImageChainKeepSet)
+
     # Build the local boot image over the resolved chain image (creates the bind-mount directories). The static
     # chain images stay pure and shareable; this thin layer carries the machine-specific mount set and is never
     # pushed. `docker run` below uses the boot image. Its `FROM` resolves the chain leaf locally: Ensure-Image
@@ -2141,7 +3375,71 @@ $envVarAssignments$gitConfigCommands$postInitCommands
             $volumeArgs += @("-v", $mapping)
         }
 
-        if ($Claude)
+        if ($Test)
+        {
+            Write-Host "Running the test command in the container." -ForegroundColor Green
+
+            # The command runs through the container's own shell rather than through pwsh, because a test image
+            # is chosen for the tool chain under test and is not required to carry PowerShell 7. cmd is the
+            # assumption on Windows, as it already was, and subst.exe is a system binary of every servercore
+            # image, so the drive mapping below needs nothing the shell choice did not already require.
+            #
+            # A repository on a drive other than C: is mounted at C:\<letter>\... and the drive recreated inside
+            # the container with subst -- see where $substCommandsCmd is built. -Script and -Claude have always
+            # done this; -Test did not, so anything resolving an absolute host path inside a test container
+            # failed. The common case is the repository-root nuget.config, whose local sources are absolute:
+            # "error NU1301: The local source 'X:\...\artifacts\publish\private' doesn't exist."
+            #
+            # The cd that follows is what makes the two modes agree. -w has already put the container in the
+            # mounted repository by its C:\<letter>\... name, which is the only name that exists before subst
+            # runs; this moves to the same directory by the name the host uses, which is what -Script's own cd
+            # arrives at. Without it a test would see a different working directory in each mode.
+            #
+            # The path is not quoted. Quoting it produced "The filename, directory name, or volume label syntax
+            # is incorrect": the argument reaches cmd through docker's own command-line assembly, which does not
+            # preserve the inner quotes. Spaces survive that unquoted, because cmd's CD takes the rest of the
+            # line as the directory name -- but the characters below do not, because cmd splits the line on them
+            # before CD is reached, so they are escaped with a caret instead.
+            #
+            # A percent sign is the one case left unhandled: cmd would expand %Name% against the environment,
+            # and the escape for that differs between the command line and a batch file. A directory named for a
+            # variable is rare enough to leave, and it fails visibly rather than silently.
+            $testCommandArgs = if ($IsUnix)
+            {
+                @('sh', '-c', $Command)
+            }
+            elseif ($substCommandsCmd)
+            {
+                # Windows permits & | < > ( ) ^ in a directory name. Escaped in one pass over the original, so
+                # that a caret this inserts is not itself escaped again.
+                $escapedSourceDir = $SourceDirName -replace '([&|<>()^])', '^$1'
+
+                @('cmd', '/S', '/C', "$substCommandsCmd cd /d $escapedSourceDir && $Command")
+            }
+            else
+            {
+                @('cmd', '/S', '/C', $Command)
+            }
+
+            $pwshArgs = $null
+            $dockerArgs = @()
+            $inlineScript = $null
+            $needsMcpCleanup = $false
+
+            # The same environment a build container gets, as -e arguments rather than through Init.g.ps1: see
+            # where $NoInit is set for why that script cannot be invoked in a test image. What -Env named is
+            # already folded into this set by New-EnvHashtable, so an explicitly named variable is here too.
+            $envArgs = @()
+
+            if ($script:ContainerEnvironmentVariables)
+            {
+                foreach ($key in $script:ContainerEnvironmentVariables.Keys | Sort-Object)
+                {
+                    $envArgs += @('-e', "$key=$( $script:ContainerEnvironmentVariables[$key] )")
+                }
+            }
+        }
+        elseif ($Claude)
         {
             # MCP server configuration
             $mcpPort = $null
@@ -2276,7 +3574,16 @@ $envVarAssignments$gitConfigCommands$postInitCommands
             {
                 $scriptFullPath = Join-Path $ContainerSourceDir $Script
             }
-            $scriptInvocation = "& '$scriptFullPath'"
+            # Fail if the script is not there. In -Command mode `& <missing>` is a non-terminating error and
+            # leaves $LASTEXITCODE at 0, so without this guard the container exits 0 and the build is reported
+            # successful having run nothing at all. That is what an unmounted workspace looks like: the bind
+            # mount silently yields an empty directory when the engine is not allowed to share the host path.
+            $missingScriptMessage = "The script $scriptFullPath is not present in the container. The workspace " +
+                "is most likely not mounted -- check that the agent work directory is a path the container " +
+                "engine is allowed to share."
+
+            $scriptInvocation = "if ( -not ( Test-Path -LiteralPath '$scriptFullPath' ) ) " +
+                "{ Write-Host '$missingScriptMessage' -ForegroundColor Red; exit 127 }; & '$scriptFullPath'"
             $inlineScript = "${substCommandsInline}${initCall}cd '$SourceDirName'; $scriptInvocation $buildArgsString; $pwshExitCommand"
 
             # No environment args for normal build
@@ -2300,10 +3607,17 @@ $envVarAssignments$gitConfigCommands$postInitCommands
             # Build docker command with proper argument handling (avoid empty strings)
             $dockerCmd = @('run', '--rm')
 
-            # Memory limit: only add when NOT using process isolation
-            if ($Isolation -ne 'process' -and $Memory)
+            # Memory limit: everywhere except Windows process isolation, which ignores it.
+            if ($supportsResourceLimits -and $Memory)
             {
                 $dockerCmd += "--memory=$Memory"
+            }
+
+            # The MSBuild node count that matches that budget. msbuild.ps1 reads it inside the container, where the
+            # limit itself is not visible.
+            if ($maxBuildParallelism -gt 0)
+            {
+                $dockerCmd += @('-e', "MAX_BUILD_PARALLELISM=$maxBuildParallelism")
             }
 
             # CPU limit: dynamic or static
@@ -2314,7 +3628,7 @@ $envVarAssignments$gitConfigCommands$postInitCommands
                 $dockerCmd += @('-e', "DOTNET_PROCESSOR_COUNT=$dynamicAllocation")
                 $dockerCmd += @('--label', "$DynamicCpuLabel")
             }
-            elseif ($Isolation -ne 'process')
+            elseif ($supportsResourceLimits)
             {
                 $dockerCmd += "--cpus=$Cpus"
             }
@@ -2326,6 +3640,13 @@ $envVarAssignments$gitConfigCommands$postInitCommands
             $dockerCmd += $dockerArgs
             $dockerCmd += $volumeArgs
             $dockerCmd += $envArgs
+
+            # A test command runs with the mounted repository as its working directory, so that a test addresses
+            # what it needs by a path relative to the repository root rather than by one it has to compute.
+            if ($Test)
+            {
+                $dockerCmd += @('-w', $ContainerSourceDir)
+            }
 
             # Add port mappings from -Ports parameter
             if ($Ports -and $Ports.Count -gt 0)
@@ -2342,7 +3663,19 @@ $envVarAssignments$gitConfigCommands$postInitCommands
                 $dockerCmd += @('--label', "postsharp.build=$Label")
             }
 
-            if ($pwshArgs)
+            if ($Test)
+            {
+                # The label the launcher removes by, when a test overruns its timeout. The container outlives the
+                # process that started it, so without this a timed-out test leaves it running on the agent.
+                if ($env:POSTSHARP_DOCKER_TEST_RUN_ID)
+                {
+                    $dockerCmd += @('--label', "postsharp.test-run=$( $env:POSTSHARP_DOCKER_TEST_RUN_ID )")
+                }
+
+                # The working directory was set above, to the mounted repository.
+                $dockerCmd += @($ImageTag) + $testCommandArgs
+            }
+            elseif ($pwshArgs)
             {
                 $dockerCmd += @('-w', $ContainerCallingDir, $ImageTag, $pwshPath, $pwshArgs, '-Command', $inlineScript)
             }
@@ -2351,7 +3684,26 @@ $envVarAssignments$gitConfigCommands$postInitCommands
                 $dockerCmd += @('-w', $ContainerCallingDir, $ImageTag, $pwshPath, '-Command', $inlineScript)
             }
 
-            Write-Host "Executing: ``docker $( $dockerCmd -join ' ' )" -ForegroundColor Cyan
+            # The value of every -e is replaced by *** for the echo only. A test container receives the whole
+            # container environment, so this line would otherwise put credentials on the console: TeamCity masks
+            # the values it knows are password parameters, which covers a CI run but not a developer running the
+            # suite locally, where they appear in clear and stay in whatever captured that console. The keys are
+            # kept because knowing what was passed is the reason to print the command at all, and they are
+            # already listed on their own a few lines above. Only the echo changes; docker receives $dockerCmd.
+            $displayCmd = @()
+            for ($i = 0; $i -lt $dockerCmd.Count; $i++)
+            {
+                if ($i -gt 0 -and $dockerCmd[$i - 1] -eq '-e' -and $dockerCmd[$i] -match '^([^=]+)=')
+                {
+                    $displayCmd += "$( $Matches[1] )=***"
+                }
+                else
+                {
+                    $displayCmd += $dockerCmd[$i]
+                }
+            }
+
+            Write-Host "Executing: ``docker $( $displayCmd -join ' ' )" -ForegroundColor Cyan
             & docker @dockerCmd
         }
         $dockerExitCode = $LASTEXITCODE
