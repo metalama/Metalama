@@ -18,9 +18,7 @@ RUN wget -q https://packages.microsoft.com/config/ubuntu/24.04/packages-microsof
     apt-get install -y powershell && \
     rm -rf /var/lib/apt/lists/*
 
-# Install .NET SDK to default path.
-# The SDK must be 9.0 or later: earlier runtimes do not append the failing system call and its
-# errno to the exception message, which this test relies on for diagnostics.
+# Install .NET SDK to default path
 ARG DOTNET_VERSION=10.0.302
 RUN curl -sSL https://dotnetcli.azureedge.net/dotnet/Sdk/$DOTNET_VERSION/dotnet-sdk-$DOTNET_VERSION-linux-x64.tar.gz \
     -o dotnet.tar.gz && \
@@ -37,20 +35,6 @@ RUN dotnet --version
 ENV DOTNET_CLI_TELEMETRY_OPTOUT=1
 ENV DOTNET_NOLOGO=1
 
-# Create directories for mountpoints
-ARG MOUNTPOINTS
-RUN if [ -n "$MOUNTPOINTS" ]; then \
-        OLD_IFS="$IFS"; \
-        IFS=':'; \
-        set -- $MOUNTPOINTS; \
-        IFS="$OLD_IFS"; \
-        for dir in "$@"; do \
-            if [ -n "$dir" ]; then \
-                echo "Creating directory $dir."; \
-                mkdir -p "$dir"; \
-            fi; \
-        done; \
-    fi
 
 WORKDIR /app
 
