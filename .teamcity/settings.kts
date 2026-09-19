@@ -16,10 +16,12 @@ project {
     buildType(PublicBuild)
     buildType(PublicDeployment)
     buildType(UpstreamMerge)
-    buildType(DockerTestsWinX64)
-    buildType(DockerTestsWslX64)
 
-    buildTypesOrder = arrayListOf(DebugBuild,ReleaseBuild,PublicBuild,PublicDeployment,UpstreamMerge,DockerTestsWinX64,DockerTestsWslX64)
+    buildTypesOrder = arrayListOf(DebugBuild,ReleaseBuild,PublicBuild,PublicDeployment,UpstreamMerge)
+
+    subProject(DockerTests)
+
+    subProjectsOrder = arrayListOf(DockerTests)
 
 }
 
@@ -87,7 +89,7 @@ object DebugBuild : BuildType({
             executionMode = BuildStep.ExecutionMode.ALWAYS
             edition = PowerShellStep.Edition.Core
             scriptMode = script {
-                content = "${'$'}label = \"%system.teamcity.buildType.id%_%build.number%\"; ${'$'}ids = docker ps -a -q --filter \"label=postsharp.build=${'$'}label\"; if (${'$'}ids) { docker rm -f ${'$'}ids 2>&1 | Out-Null }"
+                content = "${'$'}label = \"%system.teamcity.buildType.id%_%build.number%\"; ${'$'}ids = docker ps -a -q --filter \"label=postsharp.build=${'$'}label\"; if (${'$'}ids) { docker rm -f ${'$'}ids 2>&1 | Out-Null }; if (${'$'}env:BUILDAGENT_CLEANUP_SCRIPT) { Write-Host \"Running the agent cleanup script: ${'$'}(${'$'}env:BUILDAGENT_CLEANUP_SCRIPT)\"; try { Invoke-Expression ${'$'}env:BUILDAGENT_CLEANUP_SCRIPT; if (${'$'}LASTEXITCODE -ne 0) { Write-Host \"The agent cleanup script exited with code ${'$'}LASTEXITCODE.\" } } catch { Write-Host \"The agent cleanup script failed: ${'$'}_\" } }"
             }
             noProfile = false
         }
@@ -212,7 +214,7 @@ object ReleaseBuild : BuildType({
             executionMode = BuildStep.ExecutionMode.ALWAYS
             edition = PowerShellStep.Edition.Core
             scriptMode = script {
-                content = "${'$'}label = \"%system.teamcity.buildType.id%_%build.number%\"; ${'$'}ids = docker ps -a -q --filter \"label=postsharp.build=${'$'}label\"; if (${'$'}ids) { docker rm -f ${'$'}ids 2>&1 | Out-Null }"
+                content = "${'$'}label = \"%system.teamcity.buildType.id%_%build.number%\"; ${'$'}ids = docker ps -a -q --filter \"label=postsharp.build=${'$'}label\"; if (${'$'}ids) { docker rm -f ${'$'}ids 2>&1 | Out-Null }; if (${'$'}env:BUILDAGENT_CLEANUP_SCRIPT) { Write-Host \"Running the agent cleanup script: ${'$'}(${'$'}env:BUILDAGENT_CLEANUP_SCRIPT)\"; try { Invoke-Expression ${'$'}env:BUILDAGENT_CLEANUP_SCRIPT; if (${'$'}LASTEXITCODE -ne 0) { Write-Host \"The agent cleanup script exited with code ${'$'}LASTEXITCODE.\" } } catch { Write-Host \"The agent cleanup script failed: ${'$'}_\" } }"
             }
             noProfile = false
         }
@@ -326,7 +328,7 @@ object PublicBuild : BuildType({
             executionMode = BuildStep.ExecutionMode.ALWAYS
             edition = PowerShellStep.Edition.Core
             scriptMode = script {
-                content = "${'$'}label = \"%system.teamcity.buildType.id%_%build.number%\"; ${'$'}ids = docker ps -a -q --filter \"label=postsharp.build=${'$'}label\"; if (${'$'}ids) { docker rm -f ${'$'}ids 2>&1 | Out-Null }"
+                content = "${'$'}label = \"%system.teamcity.buildType.id%_%build.number%\"; ${'$'}ids = docker ps -a -q --filter \"label=postsharp.build=${'$'}label\"; if (${'$'}ids) { docker rm -f ${'$'}ids 2>&1 | Out-Null }; if (${'$'}env:BUILDAGENT_CLEANUP_SCRIPT) { Write-Host \"Running the agent cleanup script: ${'$'}(${'$'}env:BUILDAGENT_CLEANUP_SCRIPT)\"; try { Invoke-Expression ${'$'}env:BUILDAGENT_CLEANUP_SCRIPT; if (${'$'}LASTEXITCODE -ne 0) { Write-Host \"The agent cleanup script exited with code ${'$'}LASTEXITCODE.\" } } catch { Write-Host \"The agent cleanup script failed: ${'$'}_\" } }"
             }
             noProfile = false
         }
@@ -435,7 +437,7 @@ object PublicDeployment : BuildType({
             executionMode = BuildStep.ExecutionMode.ALWAYS
             edition = PowerShellStep.Edition.Core
             scriptMode = script {
-                content = "${'$'}label = \"%system.teamcity.buildType.id%_%build.number%\"; ${'$'}ids = docker ps -a -q --filter \"label=postsharp.build=${'$'}label\"; if (${'$'}ids) { docker rm -f ${'$'}ids 2>&1 | Out-Null }"
+                content = "${'$'}label = \"%system.teamcity.buildType.id%_%build.number%\"; ${'$'}ids = docker ps -a -q --filter \"label=postsharp.build=${'$'}label\"; if (${'$'}ids) { docker rm -f ${'$'}ids 2>&1 | Out-Null }; if (${'$'}env:BUILDAGENT_CLEANUP_SCRIPT) { Write-Host \"Running the agent cleanup script: ${'$'}(${'$'}env:BUILDAGENT_CLEANUP_SCRIPT)\"; try { Invoke-Expression ${'$'}env:BUILDAGENT_CLEANUP_SCRIPT; if (${'$'}LASTEXITCODE -ne 0) { Write-Host \"The agent cleanup script exited with code ${'$'}LASTEXITCODE.\" } } catch { Write-Host \"The agent cleanup script failed: ${'$'}_\" } }"
             }
             noProfile = false
         }
@@ -538,7 +540,7 @@ object UpstreamMerge : BuildType({
             executionMode = BuildStep.ExecutionMode.ALWAYS
             edition = PowerShellStep.Edition.Core
             scriptMode = script {
-                content = "${'$'}label = \"%system.teamcity.buildType.id%_%build.number%\"; ${'$'}ids = docker ps -a -q --filter \"label=postsharp.build=${'$'}label\"; if (${'$'}ids) { docker rm -f ${'$'}ids 2>&1 | Out-Null }"
+                content = "${'$'}label = \"%system.teamcity.buildType.id%_%build.number%\"; ${'$'}ids = docker ps -a -q --filter \"label=postsharp.build=${'$'}label\"; if (${'$'}ids) { docker rm -f ${'$'}ids 2>&1 | Out-Null }; if (${'$'}env:BUILDAGENT_CLEANUP_SCRIPT) { Write-Host \"Running the agent cleanup script: ${'$'}(${'$'}env:BUILDAGENT_CLEANUP_SCRIPT)\"; try { Invoke-Expression ${'$'}env:BUILDAGENT_CLEANUP_SCRIPT; if (${'$'}LASTEXITCODE -ne 0) { Write-Host \"The agent cleanup script exited with code ${'$'}LASTEXITCODE.\" } } catch { Write-Host \"The agent cleanup script failed: ${'$'}_\" } }"
             }
             noProfile = false
         }
@@ -565,16 +567,16 @@ object UpstreamMerge : BuildType({
 
 })
 
-object DockerTestsWinX64 : BuildType({
+object DockerTestsWindowsX64 : BuildType({
 
-    name = "Docker-based tests on Windows X64"
+    name = "Docker Tests (Windows x64)"
 
     params {
         text(
             "Exec.Arguments", 
             "", 
-            label ="DockerBuild.ps1 Arguments",
-            description = "Arguments to append to the 'Execute .\\Metalama.Framework\\src\\tests\\docker\\DockerTests.ps1' build step.", allowEmpty = true)
+            label ="eng/RunDockerTests.ps1 Arguments",
+            description = "Arguments to append to the 'Execute eng/RunDockerTests.ps1' build step.", allowEmpty = true)
     }
 
     vcs {
@@ -611,24 +613,14 @@ object DockerTestsWinX64 : BuildType({
             noProfile = false
         }
         powerShell {
-            name = "Prepare Docker image metalama-2026.1-dockertestswinx64"
-            id = "PrepareImage"
-            edition = PowerShellStep.Edition.Core
-            scriptMode = file {
-                path = "DockerBuild.ps1"
-            }
-            noProfile = false
-            scriptArgs = "-BuildImage -ImageName metalama-2026.1-dockertestswinx64 "
-        }
-        powerShell {
-            name = "Execute .\\Metalama.Framework\\src\\tests\\docker\\DockerTests.ps1"
+            name = "Execute eng/RunDockerTests.ps1"
             id = "Exec"
             edition = PowerShellStep.Edition.Core
             scriptMode = file {
-                path = "DockerBuild.ps1"
+                path = "eng/RunDockerTests.ps1"
             }
             noProfile = false
-            scriptArgs = "-Script .\\Metalama.Framework\\src\\tests\\docker\\DockerTests.ps1 -ImageName metalama-2026.1-dockertestswinx64 -NoBuildImage -Label %system.teamcity.buildType.id%_%build.number% win-x64 %Exec.Arguments%"
+            scriptArgs = "-Platform win-x64 %Exec.Arguments%"
         }
         powerShell {
             name = "Cleanup Docker containers"
@@ -636,7 +628,7 @@ object DockerTestsWinX64 : BuildType({
             executionMode = BuildStep.ExecutionMode.ALWAYS
             edition = PowerShellStep.Edition.Core
             scriptMode = script {
-                content = "${'$'}label = \"%system.teamcity.buildType.id%_%build.number%\"; ${'$'}ids = docker ps -a -q --filter \"label=postsharp.build=${'$'}label\"; if (${'$'}ids) { docker rm -f ${'$'}ids 2>&1 | Out-Null }"
+                content = "${'$'}label = \"%system.teamcity.buildType.id%_%build.number%\"; ${'$'}ids = docker ps -a -q --filter \"label=postsharp.build=${'$'}label\"; if (${'$'}ids) { docker rm -f ${'$'}ids 2>&1 | Out-Null }; if (${'$'}env:BUILDAGENT_CLEANUP_SCRIPT) { Write-Host \"Running the agent cleanup script: ${'$'}(${'$'}env:BUILDAGENT_CLEANUP_SCRIPT)\"; try { Invoke-Expression ${'$'}env:BUILDAGENT_CLEANUP_SCRIPT; if (${'$'}LASTEXITCODE -ne 0) { Write-Host \"The agent cleanup script exited with code ${'$'}LASTEXITCODE.\" } } catch { Write-Host \"The agent cleanup script failed: ${'$'}_\" } }"
             }
             noProfile = false
         }
@@ -644,8 +636,7 @@ object DockerTestsWinX64 : BuildType({
 
     requirements {
         matches("teamcity.agent.jvm.os.family", "Windows")
-        matches("teamcity.agent.jvm.os.arch", "amd64")
-        equals("env.BuildAgentType", "docker-win-x64-md")
+        doesNotContain("env.PROCESSOR_IDENTIFIER", "ARMv8")
     }
 
     features {
@@ -682,16 +673,16 @@ object DockerTestsWinX64 : BuildType({
 
 })
 
-object DockerTestsWslX64 : BuildType({
+object DockerTestsLinuxX64 : BuildType({
 
-    name = "Docker-based tests on WSL X64"
+    name = "Docker Tests (Linux x64)"
 
     params {
         text(
             "Exec.Arguments", 
             "", 
-            label ="DockerBuild.ps1 Arguments",
-            description = "Arguments to append to the 'Execute ./Metalama.Framework/src/tests/docker/DockerTests.ps1' build step.", allowEmpty = true)
+            label ="eng/RunDockerTests.ps1 Arguments",
+            description = "Arguments to append to the 'Execute eng/RunDockerTests.ps1' build step.", allowEmpty = true)
     }
 
     vcs {
@@ -728,24 +719,14 @@ object DockerTestsWslX64 : BuildType({
             noProfile = false
         }
         powerShell {
-            name = "Prepare Docker image metalama-2026.1-dockertestswslx64"
-            id = "PrepareImage"
-            edition = PowerShellStep.Edition.Core
-            scriptMode = file {
-                path = "DockerBuild.ps1"
-            }
-            noProfile = false
-            scriptArgs = "-BuildImage -ImageName metalama-2026.1-dockertestswslx64 "
-        }
-        powerShell {
-            name = "Execute ./Metalama.Framework/src/tests/docker/DockerTests.ps1"
+            name = "Execute eng/RunDockerTests.ps1"
             id = "Exec"
             edition = PowerShellStep.Edition.Core
             scriptMode = file {
-                path = "DockerBuild.ps1"
+                path = "eng/RunDockerTests.ps1"
             }
             noProfile = false
-            scriptArgs = "-Script ./Metalama.Framework/src/tests/docker/DockerTests.ps1 -ImageName metalama-2026.1-dockertestswslx64 -NoBuildImage -Label %system.teamcity.buildType.id%_%build.number% linux-x64 -Wsl %Exec.Arguments%"
+            scriptArgs = "-Platform linux-x64 %Exec.Arguments%"
         }
         powerShell {
             name = "Cleanup Docker containers"
@@ -753,16 +734,15 @@ object DockerTestsWslX64 : BuildType({
             executionMode = BuildStep.ExecutionMode.ALWAYS
             edition = PowerShellStep.Edition.Core
             scriptMode = script {
-                content = "${'$'}label = \"%system.teamcity.buildType.id%_%build.number%\"; ${'$'}ids = docker ps -a -q --filter \"label=postsharp.build=${'$'}label\"; if (${'$'}ids) { docker rm -f ${'$'}ids 2>&1 | Out-Null }"
+                content = "${'$'}label = \"%system.teamcity.buildType.id%_%build.number%\"; ${'$'}ids = docker ps -a -q --filter \"label=postsharp.build=${'$'}label\"; if (${'$'}ids) { docker rm -f ${'$'}ids 2>&1 | Out-Null }; if (${'$'}env:BUILDAGENT_CLEANUP_SCRIPT) { Write-Host \"Running the agent cleanup script: ${'$'}(${'$'}env:BUILDAGENT_CLEANUP_SCRIPT)\"; try { Invoke-Expression ${'$'}env:BUILDAGENT_CLEANUP_SCRIPT; if (${'$'}LASTEXITCODE -ne 0) { Write-Host \"The agent cleanup script exited with code ${'$'}LASTEXITCODE.\" } } catch { Write-Host \"The agent cleanup script failed: ${'$'}_\" } }"
             }
             noProfile = false
         }
     }
 
     requirements {
-        matches("teamcity.agent.jvm.os.family", "Windows")
-        matches("teamcity.agent.jvm.os.arch", "amd64")
-        equals("env.BuildAgentType", "docker-win-x64-md")
+        equals("teamcity.agent.jvm.os.name", "Linux")
+        equals("teamcity.agent.jvm.os.arch", "amd64")
     }
 
     features {
@@ -799,3 +779,45 @@ object DockerTestsWslX64 : BuildType({
 
 })
 
+object RunAllDockerTests : BuildType({
+
+    name = "Run All Docker Tests"
+
+    type = Type.COMPOSITE
+
+    vcs {
+        root(AbsoluteId("Metalama_Metalama20261_Metalama"))
+        showDependenciesChanges = true
+     checkoutMode = CheckoutMode.ON_AGENT
+    }
+
+    features {
+        gitHubAppBuildScopedToken {
+            parameterName = "env.GITHUB_TOKEN"
+            connectionId = "%GITHUB_CONNECTION_METALAMA%"
+            targetRepositories = "Metalama"
+        }
+    }
+
+    dependencies {
+        snapshot(DockerTestsWindowsX64) {
+                 onDependencyFailure = FailureAction.FAIL_TO_START
+        }
+        snapshot(DockerTestsLinuxX64) {
+                 onDependencyFailure = FailureAction.FAIL_TO_START
+        }
+     }
+
+})
+
+object DockerTests : Project({
+
+    name = "Docker Tests"
+
+    buildType(DockerTestsWindowsX64)
+    buildType(DockerTestsLinuxX64)
+    buildType(RunAllDockerTests)
+
+    buildTypesOrder = arrayListOf(DockerTestsWindowsX64,DockerTestsLinuxX64,RunAllDockerTests)
+
+})
