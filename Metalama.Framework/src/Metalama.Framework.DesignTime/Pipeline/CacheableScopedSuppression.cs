@@ -8,6 +8,7 @@ using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.SerializableIds;
 using Metalama.Framework.Engine.Services;
 using Microsoft.CodeAnalysis;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Metalama.Framework.DesignTime.Pipeline;
 
@@ -22,10 +23,32 @@ internal sealed class CacheableScopedSuppression : IScopedSuppression
 
     public SerializableDeclarationId DeclarationId { get; }
 
-    public CacheableScopedSuppression( ScopedSuppression suppression )
+    private CacheableScopedSuppression( ScopedSuppression suppression, SerializableDeclarationId declarationId )
     {
         this.Suppression = suppression.Suppression;
-        this.DeclarationId = suppression.ScopeSymbol.GetSerializableId();
+        this.DeclarationId = declarationId;
+    }
+
+    /// <summary>
+    /// Creates a <see cref="CacheableScopedSuppression"/> from a <see cref="ScopedSuppression"/>, unless the declaration
+    /// the suppression applies to has no <see cref="SerializableDeclarationId"/>.
+    /// </summary>
+    /// <remarks>
+    /// A declaration of a file-local type has no identifier, because a declaration identifier names a type by its
+    /// namespace and its name only, and two file-local types can share both. See issues #2051 and #662.
+    /// </remarks>
+    public static bool TryCreate( ScopedSuppression suppression, [NotNullWhen( true )] out CacheableScopedSuppression? cacheableSuppression )
+    {
+        if ( !suppression.ScopeSymbol.TryGetSerializableId( out var declarationId ) )
+        {
+            cacheableSuppression = null;
+
+            return false;
+        }
+
+        cacheableSuppression = new CacheableScopedSuppression( suppression, declarationId );
+
+        return true;
     }
 
     public override string ToString() => $"{this.Suppression} on {this.DeclarationId}";

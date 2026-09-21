@@ -25,7 +25,7 @@ public static partial class SerializableDeclarationIdProvider
     public static bool TryGetSerializableId( this IDeclaration? declaration, out SerializableDeclarationId id )
         => TryGetSerializableId( declaration, RefTargetKind.Default, out id );
 
-    private static bool TryGetSerializableId( this IDeclaration? declaration, RefTargetKind targetKind, out SerializableDeclarationId id )
+    internal static bool TryGetSerializableId( this IDeclaration? declaration, RefTargetKind targetKind, out SerializableDeclarationId id )
     {
         switch ( declaration?.DeclarationKind )
         {

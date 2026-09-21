@@ -70,6 +70,23 @@ public sealed class SplitResultsByTreeFileLocalTypeTests : UnitTestClass
                                                }
                                                """;
 
+    private const string _overrideAspectCode = """
+                                               using Metalama.Framework.Aspects;
+
+                                               public class OverrideAspect : OverrideMethodAspect
+                                               {
+                                                   public override dynamic? OverrideMethod() => meta.Proceed();
+                                               }
+                                               """;
+
+    private const string _overrideTargetCode = """
+                                               file class FileLocalTarget
+                                               {
+                                                   [OverrideAspect]
+                                                   public void M() { }
+                                               }
+                                               """;
+
     /// <summary>
     /// The aspect suppresses a warning on a file-local type. The pipeline must produce a result. Before the fix it
     /// threw, and the result of the whole project was lost.
@@ -111,13 +128,28 @@ public sealed class SplitResultsByTreeFileLocalTypeTests : UnitTestClass
         Assert.Equal( "CS0169", suppression.Suppression.Definition.SuppressedDiagnosticId );
     }
 
-    private DesignTimeAspectPipelineResult Execute( string targetPath, string targetCode )
+    /// <summary>
+    /// The same method files an aspect instance and a transformation under the identifier of the declaration they
+    /// target, and both did abort the pass for a file-local type as well.
+    /// </summary>
+    [Fact]
+    public void OverrideOnFileLocalTypeDoesNotAbortThePipeline()
+    {
+        var results = Execute( "override.cs", _overrideTargetCode, _overrideAspectCode );
+
+        var treeResult = results.SyntaxTreeResults[DocumentKey.FromPath( "override.cs" )];
+
+        Assert.Empty( treeResult.AspectInstances );
+        Assert.Empty( treeResult.Transformations );
+    }
+
+    private DesignTimeAspectPipelineResult Execute( string targetPath, string targetCode, string aspectCode = _aspectCode )
     {
         using var testContext = this.CreateTestContext();
         using var factory = new TestDesignTimeAspectPipelineFactory( testContext );
 
         var compilation = testContext.CreateCSharpCompilation(
-            new Dictionary<string, string> { ["aspect.cs"] = _aspectCode, [targetPath] = targetCode },
+            new Dictionary<string, string> { ["aspect.cs"] = aspectCode, [targetPath] = targetCode },
             ignoreErrors: true );
 
         Assert.True( factory.TryExecute( testContext.ProjectOptions, compilation, default, out var executed ) );

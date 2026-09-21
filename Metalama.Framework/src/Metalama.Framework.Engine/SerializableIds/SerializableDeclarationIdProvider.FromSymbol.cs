@@ -27,7 +27,7 @@ public static partial class SerializableDeclarationIdProvider
     public static bool TryGetSerializableId( this ISymbol? symbol, out SerializableDeclarationId id )
         => TryGetSerializableId( symbol, RefTargetKind.Default, out id );
 
-    private static bool TryGetSerializableId( this ISymbol? symbol, RefTargetKind targetKind, out SerializableDeclarationId id )
+    internal static bool TryGetSerializableId( this ISymbol? symbol, RefTargetKind targetKind, out SerializableDeclarationId id )
     {
         if ( symbol == null )
         {

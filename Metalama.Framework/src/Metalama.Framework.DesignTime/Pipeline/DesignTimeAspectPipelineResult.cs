@@ -439,6 +439,18 @@ public sealed partial class DesignTimeAspectPipelineResult
         // Split suppressions by syntax tree.
         foreach ( var suppression in pipelineResults.Diagnostics.DiagnosticSuppressions )
         {
+            // A suppression is filed under the serializable identifier of the declaration it applies to. A declaration of a file-local
+            // type has no such identifier, and building one used to throw here, which lost the result of the whole project. The
+            // suppression is dropped instead, so that the rest of the result survives. See issues #2051 and #662.
+            if ( !CacheableScopedSuppression.TryCreate( suppression, out var cacheableSuppression ) )
+            {
+                Logger.DesignTime.Trace?.Log(
+                    $"SplitResultsByTree: skipping the suppression of '{suppression.Suppression.Definition.SuppressedDiagnosticId}' on "
+                    + $"'{suppression.ScopeSymbol}' because that declaration has no serializable id." );
+
+                continue;
+            }
+
             void AddSuppression( string? path )
             {
                 if ( !string.IsNullOrEmpty( path ) )
@@ -446,7 +458,7 @@ public sealed partial class DesignTimeAspectPipelineResult
                     if ( resultBuilders.TryGetValue( DocumentKey.FromPath( path! ), out var builder ) )
                     {
                         builder.Suppressions ??= ImmutableArray.CreateBuilder<CacheableScopedSuppression>();
-                        builder.Suppressions.Add( new CacheableScopedSuppression( suppression ) );
+                        builder.Suppressions.Add( cacheableSuppression );
                     }
                     else
                     {
@@ -609,6 +621,17 @@ public sealed partial class DesignTimeAspectPipelineResult
         // Split aspect instances by syntax tree.
         foreach ( var aspectInstance in pipelineResults.AspectInstances )
         {
+            // An aspect instance is recorded under the serializable identifier of the declaration it targets, which a declaration of a
+            // file-local type does not have. The aspect instance is skipped rather than aborting the whole pass. See issues #2051 and #662.
+            if ( !aspectInstance.TargetDeclaration.TryGetSerializableId( out var targetDeclarationId ) )
+            {
+                Logger.DesignTime.Trace?.Log(
+                    $"SplitResultsByTree: skipping the instance of aspect '{aspectInstance.AspectClass.FullName}' on "
+                    + $"'{aspectInstance.TargetDeclaration}' because that declaration has no serializable id." );
+
+                continue;
+            }
+
             var syntaxTree = aspectInstance.TargetDeclaration.GetPrimarySyntaxTree( compilationContext );
 
             // No continue here to handle even aspect instances without a syntax tree.
@@ -617,7 +640,6 @@ public sealed partial class DesignTimeAspectPipelineResult
                 resultBuilders.Add( default, new SyntaxTreePipelineResult.Builder( null ) );
             }
 
-            var targetDeclarationId = aspectInstance.TargetDeclaration.ToSerializableId();
             SerializableDeclarationId? predecessorDeclarationId = null;
 
             if ( aspectInstance.Predecessors is [var predecessor, ..] )
@@ -635,7 +657,9 @@ public sealed partial class DesignTimeAspectPipelineResult
                     _ => null
                 };
 
-                predecessorDeclarationId = predecessorDeclarationSymbol?.GetSerializableId();
+                // The predecessor is the type of an aspect class or of a fabric. That type can also be file-local, in which case it has no
+                // identifier and the aspect instance is recorded without a predecessor. See issue #2051.
+                predecessorDeclarationId = predecessorDeclarationSymbol.TryGetSerializableId( out var predecessorId ) ? predecessorId : null;
             }
 
             var documentKey = syntaxTree?.GetDocumentKey() ?? default;
@@ -661,6 +685,17 @@ public sealed partial class DesignTimeAspectPipelineResult
         // Split transformations by syntax tree.
         foreach ( var transformation in pipelineResults.Transformations )
         {
+            // A transformation is recorded under the serializable identifier of the declaration it targets, which a declaration of a
+            // file-local type does not have. The transformation is skipped rather than aborting the whole pass. See issues #2051 and #662.
+            if ( !transformation.TargetDeclaration.TryGetSerializableId( out var transformationTargetId ) )
+            {
+                Logger.DesignTime.Trace?.Log(
+                    $"SplitResultsByTree: skipping the transformation of aspect '{transformation.AspectClass.FullName}' on "
+                    + $"'{transformation.TargetDeclaration}' because that declaration has no serializable id." );
+
+                continue;
+            }
+
             var documentKey = (transformation as ISyntaxTreeTransformationBase)?.TransformedSyntaxTree.GetDocumentKey();
 
             if ( documentKey == null || !resultBuilders.TryGetValue( documentKey.Value, out var builder ) )
@@ -677,7 +712,7 @@ public sealed partial class DesignTimeAspectPipelineResult
 
             builder.Transformations.Add(
                 new DesignTimeTransformation(
-                    transformation.TargetDeclaration.ToSerializableId(),
+                    transformationTargetId,
                     transformation.AspectClass.FullName,
                     description ) );
         }
@@ -728,6 +763,17 @@ public sealed partial class DesignTimeAspectPipelineResult
                 continue;
             }
 
+            // An annotation is filed under the serializable identifier of the declaration it is attached to, which a declaration of a
+            // file-local type does not have. The annotation is skipped rather than aborting the whole pass. See issues #2051 and #662.
+            if ( !annotationsOnDeclaration.Key.TryGetSerializableId( out var annotatedDeclarationId ) )
+            {
+                Logger.DesignTime.Trace?.Log(
+                    $"SplitResultsByTree: skipping {exportedAnnotations.Length} annotation(s) on '{annotationsOnDeclaration.Key}' because "
+                    + "that declaration has no serializable id." );
+
+                continue;
+            }
+
             var syntaxTree = annotationsOnDeclaration.Key.GetPrimarySyntaxTree( compilationContext );
 
             SyntaxTreePipelineResult.Builder? builder;
@@ -752,7 +798,7 @@ public sealed partial class DesignTimeAspectPipelineResult
             }
 
             builder.Annotations ??= ImmutableDictionaryOfArray<SerializableDeclarationId, IAnnotation>.CreateBuilder();
-            builder.Annotations.Add( annotationsOnDeclaration.Key.ToSerializableId(), exportedAnnotations );
+            builder.Annotations.Add( annotatedDeclarationId, exportedAnnotations );
         }
 
         // Add syntax trees with empty output so they get cached too.
