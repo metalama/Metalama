@@ -6,6 +6,7 @@ using Metalama.Framework.DesignTime.Pipeline;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Tests.UnitTestHelpers.Mocks;
 using Metalama.Testing.UnitTesting;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Xunit;
@@ -23,10 +24,10 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline;
 /// <remarks>
 /// <para>
 /// A declaration identifier is a documentation-comment identifier, which names a type by its namespace and its name
-/// only. Two file-local types declared in two files share both, so the identifier provider refuses a declaration of a
-/// file-local type rather than return an identifier that resolves to the wrong one. This is the gap recorded in #662,
-/// which this test does not close: the suppression of such a declaration is dropped. What the test requires is that
-/// the rest of the result survives.
+/// only, and two file-local types declared in two files share both. The identifier of such a declaration therefore
+/// carries the metadata name of the file-local type as a discriminator, which is the gap recorded in #662 and closed
+/// since. These tests require the items to be filed rather than merely require the pass not to abort, because a
+/// dropped item is what the project lost in the reported case.
 /// </para>
 /// <para>
 /// The reported case reaches this code without the user writing a file-local type: the ASP.NET Core OpenAPI
@@ -87,17 +88,27 @@ public sealed class SplitResultsByTreeFileLocalTypeTests : UnitTestClass
                                                }
                                                """;
 
+    private const string _overrideOrdinaryTargetCode = """
+                                                       public class OrdinaryTarget
+                                                       {
+                                                           [OverrideAspect]
+                                                           public void M() { }
+                                                       }
+                                                       """;
+
     /// <summary>
-    /// The aspect suppresses a warning on a file-local type. The pipeline must produce a result. Before the fix it
-    /// threw, and the result of the whole project was lost.
+    /// The aspect suppresses a warning on a file-local type. The suppression must be filed under the identifier of
+    /// that type. Before the identifier existed, the computation threw and the result of the whole project was lost.
     /// </summary>
     [Fact]
-    public void SuppressionOnFileLocalTypeDoesNotAbortThePipeline()
+    public void SuppressionOnFileLocalTypeIsFiled()
     {
         var results = Execute( "fileLocal.cs", _fileLocalTargetCode );
 
-        // The suppression of the file-local declaration has no key, so it is dropped rather than filed.
-        Assert.Empty( GetSuppressions( results, "fileLocal.cs" ) );
+        var suppression = Assert.Single( GetSuppressions( results, "fileLocal.cs" ) );
+
+        Assert.Equal( "CS0169", suppression.Suppression.Definition.SuppressedDiagnosticId );
+        Assert.Contains( ";File=<fileLocal>F", suppression.DeclarationId.Id, StringComparison.Ordinal );
     }
 
     /// <summary>
@@ -115,31 +126,58 @@ public sealed class SplitResultsByTreeFileLocalTypeTests : UnitTestClass
     }
 
     /// <summary>
-    /// The mixed case: a file-local type and an ordinary type in the same tree. The suppression that has a key must
-    /// survive the one that has none.
+    /// The mixed case: a file-local type and an ordinary type in the same tree. Both suppressions must be filed, and
+    /// under different identifiers.
     /// </summary>
     [Fact]
-    public void SuppressionOnOrdinaryTypeSurvivesAFileLocalTypeInTheSameTree()
+    public void SuppressionsOnBothAFileLocalAndAnOrdinaryTypeAreFiled()
     {
         var results = Execute( "mixed.cs", _fileLocalTargetCode + "\n\n" + _ordinaryTargetCode );
 
-        var suppression = Assert.Single( GetSuppressions( results, "mixed.cs" ) );
+        var suppressions = GetSuppressions( results, "mixed.cs" ).ToList();
 
-        Assert.Equal( "CS0169", suppression.Suppression.Definition.SuppressedDiagnosticId );
+        Assert.Equal( 2, suppressions.Count );
+        Assert.All( suppressions, s => Assert.Equal( "CS0169", s.Suppression.Definition.SuppressedDiagnosticId ) );
+
+        Assert.Single( suppressions, s => s.DeclarationId.Id.Contains( ";File=", StringComparison.Ordinal ) );
+        Assert.Single( suppressions, s => !s.DeclarationId.Id.Contains( ";File=", StringComparison.Ordinal ) );
     }
 
     /// <summary>
-    /// The same method files an aspect instance and a transformation under the identifier of the declaration they
-    /// target, and both did abort the pass for a file-local type as well.
+    /// The same method files an aspect instance under the identifier of the declaration it targets, and that
+    /// computation aborted the pass for a file-local type as well. The aspect instance must now be filed, under an
+    /// identifier that carries the discriminator.
     /// </summary>
+    /// <remarks>
+    /// The transformations of this execution are not asserted, because this pipeline pass produces none even for an
+    /// ordinary type. <see cref="AspectInstanceOnOrdinaryTypeIsFiled"/> is the control that establishes it.
+    /// </remarks>
     [Fact]
-    public void OverrideOnFileLocalTypeDoesNotAbortThePipeline()
+    public void AspectInstanceOnFileLocalTypeIsFiled()
     {
         var results = Execute( "override.cs", _overrideTargetCode, _overrideAspectCode );
 
         var treeResult = results.SyntaxTreeResults[DocumentKey.FromPath( "override.cs" )];
 
-        Assert.Empty( treeResult.AspectInstances );
+        var aspectInstance = Assert.Single( treeResult.AspectInstances );
+
+        Assert.Contains( ";File=<override>F", aspectInstance.TargetDeclarationId.Id, StringComparison.Ordinal );
+    }
+
+    /// <summary>
+    /// The control case for <see cref="AspectInstanceOnFileLocalTypeIsFiled"/>: the same aspect on an ordinary type
+    /// produces one aspect instance and no transformation, which is the shape the file-local case must match.
+    /// </summary>
+    [Fact]
+    public void AspectInstanceOnOrdinaryTypeIsFiled()
+    {
+        var results = Execute( "overrideOrdinary.cs", _overrideOrdinaryTargetCode, _overrideAspectCode );
+
+        var treeResult = results.SyntaxTreeResults[DocumentKey.FromPath( "overrideOrdinary.cs" )];
+
+        var aspectInstance = Assert.Single( treeResult.AspectInstances );
+
+        Assert.DoesNotContain( ";File=", aspectInstance.TargetDeclarationId.Id, StringComparison.Ordinal );
         Assert.Empty( treeResult.Transformations );
     }
 

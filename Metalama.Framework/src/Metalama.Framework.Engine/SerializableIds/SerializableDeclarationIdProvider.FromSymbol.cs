@@ -50,32 +50,18 @@ public static partial class SerializableDeclarationIdProvider
 
             case SymbolKind.Parameter when symbol is IParameterSymbol parameterSymbol:
                 {
-                    if ( IsInFileLocalType( parameterSymbol ) )
-                    {
-                        id = default;
-
-                        return false;
-                    }
-
                     var parentId = DocumentationCommentId.CreateDeclarationId( parameterSymbol.ContainingSymbol ).AssertNotNull();
 
-                    id = new SerializableDeclarationId( $"{parentId};Parameter={parameterSymbol.Ordinal}" );
+                    id = CreateId( $"{parentId};Parameter={parameterSymbol.Ordinal}", GetFileLocalTypeMetadataName( parameterSymbol ) );
 
                     return true;
                 }
 
             case SymbolKind.TypeParameter when symbol is ITypeParameterSymbol typeParameterSymbol:
                 {
-                    if ( IsInFileLocalType( typeParameterSymbol ) )
-                    {
-                        id = default;
-
-                        return false;
-                    }
-
                     var parentId = DocumentationCommentId.CreateDeclarationId( typeParameterSymbol.ContainingSymbol ).AssertNotNull();
 
-                    id = new SerializableDeclarationId( $"{parentId};TypeParameter={typeParameterSymbol.Ordinal}" );
+                    id = CreateId( $"{parentId};TypeParameter={typeParameterSymbol.Ordinal}", GetFileLocalTypeMetadataName( typeParameterSymbol ) );
 
                     return true;
                 }
@@ -93,16 +79,6 @@ public static partial class SerializableDeclarationIdProvider
 
                     return false;
                 }
-
-            case SymbolKind.NamedType when symbol is INamedTypeSymbol:
-                if ( IsInFileLocalType( symbol ) )
-                {
-                    id = default;
-
-                    return false;
-                }
-
-                goto default;
 
             case SymbolKind.ArrayType or SymbolKind.PointerType or SymbolKind.FunctionPointerType or SymbolKind.DynamicType or SymbolKind.ErrorType
                 when symbol is ITypeSymbol typeSymbol:
@@ -123,13 +99,6 @@ public static partial class SerializableDeclarationIdProvider
                     case SymbolKind.Property:
                     case SymbolKind.TypeParameter:
                         {
-                            if ( IsInFileLocalType( symbol ) )
-                            {
-                                id = default;
-
-                                return false;
-                            }
-
                             var documentationId = DocumentationCommentId.CreateDeclarationId( symbol );
 
                             if ( documentationId == null )
@@ -139,14 +108,9 @@ public static partial class SerializableDeclarationIdProvider
                                 return false;
                             }
 
-                            if ( targetKind == RefTargetKind.Default )
-                            {
-                                id = new SerializableDeclarationId( documentationId );
-                            }
-                            else
-                            {
-                                id = new SerializableDeclarationId( $"{documentationId};{targetKind}" );
-                            }
+                            id = CreateId(
+                                targetKind == RefTargetKind.Default ? documentationId : $"{documentationId};{targetKind}",
+                                GetFileLocalTypeMetadataName( symbol ) );
 
                             return true;
                         }

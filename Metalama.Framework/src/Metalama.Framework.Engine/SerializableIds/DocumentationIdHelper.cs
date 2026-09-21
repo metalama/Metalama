@@ -57,16 +57,6 @@ namespace Metalama.Framework.Engine.SerializableIds
         }
 
         /// <summary>
-        /// Gets the first declaration that matches the declaration id string, order undefined.
-        /// </summary>
-        public static IDeclaration? GetFirstDeclarationForDeclarationId( string id, CompilationModel compilation )
-        {
-            var results = GetDeclarationsForDeclarationId( id, compilation );
-
-            return results.Count == 0 ? null : results[0];
-        }
-
-        /// <summary>
         /// Gets all declarations that match the declaration id string, order undefined.
         /// </summary>
         /// <remarks>

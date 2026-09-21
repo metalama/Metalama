@@ -13,6 +13,7 @@ using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Xunit;
 using Xunit.Abstractions;
@@ -315,43 +316,174 @@ delegate int D(int x, string y);
         }
     }
 
+    /// <summary>
+    /// Verifies that every declaration of a file-local type, including a generic one and a nested one, has an
+    /// identifier that resolves back to it.
+    /// </summary>
     [Fact]
-    public void FileLocalTypes_CannotGetSerializableId()
+    public void FileLocalTypeRoundtrip()
     {
-        // File-local types cannot have serializable IDs because the ID would be
-        // path-dependent, and serializable IDs must be cross-machine.
         const string code = @"
 namespace TestNamespace;
 
-file class FileLocalType
+file class FileLocalType<T>
 {
-    public void M<T>(int p) {}
+    public void M<T2>(int p) {}
+    public int _field;
+    public int Property { get; set; }
+    public event System.EventHandler Event;
+
+    public class Nested {}
 }
 ";
 
         using var testContext = this.CreateTestContext();
         var compilation = testContext.CreateCompilation( code );
 
-        var fileLocalType = compilation.GetContainedDeclarations()
-            .OfType<INamedType>()
-            .Single( t => t.Name == "FileLocalType" );
-
-        // The type itself should not get a serializable ID.
-        Assert.False( fileLocalType.TryGetSerializableId( out _ ) );
-
-        // Members should not get a serializable ID either.
-        var method = fileLocalType.Methods.OfName( "M" ).Single();
-        Assert.False( method.TryGetSerializableId( out _ ) );
-
-        // Parameters of members should not get a serializable ID.
-        var parameter = method.Parameters.Single();
-        Assert.False( parameter.TryGetSerializableId( out _ ) );
-
-        // Type parameters of members should not get a serializable ID.
-        var typeParameter = method.TypeParameters.Single();
-        Assert.False( typeParameter.TryGetSerializableId( out _ ) );
-
-        // GetSerializableId should throw for file-local types.
-        Assert.Throws<ArgumentException>( () => fileLocalType.ToSerializableId() );
+        foreach ( var declaration in compilation.GetContainedDeclarations() )
+        {
+            Roundtrip( declaration, compilation, this.TestOutput );
+        }
     }
+
+    /// <summary>
+    /// Verifies that two file-local types that share a namespace and a name, which is the case the discriminator
+    /// exists for, have different identifiers and that each one resolves to the type it was built from.
+    /// </summary>
+    [Fact]
+    public void FileLocalTypesInTwoFilesHaveDistinctIds()
+    {
+        const string code = @"
+namespace TestNamespace;
+
+file class FileLocalType
+{
+    public void M(int p) {}
+}
+";
+
+        using var testContext = this.CreateTestContext();
+
+        var compilation = testContext.CreateCompilation(
+            new Dictionary<string, string> { { "a.cs", code }, { "b.cs", code } } );
+
+        var typeInA = GetFileLocalType( compilation, "a.cs" );
+        var typeInB = GetFileLocalType( compilation, "b.cs" );
+
+        Assert.NotSame( typeInA, typeInB );
+
+        var idOfA = typeInA.ToSerializableId();
+        var idOfB = typeInB.ToSerializableId();
+
+        this.TestOutput.WriteLine( idOfA.Id );
+        this.TestOutput.WriteLine( idOfB.Id );
+
+        Assert.NotEqual( idOfA, idOfB );
+
+        // The discriminator is the metadata name that the compiler gives the file-local type, which begins with the
+        // name of the declaring file and continues with the checksum of its path.
+        Assert.Contains( ";File=<a>F", idOfA.Id, StringComparison.Ordinal );
+        Assert.Contains( ";File=<b>F", idOfB.Id, StringComparison.Ordinal );
+        Assert.EndsWith( "__FileLocalType", idOfA.Id, StringComparison.Ordinal );
+
+        Assert.Same( typeInA, idOfA.Resolve( compilation ) );
+        Assert.Same( typeInB, idOfB.Resolve( compilation ) );
+
+        // A member of one of them must resolve to that same file, and not to the member of identical signature
+        // declared in the other file.
+        var methodOfA = typeInA.Methods.OfName( "M" ).Single();
+        var methodOfB = typeInB.Methods.OfName( "M" ).Single();
+
+        Assert.NotEqual( methodOfA.ToSerializableId(), methodOfB.ToSerializableId() );
+        Assert.Same( methodOfA, methodOfA.ToSerializableId().Resolve( compilation ) );
+        Assert.Same( methodOfB, methodOfB.ToSerializableId().Resolve( compilation ) );
+
+        // The same must hold on the symbol path.
+        Roundtrip( compilation, typeInA.GetSymbol().AssertSymbolNotNull(), false );
+        Roundtrip( compilation, typeInB.GetSymbol().AssertSymbolNotNull(), false );
+        Roundtrip( compilation, methodOfA.GetSymbol().AssertSymbolNotNull() );
+        Roundtrip( compilation, methodOfB.GetSymbol().AssertSymbolNotNull() );
+    }
+
+    /// <summary>
+    /// Verifies that an ordinary type and a file-local type that share a namespace and a name are told apart, in both
+    /// directions.
+    /// </summary>
+    [Fact]
+    public void FileLocalTypeIsDistinguishedFromOrdinaryType()
+    {
+        const string ordinaryCode = @"
+namespace TestNamespace;
+
+class SameName
+{
+}
+";
+
+        const string fileLocalCode = @"
+namespace TestNamespace;
+
+file class SameName
+{
+}
+";
+
+        using var testContext = this.CreateTestContext();
+
+        var compilation = testContext.CreateCompilation(
+            new Dictionary<string, string> { { "a.cs", ordinaryCode }, { "b.cs", fileLocalCode } } );
+
+        var ordinaryType = compilation.GetContainedDeclarations()
+            .OfType<INamedType>()
+            .Single( t => t.Name == "SameName" && !IsFileLocal( t ) );
+
+        var fileLocalType = GetFileLocalType( compilation, "b.cs", "SameName" );
+
+        var ordinaryId = ordinaryType.ToSerializableId();
+        var fileLocalId = fileLocalType.ToSerializableId();
+
+        Assert.NotEqual( ordinaryId, fileLocalId );
+
+        Assert.Same( ordinaryType, ordinaryId.Resolve( compilation ) );
+        Assert.Same( fileLocalType, fileLocalId.Resolve( compilation ) );
+    }
+
+    /// <summary>
+    /// Verifies that an identifier that carries no discriminator does not resolve to a file-local type, which is the
+    /// rule that keeps an identifier written for an ordinary declaration from reaching a file-local one of the same
+    /// name.
+    /// </summary>
+    [Fact]
+    public void IdWithoutDiscriminatorDoesNotResolveToFileLocalType()
+    {
+        const string code = @"
+namespace TestNamespace;
+
+file class FileLocalType
+{
+}
+";
+
+        using var testContext = this.CreateTestContext();
+        var compilation = testContext.CreateCompilationModel( code );
+
+        // This is the identifier that the documentation comment machinery produces for the file-local type, without
+        // the discriminator that Metalama adds.
+        var idWithoutDiscriminator = new SerializableDeclarationId( "T:TestNamespace.FileLocalType" );
+
+        Assert.Null( idWithoutDiscriminator.ResolveToSymbolOrNull( compilation.GetCompilationContext() ) );
+        Assert.Null( idWithoutDiscriminator.ResolveToDeclaration( compilation ) );
+    }
+
+    private static bool IsFileLocal( INamedType type ) => GetTypeSymbol( type ).IsFileLocal;
+
+    private static INamedTypeSymbol GetTypeSymbol( INamedType type ) => type.GetSymbol().AssertSymbolNotNull();
+
+    private static INamedType GetFileLocalType( ICompilation compilation, string filePath, string typeName = "FileLocalType" )
+        => compilation.GetContainedDeclarations()
+            .OfType<INamedType>()
+            .Single(
+                t => t.Name == typeName
+                     && IsFileLocal( t )
+                     && GetTypeSymbol( t ).DeclaringSyntaxReferences[0].SyntaxTree.FilePath == filePath );
 }

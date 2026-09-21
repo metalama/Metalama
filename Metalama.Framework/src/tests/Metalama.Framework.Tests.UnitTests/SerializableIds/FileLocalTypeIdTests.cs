@@ -9,6 +9,7 @@ using Metalama.Framework.Engine.SerializableIds;
 using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Xunit;
@@ -23,11 +24,10 @@ namespace Metalama.Framework.Tests.UnitTests.SerializableIds;
 /// <remarks>
 /// The report named two refused symbols: a method of a type emitted by the ASP.NET Core OpenAPI XML-comment source
 /// generator, and a user-written method whose signature contains an <c>in</c> parameter and a <c>ref</c> parameter of
-/// a generic type. A declaration identifier is a documentation-comment identifier, which names a type by its
-/// namespace and its name only. Two file-local types can share both, so the provider refuses a declaration of a
-/// file-local type rather than produce an identifier that resolves to the wrong one. This is the gap recorded in
-/// #662. Parameter reference kinds, on the other hand, are represented: both <c>in</c> and <c>ref</c> serialize to
-/// the <c>@</c> suffix, and the identifier round-trips.
+/// a generic type. The first was refused for its containing type, which was file-local, and the second was not
+/// refused at all: both <c>in</c> and <c>ref</c> serialize to the <c>@</c> suffix, and the identifier round-trips.
+/// A declaration of a file-local type now has an identifier as well, because the identifier carries the metadata name
+/// of that type as a discriminator, which closes the gap recorded in #662.
 /// </remarks>
 public sealed class FileLocalTypeIdTests : UnitTestClass
 {
@@ -53,7 +53,7 @@ public sealed class FileLocalTypeIdTests : UnitTestClass
     }
 
     [Fact]
-    public void FileLocalTypeAndItsMembersHaveNoId()
+    public void FileLocalTypeAndItsMembersHaveAnId()
     {
         using var testContext = this.CreateTestContext();
 
@@ -66,7 +66,7 @@ public sealed class FileLocalTypeIdTests : UnitTestClass
                             }
                             """;
 
-        var symbols = GetDeclaredSymbols( testContext, code, out _ )
+        var symbols = GetDeclaredSymbols( testContext, code, out var compilation )
             .Where( s => s.Kind is SymbolKind.NamedType or SymbolKind.Method )
             .ToList();
 
@@ -75,7 +75,21 @@ public sealed class FileLocalTypeIdTests : UnitTestClass
         foreach ( var symbol in symbols )
         {
             this.TestOutput.WriteLine( symbol.ToDisplayString() );
-            Assert.False( symbol.TryGetSerializableId( out _ ) );
+
+            Assert.True( symbol.TryGetSerializableId( out var id ) );
+            this.TestOutput.WriteLine( id.Id );
+
+            // The discriminator is the metadata name of the file-local type, which the compiler builds from the name
+            // of the declaring file and the checksum of its path.
+            Assert.Contains( ";File=<test>F", id.Id, StringComparison.Ordinal );
+            Assert.EndsWith( "__F", id.Id, StringComparison.Ordinal );
+
+            // The comparison ignores the nullable annotation, because resolution normalizes it on a named type and
+            // therefore returns a symbol that differs from the declared one in that respect alone.
+            Assert.Equal(
+                symbol,
+                id.ResolveToSymbolOrNull( compilation.GetCompilationContext() ),
+                SymbolEqualityComparer.Default );
         }
     }
 

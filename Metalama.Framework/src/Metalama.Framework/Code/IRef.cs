@@ -60,6 +60,11 @@ namespace Metalama.Framework.Code
         /// Returns a string that uniquely identifies the declaration represented by the current reference. This identifier can then be resolved using <see cref="IDeclarationFactory.GetDeclarationFromId"/>, even in
         /// a different process or with a different version of Metalama than the one that created the id.
         /// </summary>
+        /// <remarks>
+        /// For a declaration of a file-local type, resolution in another process holds on the machine that produced
+        /// the identifier, and on another machine only when both projects are built with the <c>pathmap</c> option, as
+        /// a deterministic build does. See <see cref="SerializableDeclarationId"/>.
+        /// </remarks>
         /// <returns>A string, or <c>null</c> if the current reference cannot be serialized to a public id.</returns>
         SerializableDeclarationId ToSerializableId();
 
