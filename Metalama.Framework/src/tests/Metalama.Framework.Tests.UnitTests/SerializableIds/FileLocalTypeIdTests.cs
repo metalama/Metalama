@@ -36,7 +36,7 @@ public sealed class FileLocalTypeIdTests : UnitTestClass
     /// <summary>
     /// Returns every declared member symbol of the given code, in declaration order.
     /// </summary>
-    private IEnumerable<ISymbol> GetDeclaredSymbols( TestContext testContext, string code, out ICompilation compilation )
+    private static IEnumerable<ISymbol> GetDeclaredSymbols( TestContext testContext, string code, out ICompilation compilation )
     {
         compilation = testContext.CreateCompilation( code );
         var roslynCompilation = compilation.GetRoslynCompilation();
@@ -66,7 +66,7 @@ public sealed class FileLocalTypeIdTests : UnitTestClass
                             }
                             """;
 
-        var symbols = this.GetDeclaredSymbols( testContext, code, out _ )
+        var symbols = GetDeclaredSymbols( testContext, code, out _ )
             .Where( s => s.Kind is SymbolKind.NamedType or SymbolKind.Method )
             .ToList();
 
@@ -93,7 +93,7 @@ public sealed class FileLocalTypeIdTests : UnitTestClass
                             }
                             """;
 
-        var method = this.GetDeclaredSymbols( testContext, code, out var compilation )
+        var method = GetDeclaredSymbols( testContext, code, out var compilation )
             .Single( s => s.Kind == SymbolKind.Method );
 
         Assert.True( method.TryGetSerializableId( out var id ) );
