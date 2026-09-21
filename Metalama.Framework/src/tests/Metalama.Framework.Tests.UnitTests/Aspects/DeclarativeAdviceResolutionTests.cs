@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Code;
 using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.Aspects;
@@ -13,6 +14,7 @@ using Metalama.Framework.Engine.Services;
 using Metalama.Testing.UnitTesting;
 using System;
 using System.Collections.Immutable;
+using System.Globalization;
 using System.Linq;
 using Xunit;
 using Xunit.Abstractions;
@@ -23,11 +25,11 @@ namespace Metalama.Framework.Tests.UnitTests.Aspects;
 /// Tests the resolution of the declaration identifiers that an aspect class stores for its declarative advice.
 /// </summary>
 /// <remarks>
-/// An aspect class records one <c>SerializableDeclarationId</c> per declarative advice member, and resolves it back to a
-/// symbol every time the aspect runs. At design time the aspect class is reached from the pipeline configuration, which
-/// is reused across compilations, so the compilation that the identifier is resolved against is not always the one it
-/// was written from. Issue #2052 reports that an identifier which does not resolve was costing the user every
-/// design-time service of the project.
+/// An aspect class records one <see cref="SerializableDeclarationId"/> per declarative advice member, and resolves it
+/// back to a symbol every time the aspect runs. At design time the aspect class is
+/// reached from the pipeline configuration, which is reused across compilations, so the compilation an identifier is
+/// resolved against is not always the one it was written from. Issue #2052 reports that an identifier which does not
+/// resolve was costing the user every design-time service of the project.
 /// </remarks>
 public sealed class DeclarativeAdviceResolutionTests : UnitTestClass
 {
@@ -54,8 +56,8 @@ public sealed class DeclarativeAdviceResolutionTests : UnitTestClass
              """;
 
     /// <summary>
-    /// Creates the aspect class of <c>MyAspect</c> from the given compilation, which is also the compilation that the
-    /// identifiers of its declarative advice are written from.
+    /// Creates the aspect class of <c>MyAspect</c> from the given compilation, which is therefore also the compilation
+    /// that the identifiers of its declarative advice are written from.
     /// </summary>
     private static (AspectClass AspectClass, ProjectServiceProvider ServiceProvider) CreateAspectClass(
         TestContext testContext,
@@ -90,7 +92,8 @@ public sealed class DeclarativeAdviceResolutionTests : UnitTestClass
 
     /// <summary>
     /// Verifies that the declarative advice of an aspect class resolves against the compilation its identifiers were
-    /// written from. This is the case that must keep working once an identifier that does not resolve is skipped.
+    /// written from, without a diagnostic. This is the case that must keep working once an identifier that does not
+    /// resolve is skipped.
     /// </summary>
     [Fact]
     public void DeclarativeAdviceResolvesInTheSameCompilation()
@@ -101,31 +104,41 @@ public sealed class DeclarativeAdviceResolutionTests : UnitTestClass
 
         var (aspectClass, serviceProvider) = CreateAspectClass( testContext, compilation );
 
-        var declarativeAdvice = aspectClass.GetDeclarativeAdvice( serviceProvider, compilation, default, ObjectReader.Empty )
+        var diagnostics = new DiagnosticBag();
+
+        var declarativeAdvice = aspectClass.GetDeclarativeAdvice( serviceProvider, compilation, default, ObjectReader.Empty, diagnostics )
             .Select( a => a.Symbol.Name )
             .OrderBy( name => name, StringComparer.Ordinal )
             .ToArray();
 
         Assert.Equal( ["IntroducedField", "IntroducedMethod"], declarativeAdvice );
+        Assert.Empty( diagnostics );
     }
 
     /// <summary>
     /// Verifies that a declarative advice member whose identifier does not resolve in the compilation the aspect runs
-    /// against is skipped, and that the members whose identifiers do resolve are still returned.
+    /// against is skipped and reported as a warning, and that the members whose identifiers do resolve are still
+    /// returned.
     /// </summary>
     /// <remarks>
     /// The second compilation declares the same aspect class with the named members renamed, so the identifiers written
     /// from the first compilation no longer resolve in it. Issue #2052 reports the two identifier shapes separately: a
-    /// field identifier, <c>F:MyAspect.IntroducedField</c>, which carries no type, and a method identifier,
-    /// <c>M:MyAspect.IntroducedMethod~System.Int32</c>, which carries a return type. Each is covered by its own case,
-    /// and the case that renames both members verifies that nothing is returned rather than that an exception is
-    /// thrown.
+    /// field identifier, which carries no type, and a method identifier, which carries a return type. Each is covered
+    /// by its own case, and the third case renames both members.
     /// </remarks>
     [Theory]
-    [InlineData( "RenamedField", "IntroducedMethod", new[] { "IntroducedMethod" } )]
-    [InlineData( "IntroducedField", "RenamedMethod", new[] { "IntroducedField" } )]
-    [InlineData( "RenamedField", "RenamedMethod", new string[0] )]
-    public void DeclarativeAdviceThatDoesNotResolveIsSkipped( string fieldName, string methodName, string[] expectedAdvice )
+    [InlineData( "RenamedField", "IntroducedMethod", new[] { "IntroducedMethod" }, new[] { "F:MyAspect.IntroducedField" } )]
+    [InlineData( "IntroducedField", "RenamedMethod", new[] { "IntroducedField" }, new[] { "M:MyAspect.IntroducedMethod~System.Int32" } )]
+    [InlineData(
+        "RenamedField",
+        "RenamedMethod",
+        new string[0],
+        new[] { "F:MyAspect.IntroducedField", "M:MyAspect.IntroducedMethod~System.Int32" } )]
+    public void DeclarativeAdviceThatDoesNotResolveIsSkipped(
+        string fieldName,
+        string methodName,
+        string[] expectedAdvice,
+        string[] expectedUnresolvedIds )
     {
         using var testContext = this.CreateTestContext();
 
@@ -134,11 +147,27 @@ public sealed class DeclarativeAdviceResolutionTests : UnitTestClass
 
         var (aspectClass, serviceProvider) = CreateAspectClass( testContext, compilation );
 
-        var declarativeAdvice = aspectClass.GetDeclarativeAdvice( serviceProvider, otherCompilation, default, ObjectReader.Empty )
+        var diagnostics = new DiagnosticBag();
+
+        var declarativeAdvice = aspectClass.GetDeclarativeAdvice( serviceProvider, otherCompilation, default, ObjectReader.Empty, diagnostics )
             .Select( a => a.Symbol.Name )
             .OrderBy( name => name, StringComparer.Ordinal )
             .ToArray();
 
         Assert.Equal( expectedAdvice, declarativeAdvice );
+
+        // Each identifier that does not resolve is named by one warning, and by no more than one, because the aspect
+        // class is asked for its declarative advice once per aspect instance.
+        var reportedMessages = diagnostics
+            .SelectAsArray( d => $"{d.Id}: {d.GetMessage( CultureInfo.InvariantCulture )}" )
+            .OrderBy( message => message, StringComparer.Ordinal )
+            .ToArray();
+
+        Assert.Equal( expectedUnresolvedIds.Length, reportedMessages.Length );
+
+        foreach ( var id in expectedUnresolvedIds )
+        {
+            Assert.Contains( reportedMessages, message => message.StartsWith( "LAMA0295: ", StringComparison.Ordinal ) && message.Contains( id, StringComparison.Ordinal ) );
+        }
     }
 }
