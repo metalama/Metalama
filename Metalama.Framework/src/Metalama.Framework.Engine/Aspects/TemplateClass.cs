@@ -37,9 +37,9 @@ public abstract class TemplateClass : IDiagnosticSource
     private readonly ConcurrentDictionary<string, TemplateDriver> _templateDrivers = new( StringComparer.Ordinal );
 
     /// <summary>
-    /// Gets the identifiers of the declarative advice members that did not resolve and were therefore already reported
-    /// by <see cref="GetDeclarativeAdvice(ProjectServiceProvider,CompilationContext,IDiagnosticAdder)"/>. The value of
-    /// an entry is not used.
+    /// The identifiers of the declarative advice members that did not resolve, and for which
+    /// <see cref="GetDeclarativeAdvice(ProjectServiceProvider,CompilationContext,IDiagnosticAdder)"/> has therefore
+    /// already reported a warning. The dictionary is used as a set, so the value of an entry carries no meaning.
     /// </summary>
     private readonly ConcurrentDictionary<SerializableDeclarationId, bool> _unresolvedDeclarativeAdvice = new();
 
