@@ -28,6 +28,7 @@ public class IntroduceMembersAttribute : TypeAspect
     public event EventHandler? IntroducedEvent;
 }
 
+// <target>
 [IntroduceMembers]
 file class FileLocalTarget
 {

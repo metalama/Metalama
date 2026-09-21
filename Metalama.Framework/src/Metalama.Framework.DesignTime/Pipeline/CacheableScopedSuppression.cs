@@ -34,8 +34,10 @@ internal sealed class CacheableScopedSuppression : IScopedSuppression
     /// the suppression applies to has no <see cref="SerializableDeclarationId"/>.
     /// </summary>
     /// <remarks>
-    /// A declaration of a file-local type has no identifier, because a declaration identifier names a type by its
-    /// namespace and its name only, and two file-local types can share both. See issues #2051 and #662.
+    /// A declaration of a file-local type does have an identifier, because the identifier carries the metadata name of
+    /// that type as a discriminator. This method still reports a failure, because a local function, a local variable and
+    /// a module have no identifier, and so does a reference to an attribute. Such a scope symbol is skipped rather than
+    /// aborting the whole pass, which is what lost the result of the entire project. See issue #2051.
     /// </remarks>
     public static bool TryCreate( ScopedSuppression suppression, [NotNullWhen( true )] out CacheableScopedSuppression? cacheableSuppression )
     {

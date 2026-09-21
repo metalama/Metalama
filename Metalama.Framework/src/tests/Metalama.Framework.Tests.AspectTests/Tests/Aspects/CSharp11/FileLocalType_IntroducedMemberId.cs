@@ -68,5 +68,6 @@ public class IntroduceAndReportAttribute : TypeAspect
     }
 }
 
+// <target>
 [IntroduceAndReport]
 file class FileLocalTarget { }

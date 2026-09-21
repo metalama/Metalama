@@ -23,6 +23,7 @@ public class LogAttribute : OverrideMethodAspect
     }
 }
 
+// <target>
 file class FileLocalTarget
 {
     [Log]

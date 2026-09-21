@@ -439,9 +439,10 @@ public sealed partial class DesignTimeAspectPipelineResult
         // Split suppressions by syntax tree.
         foreach ( var suppression in pipelineResults.Diagnostics.DiagnosticSuppressions )
         {
-            // A suppression is filed under the serializable identifier of the declaration it applies to. A declaration of a file-local
-            // type has no such identifier, and building one used to throw here, which lost the result of the whole project. The
-            // suppression is dropped instead, so that the rest of the result survives. See issues #2051 and #662.
+            // A suppression is filed under the serializable identifier of the declaration it applies to, and building one used to throw
+            // here for a declaration that has none, which lost the result of the whole project. The suppression is dropped instead, so
+            // that the rest of the result survives. A declaration of a file-local type does have an identifier; what remains without one
+            // is a local function, a local variable, a module and an attribute. See issue #2051.
             if ( !CacheableScopedSuppression.TryCreate( suppression, out var cacheableSuppression ) )
             {
                 Logger.DesignTime.Trace?.Log(
@@ -621,8 +622,8 @@ public sealed partial class DesignTimeAspectPipelineResult
         // Split aspect instances by syntax tree.
         foreach ( var aspectInstance in pipelineResults.AspectInstances )
         {
-            // An aspect instance is recorded under the serializable identifier of the declaration it targets, which a declaration of a
-            // file-local type does not have. The aspect instance is skipped rather than aborting the whole pass. See issues #2051 and #662.
+            // An aspect instance is recorded under the serializable identifier of the declaration it targets. A declaration that has none
+            // is skipped rather than aborting the whole pass. See issue #2051.
             if ( !aspectInstance.TargetDeclaration.TryGetSerializableId( out var targetDeclarationId ) )
             {
                 Logger.DesignTime.Trace?.Log(
@@ -657,8 +658,8 @@ public sealed partial class DesignTimeAspectPipelineResult
                     _ => null
                 };
 
-                // The predecessor is the type of an aspect class or of a fabric. That type can also be file-local, in which case it has no
-                // identifier and the aspect instance is recorded without a predecessor. See issue #2051.
+                // The predecessor is the type of an aspect class or of a fabric. When that type has no identifier, the aspect instance is
+                // recorded without a predecessor rather than aborting the whole pass. See issue #2051.
                 predecessorDeclarationId = predecessorDeclarationSymbol.TryGetSerializableId( out var predecessorId ) ? predecessorId : null;
             }
 
@@ -685,8 +686,8 @@ public sealed partial class DesignTimeAspectPipelineResult
         // Split transformations by syntax tree.
         foreach ( var transformation in pipelineResults.Transformations )
         {
-            // A transformation is recorded under the serializable identifier of the declaration it targets, which a declaration of a
-            // file-local type does not have. The transformation is skipped rather than aborting the whole pass. See issues #2051 and #662.
+            // A transformation is recorded under the serializable identifier of the declaration it targets. A declaration that has none is
+            // skipped rather than aborting the whole pass. See issue #2051.
             if ( !transformation.TargetDeclaration.TryGetSerializableId( out var transformationTargetId ) )
             {
                 Logger.DesignTime.Trace?.Log(
@@ -763,8 +764,8 @@ public sealed partial class DesignTimeAspectPipelineResult
                 continue;
             }
 
-            // An annotation is filed under the serializable identifier of the declaration it is attached to, which a declaration of a
-            // file-local type does not have. The annotation is skipped rather than aborting the whole pass. See issues #2051 and #662.
+            // An annotation is filed under the serializable identifier of the declaration it is attached to. A declaration that has none is
+            // skipped rather than aborting the whole pass. See issue #2051.
             if ( !annotationsOnDeclaration.Key.TryGetSerializableId( out var annotatedDeclarationId ) )
             {
                 Logger.DesignTime.Trace?.Log(
