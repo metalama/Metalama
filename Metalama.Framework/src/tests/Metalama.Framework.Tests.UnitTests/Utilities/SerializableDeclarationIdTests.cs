@@ -475,6 +475,31 @@ file class FileLocalType
         Assert.Null( idWithoutDiscriminator.ResolveToDeclaration( compilation ) );
     }
 
+    /// <summary>
+    /// Verifies that a reference which cannot be represented by an identifier at all, such as a reference to an
+    /// attribute, is reported by a <c>false</c> result rather than by an exception. Reporting it by an exception is
+    /// what the non-throwing form exists to avoid.
+    /// </summary>
+    [Fact]
+    public void AttributeReferenceHasNoSerializableId()
+    {
+        const string code = @"
+class C
+{
+  [System.Obsolete]
+  void M() {}
+}
+";
+
+        using var testContext = this.CreateTestContext();
+        var compilation = testContext.CreateCompilation( code );
+
+        var attributeReference = compilation.Types.Single().Methods.Single().Attributes.Single().ToRef();
+
+        Assert.False( attributeReference.TryGetSerializableId( out _ ) );
+        Assert.Throws<NotSupportedException>( () => attributeReference.ToSerializableId() );
+    }
+
     private static bool IsFileLocal( INamedType type ) => GetTypeSymbol( type ).IsFileLocal;
 
     private static INamedTypeSymbol GetTypeSymbol( INamedType type ) => type.GetSymbol().AssertSymbolNotNull();

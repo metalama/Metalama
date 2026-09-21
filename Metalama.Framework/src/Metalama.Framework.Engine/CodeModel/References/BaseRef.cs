@@ -17,7 +17,7 @@ namespace Metalama.Framework.Engine.CodeModel.References;
 /// <summary>
 /// The base implementation of <see cref="IRef{T}"/> except for attributes.
 /// </summary>
-internal abstract class BaseRef<T> : ISdkRef, IRef<T>, IRefImpl
+internal abstract class BaseRef<T> : ISdkRef, IRef<T>
     where T : class, ICompilationElement
 {
     // The compilation for which the symbol (stored in Target) is valid.
@@ -39,9 +39,9 @@ internal abstract class BaseRef<T> : ISdkRef, IRef<T>, IRefImpl
     /// in which case the method returns <c>false</c>. This is the non-throwing form of <see cref="ToSerializableId"/>.
     /// </summary>
     /// <remarks>
-    /// A declaration of a file-local type has no identifier, because a declaration identifier names a type by its namespace
-    /// and its name only, and two file-local types can share both. See issues #2051 and #662. This implementation always
-    /// succeeds and serves the references that are identified by a string, for which <see cref="ToSerializableId"/> cannot fail.
+    /// This implementation always succeeds and serves the references that are identified by a string, for which
+    /// <see cref="ToSerializableId"/> cannot fail. The overrides that resolve a symbol or a declaration can fail, because
+    /// a local function, a local variable and a module have no identifier. See issue #2051.
     /// </remarks>
     public virtual bool TryGetSerializableId( out SerializableDeclarationId id )
     {

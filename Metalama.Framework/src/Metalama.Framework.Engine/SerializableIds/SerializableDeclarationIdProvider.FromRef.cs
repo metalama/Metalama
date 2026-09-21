@@ -15,18 +15,19 @@ public static partial class SerializableDeclarationIdProvider
     /// <see cref="IRef.ToSerializableId"/>.
     /// </summary>
     /// <remarks>
-    /// A declaration of a file-local type has no identifier, because a declaration identifier names a type by its namespace
-    /// and its name only, and two file-local types can share both. See issues #2051 and #662.
+    /// A reference that cannot be represented by an identifier at all, such as a reference to an attribute, reports that
+    /// fact through the <c>false</c> result rather than by an exception. See the documentation of
+    /// <see cref="IRef.ToSerializableId"/> and issue #2051.
     /// </remarks>
     public static bool TryGetSerializableId( this IRef? reference, out SerializableDeclarationId id )
     {
-        if ( reference is null )
+        if ( reference == null )
         {
             id = default;
 
             return false;
         }
 
-        return ((IRefImpl) reference).TryGetSerializableId( out id );
+        return ((ISdkRef) reference).TryGetSerializableId( out id );
     }
 }
