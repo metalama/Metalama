@@ -24,6 +24,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text;
 
 namespace Metalama.Framework.Engine.Aspects;
 
@@ -141,11 +142,9 @@ internal sealed partial class TransitivePipelineContributorSource : IExternalHie
 
                         if ( serializedManifest != null )
                         {
-                            var manifestBytes = serializedManifest.Bytes.ToArray();
-
                             ITransitiveAspectsManifest DeserializeProjectManifest()
                                 => TransitiveAspectsManifest.Deserialize(
-                                    new MemoryStream( manifestBytes ),
+                                    new MemoryStream( serializedManifest.Bytes.ToArray() ),
                                     serviceProvider,
                                     compilationReference.Compilation.AssemblyName );
 
@@ -162,7 +161,7 @@ internal sealed partial class TransitivePipelineContributorSource : IExternalHie
                                         DeserializeProjectManifest ),
                                 compilationReference.Display ?? assemblyIdentity.AssertNotNull().Name,
                                 assemblyIdentity,
-                                manifestBytes,
+                                serializedManifest.Bytes.AsSpan(),
                                 serviceProvider,
                                 diagnosticSink );
                         }
@@ -279,7 +278,7 @@ internal sealed partial class TransitivePipelineContributorSource : IExternalHie
         Func<ITransitiveAspectsManifest> readManifest,
         string referenceDescription,
         AssemblyIdentity? assemblyIdentity,
-        byte[] manifestBytes,
+        ReadOnlySpan<byte> manifestBytes,
         ProjectServiceProvider serviceProvider,
         UserDiagnosticSink diagnosticSink )
     {
@@ -289,7 +288,19 @@ internal sealed partial class TransitivePipelineContributorSource : IExternalHie
         }
         catch ( Exception exception ) when ( exception is not OperationCanceledException )
         {
-            var head = string.Join( " ", manifestBytes.Take( 16 ).Select( b => b.ToString( "x2", CultureInfo.InvariantCulture ) ) );
+            var headBuilder = new StringBuilder();
+
+            foreach ( var b in manifestBytes.Slice( 0, Math.Min( 16, manifestBytes.Length ) ) )
+            {
+                if ( headBuilder.Length > 0 )
+                {
+                    headBuilder.Append( ' ' );
+                }
+
+                headBuilder.Append( b.ToString( "x2", CultureInfo.InvariantCulture ) );
+            }
+
+            var head = headBuilder.ToString();
 
             serviceProvider.GetLoggerFactory()
                 .GetLogger( nameof(TransitivePipelineContributorSource) )
