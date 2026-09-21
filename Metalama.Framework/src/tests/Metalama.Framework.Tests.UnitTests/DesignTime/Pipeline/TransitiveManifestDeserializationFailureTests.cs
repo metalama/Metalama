@@ -2,13 +2,17 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.DesignTime.Pipeline;
 using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Diagnostics;
+using Metalama.Framework.Engine.Testing;
+using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Tests.UnitTestHelpers.Mocks;
 using Metalama.Framework.Tests.UnitTestHelpers.TestClasses;
 using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
@@ -96,14 +100,160 @@ public sealed class TransitiveManifestDeserializationFailureTests : DesignTimePi
 
         this.TestOutput.WriteLine( DumpResults( consumerResult ) );
 
-        // The consuming project keeps its own generated code: the aspect it applies itself still runs.
+        AssertConsumerWasAnalyzed( consumerResult );
+        AssertManifestFailureWasReported( consumerResult );
+    }
+
+    /// <summary>
+    /// The aspect library shared by the producing and the consuming project. It is compiled once per target framework,
+    /// so that the two projects reference two distinct compile-time copies of it and the consumer cannot reuse the
+    /// producer's live manifest.
+    /// </summary>
+    private static string GetSharedCode( string targetFramework )
+        => $$"""
+             using Metalama.Framework.Advising;
+             using Metalama.Framework.Aspects;
+             using Metalama.Framework.Code;
+
+             [assembly: System.Runtime.Versioning.TargetFramework("{{targetFramework}}")]
+
+             namespace Shared
+             {
+                 public class PullAspect : ConstructorAspect
+                 {
+                     public override void BuildAspect( IAspectBuilder<IConstructor> builder )
+                     {
+                         builder.IntroduceParameter(
+                             "p1",
+                             typeof(int),
+                             TypedConstant.Create( 15 ),
+                             PullStrategy.IntroduceParameterAndPull( defaultValue: TypedConstant.Create( 20 ) ) );
+                     }
+                 }
+
+                 public class IntroduceAspect : TypeAspect
+                 {
+                     [Introduce]
+                     public int IntroducedMethod() => 42;
+                 }
+             }
+             """;
+
+    private const string _libraryCode = """
+                                        using Shared;
+
+                                        public partial class C
+                                        {
+                                            [PullAspect]
+                                            public C() { }
+
+                                            public C( string s ) : this() { }
+                                        }
+                                        """;
+
+    private const string _appCode = """
+                                    using Shared;
+
+                                    public partial class D : C
+                                    {
+                                        D( string s ) : base( s ) { }
+                                    }
+
+                                    [IntroduceAspect]
+                                    public partial class AppLocal { }
+                                    """;
+
+    /// <summary>
+    /// The same property for a reference to another project of the solution rather than to an assembly on disk. This is
+    /// the path of the stacks reported in issue #2049: the consumer deserializes the manifest that the referenced
+    /// project's own pipeline produced, because the two projects reference distinct compile-time copies of the shared
+    /// aspect library.
+    /// </summary>
+    /// <remarks>
+    /// The bytes of that manifest are produced by the referenced project's pipeline, so a test cannot damage them from
+    /// the outside. The failure is injected instead, at the fault injection point in
+    /// <c>TransitiveAspectsManifest.Deserialize</c>, with the exception that was reported. The injection point is
+    /// outside the code that handles the failure, so a branch that did not handle it would let the exception travel and
+    /// the test would fail.
+    /// </remarks>
+    [Fact]
+    public void UnreadableManifestFromAReferencedProject_DoesNotAbortTheConsumingProject()
+    {
+        using var testContext = this.CreateTestContext();
+        using var libraryContext = this.CreateTestContext();
+        using var appContext = this.CreateTestContext();
+
+        var sharedForLibrary = testContext.CreateCSharpCompilation( GetSharedCode( ".NETStandard,Version=v2.0" ), assemblyName: "Shared" );
+        var sharedForApp = testContext.CreateCSharpCompilation( GetSharedCode( ".NETFramework,Version=v4.7.2" ), assemblyName: "Shared" );
+
+        var library = testContext.CreateCSharpCompilation(
+            _libraryCode,
+            assemblyName: "Library",
+            additionalReferences: [sharedForLibrary.ToMetadataReference()] );
+
+        using var pipelineFactory = new TestDesignTimeAspectPipelineFactory( testContext );
+
+        Assert.True( pipelineFactory.TryExecute( libraryContext.ProjectOptions, library, default, out var libraryResult ) );
+
+        // Materialized, because WithFilePath returns a new syntax tree on each call and Roslyn enumerates the argument
+        // more than once, which would put distinct instances in the compilation and in the version index.
+        var generatedTrees = libraryResult.Result.SyntaxTreeResults.Values
+            .SelectMany( r => r.Introductions )
+            .Select( i => i.GeneratedSyntaxTree.WithFilePath( $"{SourceGeneratorHelper.GeneratedFilePathSegment}/{i.Name}.cs" ) )
+            .ToArray();
+
+        Assert.NotEmpty( generatedTrees );
+
+        var libraryWithDesignTimeCode = library.AddSyntaxTrees( generatedTrees );
+
+        var app = testContext.CreateCSharpCompilation(
+            _appCode,
+            assemblyName: "App",
+            additionalReferences: [sharedForApp.ToMetadataReference(), libraryWithDesignTimeCode.ToMetadataReference()] );
+
+        // The exception reported in the issue, raised by System.IO.Compression.Inflater for zlib's Z_DATA_ERROR.
+        testContext.FaultInjector.ArmFault(
+            FaultInjectionPoints.TransitiveManifestDeserialization,
+            () => new InvalidDataException( "The archive entry was compressed using an unsupported compression method." ) );
+
+        Assert.True( pipelineFactory.TryExecute( appContext.ProjectOptions, app, default, out var appResult ) );
+
+        this.TestOutput.WriteLine( DumpResults( appResult ) );
+
+        Assert.Equal( 1, testContext.FaultInjector.GetInjectedFaultCount( FaultInjectionPoints.TransitiveManifestDeserialization ) );
+
+        AssertConsumerWasAnalyzed( appResult );
+        AssertManifestFailureWasReported( appResult );
+    }
+
+    /// <summary>
+    /// Asserts that the consuming project was analyzed, by looking for the code generated by the aspect it applies
+    /// itself. This is the work that was lost when one unreadable manifest aborted the whole pass.
+    /// </summary>
+    private static void AssertConsumerWasAnalyzed( DesignTimeAspectPipelineResultAndState consumerResult )
+    {
         var introducedCode = string.Join(
             "\n",
             consumerResult.Result.SyntaxTreeResults.Values
                 .SelectMany( r => r.Introductions )
                 .Select( i => i.GeneratedSyntaxTree.ToString() ) );
 
-        Assert.Contains( "IntroducedMethod", introducedCode, System.StringComparison.Ordinal );
+        Assert.Contains( "IntroducedMethod", introducedCode, StringComparison.Ordinal );
+    }
+
+    /// <summary>
+    /// Asserts that the failure was reported rather than passed over in silence. A reference whose aspects are dropped
+    /// without a word changes the code emitted by a batch compilation with no signal at all, which would be a worse
+    /// defect than the one being fixed.
+    /// </summary>
+    private static void AssertManifestFailureWasReported( DesignTimeAspectPipelineResultAndState consumerResult )
+    {
+        var diagnosticIds = consumerResult.Result.SyntaxTreeResults.Values
+            .SelectMany( r => r.Diagnostics )
+            .Select( d => d.Id )
+            .ToArray();
+
+        Assert.Contains( "LAMA0087", diagnosticIds, StringComparer.Ordinal );
     }
 
     /// <summary>

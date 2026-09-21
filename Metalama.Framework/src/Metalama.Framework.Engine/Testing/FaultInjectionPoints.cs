@@ -22,5 +22,13 @@ namespace Metalama.Framework.Engine.Testing
         /// exercise the project-scoped (inner) exception-handling layer that reports repository telemetry.
         /// </summary>
         public const string CompileTimePipeline = "SourceTransformer.CompileTimePipeline";
+
+        /// <summary>
+        /// Injected at the start of <c>TransitiveAspectsManifest.Deserialize</c>, so that a test can make the transitive
+        /// aspect manifest of a referenced project unreadable without crafting damaged bytes for it. The bytes of that
+        /// manifest are produced by the referenced project's own pipeline, which a test cannot corrupt from the outside.
+        /// See #2049.
+        /// </summary>
+        public const string TransitiveManifestDeserialization = "TransitiveAspectsManifest.Deserialize";
     }
 }
