@@ -97,6 +97,8 @@ internal static class ToastNotificationSupport
         }
         catch
         {
+            // A registry value that cannot be read is reported as absent. This class runs before the logging services
+            // are available, so there is nowhere to report the failure.
             return null;
         }
     }
