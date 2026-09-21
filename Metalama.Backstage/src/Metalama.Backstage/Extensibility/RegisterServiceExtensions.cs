@@ -272,13 +272,20 @@ public static class RegisterServiceExtensions
                 typeof(IToastNotificationStatusService),
                 serviceProvider => new ToastNotificationStatusService( serviceProvider ) );
 
-            serviceProviderBuilder.AddService( typeof(IToastNotificationService), serviceProvider => new ToastNotificationService( serviceProvider ) );
-
-            if ( options.DetectToastNotifications )
+            // The toast notification services are registered only when the machine can display a toast notification.
+            // Otherwise the Windows notification platform declines the call and the desktop notification tool fails
+            // with a COMException. Every consumer resolves these services as optional services, so an absent service
+            // means that no notification is displayed. See issue #2047.
+            if ( options.AreToastNotificationsSupported )
             {
-                serviceProviderBuilder.AddService(
-                    typeof(IToastNotificationDetectionService),
-                    serviceProvider => new ToastNotificationDetectionService( serviceProvider ) );
+                serviceProviderBuilder.AddService( typeof(IToastNotificationService), serviceProvider => new ToastNotificationService( serviceProvider ) );
+
+                if ( options.DetectToastNotifications )
+                {
+                    serviceProviderBuilder.AddService(
+                        typeof(IToastNotificationDetectionService),
+                        serviceProvider => new ToastNotificationDetectionService( serviceProvider ) );
+                }
             }
 
             if ( RuntimeInformation.IsOSPlatform( OSPlatform.Windows ) )
