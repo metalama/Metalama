@@ -445,7 +445,7 @@ public sealed partial class DesignTimeAspectPipelineResult
             // is a local function, a local variable, a module and an attribute. See issue #2051.
             if ( !CacheableScopedSuppression.TryCreate( suppression, out var cacheableSuppression ) )
             {
-                Logger.DesignTime.Trace?.Log(
+                Logger.DesignTime.Warning?.Log(
                     $"SplitResultsByTree: skipping the suppression of '{suppression.Suppression.Definition.SuppressedDiagnosticId}' on "
                     + $"'{suppression.ScopeSymbol}' because that declaration has no serializable id." );
 
@@ -626,7 +626,7 @@ public sealed partial class DesignTimeAspectPipelineResult
             // is skipped rather than aborting the whole pass. See issue #2051.
             if ( !aspectInstance.TargetDeclaration.TryGetSerializableId( out var targetDeclarationId ) )
             {
-                Logger.DesignTime.Trace?.Log(
+                Logger.DesignTime.Warning?.Log(
                     $"SplitResultsByTree: skipping the instance of aspect '{aspectInstance.AspectClass.FullName}' on "
                     + $"'{aspectInstance.TargetDeclaration}' because that declaration has no serializable id." );
 
@@ -690,7 +690,7 @@ public sealed partial class DesignTimeAspectPipelineResult
             // skipped rather than aborting the whole pass. See issue #2051.
             if ( !transformation.TargetDeclaration.TryGetSerializableId( out var transformationTargetId ) )
             {
-                Logger.DesignTime.Trace?.Log(
+                Logger.DesignTime.Warning?.Log(
                     $"SplitResultsByTree: skipping the transformation of aspect '{transformation.AspectClass.FullName}' on "
                     + $"'{transformation.TargetDeclaration}' because that declaration has no serializable id." );
 
@@ -768,7 +768,7 @@ public sealed partial class DesignTimeAspectPipelineResult
             // skipped rather than aborting the whole pass. See issue #2051.
             if ( !annotationsOnDeclaration.Key.TryGetSerializableId( out var annotatedDeclarationId ) )
             {
-                Logger.DesignTime.Trace?.Log(
+                Logger.DesignTime.Warning?.Log(
                     $"SplitResultsByTree: skipping {exportedAnnotations.Length} annotation(s) on '{annotationsOnDeclaration.Key}' because "
                     + "that declaration has no serializable id." );
 
