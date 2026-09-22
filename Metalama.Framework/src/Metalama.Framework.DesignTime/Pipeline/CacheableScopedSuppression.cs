@@ -8,6 +8,7 @@ using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.SerializableIds;
 using Metalama.Framework.Engine.Services;
 using Microsoft.CodeAnalysis;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Metalama.Framework.DesignTime.Pipeline;
 
@@ -22,10 +23,34 @@ internal sealed class CacheableScopedSuppression : IScopedSuppression
 
     public SerializableDeclarationId DeclarationId { get; }
 
-    public CacheableScopedSuppression( ScopedSuppression suppression )
+    private CacheableScopedSuppression( ScopedSuppression suppression, SerializableDeclarationId declarationId )
     {
         this.Suppression = suppression.Suppression;
-        this.DeclarationId = suppression.ScopeSymbol.GetSerializableId();
+        this.DeclarationId = declarationId;
+    }
+
+    /// <summary>
+    /// Creates a <see cref="CacheableScopedSuppression"/> from a <see cref="ScopedSuppression"/>, unless the declaration
+    /// the suppression applies to has no <see cref="SerializableDeclarationId"/>.
+    /// </summary>
+    /// <remarks>
+    /// A declaration of a file-local type does have an identifier, because the identifier carries the metadata name of
+    /// that type as a discriminator. This method still reports a failure, because a local function, a local variable and
+    /// a module have no identifier, and so does a reference to an attribute. Such a scope symbol is skipped rather than
+    /// aborting the whole pass, which is what lost the result of the entire project. See issue #2051.
+    /// </remarks>
+    public static bool TryCreate( ScopedSuppression suppression, [NotNullWhen( true )] out CacheableScopedSuppression? cacheableSuppression )
+    {
+        if ( !suppression.ScopeSymbol.TryGetSerializableId( out var declarationId ) )
+        {
+            cacheableSuppression = null;
+
+            return false;
+        }
+
+        cacheableSuppression = new CacheableScopedSuppression( suppression, declarationId );
+
+        return true;
     }
 
     public override string ToString() => $"{this.Suppression} on {this.DeclarationId}";
