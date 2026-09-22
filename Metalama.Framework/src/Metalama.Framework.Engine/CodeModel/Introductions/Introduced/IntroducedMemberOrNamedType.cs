@@ -2,9 +2,11 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Backstage.Diagnostics;
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.CodeModel.Abstractions;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
+using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities;
 using System;
 using System.Diagnostics.CodeAnalysis;
@@ -45,13 +47,36 @@ internal abstract class IntroducedMemberOrNamedType : IntroducedNamedDeclaration
     /// in a consuming compilation model, and the two are not necessarily the same compilation.
     /// <see cref="DeclaringType"/> throws <see cref="SymbolNotFoundException"/> when they differ and the consuming
     /// compilation does not contain the declaring type. This method is the non-throwing form, for the callers that
-    /// treat an absent declaring type as a normal outcome. See issue #2048.
+    /// can continue after that error instead of propagating it. See issue #2048.
     /// </remarks>
     public bool TryGetDeclaringType( [NotNullWhen( true )] out INamedType? declaringType )
     {
-        declaringType = this.MemberOrNamedTypeBuilderData.DeclaringType?.GetTargetOrNull( this.Compilation, this.GenericContext );
+        var declaringTypeRef = this.MemberOrNamedTypeBuilderData.DeclaringType;
 
-        return declaringType != null;
+        if ( declaringTypeRef == null )
+        {
+            // A top-level named type has no declaring type. This is not an error situation.
+            declaringType = null;
+
+            return false;
+        }
+
+        declaringType = declaringTypeRef.GetTargetOrNull( this.Compilation, this.GenericContext );
+
+        if ( declaringType == null )
+        {
+            // An introduced declaration whose declaring type is absent from the compilation it is read in is an
+            // error situation. It is not propagated as an exception, but it must not go unnoticed either.
+            this.Compilation.Project.ServiceProvider.GetLoggerFactory()
+                .GetLogger( nameof(IntroducedMemberOrNamedType) )
+                .Warning?.Log(
+                    $"The declaring type '{declaringTypeRef}' of the introduced '{this.MemberOrNamedTypeBuilderData}' does not resolve in the "
+                    + $"compilation '{this.Compilation.Identity}'." );
+
+            return false;
+        }
+
+        return true;
     }
 
     public MemberInfo ToMemberInfo() => throw new NotImplementedException();

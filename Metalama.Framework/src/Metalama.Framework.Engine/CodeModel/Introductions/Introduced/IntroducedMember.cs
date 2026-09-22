@@ -40,9 +40,10 @@ internal abstract class IntroducedMember : IntroducedMemberOrNamedType, IMemberI
     /// <inheritdoc/>
     /// <remarks>
     /// The enumeration reads <see cref="DeclaringType"/>, which resolves a reference and therefore throws when the
-    /// declaring type is absent from the compilation this member is read in. A member whose declaring type is absent
-    /// from a compilation has no derived declaration in that compilation, so the absence is a normal outcome here and
-    /// is reported by an empty result. See issue #2048.
+    /// declaring type is absent from the compilation this member is read in. That absence is an error situation, and
+    /// <see cref="IntroducedMemberOrNamedType.TryGetDeclaringType"/> logs it, but it does not have to terminate the
+    /// pipeline here: a member whose declaring type is absent from a compilation has no derived declaration in that
+    /// compilation, so the empty result is correct. See issue #2048.
     /// </remarks>
     public override IEnumerable<IDeclaration> GetDerivedDeclarations( DerivedTypesOptions options = default )
     {
