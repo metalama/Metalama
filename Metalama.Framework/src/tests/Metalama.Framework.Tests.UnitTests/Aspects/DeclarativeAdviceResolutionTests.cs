@@ -40,6 +40,7 @@ public sealed class DeclarativeAdviceResolutionTests : UnitTestClass
     {
         base.ConfigureServices( services );
         services.AddProjectService( new PipelineExtensionProvider( ImmutableArray<PipelineExtension>.Empty ) );
+        services.AddProjectService<IDiagnosticExtensionPolicy>( ConstantDiagnosticExtensionPolicy.None );
     }
 
     private static string GetAspectCode( string fieldName, string methodName )
@@ -159,8 +160,7 @@ public sealed class DeclarativeAdviceResolutionTests : UnitTestClass
 
         Assert.All( diagnostics, d => Assert.Equal( DiagnosticSeverity.Error, d.Severity ) );
 
-        // Each identifier that does not resolve is named by one error, and by no more than one, because the aspect
-        // class is asked for its declarative advice once per aspect instance.
+        // Each identifier that does not resolve is named by exactly one error of the call.
         var reportedMessages = diagnostics
             .SelectAsArray( d => $"{d.Id}: {d.GetMessage( CultureInfo.InvariantCulture )}" )
             .OrderBy( message => message, StringComparer.Ordinal )
@@ -171,6 +171,62 @@ public sealed class DeclarativeAdviceResolutionTests : UnitTestClass
         foreach ( var id in expectedUnresolvedIds )
         {
             Assert.Contains( reportedMessages, message => message.StartsWith( "LAMA0295: ", StringComparison.Ordinal ) && message.Contains( id, StringComparison.Ordinal ) );
+        }
+    }
+
+    /// <summary>
+    /// Verifies that the error is reported by every call, and that a <see cref="UserDiagnosticSink"/> reduces the
+    /// repeated reports to one error per identifier.
+    /// </summary>
+    /// <remarks>
+    /// The aspect class is asked for its declarative advice once per aspect instance, and each aspect instance has its
+    /// own diagnostic sink. The error has to reach the sink of every instance, otherwise the outcome of an instance
+    /// would depend on the order in which the instances were processed. The aspect class must therefore not remember
+    /// which identifiers it has already reported, which also matters at design time, where the aspect class is reused
+    /// across compilations. The user nevertheless sees the error only once, because the diagnostic carries a
+    /// deduplication key and the diagnostics of all the aspect instances are collected by a single
+    /// <see cref="UserDiagnosticSink"/>.
+    /// </remarks>
+    [Fact]
+    public void DeclarativeAdviceThatDoesNotResolveIsReportedForEveryAspectInstance()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var compilation = testContext.CreateCompilationModel( GetAspectCode( "IntroducedField", "IntroducedMethod" ) );
+        var otherCompilation = testContext.CreateCompilationModel( GetAspectCode( "RenamedField", "RenamedMethod" ) );
+
+        var (aspectClass, serviceProvider) = CreateAspectClass( testContext, compilation );
+
+        var firstAspectInstanceDiagnostics = new DiagnosticBag();
+        var secondAspectInstanceDiagnostics = new DiagnosticBag();
+
+        aspectClass.GetDeclarativeAdvice( serviceProvider, otherCompilation, default, ObjectReader.Empty, firstAspectInstanceDiagnostics )
+            .ToReadOnlyList();
+
+        aspectClass.GetDeclarativeAdvice( serviceProvider, otherCompilation, default, ObjectReader.Empty, secondAspectInstanceDiagnostics )
+            .ToReadOnlyList();
+
+        // Both aspect instances are given the error, therefore both have the same outcome.
+        Assert.True( firstAspectInstanceDiagnostics.HasError );
+        Assert.True( secondAspectInstanceDiagnostics.HasError );
+        Assert.Equal( 2, firstAspectInstanceDiagnostics.Count );
+        Assert.Equal( 2, secondAspectInstanceDiagnostics.Count );
+
+        // The sink that collects the diagnostics of all the aspect instances keeps one error per identifier.
+        var sink = new UserDiagnosticSink( serviceProvider );
+        sink.Report( firstAspectInstanceDiagnostics );
+        sink.Report( secondAspectInstanceDiagnostics );
+
+        var collectedMessages = sink.ToImmutable()
+            .ReportedDiagnostics
+            .Select( d => d.GetMessage( CultureInfo.InvariantCulture ) )
+            .ToArray();
+
+        Assert.Equal( 2, collectedMessages.Length );
+
+        foreach ( var id in new[] { "F:MyAspect.IntroducedField", "M:MyAspect.IntroducedMethod~System.Int32" } )
+        {
+            Assert.Single( collectedMessages, message => message.Contains( id, StringComparison.Ordinal ) );
         }
     }
 }

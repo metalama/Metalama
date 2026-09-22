@@ -35,14 +35,6 @@ public abstract class TemplateClass : IDiagnosticSource
     protected ProjectServiceProvider ServiceProvider { get; }
 
     private readonly ConcurrentDictionary<string, TemplateDriver> _templateDrivers = new( StringComparer.Ordinal );
-
-    /// <summary>
-    /// The identifiers of the declarative advice members that did not resolve, and for which
-    /// <see cref="GetDeclarativeAdvice(ProjectServiceProvider,CompilationContext,IDiagnosticAdder)"/> has therefore
-    /// already reported an error. The dictionary is used as a set, so the value of an entry carries no meaning.
-    /// </summary>
-    private readonly ConcurrentDictionary<SerializableDeclarationId, bool> _unresolvedDeclarativeAdvice = new();
-
     private readonly ITemplateReflectionContext? _templateReflectionContext; // TODO: Don't keep a reference because this goes to the pipeline config. But how?
 
     internal TemplateClass? BaseClass { get; }
@@ -160,12 +152,21 @@ public abstract class TemplateClass : IDiagnosticSource
     /// <see cref="DeclarativeAdviceSymbolComparer"/>.
     /// </summary>
     /// <remarks>
-    /// A member whose declaration identifier does not resolve is skipped, and the identifier is named by one
+    /// <para>
+    /// A member whose declaration identifier does not resolve is skipped, and the identifier is named by a
     /// <c>LAMA0295</c> error. The identifier is written when the current class is created, and the current class is
     /// reached from the pipeline configuration, which is reused across compilations at design time, so the compilation
     /// an identifier is resolved against is not necessarily the one it was written from. The resolution therefore has
     /// to be allowed to fail: aborting here costs the project every aspect, every diagnostic and every suppression of
     /// the editor, which is what issue #2052 reports.
+    /// </para>
+    /// <para>
+    /// The error is reported on every call, and therefore for every aspect instance, so that every instance of the
+    /// aspect has the same outcome. The user sees the error only once because it carries a deduplication key, which
+    /// <see cref="UserDiagnosticSink"/> applies when the diagnostics of all the aspect instances are collected. The
+    /// current class must not remember which identifiers it has already reported: it is reused across compilations at
+    /// design time, so an identifier reported in one compilation would then be silently skipped in the next one.
+    /// </para>
     /// </remarks>
     private IEnumerable<(TemplateClassMember TemplateClassMember, ISymbol Symbol, Compilation SymbolCompilation, DeclarativeAdviceAttribute Attribute)>
         GetDeclarativeAdvice(
@@ -191,17 +192,12 @@ public abstract class TemplateClass : IDiagnosticSource
 
             if ( symbol == null )
             {
-                // The error is reported at most once per identifier and per instance of the current class, because the
-                // current class is asked for its declarative advice once per aspect instance, and reporting the same
-                // error once per target declaration would be of no use to the user.
-                if ( this._unresolvedDeclarativeAdvice.TryAdd( member.DeclarationId, true ) )
-                {
-                    diagnosticAdder.Report(
-                        TemplatingDiagnosticDescriptors.CantResolveDeclarativeAdvice.CreateRoslynDiagnostic(
-                            null,
-                            member.DeclarationId.Id,
-                            this ) );
-                }
+                diagnosticAdder.Report(
+                    TemplatingDiagnosticDescriptors.CantResolveDeclarativeAdvice.CreateRoslynDiagnostic(
+                        null,
+                        member.DeclarationId.Id,
+                        this,
+                        deduplicationKey: member.DeclarationId.Id ) );
 
                 continue;
             }
