@@ -27,6 +27,19 @@ namespace Metalama.Framework.Engine.CodeModel.References
 
         SerializableDeclarationId IRef.ToSerializableId() => throw new NotSupportedException();
 
+        /// <inheritdoc />
+        /// <remarks>
+        /// A reference to an attribute cannot be represented by an identifier, which is why
+        /// <see cref="IRef.ToSerializableId"/> throws. The non-throwing form reports the same fact by returning
+        /// <c>false</c>.
+        /// </remarks>
+        bool ISdkRef.TryGetSerializableId( out SerializableDeclarationId id )
+        {
+            id = default;
+
+            return false;
+        }
+
         IRef<TOut> IRef.As<TOut>() => this as IRef<TOut> ?? throw new NotSupportedException();
 
         public IAttribute GetTarget( ICompilation compilation )
