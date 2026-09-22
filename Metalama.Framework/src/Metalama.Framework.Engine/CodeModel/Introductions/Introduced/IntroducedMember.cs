@@ -37,9 +37,16 @@ internal abstract class IntroducedMember : IntroducedMemberOrNamedType, IMemberI
     [Memo]
     public IMember? OverriddenMember => this.MapDeclaration( this.MemberBuilderData.OverriddenMember );
 
+    /// <inheritdoc/>
+    /// <remarks>
+    /// The enumeration reads <see cref="DeclaringType"/>, which resolves a reference and therefore throws when the
+    /// declaring type is absent from the compilation this member is read in. A member whose declaring type is absent
+    /// from a compilation has no derived declaration in that compilation, so the absence is a normal outcome here and
+    /// is reported by an empty result. See issue #2048.
+    /// </remarks>
     public override IEnumerable<IDeclaration> GetDerivedDeclarations( DerivedTypesOptions options = default )
     {
-        if ( !this.CanBeInherited )
+        if ( !this.CanBeInherited || !this.TryGetDeclaringType( out _ ) )
         {
             return [];
         }

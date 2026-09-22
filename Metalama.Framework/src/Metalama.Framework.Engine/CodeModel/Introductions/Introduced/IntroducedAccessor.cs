@@ -197,9 +197,14 @@ internal sealed class IntroducedAccessor : IntroducedDeclaration, IMethodImpl
 
     public override bool CanBeInherited => this._introducedMember.CanBeInherited;
 
+    /// <inheritdoc/>
+    /// <remarks>
+    /// The declaring type of an accessor is the declaring type of the member that declares it, so this method is
+    /// guarded in the same way as <see cref="IntroducedMember.GetDerivedDeclarations"/>. See issue #2048.
+    /// </remarks>
     public override IEnumerable<IDeclaration> GetDerivedDeclarations( DerivedTypesOptions options = default )
     {
-        if ( !this.CanBeInherited )
+        if ( !this.CanBeInherited || !this._introducedMember.TryGetDeclaringType( out _ ) )
         {
             return [];
         }
