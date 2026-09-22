@@ -39,7 +39,7 @@ public abstract class TemplateClass : IDiagnosticSource
     /// <summary>
     /// The identifiers of the declarative advice members that did not resolve, and for which
     /// <see cref="GetDeclarativeAdvice(ProjectServiceProvider,CompilationContext,IDiagnosticAdder)"/> has therefore
-    /// already reported a warning. The dictionary is used as a set, so the value of an entry carries no meaning.
+    /// already reported an error. The dictionary is used as a set, so the value of an entry carries no meaning.
     /// </summary>
     private readonly ConcurrentDictionary<SerializableDeclarationId, bool> _unresolvedDeclarativeAdvice = new();
 
@@ -161,7 +161,7 @@ public abstract class TemplateClass : IDiagnosticSource
     /// </summary>
     /// <remarks>
     /// A member whose declaration identifier does not resolve is skipped, and the identifier is named by one
-    /// <c>LAMA0295</c> warning. The identifier is written when the current class is created, and the current class is
+    /// <c>LAMA0295</c> error. The identifier is written when the current class is created, and the current class is
     /// reached from the pipeline configuration, which is reused across compilations at design time, so the compilation
     /// an identifier is resolved against is not necessarily the one it was written from. The resolution therefore has
     /// to be allowed to fail: aborting here costs the project every aspect, every diagnostic and every suppression of
@@ -191,9 +191,9 @@ public abstract class TemplateClass : IDiagnosticSource
 
             if ( symbol == null )
             {
-                // The warning is reported at most once per identifier and per instance of the current class, because the
+                // The error is reported at most once per identifier and per instance of the current class, because the
                 // current class is asked for its declarative advice once per aspect instance, and reporting the same
-                // warning once per target declaration would be of no use to the user.
+                // error once per target declaration would be of no use to the user.
                 if ( this._unresolvedDeclarativeAdvice.TryAdd( member.DeclarationId, true ) )
                 {
                     diagnosticAdder.Report(

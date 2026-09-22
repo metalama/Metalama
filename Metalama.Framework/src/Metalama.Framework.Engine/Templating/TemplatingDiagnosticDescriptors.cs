@@ -736,6 +736,6 @@ namespace Metalama.Framework.Engine.Templating
                 + "This can happen when the declaration is absent from the compilation that the aspect runs against, or when several "
                 + "references of the compilation contain a type that is part of the signature of the declaration.",
                 _category,
-                Warning );
+                Error );
     }
 }

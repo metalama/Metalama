@@ -12,6 +12,7 @@ using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Services;
 using Metalama.Testing.UnitTesting;
+using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Immutable;
 using System.Globalization;
@@ -117,7 +118,7 @@ public sealed class DeclarativeAdviceResolutionTests : UnitTestClass
 
     /// <summary>
     /// Verifies that a declarative advice member whose identifier does not resolve in the compilation the aspect runs
-    /// against is skipped and reported as a warning, and that the members whose identifiers do resolve are still
+    /// against is skipped and reported as an error, and that the members whose identifiers do resolve are still
     /// returned.
     /// </summary>
     /// <remarks>
@@ -156,7 +157,9 @@ public sealed class DeclarativeAdviceResolutionTests : UnitTestClass
 
         Assert.Equal( expectedAdvice, declarativeAdvice );
 
-        // Each identifier that does not resolve is named by one warning, and by no more than one, because the aspect
+        Assert.All( diagnostics, d => Assert.Equal( DiagnosticSeverity.Error, d.Severity ) );
+
+        // Each identifier that does not resolve is named by one error, and by no more than one, because the aspect
         // class is asked for its declarative advice once per aspect instance.
         var reportedMessages = diagnostics
             .SelectAsArray( d => $"{d.Id}: {d.GetMessage( CultureInfo.InvariantCulture )}" )
