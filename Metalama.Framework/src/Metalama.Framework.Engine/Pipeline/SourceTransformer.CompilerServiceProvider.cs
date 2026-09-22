@@ -64,14 +64,10 @@ public sealed partial class SourceTransformer
                     this._session = this._telemetryContext.StartUsageSession( "TransformerUsage", options.AssemblyName );
                 }
                 
-                // Initiate (but do not await) detection of toast notifications. The service is absent when the machine
-                // cannot display a toast notification, in which case there is nothing to detect. See issue #2047.
+                // Initiate (but do not await) detection of toast notifications. The service is absent when the
+                // detection of toast notifications is disabled. See issue #2047.
                 var toasts = serviceProvider.GetBackstageService<IToastNotificationDetectionService>();
-
-                if ( toasts != null )
-                {
-                    _ = toasts.DetectAsync( this._telemetryContext, ToastNotificationCategories.Compiler );
-                }
+                _ = toasts?.DetectAsync( this._telemetryContext, ToastNotificationCategories.Compiler );
             }
             catch ( Exception e )
             {

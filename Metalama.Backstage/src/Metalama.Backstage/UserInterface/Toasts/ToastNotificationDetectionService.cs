@@ -21,6 +21,7 @@ internal sealed class ToastNotificationDetectionService : IToastNotificationDete
     private readonly IToastNotificationStatusService _toastNotificationStatusService;
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly IUserDeviceDetectionService _userDeviceDetectionService;
+    private readonly IUserInterfaceService _userInterfaceService;
     private readonly IIdeExtensionStatusService? _ideExtensionStatusService;
     private readonly BackstageBackgroundTasksService _backgroundTasksService;
     private readonly WebLinks _webLinks;
@@ -34,6 +35,7 @@ internal sealed class ToastNotificationDetectionService : IToastNotificationDete
     public ToastNotificationDetectionService( IServiceProvider serviceProvider )
     {
         this._userDeviceDetectionService = serviceProvider.GetRequiredBackstageService<IUserDeviceDetectionService>();
+        this._userInterfaceService = serviceProvider.GetRequiredBackstageService<IUserInterfaceService>();
         this._dateTimeProvider = serviceProvider.GetRequiredBackstageService<IDateTimeProvider>();
         this._ideExtensionStatusService = serviceProvider.GetBackstageService<IIdeExtensionStatusService>();
         this._toastNotificationService = serviceProvider.GetRequiredBackstageService<IToastNotificationService>();
@@ -54,6 +56,13 @@ internal sealed class ToastNotificationDetectionService : IToastNotificationDete
             if ( !this._userDeviceDetectionService.IsInteractiveDevice )
             {
                 this._logger.Trace?.Log( "Skipping detection because the session is not interactive." );
+
+                return;
+            }
+
+            if ( !this._userInterfaceService.AreToastNotificationsSupported )
+            {
+                this._logger.Trace?.Log( "Skipping detection because the machine cannot display a toast notification." );
 
                 return;
             }

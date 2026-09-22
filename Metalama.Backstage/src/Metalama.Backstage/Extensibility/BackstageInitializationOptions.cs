@@ -79,13 +79,5 @@ public record BackstageInitializationOptions( IApplicationInfo ApplicationInfo )
     /// </summary>
     public IReadOnlyList<IJsonTypeInfoResolver> AdditionalJsonTypeInfoResolvers { get; init; } = [];
 
-    /// <summary>
-    /// Gets a value indicating whether the current machine can display a toast notification. The default value is read
-    /// from the operating system by <see cref="ToastNotificationSupport"/>. When it is <c>false</c>,
-    /// <see cref="IToastNotificationService"/> and <see cref="IToastNotificationDetectionService"/> are not registered.
-    /// Every consumer resolves them as optional services, therefore no notification is displayed. See issue #2047.
-    /// </summary>
-    internal bool AreToastNotificationsSupported { get; init; } = ToastNotificationSupport.IsSupported;
-
     internal bool AutoUploadTelemetry { get; init; } = true;
 }

@@ -47,11 +47,7 @@ public sealed class RegisterServiceExtensionsTests
                 AddSupportServices = addSupportServices,
                 AddUserInterface = addUserInterface,
                 AddRssClient = addRssClient,
-                DetectToastNotifications = addUserInterface,
-
-                // The machine running this test may not be able to display a toast notification, so the value is set
-                // explicitly instead of being read from the operating system. See issue #2047.
-                AreToastNotificationsSupported = true
+                DetectToastNotifications = addUserInterface
             };
 
         if ( addToolsExtractor && (addSupportServices || addUserInterface) )
