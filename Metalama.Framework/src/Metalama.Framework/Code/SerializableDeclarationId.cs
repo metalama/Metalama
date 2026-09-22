@@ -26,6 +26,14 @@ namespace Metalama.Framework.Code;
 /// <b>Limitation:</b> The identifier may not be unique if the compilation contains several assemblies providing types
 /// with the same fully qualified name.
 /// </para>
+/// <para>
+/// The identifier of a declaration of a file-local type, that is, of a type declared with the <c>file</c> modifier,
+/// carries the metadata name of that type, because the namespace and the name alone do not tell two such types apart.
+/// The compiler derives that metadata name from the path of the declaring file, so the identifier is identical on
+/// every machine when the projects are built with the <c>pathmap</c> option, as a deterministic build does, and is
+/// specific to the local path otherwise. This is the same condition under which the assembly that the compiler emits
+/// is itself identical on every machine.
+/// </para>
 /// </remarks>
 /// <seealso cref="SerializableTypeId"/>
 /// <seealso cref="IRef{T}"/>
