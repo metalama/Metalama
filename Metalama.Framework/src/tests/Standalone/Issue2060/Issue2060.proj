@@ -1,0 +1,31 @@
+<Project>
+
+  <!-- Imports Directory.Build.props of the upper directory. We must do this explicitly because this project has no SDK. -->
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" Condition="Exists('$([MSBuild]::GetPathOfFileAbove(`Directory.Build.props`, `$(MSBuildThisFileDirectory)../`))')" />
+
+  <!--
+    Issue #2060: a second build without any change must skip CoreCompile.
+    The test builds the project twice and checks that the second build does not rewrite the intermediate assembly.
+  -->
+  <Target Name="Build">
+    <PropertyGroup>
+      <LibraryProject>$(MSBuildThisFileDirectory)Library\Issue2060.Library.csproj</LibraryProject>
+      <IntermediateAssembly>$(MSBuildThisFileDirectory)Library\obj\Debug\net8.0\Issue2060.Library.dll</IntermediateAssembly>
+    </PropertyGroup>
+
+    <Exec Command="dotnet build &quot;$(LibraryProject)&quot; -t:Rebuild" />
+
+    <PropertyGroup>
+      <FirstBuildTimestamp>$([System.IO.File]::GetLastWriteTime('$(IntermediateAssembly)').Ticks)</FirstBuildTimestamp>
+    </PropertyGroup>
+
+    <Exec Command="dotnet build &quot;$(LibraryProject)&quot; --no-restore" />
+
+    <PropertyGroup>
+      <SecondBuildTimestamp>$([System.IO.File]::GetLastWriteTime('$(IntermediateAssembly)').Ticks)</SecondBuildTimestamp>
+    </PropertyGroup>
+
+    <Error Condition="'$(FirstBuildTimestamp)' != '$(SecondBuildTimestamp)'" Text="Issue2060: CoreCompile ran again on a build without any change. The intermediate assembly was rewritten." />
+  </Target>
+
+</Project>
