@@ -24,6 +24,13 @@ public class TestUserInterfaceService : IUserInterfaceService
 
     public List<ToastNotification> Notifications { get; } = [];
 
+    /// <summary>
+    /// Gets or sets a value indicating whether the current machine can display a toast notification. The default
+    /// value is <c>true</c>. A test sets it to <c>false</c> to represent a machine whose notification platform
+    /// declines the call.
+    /// </summary>
+    public bool AreToastNotificationsSupported { get; set; } = true;
+
     public List<(string Url, BrowserMode Mode)> ExternalWebPagesOpened { get; } = [];
 
     public List<string> ConfigurationWebPagesOpened { get; } = [];
