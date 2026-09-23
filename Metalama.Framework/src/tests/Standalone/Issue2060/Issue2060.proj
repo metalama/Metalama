@@ -6,11 +6,13 @@
   <!--
     Issue #2060: a second build without any change must skip CoreCompile.
     The test builds the project twice and checks that the second build does not rewrite the intermediate assembly.
+    It then deletes MetalamaBuild.touch and checks that the next build creates it again and runs CoreCompile.
   -->
   <Target Name="Build">
     <PropertyGroup>
       <LibraryProject>$(MSBuildThisFileDirectory)Library\Issue2060.Library.csproj</LibraryProject>
       <IntermediateAssembly>$(MSBuildThisFileDirectory)Library\obj\Debug\net8.0\Issue2060.Library.dll</IntermediateAssembly>
+      <TouchFile>$(MSBuildThisFileDirectory)Library\obj\Debug\net8.0\MetalamaBuild.touch</TouchFile>
     </PropertyGroup>
 
     <Exec Command="dotnet build &quot;$(LibraryProject)&quot; -t:Rebuild" />
@@ -26,6 +28,19 @@
     </PropertyGroup>
 
     <Error Condition="'$(FirstBuildTimestamp)' != '$(SecondBuildTimestamp)'" Text="Issue2060: CoreCompile ran again on a build without any change. The intermediate assembly was rewritten." />
+
+    <!-- The design-time pipeline deletes MetalamaBuild.touch when it observes a source change. The next build must
+         create the file again and run CoreCompile. -->
+    <Delete Files="$(TouchFile)" />
+
+    <Exec Command="dotnet build &quot;$(LibraryProject)&quot; --no-restore" />
+
+    <PropertyGroup>
+      <ThirdBuildTimestamp>$([System.IO.File]::GetLastWriteTime('$(IntermediateAssembly)').Ticks)</ThirdBuildTimestamp>
+    </PropertyGroup>
+
+    <Error Condition="!Exists('$(TouchFile)')" Text="Issue2060: MetalamaBuild.touch was not created again after it was deleted." />
+    <Error Condition="'$(SecondBuildTimestamp)' == '$(ThirdBuildTimestamp)'" Text="Issue2060: CoreCompile did not run after MetalamaBuild.touch was deleted." />
   </Target>
 
 </Project>

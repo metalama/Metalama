@@ -154,10 +154,13 @@
 
     <Target Name="CreateMetalamaTouchFiles" BeforeTargets="BeforeCompile" Condition="'$(MetalamaBuildTouchFile)'!='' AND '$(MetalamaSourceGeneratorTouchFile)'!=''">
         <!-- MetalamaBuildTouchFile signals the design-time pipeline that a build has started. The design-time
-             pipeline deletes it when it has observed a source change; AlwaysCreate without overwrite preserves
-             incremental builds. It is registered as <AdditionalFiles> only so the compiler picks up its
-             existence — the pipeline observes it through its own filesystem watcher, not through Roslyn. -->
-        <Touch Files="$(MetalamaBuildTouchFile)" AlwaysCreate="true"/>
+             pipeline deletes it when it has observed a source change. It is registered as <AdditionalFiles>
+             only so the compiler picks up its existence. The pipeline observes it through its own filesystem
+             watcher, not through Roslyn. Because the file is an input of CoreCompile, the Touch task only
+             creates it when it is missing. The Touch task sets the timestamp of an existing file to the current
+             time, so an unconditional Touch would make CoreCompile run on every build
+             (see https://github.com/metalama/Metalama/issues/2060). -->
+        <Touch Files="$(MetalamaBuildTouchFile)" AlwaysCreate="true" Condition="!Exists('$(MetalamaBuildTouchFile)')"/>
 
         <!-- MetalamaSourceGeneratorTouchFile is a .cs file included in <Compile> whose TouchId GUID the
              design-time pipeline rewrites whenever it produces a new compilation. Using <Compile> rather than

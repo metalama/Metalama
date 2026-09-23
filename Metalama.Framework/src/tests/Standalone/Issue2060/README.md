@@ -8,3 +8,6 @@ nothing had changed.
 
 `Issue2060.proj` builds `Library/Issue2060.Library.csproj` twice. The second build has no change, so it must skip
 `CoreCompile`. The test fails when the second build rewrites the intermediate assembly.
+
+The test then deletes `MetalamaBuild.touch`, as the design-time pipeline does when it observes a source change. The
+next build must create the file again and run `CoreCompile`.
