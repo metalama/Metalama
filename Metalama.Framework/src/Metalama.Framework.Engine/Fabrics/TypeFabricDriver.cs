@@ -68,7 +68,7 @@ internal sealed class TypeFabricDriver : FabricDriver
 
         // Prepare declarative advice.
         var declarativeAdvice = templateClass
-            .GetDeclarativeAdvice( aspectBuilder.ServiceProvider, compilation, templateProvider, ObjectReader.Empty )
+            .GetDeclarativeAdvice( aspectBuilder.ServiceProvider, compilation, templateProvider, ObjectReader.Empty, aspectBuilder.DiagnosticAdder )
             .ToReadOnlyList();
 
         var executionContext = UserCodeExecutionContext.CreateInstance(

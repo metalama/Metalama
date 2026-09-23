@@ -241,7 +241,7 @@ public sealed class AspectClass : TemplateClass, IBoundAspectClass
         }
 
         // This must be called after Members is built and assigned.
-        this._aspectDriver = aspectDriverFactory.GetAspectDriver( this );
+        this._aspectDriver = aspectDriverFactory.GetAspectDriver( this, diagnosticAdder );
 
         if ( this._prototypeAspectInstance != null )
         {

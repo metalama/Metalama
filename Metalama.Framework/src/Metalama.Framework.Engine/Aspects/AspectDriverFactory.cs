@@ -77,7 +77,7 @@ internal sealed class AspectDriverFactory
         this._weaverTypes = weaverTypesBuilder.ToImmutable();
     }
 
-    public IAspectDriver GetAspectDriver( AspectClass aspectClass )
+    public IAspectDriver GetAspectDriver( AspectClass aspectClass, IDiagnosticAdder diagnosticAdder )
     {
         if ( aspectClass.WeaverType != null )
         {
@@ -92,6 +92,6 @@ internal sealed class AspectDriverFactory
             return registeredAspectDriver;
         }
 
-        return new AspectDriver( this._serviceProvider, aspectClass, this._compilation );
+        return new AspectDriver( this._serviceProvider, aspectClass, this._compilation, diagnosticAdder );
     }
 }
