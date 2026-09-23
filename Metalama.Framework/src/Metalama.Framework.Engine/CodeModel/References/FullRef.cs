@@ -153,6 +153,14 @@ internal abstract partial class FullRef<T> : BaseRef<T>, IFullRef<T>
         return symbol.GetSerializableId( this.TargetKind );
     }
 
+    /// <inheritdoc />
+    public override bool TryGetSerializableId( out SerializableDeclarationId id )
+    {
+        var symbol = this.GetSymbolIgnoringRefKind( this.RefFactory.CompilationContext );
+
+        return symbol.TryGetSerializableId( this.TargetKind, out id );
+    }
+
     protected override ISymbol GetSymbol( CompilationContext compilationContext, bool ignoreAssemblyKey = false )
         => this.ApplyRefKind( this.GetSymbolIgnoringRefKind( compilationContext ) );
 

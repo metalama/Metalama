@@ -54,7 +54,9 @@ public static partial class SerializableDeclarationIdProvider
 
         isReturnParameter = false;
 
-        var idString = id.Id;
+        // The discriminator of a file-local type is removed before the identifier is parsed, so that the rest of the
+        // parsing sees the string that a declaration outside a file-local type would have produced.
+        var idString = id.StripFileLocalType( out var fileLocalTypeMetadataName ).Id;
 
         var indexOfAt = idString.IndexOfOrdinal( ';' );
 
@@ -68,7 +70,7 @@ public static partial class SerializableDeclarationIdProvider
             var kind = parts[1];
             var ordinal = parts.Length == 3 ? int.Parse( parts[2], CultureInfo.InvariantCulture ) : -1;
 
-            var parent = DocumentationCommentId.GetFirstSymbolForDeclarationId( parentId, compilation );
+            var parent = GetFirstSymbolForDeclarationId( parentId, compilation, fileLocalTypeMetadataName );
 
             if ( kind == nameof(RefTargetKind.Return) )
             {
@@ -125,7 +127,7 @@ public static partial class SerializableDeclarationIdProvider
                 }
             }
 
-            var symbol = DocumentationCommentId.GetFirstSymbolForDeclarationId( idString, compilation );
+            var symbol = GetFirstSymbolForDeclarationId( idString, compilation, fileLocalTypeMetadataName );
 
             // Make sure to return the non-nullable type.
             if ( symbol?.Kind is SymbolKind.NamedType or SymbolKind.ArrayType or SymbolKind.PointerType or SymbolKind.FunctionPointerType
@@ -139,5 +141,26 @@ public static partial class SerializableDeclarationIdProvider
                 return symbol;
             }
         }
+    }
+
+    /// <summary>
+    /// Returns the first symbol that matches the given documentation comment identifier and belongs to the file-local
+    /// type that the identifier named, or <c>null</c> when there is none.
+    /// </summary>
+    /// <remarks>
+    /// A documentation comment identifier cannot express a file-local type, so the compilation can contain several
+    /// symbols that match it. All of them are enumerated and the discriminator selects among them.
+    /// </remarks>
+    private static ISymbol? GetFirstSymbolForDeclarationId( string documentationId, Compilation compilation, string? fileLocalTypeMetadataName )
+    {
+        foreach ( var candidate in DocumentationCommentId.GetSymbolsForDeclarationId( documentationId, compilation ) )
+        {
+            if ( MatchesFileLocalType( candidate, fileLocalTypeMetadataName ) )
+            {
+                return candidate;
+            }
+        }
+
+        return null;
     }
 }
