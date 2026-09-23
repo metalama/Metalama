@@ -248,12 +248,12 @@ public sealed class TransitiveManifestDeserializationFailureTests : DesignTimePi
     /// </summary>
     private static void AssertManifestFailureWasReported( DesignTimeAspectPipelineResultAndState consumerResult )
     {
-        var diagnosticIds = consumerResult.Result.SyntaxTreeResults.Values
+        var diagnostic = consumerResult.Result.SyntaxTreeResults.Values
             .SelectMany( r => r.Diagnostics )
-            .Select( d => d.Id )
-            .ToArray();
+            .FirstOrDefault( d => d.Id == "LAMA0087" );
 
-        Assert.Contains( "LAMA0087", diagnosticIds, StringComparer.Ordinal );
+        Assert.NotNull( diagnostic );
+        Assert.Equal( DiagnosticSeverity.Error, diagnostic.Severity );
     }
 
     /// <summary>

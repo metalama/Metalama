@@ -573,10 +573,10 @@ namespace Metalama.Framework.Engine.Diagnostics
 
         // A manifest that cannot be read makes one reference unusable, so the aspects inherited through that reference
         // are lost. It says nothing about the consuming project, whose own aspects, diagnostics and suppressions must
-        // still be produced, therefore the reference is skipped instead of the execution being aborted. The severity is
-        // a warning rather than an error because an error would abort the design-time pass, which is the defect being
-        // fixed. It is not silent because, during a batch compilation, an inherited aspect that is not applied changes
-        // the emitted code. See #2049.
+        // still be produced, therefore the reference is skipped instead of the execution being aborted. The diagnostic
+        // is reported during initialization, which does not stop the pipeline, so the design-time pass still produces
+        // the rest of its result. The severity is an error because, during a batch compilation, an inherited aspect
+        // that is not applied changes the emitted code, and such a compilation must fail. See #2049.
         internal static readonly DiagnosticDefinition<(string Reference, string Reason)>
             CannotReadTransitiveAspectManifest =
                 new(
@@ -584,7 +584,7 @@ namespace Metalama.Framework.Engine.Diagnostics
                     _category,
                     "Metalama cannot read the transitive aspect manifest of the reference '{0}', therefore no aspect is "
                     + "inherited from that reference. The rest of the project is analyzed normally. The reason is: {1}",
-                    Warning,
+                    Error,
                     "The transitive aspect manifest of a reference cannot be read." );
 
         // TODO: Use formattable string (C# does not seem to find extension methods).
