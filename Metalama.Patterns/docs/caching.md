@@ -134,7 +134,7 @@ A caching backend has three dependencies that another implementation can replace
 | Work-item dispatch | `IWorkItemDispatcher` | `ThreadPoolWorkItemDispatcher.Instance` | The service provider of the backend |
 | Memory cache | `Microsoft.Extensions.Caching.Memory.IMemoryCache` | A new `MemoryCache` with default options | The backend builder, or the service provider |
 
-These three are dependencies, not test hooks. A test hook, such as `ITestSynchronizationProvider` in `AwaitableEvent` or `IBackgroundTaskSchedulerObserver` in `BackgroundTaskScheduler`, is called by the product to notify a test, has no production meaning, and does nothing when it is absent. Time, execution and storage are dependencies of the backend, so they are modelled in the same way as `IRetryPolicy`.
+These three are dependencies, not test hooks. A test hook, such as `ITestSynchronizationProvider` in `AwaitableEvent` and `MemoryCachingBackend`, or `IBackgroundTaskSchedulerObserver` in `BackgroundTaskScheduler`, is called by the product to notify a test, has no production meaning, and does nothing when it is absent. Time, execution and storage are dependencies of the backend, so they are modelled in the same way as `IRetryPolicy`.
 
 The `Metalama.Patterns.Caching.TestHelpers` package supplies an implementation of each one, and `FakeCachingServices` registers the three of them in a single service provider. See the README of that package.
 
@@ -172,6 +172,18 @@ The interface only queues. The ability to wait for the completion of the pending
 `LayeredCachingBackendBuilder.WithMemoryCache` supplies the memory cache of the L1 layer. The L2 layer is the underlying backend and has a memory cache only if it is itself a `MemoryCachingBackend`.
 
 `IMemoryCache` declares no operation that removes every entry, although `MemoryCache` has one. `IClearableMemoryCache` is an `IMemoryCache` that declares `Clear` and `Compact`. `MemoryCachingBackend` reports the `Clear` feature when its `IMemoryCache` is a `MemoryCache` or implements `IClearableMemoryCache`. A call to `Clear` on a backend whose `IMemoryCache` is neither throws `NotSupportedException`.
+
+### Concurrency in `MemoryCachingBackend`
+
+`MemoryCachingBackend` keeps a dependency index: for each dependency key, the set of the keys of the items that depend on it. The index is owned by the backend, in a `ConcurrentDictionary`, and is not stored in the `IMemoryCache`.
+
+- Every operation that changes the item of a key, or the registrations of that key in the index, holds the lock of that key: `SetItem`, `RemoveItem`, each step of an invalidation, and the post-eviction callback. The lock does not depend on the stored value.
+- A dependency set is locked only for one change or one copy, and no other lock is acquired while it is held. A set that becomes empty is marked as removed and removed from the index as that exact instance, and a thread that has read a removed set retries with the current one.
+- The serializer and the size calculator run before any lock is acquired and before any state changes.
+- A post-eviction callback runs on the thread pool, possibly after a newer value has been stored under the same key. It unregisters only the dependencies that the newer value does not declare, and it raises `ItemRemoved` only when the key has no current value.
+- An invalidation copies the dependency set, releases its lock, and removes each item under the lock of its key, only when the current value still declares the invalidated dependency. A set of invalidated keys stops the recursion on a cyclic dependency graph.
+
+The synchronization points of `MemoryCachingBackend` are `RemoveItemImpl:ItemLocked`, `InvalidateDependencyImpl:DependencyLocked`, `InvalidateDependencyImpl:DependentsCopied`, `AddDependency:DependencySetRead` and `RemoveDependency:DependencySetRead`. The other interleavings are forced in tests through a decorator of `IMemoryCache` (`InterceptingMemoryCache` in the unit tests).
 
 ### Substitution in tests
 
