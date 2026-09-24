@@ -5,6 +5,7 @@
 using JetBrains.Annotations;
 using Metalama.Patterns.Caching.Implementation;
 using Metalama.Patterns.Caching.Serializers;
+using Metalama.Testing.Hooks;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.IO;
 using System.Collections.Immutable;
@@ -43,6 +44,7 @@ internal class MemoryCachingBackend : CachingBackend
     private readonly ICachingSerializer? _serializer;
     private readonly string _itemKeyPrefix;
     private readonly string _dependencyKeyPrefix;
+    private readonly ITestSynchronizationProvider? _testSynchronizationProvider;
     private static readonly RecyclableMemoryStreamManager _memoryStreamManager = new();
 
     /// <summary>
@@ -80,7 +82,14 @@ internal class MemoryCachingBackend : CachingBackend
         var instanceId = Interlocked.Increment( ref _lastInstanceId ).ToString( CultureInfo.InvariantCulture );
         this._itemKeyPrefix = nameof(MemoryCachingBackend) + ":" + instanceId + ":item:";
         this._dependencyKeyPrefix = nameof(MemoryCachingBackend) + ":" + instanceId + ":dependency:";
+        this._testSynchronizationProvider = (ITestSynchronizationProvider?) serviceProvider?.GetService( typeof(ITestSynchronizationProvider) );
     }
+
+    /// <summary>
+    /// Blocks the current thread at a synchronization point when a test has registered an
+    /// <see cref="ITestSynchronizationProvider"/>. Otherwise, costs a null check.
+    /// </summary>
+    private void SyncPoint( string name ) => this._testSynchronizationProvider?.SyncPoint( name );
 
     private string GetItemKey( string key )
     {
@@ -339,6 +348,8 @@ internal class MemoryCachingBackend : CachingBackend
         {
             lock ( items )
             {
+                this.SyncPoint( "MemoryCachingBackend.InvalidateDependencyImpl:DependencyLocked" );
+
                 foreach ( var item in items.ToList() )
                 {
                     if ( this.RemoveItemImpl( item, replacementValue, replacementValueExpiration ) )
@@ -376,6 +387,8 @@ internal class MemoryCachingBackend : CachingBackend
 
         lock ( cacheValue.Sync )
         {
+            this.SyncPoint( "MemoryCachingBackend.RemoveItemImpl:ItemLocked" );
+
             if ( replacementValue == null )
             {
                 cacheValue = (MemoryCacheItem?) this._cache.Get( itemKey );
