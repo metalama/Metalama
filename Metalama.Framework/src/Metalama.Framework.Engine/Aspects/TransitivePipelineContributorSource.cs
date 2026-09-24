@@ -21,8 +21,10 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text;
 
 namespace Metalama.Framework.Engine.Aspects;
 
@@ -97,9 +99,15 @@ internal sealed partial class TransitivePipelineContributorSource : IExternalHie
                             ITransitiveAspectsManifest Deserialize()
                                 => TransitiveAspectsManifest.Deserialize( new MemoryStream( bytes ), serviceProvider, filePath );
 
-                            manifest = deserializationCache == null
-                                ? Deserialize()
-                                : deserializationCache.GetOrAdd( filePath, metadataInfo.LastFileWrite, consumerProject, Deserialize );
+                            manifest = ReadManifest(
+                                () => deserializationCache == null
+                                    ? Deserialize()
+                                    : deserializationCache.GetOrAdd( filePath, metadataInfo.LastFileWrite, consumerProject, Deserialize ),
+                                filePath,
+                                assemblyIdentity,
+                                bytes,
+                                serviceProvider,
+                                diagnosticSink );
                         }
                     }
 
@@ -143,13 +151,19 @@ internal sealed partial class TransitivePipelineContributorSource : IExternalHie
                             // Keyed by the content hash rather than by the producing result, so that a producer
                             // edit which leaves the exported surface untouched, the common case, does not force a
                             // deserialization here.
-                            manifest = deserializationCache == null
-                                ? DeserializeProjectManifest()
-                                : deserializationCache.GetOrAdd(
-                                    assemblyIdentity.AssertNotNull(),
-                                    serializedManifest,
-                                    consumerProject,
-                                    DeserializeProjectManifest );
+                            manifest = ReadManifest(
+                                () => deserializationCache == null
+                                    ? DeserializeProjectManifest()
+                                    : deserializationCache.GetOrAdd(
+                                        assemblyIdentity.AssertNotNull(),
+                                        serializedManifest,
+                                        consumerProject,
+                                        DeserializeProjectManifest ),
+                                compilationReference.Display ?? assemblyIdentity.AssertNotNull().Name,
+                                assemblyIdentity,
+                                serializedManifest.Bytes.AsSpan(),
+                                serviceProvider,
+                                diagnosticSink );
                         }
                     }
 
@@ -229,6 +243,78 @@ internal sealed partial class TransitivePipelineContributorSource : IExternalHie
         contributorsBuilder.Add( new InheritedAspectSourceImpl( serviceProvider, inheritedAspects.Freeze() ) );
 
         return new TransitivePipelineContributorSource( manifestDictionaryBuilder.ToImmutable(), contributorsBuilder.ToImmutable() );
+    }
+
+    /// <summary>
+    /// Invokes <paramref name="readManifest"/> and returns <c>null</c>, instead of letting the exception travel, when the
+    /// manifest cannot be read.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A manifest that cannot be read makes one reference unusable, so the aspects inherited through that reference are
+    /// lost. It says nothing about the consuming project, whose own aspects, diagnostics and suppressions must still be
+    /// produced. Before issue #2049 the exception travelled out of
+    /// <c>AnalysisProcessProjectSourceGenerator.ComputeAsync</c> and destroyed the whole design-time pass, so the user
+    /// got no generated code at all rather than a project missing the inherited aspects of one reference. The same
+    /// decision, for a reference whose manifest cannot be located, is taken in <see cref="Create"/> for a reference that
+    /// has no file path (issue #1960).
+    /// </para>
+    /// <para>
+    /// Every exception is caught, apart from <see cref="OperationCanceledException"/>, which is not an error and must
+    /// reach the caller. The reported failures are an <see cref="System.IO.InvalidDataException"/> raised while inflating
+    /// the stream (issue #2049) and an <see cref="InvalidOperationException"/> raised when the deserializer cannot locate
+    /// an assembly in the consuming compilation (issue #2050), but the set of ways in which a manifest written by
+    /// another build can fail to be read is not closed, and the consuming project must survive all of them.
+    /// </para>
+    /// </remarks>
+    /// <param name="referenceDescription">The path or display name of the reference, used in the diagnostic.</param>
+    /// <param name="assemblyIdentity">The identity of the producing assembly, including its version, which is logged.</param>
+    /// <param name="manifestBytes">
+    /// The bytes of the manifest. Their length and their first bytes are logged, because they distinguish the possible
+    /// causes: a first byte equal to <c>SerializationProtocol.UncompressedStreamMarker</c> means that an uncompressed
+    /// manifest reached a reader which inflates it, and any other value means that the bytes themselves are damaged.
+    /// </param>
+    private static ITransitiveAspectsManifest? ReadManifest(
+        Func<ITransitiveAspectsManifest> readManifest,
+        string referenceDescription,
+        AssemblyIdentity? assemblyIdentity,
+        ReadOnlySpan<byte> manifestBytes,
+        ProjectServiceProvider serviceProvider,
+        UserDiagnosticSink diagnosticSink )
+    {
+        try
+        {
+            return readManifest();
+        }
+        catch ( Exception exception ) when ( exception is not OperationCanceledException )
+        {
+            var headBuilder = new StringBuilder();
+
+            foreach ( var b in manifestBytes.Slice( 0, Math.Min( 16, manifestBytes.Length ) ) )
+            {
+                if ( headBuilder.Length > 0 )
+                {
+                    headBuilder.Append( ' ' );
+                }
+
+                headBuilder.Append( b.ToString( "x2", CultureInfo.InvariantCulture ) );
+            }
+
+            var head = headBuilder.ToString();
+
+            serviceProvider.GetLoggerFactory()
+                .GetLogger( nameof(TransitivePipelineContributorSource) )
+                .Error?.Log(
+                    $"Cannot read the transitive aspect manifest of '{referenceDescription}', produced by '{assemblyIdentity?.GetDisplayName()}'. "
+                    + $"The manifest is {manifestBytes.Length} byte(s) long and starts with the bytes {head}. The reference is skipped. {exception}" );
+
+            diagnosticSink.Report(
+                GeneralDiagnosticDescriptors.CannotReadTransitiveAspectManifest.CreateRoslynDiagnostic(
+                    null,
+                    (referenceDescription, exception.Message) ) );
+
+            return null;
+        }
     }
 
     /// <summary>

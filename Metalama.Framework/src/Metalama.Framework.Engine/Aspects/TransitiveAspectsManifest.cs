@@ -9,9 +9,11 @@ using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.CompileTime.Serialization;
 using Metalama.Framework.Engine.HierarchicalOptions;
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Engine.Testing;
 using Metalama.Framework.Engine.Utilities.UserCode;
 using Metalama.Framework.Options;
 using Metalama.Framework.Serialization;
+using Metalama.Testing.Hooks;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -138,6 +140,12 @@ public sealed class TransitiveAspectsManifest : ITransitiveAspectsManifest
         in ProjectServiceProvider serviceProvider,
         string? assemblyName )
     {
+        // Test-only fault injection point, exercising the handling of a manifest that cannot be read. No-op in
+        // production. Resolved untyped, because ITestFaultInjector is shared with the other layers and therefore cannot
+        // derive from IGlobalService. See #2049.
+        ((ITestFaultInjector?) serviceProvider.Global.Underlying.GetService( typeof(ITestFaultInjector) ))
+            ?.InjectFault( FaultInjectionPoints.TransitiveManifestDeserialization );
+
         var description = assemblyName != null
             ? $"Deserializing transitive aspects from '{assemblyName}'."
             : "Deserializing transitive aspects from a referenced assembly.";
