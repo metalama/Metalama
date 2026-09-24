@@ -304,7 +304,7 @@ internal sealed partial class TransitivePipelineContributorSource : IExternalHie
 
             serviceProvider.GetLoggerFactory()
                 .GetLogger( nameof(TransitivePipelineContributorSource) )
-                .Warning?.Log(
+                .Error?.Log(
                     $"Cannot read the transitive aspect manifest of '{referenceDescription}', produced by '{assemblyIdentity?.GetDisplayName()}'. "
                     + $"The manifest is {manifestBytes.Length} byte(s) long and starts with the bytes {head}. The reference is skipped. {exception}" );
 
