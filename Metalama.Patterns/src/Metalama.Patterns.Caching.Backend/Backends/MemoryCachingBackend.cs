@@ -8,6 +8,7 @@ using Metalama.Patterns.Caching.Serializers;
 using Metalama.Testing.Hooks;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.IO;
+using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Globalization;
 using CacheItemPriority = Microsoft.Extensions.Caching.Memory.CacheItemPriority;
@@ -33,19 +34,52 @@ namespace Metalama.Patterns.Caching.Backends;
 /// Each instance prefixes its keys with an identifier of its own, so several instances that share one
 /// <see cref="Microsoft.Extensions.Caching.Memory.IMemoryCache"/> keep separate items and separate dependencies. This
 /// is what the two layers of a layered backend need when the application registers a single
-/// <see cref="Microsoft.Extensions.Caching.Memory.IMemoryCache"/> in its service container.
+/// <see cref="Microsoft.Extensions.Caching.Memory.IMemoryCache"/> in its service container. <see cref="CachingBackend.Clear"/>
+/// removes only the items of the current instance, and the instance disposes the
+/// <see cref="Microsoft.Extensions.Caching.Memory.IMemoryCache"/> only when it has created it.
+/// </para>
+/// <para>
+/// Thread safety rests on three rules. Every operation that changes the item of a key, or the registrations of that key
+/// in the dependency index, holds the lock of that key, which does not depend on the stored value. The dependency
+/// index is owned by the instance, and a dependency set is locked only for the duration of one change or one copy,
+/// never while another lock is acquired. Foreign code (the serializer and the size calculator) runs before any lock is
+/// acquired.
 /// </para>
 /// </remarks>
 [PublicAPI]
 internal class MemoryCachingBackend : CachingBackend
 {
     private readonly IMemoryCache _cache;
+    private readonly bool _ownsCache;
     private readonly Func<object?, long> _sizeCalculator;
     private readonly ICachingSerializer? _serializer;
     private readonly string _itemKeyPrefix;
-    private readonly string _dependencyKeyPrefix;
     private readonly ITestSynchronizationProvider? _testSynchronizationProvider;
     private static readonly RecyclableMemoryStreamManager _memoryStreamManager = new();
+
+    /// <summary>
+    /// The locks of the keys that an operation currently uses. An entry is removed when no operation uses it.
+    /// </summary>
+    private readonly ConcurrentDictionary<string, KeyLock> _keyLocks = new( StringComparer.Ordinal );
+
+    /// <summary>
+    /// The dependency index: for each dependency key, the set of the keys of the items that depend on it.
+    /// </summary>
+    private readonly ConcurrentDictionary<string, DependencySet> _dependencySets = new( StringComparer.Ordinal );
+
+    /// <summary>
+    /// The dependencies that stay registered for a key whose item has been removed or evicted while other items depended
+    /// on that key. They keep the dependents reachable when one of these dependencies is invalidated.
+    /// </summary>
+    private readonly ConcurrentDictionary<string, ImmutableArray<string>> _retainedDependencies = new( StringComparer.Ordinal );
+
+    /// <summary>
+    /// The keys for which the current instance has stored an entry in the <see cref="IMemoryCache"/>. The set is used to
+    /// clear and to dispose the instance without affecting other users of a shared <see cref="IMemoryCache"/>.
+    /// </summary>
+    private readonly ConcurrentDictionary<string, bool> _storedKeys = new( StringComparer.Ordinal );
+
+    private volatile bool _isDisposed;
 
     /// <summary>
     /// The identifier given to the last instance of the <see cref="MemoryCachingBackend"/> class.
@@ -64,42 +98,72 @@ internal class MemoryCachingBackend : CachingBackend
     /// Initializes a new instance of the <see cref="MemoryCachingBackend"/> class based on the given <see cref="IMemoryCache"/>. The backend creates cache entries
     /// with size calculated by the given function.
     /// </summary>
-    /// <param name="cache">An <see cref="IMemoryCache"/>.</param>
-    /// <param name="configuration"></param>
-    /// <param name="serviceProvider"></param>
+    /// <param name="cache">
+    /// An <see cref="IMemoryCache"/>, which the caller owns, or <see langword="null"/> to use the <see cref="IMemoryCache"/> of
+    /// the service provider, or a new <see cref="MemoryCache"/> when the service provider has none.
+    /// </param>
+    /// <param name="configuration">The configuration of the backend.</param>
+    /// <param name="serviceProvider">The service provider of the backend.</param>
     internal MemoryCachingBackend(
         IMemoryCache? cache,
         MemoryCachingBackendConfiguration? configuration = null,
-        IServiceProvider? serviceProvider = null ) : base(
+        IServiceProvider? serviceProvider = null ) : this( cache, false, configuration, serviceProvider ) { }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="MemoryCachingBackend"/> class based on the given <see cref="IMemoryCache"/>,
+    /// and specifies whether the backend owns it.
+    /// </summary>
+    /// <param name="cache">
+    /// An <see cref="IMemoryCache"/>, or <see langword="null"/> to use the <see cref="IMemoryCache"/> of the service provider,
+    /// or a new <see cref="MemoryCache"/>, which the backend owns, when the service provider has none.
+    /// </param>
+    /// <param name="ownsCache">
+    /// <see langword="true"/> when the backend disposes <paramref name="cache"/> when it is disposed.
+    /// </param>
+    /// <param name="configuration">The configuration of the backend.</param>
+    /// <param name="serviceProvider">The service provider of the backend.</param>
+    internal MemoryCachingBackend(
+        IMemoryCache? cache,
+        bool ownsCache,
+        MemoryCachingBackendConfiguration? configuration,
+        IServiceProvider? serviceProvider ) : base(
         configuration,
         serviceProvider )
     {
         configuration ??= new MemoryCachingBackendConfiguration();
-        this._cache = cache ?? (IMemoryCache?) serviceProvider?.GetService( typeof(IMemoryCache) ) ?? new MemoryCache( new MemoryCacheOptions() );
+
+        if ( cache != null )
+        {
+            this._cache = cache;
+            this._ownsCache = ownsCache;
+        }
+        else if ( serviceProvider?.GetService( typeof(IMemoryCache) ) is IMemoryCache sharedCache )
+        {
+            this._cache = sharedCache;
+            this._ownsCache = false;
+        }
+        else
+        {
+            this._cache = new MemoryCache( new MemoryCacheOptions() );
+            this._ownsCache = true;
+        }
+
         this._serializer = configuration.Serializer;
         this._sizeCalculator = this._serializer != null ? item => ((byte[]?) item)?.Length ?? 0 : configuration.SizeCalculator;
 
         var instanceId = Interlocked.Increment( ref _lastInstanceId ).ToString( CultureInfo.InvariantCulture );
         this._itemKeyPrefix = nameof(MemoryCachingBackend) + ":" + instanceId + ":item:";
-        this._dependencyKeyPrefix = nameof(MemoryCachingBackend) + ":" + instanceId + ":dependency:";
         this._testSynchronizationProvider = (ITestSynchronizationProvider?) serviceProvider?.GetService( typeof(ITestSynchronizationProvider) );
     }
 
     /// <summary>
     /// Blocks the current thread at a synchronization point when a test has registered an
-    /// <see cref="ITestSynchronizationProvider"/>. Otherwise, costs a null check.
+    /// <see cref="ITestSynchronizationProvider"/> and has enabled a synchronization point of this name. When no provider
+    /// is registered, the method only performs a null check.
     /// </summary>
     private void SyncPoint( string name ) => this._testSynchronizationProvider?.SyncPoint( name );
 
-    private string GetItemKey( string key )
-    {
-        return this._itemKeyPrefix + key;
-    }
-
-    private string GetDependencyKey( string key )
-    {
-        return this._dependencyKeyPrefix + key;
-    }
+    private string GetItemKey( string key ) => this._itemKeyPrefix + key;
 
     private static CacheItemRemovedReason CreateRemovalReason( EvictionReason sourceReason )
     {
@@ -179,111 +243,402 @@ internal class MemoryCachingBackend : CachingBackend
         return targetPolicy;
     }
 
-    private void OnCacheItemRemoved( object keyAsObject, object? value, EvictionReason reason, object? state )
+    #region Key locks
+
+    /// <summary>
+    /// Acquires the lock of a key. The lock does not depend on the value stored for the key, so two operations on the
+    /// same key always exclude each other.
+    /// </summary>
+    private KeyLock EnterKeyLock( string key )
     {
-        if ( reason is EvictionReason.Removed or EvictionReason.Replaced )
+        while ( true )
         {
-            // In this case, all actions are taken by the method that removes the item.
+            var keyLock = this._keyLocks.GetOrAdd( key, _ => new KeyLock() );
+            Interlocked.Increment( ref keyLock.ReferenceCount );
+            Monitor.Enter( keyLock );
+
+            if ( !keyLock.IsRetired )
+            {
+                return keyLock;
+            }
+
+            // The lock was removed from the dictionary after this thread read it. Another lock object is used.
+            Interlocked.Decrement( ref keyLock.ReferenceCount );
+            Monitor.Exit( keyLock );
+        }
+    }
+
+    /// <summary>
+    /// Releases the lock of a key, and removes it from the dictionary when no other operation uses it.
+    /// </summary>
+    private void ExitKeyLock( string key, KeyLock keyLock )
+    {
+        if ( Interlocked.Decrement( ref keyLock.ReferenceCount ) == 0 )
+        {
+            keyLock.IsRetired = true;
+            ((ICollection<KeyValuePair<string, KeyLock>>) this._keyLocks).Remove( new KeyValuePair<string, KeyLock>( key, keyLock ) );
+        }
+
+        Monitor.Exit( keyLock );
+    }
+
+    #endregion
+
+    #region Dependency index
+
+    /// <summary>
+    /// Registers a key in the dependency set of a dependency, creating the set when needed.
+    /// </summary>
+    private void AddDependency( string dependencyKey, string key )
+    {
+        while ( true )
+        {
+            var dependencySet = this._dependencySets.GetOrAdd( dependencyKey, _ => new DependencySet() );
+
+            this.SyncPoint( "MemoryCachingBackend.AddDependency:DependencySetRead" );
+
+            lock ( dependencySet )
+            {
+                // A set that has been removed from the index is never used again, so that no key is registered in a
+                // set that no lookup can reach.
+                if ( !dependencySet.IsRemoved )
+                {
+                    dependencySet.Keys.Add( key );
+
+                    return;
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Removes a key from the dependency set of a dependency, and removes the set from the index when it becomes empty.
+    /// </summary>
+    /// <returns><see langword="true"/> when the set has become empty and has been removed.</returns>
+    private bool RemoveDependency( string dependencyKey, string key )
+    {
+        if ( !this._dependencySets.TryGetValue( dependencyKey, out var dependencySet ) )
+        {
+            return false;
+        }
+
+        this.SyncPoint( "MemoryCachingBackend.RemoveDependency:DependencySetRead" );
+
+        lock ( dependencySet )
+        {
+            if ( dependencySet.IsRemoved || !dependencySet.Keys.Remove( key ) || dependencySet.Keys.Count > 0 )
+            {
+                return false;
+            }
+
+            dependencySet.IsRemoved = true;
+
+            // Only this instance of the set is removed. A newer set stored under the same key is kept.
+            ((ICollection<KeyValuePair<string, DependencySet>>) this._dependencySets).Remove(
+                new KeyValuePair<string, DependencySet>( dependencyKey, dependencySet ) );
+
+            return true;
+        }
+    }
+
+    /// <summary>
+    /// Copies the keys registered in the dependency set of a dependency.
+    /// </summary>
+    private List<string> GetDependents( string dependencyKey )
+    {
+        if ( !this._dependencySets.TryGetValue( dependencyKey, out var dependencySet ) )
+        {
+            return new List<string>();
+        }
+
+        lock ( dependencySet )
+        {
+            this.SyncPoint( "MemoryCachingBackend.InvalidateDependencyImpl:DependencyLocked" );
+
+            return dependencySet.IsRemoved ? new List<string>() : dependencySet.Keys.ToList();
+        }
+    }
+
+    /// <summary>
+    /// Determines whether at least one key is registered in the dependency set of a dependency.
+    /// </summary>
+    private bool HasDependents( string dependencyKey )
+    {
+        if ( !this._dependencySets.TryGetValue( dependencyKey, out var dependencySet ) )
+        {
+            return false;
+        }
+
+        lock ( dependencySet )
+        {
+            return !dependencySet.IsRemoved && dependencySet.Keys.Count > 0;
+        }
+    }
+
+    /// <summary>
+    /// Removes a key from the dependency sets of several dependencies, and records the dependencies whose set has become
+    /// empty. Must be called while the lock of the key is held.
+    /// </summary>
+    private void RemoveDependencies( string key, IEnumerable<string> dependencyKeys, ref List<string>? emptiedDependencyKeys )
+    {
+        foreach ( var dependencyKey in dependencyKeys )
+        {
+            if ( this.RemoveDependency( dependencyKey, key ) )
+            {
+                (emptiedDependencyKeys ??= new List<string>()).Add( dependencyKey );
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets the dependencies under which a key is registered: the dependencies of its live item, and the dependencies
+    /// retained after the removal of a previous item. Must be called while the lock of the key is held.
+    /// </summary>
+    private ImmutableHashSet<string> GetRegisteredDependencies( string key, MemoryCacheItem? item )
+    {
+        var builder = ImmutableHashSet.CreateBuilder<string>( StringComparer.Ordinal );
+
+        if ( IsLive( item ) && !item!.Dependencies.IsDefaultOrEmpty )
+        {
+            builder.UnionWith( item.Dependencies );
+        }
+
+        if ( this._retainedDependencies.TryGetValue( key, out var retainedDependencies ) )
+        {
+            builder.UnionWith( retainedDependencies );
+        }
+
+        return builder.ToImmutable();
+    }
+
+    /// <summary>
+    /// Releases the retained dependencies of the keys whose dependency set has become empty: a key that no item depends
+    /// on any more does not need to stay registered under the dependencies of its removed item. Must be called while no
+    /// key lock is held.
+    /// </summary>
+    private void ReleaseRetainedDependencies( List<string>? emptiedDependencyKeys )
+    {
+        if ( emptiedDependencyKeys == null )
+        {
             return;
         }
 
-        var fullKey = (string) keyAsObject;
+        var pendingKeys = new Queue<string>( emptiedDependencyKeys );
 
-        if ( fullKey.StartsWith( this._itemKeyPrefix, StringComparison.OrdinalIgnoreCase ) )
+        while ( pendingKeys.Count > 0 )
         {
-            var key = fullKey.Substring( this._itemKeyPrefix.Length );
+            var key = pendingKeys.Dequeue();
 
-            var item = (CacheItem) (value ?? throw new ArgumentNullException( nameof(value) ));
-            this.CleanDependencies( key, item );
+            if ( !this._retainedDependencies.ContainsKey( key ) )
+            {
+                continue;
+            }
+
+            List<string>? newlyEmptiedDependencyKeys = null;
+            var keyLock = this.EnterKeyLock( key );
+
+            try
+            {
+                if ( this.HasDependents( key ) || !this._retainedDependencies.TryRemove( key, out var retainedDependencies ) )
+                {
+                    continue;
+                }
+
+                this.RemoveDependencies( key, retainedDependencies, ref newlyEmptiedDependencyKeys );
+            }
+            finally
+            {
+                this.ExitKeyLock( key, keyLock );
+            }
+
+            if ( newlyEmptiedDependencyKeys != null )
+            {
+                foreach ( var emptiedKey in newlyEmptiedDependencyKeys )
+                {
+                    pendingKeys.Enqueue( emptiedKey );
+                }
+            }
+        }
+    }
+
+    #endregion
+
+    /// <summary>
+    /// Reads the entry stored for an item key.
+    /// </summary>
+    private MemoryCacheItem? GetStoredItem( string itemKey ) => (MemoryCacheItem?) this._cache.Get( itemKey );
+
+    /// <summary>
+    /// Determines whether an entry holds a value, as opposed to the replacement value (tombstone) that a layered backend
+    /// stores when it removes an item.
+    /// </summary>
+    private static bool IsLive( MemoryCacheItem? item ) => item != null && item.State is not EntryState { IsReplacement: true };
+
+    /// <summary>
+    /// Records that an entry has been removed, replaced or evicted by the current instance, so that its post-eviction
+    /// callback does nothing. Must be called while the lock of the key is held.
+    /// </summary>
+    private static void Detach( MemoryCacheItem? item )
+    {
+        if ( item?.State is EntryState entryState )
+        {
+            entryState.IsDetached = true;
+        }
+    }
+
+    private void OnCacheItemRemoved( object keyAsObject, object? value, EvictionReason reason, object? state )
+    {
+        if ( this._isDisposed || keyAsObject is not string fullKey || !fullKey.StartsWith( this._itemKeyPrefix, StringComparison.Ordinal ) )
+        {
+            return;
+        }
+
+        if ( value is not MemoryCacheItem { State: EntryState entryState } evictedItem )
+        {
+            return;
+        }
+
+        var key = fullKey.Substring( this._itemKeyPrefix.Length );
+        var raiseEvent = false;
+        List<string>? emptiedDependencyKeys = null;
+        var keyLock = this.EnterKeyLock( key );
+
+        try
+        {
+            // An entry that the current instance has removed or replaced has already been handled. The callback may
+            // also run after a newer value has been stored under the same key.
+            if ( this._isDisposed || entryState.IsDetached )
+            {
+                return;
+            }
+
+            entryState.IsDetached = true;
+            var currentItem = this.GetStoredItem( fullKey );
+
+            if ( currentItem == null )
+            {
+                this._storedKeys.TryRemove( key, out _ );
+            }
+
+            if ( entryState.IsReplacement )
+            {
+                return;
+            }
+
+            if ( currentItem == null )
+            {
+                this.UnregisterRemovedItem( key, evictedItem, true, ref emptiedDependencyKeys );
+                raiseEvent = true;
+            }
+            else
+            {
+                // A newer value is stored. Only the dependencies that the newer value does not declare are unregistered.
+                var currentDependencies = this.GetRegisteredDependencies( key, currentItem );
+
+                this.RemoveDependencies(
+                    key,
+                    evictedItem.Dependencies.IsDefaultOrEmpty ? [] : evictedItem.Dependencies.Where( d => !currentDependencies.Contains( d ) ),
+                    ref emptiedDependencyKeys );
+            }
+        }
+        finally
+        {
+            this.ExitKeyLock( key, keyLock );
+        }
+
+        this.ReleaseRetainedDependencies( emptiedDependencyKeys );
+
+        if ( raiseEvent )
+        {
             this.OnItemRemoved( key, CreateRemovalReason( reason ), this.Id );
         }
     }
 
-    private void AddDependencies( string key, ImmutableArray<string> dependencies )
+    /// <summary>
+    /// Unregisters the dependencies of an item that has been removed or evicted. When <paramref name="retainForDependents"/>
+    /// is <see langword="true"/> and other items depend on the key, the dependencies stay registered and are recorded as
+    /// retained, so that an invalidation of one of them still reaches the dependents. Must be called while the lock of
+    /// the key is held.
+    /// </summary>
+    private void UnregisterRemovedItem( string key, MemoryCacheItem removedItem, bool retainForDependents, ref List<string>? emptiedDependencyKeys )
     {
-        if ( dependencies.IsDefaultOrEmpty )
+        var registeredDependencies = this.GetRegisteredDependencies( key, removedItem );
+
+        if ( retainForDependents && !registeredDependencies.IsEmpty && this.HasDependents( key ) )
         {
-            return;
+            this._retainedDependencies[key] = registeredDependencies.ToImmutableArray();
         }
-
-        foreach ( var dependency in dependencies )
+        else
         {
-            var dependencyKey = this.GetDependencyKey( dependency );
-
-            var backwardDependencies = (HashSet<string>?) this._cache.Get( dependencyKey );
-
-            if ( backwardDependencies == null )
-            {
-                HashSet<string> newHashSet = new();
-
-                backwardDependencies = this._cache.GetOrCreate(
-                    dependencyKey,
-                    ( createdEntry ) =>
-                    {
-                        createdEntry.Priority = CacheItemPriority.NeverRemove;
-                        createdEntry.Size = 0;
-
-                        return newHashSet;
-                    } );
-
-                if ( backwardDependencies == null )
-                {
-                    throw new CachingAssertionFailedException();
-                }
-            }
-
-            lock ( backwardDependencies )
-            {
-                backwardDependencies.Add( key );
-
-                // The invalidation callback may have removed the key.
-                this._cache.GetOrCreate(
-                    dependencyKey,
-                    ( createdEntry ) =>
-                    {
-                        createdEntry.Priority = CacheItemPriority.NeverRemove;
-                        createdEntry.Size = 0;
-
-                        return backwardDependencies;
-                    } );
-            }
+            this._retainedDependencies.TryRemove( key, out _ );
+            this.RemoveDependencies( key, registeredDependencies, ref emptiedDependencyKeys );
         }
     }
 
     /// <inheritdoc />
     protected override void SetItemCore( string key, PSCacheItem item )
     {
+        // The serializer and the size calculator are foreign code. They run before any lock is acquired and before any
+        // state is changed, so that an exception leaves the backend unchanged and a callback that uses the backend cannot
+        // deadlock with it.
+        var entryState = new EntryState();
+        var cacheValue = this.Serialize( new MemoryCacheItem( item.Value, item.Dependencies, entryState ) );
+        var policy = this.CreatePolicy( item, cacheValue.Value );
+        var newDependencies = cacheValue.Dependencies.IsDefaultOrEmpty ? [] : cacheValue.Dependencies;
+
         var itemKey = this.GetItemKey( key );
-        var lockTaken = false;
-        var previousValue = (MemoryCacheItem?) this._cache.Get( itemKey );
+        List<string>? emptiedDependencyKeys = null;
+        var keyLock = this.EnterKeyLock( key );
 
         try
         {
-            if ( previousValue != null )
+            var previousItem = this.GetStoredItem( itemKey );
+            var previousDependencies = this.GetRegisteredDependencies( key, previousItem );
+            this._retainedDependencies.TryRemove( key, out _ );
+
+            // The new dependencies are registered before the value is stored, so that an invalidation that follows the
+            // store always finds the key.
+            foreach ( var dependency in newDependencies )
             {
-                Monitor.Enter( previousValue.Sync, ref lockTaken );
-                this.CleanDependencies( key, previousValue );
+                this.AddDependency( dependency, key );
             }
 
-            if ( !item.Dependencies.IsDefaultOrEmpty )
+            // The previous entry is detached before it is replaced, so that its post-eviction callback does nothing.
+            Detach( previousItem );
+            this._storedKeys[key] = true;
+            this._cache.Set( itemKey, cacheValue, policy );
+
+            var storedItem = this.GetStoredItem( itemKey );
+
+            if ( ReferenceEquals( storedItem, cacheValue ) )
             {
-                this.AddDependencies( key, item.Dependencies );
+                this.RemoveDependencies( key, previousDependencies.Where( d => !newDependencies.Contains( d ) ), ref emptiedDependencyKeys );
             }
+            else
+            {
+                // The cache did not keep the entry, for example because of its size limit. The key is unregistered, and
+                // the post-eviction callback of the rejected entry raises no event.
+                entryState.IsDetached = true;
 
-            var cacheValue = this.Serialize( new MemoryCacheItem( item.Value, item.Dependencies, previousValue?.Sync ?? new object() ) );
+                if ( storedItem == null )
+                {
+                    this._storedKeys.TryRemove( key, out _ );
+                }
 
-            this._cache.Set(
-                itemKey,
-                cacheValue,
-                this.CreatePolicy( item, cacheValue.Value ) );
+                var storedDependencies = this.GetRegisteredDependencies( key, storedItem );
+
+                this.RemoveDependencies(
+                    key,
+                    previousDependencies.Union( newDependencies ).Where( d => !storedDependencies.Contains( d ) ),
+                    ref emptiedDependencyKeys );
+            }
         }
         finally
         {
-            if ( lockTaken )
-            {
-                Monitor.Exit( previousValue!.Sync );
-            }
+            this.ExitKeyLock( key, keyLock );
         }
+
+        this.ReleaseRetainedDependencies( emptiedDependencyKeys );
     }
 
     /// <inheritdoc />
@@ -292,7 +647,7 @@ internal class MemoryCachingBackend : CachingBackend
         return this._cache.Get( this.GetItemKey( key ) ) != null;
     }
 
-    /// <inheritdoc />  
+    /// <inheritdoc />
     protected override CacheItem? GetItemCore( string key, bool includeDependencies )
     {
         return this.Deserialize( (MemoryCacheItem?) this._cache.Get( this.GetItemKey( key ) ) );
@@ -340,151 +695,335 @@ internal class MemoryCachingBackend : CachingBackend
     /// <inheritdoc />
     protected override void InvalidateDependencyCore( string key ) => this.InvalidateDependencyImpl( key );
 
+    /// <summary>
+    /// Removes the items that depend, directly or transitively, on a key, then raises the
+    /// <see cref="CachingBackend.DependencyInvalidated"/> event.
+    /// </summary>
+    /// <param name="key">The invalidated dependency key.</param>
+    /// <param name="replacementValue">
+    /// A value that replaces each removed item for a limited time, or <see langword="null"/> to remove the items.
+    /// </param>
+    /// <param name="replacementValueExpiration">The instant, read from the clock of the backend, at which the replacement values expire.</param>
     internal void InvalidateDependencyImpl( string key, MemoryCacheItem? replacementValue = null, DateTimeOffset? replacementValueExpiration = null )
     {
-        var items = (HashSet<string>?) this._cache.Get( this.GetDependencyKey( key ) );
+        ValidateReplacement( replacementValue, replacementValueExpiration );
 
-        if ( items != null )
-        {
-            List<string> itemsSnapshot;
-
-            // The monitor of the dependency set is released before the items are removed. RemoveItemImpl acquires the
-            // monitor of the item, then the monitor of the dependency set, and this method must not acquire them
-            // in the opposite order.
-            lock ( items )
-            {
-                this.SyncPoint( "MemoryCachingBackend.InvalidateDependencyImpl:DependencyLocked" );
-
-                itemsSnapshot = items.ToList();
-            }
-
-            foreach ( var item in itemsSnapshot )
-            {
-                if ( this.RemoveItemImpl( item, replacementValue, replacementValueExpiration ) )
-                {
-                    // Recursively invalidate items that depend on this item.
-                    this.InvalidateDependencyImpl( item, replacementValue, replacementValueExpiration );
-                    this.OnItemRemoved( item, CacheItemRemovedReason.Invalidated, this.Id );
-                }
-            }
-
-            // A side effect of calling RemoveItems is to remove the dependency entry so
-            // we don't have to do it a second time.
-        }
+        this.InvalidateDependents( key, replacementValue, replacementValueExpiration, new HashSet<string>( StringComparer.Ordinal ) );
 
         this.OnDependencyInvalidated( key, this.Id );
     }
 
+    /// <summary>
+    /// Removes the items registered under a dependency key, and recursively the items that depend on their keys.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// No lock is held across the recursion. A key is removed from the dependency set only after the items that depend
+    /// on it have been processed, so that a concurrent invalidation of the same dependency still finds the key and walks
+    /// its dependents before it returns.
+    /// </para>
+    /// <para>
+    /// An item is removed only when its current value still declares the invalidated dependency. A value that a concurrent
+    /// <see cref="CachingBackend.SetItem"/> has stored without that dependency is kept. The items that depend on a key
+    /// whose item is absent are still processed, because their key may stay registered after the removal or the eviction
+    /// of its item. The set of visited keys stops the recursion on a cyclic dependency graph.
+    /// </para>
+    /// </remarks>
+    private void InvalidateDependents( string dependencyKey, MemoryCacheItem? replacementValue, DateTimeOffset? replacementValueExpiration, HashSet<string> visitedKeys )
+    {
+        var dependents = this.GetDependents( dependencyKey );
+
+        this.SyncPoint( "MemoryCachingBackend.InvalidateDependencyImpl:DependentsCopied" );
+
+        foreach ( var key in dependents )
+        {
+            var outcome = this.InvalidateItem( key, dependencyKey, replacementValue, replacementValueExpiration );
+
+            if ( outcome.MustInvalidateDependents && visitedKeys.Add( key ) )
+            {
+                this.InvalidateDependents( key, replacementValue, replacementValueExpiration, visitedKeys );
+            }
+
+            if ( outcome.IsRemoved )
+            {
+                // The key of a removed item is itself an invalidated dependency, for the other layers and nodes that
+                // subscribe to the events.
+                this.OnDependencyInvalidated( key, this.Id );
+                this.OnItemRemoved( key, CacheItemRemovedReason.Invalidated, this.Id );
+            }
+
+            this.UnregisterAfterInvalidation( key, dependencyKey );
+        }
+    }
+
+    /// <summary>
+    /// Removes the item of a key as a consequence of the invalidation of one of its dependencies.
+    /// </summary>
+    private (bool IsRemoved, bool MustInvalidateDependents) InvalidateItem(
+        string key,
+        string dependencyKey,
+        MemoryCacheItem? replacementValue,
+        DateTimeOffset? replacementValueExpiration )
+    {
+        var itemKey = this.GetItemKey( key );
+        List<string>? emptiedDependencyKeys = null;
+        (bool IsRemoved, bool MustInvalidateDependents) outcome;
+        var keyLock = this.EnterKeyLock( key );
+
+        try
+        {
+            this.SyncPoint( "MemoryCachingBackend.RemoveItemImpl:ItemLocked" );
+
+            var currentItem = this.GetStoredItem( itemKey );
+
+            if ( !IsLive( currentItem ) )
+            {
+                // The item is absent or already replaced. Its dependents may still be registered under its key.
+                outcome = (false, true);
+            }
+            else if ( currentItem!.Dependencies.IsDefaultOrEmpty || !currentItem.Dependencies.Contains( dependencyKey ) )
+            {
+                // A concurrent SetItem has stored a value that does not depend on the invalidated key.
+                outcome = (false, false);
+            }
+            else
+            {
+                this.RemoveCurrentItem( key, itemKey, currentItem, replacementValue, replacementValueExpiration, true, ref emptiedDependencyKeys );
+                outcome = (true, true);
+            }
+        }
+        finally
+        {
+            this.ExitKeyLock( key, keyLock );
+        }
+
+        this.ReleaseRetainedDependencies( emptiedDependencyKeys );
+
+        return outcome;
+    }
+
+    /// <summary>
+    /// Removes a key from the dependency set of an invalidated dependency after its dependents have been processed,
+    /// unless the current value of the key still declares that dependency.
+    /// </summary>
+    private void UnregisterAfterInvalidation( string key, string dependencyKey )
+    {
+        List<string>? emptiedDependencyKeys = null;
+        var keyLock = this.EnterKeyLock( key );
+
+        try
+        {
+            var currentItem = this.GetStoredItem( this.GetItemKey( key ) );
+
+            if ( IsLive( currentItem ) && !currentItem!.Dependencies.IsDefaultOrEmpty && currentItem.Dependencies.Contains( dependencyKey ) )
+            {
+                // The key has been stored again, with the same dependency, during the invalidation.
+                return;
+            }
+
+            if ( this._retainedDependencies.TryGetValue( key, out var retainedDependencies ) )
+            {
+                var remainingDependencies = retainedDependencies.Remove( dependencyKey, StringComparer.Ordinal );
+
+                if ( remainingDependencies.IsEmpty )
+                {
+                    this._retainedDependencies.TryRemove( key, out _ );
+                }
+                else
+                {
+                    this._retainedDependencies[key] = remainingDependencies;
+                }
+            }
+
+            if ( this.RemoveDependency( dependencyKey, key ) )
+            {
+                (emptiedDependencyKeys ??= new List<string>()).Add( dependencyKey );
+            }
+        }
+        finally
+        {
+            this.ExitKeyLock( key, keyLock );
+        }
+
+        this.ReleaseRetainedDependencies( emptiedDependencyKeys );
+    }
+
+    /// <summary>
+    /// Removes the item of a key.
+    /// </summary>
+    /// <param name="key">The key of the item.</param>
+    /// <param name="replacementValue">
+    /// A value that replaces the item for a limited time, or <see langword="null"/> to remove the item. The replacement
+    /// value is stored even when the key has no item, so that it masks a value that another layer still holds.
+    /// </param>
+    /// <param name="replacementValueExpiration">The instant, read from the clock of the backend, at which the replacement value expires.</param>
+    /// <returns><see langword="true"/> when a value has been removed or replaced.</returns>
     internal bool RemoveItemImpl( string key, MemoryCacheItem? replacementValue = null, DateTimeOffset? replacementValueExpiration = null )
+    {
+        ValidateReplacement( replacementValue, replacementValueExpiration );
+
+        var itemKey = this.GetItemKey( key );
+        List<string>? emptiedDependencyKeys = null;
+        bool isRemoved;
+        var keyLock = this.EnterKeyLock( key );
+
+        try
+        {
+            this.SyncPoint( "MemoryCachingBackend.RemoveItemImpl:ItemLocked" );
+
+            var currentItem = this.GetStoredItem( itemKey );
+            isRemoved = IsLive( currentItem );
+
+            this.RemoveCurrentItem( key, itemKey, currentItem, replacementValue, replacementValueExpiration, true, ref emptiedDependencyKeys );
+        }
+        finally
+        {
+            this.ExitKeyLock( key, keyLock );
+        }
+
+        this.ReleaseRetainedDependencies( emptiedDependencyKeys );
+
+        return isRemoved;
+    }
+
+    /// <summary>
+    /// Removes or replaces the current entry of a key and unregisters its dependencies. Must be called while the lock of
+    /// the key is held.
+    /// </summary>
+    private void RemoveCurrentItem(
+        string key,
+        string itemKey,
+        MemoryCacheItem? currentItem,
+        MemoryCacheItem? replacementValue,
+        DateTimeOffset? replacementValueExpiration,
+        bool retainForDependents,
+        ref List<string>? emptiedDependencyKeys )
+    {
+        Detach( currentItem );
+
+        if ( replacementValue != null )
+        {
+            this.StoreReplacement( key, itemKey, replacementValue, replacementValueExpiration!.Value );
+        }
+        else if ( currentItem != null )
+        {
+            this._cache.Remove( itemKey );
+            this._storedKeys.TryRemove( key, out _ );
+        }
+
+        if ( IsLive( currentItem ) )
+        {
+            this.UnregisterRemovedItem( key, currentItem!, retainForDependents, ref emptiedDependencyKeys );
+        }
+    }
+
+    /// <summary>
+    /// Stores the replacement value (tombstone) of a removed item. Must be called while the lock of the key is held.
+    /// </summary>
+    /// <remarks>
+    /// The expiration is converted to a duration with the clock of the backend, because the <see cref="IMemoryCache"/>
+    /// evaluates it with its own clock. The entry is never evicted for capacity, so that it keeps masking the value of
+    /// the other layer during its lifetime, and it has a size, as a size-limited <see cref="MemoryCache"/> requires.
+    /// </remarks>
+    private void StoreReplacement( string key, string itemKey, MemoryCacheItem replacementValue, DateTimeOffset expiration )
+    {
+        var lifetime = expiration - this.TimeProvider.GetUtcNow();
+
+        if ( lifetime <= TimeSpan.Zero )
+        {
+            lifetime = TimeSpan.FromTicks( 1 );
+        }
+
+        var options = new MemoryCacheEntryOptions { AbsoluteExpirationRelativeToNow = lifetime, Priority = CacheItemPriority.NeverRemove, Size = 0 };
+        options.RegisterPostEvictionCallback( this.OnCacheItemRemoved );
+
+        this._storedKeys[key] = true;
+        this._cache.Set( itemKey, replacementValue with { State = new EntryState { IsReplacement = true } }, options );
+    }
+
+    private static void ValidateReplacement( MemoryCacheItem? replacementValue, DateTimeOffset? replacementValueExpiration )
     {
         if ( replacementValue != null && replacementValueExpiration == null )
         {
             throw new ArgumentException(
                 "If " + nameof(replacementValue) + " is specified, " + nameof(replacementValueExpiration) + " must also be specified." );
         }
-
-        var itemKey = this.GetItemKey( key );
-
-        var cacheValue = (MemoryCacheItem?) this._cache.Get( itemKey );
-
-        if ( cacheValue == null )
-        {
-            return false;
-        }
-
-        lock ( cacheValue.Sync )
-        {
-            this.SyncPoint( "MemoryCachingBackend.RemoveItemImpl:ItemLocked" );
-
-            if ( replacementValue == null )
-            {
-                cacheValue = (MemoryCacheItem?) this._cache.Get( itemKey );
-
-                if ( cacheValue == null )
-                {
-                    // The item has been removed by another thread.
-                    return false;
-                }
-                else
-                {
-                    this._cache.Remove( itemKey );
-                }
-            }
-            else
-            {
-                this._cache.Set( itemKey, replacementValue with { Sync = cacheValue.Sync }, replacementValueExpiration!.Value );
-            }
-
-            this.CleanDependencies( key, cacheValue );
-        }
-
-        return true;
-    }
-
-    private void CleanDependencies( string key, CacheItem cacheValue )
-    {
-        if ( cacheValue.Dependencies == null )
-        {
-            return;
-        }
-
-        foreach ( var dependency in cacheValue.Dependencies )
-        {
-            var dependencyKey = this.GetDependencyKey( dependency );
-            var backwardDependencies = (HashSet<string>?) this._cache.Get( dependencyKey );
-
-            if ( backwardDependencies == null )
-            {
-                continue;
-            }
-
-            lock ( backwardDependencies )
-            {
-                backwardDependencies.Remove( key );
-
-                if ( backwardDependencies.Count == 0 )
-                {
-                    this._cache.Remove( dependencyKey );
-                }
-            }
-        }
     }
 
     /// <inheritdoc />
-    protected override bool ContainsDependencyCore( string key )
-    {
-        return this._cache.Get( this.GetDependencyKey( key ) ) != null;
-    }
+    protected override bool ContainsDependencyCore( string key ) => this.HasDependents( key );
 
     /// <param name="options"></param>
     /// <inheritdoc />
+    /// <remarks>
+    /// <para>
+    /// With <see cref="ClearCacheOptions.Compact"/>, when the current instance owns its <see cref="IMemoryCache"/>, the
+    /// cache is compacted, and the post-eviction callbacks unregister the evicted items and raise the
+    /// <see cref="CachingBackend.ItemRemoved"/> event.
+    /// </para>
+    /// <para>
+    /// Otherwise, only the items of the current instance are removed, one key at a time under the lock of the key, so that
+    /// other users of a shared <see cref="IMemoryCache"/> are not affected and a concurrent
+    /// <see cref="CachingBackend.SetItem"/> leaves a consistent state. With <see cref="ClearCacheOptions.Compact"/>, the
+    /// <see cref="CachingBackend.ItemRemoved"/> event is raised for each removed item.
+    /// </para>
+    /// </remarks>
     protected override void ClearCore( ClearCacheOptions options )
     {
-        switch ( this._cache )
+        var raiseEvents = (options & ClearCacheOptions.Compact) != 0;
+
+        if ( raiseEvents && this._ownsCache )
         {
-            case MemoryCache classicMemoryCache when (options & ClearCacheOptions.Compact) != 0:
-                classicMemoryCache.Compact( 1 );
+            switch ( this._cache )
+            {
+                case MemoryCache memoryCache:
+                    memoryCache.Compact( 1 );
 
-                break;
+                    return;
 
-            case MemoryCache classicMemoryCache:
-                classicMemoryCache.Clear();
+                case IClearableMemoryCache clearableMemoryCache:
+                    clearableMemoryCache.Compact( 1 );
 
-                break;
+                    return;
+            }
+        }
 
-            case IClearableMemoryCache clearableMemoryCache when (options & ClearCacheOptions.Compact) != 0:
-                clearableMemoryCache.Compact( 1 );
+        foreach ( var key in this._storedKeys.Keys.Concat( this._retainedDependencies.Keys ).Distinct( StringComparer.Ordinal ).ToList() )
+        {
+            var itemKey = this.GetItemKey( key );
+            List<string>? emptiedDependencyKeys = null;
+            bool isRemoved;
+            var keyLock = this.EnterKeyLock( key );
 
-                break;
+            try
+            {
+                var currentItem = this.GetStoredItem( itemKey );
+                isRemoved = IsLive( currentItem );
 
-            case IClearableMemoryCache clearableMemoryCache:
-                clearableMemoryCache.Clear();
+                Detach( currentItem );
 
-                break;
+                if ( currentItem != null )
+                {
+                    this._cache.Remove( itemKey );
+                }
 
-            default:
-                throw new NotSupportedException(
-                    "IMemoryCache implementations other than MemoryCache and IClearableMemoryCache do not support clearing." );
+                this._storedKeys.TryRemove( key, out _ );
+
+                var registeredDependencies = this.GetRegisteredDependencies( key, currentItem );
+                this._retainedDependencies.TryRemove( key, out _ );
+                this.RemoveDependencies( key, registeredDependencies, ref emptiedDependencyKeys );
+            }
+            finally
+            {
+                this.ExitKeyLock( key, keyLock );
+            }
+
+            this.ReleaseRetainedDependencies( emptiedDependencyKeys );
+
+            if ( isRemoved && raiseEvents )
+            {
+                this.OnItemRemoved( key, CacheItemRemovedReason.Evicted, this.Id );
+            }
         }
     }
 
@@ -507,14 +1046,40 @@ internal class MemoryCachingBackend : CachingBackend
     protected override void DisposeCore( bool disposing, CancellationToken cancellationToken )
     {
         base.DisposeCore( disposing, cancellationToken );
-        this._cache.Dispose();
+        this.ReleaseCache();
     }
 
     /// <inheritdoc />
     protected override async ValueTask DisposeAsyncCore( CancellationToken cancellationToken )
     {
         await base.DisposeAsyncCore( cancellationToken ).ConfigureAwait( false );
-        this._cache.Dispose();
+        this.ReleaseCache();
+    }
+
+    /// <summary>
+    /// Disposes the <see cref="IMemoryCache"/> when the current instance owns it. Otherwise, removes the entries of the
+    /// current instance and leaves the <see cref="IMemoryCache"/> usable by its other users.
+    /// </summary>
+    private void ReleaseCache()
+    {
+        // The post-eviction callbacks that run from now on do nothing.
+        this._isDisposed = true;
+
+        if ( this._ownsCache )
+        {
+            this._cache.Dispose();
+        }
+        else
+        {
+            foreach ( var key in this._storedKeys.Keys.ToList() )
+            {
+                this._cache.Remove( this.GetItemKey( key ) );
+            }
+        }
+
+        this._storedKeys.Clear();
+        this._dependencySets.Clear();
+        this._retainedDependencies.Clear();
     }
 
     private class Features : CachingBackendFeatures
@@ -525,5 +1090,57 @@ internal class MemoryCachingBackend : CachingBackend
         }
 
         public override bool Clear { get; }
+    }
+
+    /// <summary>
+    /// The lock of a key, with the number of operations that use it.
+    /// </summary>
+    private sealed class KeyLock
+    {
+#pragma warning disable SA1401
+        /// <summary>
+        /// The number of operations that have acquired the lock or are waiting for it.
+        /// </summary>
+        public int ReferenceCount;
+
+        /// <summary>
+        /// Indicates that the lock has been removed from the dictionary and must not be used any more. It is read and
+        /// written while the lock is held.
+        /// </summary>
+        public bool IsRetired;
+#pragma warning restore SA1401
+    }
+
+    /// <summary>
+    /// The set of the keys that depend on one dependency key. It is read and changed while the set is locked.
+    /// </summary>
+    private sealed class DependencySet
+    {
+        /// <summary>
+        /// Gets the keys of the items that depend on the dependency.
+        /// </summary>
+        public HashSet<string> Keys { get; } = new( StringComparer.Ordinal );
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the set has been removed from the index. A removed set is never used
+        /// again.
+        /// </summary>
+        public bool IsRemoved { get; set; }
+    }
+
+    /// <summary>
+    /// The state of one entry stored by the current instance. It is read and changed while the lock of the key is held.
+    /// </summary>
+    private sealed class EntryState
+    {
+        /// <summary>
+        /// Gets or sets a value indicating whether the entry has been removed, replaced or evicted and has been handled.
+        /// </summary>
+        public bool IsDetached { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the entry is the replacement value (tombstone) of a removed item.
+        /// </summary>
+        public bool IsReplacement { get; init; }
     }
 }

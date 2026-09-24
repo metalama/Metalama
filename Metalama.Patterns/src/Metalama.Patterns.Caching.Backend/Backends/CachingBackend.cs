@@ -935,9 +935,9 @@ public abstract class CachingBackend : IDisposable, IAsyncDisposable
                 throw new InvalidOperationException( string.Format( CultureInfo.InvariantCulture, "{0} does not support events.", this.GetType().Name ) );
             }
 
-            this._itemRemoved += value;
+            AddHandler( ref this._itemRemoved, value );
         }
-        remove => this._itemRemoved -= value;
+        remove => RemoveHandler( ref this._itemRemoved, value );
     }
 
     /// <summary>
@@ -958,9 +958,39 @@ public abstract class CachingBackend : IDisposable, IAsyncDisposable
                 throw new InvalidOperationException( string.Format( CultureInfo.InvariantCulture, "{0} does not support dependencies.", this.GetType().Name ) );
             }
 
-            this._dependencyInvalidated += value;
+            AddHandler( ref this._dependencyInvalidated, value );
         }
-        remove => this._dependencyInvalidated -= value;
+        remove => RemoveHandler( ref this._dependencyInvalidated, value );
+    }
+
+    /// <summary>
+    /// Adds a handler to the delegate stored in a field, atomically with respect to other additions, removals and the
+    /// reset of the field in <see cref="Dispose()"/>.
+    /// </summary>
+    private static void AddHandler<T>( ref EventHandler<T>? field, EventHandler<T>? handler )
+    {
+        EventHandler<T>? current;
+
+        do
+        {
+            current = Volatile.Read( ref field );
+        }
+        while ( Interlocked.CompareExchange( ref field, (EventHandler<T>?) Delegate.Combine( current, handler ), current ) != current );
+    }
+
+    /// <summary>
+    /// Removes a handler from the delegate stored in a field, atomically with respect to other additions, removals and the
+    /// reset of the field in <see cref="Dispose()"/>.
+    /// </summary>
+    private static void RemoveHandler<T>( ref EventHandler<T>? field, EventHandler<T>? handler )
+    {
+        EventHandler<T>? current;
+
+        do
+        {
+            current = Volatile.Read( ref field );
+        }
+        while ( Interlocked.CompareExchange( ref field, (EventHandler<T>?) Delegate.Remove( current, handler ), current ) != current );
     }
 
     private void Validate( CacheItem cacheItem )
@@ -989,7 +1019,27 @@ public abstract class CachingBackend : IDisposable, IAsyncDisposable
         }
     }
 
-    private void RaiseEvent( WaitCallback action ) => this.WorkItemDispatcher.Dispatch( action, null );
+    /// <summary>
+    /// Invokes the handlers of an event in a work item of the <see cref="WorkItemDispatcher"/>.
+    /// </summary>
+    /// <remarks>
+    /// An exception thrown by a handler is logged and does not escape the work item. The default dispatcher runs the work
+    /// item on a thread-pool thread, where an unhandled exception terminates the process.
+    /// </remarks>
+    private void RaiseEvent( WaitCallback action )
+        => this.WorkItemDispatcher.Dispatch(
+            state =>
+            {
+                try
+                {
+                    action( state );
+                }
+                catch ( Exception e )
+                {
+                    this.LogSource.Error.Write( Formatted( "An event handler of {Backend} threw an exception.", this ), e );
+                }
+            },
+            null );
 
     /// <summary>
     /// Raises the <see cref="ItemRemoved"/> event given a <see cref="CacheItemRemovedEventArgs"/>.
@@ -1080,65 +1130,87 @@ public abstract class CachingBackend : IDisposable, IAsyncDisposable
     {
         using ( cancellationToken.Register( this._disposeCancellationTokenSource.Cancel ) )
         {
+            var initializeSemaphoreAcquired = false;
+
             if ( this.Status == CachingBackendStatus.Initializing )
             {
                 this._initializeSemaphore.Wait( cancellationToken );
+                initializeSemaphoreAcquired = true;
             }
 
-            if ( this.TryChangeStatus( CachingBackendStatus.Initialized, CachingBackendStatus.Disposing ) ||
-                 this.TryChangeStatus( CachingBackendStatus.Default, CachingBackendStatus.Disposing ) ||
-                 this.TryChangeStatus( CachingBackendStatus.Failed, CachingBackendStatus.Disposing ) )
+            try
             {
-                using ( var activity = this.LogSource.Default.OpenActivity( Formatted( "Disposing( backend = {Backend}", this ) ) )
+                this.DisposeWithStatusChange( disposing, cancellationToken );
+            }
+            finally
+            {
+                // The semaphore is released rather than disposed, so that a caller that waits for the initialization
+                // acquires it, observes the disposed status and fails with an ObjectDisposedException.
+                if ( initializeSemaphoreAcquired )
                 {
-                    try
-                    {
-                        // Reset events to make sure that handlers don't make problems.
-                        this._itemRemoved = null;
-                        this._dependencyInvalidated = null;
-
-                        this.DisposeCore( disposing, cancellationToken );
-
-                        this._initializeSemaphore.Dispose();
-
-                        if ( !this.TryChangeStatus( CachingBackendStatus.Disposing, CachingBackendStatus.Disposed ) )
-                        {
-#if DEBUG
-                            throw new CachingAssertionFailedException();
-#else
-                        this.LogSource.Error.Write( Formatted( "Cannot dispose back-end: cannot change the status to Disposed." ) );
-
-                        return;
-#endif
-                        }
-
-                        this._disposeTask.SetResult( true );
-                        activity.SetSuccess();
-                    }
-                    catch ( Exception e )
-                    {
-                        if ( !this.TryChangeStatus( CachingBackendStatus.Disposing, CachingBackendStatus.DisposeFailed ) )
-                        {
-#if DEBUG
-                            throw new CachingAssertionFailedException();
-#else
-                        this.LogSource.Error.Write( Formatted( "Cannot dispose back-end: cannot change the status to DisposeFailed." ) );
-
-                        return;
-#endif
-                        }
-
-                        this._disposeTask.SetException( e );
-                        activity.SetException( e );
-
-                        throw;
-                    }
+                    this._initializeSemaphore.Release();
                 }
             }
-            else
+        }
+    }
+
+    /// <summary>
+    /// Changes the status to <see cref="CachingBackendStatus.Disposing"/> and calls <see cref="DisposeCore"/>, or waits
+    /// for the completion of the disposal that another thread has started.
+    /// </summary>
+    private void DisposeWithStatusChange( bool disposing, CancellationToken cancellationToken )
+    {
+        if ( this.TryChangeStatus( CachingBackendStatus.Initialized, CachingBackendStatus.Disposing ) ||
+             this.TryChangeStatus( CachingBackendStatus.Default, CachingBackendStatus.Disposing ) ||
+             this.TryChangeStatus( CachingBackendStatus.Failed, CachingBackendStatus.Disposing ) )
+        {
+            using ( var activity = this.LogSource.Default.OpenActivity( Formatted( "Disposing( backend = {Backend}", this ) ) )
             {
-                this._disposeTask.Task.Wait( cancellationToken );
+                try
+                {
+                    // Reset events to make sure that handlers don't make problems.
+                    this._itemRemoved = null;
+                    this._dependencyInvalidated = null;
+
+                    this.DisposeCore( disposing, cancellationToken );
+
+                    if ( !this.TryChangeStatus( CachingBackendStatus.Disposing, CachingBackendStatus.Disposed ) )
+                    {
+#if DEBUG
+                        throw new CachingAssertionFailedException();
+#else
+                    this.LogSource.Error.Write( Formatted( "Cannot dispose back-end: cannot change the status to Disposed." ) );
+
+                    return;
+#endif
+                    }
+
+                    this._disposeTask.SetResult( true );
+                    activity.SetSuccess();
+                }
+                catch ( Exception e )
+                {
+                    if ( !this.TryChangeStatus( CachingBackendStatus.Disposing, CachingBackendStatus.DisposeFailed ) )
+                    {
+#if DEBUG
+                        throw new CachingAssertionFailedException();
+#else
+                    this.LogSource.Error.Write( Formatted( "Cannot dispose back-end: cannot change the status to DisposeFailed." ) );
+
+                    return;
+#endif
+                    }
+
+                    this._disposeTask.SetException( e );
+                    activity.SetException( e );
+
+                    throw;
+                }
             }
+        }
+        else
+        {
+            this._disposeTask.Task.Wait( cancellationToken );
         }
     }
 
@@ -1164,53 +1236,74 @@ public abstract class CachingBackend : IDisposable, IAsyncDisposable
         using ( cancellationToken.Register( this._disposeCancellationTokenSource.Cancel ) )
 #endif
         {
+            var initializeSemaphoreAcquired = false;
+
             if ( this.Status == CachingBackendStatus.Initializing )
             {
                 await this._initializeSemaphore.WaitAsync( cancellationToken );
+                initializeSemaphoreAcquired = true;
             }
 
-            if ( this.TryChangeStatus( CachingBackendStatus.Initialized, CachingBackendStatus.Disposing ) ||
-                 this.TryChangeStatus( CachingBackendStatus.Default, CachingBackendStatus.Disposing ) ||
-                 this.TryChangeStatus( CachingBackendStatus.Failed, CachingBackendStatus.Disposing ) )
+            try
             {
-                using ( var activity = this.LogSource.Default.OpenAsyncActivity( Formatted( "Disposing" ) ) )
+                await this.DisposeAsyncWithStatusChange( cancellationToken );
+            }
+            finally
+            {
+                // See the comment in Dispose.
+                if ( initializeSemaphoreAcquired )
                 {
-                    try
-                    {
-                        // Reset events to make sure that handlers don't make problems.
-                        this._itemRemoved = null;
-                        this._dependencyInvalidated = null;
-
-                        await this.DisposeAsyncCore( cancellationToken );
-
-                        if ( !this.TryChangeStatus( CachingBackendStatus.Disposing, CachingBackendStatus.Disposed ) )
-                        {
-                            throw new CachingAssertionFailedException();
-                        }
-
-                        this._initializeSemaphore.Dispose();
-
-                        this._disposeTask.SetResult( true );
-                        activity.SetSuccess();
-                    }
-                    catch ( Exception e )
-                    {
-                        if ( !this.TryChangeStatus( CachingBackendStatus.Disposing, CachingBackendStatus.DisposeFailed ) )
-                        {
-                            throw new CachingAssertionFailedException();
-                        }
-
-                        this._disposeTask.SetException( e );
-                        activity.SetException( e );
-
-                        throw;
-                    }
+                    this._initializeSemaphore.Release();
                 }
             }
-            else
+        }
+    }
+
+    /// <summary>
+    /// Changes the status to <see cref="CachingBackendStatus.Disposing"/> and calls <see cref="DisposeAsyncCore"/>, or
+    /// waits for the completion of the disposal that another thread has started.
+    /// </summary>
+    private async ValueTask DisposeAsyncWithStatusChange( CancellationToken cancellationToken )
+    {
+        if ( this.TryChangeStatus( CachingBackendStatus.Initialized, CachingBackendStatus.Disposing ) ||
+             this.TryChangeStatus( CachingBackendStatus.Default, CachingBackendStatus.Disposing ) ||
+             this.TryChangeStatus( CachingBackendStatus.Failed, CachingBackendStatus.Disposing ) )
+        {
+            using ( var activity = this.LogSource.Default.OpenAsyncActivity( Formatted( "Disposing" ) ) )
             {
-                await this._disposeTask.Task;
+                try
+                {
+                    // Reset events to make sure that handlers don't make problems.
+                    this._itemRemoved = null;
+                    this._dependencyInvalidated = null;
+
+                    await this.DisposeAsyncCore( cancellationToken );
+
+                    if ( !this.TryChangeStatus( CachingBackendStatus.Disposing, CachingBackendStatus.Disposed ) )
+                    {
+                        throw new CachingAssertionFailedException();
+                    }
+
+                    this._disposeTask.SetResult( true );
+                    activity.SetSuccess();
+                }
+                catch ( Exception e )
+                {
+                    if ( !this.TryChangeStatus( CachingBackendStatus.Disposing, CachingBackendStatus.DisposeFailed ) )
+                    {
+                        throw new CachingAssertionFailedException();
+                    }
+
+                    this._disposeTask.SetException( e );
+                    activity.SetException( e );
+
+                    throw;
+                }
             }
+        }
+        else
+        {
+            await this._disposeTask.Task.WithCancellation( cancellationToken );
         }
     }
 
