@@ -54,10 +54,14 @@ internal sealed class RecursiveFileSystemWatcher : IDisposable
         }
         else
         {
-            var parentDirectory = Path.GetDirectoryName( path )
-                                  ?? throw new ArgumentException(
-                                      $"Couldn't start watching for the parent directory to be created: it seems the directory '{path}' doesn't exist, but it's a root directory.",
-                                      nameof(path) );
+            var parentDirectory = Path.GetDirectoryName( path );
+
+            if ( parentDirectory == null )
+            {
+                // The path is a root directory that does not exist, for instance a disconnected drive. It cannot be watched,
+                // so no watcher is registered and no event is ever raised.
+                return;
+            }
 
             this._parentDirectoryWatcher = new RecursiveFileSystemWatcher( parentDirectory, Path.GetFileName( path ) );
 

@@ -106,8 +106,11 @@ public sealed class RecursiveFileSystemWatcherTests : UnitTestClass
         Assert.Same( wasRaised.Task, await Task.WhenAny( wasRaised.Task, Task.Delay( TimeSpan.FromSeconds( 30 ) ) ) );
     }
 
-    [SkippableFact]
-    public void MissingRoot()
+    [SkippableTheory]
+    [InlineData( "" )]
+    [InlineData( "Child" )]
+    [InlineData( "Parent\\Child" )]
+    public void MissingRoot( string relativePath )
     {
         // Tests that watching a path on a drive whose root does not exist does not throw (#2046).
 
@@ -115,7 +118,7 @@ public sealed class RecursiveFileSystemWatcherTests : UnitTestClass
 
         Skip.If( missingRoot == null, "No unused drive letter is available on this machine." );
 
-        var directory = Path.Combine( missingRoot!, "Parent", "Child" );
+        var directory = Path.Combine( missingRoot!, relativePath );
 
         using var watcher = new RecursiveFileSystemWatcher( directory, "file.txt" );
 
