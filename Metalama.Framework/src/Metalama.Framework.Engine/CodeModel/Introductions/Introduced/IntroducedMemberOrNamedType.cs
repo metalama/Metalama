@@ -2,11 +2,14 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Backstage.Diagnostics;
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.CodeModel.Abstractions;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
+using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities;
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
 namespace Metalama.Framework.Engine.CodeModel.Introductions.Introduced;
@@ -33,6 +36,48 @@ internal abstract class IntroducedMemberOrNamedType : IntroducedNamedDeclaration
 
     [Memo]
     public INamedType? DeclaringType => this.MapDeclaration( this.MemberOrNamedTypeBuilderData.DeclaringType );
+
+    /// <summary>
+    /// Sets <paramref name="declaringType"/> to the declaring type of this declaration and returns <c>true</c>, or
+    /// returns <c>false</c> when the reference to the declaring type does not resolve in the compilation this
+    /// declaration is read in.
+    /// </summary>
+    /// <remarks>
+    /// A builder is consistent with the compilation model that produced it, while a facade such as this one is read
+    /// in a consuming compilation model, and the two are not necessarily the same compilation.
+    /// <see cref="DeclaringType"/> throws <see cref="SymbolNotFoundException"/> when they differ and the consuming
+    /// compilation does not contain the declaring type. This method is the non-throwing form, for the callers that
+    /// can continue after that error instead of propagating it. See issue #2048.
+    /// </remarks>
+    public bool TryGetDeclaringType( [NotNullWhen( true )] out INamedType? declaringType )
+    {
+        var declaringTypeRef = this.MemberOrNamedTypeBuilderData.DeclaringType;
+
+        if ( declaringTypeRef == null )
+        {
+            // A top-level named type has no declaring type. This is not an error situation.
+            declaringType = null;
+
+            return false;
+        }
+
+        declaringType = declaringTypeRef.GetTargetOrNull( this.Compilation, this.GenericContext );
+
+        if ( declaringType == null )
+        {
+            // An introduced declaration whose declaring type is absent from the compilation it is read in is an
+            // error situation. It is not propagated as an exception, but it must not go unnoticed either.
+            this.Compilation.Project.ServiceProvider.GetLoggerFactory()
+                .GetLogger( nameof(IntroducedMemberOrNamedType) )
+                .Warning?.Log(
+                    $"The declaring type '{declaringTypeRef}' of the introduced '{this.MemberOrNamedTypeBuilderData}' does not resolve in the "
+                    + $"compilation '{this.Compilation.Identity}'." );
+
+            return false;
+        }
+
+        return true;
+    }
 
     public MemberInfo ToMemberInfo() => throw new NotImplementedException();
 
