@@ -105,4 +105,43 @@ public sealed class RecursiveFileSystemWatcherTests : UnitTestClass
 
         Assert.Same( wasRaised.Task, await Task.WhenAny( wasRaised.Task, Task.Delay( TimeSpan.FromSeconds( 30 ) ) ) );
     }
+
+    [SkippableFact]
+    public void MissingRoot()
+    {
+        // Tests that watching a path on a drive whose root does not exist does not throw (#2046).
+
+        var missingRoot = GetMissingDriveRoot();
+
+        Skip.If( missingRoot == null, "No unused drive letter is available on this machine." );
+
+        var directory = Path.Combine( missingRoot!, "Parent", "Child" );
+
+        using var watcher = new RecursiveFileSystemWatcher( directory, "file.txt" );
+
+        watcher.Changed += ( _, _ ) => { };
+        watcher.EnableRaisingEvents = true;
+        watcher.EnableRaisingEvents = false;
+    }
+
+    private static string? GetMissingDriveRoot()
+    {
+        if ( Path.DirectorySeparatorChar != '\\' )
+        {
+            // On Unix, the only root is '/', which always exists.
+            return null;
+        }
+
+        for ( var letter = 'Z'; letter >= 'D'; letter-- )
+        {
+            var root = $"{letter}:\\";
+
+            if ( !Directory.Exists( root ) )
+            {
+                return root;
+            }
+        }
+
+        return null;
+    }
 }
