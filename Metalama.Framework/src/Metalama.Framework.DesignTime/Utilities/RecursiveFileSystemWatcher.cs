@@ -58,8 +58,9 @@ internal sealed class RecursiveFileSystemWatcher : IDisposable
 
             if ( parentDirectory == null )
             {
-                // The path is a root directory that does not exist, for instance a disconnected drive. It cannot be watched,
-                // so no watcher is registered and no event is ever raised.
+                // Path.GetDirectoryName returns null only when the path is a root. This branch runs only when Directory.Exists
+                // returned false, so the path is a root that does not exist, for instance a disconnected drive. It cannot be
+                // watched, so no watcher is registered and no event is ever raised.
                 return;
             }
 
