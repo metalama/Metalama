@@ -40,6 +40,12 @@ internal sealed class CompileTimeProject : IProjectService
 {
     public static CompileTimeProject Empty { get; } = new();
 
+    /// <summary>
+    /// The timestamp of every entry of the serialized project. It is constant so that the serialized project,
+    /// and therefore the reference assembly in which it is embedded, is deterministic.
+    /// </summary>
+    private static readonly DateTimeOffset _zipEntryTimestamp = new( 1980, 1, 1, 0, 0, 0, TimeSpan.Zero );
+
     internal CompileTimeProjectManifest? Manifest { get; }
 
     internal string? CompiledAssemblyPath { get; }
@@ -468,12 +474,14 @@ internal sealed class CompileTimeProject : IProjectService
                 var sourceText = File.ReadAllText( Path.Combine( this.Directory!, sourceFile.TransformedPath ) );
 
                 var entry = archive.CreateEntry( sourceFile.TransformedPath, CompressionLevel.Optimal );
+                entry.LastWriteTime = _zipEntryTimestamp;
                 using var entryWriter = new StreamWriter( entry.Open() );
                 entryWriter.Write( sourceText );
             }
 
             // Write manifest.
             var manifestEntry = archive.CreateEntry( "manifest.json", CompressionLevel.Optimal );
+            manifestEntry.LastWriteTime = _zipEntryTimestamp;
             var manifestStream = manifestEntry.Open();
             this.Manifest!.Serialize( manifestStream );
         }
