@@ -1,0 +1,45 @@
+<Project DefaultTargets="Build">
+
+  <!-- Imports Directory.Build.props of the upper directory. We must do this explicitly because this project has no SDK. -->
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" Condition="Exists('$([MSBuild]::GetPathOfFileAbove(`Directory.Build.props`, `$(MSBuildThisFileDirectory)../`))')" />
+
+  <!--
+    Issue #2061 - the Metalama.CompileTimeProject.zip resource embedded in a project that defines aspects must be
+    deterministic. The zip is also embedded in the reference assembly, so a non-deterministic zip changes the
+    reference assembly on each build and forces every referencing project to recompile.
+
+    The target rebuilds the same project twice and compares the reference and implementation assemblies.
+    A zip entry stores its time with a resolution of 2 seconds, so the target waits 3 seconds between the builds.
+  -->
+  <PropertyGroup>
+    <AspectLibDirectory>$(MSBuildThisFileDirectory)AspectLib/</AspectLibDirectory>
+    <FirstBuildDirectory>$(MSBuildThisFileDirectory)obj/FirstBuild/</FirstBuildDirectory>
+  </PropertyGroup>
+
+  <Target Name="Build">
+    <Exec Command="dotnet build &quot;$(AspectLibDirectory)AspectLib.csproj&quot; -t:Rebuild -c Debug" />
+    <Copy SourceFiles="$(AspectLibDirectory)obj/Debug/net8.0/ref/AspectLib.dll" DestinationFolder="$(FirstBuildDirectory)ref" />
+    <Copy SourceFiles="$(AspectLibDirectory)bin/Debug/net8.0/AspectLib.dll" DestinationFolder="$(FirstBuildDirectory)" />
+
+    <Exec Command="pwsh -NoProfile -Command Start-Sleep -Seconds 3" />
+
+    <Exec Command="dotnet build &quot;$(AspectLibDirectory)AspectLib.csproj&quot; -t:Rebuild -c Debug" />
+
+    <GetFileHash Files="$(FirstBuildDirectory)ref/AspectLib.dll">
+      <Output TaskParameter="Hash" PropertyName="FirstRefAssemblyHash" />
+    </GetFileHash>
+    <GetFileHash Files="$(AspectLibDirectory)obj/Debug/net8.0/ref/AspectLib.dll">
+      <Output TaskParameter="Hash" PropertyName="SecondRefAssemblyHash" />
+    </GetFileHash>
+    <GetFileHash Files="$(FirstBuildDirectory)AspectLib.dll">
+      <Output TaskParameter="Hash" PropertyName="FirstAssemblyHash" />
+    </GetFileHash>
+    <GetFileHash Files="$(AspectLibDirectory)bin/Debug/net8.0/AspectLib.dll">
+      <Output TaskParameter="Hash" PropertyName="SecondAssemblyHash" />
+    </GetFileHash>
+
+    <Error Text="The reference assembly changed between two identical builds ($(FirstRefAssemblyHash) vs $(SecondRefAssemblyHash))." Condition="'$(FirstRefAssemblyHash)' != '$(SecondRefAssemblyHash)'" />
+    <Error Text="The assembly changed between two identical builds ($(FirstAssemblyHash) vs $(SecondAssemblyHash))." Condition="'$(FirstAssemblyHash)' != '$(SecondAssemblyHash)'" />
+  </Target>
+
+</Project>
