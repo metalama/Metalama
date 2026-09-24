@@ -16,18 +16,24 @@ namespace Metalama.Patterns.Caching.Tests.Backends;
 /// </summary>
 public sealed class MemoryCachingBackendConcurrencyTests
 {
+    private const string _removalSyncPointName = "MemoryCachingBackend.RemoveItemImpl:ItemLocked";
+    private const string _invalidationSyncPointName = "MemoryCachingBackend.InvalidateDependencyImpl:DependencyLocked";
+
     private static readonly TimeSpan _timeout = TimeSpan.FromSeconds( 10 );
 
     /// <summary>
-    /// Reproduces metalama/Metalama#2066. The removal of an item and the invalidation of one of its dependencies each
-    /// acquire a monitor, then try to acquire the monitor that the other operation holds.
+    /// Reproduces metalama/Metalama#2066. The removal of an item and the invalidation of one of its dependencies must
+    /// both complete when they run concurrently.
     /// </summary>
     /// <remarks>
-    /// The removal thread pauses while it holds the monitor of the item. The invalidation thread then pauses while it
-    /// holds the monitor of the dependency. When both threads are released, each of them must complete.
+    /// The removal thread pauses while it holds the monitor of the item. The invalidation thread pauses after it has
+    /// acquired the monitor of the dependency. Before the fix, each thread then waited for the monitor that the other
+    /// thread held. <paramref name="removalFirst"/> determines which thread reaches its synchronization point first.
     /// </remarks>
-    [Fact]
-    public void RemoveItem_ConcurrentWithInvalidateDependency_DoesNotDeadlock()
+    [Theory]
+    [InlineData( true )]
+    [InlineData( false )]
+    public void RemoveItem_ConcurrentWithInvalidateDependency_DoesNotDeadlock( bool removalFirst )
     {
         using var syncProvider = new TestSynchronizationProvider();
 
@@ -42,18 +48,32 @@ public sealed class MemoryCachingBackendConcurrencyTests
 
         backend.SetItem( key, new CacheItem( "value", [dependency] ) );
 
-        var removalSyncPoint = syncProvider.Arm( "MemoryCachingBackend.RemoveItemImpl:ItemLocked" );
-        var invalidationSyncPoint = syncProvider.Arm( "MemoryCachingBackend.InvalidateDependencyImpl:DependencyLocked" );
+        var removalSyncPoint = syncProvider.Arm( _removalSyncPointName );
+        var invalidationSyncPoint = syncProvider.Arm( _invalidationSyncPointName );
 
         var removalThread = new Thread( () => backend.RemoveItem( key ) ) { IsBackground = true, Name = "RemoveItem" };
-        removalThread.Start();
 
-        Assert.True( removalSyncPoint.WaitUntilReached( _timeout ), "The removal thread did not reach its synchronization point." );
+        var invalidationThread = new Thread( () => backend.InvalidateDependency( dependency ) )
+        {
+            IsBackground = true, Name = "InvalidateDependency"
+        };
 
-        var invalidationThread = new Thread( () => backend.InvalidateDependency( dependency ) ) { IsBackground = true, Name = "InvalidateDependency" };
-        invalidationThread.Start();
+        if ( removalFirst )
+        {
+            removalThread.Start();
+            Assert.True( removalSyncPoint.WaitUntilReached( _timeout ), "The removal thread did not reach its synchronization point." );
 
-        Assert.True( invalidationSyncPoint.WaitUntilReached( _timeout ), "The invalidation thread did not reach its synchronization point." );
+            invalidationThread.Start();
+            Assert.True( invalidationSyncPoint.WaitUntilReached( _timeout ), "The invalidation thread did not reach its synchronization point." );
+        }
+        else
+        {
+            invalidationThread.Start();
+            Assert.True( invalidationSyncPoint.WaitUntilReached( _timeout ), "The invalidation thread did not reach its synchronization point." );
+
+            removalThread.Start();
+            Assert.True( removalSyncPoint.WaitUntilReached( _timeout ), "The removal thread did not reach its synchronization point." );
+        }
 
         removalSyncPoint.Release();
         invalidationSyncPoint.Release();

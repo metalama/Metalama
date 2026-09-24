@@ -346,23 +346,30 @@ internal class MemoryCachingBackend : CachingBackend
 
         if ( items != null )
         {
+            List<string> itemsSnapshot;
+
+            // The monitor of the dependency set is released before the items are removed. RemoveItemImpl acquires the
+            // monitor of the item, then the monitor of the dependency set, and this method must not acquire them
+            // in the opposite order.
             lock ( items )
             {
                 this.SyncPoint( "MemoryCachingBackend.InvalidateDependencyImpl:DependencyLocked" );
 
-                foreach ( var item in items.ToList() )
-                {
-                    if ( this.RemoveItemImpl( item, replacementValue, replacementValueExpiration ) )
-                    {
-                        // Recursively invalidate items that depend on this item.
-                        this.InvalidateDependencyImpl( item, replacementValue, replacementValueExpiration );
-                        this.OnItemRemoved( item, CacheItemRemovedReason.Invalidated, this.Id );
-                    }
-                }
-
-                // A side effect of calling RemoveItems is to remove the dependency entry so
-                // we don't have to do it a second time.
+                itemsSnapshot = items.ToList();
             }
+
+            foreach ( var item in itemsSnapshot )
+            {
+                if ( this.RemoveItemImpl( item, replacementValue, replacementValueExpiration ) )
+                {
+                    // Recursively invalidate items that depend on this item.
+                    this.InvalidateDependencyImpl( item, replacementValue, replacementValueExpiration );
+                    this.OnItemRemoved( item, CacheItemRemovedReason.Invalidated, this.Id );
+                }
+            }
+
+            // A side effect of calling RemoveItems is to remove the dependency entry so
+            // we don't have to do it a second time.
         }
 
         this.OnDependencyInvalidated( key, this.Id );
