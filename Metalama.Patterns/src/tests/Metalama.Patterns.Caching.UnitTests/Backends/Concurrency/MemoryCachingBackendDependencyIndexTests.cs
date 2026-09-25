@@ -87,7 +87,7 @@ public sealed class MemoryCachingBackendDependencyIndexTests
     /// <para>The schedule is the following.</para>
     /// <list type="number">
     /// <item><description>The first writer runs <c>SetItem</c> for the first key. It creates the dependency set, and the
-    /// synchronization point <c>AddDependency:DependencySetRead</c> pauses it before it locks the set. It holds the lock
+    /// synchronization point <c>AddBackwardDependency:DependencySetRead</c> pauses it before it locks the set. It holds the lock
     /// of the first key and no lock of a dependency set.</description></item>
     /// <item><description>The second writer runs <c>SetItem</c> for the second key to completion. It does not need the
     /// lock of the first key. It registers its key in the dependency set and stores its item.</description></item>
@@ -167,7 +167,7 @@ public sealed class MemoryCachingBackendDependencyIndexTests
     /// <item><description>The test stores the refreshed key with the dependency, so the dependency set holds only this
     /// key.</description></item>
     /// <item><description>The new dependent runs <c>SetItem</c> for a new key with the same dependency. The
-    /// synchronization point <c>AddDependency:DependencySetRead</c> pauses it after it has read the dependency set and
+    /// synchronization point <c>AddBackwardDependency:DependencySetRead</c> pauses it after it has read the dependency set and
     /// before it locks the set. It holds the lock of the new key and no lock of a dependency set.</description></item>
     /// <item><description>The emptier runs <c>SetItem</c> for the refreshed key with another dependency, to completion.
     /// This removes the refreshed key from the dependency set, which becomes empty and is removed from the index. The test
@@ -279,7 +279,7 @@ public sealed class MemoryCachingBackendDependencyIndexTests
     /// item with the dependency, which creates a new dependency set that holds only the last key.</description></item>
     /// <item><description>The stale cleaner runs the captured callback. The callback holds the lock of the rewritten key,
     /// reads the dependency set that holds the last key, and the synchronization point
-    /// <c>RemoveDependency:DependencySetRead</c> pauses it before it locks the set.</description></item>
+    /// <c>RemoveBackwardDependency:DependencySetRead</c> pauses it before it locks the set.</description></item>
     /// <item><description>The remover runs <c>RemoveItem</c> for the last key to completion, which empties the dependency
     /// set and removes it from the index. The test checks that the dependency is no longer registered. The newer writer
     /// then runs <c>SetItem</c> for the newer key with the dependency to completion, which creates a newer dependency set
@@ -456,6 +456,103 @@ public sealed class MemoryCachingBackendDependencyIndexTests
 
         this._output.WriteLine( $"The item is cached after both operations: {backend.GetItem( key ) != null}." );
         this.AssertDependencyIndexIsConsistent( backend, dependency, key );
+    }
+
+    /// <summary>
+    /// Checks that a <c>SetItem</c> that has read a dependency set before a concurrent <see cref="CachingBackend.Clear"/>
+    /// does not restore, in the dependency index, the registration of an item that <c>Clear</c> removed.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The test guards against a registration that stores again, or adds its key to, a dependency set that <c>Clear</c>
+    /// has already emptied and removed. The key of the cleared item then stays registered, or the key of the new item is
+    /// registered in a set that no lookup reaches.
+    /// </para>
+    /// <para>The schedule is the following.</para>
+    /// <list type="number">
+    /// <item><description>The test stores the cleared item with the dependency, so the dependency set holds its
+    /// key.</description></item>
+    /// <item><description>The writer runs <c>SetItem</c> for another key with the same dependency. The synchronization
+    /// point <c>AddBackwardDependency:DependencySetRead</c> pauses it after it has read the dependency set and before it locks the
+    /// set. It holds the lock of its key, which <c>Clear</c> does not process, because the writer has not stored its item
+    /// yet.</description></item>
+    /// <item><description>The clearer runs <c>Clear</c> to completion. The cleared item is removed, and the dependency set
+    /// becomes empty and is removed from the index. The test checks that the dependency is no longer
+    /// registered.</description></item>
+    /// <item><description>The test releases the writer, which registers its key and stores its item.</description></item>
+    /// <item><description>The test removes the item of the writer with <see cref="CachingBackend.RemoveItem"/>. No cached
+    /// item then declares the dependency.</description></item>
+    /// </list>
+    /// <para>
+    /// The test removes the item with <see cref="CachingBackend.RemoveItem"/> and not with
+    /// <see cref="CachingBackend.InvalidateDependency"/>, so that the result does not depend on how the invalidation
+    /// handles the keys of absent items. After the removal, <see cref="CachingBackend.ContainsDependency"/> must return
+    /// <see langword="false"/>.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void SetItem_ConcurrentWithClearAfterDependencySetRead_KeepsNoRegistrationOfClearedItem()
+    {
+        const string writerName = "Writer";
+        const string clearerName = "Clearer";
+        const string clearedKey = "cleared-item";
+        const string key = "item";
+        const string dependency = "dependency";
+
+        using var synchronization = new TestSynchronizationProvider();
+        using var cache = new InterceptingMemoryCache();
+        using var backend = CreateBackend( cache, synchronization );
+
+        backend.SetItem( clearedKey, new CacheItem( "cleared-value", [dependency] ) );
+
+        // No other thread runs, so only the writer can reach the synchronization point.
+        var writerSyncPoint = synchronization.Arm( _addDependencySetReadSyncPoint );
+
+        var writer = ConcurrencyTestWorker.Start( writerName, () => backend.SetItem( key, new CacheItem( "value", [dependency] ) ) );
+        ConcurrencyTestWorker? clearer = null;
+
+        try
+        {
+            Assert.True(
+                writerSyncPoint.WaitUntilReached( _timeout ),
+                "Schedule precondition failed: the writer did not read the dependency set before it registered its key." );
+
+            clearer = ConcurrencyTestWorker.Start( clearerName, () => backend.Clear() );
+
+            Assert.True(
+                clearer.Join( _timeout ),
+                "Schedule precondition failed: Clear did not complete while the writer was paused before it locked the dependency set." );
+
+            Assert.False(
+                backend.ContainsDependency( dependency ),
+                "Schedule precondition failed: Clear did not empty the dependency set that the writer read." );
+        }
+        finally
+        {
+            writerSyncPoint.Release();
+            JoinWorkers( writer, clearer );
+        }
+
+        AssertCompletedWithoutException( writer );
+        AssertCompletedWithoutException( clearer );
+
+        Assert.True( backend.GetItem( clearedKey ) == null, "Clear did not remove the item that was stored before it." );
+
+        var itemIsCached = backend.GetItem( key ) != null;
+        var containsDependencyWithItem = backend.ContainsDependency( dependency );
+
+        Assert.True(
+            containsDependencyWithItem == itemIsCached,
+            $"ContainsDependency(\"{dependency}\") returned {containsDependencyWithItem}, but the item that declares the dependency is cached: {itemIsCached}." );
+
+        backend.RemoveItem( key );
+
+        Assert.True( backend.GetItem( key ) == null, "RemoveItem did not remove the item of the writer." );
+
+        Assert.False(
+            backend.ContainsDependency( dependency ),
+            $"ContainsDependency(\"{dependency}\") returned true after RemoveItem removed the last cached item that declares the dependency. "
+            + "The dependency index keeps a registration that no cached item declares, such as the key of the item that Clear removed." );
     }
 
     /// <summary>

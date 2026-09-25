@@ -171,19 +171,26 @@ The interface only queues. The ability to wait for the completion of the pending
 
 `LayeredCachingBackendBuilder.WithMemoryCache` supplies the memory cache of the L1 layer. The L2 layer is the underlying backend and has a memory cache only if it is itself a `MemoryCachingBackend`.
 
+The backend disposes the `IMemoryCache` only when it owns it: when it created it, or when `WithMemoryCacheOptions` created it. An instance given to `WithMemoryCache`, and the `IMemoryCache` of the service provider, belong to the caller. When the backend is disposed, it removes its own entries from such a cache and leaves the cache usable.
+
 `IMemoryCache` declares no operation that removes every entry, although `MemoryCache` has one. `IClearableMemoryCache` is an `IMemoryCache` that declares `Clear` and `Compact`. `MemoryCachingBackend` reports the `Clear` feature when its `IMemoryCache` is a `MemoryCache` or implements `IClearableMemoryCache`. A call to `Clear` on a backend whose `IMemoryCache` is neither throws `NotSupportedException`.
 
 ### Concurrency in `MemoryCachingBackend`
 
-`MemoryCachingBackend` keeps a backward dependency index: for each dependency key, the set of the keys of the items that declare it in their forward dependencies (`CacheItem.Dependencies`). The index is owned by the backend, in a `ConcurrentDictionary`, and is not stored in the `IMemoryCache`.
+`MemoryCachingBackend` keeps a backward dependency index: for each dependency key, the set of the keys of the items that declare it in their forward dependencies (`CacheItem.Dependencies`). The index is owned by the backend, in a `ConcurrentDictionary`, and is not stored in the `IMemoryCache`. The following rules keep the items and the index consistent when operations run concurrently.
 
-- Every operation that changes the item of a key, or the registrations of that key in the index, holds the lock of that key: `SetItem`, `RemoveItem`, each step of an invalidation, and the post-eviction callback. The lock does not depend on the stored value.
-- A dependency set is locked only for one change or one copy, and no other lock is acquired while it is held. A set that becomes empty is marked as removed and removed from the index as that exact instance, and a thread that has read a removed set retries with the current one.
-- The serializer and the size calculator run before any lock is acquired and before any state changes.
-- A post-eviction callback runs on the thread pool, possibly after a newer value has been stored under the same key. It unregisters only the dependencies that the newer value does not declare, and it raises `ItemRemoved` only when the key has no current value.
-- An invalidation copies the dependency set, releases its lock, and removes each item under the lock of its key, only when the current value still declares the invalidated dependency. A set of invalidated keys stops the recursion on a cyclic dependency graph.
+- Every operation that changes the item of a key, or the registrations of that key in the index, holds the lock of that key. This applies to `SetItem`, `RemoveItem`, each step of an invalidation, each step of `Clear`, and the post-eviction callback. The lock of a key does not depend on the stored value, so two operations on the same key always exclude each other.
+- A dependency set is locked only for one change or one copy. No thread acquires a key lock or another set lock while it holds a set lock, so the locks cannot form a cycle.
+- A set that becomes empty is marked as removed and removed from the index as that exact instance. A thread that has read a removed set retries with the current set, so no key is registered in a set that no lookup reaches.
+- The serializer and the size calculator run before any lock is acquired and before any state changes. An exception leaves the backend unchanged, and a size calculator or serializer that uses the backend cannot deadlock with it.
+- Each stored entry carries a state object (`MemoryCacheItem.State`) that records whether the backend has already removed, replaced or evicted the entry. A post-eviction callback runs on the thread pool, possibly after a newer value has been stored under the same key. It does nothing for an entry that has already been handled, it unregisters only the dependencies that the newer value does not declare, and it raises `ItemRemoved` only when the key has no current value.
+- An invalidation copies the dependency set, then processes each key under its lock. It removes a value only when the value still declares the invalidated dependency. It recurses into the dependents of every key, including a key whose item is absent, and it removes a key from the invalidated set only after its dependents have been processed. A concurrent invalidation of the same dependency therefore walks the same dependents before it returns. A set of visited keys stops the recursion on a cyclic dependency graph.
+- When an item is removed or evicted while other items depend on its key, its dependencies stay registered until the last dependent is gone. An invalidation of one of these dependencies still reaches the dependents.
+- `Clear` removes only the items of the current instance, one key at a time, except with `ClearCacheOptions.Compact` on a cache that the backend owns, where it compacts the cache.
 
-The synchronization points of `MemoryCachingBackend` are `RemoveItemImpl:ItemLocked`, `InvalidateDependencyImpl:DependencyLocked`, `InvalidateDependencyImpl:DependentsCopied`, `AddBackwardDependency:DependencySetRead` and `RemoveBackwardDependency:DependencySetRead`. The other interleavings are forced in tests through a decorator of `IMemoryCache` (`InterceptingMemoryCache` in the unit tests).
+The replacement value (tombstone) that `LayeredCachingBackendEnhancer` stores in its local layer when the remote layer is not blocking is stored even when the key is absent, with the priority `NeverRemove`, a size of zero, and an expiration converted to a duration with the clock of the backend.
+
+The synchronization points of `MemoryCachingBackend` are `RemoveItemImpl:ItemLocked`, `InvalidateDependencyImpl:DependencyLocked`, `InvalidateDependencyImpl:DependentsCopied`, `AddBackwardDependency:DependencySetRead` and `RemoveBackwardDependency:DependencySetRead`. The other interleavings are forced in tests through a decorator of `IMemoryCache` (`InterceptingMemoryCache` in the unit tests), which blocks a thread at a chosen call of the cache.
 
 ### Substitution in tests
 

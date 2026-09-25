@@ -21,6 +21,7 @@ public sealed class LayeredCachingBackendBuilder : ConcreteCachingBackendBuilder
     private readonly LayeredCachingBackendConfiguration? _configuration;
 
     private IMemoryCache? _memoryCache;
+    private bool _ownsMemoryCache;
 
     internal LayeredCachingBackendBuilder(
         ConcreteCachingBackendBuilder underlying,
@@ -32,13 +33,15 @@ public sealed class LayeredCachingBackendBuilder : ConcreteCachingBackendBuilder
     }
 
     /// <summary>
-    /// Specifies the <see cref="IMemoryCache"/> to use for the L1 layer.
+    /// Specifies the <see cref="IMemoryCache"/> to use for the L1 layer. The caller owns it: the backend does not dispose
+    /// it, and it clears only its own items.
     /// </summary>
     /// <param name="memoryCache">The memory cache instance.</param>
     /// <returns>This builder for method chaining.</returns>
     public LayeredCachingBackendBuilder WithMemoryCache( IMemoryCache memoryCache )
     {
         this._memoryCache = memoryCache;
+        this._ownsMemoryCache = false;
 
         return this;
     }
@@ -52,6 +55,7 @@ public sealed class LayeredCachingBackendBuilder : ConcreteCachingBackendBuilder
     public LayeredCachingBackendBuilder WithMemoryCacheOptions( MemoryCacheOptions memoryCacheOptions )
     {
         this._memoryCache = new MemoryCache( memoryCacheOptions );
+        this._ownsMemoryCache = true;
 
         return this;
     }
@@ -66,7 +70,7 @@ public sealed class LayeredCachingBackendBuilder : ConcreteCachingBackendBuilder
         // completion of background tasks before executing reads. However, because we have a single queue, this may make
         // performance even worse than with blocking operations.
 
-        var memoryCache = new MemoryCachingBackend( this._memoryCache, this._configuration?.L1Configuration, this.ServiceProvider );
+        var memoryCache = new MemoryCachingBackend( this._memoryCache, this._ownsMemoryCache, this._configuration?.L1Configuration, this.ServiceProvider );
 
         return new LayeredCachingBackendEnhancer( underlying, memoryCache, this._configuration );
     }
