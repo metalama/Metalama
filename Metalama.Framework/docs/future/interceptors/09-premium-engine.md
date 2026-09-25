@@ -112,7 +112,7 @@ EXISTING precedent for every overridden member: P27 `Metalama.Extensions.Validat
 
 #### 9.1.4 Build program
 
-PROPOSED changes to `X:\src\Metalama-2027.0\Metalama.Premium\eng\src\Program.cs`:
+PROPOSED changes to `eng\src\Program.cs` of `metalama/Metalama.Premium` (2027.0 line):
 
 - Add the two packages `Metalama.Extensions.Interceptors` and `Metalama.Extensions.Interceptors.Redist` to the public artifacts (EXISTING list at lines 91-99).
 - Add a `ProjectUsageInfo` for `Metalama\.Extensions\.Interceptors\.(Engine|Package(\.Resources)?)` with the dependent package `Metalama.Extensions.Interceptors` (EXISTING pattern at lines 105-106).

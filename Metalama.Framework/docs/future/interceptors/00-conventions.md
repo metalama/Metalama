@@ -30,27 +30,29 @@
 
 Every statement about existing code carries an evidence reference. EXISTING marks code that exists today. PROPOSED marks new code or new behavior.
 
-| Prefix | Path |
-|---|---|
-| FW27 | `X:\src\Metalama-2027.0\Metalama\Metalama.Framework\src\Metalama.Framework` |
-| ENG27 | `X:\src\Metalama-2027.0\Metalama\Metalama.Framework\src\Metalama.Framework.Engine` |
-| DT27 | `X:\src\Metalama-2027.0\Metalama\Metalama.Framework\src\Metalama.Framework.DesignTime` |
-| SDK27 | `X:\src\Metalama-2027.0\Metalama\Metalama.Framework\src\Metalama.Framework.Sdk` |
-| TST27 | `X:\src\Metalama-2027.0\Metalama\Metalama.Framework\src\tests` |
-| DOCS27 | `X:\src\Metalama-2027.0\Metalama\Metalama.Framework\docs` |
-| OSS27ROOT | `X:\src\Metalama-2027.0\Metalama` |
-| ENG26 | `X:\src\worktrees\Metalama\issue-migration-metalama-5ff22d\Metalama.Framework\src\Metalama.Framework.Engine` |
-| FW26 | `X:\src\worktrees\Metalama\issue-migration-metalama-5ff22d\Metalama.Framework\src\Metalama.Framework` |
-| TST26 | `X:\src\worktrees\Metalama\issue-migration-metalama-5ff22d\Metalama.Framework\src\tests` |
-| DOCS26 | `X:\src\worktrees\Metalama\issue-migration-metalama-5ff22d\Metalama.Framework\docs` |
-| P27 | `X:\src\Metalama-2027.0\Metalama.Premium\src` |
-| P26 | `X:\src\Metalama-2026.1\Metalama.Premium\src` |
-| RC | `X:\src\Metalama-2027.0\Metalama.Compiler\src\Compilers` (Roslyn 5.11 fork; `CSharp\Portable` unless stated) |
-| RCDOCS | `X:\src\Metalama-2027.0\Metalama.Compiler\docs` (feature documents of the Roslyn fork) |
-| RT | `dotnet/runtime`, branch `main`, `src/libraries/System.Private.CoreLib/src`, fetched on 2026-09-24 into the session scratchpad |
-| DOC | `X:\src\Metalama-2027.0\Metalama.Documentation` |
+Each prefix names a repository, a version line and a folder relative to the root of that repository. Line numbers refer to the state of the repositories on 2026-09-24, at the commit given when it is known.
 
-Line numbers with an ENG26, FW26 or TST26 prefix come from the 2026.1 worktree. The linker files of 2027.0 differ only by small offsets in the areas used here: `ENG27\Linking\LinkerInjectionStep.cs` inserts a 12-line pass after line 222, `ENG27\Linking\LinkerInjectionStep.Rewriter.cs` adds a union visitor after line 324, and `ENG27\Linking\LinkerAnalysisStep.SubstitutionGenerator.cs` removes a conditional block around line 494. The lead verified these facts in 2027.0 for this merge: `ReferenceKinds.UnionCaseType = 1 << 27` (FW27 `Code\ReferenceKinds.cs:176`); the stage code of `ENG27\Pipeline\CompileTime\LinkerPipelineStage.cs:39-66`; the ranges of `ENG27\Diagnostics\Ranges.md`; the free diagnostic identifiers LAMA0295, LAMA0296, LAMA0656 to LAMA0669 and LAMA1000 to LAMA1049; the recursion in `ENG27\CodeModel\Comparers\SignatureTypeComparer.cs:104,207`; `ContributorKind.IsExtension` as an internal init property (ENG27 `Extensibility\ContributorKind.cs:23`); the self-comparison in FW27 `Aspects\AdviserExtensions.cs:2109`; the `methodKind` parameter of the `MethodBuilder` constructor (ENG27 `CodeModel\Introductions\Builders\MethodBuilder.cs:47`); and the type `IServiceProvider<IProjectService>` of `IExecutionContext.ServiceProvider` (FW27 `Project\IExecutionContext.cs:27`).
+| Prefix | Repository and version line | Folder |
+|---|---|---|
+| FW27 | `metalama/Metalama`, 2027.0 line (commit `5a68a16c99`) | `Metalama.Framework/src/Metalama.Framework` |
+| ENG27 | `metalama/Metalama`, 2027.0 line | `Metalama.Framework/src/Metalama.Framework.Engine` |
+| DT27 | `metalama/Metalama`, 2027.0 line | `Metalama.Framework/src/Metalama.Framework.DesignTime` |
+| SDK27 | `metalama/Metalama`, 2027.0 line | `Metalama.Framework/src/Metalama.Framework.Sdk` |
+| TST27 | `metalama/Metalama`, 2027.0 line | `Metalama.Framework/src/tests` |
+| DOCS27 | `metalama/Metalama`, 2027.0 line | `Metalama.Framework/docs` |
+| OSS27ROOT | `metalama/Metalama`, 2027.0 line | the repository root |
+| ENG26 | `metalama/Metalama`, 2026.1 line (commit `e83585d2d1`) | `Metalama.Framework/src/Metalama.Framework.Engine` |
+| FW26 | `metalama/Metalama`, 2026.1 line | `Metalama.Framework/src/Metalama.Framework` |
+| TST26 | `metalama/Metalama`, 2026.1 line | `Metalama.Framework/src/tests` |
+| DOCS26 | `metalama/Metalama`, 2026.1 line | `Metalama.Framework/docs` |
+| P27 | `metalama/Metalama.Premium`, 2027.0 line (commit `bf17b91`) | `src` |
+| P26 | `metalama/Metalama.Premium`, `develop/2026.1` (commit `3f33808`) | `src` |
+| RC | `metalama/Metalama.Compiler`, 2027.0 line (Roslyn 5.11 fork, commit `fccbd5e`) | `src/Compilers` (`CSharp/Portable` unless stated) |
+| RCDOCS | `metalama/Metalama.Compiler`, 2027.0 line | `docs` (feature documents of the Roslyn fork) |
+| RT | `dotnet/runtime`, branch `main`, as of 2026-09-24 | `src/libraries/System.Private.CoreLib/src` |
+| DOC | `metalama/Metalama.Documentation`, 2027.0 line | the repository root |
+
+Paths inside citations use the directory separator of the machine where the evidence was collected (`\`). They are relative to the folder of the prefix. Line numbers with an ENG26, FW26 or TST26 prefix come from the 2026.1 line. The linker files of 2027.0 differ only by small offsets in the areas used here: `ENG27\Linking\LinkerInjectionStep.cs` inserts a 12-line pass after line 222, `ENG27\Linking\LinkerInjectionStep.Rewriter.cs` adds a union visitor after line 324, and `ENG27\Linking\LinkerAnalysisStep.SubstitutionGenerator.cs` removes a conditional block around line 494. The lead verified these facts in 2027.0 for this merge: `ReferenceKinds.UnionCaseType = 1 << 27` (FW27 `Code\ReferenceKinds.cs:176`); the stage code of `ENG27\Pipeline\CompileTime\LinkerPipelineStage.cs:39-66`; the ranges of `ENG27\Diagnostics\Ranges.md`; the free diagnostic identifiers LAMA0295, LAMA0296, LAMA0656 to LAMA0669 and LAMA1000 to LAMA1049; the recursion in `ENG27\CodeModel\Comparers\SignatureTypeComparer.cs:104,207`; `ContributorKind.IsExtension` as an internal init property (ENG27 `Extensibility\ContributorKind.cs:23`); the self-comparison in FW27 `Aspects\AdviserExtensions.cs:2109`; the `methodKind` parameter of the `MethodBuilder` constructor (ENG27 `CodeModel\Introductions\Builders\MethodBuilder.cs:47`); and the type `IServiceProvider<IProjectService>` of `IExecutionContext.ServiceProvider` (FW27 `Project\IExecutionContext.cs:27`).
 
 ### 0.3 Terms
 

@@ -6,7 +6,7 @@
 
 ### 11.1 Principles
 
-- Each open-source primitive is consumed by premium code before it ships in a stable engine release. Premium consumes the engine at the same version (`X:\src\Metalama-2027.0\Metalama.Premium\Directory.Packages.props:42-47` pins `Metalama.Framework.Implementation.*` to `$(MetalamaVersion)`), so a primitive whose first consumer is written later is likely to have the wrong shape. When a premium milestone ships after the engine release that contains its primitives, the premium milestone is developed against local engine builds, and it reaches its exit criteria before that engine release.
+- Each open-source primitive is consumed by premium code before it ships in a stable engine release. Premium consumes the engine at the same version (`Directory.Packages.props:42-47` of `metalama/Metalama.Premium`, 2027.0 line, pins `Metalama.Framework.Implementation.*` to `$(MetalamaVersion)`), so a primitive whose first consumer is written later is likely to have the wrong shape. When a premium milestone ships after the engine release that contains its primitives, the premium milestone is developed against local engine builds, and it reaches its exit criteria before that engine release.
 - The design-time durability contract (Phase A) and the memory-leak guards ship with the first premium milestone, because registrations reach long-lived design-time objects from the first build (ENG27 `Pipeline\UserCodeRetentionAnalyzer.cs:66`).
 - Every open-source primitive ships with tests of the in-repository proof of concept in the same pull request (section [12.5](12-test-plan.md#125-in-repository-proof-of-concept-of-interceptors), RC45). The open-source repository therefore proves each primitive without the premium package, and the premium milestones do not carry the proof of open-source behavior.
 - Defects found by the analysis are fixed in a separate track, one issue and one pull request each.
@@ -144,7 +144,7 @@ F1, F2, F6, F12, F14, F15 and F16 are part of M0. F9 (lexical scope) and F10 are
 
 ### 11.5 Mapping to release trains
 
-EXISTING facts: the general availability of 2027.0 is 2027-01-01 (DOCS27 `platform-support.md:149`; DOCS27 `2027.0\DECISIONS.md:15`), about 14 weeks after 2026-09-24. Premium 2027.0 is in preview (`X:\src\Metalama-2027.0\Metalama.Premium\eng\MainVersion.props`: `2027.0.3`, suffix `-preview`).
+EXISTING facts: the general availability of 2027.0 is 2027-01-01 (DOCS27 `platform-support.md:149`; DOCS27 `2027.0\DECISIONS.md:15`), about 14 weeks after 2026-09-24. Premium 2027.0 is in preview (`eng\MainVersion.props` of `metalama/Metalama.Premium`, 2027.0 line: `2027.0.3`, suffix `-preview`).
 
 The rough total of the fix track outside M0 (F3, F4, F5, F7, F8, F9, F10, F11, F13, F17, F18, F19 and F20: three M items and ten S items, size L) and of M0 to M7 (three XL, four L, one M), including the shared index of M0 (size M) and the accessors of M2 and M3 (size M), is 48 to 70 engineer-weeks. The withdrawal of the predicate extraction (RC47) removes about as much work as the accessors add. The sixth product-owner batch adds MA (size M) and about two weeks to M2 for the binding API, the added parameters and the pull guard. The complete scope does not fit before 2027-01-01.
 
