@@ -353,44 +353,4 @@ internal sealed partial class InterceptingMemoryCache : IClearableMemoryCache
 
         this._inner.Dispose();
     }
-
-    /// <summary>
-    /// A post-eviction callback invocation captured by <see cref="InterceptingMemoryCache.DeferEvictionCallbacks"/>.
-    /// </summary>
-    private sealed class CapturedEvictionCallback
-    {
-        private readonly PostEvictionDelegate _callback;
-        private readonly object _key;
-        private readonly object? _value;
-        private readonly object? _state;
-
-        public CapturedEvictionCallback( PostEvictionDelegate callback, object key, object? value, EvictionReason reason, object? state )
-        {
-            this._callback = callback;
-            this._key = key;
-            this._value = value;
-            this.Reason = reason;
-            this._state = state;
-        }
-
-        /// <summary>
-        /// Gets the cache key of the evicted entry.
-        /// </summary>
-        public string Key => this._key as string ?? this._key.ToString() ?? string.Empty;
-
-        /// <summary>
-        /// Gets the reason of the eviction.
-        /// </summary>
-        public EvictionReason Reason { get; }
-
-        /// <summary>
-        /// Gets or sets a value indicating whether the callback has run.
-        /// </summary>
-        public bool HasRun { get; set; }
-
-        /// <summary>
-        /// Runs the callback on the current thread.
-        /// </summary>
-        public void Run() => this._callback( this._key, this._value, this.Reason, this._state );
-    }
 }

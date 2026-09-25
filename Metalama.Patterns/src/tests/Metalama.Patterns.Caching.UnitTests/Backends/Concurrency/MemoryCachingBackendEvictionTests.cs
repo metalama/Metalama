@@ -39,7 +39,7 @@ namespace Metalama.Patterns.Caching.Tests.Backends.Concurrency;
 /// not report the defect.
 /// </para>
 /// </remarks>
-public sealed class MemoryCachingBackendEvictionTests
+public sealed partial class MemoryCachingBackendEvictionTests
 {
     /// <summary>
     /// The key of the item that the tests store.
@@ -164,6 +164,7 @@ public sealed class MemoryCachingBackendEvictionTests
     private async Task<LateEvictionCallbackOutcome> RunLateEvictionCallbackScheduleAsync( CancellationToken cancellationToken )
     {
         using var fakes = new FakeCachingServices();
+
         // The backend does not own the cache. The cache is declared before the backend, so it is disposed after it.
         using var cache = new InterceptingMemoryCache();
 
@@ -307,59 +308,4 @@ public sealed class MemoryCachingBackendEvictionTests
     /// <param name="item">The cache item, or <see langword="null"/>.</param>
     /// <returns>The formatted item.</returns>
     private static string DescribeItem( CacheItem? item ) => item == null ? "null" : $"Value={item.Value ?? "null"}";
-
-    /// <summary>
-    /// The observations of <see cref="RunLateEvictionCallbackScheduleAsync"/> that the tests assert.
-    /// </summary>
-    private sealed class LateEvictionCallbackOutcome
-    {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="LateEvictionCallbackOutcome"/> class.
-        /// </summary>
-        /// <param name="dependencyBeforeCallback">The value of <see cref="DependencyBeforeCallback"/>.</param>
-        /// <param name="eventsAfterSecondSet">The value of <see cref="EventsAfterSecondSet"/>.</param>
-        /// <param name="itemAfterCallback">The value of <see cref="ItemAfterCallback"/>.</param>
-        /// <param name="dependencyAfterCallback">The value of <see cref="DependencyAfterCallback"/>.</param>
-        /// <param name="itemAfterInvalidation">The value of <see cref="ItemAfterInvalidation"/>.</param>
-        public LateEvictionCallbackOutcome(
-            bool dependencyBeforeCallback,
-            IReadOnlyList<CacheItemRemovedEventArgs> eventsAfterSecondSet,
-            CacheItem? itemAfterCallback,
-            bool dependencyAfterCallback,
-            CacheItem? itemAfterInvalidation )
-        {
-            this.DependencyBeforeCallback = dependencyBeforeCallback;
-            this.EventsAfterSecondSet = eventsAfterSecondSet;
-            this.ItemAfterCallback = itemAfterCallback;
-            this.DependencyAfterCallback = dependencyAfterCallback;
-            this.ItemAfterInvalidation = itemAfterInvalidation;
-        }
-
-        /// <summary>
-        /// Gets a value indicating whether the dependency set existed after the second value was stored and before the
-        /// late callback ran.
-        /// </summary>
-        public bool DependencyBeforeCallback { get; }
-
-        /// <summary>
-        /// Gets the <see cref="CachingBackend.ItemRemoved"/> events that were raised after the second value was stored and
-        /// before the dependency was invalidated.
-        /// </summary>
-        public IReadOnlyList<CacheItemRemovedEventArgs> EventsAfterSecondSet { get; }
-
-        /// <summary>
-        /// Gets the item that <see cref="CachingBackend.GetItem"/> returned after the late callback ran.
-        /// </summary>
-        public CacheItem? ItemAfterCallback { get; }
-
-        /// <summary>
-        /// Gets a value indicating whether the dependency set existed after the late callback ran.
-        /// </summary>
-        public bool DependencyAfterCallback { get; }
-
-        /// <summary>
-        /// Gets the item that <see cref="CachingBackend.GetItem"/> returned after the dependency was invalidated.
-        /// </summary>
-        public CacheItem? ItemAfterInvalidation { get; }
-    }
 }

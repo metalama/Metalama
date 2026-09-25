@@ -175,7 +175,7 @@ The interface only queues. The ability to wait for the completion of the pending
 
 ### Concurrency in `MemoryCachingBackend`
 
-`MemoryCachingBackend` keeps a dependency index: for each dependency key, the set of the keys of the items that depend on it. The index is owned by the backend, in a `ConcurrentDictionary`, and is not stored in the `IMemoryCache`.
+`MemoryCachingBackend` keeps a backward dependency index: for each dependency key, the set of the keys of the items that declare it in their forward dependencies (`CacheItem.Dependencies`). The index is owned by the backend, in a `ConcurrentDictionary`, and is not stored in the `IMemoryCache`.
 
 - Every operation that changes the item of a key, or the registrations of that key in the index, holds the lock of that key: `SetItem`, `RemoveItem`, each step of an invalidation, and the post-eviction callback. The lock does not depend on the stored value.
 - A dependency set is locked only for one change or one copy, and no other lock is acquired while it is held. A set that becomes empty is marked as removed and removed from the index as that exact instance, and a thread that has read a removed set retries with the current one.
@@ -183,7 +183,7 @@ The interface only queues. The ability to wait for the completion of the pending
 - A post-eviction callback runs on the thread pool, possibly after a newer value has been stored under the same key. It unregisters only the dependencies that the newer value does not declare, and it raises `ItemRemoved` only when the key has no current value.
 - An invalidation copies the dependency set, releases its lock, and removes each item under the lock of its key, only when the current value still declares the invalidated dependency. A set of invalidated keys stops the recursion on a cyclic dependency graph.
 
-The synchronization points of `MemoryCachingBackend` are `RemoveItemImpl:ItemLocked`, `InvalidateDependencyImpl:DependencyLocked`, `InvalidateDependencyImpl:DependentsCopied`, `AddDependency:DependencySetRead` and `RemoveDependency:DependencySetRead`. The other interleavings are forced in tests through a decorator of `IMemoryCache` (`InterceptingMemoryCache` in the unit tests).
+The synchronization points of `MemoryCachingBackend` are `RemoveItemImpl:ItemLocked`, `InvalidateDependencyImpl:DependencyLocked`, `InvalidateDependencyImpl:DependentsCopied`, `AddBackwardDependency:DependencySetRead` and `RemoveBackwardDependency:DependencySetRead`. The other interleavings are forced in tests through a decorator of `IMemoryCache` (`InterceptingMemoryCache` in the unit tests).
 
 ### Substitution in tests
 
