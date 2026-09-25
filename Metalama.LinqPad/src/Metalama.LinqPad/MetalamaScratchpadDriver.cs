@@ -10,6 +10,7 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.Pipeline;
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Engine.Utilities.Diagnostics;
 using Metalama.Framework.Introspection;
 using Metalama.Framework.Workspaces;
 using SharpCrafters.Backstage.Diagnostics;
@@ -40,7 +41,7 @@ namespace Metalama.LinqPad
             if ( Logger == null )
             {
                 DriverInitialization.Initialize();
-                Logger = BackstageServiceFactory.ServiceProvider.GetLoggerFactory().GetLogger( "LinqPad" );
+                Logger = BackstageServiceFactoryInitializer.ServiceProvider.GetLoggerFactory().GetLogger( "LinqPad" );
             }
 
             if ( !string.IsNullOrEmpty( Environment.GetEnvironmentVariable( "METALAMA_LINQPAD_DEBUG" ) ) )

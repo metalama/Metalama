@@ -37,7 +37,7 @@ internal static class TestingServices
             } );
 
         CompileTimeAssemblyLocatorProvider =
-            new CompileTimeAssemblyLocatorProvider( BackstageServiceFactory.ServiceProvider.GetRequiredBackstageService<ITempFileManager>() );
+            new CompileTimeAssemblyLocatorProvider( BackstageServiceFactoryInitializer.ServiceProvider.GetRequiredBackstageService<ITempFileManager>() );
     }
 
     public static void Initialize() { }

@@ -2,7 +2,6 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Backstage;
 using Metalama.Compiler;
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine;
@@ -237,7 +236,7 @@ class ReferencingClass
 
                     var compileTimeProjectRepository = CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, compilation ).AssertNotNull();
 
-                    var runTimePath = MetalamaPathUtilities.GetTempFileName();
+                    var runTimePath = testContext.ServiceProvider.Global.GetRequiredService<MetalamaDirectories>().GetTempFileName();
                     tempFiles.Add( runTimePath );
 
                     // We must create the dll on disk to emulate the path taken by real code.

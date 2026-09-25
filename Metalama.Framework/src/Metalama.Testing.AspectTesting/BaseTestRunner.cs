@@ -2,8 +2,8 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Document = Microsoft.CodeAnalysis.Document;
 using JetBrains.Annotations;
-using Metalama.Backstage;
 using Metalama.Framework.ConfigurationFiles;
 using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.Diagnostics;
@@ -34,7 +34,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
-using Document = Microsoft.CodeAnalysis.Document;
 
 // ReSharper disable MethodHasAsyncOverload
 
@@ -1154,7 +1153,7 @@ internal abstract partial class BaseTestRunner
             if ( ns.ContainsOrdinal( "Microsoft.CSharp.RuntimeBinder" ) &&
                  string.Equals( typeName, "CSharpArgumentInfo", StringComparison.Ordinal ) )
             {
-                var directory = Path.Combine( MetalamaPathUtilities.GetTempDirectory(), "InvalidAssemblies" );
+                var directory = Path.Combine( this._serviceProvider.GetRequiredService<MetalamaDirectories>().TempDirectory, "InvalidAssemblies" );
 
                 if ( !this._fileSystem.DirectoryExists( directory ) )
                 {

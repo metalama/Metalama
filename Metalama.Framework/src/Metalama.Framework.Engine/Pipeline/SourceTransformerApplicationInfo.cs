@@ -4,7 +4,7 @@
 
 using Metalama.Backstage;
 using SharpCrafters.Backstage.Application;
-using SharpCrafters.Backstage.Diagnostics;
+using SharpCrafters.Backstage.ProcessClassification;
 using System.Collections.Immutable;
 using System.Reflection;
 
@@ -25,7 +25,7 @@ internal sealed class SourceTransformerApplicationInfo : ApplicationInfoBase
     }
 
     /// <inheritdoc />
-    public override ProcessKind ProcessKind => ProcessKind.Compiler;
+    public override ProcessKind? ProcessKind => SharpCrafters.Backstage.ProcessClassification.ProcessKind.Compiler;
 
     /// <inheritdoc />
     public override bool IsLongRunningProcess { get; }

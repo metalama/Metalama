@@ -273,6 +273,15 @@
     <PackageVersion Include="Metalama.Compiler.Sdk" Version="$(MetalamaCompilerVersion)" />
     <PackageVersion Include="SharpCrafters.Backstage.Testing" Version="$(BackstageVersion)" />
     <PackageVersion Include="SharpCrafters.Common" Version="$(BackstageVersion)" />
+    <!-- The dependency-light packages of Backstage. The projects that can reference no assembly at all, namely
+         Metalama.Framework.CompilerExtensions, Metalama.Framework.EditorExtensions and
+         Metalama.Framework.DesignTime.Contracts, merge them into their own assembly with ILRepack. See
+         Metalama.Framework/src/ILMergePackages.targets. Metalama.Patterns.Caching.Backend references
+         SharpCrafters.Common.Abstractions as an ordinary dependency. -->
+    <PackageVersion Include="SharpCrafters.Backstage.Abstractions" Version="$(BackstageVersion)" />
+    <PackageVersion Include="SharpCrafters.Backstage.ProcessClassification" Version="$(BackstageVersion)" />
+    <PackageVersion Include="SharpCrafters.Backstage.Threading" Version="$(BackstageVersion)" />
+    <PackageVersion Include="SharpCrafters.Common.Abstractions" Version="$(BackstageVersion)" />
     <PackageVersion Include="Metalama.Framework" Version="$(MetalamaVersion)" />
     <PackageVersion Include="Metalama.Framework.Redist" Version="$(MetalamaVersion)" />
     <PackageVersion Include="Metalama.Framework.Workspaces" Version="$(MetalamaVersion)" />

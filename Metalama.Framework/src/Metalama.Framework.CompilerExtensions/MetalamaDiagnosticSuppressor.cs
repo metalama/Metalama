@@ -5,6 +5,7 @@
 using Metalama.Framework.DesignTime;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
+using SharpCrafters.Backstage.ProcessClassification;
 using System.Collections.Immutable;
 
 namespace Metalama.Framework.CompilerExtensions

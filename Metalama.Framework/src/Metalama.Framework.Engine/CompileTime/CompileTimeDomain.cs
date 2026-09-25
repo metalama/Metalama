@@ -10,7 +10,7 @@ using Metalama.Framework.Engine.Utilities.Diagnostics;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using SharpCrafters.Backstage.Diagnostics;
-using SharpCrafters.Backstage.Utilities;
+using SharpCrafters.Backstage.FileLocks;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;

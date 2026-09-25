@@ -31,13 +31,14 @@ namespace Metalama.Framework.DesignTime.Contracts.EntryPoint
             // Note that there maybe many instances of this class in the AppDomain, so it needs to make sure it uses a shared point of contact.
             // We're using a named AppDomain data slot for this. We have to synchronize access using a named lock.
             //
-            // NamedLockService is shared with Metalama.Backstage by compiling the same source files, because this
-            // assembly is loaded side by side by every Metalama version present in one Visual Studio session and
-            // must stay version-frozen, which forbids referencing anything.
+            // NamedLockService comes from the SharpCrafters.Backstage.Threading package, which is merged into this
+            // assembly, because this assembly is loaded side by side by every Metalama version present in one
+            // Visual Studio session and must stay version-frozen, which forbids referencing anything.
             //
             // The name is used verbatim and must never change: it is what makes the copies of this class that
-            // belong to different Metalama versions exclude each other.
-            var lockService = new NamedLockService();
+            // belong to different Metalama versions exclude each other. The prefix passed to the constructor is the
+            // one that MetalamaProduct registers, and GetLock does not apply it.
+            var lockService = new NamedLockService( "Global\\Metalama_" );
 
             using var entryPointLock = lockService.GetLock( $@"Local\{_appDomainDataName}" );
 

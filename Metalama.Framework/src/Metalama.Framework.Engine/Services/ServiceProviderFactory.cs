@@ -21,11 +21,13 @@ using Metalama.Framework.Engine.Queries.Options;
 using Metalama.Framework.Engine.ReflectionMocks;
 using Metalama.Framework.Engine.SyntaxSerialization;
 using Metalama.Framework.Engine.Utilities;
+using Metalama.Framework.Engine.Utilities.Diagnostics;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Metalama.Framework.Engine.Utilities.UserCode;
 using Metalama.Framework.Services;
 using Microsoft.CodeAnalysis;
 using SharpCrafters.Backstage.Extensibility;
+using SharpCrafters.Backstage.Infrastructure;
 using SharpCrafters.Backstage.Maintenance;
 using System;
 using System.Collections.Generic;
@@ -62,7 +64,7 @@ public static class ServiceProviderFactory
         IServiceProvider? upstreamServiceProvider,
         AdditionalServiceCollection? additionalServices = null )
     {
-        upstreamServiceProvider ??= _asyncLocalConfiguration.Value?.NextProvider ?? BackstageServiceFactory.ServiceProvider;
+        upstreamServiceProvider ??= _asyncLocalConfiguration.Value?.NextProvider ?? BackstageServiceFactoryInitializer.ServiceProvider;
         additionalServices ??= _asyncLocalConfiguration.Value?.AdditionalServices;
 
         var serviceProvider = ServiceProvider<IGlobalService>.Empty.WithNextProvider( upstreamServiceProvider );
@@ -85,6 +87,7 @@ public static class ServiceProviderFactory
             .WithServiceConditional<ITestableCancellationTokenSourceFactory>( _ => new DefaultTestableCancellationTokenSource() )
             .WithServiceConditional<IMetalamaProjectClassifier>( _ => new MetalamaProjectClassifier() )
             .WithServiceConditional( sp => new UserCodeInvoker( sp ) )
+            .WithServiceConditional( sp => new MetalamaDirectories( sp.GetRequiredBackstageService<IStandardDirectories>() ) )
             .WithServiceConditional<ICompileTimeAssemblyLocatorProvider>(
                 sp => new CompileTimeAssemblyLocatorProvider( sp.GetRequiredBackstageService<ITempFileManager>() ) )
             .WithServiceConditional( _ => new FrameworkCompileTimeProjectFactory() )

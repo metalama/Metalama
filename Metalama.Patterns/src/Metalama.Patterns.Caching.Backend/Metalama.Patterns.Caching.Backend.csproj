@@ -17,9 +17,9 @@
 
     <ItemGroup>
         <PackageReference Include="JetBrains.Annotations" PrivateAssets="all" />
-        <!-- The only Metalama dependency of this package: a dependency-free assembly holding the test-only
-             hooks. The package remains usable without the rest of Metalama. -->
-        <PackageReference Include="SharpCrafters.Common" />
+        <!-- The only Metalama dependency of this package: a dependency-free assembly holding the interfaces of the
+             test-only hooks. The package remains usable without the rest of Metalama. -->
+        <PackageReference Include="SharpCrafters.Common.Abstractions" />
         <PackageReference Include="Microsoft.Extensions.Caching.Memory" />
         <PackageReference Include="System.Collections.Immutable" />
         <PackageReference Include="System.Text.Json" />

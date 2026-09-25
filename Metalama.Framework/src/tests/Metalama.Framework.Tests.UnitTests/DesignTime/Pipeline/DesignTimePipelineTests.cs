@@ -751,7 +751,12 @@ class C
         }
 
         MemoryDumpHelper.CaptureMiniDumpOnce();
-        MemoryDumpHelper.CaptureDotMemoryDumpAndThrow( $"There is still a dangling reference to {output.DependentCompilationRef.Target}." );
+        // The test context of the pipeline is already disposed, so a new one provides the directory of the dump.
+        using var dumpTestContext = this.CreateTestContext();
+
+        MemoryDumpHelper.CaptureDotMemoryDumpAndThrow(
+            dumpTestContext,
+            $"There is still a dangling reference to {output.DependentCompilationRef.Target}." );
 
         GC.KeepAlive( output.Configuration );
     }

@@ -6,7 +6,7 @@ using Metalama.Framework.DesignTime.Rpc;
 using Metalama.Framework.DesignTime.VisualStudio.Rpc;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.Threading;
-using SharpCrafters.Backstage.Utilities;
+using SharpCrafters.Backstage.ProcessClassification;
 using System.Diagnostics.CodeAnalysis;
 
 namespace Metalama.Framework.DesignTime.VisualStudio.ServiceHub;
@@ -32,7 +32,7 @@ internal sealed class ServiceHubClientEndpoint : ClientEndpoint
         GlobalServiceProvider serviceProvider,
         [NotNullWhen( true )] out ServiceHubClientEndpoint? serviceHubApiProvider )
     {
-        if ( !TryGetPipeName( out var pipeName ) )
+        if ( !TryGetPipeName( serviceProvider, out var pipeName ) )
         {
             serviceHubApiProvider = null;
 
@@ -47,9 +47,9 @@ internal sealed class ServiceHubClientEndpoint : ClientEndpoint
         return true;
     }
 
-    private static bool TryGetPipeName( [NotNullWhen( true )] out string? pipeName )
+    private static bool TryGetPipeName( GlobalServiceProvider serviceProvider, [NotNullWhen( true )] out string? pipeName )
     {
-        var parentProcesses = ProcessUtilities.GetParentProcesses();
+        var parentProcesses = serviceProvider.GetRequiredBackstageService<IParentProcessSearch>().GetParentProcesses();
 
         Engine.Utilities.Diagnostics.Logger.Remoting.Trace?.Log(
             $"Parent processes: {string.Join( ", ", parentProcesses.SelectAsImmutableArray( x => x.ToString() ) )}" );

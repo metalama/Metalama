@@ -1,0 +1,112 @@
+<Project>
+
+    <!-- Merges the assemblies of selected package references into the assembly of the importing project with ILRepack,
+         and makes their types internal.
+
+         A project that can reference no assembly at all imports this file. This is the case of the analyzer entry
+         points (Metalama.Framework.CompilerExtensions and Metalama.Framework.EditorExtensions), which embed and extract
+         the other assemblies of Metalama, and of Metalama.Framework.DesignTime.Contracts, which every Metalama version
+         present in one Visual Studio session loads side by side.
+
+         To merge a package, reference it with PrivateAssets="all" and ILMerge="true":
+
+             <PackageReference Include="SharpCrafters.Backstage.Threading" PrivateAssets="all" ILMerge="true" />
+
+         The dependencies of a merged package are not merged implicitly. Each of them must be referenced in the same way,
+         and the build fails when a merged assembly references an assembly that is neither merged nor resolvable. -->
+
+    <!-- The projects that reference this one compile against its reference assembly, which the compiler produces before
+         the merge and which therefore declares only the types of this project. Without it, they would compile against
+         the merged assembly, and the internal copies of the merged types would make the references in their
+         documentation comments ambiguous. -->
+    <PropertyGroup>
+        <ProduceReferenceAssembly>true</ProduceReferenceAssembly>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="ILRepack" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
+    </ItemGroup>
+
+    <!-- Selects the assemblies to merge among the resolved references, by the identifier of the package that provides
+         them. The merged assemblies are removed from the files copied to the output directory, because the output
+         assembly already contains them. -->
+    <Target Name="GetILMergePackageInputs" AfterTargets="ResolveAssemblyReferences" Condition="'$(TargetFramework)'!=''">
+        <ItemGroup>
+            <_ILMergePackageReference Include="@(PackageReference->WithMetadataValue('ILMerge','true'))" />
+        </ItemGroup>
+
+        <PropertyGroup>
+            <_ILMergePackageIds>;@(_ILMergePackageReference);</_ILMergePackageIds>
+        </PropertyGroup>
+
+        <ItemGroup>
+            <ILMergePackageInput Include="@(ReferencePath)" Condition="'%(ReferencePath.NuGetPackageId)'!='' AND $(_ILMergePackageIds.Contains(';%(ReferencePath.NuGetPackageId);'))" />
+            <ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)" Condition="'%(ReferenceCopyLocalPaths.NuGetPackageId)'!='' AND $(_ILMergePackageIds.Contains(';%(ReferenceCopyLocalPaths.NuGetPackageId);'))" />
+            <_ILMergeLibraryDirectory Include="@(ReferencePath->'%(RootDir)%(Directory)'->TrimEnd('\')->Distinct())" />
+        </ItemGroup>
+
+        <PropertyGroup>
+            <_ILMergeResolvedPackageIds>;@(ILMergePackageInput->'%(NuGetPackageId)');</_ILMergeResolvedPackageIds>
+        </PropertyGroup>
+
+        <Error Text="The package '%(_ILMergePackageReference.Identity)' is marked for merging, but none of its assemblies is referenced by the project."
+               Condition="'@(_ILMergePackageReference)'!='' AND !$(_ILMergeResolvedPackageIds.Contains(';%(_ILMergePackageReference.Identity);'))" />
+    </Target>
+
+    <!-- Merges the selected assemblies into a copy of the output assembly in the intermediate directory. The assembly
+         produced by the compiler is left unchanged, so that a merge never takes the output of a previous merge as
+         input. The /union option merges the types that have the same full name into a single type. Every input declares
+         its own internal copy of the compiler polyfills, such as System.Index and the nullable attributes, and these
+         copies do not always declare the same members, so keeping only one of them would leave references to missing
+         members. The inputs include the merged assemblies, so that a new version of a merged package triggers a new merge
+         even when the project itself did not change. -->
+    <Target Name="ILMergePackages"
+            AfterTargets="CoreCompile"
+            Condition="'$(TargetFramework)'!='' AND '@(ILMergePackageInput)'!=''"
+            Inputs="@(IntermediateAssembly);@(ILMergePackageInput)"
+            Outputs="$(_ILMergeOutputAssembly)"
+            DependsOnTargets="GetILMergeOutputPaths">
+
+        <PropertyGroup>
+            <_ILMergeMonoPrefix Condition="!$([MSBuild]::IsOSPlatform('windows'))">mono </_ILMergeMonoPrefix>
+            <_ILMergeKeyFileArgument Condition="'$(SignAssembly)'=='True' AND '$(AssemblyOriginatorKeyFile)'!=''">/keyfile:&quot;$(AssemblyOriginatorKeyFile)&quot;</_ILMergeKeyFileArgument>
+        </PropertyGroup>
+
+        <Error Text="The ILRepack package is not installed or restored in the project." Condition="'$(ILRepack)'==''" />
+
+        <MakeDir Directories="$(_ILMergeOutputDirectory)" />
+
+        <!-- ILRepack reports a warning for each reference between the members of the System.Index and System.Range
+             polyfills that it keeps as a member reference to the merged type instead of converting it to a method
+             definition. Such a reference is valid, and each of them was verified to match exactly one method of the
+             merged type, so the output of ILRepack is not parsed for warnings. A failed merge still fails the build,
+             because ILRepack then returns a nonzero exit code. -->
+        <Exec IgnoreStandardErrorWarningFormat="true" Command="$(_ILMergeMonoPrefix)&quot;$(ILRepack)&quot; /target:library /internalize /union /out:&quot;$(_ILMergeOutputAssembly)&quot; @(_ILMergeLibraryDirectory->'/lib:&quot;%(Identity)&quot;', ' ') $(_ILMergeKeyFileArgument) &quot;@(IntermediateAssembly->'%(FullPath)')&quot; @(ILMergePackageInput->'&quot;%(FullPath)&quot;', ' ')" />
+
+        <ItemGroup>
+            <FileWrites Include="$(_ILMergeOutputAssembly);$(_ILMergeOutputDirectory)$(TargetName).pdb" />
+        </ItemGroup>
+    </Target>
+
+    <Target Name="GetILMergeOutputPaths">
+        <PropertyGroup>
+            <_ILMergeOutputDirectory>$(ProjectDir)$(IntermediateOutputPath)merged\</_ILMergeOutputDirectory>
+            <_ILMergeOutputAssembly>$(_ILMergeOutputDirectory)$(TargetFileName)</_ILMergeOutputAssembly>
+        </PropertyGroup>
+    </Target>
+
+    <!-- Replaces the assembly that CopyFilesToOutputDirectory copied to the output directory by the merged assembly, and
+         its symbols by the merged symbols. -->
+    <Target Name="CopyILMergedAssemblyToOutputDirectory"
+            AfterTargets="CopyFilesToOutputDirectory"
+            Condition="'$(TargetFramework)'!='' AND '@(ILMergePackageInput)'!=''"
+            DependsOnTargets="GetILMergeOutputPaths">
+        <ItemGroup>
+            <_ILMergedFile Include="$(_ILMergeOutputAssembly)" />
+            <_ILMergedFile Include="$(_ILMergeOutputDirectory)$(TargetName).pdb" Condition="Exists('$(_ILMergeOutputDirectory)$(TargetName).pdb')" />
+        </ItemGroup>
+
+        <Copy SourceFiles="@(_ILMergedFile)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+    </Target>
+
+</Project>

@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Engine.Utilities.AssemblyLoaders;
 using Microsoft.CodeAnalysis;
+using SharpCrafters.Backstage.ProcessClassification;
 using SharpCrafters.Backstage.Threading;
 using System;
 using System.Collections.Concurrent;
@@ -82,7 +83,7 @@ public static class ResourceExtractor
     private static string GetTempDirectory( string purpose )
         => Path.Combine( GetTempBaseDirectory(), purpose, _buildId, _isNetFramework ? "desktop" : "core" );
 
-    // Mirrors SharpCrafters.Backstage.Utilities.MetalamaPathUtilities.GetTempDirectory (we cannot reference Metalama.Backstage here).
+    // Mirrors SharpCrafters.Backstage.Infrastructure.IStandardDirectories.TempDirectory (we cannot reference Metalama.Backstage here).
     // The directory holds assemblies that Metalama loads and executes, so on Unix it must not live under the world-writable
     // /tmp (issue #1650); we use the per-user application-data directory instead. On Windows the temp directory is already
     // specific to the current user.
@@ -356,8 +357,9 @@ public static class ResourceExtractor
             }
         }
 
-        // NamedLockService is shared with Metalama.Backstage by compiling the same source files, because this
-        // assembly embeds Metalama.Backstage and extracts it here, and can therefore reference nothing.
+        // NamedLockService comes from the SharpCrafters.Backstage.Threading package, which is merged into this
+        // assembly, because this assembly embeds Metalama.Backstage and extracts it here, and can therefore
+        // reference nothing.
         // A process that crashed while holding the lock is not a problem: the presence of the `.completed` file
         // alone says that the extraction was successful.
         // When the operating system cannot provide a named object at all, which is issue #272, the lock excludes
@@ -365,8 +367,9 @@ public static class ResourceExtractor
         // converge: each file is either written or, if another process holds it open, read back and compared.
         // A concurrent queue, because the events are reported on whichever thread caused them, which is not
         // necessarily the thread running this method.
+        // The prefix is the one that MetalamaProduct registers. GetLock uses the name below verbatim.
         var lockEvents = new ConcurrentQueue<string>();
-        var lockService = new NamedLockService();
+        var lockService = new NamedLockService( "Global\\Metalama_" );
 
         lockService.LockEventReported += ( _, lockEvent ) => lockEvents.Enqueue( lockEvent.ToString() );
 

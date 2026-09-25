@@ -5,6 +5,7 @@
 using Metalama.Framework.DesignTime;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CodeRefactorings;
+using SharpCrafters.Backstage.ProcessClassification;
 using System.Composition;
 using System.Threading.Tasks;
 

@@ -3,7 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Patterns.Caching.Implementation;
-using SharpCrafters.Common;
+using SharpCrafters.Common.Testing.Hooks;
 using System.Collections.Concurrent;
 
 namespace Metalama.Patterns.Caching.Tests.Implementation;

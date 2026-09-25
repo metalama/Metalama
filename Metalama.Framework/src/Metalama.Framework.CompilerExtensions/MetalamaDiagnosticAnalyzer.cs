@@ -5,6 +5,7 @@
 using Metalama.Framework.DesignTime;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
+using SharpCrafters.Backstage.ProcessClassification;
 using System.Collections.Immutable;
 
 #pragma warning disable RS1026 // Enable concurrent execution

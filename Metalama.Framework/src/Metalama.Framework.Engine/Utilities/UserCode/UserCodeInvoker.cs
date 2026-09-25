@@ -107,7 +107,7 @@ public sealed class UserCodeInvoker : IProjectService, IGlobalService
             var applicationInfoProvider = context.ServiceProvider.Global.GetRequiredBackstageService<IApplicationInfoProvider>();
             string reportFile;
 
-            if ( applicationInfoProvider.CurrentApplication.ShouldCreateLocalCrashReports && standardDirectories != null )
+            if ( applicationInfoProvider.Application.ShouldCreateLocalCrashReports && standardDirectories != null )
             {
                 try
                 {
