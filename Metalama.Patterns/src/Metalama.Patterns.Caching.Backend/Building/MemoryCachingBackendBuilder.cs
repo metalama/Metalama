@@ -17,6 +17,7 @@ public sealed class MemoryCachingBackendBuilder : ConcreteCachingBackendBuilder
 {
     private readonly MemoryCachingBackendConfiguration? _configuration;
     private IMemoryCache? _memoryCache;
+    private bool _ownsMemoryCache;
 
     internal MemoryCachingBackendBuilder( MemoryCachingBackendConfiguration? configuration, IServiceProvider? serviceProvider ) : base( serviceProvider )
     {
@@ -24,11 +25,13 @@ public sealed class MemoryCachingBackendBuilder : ConcreteCachingBackendBuilder
     }
 
     /// <summary>
-    /// Specifies the <see cref="IMemoryCache"/> to use.
+    /// Specifies the <see cref="IMemoryCache"/> to use. The caller owns it: the backend does not dispose it, and it clears
+    /// only its own items.
     /// </summary>
     public MemoryCachingBackendBuilder WithMemoryCache( IMemoryCache memoryCache )
     {
         this._memoryCache = memoryCache;
+        this._ownsMemoryCache = false;
 
         return this;
     }
@@ -40,11 +43,12 @@ public sealed class MemoryCachingBackendBuilder : ConcreteCachingBackendBuilder
     public MemoryCachingBackendBuilder WithMemoryCacheOptions( MemoryCacheOptions memoryCacheOptions )
     {
         this._memoryCache = new MemoryCache( memoryCacheOptions );
+        this._ownsMemoryCache = true;
 
         return this;
     }
 
     /// <inheritdoc />
     public override CachingBackend CreateBackend( CreateBackendArgs args )
-        => new MemoryCachingBackend( this._memoryCache, this._configuration, this.ServiceProvider );
+        => new MemoryCachingBackend( this._memoryCache, this._ownsMemoryCache, this._configuration, this.ServiceProvider );
 }

@@ -935,9 +935,9 @@ public abstract class CachingBackend : IDisposable, IAsyncDisposable
                 throw new InvalidOperationException( string.Format( CultureInfo.InvariantCulture, "{0} does not support events.", this.GetType().Name ) );
             }
 
-            this._itemRemoved += value;
+            AddHandler( ref this._itemRemoved, value );
         }
-        remove => this._itemRemoved -= value;
+        remove => RemoveHandler( ref this._itemRemoved, value );
     }
 
     /// <summary>
@@ -958,9 +958,39 @@ public abstract class CachingBackend : IDisposable, IAsyncDisposable
                 throw new InvalidOperationException( string.Format( CultureInfo.InvariantCulture, "{0} does not support dependencies.", this.GetType().Name ) );
             }
 
-            this._dependencyInvalidated += value;
+            AddHandler( ref this._dependencyInvalidated, value );
         }
-        remove => this._dependencyInvalidated -= value;
+        remove => RemoveHandler( ref this._dependencyInvalidated, value );
+    }
+
+    /// <summary>
+    /// Adds a handler to the delegate stored in a field, atomically with respect to other additions, removals and the
+    /// reset of the field in <see cref="Dispose()"/>.
+    /// </summary>
+    private static void AddHandler<T>( ref EventHandler<T>? field, EventHandler<T>? handler )
+    {
+        EventHandler<T>? current;
+
+        do
+        {
+            current = Volatile.Read( ref field );
+        }
+        while ( Interlocked.CompareExchange( ref field, (EventHandler<T>?) Delegate.Combine( current, handler ), current ) != current );
+    }
+
+    /// <summary>
+    /// Removes a handler from the delegate stored in a field, atomically with respect to other additions, removals and the
+    /// reset of the field in <see cref="Dispose()"/>.
+    /// </summary>
+    private static void RemoveHandler<T>( ref EventHandler<T>? field, EventHandler<T>? handler )
+    {
+        EventHandler<T>? current;
+
+        do
+        {
+            current = Volatile.Read( ref field );
+        }
+        while ( Interlocked.CompareExchange( ref field, (EventHandler<T>?) Delegate.Remove( current, handler ), current ) != current );
     }
 
     private void Validate( CacheItem cacheItem )
