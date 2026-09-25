@@ -438,9 +438,8 @@ public sealed partial class MemoryCachingBackendTombstoneTests
     /// <para>
     /// The test creates the registration legitimately: <see cref="CachingBackend.SetItem"/> stores the item with a
     /// dependency on its own key, which registers the item in its own dependency set. The invalidation of the key of the
-    /// item copies that set, which contains the item, and replaces the item with a tombstone. The item has a dependent
-    /// (itself), so its registrations are retained, and the invalidation recurses into the key of the item. The recursion
-    /// finds the item in the set again, finds the tombstone, and must stop, because the key has already been visited.
+    /// item copies that set, which contains the item, and replaces the item with a tombstone. The invalidation then
+    /// recurses into the key of the item, and the recursion must stop, because the key has already been invalidated.
     /// </para>
     /// <para>
     /// A stack overflow terminates the test host, so a regression must not produce one. The test therefore bounds the
@@ -494,6 +493,37 @@ public sealed partial class MemoryCachingBackendTombstoneTests
             "The item is still registered in its own dependency set after the invalidation replaced it with a tombstone." );
     }
 
+    /// <summary>
+    /// Checks that a second direct removal of a key that holds a tombstone replaces the tombstone, so that the stored
+    /// tombstone carries the timestamp of the latest removal.
+    /// </summary>
+    /// <remarks>
+    /// A layered backend whose second layer is not blocking compares the timestamp of the tombstone with the timestamp of
+    /// a value of the second layer. If the second removal kept the older tombstone, a value that another node stored
+    /// between the two removals would be considered newer than the removal, and it would be served while the second
+    /// removal is pending. An invalidation, in contrast, must not replace a tombstone: that case is covered by
+    /// <see cref="TombstoneInvalidation_ConcurrentWithSameInvalidation_RaisesItemRemovedOnce"/>.
+    /// </remarks>
+    [Fact]
+    public void TombstoneRemoval_OfKeyHoldingTombstone_ReplacesTombstone()
+    {
+        using var cache = new InterceptingMemoryCache();
+        using var backend = CreateBackend( cache );
+
+        backend.SetItem( _itemKey, new CacheItem( _storedValue ) );
+
+        var expiration = DateTimeOffset.UtcNow + _tombstoneLifetime;
+
+        Assert.True( backend.RemoveItemImpl( _itemKey, new Tombstone( 1 ), expiration ), "The first removal did not remove the stored value." );
+
+        Assert.False(
+            backend.RemoveItemImpl( _itemKey, new Tombstone( 2 ), expiration ),
+            "The second removal reported the removal of a value, although the key held a tombstone." );
+
+        var storedItem = Assert.IsType<Tombstone>( backend.GetItem( _itemKey ) );
+
+        Assert.True( storedItem.Timestamp == 2, $"The stored tombstone has the timestamp {storedItem.Timestamp}, not the timestamp of the second removal." );
+    }
     /// <summary>
     /// Creates and initializes a <see cref="MemoryCachingBackend"/> that stores its entries in <paramref name="cache"/>.
     /// </summary>
