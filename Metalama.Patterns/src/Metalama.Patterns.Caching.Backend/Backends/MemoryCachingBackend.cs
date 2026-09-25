@@ -59,6 +59,14 @@ internal partial class MemoryCachingBackend : CachingBackend
     private readonly ConcurrentDictionary<string, KeyLock> _keyLocks = new( StringComparer.Ordinal );
 
     /// <summary>
+    /// A lock that <see cref="ClearCore"/> acquires for writing and that every operation acquires for reading together
+    /// with the lock of its key, so that a clearing never runs between the registration of a key in the backward
+    /// dependency index and the store of its value. Recursion is supported because the post-eviction callbacks of some
+    /// <see cref="IMemoryCache"/> implementations run on the thread that clears the cache.
+    /// </summary>
+    private readonly ReaderWriterLockSlim _clearLock = new( LockRecursionPolicy.SupportsRecursion );
+
+    /// <summary>
     /// The backward dependency index: for each dependency key, the keys of the items that declare it in their forward
     /// dependencies (<see cref="CacheItem.Dependencies"/>). A backward dependency set is locked only for one change or
     /// one copy, and no other lock is acquired while it is held.
@@ -394,9 +402,12 @@ internal partial class MemoryCachingBackend : CachingBackend
                     this.RemoveBackwardDependency( invalidatedDependency, key );
                 }
 
-                if ( replacementValue != null && cacheValue == null )
+                // The tombstone masks the value that another layer may still hold for the key. A direct removal replaces an
+                // existing tombstone, so that the tombstone carries the timestamp and the lifetime of the latest removal. An
+                // invalidation does not replace it, because its copy of the backward dependency set may be older than the
+                // removal that wrote the tombstone.
+                if ( replacementValue != null && (cacheValue == null || invalidatedDependency == null) )
                 {
-                    // The tombstone masks the value that another layer may still hold for the key.
                     this.StoreTombstone( itemKey, replacementValue, replacementValueExpiration!.Value );
                 }
 
@@ -460,6 +471,8 @@ internal partial class MemoryCachingBackend : CachingBackend
     /// </summary>
     private KeyLock EnterKeyLock( string key )
     {
+        this._clearLock.EnterReadLock();
+
         while ( true )
         {
             var keyLock = this._keyLocks.GetOrAdd( key, _ => new KeyLock() );
@@ -489,6 +502,7 @@ internal partial class MemoryCachingBackend : CachingBackend
         }
 
         Monitor.Exit( keyLock );
+        this._clearLock.ExitReadLock();
     }
 
     /// <summary>
@@ -596,6 +610,26 @@ internal partial class MemoryCachingBackend : CachingBackend
     /// <inheritdoc />
     protected override void ClearCore( ClearCacheOptions options )
     {
+        this.SyncPoint( "MemoryCachingBackend.ClearCore:ClearRequested" );
+
+        this._clearLock.EnterWriteLock();
+
+        try
+        {
+            this.ClearCacheAndIndex( options );
+        }
+        finally
+        {
+            this._clearLock.ExitWriteLock();
+        }
+    }
+
+    /// <summary>
+    /// Clears or compacts the <see cref="IMemoryCache"/> and clears the backward dependency index. Must be called while
+    /// the write lock of <see cref="_clearLock"/> is held.
+    /// </summary>
+    private void ClearCacheAndIndex( ClearCacheOptions options )
+    {
         switch ( this._cache )
         {
             case MemoryCache classicMemoryCache when (options & ClearCacheOptions.Compact) != 0:
@@ -650,6 +684,7 @@ internal partial class MemoryCachingBackend : CachingBackend
     {
         base.DisposeCore( disposing, cancellationToken );
         this._cache.Dispose();
+        this._clearLock.Dispose();
     }
 
     /// <inheritdoc />
@@ -657,5 +692,6 @@ internal partial class MemoryCachingBackend : CachingBackend
     {
         await base.DisposeAsyncCore( cancellationToken ).ConfigureAwait( false );
         this._cache.Dispose();
+        this._clearLock.Dispose();
     }
 }

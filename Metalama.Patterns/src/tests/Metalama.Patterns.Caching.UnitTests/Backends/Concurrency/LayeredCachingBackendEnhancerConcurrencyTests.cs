@@ -230,6 +230,44 @@ public sealed partial class LayeredCachingBackendEnhancerConcurrencyTests
     }
 
     /// <summary>
+    /// Verifies that a second removal through a layered backend whose second layer is not blocking masks a value that
+    /// another node stored in the second layer after the first removal, while the second removal is pending.
+    /// </summary>
+    /// <remarks>
+    /// The first removal writes a tombstone into the first layer. Another node then stores a newer value in the second
+    /// layer. The second removal must replace the tombstone, so that the timestamp of the tombstone is later than the
+    /// timestamp of that value. If the older tombstone stayed, the read would consider the value of the second layer newer
+    /// than the removal, and it would serve that value while the second removal is pending.
+    /// </remarks>
+    [Fact]
+    public async Task NonBlockingRemoveItem_RepeatedAfterNewerRemoteWrite_DoesNotServeRemoteValue()
+    {
+        using var timeoutSource = new CancellationTokenSource( _timeout );
+        using var fakes = new FakeCachingServices();
+
+        var remote = new RemoteBackendDouble( fakes.ServiceProvider, blocking: false, defersRemovals: true );
+        using var layered = CreateLayeredBackend( remote, null );
+
+        layered.SetItem( _key, new CacheItem( "initial-value" ) );
+        layered.RemoveItem( _key );
+        remote.CompletePendingRemovals();
+
+        Assert.True(
+            layered.LocalCache.GetItem( _key ) is { Value: null } && !remote.ContainsItem( _key ),
+            "Precondition: the first removal did not leave a tombstone in the first layer and an empty second layer." );
+
+        // The clock advances before and after the write of the other node, so that the timestamps of the first removal, of
+        // the newer value and of the second removal are strictly increasing. The tombstone expires after one minute, so it
+        // is still present.
+        await fakes.AdvanceAsync( TimeSpan.FromSeconds( 1 ), timeoutSource.Token );
+        remote.SetItem( _key, new MaterializedCacheItem( new CacheItem( "remote-value" ), fakes.TimeProvider ) );
+        await fakes.AdvanceAsync( TimeSpan.FromSeconds( 1 ), timeoutSource.Token );
+
+        layered.RemoveItem( _key );
+
+        this.AssertPendingRemovalIsMasked( layered, remote );
+    }
+    /// <summary>
     /// Verifies that a removal through a layered backend whose second layer is not blocking masks the value of the
     /// second layer while the removal is pending, when the clock of the backend is behind the clock of the memory cache
     /// of the first layer.

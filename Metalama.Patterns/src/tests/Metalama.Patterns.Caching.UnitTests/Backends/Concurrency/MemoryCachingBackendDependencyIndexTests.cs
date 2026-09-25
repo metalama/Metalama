@@ -387,30 +387,30 @@ public sealed class MemoryCachingBackendDependencyIndexTests
     }
 
     /// <summary>
-    /// Checks that an item that <c>SetItem</c> stores concurrently with <see cref="CachingBackend.Clear"/> is either
-    /// removed together with its registrations, or stays cached and registered in the dependency index, when
-    /// <c>Clear</c> starts after the registration of the dependencies and before the item is stored.
+    /// Checks that <see cref="CachingBackend.Clear"/>, when it is requested after a concurrent <c>SetItem</c> has registered
+    /// its dependencies and before it has stored its item, runs after the store and removes both the item and its
+    /// registrations.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// The test guards against a <c>Clear</c> that drops the dependency index while a concurrent <c>SetItem</c> has
-    /// registered its dependencies and has not stored its item yet. The item is then cached without a registration, and
-    /// the invalidation of its dependency does not remove it.
+    /// The test guards against a <c>Clear</c> that drops the dependency index between the registration of the
+    /// dependencies of a concurrent <c>SetItem</c> and the store of its item. The item is then cached without a
+    /// registration, and the invalidation of its dependency does not remove it. <c>Clear</c> acquires a lock for writing
+    /// that every operation on a key acquires for reading, so it cannot run inside the <c>SetItem</c>.
     /// </para>
     /// <para>The schedule is the following.</para>
     /// <list type="number">
     /// <item><description>The writer runs <c>SetItem</c> with a dependency. It registers its key in the dependency set, and
-    /// a gate pauses it in <see cref="IMemoryCache.CreateEntry"/> for its item. It holds the lock of the
-    /// key.</description></item>
-    /// <item><description>The clearer starts <c>Clear</c>. The key of the writer is among the keys that <c>Clear</c>
-    /// processes, so <c>Clear</c> needs the lock of that key and cannot complete before the writer
-    /// does.</description></item>
-    /// <item><description>The test releases the gate. The writer stores its item and releases the lock of the key. Both
-    /// operations then complete.</description></item>
+    /// a gate pauses it in <see cref="IMemoryCache.CreateEntry"/> for its item.</description></item>
+    /// <item><description>The clearer starts <c>Clear</c>, and the synchronization point
+    /// <c>MemoryCachingBackend.ClearCore:ClearRequested</c> pauses it before it acquires the lock for writing. This proves
+    /// that <c>Clear</c> has been requested while the writer is paused.</description></item>
+    /// <item><description>The test releases the clearer, then the writer. The clearer cannot acquire the lock for writing
+    /// before the writer has stored its item and released the lock for reading.</description></item>
     /// </list>
     /// <para>
-    /// The test does not depend on the order in which the two operations acquire the lock of the key. It checks the
-    /// consistency of the dependency index for the final state.
+    /// Whatever the order in which the threads resume, <c>Clear</c> runs after the store. The item must therefore be
+    /// absent, and its dependency must not be registered.
     /// </para>
     /// </remarks>
     [Fact]
@@ -432,6 +432,7 @@ public sealed class MemoryCachingBackendDependencyIndexTests
 
         var writer = ConcurrencyTestWorker.Start( writerName, () => backend.SetItem( key, new CacheItem( "value", [dependency] ) ) );
         ConcurrencyTestWorker? clearer = null;
+        TestSynchronizationProvider.SyncPoint? clearRequested = null;
 
         try
         {
@@ -443,10 +444,17 @@ public sealed class MemoryCachingBackendDependencyIndexTests
                 backend.ContainsDependency( dependency ),
                 "Schedule precondition failed: the writer did not register its dependency before it stored its item." );
 
+            // The writer is paused, so only the clearer can reach the synchronization point.
+            clearRequested = synchronization.Arm( "MemoryCachingBackend.ClearCore:ClearRequested" );
             clearer = ConcurrencyTestWorker.Start( clearerName, () => backend.Clear() );
+
+            Assert.True(
+                clearRequested.WaitUntilReached( _timeout ),
+                "Schedule precondition failed: the clearer did not request the clearing while the writer was paused." );
         }
         finally
         {
+            clearRequested?.Release();
             storeGate.Release();
             JoinWorkers( writer, clearer );
         }
@@ -454,7 +462,8 @@ public sealed class MemoryCachingBackendDependencyIndexTests
         AssertCompletedWithoutException( writer );
         AssertCompletedWithoutException( clearer );
 
-        this._output.WriteLine( $"The item is cached after both operations: {backend.GetItem( key ) != null}." );
+        Assert.Null( backend.GetItem( key ) );
+        Assert.False( backend.ContainsDependency( dependency ), "The dependency is still registered after Clear removed the item." );
         this.AssertDependencyIndexIsConsistent( backend, dependency, key );
     }
 
