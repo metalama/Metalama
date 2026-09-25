@@ -6,6 +6,7 @@ using Metalama.Backstage;
 using Metalama.Framework.ConfigurationFiles;
 using Metalama.Tool.Divorce;
 using SharpCrafters.Backstage.Commands;
+using SharpCrafters.Backstage.Maintenance;
 using Spectre.Console.Cli;
 using System.Threading.Tasks;
 
@@ -16,7 +17,12 @@ namespace Metalama.Tool
         private static async Task<int> Main( string[] args )
         {
             var app = new CommandApp();
-            var options = new BackstageCommandOptions( new ApplicationInfo(), MetalamaProduct.Instance );
+            // The integrated development environments load the analyzers of Metalama, so the shutdown, kill and cleanup
+            // commands report their processes, which the user has to close.
+            var options = new BackstageCommandOptions(
+                new ApplicationInfo(),
+                MetalamaProduct.Instance,
+                registerServices: builder => builder.AddDevelopmentEnvironmentShutdownStrategy() );
             options.AddConfigurationFileAdapter<UserDiagnosticsConfiguration>();
             options.AddConfigurationFileAdapter<TestRunnerOptions>();
 
