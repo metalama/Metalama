@@ -521,6 +521,16 @@ namespace Metalama.Framework.Engine.CodeModel.Source
             }
         }
 
+        public bool IsFileLocal
+        {
+            get
+            {
+                this.OnUsingDeclaration();
+
+                return this.Implementation.IsFileLocal;
+            }
+        }
+
         ICompilation ICompilationElement.Compilation => this.Compilation;
 
         private protected override IFullRef<IDeclaration> ToFullDeclarationRef() => this.Implementation.Ref;
