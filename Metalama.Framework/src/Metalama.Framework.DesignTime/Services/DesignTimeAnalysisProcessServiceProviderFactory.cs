@@ -7,8 +7,8 @@ using Metalama.Framework.DesignTime.Contracts.EntryPoint;
 using Metalama.Framework.DesignTime.Pipeline;
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Services;
-using Metalama.Framework.Engine.Utilities.Diagnostics;
 using Metalama.Framework.Services;
+using SharpCrafters.Backstage.Application;
 using SharpCrafters.Backstage.ProcessClassification;
 
 namespace Metalama.Framework.DesignTime.Services;
@@ -29,7 +29,7 @@ internal class DesignTimeAnalysisProcessServiceProviderFactory : DesignTimeServi
     {
         // TODO: WorkspaceProvider should be refactored as an IGlobalService.
 
-        switch ( ProcessKindHelper.CurrentProcessKind )
+        switch ( serviceProvider.GetRequiredBackstageService<IApplicationInfoProvider>().ProcessKind )
         {
             case ProcessKind.Rider:
             case ProcessKind.OmniSharp:

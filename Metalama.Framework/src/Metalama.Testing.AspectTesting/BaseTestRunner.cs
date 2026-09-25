@@ -4,7 +4,6 @@
 
 using Document = Microsoft.CodeAnalysis.Document;
 using JetBrains.Annotations;
-using Metalama.Backstage.Utilities;
 using Metalama.Framework.ConfigurationFiles;
 using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.Diagnostics;
@@ -13,7 +12,6 @@ using Metalama.Framework.Engine.Pipeline.CompileTime;
 using Metalama.Framework.Engine.Pipeline.DesignTime;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities;
-using Metalama.Framework.Engine.Utilities.Diagnostics;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Testing.AspectTesting.Utilities;
 using Metalama.Testing.UnitTesting;
@@ -1155,7 +1153,7 @@ internal abstract partial class BaseTestRunner
             if ( ns.ContainsOrdinal( "Microsoft.CSharp.RuntimeBinder" ) &&
                  string.Equals( typeName, "CSharpArgumentInfo", StringComparison.Ordinal ) )
             {
-                var directory = Path.Combine( MetalamaPathUtilities.GetTempDirectory( BackstageServiceFactoryInitializer.ServiceProvider ), "InvalidAssemblies" );
+                var directory = Path.Combine( this._serviceProvider.GetRequiredService<MetalamaDirectories>().TempDirectory, "InvalidAssemblies" );
 
                 if ( !this._fileSystem.DirectoryExists( directory ) )
                 {

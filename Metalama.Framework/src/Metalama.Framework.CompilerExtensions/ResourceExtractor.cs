@@ -83,7 +83,7 @@ public static class ResourceExtractor
     private static string GetTempDirectory( string purpose )
         => Path.Combine( GetTempBaseDirectory(), purpose, _buildId, _isNetFramework ? "desktop" : "core" );
 
-    // Mirrors SharpCrafters.Backstage.Utilities.MetalamaPathUtilities.GetTempDirectory (we cannot reference Metalama.Backstage here).
+    // Mirrors SharpCrafters.Backstage.Infrastructure.IStandardDirectories.TempDirectory (we cannot reference Metalama.Backstage here).
     // The directory holds assemblies that Metalama loads and executes, so on Unix it must not live under the world-writable
     // /tmp (issue #1650); we use the per-user application-data directory instead. On Windows the temp directory is already
     // specific to the current user.

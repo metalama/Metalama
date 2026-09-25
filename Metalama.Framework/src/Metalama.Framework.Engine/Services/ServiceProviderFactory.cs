@@ -27,6 +27,7 @@ using Metalama.Framework.Engine.Utilities.UserCode;
 using Metalama.Framework.Services;
 using Microsoft.CodeAnalysis;
 using SharpCrafters.Backstage.Extensibility;
+using SharpCrafters.Backstage.Infrastructure;
 using SharpCrafters.Backstage.Maintenance;
 using System;
 using System.Collections.Generic;
@@ -86,6 +87,7 @@ public static class ServiceProviderFactory
             .WithServiceConditional<ITestableCancellationTokenSourceFactory>( _ => new DefaultTestableCancellationTokenSource() )
             .WithServiceConditional<IMetalamaProjectClassifier>( _ => new MetalamaProjectClassifier() )
             .WithServiceConditional( sp => new UserCodeInvoker( sp ) )
+            .WithServiceConditional( sp => new MetalamaDirectories( sp.GetRequiredBackstageService<IStandardDirectories>() ) )
             .WithServiceConditional<ICompileTimeAssemblyLocatorProvider>(
                 sp => new CompileTimeAssemblyLocatorProvider( sp.GetRequiredBackstageService<ITempFileManager>() ) )
             .WithServiceConditional( _ => new FrameworkCompileTimeProjectFactory() )

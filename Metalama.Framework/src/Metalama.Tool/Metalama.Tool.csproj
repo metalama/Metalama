@@ -46,9 +46,6 @@
     
     <ItemGroup>
         <PackageReference Include="LibGit2Sharp" />
-        <!-- DivorceService serializes with Newtonsoft.Json. The reference is explicit because it reached
-             this project through Backstage until that package stopped exposing it. -->
-        <PackageReference Include="Newtonsoft.Json" NoWarn="NU1903" />
         <PackageReference Include="SharpCrafters.Backstage.Commands" />
         <PackageReference Include="Microsoft.Extensions.Logging.Console" />
         <PackageReference Include="Metalama.Compiler.Sdk"/>

@@ -4,8 +4,8 @@
 
 using JetBrains.Annotations;
 using JetBrains.Profiler.SelfApi;
-using Metalama.Backstage.Utilities;
 using Metalama.Framework.Engine;
+using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Diagnostics;
 using SharpCrafters.Backstage.Diagnostics;
 using SharpCrafters.Backstage.Extensibility;
@@ -36,13 +36,13 @@ public static class MemoryDumpHelper
     }
 
 #if NET6_0_OR_GREATER || NETFRAMEWORK
-    public static void CaptureDotMemoryDumpAndThrow( string reason )
+    public static void CaptureDotMemoryDumpAndThrow( TestContext testContext, string reason )
     {
         if ( Interlocked.Increment( ref _counter ) == 1 )
         {
             DotMemory.Init();
             var dotMemoryConfig = new DotMemory.Config();
-            var path = Path.Combine( MetalamaPathUtilities.GetTempDirectory( BackstageServiceFactoryInitializer.ServiceProvider ), "MemoryDumps" );
+            var path = Path.Combine( testContext.ServiceProvider.Global.GetRequiredService<MetalamaDirectories>().TempDirectory, "MemoryDumps" );
             dotMemoryConfig.SaveToDir( path );
 
             DotMemory.GetSnapshotOnce( dotMemoryConfig );

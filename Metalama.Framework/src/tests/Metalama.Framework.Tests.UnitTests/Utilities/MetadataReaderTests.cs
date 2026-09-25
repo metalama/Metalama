@@ -2,9 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Backstage.Utilities;
 using Metalama.Framework.Engine.Utilities;
-using Metalama.Framework.Engine.Utilities.Diagnostics;
 using Metalama.Testing.UnitTesting;
 using System.IO;
 using Xunit;
@@ -44,7 +42,7 @@ public class GenAttribute<T> : System.Attribute
 }
 " );
 
-        var assemblyPath = MetalamaPathUtilities.GetTempFileName( MetalamaPathUtilities.GetTempDirectory( BackstageServiceFactoryInitializer.ServiceProvider ) );
+        var assemblyPath = testContext.ServiceProvider.Global.GetRequiredService<MetalamaDirectories>().GetTempFileName();
 
         try
         {

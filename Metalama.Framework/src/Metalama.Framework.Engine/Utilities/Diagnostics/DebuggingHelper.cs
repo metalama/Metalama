@@ -19,7 +19,7 @@ namespace Metalama.Framework.Engine.Utilities.Diagnostics
 
         public static void RequireMetalamaCompiler()
         {
-            if ( ProcessKindHelper.CurrentProcessKind == ProcessKind.Compiler && !MetalamaCompilerInfo.IsActive )
+            if ( ProcessKindDetector.GetCurrentProcessKind() == ProcessKind.Compiler && !MetalamaCompilerInfo.IsActive )
             {
                 throw new AssertionFailedException( "Metalama is running in the vanilla C# compiler instead of the customized one." );
             }

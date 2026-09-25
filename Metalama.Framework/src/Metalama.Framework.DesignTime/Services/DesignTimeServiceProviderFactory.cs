@@ -64,7 +64,7 @@ internal abstract class DesignTimeServiceProviderFactory
 
     internal static ServiceProvider<IGlobalService> GetSharedServiceProvider()
     {
-        return ProcessKindHelper.CurrentProcessKind switch
+        return ProcessKindDetector.GetCurrentProcessKind() switch
         {
             ProcessKind.DevEnv => GetSharedServiceProvider<VsUserProcessServiceProviderFactory>(),
             ProcessKind.RoslynCodeAnalysisService => GetSharedServiceProvider<VsAnalysisProcessServiceProviderFactory>(),

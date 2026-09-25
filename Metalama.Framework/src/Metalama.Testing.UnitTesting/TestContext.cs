@@ -13,6 +13,7 @@ using Metalama.Framework.Engine.Formatting;
 using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Pipeline.CompileTime;
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Diagnostics;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Metalama.Framework.Engine.Utilities.UserCode;
@@ -195,7 +196,8 @@ public partial class TestContext : ITempFileManager, IApplicationInfoProvider, I
         this._isRoot = true;
 
         this.TestContextOptions = contextOptions;
-        this.TestProjectOptions = new TestProjectOptions( contextOptions );
+        var metalamaDirectories = new MetalamaDirectories( BackstageServiceFactoryInitializer.ServiceProvider.GetRequiredBackstageService<IStandardDirectories>() );
+        this.TestProjectOptions = new TestProjectOptions( contextOptions, metalamaDirectories );
 
         try
         {
@@ -230,6 +232,7 @@ public partial class TestContext : ITempFileManager, IApplicationInfoProvider, I
             backstageServices = backstageServices.WithService( new InMemoryConfigurationManager( backstageServices ), true );
 
             var typedAdditionalServices = (AdditionalServiceCollection?) additionalServices ?? new AdditionalServiceCollection();
+            typedAdditionalServices.AddGlobalService( metalamaDirectories );
             typedAdditionalServices.GlobalServices.Add( sp => new TestCompileTimeDomainFactory( sp ) );
             typedAdditionalServices.GlobalServices.Add( sp => sp.WithServiceConditional<IGlobalOptions>( _ => new TestGlobalOptions() ) );
             typedAdditionalServices.GlobalServices.Add<IExtensionLoader>( sp => new TestExtensionLoader( sp, contextOptions ), true );
@@ -435,6 +438,6 @@ public partial class TestContext : ITempFileManager, IApplicationInfoProvider, I
 #pragma warning disable CA1822
     IApplicationInfo IApplicationInfoProvider.Application => _applicationInfo;
 
-    ProcessKind IApplicationInfoProvider.ProcessKind => _applicationInfo.ProcessKind ?? ProcessKindHelper.CurrentProcessKind;
+    ProcessKind IApplicationInfoProvider.ProcessKind => _applicationInfo.ProcessKind ?? ProcessKindDetector.GetCurrentProcessKind();
 #pragma warning restore CA1822
 }

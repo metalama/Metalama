@@ -2,13 +2,12 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Backstage.Utilities;
 using Metalama.Compiler;
 using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Pipeline.CompileTime;
-using Metalama.Framework.Engine.Utilities.Diagnostics;
+using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Tests.UnitTestHelpers.Mocks;
 using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis;
@@ -129,7 +128,7 @@ public sealed class SkeletonMetadataReferenceTests : UnitTestClass
 
         var skeletonReference = CreateSkeletonReference( testContext, "Metalama.Tests.SkeletonReference" );
 
-        var compileTimeReferencePath = MetalamaPathUtilities.GetTempFileName( MetalamaPathUtilities.GetTempDirectory( BackstageServiceFactoryInitializer.ServiceProvider ) );
+        var compileTimeReferencePath = testContext.ServiceProvider.Global.GetRequiredService<MetalamaDirectories>().GetTempFileName();
 
         try
         {
