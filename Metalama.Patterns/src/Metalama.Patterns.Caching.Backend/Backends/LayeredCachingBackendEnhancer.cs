@@ -163,7 +163,9 @@ internal sealed class LayeredCachingBackendEnhancer : CachingBackendEnhancer
 
         if ( localCacheItem == null || (includeDependencies && localCacheItem.Dependencies.IsDefault) )
         {
-            var remoteCacheItem = this.GetValueFromUnderlyingBackend( key, includeDependencies );
+            // The dependencies are always requested, because the item is stored in the local cache, which must register
+            // them so that a local invalidation removes it.
+            var remoteCacheItem = this.GetValueFromUnderlyingBackend( key, true );
 
             if ( remoteCacheItem != null )
             {
@@ -186,7 +188,7 @@ internal sealed class LayeredCachingBackendEnhancer : CachingBackendEnhancer
                     {
                         // We have the magic string meaning that the node has been deleted.
 
-                        var remoteCacheItem = this.GetValueFromUnderlyingBackend( key, includeDependencies );
+                        var remoteCacheItem = this.GetValueFromUnderlyingBackend( key, true );
 
                         if ( remoteCacheItem == null )
                         {
@@ -282,10 +284,7 @@ internal sealed class LayeredCachingBackendEnhancer : CachingBackendEnhancer
                         }
                         else
                         {
-                            var multiLayerCacheValue = (MaterializedCacheItem) (remoteCacheItem.Value
-                                                                                ?? throw new CachingAssertionFailedException( "null not expected." ));
-
-                            if ( multiLayerCacheValue.Timestamp > removedValue.Timestamp )
+                            if ( remoteCacheItem.Timestamp > removedValue.Timestamp )
                             {
                                 this.SetMemoryCacheFromRemote( key, remoteCacheItem );
 
