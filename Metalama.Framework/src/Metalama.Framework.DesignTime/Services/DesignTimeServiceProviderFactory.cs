@@ -16,7 +16,7 @@ using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.Diagnostics;
 using Metalama.Framework.Services;
 using SharpCrafters.Backstage.Diagnostics;
-using SharpCrafters.Backstage.Utilities;
+using SharpCrafters.Backstage.ProcessClassification;
 
 namespace Metalama.Framework.DesignTime.Services;
 
@@ -64,7 +64,7 @@ internal abstract class DesignTimeServiceProviderFactory
 
     internal static ServiceProvider<IGlobalService> GetSharedServiceProvider()
     {
-        return ProcessUtilities.ProcessKind switch
+        return ProcessKindHelper.CurrentProcessKind switch
         {
             ProcessKind.DevEnv => GetSharedServiceProvider<VsUserProcessServiceProviderFactory>(),
             ProcessKind.RoslynCodeAnalysisService => GetSharedServiceProvider<VsAnalysisProcessServiceProviderFactory>(),

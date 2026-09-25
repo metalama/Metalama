@@ -3,8 +3,8 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Engine.Utilities.Diagnostics;
 using Metalama.Testing.UnitTesting;
-using SharpCrafters.Backstage.Extensibility;
 
 namespace Metalama.Testing.AspectTesting;
 
@@ -17,7 +17,7 @@ internal static class TestFrameworkServiceFactoryProvider
         var additionalServicesCollection = new AdditionalServiceCollection();
         additionalServicesCollection.AddGlobalService( TestingServices.CompileTimeAssemblyLocatorProvider );
 
-        return ServiceProviderFactory.GetServiceProvider( BackstageServiceFactory.ServiceProvider, additionalServicesCollection )
+        return ServiceProviderFactory.GetServiceProvider( BackstageServiceFactoryInitializer.ServiceProvider, additionalServicesCollection )
             .WithService( new TestAssemblyMetadataReader() );
     }
 }

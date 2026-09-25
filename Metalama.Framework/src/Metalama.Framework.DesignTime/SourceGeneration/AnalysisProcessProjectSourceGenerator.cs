@@ -11,8 +11,8 @@ using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.Diagnostics;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Microsoft.CodeAnalysis;
+using SharpCrafters.Backstage.FileLocks;
 using SharpCrafters.Backstage.Threading;
-using SharpCrafters.Backstage.Utilities;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 

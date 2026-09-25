@@ -4,6 +4,7 @@
 
 using Metalama.Backstage;
 using Metalama.Framework.Engine.Pipeline.CompileTime;
+using Metalama.Framework.Engine.Utilities.Diagnostics;
 using SharpCrafters.Backstage.Application;
 using SharpCrafters.Backstage.Extensibility;
 
@@ -16,9 +17,8 @@ namespace Metalama.AspectWorkbench
     {
         public App()
         {
-            BackstageServiceFactory.Initialize(
-                new BackstageInitializationOptions( new MyApplicationInfo(), MetalamaProduct.Instance ) { AddLicensing = true, AddSupportServices = true },
-                "AspectWorkbench" );
+            BackstageServiceFactoryInitializer.Initialize(
+                new BackstageInitializationOptions( new MyApplicationInfo(), MetalamaProduct.Instance ) { AddLicensing = true, AddSupportServices = true } );
         }
 
         private sealed class MyApplicationInfo : ApplicationInfoBase

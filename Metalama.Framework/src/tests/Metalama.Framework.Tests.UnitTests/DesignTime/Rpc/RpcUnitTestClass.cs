@@ -4,7 +4,7 @@
 
 using JetBrains.Annotations;
 using Metalama.Testing.UnitTesting;
-using SharpCrafters.Common;
+using SharpCrafters.Common.Testing.Hooks;
 using System.Runtime.CompilerServices;
 using Xunit.Abstractions;
 

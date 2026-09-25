@@ -4,7 +4,7 @@
 
 using Metalama.Framework.Engine.Services;
 using Metalama.Testing.UnitTesting;
-using SharpCrafters.Common;
+using SharpCrafters.Common.Testing.Hooks;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;

@@ -4,7 +4,7 @@
 
 using Metalama.Framework.Engine.Utilities.AssemblyLoaders;
 using Microsoft.CodeAnalysis;
-using SharpCrafters.Backstage.Threading;
+using SharpCrafters.Backstage.ProcessClassification;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -356,8 +356,9 @@ public static class ResourceExtractor
             }
         }
 
-        // NamedLockService is shared with Metalama.Backstage by compiling the same source files, because this
-        // assembly embeds Metalama.Backstage and extracts it here, and can therefore reference nothing.
+        // NamedLockService comes from the SharpCrafters.Backstage.Threading package, which is merged into this
+        // assembly, because this assembly embeds Metalama.Backstage and extracts it here, and can therefore
+        // reference nothing.
         // A process that crashed while holding the lock is not a problem: the presence of the `.completed` file
         // alone says that the extraction was successful.
         // When the operating system cannot provide a named object at all, which is issue #272, the lock excludes
@@ -366,7 +367,7 @@ public static class ResourceExtractor
         // A concurrent queue, because the events are reported on whichever thread caused them, which is not
         // necessarily the thread running this method.
         var lockEvents = new ConcurrentQueue<string>();
-        var lockService = new NamedLockService();
+        var lockService = StandaloneNamedLockService.Create();
 
         lockService.LockEventReported += ( _, lockEvent ) => lockEvents.Enqueue( lockEvent.ToString() );
 

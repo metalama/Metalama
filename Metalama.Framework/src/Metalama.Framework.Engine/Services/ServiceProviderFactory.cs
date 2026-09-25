@@ -21,6 +21,7 @@ using Metalama.Framework.Engine.Queries.Options;
 using Metalama.Framework.Engine.ReflectionMocks;
 using Metalama.Framework.Engine.SyntaxSerialization;
 using Metalama.Framework.Engine.Utilities;
+using Metalama.Framework.Engine.Utilities.Diagnostics;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Metalama.Framework.Engine.Utilities.UserCode;
 using Metalama.Framework.Services;
@@ -62,7 +63,7 @@ public static class ServiceProviderFactory
         IServiceProvider? upstreamServiceProvider,
         AdditionalServiceCollection? additionalServices = null )
     {
-        upstreamServiceProvider ??= _asyncLocalConfiguration.Value?.NextProvider ?? BackstageServiceFactory.ServiceProvider;
+        upstreamServiceProvider ??= _asyncLocalConfiguration.Value?.NextProvider ?? BackstageServiceFactoryInitializer.ServiceProvider;
         additionalServices ??= _asyncLocalConfiguration.Value?.AdditionalServices;
 
         var serviceProvider = ServiceProvider<IGlobalService>.Empty.WithNextProvider( upstreamServiceProvider );

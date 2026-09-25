@@ -67,7 +67,7 @@ namespace Metalama.Framework.DesignTime.Utilities
             if ( classifiedException.IsError )
             {
                 // TODO: Is this guaranteed not to be called before the BackstageServiceFactory is initialized?
-                var telemetryService = this._telemetryService ?? BackstageServiceFactory.ServiceProvider.GetBackstageService<ITelemetryService>();
+                var telemetryService = this._telemetryService ?? BackstageServiceFactoryInitializer.ServiceProvider.GetBackstageService<ITelemetryService>();
 
                 var projectDirectory = string.IsNullOrEmpty( projectOptions?.ProjectPath ) ? null : Path.GetDirectoryName( projectOptions!.ProjectPath );
 

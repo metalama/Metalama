@@ -18,7 +18,17 @@
     </ItemGroup>
 
     <ItemGroup>
+        <!-- The classification of the host process is merged into this assembly, because the copy merged into
+             Metalama.Framework.CompilerExtensions is internal to that assembly. See ILMergePackages.targets. -->
+        <PackageReference Include="SharpCrafters.Backstage.ProcessClassification" PrivateAssets="all" ILMerge="true" />
+        <PackageReference Include="SharpCrafters.Backstage.Abstractions" PrivateAssets="all" ILMerge="true" />
+    </ItemGroup>
+
+    <Import Project="../ILMergePackages.targets" />
+
+    <ItemGroup>
         <ProjectReference Include="../Metalama.Framework.CompilerExtensions/Metalama.Framework.CompilerExtensions.csproj"/>
+        <Compile Include="..\Metalama.Framework.CompilerExtensions\ProcessKindHelper.cs" Link="ProcessKindHelper.cs" />
 		<Compile Include="..\Metalama.Framework.DesignTime\RoslynEntryPointTypeNames.cs" Link="RoslynEntryPointTypeNames.cs" />
     </ItemGroup>
 

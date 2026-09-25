@@ -6,7 +6,7 @@ using MessagePack;
 using MessagePack.Resolvers;
 using Microsoft.VisualStudio.Threading;
 using SharpCrafters.Backstage.Diagnostics;
-using SharpCrafters.Common;
+using SharpCrafters.Common.Testing.Hooks;
 using StreamJsonRpc;
 using System.Collections.Concurrent;
 using System.Diagnostics;

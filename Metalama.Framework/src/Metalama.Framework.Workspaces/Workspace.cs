@@ -9,6 +9,7 @@ using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Introspection;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities;
+using Metalama.Framework.Engine.Utilities.Diagnostics;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Metalama.Framework.Introspection;
 using Microsoft.Build.Evaluation;
@@ -16,7 +17,6 @@ using Microsoft.Build.Locator;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.MSBuild;
 using SharpCrafters.Backstage.Diagnostics;
-using SharpCrafters.Backstage.Extensibility;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -69,7 +69,7 @@ namespace Metalama.Framework.Workspaces
         static Workspace()
         {
             WorkspaceServices.Initialize();
-            _logger = BackstageServiceFactory.ServiceProvider.GetLoggerFactory().GetLogger( "Workspace" );
+            _logger = BackstageServiceFactoryInitializer.ServiceProvider.GetLoggerFactory().GetLogger( "Workspace" );
         }
 
         /// <summary>

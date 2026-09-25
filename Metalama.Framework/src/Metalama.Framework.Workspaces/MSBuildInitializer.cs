@@ -3,9 +3,9 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Engine;
+using Metalama.Framework.Engine.Utilities.Diagnostics;
 using Microsoft.Build.Locator;
 using SharpCrafters.Backstage.Diagnostics;
-using SharpCrafters.Backstage.Extensibility;
 using SharpCrafters.Backstage.Utilities;
 using System;
 using System.IO;
@@ -25,7 +25,7 @@ internal static class MSBuildInitializer
     static MSBuildInitializer()
     {
         WorkspaceServices.Initialize();
-        _logger = BackstageServiceFactory.ServiceProvider.GetLoggerFactory().GetLogger( "Workspace" );
+        _logger = BackstageServiceFactoryInitializer.ServiceProvider.GetLoggerFactory().GetLogger( "Workspace" );
     }
 
     public static void Initialize( string projectDirectory )

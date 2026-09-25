@@ -4,8 +4,9 @@
 
 using JetBrains.Annotations;
 using JetBrains.Profiler.SelfApi;
-using Metalama.Backstage;
+using Metalama.Backstage.Utilities;
 using Metalama.Framework.Engine;
+using Metalama.Framework.Engine.Utilities.Diagnostics;
 using SharpCrafters.Backstage.Diagnostics;
 using SharpCrafters.Backstage.Extensibility;
 using System.IO;
@@ -22,7 +23,7 @@ public static class MemoryDumpHelper
     {
         if ( Interlocked.Increment( ref _counter ) == 1 )
         {
-            var dumper = BackstageServiceFactory.ServiceProvider.GetBackstageService<IMiniDumper>();
+            var dumper = BackstageServiceFactoryInitializer.ServiceProvider.GetBackstageService<IMiniDumper>();
 
             return dumper?.Write();
         }
@@ -41,7 +42,7 @@ public static class MemoryDumpHelper
         {
             DotMemory.Init();
             var dotMemoryConfig = new DotMemory.Config();
-            var path = Path.Combine( MetalamaPathUtilities.GetTempDirectory(), "MemoryDumps" );
+            var path = Path.Combine( MetalamaPathUtilities.GetTempDirectory( BackstageServiceFactoryInitializer.ServiceProvider ), "MemoryDumps" );
             dotMemoryConfig.SaveToDir( path );
 
             DotMemory.GetSnapshotOnce( dotMemoryConfig );

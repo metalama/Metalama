@@ -26,6 +26,7 @@ using Microsoft.CodeAnalysis.Emit;
 using Microsoft.CodeAnalysis.Text;
 using SharpCrafters.Backstage.Diagnostics;
 using SharpCrafters.Backstage.Extensibility;
+using SharpCrafters.Backstage.FileLocks;
 using SharpCrafters.Backstage.Maintenance;
 using SharpCrafters.Backstage.Threading;
 using SharpCrafters.Backstage.Utilities;

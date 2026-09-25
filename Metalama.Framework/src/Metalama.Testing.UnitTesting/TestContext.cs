@@ -13,6 +13,7 @@ using Metalama.Framework.Engine.Formatting;
 using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Pipeline.CompileTime;
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Engine.Utilities.Diagnostics;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Metalama.Framework.Engine.Utilities.UserCode;
 using Metalama.Framework.Project;
@@ -23,8 +24,9 @@ using SharpCrafters.Backstage.Diagnostics;
 using SharpCrafters.Backstage.Extensibility;
 using SharpCrafters.Backstage.Infrastructure;
 using SharpCrafters.Backstage.Maintenance;
+using SharpCrafters.Backstage.ProcessClassification;
 using SharpCrafters.Backstage.Threading;
-using SharpCrafters.Common;
+using SharpCrafters.Common.Testing.Hooks;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -197,33 +199,33 @@ public partial class TestContext : ITempFileManager, IApplicationInfoProvider, I
 
         try
         {
-            this._backstageTempFileManager = BackstageServiceFactory.ServiceProvider.GetRequiredBackstageService<ITempFileManager>();
+            this._backstageTempFileManager = BackstageServiceFactoryInitializer.ServiceProvider.GetRequiredBackstageService<ITempFileManager>();
 
-            var platformInfo = BackstageServiceFactory.ServiceProvider.GetRequiredBackstageService<IPlatformInfo>();
+            var platformInfo = BackstageServiceFactoryInitializer.ServiceProvider.GetRequiredBackstageService<IPlatformInfo>();
 
             // We intentionally replace (override) backstage services by ours.
             var backstageServices = ServiceProvider<IBackstageService>.Empty
                 .WithService( this )
                 .WithService( platformInfo )
                 .WithService( this._telemetryService )
-                .WithService( BackstageServiceFactory.ServiceProvider.GetRequiredBackstageService<IFileSystem>() )
+                .WithService( BackstageServiceFactoryInitializer.ServiceProvider.GetRequiredBackstageService<IFileSystem>() )
 
                 // Forwarded from the real provider, because the environment of the test process is the environment
                 // that the code under test observes. A test that has to decide what a variable contains substitutes
                 // its own implementation instead of reading this one.
-                .WithService( BackstageServiceFactory.ServiceProvider.GetRequiredBackstageService<IEnvironmentVariableProvider>() )
+                .WithService( BackstageServiceFactoryInitializer.ServiceProvider.GetRequiredBackstageService<IEnvironmentVariableProvider>() )
 
                 // Forwarded for the same reason as the environment: the operating system that the code under test
                 // observes is the one that runs the test, and a test that has to decide which one it is substitutes
                 // its own implementation.
-                .WithService( BackstageServiceFactory.ServiceProvider.GetRequiredBackstageService<IRuntimeInformation>() )
+                .WithService( BackstageServiceFactoryInitializer.ServiceProvider.GetRequiredBackstageService<IRuntimeInformation>() )
 
                 // Forwarded from the real provider rather than substituted, so that the compile-time cache, which
                 // several test processes can share, is protected exactly as it is in production. Before this
                 // service existed the same call sites used a static helper, which needed no registration at all,
                 // so a provider that lists the backstage services it exposes did not have to mention it.
-                .WithService( BackstageServiceFactory.ServiceProvider.GetRequiredBackstageService<INamedLockService>() )
-                .WithService( BackstageServiceFactory.ServiceProvider.GetRequiredBackstageService<BackstageBackgroundTasksService>() );
+                .WithService( BackstageServiceFactoryInitializer.ServiceProvider.GetRequiredBackstageService<INamedLockService>() )
+                .WithService( BackstageServiceFactoryInitializer.ServiceProvider.GetRequiredBackstageService<BackstageBackgroundTasksService>() );
 
             backstageServices = backstageServices.WithService( new InMemoryConfigurationManager( backstageServices ), true );
 
@@ -431,6 +433,8 @@ public partial class TestContext : ITempFileManager, IApplicationInfoProvider, I
     public void Dispose() => this.Dispose( true );
 
 #pragma warning disable CA1822
-    IApplicationInfo IApplicationInfoProvider.CurrentApplication => _applicationInfo;
+    IApplicationInfo IApplicationInfoProvider.Application => _applicationInfo;
+
+    ProcessKind IApplicationInfoProvider.ProcessKind => _applicationInfo.ProcessKind ?? ProcessKindHelper.CurrentProcessKind;
 #pragma warning restore CA1822
 }

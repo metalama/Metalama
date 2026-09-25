@@ -4,7 +4,7 @@
 
 using Metalama.Framework.Engine.Services;
 using Metalama.Testing.UnitTesting;
-using SharpCrafters.Common;
+using SharpCrafters.Common.Testing.Hooks;
 using System;
 using System.Threading;
 

@@ -8,8 +8,8 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using Xunit;
-using BackstageProcessKind = SharpCrafters.Backstage.Diagnostics.ProcessKind;
-using BackstageProcessKindDetector = SharpCrafters.Backstage.Diagnostics.ProcessKindDetector;
+using BackstageProcessKind = SharpCrafters.Backstage.ProcessClassification.ProcessKind;
+using BackstageProcessKindDetector = SharpCrafters.Backstage.ProcessClassification.ProcessKindDetector;
 
 namespace Metalama.Framework.Tests.UnitTests.Utilities;
 
@@ -18,16 +18,16 @@ namespace Metalama.Framework.Tests.UnitTests.Utilities;
 /// </summary>
 /// <remarks>
 /// <para>
-/// The classification is compiled into <c>Metalama.Backstage</c> and into
-/// <c>Metalama.Framework.CompilerExtensions</c> from a single source file, because the second assembly can
-/// reference nothing: it embeds and extracts the first one.
+/// The classification is in the <c>SharpCrafters.Backstage.ProcessClassification</c> package. The Backstage
+/// assemblies reference this package. <c>Metalama.Framework.CompilerExtensions</c> can reference nothing, because it
+/// embeds and extracts the Backstage assemblies, so it merges the package into its own assembly with ILRepack.
 /// </para>
 /// <para>
-/// This test reads both assemblies as they are built, and not a copy of the shared source file compiled into the
-/// test project. It reaches <c>Metalama.Backstage</c> through its package reference, and it loads
-/// <c>Metalama.Framework.CompilerExtensions.dll</c> from the output directory of that project, whose path the
-/// project file of this test passes as assembly metadata. A build that stops compiling the shared file into either
-/// assembly, or that adds a second copy of the classification to one of them, therefore fails these tests.
+/// This test reads both copies as they are built. It reaches the package through the package references of this
+/// project, and it loads <c>Metalama.Framework.CompilerExtensions.dll</c> from the output directory of that project,
+/// whose path the project file of this test passes as assembly metadata. A build that stops merging the package into
+/// <c>Metalama.Framework.CompilerExtensions</c>, or that merges a version of it that classifies differently, therefore
+/// fails these tests.
 /// </para>
 /// <para>
 /// The classification takes the process name and the command line as parameters, so every arm of the table is
@@ -42,9 +42,10 @@ public sealed class ProcessKindTests
     private const string _compilerExtensionsAssemblyPathKey = "CompilerExtensionsAssemblyPath";
 
     /// <summary>
-    /// The namespace in which <c>Metalama.Framework.CompilerExtensions</c> declares the shared types.
+    /// The namespace of the merged types in <c>Metalama.Framework.CompilerExtensions</c>. The merge keeps the namespace
+    /// of the package and makes the types internal.
     /// </summary>
-    private const string _compilerExtensionsNamespace = "Metalama.Framework.CompilerExtensions";
+    private const string _compilerExtensionsNamespace = "SharpCrafters.Backstage.ProcessClassification";
 
     /// <summary>
     /// The assembly <c>Metalama.Framework.CompilerExtensions.dll</c>, loaded once for the whole test class.
@@ -168,6 +169,13 @@ public sealed class ProcessKindTests
         new( "LINQPad", "", BackstageProcessKind.LinqPad ),
         new( "LINQPad8", "", BackstageProcessKind.LinqPad ),
 
+        // The PostSharp compiler: the native hosts of the .NET Framework build, whose name carries the processor
+        // architecture, and the assembly of the .NET build. The pipe server is told apart by the suffix of its name.
+        new( "postsharp-x64", "", BackstageProcessKind.PostSharpCompiler ),
+        new( "postsharp-arm64", "", BackstageProcessKind.PostSharpCompiler ),
+        new( "dotnet", @"dotnet C:\PostSharp\PostSharp.Compiler.Hosting.CommandLine.dll", BackstageProcessKind.PostSharpCompiler ),
+        new( "postsharp-x64-srv", "", BackstageProcessKind.PostSharpPipeServer ),
+
         // Visual Studio for Mac is sunset and PB-2027.0 does not include it, so its process name is no longer
         // classified.
         new( "VisualStudio", "", BackstageProcessKind.Other ),
@@ -183,9 +191,9 @@ public sealed class ProcessKindTests
         => _testCases.SelectAsArray( c => new object[] { c.ProcessName, c.CommandLine, c.ExpectedProcessKind } );
 
     /// <summary>
-    /// Verifies that the two assemblies classify the host process into the same set of kinds. The test fails when
-    /// one of them stops compiling the shared source file, and it failed before that file existed, when the two
-    /// copies of the classification had diverged on the language server of the Visual Studio Code C# Dev Kit.
+    /// Verifies that the two copies classify the host process into the same set of kinds. The test fails when
+    /// <c>Metalama.Framework.CompilerExtensions</c> stops merging the package. It failed before the classification was
+    /// shared, when the two copies had diverged on the language server of the Visual Studio Code C# Dev Kit.
     /// </summary>
     [Fact]
     public void BothAssembliesDeclareTheSameProcessKinds()

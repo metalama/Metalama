@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using DiagnosticFilter = Metalama.Compiler.DiagnosticFilter;
 using JetBrains.Annotations;
 using Metalama.Backstage;
 using Metalama.Compiler;
@@ -19,14 +20,13 @@ using Metalama.Framework.Project;
 using SharpCrafters.Backstage.Diagnostics;
 using SharpCrafters.Backstage.Extensibility;
 using SharpCrafters.Backstage.Telemetry;
-using SharpCrafters.Common;
+using SharpCrafters.Common.Testing.Hooks;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
-using DiagnosticFilter = Metalama.Compiler.DiagnosticFilter;
 
 namespace Metalama.Framework.Engine.Pipeline;
 
@@ -65,7 +65,7 @@ public sealed partial class SourceTransformer : ISourceTransformerWithServices
             }
         }
 
-        var backstageServiceProvider = BackstageServiceFactory.ServiceProvider;
+        var backstageServiceProvider = BackstageServiceFactoryInitializer.ServiceProvider;
 
         return new CompilerServiceProvider( backstageServiceProvider, context.AnalyzerConfigOptionsProvider );
     }

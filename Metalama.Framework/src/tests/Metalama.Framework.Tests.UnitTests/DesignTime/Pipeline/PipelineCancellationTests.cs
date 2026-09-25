@@ -17,7 +17,7 @@ using Metalama.Framework.Engine.Utilities.Threading;
 using Metalama.Framework.Tests.UnitTestHelpers.Mocks;
 using Metalama.Framework.Tests.UnitTestHelpers.TestClasses;
 using Metalama.Testing.UnitTesting;
-using SharpCrafters.Backstage.Utilities;
+using SharpCrafters.Backstage.FileLocks;
 using System;
 using System.Collections.Generic;
 using System.IO;

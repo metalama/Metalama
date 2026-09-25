@@ -2,6 +2,7 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using SharpCrafters.Backstage.Application;
 using SharpCrafters.Backstage.Diagnostics;
 using SharpCrafters.Backstage.Extensibility;
 using SharpCrafters.Backstage.Utilities;
@@ -32,11 +33,11 @@ namespace Metalama.Framework.Engine.Utilities.Diagnostics
                     return;
                 }
 
-                _loggerFactory = BackstageServiceFactory.ServiceProvider.GetLoggerFactory();
+                _loggerFactory = BackstageServiceFactoryInitializer.ServiceProvider.GetLoggerFactory();
                 var processInfo = _loggerFactory.GetLogger( "ProcessInfo" );
 
                 processInfo.Info?.Log( $"Command line: {Environment.CommandLine}" );
-                processInfo.Info?.Log( $"Process kind: {ProcessUtilities.ProcessKind}" );
+                processInfo.Info?.Log( $"Process kind: {BackstageServiceFactoryInitializer.ServiceProvider.GetRequiredBackstageService<IApplicationInfoProvider>().ProcessKind}" );
                 processInfo.Info?.Log( $"Process name: {Process.GetCurrentProcess().ProcessName.ToLowerInvariant()}" );
                 processInfo.Info?.Log( $"Version: {AssemblyMetadataReader.GetInstance( typeof(Logger).Assembly ).BuildId}" );
 

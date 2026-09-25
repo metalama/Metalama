@@ -5,6 +5,7 @@
 using Metalama.Compiler;
 using Metalama.Framework.DesignTime;
 using Microsoft.CodeAnalysis;
+using SharpCrafters.Backstage.ProcessClassification;
 
 namespace Metalama.Framework.CompilerExtensions
 {

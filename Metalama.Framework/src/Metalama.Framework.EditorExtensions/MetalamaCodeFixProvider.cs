@@ -5,6 +5,7 @@
 using Metalama.Framework.DesignTime;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CodeFixes;
+using SharpCrafters.Backstage.ProcessClassification;
 using System.Collections.Immutable;
 using System.Composition;
 using System.Threading.Tasks;

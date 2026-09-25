@@ -19,7 +19,7 @@
 # robust process-shared pthread mutexes, so it maintains a second tree, /tmp/.dotnet/lockfiles,
 # that Linux never creates.
 #
-# Metalama now degrades instead of failing: Metalama.Backstage.Threading.NamedLockService catches the
+# Metalama now degrades instead of failing: SharpCrafters.Backstage.Threading.NamedLockService catches the
 # IOException, reports a LockEventKind.Degraded event, and returns a lock backed by a monitor of the
 # current process. Mutual exclusion between processes is lost, which every caller tolerates, and the
 # build succeeds. This test asserts that behaviour.
