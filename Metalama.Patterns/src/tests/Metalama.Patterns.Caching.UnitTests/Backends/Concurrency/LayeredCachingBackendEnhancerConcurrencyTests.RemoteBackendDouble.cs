@@ -12,7 +12,7 @@ namespace Metalama.Patterns.Caching.Tests.Backends.Concurrency
     {
         /// <summary>
         /// A second-layer backend that stores the <see cref="CacheItem"/> objects that it receives. A test controls when a
-        /// removal takes effect, and which source identifier the events carry.
+        /// read of the double returns, when a removal takes effect, and which source identifier the events carry.
         /// </summary>
         /// <remarks>
         /// <para>
@@ -82,6 +82,11 @@ namespace Metalama.Patterns.Caching.Tests.Backends.Concurrency
             private readonly Guid? _eventSourceId;
 
             /// <summary>
+            /// The gate that blocks the next read of a chosen key, or <see langword="null"/> when no gate is armed.
+            /// </summary>
+            private RemoteReadGate? _readGate;
+
+            /// <summary>
             /// Initializes a new instance of the <see cref="RemoteBackendDouble"/> class.
             /// </summary>
             /// <param name="serviceProvider">
@@ -137,6 +142,20 @@ namespace Metalama.Patterns.Caching.Tests.Backends.Concurrency
             /// Gets the source identifier of the events.
             /// </summary>
             private Guid EventSourceId => this._eventSourceId ?? this.Id;
+
+            /// <summary>
+            /// Arms a gate that blocks the next read of <paramref name="key"/>, after the double has read its store and
+            /// before the read returns.
+            /// </summary>
+            /// <param name="key">The key whose read the gate blocks.</param>
+            /// <returns>The gate.</returns>
+            public RemoteReadGate ArmReadGate( string key )
+            {
+                var gate = new RemoteReadGate( key );
+                Volatile.Write( ref this._readGate, gate );
+
+                return gate;
+            }
 
             /// <summary>
             /// Applies the removals that have been requested and have not taken effect yet, on the calling thread.
@@ -211,6 +230,8 @@ namespace Metalama.Patterns.Caching.Tests.Backends.Concurrency
                 }
 
                 this._reads.Enqueue( $"GetItem( \"{key}\", includeDependencies: {includeDependencies} ) returned {DescribeItem( result )}" );
+
+                Volatile.Read( ref this._readGate )?.OnRead( key, result );
 
                 return result;
             }
