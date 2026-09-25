@@ -38,7 +38,7 @@ namespace Metalama.Patterns.Caching.Backends;
 /// </para>
 /// </remarks>
 [PublicAPI]
-internal class MemoryCachingBackend : CachingBackend
+internal partial class MemoryCachingBackend : CachingBackend
 {
     private readonly IMemoryCache _cache;
     private readonly Func<object?, long> _sizeCalculator;
@@ -54,15 +54,16 @@ internal class MemoryCachingBackend : CachingBackend
 
     /// <summary>
     /// The locks of the keys that an operation currently uses. Every operation that changes the item of a key, or the
-    /// registrations of that key in the dependency index, holds the lock of the key.
+    /// registrations of that key in the backward dependency index, holds the lock of the key.
     /// </summary>
     private readonly ConcurrentDictionary<string, KeyLock> _keyLocks = new( StringComparer.Ordinal );
 
     /// <summary>
-    /// The dependency index: for each dependency key, the keys of the items that depend on it. A dependency set is locked
-    /// only for one change or one copy, and no other lock is acquired while it is held.
+    /// The backward dependency index: for each dependency key, the keys of the items that declare it in their forward
+    /// dependencies (<see cref="CacheItem.Dependencies"/>). A backward dependency set is locked only for one change or
+    /// one copy, and no other lock is acquired while it is held.
     /// </summary>
-    private readonly ConcurrentDictionary<string, DependencySet> _dependencySets = new( StringComparer.Ordinal );
+    private readonly ConcurrentDictionary<string, BackwardDependencySet> _backwardDependencies = new( StringComparer.Ordinal );
 
     /// <summary>
     /// The identifier given to the last instance of the <see cref="MemoryCachingBackend"/> class.
@@ -215,7 +216,7 @@ internal class MemoryCachingBackend : CachingBackend
             // The callback runs on the thread pool, possibly after a newer value has been stored under the same key. Only
             // the dependencies that the newer value does not declare are unregistered, and no event is raised.
             currentItem = this.GetStoredItem( fullKey );
-            this.RemoveDependencies( key, evictedItem.Dependencies, currentItem );
+            this.RemoveBackwardDependencies( key, evictedItem.Dependencies, currentItem );
         }
         finally
         {
@@ -249,7 +250,7 @@ internal class MemoryCachingBackend : CachingBackend
             {
                 foreach ( var dependency in cacheValue.Dependencies )
                 {
-                    this.AddDependency( dependency, key );
+                    this.AddBackwardDependency( dependency, key );
                 }
             }
 
@@ -257,7 +258,7 @@ internal class MemoryCachingBackend : CachingBackend
 
             if ( previousValue != null )
             {
-                this.RemoveDependencies( key, previousValue.Dependencies, cacheValue );
+                this.RemoveBackwardDependencies( key, previousValue.Dependencies, cacheValue );
             }
         }
         finally
@@ -329,8 +330,8 @@ internal class MemoryCachingBackend : CachingBackend
         DateTimeOffset? replacementValueExpiration,
         HashSet<string> invalidatedKeys )
     {
-        // The dependency set is copied under its lock, and the lock is released before the items are removed, so that no
-        // thread acquires the lock of a key while it holds the lock of a dependency set.
+        // The backward dependency set is copied under its lock, and the lock is released before the items are removed, so
+        // that no thread acquires the lock of a key while it holds the lock of a backward dependency set.
         var dependents = this.GetDependents( key );
 
         this.SyncPoint( "MemoryCachingBackend.InvalidateDependencyImpl:DependentsCopied" );
@@ -390,7 +391,7 @@ internal class MemoryCachingBackend : CachingBackend
                 if ( invalidatedDependency != null && !Declares( cacheValue, invalidatedDependency ) )
                 {
                     // The registration does not correspond to the current value, if any.
-                    this.RemoveDependency( invalidatedDependency, key );
+                    this.RemoveBackwardDependency( invalidatedDependency, key );
                 }
 
                 if ( replacementValue != null && cacheValue == null )
@@ -411,7 +412,7 @@ internal class MemoryCachingBackend : CachingBackend
                 this.StoreTombstone( itemKey, replacementValue, replacementValueExpiration!.Value );
             }
 
-            this.RemoveDependencies( key, cacheValue!.Dependencies, null );
+            this.RemoveBackwardDependencies( key, cacheValue!.Dependencies, null );
 
             return true;
         }
@@ -491,22 +492,22 @@ internal class MemoryCachingBackend : CachingBackend
     }
 
     /// <summary>
-    /// Registers a key in the dependency set of a dependency. A set that has been removed from the index is never used
+    /// Registers a key in the backward dependency set of a dependency. A set that has been removed from the index is never used
     /// again, so that no key is registered in a set that no lookup can reach.
     /// </summary>
-    private void AddDependency( string dependency, string key )
+    private void AddBackwardDependency( string dependency, string key )
     {
         while ( true )
         {
-            var dependencySet = this._dependencySets.GetOrAdd( dependency, _ => new DependencySet() );
+            var backwardDependencySet = this._backwardDependencies.GetOrAdd( dependency, _ => new BackwardDependencySet() );
 
-            this.SyncPoint( "MemoryCachingBackend.AddDependency:DependencySetRead" );
+            this.SyncPoint( "MemoryCachingBackend.AddBackwardDependency:DependencySetRead" );
 
-            lock ( dependencySet )
+            lock ( backwardDependencySet )
             {
-                if ( !dependencySet.IsRemoved )
+                if ( !backwardDependencySet.IsRemoved )
                 {
-                    dependencySet.Keys.Add( key );
+                    backwardDependencySet.DependentKeys.Add( key );
 
                     return;
                 }
@@ -515,81 +516,82 @@ internal class MemoryCachingBackend : CachingBackend
     }
 
     /// <summary>
-    /// Removes a key from the dependency set of a dependency, and removes this instance of the set from the index when it
+    /// Removes a key from the backward dependency set of a dependency, and removes this instance of the set from the index when it
     /// becomes empty.
     /// </summary>
-    private void RemoveDependency( string dependency, string key )
+    private void RemoveBackwardDependency( string dependency, string key )
     {
-        if ( !this._dependencySets.TryGetValue( dependency, out var dependencySet ) )
+        if ( !this._backwardDependencies.TryGetValue( dependency, out var backwardDependencySet ) )
         {
             return;
         }
 
-        this.SyncPoint( "MemoryCachingBackend.RemoveDependency:DependencySetRead" );
+        this.SyncPoint( "MemoryCachingBackend.RemoveBackwardDependency:DependencySetRead" );
 
-        lock ( dependencySet )
+        lock ( backwardDependencySet )
         {
-            if ( !dependencySet.IsRemoved && dependencySet.Keys.Remove( key ) && dependencySet.Keys.Count == 0 )
+            if ( !backwardDependencySet.IsRemoved && backwardDependencySet.DependentKeys.Remove( key ) && backwardDependencySet.DependentKeys.Count == 0 )
             {
-                dependencySet.IsRemoved = true;
+                backwardDependencySet.IsRemoved = true;
 
-                ((ICollection<KeyValuePair<string, DependencySet>>) this._dependencySets).Remove(
-                    new KeyValuePair<string, DependencySet>( dependency, dependencySet ) );
+                ((ICollection<KeyValuePair<string, BackwardDependencySet>>) this._backwardDependencies).Remove(
+                    new KeyValuePair<string, BackwardDependencySet>( dependency, backwardDependencySet ) );
             }
         }
     }
 
     /// <summary>
-    /// Removes a key from the dependency sets of the given dependencies, except the dependencies that
-    /// <paramref name="keptItem"/> declares.
+    /// Removes a key from the backward dependency sets of the given forward dependencies of an item, except the
+    /// dependencies that <paramref name="keptItem"/> declares.
     /// </summary>
-    private void RemoveDependencies( string key, ImmutableArray<string> dependencies, MemoryCacheItem? keptItem )
+    private void RemoveBackwardDependencies( string key, ImmutableArray<string> forwardDependencies, MemoryCacheItem? keptItem )
     {
-        if ( dependencies.IsDefaultOrEmpty )
+        if ( forwardDependencies.IsDefaultOrEmpty )
         {
             return;
         }
 
-        foreach ( var dependency in dependencies )
+        foreach ( var dependency in forwardDependencies )
         {
             if ( !Declares( keptItem, dependency ) )
             {
-                this.RemoveDependency( dependency, key );
+                this.RemoveBackwardDependency( dependency, key );
             }
         }
     }
 
     /// <summary>
-    /// Copies the keys registered in the dependency set of a dependency.
+    /// Copies the keys registered in the backward dependency set of a dependency.
     /// </summary>
     private List<string> GetDependents( string dependency )
     {
-        if ( !this._dependencySets.TryGetValue( dependency, out var dependencySet ) )
+        if ( !this._backwardDependencies.TryGetValue( dependency, out var backwardDependencySet ) )
         {
             return new List<string>();
         }
 
-        lock ( dependencySet )
+        lock ( backwardDependencySet )
         {
             this.SyncPoint( "MemoryCachingBackend.InvalidateDependencyImpl:DependencyLocked" );
 
-            return dependencySet.IsRemoved ? new List<string>() : dependencySet.Keys.ToList();
+            return backwardDependencySet.IsRemoved ? new List<string>() : backwardDependencySet.DependentKeys.ToList();
         }
     }
 
     /// <inheritdoc />
     protected override bool ContainsDependencyCore( string key )
     {
-        if ( !this._dependencySets.TryGetValue( key, out var dependencySet ) )
+        if ( !this._backwardDependencies.TryGetValue( key, out var backwardDependencySet ) )
         {
             return false;
         }
 
-        lock ( dependencySet )
+        lock ( backwardDependencySet )
         {
-            return !dependencySet.IsRemoved && dependencySet.Keys.Count > 0;
+            return !backwardDependencySet.IsRemoved && backwardDependencySet.DependentKeys.Count > 0;
         }
     }
+
     /// <param name="options"></param>
     /// <inheritdoc />
     protected override void ClearCore( ClearCacheOptions options )
@@ -617,15 +619,14 @@ internal class MemoryCachingBackend : CachingBackend
                 break;
 
             default:
-                throw new NotSupportedException(
-                    "IMemoryCache implementations other than MemoryCache and IClearableMemoryCache do not support clearing." );
+                throw new NotSupportedException( "IMemoryCache implementations other than MemoryCache and IClearableMemoryCache do not support clearing." );
         }
 
-        // The dependency index is not stored in the IMemoryCache. After a compaction, the post-eviction callbacks
+        // The backward dependency index is not stored in the IMemoryCache. After a compaction, the post-eviction callbacks
         // unregister the evicted items.
         if ( (options & ClearCacheOptions.Compact) == 0 )
         {
-            this._dependencySets.Clear();
+            this._backwardDependencies.Clear();
         }
     }
 
@@ -656,50 +657,5 @@ internal class MemoryCachingBackend : CachingBackend
     {
         await base.DisposeAsyncCore( cancellationToken ).ConfigureAwait( false );
         this._cache.Dispose();
-    }
-
-    private class Features : CachingBackendFeatures
-    {
-        public Features( bool supportsClear )
-        {
-            this.Clear = supportsClear;
-        }
-
-        public override bool Clear { get; }
-    }
-
-    /// <summary>
-    /// The lock of a key, with the number of operations that use it.
-    /// </summary>
-    private sealed class KeyLock
-    {
-#pragma warning disable SA1401
-        /// <summary>
-        /// The number of operations that have acquired the lock or are waiting for it.
-        /// </summary>
-        public int ReferenceCount;
-
-        /// <summary>
-        /// Indicates that the lock has been removed from the dictionary and must not be used any more. It is read and
-        /// written while the lock is held.
-        /// </summary>
-        public bool IsRetired;
-#pragma warning restore SA1401
-    }
-
-    /// <summary>
-    /// The keys that depend on one dependency key. The set is read and changed while it is locked.
-    /// </summary>
-    private sealed class DependencySet
-    {
-        /// <summary>
-        /// Gets the keys of the items that depend on the dependency.
-        /// </summary>
-        public HashSet<string> Keys { get; } = new( StringComparer.Ordinal );
-
-        /// <summary>
-        /// Gets or sets a value indicating whether the set has been removed from the index. A removed set is never used again.
-        /// </summary>
-        public bool IsRemoved { get; set; }
     }
 }

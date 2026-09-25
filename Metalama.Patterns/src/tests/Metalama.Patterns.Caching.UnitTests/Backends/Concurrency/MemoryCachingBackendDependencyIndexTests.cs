@@ -28,7 +28,7 @@ namespace Metalama.Patterns.Caching.Tests.Backends.Concurrency;
 /// Every operation on a key holds the lock of that key, so two operations on the same key never overlap. The concurrent
 /// tests therefore race operations on different keys that share a dependency. They pause a thread between its read of a
 /// dependency set and its lock of that set, at the synchronization points
-/// <c>MemoryCachingBackend.AddDependency:DependencySetRead</c> and <c>MemoryCachingBackend.RemoveDependency:DependencySetRead</c>,
+/// <c>MemoryCachingBackend.AddBackwardDependency:DependencySetRead</c> and <c>MemoryCachingBackend.RemoveBackwardDependency:DependencySetRead</c>,
 /// or while it holds the lock of a key, with a gate of an <see cref="InterceptingMemoryCache"/>. They run the competing
 /// operation to completion on another thread, release the paused thread, and check the property. When a change of the
 /// product changes the place of a pause point, the test fails on an assertion whose message starts with
@@ -45,13 +45,13 @@ public sealed class MemoryCachingBackendDependencyIndexTests
     /// The name of the synchronization point that <c>AddDependency</c> reaches after it has read a dependency set and
     /// before it locks that set.
     /// </summary>
-    private const string _addDependencySetReadSyncPoint = "MemoryCachingBackend.AddDependency:DependencySetRead";
+    private const string _addDependencySetReadSyncPoint = "MemoryCachingBackend.AddBackwardDependency:DependencySetRead";
 
     /// <summary>
     /// The name of the synchronization point that <c>RemoveDependency</c> reaches after it has read a dependency set and
     /// before it locks that set.
     /// </summary>
-    private const string _removeDependencySetReadSyncPoint = "MemoryCachingBackend.RemoveDependency:DependencySetRead";
+    private const string _removeDependencySetReadSyncPoint = "MemoryCachingBackend.RemoveBackwardDependency:DependencySetRead";
 
     /// <summary>
     /// The maximum time to wait for a pause point, for a worker thread or for a post-eviction callback. It only detects a

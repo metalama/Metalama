@@ -34,7 +34,7 @@ namespace Metalama.Patterns.Caching.Tests.Backends.Concurrency
         /// <see cref="CompletePendingRemovals"/>. An invalidation of a dependency always takes effect immediately.
         /// </para>
         /// </remarks>
-        private sealed class RemoteBackendDouble : CachingBackend
+        private sealed partial class RemoteBackendDouble : CachingBackend
         {
             /// <summary>
             /// The object that protects the items, the dependencies and the pending removals.
@@ -344,40 +344,6 @@ namespace Metalama.Patterns.Caching.Tests.Backends.Concurrency
                         }
                     }
                 }
-            }
-
-            /// <summary>
-            /// The features of a <see cref="RemoteBackendDouble"/>.
-            /// </summary>
-            /// <remarks>
-            /// The enhancer subscribes to the events of its second layer only when <see cref="CachingBackendFeatures.Events"/>
-            /// is <see langword="true"/>. It writes a tombstone into its first layer on a removal only when
-            /// <see cref="CachingBackendFeatures.Blocking"/> is <see langword="false"/>.
-            /// </remarks>
-            private sealed class DoubleFeatures : CachingBackendFeatures
-            {
-                /// <summary>
-                /// Initializes a new instance of the <see cref="DoubleFeatures"/> class.
-                /// </summary>
-                /// <param name="blocking">The value of <see cref="Blocking"/>.</param>
-                /// <param name="events">The value of <see cref="Events"/>.</param>
-                public DoubleFeatures( bool blocking, bool events )
-                {
-                    this.Blocking = blocking;
-                    this.Events = events;
-                }
-
-                /// <inheritdoc />
-                public override bool Blocking { get; }
-
-                /// <inheritdoc />
-                public override bool Events { get; }
-
-                /// <inheritdoc />
-                public override bool Dependencies => true;
-
-                /// <inheritdoc />
-                public override bool ContainsDependency => true;
             }
         }
     }
