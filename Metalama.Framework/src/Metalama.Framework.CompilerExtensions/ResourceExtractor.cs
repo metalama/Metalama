@@ -5,6 +5,7 @@
 using Metalama.Framework.Engine.Utilities.AssemblyLoaders;
 using Microsoft.CodeAnalysis;
 using SharpCrafters.Backstage.ProcessClassification;
+using SharpCrafters.Backstage.Threading;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -366,8 +367,9 @@ public static class ResourceExtractor
         // converge: each file is either written or, if another process holds it open, read back and compared.
         // A concurrent queue, because the events are reported on whichever thread caused them, which is not
         // necessarily the thread running this method.
+        // The prefix is the one that MetalamaProduct registers. GetLock uses the name below verbatim.
         var lockEvents = new ConcurrentQueue<string>();
-        var lockService = StandaloneNamedLockService.Create();
+        var lockService = new NamedLockService( "Global\\Metalama_" );
 
         lockService.LockEventReported += ( _, lockEvent ) => lockEvents.Enqueue( lockEvent.ToString() );
 
