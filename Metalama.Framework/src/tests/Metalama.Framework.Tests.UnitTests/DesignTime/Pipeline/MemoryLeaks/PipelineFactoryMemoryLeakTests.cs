@@ -152,7 +152,7 @@ public sealed class PipelineFactoryMemoryLeakTests : DesignTimeTestBase
                 $"{nameof(this.RepeatedCancelledWaitsForPipeline_DoNotAccumulateCompilations)}{i}" );
         }
 
-        MemoryLeakAssert.AtMostAlive(
+        await MemoryLeakAssert.AtMostAliveAsync(
             compilations,
             1,
             $"compilations of {waitCount} cancelled waits for a pipeline",

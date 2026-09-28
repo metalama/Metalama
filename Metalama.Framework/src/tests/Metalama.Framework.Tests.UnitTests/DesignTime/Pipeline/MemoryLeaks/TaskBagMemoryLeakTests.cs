@@ -117,7 +117,7 @@ public sealed class TaskBagMemoryLeakTests : DesignTimeTestBase
 
         Assert.True( taskBag.IsEmpty, "The bag still holds an entry for a task that has completed." );
 
-        MemoryLeakAssert.Collected( compilation, "The compilation captured by a completed task", ("taskBag", taskBag) );
+        await MemoryLeakAssert.CollectedAsync( compilation, "The compilation captured by a completed task", ("taskBag", taskBag) );
     }
 
     /// <summary>
@@ -149,7 +149,7 @@ public sealed class TaskBagMemoryLeakTests : DesignTimeTestBase
 
         // The memory consequence is asserted first, because its failure message contains the chain of references that
         // retains the compilation, which is the information needed to act on the defect.
-        MemoryLeakAssert.Collected( compilation, "The compilation captured by a task cancelled before it started", ("taskBag", taskBag) );
+        await MemoryLeakAssert.CollectedAsync( compilation, "The compilation captured by a task cancelled before it started", ("taskBag", taskBag) );
 
         Assert.True(
             taskBag.IsEmpty,
@@ -187,7 +187,7 @@ public sealed class TaskBagMemoryLeakTests : DesignTimeTestBase
 
         await WaitForPendingTasksAsync( taskBag, testContext );
 
-        MemoryLeakAssert.AtMostAlive(
+        await MemoryLeakAssert.AtMostAliveAsync(
             compilations,
             0,
             "compilations captured by tasks cancelled before they started",

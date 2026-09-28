@@ -127,7 +127,7 @@ public sealed class SourceGeneratorMemoryLeakTests : DesignTimeTestBase
             // result would depend on how loaded the thread pool happens to be.
             await PendingTasksHelper.WaitForPendingTasksAsync( sourceGenerator.PendingTasks, testContext );
 
-            MemoryLeakAssert.AtMostAlive(
+            await MemoryLeakAssert.AtMostAliveAsync(
                 compilations,
                 2,
                 $"compilations submitted to the source generator during {editCount} edits",

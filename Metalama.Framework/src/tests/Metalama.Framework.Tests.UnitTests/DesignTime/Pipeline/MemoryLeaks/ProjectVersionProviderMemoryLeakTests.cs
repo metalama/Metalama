@@ -67,7 +67,7 @@ public sealed class ProjectVersionProviderMemoryLeakTests : DesignTimeTestBase
 
         var compilations = await RunSequentialChainAsync( testContext, provider, nameof(this.SequentialDiffChain_NoCompilationIsRetained), 30 );
 
-        MemoryLeakAssert.AtMostAlive( compilations, 0, "compilations of a sequential difference chain", ("projectVersionProvider", provider) );
+        await MemoryLeakAssert.AtMostAliveAsync( compilations, 0, "compilations of a sequential difference chain", ("projectVersionProvider", provider) );
     }
 
     /// <summary>
@@ -122,7 +122,7 @@ public sealed class ProjectVersionProviderMemoryLeakTests : DesignTimeTestBase
 
         var intermediateCompilations = await RunPinnedChainAsync( provider, pinned, 30 );
 
-        MemoryLeakAssert.AtMostAlive(
+        await MemoryLeakAssert.AtMostAliveAsync(
             intermediateCompilations,
             1,
             "intermediate compilations compared against a pinned version",
@@ -169,7 +169,7 @@ public sealed class ProjectVersionProviderMemoryLeakTests : DesignTimeTestBase
 
         var compilations = await RunReferenceChainAsync( testContext, provider, nameof(this.ReferencedProjectVersions_AreNotRetained), 15 );
 
-        MemoryLeakAssert.AtMostAlive(
+        await MemoryLeakAssert.AtMostAliveAsync(
             compilations,
             0,
             "compilations of a referenced project and of its dependent project",

@@ -110,7 +110,7 @@ public sealed partial class RpcServiceCancellationTests : RpcUnitTestClass
         // proceeds either way.
         _ = await EndedAsync( waitTask, testContext );
 
-        MemoryLeakAssert.Collected(
+        await MemoryLeakAssert.CollectedAsync(
             payload,
             "The object captured by a caller suspended on the wait for initialization",
             ("serverEndpoint", serverEndpoint) );
