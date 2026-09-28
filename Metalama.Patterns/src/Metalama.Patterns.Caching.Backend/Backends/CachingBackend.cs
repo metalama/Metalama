@@ -386,8 +386,9 @@ public abstract class CachingBackend : IDisposable, IAsyncDisposable
     /// Gets a cache item given its key. This protected method is part of the implementation API and is meant to be overridden in user code, not invoked. Arguments are already validated by the consumer API.
     /// </summary>
     /// <param name="key">The cache item.</param>
-    /// <param name="includeDependencies"><c>true</c> if the <see cref="CacheItem.Dependencies"/> properties of the
-    /// resulting <see cref="CacheItem"/> should be populated, otherwise <c>false</c>.</param>
+    /// <param name="includeDependencies"><c>true</c> if the <see cref="CacheItem.Dependencies"/> property of the resulting
+    /// <see cref="CacheItem"/> must be populated. When <c>false</c>, a backend may populate it anyway, so the caller must
+    /// not assume that it is empty.</param>
     /// <returns>A <see cref="CacheItem"/>, or <c>null</c> if there is no item in cache of the given <paramref name="key"/>.</returns>
     protected abstract CacheItem? GetItemCore( string key, bool includeDependencies );
 
@@ -395,8 +396,9 @@ public abstract class CachingBackend : IDisposable, IAsyncDisposable
     /// Asynchronously gets a cache item given its key. This protected method is part of the implementation API and is meant to be overridden in user code, not invoked. Arguments are already validated by the consumer API.
     /// </summary>
     /// <param name="key">The cache item.</param>
-    /// <param name="includeDependencies"><c>true</c> if the <see cref="CacheItem.Dependencies"/> properties of the
-    ///     resulting <see cref="CacheItem"/> should be populated, otherwise <c>false</c>.</param>
+    /// <param name="includeDependencies"><c>true</c> if the <see cref="CacheItem.Dependencies"/> property of the resulting
+    /// <see cref="CacheItem"/> must be populated. When <c>false</c>, a backend may populate it anyway, so the caller must
+    /// not assume that it is empty.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns>A <see cref="Task"/> evaluating to a <see cref="CacheItem"/>, or evaluating to <c>null</c> if there is no item in cache of the given <paramref name="key"/>.</returns>
     protected virtual ValueTask<CacheItem?> GetItemAsyncCore( string key, bool includeDependencies, CancellationToken cancellationToken )
@@ -410,8 +412,9 @@ public abstract class CachingBackend : IDisposable, IAsyncDisposable
     /// Gets a cache item given its key.
     /// </summary>
     /// <param name="key">The cache item.</param>
-    /// <param name="includeDependencies"><c>true</c> if the <see cref="CacheItem.Dependencies"/> properties of the
-    /// resulting <see cref="CacheItem"/> should be populated, otherwise <c>false</c>.</param>
+    /// <param name="includeDependencies"><c>true</c> if the <see cref="CacheItem.Dependencies"/> property of the resulting
+    /// <see cref="CacheItem"/> must be populated. When <c>false</c>, a backend may populate it anyway, so the caller must
+    /// not assume that it is empty.</param>
     /// <returns>A <see cref="CacheItem"/>, or <c>null</c> if there is no item in cache of the given <paramref name="key"/>.</returns>
     public CacheItem? GetItem( string key, bool includeDependencies = false )
     {
@@ -461,8 +464,9 @@ public abstract class CachingBackend : IDisposable, IAsyncDisposable
     /// Asynchronously gets a cache item given its key.
     /// </summary>
     /// <param name="key">The cache item.</param>
-    /// <param name="includeDependencies"><c>true</c> if the <see cref="CacheItem.Dependencies"/> properties of the
-    /// resulting <see cref="CacheItem"/> should be populated, otherwise <c>false</c>.</param>
+    /// <param name="includeDependencies"><c>true</c> if the <see cref="CacheItem.Dependencies"/> property of the resulting
+    /// <see cref="CacheItem"/> must be populated. When <c>false</c>, a backend may populate it anyway, so the caller must
+    /// not assume that it is empty.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns>A <see cref="Task"/> evaluating to a <see cref="CacheItem"/>, or evaluating to <c>null</c> if there is no item in cache of the given <paramref name="key"/>.</returns>
     public async ValueTask<CacheItem?> GetItemAsync(
