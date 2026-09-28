@@ -36,8 +36,10 @@
     -->
     <ItemGroup>
         <!-- Test frameworks -->
+        <!-- xunit.v3.assert is not excluded, as xunit.assert was not excluded with xunit v2. A test project commonly
+             declares a global using of the Xunit namespace, which the test compilations also receive, and
+             xunit.v3.assert is the package that defines this namespace. -->
         <MetalamaTestExcludedReference Include="xunit.v3" />
-        <MetalamaTestExcludedReference Include="xunit.v3.assert" />
         <MetalamaTestExcludedReference Include="xunit.v3.common" />
         <MetalamaTestExcludedReference Include="xunit.v3.core" />
         <MetalamaTestExcludedReference Include="xunit.v3.core.mtp-v1" />
