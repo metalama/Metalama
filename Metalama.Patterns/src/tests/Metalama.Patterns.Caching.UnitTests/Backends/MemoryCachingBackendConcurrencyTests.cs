@@ -16,9 +16,21 @@ namespace Metalama.Patterns.Caching.Tests.Backends;
 /// </summary>
 public sealed class MemoryCachingBackendConcurrencyTests
 {
+    /// <summary>
+    /// The name of the synchronization point that <c>RemoveItemImpl</c> reaches while it holds the lock of the key,
+    /// before it reads the item.
+    /// </summary>
     private const string _removalSyncPointName = "MemoryCachingBackend.RemoveItemImpl:ItemLocked";
+
+    /// <summary>
+    /// The name of the synchronization point that an invalidation reaches while it holds the lock of a dependency set,
+    /// before it copies the set.
+    /// </summary>
     private const string _invalidationSyncPointName = "MemoryCachingBackend.InvalidateDependencyImpl:DependencyLocked";
 
+    /// <summary>
+    /// The maximum time to wait for a synchronization point or a thread. It only detects a failure, such as a deadlock.
+    /// </summary>
     private static readonly TimeSpan _timeout = TimeSpan.FromSeconds( 10 );
 
     /// <summary>

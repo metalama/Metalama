@@ -44,6 +44,12 @@ internal partial class MemoryCachingBackend : CachingBackend
     private readonly Func<object?, long> _sizeCalculator;
     private readonly ICachingSerializer? _serializer;
     private readonly string _itemKeyPrefix;
+
+    /// <summary>
+    /// The optional test synchronization service, resolved once from the service provider. It is never registered in
+    /// production, in which case it stays <see langword="null"/> and every synchronization point is skipped. It is resolved
+    /// per instance, rather than stored in global state, so that concurrent tests cannot interfere with each other.
+    /// </summary>
     private readonly ITestSynchronizationProvider? _testSynchronizationProvider;
     private static readonly RecyclableMemoryStreamManager _memoryStreamManager = new();
 
