@@ -69,6 +69,9 @@
         <None Include="$(MSBuildThisFileDirectory)Metalama.Testing.AspectTesting.props" Pack="true" PackagePath="build/$(PackageId).props" />
         <None Include="$(MSBuildThisFileDirectory)Metalama.Testing.AspectTesting.targets" Pack="true" PackagePath="build/$(PackageId).targets" />
         <None Include="$(MSBuildThisFileDirectory)Metalama.Testing.AspectTesting.app.manifest" Pack="true" PackagePath="build/Metalama.Testing.AspectTesting.app.manifest" />
+        <!-- The source of an MSBuild task that the .targets file compiles with RoslynCodeTaskFactory. It is not part of this assembly. -->
+        <Compile Remove="$(MSBuildThisFileDirectory)MetalamaSetStackReserveSize.cs" />
+        <None Include="$(MSBuildThisFileDirectory)MetalamaSetStackReserveSize.cs" Pack="true" PackagePath="build/MetalamaSetStackReserveSize.cs" />
     </ItemGroup>
 
     <!-- Packaging -->

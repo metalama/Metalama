@@ -139,80 +139,45 @@
         <_MetalamaSetTestStackReserveSize Condition="'$(MetalamaTestStackReserveSize)' != '' AND '$(MetalamaTestStackReserveSize)' != '0'">True</_MetalamaSetTestStackReserveSize>
     </PropertyGroup>
 
-    <!-- Sets the SizeOfStackReserve field of the PE header of an executable. The C# compiler has no option for it. The
-         field is written only when its value differs, so that an incremental build does not update the file. -->
+    <!-- Sets the SizeOfStackReserve field of the PE header of an executable, because the C# compiler has no option for it.
+         The field is covered by the strong name signature, so the task signs the executable again with the key file of
+         the project. The field is written only when its value differs, so that an incremental build does not update the
+         file. The source of the task is also compiled by the unit tests of Metalama. -->
     <UsingTask TaskName="MetalamaSetStackReserveSize" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
         <ParameterGroup>
             <AssemblyPath ParameterType="System.String" Required="true" />
             <StackReserveSize ParameterType="System.Int64" Required="true" />
+            <SignAssembly ParameterType="System.Boolean" />
+            <DelaySign ParameterType="System.Boolean" />
+            <PublicSign ParameterType="System.Boolean" />
+            <KeyFile ParameterType="System.String" />
         </ParameterGroup>
         <Task>
-            <Using Namespace="System.IO" />
-            <Code Type="Fragment" Language="cs"><![CDATA[
-using ( var stream = new FileStream( this.AssemblyPath, FileMode.Open, FileAccess.ReadWrite, FileShare.Read ) )
-{
-    var reader = new BinaryReader( stream );
-    var writer = new BinaryWriter( stream );
-
-    stream.Position = 0x3C;
-    var peHeaderOffset = reader.ReadInt32();
-    stream.Position = peHeaderOffset;
-
-    if ( reader.ReadUInt32() != 0x00004550 )
-    {
-        this.Log.LogError( "The file '{0}' is not a portable executable file.", this.AssemblyPath );
-
-        return false;
-    }
-
-    // The optional header follows the 4-byte signature and the 20-byte file header. SizeOfStackReserve is at offset 72
-    // of the optional header, with 4 bytes in PE32 and 8 bytes in PE32+.
-    var optionalHeaderOffset = peHeaderOffset + 24;
-    stream.Position = optionalHeaderOffset;
-    var magic = reader.ReadUInt16();
-    stream.Position = optionalHeaderOffset + 72;
-
-    if ( magic == 0x10B )
-    {
-        if ( reader.ReadUInt32() != (uint) this.StackReserveSize )
-        {
-            stream.Position = optionalHeaderOffset + 72;
-            writer.Write( (uint) this.StackReserveSize );
-        }
-    }
-    else if ( magic == 0x20B )
-    {
-        if ( reader.ReadUInt64() != (ulong) this.StackReserveSize )
-        {
-            stream.Position = optionalHeaderOffset + 72;
-            writer.Write( (ulong) this.StackReserveSize );
-        }
-    }
-    else
-    {
-        this.Log.LogError( "The file '{0}' has an unknown optional header format.", this.AssemblyPath );
-
-        return false;
-    }
-
-    writer.Flush();
-}
-]]></Code>
+            <Code Type="Class" Language="cs" Source="$(MSBuildThisFileDirectory)MetalamaSetStackReserveSize.cs" />
         </Task>
     </UsingTask>
 
     <!-- The stack reserve of the executable is also the stack size of the threads of the thread pool, on which the tests and
          the recursion guard of the syntax walkers run. -->
     <Target Name="_MetalamaSetTestStackReserveSize" AfterTargets="CoreCompile" Condition="'$(_MetalamaSetTestStackReserveSize)' == 'True'">
-        <MetalamaSetStackReserveSize AssemblyPath="@(IntermediateAssembly->'%(FullPath)')" StackReserveSize="$(MetalamaTestStackReserveSize)" />
+        <MetalamaSetStackReserveSize AssemblyPath="@(IntermediateAssembly->'%(FullPath)')"
+                                     StackReserveSize="$(MetalamaTestStackReserveSize)"
+                                     SignAssembly="$([MSBuild]::ValueOrDefault('$(SignAssembly)', 'false'))"
+                                     DelaySign="$([MSBuild]::ValueOrDefault('$(DelaySign)', 'false'))"
+                                     PublicSign="$([MSBuild]::ValueOrDefault('$(PublicSign)', 'false'))"
+                                     KeyFile="$(KeyOriginatorFile)" />
     </Target>
 
     <!-- xunit.v3 generates the Main method of a test project in a class whose namespace is derived from a hash of
          the project path. A test input file can also define a Main method, and the compilation then fails with CS0017
          (multiple entry points). This target reads the namespace from the generated file and sets StartupObject to
-         the generated class, so that the compiler selects the entry point of xunit. -->
+         the generated class, so that the compiler selects the entry point of xunit. The target runs only when xunit
+         generates the entry point, because a file left by an earlier build may remain in the intermediate directory.
+         _XunitGenerateEntryPoint and _XunitEntryPointPath are internal names of xunit.v3, and a later version may
+         rename them. The target then does not run, and a test project that contains a test input file with a Main
+         method fails with CS0017 again. -->
     <Target Name="_MetalamaSetXunitStartupObject" AfterTargets="_XunitGenerateEntryPoint" BeforeTargets="CoreCompile"
-            Condition="'$(_XunitEntryPointPath)' != '' AND Exists('$(_XunitEntryPointPath)') AND '$(StartupObject)' == ''">
+            Condition="'$(XunitAutoGeneratedEntryPoint)' != 'false' AND '$(_XunitEntryPointPath)' != '' AND Exists('$(_XunitEntryPointPath)') AND '$(StartupObject)' == ''">
         <ReadLinesFromFile File="$(_XunitEntryPointPath)">
             <Output TaskParameter="Lines" ItemName="_MetalamaXunitEntryPointLine" />
         </ReadLinesFromFile>
