@@ -114,7 +114,7 @@ public sealed class PipelineFactoryMemoryLeakTests : DesignTimeTestBase
 
         var compilation = await StartAndCancelWaitAsync( testContext, factory, nameof(this.CancelledWaitForPipeline_ReleasesTheCompilation) );
 
-        MemoryLeakAssert.Collected( compilation, "The compilation of a cancelled wait for a pipeline", ("pipelineFactory", factory) );
+        await MemoryLeakAssert.CollectedAsync( compilation, "The compilation of a cancelled wait for a pipeline", ("pipelineFactory", factory) );
     }
 
     /// <summary>

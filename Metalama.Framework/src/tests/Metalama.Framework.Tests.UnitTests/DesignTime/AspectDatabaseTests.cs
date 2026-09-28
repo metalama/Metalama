@@ -9,6 +9,7 @@ using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Pipeline.DesignTime;
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline.MemoryLeaks;
 using Metalama.Framework.Tests.UnitTestHelpers.Mocks;
 using Metalama.Framework.Tests.UnitTestHelpers.TestClasses;
 using Microsoft.CodeAnalysis;
@@ -722,10 +723,13 @@ public sealed class AspectDatabaseTests( ITestOutputHelper testOutputHelper ) : 
 
         await UseDatabaseAsync( false );
 
-        GC.Collect();
-
         // The original compilation should no longer be referenced anywhere.
-        Assert.False( compilationReference.IsAlive );
+        await MemoryLeakAssert.CollectedAsync(
+            compilationReference,
+            "The original compilation",
+            ("factory", factory),
+            ("aspectDatabase", aspectDatabase),
+            ("workspaceProvider", workspaceProvider) );
     }
 
     [Fact]

@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline.MemoryLeaks;
@@ -39,6 +40,38 @@ internal static class MemoryLeakAssert
         }
 
         Assert.Fail( BuildFailureMessage( target, description, roots ) );
+    }
+
+    /// <summary>
+    /// Asserts that the target of a weak reference has been collected, after resuming the calling asynchronous method on
+    /// a thread of the thread pool.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// An asynchronous test must use this method instead of <see cref="Collected"/> when it has awaited the code under
+    /// test. When no synchronization context is installed, which is the case under xunit v3, the continuation of an
+    /// <c>await</c> runs synchronously on the thread that completed the awaited task. The rest of the test then runs
+    /// above the stack frames of the code under test, and the local variables of these frames still reference the
+    /// objects that the test expects to be collected. These frames are not garbage-collection roots that a caller can
+    /// supply, so <see cref="RetentionPathFinder"/> cannot report them.
+    /// </para>
+    /// <para>
+    /// <see cref="Task.Yield"/> queues the rest of the test to the thread pool or to the synchronization context, and
+    /// the thread that ran the code under test then returns from these frames. Nothing synchronizes the assertion with
+    /// the return of that thread. However, the return takes a few instructions, and
+    /// <see cref="GarbageCollectionHelper.Collect"/> performs several blocking rounds of collection, so the frames are
+    /// gone before its last round in practice. xunit v2 gave the same guarantee, because it posted the continuations of
+    /// a test to its own synchronization context.
+    /// </para>
+    /// </remarks>
+    /// <param name="weakReference">A weak reference to the object that was expected to be collected.</param>
+    /// <param name="description">A description of the object, used in the failure message.</param>
+    /// <param name="roots">The objects that play the role of garbage-collection roots in the failure analysis.</param>
+    public static async Task CollectedAsync( WeakReference weakReference, string description, params (string Name, object Root)[] roots )
+    {
+        await Task.Yield();
+
+        Collected( weakReference, description, roots );
     }
 
     /// <summary>
