@@ -68,6 +68,7 @@
              because the variant shim projects import this file and NuGet imports build/<PackageId>.props only. -->
         <None Include="$(MSBuildThisFileDirectory)Metalama.Testing.AspectTesting.props" Pack="true" PackagePath="build/$(PackageId).props" />
         <None Include="$(MSBuildThisFileDirectory)Metalama.Testing.AspectTesting.targets" Pack="true" PackagePath="build/$(PackageId).targets" />
+        <None Include="$(MSBuildThisFileDirectory)Metalama.Testing.AspectTesting.app.manifest" Pack="true" PackagePath="build/Metalama.Testing.AspectTesting.app.manifest" />
     </ItemGroup>
 
     <!-- Packaging -->

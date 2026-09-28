@@ -10,6 +10,12 @@
         <GenerateAssemblyInfo>True</GenerateAssemblyInfo>
 
         <MetalamaTestProjectDirectory Condition="'$(MetalamaTestProjectDirectory)'==''">$(MSBuildProjectDirectory)</MetalamaTestProjectDirectory>
+
+        <!-- The size of the stack that the .NET Framework executable of the test project reserves for each thread,
+             including the threads of the thread pool, in bytes. The default is 4 MB, which is the value of the test
+             host of VSTest (testhost.net47.exe). The default of the C# compiler is 1 MB, which is not sufficient to
+             process deeply nested syntax. Set the property to 0 to keep the value of the compiler. -->
+        <MetalamaTestStackReserveSize Condition="'$(MetalamaTestStackReserveSize)'==''">4194304</MetalamaTestStackReserveSize>
         
     </PropertyGroup>
 
