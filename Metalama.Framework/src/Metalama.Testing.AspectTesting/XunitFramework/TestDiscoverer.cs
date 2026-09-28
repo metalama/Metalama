@@ -29,18 +29,34 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
             TestingServices.Initialize();
         }
 
+        /// <summary>
+        /// The names of the directories that never contain test files.
+        /// </summary>
         private static readonly HashSet<string> _excludedDirectoryNames = new( StringComparer.OrdinalIgnoreCase ) { "bin", "obj" };
+        /// <summary>
+        /// The factory of the test assembly.
+        /// </summary>
         private readonly TestFactory _factory;
+        /// <summary>
+        /// The function that writes diagnostic messages, or <c>null</c>.
+        /// </summary>
         private readonly Action<string>? _trace;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TestDiscoverer"/> class.
+        /// </summary>
         public TestDiscoverer( TestFactory factory, Action<string>? trace = null )
         {
             this._factory = factory;
             this._trace = trace;
         }
 
+        /// <inheritdoc />
         public ITestAssembly TestAssembly => this._factory.TestAssembly;
 
+        /// <summary>
+        /// Discovers the test files of a directory of the test project and of its subdirectories, and returns their test cases.
+        /// </summary>
         public List<TestCase> Discover( string? subDirectory, ImmutableHashSet<string> excludedDirectories )
         {
             List<TestCase> testCases = new();
@@ -49,6 +65,9 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
             return testCases;
         }
 
+        /// <summary>
+        /// Adds the test cases of a directory and of its subdirectories to a list.
+        /// </summary>
         private void Discover(
             Action<TestCase> onTestCaseDiscovered,
             string? subDirectory,

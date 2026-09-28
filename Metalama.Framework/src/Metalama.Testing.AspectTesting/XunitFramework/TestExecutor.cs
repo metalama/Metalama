@@ -10,7 +10,6 @@ using Metalama.Framework.Engine.Utilities.Threading;
 using Metalama.Testing.UnitTesting;
 using SharpCrafters.Backstage.Diagnostics;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -29,12 +28,30 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
     /// </summary>
     internal sealed class TestExecutor : ITestFrameworkExecutor
     {
+        /// <summary>
+        /// The factory of the test assembly.
+        /// </summary>
         private readonly TestFactory _factory;
+        /// <summary>
+        /// The lock that prevents two test runs from launching the debugger at the same time.
+        /// </summary>
         private static readonly object _launchingDebuggerLock = new();
+        /// <summary>
+        /// The global service provider of the test framework.
+        /// </summary>
         private readonly GlobalServiceProvider _serviceProvider;
+        /// <summary>
+        /// The task runner that runs the tests when parallelization is disabled.
+        /// </summary>
         private readonly ITaskRunner _taskRunner;
+        /// <summary>
+        /// The reader of the metadata of the test assembly.
+        /// </summary>
         private readonly ITestAssemblyMetadataReader _metadataReader;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TestExecutor"/> class.
+        /// </summary>
         public TestExecutor( GlobalServiceProvider serviceProvider, TestFactory factory )
         {
             this._factory = factory;
@@ -43,6 +60,7 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
             this._metadataReader = this._serviceProvider.GetRequiredService<ITestAssemblyMetadataReader>();
         }
 
+        /// <inheritdoc />
         public ValueTask RunTestCases(
             IReadOnlyCollection<ITestCase> testCases,
             IMessageSink executionMessageSink,
@@ -57,6 +75,18 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
         /// <summary>
         /// Runs test cases and blocks until they are finished or cancelled.
         /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Every test is reported to the <see cref="Metrics"/> of its node before any test starts, so that a class or a
+        /// collection cannot finish while one of its tests has not been reported.
+        /// </para>
+        /// <para>
+        /// When the run is cancelled, the tests that have not started are reported as not run, and the method waits for
+        /// the tests that have started. These tests observe the cancellation token and end promptly. The method returns
+        /// only when no test can send a message any more, because the linked cancellation token source is disposed on
+        /// return, and because xunit does not expect a message after the assembly has finished.
+        /// </para>
+        /// </remarks>
         /// <param name="testCases">The test cases.</param>
         /// <param name="executionMessageSink">The sink that receives the messages. When it returns <c>false</c>, the run is cancelled.</param>
         /// <param name="executionOptions">The execution options of xunit.</param>
@@ -79,21 +109,13 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
                 }
             }
 
-            var testCasesList = testCases.ToList();
-            var hasLaunchedDebugger = false;
-            var directoryOptionsReader = new TestDirectoryOptionsReader( this._serviceProvider, this._factory.ProjectProperties.SourceDirectory );
-
-            var collections = testCasesList.GroupBy( t => t.TestCollection.UniqueID );
-
-            var tasks = new ConcurrentDictionary<Task, Task>();
+            var eventLock = new object();
+            var assemblyMetrics = new Metrics( eventLock );
+            var runSynchronously = executionOptions.ParallelModeOrDefault() == ParallelMode.None;
 
             // Increasing the concurrency seems detrimental to performance and to responsiveness of the test runner in case of cancellation.
-            var semaphore = new SemaphoreSlim( Environment.ProcessorCount * 2 );
-            var eventLock = new object();
-
-            var assemblyMetrics = new Metrics( eventLock );
-
-            var runSynchronously = executionOptions.ParallelModeOrDefault() == ParallelMode.None;
+            using var semaphore = new SemaphoreSlim( Environment.ProcessorCount * 2 );
+            var tasks = new List<Task>();
 
             SendMessage(
                 TestMessages.AssemblyStarting(
@@ -102,127 +124,157 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
 
             try
             {
-                foreach ( var collection in collections )
+                var plannedTests = this.PlanTests( testCases, executionMessageSink, assemblyMetrics, SendMessage );
+                var directoryOptionsReader = new TestDirectoryOptionsReader( this._serviceProvider, this._factory.ProjectProperties.SourceDirectory );
+
+                foreach ( var plannedTest in plannedTests )
                 {
                     if ( runCancellationToken.IsCancellationRequested )
                     {
-                        return;
+                        plannedTest.Metrics.OnTestNotRun();
+
+                        continue;
                     }
 
-                    var testCollection = collection.First().TestCollection;
-                    var collectionMetrics = new Metrics( assemblyMetrics );
+                    Task RunTestAsync()
+                        => this.RunTestAsync(
+                            SendMessage,
+                            plannedTest.ProjectReferences,
+                            directoryOptionsReader,
+                            plannedTest.Test,
+                            plannedTest.Metrics,
+                            plannedTest.Logger,
+                            runCancellationToken );
 
-                    collectionMetrics.Started += () => SendMessage( TestMessages.CollectionStarting( testCollection ) );
-                    collectionMetrics.Finished += () => SendMessage( TestMessages.CollectionFinished( testCollection, collectionMetrics ) );
-
-                    var projectMetadata = this._metadataReader.GetMetadata( this._factory.Assembly );
-
-                    lock ( _launchingDebuggerLock )
+                    if ( runSynchronously )
                     {
-                        if ( projectMetadata.MustLaunchDebugger && !hasLaunchedDebugger )
-                        {
-                            Debugger.Launch();
-                            hasLaunchedDebugger = true;
-                        }
+                        // RunTestAsync observes the cancellation token and reports its own exceptions, so the task runner
+                        // receives no token and cannot throw.
+                        this._taskRunner.RunSynchronously( RunTestAsync, CancellationToken.None );
                     }
-
-                    var projectReferences = projectMetadata.ToProjectReferences();
-
-                    foreach ( var type in collection.GroupBy( c => c.TestClass.UniqueID ) )
+                    else
                     {
-                        if ( runCancellationToken.IsCancellationRequested )
+                        // Throttle execution thanks to the semaphore.
+                        try
                         {
-                            return;
+                            semaphore.Wait( runCancellationToken );
+                        }
+                        catch ( OperationCanceledException )
+                        {
+                            plannedTest.Metrics.OnTestNotRun();
+
+                            continue;
                         }
 
-                        var testClass = type.First().TestClass;
-                        var typeMetrics = new Metrics( collectionMetrics );
-                        typeMetrics.Started += () => SendMessage( TestMessages.ClassStarting( testClass ) );
-                        typeMetrics.Finished += () => SendMessage( TestMessages.ClassFinished( testClass, typeMetrics ) );
-
-                        typeMetrics.OnTestsDiscovered( type.Count() );
-
-                        foreach ( var testCase in type )
-                        {
-                            if ( runCancellationToken.IsCancellationRequested )
-                            {
-                                return;
-                            }
-
-                            var testMetrics = new Metrics( typeMetrics );
-                            var test = new Test( testCase );
-                            var logger = new TestOutputHelper( executionMessageSink, test );
-
-                            testMetrics.Started += () =>
-                            {
-                                SendMessage( TestMessages.MethodStarting( testCase.TestMethod ) );
-                                SendMessage( TestMessages.CaseStarting( testCase ) );
-                                SendMessage( TestMessages.TestStarting( test ) );
-                            };
-
-                            testMetrics.Finished += () =>
-                            {
-                                SendMessage( TestMessages.TestFinished( test, testMetrics.ExecutionTime, logger.Output ) );
-                                SendMessage( TestMessages.CaseFinished( testCase, testMetrics ) );
-                                SendMessage( TestMessages.MethodFinished( testCase.TestMethod, testMetrics ) );
-                            };
-
-                            testMetrics.OnTestsDiscovered( 1 );
-
-                            if ( runSynchronously )
-                            {
-                                this._taskRunner.RunSynchronously(
-                                    () => this.RunTestAsync(
-                                        SendMessage,
-                                        projectReferences,
-                                        directoryOptionsReader,
-                                        test,
-                                        testMetrics,
-                                        logger,
-                                        runCancellationToken ),
-                                    runCancellationToken );
-                            }
-                            else
-                            {
-                                var task = Task.Run(
-                                    () => this.RunTestAsync(
-                                        SendMessage,
-                                        projectReferences,
-                                        directoryOptionsReader,
-                                        test,
-                                        testMetrics,
-                                        logger,
-                                        runCancellationToken ),
-                                    runCancellationToken );
-
-                                // Throttle execution thanks to the semaphore.
-                                semaphore.Wait( runCancellationToken );
-
-                                if ( runCancellationToken.IsCancellationRequested )
+                        // No cancellation token is passed to Task.Run: a task that is cancelled before it starts would not
+                        // release the semaphore and would not report the test.
+                        tasks.Add(
+                            Task.Run(
+                                async () =>
                                 {
-                                    return;
-                                }
-
-                                // When the task is over, release the semaphore.
-                                _ = task.ContinueWith( _ => semaphore.Release(), TaskScheduler.Current );
-
-                                tasks.TryAdd( task, task );
-                            }
-                        }
+                                    try
+                                    {
+                                        await RunTestAsync();
+                                    }
+                                    finally
+                                    {
+                                        semaphore.Release();
+                                    }
+                                } ) );
                     }
                 }
-
-                // Wait for all tasks to complete and catch exceptions.
-#pragma warning disable VSTHRD002
-                Task.WhenAll( tasks.Keys ).Wait( runCancellationToken );
-#pragma warning restore VSTHRD002
             }
             finally
             {
+                // RunTestAsync does not throw, and it ends promptly when the run is cancelled, so this wait needs no
+                // cancellation token.
+#pragma warning disable VSTHRD002
+                Task.WhenAll( tasks ).Wait();
+#pragma warning restore VSTHRD002
+
                 SendMessage( TestMessages.AssemblyFinished( this._factory.TestAssembly, assemblyMetrics ) );
             }
         }
 
+        /// <summary>
+        /// Creates the objects that describe each test and its parents, subscribes to their events, and reports every test
+        /// to the <see cref="Metrics"/> of its node.
+        /// </summary>
+        private List<PlannedTest> PlanTests(
+            IEnumerable<TestCase> testCases,
+            IMessageSink executionMessageSink,
+            Metrics assemblyMetrics,
+            Action<IMessageSinkMessage> sendMessage )
+        {
+            var plannedTests = new List<PlannedTest>();
+            var hasLaunchedDebugger = false;
+
+            foreach ( var collection in testCases.GroupBy( t => t.TestCollection.UniqueID ) )
+            {
+                var testCollection = collection.First().TestCollection;
+                var collectionMetrics = new Metrics( assemblyMetrics );
+
+                collectionMetrics.Started += () => sendMessage( TestMessages.CollectionStarting( testCollection ) );
+                collectionMetrics.Finished += () => sendMessage( TestMessages.CollectionFinished( testCollection, collectionMetrics ) );
+
+                var projectMetadata = this._metadataReader.GetMetadata( this._factory.Assembly );
+
+                lock ( _launchingDebuggerLock )
+                {
+                    if ( projectMetadata.MustLaunchDebugger && !hasLaunchedDebugger )
+                    {
+                        Debugger.Launch();
+                        hasLaunchedDebugger = true;
+                    }
+                }
+
+                var projectReferences = projectMetadata.ToProjectReferences();
+
+                foreach ( var type in collection.GroupBy( c => c.TestClass.UniqueID ) )
+                {
+                    var testClass = type.First().TestClass;
+                    var typeMetrics = new Metrics( collectionMetrics );
+                    typeMetrics.Started += () => sendMessage( TestMessages.ClassStarting( testClass ) );
+                    typeMetrics.Finished += () => sendMessage( TestMessages.ClassFinished( testClass, typeMetrics ) );
+
+                    foreach ( var testCase in type )
+                    {
+                        var testMetrics = new Metrics( typeMetrics );
+                        var test = new Test( testCase );
+                        var logger = new TestOutputHelper( executionMessageSink, test );
+
+                        testMetrics.Started += () =>
+                        {
+                            sendMessage( TestMessages.MethodStarting( testCase.TestMethod ) );
+                            sendMessage( TestMessages.CaseStarting( testCase ) );
+                            sendMessage( TestMessages.TestStarting( test ) );
+                        };
+
+                        testMetrics.Finished += () =>
+                        {
+                            sendMessage( TestMessages.TestFinished( test, testMetrics.ExecutionTime, logger.Output ) );
+                            sendMessage( TestMessages.CaseFinished( testCase, testMetrics ) );
+                            sendMessage( TestMessages.MethodFinished( testCase.TestMethod, testMetrics ) );
+                        };
+
+                        testMetrics.OnTestsDiscovered( 1 );
+
+                        plannedTests.Add( new PlannedTest( test, testMetrics, logger, projectReferences ) );
+                    }
+                }
+            }
+
+            return plannedTests;
+        }
+
+        /// <summary>
+        /// A test that <see cref="RunTests"/> has prepared, with the objects that it needs to run it.
+        /// </summary>
+        private sealed record PlannedTest( Test Test, Metrics Metrics, TestOutputHelper Logger, TestProjectReferences ProjectReferences );
+
+        /// <summary>
+        /// Runs a test and reports its result to xunit and to its <see cref="Metrics"/>. The method does not throw.
+        /// </summary>
         private async Task RunTestAsync(
             Action<IMessageSinkMessage> sendMessage,
             TestProjectReferences projectReferences,

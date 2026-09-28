@@ -12,22 +12,32 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
     /// </summary>
     internal sealed class Test : ITest
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Test"/> class for a test case.
+        /// </summary>
         public Test( TestCase testCase )
         {
             this.TestCase = testCase;
             this.UniqueID = UniqueIDGenerator.ForTest( testCase.UniqueID, 0 );
         }
 
+        /// <summary>
+        /// Gets the test case that the test runs.
+        /// </summary>
         public TestCase TestCase { get; }
 
         ITestCase ITest.TestCase => this.TestCase;
 
+        /// <inheritdoc />
         public string TestDisplayName => this.TestCase.TestCaseDisplayName;
 
+        /// <inheritdoc />
         public string? TestLabel => null;
 
+        /// <inheritdoc />
         public IReadOnlyDictionary<string, IReadOnlyCollection<string>> Traits => TestFactory.EmptyTraits;
 
+        /// <inheritdoc />
         public string UniqueID { get; }
     }
 }

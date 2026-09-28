@@ -17,17 +17,33 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
     /// </summary>
     internal sealed class TestOutputHelper : ITestOutputHelper
     {
+        /// <summary>
+        /// The sink that receives the output messages.
+        /// </summary>
         private readonly IMessageSink _messageSink;
+        /// <summary>
+        /// The test that writes the output.
+        /// </summary>
         private readonly Test _test;
+        /// <summary>
+        /// The output written so far.
+        /// </summary>
         private readonly StringBuilder _stringBuilder = new();
+        /// <summary>
+        /// The lock that serializes the writes.
+        /// </summary>
         private readonly object _sync = new();
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TestOutputHelper"/> class.
+        /// </summary>
         public TestOutputHelper( IMessageSink messageSink, Test test )
         {
             this._messageSink = messageSink;
             this._test = test;
         }
 
+        /// <inheritdoc />
         public string Output
         {
             get
@@ -39,6 +55,7 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
             }
         }
 
+        /// <inheritdoc />
         public void Write( string message )
         {
             lock ( this._sync )
@@ -50,13 +67,17 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
         }
 
         // ReSharper disable once RedundantStringFormatCall
+        /// <inheritdoc />
         public void Write( string format, params object[] args ) => this.Write( string.Format( CultureInfo.InvariantCulture, format, args ) );
 
+        /// <inheritdoc />
         public void WriteLine( string message ) => this.Write( message + Environment.NewLine );
 
         // ReSharper disable once RedundantStringFormatCall
+        /// <inheritdoc />
         public void WriteLine( string format, params object[] args ) => this.WriteLine( string.Format( CultureInfo.InvariantCulture, format, args ) );
 
+        /// <inheritdoc />
         public override string ToString() => this.Output;
     }
 }

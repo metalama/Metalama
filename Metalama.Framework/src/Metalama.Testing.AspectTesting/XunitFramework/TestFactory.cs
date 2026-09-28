@@ -18,29 +18,68 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
     /// </summary>
     internal sealed class TestFactory
     {
+        /// <summary>
+        /// The single instance of the factory of each test assembly.
+        /// </summary>
         private static readonly ConcurrentDictionary<Assembly, TestFactory> _instances = new();
 
+        /// <summary>
+        /// The test methods, keyed by the relative path of their test file.
+        /// </summary>
         private readonly ConcurrentDictionary<string, TestMethod> _methods = new();
+        /// <summary>
+        /// The test classes, keyed by the relative path of their directory.
+        /// </summary>
         private readonly ConcurrentDictionary<string, TestClass> _types = new();
 
+        /// <summary>
+        /// Gets the global service provider of the test framework.
+        /// </summary>
         public GlobalServiceProvider ServiceProvider { get; }
 
+        /// <summary>
+        /// Gets the properties of the test project.
+        /// </summary>
         public TestProjectProperties ProjectProperties { get; }
 
+        /// <summary>
+        /// Gets the factory that reads test files.
+        /// </summary>
         public TestInput.Factory TestInputFactory { get; }
 
+        /// <summary>
+        /// Gets the file system.
+        /// </summary>
         public IFileSystem FileSystem { get; }
 
+        /// <summary>
+        /// Gets the name of the test project, which is the name of its source directory.
+        /// </summary>
         public string ProjectName { get; }
 
+        /// <summary>
+        /// Gets the reader of the options that apply to the directories of the test project.
+        /// </summary>
         public TestDirectoryOptionsReader DirectoryOptionsReader { get; }
 
+        /// <summary>
+        /// Gets the test assembly.
+        /// </summary>
         public Assembly Assembly { get; }
 
+        /// <summary>
+        /// Gets the single test collection of the test assembly.
+        /// </summary>
         public TestCollection TestCollection { get; }
 
+        /// <summary>
+        /// Gets the object that describes the test assembly to xunit.
+        /// </summary>
         public TestAssembly TestAssembly { get; }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TestFactory"/> class.
+        /// </summary>
         public TestFactory(
             GlobalServiceProvider serviceProvider,
             TestProjectProperties projectProperties,
@@ -65,6 +104,20 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
         public static TestFactory GetInstance( GlobalServiceProvider serviceProvider, Assembly assembly )
             => _instances.GetOrAdd( assembly, static ( a, sp ) => Create( sp, a ), serviceProvider );
 
+        /// <summary>
+        /// Gets the <see cref="TestFactory"/> of a test assembly, and creates the service provider of a new instance only
+        /// when the assembly has no instance yet.
+        /// </summary>
+        /// <remarks>
+        /// xunit deserializes every test case of a run separately, and creating a global service provider is expensive,
+        /// so <see cref="TestCase"/> uses this overload.
+        /// </remarks>
+        public static TestFactory GetInstance( Func<GlobalServiceProvider> getServiceProvider, Assembly assembly )
+            => _instances.GetOrAdd( assembly, static ( a, get ) => Create( get(), a ), getServiceProvider );
+
+        /// <summary>
+        /// Creates the factory of a test assembly from the metadata of the assembly.
+        /// </summary>
         private static TestFactory Create( GlobalServiceProvider serviceProvider, Assembly assembly )
         {
             var metadata = serviceProvider.GetRequiredService<ITestAssemblyMetadataReader>().GetMetadata( assembly );
@@ -77,8 +130,14 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
                 assembly );
         }
 
+        /// <summary>
+        /// Gets the test method of a test file, and creates it on first use.
+        /// </summary>
         public TestMethod GetTestMethod( string relativePath ) => this._methods.GetOrAdd( relativePath, static ( p, me ) => new TestMethod( me, p ), this );
 
+        /// <summary>
+        /// Gets the test class of a directory, and creates it on first use.
+        /// </summary>
         public TestClass GetTestType( string? relativePath ) => this._types.GetOrAdd( relativePath ?? "", static ( p, me ) => new TestClass( me, p ), this );
 
         /// <summary>

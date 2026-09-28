@@ -15,8 +15,14 @@ namespace Metalama.Testing.AspectTesting.XunitFramework;
 /// </summary>
 internal static class TestMessages
 {
+    /// <summary>
+    /// An empty dictionary of attachments.
+    /// </summary>
     private static readonly IReadOnlyDictionary<string, TestAttachment> _noAttachments = new Dictionary<string, TestAttachment>( StringComparer.Ordinal );
 
+    /// <summary>
+    /// Creates the message that reports that the execution of the test assembly starts.
+    /// </summary>
     public static TestAssemblyStarting AssemblyStarting( TestAssembly assembly, string? targetFramework )
         => new()
         {
@@ -32,6 +38,9 @@ internal static class TestMessages
             Traits = assembly.Traits
         };
 
+    /// <summary>
+    /// Creates the message that reports that the execution of the test assembly has finished.
+    /// </summary>
     public static TestAssemblyFinished AssemblyFinished( TestAssembly assembly, Metrics metrics )
         => new()
         {
@@ -39,11 +48,14 @@ internal static class TestMessages
             ExecutionTime = metrics.ExecutionTime,
             FinishTime = DateTimeOffset.Now,
             TestsFailed = metrics.TestFailed,
-            TestsNotRun = 0,
+            TestsNotRun = metrics.TestsNotRun,
             TestsSkipped = metrics.TestSkipped,
             TestsTotal = metrics.TestsTotal
         };
 
+    /// <summary>
+    /// Creates the message that reports that the execution of a test collection starts.
+    /// </summary>
     public static TestCollectionStarting CollectionStarting( ITestCollection collection )
         => new()
         {
@@ -55,6 +67,9 @@ internal static class TestMessages
             Traits = collection.Traits
         };
 
+    /// <summary>
+    /// Creates the message that reports that the execution of a test collection has finished.
+    /// </summary>
     public static TestCollectionFinished CollectionFinished( ITestCollection collection, Metrics metrics )
         => new()
         {
@@ -63,11 +78,14 @@ internal static class TestMessages
             FinishTime = DateTimeOffset.Now,
             TestCollectionUniqueID = collection.UniqueID,
             TestsFailed = metrics.TestFailed,
-            TestsNotRun = 0,
+            TestsNotRun = metrics.TestsNotRun,
             TestsSkipped = metrics.TestSkipped,
             TestsTotal = metrics.TestsTotal
         };
 
+    /// <summary>
+    /// Creates the message that reports that the execution of a test class starts.
+    /// </summary>
     public static TestClassStarting ClassStarting( ITestClass testClass )
         => new()
         {
@@ -81,6 +99,9 @@ internal static class TestMessages
             Traits = testClass.Traits
         };
 
+    /// <summary>
+    /// Creates the message that reports that the execution of a test class has finished.
+    /// </summary>
     public static TestClassFinished ClassFinished( ITestClass testClass, Metrics metrics )
         => new()
         {
@@ -90,11 +111,14 @@ internal static class TestMessages
             TestClassUniqueID = testClass.UniqueID,
             TestCollectionUniqueID = testClass.TestCollection.UniqueID,
             TestsFailed = metrics.TestFailed,
-            TestsNotRun = 0,
+            TestsNotRun = metrics.TestsNotRun,
             TestsSkipped = metrics.TestSkipped,
             TestsTotal = metrics.TestsTotal
         };
 
+    /// <summary>
+    /// Creates the message that reports that the execution of a test method starts.
+    /// </summary>
     public static TestMethodStarting MethodStarting( ITestMethod testMethod )
         => new()
         {
@@ -108,6 +132,9 @@ internal static class TestMessages
             Traits = testMethod.Traits
         };
 
+    /// <summary>
+    /// Creates the message that reports that the execution of a test method has finished.
+    /// </summary>
     public static TestMethodFinished MethodFinished( ITestMethod testMethod, Metrics metrics )
         => new()
         {
@@ -118,11 +145,14 @@ internal static class TestMessages
             TestCollectionUniqueID = testMethod.TestClass.TestCollection.UniqueID,
             TestMethodUniqueID = testMethod.UniqueID,
             TestsFailed = metrics.TestFailed,
-            TestsNotRun = 0,
+            TestsNotRun = metrics.TestsNotRun,
             TestsSkipped = metrics.TestSkipped,
             TestsTotal = metrics.TestsTotal
         };
 
+    /// <summary>
+    /// Creates the message that reports that the execution of a test case starts.
+    /// </summary>
     public static TestCaseStarting CaseStarting( TestCase testCase )
         => new()
         {
@@ -149,6 +179,9 @@ internal static class TestMessages
             Traits = testCase.Traits
         };
 
+    /// <summary>
+    /// Creates the message that reports that the execution of a test case has finished.
+    /// </summary>
     public static TestCaseFinished CaseFinished( TestCase testCase, Metrics metrics )
         => new()
         {
@@ -160,11 +193,14 @@ internal static class TestMessages
             TestCollectionUniqueID = testCase.TestCollection.UniqueID,
             TestMethodUniqueID = testCase.TestMethod.UniqueID,
             TestsFailed = metrics.TestFailed,
-            TestsNotRun = 0,
+            TestsNotRun = metrics.TestsNotRun,
             TestsSkipped = metrics.TestSkipped,
             TestsTotal = metrics.TestsTotal
         };
 
+    /// <summary>
+    /// Creates the message that reports that a test starts.
+    /// </summary>
     public static TestStarting TestStarting( Test test )
         => new()
         {
@@ -182,6 +218,9 @@ internal static class TestMessages
             Traits = test.Traits
         };
 
+    /// <summary>
+    /// Creates the message that reports that a test has finished, after the message that reports its result.
+    /// </summary>
     public static TestFinished TestFinished( Test test, decimal executionTime, string output )
         => new()
         {
@@ -198,6 +237,9 @@ internal static class TestMessages
             Warnings = null
         };
 
+    /// <summary>
+    /// Creates the message that reports that a test passed.
+    /// </summary>
     public static TestPassed TestPassed( Test test, decimal executionTime, string output )
         => new()
         {
@@ -213,6 +255,9 @@ internal static class TestMessages
             Warnings = null
         };
 
+    /// <summary>
+    /// Creates the message that reports that a test was skipped.
+    /// </summary>
     public static TestSkipped TestSkipped( Test test, string reason, string output )
         => new()
         {
@@ -229,6 +274,9 @@ internal static class TestMessages
             Warnings = null
         };
 
+    /// <summary>
+    /// Creates the message that reports that a test failed with an exception.
+    /// </summary>
     public static ITestFailed TestFailed( Test test, Exception exception, decimal executionTime, string output )
         => Xunit.v3.TestFailed.FromException(
             exception,
@@ -243,6 +291,9 @@ internal static class TestMessages
             null,
             null );
 
+    /// <summary>
+    /// Creates the message that carries text that a test has written to its output.
+    /// </summary>
     public static TestOutput Output( Test test, string output )
         => new()
         {
@@ -255,5 +306,8 @@ internal static class TestMessages
             TestUniqueID = test.UniqueID
         };
 
+    /// <summary>
+    /// Creates a diagnostic message of the test framework.
+    /// </summary>
     public static DiagnosticMessage Diagnostic( string message ) => new() { Message = message };
 }

@@ -8,8 +8,14 @@ using Xunit.Sdk;
 
 namespace Metalama.Testing.AspectTesting.XunitFramework;
 
+/// <summary>
+/// Describes the test assembly to xunit.
+/// </summary>
 internal sealed class TestAssembly : ITestAssembly
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="TestAssembly"/> class.
+    /// </summary>
     public TestAssembly( TestFactory factory )
     {
         this.AssemblyName = factory.Assembly.FullName ?? factory.Assembly.GetName().Name ?? "";
@@ -18,15 +24,21 @@ internal sealed class TestAssembly : ITestAssembly
         this.UniqueID = UniqueIDGenerator.ForAssembly( this.AssemblyPath, null );
     }
 
+    /// <inheritdoc />
     public string AssemblyName { get; }
 
+    /// <inheritdoc />
     public string AssemblyPath { get; }
 
+    /// <inheritdoc />
     public string? ConfigFilePath => null;
 
+    /// <inheritdoc />
     public IReadOnlyDictionary<string, IReadOnlyCollection<string>> Traits => TestFactory.EmptyTraits;
 
+    /// <inheritdoc />
     public string UniqueID { get; }
 
+    /// <inheritdoc />
     public Guid ModuleVersionID { get; }
 }

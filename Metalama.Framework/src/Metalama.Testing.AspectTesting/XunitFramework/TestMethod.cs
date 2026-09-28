@@ -13,6 +13,9 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
     /// </summary>
     internal sealed class TestMethod : ITestMethod
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TestMethod"/> class for a test file.
+        /// </summary>
         public TestMethod( TestFactory factory, string relativePath )
         {
             this.TestClass = factory.GetTestType( Path.GetDirectoryName( relativePath ) );
@@ -20,14 +23,19 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
             this.UniqueID = UniqueIDGenerator.ForTestMethod( this.TestClass.UniqueID, this.MethodName );
         }
 
+        /// <inheritdoc />
         public ITestClass TestClass { get; }
 
+        /// <inheritdoc />
         public int? MethodArity => null;
 
+        /// <inheritdoc />
         public string MethodName { get; }
 
+        /// <inheritdoc />
         public IReadOnlyDictionary<string, IReadOnlyCollection<string>> Traits => TestFactory.EmptyTraits;
 
+        /// <inheritdoc />
         public string UniqueID { get; }
     }
 }

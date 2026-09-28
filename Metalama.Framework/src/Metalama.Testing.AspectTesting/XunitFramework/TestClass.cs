@@ -13,6 +13,9 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
     /// </summary>
     internal sealed class TestClass : ITestClass
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TestClass"/> class for a directory of test files.
+        /// </summary>
         public TestClass( TestFactory factory, string relativePath )
         {
             this.TestCollection = factory.TestCollection;
@@ -46,16 +49,22 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
             this.UniqueID = UniqueIDGenerator.ForTestClass( this.TestCollection.UniqueID, this.TestClassName );
         }
 
+        /// <inheritdoc />
         public ITestCollection TestCollection { get; }
 
+        /// <inheritdoc />
         public string TestClassName { get; }
 
+        /// <inheritdoc />
         public string? TestClassNamespace { get; }
 
+        /// <inheritdoc />
         public string TestClassSimpleName { get; }
 
+        /// <inheritdoc />
         public IReadOnlyDictionary<string, IReadOnlyCollection<string>> Traits => TestFactory.EmptyTraits;
 
+        /// <inheritdoc />
         public string UniqueID { get; }
     }
 }

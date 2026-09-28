@@ -12,22 +12,33 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
     /// </summary>
     internal sealed class TestCollection : ITestCollection
     {
+        /// <summary>
+        /// The display name of the single test collection.
+        /// </summary>
         private const string _displayName = "All tests";
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TestCollection"/> class.
+        /// </summary>
         public TestCollection( TestAssembly assembly )
         {
             this.TestAssembly = assembly;
             this.UniqueID = UniqueIDGenerator.ForTestCollection( assembly.UniqueID, _displayName, null );
         }
 
+        /// <inheritdoc />
         public ITestAssembly TestAssembly { get; }
 
+        /// <inheritdoc />
         public string? TestCollectionClassName => null;
 
+        /// <inheritdoc />
         public string TestCollectionDisplayName => _displayName;
 
+        /// <inheritdoc />
         public IReadOnlyDictionary<string, IReadOnlyCollection<string>> Traits => TestFactory.EmptyTraits;
 
+        /// <inheritdoc />
         public string UniqueID { get; }
     }
 }

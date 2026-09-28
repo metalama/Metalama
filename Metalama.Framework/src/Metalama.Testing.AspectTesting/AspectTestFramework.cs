@@ -22,6 +22,9 @@ namespace Metalama.Testing.AspectTesting
     [ExcludeFromCodeCoverage]
     public sealed class AspectTestFramework : TestFramework
     {
+        /// <summary>
+        /// The display name of the test framework, which xunit shows in its reports.
+        /// </summary>
         internal const string DisplayName = "Metalama";
 
         static AspectTestFramework()
@@ -29,7 +32,13 @@ namespace Metalama.Testing.AspectTesting
             TestingServices.Initialize();
         }
 
+        /// <summary>
+        /// The global service provider of the test framework.
+        /// </summary>
         private readonly GlobalServiceProvider _serviceProvider;
+        /// <summary>
+        /// The function that writes diagnostic messages, or <c>null</c> when tracing is disabled.
+        /// </summary>
         private readonly Action<string>? _trace;
 
         /// <summary>
