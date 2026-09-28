@@ -43,7 +43,9 @@
         <!-- xUnit1051 reports every call in a test that accepts a cancellation token and receives none. These calls
              were written before xunit.v3. Passing MetalamaTestContext.CancellationToken to them, which is linked to
              the token of xunit, is a separate change. -->
-        <NoWarn>$(NoWarn);xUnit1051</NoWarn>
+        <!-- xUnit1069 reports every test that has a Timeout and does not use Xunit.TestContext.Current.CancellationToken.
+             These tests were written before xunit.v3, and changing them is part of the same separate change. -->
+        <NoWarn>$(NoWarn);xUnit1051;xUnit1069</NoWarn>
 
     </PropertyGroup>
 </Project>

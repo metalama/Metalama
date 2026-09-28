@@ -17,7 +17,7 @@
     <!-- Prevent MSB3277 warning: -->
     <PackageReference Include="System.Memory" />
     <!-- Prevent MSB3277 warning: -->
-    <PackageReference Include="System.Reflection.Metadata" />
+    <PackageReference Include="System.Reflection.Metadata" VersionOverride="9.0.0" />
     <!-- Prevent MSB3277 warning: -->
     <PackageReference Include="System.Runtime.CompilerServices.Unsafe" />
     <!-- Prevent MSB3277 warning: -->

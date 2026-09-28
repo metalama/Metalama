@@ -122,6 +122,10 @@ public partial class MetalamaTestContext
         // Force the loading of some system assemblies before we search them in the AppDomain.
         _ = typeof(DynamicAttribute).Assembly;
         _ = typeof(Console).Assembly;
+
+        // INotifyPropertyChanged is in System.ObjectModel on .NET. The test host of xunit v2 loaded this assembly before
+        // the first test, but the test process of xunit.v3 does not, so the first test of a process would not reference it.
+        _ = typeof(System.ComponentModel.INotifyPropertyChanged).Assembly;
 #if NETFRAMEWORK
         _ = Assembly.Load( "System.Reflection, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" );
         _ = Assembly.Load( "System.Linq, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" );

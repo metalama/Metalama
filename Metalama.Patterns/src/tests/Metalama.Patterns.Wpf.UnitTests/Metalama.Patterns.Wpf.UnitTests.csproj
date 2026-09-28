@@ -19,9 +19,9 @@
     <PackageReference Include="System.Runtime.CompilerServices.Unsafe" />
     <!-- Prevent MSB3277 warning: -->
     <PackageReference Include="System.Threading.Tasks.Extensions" />
-    <PackageReference Include="System.Collections.Immutable" />
+    <PackageReference Include="System.Collections.Immutable" VersionOverride="9.0.0" />
     <!-- Prevent MSB3277 warning: -->
-    <PackageReference Include="System.Reflection.Metadata" />
+    <PackageReference Include="System.Reflection.Metadata" VersionOverride="9.0.0" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
