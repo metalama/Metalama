@@ -8,7 +8,6 @@ using Metalama.Framework.Engine.ReflectionMocks;
 using System.Linq;
 using System.Reflection;
 using Xunit;
-using Xunit.Abstractions;
 
 // ReSharper disable ParameterOnlyUsedForPreconditionCheck.Local
 

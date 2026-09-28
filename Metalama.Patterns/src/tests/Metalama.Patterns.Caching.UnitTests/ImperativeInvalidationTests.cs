@@ -6,7 +6,6 @@ using Metalama.Patterns.Caching.Aspects;
 using Metalama.Patterns.Caching.TestHelpers;
 using Metalama.Patterns.Caching.Tests.Assets;
 using Xunit;
-using Xunit.Abstractions;
 
 // ReSharper disable MemberCanBeInternal
 // ReSharper disable MemberCanBePrivate.Global

@@ -13,7 +13,6 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline.MemoryLeaks;
 
@@ -80,7 +79,7 @@ public sealed class ProjectVersionProviderMemoryLeakTests : DesignTimeTestBase
     /// </remarks>
     [MethodImpl( MethodImplOptions.NoInlining )]
     private static async Task<WeakReference[]> RunSequentialChainAsync(
-        TestContext testContext,
+        MetalamaTestContext testContext,
         ProjectVersionProvider provider,
         string assemblyName,
         int versionCount )
@@ -182,7 +181,7 @@ public sealed class ProjectVersionProviderMemoryLeakTests : DesignTimeTestBase
     /// </summary>
     [MethodImpl( MethodImplOptions.NoInlining )]
     private static async Task<WeakReference[]> RunReferenceChainAsync(
-        TestContext testContext,
+        MetalamaTestContext testContext,
         ProjectVersionProvider provider,
         string assemblyName,
         int versionCount )
@@ -228,7 +227,7 @@ public sealed class ProjectVersionProviderMemoryLeakTests : DesignTimeTestBase
     /// <summary>
     /// Creates the first version of the simulated project.
     /// </summary>
-    private static Compilation CreateInitialCompilation( TestContext testContext, string assemblyName )
+    private static Compilation CreateInitialCompilation( MetalamaTestContext testContext, string assemblyName )
         => testContext.CreateCSharpCompilation( new Dictionary<string, string> { ["Code.cs"] = GetCode( 0 ) }, assemblyName: assemblyName );
 
     /// <summary>

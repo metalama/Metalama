@@ -8,7 +8,6 @@ using System.Collections;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Patterns.Caching.TestHelpers
 {

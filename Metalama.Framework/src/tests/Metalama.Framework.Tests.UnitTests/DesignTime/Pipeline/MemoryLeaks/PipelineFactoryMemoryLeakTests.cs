@@ -17,7 +17,6 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline.MemoryLeaks;
 
@@ -49,7 +48,7 @@ public sealed class PipelineFactoryMemoryLeakTests : DesignTimeTestBase
     /// Creates the real pipeline factory, rather than the test subclass, because the test subclass overrides the
     /// method under test.
     /// </summary>
-    private static DesignTimeAspectPipelineFactory CreateFactory( TestContext testContext )
+    private static DesignTimeAspectPipelineFactory CreateFactory( MetalamaTestContext testContext )
     {
         GlobalServiceProvider serviceProvider = testContext.ServiceProvider;
 
@@ -79,7 +78,7 @@ public sealed class PipelineFactoryMemoryLeakTests : DesignTimeTestBase
     /// </remarks>
     [MethodImpl( MethodImplOptions.NoInlining )]
     private static async Task<WeakReference> StartAndCancelWaitAsync(
-        TestContext testContext,
+        MetalamaTestContext testContext,
         DesignTimeAspectPipelineFactory factory,
         string assemblyName )
     {

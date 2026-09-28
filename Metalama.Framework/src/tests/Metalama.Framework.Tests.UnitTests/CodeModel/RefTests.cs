@@ -12,6 +12,7 @@ using Metalama.Framework.Engine.Services;
 using Metalama.Testing.UnitTesting;
 using System;
 using System.Linq;
+using System.Threading;
 using Xunit;
 
 // Several tests below declare the type of a local explicitly, because what they assert is the static type of the
@@ -52,8 +53,11 @@ public abstract class RefTests : UnitTestClass
     /// This method overrides <c>CreateTestContextCore</c> and not <c>CreateDefaultTestContextOptions</c>, because the
     /// latter is called only when the test passes no options.
     /// </remarks>
-    protected override TestContext CreateTestContextCore( TestContextOptions contextOptions, IAdditionalServiceCollection services )
-        => base.CreateTestContextCore( contextOptions with { DurableRefKind = this.DurableRefKind }, services );
+    protected override MetalamaTestContext CreateTestContextCore(
+        MetalamaTestContextOptions contextOptions,
+        IAdditionalServiceCollection services,
+        CancellationToken cancellationToken )
+        => base.CreateTestContextCore( contextOptions with { DurableRefKind = this.DurableRefKind }, services, cancellationToken );
 
     /// <summary>
     /// <see cref="IRef{T}.ToDurable"/> is public, and it returns the strongly-typed <see cref="IDurableRef{T}"/> so that

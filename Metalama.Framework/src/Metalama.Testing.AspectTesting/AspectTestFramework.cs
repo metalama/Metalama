@@ -10,59 +10,60 @@ using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-using Xunit.Abstractions;
+using Xunit;
+using Xunit.v3;
 
 namespace Metalama.Testing.AspectTesting
 {
+    /// <summary>
+    /// The xunit test framework that turns every file of a test project into a test. It is registered in the test project
+    /// by the <c>Xunit.TestFrameworkAttribute</c> that the build of <c>Metalama.Testing.AspectTesting</c> adds.
+    /// </summary>
     [ExcludeFromCodeCoverage]
-    public sealed class AspectTestFramework : ITestFramework, ISourceInformationProvider
+    public sealed class AspectTestFramework : TestFramework
     {
+        internal const string DisplayName = "Metalama";
+
         static AspectTestFramework()
         {
             TestingServices.Initialize();
         }
 
         private readonly GlobalServiceProvider _serviceProvider;
-        private readonly IMessageSink? _messageSink;
+        private readonly Action<string>? _trace;
 
-        // This is the constructor used by the test host process.
+        /// <summary>
+        /// Initializes a new instance of the <see cref="AspectTestFramework"/> class. This constructor is called by xunit.
+        /// </summary>
         [UsedImplicitly]
-        public AspectTestFramework( IMessageSink messageSink )
+        public AspectTestFramework()
         {
             // We disable logging by default because it creates too many log records.
-            var messageSinkOrNull = string.IsNullOrEmpty( Environment.GetEnvironmentVariable( "LogMetalamaTestFramework" ) )
-                ? null
-                : messageSink;
+            if ( !string.IsNullOrEmpty( Environment.GetEnvironmentVariable( "LogMetalamaTestFramework" ) ) )
+            {
+                this._trace = message => TestContext.Current.SendDiagnosticMessage( message );
+            }
 
             const string debugEnvironmentVariable = "DebugMetalamaTestFramework";
 
             if ( !string.IsNullOrEmpty( Environment.GetEnvironmentVariable( debugEnvironmentVariable ) ) )
             {
-                messageSinkOrNull?.Trace( $"Environment variable '{debugEnvironmentVariable}' detected. Attaching debugger." );
+                this._trace?.Invoke( $"Environment variable '{debugEnvironmentVariable}' detected. Attaching debugger." );
                 Debugger.Launch();
             }
 
             this._serviceProvider = TestFrameworkServiceFactoryProvider.GetServiceProvider();
         }
 
-        internal AspectTestFramework( GlobalServiceProvider serviceProvider, IMessageSink? messageSink )
-        {
-            this._serviceProvider = serviceProvider;
-            this._messageSink = messageSink;
-        }
+        /// <inheritdoc />
+        public override string TestFrameworkDisplayName => DisplayName;
 
-        void IDisposable.Dispose() { }
+        /// <inheritdoc />
+        protected override ITestFrameworkDiscoverer CreateDiscoverer( Assembly assembly )
+            => new TestDiscoverer( TestFactory.GetInstance( this._serviceProvider, assembly ), this._trace );
 
-        ISourceInformation ISourceInformationProvider.GetSourceInformation( ITestCase testCase ) => (ISourceInformation) testCase;
-
-        ITestFrameworkDiscoverer ITestFramework.GetDiscoverer( IAssemblyInfo assembly )
-            => new TestDiscoverer( this._serviceProvider, assembly, this._messageSink );
-
-        ITestFrameworkExecutor ITestFramework.GetExecutor( AssemblyName assemblyName ) => new TestExecutor( this._serviceProvider, assemblyName );
-
-        ISourceInformationProvider ITestFramework.SourceInformationProvider
-        {
-            set { }
-        }
+        /// <inheritdoc />
+        protected override ITestFrameworkExecutor CreateExecutor( Assembly assembly )
+            => new TestExecutor( this._serviceProvider, TestFactory.GetInstance( this._serviceProvider, assembly ) );
     }
 }

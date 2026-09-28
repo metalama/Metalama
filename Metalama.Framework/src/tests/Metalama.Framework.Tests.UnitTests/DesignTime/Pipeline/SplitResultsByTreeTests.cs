@@ -13,7 +13,6 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline;
 
@@ -240,7 +239,7 @@ public sealed class SplitResultsByTreeTests : DesignTimePipelineTestsBase
     /// reported. Completing successfully is therefore not sufficient evidence that the aspect ran.
     /// </para>
     /// </remarks>
-    private void AssertParameterIsPulled( TestDesignTimeAspectPipelineFactory pipelineFactory, TestContext appContext, Compilation app )
+    private void AssertParameterIsPulled( TestDesignTimeAspectPipelineFactory pipelineFactory, MetalamaTestContext appContext, Compilation app )
     {
         Exception? thrown = null;
         var success = false;

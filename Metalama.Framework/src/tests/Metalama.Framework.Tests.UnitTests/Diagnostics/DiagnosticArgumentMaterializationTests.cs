@@ -62,7 +62,7 @@ public sealed class DiagnosticArgumentMaterializationTests : UnitTestClass
     /// <remarks>
     /// <see cref="MetalamaStringFormatter.Instance"/> throws until the static constructor of
     /// <see cref="MetalamaEngineModuleInitializer"/> has run, and no test of this class creates a
-    /// <see cref="TestContext"/>, which is what triggers that constructor in the other test classes. Without this
+    /// <see cref="MetalamaTestContext"/>, which is what triggers that constructor in the other test classes. Without this
     /// static constructor, the tests below pass only when another test class has already run in the same process,
     /// which the test runner does not guarantee.
     /// </remarks>

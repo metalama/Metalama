@@ -4,7 +4,6 @@
 
 using Flashtrace.Formatters.UnitTests.Assets;
 using Xunit;
-using Xunit.Abstractions;
 
 // ReSharper disable UseArrayEmptyMethod
 #pragma warning disable CA1825

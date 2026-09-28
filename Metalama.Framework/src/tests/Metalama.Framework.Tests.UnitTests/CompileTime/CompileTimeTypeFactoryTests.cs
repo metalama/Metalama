@@ -51,7 +51,7 @@ public sealed class CompileTimeTypeFactoryTests : UnitTestClass
                                  }
                                  """;
 
-    private static CompilationModel CreateCompilation( TestContext testContext ) => testContext.CreateCompilationModel( _code );
+    private static CompilationModel CreateCompilation( MetalamaTestContext testContext ) => testContext.CreateCompilationModel( _code );
 
     private static CompileTimeTypeFactory GetFactory( CompilationModel compilation ) => compilation.CompilationContext.CompileTimeTypeFactory;
 

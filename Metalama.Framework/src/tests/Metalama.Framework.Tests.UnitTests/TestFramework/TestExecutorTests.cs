@@ -57,14 +57,19 @@ public sealed class TestExecutorTests : UnitTestClass
             "net10.0",
             ImmutableArray<string>.Empty );
 
-        var assemblyInfo = new TestAssemblyInfo( $"test.dll" );
-        var testFactory = new TestFactory( serviceProvider, testProperties, new TestDirectoryOptionsReader( serviceProvider, directory ), assemblyInfo );
+        // The metadata of the assembly is supplied by FakeMetadataReader, so any assembly can stand for the test assembly.
+        var testFactory = new TestFactory(
+            serviceProvider,
+            testProperties,
+            new TestDirectoryOptionsReader( serviceProvider, directory ),
+            typeof(TestExecutorTests).Assembly );
+
         var messageSink = new TestMessageSink();
 
         var testExecutor = new TestExecutor( serviceProvider, testFactory );
-        var testDiscoverer = new TestDiscoverer( serviceProvider, assemblyInfo );
+        var testDiscoverer = new TestDiscoverer( testFactory );
         var tests = testDiscoverer.Discover( directory, ImmutableHashSet<string>.Empty );
-        testExecutor.RunTests( tests, messageSink, new TestFrameworkExecutionOptions() );
+        testExecutor.RunTests( tests, messageSink, new TestFrameworkExecutionOptions(), testContext.CancellationToken );
 
         var sequence = string.Join( ",", messageSink.Messages.SelectAsReadOnlyList( x => x.GetType().Name ).Where( x => x != "TestOutput" ) );
 

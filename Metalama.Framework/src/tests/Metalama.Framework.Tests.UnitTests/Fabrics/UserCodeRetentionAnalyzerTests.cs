@@ -15,7 +15,6 @@ using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Framework.Tests.UnitTests.Fabrics;
 
@@ -64,7 +63,7 @@ public sealed class UserCodeRetentionAnalyzerTests : UnitTestClass
         // The project name reaches the name of the report file, so that a run of the whole suite leaves one report per
         // test rather than a single file that every test overwrites.
         using var testContext = this.CreateTestContext(
-            new TestContextOptions { DiagnoseMemoryLeaks = enabled, ProjectName = callerMemberName } );
+            new MetalamaTestContextOptions { DiagnoseMemoryLeaks = enabled, ProjectName = callerMemberName } );
 
         var compilation = testContext.CreateCSharpCompilation( _prologue + fabricCode );
         var pipeline = new CompileTimeAspectPipeline( testContext.ServiceProvider );
@@ -331,7 +330,7 @@ public sealed class UserCodeRetentionAnalyzerTests : UnitTestClass
         // externally inheritable aspects into the transitive manifest, and the serializer refuses a declaration. That
         // check is stronger than this diagnostic, because it is an error and is always on, so the diagnostic is not
         // what protects this case and must not be expected to.
-        using var testContext = this.CreateTestContext( new TestContextOptions { DiagnoseMemoryLeaks = true } );
+        using var testContext = this.CreateTestContext( new MetalamaTestContextOptions { DiagnoseMemoryLeaks = true } );
 
         var compilation = testContext.CreateCSharpCompilation(
             _prologue

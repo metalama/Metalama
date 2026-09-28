@@ -21,7 +21,7 @@ using System.Runtime.CompilerServices;
 
 namespace Metalama.Testing.UnitTesting;
 
-public partial class TestContext
+public partial class MetalamaTestContext
 {
     private static readonly ConcurrentDictionary<string, PortableExecutableReference> _metadataReferenceCacheByPath = new();
 
@@ -115,7 +115,7 @@ public partial class TestContext
             ] );
 
             assemblies.AddRange( this.TestProjectOptions.AdditionalAssemblies );
-            var extensionLoader = new TestExtensionLoader( this.ServiceProvider.Global, this.TestProjectOptions.TestContextOptions );
+            var extensionLoader = new TestExtensionLoader( this.ServiceProvider.Global, this.TestProjectOptions.MetalamaTestContextOptions );
             libraries.AddRange( extensionLoader.GetExtensionAssemblyPaths( this.TestProjectOptions.CompileTimeAssemblies ) );
         }
 
@@ -140,7 +140,7 @@ public partial class TestContext
 
         if ( addMetalamaReferences )
         {
-            foreach ( var reference in this.TestContextOptions.AdditionalMetadataReferences )
+            foreach ( var reference in this.MetalamaTestContextOptions.AdditionalMetadataReferences )
             {
                 var assemblyName = Path.GetFileNameWithoutExtension( reference.FilePath )!;
 

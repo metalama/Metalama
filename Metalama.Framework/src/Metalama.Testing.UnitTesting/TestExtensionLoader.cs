@@ -15,9 +15,9 @@ namespace Metalama.Testing.UnitTesting;
 
 internal sealed class TestExtensionLoader : ExtensionLoaderBase, IExtensionLoader
 {
-    private readonly TestContextOptions _testContextOptions;
+    private readonly MetalamaTestContextOptions _testContextOptions;
 
-    public TestExtensionLoader( ServiceProvider<IGlobalService> sp, TestContextOptions testContextOptions ) : base( sp )
+    public TestExtensionLoader( ServiceProvider<IGlobalService> sp, MetalamaTestContextOptions testContextOptions ) : base( sp )
     {
         this._testContextOptions = testContextOptions;
     }

@@ -16,7 +16,6 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Reflection.Emit;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Framework.Tests.UnitTests.Fabrics;
 
@@ -83,7 +82,7 @@ public sealed class UserCodeRetentionPolicyTests : UnitTestClass
     public void PinningObject_IsReported( string kind )
     {
         using var testContext = this.CreateTestContext(
-            new TestContextOptions { DurableRefKind = kind == "boundDurableRef" ? DurableRefKind.Bound : DurableRefKind.Default } );
+            new MetalamaTestContextOptions { DurableRefKind = kind == "boundDurableRef" ? DurableRefKind.Bound : DurableRefKind.Default } );
 
         var compilationModel = testContext.CreateCompilationModel( "class C { void M() { } }" );
         var type = compilationModel.Types.OfName( "C" ).Single();
@@ -125,7 +124,7 @@ public sealed class UserCodeRetentionPolicyTests : UnitTestClass
     [InlineData( DurableRefKind.SerializedWithoutCache )]
     public void SerializedDurableRef_IsNotReported( DurableRefKind kind )
     {
-        using var testContext = this.CreateTestContext( new TestContextOptions { DurableRefKind = kind } );
+        using var testContext = this.CreateTestContext( new MetalamaTestContextOptions { DurableRefKind = kind } );
         var compilationModel = testContext.CreateCompilationModel( "class C { }" );
 
         var durableRef = compilationModel.Types.OfName( "C" ).Single().ToRef().ToDurable();

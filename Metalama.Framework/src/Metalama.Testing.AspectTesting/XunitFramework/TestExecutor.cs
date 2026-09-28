@@ -12,44 +12,28 @@ using SharpCrafters.Backstage.Diagnostics;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.Versioning;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
-using Xunit.Abstractions;
 using Xunit.Sdk;
+using Xunit.v3;
 
 namespace Metalama.Testing.AspectTesting.XunitFramework
 {
-    internal sealed class TestExecutor : LongLivedMarshalByRefObject, ITestFrameworkExecutor
+    /// <summary>
+    /// Runs the test cases of a test assembly and reports their progress and results to xunit.
+    /// </summary>
+    internal sealed class TestExecutor : ITestFrameworkExecutor
     {
         private readonly TestFactory _factory;
         private static readonly object _launchingDebuggerLock = new();
         private readonly GlobalServiceProvider _serviceProvider;
         private readonly ITaskRunner _taskRunner;
         private readonly ITestAssemblyMetadataReader _metadataReader;
-        private readonly TestDiscoverer _discoverer;
-
-        public TestExecutor( GlobalServiceProvider serviceProvider, AssemblyName assemblyName )
-        {
-            var assembly = Assembly.Load( assemblyName );
-            var assemblyInfo = new ReflectionAssemblyInfo( assembly );
-            this._discoverer = new TestDiscoverer( serviceProvider, assemblyInfo );
-            var projectProperties = this._discoverer.GetTestProjectProperties();
-
-            this._factory = new TestFactory(
-                serviceProvider,
-                projectProperties,
-                new TestDirectoryOptionsReader( serviceProvider, projectProperties.SourceDirectory ),
-                assemblyInfo );
-
-            this._serviceProvider = serviceProvider;
-            this._taskRunner = this._serviceProvider.GetRequiredService<ITaskRunner>();
-            this._metadataReader = this._serviceProvider.GetRequiredService<ITestAssemblyMetadataReader>();
-        }
 
         public TestExecutor( GlobalServiceProvider serviceProvider, TestFactory factory )
         {
@@ -57,32 +41,35 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
             this._serviceProvider = serviceProvider;
             this._taskRunner = this._serviceProvider.GetRequiredService<ITaskRunner>();
             this._metadataReader = this._serviceProvider.GetRequiredService<ITestAssemblyMetadataReader>();
-            this._discoverer = new TestDiscoverer( serviceProvider, factory.AssemblyInfo );
         }
 
-        void IDisposable.Dispose() { }
-
-        public ITestCase Deserialize( string value )
-        {
-            return new TestCase( this._factory, value );
-        }
-
-        void ITestFrameworkExecutor.RunAll(
+        public ValueTask RunTestCases(
+            IReadOnlyCollection<ITestCase> testCases,
             IMessageSink executionMessageSink,
-            ITestFrameworkDiscoveryOptions discoveryOptions,
-            ITestFrameworkExecutionOptions executionOptions )
+            ITestFrameworkExecutionOptions executionOptions,
+            CancellationToken? cancellationToken = null )
         {
-            var testCases = this._discoverer.Discover( "", ImmutableHashSet<string>.Empty );
-            this.RunTests( testCases, executionMessageSink, executionOptions );
+            this.RunTests( testCases.Cast<TestCase>(), executionMessageSink, executionOptions, cancellationToken ?? CancellationToken.None );
+
+            return default;
         }
 
+        /// <summary>
+        /// Runs test cases and blocks until they are finished or cancelled.
+        /// </summary>
+        /// <param name="testCases">The test cases.</param>
+        /// <param name="executionMessageSink">The sink that receives the messages. When it returns <c>false</c>, the run is cancelled.</param>
+        /// <param name="executionOptions">The execution options of xunit.</param>
+        /// <param name="cancellationToken">The token by which xunit cancels the run. It is linked to the
+        /// <see cref="MetalamaTestContext.CancellationToken"/> of every test.</param>
         public void RunTests(
-            IEnumerable<ITestCase> testCases,
+            IEnumerable<TestCase> testCases,
             IMessageSink executionMessageSink,
-            ITestFrameworkExecutionOptions executionOptions )
+            ITestFrameworkExecutionOptions executionOptions,
+            CancellationToken cancellationToken )
         {
-            var cancellationTokenSource = new CancellationTokenSource();
-            var cancellationToken = cancellationTokenSource.Token;
+            using var cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource( cancellationToken );
+            var runCancellationToken = cancellationTokenSource.Token;
 
             void SendMessage( IMessageSinkMessage message )
             {
@@ -96,7 +83,7 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
             var hasLaunchedDebugger = false;
             var directoryOptionsReader = new TestDirectoryOptionsReader( this._serviceProvider, this._factory.ProjectProperties.SourceDirectory );
 
-            var collections = testCasesList.GroupBy( t => t.TestMethod.TestClass.TestCollection );
+            var collections = testCasesList.GroupBy( t => t.TestCollection.UniqueID );
 
             var tasks = new ConcurrentDictionary<Task, Task>();
 
@@ -106,37 +93,29 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
 
             var assemblyMetrics = new Metrics( eventLock );
 
+            var runSynchronously = executionOptions.ParallelModeOrDefault() == ParallelMode.None;
+
             SendMessage(
-                new TestAssemblyStarting(
-                    testCasesList,
+                TestMessages.AssemblyStarting(
                     this._factory.TestAssembly,
-                    DateTime.Now,
-                    "CompileTime",
-                    "CompileTime" ) );
+                    this._factory.Assembly.GetCustomAttribute<TargetFrameworkAttribute>()?.FrameworkName ) );
 
             try
             {
                 foreach ( var collection in collections )
                 {
-                    if ( cancellationToken.IsCancellationRequested )
+                    if ( runCancellationToken.IsCancellationRequested )
                     {
                         return;
                     }
 
+                    var testCollection = collection.First().TestCollection;
                     var collectionMetrics = new Metrics( assemblyMetrics );
 
-                    collectionMetrics.Started += () => SendMessage( new TestCollectionStarting( collection, collection.Key ) );
+                    collectionMetrics.Started += () => SendMessage( TestMessages.CollectionStarting( testCollection ) );
+                    collectionMetrics.Finished += () => SendMessage( TestMessages.CollectionFinished( testCollection, collectionMetrics ) );
 
-                    collectionMetrics.Finished += () => SendMessage(
-                        new TestCollectionFinished(
-                            collection,
-                            collection.Key,
-                            collectionMetrics.ExecutionTime,
-                            collectionMetrics.TestsRun,
-                            collectionMetrics.TestFailed,
-                            collectionMetrics.TestSkipped ) );
-
-                    var projectMetadata = this._metadataReader.GetMetadata( collection.Key.TestAssembly.Assembly );
+                    var projectMetadata = this._metadataReader.GetMetadata( this._factory.Assembly );
 
                     lock ( _launchingDebuggerLock )
                     {
@@ -149,30 +128,23 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
 
                     var projectReferences = projectMetadata.ToProjectReferences();
 
-                    foreach ( var type in collection.GroupBy( c => c.TestMethod.TestClass ) )
+                    foreach ( var type in collection.GroupBy( c => c.TestClass.UniqueID ) )
                     {
-                        if ( cancellationToken.IsCancellationRequested )
+                        if ( runCancellationToken.IsCancellationRequested )
                         {
                             return;
                         }
 
+                        var testClass = type.First().TestClass;
                         var typeMetrics = new Metrics( collectionMetrics );
-                        typeMetrics.Started += () => SendMessage( new TestClassStarting( type, type.Key ) );
-
-                        typeMetrics.Finished += () => SendMessage(
-                            new TestClassFinished(
-                                type,
-                                type.Key,
-                                typeMetrics.ExecutionTime,
-                                typeMetrics.TestsRun,
-                                typeMetrics.TestFailed,
-                                typeMetrics.TestSkipped ) );
+                        typeMetrics.Started += () => SendMessage( TestMessages.ClassStarting( testClass ) );
+                        typeMetrics.Finished += () => SendMessage( TestMessages.ClassFinished( testClass, typeMetrics ) );
 
                         typeMetrics.OnTestsDiscovered( type.Count() );
 
                         foreach ( var testCase in type )
                         {
-                            if ( cancellationToken.IsCancellationRequested )
+                            if ( runCancellationToken.IsCancellationRequested )
                             {
                                 return;
                             }
@@ -183,48 +155,32 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
 
                             testMetrics.Started += () =>
                             {
-                                SendMessage( new TestMethodStarting( [testCase], testCase.TestMethod ) );
-                                SendMessage( new TestCaseStarting( testCase ) );
-                                SendMessage( new TestStarting( test ) );
+                                SendMessage( TestMessages.MethodStarting( testCase.TestMethod ) );
+                                SendMessage( TestMessages.CaseStarting( testCase ) );
+                                SendMessage( TestMessages.TestStarting( test ) );
                             };
 
                             testMetrics.Finished += () =>
                             {
-                                SendMessage( new TestFinished( test, testMetrics.ExecutionTime, logger.ToString() ) );
-
-                                SendMessage(
-                                    new TestCaseFinished(
-                                        testCase,
-                                        testMetrics.ExecutionTime,
-                                        testMetrics.TestsRun,
-                                        testMetrics.TestFailed,
-                                        testMetrics.TestSkipped ) );
-
-                                SendMessage(
-                                    new TestMethodFinished(
-                                        [testCase],
-                                        testCase.TestMethod,
-                                        testMetrics.ExecutionTime,
-                                        testMetrics.TestsRun,
-                                        testMetrics.TestFailed,
-                                        testMetrics.TestSkipped ) );
+                                SendMessage( TestMessages.TestFinished( test, testMetrics.ExecutionTime, logger.Output ) );
+                                SendMessage( TestMessages.CaseFinished( testCase, testMetrics ) );
+                                SendMessage( TestMessages.MethodFinished( testCase.TestMethod, testMetrics ) );
                             };
 
                             testMetrics.OnTestsDiscovered( 1 );
 
-                            if ( executionOptions.DisableParallelizationOrDefault() )
+                            if ( runSynchronously )
                             {
                                 this._taskRunner.RunSynchronously(
                                     () => this.RunTestAsync(
                                         SendMessage,
                                         projectReferences,
                                         directoryOptionsReader,
-                                        testCase,
                                         test,
                                         testMetrics,
                                         logger,
-                                        cancellationToken ),
-                                    cancellationToken );
+                                        runCancellationToken ),
+                                    runCancellationToken );
                             }
                             else
                             {
@@ -233,17 +189,16 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
                                         SendMessage,
                                         projectReferences,
                                         directoryOptionsReader,
-                                        testCase,
                                         test,
                                         testMetrics,
                                         logger,
-                                        cancellationToken ),
-                                    cancellationToken );
+                                        runCancellationToken ),
+                                    runCancellationToken );
 
                                 // Throttle execution thanks to the semaphore.
-                                semaphore.Wait( cancellationToken );
+                                semaphore.Wait( runCancellationToken );
 
-                                if ( cancellationToken.IsCancellationRequested )
+                                if ( runCancellationToken.IsCancellationRequested )
                                 {
                                     return;
                                 }
@@ -259,19 +214,12 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
 
                 // Wait for all tasks to complete and catch exceptions.
 #pragma warning disable VSTHRD002
-                Task.WhenAll( tasks.Keys ).Wait( cancellationToken );
+                Task.WhenAll( tasks.Keys ).Wait( runCancellationToken );
 #pragma warning restore VSTHRD002
             }
             finally
             {
-                SendMessage(
-                    new TestAssemblyFinished(
-                        testCasesList,
-                        this._factory.TestAssembly,
-                        assemblyMetrics.ExecutionTime,
-                        assemblyMetrics.TestsRun,
-                        assemblyMetrics.TestFailed,
-                        assemblyMetrics.TestSkipped ) );
+                SendMessage( TestMessages.AssemblyFinished( this._factory.TestAssembly, assemblyMetrics ) );
             }
         }
 
@@ -279,22 +227,26 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
             Action<IMessageSinkMessage> sendMessage,
             TestProjectReferences projectReferences,
             TestDirectoryOptionsReader directoryOptionsReader,
-            ITestCase testCase,
             Test test,
             Metrics testMetrics,
-            ITestOutputHelper logger,
+            TestOutputHelper logger,
             CancellationToken cancellationToken )
         {
             var testStopwatch = Stopwatch.StartNew();
+            var testCase = test.TestCase;
+
+            // Makes Xunit.TestContext.Current describe this test, so that the code of a test plug-in or of a runner
+            // can read the test, its output helper and its cancellation token in the same way as in a test of xunit.
+            TestContext.SetForTest( test, TestEngineStatus.Running, cancellationToken, TestResultState.ForNotRun(), logger, null );
 
             try
             {
                 testMetrics.OnTestStarted();
 
-                var testInput = this._factory.TestInputFactory.FromFile( this._factory.ProjectProperties, directoryOptionsReader, testCase.UniqueID );
+                var testInput = this._factory.TestInputFactory.FromFile( this._factory.ProjectProperties, directoryOptionsReader, testCase.RelativePath );
 
                 var testOptions =
-                    new TestContextOptions
+                    new MetalamaTestContextOptions
                     {
                         AdditionalMetadataReferences = projectReferences.MetadataReferences,
                         ExtensionAssemblies = projectReferences.ExtensionReferences.SelectAsImmutableArray( r => r.Path.AssertNotNull() ),
@@ -312,7 +264,7 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
 
                 if ( testInput.IsSkipped )
                 {
-                    sendMessage( new TestSkipped( test, testInput.SkipReason ) );
+                    sendMessage( TestMessages.TestSkipped( test, testInput.SkipReason ?? "", logger.Output ) );
 
                     // This raises the messages on parent nodes and need to be called last.
                     testMetrics.OnTestSkipped();
@@ -367,7 +319,7 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
                         }
                     }
 
-                    sendMessage( new TestPassed( test, testMetrics.ExecutionTime, logger.ToString() ) );
+                    sendMessage( TestMessages.TestPassed( test, (decimal) testStopwatch.Elapsed.TotalSeconds, logger.Output ) );
 
                     // This raises the messages on parent nodes and need to be called last.
                     testMetrics.OnTestSucceeded( testStopwatch.Elapsed );
@@ -375,26 +327,9 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
             }
             catch ( Exception e )
             {
-                IFailureInformation failureInformation;
+                var exception = e is AggregateException { InnerExceptions.Count: 1 } aggregateException ? aggregateException.InnerExceptions[0] : e;
 
-                if ( e is AggregateException { InnerExceptions.Count: 1 } aggregateException )
-                {
-                    failureInformation = ExceptionUtility.ConvertExceptionToFailureInformation( aggregateException.InnerException );
-                }
-                else
-                {
-                    failureInformation = ExceptionUtility.ConvertExceptionToFailureInformation( e );
-                }
-
-                sendMessage(
-                    new TestFailed(
-                        test,
-                        testMetrics.ExecutionTime,
-                        logger.ToString(),
-                        failureInformation.ExceptionTypes,
-                        failureInformation.Messages,
-                        failureInformation.StackTraces,
-                        failureInformation.ExceptionParentIndices ) );
+                sendMessage( TestMessages.TestFailed( test, exception, (decimal) testStopwatch.Elapsed.TotalSeconds, logger.Output ) );
 
                 // This will raise the events on parents, so it should be last.
                 testMetrics.OnTestFailed( testStopwatch.Elapsed );

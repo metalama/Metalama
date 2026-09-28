@@ -25,7 +25,7 @@ public sealed class SourceGeneratorIntegrationTests : UnitTestClass
         var masterProjectKey = ProjectKeyFactory.CreateTest( "Master" );
 
         var mocks = new AdditionalServiceCollection();
-        using var testContext = this.CreateTestContext( new TestContextOptions { HasSourceGeneratorTouchFile = true }, mocks );
+        using var testContext = this.CreateTestContext( new MetalamaTestContextOptions { HasSourceGeneratorTouchFile = true }, mocks );
 
         using TestDesignTimeAspectPipelineFactory factory = new( testContext );
 

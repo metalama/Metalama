@@ -36,9 +36,9 @@ namespace Metalama.Framework.DesignTime.Contracts.EntryPoint
             // Visual Studio session and must stay version-frozen, which forbids referencing anything.
             //
             // The name is used verbatim and must never change: it is what makes the copies of this class that
-            // belong to different Metalama versions exclude each other. The prefix passed to the constructor is the
+            // belong to different Metalama versions exclude each other. The prefix passed to the factory is the
             // one that MetalamaProduct registers, and GetLock does not apply it.
-            var lockService = new NamedLockService( "Global\\Metalama_" );
+            var lockService = NamedLockServiceFactory.Create( "Global\\Metalama_" );
 
             using var entryPointLock = lockService.GetLock( $@"Local\{_appDomainDataName}" );
 

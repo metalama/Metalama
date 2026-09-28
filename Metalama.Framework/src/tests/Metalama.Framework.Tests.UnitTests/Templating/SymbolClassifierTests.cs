@@ -59,7 +59,7 @@ namespace Metalama.Framework.Tests.UnitTests.Templating
             TemplatingScope expectedScope,
             SymbolClassificationContext context = SymbolClassificationContext.Default,
             IDiagnosticAdder? diagnosticAdder = null,
-            TestContextOptions? contextOptions = null )
+            MetalamaTestContextOptions? contextOptions = null )
         {
             using var testContext = this.CreateTestContext( contextOptions );
 
@@ -596,7 +596,7 @@ class C  {
                                 }
                                 """;
 
-            var options = new TestContextOptions() { RoslynIsCompileTimeOnly = roslynIsCompileTime };
+            var options = new MetalamaTestContextOptions() { RoslynIsCompileTimeOnly = roslynIsCompileTime };
             using var testContext = this.CreateTestContext( options );
 
             var additionalReferences =

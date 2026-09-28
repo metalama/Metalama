@@ -13,7 +13,6 @@ using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Immutable;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline;
 

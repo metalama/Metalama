@@ -13,11 +13,11 @@ using System;
 using System.Collections.Immutable;
 using System.Globalization;
 using System.IO;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
-using Xunit.Abstractions;
-using IMessageSink = Xunit.Abstractions.IMessageSink;
+using Xunit.Sdk;
 
 #pragma warning disable VSTHRD200 // Use "Async" suffix for async methods
 
@@ -157,7 +157,7 @@ public class Program
 
             var testRunner = new AspectTestRunner( serviceProvider, directory, testProjectReferences, testOutputHelper );
             var testInput = new TestInput.Factory( serviceProvider ).FromFile( testProjectProperties, testDirectoryOptionsReader, "Test.cs" );
-            var testContextOptions = testInput.Options.ApplyToTestContextOptions( new TestContextOptions() );
+            var testContextOptions = testInput.Options.ApplyToTestContextOptions( new MetalamaTestContextOptions() );
             testInput.Options.SkipDiffTool = true;
             testInput.Options.IgnoredDiagnostics.Add( "CS8602" );
             testInput.Options.IgnoredDiagnostics.Add( "CS8600" );
@@ -208,28 +208,54 @@ public class Program
             }
         }
 
+        /// <summary>
+        /// An <see cref="ITestOutputHelper"/> that sends every write to an <see cref="IMessageSink"/>.
+        /// </summary>
         private sealed class OutputHelper : ITestOutputHelper
         {
             private readonly IMessageSink _messageSink;
+            private readonly StringBuilder _output = new();
 
             public OutputHelper( IMessageSink messageSink )
             {
                 this._messageSink = messageSink;
             }
 
-            public void WriteLine( string message )
+            public string Output
             {
+                get
+                {
+                    lock ( this._output )
+                    {
+                        return this._output.ToString();
+                    }
+                }
+            }
+
+            public void Write( string message )
+            {
+                lock ( this._output )
+                {
+                    this._output.Append( message );
+                }
+
                 this._messageSink.OnMessage( new Message( message ) );
             }
 
-            public void WriteLine( string format, params object[] args )
-            {
-                this._messageSink.OnMessage( new Message( string.Format( CultureInfo.InvariantCulture, format, args ) ) );
-            }
+            public void Write( string format, params object[] args ) => this.Write( string.Format( CultureInfo.InvariantCulture, format, args ) );
+
+            public void WriteLine( string message ) => this.Write( message + Environment.NewLine );
+
+            public void WriteLine( string format, params object[] args ) => this.WriteLine( string.Format( CultureInfo.InvariantCulture, format, args ) );
         }
 
-        private sealed class Message( string text ) : LongLivedMarshalByRefObject, IMessageSinkMessage
+        /// <summary>
+        /// A message that carries text written to the test output.
+        /// </summary>
+        private sealed class Message( string text ) : IMessageSinkMessage
         {
+            public string ToJson() => "{}";
+
             public override string ToString() => text;
         }
     }

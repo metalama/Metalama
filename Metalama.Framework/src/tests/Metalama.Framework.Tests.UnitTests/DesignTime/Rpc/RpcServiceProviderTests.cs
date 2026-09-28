@@ -10,7 +10,6 @@ using Metalama.Framework.Engine.Utilities.Threading;
 using System;
 using System.Threading.Tasks;
 using Xunit;
-using Xunit.Abstractions;
 
 // ReSharper disable AccessToDisposedClosure
 

@@ -9,4 +9,4 @@ using Xunit;
  * See https://xunit.net/docs/running-tests-in-parallel
  */
 
-[assembly: CollectionBehavior( DisableTestParallelization = true )]
+[assembly: Xunit.v3.Parallelization( Mode = Xunit.Sdk.ParallelMode.None )]

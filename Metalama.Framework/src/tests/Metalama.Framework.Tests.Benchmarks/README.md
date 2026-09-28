@@ -77,7 +77,7 @@ The benchmark uses:
 - `InProcessEmitToolchain` (avoids .NET SDK 10.0 `/p:` syntax issues)
 - 30-minute timeout for long-running benchmarks
 - 5% maximum relative error threshold
-- Fresh `TestContext` per iteration to avoid caching effects
+- Fresh `MetalamaTestContext` per iteration to avoid caching effects
 - `ConcurrentTaskRunner` for parallel validation
 
 ## Path Configuration

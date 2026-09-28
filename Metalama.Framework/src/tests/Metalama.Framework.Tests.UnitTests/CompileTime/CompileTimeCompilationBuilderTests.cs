@@ -827,7 +827,7 @@ public class SomeRunTimeClass
         [Fact]
         public void FormatCompileTimeCode()
         {
-            using var testContext = this.CreateTestContext( new TestContextOptions { FormatCompileTimeCode = true } );
+            using var testContext = this.CreateTestContext( new MetalamaTestContextOptions { FormatCompileTimeCode = true } );
 
             const string code = @"
 using System;
@@ -849,7 +849,7 @@ public class MyAspect : OverrideMethodAspect
             Assert.Contains( "using Microsoft.CodeAnalysis", compileTimeCode, StringComparison.Ordinal );
         }
 
-        private static string GetCompileTimeCode( TestContext testContext, string code, OutputKind outputKind = OutputKind.DynamicallyLinkedLibrary )
+        private static string GetCompileTimeCode( MetalamaTestContext testContext, string code, OutputKind outputKind = OutputKind.DynamicallyLinkedLibrary )
         {
             var compileTimeSyntaxTrees = GetCompileTimeCode( testContext, new Dictionary<string, string> { { "main.cs", code } }, outputKind );
 
@@ -859,7 +859,7 @@ public class MyAspect : OverrideMethodAspect
         }
 
         private static IReadOnlyDictionary<string, string> GetCompileTimeCode(
-            TestContext testContext,
+            MetalamaTestContext testContext,
             IReadOnlyDictionary<string, string> code,
             OutputKind outputKind = OutputKind.DynamicallyLinkedLibrary )
         {
@@ -917,7 +917,7 @@ public class MyAspect : OverrideMethodAspect
         [Fact]
         public void TopLevelStatementsAreRemoved()
         {
-            using var testContext = this.CreateTestContext( new TestContextOptions { FormatCompileTimeCode = true } );
+            using var testContext = this.CreateTestContext( new MetalamaTestContextOptions { FormatCompileTimeCode = true } );
 
             const string code = @"
 using System;
@@ -950,7 +950,7 @@ class CompileTimeClass { }
         [Fact]
         public void FabricClassesAreUnNested()
         {
-            using var testContext = this.CreateTestContext( new TestContextOptions { FormatCompileTimeCode = true } );
+            using var testContext = this.CreateTestContext( new MetalamaTestContextOptions { FormatCompileTimeCode = true } );
 
             const string code = @"
 using System;
@@ -1055,7 +1055,7 @@ namespace SomeNamespace
         [Fact]
         public void CompileTypeTypesOfAllTKindsAreCopied()
         {
-            using var testContext = this.CreateTestContext( new TestContextOptions { FormatCompileTimeCode = true } );
+            using var testContext = this.CreateTestContext( new MetalamaTestContextOptions { FormatCompileTimeCode = true } );
 
             const string code = @"
 using System;
@@ -1127,7 +1127,7 @@ public delegate void SomeDelegate();
         [Fact]
         public void SyntaxTreeWithOnlyCompileTimeInterfaceIsCopied()
         {
-            using var testContext = this.CreateTestContext( new TestContextOptions { FormatCompileTimeCode = true } );
+            using var testContext = this.CreateTestContext( new MetalamaTestContextOptions { FormatCompileTimeCode = true } );
 
             const string code = @"
 using System;
@@ -1221,7 +1221,7 @@ Intentional syntax error.
         [Fact]
         public void PreprocessorDirectivesAreRemoved()
         {
-            using var testContext = this.CreateTestContext( new TestContextOptions { FormatCompileTimeCode = true } );
+            using var testContext = this.CreateTestContext( new MetalamaTestContextOptions { FormatCompileTimeCode = true } );
 
             const string code = @"
 #region Namespaces
@@ -1565,7 +1565,7 @@ public class ReferencedClass
             Assert.False( result.WeakRef.IsAlive );
         }
 
-        private static (CompileTimeProject Project, WeakReference WeakRef) CreateCompileTimeProject( TestContext testContext, CompileTimeDomain domain )
+        private static (CompileTimeProject Project, WeakReference WeakRef) CreateCompileTimeProject( MetalamaTestContext testContext, CompileTimeDomain domain )
         {
             var code = $$"""
                          using Metalama.Framework.Advising;using Metalama.Framework.Aspects;
@@ -1599,7 +1599,7 @@ public class ReferencedClass
         [Fact]
         public async Task AssemblyNameTruncated()
         {
-            using var testContext = this.CreateTestContext( new TestContextOptions() { TempPathLength = 133 } );
+            using var testContext = this.CreateTestContext( new MetalamaTestContextOptions() { TempPathLength = 133 } );
 
             const string dependencyCode = """
                                           using Metalama.Framework.Aspects;
@@ -2003,7 +2003,7 @@ public class MyAspect
                                 """;
 
             const LanguageVersion templateLanguageVersion = LanguageVersion.CSharp13;
-            using var testContext = this.CreateTestContext( new TestContextOptions() { TemplateLanguageVersion = templateLanguageVersion.ToDisplayString() } );
+            using var testContext = this.CreateTestContext( new MetalamaTestContextOptions() { TemplateLanguageVersion = templateLanguageVersion.ToDisplayString() } );
 
             var roslynCompilation = testContext.CreateCSharpCompilation( code );
             var compilation = CompilationModel.CreateInitialInstance( new ProjectModel( roslynCompilation, testContext.ServiceProvider ), roslynCompilation );

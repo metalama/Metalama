@@ -17,7 +17,6 @@ using System.Globalization;
 using System.Linq;
 using System.Threading;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Framework.Tests.UnitTests.CompileTime;
 

@@ -5,7 +5,7 @@
 using JetBrains.Annotations;
 using Metalama.Framework.Engine.Services;
 #pragma warning disable CA1812 // Instantiated by reflection
-using Xunit.Abstractions;
+using Xunit;
 
 namespace Metalama.Testing.AspectTesting;
 

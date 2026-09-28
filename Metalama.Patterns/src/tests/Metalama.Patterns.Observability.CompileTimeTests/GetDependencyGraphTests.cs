@@ -10,7 +10,6 @@ using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis;
 using System.Text.RegularExpressions;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Patterns.Observability.CompileTimeTests;
 
@@ -23,7 +22,7 @@ public sealed class GetDependencyGraphTests : UnitTestClass
     private static bool NeverTreatAsInpc( ITypeSymbol type ) => false;
 
     private static ObservableTypeInfo CreateDependencyGraph(
-        TestContext context,
+        MetalamaTestContext context,
         INamedType type,
         Func<ISymbol, bool>? isConfiguredAsSafe = null,
         Action<string>? reportDiagnostic = null,
@@ -45,7 +44,7 @@ public sealed class GetDependencyGraphTests : UnitTestClass
         }
     }
 
-    private static ICompilation CreateCompilation( TestContext testContext, string code )
+    private static ICompilation CreateCompilation( MetalamaTestContext testContext, string code )
         => testContext.CreateCompilation( code, additionalReferences: [MetadataReference.CreateFromFile( typeof(ObservableAttribute).Assembly.Location )] );
 
     [Trait( "Supported", "Yes" )]

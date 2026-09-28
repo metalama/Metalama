@@ -15,7 +15,6 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline.MemoryLeaks;
 
@@ -46,7 +45,7 @@ public sealed class TaskBagMemoryLeakTests : DesignTimeTestBase
     /// <summary>
     /// Creates a <see cref="TaskBag"/> that uses the services of a test context.
     /// </summary>
-    private static TaskBag CreateTaskBag( TestContext testContext )
+    private static TaskBag CreateTaskBag( MetalamaTestContext testContext )
     {
         GlobalServiceProvider serviceProvider = testContext.ServiceProvider;
 
@@ -63,7 +62,7 @@ public sealed class TaskBagMemoryLeakTests : DesignTimeTestBase
     /// </remarks>
     [MethodImpl( MethodImplOptions.NoInlining )]
     private static WeakReference EnqueueTaskCapturingACompilation(
-        TestContext testContext,
+        MetalamaTestContext testContext,
         TaskBag taskBag,
         string assemblyName,
         CancellationToken cancellationToken )
@@ -91,7 +90,7 @@ public sealed class TaskBagMemoryLeakTests : DesignTimeTestBase
     /// Waits until every task of the bag has run, so that the assertions that follow do not depend on the scheduling
     /// of the thread pool.
     /// </summary>
-    private static Task WaitForPendingTasksAsync( TaskBag taskBag, TestContext testContext )
+    private static Task WaitForPendingTasksAsync( TaskBag taskBag, MetalamaTestContext testContext )
         => PendingTasksHelper.WaitForPendingTasksAsync( taskBag, testContext );
 
     /// <summary>

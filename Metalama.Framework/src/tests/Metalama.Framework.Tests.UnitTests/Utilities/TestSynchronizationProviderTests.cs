@@ -8,7 +8,6 @@ using SharpCrafters.Common.Testing.Hooks;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Framework.Tests.UnitTests.Utilities;
 
@@ -16,7 +15,7 @@ namespace Metalama.Framework.Tests.UnitTests.Utilities;
 
 /// <summary>
 /// Tests that <see cref="ITestSynchronizationProvider"/> can be consumed by an arbitrary component: that the
-/// provider registered by <see cref="UnitTestClass"/> and exposed as <see cref="TestContext.SyncProvider"/> is
+/// provider registered by <see cref="UnitTestClass"/> and exposed as <see cref="MetalamaTestContext.SyncProvider"/> is
 /// resolved from the global service provider, and that a synchronization point blocks until the test releases it.
 /// </summary>
 public sealed class TestSynchronizationProviderTests : UnitTestClass

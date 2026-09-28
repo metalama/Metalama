@@ -3,7 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Engine.Services;
-using Xunit.Abstractions;
+using Xunit;
 
 namespace Metalama.Testing.AspectTesting
 {

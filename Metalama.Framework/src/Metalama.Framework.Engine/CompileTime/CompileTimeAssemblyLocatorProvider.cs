@@ -26,7 +26,7 @@ public sealed class CompileTimeAssemblyLocatorProvider : ICompileTimeAssemblyLoc
     public CompileTimeAssemblyLocatorProvider( ITempFileManager tempFileManager )
     {
         // We intentionally explicitly require to specify ITempFileManager because its origin is different in production
-        // than in tests, where there is one TempFileManager per TestContext, while it is essential for performance to have a
+        // than in tests, where there is one TempFileManager per MetalamaTestContext, while it is essential for performance to have a
         // share the directory among all instances.
         this._tempFileManager = tempFileManager;
     }

@@ -12,7 +12,8 @@ using Metalama.Framework.Services;
 using SharpCrafters.Common.Testing.Hooks;
 using System;
 using System.Runtime.CompilerServices;
-using Xunit.Abstractions;
+using System.Threading;
+using Xunit;
 
 namespace Metalama.Testing.UnitTesting
 {
@@ -23,14 +24,14 @@ namespace Metalama.Testing.UnitTesting
     /// <para>
     /// This class provides the infrastructure for writing unit tests of compile-time logic used by aspects,
     /// without executing the aspects themselves. Test methods should call <see cref="CreateTestContext(string?,string?)"/>
-    /// to obtain a <see cref="TestContext"/> that provides access to Metalama services.
+    /// to obtain a <see cref="MetalamaTestContext"/> that provides access to Metalama services.
     /// </para>
     /// <para>
     /// A typical test workflow is:
     /// <list type="number">
     /// <item>Create a test context using <see cref="CreateTestContext(string?,string?)"/></item>
-    /// <item>Create a compilation using <see cref="TestContext.CreateCompilation(string,string?,bool,System.Collections.Generic.IEnumerable{Microsoft.CodeAnalysis.MetadataReference}?,string?,bool)"/></item>
-    /// <item>Optionally switch execution context using <see cref="TestContext.WithExecutionContext"/> if your code uses <see cref="Metalama.Framework.Code.SyntaxBuilders.ExpressionFactory"/></item>
+    /// <item>Create a compilation using <see cref="MetalamaTestContext.CreateCompilation(string,string?,bool,System.Collections.Generic.IEnumerable{Microsoft.CodeAnalysis.MetadataReference}?,string?,bool)"/></item>
+    /// <item>Optionally switch execution context using <see cref="MetalamaTestContext.WithExecutionContext"/> if your code uses <see cref="Metalama.Framework.Code.SyntaxBuilders.ExpressionFactory"/></item>
     /// <item>Query the code model or call your compile-time helper classes</item>
     /// <item>Assert expected results</item>
     /// </list>
@@ -39,8 +40,8 @@ namespace Metalama.Testing.UnitTesting
     /// The test context must be disposed at the end of each test method.
     /// </para>
     /// </remarks>
-    /// <seealso cref="TestContext"/>
-    /// <seealso cref="TestContextOptions"/>
+    /// <seealso cref="MetalamaTestContext"/>
+    /// <seealso cref="MetalamaTestContextOptions"/>
     /// <seealso href="@compile-time-testing"/>
     [PublicAPI]
     public abstract class UnitTestClass : IDisposable
@@ -97,7 +98,7 @@ namespace Metalama.Testing.UnitTesting
         /// <summary>
         /// Registers the test-only hooks that the code under test reaches: the synchronization points and the fault
         /// injection points. They are registered in every test context, and are exposed as
-        /// <see cref="TestContext.SyncProvider"/> and <see cref="TestContext.FaultInjector"/>.
+        /// <see cref="MetalamaTestContext.SyncProvider"/> and <see cref="MetalamaTestContext.FaultInjector"/>.
         /// </summary>
         /// <remarks>
         /// Registering them unconditionally costs nothing when a test does not use them: a synchronization point that
@@ -149,14 +150,14 @@ namespace Metalama.Testing.UnitTesting
         }
 
         [MustDisposeResource]
-        protected TestContext CreateTestContext( [CallerFilePath] string? callerFile = null, [CallerMemberName] string? callerMemberName = null )
+        protected MetalamaTestContext CreateTestContext( [CallerFilePath] string? callerFile = null, [CallerMemberName] string? callerMemberName = null )
             => this.CreateTestContextImpl( null, null, callerFile, callerMemberName );
 
         /// <summary>
         /// Creates a test context with a collection of additional services or mocks.
         /// </summary>
         [MustDisposeResource]
-        protected TestContext CreateTestContext(
+        protected MetalamaTestContext CreateTestContext(
             IAdditionalServiceCollection service,
             [CallerFilePath] string? callerFile = null,
             [CallerMemberName] string? callerMemberName = null )
@@ -167,26 +168,29 @@ namespace Metalama.Testing.UnitTesting
                 callerMemberName );
 
         /// <summary>
-        /// Creates a test context, optionally with a non-default <see cref="TestContextOptions"/> or a collection of additional services or mocks.
+        /// Creates a test context, optionally with a non-default <see cref="MetalamaTestContextOptions"/> or a collection of additional services or mocks.
         /// </summary>
         [MustDisposeResource]
-        protected TestContext CreateTestContext(
-            TestContextOptions? contextOptions,
+        protected MetalamaTestContext CreateTestContext(
+            MetalamaTestContextOptions? contextOptions,
             IAdditionalServiceCollection? services = null,
             [CallerFilePath] string? callerFile = null,
             [CallerMemberName] string? callerMemberName = null )
             => this.CreateTestContextImpl( contextOptions, services, callerFile, callerMemberName );
 
         [MustDisposeResource]
-        private TestContext CreateTestContextImpl(
-            TestContextOptions? contextOptions,
+        private MetalamaTestContext CreateTestContextImpl(
+            MetalamaTestContextOptions? contextOptions,
             IAdditionalServiceCollection? services = null,
             string? callerFile = null,
             string? callerMemberName = null )
         {
+            // The context of xunit is read here and not stored, because xunit documents that TestContext.Current is a
+            // snapshot that must not be cached. Outside of a test, the token is never signalled.
             var context = this.CreateTestContextCore(
                 this.ConfigureTestContextOptions( contextOptions ?? this.CreateDefaultTestContextOptions() ),
-                this.GetMockServices( services ) );
+                this.GetMockServices( services ),
+                TestContext.Current.CancellationToken );
 
             context.TestName = $"{callerFile}:{callerMemberName}";
             context.TestOutputWriter = this._logger;
@@ -194,13 +198,24 @@ namespace Metalama.Testing.UnitTesting
             return context;
         }
 
+        /// <summary>
+        /// Creates the <see cref="MetalamaTestContext"/>. A derived class can override this method to create a derived
+        /// context or to change the options.
+        /// </summary>
+        /// <param name="contextOptions">The options of the context.</param>
+        /// <param name="services">The additional services of the context.</param>
+        /// <param name="cancellationToken">The token that xunit signals when it cancels the test. An override must pass it
+        /// to the constructor of <see cref="MetalamaTestContext"/>, which links it to <see cref="MetalamaTestContext.CancellationToken"/>.</param>
         [MustDisposeResource]
-        protected virtual TestContext CreateTestContextCore( TestContextOptions contextOptions, IAdditionalServiceCollection services )
-            => new( contextOptions, services );
+        protected virtual MetalamaTestContext CreateTestContextCore(
+            MetalamaTestContextOptions contextOptions,
+            IAdditionalServiceCollection services,
+            CancellationToken cancellationToken )
+            => new( contextOptions, services, cancellationToken );
 
-        protected virtual TestContextOptions CreateDefaultTestContextOptions() => new();
+        protected virtual MetalamaTestContextOptions CreateDefaultTestContextOptions() => new();
 
-        private TestContextOptions ConfigureTestContextOptions( TestContextOptions contextOptions )
+        private MetalamaTestContextOptions ConfigureTestContextOptions( MetalamaTestContextOptions contextOptions )
         {
             var collector = new TestExtensionCollector();
             this.ConfigureExtensions( collector );

@@ -28,7 +28,7 @@ public sealed class FrameworkCompileTimeProjectFactoryTests : UnitTestClass
 {
     private static string FrameworkAssemblyPath => typeof(IAspect).Assembly.Location;
 
-    private static CompileTimeProject CreateFrameworkProject( TestContext testContext, Compilation compilation )
+    private static CompileTimeProject CreateFrameworkProject( MetalamaTestContext testContext, Compilation compilation )
     {
         var factory = testContext.ServiceProvider.Global.GetRequiredService<FrameworkCompileTimeProjectFactory>();
 

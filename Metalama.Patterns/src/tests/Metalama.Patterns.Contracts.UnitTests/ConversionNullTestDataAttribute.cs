@@ -3,7 +3,9 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System.Reflection;
+using Xunit;
 using Xunit.Sdk;
+using Xunit.v3;
 
 namespace Metalama.Patterns.Contracts.UnitTests;
 
@@ -23,5 +25,8 @@ internal sealed class ConversionNullTestDataAttribute<TBound, TValue> : DataAttr
         this._tag = tag;
     }
 
-    public override IEnumerable<object?[]> GetData( MethodInfo testMethod ) => [[this._value, this._bound, null, this._tag]];
+    public override ValueTask<IReadOnlyCollection<ITheoryDataRow>> GetData( MethodInfo testMethod, DisposalTracker disposalTracker )
+        => new( [new TheoryDataRow( this._value, this._bound, null, this._tag )] );
+
+    public override bool SupportsDiscoveryEnumeration() => true;
 }

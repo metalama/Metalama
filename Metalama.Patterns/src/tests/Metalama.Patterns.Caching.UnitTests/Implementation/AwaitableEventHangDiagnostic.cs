@@ -7,7 +7,6 @@ using System.Collections;
 using System.Globalization;
 using System.Reflection;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Patterns.Caching.Tests.Implementation;
 

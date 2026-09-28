@@ -7,7 +7,6 @@ using Metalama.Patterns.Caching.TestHelpers;
 using Metalama.Patterns.Caching.Tests.Mocks;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Patterns.Caching.Tests.Implementation;
 

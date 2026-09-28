@@ -4,6 +4,7 @@
     <Import Project="../../../../eng/Coverage.props" />
 
     <PropertyGroup>
+        <OutputType>Exe</OutputType>
         <TargetFrameworks>net48;net10.0</TargetFrameworks>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <RootNamespace>Metalama.Framework.Tests.UnitTests</RootNamespace>
@@ -40,13 +41,12 @@
 
     <ItemGroup>
         <PackageReference Include="Microsoft.NET.Test.Sdk" />
-        <PackageReference Include="xunit" />
+        <PackageReference Include="xunit.v3" />
         <PackageReference Include="xunit.runner.visualstudio" />
         <PackageReference Include="Metalama.Compiler.Sdk" />
         <PackageReference Include="SharpCrafters.Backstage.Testing" />
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" VersionOverride="$(ThisRoslynVersion)" />
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" VersionOverride="$(ThisRoslynVersion)" />
-        <PackageReference Include="Xunit.SkippableFact" />
         <PackageReference Include="MessagePack" />
     </ItemGroup>
 

@@ -4,7 +4,6 @@
 
 using Metalama.Patterns.Caching.Implementation;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Patterns.Caching.Tests.Implementation;
 

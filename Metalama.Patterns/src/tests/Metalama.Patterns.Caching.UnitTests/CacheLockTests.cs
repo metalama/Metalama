@@ -7,7 +7,6 @@ using Metalama.Patterns.Caching.Backends;
 using Metalama.Patterns.Caching.Locking;
 using Metalama.Patterns.Caching.TestHelpers;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Patterns.Caching.Tests
 {

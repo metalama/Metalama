@@ -659,7 +659,7 @@ public sealed class UnionTypeTests : UnitTestClass
     /// declaration, so no override is needed. Issue #2005 removed the preview override that stood here while C# 15
     /// was reached through <see cref="LanguageVersion.Preview"/>.
     /// </summary>
-    private static ICompilation CreateUnionCompilation( TestContext testContext, string? code = null )
+    private static ICompilation CreateUnionCompilation( MetalamaTestContext testContext, string? code = null )
     {
         var parseOptions = SupportedCSharpVersions.DefaultParseOptions;
 

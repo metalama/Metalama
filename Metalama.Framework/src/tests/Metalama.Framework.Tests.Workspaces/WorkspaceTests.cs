@@ -119,7 +119,7 @@ namespace Metalama.Framework.Tests.Workspaces
         }
 
         private static async Task<string> CreateMetalamaEnabledProjectAsync(
-            TestContext testContext,
+            MetalamaTestContext testContext,
             string code,
             string? projectName = null,
             string[]? dependentProjectPaths = null )

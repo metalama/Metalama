@@ -18,7 +18,6 @@ using Microsoft.CodeAnalysis.CSharp;
 using System.Collections.Generic;
 using System.Linq;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline;
 
@@ -61,7 +60,7 @@ public sealed class DuplicateSyntaxTreePathTests : UnitTestClass
     /// this: <see cref="Compilation.AddSyntaxTrees(SyntaxTree[])"/> rejects only the same instance twice.
     /// </summary>
     private static (CSharpCompilation Compilation, SyntaxTree First, SyntaxTree Second) CreateCompilationWithDuplicatePath(
-        TestContext testContext )
+        MetalamaTestContext testContext )
     {
         var parseOptions = testContext.GetCompilationParseOptions();
 

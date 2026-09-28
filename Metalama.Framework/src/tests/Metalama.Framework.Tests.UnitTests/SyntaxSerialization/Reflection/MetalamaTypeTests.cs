@@ -6,7 +6,6 @@ using Metalama.Framework.Code;
 using System;
 using System.Linq;
 using Xunit;
-using Xunit.Abstractions;
 
 // ReSharper disable ParameterOnlyUsedForPreconditionCheck.Local
 

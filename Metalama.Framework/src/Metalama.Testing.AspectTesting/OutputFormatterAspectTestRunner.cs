@@ -9,7 +9,7 @@ using Metalama.Testing.UnitTesting;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Xunit.Abstractions;
+using Xunit;
 
 namespace Metalama.Testing.AspectTesting;
 // This whole file is temporary before we have FormatOutput in TestOptions properly controlling FormatOutput in ProjectOptions.
@@ -28,13 +28,13 @@ internal sealed class OutputFormatterAspectTestRunner : AspectTestRunner
             references,
             logger ) { }
 
-    protected override TestContextOptions GetContextOptions( TestContextOptions options )
+    protected override MetalamaTestContextOptions GetContextOptions( MetalamaTestContextOptions options )
         => options with { CodeFormattingOptions = CodeFormattingOptions.Formatted };
 
     protected override async Task RunAsync(
         TestInput testInput,
         TestResult testResult,
-        TestContext projectOptions )
+        MetalamaTestContext projectOptions )
     {
         var expectedEol =
             testInput.Options.ExpectedEndOfLine switch

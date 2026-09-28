@@ -3,19 +3,18 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System;
-using Xunit.Abstractions;
+using Xunit.Sdk;
 
 namespace Metalama.Framework.Tests.UnitTests.TestFramework;
 
+/// <summary>
+/// An implementation of <see cref="ITestFrameworkExecutionOptions"/> in which every option has its default value.
+/// </summary>
 internal sealed class TestFrameworkExecutionOptions : ITestFrameworkExecutionOptions
 {
-    public TValue GetValue<TValue>( string name )
-        => name switch
-        {
-            "xunit.execution.MaxParallelThreads" => (TValue) (object) 4,
-            "xunit.execution.DisableParallelization" => (TValue) (object) false,
-            _ => throw new ArgumentOutOfRangeException()
-        };
+    public TValue GetValue<TValue>( string name ) => default!;
 
-    public void SetValue<TValue>( string name, TValue value ) => throw new NotImplementedException();
+    public void SetValue<TValue>( string name, TValue value ) => throw new NotSupportedException();
+
+    public string ToJson() => "{}";
 }

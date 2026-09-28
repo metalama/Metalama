@@ -2,31 +2,32 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using System;
-using Xunit;
-using Xunit.Abstractions;
+using System.Collections.Generic;
+using Xunit.Sdk;
 
 namespace Metalama.Testing.AspectTesting.XunitFramework
 {
-    internal sealed class TestCollection : LongLivedMarshalByRefObject, ITestCollection
+    /// <summary>
+    /// The single test collection of a test assembly.
+    /// </summary>
+    internal sealed class TestCollection : ITestCollection
     {
-        private readonly TestAssembly _assembly;
+        private const string _displayName = "All tests";
 
         public TestCollection( TestAssembly assembly )
         {
-            this._assembly = assembly;
+            this.TestAssembly = assembly;
+            this.UniqueID = UniqueIDGenerator.ForTestCollection( assembly.UniqueID, _displayName, null );
         }
 
-        void IXunitSerializable.Deserialize( IXunitSerializationInfo info ) { }
+        public ITestAssembly TestAssembly { get; }
 
-        void IXunitSerializable.Serialize( IXunitSerializationInfo info ) { }
+        public string? TestCollectionClassName => null;
 
-        ITypeInfo ITestCollection.CollectionDefinition => null!;
+        public string TestCollectionDisplayName => _displayName;
 
-        string ITestCollection.DisplayName => "All tests";
+        public IReadOnlyDictionary<string, IReadOnlyCollection<string>> Traits => TestFactory.EmptyTraits;
 
-        ITestAssembly ITestCollection.TestAssembly => this._assembly;
-
-        Guid ITestCollection.UniqueID { get; } = Guid.NewGuid();
+        public string UniqueID { get; }
     }
 }

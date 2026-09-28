@@ -36,6 +36,11 @@ internal sealed class Metrics
 
     public int TestSkipped => this._testSkipped;
 
+    /// <summary>
+    /// Gets the number of tests that finished, whether they passed, failed or were skipped.
+    /// </summary>
+    public int TestsTotal => this._testsRun + this._testFailed + this._testSkipped;
+
     public decimal ExecutionTime => (decimal) TimeSpan.FromMilliseconds( this._executionTime ).TotalSeconds;
 
     public event Action? Started;

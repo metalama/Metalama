@@ -17,7 +17,7 @@ namespace Metalama.Framework.Tests.UnitTests.CompileTime.GeneratedSerializers
 {
     public class SerializerTestBase : UnitTestClass
     {
-        private protected static CompileTimeProject CreateCompileTimeProject( CompileTimeDomain domain, TestContext testContext, string code )
+        private protected static CompileTimeProject CreateCompileTimeProject( CompileTimeDomain domain, MetalamaTestContext testContext, string code )
         {
             var runtimeCompilation = testContext.CreateCSharpCompilation(
                 code,

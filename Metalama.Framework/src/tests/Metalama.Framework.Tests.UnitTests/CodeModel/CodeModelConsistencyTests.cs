@@ -11,7 +11,6 @@ using Metalama.Framework.Engine.SerializableIds;
 using Metalama.Testing.UnitTesting;
 using System.Linq;
 using Xunit;
-using Xunit.Abstractions;
 using SymbolEqualityComparer = Microsoft.CodeAnalysis.SymbolEqualityComparer;
 
 namespace Metalama.Framework.Tests.UnitTests.CodeModel;

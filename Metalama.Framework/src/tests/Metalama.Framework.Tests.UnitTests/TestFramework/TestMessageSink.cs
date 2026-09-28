@@ -3,12 +3,14 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System.Collections.Generic;
-using Xunit;
-using Xunit.Abstractions;
+using Xunit.Sdk;
 
 namespace Metalama.Framework.Tests.UnitTests.TestFramework;
 
-internal sealed class TestMessageSink : LongLivedMarshalByRefObject, IMessageSink
+/// <summary>
+/// An <see cref="IMessageSink"/> that records the messages it receives.
+/// </summary>
+internal sealed class TestMessageSink : IMessageSink
 {
     public List<IMessageSinkMessage> Messages { get; } = new();
 

@@ -26,7 +26,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
-using Xunit.Abstractions;
 
 #if NET6_0_OR_GREATER
 using Metalama.Framework.Aspects;
@@ -796,7 +795,7 @@ class C
         return (new WeakReference( masterCompilation ), new WeakReference( dependentCompilation ), syntaxTreeRefs, configuration.Value, pipeline);
     }
 
-    private static ( CSharpCompilation Master, CSharpCompilation Dependent ) CreateCompilations( TestContext testContext, int version )
+    private static ( CSharpCompilation Master, CSharpCompilation Dependent ) CreateCompilations( MetalamaTestContext testContext, int version )
     {
         var masterCode = new Dictionary<string, string>()
         {
@@ -851,7 +850,7 @@ class D{version}
     }
 
 #if NET6_0_OR_GREATER
-    [SkippableFact]
+    [Fact]
     public void OverrideMethodWithMultipleTargetFrameworks()
     {
         const string code =
@@ -887,7 +886,7 @@ class D{version}
         var netFrameworkMetalamaFrameworkPath = Path.Combine( baseDirectoryPath, "net48", metalamaFrameworkAssemblyName );
 
         // It may be possible that only the .Net 6.0 TFM of this project has been built. In that case, this test cannot proceed.
-        Skip.If( !File.Exists( netFrameworkMetalamaFrameworkPath ) );
+        Assert.SkipUnless( File.Exists( netFrameworkMetalamaFrameworkPath ), "The net48 build of Metalama.Framework is not available." );
 
         var netFrameworkCompilation = testContext.CreateCSharpCompilation( "", assemblyName: "Project" )
             .WithReferences( coreReferences.Append( MetadataReference.CreateFromFile( netFrameworkMetalamaFrameworkPath ) ) );
@@ -905,7 +904,7 @@ class D{version}
     [Fact]
     public async Task ResumeWithErrorAsync()
     {
-        static CSharpCompilation CreateCompilation( TestContext testContext, string statement )
+        static CSharpCompilation CreateCompilation( MetalamaTestContext testContext, string statement )
         {
             var code = new Dictionary<string, string>
             {

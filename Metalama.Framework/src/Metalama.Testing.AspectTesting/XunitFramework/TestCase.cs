@@ -2,46 +2,72 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using JetBrains.Annotations;
+using Metalama.Framework.Engine;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using Xunit;
-using Xunit.Abstractions;
+using System.Reflection;
+using Xunit.Sdk;
 
 namespace Metalama.Testing.AspectTesting.XunitFramework
 {
-    internal sealed class TestCase : LongLivedMarshalByRefObject, ITestCase, ISourceInformation
+    /// <summary>
+    /// The test case that represents a test file.
+    /// </summary>
+    internal sealed class TestCase : ITestCase, IXunitSerializable
     {
-        private TestFactory _factory;
-        private string _relativePath;
+        private const string _assemblyNameKey = "assemblyName";
+        private const string _relativePathKey = "relativePath";
+
+        private TestFactory? _factory;
+        private string? _relativePath;
+        private TestMethod? _testMethod;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TestCase"/> class. This constructor is used by xunit, which
+        /// calls <see cref="IXunitSerializable.Deserialize"/> next.
+        /// </summary>
+        [UsedImplicitly]
+        public TestCase() { }
 
         public TestCase( TestFactory factory, string relativePath )
         {
-            this._factory = factory;
-            this._relativePath = relativePath;
+            this.Initialize( factory, relativePath );
         }
 
-        public string FullPath => Path.Combine( this._factory.ProjectProperties.SourceDirectory, this._relativePath );
+        private void Initialize( TestFactory factory, string relativePath )
+        {
+            this._factory = factory;
+            this._relativePath = relativePath;
+            this._testMethod = factory.GetTestMethod( relativePath );
+            this.UniqueID = UniqueIDGenerator.ForTestCase( this._testMethod.UniqueID, 0 );
+        }
+
+        private TestFactory Factory => this._factory ?? throw new InvalidOperationException( "The test case has not been initialized." );
+
+        /// <summary>
+        /// Gets the path of the test file, relative to the source directory of the test project.
+        /// </summary>
+        public string RelativePath => this._relativePath ?? throw new InvalidOperationException( "The test case has not been initialized." );
+
+        public string FullPath => Path.Combine( this.Factory.ProjectProperties.SourceDirectory, this.RelativePath );
 
         void IXunitSerializable.Deserialize( IXunitSerializationInfo info )
         {
-            this._factory = new TestFactory(
-                this._factory.ServiceProvider,
-                this._factory.ProjectProperties,
-                info.GetValue<string>( "basePath" ),
-                info.GetValue<string>( "assemblyName" ) );
+            var assembly = Assembly.Load( info.GetValue<string>( _assemblyNameKey ).AssertNotNull() );
+            var factory = TestFactory.GetInstance( TestFrameworkServiceFactoryProvider.GetServiceProvider(), assembly );
 
-            this._relativePath = info.GetValue<string>( "relativePath" );
+            this.Initialize( factory, info.GetValue<string>( _relativePathKey ).AssertNotNull() );
         }
 
         void IXunitSerializable.Serialize( IXunitSerializationInfo info )
         {
-            info.AddValue( "basePath", this._factory.ProjectProperties );
-            info.AddValue( "relativePath", this._relativePath );
-            info.AddValue( "assemblyName", this._factory.AssemblyInfo.Name );
+            info.AddValue( _assemblyNameKey, this.Factory.Assembly.FullName );
+            info.AddValue( _relativePathKey, this.RelativePath );
         }
 
-        string ITestCase.DisplayName => Path.GetFileNameWithoutExtension( this._relativePath );
+        public bool Explicit => false;
 
         public string? SkipReason
         {
@@ -49,7 +75,7 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
             {
                 try
                 {
-                    return this._factory.TestInputFactory.FromFile( this._factory.ProjectProperties, this._factory.DirectoryOptionsReader, this._relativePath )
+                    return this.Factory.TestInputFactory.FromFile( this.Factory.ProjectProperties, this.Factory.DirectoryOptionsReader, this.RelativePath )
                         .SkipReason;
                 }
                 catch ( Exception )
@@ -60,30 +86,38 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
             }
         }
 
-        ISourceInformation ITestCase.SourceInformation
-        {
-            get => this;
-            set => throw new NotSupportedException();
-        }
+        public string? SourceFilePath => this.FullPath;
 
-        Dictionary<string, List<string>> ITestCase.Traits { get; } = new();
+        public int? SourceLineNumber => 1;
 
-        string ITestCase.UniqueID => this._relativePath;
+        public string TestCaseDisplayName => Path.GetFileNameWithoutExtension( this.RelativePath );
 
-        ITestMethod ITestCase.TestMethod => this._factory.GetTestMethod( this._relativePath );
+        public int? TestClassMetadataToken => null;
 
-        object[] ITestCase.TestMethodArguments => Array.Empty<object>();
+        public string? TestClassName => this.TestClass.TestClassName;
 
-        string ISourceInformation.FileName
-        {
-            get => Path.Combine( this._factory.ProjectProperties.SourceDirectory, this._relativePath );
-            set => throw new NotSupportedException();
-        }
+        public string? TestClassNamespace => this.TestClass.TestClassNamespace;
 
-        int? ISourceInformation.LineNumber
-        {
-            get => 1;
-            set => throw new NotSupportedException();
-        }
+        public string? TestClassSimpleName => this.TestClass.TestClassSimpleName;
+
+        public int? TestMethodArity => null;
+
+        public int? TestMethodMetadataToken => null;
+
+        public string? TestMethodName => this.TestMethod.MethodName;
+
+        public string[]? TestMethodParameterTypesVSTest => null;
+
+        public string? TestMethodReturnTypeVSTest => null;
+
+        public IReadOnlyDictionary<string, IReadOnlyCollection<string>> Traits => TestFactory.EmptyTraits;
+
+        public string UniqueID { get; private set; } = "";
+
+        public ITestClass TestClass => this.TestMethod.TestClass;
+
+        public ITestCollection TestCollection => this.TestClass.TestCollection;
+
+        public ITestMethod TestMethod => this._testMethod ?? throw new InvalidOperationException( "The test case has not been initialized." );
     }
 }

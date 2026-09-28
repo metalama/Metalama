@@ -10,7 +10,6 @@ using Microsoft.CodeAnalysis.CSharp;
 using System.Collections.Generic;
 using System.Linq;
 using Xunit;
-using Xunit.Abstractions;
 using SymbolEqualityComparer = Microsoft.CodeAnalysis.SymbolEqualityComparer;
 #if ROSLYN_5_11_0_OR_GREATER && NET7_0_OR_GREATER
 using Metalama.Framework.Engine.Utilities;

@@ -23,7 +23,7 @@ public sealed class XmlDocTriviaTests : AspectTestBase
     [InlineData( CodeFormattingOptions.Formatted )]
     public async Task IntroduceAttribute( CodeFormattingOptions codeFormattingOptions )
     {
-        using var testContext = this.CreateTestContext( new TestContextOptions() { CodeFormattingOptions = codeFormattingOptions } );
+        using var testContext = this.CreateTestContext( new MetalamaTestContextOptions() { CodeFormattingOptions = codeFormattingOptions } );
 
         const string code = @"
 using System;

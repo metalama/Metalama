@@ -871,7 +871,7 @@ public class TestOptions
         this.ApplyBaseOptions( optionsReader.GetDirectoryOptions( Path.GetDirectoryName( path )! ) );
     }
 
-    internal TestContextOptions ApplyToTestContextOptions( TestContextOptions testContextOptions )
+    internal MetalamaTestContextOptions ApplyToTestContextOptions( MetalamaTestContextOptions testContextOptions )
         => testContextOptions with
         {
             // The language version of the test reaches the compile-time compilation through the project options, so

@@ -16,7 +16,7 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.Rpc;
 /// </summary>
 internal sealed class RpcTestContext : IDisposable
 {
-    private readonly TestContext _testContext;
+    private readonly MetalamaTestContext _testContext;
 
     /// <summary>
     /// Gets the test synchronization provider for deterministic race condition testing.
@@ -40,7 +40,7 @@ internal sealed class RpcTestContext : IDisposable
     /// </summary>
     public CancellationToken CancellationToken => this._testContext.CancellationToken;
 
-    internal RpcTestContext( TestContext testContext, TestSynchronizationProvider syncProvider )
+    internal RpcTestContext( MetalamaTestContext testContext, TestSynchronizationProvider syncProvider )
     {
         this._testContext = testContext;
         this.SyncProvider = syncProvider;

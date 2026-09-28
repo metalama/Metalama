@@ -9,7 +9,6 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using Xunit;
-using Xunit.Abstractions;
 using Xunit.Sdk;
 
 namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline.MemoryLeaks;
@@ -58,7 +57,7 @@ public sealed class MemoryLeakAssertSelfTests : DesignTimeTestBase
     /// Creates a compilation, adds it to a cache that retains it, and returns only a weak reference to it.
     /// </summary>
     [MethodImpl( MethodImplOptions.NoInlining )]
-    private static WeakReference CreateAndRetain( TestContext testContext, LeakingCache cache, string assemblyName )
+    private static WeakReference CreateAndRetain( MetalamaTestContext testContext, LeakingCache cache, string assemblyName )
     {
         var compilation = testContext.CreateCSharpCompilation(
             new Dictionary<string, string> { ["Code.cs"] = "public class C { }" },
@@ -73,7 +72,7 @@ public sealed class MemoryLeakAssertSelfTests : DesignTimeTestBase
     /// Creates a compilation and returns only a weak reference to it, retaining nothing.
     /// </summary>
     [MethodImpl( MethodImplOptions.NoInlining )]
-    private static WeakReference CreateWithoutRetaining( TestContext testContext, string assemblyName )
+    private static WeakReference CreateWithoutRetaining( MetalamaTestContext testContext, string assemblyName )
     {
         var compilation = testContext.CreateCSharpCompilation(
             new Dictionary<string, string> { ["Code.cs"] = "public class C { }" },
@@ -87,7 +86,7 @@ public sealed class MemoryLeakAssertSelfTests : DesignTimeTestBase
     /// reference to it.
     /// </summary>
     [MethodImpl( MethodImplOptions.NoInlining )]
-    private static WeakReference CreateAndRegisterConditionally( TestContext testContext, ConditionalCache cache, string assemblyName )
+    private static WeakReference CreateAndRegisterConditionally( MetalamaTestContext testContext, ConditionalCache cache, string assemblyName )
     {
         var compilation = testContext.CreateCSharpCompilation(
             new Dictionary<string, string> { ["Code.cs"] = "public class C { }" },

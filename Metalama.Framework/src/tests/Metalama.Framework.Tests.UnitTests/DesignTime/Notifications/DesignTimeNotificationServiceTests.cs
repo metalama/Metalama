@@ -14,7 +14,6 @@ using System.Collections.Immutable;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Framework.Tests.UnitTests.DesignTime.Notifications;
 
@@ -43,7 +42,7 @@ public sealed class DesignTimeNotificationServiceTests : UnitTestClass
 
     // Builds the service against the test context's xUnit-backed logger factory so that any service-side traces
     // surface in the test output rather than being silently swallowed.
-    private DesignTimeNotificationService CreateService( TestContext testContext )
+    private DesignTimeNotificationService CreateService( MetalamaTestContext testContext )
         => new( testContext.ServiceProvider.Global.Underlying.GetLoggerFactory().GetLogger( nameof(DesignTimeNotificationService) ) );
 
     private static CompilationResultChangedEventData NewCompilationResultEventData( bool isPartialCompilation = false, params string[] paths )
