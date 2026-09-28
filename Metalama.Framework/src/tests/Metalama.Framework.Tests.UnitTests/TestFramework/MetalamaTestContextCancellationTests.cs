@@ -56,6 +56,55 @@ public sealed class MetalamaTestContextCancellationTests : UnitTestClass
         Assert.True( testContext.CancellationToken.IsCancellationRequested );
     }
 
+    /// <summary>
+    /// Verifies that <see cref="MetalamaTestContext.Dispose()"/> waits for a timeout callback that is running, so that the
+    /// callback does not use the cancellation token source or the application exit manager after they are disposed.
+    /// </summary>
+    /// <remarks>
+    /// The callback is blocked in its first statement, which writes to the test output. When the callback is released, it
+    /// signals the token of the context. Only the callback signals this token: disposing the context does not. The test
+    /// records whether the token had been signalled when <see cref="MetalamaTestContext.Dispose()"/> returned, which is
+    /// true only if the method waited for the callback.
+    /// </remarks>
+    [Fact]
+    public void Dispose_WhileTimeoutCallbackRuns_WaitsForTheCallback()
+    {
+        Assert.SkipWhen( Debugger.IsAttached, "The context has no timeout when a debugger is attached." );
+
+        // The events are not disposed, because a regression would leave the callback waiting on one of them.
+        var callbackEntered = new ManualResetEventSlim();
+        var releaseCallback = new ManualResetEventSlim();
+
+        var testContext = new MetalamaTestContext( new MetalamaTestContextOptions { Timeout = Timeout.InfiniteTimeSpan } );
+        var tokenSignalled = false;
+        using var registration = testContext.CancellationToken.Register( () => Volatile.Write( ref tokenSignalled, true ) );
+
+        testContext.TestOutputWriter = new BlockingTestOutputHelper( callbackEntered, releaseCallback );
+        testContext.ExpireTimeout();
+
+        Assert.True( callbackEntered.Wait( _maxWait ) );
+
+        var tokenSignalledWhenDisposeReturned = false;
+
+        var disposingThread = new Thread(
+            () =>
+            {
+                testContext.Dispose();
+                tokenSignalledWhenDisposeReturned = Volatile.Read( ref tokenSignalled );
+            } );
+
+        disposingThread.Start();
+
+        // The callback is released once Dispose blocks, which it does only when it waits for the callback, or once it has
+        // returned without waiting.
+        Assert.True( SpinWait.SpinUntil( () => (disposingThread.ThreadState & (System.Threading.ThreadState.WaitSleepJoin | System.Threading.ThreadState.Stopped)) != 0, _maxWait ) );
+
+        releaseCallback.Set();
+
+        Assert.True( disposingThread.Join( _maxWait ) );
+        Assert.True( tokenSignalledWhenDisposeReturned );
+    }
+
     [Fact]
     public void CreateTestContext_PassesTokenOfXunit()
     {
@@ -72,5 +121,39 @@ public sealed class MetalamaTestContextCancellationTests : UnitTestClass
         this._tokenPassedToCreateTestContextCore = cancellationToken;
 
         return base.CreateTestContextCore( contextOptions, services, cancellationToken );
+    }
+
+    /// <summary>
+    /// A test output helper that blocks the first call to <see cref="WriteLine(string)"/> until the test releases it.
+    /// </summary>
+    private sealed class BlockingTestOutputHelper : ITestOutputHelper
+    {
+        private readonly ManualResetEventSlim _entered;
+        private readonly ManualResetEventSlim _release;
+
+        public BlockingTestOutputHelper( ManualResetEventSlim entered, ManualResetEventSlim release )
+        {
+            this._entered = entered;
+            this._release = release;
+        }
+
+        /// <inheritdoc />
+        public string Output => "";
+
+        /// <inheritdoc />
+        public void Write( string message ) { }
+
+        /// <inheritdoc />
+        public void Write( string format, params object[] args ) { }
+
+        /// <inheritdoc />
+        public void WriteLine( string message )
+        {
+            this._entered.Set();
+            this._release.Wait();
+        }
+
+        /// <inheritdoc />
+        public void WriteLine( string format, params object[] args ) => this.WriteLine( format );
     }
 }

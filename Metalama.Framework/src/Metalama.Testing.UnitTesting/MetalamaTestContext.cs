@@ -84,6 +84,17 @@ public partial class MetalamaTestContext : ITempFileManager, IApplicationInfoPro
 
     private readonly Timer? _timer;
 
+    /// <summary>
+    /// The lock that <see cref="OnTimeout"/> holds while it runs, and that <see cref="Dispose(bool)"/> takes before it
+    /// disposes the objects that the callback uses.
+    /// </summary>
+    private readonly object _timeoutLock = new();
+
+    /// <summary>
+    /// A value indicating whether the timer has been stopped, after which <see cref="OnTimeout"/> does nothing.
+    /// </summary>
+    private bool _isTimerStopped;
+
 #pragma warning disable LAMA0821 // Do not expose internal APIs.
     public IProjectOptions ProjectOptions => this.TestProjectOptions;
 #pragma warning restore LAMA0821
@@ -293,9 +304,17 @@ public partial class MetalamaTestContext : ITempFileManager, IApplicationInfoPro
 
     private void OnTimeout( object? state )
     {
-        this.TestOutputWriter?.WriteLine( "Timeout. Cancelling the test." );
-        this._testCancellationTokenSource?.Cancel();
-        this._applicationExitManager.OnApplicationExiting();
+        lock ( this._timeoutLock )
+        {
+            if ( this._isTimerStopped )
+            {
+                return;
+            }
+
+            this.TestOutputWriter?.WriteLine( "Timeout. Cancelling the test." );
+            this._testCancellationTokenSource?.Cancel();
+            this._applicationExitManager.OnApplicationExiting();
+        }
     }
 
     private ImmutableArray<object> LoadPlugIns( MetalamaTestContextOptions options )
@@ -417,6 +436,11 @@ public partial class MetalamaTestContext : ITempFileManager, IApplicationInfoPro
 
         if ( this._isRoot )
         {
+            // The timer is disposed first, and in-flight callbacks are awaited, because OnTimeout uses the cancellation
+            // token source and the application exit manager, which are disposed below. The finalizer does not wait,
+            // because the finalizer thread must not block.
+            this.StopTimer( waitForCallback: disposing );
+
             // Release every synchronization point before anything else, so that a test failing while the code under
             // test is blocked at one does not hang instead of reporting its failure.
             (this.ServiceProvider.Global.Underlying.GetService( typeof(ITestSynchronizationProvider) ) as TestSynchronizationProvider)?.ReleaseAll();
@@ -431,7 +455,6 @@ public partial class MetalamaTestContext : ITempFileManager, IApplicationInfoPro
             this.ServiceProvider = ProjectServiceProvider.Empty;
 
             this._testCancellationTokenSource?.Dispose();
-            this._timer?.Dispose();
 
             // We generally don't want to see any exceptions reported during the test, unless the test opts in. This runs
             // after the resources are released and after finalization is suppressed, so a failed assertion does not leak
@@ -441,6 +464,41 @@ public partial class MetalamaTestContext : ITempFileManager, IApplicationInfoPro
                 Assert.DoesNotContain( this._telemetryService.ReportedExceptions, e => e.Exception.GetType().Name is not "ConnectionLostException" );
             }
         }
+    }
+
+    /// <summary>
+    /// Makes the timeout of the context elapse now, so that the timer runs its callback on a thread of the thread pool.
+    /// This method is used by the tests of the context.
+    /// </summary>
+    internal void ExpireTimeout() => this._timer?.Change( TimeSpan.Zero, Timeout.InfiniteTimeSpan );
+
+    /// <summary>
+    /// Stops the timeout timer and, optionally, waits until a callback of the timer that is already running has returned.
+    /// </summary>
+    /// <remarks>
+    /// The lock is reentrant, so a callback that disposes the context on its own thread, for instance through a handler of
+    /// the application exit manager, does not wait for itself.
+    /// </remarks>
+    private void StopTimer( bool waitForCallback )
+    {
+        if ( this._timer == null )
+        {
+            return;
+        }
+
+        if ( waitForCallback )
+        {
+            lock ( this._timeoutLock )
+            {
+                this._isTimerStopped = true;
+            }
+        }
+        else
+        {
+            Volatile.Write( ref this._isTimerStopped, true );
+        }
+
+        this._timer.Dispose();
     }
 
     ~MetalamaTestContext()
