@@ -5,7 +5,11 @@
 using Metalama.Framework.DesignTime.Rpc;
 using System;
 using System.Reflection;
+#if NET
 using System.Runtime.CompilerServices;
+#else
+using System.Runtime.Serialization;
+#endif
 using Xunit;
 using Xunit.Abstractions;
 
@@ -25,7 +29,7 @@ public sealed partial class EndpointFinalizerTests : RpcUnitTestClass
     [Fact]
     public void Finalize_UninitializedServerEndpoint_DoesNotThrow()
     {
-        var endpoint = (BaseEndpoint) RuntimeHelpers.GetUninitializedObject( typeof(TestServerEndpoint) );
+        var endpoint = CreateUninitializedEndpoint( typeof(TestServerEndpoint) );
 
         InvokeFinalizer( endpoint );
     }
@@ -36,7 +40,7 @@ public sealed partial class EndpointFinalizerTests : RpcUnitTestClass
     [Fact]
     public void Finalize_UninitializedClientEndpoint_DoesNotThrow()
     {
-        var endpoint = (BaseEndpoint) RuntimeHelpers.GetUninitializedObject( typeof(TestClientEndpoint) );
+        var endpoint = CreateUninitializedEndpoint( typeof(TestClientEndpoint) );
 
         InvokeFinalizer( endpoint );
     }
@@ -75,6 +79,17 @@ public sealed partial class EndpointFinalizerTests : RpcUnitTestClass
         InvokeFinalizer( serverEndpoint );
         InvokeFinalizer( clientEndpoint );
     }
+
+    /// <summary>
+    /// Creates an endpoint without running any constructor or field initializer, so that all its fields are null. This is
+    /// the state of an endpoint whose constructor failed before it assigned any field.
+    /// </summary>
+    private static BaseEndpoint CreateUninitializedEndpoint( Type type )
+#if NET
+        => (BaseEndpoint) RuntimeHelpers.GetUninitializedObject( type );
+#else
+        => (BaseEndpoint) FormatterServices.GetUninitializedObject( type );
+#endif
 
     /// <summary>
     /// Calls the finalizer of an endpoint synchronously, so that an exception thrown by the finalizer fails the test
