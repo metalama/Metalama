@@ -77,17 +77,43 @@ public sealed class StackReserveSizePatcherTests : UnitTestClass
             Assert.Equal( GetWindowsChecksum( executable.Image ), BitConverter.ToUInt32( executable.Image, layout.ChecksumOffset ) );
             Assert.Equal( GetWindowsChecksum( patched ), BitConverter.ToUInt32( patched, layout.ChecksumOffset ) );
         }
+    }
 
-        if ( RuntimeInformation.FrameworkDescription.StartsWith( ".NET Framework", StringComparison.Ordinal ) )
-        {
-            Assert.True( IsSignatureValidForTheRuntime( testContext, executable.Image, "original.exe" ) );
-            Assert.True( IsSignatureValidForTheRuntime( testContext, patched, "patched.exe" ) );
+    /// <summary>
+    /// Verifies that the .NET Framework runtime accepts the signature of a patched file and rejects the signature of a
+    /// file that was patched without being signed again.
+    /// </summary>
+    /// <remarks>
+    /// The file produced by the compiler is the control. When the runtime of the machine does not accept it, the machine
+    /// cannot verify strong name signatures, and the test is skipped with the error that the runtime reported. This was
+    /// observed on a build agent.
+    /// </remarks>
+    [Fact]
+    public void TryPatch_SignatureIsAcceptedByTheNetFrameworkRuntime()
+    {
+        Assert.SkipUnless(
+            RuntimeInformation.FrameworkDescription.StartsWith( ".NET Framework", StringComparison.Ordinal ),
+            "The strong name verification API is available on .NET Framework only." );
 
-            // The positive result above is meaningful only if the runtime rejects a file whose signature is stale.
-            var unsigned = (byte[]) executable.Image.Clone();
-            Assert.True( StackReserveSizePatcher.TryPatch( unsigned, _stackReserveSize, null, null, out _, out error ), error );
-            Assert.False( IsSignatureValidForTheRuntime( testContext, unsigned, "stale.exe" ) );
-        }
+        using var testContext = this.CreateTestContext();
+        var executable = CompileSignedExecutable( testContext );
+
+        Assert.SkipUnless(
+            IsSignatureValidForTheRuntime( testContext, executable.Image, "original.exe", out var controlError ),
+            $"The runtime does not accept the signature produced by the compiler: {controlError}" );
+
+        var patched = (byte[]) executable.Image.Clone();
+
+        Assert.True(
+            StackReserveSizePatcher.TryPatch( patched, _stackReserveSize, executable.KeyPair, executable.PublicKey, out _, out var error ),
+            error );
+
+        Assert.True( IsSignatureValidForTheRuntime( testContext, patched, "patched.exe", out var patchedError ), patchedError );
+
+        // The positive result above is meaningful only if the runtime rejects a file whose signature is stale.
+        var unsigned = (byte[]) executable.Image.Clone();
+        Assert.True( StackReserveSizePatcher.TryPatch( unsigned, _stackReserveSize, null, null, out _, out error ), error );
+        Assert.False( IsSignatureValidForTheRuntime( testContext, unsigned, "stale.exe", out _ ) );
     }
 
     /// <summary>
@@ -181,12 +207,25 @@ public sealed class StackReserveSizePatcherTests : UnitTestClass
     /// <summary>
     /// Verifies the strong name signature of an image with the .NET Framework runtime, which requires a file.
     /// </summary>
-    private static bool IsSignatureValidForTheRuntime( MetalamaTestContext testContext, byte[] image, string fileName )
+    /// <param name="testContext">The test context, whose directory receives the file.</param>
+    /// <param name="image">The image to verify.</param>
+    /// <param name="fileName">The name of the file to write.</param>
+    /// <param name="error">Set to a description of the error that the runtime reported, when the signature is rejected.</param>
+    private static bool IsSignatureValidForTheRuntime( MetalamaTestContext testContext, byte[] image, string fileName, out string? error )
     {
         var path = Path.Combine( testContext.BaseDirectory, fileName );
         File.WriteAllBytes( path, image );
 
-        return StrongNameSignatureVerificationEx( path, true, out _ );
+        if ( StrongNameSignatureVerificationEx( path, true, out var wasVerified ) )
+        {
+            error = null;
+
+            return true;
+        }
+
+        error = $"StrongNameErrorInfo returned 0x{StrongNameErrorInfo():X8} for '{path}' (wasVerified: {wasVerified}).";
+
+        return false;
     }
 
     [DllImport( "imagehlp.dll", SetLastError = true )]
@@ -195,4 +234,7 @@ public sealed class StackReserveSizePatcherTests : UnitTestClass
     [DllImport( "mscoree.dll", CharSet = CharSet.Unicode )]
     [return: MarshalAs( UnmanagedType.U1 )]
     private static extern bool StrongNameSignatureVerificationEx( string filePath, [MarshalAs( UnmanagedType.U1 )] bool forceVerification, [MarshalAs( UnmanagedType.U1 )] out bool wasVerified );
+
+    [DllImport( "mscoree.dll" )]
+    private static extern int StrongNameErrorInfo();
 }
