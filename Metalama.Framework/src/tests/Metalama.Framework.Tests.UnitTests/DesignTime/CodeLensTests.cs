@@ -75,7 +75,7 @@ public sealed class CodeLensTests : DesignTimeTestBase
         var workspaceProvider = factory.ServiceProvider.GetRequiredService<TestWorkspaceProvider>();
         var projectKey = workspaceProvider.AddOrUpdateProject( testContext, "project", new Dictionary<string, string> { ["code.cs"] = code } );
 
-        var compilation = (await workspaceProvider.GetCompilationAsync( projectKey ))!;
+        var compilation = (await workspaceProvider.GetCompilationAsync( projectKey, testContext.CancellationToken ))!;
 
         // We need to run the pipeline because code lens does not run it on its own.
         var pipeline = factory.CreatePipeline( compilation );
@@ -163,7 +163,7 @@ public sealed class CodeLensTests : DesignTimeTestBase
         var workspaceProvider = factory.ServiceProvider.GetRequiredService<TestWorkspaceProvider>();
         var projectKey = workspaceProvider.AddOrUpdateProject( testContext, "project", new Dictionary<string, string> { ["code.cs"] = code } );
 
-        var compilation = (await workspaceProvider.GetCompilationAsync( projectKey ))!;
+        var compilation = (await workspaceProvider.GetCompilationAsync( projectKey, testContext.CancellationToken ))!;
 
         // We need to run the pipeline because code lens does not run it on its own.
         var pipeline = factory.CreatePipeline( compilation );
@@ -232,7 +232,7 @@ public sealed class CodeLensTests : DesignTimeTestBase
         var workspaceProvider = factory.ServiceProvider.GetRequiredService<TestWorkspaceProvider>();
         var projectKey = workspaceProvider.AddOrUpdateProject( testContext, "project", new Dictionary<string, string> { ["code.cs"] = code } );
 
-        var compilation = (await workspaceProvider.GetCompilationAsync( projectKey ))!;
+        var compilation = (await workspaceProvider.GetCompilationAsync( projectKey, testContext.CancellationToken ))!;
 
         // We need to run the pipeline because code lens does not run it on its own.
         var pipeline = factory.CreatePipeline( compilation );

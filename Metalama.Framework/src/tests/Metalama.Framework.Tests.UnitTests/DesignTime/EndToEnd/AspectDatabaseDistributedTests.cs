@@ -62,12 +62,12 @@ public sealed class AspectDatabaseDistributedTests : DistributedDesignTimeTestBa
         // Initialize the workspace.
         var projectKey = testContext.WorkspaceProvider.AddOrUpdateProject( testContext, "project", new Dictionary<string, string> { ["code.cs"] = code } );
         await testContext.AnalysisProcessEndpoint.RegisterProjectAsync( projectKey, testContext.CancellationToken );
-        var compilation = (await testContext.WorkspaceProvider.GetCompilationAsync( projectKey ))!;
+        var compilation = (await testContext.WorkspaceProvider.GetCompilationAsync( projectKey, testContext.CancellationToken ))!;
 
         // We need to run the pipeline because code lens does not run it on its own.
         var project = testContext.WorkspaceProvider.GetProject( "project" );
         var pipeline = testContext.PipelineFactory.GetOrCreatePipeline( project )!;
-        var pipelineResult = await pipeline.ExecuteAsync( (await project.GetCompilationAsync())!, AsyncExecutionContext.Get() );
+        var pipelineResult = await pipeline.ExecuteAsync( (await project.GetCompilationAsync( testContext.CancellationToken ))!, AsyncExecutionContext.Get() );
         Assert.True( pipelineResult.IsSuccessful );
 
         var aspectDatabaseService = new AspectDatabaseService( testContext.UserProcessServiceProvider );

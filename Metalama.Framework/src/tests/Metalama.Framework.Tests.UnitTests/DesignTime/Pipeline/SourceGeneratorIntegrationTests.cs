@@ -87,7 +87,7 @@ partial class C : BaseClass
 
         Assert.True( factory.TryExecute( testContext.ProjectOptions, masterCompilation2, TestableCancellationToken.None, out _ ) );
 
-        var notification = dirtyProjectNotifications.Take();
+        var notification = dirtyProjectNotifications.Take( testContext.CancellationToken );
 
         Assert.Equal( dependentProjectKey.AssemblyName, notification.AssemblyName );
     }

@@ -43,7 +43,7 @@ public sealed class HierarchicalOptionsManagerTests : UnitTestClass
             new UnresolvableExternalOptionsProvider(),
             compilationModel,
             diagnosticSink: null!,
-            cancellationToken: default );
+            cancellationToken: context.CancellationToken );
 
         // Verify that GetOptions returns null for an unregistered option type instead of throwing.
         var declaration = compilationModel.Types.Single();

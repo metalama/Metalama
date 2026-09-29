@@ -273,7 +273,7 @@ public sealed class AspectDatabaseTests( ITestOutputHelper testOutputHelper ) : 
 
         // Have to recompute configuration to get the event raised.
         await pipeline.GetConfigurationAsync(
-            PartialCompilation.CreateComplete( await workspaceProvider.GetCompilationAsync( projectKey ).AssertNotNullAsync() ).AssertNotNull(),
+            PartialCompilation.CreateComplete( await workspaceProvider.GetCompilationAsync( projectKey, testContext.CancellationToken ).AssertNotNullAsync() ).AssertNotNull(),
             ignoreStatus: true,
             AsyncExecutionContext.Get(),
             default );
@@ -303,7 +303,7 @@ public sealed class AspectDatabaseTests( ITestOutputHelper testOutputHelper ) : 
         workspaceProvider.AddOrUpdateProject( testContext, "project", code );
 
         // Have to re-execute to get the event raised.
-        await pipeline.ExecuteAsync( await workspaceProvider.GetCompilationAsync( projectKey ).AssertNotNullAsync(), AsyncExecutionContext.Get() );
+        await pipeline.ExecuteAsync( await workspaceProvider.GetCompilationAsync( projectKey, testContext.CancellationToken ).AssertNotNullAsync(), AsyncExecutionContext.Get() );
 
         Assert.Equal( 1, aspectClassesChanges );
         Assert.Equal( 1, aspectInstancesChanges );

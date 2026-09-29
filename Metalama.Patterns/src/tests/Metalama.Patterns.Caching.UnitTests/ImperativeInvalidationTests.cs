@@ -728,7 +728,7 @@ namespace Metalama.Patterns.Caching.Tests
 
             var c = new TestImperativeInvalidationWithNestedContextsAsyncClass();
             var call1 = await c.OuterMethodAsync();
-            await CachingService.Default.InvalidateAsync( c.InnerMethodAsync );
+            await CachingService.Default.InvalidateAsync( c.InnerMethodAsync, TestContext.Current.CancellationToken );
             var call2 = await c.OuterMethodAsync();
 
             Assert.NotEqual( call1, call2 );
@@ -805,7 +805,7 @@ namespace Metalama.Patterns.Caching.Tests
 
             var c = new TestRecachingOfInnerMethodAsyncClass();
             var call1 = await c.OuterMethodAsync();
-            var call2 = await CachingService.Default.RefreshAsync( c.InnerMethodAsync );
+            var call2 = await CachingService.Default.RefreshAsync( c.InnerMethodAsync, TestContext.Current.CancellationToken );
             var call3 = await c.OuterMethodAsync();
 
             Assert.NotEqual( call1, call2 );
@@ -883,7 +883,7 @@ namespace Metalama.Patterns.Caching.Tests
 
             var c = new TestRecachingOfOuterMethodAsyncClass();
             var call1 = await c.OuterMethodAsync();
-            var call2 = await CachingService.Default.RefreshAsync( c.OuterMethodAsync );
+            var call2 = await CachingService.Default.RefreshAsync( c.OuterMethodAsync, TestContext.Current.CancellationToken );
             var call3 = await c.OuterMethodAsync();
 
             Assert.Equal( call1, call2 );

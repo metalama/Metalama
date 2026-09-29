@@ -67,7 +67,7 @@ public sealed class SourceTransformerTests : UnitTestClass
                             """;
 
         var context = this.RunTransformer( code, warnAsErrors: warnAsErrors );
-        var diagnostics = context.Compilation.GetDiagnostics();
+        var diagnostics = context.Compilation.GetDiagnostics( TestContext.Current.CancellationToken );
 
         var suppressionRunner = new DiagnosticFilterRunner(
             context.Compilation,

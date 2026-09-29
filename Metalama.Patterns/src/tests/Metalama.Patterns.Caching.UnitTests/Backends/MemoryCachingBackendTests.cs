@@ -40,6 +40,9 @@ namespace Metalama.Patterns.Caching.Tests.Backends
             this._fakeServices.Dispose();
         }
 
+        // xUnit1069 cannot see that the base method observes TestContext.Current.CancellationToken: it links the token
+        // to its timeout, and a test method cannot receive the token as a parameter.
+#pragma warning disable xUnit1069
         /// <summary>
         /// Runs <see cref="BaseCacheBackendTests.TestSlidingExpiration"/>, which the base class skips.
         /// </summary>
@@ -57,6 +60,7 @@ namespace Metalama.Patterns.Caching.Tests.Backends
         /// </summary>
         [Fact( Timeout = Timeout )]
         public override Task TestSlidingExpirationAsync() => base.TestSlidingExpirationAsync();
+#pragma warning restore xUnit1069
     }
 
     [UsedImplicitly]

@@ -82,7 +82,7 @@ public sealed class MetalamaTestContextCancellationTests : UnitTestClass
         testContext.TestOutputWriter = new BlockingTestOutputHelper( callbackEntered, releaseCallback );
         testContext.ExpireTimeout();
 
-        Assert.True( callbackEntered.Wait( _maxWait ) );
+        Assert.True( callbackEntered.Wait( _maxWait, TestContext.Current.CancellationToken ) );
 
         var tokenSignalledWhenDisposeReturned = false;
 

@@ -31,7 +31,7 @@ public sealed class DependencyInjectionTests
         serviceCollection.AddSingleton<C>();
         var serviceProvider = serviceCollection.BuildServiceProvider();
         await using var initializer = serviceProvider.GetRequiredService<ICachingService>();
-        await initializer.InitializeAsync();
+        await initializer.InitializeAsync( TestContext.Current.CancellationToken );
 
         var c = (C) serviceProvider.GetService( typeof(C) )!;
         _ = c.Method();

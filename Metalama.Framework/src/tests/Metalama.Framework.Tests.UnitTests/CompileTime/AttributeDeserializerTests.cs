@@ -104,7 +104,7 @@ namespace Metalama.Framework.Tests.UnitTests.CompileTime
             var domain = testContext.Domain;
 
             var compileTimeProjectRepository =
-                CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, compilation.RoslynCompilation ).AssertNotNull();
+                CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, compilation.RoslynCompilation, cancellationToken: testContext.CancellationToken ).AssertNotNull();
 
             var attribute = compilation.Attributes.Single();
             DiagnosticBag diagnosticBag = new();
@@ -376,7 +376,7 @@ namespace Metalama.Framework.Tests.UnitTests.CompileTime
             var domain = testContext.Domain;
 
             var compileTimeProjectRepository =
-                CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, compilation.RoslynCompilation ).AssertNotNull();
+                CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, compilation.RoslynCompilation, cancellationToken: testContext.CancellationToken ).AssertNotNull();
 
             var attribute = compilation.Attributes.Single();
             DiagnosticBag diagnosticBag = new();
@@ -414,7 +414,7 @@ namespace Metalama.Framework.Tests.UnitTests.CompileTime
             var domain = testContext.Domain;
 
             var compileTimeProjectRepository =
-                CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, compilation.RoslynCompilation ).AssertNotNull();
+                CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, compilation.RoslynCompilation, cancellationToken: testContext.CancellationToken ).AssertNotNull();
 
             DiagnosticBag diagnosticBag = new();
 
@@ -440,7 +440,7 @@ namespace Metalama.Framework.Tests.UnitTests.CompileTime
             var domain = testContext.Domain;
 
             var compileTimeProjectRepository =
-                CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, compilation.RoslynCompilation ).AssertNotNull();
+                CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, compilation.RoslynCompilation, cancellationToken: testContext.CancellationToken ).AssertNotNull();
 
             DiagnosticBag diagnosticBag = new();
 
@@ -465,7 +465,7 @@ namespace Metalama.Framework.Tests.UnitTests.CompileTime
             var domain = testContext.Domain;
 
             var compileTimeProjectRepository =
-                CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, compilation.RoslynCompilation ).AssertNotNull();
+                CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, compilation.RoslynCompilation, cancellationToken: testContext.CancellationToken ).AssertNotNull();
 
             DiagnosticBag diagnosticBag = new();
 

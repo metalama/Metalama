@@ -100,7 +100,8 @@ public sealed class CompileTimeProjectLanguageVersionTests : UnitTestClass
                 manifestResources:
                 [
                     new ManagedResource( CompileTimeConstants.CompileTimeProjectResourceName, rewrittenBytes, true ).Resource
-                ] );
+                ],
+                cancellationToken: consumerContext.CancellationToken );
 
             Assert.True( emitResult.Success );
         }

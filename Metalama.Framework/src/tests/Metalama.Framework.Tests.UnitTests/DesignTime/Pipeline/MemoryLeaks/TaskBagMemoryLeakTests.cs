@@ -113,7 +113,7 @@ public sealed class TaskBagMemoryLeakTests : DesignTimeTestBase
             nameof(this.CompletedTask_IsRemovedFromTheBag),
             CancellationToken.None );
 
-        await taskBag.WaitAllAsync();
+        await taskBag.WaitAllAsync( testContext.CancellationToken );
 
         Assert.True( taskBag.IsEmpty, "The bag still holds an entry for a task that has completed." );
 

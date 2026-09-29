@@ -40,8 +40,8 @@ public sealed class SerializableRefResolutionTests : UnitTestClass
     {
         using var testContext = this.CreateTestContext();
         var compilation = testContext.CreateCompilationModel( "/* nothing */" );
-        var symbolId = SymbolId.Create( compilation.Symbol );
-        var resolvedSymbol = symbolId.Resolve( compilation.RoslynCompilation ).AssertNotNull();
+        var symbolId = SymbolId.Create( compilation.Symbol, testContext.CancellationToken );
+        var resolvedSymbol = symbolId.Resolve( compilation.RoslynCompilation, cancellationToken: testContext.CancellationToken ).AssertNotNull();
         var resolvedDeclaration = compilation.Factory.GetCompilationElement( resolvedSymbol );
 
         Assert.Same( compilation, resolvedDeclaration );
@@ -54,8 +54,8 @@ public sealed class SerializableRefResolutionTests : UnitTestClass
         var compilation = testContext.CreateCompilationModel( "/* nothing */" );
 
         var assemblyRefSymbol = compilation.Factory.GetTypeByReflectionType( typeof(string) ).GetSymbol();
-        var assemblyRefRef = SymbolId.Create( assemblyRefSymbol );
-        _ = assemblyRefRef.Resolve( compilation.RoslynCompilation );
+        var assemblyRefRef = SymbolId.Create( assemblyRefSymbol, testContext.CancellationToken );
+        _ = assemblyRefRef.Resolve( compilation.RoslynCompilation, cancellationToken: testContext.CancellationToken );
     }
 
     /// <summary>

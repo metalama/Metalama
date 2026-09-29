@@ -217,7 +217,7 @@ class C
 ";
 
             var compilation = testContext.CreateCSharpCompilation( code );
-            var type = (ITypeSymbol) compilation.GetSymbolsWithName( "C" ).Single();
+            var type = (ITypeSymbol) compilation.GetSymbolsWithName( "C", cancellationToken: testContext.CancellationToken ).Single();
             this.AssertScope( compilation, type, TemplatingScope.CompileTimeOnly );
             this.AssertScope( compilation, type.GetMembers( "F" ).Single(), TemplatingScope.CompileTimeOnlyReturningBoth );
             this.AssertScope( compilation, type.GetMembers( "M" ).Single(), TemplatingScope.CompileTimeOnly );
@@ -377,11 +377,11 @@ class C
 
             var syntaxTree = compilation.RoslynCompilation.SyntaxTrees.First();
             var semanticModel = compilation.RoslynCompilation.GetSemanticModel( syntaxTree );
-            var nodes = syntaxTree.GetRoot().DescendantNodes();
+            var nodes = syntaxTree.GetRoot( testContext.CancellationToken ).DescendantNodes();
 
             foreach ( var node in nodes )
             {
-                var symbol = semanticModel.GetSymbolInfo( node ).Symbol;
+                var symbol = semanticModel.GetSymbolInfo( node, testContext.CancellationToken ).Symbol;
 
                 if ( symbol != null )
                 {
@@ -478,7 +478,7 @@ class C  {
 
             var syntaxTree = compilation.RoslynCompilation.SyntaxTrees.First();
             var semanticModel = compilation.RoslynCompilation.GetSemanticModel( syntaxTree );
-            var nodes = syntaxTree.GetRoot().DescendantNodes().ToArray();
+            var nodes = syntaxTree.GetRoot( testContext.CancellationToken ).DescendantNodes().ToArray();
 
             AssertScope( "Console", TemplatingScope.RunTimeOnly );   // Hardcoded.
             AssertScope( "WriteLine", TemplatingScope.RunTimeOnly ); // Hardcoded.
@@ -522,10 +522,10 @@ class C  {
 
             var syntaxTree = compilation.RoslynCompilation.SyntaxTrees.First();
             var semanticModel = compilation.RoslynCompilation.GetSemanticModel( syntaxTree );
-            var nodes = syntaxTree.GetRoot().DescendantNodes().ToArray();
+            var nodes = syntaxTree.GetRoot( testContext.CancellationToken ).DescendantNodes().ToArray();
 
             var node = nodes.OfType<MethodDeclarationSyntax>().Single();
-            var symbol = semanticModel.GetDeclaredSymbol( node ).AssertNotNull();
+            var symbol = semanticModel.GetDeclaredSymbol( node, testContext.CancellationToken ).AssertNotNull();
 
             this.AssertScope( compilation.RoslynCompilation, symbol, TemplatingScope.RunTimeOnly, SymbolClassificationContext.RunTimeOnly );
         }
@@ -561,7 +561,7 @@ class C  {
 
             var syntaxTree = compilation.RoslynCompilation.SyntaxTrees.First();
             var semanticModel = compilation.RoslynCompilation.GetSemanticModel( syntaxTree );
-            var nodes = syntaxTree.GetRoot().DescendantNodes().ToArray();
+            var nodes = syntaxTree.GetRoot( testContext.CancellationToken ).DescendantNodes().ToArray();
 
             // With the default (false), Roslyn types should NOT be compile-time-only.
             AssertScope( "ISymbol", TemplatingScope.RunTimeOrCompileTime );
@@ -606,7 +606,7 @@ class C  {
 
             var syntaxTree = compilation.RoslynCompilation.SyntaxTrees.First();
             var semanticModel = compilation.RoslynCompilation.GetSemanticModel( syntaxTree );
-            var nodes = syntaxTree.GetRoot().DescendantNodes().ToArray();
+            var nodes = syntaxTree.GetRoot( testContext.CancellationToken ).DescendantNodes().ToArray();
 
             var expectedScope = roslynIsCompileTime ? TemplatingScope.CompileTimeOnly : TemplatingScope.RunTimeOrCompileTime;
 
@@ -658,19 +658,19 @@ class C  {
 
             var syntaxTree = compilation.RoslynCompilation.SyntaxTrees.First();
             var semanticModel = compilation.RoslynCompilation.GetSemanticModel( syntaxTree );
-            var nodes = syntaxTree.GetRoot().DescendantNodes();
+            var nodes = syntaxTree.GetRoot( testContext.CancellationToken ).DescendantNodes();
 
             // This should not throw - it previously threw "Invalid combination: (NotCompileTimeOnly, RunTimeOnly)"
             foreach ( var node in nodes )
             {
-                var symbol = semanticModel.GetSymbolInfo( node ).Symbol;
+                var symbol = semanticModel.GetSymbolInfo( node, testContext.CancellationToken ).Symbol;
 
                 if ( symbol != null )
                 {
                     classifier.GetTemplatingScope( symbol, SymbolClassificationContext.RunTimeOnly );
                 }
 
-                if ( semanticModel.GetTypeInfo( node ).Type is { } type )
+                if ( semanticModel.GetTypeInfo( node, testContext.CancellationToken ).Type is { } type )
                 {
                     classifier.GetTemplatingScope( type, SymbolClassificationContext.RunTimeOnly );
                 }
@@ -701,7 +701,7 @@ internal class C : TypeAspect
             var invocation = field.DescendantNodes().OfType<InvocationExpressionSyntax>().Single();
 
             var semanticModel = compilation.RoslynCompilation.GetSemanticModel( field.SyntaxTree );
-            var invokedMethod = semanticModel.GetSymbolInfo( invocation.Expression ).Symbol.AssertSymbolNotNull();
+            var invokedMethod = semanticModel.GetSymbolInfo( invocation.Expression, testContext.CancellationToken ).Symbol.AssertSymbolNotNull();
 
             this.AssertScope( compilation.RoslynCompilation, invokedMethod, TemplatingScope.RunTimeOnly );
         }
@@ -757,7 +757,7 @@ class C
 ";
 
             var compilation = testContext.CreateCSharpCompilation( code );
-            var parentType = (ITypeSymbol) compilation.GetSymbolsWithName( "C" ).Single();
+            var parentType = (ITypeSymbol) compilation.GetSymbolsWithName( "C", cancellationToken: testContext.CancellationToken ).Single();
             var nestedType = parentType.GetMembers( "Nested" ).Single();
 
             this.AssertScope( compilation, nestedType, TemplatingScope.CompileTimeOnly );
@@ -782,7 +782,7 @@ class C
 ";
 
             var compilation = testContext.CreateCSharpCompilation( code );
-            var parentType = (ITypeSymbol) compilation.GetSymbolsWithName( "C" ).Single();
+            var parentType = (ITypeSymbol) compilation.GetSymbolsWithName( "C", cancellationToken: testContext.CancellationToken ).Single();
             var nestedType = parentType.GetMembers( "Nested" ).Single();
 
             this.AssertScope( compilation, nestedType, TemplatingScope.RunTimeOnly );
@@ -810,7 +810,7 @@ class C
 ";
 
             var compilation = testContext.CreateCSharpCompilation( code );
-            var parentType = (ITypeSymbol) compilation.GetSymbolsWithName( "C" ).Single();
+            var parentType = (ITypeSymbol) compilation.GetSymbolsWithName( "C", cancellationToken: testContext.CancellationToken ).Single();
             var nestedType = parentType.GetMembers( "Nested" ).Single();
 
             this.AssertScope( compilation, nestedType, TemplatingScope.CompileTimeOnly );

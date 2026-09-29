@@ -16,7 +16,7 @@ namespace Metalama.Framework.Tests.UnitTests.CompileTime
         {
             using var testContext = this.CreateTestContext();
             var compilation = testContext.CreateCSharpCompilation( @"using Metalama.Framework.RunTime; namespace X { class Y {} } " );
-            Assert.False( CompileTimeCodeFastDetector.HasCompileTimeCode( compilation.SyntaxTrees.Single().GetRoot() ) );
+            Assert.False( CompileTimeCodeFastDetector.HasCompileTimeCode( compilation.SyntaxTrees.Single().GetRoot( testContext.CancellationToken ) ) );
         }
 
         [Fact]
@@ -24,7 +24,7 @@ namespace Metalama.Framework.Tests.UnitTests.CompileTime
         {
             using var testContext = this.CreateTestContext();
             var compilation = testContext.CreateCSharpCompilation( @"" );
-            Assert.False( CompileTimeCodeFastDetector.HasCompileTimeCode( compilation.SyntaxTrees.Single().GetRoot() ) );
+            Assert.False( CompileTimeCodeFastDetector.HasCompileTimeCode( compilation.SyntaxTrees.Single().GetRoot( testContext.CancellationToken ) ) );
         }
 
         [Fact]
@@ -36,7 +36,7 @@ namespace Metalama.Framework.Tests.UnitTests.CompileTime
                 @"using Metalama.Framework.Aspects;  namespace X class Y {} ",
                 ignoreErrors: true );
 
-            Assert.True( CompileTimeCodeFastDetector.HasCompileTimeCode( compilation.SyntaxTrees.Single().GetRoot() ) );
+            Assert.True( CompileTimeCodeFastDetector.HasCompileTimeCode( compilation.SyntaxTrees.Single().GetRoot( testContext.CancellationToken ) ) );
         }
 
         [Fact]
@@ -44,7 +44,7 @@ namespace Metalama.Framework.Tests.UnitTests.CompileTime
         {
             using var testContext = this.CreateTestContext();
             var compilation = testContext.CreateCSharpCompilation( @"using Metalama.Framework; namespace X {class Y {} }" );
-            Assert.True( CompileTimeCodeFastDetector.HasCompileTimeCode( compilation.SyntaxTrees.Single().GetRoot() ) );
+            Assert.True( CompileTimeCodeFastDetector.HasCompileTimeCode( compilation.SyntaxTrees.Single().GetRoot( testContext.CancellationToken ) ) );
         }
 
         [Fact]
@@ -53,7 +53,7 @@ namespace Metalama.Framework.Tests.UnitTests.CompileTime
             using var testContext = this.CreateTestContext();
             var compilation = testContext.CreateCSharpCompilation( @"using Metalama.Framework.Aspects;  namespace X {class Y {} }" );
 
-            Assert.True( CompileTimeCodeFastDetector.HasCompileTimeCode( compilation.SyntaxTrees.Single().GetRoot() ) );
+            Assert.True( CompileTimeCodeFastDetector.HasCompileTimeCode( compilation.SyntaxTrees.Single().GetRoot( testContext.CancellationToken ) ) );
         }
 
         [Fact]
@@ -61,7 +61,7 @@ namespace Metalama.Framework.Tests.UnitTests.CompileTime
         {
             using var testContext = this.CreateTestContext();
             var compilation = testContext.CreateCSharpCompilation( @"using Metalama.Framework.Fabrics; namespace X {class Y {} }" );
-            Assert.True( CompileTimeCodeFastDetector.HasCompileTimeCode( compilation.SyntaxTrees.Single().GetRoot() ) );
+            Assert.True( CompileTimeCodeFastDetector.HasCompileTimeCode( compilation.SyntaxTrees.Single().GetRoot( testContext.CancellationToken ) ) );
         }
 
         [Fact]
@@ -73,7 +73,7 @@ namespace Metalama.Framework.Tests.UnitTests.CompileTime
                 @"namespace X { using Metalama.Framework.Advising; 
 using Metalama.Framework.Aspects;  class Y {} }" );
 
-            Assert.True( CompileTimeCodeFastDetector.HasCompileTimeCode( compilation.SyntaxTrees.Single().GetRoot() ) );
+            Assert.True( CompileTimeCodeFastDetector.HasCompileTimeCode( compilation.SyntaxTrees.Single().GetRoot( testContext.CancellationToken ) ) );
         }
 
         [Fact]
@@ -85,7 +85,7 @@ using Metalama.Framework.Aspects;  class Y {} }" );
                 @"namespace X { namespace Y { using Metalama.Framework.Advising; 
 using Metalama.Framework.Aspects;  } }" );
 
-            Assert.True( CompileTimeCodeFastDetector.HasCompileTimeCode( compilation.SyntaxTrees.Single().GetRoot() ) );
+            Assert.True( CompileTimeCodeFastDetector.HasCompileTimeCode( compilation.SyntaxTrees.Single().GetRoot( testContext.CancellationToken ) ) );
         }
     }
 }

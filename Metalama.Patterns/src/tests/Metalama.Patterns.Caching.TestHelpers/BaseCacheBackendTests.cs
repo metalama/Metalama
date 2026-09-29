@@ -333,7 +333,9 @@ namespace Metalama.Patterns.Caching.TestHelpers
         [Fact( Timeout = Timeout )]
         public async Task TestAbsoluteExpiration()
         {
-            using var cancellationTokenSource = new CancellationTokenSource( TimeoutTimeSpan );
+            // The source is linked to the token of xunit, so that the test also ends when xunit cancels it.
+            using var cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource( TestContext.Current.CancellationToken );
+            cancellationTokenSource.CancelAfter( TimeoutTimeSpan );
             var cancellationToken = cancellationTokenSource.Token;
 
             while ( true )
@@ -403,7 +405,9 @@ namespace Metalama.Patterns.Caching.TestHelpers
                 return;
             }
 
-            using var cancellationTokenSource = new CancellationTokenSource( TimeoutTimeSpan );
+            // The source is linked to the token of xunit, so that the test also ends when xunit cancels it.
+            using var cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource( TestContext.Current.CancellationToken );
+            cancellationTokenSource.CancelAfter( TimeoutTimeSpan );
             var cancellationToken = cancellationTokenSource.Token;
 
             while ( true )
@@ -473,7 +477,9 @@ namespace Metalama.Patterns.Caching.TestHelpers
                 return;
             }
 
-            using var cancellationTokenSource = new CancellationTokenSource( TimeoutTimeSpan );
+            // The source is linked to the token of xunit, so that the test also ends when xunit cancels it.
+            using var cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource( TestContext.Current.CancellationToken );
+            cancellationTokenSource.CancelAfter( TimeoutTimeSpan );
             var cancellationToken = cancellationTokenSource.Token;
 
             while ( true )
@@ -547,7 +553,9 @@ namespace Metalama.Patterns.Caching.TestHelpers
         [Fact( Timeout = Timeout )]
         public async Task TestRemovalEventByExpiration()
         {
-            using var cancellationTokenSource = new CancellationTokenSource( TimeoutTimeSpan );
+            // The source is linked to the token of xunit, so that the test also ends when xunit cancels it.
+            using var cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource( TestContext.Current.CancellationToken );
+            cancellationTokenSource.CancelAfter( TimeoutTimeSpan );
 
             using ( var cache = this.CreateBackend() )
             {
@@ -590,7 +598,9 @@ namespace Metalama.Patterns.Caching.TestHelpers
         [Fact( Timeout = Timeout )]
         public async Task TestRemovalEventByExpirationAsync()
         {
-            using var cancellationTokenSource = new CancellationTokenSource( TimeoutTimeSpan );
+            // The source is linked to the token of xunit, so that the test also ends when xunit cancels it.
+            using var cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource( TestContext.Current.CancellationToken );
+            cancellationTokenSource.CancelAfter( TimeoutTimeSpan );
 
             // [Porting] Not fixing, can't be certain of original intent (twice).
             // ReSharper disable once UseAwaitUsing

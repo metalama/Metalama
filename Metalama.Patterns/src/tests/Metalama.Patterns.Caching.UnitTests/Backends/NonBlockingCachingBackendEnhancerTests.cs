@@ -229,7 +229,7 @@ public sealed class NonBlockingCachingBackendEnhancerTests : IDisposable
         }
 
         // Dispose should wait for all tasks to complete
-        await enhancer.DisposeAsync();
+        await enhancer.DisposeAsync( TestContext.Current.CancellationToken );
 
         // All 5 items should have been set
         Assert.Equal( 5, underlying.SetItemCount );
@@ -247,7 +247,7 @@ public sealed class NonBlockingCachingBackendEnhancerTests : IDisposable
         }
 
         // Dispose should wait for all tasks to complete
-        enhancer.Dispose();
+        enhancer.Dispose( TestContext.Current.CancellationToken );
 
         // All 5 items should have been set
         Assert.Equal( 5, underlying.SetItemCount );

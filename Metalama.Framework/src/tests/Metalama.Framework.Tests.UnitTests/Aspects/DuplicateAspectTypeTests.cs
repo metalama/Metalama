@@ -55,7 +55,8 @@ namespace TestNamespace
                 compileTimeDomain,
                 serviceProvider,
                 compilation.RoslynCompilation,
-                NullDiagnosticAdder.Instance )
+                NullDiagnosticAdder.Instance,
+                cancellationToken: testContext.CancellationToken )
             .AssertNotNull();
 
         var compileTimeProject = compileTimeProjectRepository.RootProject;

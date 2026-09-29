@@ -30,6 +30,8 @@ public sealed class AwaitableEventHangDiagnostic
     [Fact( Timeout = 120000, Skip = "Load test - run manually (see remarks)." )]
     public async Task DumpStateOnHang()
     {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
         using var scheduler = new BackgroundTaskScheduler( null );
 
         var schedulerType = typeof(BackgroundTaskScheduler);
@@ -42,11 +44,11 @@ public sealed class AwaitableEventHangDiagnostic
 
         for ( var i = 0; i < 2_000_000; i++ )
         {
-            scheduler.EnqueueBackgroundTask( _ => Task.CompletedTask );
+            scheduler.EnqueueBackgroundTask( _ => Task.CompletedTask, cancellationToken );
 
             var completed = scheduler.WhenBackgroundTasksCompleted( CancellationToken.None );
 
-            if ( await Task.WhenAny( completed, Task.Delay( 5000 ) ) != completed )
+            if ( await Task.WhenAny( completed, Task.Delay( 5000, cancellationToken ) ) != completed )
             {
                 // Disambiguate a genuine lost wakeup (op stuck in WAITING/CREATED, never activated) from
                 // thread-pool starvation (op already SUCCESS, continuation just queued behind the loop's own
@@ -84,7 +86,7 @@ public sealed class AwaitableEventHangDiagnostic
 
                 while ( !completed.IsCompleted && extra < 60000 )
                 {
-                    await Task.Delay( 1000 );
+                    await Task.Delay( 1000, cancellationToken );
                     extra += 1000;
                 }
 
@@ -99,6 +101,6 @@ public sealed class AwaitableEventHangDiagnostic
             }
         }
 
-        await scheduler.DisposeAsync();
+        await scheduler.DisposeAsync( cancellationToken );
     }
 }

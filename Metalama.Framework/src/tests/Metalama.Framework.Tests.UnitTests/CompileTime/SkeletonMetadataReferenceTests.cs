@@ -106,7 +106,7 @@ public sealed class SkeletonMetadataReferenceTests : UnitTestClass
 
         var compilation = testContext.CreateCSharpCompilation( _mainCode, additionalReferences: [skeletonReference] );
 
-        var repository = CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, compilation );
+        var repository = CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, compilation, cancellationToken: testContext.CancellationToken );
 
         Assert.NotNull( repository );
 
@@ -141,7 +141,7 @@ public sealed class SkeletonMetadataReferenceTests : UnitTestClass
                 _mainCode,
                 additionalReferences: [skeletonReference, compileTimeReference] );
 
-            var repository = CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, compilation ).AssertNotNull();
+            var repository = CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, compilation, cancellationToken: testContext.CancellationToken ).AssertNotNull();
 
             Assert.Contains(
                 repository.RootProject.ClosureProjects,

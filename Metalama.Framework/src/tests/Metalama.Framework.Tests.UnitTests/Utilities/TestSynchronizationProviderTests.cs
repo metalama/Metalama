@@ -93,7 +93,7 @@ public sealed class TestSynchronizationProviderTests : UnitTestClass
 
         syncProvider.EnableSyncPoint( _syncPointName );
 
-        var incrementTask = Task.Run( () => component.IncrementAsync( testContext.CancellationToken ) );
+        var incrementTask = Task.Run( () => component.IncrementAsync( testContext.CancellationToken ), testContext.CancellationToken );
 
         await syncProvider.WaitForSyncPointReachedAsync( _syncPointName, testContext.CancellationToken );
 
@@ -119,7 +119,7 @@ public sealed class TestSynchronizationProviderTests : UnitTestClass
 
         syncProvider.EnableSyncPoint( _syncPointName );
 
-        var incrementTask = Task.Run( () => component.Increment( testContext.CancellationToken ) );
+        var incrementTask = Task.Run( () => component.Increment( testContext.CancellationToken ), testContext.CancellationToken );
 
         await syncProvider.WaitForSyncPointReachedAsync( _syncPointName, testContext.CancellationToken );
 

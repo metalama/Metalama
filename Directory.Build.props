@@ -40,12 +40,5 @@
              no effect on a project that does not reference xunit.v3. -->
         <IsTestingPlatformApplication>false</IsTestingPlatformApplication>
 
-        <!-- xUnit1051 reports every call in a test that accepts a cancellation token and receives none. These calls
-             were written before xunit.v3. Passing MetalamaTestContext.CancellationToken to them, which is linked to
-             the token of xunit, is a separate change. -->
-        <!-- xUnit1069 reports every test that has a Timeout and does not use Xunit.TestContext.Current.CancellationToken.
-             These tests were written before xunit.v3, and changing them is part of the same separate change. -->
-        <NoWarn>$(NoWarn);xUnit1051;xUnit1069</NoWarn>
-
     </PropertyGroup>
 </Project>

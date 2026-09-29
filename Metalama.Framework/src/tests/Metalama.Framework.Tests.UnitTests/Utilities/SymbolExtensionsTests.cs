@@ -32,7 +32,7 @@ public sealed class SymbolExtensionsTests : UnitTestClass
         var syntaxRef = method.GetPrimarySyntaxReference();
 
         Assert.NotNull( syntaxRef );
-        Assert.Contains( "void M()", syntaxRef.GetSyntax().ToString(), StringComparison.Ordinal );
+        Assert.Contains( "void M()", syntaxRef.GetSyntax( context.CancellationToken ).ToString(), StringComparison.Ordinal );
     }
 
     [Fact]
@@ -61,7 +61,7 @@ public sealed class SymbolExtensionsTests : UnitTestClass
         Assert.NotNull( syntaxRef );
 
         // The implementation part contains the body
-        Assert.Contains( "{ }", syntaxRef.GetSyntax().ToString(), StringComparison.Ordinal );
+        Assert.Contains( "{ }", syntaxRef.GetSyntax( context.CancellationToken ).ToString(), StringComparison.Ordinal );
     }
 
     [Fact]
@@ -90,7 +90,7 @@ public sealed class SymbolExtensionsTests : UnitTestClass
         Assert.NotNull( syntaxRef );
 
         // The implementation part contains the expression body
-        Assert.Contains( "=> 42", syntaxRef.GetSyntax().ToString(), StringComparison.Ordinal );
+        Assert.Contains( "=> 42", syntaxRef.GetSyntax( context.CancellationToken ).ToString(), StringComparison.Ordinal );
     }
 
     [Fact]
@@ -125,7 +125,7 @@ public sealed class SymbolExtensionsTests : UnitTestClass
         Assert.NotNull( syntaxRef );
 
         // The implementation part contains the accessors
-        Assert.Contains( "add { }", syntaxRef.GetSyntax().ToString(), StringComparison.Ordinal );
+        Assert.Contains( "add { }", syntaxRef.GetSyntax( context.CancellationToken ).ToString(), StringComparison.Ordinal );
     }
 
     [Fact]
@@ -157,7 +157,7 @@ public sealed class SymbolExtensionsTests : UnitTestClass
         Assert.NotNull( getterSyntaxRef );
 
         // The accessor should have a valid syntax reference
-        Assert.Contains( "get", getterSyntaxRef.GetSyntax().ToString(), StringComparison.Ordinal );
+        Assert.Contains( "get", getterSyntaxRef.GetSyntax( context.CancellationToken ).ToString(), StringComparison.Ordinal );
     }
 
     [Fact]

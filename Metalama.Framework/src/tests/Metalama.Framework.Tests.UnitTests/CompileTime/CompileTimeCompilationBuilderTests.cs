@@ -62,7 +62,7 @@ namespace Foo
             var syntaxTree = compilation.SyntaxTrees.Single();
             var rewriter = new CompileTimeCompilationBuilder.RemoveInvalidUsingRewriter( compilation, syntaxTree );
 
-            var actual = rewriter.Visit( syntaxTree.GetRoot() )!.ToFullString();
+            var actual = rewriter.Visit( syntaxTree.GetRoot( testContext.CancellationToken ) )!.ToFullString();
 
             AssertEx.EolInvariantEqual( expected, actual );
         }
@@ -103,7 +103,7 @@ class A : Attribute
             var compilation = CompilationModel.CreateInitialInstance( new ProjectModel( roslynCompilation, testContext.ServiceProvider ), roslynCompilation );
 
             using var compileTimeDomain = testContext.Domain;
-            var loader = CompileTimeProjectRepository.Create( compileTimeDomain, testContext.ServiceProvider, compilation.RoslynCompilation ).AssertNotNull();
+            var loader = CompileTimeProjectRepository.Create( compileTimeDomain, testContext.ServiceProvider, compilation.RoslynCompilation, cancellationToken: testContext.CancellationToken ).AssertNotNull();
 
             if ( !loader.CreateAttributeDeserializer( testContext.ServiceProvider, compilation.CompilationContext )
                     .TryCreateAttribute( compilation.Attributes.First(), new DiagnosticBag(), out var attribute ) )
@@ -144,7 +144,7 @@ class ReferencingClass
             var roslynCompilation = testContext.CreateCSharpCompilation( referencingCode, referencedCode );
 
             var domain = testContext.Domain;
-            CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, roslynCompilation ).AssertNotNull();
+            CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, roslynCompilation, cancellationToken: testContext.CancellationToken ).AssertNotNull();
         }
 
         [Fact]
@@ -182,7 +182,7 @@ class ReferencingClass
                 additionalReferences: [referencedCompilation.ToMetadataReference(), referencedCompilationModified.ToMetadataReference()] );
 
             var domain = testContext.Domain;
-            CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, roslynCompilation ).AssertNotNull();
+            CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, roslynCompilation, cancellationToken: testContext.CancellationToken ).AssertNotNull();
         }
 
         [Fact]
@@ -336,11 +336,11 @@ class B
 
             using var domain = testContext.Domain;
 
-            var compileTimeProjectRepository1 = CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, compilationB1 ).AssertNotNull();
+            var compileTimeProjectRepository1 = CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, compilationB1, cancellationToken: testContext.CancellationToken ).AssertNotNull();
 
             ExecuteAssertions( compileTimeProjectRepository1.RootProject, 1 );
 
-            var compileTimeProjectRepository2 = CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, compilationB2 ).AssertNotNull();
+            var compileTimeProjectRepository2 = CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, compilationB2, cancellationToken: testContext.CancellationToken ).AssertNotNull();
 
             ExecuteAssertions( compileTimeProjectRepository2.RootProject, 2 );
 
@@ -387,7 +387,7 @@ class C
             using var testContext = this.CreateTestContext();
             var domain = testContext.Domain;
             var compilation = testContext.CreateCSharpCompilation( code, ignoreErrors: true );
-            CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, compilation ).AssertNotNull();
+            CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, compilation, cancellationToken: testContext.CancellationToken ).AssertNotNull();
         }
 
         [Fact]
@@ -634,7 +634,8 @@ class ReferencingClass
                 Assert.True(
                     referencedCompilation.Emit(
                             peStream,
-                            manifestResources: [referencedCompileTimeProject!.ToResource().Resource] )
+                            manifestResources: [referencedCompileTimeProject!.ToResource().Resource],
+                            cancellationToken: testContext.CancellationToken )
                         .Success );
             }
 
@@ -698,7 +699,8 @@ public class ReferencedClass
                 Assert.True(
                     referencedCompilation.Emit(
                             peStream,
-                            manifestResources: [referencedCompileTimeProject!.ToResource().Resource] )
+                            manifestResources: [referencedCompileTimeProject!.ToResource().Resource],
+                            cancellationToken: testContext.CancellationToken )
                         .Success );
             }
 
@@ -1198,7 +1200,8 @@ Intentional syntax error.
                 Assert.True(
                     pipelineResult1.Value.ResultingCompilation.Compilation.Emit(
                             peFile,
-                            manifestResources: pipelineResult1.Value.AdditionalResources.Select( x => x.Resource ) )
+                            manifestResources: pipelineResult1.Value.AdditionalResources.Select( x => x.Resource ),
+                            cancellationToken: testContext1.CancellationToken )
                         .Success );
             }
 
@@ -1421,7 +1424,7 @@ public class ReferencedClass
             var compilation = CompilationModel.CreateInitialInstance( new ProjectModel( roslynCompilation, testContext.ServiceProvider ), roslynCompilation );
 
             using var compileTimeDomain = testContext.Domain;
-            var loader = CompileTimeProjectRepository.Create( compileTimeDomain, testContext.ServiceProvider, compilation.RoslynCompilation ).AssertNotNull();
+            var loader = CompileTimeProjectRepository.Create( compileTimeDomain, testContext.ServiceProvider, compilation.RoslynCompilation, cancellationToken: testContext.CancellationToken ).AssertNotNull();
 
             // Roundloop serialization.
             var json = loader.RootProject.Manifest!.ToJson();
@@ -1505,7 +1508,7 @@ public class ReferencedClass
 
             using var domain = testContext.Domain;
 
-            CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, roslynCompilation, diagnostics );
+            CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, roslynCompilation, diagnostics, cancellationToken: testContext.CancellationToken );
 
             Assert.Single( diagnostics, d => d.Id == "LAMA0294" );
         }
@@ -1540,7 +1543,7 @@ public class ReferencedClass
 
             using var domain = testContext.Domain;
 
-            CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, compilation.RoslynCompilation, diagnostics );
+            CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, compilation.RoslynCompilation, diagnostics, cancellationToken: testContext.CancellationToken );
 
             var warnings = new[] { "Dereference of a possibly null reference." };
 
@@ -1548,7 +1551,7 @@ public class ReferencedClass
 
             diagnostics.Clear();
 
-            CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, compilation.RoslynCompilation, diagnostics );
+            CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, compilation.RoslynCompilation, diagnostics, cancellationToken: testContext.CancellationToken );
 
             Assert.Equal( warnings, diagnostics.SelectAsArray( d => d.GetMessage( CultureInfo.InvariantCulture ) ) );
         }
@@ -2009,7 +2012,7 @@ public class MyAspect
             var compilation = CompilationModel.CreateInitialInstance( new ProjectModel( roslynCompilation, testContext.ServiceProvider ), roslynCompilation );
 
             using var compileTimeDomain = testContext.Domain;
-            var loader = CompileTimeProjectRepository.Create( compileTimeDomain, testContext.ServiceProvider, compilation.RoslynCompilation ).AssertNotNull();
+            var loader = CompileTimeProjectRepository.Create( compileTimeDomain, testContext.ServiceProvider, compilation.RoslynCompilation, cancellationToken: testContext.CancellationToken ).AssertNotNull();
 
             Assert.Equal( templateLanguageVersion, loader.RootProject.Manifest!.LanguageVersion );
         }

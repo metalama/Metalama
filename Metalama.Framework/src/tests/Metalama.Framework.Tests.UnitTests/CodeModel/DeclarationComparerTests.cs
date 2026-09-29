@@ -552,10 +552,10 @@ record Fish( string Name );
 
             var roslynCompilation = testContext.CreateEmptyCSharpCompilation( null )
                 .AddSyntaxTrees(
-                    CSharpSyntaxTree.ParseText( _unionSupportCode, parseOptions, "support.cs" ),
-                    CSharpSyntaxTree.ParseText( _unionCode, parseOptions, "unions.cs" ) );
+                    CSharpSyntaxTree.ParseText( _unionSupportCode, parseOptions, "support.cs", cancellationToken: testContext.CancellationToken ),
+                    CSharpSyntaxTree.ParseText( _unionCode, parseOptions, "unions.cs", cancellationToken: testContext.CancellationToken ) );
 
-            Assert.Empty( roslynCompilation.GetDiagnostics().Where( d => d.Severity == DiagnosticSeverity.Error ) );
+            Assert.Empty( roslynCompilation.GetDiagnostics( testContext.CancellationToken ).Where( d => d.Severity == DiagnosticSeverity.Error ) );
 
             var compilation = testContext.CreateCompilationModel( roslynCompilation );
 

@@ -74,7 +74,7 @@ public sealed class LinkerTriviaPreservationTests : UnitTestClass
         var initDiagnostics = new DiagnosticBag();
 
         Assert.True(
-            pipeline.InvokeTryInitialize( initDiagnostics, seedCompilation, default, out var configuration ),
+            pipeline.InvokeTryInitialize( initDiagnostics, seedCompilation, testContext.CancellationToken, out var configuration ),
             $"{label}: pipeline initialization failed.\n{FormatDiagnostics( initDiagnostics )}" );
 
         var seedDiagnostics = new DiagnosticBag();

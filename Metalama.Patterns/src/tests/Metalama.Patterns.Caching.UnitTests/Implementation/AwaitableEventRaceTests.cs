@@ -38,7 +38,7 @@ public sealed class AwaitableEventRaceTests
     public Task ManualReset_SetRacesScheduleContinuation_ActivatesContinuationOnce()
     {
         // Run the blocking orchestration off the test thread so the xunit Timeout can abort a hang (lost wakeup).
-        return Task.Run( this.ManualReset_SetRacesScheduleContinuation_Core );
+        return Task.Run( this.ManualReset_SetRacesScheduleContinuation_Core, TestContext.Current.CancellationToken );
     }
 
     private void ManualReset_SetRacesScheduleContinuation_Core()
@@ -100,19 +100,21 @@ public sealed class AwaitableEventRaceTests
     [Fact( Timeout = 60000, Skip = "Load test - run manually (see remarks)." )]
     public async Task WhenBackgroundTasksCompleted_EnqueueThenAwait_NeverHangs()
     {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
         using var scheduler = new BackgroundTaskScheduler( null );
 
         for ( var i = 0; i < 200_000; i++ )
         {
-            scheduler.EnqueueBackgroundTask( _ => Task.CompletedTask );
+            scheduler.EnqueueBackgroundTask( _ => Task.CompletedTask, cancellationToken );
 
             var completed = scheduler.WhenBackgroundTasksCompleted( CancellationToken.None );
 
             Assert.True(
-                await Task.WhenAny( completed, Task.Delay( TimeSpan.FromSeconds( 10 ) ) ) == completed,
+                await Task.WhenAny( completed, Task.Delay( TimeSpan.FromSeconds( 10 ), cancellationToken ) ) == completed,
                 $"WhenBackgroundTasksCompleted did not complete at iteration {i}." );
         }
 
-        await scheduler.DisposeAsync();
+        await scheduler.DisposeAsync( cancellationToken );
     }
 }

@@ -36,7 +36,7 @@ public class X
 }
 ";
 
-        var compilation = CSharpCompilation.Create( null, [CSharpSyntaxTree.ParseText( code, path: Path.Combine( "path", "file.cs" ) )] );
+        var compilation = CSharpCompilation.Create( null, [CSharpSyntaxTree.ParseText( code, path: Path.Combine( "path", "file.cs" ), cancellationToken: TestContext.Current.CancellationToken )] );
 
         var typeX = compilation.Assembly.GlobalNamespace.GetTypeMembers().Single();
         var memberA = typeX.GetMembers().Single( m => m.Name == "A" );
@@ -83,7 +83,7 @@ public class Y
 }
 ";
 
-        var compilation = CSharpCompilation.Create( null, [CSharpSyntaxTree.ParseText( code, path: Path.Combine( "path", "file.cs" ) )] );
+        var compilation = CSharpCompilation.Create( null, [CSharpSyntaxTree.ParseText( code, path: Path.Combine( "path", "file.cs" ), cancellationToken: TestContext.Current.CancellationToken )] );
 
         // Just make sure we are able to create exception for all symbols.
         // ReSharper disable once UnusedVariable
@@ -162,7 +162,7 @@ public class X
 }
 ";
 
-        var compilation = CSharpCompilation.Create( null, [CSharpSyntaxTree.ParseText( code, path: Path.Combine( "path", "file.cs" ) )] );
+        var compilation = CSharpCompilation.Create( null, [CSharpSyntaxTree.ParseText( code, path: Path.Combine( "path", "file.cs" ), cancellationToken: TestContext.Current.CancellationToken )] );
 
         // Just make sure we are able to create exception for all symbols.
         var exceptionStrings =

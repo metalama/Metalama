@@ -90,7 +90,7 @@ public class DownstreamClass
             additionalReferences: [upstreamCompilation.ToMetadataReference()],
             assemblyName: "DownstreamProject" );
 
-        var repository = CompileTimeProjectRepository.Create( testContext.Domain, testContext.ServiceProvider, downstreamCompilation )
+        var repository = CompileTimeProjectRepository.Create( testContext.Domain, testContext.ServiceProvider, downstreamCompilation, cancellationToken: testContext.CancellationToken )
             .AssertNotNull();
 
         // The upstream shortcut must actually have been taken, otherwise the test proves nothing.

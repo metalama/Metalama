@@ -93,7 +93,7 @@ public sealed class UserCodeRetentionPolicyTests : UnitTestClass
             "syntaxTree" => compilationModel.RoslynCompilation.SyntaxTrees.First(),
             "semanticModel" => compilationModel.RoslynCompilation.GetSemanticModel( compilationModel.RoslynCompilation.SyntaxTrees.First() ),
             "symbol" => type.GetSymbol()!,
-            "syntaxNode" => compilationModel.RoslynCompilation.SyntaxTrees.First().GetRoot(),
+            "syntaxNode" => compilationModel.RoslynCompilation.SyntaxTrees.First().GetRoot( testContext.CancellationToken ),
             "compilationModel" => compilationModel,
             "compilationContext" => compilationModel.CompilationContext,
             "namedType" => type,
@@ -295,7 +295,7 @@ public sealed class UserCodeRetentionPolicyTests : UnitTestClass
         using var testContext = this.CreateTestContext();
         var compilationModel = testContext.CreateCompilationModel( "class C { }" );
         var syntaxTree = compilationModel.RoslynCompilation.SyntaxTrees.First();
-        var holder = new Holder { Value = syntaxTree.GetRoot().GetLocation() };
+        var holder = new Holder { Value = syntaxTree.GetRoot( testContext.CancellationToken ).GetLocation() };
 
         var finding = Assert.Single( FindRetentions( holder ) );
 
@@ -327,7 +327,7 @@ public sealed class UserCodeRetentionPolicyTests : UnitTestClass
         using var testContext = this.CreateTestContext();
         var compilationModel = testContext.CreateCompilationModel( "class C { }" );
         var syntaxTree = compilationModel.RoslynCompilation.SyntaxTrees.First();
-        var holder = new Holder { Value = CreateDiagnostic( syntaxTree.GetRoot().GetLocation() ) };
+        var holder = new Holder { Value = CreateDiagnostic( syntaxTree.GetRoot( testContext.CancellationToken ).GetLocation() ) };
 
         var finding = Assert.Single( FindRetentions( holder ) );
 
