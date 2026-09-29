@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Patterns.Caching.Implementation;
+using Metalama.Patterns.Caching.TestHelpers;
 using Xunit;
 
 namespace Metalama.Patterns.Caching.Tests.Implementation;
@@ -13,6 +14,8 @@ namespace Metalama.Patterns.Caching.Tests.Implementation;
 /// later <c>Set()</c> spuriously fire the shared thread-static event and wake an unrelated wait, or (for
 /// auto-reset) permanently eat a signal. These are driven deterministically through the event's synchronization
 /// points via an injected <see cref="TestSynchronizationProvider"/> - no timing delays.
+/// The class also tests that cancelling a pending asynchronous wait completes the awaiter with an
+/// <see cref="OperationCanceledException"/> and removes the operation from the wait queue.
 /// </summary>
 public sealed class AwaitableEventCancellationTests
 {
@@ -20,7 +23,7 @@ public sealed class AwaitableEventCancellationTests
     private const string _manualPreBlock = "Signal not observed, wait.";
 
     // "Signal not taken, wait." is emitted by WaitAutoReset before it blocks (and also by the async path, which
-    // these purely synchronous tests never exercise).
+    // the synchronous tests never exercise).
     private const string _autoPreBlock = "Signal not taken, wait.";
 
     [Theory( Timeout = 30000 )]
@@ -57,5 +60,132 @@ public sealed class AwaitableEventCancellationTests
 
         Assert.True( await released.Task, "The fresh waiter was not released by Set()." );
         await freshWaiter;
+    }
+
+    /// <summary>
+    /// Tests that cancelling a pending asynchronous wait completes the awaiter with an <see cref="OperationCanceledException"/>
+    /// and removes the operation from the wait queue, so that the operation does not consume a later signal.
+    /// </summary>
+    [Theory( Timeout = 30000 )]
+    [InlineData( EventResetMode.ManualReset, false )]
+    [InlineData( EventResetMode.AutoReset, false )]
+    [InlineData( EventResetMode.ManualReset, true )]
+    [InlineData( EventResetMode.AutoReset, true )]
+    public async Task WaitAsync_CancelledWhilePending_ThrowsAndLeavesEventUsable( EventResetMode mode, bool withTimeout )
+    {
+        var awaitableEvent = new AwaitableEvent( mode );
+        using var cts = new CancellationTokenSource();
+        var waitCompleted = new TaskCompletionSource<bool>( TaskCreationOptions.RunContinuationsAsynchronously );
+
+        var awaiter = withTimeout ? awaitableEvent.WaitAsync( Timeout.InfiniteTimeSpan, cts.Token ) : awaitableEvent.WaitAsync( cts.Token );
+        Assert.False( awaiter.IsCompleted );
+
+        awaiter.OnCompleted(
+            () =>
+            {
+                try
+                {
+                    waitCompleted.SetResult( awaiter.GetResult() );
+                }
+                catch ( Exception e )
+                {
+                    waitCompleted.SetException( e );
+                }
+            } );
+
+        cts.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>( () => waitCompleted.Task.WaitWithTimeoutAsync() );
+
+        // The cancelled operation must have been removed from the wait queue, so it must not consume the signal.
+        awaitableEvent.Set();
+
+        var freshAwaiter = awaitableEvent.WaitAsync( TimeSpan.Zero );
+        Assert.True( freshAwaiter.IsCompleted );
+        Assert.True( freshAwaiter.GetResult() );
+    }
+
+    /// <summary>
+    /// Tests that cancelling a pending asynchronous wait of the generic overload completes the awaiter with an
+    /// <see cref="OperationCanceledException"/>.
+    /// </summary>
+    [Theory( Timeout = 30000 )]
+    [InlineData( EventResetMode.ManualReset )]
+    [InlineData( EventResetMode.AutoReset )]
+    public async Task WaitAsyncWithData_CancelledWhilePending_Throws( EventResetMode mode )
+    {
+        var awaitableEvent = new AwaitableEvent( mode );
+        using var cts = new CancellationTokenSource();
+        var waitCompleted = new TaskCompletionSource<bool>( TaskCreationOptions.RunContinuationsAsynchronously );
+
+        var awaiter = awaitableEvent.WaitAsync<int>( cts.Token );
+        Assert.False( awaiter.IsCompleted );
+
+        awaiter.OnCompleted(
+            _ =>
+            {
+                try
+                {
+                    waitCompleted.SetResult( awaiter.GetResult() );
+                }
+                catch ( Exception e )
+                {
+                    waitCompleted.SetException( e );
+                }
+            } );
+
+        cts.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>( () => waitCompleted.Task.WaitWithTimeoutAsync() );
+    }
+
+    /// <summary>
+    /// Tests that an asynchronous wait with a token that is already cancelled reports an <see cref="OperationCanceledException"/>.
+    /// </summary>
+    [Theory( Timeout = 30000 )]
+    [InlineData( EventResetMode.ManualReset )]
+    [InlineData( EventResetMode.AutoReset )]
+    public async Task WaitAsync_AlreadyCancelled_Throws( EventResetMode mode )
+    {
+        var awaitableEvent = new AwaitableEvent( mode );
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () =>
+            {
+                var awaiter = awaitableEvent.WaitAsync( cts.Token );
+                Assert.True( awaiter.IsCompleted );
+                awaiter.GetResult();
+
+                return Task.CompletedTask;
+            } );
+
+        Assert.Equal( AwaitableEvent.NOT_SIGNALED, awaitableEvent.SignalState );
+    }
+
+    /// <summary>
+    /// Tests that an asynchronous wait with a cancellable token is released by <see cref="AwaitableEvent.Set"/>, and that
+    /// cancelling the token after the release has no effect.
+    /// </summary>
+    [Fact( Timeout = 30000 )]
+    public async Task WaitAsync_NotCancelled_ReleasedOnSet()
+    {
+        var awaitableEvent = new AwaitableEvent( EventResetMode.AutoReset );
+        using var cts = new CancellationTokenSource();
+        var waitCompleted = new TaskCompletionSource<bool>( TaskCreationOptions.RunContinuationsAsynchronously );
+
+        var awaiter = awaitableEvent.WaitAsync( cts.Token );
+        Assert.False( awaiter.IsCompleted );
+
+        awaiter.OnCompleted( () => waitCompleted.SetResult( awaiter.GetResult() ) );
+
+        awaitableEvent.Set();
+
+        Assert.True( await waitCompleted.Task.WaitWithTimeoutAsync() );
+
+        cts.Cancel();
+
+        Assert.Equal( AwaitableEvent.NOT_SIGNALED, awaitableEvent.SignalState );
     }
 }
