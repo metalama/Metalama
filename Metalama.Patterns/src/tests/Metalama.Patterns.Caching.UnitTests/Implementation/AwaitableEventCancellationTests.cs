@@ -100,9 +100,62 @@ public sealed class AwaitableEventCancellationTests
         // The cancelled operation must have been removed from the wait queue, so it must not consume the signal.
         awaitableEvent.Set();
 
-        var freshAwaiter = awaitableEvent.WaitAsync( TimeSpan.Zero );
-        Assert.True( freshAwaiter.IsCompleted );
-        Assert.True( freshAwaiter.GetResult() );
+        Assert.True( awaitableEvent.Wait( TimeSpan.Zero ), "The signal was consumed by the cancelled operation." );
+    }
+
+    /// <summary>
+    /// Tests that a <see cref="AwaitableEvent.Set"/> that races with the cancellation of a pending asynchronous wait on an
+    /// auto-reset event delivers the signal exactly once: either the wait succeeds, or the signal remains on the event.
+    /// </summary>
+    [Fact( Timeout = 60000 )]
+    public async Task WaitAsync_AutoReset_SetRacesWithCancel_SignalIsNotLost()
+    {
+        for ( var i = 0; i < 1000; i++ )
+        {
+            var awaitableEvent = new AwaitableEvent( EventResetMode.AutoReset );
+            using var cts = new CancellationTokenSource();
+            var waitCompleted = new TaskCompletionSource<bool>( TaskCreationOptions.RunContinuationsAsynchronously );
+
+            var awaiter = awaitableEvent.WaitAsync( cts.Token );
+
+            awaiter.OnCompleted(
+                () =>
+                {
+                    try
+                    {
+                        waitCompleted.SetResult( awaiter.GetResult() );
+                    }
+                    catch ( OperationCanceledException )
+                    {
+                        waitCompleted.SetResult( false );
+                    }
+                } );
+
+            using var barrier = new Barrier( 2 );
+
+            var setTask = Task.Run(
+                () =>
+                {
+                    barrier.SignalAndWait( CancellationToken.None );
+                    awaitableEvent.Set();
+                },
+                CancellationToken.None );
+
+            var cancelTask = Task.Run(
+                () =>
+                {
+                    barrier.SignalAndWait( CancellationToken.None );
+                    cts.Cancel();
+                },
+                CancellationToken.None );
+
+            await Task.WhenAll( setTask, cancelTask ).WaitWithTimeoutAsync();
+
+            var waitSucceeded = await waitCompleted.Task.WaitWithTimeoutAsync();
+            var signalRemains = awaitableEvent.SignalState == AwaitableEvent.SIGNALED;
+
+            Assert.True( waitSucceeded != signalRemains, $"Iteration {i}: waitSucceeded={waitSucceeded}, signalRemains={signalRemains}." );
+        }
     }
 
     /// <summary>

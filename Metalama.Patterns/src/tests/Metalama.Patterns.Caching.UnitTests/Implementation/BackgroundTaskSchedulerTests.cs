@@ -557,7 +557,9 @@ public sealed partial class BackgroundTaskSchedulerTests : IDisposable
         cts.Cancel();
 
         // The wait must stop when the token is cancelled, although the background task is still running.
-        await Assert.ThrowsAnyAsync<OperationCanceledException>( () => whenCompleted.WaitWithTimeoutAsync() );
+        // WaitWithTimeoutAsync does not propagate the exception of the task, so the state of the task is checked instead.
+        await whenCompleted.WaitWithTimeoutAsync();
+        Assert.True( whenCompleted.IsCanceled );
 
         holdTask.SetResult( true );
 
