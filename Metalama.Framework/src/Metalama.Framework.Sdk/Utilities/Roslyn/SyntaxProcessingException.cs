@@ -6,6 +6,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Text;
 using System;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace Metalama.Framework.Engine.Utilities.Roslyn;
@@ -82,19 +83,46 @@ internal sealed class SyntaxProcessingException : Exception
     /// Returns the code of the given node, on a single line and truncated, or a description of the failure when the
     /// code cannot be rendered.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The text is built from the tokens of the node. Two tokens are separated by a single space when the source code has
+    /// trivia between them, so that the text is on a single line. A line break would prevent MSBuild from parsing the
+    /// message correctly.
+    /// </para>
+    /// <para>
+    /// This method must not call <see cref="Microsoft.CodeAnalysis.SyntaxNodeExtensions.NormalizeWhitespace{TNode}(TNode, string, string, bool)"/>.
+    /// The normalizer of Roslyn calls itself recursively for each ancestor of the node without checking the remaining
+    /// stack, which causes a <see cref="StackOverflowException"/> when the node is deep in the syntax tree (issue #2083).
+    /// <see cref="SyntaxNode.DescendantTokens(Func{SyntaxNode, bool}, bool)"/> is not recursive, and the method stops
+    /// enumerating the tokens once it has enough text.
+    /// </para>
+    /// </remarks>
     private static string GetNodeText( SyntaxNode node )
     {
+        const int maxLength = 40;
+
         try
         {
-            // We need to remove CR and LF otherwise the text is not well parsed by MSBuild.
-            var nodeText = node.NormalizeWhitespace().ToString().Replace( "\r\n", " " ).Replace( "\n", " " );
+            var text = new StringBuilder();
+            var previousHasTrailingTrivia = false;
 
-            if ( nodeText.Length > 40 )
+            foreach ( var token in node.DescendantTokens() )
             {
-                nodeText = nodeText.Substring( 0, 37 ) + "...";
+                if ( text.Length > 0 && (previousHasTrailingTrivia || token.HasLeadingTrivia) )
+                {
+                    text.Append( ' ' );
+                }
+
+                text.Append( token.Text );
+                previousHasTrailingTrivia = token.HasTrailingTrivia;
+
+                if ( text.Length > maxLength )
+                {
+                    return text.ToString( 0, maxLength - 3 ) + "...";
+                }
             }
 
-            return nodeText;
+            return text.ToString();
         }
         catch ( Exception e )
         {

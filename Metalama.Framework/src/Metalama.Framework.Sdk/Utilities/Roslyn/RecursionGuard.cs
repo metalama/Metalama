@@ -11,13 +11,32 @@ using System.Threading.Tasks;
 namespace Metalama.Framework.Engine.Utilities.Roslyn;
 
 /// <summary>
-/// <para>If there is a risk of running out of stack space on the current thread, switches to a different thread.
-/// Note that <see cref="RuntimeHelpers.EnsureSufficientExecutionStack" />  wouldn't work here, since it doesn't take into account executing potentially
-/// deeply recursive Roslyn methods.</para>
-/// <para>Roslyn does not support unlimited recursion depth and supporting it here would mask infinite recursion bugs,
-/// so the switching is limited to just a small number of tasks.</para>
-/// <para>Note that this is a mutable struct, so make sure not to store it in a <see langword="readonly" /> field.</para>
+/// Protects a recursive syntax visitor against the exhaustion of the stack by moving the processing of a subtree to a thread
+/// of the thread pool when the stack of the current thread is close to its limit.
 /// </summary>
+/// <remarks>
+/// <para>
+/// Roslyn calls <see cref="RuntimeHelpers.EnsureSufficientExecutionStack" /> in its syntax visitors. This method throws an
+/// <see cref="InsufficientExecutionStackException"/> when the remaining stack is below a margin that depends on the runtime.
+/// The guard must switch to another thread before this happens, and while some stack is still available, because the code
+/// that runs between two calls of <see cref="IncrementDepth"/>, including calls to the semantic model, can itself use a
+/// significant amount of stack.
+/// </para>
+/// <para>
+/// When <see cref="StackLimits"/> can determine the bounds of the stack of the current thread, the guard switches when
+/// the stack available before <see cref="RuntimeHelpers.EnsureSufficientExecutionStack" /> fails is smaller than
+/// <see cref="_minAvailableStackSize"/>. This makes the guard independent of the
+/// stack size of the threads that it runs on, and of the amount of stack that the caller has already used. When the bounds
+/// are not known, the guard switches every <see cref="_fallbackSwitchInterval"/> levels of recursion.
+/// </para>
+/// <para>
+/// Roslyn does not support an unlimited recursion depth, and supporting it here would hide bugs that cause an infinite
+/// recursion, so the number of nested switches is limited.
+/// </para>
+/// <para>
+/// This is a mutable struct, so it must not be stored in a <see langword="readonly" /> field.
+/// </para>
+/// </remarks>
 internal struct RecursionGuard
 {
 #if DEBUG
@@ -32,9 +51,35 @@ internal struct RecursionGuard
     private volatile bool _failed;
 #endif
 
-    // InsufficientExecutionStackException can be observed in SafeSyntaxWalker when this is 750, so set it to a value that is smaller than that.
-    private const int _maxRecursionDepth = 500;
-    private const int _maxTasks = 6;
+    /// <summary>
+    /// The number of nested switches that are active on the current call stack.
+    /// </summary>
+    private int _switchCount;
+
+    /// <summary>
+    /// The available stack size, in bytes, below which the guard switches to another thread when the bounds of the stack
+    /// are known. The available stack size is measured by <see cref="StackLimits.TryGetAvailableStackSize"/>.
+    /// </summary>
+    private const long _minAvailableStackSize = 128 * 1024;
+
+    /// <summary>
+    /// The maximum number of nested switches when the bounds of the stack are known.
+    /// </summary>
+    private const int _maxSwitches = 8;
+
+    /// <summary>
+    /// The number of levels of recursion between two switches when the bounds of the stack are not known.
+    /// </summary>
+    /// <remarks>
+    /// An <see cref="InsufficientExecutionStackException"/> was observed in <see cref="SafeSyntaxWalker"/> at a depth of
+    /// 750, so this value is smaller than that.
+    /// </remarks>
+    private const int _fallbackSwitchInterval = 500;
+
+    /// <summary>
+    /// The maximum number of switches when the bounds of the stack are not known.
+    /// </summary>
+    private const int _fallbackMaxSwitches = 6;
 
     public RecursionGuard( object owner )
     {
@@ -75,52 +120,40 @@ internal struct RecursionGuard
 
     public void DecrementDepth() => this._recursionDepth--;
 
-    public readonly bool ShouldSwitch => this._recursionDepth % _maxRecursionDepth == 0 && this._recursionDepth <= _maxRecursionDepth * _maxTasks;
+    /// <summary>
+    /// Gets a value indicating whether the processing of the current node must be moved to another thread by calling
+    /// one of the <c>Switch</c> methods.
+    /// </summary>
+    public readonly bool ShouldSwitch
+    {
+        get
+        {
+            if ( StackLimits.TryGetAvailableStackSize( out var availableStackSize ) )
+            {
+                return availableStackSize < _minAvailableStackSize && this._switchCount < _maxSwitches;
+            }
+            else
+            {
+                return this._recursionDepth % _fallbackSwitchInterval == 0 && this._recursionDepth <= _fallbackSwitchInterval * _fallbackMaxSwitches;
+            }
+        }
+    }
 
     public void Switch<TState>( TState state, Action<TState> recursiveAction )
     {
 #pragma warning disable VSTHRD002 // Avoid problematic synchronous waits
 
-        // The ContinueWith is used to prevent inline execution of the Task.
+        // The ContinueWith is used to prevent inline execution of the Task. It also rethrows the exception of the Task,
+        // because GetResult is called on the continuation and not on the Task itself.
 
 #if DEBUG
         var threadStack = this._threadIdStack ??= new ConcurrentStack<int>();
 #endif
 
-        Task.Run(
-                () =>
-                {
-                    try
-                    {
-#if DEBUG
-                        threadStack.Push( Thread.CurrentThread.ManagedThreadId );
-#endif
-                        recursiveAction( state );
-                    }
-                    finally
-                    {
-#if DEBUG
-                        threadStack.TryPop( out _ );
-#endif
-                    }
-                } )
-            .ContinueWith( _ => { }, TaskScheduler.Default )
-            .GetAwaiter()
-            .GetResult();
-#pragma warning restore VSTHRD002
-    }
+        this._switchCount++;
 
-    public TResult Switch<TState, TResult>( TState state, Func<TState, TResult> recursiveFunction )
-    {
-#pragma warning disable VSTHRD002 // Avoid problematic synchronous waits
-
-        // The ContinueWith is used to prevent inline execution of the Task.
-
-#if DEBUG
-        var threadStack = this._threadIdStack ??= new ConcurrentStack<int>();
-#endif
-
-        return
+        try
+        {
             Task.Run(
                     () =>
                     {
@@ -129,7 +162,7 @@ internal struct RecursionGuard
 #if DEBUG
                             threadStack.Push( Thread.CurrentThread.ManagedThreadId );
 #endif
-                            return recursiveFunction( state );
+                            recursiveAction( state );
                         }
                         finally
                         {
@@ -141,6 +174,55 @@ internal struct RecursionGuard
                 .ContinueWith( task => task.GetAwaiter().GetResult(), TaskScheduler.Default )
                 .GetAwaiter()
                 .GetResult();
+        }
+        finally
+        {
+            this._switchCount--;
+        }
+#pragma warning restore VSTHRD002
+    }
+
+    public TResult Switch<TState, TResult>( TState state, Func<TState, TResult> recursiveFunction )
+    {
+#pragma warning disable VSTHRD002 // Avoid problematic synchronous waits
+
+        // The ContinueWith is used to prevent inline execution of the Task. It also rethrows the exception of the Task,
+        // because GetResult is called on the continuation and not on the Task itself.
+
+#if DEBUG
+        var threadStack = this._threadIdStack ??= new ConcurrentStack<int>();
+#endif
+
+        this._switchCount++;
+
+        try
+        {
+            return
+                Task.Run(
+                        () =>
+                        {
+                            try
+                            {
+#if DEBUG
+                                threadStack.Push( Thread.CurrentThread.ManagedThreadId );
+#endif
+                                return recursiveFunction( state );
+                            }
+                            finally
+                            {
+#if DEBUG
+                                threadStack.TryPop( out _ );
+#endif
+                            }
+                        } )
+                    .ContinueWith( task => task.GetAwaiter().GetResult(), TaskScheduler.Default )
+                    .GetAwaiter()
+                    .GetResult();
+        }
+        finally
+        {
+            this._switchCount--;
+        }
 #pragma warning restore VSTHRD002
     }
 

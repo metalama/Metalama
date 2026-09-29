@@ -8,6 +8,9 @@
         
         <RootNamespace>Metalama.Framework.Engine</RootNamespace>
 
+        <!-- Required by StackLimits, which reads the address of a local variable and passes pointers to the operating system. -->
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+
         <!-- This is to prevent the Metalama.Compiler.Sdk package to change our nuspec -->
         <MetalamaCompilerDisablePackCustomization>True</MetalamaCompilerDisablePackCustomization>
 
