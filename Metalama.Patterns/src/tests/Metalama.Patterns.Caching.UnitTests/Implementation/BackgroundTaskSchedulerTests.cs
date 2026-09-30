@@ -533,6 +533,39 @@ public sealed partial class BackgroundTaskSchedulerTests : IDisposable
         Assert.False( taskExecuted );
     }
 
+    [Fact]
+    public async Task WhenBackgroundTasksCompleted_CancelledWhileWaiting_Throws()
+    {
+        var scheduler = new BackgroundTaskScheduler( this._serviceProvider );
+
+        var taskStarted = new TaskCompletionSource<bool>();
+        var holdTask = new TaskCompletionSource<bool>();
+
+        scheduler.EnqueueBackgroundTask(
+            async _ =>
+            {
+                taskStarted.SetResult( true );
+                await holdTask.Task;
+            } );
+
+        await taskStarted.Task.WaitWithTimeoutAsync();
+
+        using var cts = new CancellationTokenSource();
+        var whenCompleted = scheduler.WhenBackgroundTasksCompleted( cts.Token );
+        Assert.False( whenCompleted.IsCompleted );
+
+        cts.Cancel();
+
+        // The wait must stop when the token is cancelled, although the background task is still running.
+        // WaitWithTimeoutAsync does not propagate the exception of the task, so the state of the task is checked instead.
+        await whenCompleted.WaitWithTimeoutAsync();
+        Assert.True( whenCompleted.IsCanceled );
+
+        holdTask.SetResult( true );
+
+        await scheduler.WhenBackgroundTasksCompleted( CancellationToken.None ).WaitWithTimeoutAsync();
+    }
+
     #endregion
 
     #region Retry Policy Tests
