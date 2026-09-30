@@ -19,7 +19,6 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Framework.Tests.UnitTests.CompileTime;
 
@@ -107,7 +106,7 @@ public sealed class SkeletonMetadataReferenceTests : UnitTestClass
 
         var compilation = testContext.CreateCSharpCompilation( _mainCode, additionalReferences: [skeletonReference] );
 
-        var repository = CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, compilation );
+        var repository = CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, compilation, cancellationToken: testContext.CancellationToken );
 
         Assert.NotNull( repository );
 
@@ -142,7 +141,7 @@ public sealed class SkeletonMetadataReferenceTests : UnitTestClass
                 _mainCode,
                 additionalReferences: [skeletonReference, compileTimeReference] );
 
-            var repository = CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, compilation ).AssertNotNull();
+            var repository = CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, compilation, cancellationToken: testContext.CancellationToken ).AssertNotNull();
 
             Assert.Contains(
                 repository.RootProject.ClosureProjects,
@@ -232,7 +231,7 @@ public sealed class SkeletonMetadataReferenceTests : UnitTestClass
     /// language services. The language of the referenced project has no effect on what is tested here, because the
     /// reference that reaches Metalama carries metadata and nothing else.
     /// </remarks>
-    private static PortableExecutableReference CreateSkeletonReference( TestContext testContext, string assemblyName )
+    private static PortableExecutableReference CreateSkeletonReference( MetalamaTestContext testContext, string assemblyName )
     {
         var compilation = testContext.CreateCSharpCompilation( _referencedCode, assemblyName: assemblyName );
 
@@ -284,7 +283,7 @@ public sealed class SkeletonMetadataReferenceTests : UnitTestClass
     /// compile-time project resource, and returns a reference to that file.
     /// </summary>
     private static PortableExecutableReference CreateCompileTimeReference(
-        TestContext testContext,
+        MetalamaTestContext testContext,
         CompileTimeDomain domain,
         string assemblyName,
         string path )

@@ -26,7 +26,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
-using Xunit.Abstractions;
 
 #if NET6_0_OR_GREATER
 using Metalama.Framework.Aspects;
@@ -292,7 +291,7 @@ Target.cs:
             d => d.Id == TemplatingDiagnosticDescriptors.CompileTimeTypeNeedsRebuild.Id );
 
         // Simulate an external build event. This is normally triggered by the build touch file or by a UI signal.
-        await pipeline.ResumeAsync( AsyncExecutionContext.Get(), false );
+        await pipeline.ResumeAsync( AsyncExecutionContext.Get(), false, testContext.CancellationToken );
         Assert.False( factory.EventHub.IsEditingCompileTimeCode );
 
         // A new evaluation of the design-time pipeline should now give the new results.
@@ -407,7 +406,7 @@ Target.cs:
         Assert.Equal( 1, targetProjectPipeline.PipelineInitializationCount );
 
         // Simulate an external build event. This is normally triggered by the build touch file or by a UI signal.
-        await aspectProjectPipeline.ResumeAsync( AsyncExecutionContext.Get(), false );
+        await aspectProjectPipeline.ResumeAsync( AsyncExecutionContext.Get(), false, testContext.CancellationToken );
         await aspectProjectPipeline.ProcessJobQueueWhenLockAvailableAsync();
         await targetProjectPipeline.ProcessJobQueueWhenLockAvailableAsync();
         Assert.Equal( DesignTimeAspectPipelineStatus.Default, targetProjectPipeline.Status );
@@ -796,7 +795,7 @@ class C
         return (new WeakReference( masterCompilation ), new WeakReference( dependentCompilation ), syntaxTreeRefs, configuration.Value, pipeline);
     }
 
-    private static ( CSharpCompilation Master, CSharpCompilation Dependent ) CreateCompilations( TestContext testContext, int version )
+    private static ( CSharpCompilation Master, CSharpCompilation Dependent ) CreateCompilations( MetalamaTestContext testContext, int version )
     {
         var masterCode = new Dictionary<string, string>()
         {
@@ -851,7 +850,7 @@ class D{version}
     }
 
 #if NET6_0_OR_GREATER
-    [SkippableFact]
+    [Fact]
     public void OverrideMethodWithMultipleTargetFrameworks()
     {
         const string code =
@@ -887,7 +886,7 @@ class D{version}
         var netFrameworkMetalamaFrameworkPath = Path.Combine( baseDirectoryPath, "net48", metalamaFrameworkAssemblyName );
 
         // It may be possible that only the .Net 6.0 TFM of this project has been built. In that case, this test cannot proceed.
-        Skip.If( !File.Exists( netFrameworkMetalamaFrameworkPath ) );
+        Assert.SkipUnless( File.Exists( netFrameworkMetalamaFrameworkPath ), "The net48 build of Metalama.Framework is not available." );
 
         var netFrameworkCompilation = testContext.CreateCSharpCompilation( "", assemblyName: "Project" )
             .WithReferences( coreReferences.Append( MetadataReference.CreateFromFile( netFrameworkMetalamaFrameworkPath ) ) );
@@ -905,7 +904,7 @@ class D{version}
     [Fact]
     public async Task ResumeWithErrorAsync()
     {
-        static CSharpCompilation CreateCompilation( TestContext testContext, string statement )
+        static CSharpCompilation CreateCompilation( MetalamaTestContext testContext, string statement )
         {
             var code = new Dictionary<string, string>
             {
@@ -952,7 +951,7 @@ class D{version}
         Assert.Equal( DesignTimeAspectPipelineStatus.Paused, pipeline.Status );
 
         // Resume while the code is still invalid.
-        await pipeline.ResumeAsync( AsyncExecutionContext.Get(), false );
+        await pipeline.ResumeAsync( AsyncExecutionContext.Get(), false, testContext.CancellationToken );
 
         Assert.Equal( DesignTimeAspectPipelineStatus.Default, pipeline.Status );
 
@@ -1311,8 +1310,8 @@ class D{version}
         var options = compilation.SyntaxTrees[0].Options;
 
         compilation = compilation.AddSyntaxTrees(
-            SyntaxFactory.ParseSyntaxTree( firstFileCode, options, "C.cs" ),
-            SyntaxFactory.ParseSyntaxTree( secondFileCode, options, "C.cs" ) );
+            SyntaxFactory.ParseSyntaxTree( firstFileCode, options, "C.cs", cancellationToken: testContext.CancellationToken ),
+            SyntaxFactory.ParseSyntaxTree( secondFileCode, options, "C.cs", cancellationToken: testContext.CancellationToken ) );
 
         Assert.True( factory.TryExecute( testContext.ProjectOptions, compilation, default, out _ ) );
     }
@@ -1327,7 +1326,7 @@ class D{version}
         var dependencyPath = Path.Combine( testContext.BaseDirectory, "dependency.dll" );
 
         var dependency = testContext.CreateCSharpCompilation( code: new Dictionary<string, string>(), assemblyName: "dependency" );
-        var emitResult = dependency.Emit( dependencyPath );
+        var emitResult = dependency.Emit( dependencyPath, cancellationToken: testContext.CancellationToken );
 
         Assert.True( emitResult.Success );
 
@@ -1511,9 +1510,9 @@ class D{version}
 
         Assert.True( pipeline.TryExecute( compilation, default, out _ ) );
 
-        var noAspectMethod = compilation.GetSymbolsWithName( "NoAspectMethod" ).OfType<IMethodSymbol>().Single();
-        var aspect1Method = compilation.GetSymbolsWithName( "Aspect1Method" ).OfType<IMethodSymbol>().Single();
-        var aspect2Method = compilation.GetSymbolsWithName( "Aspect2Method" ).OfType<IMethodSymbol>().Single();
+        var noAspectMethod = compilation.GetSymbolsWithName( "NoAspectMethod", cancellationToken: testContext.CancellationToken ).OfType<IMethodSymbol>().Single();
+        var aspect1Method = compilation.GetSymbolsWithName( "Aspect1Method", cancellationToken: testContext.CancellationToken ).OfType<IMethodSymbol>().Single();
+        var aspect2Method = compilation.GetSymbolsWithName( "Aspect2Method", cancellationToken: testContext.CancellationToken ).OfType<IMethodSymbol>().Single();
 
         Assert.Equal(
             ["Aspect1", "Aspect2"],
@@ -2391,7 +2390,7 @@ partial class A<T,U>
 
         var originalOtherTree = compilation.SyntaxTrees.Single( t => t.FilePath == "other.cs" );
         var parseOptions = (CSharpParseOptions) originalOtherTree.Options;
-        var newTree = CSharpSyntaxTree.ParseText( modifiedOtherCode, parseOptions, path: "other.cs" );
+        var newTree = CSharpSyntaxTree.ParseText( modifiedOtherCode, parseOptions, path: "other.cs", cancellationToken: testContext.CancellationToken );
         var compilation2 = compilation.ReplaceSyntaxTree( originalOtherTree, newTree );
 
         Assert.True( factory.TryExecute( testContext.ProjectOptions, compilation2, default, out _ ) );

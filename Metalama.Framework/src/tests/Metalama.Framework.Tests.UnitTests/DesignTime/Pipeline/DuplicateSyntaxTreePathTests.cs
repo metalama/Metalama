@@ -18,7 +18,6 @@ using Microsoft.CodeAnalysis.CSharp;
 using System.Collections.Generic;
 using System.Linq;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline;
 
@@ -61,7 +60,7 @@ public sealed class DuplicateSyntaxTreePathTests : UnitTestClass
     /// this: <see cref="Compilation.AddSyntaxTrees(SyntaxTree[])"/> rejects only the same instance twice.
     /// </summary>
     private static (CSharpCompilation Compilation, SyntaxTree First, SyntaxTree Second) CreateCompilationWithDuplicatePath(
-        TestContext testContext )
+        MetalamaTestContext testContext )
     {
         var parseOptions = testContext.GetCompilationParseOptions();
 
@@ -173,7 +172,8 @@ public sealed class DuplicateSyntaxTreePathTests : UnitTestClass
         var rewritten = partialCompilation.UpdateSyntaxTrees(
             tree => tree.WithRootAndOptions(
                 tree.GetCompilationUnitRoot().WithLeadingTrivia( SyntaxFactory.Comment( marker ) ),
-                tree.Options ) );
+                tree.Options ),
+            testContext.CancellationToken );
 
         var notRewritten = rewritten.Compilation.SyntaxTrees
             .Where( t => t.FilePath == _duplicatePath && !t.ToString().ContainsOrdinal( marker ) )
@@ -200,7 +200,8 @@ public sealed class DuplicateSyntaxTreePathTests : UnitTestClass
             compilation,
             compilation.GetProjectKey(),
             new DiffStrategy( isTest: true, detectCompileTimeCode: true, detectPartialTypes: true ),
-            serviceProvider: testContext.ServiceProvider.Underlying );
+            serviceProvider: testContext.ServiceProvider.Underlying,
+            cancellationToken: testContext.CancellationToken );
 
         var duplicatedPaths = projectVersion.CompilationToAnalyze.SyntaxTrees
             .GroupBy( t => t.FilePath )
@@ -304,7 +305,8 @@ public sealed class DuplicateSyntaxTreePathTests : UnitTestClass
         var replacement = SyntaxFactory.ParseSyntaxTree(
             "public class Replaced { }",
             path: _duplicatePath,
-            options: testContext.GetCompilationParseOptions() );
+            options: testContext.GetCompilationParseOptions(),
+            cancellationToken: testContext.CancellationToken );
 
         var updated = partialCompilation.Update( new[] { SyntaxTreeTransformation.ReplaceTree( tree, replacement ) } );
 
@@ -334,7 +336,8 @@ public sealed class DuplicateSyntaxTreePathTests : UnitTestClass
         var replacement = SyntaxFactory.ParseSyntaxTree(
             "public class Replaced { }",
             path: _duplicatePath,
-            options: testContext.GetCompilationParseOptions() );
+            options: testContext.GetCompilationParseOptions(),
+            cancellationToken: testContext.CancellationToken );
 
         Assert.Throws<KeyNotFoundException>(
             () => partialCompilation.Update( new[] { SyntaxTreeTransformation.ReplaceTree( absentTree, replacement ) } ) );

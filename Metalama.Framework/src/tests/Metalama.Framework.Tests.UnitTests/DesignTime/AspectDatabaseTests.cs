@@ -9,6 +9,7 @@ using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Pipeline.DesignTime;
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline.MemoryLeaks;
 using Metalama.Framework.Tests.UnitTestHelpers.Mocks;
 using Metalama.Framework.Tests.UnitTestHelpers.TestClasses;
 using Microsoft.CodeAnalysis;
@@ -19,7 +20,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
-using Xunit.Abstractions;
 
 // ReSharper disable AccessToDisposedClosure
 // ReSharper disable ParameterOnlyUsedForPreconditionCheck.Local
@@ -273,7 +273,7 @@ public sealed class AspectDatabaseTests( ITestOutputHelper testOutputHelper ) : 
 
         // Have to recompute configuration to get the event raised.
         await pipeline.GetConfigurationAsync(
-            PartialCompilation.CreateComplete( await workspaceProvider.GetCompilationAsync( projectKey ).AssertNotNullAsync() ).AssertNotNull(),
+            PartialCompilation.CreateComplete( await workspaceProvider.GetCompilationAsync( projectKey, testContext.CancellationToken ).AssertNotNullAsync() ).AssertNotNull(),
             ignoreStatus: true,
             AsyncExecutionContext.Get(),
             default );
@@ -303,7 +303,7 @@ public sealed class AspectDatabaseTests( ITestOutputHelper testOutputHelper ) : 
         workspaceProvider.AddOrUpdateProject( testContext, "project", code );
 
         // Have to re-execute to get the event raised.
-        await pipeline.ExecuteAsync( await workspaceProvider.GetCompilationAsync( projectKey ).AssertNotNullAsync(), AsyncExecutionContext.Get() );
+        await pipeline.ExecuteAsync( await workspaceProvider.GetCompilationAsync( projectKey, testContext.CancellationToken ).AssertNotNullAsync(), AsyncExecutionContext.Get() );
 
         Assert.Equal( 1, aspectClassesChanges );
         Assert.Equal( 1, aspectInstancesChanges );
@@ -723,10 +723,13 @@ public sealed class AspectDatabaseTests( ITestOutputHelper testOutputHelper ) : 
 
         await UseDatabaseAsync( false );
 
-        GC.Collect();
-
         // The original compilation should no longer be referenced anywhere.
-        Assert.False( compilationReference.IsAlive );
+        await MemoryLeakAssert.CollectedAsync(
+            compilationReference,
+            "The original compilation",
+            ("factory", factory),
+            ("aspectDatabase", aspectDatabase),
+            ("workspaceProvider", workspaceProvider) );
     }
 
     [Fact]

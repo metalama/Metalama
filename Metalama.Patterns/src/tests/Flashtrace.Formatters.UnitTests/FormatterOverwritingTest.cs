@@ -6,7 +6,6 @@ using Flashtrace.Formatters.UnitTests.Assets;
 using System.Collections.ObjectModel;
 using System.Reflection;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Flashtrace.Formatters.UnitTests;
 

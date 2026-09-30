@@ -49,19 +49,19 @@ public sealed class SourceGeneratorTests : UnitTestClass
 
         var compilation = testContext.CreateCSharpCompilation( code, assemblyName: "test" );
 
-        generatorDriver = generatorDriver.RunGeneratorsAndUpdateCompilation( compilation, out var outputCompilation, out var diagnostics );
+        generatorDriver = generatorDriver.RunGeneratorsAndUpdateCompilation( compilation, out var outputCompilation, out var diagnostics, testContext.CancellationToken );
 
         Assert.Empty( diagnostics );
-        Assert.Empty( outputCompilation.GetDiagnostics() );
+        Assert.Empty( outputCompilation.GetDiagnostics( testContext.CancellationToken ) );
 
         code.Remove( "c.cs" );
 
         var updatedCompilation = testContext.CreateCSharpCompilation( code, assemblyName: "test", ignoreErrors: true );
 
-        generatorDriver.RunGeneratorsAndUpdateCompilation( updatedCompilation, out outputCompilation, out diagnostics );
+        generatorDriver.RunGeneratorsAndUpdateCompilation( updatedCompilation, out outputCompilation, out diagnostics, testContext.CancellationToken );
 
         Assert.Empty( diagnostics );
-        var error = Assert.Single( outputCompilation.GetDiagnostics() );
+        var error = Assert.Single( outputCompilation.GetDiagnostics( testContext.CancellationToken ) );
 
         // d.cs(3,21): error CS0246: The type or namespace name 'C' could not be found (are you missing a using directive or an assembly reference?)
         Assert.Equal( "CS0246", error.Id );

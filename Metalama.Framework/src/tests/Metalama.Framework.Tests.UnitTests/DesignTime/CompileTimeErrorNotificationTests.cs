@@ -9,7 +9,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Framework.Tests.UnitTests.DesignTime;
 
@@ -69,7 +68,7 @@ public sealed class CompileTimeErrorNotificationTests : DistributedDesignTimeTes
         // Execute the pipeline to get the errors.
         var project = testContext.WorkspaceProvider.GetProject( "project" );
         var pipeline = testContext.PipelineFactory.GetOrCreatePipeline( project )!;
-        var result = await pipeline.ExecuteAsync( (await project.GetCompilationAsync())!, AsyncExecutionContext.Get() );
+        var result = await pipeline.ExecuteAsync( (await project.GetCompilationAsync( testContext.CancellationToken ))!, AsyncExecutionContext.Get() );
         Assert.False( result.IsSuccessful );
         Assert.NotEmpty( result.Diagnostics );
 
@@ -86,7 +85,7 @@ public sealed class CompileTimeErrorNotificationTests : DistributedDesignTimeTes
         testContext.WorkspaceProvider.AddOrUpdateProject( testContext, "project", new Dictionary<string, string> { ["code.cs"] = "" } );
 
         var result2 = await pipeline.ExecuteAsync(
-            (await testContext.WorkspaceProvider.GetProject( "project" ).GetCompilationAsync())!,
+            (await testContext.WorkspaceProvider.GetProject( "project" ).GetCompilationAsync( testContext.CancellationToken ))!,
             AsyncExecutionContext.Get() );
 
         Assert.True( result2.IsSuccessful );

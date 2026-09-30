@@ -9,7 +9,6 @@ using Metalama.Framework.Tests.UnitTestHelpers.TestClasses;
 using Microsoft.CodeAnalysis;
 using System.Linq;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline;
 

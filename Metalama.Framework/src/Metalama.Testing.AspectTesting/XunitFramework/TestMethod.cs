@@ -2,55 +2,40 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using Xunit;
-using Xunit.Abstractions;
 using Xunit.Sdk;
 
 namespace Metalama.Testing.AspectTesting.XunitFramework
 {
-    internal sealed class TestMethod : LongLivedMarshalByRefObject, ITestMethod, IMethodInfo
+    /// <summary>
+    /// The test method that represents a test file.
+    /// </summary>
+    internal sealed class TestMethod : ITestMethod
     {
-        private readonly TestFactory _factory;
-        private readonly string _relativePath;
-
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TestMethod"/> class for a test file.
+        /// </summary>
         public TestMethod( TestFactory factory, string relativePath )
         {
-            this._factory = factory;
-            this._relativePath = relativePath;
+            this.TestClass = factory.GetTestType( Path.GetDirectoryName( relativePath ) );
+            this.MethodName = Path.GetFileNameWithoutExtension( relativePath );
+            this.UniqueID = UniqueIDGenerator.ForTestMethod( this.TestClass.UniqueID, this.MethodName );
         }
 
-        void IXunitSerializable.Deserialize( IXunitSerializationInfo info ) => throw new NotImplementedException();
+        /// <inheritdoc />
+        public ITestClass TestClass { get; }
 
-        void IXunitSerializable.Serialize( IXunitSerializationInfo info ) => throw new NotImplementedException();
+        /// <inheritdoc />
+        public int? MethodArity => null;
 
-        IMethodInfo ITestMethod.Method => this;
+        /// <inheritdoc />
+        public string MethodName { get; }
 
-        ITestClass ITestMethod.TestClass => this._factory.GetTestType( Path.GetDirectoryName( this._relativePath ) );
+        /// <inheritdoc />
+        public IReadOnlyDictionary<string, IReadOnlyCollection<string>> Traits => TestFactory.EmptyTraits;
 
-        IEnumerable<IAttributeInfo> IMethodInfo.GetCustomAttributes( string assemblyQualifiedAttributeTypeName ) => Enumerable.Empty<IAttributeInfo>();
-
-        IEnumerable<ITypeInfo> IMethodInfo.GetGenericArguments() => Enumerable.Empty<ITypeInfo>();
-
-        IEnumerable<IParameterInfo> IMethodInfo.GetParameters() => Enumerable.Empty<IParameterInfo>();
-
-        IMethodInfo IMethodInfo.MakeGenericMethod( params ITypeInfo[] typeArguments ) => throw new NotSupportedException();
-
-        bool IMethodInfo.IsAbstract => false;
-
-        bool IMethodInfo.IsGenericMethodDefinition => false;
-
-        bool IMethodInfo.IsPublic => true;
-
-        bool IMethodInfo.IsStatic => true;
-
-        string IMethodInfo.Name => Path.GetFileNameWithoutExtension( this._relativePath );
-
-        ITypeInfo IMethodInfo.ReturnType => new ReflectionTypeInfo( typeof(void) );
-
-        ITypeInfo IMethodInfo.Type => this._factory.GetTestType( Path.GetDirectoryName( this._relativePath )! );
+        /// <inheritdoc />
+        public string UniqueID { get; }
     }
 }

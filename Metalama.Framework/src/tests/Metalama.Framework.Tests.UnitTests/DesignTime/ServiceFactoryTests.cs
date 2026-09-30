@@ -8,7 +8,6 @@ using Metalama.Framework.DesignTime.VisualStudio.Services;
 using Metalama.Testing.UnitTesting;
 using System;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Framework.Tests.UnitTests.DesignTime;
 

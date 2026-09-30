@@ -10,7 +10,6 @@ using Metalama.Testing.UnitTesting;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Framework.Tests.UnitTests.DesignTime;
 
@@ -22,7 +21,7 @@ public sealed class NotificationIntegrationTests : DistributedDesignTimeTestBase
 
     public async Task ReceivesNotification()
     {
-        using var testContext = this.CreateDistributedDesignTimeTestContext( options: new TestContextOptions() { HasSourceGeneratorTouchFile = true } );
+        using var testContext = this.CreateDistributedDesignTimeTestContext( options: new MetalamaTestContextOptions() { HasSourceGeneratorTouchFile = true } );
 
         await testContext.WhenFieldsInitialized;
 

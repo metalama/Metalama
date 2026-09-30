@@ -11,7 +11,6 @@ using Metalama.Framework.Tests.UnitTestHelpers.TestClasses;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Framework.Tests.UnitTests.DesignTime.EndToEnd;
 
@@ -50,12 +49,12 @@ public sealed class CodeLensTests : DistributedDesignTimeTestBase
         // Initialize the workspace.
         var projectKey = testContext.WorkspaceProvider.AddOrUpdateProject( testContext, "project", new Dictionary<string, string> { ["code.cs"] = code } );
         await testContext.AnalysisProcessEndpoint.RegisterProjectAsync( projectKey, testContext.CancellationToken );
-        var compilation = (await testContext.WorkspaceProvider.GetCompilationAsync( projectKey ))!;
+        var compilation = (await testContext.WorkspaceProvider.GetCompilationAsync( projectKey, testContext.CancellationToken ))!;
 
         // We need to run the pipeline because code lens does not run it on its own.
         var project = testContext.WorkspaceProvider.GetProject( "project" );
         var pipeline = testContext.PipelineFactory.GetOrCreatePipeline( project )!;
-        await pipeline.ExecuteAsync( (await project.GetCompilationAsync())!, AsyncExecutionContext.Get() );
+        await pipeline.ExecuteAsync( (await project.GetCompilationAsync( testContext.CancellationToken ))!, AsyncExecutionContext.Get() );
 
         // Test the CodeLens service.
         var theClassSymbol = compilation.GetTypeByMetadataName( "TheClass" )!;
@@ -63,13 +62,13 @@ public sealed class CodeLensTests : DistributedDesignTimeTestBase
         var codeLensService = new CodeLensService( testContext.UserProcessServiceProvider );
 
         var summary = new ICodeLensSummary[1];
-        await codeLensService.GetCodeLensSummaryAsync( compilation, theClassSymbol, summary );
+        await codeLensService.GetCodeLensSummaryAsync( compilation, theClassSymbol, summary, testContext.CancellationToken );
 
         Assert.NotNull( summary[0] );
         Assert.Equal( "1 aspect", summary[0].Description );
 
         var details = new ICodeLensDetails[1];
-        await codeLensService.GetCodeLensDetailsAsync( compilation, theClassSymbol, details );
+        await codeLensService.GetCodeLensDetailsAsync( compilation, theClassSymbol, details, testContext.CancellationToken );
 
         Assert.NotNull( details[0] );
         var table = (ICodeLensDetailsTable) details[0];

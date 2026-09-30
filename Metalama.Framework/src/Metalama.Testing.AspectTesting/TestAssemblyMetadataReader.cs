@@ -9,7 +9,6 @@ using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using Xunit.Abstractions;
 
 namespace Metalama.Testing.AspectTesting
 {
@@ -20,12 +19,12 @@ namespace Metalama.Testing.AspectTesting
     {
         private static readonly ConcurrentDictionary<string, TestAssemblyMetadata> _projectOptionsCache = new();
 
-        public TestAssemblyMetadata GetMetadata( IAssemblyInfo assembly )
+        public TestAssemblyMetadata GetMetadata( Assembly assembly )
         {
-            return _projectOptionsCache.GetOrAdd( assembly.AssemblyPath, static ( _, a ) => GetMetadataCore( a ), assembly );
+            return _projectOptionsCache.GetOrAdd( assembly.Location, static ( _, a ) => GetMetadataCore( a ), assembly );
         }
 
-        private static TestAssemblyMetadata GetMetadataCore( IAssemblyInfo assembly )
+        private static TestAssemblyMetadata GetMetadataCore( Assembly assembly )
         {
             var projectDirectory = GetProjectDirectory();
 
@@ -44,21 +43,21 @@ namespace Metalama.Testing.AspectTesting
                 GetIgnoredWarnings(),
                 GetDurableRefKind() );
 
-            IAttributeInfo? GetOptionalAssemblyMetadataAttribute( string key )
+            AssemblyMetadataAttribute? GetOptionalAssemblyMetadataAttribute( string key )
                 => assembly
-                    .GetCustomAttributes( typeof(AssemblyMetadataAttribute) )
-                    .SingleOrDefault( a => string.Equals( (string) a.GetConstructorArguments().First<object>(), key, StringComparison.Ordinal ) );
+                    .GetCustomAttributes<AssemblyMetadataAttribute>()
+                    .SingleOrDefault( a => string.Equals( a.Key, key, StringComparison.Ordinal ) );
 
-            IAttributeInfo GetRequiredAssemblyMetadataAttribute( string key )
+            AssemblyMetadataAttribute GetRequiredAssemblyMetadataAttribute( string key )
                 => GetOptionalAssemblyMetadataAttribute( key )
                    ?? throw new InvalidOperationException( $"The test assembly must have an AssemblyMetadataAttribute with Key = \"{key}\"." );
 
             string? GetOptionalAssemblyMetadataValue( string key )
-                => (string?) GetOptionalAssemblyMetadataAttribute( key )?.GetConstructorArguments()?.ElementAt( 1 );
+                => GetOptionalAssemblyMetadataAttribute( key )?.Value;
 
             string GetRequiredAssemblyMetadataValue( string key )
-                => (string) (GetRequiredAssemblyMetadataAttribute( key ).GetConstructorArguments()?.ElementAt( 1 )
-                             ?? throw new InvalidOperationException( "The AssemblyMetadataAttribute with Key = \"{key}\" contains no value." ));
+                => GetRequiredAssemblyMetadataAttribute( key ).Value
+                   ?? throw new InvalidOperationException( $"The AssemblyMetadataAttribute with Key = \"{key}\" contains no value." );
 
             bool GetBoolAssemblyMetadataValue( string key )
             {
@@ -89,7 +88,7 @@ namespace Metalama.Testing.AspectTesting
                 // Issue #754: The test project's own output assembly should not be included
                 // in the test compilation references. The MSBuild ReferencePathWithRefAssemblies
                 // item group can include the test project assembly, which breaks isolation.
-                var testAssemblyFileName = Path.GetFileName( assembly.AssemblyPath );
+                var testAssemblyFileName = Path.GetFileName( assembly.Location );
 
                 return lines.SelectAsReadOnlyCollection(
                         t => TargetedAssemblyReference.ParsePipeSeparatedString( t, path => FindImplementationAssembly( projectDirectory, path ) ) )

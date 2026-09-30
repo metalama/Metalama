@@ -61,13 +61,13 @@ No production source branches on a variant constant, because both variants are R
 
 **Projects.** [`Metalama.Framework.Tests.UnitTests`](../src/tests/Metalama.Framework.Tests.UnitTests) is the main xUnit assembly for the engine (hundreds of files mirroring the engine's areas: `CodeModel`, `CompileTime`, `DesignTime`, `Collections`, `Aspects`, …). [`Metalama.Framework.Tests.UnitTestHelpers`](../src/tests/Metalama.Framework.Tests.UnitTestHelpers) is a packable helper library of shared base classes (`DesignTimeTestBase`, `DiagnosticAnalyzerTestsBase`, `PreviewTestsBase`, `SerializationTestsBase`, …) and mocks (`TestWorkspaceProvider`, `TestDesignTimeAspectPipelineFactory`, …); it contains no `[Fact]`s. TFMs: `net48;net10.0` (framework `Metalama.Testing.UnitTesting`: `net472;net10.0`).
 
-**Framework.** Unit tests inherit `UnitTestClass` ([`Metalama.Testing.UnitTesting/UnitTestClass.cs`](../src/Metalama.Testing.UnitTesting/UnitTestClass.cs)). It bootstraps Backstage once with a test license, routes xUnit output, and exposes `CreateTestContext()` (named from `[CallerFilePath]`/`[CallerMemberName]`). A [`TestContext`](../src/Metalama.Testing.UnitTesting/TestContext.cs) provides:
+**Framework.** Unit tests inherit `UnitTestClass` ([`Metalama.Testing.UnitTesting/UnitTestClass.cs`](../src/Metalama.Testing.UnitTesting/UnitTestClass.cs)). It bootstraps Backstage once with a test license, routes xUnit output, and exposes `CreateTestContext()` (named from `[CallerFilePath]`/`[CallerMemberName]`). A [`MetalamaTestContext`](../src/Metalama.Testing.UnitTesting/MetalamaTestContext.cs) provides:
 
 - `ServiceProvider` — a `ProjectServiceProvider` built over the **immutable** DI (not MS DI). Test doubles are threaded in through an `AdditionalServiceCollection` ([`Metalama.Framework.Engine/Services/AdditionalServiceCollection.cs`](../src/Metalama.Framework.Engine/Services/AdditionalServiceCollection.cs)) — override `ConfigureServices(IAdditionalServiceCollection)` to register mocks.
 - `CreateCompilation(code)` / `CreateCompilationModel(code)` — build a Roslyn `CSharpCompilation` and wrap it as an `ICompilation` / internal `CompilationModel`.
 - A per-test timeout (default 240 s, disabled under a debugger) and **enforced disposal** (the finalizer throws if a context was not disposed) — hence `using var testContext = …`.
 
-Behavior is customized with the immutable `TestContextOptions` record (`Timeout`, `AdditionalMetadataReferences`, `RequireOrderedAspects`, `CodeFormattingOptions`, `ExtensionTypes`, …).
+Behavior is customized with the immutable `MetalamaTestContextOptions` record (`Timeout`, `AdditionalMetadataReferences`, `RequireOrderedAspects`, `CodeFormattingOptions`, `ExtensionTypes`, …).
 
 Minimal pattern:
 

@@ -6,7 +6,6 @@ using Metalama.Patterns.Caching.Aspects;
 using Metalama.Patterns.Caching.Dependencies;
 using Metalama.Patterns.Caching.TestHelpers;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Patterns.Caching.Tests;
 

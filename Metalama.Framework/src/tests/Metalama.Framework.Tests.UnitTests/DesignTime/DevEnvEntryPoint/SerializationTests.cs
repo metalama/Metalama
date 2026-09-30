@@ -32,7 +32,14 @@ public sealed class SerializationTests : SerializationTestsBase
         const string code = "class Program { static void Main() {} }";
 
         var input = CodeActionResult.Success(
-            new[] { CSharpSyntaxTree.ParseText( code, path: "path.cs", options: SupportedCSharpVersions.DefaultParseOptions ) } );
+            new[]
+            {
+                CSharpSyntaxTree.ParseText(
+                    code,
+                    path: "path.cs",
+                    options: SupportedCSharpVersions.DefaultParseOptions,
+                    cancellationToken: TestContext.Current.CancellationToken )
+            } );
 
         var roundloop = Roundloop( input );
         Assert.Single( roundloop.SyntaxTreeChanges );
@@ -44,8 +51,13 @@ public sealed class SerializationTests : SerializationTestsBase
     public void Serialize_SyntaxTree()
     {
         const string code = "class Program { static void Main() {} }";
-        var tree = CSharpSyntaxTree.ParseText( code, path: "path.cs", options: SupportedCSharpVersions.DefaultParseOptions );
-        var root = tree.GetRoot();
+        var tree = CSharpSyntaxTree.ParseText(
+            code,
+            path: "path.cs",
+            options: SupportedCSharpVersions.DefaultParseOptions,
+            cancellationToken: TestContext.Current.CancellationToken );
+
+        var root = tree.GetRoot( TestContext.Current.CancellationToken );
         var node = root.DescendantNodes().Single( n => n.IsKind( SyntaxKind.ClassDeclaration ) );
         var rootWithAnnotation = root.ReplaceNode( node, node.WithAdditionalAnnotations( Formatter.Annotation ) );
         var treeWithAnnotation = tree.WithRootAndOptions( rootWithAnnotation, tree.Options );
@@ -55,7 +67,7 @@ public sealed class SerializationTests : SerializationTestsBase
         Assert.Equal( SerializableAnnotationKind.Formatter, roundloop.Annotations[0].Kind );
         Assert.Equal( node.Span, new TextSpan( roundloop.Annotations[0].SpanStart, roundloop.Annotations[0].SpanLength ) );
 
-        var roundloopRoot = roundloop.ToSyntaxNode();
+        var roundloopRoot = roundloop.ToSyntaxNode( TestContext.Current.CancellationToken );
         var roundloopNode = roundloopRoot.DescendantNodes().Single( n => n.IsKind( SyntaxKind.ClassDeclaration ) );
         Assert.True( roundloopNode.HasAnnotation( Formatter.Annotation ) );
     }

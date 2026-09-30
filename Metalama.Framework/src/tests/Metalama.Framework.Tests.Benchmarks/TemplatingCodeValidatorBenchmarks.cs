@@ -23,7 +23,7 @@ public class TemplatingCodeValidatorBenchmarks : IDisposable
 {
     private const string _nopCommerceSolutionEnvVar = "METALAMA_BENCHMARK_NOPCOMMERCE_SOLUTION";
 
-    private TestContext? _testContext;
+    private MetalamaTestContext? _testContext;
     private string? _nopCommerceSolution;
     private Compilation[]? _compilations;
     private MSBuildWorkspace? _workspace;
@@ -106,10 +106,10 @@ public class TemplatingCodeValidatorBenchmarks : IDisposable
         var projects = solution.Projects.ToArray();
         Console.WriteLine( $"Loaded solution with {projects.Length} projects" );
 
-        // Get Metalama references using a temporary TestContext
+        // Get Metalama references using a temporary MetalamaTestContext
         IReadOnlyList<PortableExecutableReference> metalamaReferences;
 
-        using ( var tempContext = new TestContext( new TestContextOptions() ) )
+        using ( var tempContext = new MetalamaTestContext( new MetalamaTestContextOptions() ) )
         {
             metalamaReferences = tempContext.GetMetadataReferences();
         }
@@ -191,11 +191,11 @@ public class TemplatingCodeValidatorBenchmarks : IDisposable
         // Create and reset the observer
         this._observer = new TemplatingCodeValidatorObserver();
 
-        // Create fresh TestContext for each iteration to avoid caching effects
+        // Create fresh MetalamaTestContext for each iteration to avoid caching effects
         var additionalServices = new AdditionalServiceCollection();
         additionalServices.ProjectServices.Add<IConcurrentTaskRunner>( _ => new ConcurrentTaskRunner() );
         additionalServices.GlobalServices.Add<ITemplatingCodeValidatorObserver>( _ => this._observer! );
-        this._testContext = new TestContext( new TestContextOptions(), additionalServices );
+        this._testContext = new MetalamaTestContext( new MetalamaTestContextOptions(), additionalServices );
     }
 
     [IterationCleanup]

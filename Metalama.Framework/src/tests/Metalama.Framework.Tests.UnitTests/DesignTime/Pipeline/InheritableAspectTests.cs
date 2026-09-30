@@ -78,7 +78,8 @@ public class Aspect : TypeAspect { }
             var targetTree2 = CSharpSyntaxTree.ParseText(
                 "[Aspect] interface I {} [Aspect] class C {}",
                 path: "target.cs",
-                options: SupportedCSharpVersions.DefaultParseOptions );
+                options: SupportedCSharpVersions.DefaultParseOptions,
+                cancellationToken: testContext.CancellationToken );
 
             var compilation2 = testContext.CreateCompilationModel( compilation1.RoslynCompilation.ReplaceSyntaxTree( targetTree1, targetTree2 ) );
             Assert.True( pipeline.TryExecute( compilation2.RoslynCompilation, default, out var compilationResult2 ) );
@@ -91,7 +92,12 @@ public class Aspect : TypeAspect { }
                     .ToArray() );
 
             // Remove a target
-            var targetTree3 = CSharpSyntaxTree.ParseText( "[Aspect] class C {}", path: "target.cs", options: SupportedCSharpVersions.DefaultParseOptions );
+            var targetTree3 = CSharpSyntaxTree.ParseText(
+                "[Aspect] class C {}",
+                path: "target.cs",
+                options: SupportedCSharpVersions.DefaultParseOptions,
+                cancellationToken: testContext.CancellationToken );
+
             var compilation3 = testContext.CreateCompilationModel( compilation2.RoslynCompilation.ReplaceSyntaxTree( targetTree2, targetTree3 ) );
             Assert.True( pipeline.TryExecute( compilation3.RoslynCompilation, default, out var compilationResult3 ) );
 

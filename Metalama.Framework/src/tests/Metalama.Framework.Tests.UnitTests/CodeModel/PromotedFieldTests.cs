@@ -182,7 +182,7 @@ class C
         Assert.NotEqual<IRef>( overridingProperty.ToRef(), overridingProperty.ToRef().As<IField>() );
     }
 
-    private static void CheckDeclarationProperties( TestContext testContext, IDeclaration declaration )
+    private static void CheckDeclarationProperties( MetalamaTestContext testContext, IDeclaration declaration )
     {
         var objectReader = new ObjectReaderFactory().GetReader( testContext.ServiceProvider, declaration );
 

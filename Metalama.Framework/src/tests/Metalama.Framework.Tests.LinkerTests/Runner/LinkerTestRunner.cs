@@ -16,7 +16,8 @@ using Microsoft.CodeAnalysis;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using Xunit.Abstractions;
+using Xunit;
+using TestResult = Metalama.Testing.AspectTesting.TestResult;
 
 namespace Metalama.Framework.Tests.LinkerTests.Runner
 {
@@ -46,7 +47,7 @@ namespace Metalama.Framework.Tests.LinkerTests.Runner
         protected override async Task RunAsync(
             TestInput testInput,
             TestResult testResult,
-            TestContext testContext )
+            MetalamaTestContext testContext )
         {
             // There is a chicken-or-egg in the design of the test because the project-scoped service provider is needed before the compilation
             // is created. We break the cycle by providing the service provider with the default set of references, which should work for 

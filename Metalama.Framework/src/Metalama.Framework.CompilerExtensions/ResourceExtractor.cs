@@ -369,7 +369,7 @@ public static class ResourceExtractor
         // necessarily the thread running this method.
         // The prefix is the one that MetalamaProduct registers. GetLock uses the name below verbatim.
         var lockEvents = new ConcurrentQueue<string>();
-        var lockService = new NamedLockService( "Global\\Metalama_" );
+        var lockService = NamedLockServiceFactory.Create( "Global\\Metalama_" );
 
         lockService.LockEventReported += ( _, lockEvent ) => lockEvents.Enqueue( lockEvent.ToString() );
 

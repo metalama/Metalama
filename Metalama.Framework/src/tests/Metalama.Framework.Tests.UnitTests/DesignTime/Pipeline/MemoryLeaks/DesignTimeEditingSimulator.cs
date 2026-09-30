@@ -34,7 +34,7 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline.MemoryLeaks;
 /// </remarks>
 internal sealed class DesignTimeEditingSimulator
 {
-    private readonly TestContext _testContext;
+    private readonly MetalamaTestContext _testContext;
     private readonly TestDesignTimeAspectPipelineFactory _factory;
     private readonly CSharpParseOptions _parseOptions;
 
@@ -60,7 +60,7 @@ internal sealed class DesignTimeEditingSimulator
     /// <param name="assemblyName">The assembly name, which must be stable across edits so that every version maps to the same project.</param>
     /// <param name="code">The initial content of the project, indexed by file name.</param>
     public DesignTimeEditingSimulator(
-        TestContext testContext,
+        MetalamaTestContext testContext,
         TestDesignTimeAspectPipelineFactory factory,
         string assemblyName,
         IReadOnlyDictionary<string, string> code )

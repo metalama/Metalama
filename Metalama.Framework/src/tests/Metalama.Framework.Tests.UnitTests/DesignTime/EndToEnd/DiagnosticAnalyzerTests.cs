@@ -14,7 +14,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Threading.Tasks;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Framework.Tests.UnitTests.DesignTime.EndToEnd;
 
@@ -138,8 +137,8 @@ public sealed class DiagnosticAnalyzerTests( ITestOutputHelper logger ) : Diagno
 
         var workspaceProvider = new TestWorkspaceProvider( testContext.ServiceProvider );
         workspaceProvider.AddOrUpdateProject( testContext, "project", new Dictionary<string, string>() { ["code.cs"] = GetCode( "" ) } );
-        var compilation1 = await workspaceProvider.GetProject( "project" ).GetCompilationAsync();
-        var syntaxTree1 = await workspaceProvider.GetDocument( "project", "code.cs" ).GetSyntaxTreeAsync();
+        var compilation1 = await workspaceProvider.GetProject( "project" ).GetCompilationAsync( testContext.CancellationToken );
+        var syntaxTree1 = await workspaceProvider.GetDocument( "project", "code.cs" ).GetSyntaxTreeAsync( testContext.CancellationToken );
         var semanticModel1 = compilation1!.GetSemanticModel( syntaxTree1! );
 
         var analyzer = new TheDiagnosticAnalyzer( pipelineFactory.ServiceProvider );
@@ -153,8 +152,8 @@ public sealed class DiagnosticAnalyzerTests( ITestOutputHelper logger ) : Diagno
             diagnostic1.GetLocalizedMessage() );
 
         workspaceProvider.AddOrUpdateProject( testContext, "project", new Dictionary<string, string>() { ["code.cs"] = GetCode( "// whatever" ) } );
-        var compilation2 = await workspaceProvider.GetProject( "project" ).GetCompilationAsync();
-        var syntaxTree2 = await workspaceProvider.GetDocument( "project", "code.cs" ).GetSyntaxTreeAsync();
+        var compilation2 = await workspaceProvider.GetProject( "project" ).GetCompilationAsync( testContext.CancellationToken );
+        var syntaxTree2 = await workspaceProvider.GetDocument( "project", "code.cs" ).GetSyntaxTreeAsync( testContext.CancellationToken );
         var semanticModel2 = compilation2!.GetSemanticModel( syntaxTree2! );
 
         var analysisContext2 = new TestSemanticModelAnalysisContext( semanticModel2, testContext.ProjectOptions );
@@ -291,8 +290,8 @@ public sealed class DiagnosticAnalyzerTests( ITestOutputHelper logger ) : Diagno
 
         var workspaceProvider = new TestWorkspaceProvider( testContext.ServiceProvider );
         workspaceProvider.AddOrUpdateProject( testContext, "project", new Dictionary<string, string>() { ["code.cs"] = code } );
-        var compilation = await workspaceProvider.GetProject( "project" ).GetCompilationAsync();
-        var syntaxTree = await workspaceProvider.GetDocument( "project", "code.cs" ).GetSyntaxTreeAsync();
+        var compilation = await workspaceProvider.GetProject( "project" ).GetCompilationAsync( testContext.CancellationToken );
+        var syntaxTree = await workspaceProvider.GetDocument( "project", "code.cs" ).GetSyntaxTreeAsync( testContext.CancellationToken );
         var semanticModel = compilation!.GetSemanticModel( syntaxTree! );
 
         var analyzer = new TheDiagnosticAnalyzer( pipelineFactory.ServiceProvider );

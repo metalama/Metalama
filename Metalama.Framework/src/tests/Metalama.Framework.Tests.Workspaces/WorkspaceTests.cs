@@ -43,13 +43,14 @@ namespace Metalama.Framework.Tests.Workspaces
         <TargetFramework>net10.0</TargetFramework>
     </PropertyGroup>
 </Project>
-" );
+",
+                testContext.CancellationToken );
 
-            await File.WriteAllTextAsync( codePath, "class MyClass {}" );
+            await File.WriteAllTextAsync( codePath, "class MyClass {}", testContext.CancellationToken );
 
             var workspaceCollection = new WorkspaceCollection( testContext.ServiceProvider );
 
-            using var workspace = await workspaceCollection.LoadAsync( [projectPath], _buildProperties );
+            using var workspace = await workspaceCollection.LoadAsync( [projectPath], _buildProperties, cancellationToken: testContext.CancellationToken );
 
             CheckWorkspace( workspace );
 
@@ -76,9 +77,10 @@ namespace Metalama.Framework.Tests.Workspaces
         <TargetFrameworks>netstandard2.0;net10.0</TargetFrameworks>
     </PropertyGroup>
 </Project>
-" );
+",
+                testContext.CancellationToken );
 
-            await File.WriteAllTextAsync( codePath, "class MyClass {}" );
+            await File.WriteAllTextAsync( codePath, "class MyClass {}", testContext.CancellationToken );
 
             var workspaceCollection = new WorkspaceCollection( testContext.ServiceProvider );
 
@@ -101,7 +103,7 @@ namespace Metalama.Framework.Tests.Workspaces
 
             var workspaceCollection = new WorkspaceCollection( testContext.ServiceProvider );
 
-            using var workspace = await workspaceCollection.LoadAsync( [projectPath], _buildProperties );
+            using var workspace = await workspaceCollection.LoadAsync( [projectPath], _buildProperties, cancellationToken: testContext.CancellationToken );
 
             Assert.Throws<CompilationFailedException>( () => workspace.AspectInstances );
             Assert.Throws<CompilationFailedException>( () => workspace.AspectClasses );
@@ -119,7 +121,7 @@ namespace Metalama.Framework.Tests.Workspaces
         }
 
         private static async Task<string> CreateMetalamaEnabledProjectAsync(
-            TestContext testContext,
+            MetalamaTestContext testContext,
             string code,
             string? projectName = null,
             string[]? dependentProjectPaths = null )

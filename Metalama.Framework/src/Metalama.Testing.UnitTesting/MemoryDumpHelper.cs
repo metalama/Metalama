@@ -36,7 +36,7 @@ public static class MemoryDumpHelper
     }
 
 #if NET6_0_OR_GREATER || NETFRAMEWORK
-    public static void CaptureDotMemoryDumpAndThrow( TestContext testContext, string reason )
+    public static void CaptureDotMemoryDumpAndThrow( MetalamaTestContext testContext, string reason )
     {
         if ( Interlocked.Increment( ref _counter ) == 1 )
         {

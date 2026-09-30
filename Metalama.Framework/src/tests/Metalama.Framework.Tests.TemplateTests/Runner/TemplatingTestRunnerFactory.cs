@@ -5,7 +5,7 @@
 using JetBrains.Annotations;
 using Metalama.Framework.Engine.Services;
 using Metalama.Testing.AspectTesting;
-using Xunit.Abstractions;
+using Xunit;
 
 namespace Metalama.Framework.Tests.TemplateTests.Runner
 {

@@ -13,7 +13,7 @@ using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Xunit.Abstractions;
+using Xunit;
 
 namespace Metalama.Framework.Tests.UnitTestHelpers.TestClasses;
 
@@ -23,7 +23,7 @@ public class SideBySideVersionTestsBase( ITestOutputHelper logger ) : DesignTime
 {
     private static async Task<(DesignTimeAspectPipelineFactory PipelineFactory, Compilation DependentCompilation, SyntaxTree DependentCodeTree)>
         PreparePipeline(
-            TestContext testContext,
+            MetalamaTestContext testContext,
             string masterCode,
             string dependentCode )
     {

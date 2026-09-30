@@ -8,8 +8,9 @@ using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Threading.Tasks;
 using Xunit;
-using Xunit.Abstractions;
 using Xunit.Sdk;
 
 namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline.MemoryLeaks;
@@ -58,7 +59,7 @@ public sealed class MemoryLeakAssertSelfTests : DesignTimeTestBase
     /// Creates a compilation, adds it to a cache that retains it, and returns only a weak reference to it.
     /// </summary>
     [MethodImpl( MethodImplOptions.NoInlining )]
-    private static WeakReference CreateAndRetain( TestContext testContext, LeakingCache cache, string assemblyName )
+    private static WeakReference CreateAndRetain( MetalamaTestContext testContext, LeakingCache cache, string assemblyName )
     {
         var compilation = testContext.CreateCSharpCompilation(
             new Dictionary<string, string> { ["Code.cs"] = "public class C { }" },
@@ -73,7 +74,7 @@ public sealed class MemoryLeakAssertSelfTests : DesignTimeTestBase
     /// Creates a compilation and returns only a weak reference to it, retaining nothing.
     /// </summary>
     [MethodImpl( MethodImplOptions.NoInlining )]
-    private static WeakReference CreateWithoutRetaining( TestContext testContext, string assemblyName )
+    private static WeakReference CreateWithoutRetaining( MetalamaTestContext testContext, string assemblyName )
     {
         var compilation = testContext.CreateCSharpCompilation(
             new Dictionary<string, string> { ["Code.cs"] = "public class C { }" },
@@ -87,7 +88,7 @@ public sealed class MemoryLeakAssertSelfTests : DesignTimeTestBase
     /// reference to it.
     /// </summary>
     [MethodImpl( MethodImplOptions.NoInlining )]
-    private static WeakReference CreateAndRegisterConditionally( TestContext testContext, ConditionalCache cache, string assemblyName )
+    private static WeakReference CreateAndRegisterConditionally( MetalamaTestContext testContext, ConditionalCache cache, string assemblyName )
     {
         var compilation = testContext.CreateCSharpCompilation(
             new Dictionary<string, string> { ["Code.cs"] = "public class C { }" },
@@ -189,5 +190,106 @@ public sealed class MemoryLeakAssertSelfTests : DesignTimeTestBase
             nameof(this.ConditionallyRegisteredCompilationIsReportedAsCollected) );
 
         MemoryLeakAssert.Collected( weakReference, "A compilation used as a conditional weak table key", ("conditionalCache", cache) );
+    }
+
+    /// <summary>
+    /// Verifies that <see cref="MemoryLeakAssert.Collected"/> fails, and that <see cref="MemoryLeakAssert.CollectedAsync"/>
+    /// succeeds, when the test runs above a stack frame that references the object.
+    /// </summary>
+    /// <remarks>
+    /// A dedicated thread completes a task while a local variable of its frame references an object. xunit v3 runs the
+    /// test without a synchronization context, so the continuation of the test runs synchronously on that thread, inside
+    /// the call that completes the task. This reproduces deterministically the situation that
+    /// <see cref="MemoryLeakAssert.CollectedAsync"/> handles, in which the frame belongs to the code under test.
+    /// </remarks>
+    [Fact]
+    public async Task CollectedAsync_LeavesTheFrameOfTheThreadThatResumedTheTest()
+    {
+        Assert.SkipUnless(
+            SynchronizationContext.Current == null && TaskScheduler.Current == TaskScheduler.Default,
+            "The continuation of an await runs synchronously on the completing thread only without a synchronization context." );
+
+        var resumption = new TaskCompletionSource<WeakReference>();
+
+        // The registration cancels the wait without changing how its continuation runs.
+        using var cancellationRegistration = TestContext.Current.CancellationToken.Register( () => resumption.TrySetCanceled() );
+
+        var thread = new Thread( () => CompleteWhileReferencingAnObject( resumption ) );
+
+        // The thread is started only once the continuation of the test is registered, so that the task cannot complete
+        // before the await, which would then continue synchronously on the thread of the test.
+        var weakReference = await new StartThreadAfterRegistration( resumption.Task, thread );
+
+        Assert.Equal( thread.ManagedThreadId, Environment.CurrentManagedThreadId );
+
+        Assert.Throws<FailException>( () => MemoryLeakAssert.Collected( weakReference, "An object referenced by a frame below the test" ) );
+
+        await MemoryLeakAssert.CollectedAsync( weakReference, "An object referenced by a frame below the test" );
+
+        Assert.True( thread.Join( TimeSpan.FromMinutes( 1 ) ) );
+    }
+
+    /// <summary>
+    /// An awaitable that registers the continuation of the caller on a task, and then starts the thread that completes
+    /// the task.
+    /// </summary>
+    private sealed class StartThreadAfterRegistration : INotifyCompletion
+    {
+        /// <summary>
+        /// The task whose completion resumes the caller.
+        /// </summary>
+        private readonly Task<WeakReference> _task;
+        /// <summary>
+        /// The thread that completes the task.
+        /// </summary>
+        private readonly Thread _thread;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="StartThreadAfterRegistration"/> class.
+        /// </summary>
+        public StartThreadAfterRegistration( Task<WeakReference> task, Thread thread )
+        {
+            this._task = task;
+            this._thread = thread;
+        }
+
+        /// <summary>
+        /// Gets the awaiter, which is this object.
+        /// </summary>
+        public StartThreadAfterRegistration GetAwaiter() => this;
+
+        /// <summary>
+        /// Gets a value indicating whether the task is complete, which is always <c>false</c>, so that the caller registers a continuation.
+        /// </summary>
+        public bool IsCompleted => false;
+
+        /// <inheritdoc />
+        public void OnCompleted( Action continuation )
+        {
+            this._task.GetAwaiter().OnCompleted( continuation );
+            this._thread.Start();
+        }
+
+        /// <summary>
+        /// Gets the result of the task.
+        /// </summary>
+        // The compiler calls GetResult only after the continuation has run, when the task is complete, so it does not block.
+#pragma warning disable VSTHRD002
+        public WeakReference GetResult() => this._task.GetAwaiter().GetResult();
+#pragma warning restore VSTHRD002
+    }
+
+    /// <summary>
+    /// Completes a task while a local variable of the current frame references the object whose weak reference is the
+    /// result of the task.
+    /// </summary>
+    [MethodImpl( MethodImplOptions.NoInlining )]
+    private static void CompleteWhileReferencingAnObject( TaskCompletionSource<WeakReference> resumption )
+    {
+        var referencedObject = new object();
+
+        resumption.SetResult( new WeakReference( referencedObject ) );
+
+        GC.KeepAlive( referencedObject );
     }
 }

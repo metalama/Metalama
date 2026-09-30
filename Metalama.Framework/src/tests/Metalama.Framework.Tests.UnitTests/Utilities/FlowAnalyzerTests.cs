@@ -29,7 +29,7 @@ public sealed class FlowAnalyzerTests : UnitTestClass
 
         var compilation = context.CreateCSharpCompilation( code );
         var syntaxTree = compilation.SyntaxTrees.First();
-        var methodBody = syntaxTree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().First().Body!;
+        var methodBody = syntaxTree.GetRoot( context.CancellationToken ).DescendantNodes().OfType<MethodDeclarationSyntax>().First().Body!;
         var returnStatement = methodBody.Statements[0];
 
         Assert.True( returnStatement.NeverContinues() );
@@ -52,7 +52,7 @@ public sealed class FlowAnalyzerTests : UnitTestClass
 
         var compilation = context.CreateCSharpCompilation( code );
         var syntaxTree = compilation.SyntaxTrees.First();
-        var methodBody = syntaxTree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().First().Body!;
+        var methodBody = syntaxTree.GetRoot( context.CancellationToken ).DescendantNodes().OfType<MethodDeclarationSyntax>().First().Body!;
         var throwStatement = methodBody.Statements[0];
 
         Assert.True( throwStatement.NeverContinues() );
@@ -76,7 +76,7 @@ public sealed class FlowAnalyzerTests : UnitTestClass
 
         var compilation = context.CreateCSharpCompilation( code );
         var syntaxTree = compilation.SyntaxTrees.First();
-        var methodBody = syntaxTree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().First().Body!;
+        var methodBody = syntaxTree.GetRoot( context.CancellationToken ).DescendantNodes().OfType<MethodDeclarationSyntax>().First().Body!;
         var block = methodBody.Statements[0];
 
         Assert.False( block.NeverContinues() );
@@ -101,7 +101,7 @@ public sealed class FlowAnalyzerTests : UnitTestClass
 
         var compilation = context.CreateCSharpCompilation( code );
         var syntaxTree = compilation.SyntaxTrees.First();
-        var methodBody = syntaxTree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().First().Body!;
+        var methodBody = syntaxTree.GetRoot( context.CancellationToken ).DescendantNodes().OfType<MethodDeclarationSyntax>().First().Body!;
         var block = methodBody.Statements[0];
 
         Assert.True( block.NeverContinues() );
@@ -128,7 +128,7 @@ public sealed class FlowAnalyzerTests : UnitTestClass
 
         var compilation = context.CreateCSharpCompilation( code );
         var syntaxTree = compilation.SyntaxTrees.First();
-        var methodBody = syntaxTree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().First().Body!;
+        var methodBody = syntaxTree.GetRoot( context.CancellationToken ).DescendantNodes().OfType<MethodDeclarationSyntax>().First().Body!;
         var block = methodBody.Statements[0];
 
         Assert.True( block.NeverContinues() );
@@ -154,7 +154,7 @@ public sealed class FlowAnalyzerTests : UnitTestClass
 
         var compilation = context.CreateCSharpCompilation( code );
         var syntaxTree = compilation.SyntaxTrees.First();
-        var methodBody = syntaxTree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().First().Body!;
+        var methodBody = syntaxTree.GetRoot( context.CancellationToken ).DescendantNodes().OfType<MethodDeclarationSyntax>().First().Body!;
         var ifStatement = methodBody.Statements[0];
 
         Assert.False( ifStatement.NeverContinues() );
@@ -184,7 +184,7 @@ public sealed class FlowAnalyzerTests : UnitTestClass
 
         var compilation = context.CreateCSharpCompilation( code );
         var syntaxTree = compilation.SyntaxTrees.First();
-        var methodBody = syntaxTree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().First().Body!;
+        var methodBody = syntaxTree.GetRoot( context.CancellationToken ).DescendantNodes().OfType<MethodDeclarationSyntax>().First().Body!;
         var ifStatement = methodBody.Statements[0];
 
         Assert.True( ifStatement.NeverContinues() );
@@ -214,7 +214,7 @@ public sealed class FlowAnalyzerTests : UnitTestClass
 
         var compilation = context.CreateCSharpCompilation( code );
         var syntaxTree = compilation.SyntaxTrees.First();
-        var methodBody = syntaxTree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().First().Body!;
+        var methodBody = syntaxTree.GetRoot( context.CancellationToken ).DescendantNodes().OfType<MethodDeclarationSyntax>().First().Body!;
         var ifStatement = methodBody.Statements[0];
 
         Assert.False( ifStatement.NeverContinues() );
@@ -244,7 +244,7 @@ public sealed class FlowAnalyzerTests : UnitTestClass
 
         var compilation = context.CreateCSharpCompilation( code );
         var syntaxTree = compilation.SyntaxTrees.First();
-        var methodBody = syntaxTree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().First().Body!;
+        var methodBody = syntaxTree.GetRoot( context.CancellationToken ).DescendantNodes().OfType<MethodDeclarationSyntax>().First().Body!;
         var ifStatement = methodBody.Statements[0];
 
         Assert.True( ifStatement.NeverContinues() );
@@ -273,7 +273,7 @@ public sealed class FlowAnalyzerTests : UnitTestClass
 
         var compilation = context.CreateCSharpCompilation( code );
         var syntaxTree = compilation.SyntaxTrees.First();
-        var methodBody = syntaxTree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().First().Body!;
+        var methodBody = syntaxTree.GetRoot( context.CancellationToken ).DescendantNodes().OfType<MethodDeclarationSyntax>().First().Body!;
         var switchStatement = methodBody.Statements[0];
 
         Assert.False( switchStatement.NeverContinues() );
@@ -304,7 +304,7 @@ public sealed class FlowAnalyzerTests : UnitTestClass
 
         var compilation = context.CreateCSharpCompilation( code );
         var syntaxTree = compilation.SyntaxTrees.First();
-        var methodBody = syntaxTree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().First().Body!;
+        var methodBody = syntaxTree.GetRoot( context.CancellationToken ).DescendantNodes().OfType<MethodDeclarationSyntax>().First().Body!;
         var switchStatement = methodBody.Statements[0];
 
         Assert.True( switchStatement.NeverContinues() );
@@ -336,7 +336,7 @@ public sealed class FlowAnalyzerTests : UnitTestClass
 
         var compilation = context.CreateCSharpCompilation( code );
         var syntaxTree = compilation.SyntaxTrees.First();
-        var methodBody = syntaxTree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().First().Body!;
+        var methodBody = syntaxTree.GetRoot( context.CancellationToken ).DescendantNodes().OfType<MethodDeclarationSyntax>().First().Body!;
         var switchStatement = methodBody.Statements[0];
 
         Assert.False( switchStatement.NeverContinues() );
@@ -367,7 +367,7 @@ public sealed class FlowAnalyzerTests : UnitTestClass
 
         var compilation = context.CreateCSharpCompilation( code );
         var syntaxTree = compilation.SyntaxTrees.First();
-        var methodBody = syntaxTree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().First().Body!;
+        var methodBody = syntaxTree.GetRoot( context.CancellationToken ).DescendantNodes().OfType<MethodDeclarationSyntax>().First().Body!;
         var switchStatement = methodBody.Statements[0];
 
         Assert.True( switchStatement.NeverContinues() );
@@ -390,7 +390,7 @@ public sealed class FlowAnalyzerTests : UnitTestClass
 
         var compilation = context.CreateCSharpCompilation( code );
         var syntaxTree = compilation.SyntaxTrees.First();
-        var methodBody = syntaxTree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().First().Body!;
+        var methodBody = syntaxTree.GetRoot( context.CancellationToken ).DescendantNodes().OfType<MethodDeclarationSyntax>().First().Body!;
         var expressionStatement = methodBody.Statements[0];
 
         Assert.False( expressionStatement.NeverContinues() );
@@ -412,7 +412,7 @@ public sealed class FlowAnalyzerTests : UnitTestClass
 
         var compilation = context.CreateCSharpCompilation( code );
         var syntaxTree = compilation.SyntaxTrees.First();
-        var methodBody = syntaxTree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().First().Body!;
+        var methodBody = syntaxTree.GetRoot( context.CancellationToken ).DescendantNodes().OfType<MethodDeclarationSyntax>().First().Body!;
 
         Assert.False( methodBody.Statements.NeverContinues() );
     }
@@ -435,7 +435,7 @@ public sealed class FlowAnalyzerTests : UnitTestClass
 
         var compilation = context.CreateCSharpCompilation( code );
         var syntaxTree = compilation.SyntaxTrees.First();
-        var methodBody = syntaxTree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().First().Body!;
+        var methodBody = syntaxTree.GetRoot( context.CancellationToken ).DescendantNodes().OfType<MethodDeclarationSyntax>().First().Body!;
 
         Assert.True( methodBody.Statements.NeverContinues() );
     }
@@ -459,7 +459,7 @@ public sealed class FlowAnalyzerTests : UnitTestClass
 
         var compilation = context.CreateCSharpCompilation( code );
         var syntaxTree = compilation.SyntaxTrees.First();
-        var methodBody = syntaxTree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().First().Body!;
+        var methodBody = syntaxTree.GetRoot( context.CancellationToken ).DescendantNodes().OfType<MethodDeclarationSyntax>().First().Body!;
 
         Assert.False( methodBody.Statements.NeverContinues() );
     }
@@ -495,7 +495,7 @@ public sealed class FlowAnalyzerTests : UnitTestClass
 
         var compilation = context.CreateCSharpCompilation( code );
         var syntaxTree = compilation.SyntaxTrees.First();
-        var methodBody = syntaxTree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().First().Body!;
+        var methodBody = syntaxTree.GetRoot( context.CancellationToken ).DescendantNodes().OfType<MethodDeclarationSyntax>().First().Body!;
         var outerIf = methodBody.Statements[0];
 
         Assert.True( outerIf.NeverContinues() );
@@ -528,7 +528,7 @@ public sealed class FlowAnalyzerTests : UnitTestClass
 
         var compilation = context.CreateCSharpCompilation( code );
         var syntaxTree = compilation.SyntaxTrees.First();
-        var methodBody = syntaxTree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().First().Body!;
+        var methodBody = syntaxTree.GetRoot( context.CancellationToken ).DescendantNodes().OfType<MethodDeclarationSyntax>().First().Body!;
         var switchStatement = methodBody.Statements[0];
 
         Assert.True( switchStatement.NeverContinues() );
@@ -569,7 +569,7 @@ public sealed class FlowAnalyzerTests : UnitTestClass
 
         var compilation = context.CreateCSharpCompilation( code );
         var syntaxTree = compilation.SyntaxTrees.First();
-        var methodBody = syntaxTree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().First().Body!;
+        var methodBody = syntaxTree.GetRoot( context.CancellationToken ).DescendantNodes().OfType<MethodDeclarationSyntax>().First().Body!;
         var switchStatement = methodBody.Statements[0];
 
         Assert.True( switchStatement.NeverContinues() );
@@ -598,7 +598,7 @@ public sealed class FlowAnalyzerTests : UnitTestClass
 
         var compilation = context.CreateCSharpCompilation( code );
         var syntaxTree = compilation.SyntaxTrees.First();
-        var methodBody = syntaxTree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().First().Body!;
+        var methodBody = syntaxTree.GetRoot( context.CancellationToken ).DescendantNodes().OfType<MethodDeclarationSyntax>().First().Body!;
         var switchStatement = methodBody.Statements[0];
 
         Assert.False( switchStatement.NeverContinues() );

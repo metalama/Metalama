@@ -17,7 +17,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Testing.AspectTesting
 {
@@ -33,7 +32,7 @@ namespace Metalama.Testing.AspectTesting
         protected override async Task RunAsync(
             TestInput testInput,
             TestResult testResult,
-            TestContext testContext )
+            MetalamaTestContext testContext )
         {
             Assert.True( testInput.Options.TestScenario is TestScenario.LiveTemplate or TestScenario.LiveTemplatePreview );
 

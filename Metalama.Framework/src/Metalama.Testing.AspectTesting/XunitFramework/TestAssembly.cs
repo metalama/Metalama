@@ -2,25 +2,43 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Xunit;
-using Xunit.Abstractions;
+using System;
+using System.Collections.Generic;
+using Xunit.Sdk;
 
 namespace Metalama.Testing.AspectTesting.XunitFramework;
 
-internal sealed class TestAssembly : LongLivedMarshalByRefObject, ITestAssembly
+/// <summary>
+/// Describes the test assembly to xunit.
+/// </summary>
+internal sealed class TestAssembly : ITestAssembly
 {
-    private readonly TestFactory _factory;
-
+    /// <summary>
+    /// Initializes a new instance of the <see cref="TestAssembly"/> class.
+    /// </summary>
     public TestAssembly( TestFactory factory )
     {
-        this._factory = factory;
+        this.AssemblyName = factory.Assembly.FullName ?? factory.Assembly.GetName().Name ?? "";
+        this.AssemblyPath = factory.Assembly.Location;
+        this.ModuleVersionID = factory.Assembly.ManifestModule.ModuleVersionId;
+        this.UniqueID = UniqueIDGenerator.ForAssembly( this.AssemblyPath, null );
     }
 
-    void IXunitSerializable.Deserialize( IXunitSerializationInfo info ) { }
+    /// <inheritdoc />
+    public string AssemblyName { get; }
 
-    void IXunitSerializable.Serialize( IXunitSerializationInfo info ) { }
+    /// <inheritdoc />
+    public string AssemblyPath { get; }
 
-    IAssemblyInfo ITestAssembly.Assembly => this._factory.AssemblyInfo;
+    /// <inheritdoc />
+    public string? ConfigFilePath => null;
 
-    string ITestAssembly.ConfigFileName => null!;
+    /// <inheritdoc />
+    public IReadOnlyDictionary<string, IReadOnlyCollection<string>> Traits => TestFactory.EmptyTraits;
+
+    /// <inheritdoc />
+    public string UniqueID { get; }
+
+    /// <inheritdoc />
+    public Guid ModuleVersionID { get; }
 }

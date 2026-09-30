@@ -15,7 +15,7 @@ namespace Metalama.Framework.Tests.UnitTests.Aspects;
 
 public class AspectTestBase : UnitTestClass
 {
-    protected static async Task<FallibleResult<CompileTimeAspectPipelineResult>> CompileAsync( TestContext testContext, string code, bool throwOnError = true )
+    protected static async Task<FallibleResult<CompileTimeAspectPipelineResult>> CompileAsync( MetalamaTestContext testContext, string code, bool throwOnError = true )
     {
         var compilation = testContext.CreateCSharpCompilation( code );
 
@@ -33,7 +33,7 @@ public class AspectTestBase : UnitTestClass
     }
 
     protected static async Task<FallibleResult<CompileTimeAspectPipelineResult>> CompileAsync(
-        TestContext testContext,
+        MetalamaTestContext testContext,
         IReadOnlyDictionary<string, string> code,
         bool throwOnError = true )
     {

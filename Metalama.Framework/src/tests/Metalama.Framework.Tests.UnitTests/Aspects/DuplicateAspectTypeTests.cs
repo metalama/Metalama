@@ -13,7 +13,6 @@ using Metalama.Testing.UnitTesting;
 using System.Collections.Immutable;
 using System.Linq;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Framework.Tests.UnitTests.Aspects;
 
@@ -56,7 +55,8 @@ namespace TestNamespace
                 compileTimeDomain,
                 serviceProvider,
                 compilation.RoslynCompilation,
-                NullDiagnosticAdder.Instance )
+                NullDiagnosticAdder.Instance,
+                cancellationToken: testContext.CancellationToken )
             .AssertNotNull();
 
         var compileTimeProject = compileTimeProjectRepository.RootProject;

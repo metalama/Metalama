@@ -607,11 +607,11 @@ public sealed class UnionTypeTests : UnitTestClass
 
         var referencedCompilation = testContext.CreateEmptyCSharpCompilation( "UnionDependency" )
             .AddSyntaxTrees(
-                CSharpSyntaxTree.ParseText( _unionSupportCode, parseOptions, "support.cs" ),
-                CSharpSyntaxTree.ParseText( _unionCode, parseOptions, "unions.cs" ) );
+                CSharpSyntaxTree.ParseText( _unionSupportCode, parseOptions, "support.cs", cancellationToken: testContext.CancellationToken ),
+                CSharpSyntaxTree.ParseText( _unionCode, parseOptions, "unions.cs", cancellationToken: testContext.CancellationToken ) );
 
         using var peStream = new MemoryStream();
-        var emitResult = referencedCompilation.Emit( peStream );
+        var emitResult = referencedCompilation.Emit( peStream, cancellationToken: testContext.CancellationToken );
 
         Assert.True( emitResult.Success, string.Join( "\n", emitResult.Diagnostics ) );
 
@@ -619,7 +619,7 @@ public sealed class UnionTypeTests : UnitTestClass
 
         var roslynCompilation = testContext.CreateEmptyCSharpCompilation( null ).AddReferences( reference );
 
-        Assert.Empty( roslynCompilation.GetDiagnostics().Where( d => d.Severity == DiagnosticSeverity.Error ) );
+        Assert.Empty( roslynCompilation.GetDiagnostics( testContext.CancellationToken ).Where( d => d.Severity == DiagnosticSeverity.Error ) );
 
         var compilation = testContext.CreateCompilationModel( roslynCompilation );
         var shape = compilation.Factory.GetTypeByReflectionName( "Shape" );
@@ -659,7 +659,7 @@ public sealed class UnionTypeTests : UnitTestClass
     /// declaration, so no override is needed. Issue #2005 removed the preview override that stood here while C# 15
     /// was reached through <see cref="LanguageVersion.Preview"/>.
     /// </summary>
-    private static ICompilation CreateUnionCompilation( TestContext testContext, string? code = null )
+    private static ICompilation CreateUnionCompilation( MetalamaTestContext testContext, string? code = null )
     {
         var parseOptions = SupportedCSharpVersions.DefaultParseOptions;
 

@@ -3,7 +3,9 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using System.Reflection;
+using Xunit;
 using Xunit.Sdk;
+using Xunit.v3;
 
 namespace Metalama.Patterns.Contracts.UnitTests;
 
@@ -35,6 +37,8 @@ internal sealed class ConversionTestDataAttribute<TBound, TValue> : DataAttribut
 
     public bool ForgiveRoundingError { get; set; }
 
-    public override IEnumerable<object?[]> GetData( MethodInfo testMethod )
-        => [[this._value, this._bound, this.ForgiveRoundingError ? !this._expectedResult : this._expectedResult, this._tag]];
+    public override ValueTask<IReadOnlyCollection<ITheoryDataRow>> GetData( MethodInfo testMethod, DisposalTracker disposalTracker )
+        => new( [new TheoryDataRow( this._value, this._bound, this.ForgiveRoundingError ? !this._expectedResult : this._expectedResult, this._tag )] );
+
+    public override bool SupportsDiscoveryEnumeration() => true;
 }

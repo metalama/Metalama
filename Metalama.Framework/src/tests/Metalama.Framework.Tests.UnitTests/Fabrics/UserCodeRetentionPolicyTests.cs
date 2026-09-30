@@ -16,7 +16,6 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Reflection.Emit;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Framework.Tests.UnitTests.Fabrics;
 
@@ -83,7 +82,7 @@ public sealed class UserCodeRetentionPolicyTests : UnitTestClass
     public void PinningObject_IsReported( string kind )
     {
         using var testContext = this.CreateTestContext(
-            new TestContextOptions { DurableRefKind = kind == "boundDurableRef" ? DurableRefKind.Bound : DurableRefKind.Default } );
+            new MetalamaTestContextOptions { DurableRefKind = kind == "boundDurableRef" ? DurableRefKind.Bound : DurableRefKind.Default } );
 
         var compilationModel = testContext.CreateCompilationModel( "class C { void M() { } }" );
         var type = compilationModel.Types.OfName( "C" ).Single();
@@ -94,7 +93,7 @@ public sealed class UserCodeRetentionPolicyTests : UnitTestClass
             "syntaxTree" => compilationModel.RoslynCompilation.SyntaxTrees.First(),
             "semanticModel" => compilationModel.RoslynCompilation.GetSemanticModel( compilationModel.RoslynCompilation.SyntaxTrees.First() ),
             "symbol" => type.GetSymbol()!,
-            "syntaxNode" => compilationModel.RoslynCompilation.SyntaxTrees.First().GetRoot(),
+            "syntaxNode" => compilationModel.RoslynCompilation.SyntaxTrees.First().GetRoot( testContext.CancellationToken ),
             "compilationModel" => compilationModel,
             "compilationContext" => compilationModel.CompilationContext,
             "namedType" => type,
@@ -125,7 +124,7 @@ public sealed class UserCodeRetentionPolicyTests : UnitTestClass
     [InlineData( DurableRefKind.SerializedWithoutCache )]
     public void SerializedDurableRef_IsNotReported( DurableRefKind kind )
     {
-        using var testContext = this.CreateTestContext( new TestContextOptions { DurableRefKind = kind } );
+        using var testContext = this.CreateTestContext( new MetalamaTestContextOptions { DurableRefKind = kind } );
         var compilationModel = testContext.CreateCompilationModel( "class C { }" );
 
         var durableRef = compilationModel.Types.OfName( "C" ).Single().ToRef().ToDurable();
@@ -296,7 +295,7 @@ public sealed class UserCodeRetentionPolicyTests : UnitTestClass
         using var testContext = this.CreateTestContext();
         var compilationModel = testContext.CreateCompilationModel( "class C { }" );
         var syntaxTree = compilationModel.RoslynCompilation.SyntaxTrees.First();
-        var holder = new Holder { Value = syntaxTree.GetRoot().GetLocation() };
+        var holder = new Holder { Value = syntaxTree.GetRoot( testContext.CancellationToken ).GetLocation() };
 
         var finding = Assert.Single( FindRetentions( holder ) );
 
@@ -328,7 +327,7 @@ public sealed class UserCodeRetentionPolicyTests : UnitTestClass
         using var testContext = this.CreateTestContext();
         var compilationModel = testContext.CreateCompilationModel( "class C { }" );
         var syntaxTree = compilationModel.RoslynCompilation.SyntaxTrees.First();
-        var holder = new Holder { Value = CreateDiagnostic( syntaxTree.GetRoot().GetLocation() ) };
+        var holder = new Holder { Value = CreateDiagnostic( syntaxTree.GetRoot( testContext.CancellationToken ).GetLocation() ) };
 
         var finding = Assert.Single( FindRetentions( holder ) );
 

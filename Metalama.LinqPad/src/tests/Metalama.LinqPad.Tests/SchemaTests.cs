@@ -12,7 +12,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.LinqPad.Tests;
 
@@ -62,9 +61,10 @@ public sealed class SchemaTests : UnitTestClass
         <TargetFramework>net10.0</TargetFramework>
     </PropertyGroup>
 </Project>
-" );
+",
+            testContext.CancellationToken );
 
-        await File.WriteAllTextAsync( codePath, "class MyClass {}" );
+        await File.WriteAllTextAsync( codePath, "class MyClass {}", testContext.CancellationToken );
 
         var workspaceCollection = new WorkspaceCollection();
 
@@ -91,7 +91,7 @@ public sealed class SchemaTests : UnitTestClass
 
         var workspaceCollection = new WorkspaceCollection();
 
-        using var workspace = await workspaceCollection.LoadAsync( ImmutableArray.Create( solutionPath ), restore: false );
+        using var workspace = await workspaceCollection.LoadAsync( ImmutableArray.Create( solutionPath ), restore: false, cancellationToken: TestContext.Current.CancellationToken );
 
         var factory = new SchemaFactory( ( type, _ ) => type.ToString() );
 

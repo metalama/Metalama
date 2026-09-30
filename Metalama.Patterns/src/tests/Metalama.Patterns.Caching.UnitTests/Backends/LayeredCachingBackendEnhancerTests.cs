@@ -7,7 +7,6 @@ using Metalama.Patterns.Caching.Implementation;
 using Metalama.Patterns.Caching.TestHelpers;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
-using Xunit.Abstractions;
 
 // ReSharper disable UseAwaitUsing
 // ReSharper disable MethodHasAsyncOverload
@@ -101,7 +100,7 @@ public sealed partial class LayeredCachingBackendEnhancerTests : IDisposable
         const string key = "test-key";
         var item = new CacheItem( "test-value" );
 
-        await layered.SetItemAsync( key, item );
+        await layered.SetItemAsync( key, item, TestContext.Current.CancellationToken );
 
         // L1 should have the item
         var l1Item = layered.LocalCache.GetItem( key );
@@ -305,7 +304,7 @@ public sealed partial class LayeredCachingBackendEnhancerTests : IDisposable
         }
         finally
         {
-            layered.Dispose();
+            layered.Dispose( TestContext.Current.CancellationToken );
         }
     }
 
@@ -352,7 +351,7 @@ public sealed partial class LayeredCachingBackendEnhancerTests : IDisposable
         }
         finally
         {
-            layered.Dispose();
+            layered.Dispose( TestContext.Current.CancellationToken );
         }
     }
 
@@ -506,7 +505,7 @@ public sealed partial class LayeredCachingBackendEnhancerTests : IDisposable
         Assert.Equal( CachingBackendStatus.Initialized, layered.LocalCache.Status );
         Assert.Equal( CachingBackendStatus.Initialized, l2.Status );
 
-        layered.Dispose();
+        layered.Dispose( TestContext.Current.CancellationToken );
     }
 
     [Fact]
@@ -517,7 +516,7 @@ public sealed partial class LayeredCachingBackendEnhancerTests : IDisposable
         var layered = new LayeredCachingBackendEnhancer( wrapper, null, null );
 
         layered.Initialize();
-        layered.Dispose();
+        layered.Dispose( TestContext.Current.CancellationToken );
 
         Assert.Equal( CachingBackendStatus.Disposed, layered.Status );
         Assert.Equal( CachingBackendStatus.Disposed, layered.LocalCache.Status );
@@ -531,8 +530,8 @@ public sealed partial class LayeredCachingBackendEnhancerTests : IDisposable
         var wrapper = new ConfigurableFeaturesBackend( l2 );
         var layered = new LayeredCachingBackendEnhancer( wrapper, null, null );
 
-        await layered.InitializeAsync();
-        await layered.DisposeAsync();
+        await layered.InitializeAsync( TestContext.Current.CancellationToken );
+        await layered.DisposeAsync( TestContext.Current.CancellationToken );
 
         Assert.Equal( CachingBackendStatus.Disposed, layered.Status );
         Assert.Equal( CachingBackendStatus.Disposed, layered.LocalCache.Status );
@@ -555,8 +554,8 @@ public sealed partial class LayeredCachingBackendEnhancerTests : IDisposable
         // Clear L1 to force check to hit L2
         layered.LocalCache.Clear();
 
-        Assert.True( await layered.ContainsItemAsync( "test-key" ) );
-        Assert.False( await layered.ContainsItemAsync( "non-existent" ) );
+        Assert.True( await layered.ContainsItemAsync( "test-key", TestContext.Current.CancellationToken ) );
+        Assert.False( await layered.ContainsItemAsync( "non-existent", TestContext.Current.CancellationToken ) );
     }
 
     [Fact( Timeout = _timeout )]
@@ -567,10 +566,10 @@ public sealed partial class LayeredCachingBackendEnhancerTests : IDisposable
         const string key = "test-key";
         var item = new CacheItem( "test-value" );
 
-        await layered.SetItemAsync( key, item );
-        await layered.RemoveItemAsync( key );
+        await layered.SetItemAsync( key, item, TestContext.Current.CancellationToken );
+        await layered.RemoveItemAsync( key, TestContext.Current.CancellationToken );
 
-        var retrieved = await layered.GetItemAsync( key );
+        var retrieved = await layered.GetItemAsync( key, cancellationToken: TestContext.Current.CancellationToken );
         Assert.Null( retrieved );
     }
 
@@ -583,10 +582,10 @@ public sealed partial class LayeredCachingBackendEnhancerTests : IDisposable
         const string dependency = "dep1";
         var item = new CacheItem( "test-value", [dependency] );
 
-        await layered.SetItemAsync( key, item );
-        await layered.InvalidateDependencyAsync( dependency );
+        await layered.SetItemAsync( key, item, TestContext.Current.CancellationToken );
+        await layered.InvalidateDependencyAsync( dependency, TestContext.Current.CancellationToken );
 
-        var retrieved = await layered.GetItemAsync( key );
+        var retrieved = await layered.GetItemAsync( key, cancellationToken: TestContext.Current.CancellationToken );
         Assert.Null( retrieved );
     }
 
@@ -595,13 +594,15 @@ public sealed partial class LayeredCachingBackendEnhancerTests : IDisposable
     {
         using var layered = this.CreateLayeredBackend();
 
-        await layered.SetItemAsync( "key1", new CacheItem( "value1" ) );
-        await layered.SetItemAsync( "key2", new CacheItem( "value2" ) );
+        var cancellationToken = TestContext.Current.CancellationToken;
 
-        await layered.ClearAsync();
+        await layered.SetItemAsync( "key1", new CacheItem( "value1" ), cancellationToken );
+        await layered.SetItemAsync( "key2", new CacheItem( "value2" ), cancellationToken );
 
-        Assert.Null( await layered.GetItemAsync( "key1" ) );
-        Assert.Null( await layered.GetItemAsync( "key2" ) );
+        await layered.ClearAsync( cancellationToken: cancellationToken );
+
+        Assert.Null( await layered.GetItemAsync( "key1", cancellationToken: cancellationToken ) );
+        Assert.Null( await layered.GetItemAsync( "key2", cancellationToken: cancellationToken ) );
     }
 
     [Fact( Timeout = _timeout )]
@@ -615,7 +616,7 @@ public sealed partial class LayeredCachingBackendEnhancerTests : IDisposable
         // Set item through layered backend
         layered.SetItem( "test-key", item );
 
-        Assert.True( await layered.ContainsDependencyAsync( dependency ) );
+        Assert.True( await layered.ContainsDependencyAsync( dependency, TestContext.Current.CancellationToken ) );
     }
 
     [Fact( Timeout = _timeout )]
@@ -623,7 +624,7 @@ public sealed partial class LayeredCachingBackendEnhancerTests : IDisposable
     {
         using var layered = this.CreateLayeredBackend( blocking: false );
 
-        await Assert.ThrowsAsync<NotSupportedException>( async () => await layered.ContainsDependencyAsync( "dep1" ) );
+        await Assert.ThrowsAsync<NotSupportedException>( async () => await layered.ContainsDependencyAsync( "dep1", TestContext.Current.CancellationToken ) );
     }
 
     #endregion
@@ -667,14 +668,14 @@ public sealed partial class LayeredCachingBackendEnhancerTests : IDisposable
 
         // Set item through layered backend
         var originalItem = new CacheItem( "test-value" );
-        await layered.SetItemAsync( "test-key", originalItem );
+        await layered.SetItemAsync( "test-key", originalItem, TestContext.Current.CancellationToken );
 
         // Clear L1 only
-        await layered.ClearAsync( ClearCacheOptions.Local );
+        await layered.ClearAsync( ClearCacheOptions.Local, TestContext.Current.CancellationToken );
 
         Assert.Null( layered.LocalCache.GetItem( "test-key" ) );
 
-        var retrieved = await layered.GetItemAsync( "test-key" );
+        var retrieved = await layered.GetItemAsync( "test-key", cancellationToken: TestContext.Current.CancellationToken );
         Assert.NotNull( retrieved );
         Assert.Equal( "test-value", retrieved.Value );
 
@@ -713,7 +714,7 @@ public sealed partial class LayeredCachingBackendEnhancerTests : IDisposable
         }
         finally
         {
-            layered.Dispose();
+            layered.Dispose( TestContext.Current.CancellationToken );
         }
     }
 
@@ -751,16 +752,16 @@ public sealed partial class LayeredCachingBackendEnhancerTests : IDisposable
         const string key = "test-key";
         var item = new CacheItem( "test-value" );
 
-        await layered.SetItemAsync( key, item );
+        await layered.SetItemAsync( key, item, TestContext.Current.CancellationToken );
 
         // Clear L1 only using Local option
-        await layered.ClearAsync( ClearCacheOptions.Local );
+        await layered.ClearAsync( ClearCacheOptions.Local, TestContext.Current.CancellationToken );
 
         // L1 should be empty
         Assert.Null( layered.LocalCache.GetItem( key ) );
 
         // Get through layered - should fetch from L2
-        var retrieved = await layered.GetItemAsync( key );
+        var retrieved = await layered.GetItemAsync( key, cancellationToken: TestContext.Current.CancellationToken );
         Assert.NotNull( retrieved );
         Assert.Equal( "test-value", retrieved.Value );
 

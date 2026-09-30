@@ -11,7 +11,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Xunit;
-using Xunit.Abstractions;
 using SymbolEqualityComparer = Microsoft.CodeAnalysis.SymbolEqualityComparer;
 
 namespace Metalama.Framework.Tests.UnitTests.Utilities;

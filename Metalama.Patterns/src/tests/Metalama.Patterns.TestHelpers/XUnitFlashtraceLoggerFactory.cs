@@ -3,7 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Flashtrace;
-using Xunit.Abstractions;
+using Xunit;
 
 namespace Metalama.Patterns.TestHelpers;
 

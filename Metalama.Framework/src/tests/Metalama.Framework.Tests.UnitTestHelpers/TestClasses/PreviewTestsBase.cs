@@ -12,7 +12,6 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Framework.Tests.UnitTestHelpers.TestClasses;
 
@@ -30,7 +29,7 @@ public abstract class PreviewTestsBase : DesignTimeTestBase
         services.AddGlobalService( provider => new TestWorkspaceProvider( provider ) );
     }
 
-    protected override TestContextOptions CreateDefaultTestContextOptions() => new() { CodeFormattingOptions = CodeFormattingOptions.Formatted };
+    protected override MetalamaTestContextOptions CreateDefaultTestContextOptions() => new() { CodeFormattingOptions = CodeFormattingOptions.Formatted };
 
     protected async Task<string> RunPreviewAsync(
         Dictionary<string, string> code,
@@ -49,7 +48,7 @@ public abstract class PreviewTestsBase : DesignTimeTestBase
     }
 
     protected static async Task<string> RunPreviewAsync(
-        TestContext testContext,
+        MetalamaTestContext testContext,
         GlobalServiceProvider serviceProvider,
         Dictionary<string, string> code,
         string previewedSyntaxTreeName,

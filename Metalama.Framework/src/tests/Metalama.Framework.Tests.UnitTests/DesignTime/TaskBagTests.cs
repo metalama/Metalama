@@ -22,7 +22,7 @@ public sealed class TaskBagTests : UnitTestClass
 
         for ( var i = 0; i < 1000; i++ )
         {
-            bag.Enqueue( () => Task.CompletedTask );
+            bag.Enqueue( () => Task.CompletedTask, testContext.CancellationToken );
         }
 
         await bag.WaitAllAsync( testContext.CancellationToken );
@@ -39,7 +39,7 @@ public sealed class TaskBagTests : UnitTestClass
 
         for ( var i = 0; i < 1000; i++ )
         {
-            bag.Enqueue( async () => await Task.Yield() );
+            bag.Enqueue( async () => await Task.Yield(), testContext.CancellationToken );
         }
 
         await bag.WaitAllAsync( testContext.CancellationToken );

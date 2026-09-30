@@ -63,7 +63,7 @@ public sealed class TestRoslynEntryPointTypeNames
         var testMethod = typeof(TestRoslynEntryPointTypeNames).GetMethod( nameof(this.TestConstant) )!;
 
         var testedConstants = testMethod.GetCustomAttributes<InlineDataAttribute>()
-            .Select( a => (string) a.GetData( testMethod ).Single()[0]! )
+            .Select( a => (string) a.Data[0]! )
             .OrderBy( n => n, StringComparer.Ordinal )
             .ToArray();
 

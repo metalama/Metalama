@@ -12,7 +12,6 @@ using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline;
 
@@ -54,7 +53,7 @@ public sealed class TransitiveManifestSerializationTests : UnitTestClass
                                               public class Local { }
                                               """;
 
-    private static DesignTimeAspectPipelineResult Execute( TestContext testContext, TestDesignTimeAspectPipelineFactory factory, string code )
+    private static DesignTimeAspectPipelineResult Execute( MetalamaTestContext testContext, TestDesignTimeAspectPipelineFactory factory, string code )
     {
         var compilation = testContext.CreateCSharpCompilation( code );
         Assert.True( factory.TryExecute( testContext.ProjectOptions, compilation, default, out var result ) );

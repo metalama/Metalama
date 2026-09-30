@@ -265,8 +265,8 @@ public sealed class DiagnosticSuppressorTests : UnitTestClass
 
         var workspaceProvider = new TestWorkspaceProvider( testContext.ServiceProvider );
         workspaceProvider.AddOrUpdateProject( testContext, "project", new Dictionary<string, string>() { ["code.cs"] = code } );
-        var compilation = await workspaceProvider.GetProject( "project" ).GetCompilationAsync();
-        var diagnostics = compilation!.GetDiagnostics();
+        var compilation = await workspaceProvider.GetProject( "project" ).GetCompilationAsync( testContext.CancellationToken );
+        var diagnostics = compilation!.GetDiagnostics( testContext.CancellationToken );
 
         // (a) Verify the suppressor does NOT suppress CS0169 when the user profile is empty.
         // In production, Roslyn would not even pass CS0169 to ReportSuppressions because it's
@@ -281,7 +281,7 @@ public sealed class DiagnosticSuppressorTests : UnitTestClass
         Assert.Empty( suppressionContext.ReportedSuppressions );
 
         // (b) Verify the analyzer reports LAMA0306 because the suppression is not in the user profile.
-        var syntaxTree = await workspaceProvider.GetDocument( "project", "code.cs" ).GetSyntaxTreeAsync();
+        var syntaxTree = await workspaceProvider.GetDocument( "project", "code.cs" ).GetSyntaxTreeAsync( testContext.CancellationToken );
         var semanticModel = compilation.GetSemanticModel( syntaxTree! );
 
         var analyzer = new TheDiagnosticAnalyzer( pipelineFactory.ServiceProvider );
@@ -355,11 +355,11 @@ public sealed class DiagnosticSuppressorTests : UnitTestClass
 
         var workspaceProvider = new TestWorkspaceProvider( testContext.ServiceProvider );
         workspaceProvider.AddOrUpdateProject( testContext, "project", new Dictionary<string, string>() { ["code.cs"] = code } );
-        var compilation = await workspaceProvider.GetProject( "project" ).GetCompilationAsync();
+        var compilation = await workspaceProvider.GetProject( "project" ).GetCompilationAsync( testContext.CancellationToken );
 
         // Create a synthetic CA1822 diagnostic at the template method location.
         var syntaxTree = compilation!.SyntaxTrees.Single();
-        var root = await syntaxTree.GetRootAsync();
+        var root = await syntaxTree.GetRootAsync( testContext.CancellationToken );
 
         var methodDeclaration = root.DescendantNodes()
             .OfType<MethodDeclarationSyntax>()
@@ -378,7 +378,7 @@ public sealed class DiagnosticSuppressorTests : UnitTestClass
             Location.Create( syntaxTree, methodDeclaration.Identifier.Span ),
             "TemplateMethod" );
 
-        var allDiagnostics = compilation.GetDiagnostics().Add( ca1822Diagnostic );
+        var allDiagnostics = compilation.GetDiagnostics( testContext.CancellationToken ).Add( ca1822Diagnostic );
 
         var suppressor = new TheDiagnosticSuppressor( pipelineFactory.ServiceProvider );
         var analysisContext = new TestSuppressionAnalysisContext( compilation, allDiagnostics, testContext.ProjectOptions );
@@ -415,11 +415,11 @@ public sealed class DiagnosticSuppressorTests : UnitTestClass
 
         var workspaceProvider = new TestWorkspaceProvider( testContext.ServiceProvider );
         workspaceProvider.AddOrUpdateProject( testContext, "project", new Dictionary<string, string>() { ["code.cs"] = code } );
-        var compilation = await workspaceProvider.GetProject( "project" ).GetCompilationAsync();
+        var compilation = await workspaceProvider.GetProject( "project" ).GetCompilationAsync( testContext.CancellationToken );
 
         // Create a synthetic CA1822 diagnostic at the non-template method location.
         var syntaxTree = compilation!.SyntaxTrees.Single();
-        var root = await syntaxTree.GetRootAsync();
+        var root = await syntaxTree.GetRootAsync( testContext.CancellationToken );
 
         var methodDeclaration = root.DescendantNodes()
             .OfType<MethodDeclarationSyntax>()
@@ -438,7 +438,7 @@ public sealed class DiagnosticSuppressorTests : UnitTestClass
             Location.Create( syntaxTree, methodDeclaration.Identifier.Span ),
             "RegularMethod" );
 
-        var allDiagnostics = compilation.GetDiagnostics().Add( ca1822Diagnostic );
+        var allDiagnostics = compilation.GetDiagnostics( testContext.CancellationToken ).Add( ca1822Diagnostic );
 
         var suppressor = new TheDiagnosticSuppressor( pipelineFactory.ServiceProvider );
         var analysisContext = new TestSuppressionAnalysisContext( compilation, allDiagnostics, testContext.ProjectOptions );

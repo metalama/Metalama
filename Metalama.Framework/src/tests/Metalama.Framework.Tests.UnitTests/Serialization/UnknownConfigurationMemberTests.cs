@@ -9,7 +9,6 @@ using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Framework.Tests.UnitTests.Serialization;
 

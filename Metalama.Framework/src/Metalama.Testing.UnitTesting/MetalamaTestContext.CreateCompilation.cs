@@ -11,7 +11,7 @@ using System.Linq;
 
 namespace Metalama.Testing.UnitTesting;
 
-public partial class TestContext
+public partial class MetalamaTestContext
 {
     /// <summary>
     /// Creates an <see cref="ICompilation"/> made of a single source file.

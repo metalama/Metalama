@@ -14,7 +14,7 @@ namespace Metalama.Framework.Tests.UnitTests.Aspects;
 
 public sealed class IncrementalAspectRepositoryTests : UnitTestClass
 {
-    private static (CompilationModel CompilationModel, CSharpCompilation RoslynCompilation) CreatePartialCompilationModel( TestContext testContext )
+    private static (CompilationModel CompilationModel, CSharpCompilation RoslynCompilation) CreatePartialCompilationModel( MetalamaTestContext testContext )
     {
         var code = new Dictionary<string, string> { ["ClassA.cs"] = "public class ClassA { }", ["ClassB.cs"] = "public class ClassB { }" };
 

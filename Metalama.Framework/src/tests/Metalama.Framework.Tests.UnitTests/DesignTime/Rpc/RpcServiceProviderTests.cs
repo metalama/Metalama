@@ -10,7 +10,6 @@ using Metalama.Framework.Engine.Utilities.Threading;
 using System;
 using System.Threading.Tasks;
 using Xunit;
-using Xunit.Abstractions;
 
 // ReSharper disable AccessToDisposedClosure
 
@@ -299,14 +298,16 @@ public sealed partial class RpcServiceProviderTests : RpcUnitTestClass
             {
                 await startSignal.Task.WithCancellation( testContext.CancellationToken );
                 serverEndpoint.AddServices( [simpleServiceFactory] );
-            } );
+            },
+            testContext.CancellationToken );
 
         var addTask2 = Task.Run(
             async () =>
             {
                 await startSignal.Task.WithCancellation( testContext.CancellationToken );
                 serverEndpoint.AddServices( [simpleService2Factory] );
-            } );
+            },
+            testContext.CancellationToken );
 
         // Release both tasks simultaneously.
         startSignal.SetResult( true );

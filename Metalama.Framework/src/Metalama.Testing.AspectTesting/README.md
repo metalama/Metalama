@@ -6,6 +6,8 @@ The `Metalama.Testing.AspectTesting` is a test framework that you can use to tes
 
 This is not your typical test framework. When referencing this package, every _file_ is turned into a test by default. 
 
+The test project must reference `xunit.v3` and must be an executable (`<OutputType>Exe</OutputType>`), as every xunit.v3 test project.
+
 ## Principal APIs
 
 None. This package is not used as a library but as test framework. Make sure to check the documentation.

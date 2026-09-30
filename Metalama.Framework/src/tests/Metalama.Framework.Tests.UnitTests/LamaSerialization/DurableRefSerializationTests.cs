@@ -9,6 +9,7 @@ using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Services;
 using Metalama.Testing.UnitTesting;
 using System.Linq;
+using System.Threading;
 using Xunit;
 
 namespace Metalama.Framework.Tests.UnitTests.LamaSerialization;
@@ -39,8 +40,11 @@ public sealed class DurableRefSerializationTests : SerializationTestsBase
                                  }
                                  """;
 
-    protected override TestContext CreateTestContextCore( TestContextOptions contextOptions, IAdditionalServiceCollection services )
-        => base.CreateTestContextCore( contextOptions with { DurableRefKind = DurableRefKind.Bound }, services );
+    protected override MetalamaTestContext CreateTestContextCore(
+        MetalamaTestContextOptions contextOptions,
+        IAdditionalServiceCollection services,
+        CancellationToken cancellationToken )
+        => base.CreateTestContextCore( contextOptions with { DurableRefKind = DurableRefKind.Bound }, services, cancellationToken );
 
     /// <summary>
     /// Verifies that a durable reference of a batch compilation writes the identifier that the identifier-based

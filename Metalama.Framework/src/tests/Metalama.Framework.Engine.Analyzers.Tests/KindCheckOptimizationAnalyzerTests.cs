@@ -552,7 +552,7 @@ public sealed class KindCheckOptimizationAnalyzerTests
                    """;
 
         // Create a minimal compilation without Metalama references
-        var syntaxTree = CSharpSyntaxTree.ParseText( code );
+        var syntaxTree = CSharpSyntaxTree.ParseText( code, cancellationToken: TestContext.Current.CancellationToken );
         var runtimeDir = Path.GetDirectoryName( typeof(object).Assembly.Location )!;
 
         var minimalReferences = new[]
@@ -571,7 +571,7 @@ public sealed class KindCheckOptimizationAnalyzerTests
 
         var compilationWithAnalyzers = compilation.WithAnalyzers( ImmutableArray.Create<DiagnosticAnalyzer>( analyzer ) );
 
-        var diagnostics = await compilationWithAnalyzers.GetAnalyzerDiagnosticsAsync();
+        var diagnostics = await compilationWithAnalyzers.GetAnalyzerDiagnosticsAsync( TestContext.Current.CancellationToken );
         var lama0860Diagnostics = diagnostics.Where( d => d.Id == "LAMA0860" ).ToImmutableArray();
 
         Assert.Empty( lama0860Diagnostics );

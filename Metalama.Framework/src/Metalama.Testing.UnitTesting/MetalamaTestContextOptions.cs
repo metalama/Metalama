@@ -18,32 +18,32 @@ using System.Reflection;
 namespace Metalama.Testing.UnitTesting;
 
 /// <summary>
-/// Options that configure the behavior of a <see cref="TestContext"/>.
+/// Options that configure the behavior of a <see cref="MetalamaTestContext"/>.
 /// </summary>
 /// <remarks>
 /// <para>
-/// Pass an instance of this record to <see cref="UnitTestClass.CreateTestContext(TestContextOptions?,IAdditionalServiceCollection?,string?,string?)"/>
+/// Pass an instance of this record to <see cref="UnitTestClass.CreateTestContext(MetalamaTestContextOptions?,IAdditionalServiceCollection?,string?,string?)"/>
 /// to customize test behavior. Common options include:
 /// <list type="bullet">
-/// <item><see cref="Timeout"/>: Maximum time before the test's <see cref="TestContext.CancellationToken"/> is signaled</item>
+/// <item><see cref="Timeout"/>: Maximum time before the test's <see cref="MetalamaTestContext.CancellationToken"/> is signaled</item>
 /// <item><see cref="AdditionalAssemblies"/>: Assemblies to add as references to compile-time compilation</item>
 /// <item><see cref="AdditionalMetadataReferences"/>: References to add to test compilations</item>
 /// <item><see cref="RequireOrderedAspects"/>: Whether to require explicit aspect ordering</item>
 /// </list>
 /// </para>
 /// </remarks>
-/// <seealso cref="TestContext"/>
+/// <seealso cref="MetalamaTestContext"/>
 /// <seealso cref="UnitTestClass"/>
 /// <seealso href="@compile-time-testing"/>
 [PublicAPI]
-public record TestContextOptions
+public record MetalamaTestContextOptions
 {
     public bool RequiresExclusivity { get; init; }
 
     /// <summary>
-    /// Gets the default <see cref="TestContextOptions"/> value.
+    /// Gets the default <see cref="MetalamaTestContextOptions"/> value.
     /// </summary>
-    public static TestContextOptions Default { get; } = new();
+    public static MetalamaTestContextOptions Default { get; } = new();
 
     /// <summary>
     /// Gets the set of MSBuild properties exposed to the tests.
@@ -169,7 +169,7 @@ public record TestContextOptions
     public ImmutableArray<PortableExecutableReference> AdditionalMetadataReferences { get; init; } = ImmutableArray<PortableExecutableReference>.Empty;
 
     /// <summary>
-    /// Gets the test timeout period, after which the <see cref="TestContext.CancellationToken"/> of the <see cref="TestContext"/> is signalled.
+    /// Gets the test timeout period, after which the <see cref="MetalamaTestContext.CancellationToken"/> of the <see cref="MetalamaTestContext"/> is signalled.
     /// </summary>
     public TimeSpan Timeout { get; init; } = TimeSpan.FromSeconds( 240 );
 

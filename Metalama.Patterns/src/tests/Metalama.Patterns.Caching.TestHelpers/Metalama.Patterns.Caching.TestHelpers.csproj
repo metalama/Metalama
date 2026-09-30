@@ -29,8 +29,8 @@
     <PackageReference Include="Microsoft.Extensions.Logging" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
     <PackageReference Include="System.Collections.Immutable" />
-    <PackageReference Include="xunit.extensibility.core" />
-    <PackageReference Include="xunit.assert" />
+    <PackageReference Include="xunit.v3.extensibility.core" />
+    <PackageReference Include="xunit.v3.assert" />
   </ItemGroup>
   
   <ItemGroup>

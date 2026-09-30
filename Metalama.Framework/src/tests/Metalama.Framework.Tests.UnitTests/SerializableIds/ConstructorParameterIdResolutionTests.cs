@@ -7,7 +7,6 @@ using Metalama.Framework.Engine.SerializableIds;
 using Metalama.Testing.UnitTesting;
 using System.Linq;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Framework.Tests.UnitTests.SerializableIds;
 

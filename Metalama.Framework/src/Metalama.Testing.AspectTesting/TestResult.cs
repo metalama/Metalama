@@ -178,7 +178,7 @@ internal class TestResult : IDisposable
 
     public string? ProgramOutput { get; set; }
 
-    public TestContext? TestContext { get; set; }
+    public MetalamaTestContext? MetalamaTestContext { get; set; }
 
     internal async Task AddInputDocumentAsync( Document document, string? path )
         => this._syntaxTrees.Add( await TestSyntaxTree.CreateAsync( path, document, this ) );
@@ -753,7 +753,7 @@ internal class TestResult : IDisposable
         this.DependencyDiagnostics.Clear();
         this._diagnosticSuppressions = null!;
 
-        this.TestContext?.Dispose();
-        this.TestContext = null;
+        this.MetalamaTestContext?.Dispose();
+        this.MetalamaTestContext = null;
     }
 }

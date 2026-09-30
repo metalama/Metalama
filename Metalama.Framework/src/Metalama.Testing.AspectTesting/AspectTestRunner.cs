@@ -17,7 +17,6 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
-using Xunit.Abstractions;
 
 #if NET5_0_OR_GREATER
 using Metalama.Framework.Code;
@@ -57,7 +56,7 @@ internal class AspectTestRunner : BaseTestRunner
     protected override async Task RunAsync(
         TestInput testInput,
         TestResult testResult,
-        TestContext testContext )
+        MetalamaTestContext testContext )
     {
         if ( this._runCount > 0 )
         {
@@ -141,7 +140,7 @@ internal class AspectTestRunner : BaseTestRunner
     }
 
     private static async Task<bool> ApplyCodeFixAsync(
-        TestContext testContext,
+        MetalamaTestContext testContext,
         TestInput testInput,
         TestResult testResult,
         CompileTimeDomain domain,
@@ -198,7 +197,7 @@ internal class AspectTestRunner : BaseTestRunner
     private async Task<bool> ProcessCompileTimePipelineOutputAsync(
         TestInput testInput,
         TestResult testResult,
-        TestContext testContext,
+        MetalamaTestContext testContext,
         CompileTimeAspectPipelineResult pipelineResult )
     {
         var resultCompilation = pipelineResult.ResultingCompilation.Compilation;
@@ -254,7 +253,7 @@ internal class AspectTestRunner : BaseTestRunner
         return true;
     }
 
-    private static async Task<bool> RunUnformattedPipelineAsync( TestInput testInput, TestResult testResult, TestContext testContext )
+    private static async Task<bool> RunUnformattedPipelineAsync( TestInput testInput, TestResult testResult, MetalamaTestContext testContext )
     {
         // Execute the pipeline with unformatted options to check well-formness of syntax trees.
         if ( testInput.Options.TestUnformattedOutput == true )
@@ -454,7 +453,7 @@ internal class AspectTestRunner : BaseTestRunner
     }
 #endif
 
-    private protected override async Task SaveResultsAsync( TestInput testInput, TestResult testResult, TestContext testContext )
+    private protected override async Task SaveResultsAsync( TestInput testInput, TestResult testResult, MetalamaTestContext testContext )
     {
         await base.SaveResultsAsync( testInput, testResult, testContext );
 
@@ -532,7 +531,7 @@ internal class AspectTestRunner : BaseTestRunner
             var aspectTestResult = (AspectTestResult) testResult;
 
             // Get the diff tool runner from plugins (may be null if DiffEngine package is not referenced).
-            var diffToolRunner = testResult.TestContext?.DiffToolRunner;
+            var diffToolRunner = testResult.MetalamaTestContext?.DiffToolRunner;
 
             this.CompareFiles(
                 aspectTestResult.ExpectedProgramOutputText!,

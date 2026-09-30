@@ -16,7 +16,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
-using Xunit.Abstractions;
 
 // ReSharper disable InconsistentNaming
 
@@ -39,7 +38,7 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime
         private void LogAndAssertContains<T>( IEnumerable<T> enumerable, T expectedItem, int expectedOccurrences = 1 )
         {
             this._logger.WriteLine( "Expected:" );
-            this._logger.WriteLine( expectedItem!.ToString() );
+            this._logger.WriteLine( expectedItem!.ToString() ?? "" );
             this._logger.WriteLine( "Actual:" );
 
             var actualOccurrences = 0;

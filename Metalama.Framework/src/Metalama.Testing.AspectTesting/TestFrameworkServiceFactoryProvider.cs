@@ -8,8 +8,14 @@ using Metalama.Testing.UnitTesting;
 
 namespace Metalama.Testing.AspectTesting;
 
+/// <summary>
+/// Creates the global service provider of the aspect test framework.
+/// </summary>
 internal static class TestFrameworkServiceFactoryProvider
 {
+    /// <summary>
+    /// Creates a new global service provider for the aspect test framework.
+    /// </summary>
     public static GlobalServiceProvider GetServiceProvider()
     {
         TestingServices.Initialize();

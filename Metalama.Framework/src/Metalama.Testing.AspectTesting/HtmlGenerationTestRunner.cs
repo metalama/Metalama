@@ -9,7 +9,6 @@ using System;
 using System.IO;
 using System.Text;
 using Xunit;
-using Xunit.Abstractions;
 
 // ReSharper disable StringLiteralTypo
 
@@ -128,7 +127,7 @@ internal sealed class HtmlGenerationTestRunner : AspectTestRunner
     {
         base.ExecuteAssertions( testInput, testResult );
 
-        var diffToolRunner = testResult.TestContext?.DiffToolRunner;
+        var diffToolRunner = testResult.MetalamaTestContext?.DiffToolRunner;
 
         Assert.NotNull( testInput.ProjectDirectory );
         Assert.NotNull( testInput.RelativePath );

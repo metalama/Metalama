@@ -11,7 +11,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline;
 
@@ -32,7 +31,7 @@ public sealed class UnresolvedSdkTests : UnitTestClass
     /// <summary>
     /// Creates a compilation that references the Metalama assemblies but no assembly of the .NET SDK.
     /// </summary>
-    private static CSharpCompilation CreateCompilationWithoutCoreLibrary( TestContext testContext )
+    private static CSharpCompilation CreateCompilationWithoutCoreLibrary( MetalamaTestContext testContext )
     {
         var references = testContext.GetMetadataReferences()
             .Where( r => Path.GetFileNameWithoutExtension( r.FilePath )!.StartsWith( "Metalama", StringComparison.OrdinalIgnoreCase ) )

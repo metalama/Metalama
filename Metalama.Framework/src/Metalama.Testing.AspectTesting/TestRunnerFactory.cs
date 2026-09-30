@@ -6,7 +6,7 @@ using Metalama.Framework.Engine.Services;
 using Metalama.Testing.UnitTesting;
 using SharpCrafters.Backstage.Diagnostics;
 using System;
-using Xunit.Abstractions;
+using Xunit;
 
 namespace Metalama.Testing.AspectTesting
 {

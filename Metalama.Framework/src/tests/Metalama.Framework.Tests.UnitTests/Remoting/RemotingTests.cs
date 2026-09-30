@@ -24,7 +24,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Framework.Tests.UnitTests.Remoting;
 
@@ -219,7 +218,8 @@ public sealed class RemotingTests : UnitTestClass
 
         var result = await (await client.GetApiAsync<IPreviewTransformationRpcApi>( testContext.CancellationToken )).PreviewTransformationAsync(
             ProjectKeyFactory.CreateTest( "myProjectId" ),
-            "syntaxTreeName" );
+            "syntaxTreeName",
+            testContext.CancellationToken );
 
         Assert.True( result.IsSuccessful );
         AssertEx.EolInvariantEqual( "class TransformedCode {}", result.TransformedSyntaxTree?.Text );
@@ -274,7 +274,7 @@ public sealed class RemotingTests : UnitTestClass
 
         analysisProcessEndpoint.Start();
 
-        await Task.Delay( TimeSpan.FromSeconds( 5 ) );
+        await Task.Delay( TimeSpan.FromSeconds( 5 ), testContext.CancellationToken );
         using var userProcessHubEndpoint = new ServiceHubServerEndpoint( serviceProvider, discoveryPipeName );
         userProcessHubEndpoint.Start();
 
@@ -368,7 +368,7 @@ public sealed class RemotingTests : UnitTestClass
             disposables.Add( analysisProcessEndpoint );
         }
 
-        await Task.Delay( TimeSpan.FromSeconds( 1 ) );
+        await Task.Delay( TimeSpan.FromSeconds( 1 ), testContext.CancellationToken );
 
         using var userProcessHubEndpoint = new ServiceHubServerEndpoint( serviceProvider, discoveryPipeName );
         userProcessHubEndpoint.Start();

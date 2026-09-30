@@ -36,7 +36,7 @@ namespace Metalama.Framework.Engine.CompileTime
     /// <para><b>Lifecycle:</b> Domains are created by <see cref="ICompileTimeDomainFactory"/> and are not disposed explicitly
     /// during normal operation. When a domain becomes incompatible with new assembly versions, the factory creates a new domain
     /// and the old domain becomes eligible for garbage collection once no compilation holds a reference to it. In tests,
-    /// domains are disposed explicitly via <c>TestContext.Dispose</c>.</para>
+    /// domains are disposed explicitly via <c>MetalamaTestContext.Dispose</c>.</para>
     /// </remarks>
     [PublicAPI]
     public class CompileTimeDomain : IDisposable

@@ -275,7 +275,9 @@ public sealed partial class CompilationChangesTests
         using var testContext = this.CreateTestContext();
 
         var compilation = testContext.CreateEmptyCSharpCompilation( null )
-            .AddSyntaxTrees( SyntaxFactory.ParseSyntaxTree( "class C;", path: "C.cs" ), SyntaxFactory.ParseSyntaxTree( "internal class C;", path: "C.cs" ) );
+            .AddSyntaxTrees(
+                SyntaxFactory.ParseSyntaxTree( "class C;", path: "C.cs", cancellationToken: testContext.CancellationToken ),
+                SyntaxFactory.ParseSyntaxTree( "internal class C;", path: "C.cs", cancellationToken: testContext.CancellationToken ) );
 
         var changes = this.CompareSyntaxTrees( compilation, compilation );
 

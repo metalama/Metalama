@@ -236,7 +236,7 @@ public sealed class RpcSerializationTests
     [Fact]
     public void SerializablePreviewTransformationResult_Success_Roundtrip()
     {
-        var syntaxTree = CSharpSyntaxTree.ParseText( "class TransformedCode { }" );
+        var syntaxTree = CSharpSyntaxTree.ParseText( "class TransformedCode { }", cancellationToken: TestContext.Current.CancellationToken );
         var serializableSyntaxTree = JsonSerializationHelper.CreateSerializableSyntaxTree( syntaxTree );
 
         var original = SerializablePreviewTransformationResult.Success( serializableSyntaxTree, null );

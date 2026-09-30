@@ -9,7 +9,7 @@ using Metalama.Testing.UnitTesting;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
-using Xunit.Abstractions;
+using Xunit;
 
 namespace Metalama.Testing.AspectTesting
 {
@@ -25,7 +25,7 @@ namespace Metalama.Testing.AspectTesting
         protected override async Task RunAsync(
             TestInput testInput,
             TestResult testResult,
-            TestContext testContext )
+            MetalamaTestContext testContext )
         {
             await base.RunAsync( testInput, testResult, testContext );
 

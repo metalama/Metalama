@@ -43,7 +43,7 @@ namespace Metalama.Framework.Tests.UnitTests.Templating
         [Fact]
         public void RuntimeCodeCallingCompileTimeOnlyMethod_SkippedWhenValidationDisabled()
         {
-            using var testContext = this.CreateTestContext( new TestContextOptions { ValidateRunTimeCode = false } );
+            using var testContext = this.CreateTestContext( new MetalamaTestContextOptions { ValidateRunTimeCode = false } );
 
             var compilation = testContext.CreateCSharpCompilation(
                 """
@@ -72,7 +72,7 @@ namespace Metalama.Framework.Tests.UnitTests.Templating
         [Fact]
         public void RuntimePropertyBody_SkippedWhenValidationDisabled()
         {
-            using var testContext = this.CreateTestContext( new TestContextOptions { ValidateRunTimeCode = false } );
+            using var testContext = this.CreateTestContext( new MetalamaTestContextOptions { ValidateRunTimeCode = false } );
 
             var compilation = testContext.CreateCSharpCompilation(
                 """
@@ -108,7 +108,7 @@ namespace Metalama.Framework.Tests.UnitTests.Templating
         [Fact]
         public void RuntimeField_SkippedWhenValidationDisabled()
         {
-            using var testContext = this.CreateTestContext( new TestContextOptions { ValidateRunTimeCode = false } );
+            using var testContext = this.CreateTestContext( new MetalamaTestContextOptions { ValidateRunTimeCode = false } );
 
             var compilation = testContext.CreateCSharpCompilation(
                 """
@@ -140,7 +140,7 @@ namespace Metalama.Framework.Tests.UnitTests.Templating
         [Fact]
         public void RuntimeConstructor_SkippedWhenValidationDisabled()
         {
-            using var testContext = this.CreateTestContext( new TestContextOptions { ValidateRunTimeCode = false } );
+            using var testContext = this.CreateTestContext( new MetalamaTestContextOptions { ValidateRunTimeCode = false } );
 
             var compilation = testContext.CreateCSharpCompilation(
                 """
@@ -172,7 +172,7 @@ namespace Metalama.Framework.Tests.UnitTests.Templating
         [Fact]
         public void RuntimeLocalFunction_SkippedWhenValidationDisabled()
         {
-            using var testContext = this.CreateTestContext( new TestContextOptions { ValidateRunTimeCode = false } );
+            using var testContext = this.CreateTestContext( new MetalamaTestContextOptions { ValidateRunTimeCode = false } );
 
             var compilation = testContext.CreateCSharpCompilation(
                 """
@@ -207,7 +207,7 @@ namespace Metalama.Framework.Tests.UnitTests.Templating
         [Fact]
         public void RuntimePropertyWithAccessorBodies_SkippedWhenValidationDisabled()
         {
-            using var testContext = this.CreateTestContext( new TestContextOptions { ValidateRunTimeCode = false } );
+            using var testContext = this.CreateTestContext( new MetalamaTestContextOptions { ValidateRunTimeCode = false } );
 
             var compilation = testContext.CreateCSharpCompilation(
                 """
@@ -253,7 +253,7 @@ namespace Metalama.Framework.Tests.UnitTests.Templating
         [Fact]
         public void RuntimeIndexerWithAccessorBodies_SkippedWhenValidationDisabled()
         {
-            using var testContext = this.CreateTestContext( new TestContextOptions { ValidateRunTimeCode = false } );
+            using var testContext = this.CreateTestContext( new MetalamaTestContextOptions { ValidateRunTimeCode = false } );
 
             var compilation = testContext.CreateCSharpCompilation(
                 """
@@ -292,7 +292,7 @@ namespace Metalama.Framework.Tests.UnitTests.Templating
         [Fact]
         public void RuntimeExpressionBodiedIndexer_SkippedWhenValidationDisabled()
         {
-            using var testContext = this.CreateTestContext( new TestContextOptions { ValidateRunTimeCode = false } );
+            using var testContext = this.CreateTestContext( new MetalamaTestContextOptions { ValidateRunTimeCode = false } );
 
             var compilation = testContext.CreateCSharpCompilation(
                 """
@@ -388,7 +388,7 @@ namespace Metalama.Framework.Tests.UnitTests.Templating
         [Fact]
         public void RoslynTypeInRunTimeCode_ReportsLama0291_WhenRoslynIsCompileTimeOnly()
         {
-            using var testContext = this.CreateTestContext( new TestContextOptions { RoslynIsCompileTimeOnly = true } );
+            using var testContext = this.CreateTestContext( new MetalamaTestContextOptions { RoslynIsCompileTimeOnly = true } );
 
             var roslynReference = MetadataReference.CreateFromFile( typeof(ISymbol).Assembly.Location );
 

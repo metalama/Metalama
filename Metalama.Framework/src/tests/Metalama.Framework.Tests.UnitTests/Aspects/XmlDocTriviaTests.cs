@@ -23,7 +23,7 @@ public sealed class XmlDocTriviaTests : AspectTestBase
     [InlineData( CodeFormattingOptions.Formatted )]
     public async Task IntroduceAttribute( CodeFormattingOptions codeFormattingOptions )
     {
-        using var testContext = this.CreateTestContext( new TestContextOptions() { CodeFormattingOptions = codeFormattingOptions } );
+        using var testContext = this.CreateTestContext( new MetalamaTestContextOptions() { CodeFormattingOptions = codeFormattingOptions } );
 
         const string code = @"
 using System;
@@ -75,9 +75,9 @@ public class TestClass
 
         var result = await CompileAsync( testContext, code );
 
-        Assert.Empty( result.Value.ResultingCompilation.Compilation.GetDiagnostics().Where( d => d.Id is not "CS0067" and not "CS8019" ) );
+        Assert.Empty( result.Value.ResultingCompilation.Compilation.GetDiagnostics( testContext.CancellationToken ).Where( d => d.Id is not "CS0067" and not "CS8019" ) );
 
-        var emitResult = result.Value.ResultingCompilation.Compilation.Emit( new MemoryStream() );
+        var emitResult = result.Value.ResultingCompilation.Compilation.Emit( new MemoryStream(), cancellationToken: testContext.CancellationToken );
 
         Assert.Empty( emitResult.Diagnostics.Where( d => d.Id is not "CS0067" and not "CS8019" ) );
 

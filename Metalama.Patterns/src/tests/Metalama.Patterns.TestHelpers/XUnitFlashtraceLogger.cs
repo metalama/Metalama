@@ -5,7 +5,7 @@
 using Flashtrace;
 using Flashtrace.Loggers;
 using Flashtrace.Records;
-using Xunit.Abstractions;
+using Xunit;
 
 namespace Metalama.Patterns.TestHelpers;
 

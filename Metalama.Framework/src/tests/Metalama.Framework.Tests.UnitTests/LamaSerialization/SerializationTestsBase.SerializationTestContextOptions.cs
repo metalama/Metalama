@@ -8,7 +8,7 @@ namespace Metalama.Framework.Tests.UnitTests.LamaSerialization;
 
 public abstract partial class SerializationTestsBase
 {
-    protected sealed record SerializationTestContextOptions : TestContextOptions
+    protected sealed record SerializationTestContextOptions : MetalamaTestContextOptions
     {
         public string Code { get; init; } = "";
     }

@@ -334,7 +334,7 @@ public sealed class ProjectVersionProviderTests : DesignTimeTestBase
     /// <summary>
     /// Creates a compilation whose assembly name is null or empty, which Roslyn allows.
     /// </summary>
-    private static CSharpCompilation CreateUnnamedCompilation( TestContext testContext, string? assemblyName, string code, string path )
+    private static CSharpCompilation CreateUnnamedCompilation( MetalamaTestContext testContext, string? assemblyName, string code, string path )
         => CSharpCompilation.Create( assemblyName )
             .AddReferences( testContext.GetMetadataReferences() )
             .AddSyntaxTrees( CSharpSyntaxTree.ParseText( code, path: path ) );
@@ -365,7 +365,7 @@ public sealed class ProjectVersionProviderTests : DesignTimeTestBase
     }
 
     private static async Task<WeakReference> CreateIncrementalCompilation(
-        TestContext testContext,
+        MetalamaTestContext testContext,
         Dictionary<string, string> code,
         IEnumerable<MetadataReference> references,
         ProjectVersionProvider projectVersionProvider,
