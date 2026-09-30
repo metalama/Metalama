@@ -466,11 +466,15 @@ internal sealed class AwaitableEvent
                     }
                     catch ( OperationCanceledException )
                     {
-                        // Withdraw the operation (WAITING -> TIMEOUT) so a later Set() drain neither strands it
-                        // nor, via the shared thread-static event, spuriously wakes an unrelated wait on this
-                        // thread. If the CAS loses, Activate() already delivered the signal to us (op is SUCCESS);
-                        // for auto-reset we consumed it, so hand it back to another waiter before propagating.
-                        if ( WAITING != Interlocked.CompareExchange( ref op.State, TIMEOUT, WAITING ) )
+                        // Withdraw the operation (WAITING -> TIMEOUT) and remove it from the queue, so that a later
+                        // Set() neither activates it nor retains it. If the CAS loses, Activate() already delivered
+                        // the signal to us (op is SUCCESS); for auto-reset we consumed it, so hand it back to another
+                        // waiter before propagating.
+                        if ( WAITING == Interlocked.CompareExchange( ref op.State, TIMEOUT, WAITING ) )
+                        {
+                            this.Operations.Remove( op );
+                        }
+                        else
                         {
                             Debug.Assert( op.State == SUCCESS );
                             this.Set();
@@ -493,6 +497,8 @@ internal sealed class AwaitableEvent
 
                         if ( WAITING == Interlocked.CompareExchange( ref op.State, TIMEOUT, WAITING ) )
                         {
+                            // Remove the withdrawn operation from the queue, so that a later Set() does not retain it.
+                            this.Operations.Remove( op );
                             this.SyncPoint( "Operation timed out, return false." );
 
                             return false;
@@ -590,10 +596,13 @@ internal sealed class AwaitableEvent
                     }
                     catch ( OperationCanceledException )
                     {
-                        // Withdraw the operation (WAITING -> TIMEOUT) so a later Set() drain skips it instead of
-                        // setting the shared thread-static event and spuriously waking an unrelated wait on this
-                        // thread. Manual-reset stays SIGNALED, so there is no consumed signal to restore.
-                        Interlocked.CompareExchange( ref op.State, TIMEOUT, WAITING );
+                        // Withdraw the operation (WAITING -> TIMEOUT) and remove it from the queue, so that a later
+                        // Set() neither activates it nor retains it. Manual-reset stays SIGNALED, so there is no
+                        // consumed signal to restore.
+                        if ( WAITING == Interlocked.CompareExchange( ref op.State, TIMEOUT, WAITING ) )
+                        {
+                            this.Operations.Remove( op );
+                        }
 
                         throw;
                     }
@@ -612,6 +621,8 @@ internal sealed class AwaitableEvent
 
                         if ( WAITING == Interlocked.CompareExchange( ref op.State, TIMEOUT, WAITING ) )
                         {
+                            // Remove the withdrawn operation from the queue, so that a later Set() does not retain it.
+                            this.Operations.Remove( op );
                             this.SyncPoint( "Operation timed out, return false." );
 
                             return false;
@@ -1361,9 +1372,19 @@ internal sealed class AwaitableEvent
         // 0 until the continuation has been scheduled, then 1. Guarantees the continuation is scheduled at most once.
         private int _continuationScheduled;
 
+        /// <summary>
+        /// Gets a value indicating whether the wait succeeded. Throws an <see cref="OperationCanceledException"/> if the
+        /// operation was withdrawn because its <see cref="WaitOperationAsyncBase.CancellationToken"/> was cancelled,
+        /// so that a continuation that reads the operation it receives observes the cancellation.
+        /// </summary>
         public bool Result
         {
-            get { return this.State == SUCCESS; }
+            get
+            {
+                this.ThrowIfCancelled();
+
+                return this.State == SUCCESS;
+            }
         }
 
         public override bool Activate()

@@ -377,4 +377,75 @@ public sealed class AwaitableEventCancellationTests
 
         Assert.Equal( AwaitableEvent.NOT_SIGNALED, awaitableEvent.SignalState );
     }
+
+    /// <summary>
+    /// Reproduces a review finding of metalama/Metalama#2082: a synchronous wait that is cancelled while it is blocked
+    /// leaves its withdrawn operation in the wait queue until the next <see cref="AwaitableEvent.Set"/>, although the
+    /// asynchronous path removes the operation immediately. <see cref="BackgroundTaskScheduler.Dispose(CancellationToken)"/>
+    /// uses the synchronous path.
+    /// </summary>
+    [Theory( Timeout = 30000 )]
+    [InlineData( EventResetMode.ManualReset, _manualPreBlock )]
+    [InlineData( EventResetMode.AutoReset, _autoPreBlock )]
+    public async Task Wait_CancelledWhileBlocked_RemovesOperationFromQueue( EventResetMode mode, string preBlockMessage )
+    {
+        using var syncProvider = new TestSynchronizationProvider();
+
+        var awaitableEvent = new AwaitableEvent( mode, syncProvider );
+        using var cts = new CancellationTokenSource();
+
+        // Pause the waiter right before it blocks on the event, while its operation is enqueued and WAITING.
+        var syncPoint = syncProvider.Arm( preBlockMessage );
+        var waiterTask = Task.Run( () => awaitableEvent.Wait( cts.Token ) );
+
+        Assert.True(
+            syncPoint.WaitUntilReached( TimeSpan.FromSeconds( 10 ) ),
+            "The waiter did not reach the pre-block synchronization point." );
+
+        Assert.Equal( 1, awaitableEvent.Operations.Count );
+
+        cts.Cancel();
+        syncPoint.Release();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>( () => waiterTask );
+
+        Assert.True( awaitableEvent.Operations.IsEmpty, "The cancelled synchronous operation remains in the queue." );
+    }
+
+    /// <summary>
+    /// Reproduces a review finding of metalama/Metalama#2082: the <c>Result</c> property of the operation that the
+    /// generic continuation receives reports a cancelled wait as <c>false</c> instead of throwing
+    /// <see cref="OperationCanceledException"/>. Only <see cref="AwaitableEvent.Awaiter{TData}.GetResult"/> throws, and
+    /// the continuation does not have the awaiter unless it captured it.
+    /// </summary>
+    [Theory( Timeout = 30000 )]
+    [InlineData( EventResetMode.ManualReset )]
+    [InlineData( EventResetMode.AutoReset )]
+    public async Task WaitAsyncWithData_CancelledWhilePending_ResultReportsCancellation( EventResetMode mode )
+    {
+        var awaitableEvent = new AwaitableEvent( mode );
+        using var cts = new CancellationTokenSource();
+        var waitCompleted = new TaskCompletionSource<bool>( TaskCreationOptions.RunContinuationsAsynchronously );
+
+        var awaiter = awaitableEvent.WaitAsync<int>( cts.Token );
+        Assert.False( awaiter.IsCompleted );
+
+        // The continuation reads the operation it receives, as a consumer that did not capture the awaiter would.
+        awaiter.OnCompleted(
+            operation =>
+            {
+                try
+                {
+                    waitCompleted.SetResult( operation.Result );
+                }
+                catch ( Exception e )
+                {
+                    waitCompleted.SetException( e );
+                }
+            } );
+
+        cts.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>( () => waitCompleted.Task.WaitWithTimeoutAsync() );
+    }
 }
