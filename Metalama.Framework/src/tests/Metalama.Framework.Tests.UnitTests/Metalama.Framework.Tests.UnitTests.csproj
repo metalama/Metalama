@@ -29,16 +29,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <!-- The source of an MSBuild task that Metalama.Testing.AspectTesting.targets compiles with RoslynCodeTaskFactory.
-             The symbol excludes the task class, which depends on MSBuild, and keeps the logic that the tests exercise. -->
-        <Compile Include="..\..\Metalama.Testing.AspectTesting\MetalamaSetStackReserveSize.cs" Link="TestFramework\MetalamaSetStackReserveSize.cs" />
-    </ItemGroup>
-
-    <PropertyGroup>
-        <DefineConstants>$(DefineConstants);METALAMA_STACK_RESERVE_SIZE_TESTS</DefineConstants>
-    </PropertyGroup>
-
-    <ItemGroup>
         <!-- ProcessKindTests reads the classification of the host process from Metalama.Framework.CompilerExtensions
              as it is built, so that the test fails when that project stops merging the
              SharpCrafters.Backstage.ProcessClassification package. The assembly is loaded by path, because it is an

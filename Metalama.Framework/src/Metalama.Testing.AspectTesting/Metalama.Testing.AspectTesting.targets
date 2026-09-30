@@ -131,42 +131,11 @@
     </Target>
 
     <!-- xunit.v3 runs the tests of a .NET Framework test project in the executable of the project, and not in the test
-         host of VSTest (testhost.net47.exe). The following settings give the executable the properties of that test
-         host that the tests depend on. -->
+         host of VSTest (testhost.net47.exe), which is long path aware. The manifest declares the executable long path
+         aware too, so that test output paths longer than 260 characters work. -->
     <PropertyGroup Condition="'$(OutputType)' == 'Exe' AND '$(TargetFramework)' != '' AND $([MSBuild]::GetTargetFrameworkIdentifier('$(TargetFramework)')) == '.NETFramework'">
-        <!-- The manifest declares the process long path aware, so that test output paths longer than 260 characters work. -->
         <ApplicationManifest Condition="'$(ApplicationManifest)' == ''">$(MSBuildThisFileDirectory)Metalama.Testing.AspectTesting.app.manifest</ApplicationManifest>
-        <_MetalamaSetTestStackReserveSize Condition="'$(MetalamaTestStackReserveSize)' != '' AND '$(MetalamaTestStackReserveSize)' != '0'">True</_MetalamaSetTestStackReserveSize>
     </PropertyGroup>
-
-    <!-- Sets the SizeOfStackReserve field of the PE header of an executable, because the C# compiler has no option for it.
-         The field is covered by the strong name signature, so the task signs the executable again with the key file of
-         the project. The field is written only when its value differs, so that an incremental build does not update the
-         file. The source of the task is also compiled by the unit tests of Metalama. -->
-    <UsingTask TaskName="MetalamaSetStackReserveSize" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
-        <ParameterGroup>
-            <AssemblyPath ParameterType="System.String" Required="true" />
-            <StackReserveSize ParameterType="System.Int64" Required="true" />
-            <SignAssembly ParameterType="System.Boolean" />
-            <DelaySign ParameterType="System.Boolean" />
-            <PublicSign ParameterType="System.Boolean" />
-            <KeyFile ParameterType="System.String" />
-        </ParameterGroup>
-        <Task>
-            <Code Type="Class" Language="cs" Source="$(MSBuildThisFileDirectory)MetalamaSetStackReserveSize.cs" />
-        </Task>
-    </UsingTask>
-
-    <!-- The stack reserve of the executable is also the stack size of the threads of the thread pool, on which the tests and
-         the recursion guard of the syntax walkers run. -->
-    <Target Name="_MetalamaSetTestStackReserveSize" AfterTargets="CoreCompile" Condition="'$(_MetalamaSetTestStackReserveSize)' == 'True'">
-        <MetalamaSetStackReserveSize AssemblyPath="@(IntermediateAssembly->'%(FullPath)')"
-                                     StackReserveSize="$(MetalamaTestStackReserveSize)"
-                                     SignAssembly="$([MSBuild]::ValueOrDefault('$(SignAssembly)', 'false'))"
-                                     DelaySign="$([MSBuild]::ValueOrDefault('$(DelaySign)', 'false'))"
-                                     PublicSign="$([MSBuild]::ValueOrDefault('$(PublicSign)', 'false'))"
-                                     KeyFile="$(KeyOriginatorFile)" />
-    </Target>
 
     <!-- xunit.v3 generates the Main method of a test project in a class whose namespace is derived from a hash of
          the project path. A test input file can also define a Main method, and the compilation then fails with CS0017
