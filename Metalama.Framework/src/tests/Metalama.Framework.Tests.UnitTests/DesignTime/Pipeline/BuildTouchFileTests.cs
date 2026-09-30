@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -213,6 +213,91 @@ public sealed class BuildTouchFileTests : DesignTimeTestBase
 
         Assert.NotEqual( DesignTimeAspectPipelineStatus.Paused, aspectPipeline.Status );
         Assert.NotEqual( DesignTimeAspectPipelineStatus.Paused, targetPipeline.Status );
+    }
+
+    /// <summary>
+    /// Reproduces the intermittent failure of <see cref="SameVersionReference_ResumesAfterBuild"/> deterministically.
+    /// The handler of the touch file resumes its pipeline, which is what the test waits for, and then resets the cache
+    /// of every pipeline of the factory. The test can therefore dispose the factory while a cache reset is still
+    /// pending, and the reset then waits on the disposed lock of a pipeline and reports an
+    /// <see cref="ObjectDisposedException"/>.
+    /// </summary>
+    [Fact]
+    public async Task SameVersionReference_FactoryDisposedDuringCacheReset_ReportsNoException()
+    {
+        using var testContext = this.CreateTestContext( new TestContextOptions { Timeout = TimeSpan.FromSeconds( 60 ) } );
+
+        var aspectAssemblyName = "aspect_" + RandomIdGenerator.GenerateId();
+        var targetAssemblyName = "target_" + RandomIdGenerator.GenerateId();
+
+        Compilation CreateAspectCompilation( int version )
+            => testContext.CreateCSharpCompilation(
+                new Dictionary<string, string> { ["Aspect.cs"] = _aspectCode.Replace( "$version$", version.ToString() ) },
+                assemblyName: aspectAssemblyName );
+
+        Compilation CreateTargetCompilation( Compilation aspectCompilation )
+            => testContext.CreateCSharpCompilation(
+                new Dictionary<string, string> { ["Target.cs"] = _targetCode },
+                assemblyName: targetAssemblyName,
+                additionalReferences: [aspectCompilation.ToMetadataReference()] );
+
+        var aspectCompilation1 = CreateAspectCompilation( 1 );
+        var targetCompilation1 = CreateTargetCompilation( aspectCompilation1 );
+
+        var aspectOptions = CreateOptions( testContext, "Aspect" );
+        var targetOptions = CreateOptions( testContext, "Target" );
+
+        SimulateBuild( aspectOptions.BuildTouchFile );
+        SimulateBuild( targetOptions.BuildTouchFile );
+
+        using TestDesignTimeAspectPipelineFactory factory = new( testContext );
+        factory.SetProjectOptions( ProjectKeyFactory.FromCompilation( aspectCompilation1 ), aspectOptions );
+        factory.SetProjectOptions( ProjectKeyFactory.FromCompilation( targetCompilation1 ), targetOptions );
+
+        var aspectPipeline = factory.CreatePipeline( aspectCompilation1 );
+        var targetPipeline = factory.CreatePipeline( targetCompilation1 );
+
+        Assert.True( factory.TryExecute( targetOptions, targetCompilation1, default, out _ ) );
+
+        var aspectCompilation2 = CreateAspectCompilation( 2 );
+        var targetCompilation2 = CreateTargetCompilation( aspectCompilation2 );
+
+        Assert.True( factory.TryExecute( targetOptions, targetCompilation2, default, out _ ) );
+        await aspectPipeline.ProcessJobQueueWhenLockAvailableAsync();
+        await targetPipeline.ProcessJobQueueWhenLockAvailableAsync();
+
+        Assert.Equal( DesignTimeAspectPipelineStatus.Paused, aspectPipeline.Status );
+        Assert.Equal( DesignTimeAspectPipelineStatus.Paused, targetPipeline.Status );
+
+        var aspectResumption = new ResumptionAwaiter( factory.EventHub, aspectPipeline );
+        var targetResumption = new ResumptionAwaiter( factory.EventHub, targetPipeline );
+
+        // Block every cache reset that follows a resumption before it acquires the lock of its pipeline.
+        const string beforeLock = "DesignTimeAspectPipeline.ResetCacheAsync.BeforeLock";
+        const string handlerCompleted = "DesignTimeAspectPipeline.OnTouchFileChanged.Completed";
+        var syncProvider = testContext.SyncProvider;
+        syncProvider.EnableSyncPoint( beforeLock );
+        syncProvider.EnableSyncPoint( handlerCompleted );
+
+        SimulateBuild( aspectOptions.BuildTouchFile );
+        SimulateBuild( targetOptions.BuildTouchFile );
+
+        await aspectResumption.WaitAsync( testContext.CancellationToken );
+        await targetResumption.WaitAsync( testContext.CancellationToken );
+
+        // Both pipelines have resumed, which is where SameVersionReference_ResumesAfterBuild ends. A handler is now
+        // about to reset the cache of a pipeline.
+        await syncProvider.WaitForSyncPointReachedAsync( beforeLock, testContext.CancellationToken );
+
+        // The test ends and disposes the factory, then the handlers continue. The point is disabled rather than
+        // released, because the handler reaches it again for every other pipeline of the factory.
+        factory.Dispose();
+        syncProvider.DisableSyncPoint( beforeLock );
+
+        await syncProvider.WaitForSyncPointReachedAsync( handlerCompleted, testContext.CancellationToken );
+        syncProvider.DisableSyncPoint( handlerCompleted );
+
+        // The disposal of the test context asserts that no exception was reported.
     }
 
     /// <summary>
