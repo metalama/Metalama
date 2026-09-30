@@ -104,6 +104,142 @@ public sealed class AwaitableEventCancellationTests
     }
 
     /// <summary>
+    /// Tests that cancelling a pending asynchronous wait removes the operation from the wait queue immediately, without
+    /// a later <see cref="AwaitableEvent.Set"/>, so that repeated cancelled waits on an event that is never signaled do not
+    /// accumulate in the queue.
+    /// </summary>
+    [Theory( Timeout = 30000 )]
+    [InlineData( EventResetMode.ManualReset )]
+    [InlineData( EventResetMode.AutoReset )]
+    public async Task WaitAsync_CancelledWhilePending_RemovesOperationFromQueue( EventResetMode mode )
+    {
+        var awaitableEvent = new AwaitableEvent( mode );
+
+        for ( var i = 0; i < 100; i++ )
+        {
+            using var cts = new CancellationTokenSource();
+            var waitCompleted = new TaskCompletionSource<bool>( TaskCreationOptions.RunContinuationsAsynchronously );
+
+            var awaiter = awaitableEvent.WaitAsync( cts.Token );
+            Assert.False( awaiter.IsCompleted );
+
+            awaiter.OnCompleted(
+                () =>
+                {
+                    try
+                    {
+                        waitCompleted.SetResult( awaiter.GetResult() );
+                    }
+                    catch ( Exception e )
+                    {
+                        waitCompleted.SetException( e );
+                    }
+                } );
+
+            Assert.Equal( 1, awaitableEvent.Operations.Count );
+
+            cts.Cancel();
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>( () => waitCompleted.Task.WaitWithTimeoutAsync() );
+
+            Assert.True( awaitableEvent.Operations.IsEmpty, $"Iteration {i}: the cancelled operation remains in the queue." );
+        }
+    }
+
+    /// <summary>
+    /// Tests that cancelling a pending asynchronous wait that is queued behind another pending wait removes only the
+    /// cancelled operation from the queue, and that a later <see cref="AwaitableEvent.Set"/> releases the other wait.
+    /// </summary>
+    [Theory( Timeout = 30000 )]
+    [InlineData( EventResetMode.ManualReset )]
+    [InlineData( EventResetMode.AutoReset )]
+    public async Task WaitAsync_CancelledBehindPendingWait_RemovesOnlyCancelledOperation( EventResetMode mode )
+    {
+        var awaitableEvent = new AwaitableEvent( mode );
+        using var cts = new CancellationTokenSource();
+        var firstCompleted = new TaskCompletionSource<bool>( TaskCreationOptions.RunContinuationsAsynchronously );
+        var secondCompleted = new TaskCompletionSource<bool>( TaskCreationOptions.RunContinuationsAsynchronously );
+
+        var firstAwaiter = awaitableEvent.WaitAsync();
+        firstAwaiter.OnCompleted( () => firstCompleted.SetResult( firstAwaiter.GetResult() ) );
+
+        var secondAwaiter = awaitableEvent.WaitAsync( cts.Token );
+
+        secondAwaiter.OnCompleted(
+            () =>
+            {
+                try
+                {
+                    secondCompleted.SetResult( secondAwaiter.GetResult() );
+                }
+                catch ( Exception e )
+                {
+                    secondCompleted.SetException( e );
+                }
+            } );
+
+        Assert.Equal( 2, awaitableEvent.Operations.Count );
+
+        cts.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>( () => secondCompleted.Task.WaitWithTimeoutAsync() );
+
+        Assert.Equal( 1, awaitableEvent.Operations.Count );
+        Assert.False( firstCompleted.Task.IsCompleted );
+
+        awaitableEvent.Set();
+
+        Assert.True( await firstCompleted.Task.WaitWithTimeoutAsync() );
+        Assert.True( awaitableEvent.Operations.IsEmpty );
+    }
+
+    /// <summary>
+    /// Tests that an asynchronous wait whose token is cancelled after the awaiter is created, but before the continuation
+    /// is registered, completes exactly once with an <see cref="OperationCanceledException"/>. In this case, the
+    /// cancellation callback runs synchronously when the continuation is registered.
+    /// </summary>
+    [Theory( Timeout = 30000 )]
+    [InlineData( EventResetMode.ManualReset )]
+    [InlineData( EventResetMode.AutoReset )]
+    public async Task WaitAsync_CancelledBeforeContinuationRegistered_CompletesOnce( EventResetMode mode )
+    {
+        var awaitableEvent = new AwaitableEvent( mode );
+        using var cts = new CancellationTokenSource();
+        var waitCompleted = new TaskCompletionSource<bool>( TaskCreationOptions.RunContinuationsAsynchronously );
+        var continuationCount = 0;
+
+        var awaiter = awaitableEvent.WaitAsync( cts.Token );
+        Assert.False( awaiter.IsCompleted );
+
+        cts.Cancel();
+
+        awaiter.OnCompleted(
+            () =>
+            {
+                Interlocked.Increment( ref continuationCount );
+
+                try
+                {
+                    waitCompleted.SetResult( awaiter.GetResult() );
+                }
+                catch ( Exception e )
+                {
+                    waitCompleted.SetException( e );
+                }
+            } );
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>( () => waitCompleted.Task.WaitWithTimeoutAsync() );
+
+        Assert.True( awaitableEvent.Operations.IsEmpty, "The cancelled operation remains in the queue." );
+
+        // The cancelled operation must not be activated again, and must not consume the signal.
+        awaitableEvent.Set();
+
+        Assert.True( awaitableEvent.Wait( TimeSpan.Zero ), "The signal was consumed by the cancelled operation." );
+        Assert.Equal( 1, continuationCount );
+    }
+
+    /// <summary>
     /// Tests that a <see cref="AwaitableEvent.Set"/> that races with the cancellation of a pending asynchronous wait on an
     /// auto-reset event delivers the signal exactly once: either the wait succeeds, or the signal remains on the event.
     /// </summary>

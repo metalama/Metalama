@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Testing.Hooks;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -39,7 +40,7 @@ internal sealed class AwaitableEvent
     // ReSharper restore InconsistentNaming
 
     private readonly int _resetMode;
-    internal readonly ConcurrentQueue<WaitOperationBase> Operations;
+    internal readonly WaitOperationQueue Operations;
 
     /// <summary>
     /// The optional test synchronization service, resolved once from the service provider. Never registered in
@@ -63,7 +64,7 @@ internal sealed class AwaitableEvent
     {
         // Make sure that readonly field values are visible for other threads when we leave constructor.
         Volatile.Write( ref this._resetMode, (int) resetMode );
-        Volatile.Write( ref this.Operations, new ConcurrentQueue<WaitOperationBase>() );
+        Volatile.Write( ref this.Operations, new WaitOperationQueue() );
 
         this._testSynchronizationProvider = (ITestSynchronizationProvider?) serviceProvider?.GetService( typeof(ITestSynchronizationProvider) );
         this._workItemDispatcher = serviceProvider.GetWorkItemDispatcher();
@@ -1008,10 +1009,127 @@ internal sealed class AwaitableEvent
         // Copied from the owning AwaitableEvent for the same reason as TestSynchronizationProvider.
         public IWorkItemDispatcher WorkItemDispatcher = ThreadPoolWorkItemDispatcher.Instance;
 
+        // The queue in which the operation was enqueued, or null if the operation was never enqueued.
+        public WaitOperationQueue? Queue;
+
+        // The node of the operation in Queue, or null if the operation is not in the queue. Accessed only under the
+        // lock of the queue.
+        public LinkedListNode<WaitOperationBase>? QueueNode;
+
         /// <inheritdoc cref="AwaitableEvent.SyncPoint"/>
         protected void SyncPoint( string name ) => this.TestSynchronizationProvider?.SyncPoint( name );
 
         public abstract bool Activate();
+    }
+
+    /// <summary>
+    /// The first-in, first-out queue of the wait operations of an <see cref="AwaitableEvent"/>. Unlike
+    /// <see cref="ConcurrentQueue{T}"/>, it supports the removal of an operation from any position.
+    /// </summary>
+    /// <remarks>
+    /// Each method is atomic with respect to the other methods, as the methods of <see cref="ConcurrentQueue{T}"/> are.
+    /// The methods take a lock, which is also a full memory barrier. An operation can be enqueued only once.
+    /// </remarks>
+    internal sealed class WaitOperationQueue : IEnumerable<WaitOperationBase>
+    {
+        private readonly LinkedList<WaitOperationBase> _list = new();
+
+        public bool IsEmpty
+        {
+            get
+            {
+                lock ( this._list )
+                {
+                    return this._list.Count == 0;
+                }
+            }
+        }
+
+        public int Count
+        {
+            get
+            {
+                lock ( this._list )
+                {
+                    return this._list.Count;
+                }
+            }
+        }
+
+        public void Enqueue( WaitOperationBase operation )
+        {
+            lock ( this._list )
+            {
+                operation.Queue = this;
+                operation.QueueNode = this._list.AddLast( operation );
+            }
+        }
+
+        public bool TryDequeue( out WaitOperationBase operation )
+        {
+            lock ( this._list )
+            {
+                var node = this._list.First;
+
+                if ( node == null )
+                {
+                    operation = null;
+
+                    return false;
+                }
+
+                this._list.RemoveFirst();
+                operation = node.Value;
+                operation.QueueNode = null;
+
+                return true;
+            }
+        }
+
+        public bool TryPeek( out WaitOperationBase operation )
+        {
+            lock ( this._list )
+            {
+                operation = this._list.First?.Value;
+
+                return operation != null;
+            }
+        }
+
+        /// <summary>
+        /// Removes an operation from the queue if it is still in the queue.
+        /// </summary>
+        /// <returns><c>true</c> if the operation was removed, or <c>false</c> if it had already been dequeued.</returns>
+        public bool Remove( WaitOperationBase operation )
+        {
+            lock ( this._list )
+            {
+                var node = operation.QueueNode;
+
+                if ( node == null )
+                {
+                    return false;
+                }
+
+                this._list.Remove( node );
+                operation.QueueNode = null;
+
+                return true;
+            }
+        }
+
+        /// <summary>
+        /// Returns an enumerator over a snapshot of the queue.
+        /// </summary>
+        public IEnumerator<WaitOperationBase> GetEnumerator()
+        {
+            lock ( this._list )
+            {
+                return new List<WaitOperationBase>( this._list ).GetEnumerator();
+            }
+        }
+
+        IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
     }
 
     internal class WaitOperationSync : WaitOperationBase
@@ -1110,11 +1228,13 @@ internal sealed class AwaitableEvent
         /// </summary>
         private void Cancel()
         {
-            // Withdraw the operation (WAITING -> TIMEOUT) so that a later Set() skips it and does not consume the
-            // signal. The operation stays in the queue until a Set() dequeues and discards it. If the CAS fails,
+            // Withdraw the operation (WAITING -> TIMEOUT) so that a Set() that has already dequeued it skips it and
+            // does not consume the signal. Then remove the operation from the queue, so that the queue does not
+            // retain the operation, its continuation and its token until the next Set(). If the CAS fails,
             // Activate() already moved the operation to SUCCESS and scheduled the continuation.
             if ( WAITING == Interlocked.CompareExchange( ref this.State, TIMEOUT, WAITING ) )
             {
+                this.Queue?.Remove( this );
                 this.SyncPoint( "Operation cancelled, schedule continuation." );
                 this.ScheduleContinuation();
             }
