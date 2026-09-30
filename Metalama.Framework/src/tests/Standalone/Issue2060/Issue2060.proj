@@ -1,0 +1,40 @@
+<!-- DefaultTargets is required because the imported Directory.Build.props defines targets before the Build target of
+     this file. Without it, a build without an explicit target runs the first imported target and not the test. -->
+<Project DefaultTargets="Build">
+
+  <!-- Imports Directory.Build.props of the upper directory. We must do this explicitly because this project has no SDK. -->
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" Condition="Exists('$([MSBuild]::GetPathOfFileAbove(`Directory.Build.props`, `$(MSBuildThisFileDirectory)../`))')" />
+
+  <!--
+    Issue #2060: a second build without any change must skip CoreCompile.
+    The test builds the project twice. The second build must update MetalamaBuild.touch, which signals the design-time
+    pipeline that a build has started, and must not rewrite the intermediate assembly.
+  -->
+  <Target Name="Build">
+    <PropertyGroup>
+      <LibraryProject>$(MSBuildThisFileDirectory)Library\Issue2060.Library.csproj</LibraryProject>
+      <IntermediateAssembly>$(MSBuildThisFileDirectory)Library\obj\Debug\net8.0\Issue2060.Library.dll</IntermediateAssembly>
+      <TouchFile>$(MSBuildThisFileDirectory)Library\obj\Debug\net8.0\MetalamaBuild.touch</TouchFile>
+    </PropertyGroup>
+
+    <Exec Command="dotnet build &quot;$(LibraryProject)&quot; -t:Rebuild" />
+
+    <Error Condition="!Exists('$(TouchFile)')" Text="Issue2060: the build did not create MetalamaBuild.touch." />
+
+    <PropertyGroup>
+      <FirstBuildAssemblyTimestamp>$([System.IO.File]::GetLastWriteTime('$(IntermediateAssembly)').Ticks)</FirstBuildAssemblyTimestamp>
+      <FirstBuildTouchTimestamp>$([System.IO.File]::GetLastWriteTime('$(TouchFile)').Ticks)</FirstBuildTouchTimestamp>
+    </PropertyGroup>
+
+    <Exec Command="dotnet build &quot;$(LibraryProject)&quot; --no-restore" />
+
+    <PropertyGroup>
+      <SecondBuildAssemblyTimestamp>$([System.IO.File]::GetLastWriteTime('$(IntermediateAssembly)').Ticks)</SecondBuildAssemblyTimestamp>
+      <SecondBuildTouchTimestamp>$([System.IO.File]::GetLastWriteTime('$(TouchFile)').Ticks)</SecondBuildTouchTimestamp>
+    </PropertyGroup>
+
+    <Error Condition="'$(FirstBuildTouchTimestamp)' == '$(SecondBuildTouchTimestamp)'" Text="Issue2060: the second build did not update MetalamaBuild.touch, so the design-time pipeline would not observe it." />
+    <Error Condition="'$(FirstBuildAssemblyTimestamp)' != '$(SecondBuildAssemblyTimestamp)'" Text="Issue2060: CoreCompile ran again on a build without any change. The intermediate assembly was rewritten." />
+  </Target>
+
+</Project>

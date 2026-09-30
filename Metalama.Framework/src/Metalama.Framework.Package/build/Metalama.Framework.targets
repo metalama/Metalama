@@ -153,11 +153,19 @@
     </Target>
 
     <Target Name="CreateMetalamaTouchFiles" BeforeTargets="BeforeCompile" Condition="'$(MetalamaBuildTouchFile)'!='' AND '$(MetalamaSourceGeneratorTouchFile)'!=''">
-        <!-- MetalamaBuildTouchFile signals the design-time pipeline that a build has started. The design-time
-             pipeline deletes it when it has observed a source change; AlwaysCreate without overwrite preserves
-             incremental builds. It is registered as <AdditionalFiles> only so the compiler picks up its
-             existence — the pipeline observes it through its own filesystem watcher, not through Roslyn. -->
-        <Touch Files="$(MetalamaBuildTouchFile)" AlwaysCreate="true"/>
+        <!-- MetalamaBuildTouchFile signals the design-time pipeline that a build of the project has started. The
+             Touch task sets the timestamp of the file to the current time on every build, and a paused design-time
+             pipeline resumes when its file system watcher observes the change. The pipeline receives the path of the
+             file through the MetalamaBuildTouchFile compiler-visible property and does not read the file through
+             Roslyn.
+
+             The file must not be an input of CoreCompile. It was once registered as <AdditionalFiles>, and because
+             its timestamp changes on every build, CoreCompile ran on every build, even when nothing had changed
+             (see https://github.com/metalama/Metalama/issues/2060).
+
+             The file is not updated during an IDE design-time build, because such a build does not mean that the
+             user has finished editing compile-time code. -->
+        <Touch Files="$(MetalamaBuildTouchFile)" AlwaysCreate="true" Condition="'$(DesignTimeBuild)' != 'true'"/>
 
         <!-- MetalamaSourceGeneratorTouchFile is a .cs file included in <Compile> whose TouchId GUID the
              design-time pipeline rewrites whenever it produces a new compilation. Using <Compile> rather than
@@ -181,7 +189,6 @@
                           Condition="!Exists('$(MetalamaSourceGeneratorTouchFile)')"/>
 
         <ItemGroup>
-            <AdditionalFiles Include="$(MetalamaBuildTouchFile)" Visible="False"/>
             <!-- Only include the marker as <Compile> during design-time builds. The marker exists to make
                  Rider/Roslyn re-run the source generator when the design-time pipeline rewrites its TouchId
                  GUID; real (non-design-time) builds have no use for it, and embedding the fluctuating GUID

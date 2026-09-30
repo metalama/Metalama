@@ -172,6 +172,8 @@ internal class SourceNamedTypeImpl : SourceMemberOrNamedType, INamedTypeImpl
 
     public bool IsRecord => this.NamedTypeSymbol.IsRecord;
 
+    public bool IsFileLocal => this.NamedTypeSymbol.IsFileLocal;
+
     public bool HasDefaultConstructor
         => this.NamedTypeSymbol.TypeKind == Microsoft.CodeAnalysis.TypeKind.Struct ||
            (this.NamedTypeSymbol is { TypeKind: Microsoft.CodeAnalysis.TypeKind.Class, IsAbstract: false } &&
