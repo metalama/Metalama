@@ -23,7 +23,7 @@ namespace Metalama.Testing.UnitTesting;
 /// </summary>
 internal sealed class TestProjectOptions : DefaultProjectOptions, IDisposable
 {
-    public MetalamaTestContextOptions MetalamaTestContextOptions { get; }
+    public MetalamaTestContextOptions TestContextOptions { get; }
 
     private readonly Lazy<string> _baseDirectory;
     private readonly Lazy<string> _projectDirectory;
@@ -40,13 +40,13 @@ internal sealed class TestProjectOptions : DefaultProjectOptions, IDisposable
         this._projectDirectory = prototype._projectDirectory;
         this.SourceGeneratorTouchFile = prototype.SourceGeneratorTouchFile;
         this.BuildTouchFile = prototype.BuildTouchFile;
-        this.MetalamaTestContextOptions = prototype.MetalamaTestContextOptions;
+        this.TestContextOptions = prototype.TestContextOptions;
         this.DomainObserver = new DomainObserverImpl( this );
     }
 
     public TestProjectOptions( MetalamaTestContextOptions testContextOptions, MetalamaDirectories metalamaDirectories )
     {
-        this.MetalamaTestContextOptions = testContextOptions;
+        this.TestContextOptions = testContextOptions;
 
         // We don't use the backstage TempFileManager because it would generate paths that are too long.
         var baseDirectory = Path.Combine( metalamaDirectories.TempDirectory, "Tests", Guid.NewGuid().ToString() );
@@ -95,13 +95,13 @@ internal sealed class TestProjectOptions : DefaultProjectOptions, IDisposable
                 return path;
             } );
 
-    public override string? ProjectName => this.MetalamaTestContextOptions.ProjectName;
+    public override string? ProjectName => this.TestContextOptions.ProjectName;
 
     public string BaseDirectory => this._baseDirectory.Value;
 
-    public override CodeFormattingOptions CodeFormattingOptions => this.MetalamaTestContextOptions.CodeFormattingOptions;
+    public override CodeFormattingOptions CodeFormattingOptions => this.TestContextOptions.CodeFormattingOptions;
 
-    public override bool FormatCompileTimeCode => this.MetalamaTestContextOptions.FormatCompileTimeCode;
+    public override bool FormatCompileTimeCode => this.TestContextOptions.FormatCompileTimeCode;
 
     /// <summary>
     /// Gets a value indicating whether the preview language features are allowed, which is the case when the project
@@ -111,11 +111,11 @@ internal sealed class TestProjectOptions : DefaultProjectOptions, IDisposable
     /// </summary>
     public override bool AllowPreviewLanguageFeatures => this.LanguageVersion == LanguageVersion.Preview;
 
-    public override LanguageVersion LanguageVersion => this.MetalamaTestContextOptions.LanguageVersion ?? base.LanguageVersion;
+    public override LanguageVersion LanguageVersion => this.TestContextOptions.LanguageVersion ?? base.LanguageVersion;
 
-    public override bool RequireOrderedAspects => this.MetalamaTestContextOptions.RequireOrderedAspects;
+    public override bool RequireOrderedAspects => this.TestContextOptions.RequireOrderedAspects;
 
-    public ImmutableArray<Assembly> AdditionalAssemblies => this.MetalamaTestContextOptions.AdditionalAssemblies;
+    public ImmutableArray<Assembly> AdditionalAssemblies => this.TestContextOptions.AdditionalAssemblies;
 
     public override string? SourceGeneratorTouchFile { get; }
 
@@ -123,27 +123,27 @@ internal sealed class TestProjectOptions : DefaultProjectOptions, IDisposable
 
     public override string? BuildTouchFile { get; }
 
-    public override bool RoslynIsCompileTimeOnly => this.MetalamaTestContextOptions.RoslynIsCompileTimeOnly;
+    public override bool RoslynIsCompileTimeOnly => this.TestContextOptions.RoslynIsCompileTimeOnly;
 
-    public override ImmutableArray<string> IgnoredWarnings => this.MetalamaTestContextOptions.IgnoredWarnings;
+    public override ImmutableArray<string> IgnoredWarnings => this.TestContextOptions.IgnoredWarnings;
 
-    public override bool ValidateRunTimeCode => this.MetalamaTestContextOptions.ValidateRunTimeCode;
+    public override bool ValidateRunTimeCode => this.TestContextOptions.ValidateRunTimeCode;
 
-    public override bool VerifyOutputCode => this.MetalamaTestContextOptions.VerifyOutputCode;
+    public override bool VerifyOutputCode => this.TestContextOptions.VerifyOutputCode;
 
-    public override bool DiagnoseMemoryLeaks => this.MetalamaTestContextOptions.DiagnoseMemoryLeaks;
+    public override bool DiagnoseMemoryLeaks => this.TestContextOptions.DiagnoseMemoryLeaks;
 
-    public override DurableRefKind DurableRefKind => this.MetalamaTestContextOptions.DurableRefKind;
+    public override DurableRefKind DurableRefKind => this.TestContextOptions.DurableRefKind;
 
     public override ImmutableArray<TargetedAssemblyReference> CompileTimeAssemblies
-        => this.MetalamaTestContextOptions.CompileTimeAssemblies.Select( TargetedAssemblyReference.FromPath ).ToImmutableArray();
+        => this.TestContextOptions.CompileTimeAssemblies.Select( TargetedAssemblyReference.FromPath ).ToImmutableArray();
 
-    public override string? TemplateLanguageVersion => this.MetalamaTestContextOptions.TemplateLanguageVersion;
+    public override string? TemplateLanguageVersion => this.TestContextOptions.TemplateLanguageVersion;
 
-    public override string? AllTargetFrameworks => this.MetalamaTestContextOptions.AllTargetFrameworks;
+    public override string? AllTargetFrameworks => this.TestContextOptions.AllTargetFrameworks;
 
     public override bool TryGetProperty( string name, [NotNullWhen( true )] out string? value )
-        => this.MetalamaTestContextOptions.Properties.TryGetValue( name, out value );
+        => this.TestContextOptions.Properties.TryGetValue( name, out value );
 
     private void AddFileLocker() => Interlocked.Increment( ref this._fileLockers );
 

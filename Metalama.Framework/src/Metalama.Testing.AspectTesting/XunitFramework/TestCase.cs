@@ -108,10 +108,17 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
         /// Gets the reason why the test is skipped, or <c>null</c> when it is not skipped.
         /// </summary>
         /// <remarks>
+        /// <para>
+        /// A test is skipped by the <c>@Skipped</c> option of its test file, so the reason is known before the test runs,
+        /// which is what xunit calls a static skip. The property never throws: it returns <c>null</c> when the test is not
+        /// skipped, as <see cref="ITestCaseMetadata.SkipReason"/> requires.
+        /// </para>
+        /// <para>
         /// The reason is read from the test file the first time the property is read, and cached, because xunit reads the
         /// property several times per test.
+        /// </para>
         /// </remarks>
-        public string? SkipReason => (this._skipReason ?? throw new InvalidOperationException( "The test case has not been initialized." )).Value;
+        public string? SkipReason => this._skipReason?.Value;
 
         /// <summary>
         /// Reads the reason why the test is skipped from the test file.

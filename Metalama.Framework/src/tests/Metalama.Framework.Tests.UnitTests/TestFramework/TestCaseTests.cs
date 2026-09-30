@@ -85,6 +85,28 @@ public sealed class TestCaseTests : UnitTestClass
         Assert.Equal( "The reason", testCase.SkipReason );
     }
 
+    /// <summary>
+    /// Verifies that <see cref="TestCase.SkipReason"/> is <c>null</c> for a test that is not skipped, as the contract of
+    /// xunit requires.
+    /// </summary>
+    [Fact]
+    public void SkipReason_WhenNotSkipped_IsNull()
+    {
+        using var testContext = this.CreateTestContext();
+        var (serviceProvider, directory, fileSystem) = CreateServices( testContext );
+        fileSystem.WriteAllText( Path.Combine( directory, "NotSkipped.cs" ), "/* Empty */" );
+
+        var factory = new TestFactory(
+            serviceProvider,
+            CreateProjectProperties( directory ),
+            new TestDirectoryOptionsReader( serviceProvider, directory ),
+            typeof(TestCaseTests).Assembly );
+
+        var testCase = new TestCase( factory, "NotSkipped.cs" );
+
+        Assert.Null( testCase.SkipReason );
+    }
+
     private static (GlobalServiceProvider ServiceProvider, string Directory, TestFileSystem FileSystem) CreateServices( MetalamaTestContext testContext )
     {
         var fileSystem = new TestFileSystem( testContext.ServiceProvider.Underlying );

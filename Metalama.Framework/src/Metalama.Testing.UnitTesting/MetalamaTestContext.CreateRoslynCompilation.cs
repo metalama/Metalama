@@ -115,7 +115,7 @@ public partial class MetalamaTestContext
             ] );
 
             assemblies.AddRange( this.TestProjectOptions.AdditionalAssemblies );
-            var extensionLoader = new TestExtensionLoader( this.ServiceProvider.Global, this.TestProjectOptions.MetalamaTestContextOptions );
+            var extensionLoader = new TestExtensionLoader( this.ServiceProvider.Global, this.TestProjectOptions.TestContextOptions );
             libraries.AddRange( extensionLoader.GetExtensionAssemblyPaths( this.TestProjectOptions.CompileTimeAssemblies ) );
         }
 
@@ -144,7 +144,7 @@ public partial class MetalamaTestContext
 
         if ( addMetalamaReferences )
         {
-            foreach ( var reference in this.MetalamaTestContextOptions.AdditionalMetadataReferences )
+            foreach ( var reference in this.TestContextOptions.AdditionalMetadataReferences )
             {
                 var assemblyName = Path.GetFileNameWithoutExtension( reference.FilePath )!;
 

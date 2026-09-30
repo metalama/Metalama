@@ -78,7 +78,7 @@ public partial class MetalamaTestContext : ITempFileManager, IApplicationInfoPro
 
     internal TestProjectOptions TestProjectOptions { get; }
 
-    internal MetalamaTestContextOptions MetalamaTestContextOptions { get; }
+    internal MetalamaTestContextOptions TestContextOptions { get; }
 
     private readonly CancellationTokenSource? _testCancellationTokenSource;
 
@@ -218,7 +218,7 @@ public partial class MetalamaTestContext : ITempFileManager, IApplicationInfoPro
 
         this._isRoot = true;
 
-        this.MetalamaTestContextOptions = contextOptions;
+        this.TestContextOptions = contextOptions;
         var metalamaDirectories = new MetalamaDirectories( BackstageServiceFactoryInitializer.ServiceProvider.GetRequiredBackstageService<IStandardDirectories>() );
         this.TestProjectOptions = new TestProjectOptions( contextOptions, metalamaDirectories );
 
