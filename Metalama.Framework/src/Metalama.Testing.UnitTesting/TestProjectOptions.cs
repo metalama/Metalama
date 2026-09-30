@@ -23,7 +23,7 @@ namespace Metalama.Testing.UnitTesting;
 /// </summary>
 internal sealed class TestProjectOptions : DefaultProjectOptions, IDisposable
 {
-    public TestContextOptions TestContextOptions { get; }
+    public MetalamaTestContextOptions TestContextOptions { get; }
 
     private readonly Lazy<string> _baseDirectory;
     private readonly Lazy<string> _projectDirectory;
@@ -32,7 +32,7 @@ internal sealed class TestProjectOptions : DefaultProjectOptions, IDisposable
 
     /// <summary>
     /// Initializes a new instance of the <see cref="TestProjectOptions"/> class from
-    /// a prototype <see cref="UnitTesting.TestContextOptions"/>, allowing to override some properties.
+    /// a prototype <see cref="UnitTesting.MetalamaTestContextOptions"/>, allowing to override some properties.
     /// </summary>
     public TestProjectOptions( TestProjectOptions prototype )
     {
@@ -44,7 +44,7 @@ internal sealed class TestProjectOptions : DefaultProjectOptions, IDisposable
         this.DomainObserver = new DomainObserverImpl( this );
     }
 
-    public TestProjectOptions( TestContextOptions testContextOptions, MetalamaDirectories metalamaDirectories )
+    public TestProjectOptions( MetalamaTestContextOptions testContextOptions, MetalamaDirectories metalamaDirectories )
     {
         this.TestContextOptions = testContextOptions;
 

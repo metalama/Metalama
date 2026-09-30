@@ -7,7 +7,7 @@ using Metalama.Framework.Engine.Pipeline;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Tests.UnitTestHelpers.Mocks;
 using Metalama.Testing.UnitTesting;
-using Xunit.Abstractions;
+using Xunit;
 
 namespace Metalama.Framework.Tests.UnitTestHelpers.TestClasses;
 

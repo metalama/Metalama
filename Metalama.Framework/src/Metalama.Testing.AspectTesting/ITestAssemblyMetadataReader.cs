@@ -3,11 +3,11 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Services;
-using Xunit.Abstractions;
+using System.Reflection;
 
 namespace Metalama.Testing.AspectTesting;
 
 internal interface ITestAssemblyMetadataReader : IGlobalService
 {
-    TestAssemblyMetadata GetMetadata( IAssemblyInfo assembly );
+    TestAssemblyMetadata GetMetadata( Assembly assembly );
 }

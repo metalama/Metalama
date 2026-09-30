@@ -10,7 +10,6 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Immutable;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Framework.Tests.UnitTests.SyntaxSerialization
 {
@@ -68,7 +67,7 @@ class Expression
 #pragma warning restore CS0162 // Unreachable code detected
         }
 
-        private TestContextOptions CreateProjectOptions() => new() { AdditionalAssemblies = ImmutableArray.Create( this.GetType().Assembly ) };
+        private MetalamaTestContextOptions CreateProjectOptions() => new() { AdditionalAssemblies = ImmutableArray.Create( this.GetType().Assembly ) };
 
         private protected SerializerTestContext CreateSerializationTestContext( string code ) => new( code, this.CreateProjectOptions() );
 
@@ -77,11 +76,11 @@ class Expression
 
         protected SerializerTestsBase( ITestOutputHelper? logger = null ) : base( logger ) { }
 
-        private protected sealed class SerializerTestContext : TestContext
+        private protected sealed class SerializerTestContext : MetalamaTestContext
         {
             public CompilationModel Compilation { get; }
 
-            public SerializerTestContext( CompilationModel compilationModel, TestContextOptions contextOptions ) : base( contextOptions )
+            public SerializerTestContext( CompilationModel compilationModel, MetalamaTestContextOptions contextOptions ) : base( contextOptions )
             {
                 this.Compilation = compilationModel;
 
@@ -93,7 +92,7 @@ class Expression
                 this.SerializationService = new SyntaxSerializationService();
             }
 
-            public SerializerTestContext( string code, TestContextOptions contextOptions ) : base( contextOptions )
+            public SerializerTestContext( string code, MetalamaTestContextOptions contextOptions ) : base( contextOptions )
             {
                 this.Compilation = this.CreateCompilationModel( code );
 

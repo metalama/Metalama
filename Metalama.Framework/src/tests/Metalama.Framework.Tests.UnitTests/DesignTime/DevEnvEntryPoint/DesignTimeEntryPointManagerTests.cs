@@ -20,7 +20,7 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.DevEnvEntryPoint
             var version = new Version( 1, 0 );
             var provider = new FakeProvider( version );
             manager.RegisterServiceProvider( provider );
-            Assert.Equal( provider, await consumer.GetServiceProviderAsync( version ) );
+            Assert.Equal( provider, await consumer.GetServiceProviderAsync( version, TestContext.Current.CancellationToken ) );
         }
 
         [Fact]
@@ -29,7 +29,7 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.DevEnvEntryPoint
             IDesignTimeEntryPointManager manager = new DesignTimeEntryPointManager();
             var consumer = manager.GetConsumer( CurrentContractVersions.All );
             var version = new Version( 1, 0 );
-            var getTask = consumer.GetServiceProviderAsync( version );
+            var getTask = consumer.GetServiceProviderAsync( version, TestContext.Current.CancellationToken );
             Assert.False( getTask.IsCompleted );
 
             var provider = new FakeProvider( version );

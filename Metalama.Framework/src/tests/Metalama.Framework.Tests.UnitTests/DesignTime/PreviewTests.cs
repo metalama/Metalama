@@ -13,10 +13,8 @@ using Metalama.Framework.Tests.UnitTestHelpers.TestClasses;
 using Microsoft.CodeAnalysis.Diagnostics;
 using System;
 using System.Collections.Generic;
-using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
-using Xunit.Abstractions;
 using Xunit.Sdk;
 
 namespace Metalama.Framework.Tests.UnitTests.DesignTime;
@@ -712,7 +710,7 @@ class MyAspect : TypeAspect
         var projectKey = workspace.AddOrUpdateProject( testContext, _mainProjectName, code );
 
         var service = new TransformationPreviewServiceImpl( serviceProvider );
-        var result = await service.PreviewTransformationAsync( projectKey, "target.cs", default(CancellationToken) );
+        var result = await service.PreviewTransformationAsync( projectKey, "target.cs", testContext.CancellationToken );
 
         Assert.False( result.IsSuccessful );
         Assert.NotNull( result.ErrorMessages );

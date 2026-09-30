@@ -14,6 +14,12 @@
 
     <ItemGroup>
         <PackageReference Include="Metalama.Compiler.Sdk" />
+
+        <!-- The test projects referenced below keep xunit.v3 private, because its build requires an executable, and this
+             project is a WPF application. The markup compiler still loads every assembly that the test assemblies
+             reference, so the assemblies of the xunit runner are referenced here without the build assets of xunit. -->
+        <PackageReference Include="xunit.v3.runner.inproc.console" />
+        <PackageReference Include="xunit.v3.core.mtp-v2" ExcludeAssets="build;buildTransitive" />
     </ItemGroup>
 
     <ItemGroup>

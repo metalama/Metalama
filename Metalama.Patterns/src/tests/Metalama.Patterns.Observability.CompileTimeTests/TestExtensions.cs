@@ -4,7 +4,7 @@
 
 using Metalama.Framework.Diagnostics;
 using Microsoft.CodeAnalysis;
-using Xunit.Abstractions;
+using Xunit;
 
 namespace Metalama.Patterns.Observability.CompileTimeTests;
 

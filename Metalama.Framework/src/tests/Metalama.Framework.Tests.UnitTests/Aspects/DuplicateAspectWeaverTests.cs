@@ -18,7 +18,6 @@ using System.Reflection;
 using System.Reflection.Emit;
 using System.Threading.Tasks;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Framework.Tests.UnitTests.Aspects;
 
@@ -152,7 +151,7 @@ namespace TestNamespace
     /// Returns a service provider that has the compile-time project services of the given compilation, which
     /// <see cref="AspectDriverFactory"/> requires.
     /// </summary>
-    private static ProjectServiceProvider GetServiceProviderWithCompileTimeProject( TestContext testContext, CompilationModel compilation )
+    private static ProjectServiceProvider GetServiceProviderWithCompileTimeProject( MetalamaTestContext testContext, CompilationModel compilation )
     {
         var compileTimeProjectRepository = CompileTimeProjectRepository.Create(
                 testContext.Domain,

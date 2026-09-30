@@ -22,7 +22,6 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline;
 
@@ -269,7 +268,7 @@ public sealed class SplitResultsByTreeExtensionAccumulationTests : UnitTestClass
     /// Creates a syntax tree that belongs to another compilation, standing in for a declaration of a referenced
     /// project.
     /// </summary>
-    private static SyntaxTree CreateForeignTree( TestContext testContext )
+    private static SyntaxTree CreateForeignTree( MetalamaTestContext testContext )
     {
         var referencedCompilation = testContext.CreateCSharpCompilation(
             new Dictionary<string, string> { ["referenced.cs"] = "public class ReferencedClass { }" },
@@ -308,7 +307,7 @@ public sealed class SplitResultsByTreeExtensionAccumulationTests : UnitTestClass
     /// Runs a full design-time execution, which supplies the real pipeline configuration that <c>Update</c> requires.
     /// </summary>
     private static (DesignTimeAspectPipelineResultAndState Executed, Compilation Compilation) Execute(
-        TestContext testContext,
+        MetalamaTestContext testContext,
         TestDesignTimeAspectPipelineFactory factory )
     {
         var compilation = testContext.CreateCSharpCompilation(

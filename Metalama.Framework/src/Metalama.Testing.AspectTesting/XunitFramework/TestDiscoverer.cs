@@ -2,94 +2,72 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Testing.AspectTesting.Utilities;
 using Metalama.Testing.UnitTesting;
-using SharpCrafters.Backstage.Infrastructure;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
-using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Runtime.Versioning;
 using System.Threading;
 using System.Threading.Tasks;
-using Xunit;
-using Xunit.Abstractions;
 using Xunit.Sdk;
+using Xunit.v3;
 
 namespace Metalama.Testing.AspectTesting.XunitFramework
 {
-    [Serializable]
-    internal class TestDiscoverer : LongLivedMarshalByRefObject, ITestFrameworkDiscoverer
+    /// <summary>
+    /// Discovers the test files of a test project. Every <c>.cs</c> file under the source directory is a test, unless its
+    /// name starts with an underscore, it has more than one extension, or its directory is excluded.
+    /// </summary>
+    internal sealed class TestDiscoverer : ITestFrameworkDiscoverer
     {
         static TestDiscoverer()
         {
             TestingServices.Initialize();
         }
 
+        /// <summary>
+        /// The names of the directories that never contain test files.
+        /// </summary>
         private static readonly HashSet<string> _excludedDirectoryNames = new( StringComparer.OrdinalIgnoreCase ) { "bin", "obj" };
-        private readonly IAssemblyInfo _assembly;
-        private readonly IMessageSink? _messageSink;
-        private readonly GlobalServiceProvider _serviceProvider;
+        /// <summary>
+        /// The factory of the test assembly.
+        /// </summary>
+        private readonly TestFactory _factory;
+        /// <summary>
+        /// The function that writes diagnostic messages, or <c>null</c>.
+        /// </summary>
+        private readonly Action<string>? _trace;
 
-        public IFileSystem FileSystem { get; }
-
-        private readonly ITestAssemblyMetadataReader _metadataReader;
-
-        public TestDiscoverer( IAssemblyInfo assembly, IMessageSink? messageSink = null ) : this(
-            ServiceProviderFactory.GetServiceProvider().WithService( new TestAssemblyMetadataReader() ),
-            assembly,
-            messageSink ) { }
-
-        public TestDiscoverer( GlobalServiceProvider serviceProvider, IAssemblyInfo assembly, IMessageSink? messageSink = null )
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TestDiscoverer"/> class.
+        /// </summary>
+        public TestDiscoverer( TestFactory factory, Action<string>? trace = null )
         {
-            this._assembly = assembly;
-            this._messageSink = messageSink;
-            this._serviceProvider = serviceProvider;
-            this.FileSystem = serviceProvider.GetRequiredBackstageService<IFileSystem>();
-            this._metadataReader = serviceProvider.GetRequiredService<ITestAssemblyMetadataReader>();
-
-            var attribute = assembly.GetCustomAttributes( typeof(TargetFrameworkAttribute) ).FirstOrDefault();
-
-            if ( attribute != null )
-            {
-                this.TargetFramework = attribute.GetConstructorArguments().Cast<string>().First();
-            }
-            else
-            {
-                this.TargetFramework = null!;
-            }
+            this._factory = factory;
+            this._trace = trace;
         }
 
-        void IDisposable.Dispose() { }
+        /// <inheritdoc />
+        public ITestAssembly TestAssembly => this._factory.TestAssembly;
 
-        public TestProjectProperties GetTestProjectProperties()
-        {
-            var metadata = this._metadataReader.GetMetadata( this._assembly );
-
-            return new TestProjectProperties(
-                this._assembly.Name,
-                metadata.ProjectDirectory,
-                metadata.SourceDirectory,
-                metadata.ParserSymbols,
-                metadata.TargetFramework,
-                metadata.TargetFrameworks ?? metadata.TargetFramework,
-                metadata.IgnoredWarnings,
-                metadata.DurableRefKind );
-        }
-
-        public List<TestCase> Discover( string subDirectory, ImmutableHashSet<string> excludedDirectories )
+        /// <summary>
+        /// Discovers the test files of a directory of the test project and of its subdirectories, and returns their test cases.
+        /// </summary>
+        public List<TestCase> Discover( string? subDirectory, ImmutableHashSet<string> excludedDirectories )
         {
             List<TestCase> testCases = new();
-            this.Discover( c => testCases.Add( c ), subDirectory, false, excludedDirectories );
+            this.Discover( testCases.Add, subDirectory, false, excludedDirectories );
 
             return testCases;
         }
 
+        /// <summary>
+        /// Adds the test cases of a directory and of its subdirectories to a list.
+        /// </summary>
         private void Discover(
             Action<TestCase> onTestCaseDiscovered,
             string? subDirectory,
@@ -98,11 +76,12 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
         {
             var sync = new object();
 
-            this._messageSink?.Trace( $"Discovering tests in directory '{subDirectory}'." );
+            this._trace?.Invoke( $"Discovering tests in directory '{subDirectory}'." );
 
-            var projectProperties = this.GetTestProjectProperties();
-            TestDirectoryOptionsReader reader = new( this._serviceProvider, projectProperties.SourceDirectory );
-            TestFactory factory = new( this._serviceProvider, projectProperties, reader, this._assembly );
+            var factory = this._factory;
+            var projectProperties = factory.ProjectProperties;
+            var reader = factory.DirectoryOptionsReader;
+            var fileSystem = factory.FileSystem;
 
             ConcurrentQueue<Task> tasks = new();
             var pendingTasks = new StrongBox<int>( 0 );
@@ -122,17 +101,17 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
                     // If the directory is excluded, don't continue.
                     if ( options.Exclude.GetValueOrDefault() )
                     {
-                        this._messageSink?.Trace( $"Child directory '{directory}' excluded because of the Exclude option." );
+                        this._trace?.Invoke( $"Child directory '{directory}' excluded because of the Exclude option." );
 
                         return;
                     }
 
-                    this._messageSink?.Trace( $"Processing directory '{directory}'." );
+                    this._trace?.Invoke( $"Processing directory '{directory}'." );
 
                     // If the directory is included, index the files.
                     const string runnerFileName = "_Runner.cs";
 
-                    foreach ( var testPath in this.FileSystem.EnumerateFiles( directory, "*.cs" ) )
+                    foreach ( var testPath in fileSystem.EnumerateFiles( directory, "*.cs" ) )
                     {
                         var fileName = Path.GetFileName( testPath );
 
@@ -156,18 +135,12 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
                             continue;
                         }
 
-                        this._messageSink?.Trace( $"Including the file '{testPath}'" );
+                        this._trace?.Invoke( $"Including the file '{testPath}'" );
 
-                        var testCase = new TestCase( factory, this.FileSystem.GetRelativePath( projectProperties.SourceDirectory, testPath ) );
+                        var testCase = new TestCase( factory, fileSystem.GetRelativePath( projectProperties.SourceDirectory, testPath ) );
 
-                        this._messageSink?.Trace(
-                            $"    {((ITestCase) testCase).TestMethod.TestClass.TestCollection.TestAssembly.Assembly.Name} " +
-                            $"/ {((ITestCase) testCase).TestMethod.TestClass.TestCollection.DisplayName}" +
-                            $"/ {((ITestCase) testCase).TestMethod.TestClass.Class.Name} " +
-                            $"/ {((ITestCase) testCase).TestMethod.Method.Name} " +
-                            $"/ {((ITestCase) testCase).DisplayName}" );
+                        this._trace?.Invoke( $"    {testCase.TestClassName} / {testCase.TestMethodName} / {testCase.TestCaseDisplayName}" );
 
-                        // Somehow xunit does not like if we call onTestCaseDiscovered concurrently.
                         lock ( sync )
                         {
                             onTestCaseDiscovered( testCase );
@@ -176,11 +149,11 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
 
                     // Process children directories.
 
-                    foreach ( var nestedDir in this.FileSystem.EnumerateDirectories( directory ) )
+                    foreach ( var nestedDir in fileSystem.EnumerateDirectories( directory ) )
                     {
                         if ( excludedSubdirectories.Contains( nestedDir ) )
                         {
-                            this._messageSink?.Trace( $"Child directory '{nestedDir}' excluded because it is covered by other tests." );
+                            this._trace?.Invoke( $"Child directory '{nestedDir}' excluded because it is covered by other tests." );
 
                             continue;
                         }
@@ -192,7 +165,7 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
 
                             if ( File.Exists( runnerFile ) )
                             {
-                                this._messageSink?.Trace( $"Child directory '{nestedDir}' excluded it contains '{runnerFileName}'." );
+                                this._trace?.Invoke( $"Child directory '{nestedDir}' excluded it contains '{runnerFileName}'." );
 
                                 continue;
                             }
@@ -221,23 +194,39 @@ namespace Metalama.Testing.AspectTesting.XunitFramework
             }
         }
 
-        void ITestFrameworkDiscoverer.Find( bool includeSourceInformation, IMessageSink discoveryMessageSink, ITestFrameworkDiscoveryOptions discoveryOptions )
+        /// <summary>
+        /// Discovers all tests of the assembly and reports them to xunit.
+        /// </summary>
+        /// <remarks>
+        /// When xunit asks for the tests of specific CLR types, no test is reported, because the tests of this framework are
+        /// files and not members of CLR types.
+        /// </remarks>
+        public async ValueTask Find(
+            Func<ITestCase, ValueTask<bool>> callback,
+            ITestFrameworkDiscoveryOptions discoveryOptions,
+            Type[]? types = null,
+            CancellationToken? cancellationToken = null )
         {
-            this.Discover( testCase => discoveryMessageSink.OnMessage( new TestCaseDiscoveryMessage( testCase ) ), null, true, ImmutableHashSet<string>.Empty );
-            discoveryMessageSink.OnMessage( new DiscoveryCompleteMessage() );
+            if ( types is { Length: > 0 } )
+            {
+                return;
+            }
+
+            var testCases = new List<TestCase>();
+            this.Discover( testCases.Add, null, true, ImmutableHashSet<string>.Empty );
+
+            foreach ( var testCase in testCases )
+            {
+                if ( cancellationToken?.IsCancellationRequested == true )
+                {
+                    return;
+                }
+
+                if ( !await callback( testCase ) )
+                {
+                    return;
+                }
+            }
         }
-
-        void ITestFrameworkDiscoverer.Find(
-            string typeName,
-            bool includeSourceInformation,
-            IMessageSink discoveryMessageSink,
-            ITestFrameworkDiscoveryOptions discoveryOptions )
-            => throw new NotImplementedException();
-
-        string ITestFrameworkDiscoverer.Serialize( ITestCase testCase ) => testCase.UniqueID;
-
-        public string TargetFramework { get; }
-
-        string ITestFrameworkDiscoverer.TestFrameworkDisplayName => "Metalama";
     }
 }

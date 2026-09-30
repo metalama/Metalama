@@ -6,7 +6,7 @@ using SharpCrafters.Backstage.Diagnostics;
 using SharpCrafters.Backstage.Utilities;
 using System;
 using System.Collections.Concurrent;
-using Xunit.Abstractions;
+using Xunit;
 
 namespace Metalama.Testing.UnitTesting;
 

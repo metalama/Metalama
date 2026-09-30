@@ -359,6 +359,18 @@ Three parts of the harness matter more than the tests themselves.
   field. A suite of liveness tests that all pass is indistinguishable from a suite whose assertions never fire, so
   this positive control is what gives the rest of the suite its value.
 
+**An asynchronous test that awaits the code under test asserts with `MemoryLeakAssert.CollectedAsync` and
+`MemoryLeakAssert.AtMostAliveAsync`.** Such a test may pass with `Collected` or `AtMostAlive`, but only when no awaited
+task happens to complete on another thread. xunit v3 runs a test without
+a synchronization context, so the continuation of an `await` runs synchronously on the thread that completed the awaited
+task. The rest of the test then runs above the stack frames of the code under test, and the local variables of these
+frames still reference the compilation. The assertion fails with "no path exists from the given roots", because a
+stack frame is not a root that the test can supply. The asynchronous assertions resume the test on another thread, so
+that the thread that ran the code under test returns from these frames. No API lets the test wait until that thread has
+returned, so they repeat the collection a bounded number of times before they fail, without waiting for a fixed time.
+Under xunit v2 the same tests passed with
+`Collected`, because xunit v2 posted the continuations of a test to its own synchronization context.
+
 **A retention through a symbol cannot be narrated.** `ShouldTraverse` stops at an `ISymbol`, so the finder can never
 show the edge from a symbol to the compilation that declares it. When a source symbol is what retains the compilation,
 the assertion therefore fails with "no path exists from the given roots", which reads exactly like a retention by a root

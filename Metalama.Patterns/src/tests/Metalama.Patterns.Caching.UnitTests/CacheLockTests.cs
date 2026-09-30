@@ -7,7 +7,6 @@ using Metalama.Patterns.Caching.Backends;
 using Metalama.Patterns.Caching.Locking;
 using Metalama.Patterns.Caching.TestHelpers;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Patterns.Caching.Tests
 {
@@ -38,8 +37,8 @@ namespace Metalama.Patterns.Caching.Tests
         {
             await using var context = this.InitializeTest();
 
-            var t1 = Task.Run( () => this.TestLoop( 1 ) );
-            var t2 = Task.Run( () => this.TestLoop( 2 ) );
+            var t1 = Task.Run( () => this.TestLoop( 1 ), TestContext.Current.CancellationToken );
+            var t2 = Task.Run( () => this.TestLoop( 2 ), TestContext.Current.CancellationToken );
 
             await t1;
             await t2;
@@ -50,8 +49,8 @@ namespace Metalama.Patterns.Caching.Tests
         {
             await using var context = this.InitializeTest();
 
-            var t1 = Task.Run( this.TestLoopAsync );
-            var t2 = Task.Run( this.TestLoopAsync );
+            var t1 = Task.Run( this.TestLoopAsync, TestContext.Current.CancellationToken );
+            var t2 = Task.Run( this.TestLoopAsync, TestContext.Current.CancellationToken );
 
             await Task.WhenAll( t1, t2 );
         }
@@ -173,7 +172,8 @@ namespace Metalama.Patterns.Caching.Tests
                     t1State = 1;
                     await this.CachedMethodAsync( 100, barrier, assert: false );
                     t1State = 2;
-                } );
+                },
+                TestContext.Current.CancellationToken );
 
             var t2State = 0;
 
@@ -185,9 +185,10 @@ namespace Metalama.Patterns.Caching.Tests
                     t2State = 2;
                     await this.CachedMethodAsync( 100, assert: false );
                     t2State = 3;
-                } );
+                },
+                TestContext.Current.CancellationToken );
 
-            var delay = Task.Delay( _globalTimeout );
+            var delay = Task.Delay( _globalTimeout, TestContext.Current.CancellationToken );
             var t = await Task.WhenAny( Task.WhenAll( t1, t2 ), delay );
 
             AssertEx.NotSame( delay, t, $"Timeout. t1={t1.Status}, t1State={t1State}, t2={t2.Status}, t2State={t2State}, barrier={barrier}." );

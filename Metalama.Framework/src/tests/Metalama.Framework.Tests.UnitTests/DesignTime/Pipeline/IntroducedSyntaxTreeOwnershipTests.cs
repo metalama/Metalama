@@ -23,7 +23,6 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline;
 
@@ -102,7 +101,7 @@ public sealed class IntroducedSyntaxTreeOwnershipTests : UnitTestClass
     /// pipeline is in when only that file is dirty.
     /// </summary>
     private static DesignTimeAspectPipelineResult Update(
-        TestContext testContext,
+        MetalamaTestContext testContext,
         DesignTimeAspectPipelineResult previous,
         Compilation compilation,
         SyntaxTree sourceTree )

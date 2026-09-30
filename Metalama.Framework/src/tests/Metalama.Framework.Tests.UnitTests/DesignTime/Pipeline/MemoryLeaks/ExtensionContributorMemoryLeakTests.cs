@@ -23,7 +23,6 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline.MemoryLeaks;
 
@@ -153,7 +152,7 @@ public sealed class ExtensionContributorMemoryLeakTests : DesignTimeTestBase
     /// </remarks>
     [MethodImpl( MethodImplOptions.NoInlining )]
     private WeakReference RunEditingSession(
-        TestContext testContext,
+        MetalamaTestContext testContext,
         TestDesignTimeAspectPipelineFactory factory,
         string sessionName,
         int editCount )
@@ -187,7 +186,7 @@ public sealed class ExtensionContributorMemoryLeakTests : DesignTimeTestBase
     /// determines the outcome of these tests. If it were left to the default value, a change of that default would
     /// appear here as a retention chain without an explanation, instead of as a failure of its own.
     /// </remarks>
-    private TestContext CreateTestContextWithExtension( Type extensionType, DurableRefKind durableRefKind = DurableRefKind.Serialized )
+    private MetalamaTestContext CreateTestContextWithExtension( Type extensionType, DurableRefKind durableRefKind = DurableRefKind.Serialized )
         => this.CreateTestContext(
             this.CreateDefaultTestContextOptions() with
             {

@@ -17,7 +17,6 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline.MemoryLeaks;
 
@@ -49,7 +48,7 @@ public sealed class PipelineFactoryMemoryLeakTests : DesignTimeTestBase
     /// Creates the real pipeline factory, rather than the test subclass, because the test subclass overrides the
     /// method under test.
     /// </summary>
-    private static DesignTimeAspectPipelineFactory CreateFactory( TestContext testContext )
+    private static DesignTimeAspectPipelineFactory CreateFactory( MetalamaTestContext testContext )
     {
         GlobalServiceProvider serviceProvider = testContext.ServiceProvider;
 
@@ -79,7 +78,7 @@ public sealed class PipelineFactoryMemoryLeakTests : DesignTimeTestBase
     /// </remarks>
     [MethodImpl( MethodImplOptions.NoInlining )]
     private static async Task<WeakReference> StartAndCancelWaitAsync(
-        TestContext testContext,
+        MetalamaTestContext testContext,
         DesignTimeAspectPipelineFactory factory,
         string assemblyName )
     {
@@ -115,7 +114,7 @@ public sealed class PipelineFactoryMemoryLeakTests : DesignTimeTestBase
 
         var compilation = await StartAndCancelWaitAsync( testContext, factory, nameof(this.CancelledWaitForPipeline_ReleasesTheCompilation) );
 
-        MemoryLeakAssert.Collected( compilation, "The compilation of a cancelled wait for a pipeline", ("pipelineFactory", factory) );
+        await MemoryLeakAssert.CollectedAsync( compilation, "The compilation of a cancelled wait for a pipeline", ("pipelineFactory", factory) );
     }
 
     /// <summary>
@@ -153,7 +152,7 @@ public sealed class PipelineFactoryMemoryLeakTests : DesignTimeTestBase
                 $"{nameof(this.RepeatedCancelledWaitsForPipeline_DoNotAccumulateCompilations)}{i}" );
         }
 
-        MemoryLeakAssert.AtMostAlive(
+        await MemoryLeakAssert.AtMostAliveAsync(
             compilations,
             1,
             $"compilations of {waitCount} cancelled waits for a pipeline",

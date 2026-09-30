@@ -27,7 +27,7 @@ public sealed class TestDesignTimeAspectPipelineFactory : DesignTimeAspectPipeli
 
     public AnalysisProcessEventHub EventHub { get; }
 
-    private static GlobalServiceProvider GetServiceProvider( TestContext testContext, GlobalServiceProvider? serviceProvider = null )
+    private static GlobalServiceProvider GetServiceProvider( MetalamaTestContext testContext, GlobalServiceProvider? serviceProvider = null )
     {
         serviceProvider ??= testContext.ServiceProvider;
 
@@ -41,7 +41,7 @@ public sealed class TestDesignTimeAspectPipelineFactory : DesignTimeAspectPipeli
         return serviceProvider.Value;
     }
 
-    public TestDesignTimeAspectPipelineFactory( TestContext testContext, GlobalServiceProvider? serviceProvider = null ) :
+    public TestDesignTimeAspectPipelineFactory( MetalamaTestContext testContext, GlobalServiceProvider? serviceProvider = null ) :
         base( GetServiceProvider( testContext, serviceProvider ) )
     {
         this._projectOptions = testContext.ProjectOptions;

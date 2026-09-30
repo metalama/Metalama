@@ -62,7 +62,7 @@ namespace Foo
             var syntaxTree = compilation.SyntaxTrees.Single();
             var rewriter = new CompileTimeCompilationBuilder.RemoveInvalidUsingRewriter( compilation, syntaxTree );
 
-            var actual = rewriter.Visit( syntaxTree.GetRoot() )!.ToFullString();
+            var actual = rewriter.Visit( syntaxTree.GetRoot( testContext.CancellationToken ) )!.ToFullString();
 
             AssertEx.EolInvariantEqual( expected, actual );
         }
@@ -103,7 +103,7 @@ class A : Attribute
             var compilation = CompilationModel.CreateInitialInstance( new ProjectModel( roslynCompilation, testContext.ServiceProvider ), roslynCompilation );
 
             using var compileTimeDomain = testContext.Domain;
-            var loader = CompileTimeProjectRepository.Create( compileTimeDomain, testContext.ServiceProvider, compilation.RoslynCompilation ).AssertNotNull();
+            var loader = CompileTimeProjectRepository.Create( compileTimeDomain, testContext.ServiceProvider, compilation.RoslynCompilation, cancellationToken: testContext.CancellationToken ).AssertNotNull();
 
             if ( !loader.CreateAttributeDeserializer( testContext.ServiceProvider, compilation.CompilationContext )
                     .TryCreateAttribute( compilation.Attributes.First(), new DiagnosticBag(), out var attribute ) )
@@ -144,7 +144,7 @@ class ReferencingClass
             var roslynCompilation = testContext.CreateCSharpCompilation( referencingCode, referencedCode );
 
             var domain = testContext.Domain;
-            CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, roslynCompilation ).AssertNotNull();
+            CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, roslynCompilation, cancellationToken: testContext.CancellationToken ).AssertNotNull();
         }
 
         [Fact]
@@ -182,7 +182,7 @@ class ReferencingClass
                 additionalReferences: [referencedCompilation.ToMetadataReference(), referencedCompilationModified.ToMetadataReference()] );
 
             var domain = testContext.Domain;
-            CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, roslynCompilation ).AssertNotNull();
+            CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, roslynCompilation, cancellationToken: testContext.CancellationToken ).AssertNotNull();
         }
 
         [Fact]
@@ -336,11 +336,11 @@ class B
 
             using var domain = testContext.Domain;
 
-            var compileTimeProjectRepository1 = CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, compilationB1 ).AssertNotNull();
+            var compileTimeProjectRepository1 = CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, compilationB1, cancellationToken: testContext.CancellationToken ).AssertNotNull();
 
             ExecuteAssertions( compileTimeProjectRepository1.RootProject, 1 );
 
-            var compileTimeProjectRepository2 = CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, compilationB2 ).AssertNotNull();
+            var compileTimeProjectRepository2 = CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, compilationB2, cancellationToken: testContext.CancellationToken ).AssertNotNull();
 
             ExecuteAssertions( compileTimeProjectRepository2.RootProject, 2 );
 
@@ -387,7 +387,7 @@ class C
             using var testContext = this.CreateTestContext();
             var domain = testContext.Domain;
             var compilation = testContext.CreateCSharpCompilation( code, ignoreErrors: true );
-            CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, compilation ).AssertNotNull();
+            CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, compilation, cancellationToken: testContext.CancellationToken ).AssertNotNull();
         }
 
         [Fact]
@@ -634,7 +634,8 @@ class ReferencingClass
                 Assert.True(
                     referencedCompilation.Emit(
                             peStream,
-                            manifestResources: [referencedCompileTimeProject!.ToResource().Resource] )
+                            manifestResources: [referencedCompileTimeProject!.ToResource().Resource],
+                            cancellationToken: testContext.CancellationToken )
                         .Success );
             }
 
@@ -698,7 +699,8 @@ public class ReferencedClass
                 Assert.True(
                     referencedCompilation.Emit(
                             peStream,
-                            manifestResources: [referencedCompileTimeProject!.ToResource().Resource] )
+                            manifestResources: [referencedCompileTimeProject!.ToResource().Resource],
+                            cancellationToken: testContext.CancellationToken )
                         .Success );
             }
 
@@ -827,7 +829,7 @@ public class SomeRunTimeClass
         [Fact]
         public void FormatCompileTimeCode()
         {
-            using var testContext = this.CreateTestContext( new TestContextOptions { FormatCompileTimeCode = true } );
+            using var testContext = this.CreateTestContext( new MetalamaTestContextOptions { FormatCompileTimeCode = true } );
 
             const string code = @"
 using System;
@@ -849,7 +851,7 @@ public class MyAspect : OverrideMethodAspect
             Assert.Contains( "using Microsoft.CodeAnalysis", compileTimeCode, StringComparison.Ordinal );
         }
 
-        private static string GetCompileTimeCode( TestContext testContext, string code, OutputKind outputKind = OutputKind.DynamicallyLinkedLibrary )
+        private static string GetCompileTimeCode( MetalamaTestContext testContext, string code, OutputKind outputKind = OutputKind.DynamicallyLinkedLibrary )
         {
             var compileTimeSyntaxTrees = GetCompileTimeCode( testContext, new Dictionary<string, string> { { "main.cs", code } }, outputKind );
 
@@ -859,7 +861,7 @@ public class MyAspect : OverrideMethodAspect
         }
 
         private static IReadOnlyDictionary<string, string> GetCompileTimeCode(
-            TestContext testContext,
+            MetalamaTestContext testContext,
             IReadOnlyDictionary<string, string> code,
             OutputKind outputKind = OutputKind.DynamicallyLinkedLibrary )
         {
@@ -917,7 +919,7 @@ public class MyAspect : OverrideMethodAspect
         [Fact]
         public void TopLevelStatementsAreRemoved()
         {
-            using var testContext = this.CreateTestContext( new TestContextOptions { FormatCompileTimeCode = true } );
+            using var testContext = this.CreateTestContext( new MetalamaTestContextOptions { FormatCompileTimeCode = true } );
 
             const string code = @"
 using System;
@@ -950,7 +952,7 @@ class CompileTimeClass { }
         [Fact]
         public void FabricClassesAreUnNested()
         {
-            using var testContext = this.CreateTestContext( new TestContextOptions { FormatCompileTimeCode = true } );
+            using var testContext = this.CreateTestContext( new MetalamaTestContextOptions { FormatCompileTimeCode = true } );
 
             const string code = @"
 using System;
@@ -1055,7 +1057,7 @@ namespace SomeNamespace
         [Fact]
         public void CompileTypeTypesOfAllTKindsAreCopied()
         {
-            using var testContext = this.CreateTestContext( new TestContextOptions { FormatCompileTimeCode = true } );
+            using var testContext = this.CreateTestContext( new MetalamaTestContextOptions { FormatCompileTimeCode = true } );
 
             const string code = @"
 using System;
@@ -1127,7 +1129,7 @@ public delegate void SomeDelegate();
         [Fact]
         public void SyntaxTreeWithOnlyCompileTimeInterfaceIsCopied()
         {
-            using var testContext = this.CreateTestContext( new TestContextOptions { FormatCompileTimeCode = true } );
+            using var testContext = this.CreateTestContext( new MetalamaTestContextOptions { FormatCompileTimeCode = true } );
 
             const string code = @"
 using System;
@@ -1198,7 +1200,8 @@ Intentional syntax error.
                 Assert.True(
                     pipelineResult1.Value.ResultingCompilation.Compilation.Emit(
                             peFile,
-                            manifestResources: pipelineResult1.Value.AdditionalResources.Select( x => x.Resource ) )
+                            manifestResources: pipelineResult1.Value.AdditionalResources.Select( x => x.Resource ),
+                            cancellationToken: testContext1.CancellationToken )
                         .Success );
             }
 
@@ -1221,7 +1224,7 @@ Intentional syntax error.
         [Fact]
         public void PreprocessorDirectivesAreRemoved()
         {
-            using var testContext = this.CreateTestContext( new TestContextOptions { FormatCompileTimeCode = true } );
+            using var testContext = this.CreateTestContext( new MetalamaTestContextOptions { FormatCompileTimeCode = true } );
 
             const string code = @"
 #region Namespaces
@@ -1421,7 +1424,7 @@ public class ReferencedClass
             var compilation = CompilationModel.CreateInitialInstance( new ProjectModel( roslynCompilation, testContext.ServiceProvider ), roslynCompilation );
 
             using var compileTimeDomain = testContext.Domain;
-            var loader = CompileTimeProjectRepository.Create( compileTimeDomain, testContext.ServiceProvider, compilation.RoslynCompilation ).AssertNotNull();
+            var loader = CompileTimeProjectRepository.Create( compileTimeDomain, testContext.ServiceProvider, compilation.RoslynCompilation, cancellationToken: testContext.CancellationToken ).AssertNotNull();
 
             // Roundloop serialization.
             var json = loader.RootProject.Manifest!.ToJson();
@@ -1505,7 +1508,7 @@ public class ReferencedClass
 
             using var domain = testContext.Domain;
 
-            CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, roslynCompilation, diagnostics );
+            CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, roslynCompilation, diagnostics, cancellationToken: testContext.CancellationToken );
 
             Assert.Single( diagnostics, d => d.Id == "LAMA0294" );
         }
@@ -1540,7 +1543,7 @@ public class ReferencedClass
 
             using var domain = testContext.Domain;
 
-            CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, compilation.RoslynCompilation, diagnostics );
+            CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, compilation.RoslynCompilation, diagnostics, cancellationToken: testContext.CancellationToken );
 
             var warnings = new[] { "Dereference of a possibly null reference." };
 
@@ -1548,7 +1551,7 @@ public class ReferencedClass
 
             diagnostics.Clear();
 
-            CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, compilation.RoslynCompilation, diagnostics );
+            CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, compilation.RoslynCompilation, diagnostics, cancellationToken: testContext.CancellationToken );
 
             Assert.Equal( warnings, diagnostics.SelectAsArray( d => d.GetMessage( CultureInfo.InvariantCulture ) ) );
         }
@@ -1565,7 +1568,7 @@ public class ReferencedClass
             Assert.False( result.WeakRef.IsAlive );
         }
 
-        private static (CompileTimeProject Project, WeakReference WeakRef) CreateCompileTimeProject( TestContext testContext, CompileTimeDomain domain )
+        private static (CompileTimeProject Project, WeakReference WeakRef) CreateCompileTimeProject( MetalamaTestContext testContext, CompileTimeDomain domain )
         {
             var code = $$"""
                          using Metalama.Framework.Advising;using Metalama.Framework.Aspects;
@@ -1599,7 +1602,7 @@ public class ReferencedClass
         [Fact]
         public async Task AssemblyNameTruncated()
         {
-            using var testContext = this.CreateTestContext( new TestContextOptions() { TempPathLength = 133 } );
+            using var testContext = this.CreateTestContext( new MetalamaTestContextOptions() { TempPathLength = 133 } );
 
             const string dependencyCode = """
                                           using Metalama.Framework.Aspects;
@@ -2003,13 +2006,13 @@ public class MyAspect
                                 """;
 
             const LanguageVersion templateLanguageVersion = LanguageVersion.CSharp13;
-            using var testContext = this.CreateTestContext( new TestContextOptions() { TemplateLanguageVersion = templateLanguageVersion.ToDisplayString() } );
+            using var testContext = this.CreateTestContext( new MetalamaTestContextOptions() { TemplateLanguageVersion = templateLanguageVersion.ToDisplayString() } );
 
             var roslynCompilation = testContext.CreateCSharpCompilation( code );
             var compilation = CompilationModel.CreateInitialInstance( new ProjectModel( roslynCompilation, testContext.ServiceProvider ), roslynCompilation );
 
             using var compileTimeDomain = testContext.Domain;
-            var loader = CompileTimeProjectRepository.Create( compileTimeDomain, testContext.ServiceProvider, compilation.RoslynCompilation ).AssertNotNull();
+            var loader = CompileTimeProjectRepository.Create( compileTimeDomain, testContext.ServiceProvider, compilation.RoslynCompilation, cancellationToken: testContext.CancellationToken ).AssertNotNull();
 
             Assert.Equal( templateLanguageVersion, loader.RootProject.Manifest!.LanguageVersion );
         }

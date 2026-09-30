@@ -4,7 +4,7 @@
 
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
-using Xunit.Abstractions;
+using Xunit;
 
 namespace Metalama.Patterns.TestHelpers;
 

@@ -2,6 +2,7 @@
     <Import Project="..\..\..\..\eng\Coverage.props" />
 
     <PropertyGroup>
+        <OutputType>Exe</OutputType>
         <TargetFramework>net10.0-windows</TargetFramework>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <RootNamespace>Metalama.LinqPad.Tests</RootNamespace>
@@ -11,7 +12,7 @@
         <PackageReference Include="JetBrains.Annotations" />
         <PackageReference Include="LINQPad.Runtime" />
         <PackageReference Include="Microsoft.NET.Test.Sdk" />
-        <PackageReference Include="xunit" />
+        <PackageReference Include="xunit.v3" />
         <PackageReference Include="xunit.runner.visualstudio" />
         <ProjectReference Include="..\..\Metalama.LinqPad\Metalama.LinqPad.csproj" />
         <PackageReference Include="Metalama.Compiler.Sdk" />

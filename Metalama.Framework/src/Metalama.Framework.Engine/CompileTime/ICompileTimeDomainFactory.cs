@@ -17,7 +17,7 @@ namespace Metalama.Framework.Engine.CompileTime
     {
         /// <summary>
         /// Creates a new, empty <see cref="CompileTimeDomain"/>. Used by test infrastructure
-        /// (e.g. <c>TestContext.Domain</c>) when a standalone domain is needed without assembly
+        /// (e.g. <c>MetalamaTestContext.Domain</c>) when a standalone domain is needed without assembly
         /// compatibility checks. Production code should use <see cref="GetOrCreateDomain"/> instead.
         /// </summary>
         CompileTimeDomain CreateDomain();

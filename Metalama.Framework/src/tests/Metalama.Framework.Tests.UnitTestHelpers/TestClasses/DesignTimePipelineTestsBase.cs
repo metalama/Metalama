@@ -9,7 +9,7 @@ using Microsoft.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
 using System.Text;
-using Xunit.Abstractions;
+using Xunit;
 
 #pragma warning disable IDE0079   // Remove unnecessary suppression.
 #pragma warning disable CA1307    // Specify StringComparison for clarity

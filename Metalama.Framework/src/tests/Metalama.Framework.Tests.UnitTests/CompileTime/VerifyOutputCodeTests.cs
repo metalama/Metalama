@@ -41,7 +41,7 @@ public sealed class VerifyOutputCodeTests : UnitTestClass
                             class TargetClass { }
                             """;
 
-        var testOptions = new TestContextOptions { VerifyOutputCode = true };
+        var testOptions = new MetalamaTestContextOptions { VerifyOutputCode = true };
         using var testContext = this.CreateTestContext( testOptions );
         var compilation = testContext.CreateCSharpCompilation( code );
         var pipeline = new CompileTimeAspectPipeline( testContext.ServiceProvider );
@@ -99,7 +99,7 @@ public sealed class VerifyOutputCodeTests : UnitTestClass
                             }
                             """;
 
-        var testOptions = new TestContextOptions { VerifyOutputCode = false };
+        var testOptions = new MetalamaTestContextOptions { VerifyOutputCode = false };
         using var testContext = this.CreateTestContext( testOptions );
 
         var compilation = testContext.CreateCSharpCompilation(
@@ -166,7 +166,7 @@ public sealed class VerifyOutputCodeTests : UnitTestClass
                             }
                             """;
 
-        var testOptions = new TestContextOptions { VerifyOutputCode = true };
+        var testOptions = new MetalamaTestContextOptions { VerifyOutputCode = true };
         using var testContext = this.CreateTestContext( testOptions );
 
         var compilation = testContext.CreateCSharpCompilation(

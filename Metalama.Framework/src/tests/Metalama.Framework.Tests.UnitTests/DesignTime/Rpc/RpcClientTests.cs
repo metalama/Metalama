@@ -11,7 +11,6 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
-using Xunit.Abstractions;
 
 // ReSharper disable AccessToDisposedClosure
 
@@ -150,7 +149,8 @@ public sealed partial class RpcClientTests : RpcUnitTestClass
                 {
                     client.EventReceived += _ => Interlocked.Increment( ref eventsReceived );
                 }
-            } );
+            },
+            testContext.CancellationToken );
 
         // Invoke events in another task.
         var invokeTask = Task.Run(
@@ -166,7 +166,8 @@ public sealed partial class RpcClientTests : RpcUnitTestClass
                 {
                     await service.RaiseTestEventAsync( new TestEventData( i ), testContext.CancellationToken );
                 }
-            } );
+            },
+            testContext.CancellationToken );
 
         await Task.WhenAll( subscribeTask, invokeTask ).WithCancellation( testContext.CancellationToken );
 

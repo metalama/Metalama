@@ -88,7 +88,7 @@ public sealed class ImmutableRecordShapeTests : ImmutableAnalyzerTestBase
             class WithoutGetter;
             """ );
 
-        var errors = compilation.GetDiagnostics()
+        var errors = compilation.GetDiagnostics( TestContext.Current.CancellationToken )
             .Where( d => d.Severity == DiagnosticSeverity.Error )
             .ToList();
 

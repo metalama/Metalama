@@ -36,7 +36,6 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Testing.UnitTesting;
 
@@ -46,7 +45,7 @@ namespace Metalama.Testing.UnitTesting;
 /// <remarks>
 /// <para>
 /// This class provides access to the Metalama code model and services for unit testing compile-time logic.
-/// Tests should create a <see cref="TestContext"/> by calling <see cref="UnitTestClass.CreateTestContext(string?,string?)"/>
+/// Tests should create a <see cref="MetalamaTestContext"/> by calling <see cref="UnitTestClass.CreateTestContext(string?,string?)"/>
 /// rather than using the constructor directly.
 /// </para>
 /// <para>
@@ -55,19 +54,19 @@ namespace Metalama.Testing.UnitTesting;
 /// <item><see cref="CreateCompilation(string,string?,bool,System.Collections.Generic.IEnumerable{Microsoft.CodeAnalysis.MetadataReference}?,string?,bool)"/>: Create an <see cref="Metalama.Framework.Code.ICompilation"/> from source code</item>
 /// <item><see cref="WithExecutionContext"/>: Set the execution context for APIs like <see cref="Metalama.Framework.Code.SyntaxBuilders.ExpressionFactory"/></item>
 /// <item><see cref="ServiceProvider"/>: Access Metalama services</item>
-/// <item><see cref="CancellationToken"/>: A token that signals test timeout</item>
+/// <item><see cref="CancellationToken"/>: A token that signals a timeout or the cancellation of the test</item>
 /// </list>
 /// </para>
 /// <para>
-/// The <see cref="TestContext"/> must be disposed at the end of each test method; failure to do so will result
+/// The <see cref="MetalamaTestContext"/> must be disposed at the end of each test method; failure to do so will result
 /// in an exception from the finalizer. Using the <c>using</c> statement or <c>using</c> declaration is recommended.
 /// </para>
 /// </remarks>
 /// <seealso cref="UnitTestClass"/>
-/// <seealso cref="TestContextOptions"/>
+/// <seealso cref="MetalamaTestContextOptions"/>
 /// <seealso href="@compile-time-testing"/>
 [PublicAPI]
-public partial class TestContext : ITempFileManager, IApplicationInfoProvider, IDateTimeProvider
+public partial class MetalamaTestContext : ITempFileManager, IApplicationInfoProvider, IDateTimeProvider
 {
     private static readonly IApplicationInfo _applicationInfo = new TestApiApplicationInfo();
     private readonly ITempFileManager _backstageTempFileManager;
@@ -79,12 +78,22 @@ public partial class TestContext : ITempFileManager, IApplicationInfoProvider, I
 
     internal TestProjectOptions TestProjectOptions { get; }
 
-    internal TestContextOptions TestContextOptions { get; }
+    internal MetalamaTestContextOptions TestContextOptions { get; }
 
     private readonly CancellationTokenSource? _testCancellationTokenSource;
-    private readonly CancellationTokenRegistration? _cancellationTokenRegistration;
 
     private readonly Timer? _timer;
+
+    /// <summary>
+    /// The lock that <see cref="OnTimeout"/> holds while it runs, and that <see cref="Dispose(bool)"/> takes before it
+    /// disposes the objects that the callback uses.
+    /// </summary>
+    private readonly object _timeoutLock = new();
+
+    /// <summary>
+    /// A value indicating whether the timer has been stopped, after which <see cref="OnTimeout"/> does nothing.
+    /// </summary>
+    private bool _isTimerStopped;
 
 #pragma warning disable LAMA0821 // Do not expose internal APIs.
     public IProjectOptions ProjectOptions => this.TestProjectOptions;
@@ -114,9 +123,22 @@ public partial class TestContext : ITempFileManager, IApplicationInfoProvider, I
     public bool ExpectsReportedExceptions { get; set; }
 
     /// <summary>
-    /// Gets a <see cref="CancellationToken"/> used to cancel the test in case of timeout. The timeout period is defined
-    /// by the <see cref="TestContextOptions.Timeout"/> option.
+    /// Gets the <see cref="System.Threading.CancellationToken"/> that the test must pass to the code under test. It is
+    /// signalled when the timeout defined by <see cref="MetalamaTestContextOptions.Timeout"/> elapses, or when the test
+    /// framework cancels the test, whichever comes first.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The cancellation of the test framework reaches this token through the token passed to the constructor.
+    /// <see cref="UnitTestClass.CreateTestContext(string?,string?)"/> passes <see cref="Xunit.TestContext.CancellationToken"/>
+    /// of <see cref="Xunit.TestContext.Current"/>, and the aspect test framework passes the token of the test run.
+    /// Only the timeout writes a message to the test output and signals that the application is exiting.
+    /// </para>
+    /// <para>
+    /// When a debugger is attached, there is no timeout, because a test that runs under a debugger can legitimately
+    /// run for a long time. The token is then the token passed to the constructor.
+    /// </para>
+    /// </remarks>
     public CancellationToken CancellationToken { get; }
 
     /// <summary>
@@ -153,7 +175,7 @@ public partial class TestContext : ITempFileManager, IApplicationInfoProvider, I
         {
             T hook => hook,
             null => throw new InvalidOperationException(
-                $"The service '{serviceType.Name}' is not registered. It is registered by UnitTestClass, so this property is not available in a TestContext created directly." ),
+                $"The service '{serviceType.Name}' is not registered. It is registered by UnitTestClass, so this property is not available in a MetalamaTestContext created directly." ),
             _ => throw new InvalidOperationException(
                 $"The service '{serviceType.Name}' is registered, but its implementation is a '{service.GetType().Name}' and not a '{typeof(T).Name}'." )
         };
@@ -164,28 +186,29 @@ public partial class TestContext : ITempFileManager, IApplicationInfoProvider, I
     // ReSharper disable once RedundantOverload.Global
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="TestContext"/> class. Tests typically
+    /// Initializes a new instance of the <see cref="MetalamaTestContext"/> class. Tests typically
     /// do not call this constructor directly, but instead the <see cref="UnitTestClass.CreateTestContext(IAdditionalServiceCollection,string?,string?)"/>
     /// method.
     /// </summary>
-    public TestContext( TestContextOptions contextOptions, CancellationToken cancellationToken = default ) : this( contextOptions, null, cancellationToken ) { }
+    public MetalamaTestContext( MetalamaTestContextOptions contextOptions, CancellationToken cancellationToken = default ) : this( contextOptions, null, cancellationToken ) { }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="TestContext"/> class and specify an optional <see cref="IAdditionalServiceCollection"/>. Tests typically
+    /// Initializes a new instance of the <see cref="MetalamaTestContext"/> class and specify an optional <see cref="IAdditionalServiceCollection"/>. Tests typically
     /// do not call this constructor directly, but instead the <see cref="UnitTestClass.CreateTestContext(IAdditionalServiceCollection,string?,string?)"/>
     /// method.
     /// </summary>
-    public TestContext(
-        TestContextOptions contextOptions,
+    public MetalamaTestContext(
+        MetalamaTestContextOptions contextOptions,
         IAdditionalServiceCollection? additionalServices,
         CancellationToken cancellationToken = default )
     {
         if ( !Debugger.IsAttached )
         {
-            this._testCancellationTokenSource = new CancellationTokenSource();
+            // The linked source is signalled when the test framework cancels the test through the token passed to this
+            // constructor. The timer, which is started at the end of this constructor, signals it when the timeout
+            // elapses, and only the timer calls OnTimeout.
+            this._testCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource( cancellationToken );
             this.CancellationToken = this._testCancellationTokenSource.Token;
-            this._timer = new Timer( this.OnTimeout, null, contextOptions.Timeout, contextOptions.Timeout );
-            this._cancellationTokenRegistration = cancellationToken.Register( () => this._testCancellationTokenSource.Cancel() );
         }
         else
         {
@@ -245,7 +268,7 @@ public partial class TestContext : ITempFileManager, IApplicationInfoProvider, I
 
             backstageServices = typedAdditionalServices.BackstageServices.Build( backstageServices );
 
-            this.Logger = backstageServices.GetLoggerFactory().GetLogger( nameof(TestContext) );
+            this.Logger = backstageServices.GetLoggerFactory().GetLogger( nameof(MetalamaTestContext) );
 
             var serviceProvider = ServiceProviderFactory.GetServiceProvider( backstageServices, typedAdditionalServices );
 
@@ -261,6 +284,12 @@ public partial class TestContext : ITempFileManager, IApplicationInfoProvider, I
                 .WithProjectScopedServices( this.ProjectOptions, contextOptions.AdditionalMetadataReferences );
 
             this._plugIns = new Lazy<ImmutableArray<object>>( () => this.LoadPlugIns( contextOptions ) );
+
+            // The timer is started last, because OnTimeout uses the application exit manager, which is assigned above.
+            if ( this._testCancellationTokenSource != null )
+            {
+                this._timer = new Timer( this.OnTimeout, null, contextOptions.Timeout, Timeout.InfiniteTimeSpan );
+            }
         }
         catch
         {
@@ -275,12 +304,20 @@ public partial class TestContext : ITempFileManager, IApplicationInfoProvider, I
 
     private void OnTimeout( object? state )
     {
-        this.TestOutputWriter?.WriteLine( "Timeout. Cancelling the test." );
-        this._testCancellationTokenSource?.Cancel();
-        this._applicationExitManager.OnApplicationExiting();
+        lock ( this._timeoutLock )
+        {
+            if ( this._isTimerStopped )
+            {
+                return;
+            }
+
+            this.TestOutputWriter?.WriteLine( "Timeout. Cancelling the test." );
+            this._testCancellationTokenSource?.Cancel();
+            this._applicationExitManager.OnApplicationExiting();
+        }
     }
 
-    private ImmutableArray<object> LoadPlugIns( TestContextOptions options )
+    private ImmutableArray<object> LoadPlugIns( MetalamaTestContextOptions options )
     {
         if ( options.TestPlugInTypes.IsDefaultOrEmpty )
         {
@@ -399,6 +436,11 @@ public partial class TestContext : ITempFileManager, IApplicationInfoProvider, I
 
         if ( this._isRoot )
         {
+            // The timer is disposed first, and in-flight callbacks are awaited, because OnTimeout uses the cancellation
+            // token source and the application exit manager, which are disposed below. The finalizer does not wait,
+            // because the finalizer thread must not block.
+            this.StopTimer( waitForCallback: disposing );
+
             // Release every synchronization point before anything else, so that a test failing while the code under
             // test is blocked at one does not hang instead of reporting its failure.
             (this.ServiceProvider.Global.Underlying.GetService( typeof(ITestSynchronizationProvider) ) as TestSynchronizationProvider)?.ReleaseAll();
@@ -413,8 +455,6 @@ public partial class TestContext : ITempFileManager, IApplicationInfoProvider, I
             this.ServiceProvider = ProjectServiceProvider.Empty;
 
             this._testCancellationTokenSource?.Dispose();
-            this._cancellationTokenRegistration?.Dispose();
-            this._timer?.Dispose();
 
             // We generally don't want to see any exceptions reported during the test, unless the test opts in. This runs
             // after the resources are released and after finalization is suppressed, so a failed assertion does not leak
@@ -426,11 +466,46 @@ public partial class TestContext : ITempFileManager, IApplicationInfoProvider, I
         }
     }
 
-    ~TestContext()
+    /// <summary>
+    /// Makes the timeout of the context elapse now, so that the timer runs its callback on a thread of the thread pool.
+    /// This method is used by the tests of the context.
+    /// </summary>
+    internal void ExpireTimeout() => this._timer?.Change( TimeSpan.Zero, Timeout.InfiniteTimeSpan );
+
+    /// <summary>
+    /// Stops the timeout timer and, optionally, waits until a callback of the timer that is already running has returned.
+    /// </summary>
+    /// <remarks>
+    /// The lock is reentrant, so a callback that disposes the context on its own thread, for instance through a handler of
+    /// the application exit manager, does not wait for itself.
+    /// </remarks>
+    private void StopTimer( bool waitForCallback )
+    {
+        if ( this._timer == null )
+        {
+            return;
+        }
+
+        if ( waitForCallback )
+        {
+            lock ( this._timeoutLock )
+            {
+                this._isTimerStopped = true;
+            }
+        }
+        else
+        {
+            Volatile.Write( ref this._isTimerStopped, true );
+        }
+
+        this._timer.Dispose();
+    }
+
+    ~MetalamaTestContext()
     {
         this.Dispose( false );
 
-        throw new InvalidOperationException( $"The TestContext allocated at the following call stack was not disposed:\n{this._stackTrace}\n------" );
+        throw new InvalidOperationException( $"The MetalamaTestContext allocated at the following call stack was not disposed:\n{this._stackTrace}\n------" );
     }
 
     public void Dispose() => this.Dispose( true );

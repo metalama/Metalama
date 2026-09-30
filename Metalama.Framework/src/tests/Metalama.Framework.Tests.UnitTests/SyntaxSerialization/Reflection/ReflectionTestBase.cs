@@ -4,7 +4,6 @@
 
 using Metalama.Framework.Engine.Utilities;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Framework.Tests.UnitTests.SyntaxSerialization.Reflection
 {

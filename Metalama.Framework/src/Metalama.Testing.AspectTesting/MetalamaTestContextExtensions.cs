@@ -9,9 +9,9 @@ using System.Linq;
 
 namespace Metalama.Testing.AspectTesting;
 
-internal static class TestContextExtensions
+internal static class MetalamaTestContextExtensions
 {
-    extension( TestContext testContext )
+    extension( MetalamaTestContext testContext )
     {
         public IDiffToolRunner? DiffToolRunner => testContext.PlugIns.OfType<IDiffToolRunner>().SingleOrDefault();
 

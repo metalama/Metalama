@@ -5,7 +5,7 @@
 using Metalama.Framework.DesignTime.Rpc;
 using SharpCrafters.Backstage.Diagnostics;
 using System;
-using Xunit.Abstractions;
+using Xunit;
 
 namespace Metalama.Framework.Tests.UnitTests.Remoting;
 

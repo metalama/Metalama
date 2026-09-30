@@ -104,7 +104,7 @@ public sealed class NotEmptyAttributeTests
         Assert.Contains( "parameter", e.Message, StringComparison.Ordinal );
     }
 
-    [SkippableFact( Skip = "#33302" )]
+    [Fact( Skip = "#33302" )]
     public void Given_StringMethodWithNotEmptyRef_When_IncorrectValueReturned_Then_ExceptionThrown()
     {
         var cut = new NotEmptyTestClass();

@@ -15,7 +15,6 @@ using Microsoft.CodeAnalysis;
 using System;
 using System.Linq;
 using Xunit;
-using Xunit.Abstractions;
 using MethodKind = Metalama.Framework.Code.MethodKind;
 
 namespace Metalama.Framework.Tests.UnitTests.Utilities;

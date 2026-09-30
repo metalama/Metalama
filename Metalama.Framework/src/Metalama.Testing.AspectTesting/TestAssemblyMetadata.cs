@@ -26,6 +26,17 @@ internal sealed record TestAssemblyMetadata(
     ImmutableArray<string> IgnoredWarnings,
     DurableRefKind DurableRefKind = DurableRefKind.Default )
 {
+    public TestProjectProperties ToProjectProperties( string? assemblyName )
+        => new(
+            assemblyName,
+            this.ProjectDirectory,
+            this.SourceDirectory,
+            this.ParserSymbols,
+            this.TargetFramework,
+            this.TargetFrameworks ?? this.TargetFramework,
+            this.IgnoredWarnings,
+            this.DurableRefKind );
+
     public TestProjectReferences ToProjectReferences()
         => new(
             [..this.AssemblyReferences.Select( x => x.ToMetadataReference() )],

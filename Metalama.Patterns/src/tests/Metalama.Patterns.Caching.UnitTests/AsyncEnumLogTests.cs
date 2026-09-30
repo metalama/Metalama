@@ -4,7 +4,6 @@
 
 #if NETCOREAPP3_0_OR_GREATER
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Patterns.Caching.Tests;
 
@@ -87,7 +86,7 @@ public sealed class AsyncEnumLogTests : AsyncEnumTestsBase
         using var cancellationTokenSource = new CancellationTokenSource( TimeSpan.FromMinutes( 1 ) );
 
         // ReSharper disable once NotDisposedResource
-        _ = this.BlockedCachedEnumerable().GetAsyncEnumerator();
+        _ = this.BlockedCachedEnumerable().GetAsyncEnumerator( TestContext.Current.CancellationToken );
 
         await this.FinishBlockingTaskAsync( cancellationTokenSource.Token );
 

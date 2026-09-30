@@ -7,7 +7,6 @@ using Metalama.Patterns.Caching.Implementation;
 using Metalama.Patterns.Caching.TestHelpers;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Patterns.Caching.Tests.Backends;
 
@@ -43,15 +42,15 @@ public sealed partial class CachingBackendDisposalTests : IDisposable
         var backend = this.CreateBackend();
 
         // First dispose
-        backend.Dispose();
+        backend.Dispose( TestContext.Current.CancellationToken );
         Assert.Equal( CachingBackendStatus.Disposed, backend.Status );
 
         // Second dispose - should not throw
-        backend.Dispose();
+        backend.Dispose( TestContext.Current.CancellationToken );
         Assert.Equal( CachingBackendStatus.Disposed, backend.Status );
 
         // Third dispose - should not throw
-        backend.Dispose();
+        backend.Dispose( TestContext.Current.CancellationToken );
         Assert.Equal( CachingBackendStatus.Disposed, backend.Status );
     }
 
@@ -61,15 +60,15 @@ public sealed partial class CachingBackendDisposalTests : IDisposable
         var backend = this.CreateBackend();
 
         // First dispose
-        await backend.DisposeAsync();
+        await backend.DisposeAsync( TestContext.Current.CancellationToken );
         Assert.Equal( CachingBackendStatus.Disposed, backend.Status );
 
         // Second dispose - should not throw
-        await backend.DisposeAsync();
+        await backend.DisposeAsync( TestContext.Current.CancellationToken );
         Assert.Equal( CachingBackendStatus.Disposed, backend.Status );
 
         // Third dispose - should not throw
-        await backend.DisposeAsync();
+        await backend.DisposeAsync( TestContext.Current.CancellationToken );
         Assert.Equal( CachingBackendStatus.Disposed, backend.Status );
     }
 
@@ -81,7 +80,7 @@ public sealed partial class CachingBackendDisposalTests : IDisposable
     public async Task Dispose_CalledConcurrently_BothComplete()
     {
         var backend = this.CreateBackend();
-        await backend.InitializeAsync();
+        await backend.InitializeAsync( TestContext.Current.CancellationToken );
 
         var startSignal = new SemaphoreSlim( 0, 2 );
         var thread1Ready = new TaskCompletionSource<bool>();
@@ -104,7 +103,8 @@ public sealed partial class CachingBackendDisposalTests : IDisposable
                 {
                     thread1Exception = ex;
                 }
-            } );
+            },
+            TestContext.Current.CancellationToken );
 
         var task2 = Task.Run(
             () =>
@@ -120,7 +120,8 @@ public sealed partial class CachingBackendDisposalTests : IDisposable
                 {
                     thread2Exception = ex;
                 }
-            } );
+            },
+            TestContext.Current.CancellationToken );
 
         // Wait for both threads to be ready
         await thread1Ready.Task.WaitWithTimeoutAsync();
@@ -141,7 +142,7 @@ public sealed partial class CachingBackendDisposalTests : IDisposable
     public async Task DisposeAsync_CalledConcurrently_AllCallersComplete()
     {
         var backend = this.CreateBackend();
-        await backend.InitializeAsync();
+        await backend.InitializeAsync( TestContext.Current.CancellationToken );
 
         const int callerCount = 5;
         var barrier = new SemaphoreSlim( 0, callerCount );
@@ -173,7 +174,8 @@ public sealed partial class CachingBackendDisposalTests : IDisposable
                     {
                         exceptions[index] = ex;
                     }
-                } );
+                },
+                TestContext.Current.CancellationToken );
         }
 
         // Wait for all callers to be ready
@@ -236,7 +238,7 @@ public sealed partial class CachingBackendDisposalTests : IDisposable
         // disposal completes even with a cancelled token (the token is only checked
         // when waiting for the initialization semaphore or background tasks)
         var backend = this.CreateBackend();
-        await backend.InitializeAsync();
+        await backend.InitializeAsync( TestContext.Current.CancellationToken );
 
         using var cts = new CancellationTokenSource();
 
@@ -257,20 +259,20 @@ public sealed partial class CachingBackendDisposalTests : IDisposable
     public async Task Dispose_ClearsEventHandlers_EventsNotRaisedAfterDisposal()
     {
         var backend = this.CreateBackend();
-        await backend.InitializeAsync();
+        await backend.InitializeAsync( TestContext.Current.CancellationToken );
 
         var eventRaisedCount = 0;
 
         backend.ItemRemoved += ( _, _ ) => Interlocked.Increment( ref eventRaisedCount );
 
         // Set an item before disposal
-        await backend.SetItemAsync( "key", new CacheItem( "value" ) );
+        await backend.SetItemAsync( "key", new CacheItem( "value" ), TestContext.Current.CancellationToken );
 
         // Start disposal - this should clear event handlers
-        await backend.DisposeAsync();
+        await backend.DisposeAsync( TestContext.Current.CancellationToken );
 
         // Wait a bit to ensure any queued events would have fired
-        await Task.Delay( 100 );
+        await Task.Delay( 100, TestContext.Current.CancellationToken );
 
         // Event should not have been raised after disposal started
         // Note: The ItemRemoved event handler is cleared during disposal
@@ -293,7 +295,7 @@ public sealed partial class CachingBackendDisposalTests : IDisposable
         Assert.Equal( CachingBackendStatus.Default, backend.Status );
 
         // Dispose from default state
-        backend.Dispose();
+        backend.Dispose( TestContext.Current.CancellationToken );
 
         Assert.Equal( CachingBackendStatus.Disposed, backend.Status );
     }
@@ -307,7 +309,7 @@ public sealed partial class CachingBackendDisposalTests : IDisposable
         Assert.Equal( CachingBackendStatus.Default, backend.Status );
 
         // Dispose from default state
-        await backend.DisposeAsync();
+        await backend.DisposeAsync( TestContext.Current.CancellationToken );
 
         Assert.Equal( CachingBackendStatus.Disposed, backend.Status );
     }
@@ -322,11 +324,11 @@ public sealed partial class CachingBackendDisposalTests : IDisposable
         var capturedStatuses = new List<CachingBackendStatus>();
         var backend = new StatusCapturingCachingBackend( this._serviceProvider, capturedStatuses );
 
-        await backend.InitializeAsync();
+        await backend.InitializeAsync( TestContext.Current.CancellationToken );
 
         Assert.Equal( CachingBackendStatus.Initialized, backend.Status );
 
-        await backend.DisposeAsync();
+        await backend.DisposeAsync( TestContext.Current.CancellationToken );
 
         Assert.Equal( CachingBackendStatus.Disposed, backend.Status );
 
@@ -346,7 +348,7 @@ public sealed partial class CachingBackendDisposalTests : IDisposable
 
         Assert.Equal( CachingBackendStatus.Initialized, backend.Status );
 
-        backend.Dispose();
+        backend.Dispose( TestContext.Current.CancellationToken );
 
         Assert.Equal( CachingBackendStatus.Disposed, backend.Status );
 
@@ -364,7 +366,7 @@ public sealed partial class CachingBackendDisposalTests : IDisposable
     public async Task Dispose_MixedSyncAndAsync_BothComplete()
     {
         var backend = this.CreateBackend();
-        await backend.InitializeAsync();
+        await backend.InitializeAsync( TestContext.Current.CancellationToken );
 
         var startSignal = new SemaphoreSlim( 0, 2 );
         var syncReady = new TaskCompletionSource<bool>();
@@ -387,7 +389,8 @@ public sealed partial class CachingBackendDisposalTests : IDisposable
                 {
                     syncException = ex;
                 }
-            } );
+            },
+            TestContext.Current.CancellationToken );
 
         var asyncTask = Task.Run(
             async () =>
@@ -403,7 +406,8 @@ public sealed partial class CachingBackendDisposalTests : IDisposable
                 {
                     asyncException = ex;
                 }
-            } );
+            },
+            TestContext.Current.CancellationToken );
 
         // Wait for both to be ready
         await syncReady.Task.WaitWithTimeoutAsync();

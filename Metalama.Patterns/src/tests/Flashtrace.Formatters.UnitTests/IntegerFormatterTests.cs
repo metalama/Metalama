@@ -5,7 +5,6 @@
 using Flashtrace.Formatters.Implementations;
 using System.Globalization;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Flashtrace.Formatters.UnitTests;
 

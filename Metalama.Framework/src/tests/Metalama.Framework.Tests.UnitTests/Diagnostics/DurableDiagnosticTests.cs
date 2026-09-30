@@ -46,7 +46,7 @@ public sealed class DurableDiagnosticTests : UnitTestClass
     /// <remarks>
     /// <see cref="MetalamaStringFormatter.Instance"/> throws until the static constructor of
     /// <see cref="MetalamaEngineModuleInitializer"/> has run, and no test of this class creates a
-    /// <see cref="TestContext"/>. Without this, the tests pass only when another class has already run in the process.
+    /// <see cref="MetalamaTestContext"/>. Without this, the tests pass only when another class has already run in the process.
     /// </remarks>
     static DurableDiagnosticTests()
     {

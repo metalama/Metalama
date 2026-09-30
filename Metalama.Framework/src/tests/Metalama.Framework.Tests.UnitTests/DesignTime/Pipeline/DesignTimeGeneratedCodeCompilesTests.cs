@@ -10,7 +10,6 @@ using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis;
 using System.Linq;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline;
 
@@ -166,7 +165,7 @@ public sealed class DesignTimeGeneratedCodeCompilesTests : DesignTimePipelineTes
     /// Runs the design-time pipeline over <paramref name="code"/>, adds what it generated to the compilation, and
     /// asserts that the result compiles.
     /// </summary>
-    private void AssertGeneratedCodeCompiles( TestContext testContext, string code )
+    private void AssertGeneratedCodeCompiles( MetalamaTestContext testContext, string code )
     {
         using var projectContext = this.CreateTestContext();
 

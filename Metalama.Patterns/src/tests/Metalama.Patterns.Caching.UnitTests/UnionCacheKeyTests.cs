@@ -7,7 +7,6 @@ using Metalama.Patterns.Caching.Aspects;
 using Metalama.Patterns.Caching.Formatters;
 using Metalama.Patterns.Caching.TestHelpers;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Patterns.Caching.Tests;
 
@@ -57,8 +56,8 @@ public sealed class UnionCacheKeyTests : BaseCachingTests
         var squareResult = Describe( new CachedSquare( 1 ) );
         var squareKey = keyBuilder.LastMethodKey;
 
-        this.TestOutputHelper.WriteLine( circleKey );
-        this.TestOutputHelper.WriteLine( squareKey );
+        this.TestOutputHelper.WriteLine( circleKey ?? "(null)" );
+        this.TestOutputHelper.WriteLine( squareKey ?? "(null)" );
 
         Assert.NotEqual( circleKey, squareKey );
         Assert.NotEqual( circleResult, squareResult );
@@ -81,8 +80,8 @@ public sealed class UnionCacheKeyTests : BaseCachingTests
         Count( 1L );
         var longKey = keyBuilder.LastMethodKey;
 
-        this.TestOutputHelper.WriteLine( intKey );
-        this.TestOutputHelper.WriteLine( longKey );
+        this.TestOutputHelper.WriteLine( intKey ?? "(null)" );
+        this.TestOutputHelper.WriteLine( longKey ?? "(null)" );
 
         Assert.NotEqual( intKey, longKey );
     }

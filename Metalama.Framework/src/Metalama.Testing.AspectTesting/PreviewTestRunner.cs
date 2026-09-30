@@ -18,7 +18,6 @@ using Microsoft.CodeAnalysis.CSharp;
 using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Testing.AspectTesting;
 
@@ -30,7 +29,7 @@ internal sealed class PreviewTestRunner : BaseTestRunner
         TestProjectReferences references,
         ITestOutputHelper? logger ) : base( serviceProvider, projectDirectory, references, logger ) { }
 
-    protected override async Task RunAsync( TestInput testInput, TestResult testResult, TestContext testContext )
+    protected override async Task RunAsync( TestInput testInput, TestResult testResult, MetalamaTestContext testContext )
     {
         await base.RunAsync( testInput, testResult, testContext );
 
