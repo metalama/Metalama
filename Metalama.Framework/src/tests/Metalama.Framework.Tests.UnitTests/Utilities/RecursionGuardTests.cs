@@ -45,8 +45,18 @@ namespace Metalama.Framework.Tests.UnitTests.Utilities
         public RecursionGuardTests( ITestOutputHelper logger ) : base( logger, false ) { }
 
         /// <summary>
+        /// Gets a value indicating whether <see cref="StackLimits"/> supports the current operating system. On these
+        /// operating systems, the tests require <see cref="StackLimits.TryGetAvailableStackSize"/> to succeed, so that a
+        /// defect in the native query cannot pass unnoticed through the fallback behavior of <see cref="SafeSyntaxWalker"/>.
+        /// </summary>
+        private static bool IsStackLimitsSupported
+            => RuntimeInformation.IsOSPlatform( OSPlatform.Windows )
+               || RuntimeInformation.IsOSPlatform( OSPlatform.Linux )
+               || RuntimeInformation.IsOSPlatform( OSPlatform.OSX );
+
+        /// <summary>
         /// Verifies that <see cref="StackLimits"/> returns a plausible value on the current thread and on a thread of the
-        /// thread pool, and that it returns a value on Windows.
+        /// thread pool, and that it returns a value on every operating system that <see cref="StackLimits"/> supports.
         /// </summary>
         [Fact]
         public async Task StackLimitsReturnsPlausibleValue()
@@ -58,7 +68,7 @@ namespace Metalama.Framework.Tests.UnitTests.Utilities
 
             static void AssertPlausible( long? available )
             {
-                if ( RuntimeInformation.IsOSPlatform( OSPlatform.Windows ) )
+                if ( IsStackLimitsSupported )
                 {
                     Assert.NotNull( available );
                 }
@@ -78,11 +88,13 @@ namespace Metalama.Framework.Tests.UnitTests.Utilities
         [Fact]
         public void AvailableStackSizeMatchesRuntimeCheck()
         {
-            if ( !StackLimits.TryGetAvailableStackSize( out _ ) )
+            if ( !IsStackLimitsSupported )
             {
-                // The bounds of the stack are not known on this operating system.
+                // StackLimits does not support this operating system.
                 return;
             }
+
+            Assert.True( StackLimits.TryGetAvailableStackSize( out _ ) );
 
             var availableAtFailure = RunOnThread( 0, FindAvailableStackSizeAtRuntimeFailure );
 

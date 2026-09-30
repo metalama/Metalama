@@ -86,8 +86,13 @@ internal sealed class SyntaxProcessingException : Exception
     /// <remarks>
     /// <para>
     /// The text is built from the tokens of the node. Two tokens are separated by a single space when the source code has
-    /// trivia between them, so that the text is on a single line. A line break would prevent MSBuild from parsing the
-    /// message correctly.
+    /// trivia between them. The text of a token can itself contain line breaks, for instance in a verbatim or raw string
+    /// literal, so each sequence of line break characters is replaced by a single space. The text is therefore on a
+    /// single line. A line break would prevent MSBuild from parsing the message correctly.
+    /// </para>
+    /// <para>
+    /// The characters are appended one by one, and the method returns as soon as the text is longer than the maximum
+    /// length, so that a large token is not copied.
     /// </para>
     /// <para>
     /// This method must not call <see cref="Microsoft.CodeAnalysis.SyntaxNodeExtensions.NormalizeWhitespace{TNode}(TNode, string, string, bool)"/>.
@@ -113,13 +118,28 @@ internal sealed class SyntaxProcessingException : Exception
                     text.Append( ' ' );
                 }
 
-                text.Append( token.Text );
-                previousHasTrailingTrivia = token.HasTrailingTrivia;
-
-                if ( text.Length > maxLength )
+                foreach ( var c in token.Text )
                 {
-                    return text.ToString( 0, maxLength - 3 ) + "...";
+                    if ( c is '\r' or '\n' or '\u0085' or '\u2028' or '\u2029' )
+                    {
+                        // Replace a sequence of line break characters by a single space.
+                        if ( text.Length > 0 && text[text.Length - 1] != ' ' )
+                        {
+                            text.Append( ' ' );
+                        }
+                    }
+                    else
+                    {
+                        text.Append( c );
+                    }
+
+                    if ( text.Length > maxLength )
+                    {
+                        return text.ToString( 0, maxLength - 3 ) + "...";
+                    }
                 }
+
+                previousHasTrailingTrivia = token.HasTrailingTrivia;
             }
 
             return text.ToString();
