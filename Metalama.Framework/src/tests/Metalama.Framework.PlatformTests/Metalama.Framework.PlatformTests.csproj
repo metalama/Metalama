@@ -37,6 +37,12 @@
         <PackageReference Include="xunit.v3" />
         <PackageReference Include="Microsoft.Testing.Extensions.TrxReport" />
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+
+        <!-- Microsoft.CodeAnalysis.Features, which Metalama.Framework.Sdk references, depends on this package, which the tests
+             do not load. Its assets are excluded so that the test archive does not contain it: the build on TeamCity
+             recorded it as a package that is not from nuget.org, which the build configurations of the test agents cannot
+             download, and 'Build.ps1 build' fails in that case. -->
+        <PackageReference Include="Microsoft.CodeAnalysis.Elfie" VersionOverride="1.0.0" ExcludeAssets="all" PrivateAssets="all" />
     </ItemGroup>
 
     <ItemGroup>
