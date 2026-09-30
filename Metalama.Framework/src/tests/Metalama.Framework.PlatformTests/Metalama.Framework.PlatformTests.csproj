@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!--
+      The platform tests test the code whose behavior depends on the operating system, for instance StackLimits. They are
+      Microsoft.Testing.Platform applications (xunit.v3), which PostSharp.Engineering packs into test archives and runs on
+      Linux and macOS (see Metalama.Framework/docs/testing.md). The other test projects use xunit v2 and VSTest, which
+      cannot run a Microsoft.Testing.Platform application, so this project is in its own solution,
+      Metalama.Framework.PlatformTests.sln, which 'Build.ps1 build' builds and 'Build.ps1 test' does not test. On Windows,
+      eng/src/Program.cs runs the tests after the other tests.
+
+      This project must not reference Metalama.Testing.UnitTesting or Metalama.Backstage.Testing, which use xunit v2.
+    -->
+
+    <PropertyGroup>
+        <TargetFrameworks>net48;net8.0</TargetFrameworks>
+        <OutputType>Exe</OutputType>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <RootNamespace>Metalama.Framework.Tests.PlatformTests</RootNamespace>
+
+        <!-- Read by PostSharp.Engineering, which discovers the test applications without restoring them. -->
+        <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
+        <IsTestingPlatformApplication>true</IsTestingPlatformApplication>
+    </PropertyGroup>
+
+    <!-- The platforms of the test archives. The tests run on Windows in the build (see eng/src/Program.cs), so the .NET
+         Framework build is not a test archive, and the .NET archive runs on Linux and macOS only. The .NET Framework build
+         remains an executable of Microsoft.Testing.Platform, which eng/src/Program.cs runs. -->
+    <PropertyGroup Condition="'$(TargetFramework)' == 'net48'">
+        <IsTestingPlatformApplication>false</IsTestingPlatformApplication>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0'">
+        <TestApplicationPlatforms>linux-x64;osx-arm64</TestApplicationPlatforms>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="xunit.v3" />
+        <PackageReference Include="Microsoft.Testing.Extensions.TrxReport" />
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="../../Metalama.Framework.Sdk/Metalama.Framework.Sdk.csproj" />
+    </ItemGroup>
+
+</Project>

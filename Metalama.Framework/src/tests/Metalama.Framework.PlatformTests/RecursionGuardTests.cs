@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Engine.Utilities.Roslyn;
-using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -16,19 +15,24 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
-using Xunit.Abstractions;
 
-namespace Metalama.Framework.Tests.UnitTests.Utilities
+namespace Metalama.Framework.Tests.PlatformTests
 {
     /// <summary>
     /// Tests for the recursion guard of <see cref="SafeSyntaxWalker"/> and <see cref="SafeSyntaxRewriter"/>, and for
     /// <see cref="StackLimits"/>.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// The tests run the visitors on threads that they create with a stack of 1 MB. This reproduces the hosts whose threads
     /// have a stack of 1 MB, such as Visual Studio, whatever the stack size of the threads of the test runner is.
+    /// </para>
+    /// <para>
+    /// <see cref="StackLimits"/> queries the operating system and applies the margin of the runtime, so these tests are
+    /// platform tests: they run on Windows, Linux and macOS, on .NET Framework and on .NET.
+    /// </para>
     /// </remarks>
-    public sealed class RecursionGuardTests : UnitTestClass
+    public sealed class RecursionGuardTests
     {
         /// <summary>
         /// The stack size of the threads that the tests create.
@@ -42,7 +46,15 @@ namespace Metalama.Framework.Tests.UnitTests.Utilities
         /// </summary>
         private const int _callCount = 1400;
 
-        public RecursionGuardTests( ITestOutputHelper logger ) : base( logger, false ) { }
+        /// <summary>
+        /// The output of the current test.
+        /// </summary>
+        private readonly ITestOutputHelper _testOutput;
+
+        public RecursionGuardTests( ITestOutputHelper testOutput )
+        {
+            this._testOutput = testOutput;
+        }
 
         /// <summary>
         /// Gets a value indicating whether <see cref="StackLimits"/> supports the current operating system. On these
@@ -62,7 +74,7 @@ namespace Metalama.Framework.Tests.UnitTests.Utilities
         public async Task StackLimitsReturnsPlausibleValue()
         {
             AssertPlausible( GetAvailableStackSize() );
-            AssertPlausible( await Task.Run( GetAvailableStackSize, CancellationToken.None ) );
+            AssertPlausible( await Task.Run( GetAvailableStackSize, TestContext.Current.CancellationToken ) );
 
             static long? GetAvailableStackSize() => StackLimits.TryGetAvailableStackSize( out var available ) ? available : null;
 
@@ -98,7 +110,7 @@ namespace Metalama.Framework.Tests.UnitTests.Utilities
 
             var availableAtFailure = RunOnThread( 0, FindAvailableStackSizeAtRuntimeFailure );
 
-            this.TestOutput.WriteLine( $"Available stack size when the runtime check fails: {availableAtFailure} bytes." );
+            this._testOutput.WriteLine( $"Available stack size when the runtime check fails: {availableAtFailure} bytes." );
 
             Assert.InRange( availableAtFailure, -16 * 1024, 16 * 1024 );
         }
@@ -219,7 +231,7 @@ namespace Metalama.Framework.Tests.UnitTests.Utilities
                     return walker.BytesPerLevel;
                 } );
 
-            this.TestOutput.WriteLine( bytesPerLevel == null ? "The bounds of the stack are not known." : $"Stack usage: {bytesPerLevel} bytes per level." );
+            this._testOutput.WriteLine( bytesPerLevel == null ? "The bounds of the stack are not known." : $"Stack usage: {bytesPerLevel} bytes per level." );
         }
 
         /// <summary>

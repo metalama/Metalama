@@ -151,6 +151,11 @@
     <PackageVersion Include="xunit.assemblyfixture" Condition="'$(TargetFramework)'!='net472'" Version="2.2.0" />
     <PackageVersion Include="xunit.assemblyfixture" Condition="'$(TargetFramework)'=='net472'" Version="2.0.3" />
     <PackageVersion Include="Xunit.SkippableFact" Version="1.5.61" />
+
+    <!-- The platform tests (Metalama.Framework.PlatformTests) are Microsoft.Testing.Platform applications, so that
+         PostSharp.Engineering can run them on Linux and macOS as test archives. They use xunit.v3, unlike the other tests. -->
+    <PackageVersion Include="xunit.v3" Version="4.0.1" />
+    <PackageVersion Include="Microsoft.Testing.Extensions.TrxReport" Version="2.4.1" />
     <PackageVersion Include="coverlet.collector" Version="6.0.4" />
     <PackageVersion Include="coverlet.msbuild" Version="6.0.4" />
 

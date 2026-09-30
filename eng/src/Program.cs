@@ -11,6 +11,7 @@ using PostSharp.Engineering.BuildTools.Build.Model;
 using PostSharp.Engineering.BuildTools.Build.Solutions;
 using PostSharp.Engineering.BuildTools.ContinuousIntegration.Model;
 using PostSharp.Engineering.BuildTools.Docker;
+using PostSharp.Engineering.BuildTools.Tools.TeamCity;
 using PostSharp.Engineering.BuildTools.Utilities;
 using System;
 using System.IO;
@@ -83,6 +84,13 @@ var product = new Product( MetalamaDependencies.Metalama )
                 "**\\*.props", "**\\*.targets", "**\\*.csproj", "**\\*.md", "**\\*.xml", "**\\*.config"
             ]
         },
+        // The platform tests are Microsoft.Testing.Platform applications, which the VSTest mode of 'dotnet test' refuses, so the
+        // solution is built but not tested. The build packs them into test archives, which the TestAgents run on Linux and
+        // macOS, and OnTestCompleted runs them on Windows.
+        new DotNetSolution( "Metalama.Framework/Metalama.Framework.PlatformTests.sln" )
+        {
+            BuildMethod = BuildMethod.Build, TestMethod = BuildMethod.None, ContainsTestApplications = true
+        },
         new DotNetSolution( "Metalama.Framework/src/tests/Metalama.Framework.TestApp\\Metalama.Framework.TestApp.sln" )
         {
             IsTestOnly = true, TestMethod = BuildMethod.Build
@@ -151,6 +159,8 @@ var product = new Product( MetalamaDependencies.Metalama )
             BuildConfiguration.Debug,
             c => c with
             {
+                // The Debug build writes the test archives that the TestAgents run.
+                RunsTestArchives = true,
                 AdditionalArtifactRules =
                 [
                     @"+:%system.teamcity.build.tempDir%/Metalama/ExtractExceptions/**/*=>logs",
@@ -205,12 +215,49 @@ var product = new Product( MetalamaDependencies.Metalama )
         new DependentPackageExclusion( "Flashtrace", "Current repository." )
     ],
     AddWslSupport = true,
+
+    // The Linux image of the platform tests. The product builds on Windows only, so this image runs the test archives and
+    // builds nothing: it needs PowerShell, which RunTests.ps1 requires, and the runtime of the tests, which the .NET 8 SDK
+    // includes.
+    AdditionalDockerfiles =
+    [
+        new AdditionalDockerfile( "linux-x64", [] )
+        {
+            Requirements = new ContainerRequirements( ContainerHostKind.Linux )
+            {
+                OperatingSystem = ContainerOperatingSystem.Linux,
+                Components =
+                [
+                    new PowershellComponent( ContainerArchitecture.X64 ),
+                    new DotNetComponent( preferredVersions.DotNetSdk.V_8_0, DotNetComponentKind.Sdk )
+                ]
+            }
+        }
+    ],
+
+    // The agents that run the test archives of the platform tests (Metalama.Framework.PlatformTests). Linux runs them in a
+    // container, and macOS on the agent, because no container engine provides a macOS container.
+    TestAgents =
+    [
+        new TestAgent( "linux-x64", "PlatformTestLinuxX64", "Platform Tests Linux x64", CreateLinuxContainerHostRequirements() )
+        {
+            Dockerfile = "eng/docker/linux-x64-build.Dockerfile", ProjectFolder = "Platform Tests"
+        },
+        new TestAgent(
+            "osx-arm64",
+            "PlatformTestMacOsArm64",
+            "Platform Tests macOS ARM64",
+            new BuildAgentRequirements(
+                new BuildAgentRequirement( "teamcity.agent.jvm.os.name", "Mac OS X" ),
+                new BuildAgentRequirement( "teamcity.agent.jvm.os.arch", "aarch64" ) ) ) { ProjectFolder = "Platform Tests" }
+    ],
     AdditionalCiBuildConfigurations = DockerTestsAdditionalCiBuildConfiguration.WithCompositeConfiguration(
         CreateDockerTestConfiguration( DockerTestPlatform.WindowsX64, "Windows x64" ),
         CreateDockerTestConfiguration( DockerTestPlatform.LinuxX64, "Linux x64" ) )
 };
 
 product.PrepareCompleted += OnPrepareCompleted;
+product.TestCompleted += OnTestCompleted;
 
 return new EngineeringApp( product ).Run( args );
 
@@ -238,6 +285,87 @@ static void OnPrepareCompleted( PrepareCompletedEventArgs args )
 
     GenerateMetaSyntaxRewriter.Generate( srcDirectory );
 }
+
+// Runs the platform tests (Metalama.Framework.PlatformTests) on Windows, for .NET Framework and for .NET.
+//
+// The platform tests are Microsoft.Testing.Platform applications, which the VSTest mode of 'dotnet test' refuses, so the
+// test step does not run them. This handler runs the executables of the build instead, writes their TRX reports to the test
+// results directory, and imports the reports into TeamCity. The TestAgents run the same tests on Linux and macOS.
+//
+// The test command does not read BuildCompletedEventArgs.IsFailed after this event, so the handler also throws
+// an exception when a test run fails, which fails the command.
+static void OnTestCompleted( BuildCompletedEventArgs args )
+{
+    const string projectName = "Metalama.Framework.PlatformTests";
+
+    var context = args.Context;
+    var msbuildConfiguration = context.Product.DependencyDefinition.MSBuildConfiguration[args.Settings.BuildConfiguration];
+
+    var outputDirectory = Path.Combine(
+        context.RepoDirectory,
+        "Metalama.Framework",
+        "src",
+        "tests",
+        projectName,
+        "bin",
+        msbuildConfiguration );
+
+    var resultsDirectory = Path.Combine( context.RepoDirectory, context.Product.TestResultsDirectory, projectName );
+
+    context.Console.WriteHeading( "Running the platform tests" );
+
+    var runs = new (string TargetFramework, string FileName, string EntryArgument)[]
+    {
+        ("net48", Path.Combine( outputDirectory, "net48", $"{projectName}.exe" ), ""),
+        ("net8.0", "dotnet", $"\"{Path.Combine( outputDirectory, "net8.0", $"{projectName}.dll" )}\" ")
+    };
+
+    var success = true;
+
+    foreach ( var run in runs )
+    {
+        var runResultsDirectory = Path.Combine( resultsDirectory, run.TargetFramework );
+
+        if ( !ToolInvocationHelper.InvokeTool(
+                context.Console,
+                run.FileName,
+                $"{run.EntryArgument}--report-trx --results-directory \"{runResultsDirectory}\"",
+                Path.Combine( outputDirectory, run.TargetFramework ) ) )
+        {
+            success = false;
+        }
+
+        if ( context.IsContinuousIntegrationBuild && Directory.Exists( runResultsDirectory ) )
+        {
+            foreach ( var report in Directory.EnumerateFiles( runResultsDirectory, "*.trx", SearchOption.AllDirectories ) )
+            {
+                TeamCityHelper.SendImportDataMessage( "mstest", report.Replace( Path.DirectorySeparatorChar, '/' ), projectName, false );
+            }
+        }
+    }
+
+    if ( !success )
+    {
+        args.IsFailed = true;
+
+        throw new InvalidOperationException( "The platform tests failed on Windows. See the output above." );
+    }
+}
+
+// Creates the requirements of the Linux agents that run the test archives in a container.
+//
+// The requirements that PostSharp.Engineering derives for a Linux container host ask for an env.BuildAgentType that
+// the Linux agents do not publish, so no agent would be compatible. The operating system and the architecture are what the
+// agents publish.
+static ContainerHostRequirements CreateLinuxContainerHostRequirements()
+    => new ContainerHostRequirements( ContainerHostKind.Linux ) with
+    {
+        Items =
+        [
+            new BuildAgentRequirement( "teamcity.agent.jvm.os.name", "Linux" ),
+            new BuildAgentRequirement( "teamcity.agent.jvm.os.arch", "amd64" )
+        ]
+    };
 
 /// <summary>
 /// Creates the configuration that runs the Docker-based tests of one platform.

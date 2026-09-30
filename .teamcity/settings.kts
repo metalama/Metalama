@@ -16,12 +16,14 @@ project {
     buildType(PublicBuild)
     buildType(PublicDeployment)
     buildType(UpstreamMerge)
+    buildType(RunAllTestArchives)
 
-    buildTypesOrder = arrayListOf(DebugBuild,ReleaseBuild,PublicBuild,PublicDeployment,UpstreamMerge)
+    buildTypesOrder = arrayListOf(DebugBuild,ReleaseBuild,PublicBuild,PublicDeployment,UpstreamMerge,RunAllTestArchives)
 
     subProject(DockerTests)
+    subProject(PlatformTests)
 
-    subProjectsOrder = arrayListOf(DockerTests)
+    subProjectsOrder = arrayListOf(DockerTests,PlatformTests)
 
 }
 
@@ -34,6 +36,7 @@ object DebugBuild : BuildType({
 +:artifacts/testResults/**/*=>artifacts/testResults
 +:artifacts/logs/**/*=>logs
 +:artifacts/dumps/**/*=>dumps
++:artifacts/tests/*.zip=>artifacts/tests
 -:%system.teamcity.build.tempDir%/Metalama/CrashReports/**/*.dmp=>logs
 +:%system.teamcity.build.tempDir%/Metalama/CrashReports/**/*=>logs
 +:%system.teamcity.build.tempDir%/Metalama/Extract/**/.completed=>logs
@@ -577,6 +580,37 @@ object UpstreamMerge : BuildType({
 
 })
 
+object RunAllTestArchives : BuildType({
+
+    name = "Run All Test Archives"
+
+    type = Type.COMPOSITE
+
+    vcs {
+        root(AbsoluteId("Metalama_Metalama20261_Metalama"))
+        showDependenciesChanges = true
+     checkoutMode = CheckoutMode.ON_AGENT
+    }
+
+    features {
+        gitHubAppBuildScopedToken {
+            parameterName = "env.GITHUB_TOKEN"
+            connectionId = "%GITHUB_CONNECTION_METALAMA%"
+            targetRepositories = "Metalama"
+        }
+    }
+
+    dependencies {
+        snapshot(PlatformTestLinuxX64Net80) {
+                 onDependencyFailure = FailureAction.FAIL_TO_START
+        }
+        snapshot(PlatformTestMacOsArm64Net80) {
+                 onDependencyFailure = FailureAction.FAIL_TO_START
+        }
+     }
+
+})
+
 object DockerTestsWindowsX64 : BuildType({
 
     name = "Docker Tests (Windows x64)"
@@ -824,6 +858,189 @@ object RunAllDockerTests : BuildType({
 
 })
 
+object PlatformTestLinuxX64Net80 : BuildType({
+
+    name = "Platform Tests Linux x64: net8.0"
+
+    artifactRules = """+:artifacts/testResults/**/*=>artifacts/testResults"""
+
+    params {
+        text(
+            "Exec.Arguments", 
+            "", 
+            label ="DockerBuild.ps1 Arguments",
+            description = "Arguments to append to the 'Execute eng/RunTests.ps1' build step.", allowEmpty = true)
+    }
+
+    vcs {
+        root(AbsoluteId("Metalama_Metalama20261_Metalama"))
+     checkoutMode = CheckoutMode.ON_AGENT
+    }
+
+    steps {
+        powerShell {
+            name = "Clean NuGet cache of produced and dependency packages"
+            id = "CleanNuGetCache"
+            edition = PowerShellStep.Edition.Core
+            scriptMode = file {
+                path = "eng/CleanUpBuildAgent.ps1"
+            }
+            noProfile = false
+            scriptArgs = "-DeferToContainer "
+        }
+        powerShell {
+            name = "Prepare Docker image metalama-2026.1-platformtestlinuxx64net80"
+            id = "PrepareImage"
+            edition = PowerShellStep.Edition.Core
+            scriptMode = file {
+                path = "DockerBuild.ps1"
+            }
+            noProfile = false
+            scriptArgs = "-BuildImage -ImageName metalama-2026.1-platformtestlinuxx64net80 -Dockerfile eng/docker/linux-x64-build.Dockerfile "
+        }
+        powerShell {
+            name = "Execute eng/RunTests.ps1"
+            id = "Exec"
+            edition = PowerShellStep.Edition.Core
+            scriptMode = file {
+                path = "DockerBuild.ps1"
+            }
+            noProfile = false
+            scriptArgs = "-Script eng/RunTests.ps1 -ImageName metalama-2026.1-platformtestlinuxx64net80 -Dockerfile eng/docker/linux-x64-build.Dockerfile -NoBuildImage -Label %system.teamcity.buildType.id%_%build.number% -Platform linux-x64 %Exec.Arguments%"
+        }
+        powerShell {
+            name = "Clean up the build agent"
+            id = "DockerCleanup"
+            executionMode = BuildStep.ExecutionMode.ALWAYS
+            edition = PowerShellStep.Edition.Core
+            scriptMode = file {
+                path = "eng/CleanUpBuildAgent.ps1"
+            }
+            noProfile = false
+            scriptArgs = "-After -BuildLabel %system.teamcity.buildType.id%_%build.number% "
+        }
+    }
+
+    requirements {
+        equals("teamcity.agent.jvm.os.name", "Linux")
+        equals("teamcity.agent.jvm.os.arch", "amd64")
+    }
+
+    features {
+        swabra {
+            filesCleanup = Swabra.FilesCleanup.BEFORE_BUILD
+            lockingProcesses = Swabra.LockingProcessPolicy.KILL
+            verbose = true
+        }
+        gitHubAppBuildScopedToken {
+            parameterName = "env.GITHUB_TOKEN"
+            connectionId = "%GITHUB_CONNECTION_METALAMA%"
+            targetRepositories = "Metalama"
+        }
+    }
+
+    dependencies {
+        snapshot(DebugBuild) {
+                 onDependencyFailure = FailureAction.FAIL_TO_START
+        }
+
+        artifacts(DebugBuild) { 
+            cleanDestination = true
+            artifactRules = "+:artifacts/tests/Metalama.Framework.PlatformTests.net8.0.zip=>artifacts/tests"
+        }
+        snapshot(AbsoluteId("Metalama_Metalama20261_MetalamaCompiler_ReleaseBuild")) {
+                 onDependencyFailure = FailureAction.FAIL_TO_START
+        }
+
+        artifacts(AbsoluteId("Metalama_Metalama20261_MetalamaCompiler_ReleaseBuild")) { 
+            cleanDestination = true
+            artifactRules = "+:artifacts/packages/Release/Shipping/Metalama.Compiler.Sdk.*.nupkg=>artifacts/test-packages/Metalama.Compiler"
+        }
+     }
+
+})
+
+object PlatformTestMacOsArm64Net80 : BuildType({
+
+    name = "Platform Tests macOS ARM64: net8.0"
+
+    artifactRules = """+:artifacts/testResults/**/*=>artifacts/testResults"""
+
+    params {
+        text(
+            "Exec.Arguments", 
+            "", 
+            label ="eng/RunTests.ps1 Arguments",
+            description = "Arguments to append to the 'Execute eng/RunTests.ps1' build step.", allowEmpty = true)
+    }
+
+    vcs {
+        root(AbsoluteId("Metalama_Metalama20261_Metalama"))
+     checkoutMode = CheckoutMode.ON_AGENT
+    }
+
+    steps {
+        powerShell {
+            name = "Clean NuGet cache of produced and dependency packages"
+            id = "CleanNuGetCache"
+            edition = PowerShellStep.Edition.Core
+            scriptMode = file {
+                path = "eng/CleanUpBuildAgent.ps1"
+            }
+            noProfile = false
+            scriptArgs = " "
+        }
+        powerShell {
+            name = "Execute eng/RunTests.ps1"
+            id = "Exec"
+            edition = PowerShellStep.Edition.Core
+            scriptMode = file {
+                path = "eng/RunTests.ps1"
+            }
+            noProfile = false
+            scriptArgs = "-Platform osx-arm64 %Exec.Arguments%"
+        }
+    }
+
+    requirements {
+        equals("teamcity.agent.jvm.os.name", "Mac OS X")
+        equals("teamcity.agent.jvm.os.arch", "aarch64")
+    }
+
+    features {
+        swabra {
+            filesCleanup = Swabra.FilesCleanup.BEFORE_BUILD
+            lockingProcesses = Swabra.LockingProcessPolicy.KILL
+            verbose = true
+        }
+        gitHubAppBuildScopedToken {
+            parameterName = "env.GITHUB_TOKEN"
+            connectionId = "%GITHUB_CONNECTION_METALAMA%"
+            targetRepositories = "Metalama"
+        }
+    }
+
+    dependencies {
+        snapshot(DebugBuild) {
+                 onDependencyFailure = FailureAction.FAIL_TO_START
+        }
+
+        artifacts(DebugBuild) { 
+            cleanDestination = true
+            artifactRules = "+:artifacts/tests/Metalama.Framework.PlatformTests.net8.0.zip=>artifacts/tests"
+        }
+        snapshot(AbsoluteId("Metalama_Metalama20261_MetalamaCompiler_ReleaseBuild")) {
+                 onDependencyFailure = FailureAction.FAIL_TO_START
+        }
+
+        artifacts(AbsoluteId("Metalama_Metalama20261_MetalamaCompiler_ReleaseBuild")) { 
+            cleanDestination = true
+            artifactRules = "+:artifacts/packages/Release/Shipping/Metalama.Compiler.Sdk.*.nupkg=>artifacts/test-packages/Metalama.Compiler"
+        }
+     }
+
+})
+
 object DockerTests : Project({
 
     name = "Docker Tests"
@@ -833,5 +1050,15 @@ object DockerTests : Project({
     buildType(RunAllDockerTests)
 
     buildTypesOrder = arrayListOf(DockerTestsWindowsX64,DockerTestsLinuxX64,RunAllDockerTests)
+
+})
+object PlatformTests : Project({
+
+    name = "Platform Tests"
+
+    buildType(PlatformTestLinuxX64Net80)
+    buildType(PlatformTestMacOsArm64Net80)
+
+    buildTypesOrder = arrayListOf(PlatformTestLinuxX64Net80,PlatformTestMacOsArm64Net80)
 
 })
