@@ -7,6 +7,7 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Code.Collections;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 using Metalama.Framework.Engine.CodeModel.References;
+using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Utilities;
 using System;
 using System.Collections.Generic;
@@ -64,5 +65,7 @@ internal sealed class IntroducedAttribute : IntroducedDeclaration, IAttribute
 
     public override bool CanBeInherited => false;
 
-    public override IEnumerable<IDeclaration> GetDerivedDeclarations( DerivedTypesOptions options = default ) => [];
+    public override IEnumerable<IDeclaration> GetDerivedDeclarations(
+        DerivedTypesOptions options = DerivedTypesOptions.Default,
+        IDiagnosticAdder? diagnosticAdder = null ) => [];
 }

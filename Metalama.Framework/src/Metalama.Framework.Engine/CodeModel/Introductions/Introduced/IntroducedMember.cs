@@ -7,6 +7,7 @@ using Metalama.Framework.Engine.CodeModel.Abstractions;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.CodeModel.Source;
+using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Utilities;
 using System.Collections.Generic;
 
@@ -41,13 +42,15 @@ internal abstract class IntroducedMember : IntroducedMemberOrNamedType, IMemberI
     /// <remarks>
     /// The enumeration reads <see cref="DeclaringType"/>, which resolves a reference and therefore throws when the
     /// declaring type is absent from the compilation this member is read in. That absence is an error situation, and
-    /// <see cref="IntroducedMemberOrNamedType.TryGetDeclaringType"/> logs it, but it does not have to terminate the
-    /// pipeline here: a member whose declaring type is absent from a compilation has no derived declaration in that
-    /// compilation, so the empty result is correct. See issue #2048.
+    /// <see cref="IntroducedMemberOrNamedType.TryGetDeclaringType"/> reports it as an error diagnostic, but it does not
+    /// have to terminate the pipeline here: a member whose declaring type is absent from a compilation has no derived
+    /// declaration in that compilation, so the empty result is correct. See issue #2048.
     /// </remarks>
-    public override IEnumerable<IDeclaration> GetDerivedDeclarations( DerivedTypesOptions options = default )
+    public override IEnumerable<IDeclaration> GetDerivedDeclarations(
+        DerivedTypesOptions options = DerivedTypesOptions.Default,
+        IDiagnosticAdder? diagnosticAdder = null )
     {
-        if ( !this.CanBeInherited || !this.TryGetDeclaringType( out _ ) )
+        if ( !this.CanBeInherited || !this.TryGetDeclaringType( out _, diagnosticAdder ) )
         {
             return [];
         }

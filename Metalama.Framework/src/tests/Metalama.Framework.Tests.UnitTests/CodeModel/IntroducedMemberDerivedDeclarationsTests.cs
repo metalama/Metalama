@@ -7,6 +7,7 @@ using Metalama.Framework.Engine.AdviceImpl.Introduction;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.Abstractions;
 using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
+using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Testing.UnitTesting;
 using System.Linq;
 using Xunit;
@@ -47,15 +48,18 @@ public sealed class IntroducedMemberDerivedDeclarationsTests : UnitTestClass
 
         Assert.Equal( "BaseClass", introducedMethod.DeclaringType.Name );
 
-        var derivedDeclarations = ((IDeclarationImpl) introducedMethod).GetDerivedDeclarations().ToList();
+        var diagnostics = new DiagnosticBag();
+        var derivedDeclarations = ((IDeclarationImpl) introducedMethod).GetDerivedDeclarations( diagnosticAdder: diagnostics ).ToList();
 
         Assert.Empty( derivedDeclarations );
+        Assert.Empty( diagnostics );
     }
 
     /// <summary>
     /// Verifies that the derived declarations of an introduced member are enumerated as an empty sequence, instead of
     /// raising <see cref="Metalama.Framework.Engine.CodeModel.SymbolNotFoundException"/>, when the declaring type of
-    /// that member is absent from the compilation the member is read in.
+    /// that member is absent from the compilation the member is read in, and that the absence is reported as an error
+    /// diagnostic.
     /// </summary>
     [Fact]
     public void DerivedDeclarationsAreEmptyWhenTheDeclaringTypeIsAbsentFromTheCompilation()
@@ -69,9 +73,11 @@ public sealed class IntroducedMemberDerivedDeclarationsTests : UnitTestClass
 
         var foreignFacade = introducedMethod.ToRef().GetTarget( otherCompilation );
 
-        var derivedDeclarations = ((IDeclarationImpl) foreignFacade).GetDerivedDeclarations().ToList();
+        var diagnostics = new DiagnosticBag();
+        var derivedDeclarations = ((IDeclarationImpl) foreignFacade).GetDerivedDeclarations( diagnosticAdder: diagnostics ).ToList();
 
         Assert.Empty( derivedDeclarations );
+        Assert.Equal( GeneralDiagnosticDescriptors.IntroducedDeclaringTypeNotFound.Id, Assert.Single( diagnostics ).Id );
     }
 
     private const string _code = """

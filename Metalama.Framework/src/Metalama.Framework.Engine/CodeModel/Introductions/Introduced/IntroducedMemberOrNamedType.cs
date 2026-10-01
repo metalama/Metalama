@@ -2,11 +2,10 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Backstage.Diagnostics;
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.CodeModel.Abstractions;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
-using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Utilities;
 using System;
 using System.Diagnostics.CodeAnalysis;
@@ -49,7 +48,7 @@ internal abstract class IntroducedMemberOrNamedType : IntroducedNamedDeclaration
     /// compilation does not contain the declaring type. This method is the non-throwing form, for the callers that
     /// can continue after that error instead of propagating it. See issue #2048.
     /// </remarks>
-    public bool TryGetDeclaringType( [NotNullWhen( true )] out INamedType? declaringType )
+    public bool TryGetDeclaringType( [NotNullWhen( true )] out INamedType? declaringType, IDiagnosticAdder? diagnosticAdder = null )
     {
         var declaringTypeRef = this.MemberOrNamedTypeBuilderData.DeclaringType;
 
@@ -66,12 +65,11 @@ internal abstract class IntroducedMemberOrNamedType : IntroducedNamedDeclaration
         if ( declaringType == null )
         {
             // An introduced declaration whose declaring type is absent from the compilation it is read in is an
-            // error situation. It is not propagated as an exception, but it must not go unnoticed either.
-            this.Compilation.Project.ServiceProvider.GetLoggerFactory()
-                .GetLogger( nameof(IntroducedMemberOrNamedType) )
-                .Warning?.Log(
-                    $"The declaring type '{declaringTypeRef}' of the introduced '{this.MemberOrNamedTypeBuilderData}' does not resolve in the "
-                    + $"compilation '{this.Compilation.Identity}'." );
+            // error situation. It is not propagated as an exception, but it is reported as an error.
+            diagnosticAdder?.Report(
+                GeneralDiagnosticDescriptors.IntroducedDeclaringTypeNotFound.CreateRoslynDiagnostic(
+                    null,
+                    (declaringTypeRef.ToString() ?? "", this.MemberOrNamedTypeBuilderData.ToString() ?? "", this.Compilation.Identity.ToString() ?? "") ) );
 
             return false;
         }
