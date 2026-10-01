@@ -241,42 +241,15 @@ public abstract class BaseEndpoint : IDisposable
         }
         catch ( Exception e )
         {
-            this.ReportFinalizerException( e );
-        }
-    }
-
-    /// <summary>
-    /// Reports an exception thrown by <see cref="Dispose(bool)"/> on the finalizer thread. This method never throws.
-    /// </summary>
-    /// <remarks>
-    /// The logger is null when the constructor has failed, and it can be unusable on the finalizer thread. In both cases,
-    /// the exception is reported to the trace listeners, which do not depend on the state of the endpoint.
-    /// </remarks>
-    private void ReportFinalizerException( Exception exception )
-    {
-        try
-        {
-            var logger = this.Logger;
-
-            if ( logger != null )
+            // The logger is null when the constructor has failed, and it can be unusable on the finalizer thread.
+            try
             {
-                logger.Error?.Log( $"Finalizing the endpoint '{this.PipeName}' failed: {exception}" );
-
-                return;
+                this.Logger?.Error?.Log( $"Finalizing the endpoint '{this.PipeName}' failed: {e}" );
             }
-        }
-        catch
-        {
-            // The logger is unusable. The exception is reported to the trace listeners below.
-        }
-
-        try
-        {
-            Trace.TraceError( $"Finalizing the endpoint '{this.PipeName}' failed: {exception}" );
-        }
-        catch
-        {
-            // The exception cannot be reported.
+            catch
+            {
+                // The exception cannot be reported.
+            }
         }
     }
 }
