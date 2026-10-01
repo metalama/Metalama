@@ -4,6 +4,7 @@
 
 using Metalama.Framework.DesignTime.Rpc;
 using System;
+using System.Diagnostics;
 using System.Reflection;
 #if NET
 using System.Runtime.CompilerServices;
@@ -63,6 +64,41 @@ public sealed partial class EndpointFinalizerTests : RpcUnitTestClass
     }
 
     /// <summary>
+    /// Tests the finalizer of an endpoint whose <c>Dispose( false )</c> throws and whose logger throws when it reports
+    /// the exception. The exception is then reported to the trace listeners.
+    /// </summary>
+    [Fact]
+    public void Finalize_DisposeThrowsAndLoggerThrows_ReportsToTraceListeners()
+    {
+        using var testContext = this.CreateRpcTestContext();
+
+        var pipeName = $"{nameof(EndpointFinalizerTests)}_{Guid.NewGuid()}";
+        var serviceProvider = new ThrowingLoggerServiceProvider( testContext.ServiceProvider );
+
+        using var endpoint = new ThrowingServerEndpoint( serviceProvider, pipeName );
+
+        var messages = RecordTraceMessages( () => InvokeFinalizer( endpoint ) );
+
+        Assert.True( endpoint.DisposeWasCalledFromFinalizer );
+        Assert.Contains( messages, m => m.Contains( pipeName ) && m.Contains( ThrowingServerEndpoint.ExceptionMessage ) );
+    }
+
+    /// <summary>
+    /// Tests the finalizer of an endpoint whose constructor failed before it assigned the logger, and whose
+    /// <c>Dispose( false )</c> throws. The exception is then reported to the trace listeners.
+    /// </summary>
+    [Fact]
+    public void Finalize_DisposeThrowsWithoutLogger_ReportsToTraceListeners()
+    {
+        var endpoint = (ThrowingServerEndpoint) CreateUninitializedEndpoint( typeof(ThrowingServerEndpoint) );
+
+        var messages = RecordTraceMessages( () => InvokeFinalizer( endpoint ) );
+
+        Assert.True( endpoint.DisposeWasCalledFromFinalizer );
+        Assert.Contains( messages, m => m.Contains( ThrowingServerEndpoint.ExceptionMessage ) );
+    }
+
+    /// <summary>
     /// Tests the finalizer of a <see cref="ServerEndpoint"/> and of a <see cref="ClientEndpoint"/> that were constructed
     /// but never disposed.
     /// </summary>
@@ -113,5 +149,26 @@ public sealed partial class EndpointFinalizerTests : RpcUnitTestClass
         {
             GC.SuppressFinalize( endpoint );
         }
+    }
+
+    /// <summary>
+    /// Executes an action and returns the messages that were written to the trace listeners during its execution.
+    /// </summary>
+    private static string[] RecordTraceMessages( Action action )
+    {
+        var listener = new RecordingTraceListener();
+
+        Trace.Listeners.Add( listener );
+
+        try
+        {
+            action();
+        }
+        finally
+        {
+            Trace.Listeners.Remove( listener );
+        }
+
+        return listener.Messages.ToArray();
     }
 }

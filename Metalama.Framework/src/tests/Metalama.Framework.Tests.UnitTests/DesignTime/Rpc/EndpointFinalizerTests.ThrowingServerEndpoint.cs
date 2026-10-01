@@ -15,6 +15,8 @@ public sealed partial class EndpointFinalizerTests
     /// </summary>
     private sealed class ThrowingServerEndpoint : ServerEndpoint
     {
+        public const string ExceptionMessage = "Test exception thrown by Dispose( false ).";
+
         public ThrowingServerEndpoint( IServiceProvider serviceProvider, string pipeName )
             : base( serviceProvider, pipeName ) { }
 
@@ -28,7 +30,7 @@ public sealed partial class EndpointFinalizerTests
             {
                 this.DisposeWasCalledFromFinalizer = true;
 
-                throw new InvalidOperationException( "Test exception thrown by Dispose( false )." );
+                throw new InvalidOperationException( ExceptionMessage );
             }
 
             base.Dispose( disposing );
