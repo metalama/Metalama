@@ -150,7 +150,7 @@ public static class SyntaxExtensions
 
     /// <summary>
     /// Determines whether the depth of the given node is small enough for
-    /// <see cref="SyntaxNodeExtensions.NormalizeWhitespace{TNode}(TNode, string, string, bool)"/> to process it safely.
+    /// <see cref="Microsoft.CodeAnalysis.SyntaxNodeExtensions.NormalizeWhitespace{TNode}(TNode, string, string, bool)"/> to process it safely.
     /// </summary>
     /// <remarks>
     /// <para>

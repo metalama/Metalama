@@ -44,33 +44,31 @@ internal static class InterpolationSyntaxHelper
 
         while ( stack.Count > 0 )
         {
-            switch ( stack.Pop() )
+            var node = stack.Pop();
+
+            switch ( node.Kind() )
             {
-                case AliasQualifiedNameSyntax:
+                case SyntaxKind.AliasQualifiedName:
+                case SyntaxKind.StringLiteralExpression:
                     return true;
 
-                case LiteralExpressionSyntax literal:
-                    if ( literal.IsKind( SyntaxKind.StringLiteralExpression ) )
-                    {
-                        return true;
-                    }
+                case SyntaxKind.InvocationExpression:
+                    stack.Push( ((InvocationExpressionSyntax) node).Expression );
 
                     break;
 
-                case InvocationExpressionSyntax invocation:
-                    stack.Push( invocation.Expression );
+                case SyntaxKind.ElementAccessExpression:
+                    stack.Push( ((ElementAccessExpressionSyntax) node).Expression );
 
                     break;
 
-                case ElementAccessExpressionSyntax elementAccess:
-                    stack.Push( elementAccess.Expression );
-
+                case SyntaxKind.ParenthesizedExpression:
+                case SyntaxKind.ParenthesizedPattern:
+                case SyntaxKind.TypeOfExpression:
+                case SyntaxKind.DefaultExpression:
                     break;
 
-                case ParenthesizedExpressionSyntax or ParenthesizedPatternSyntax or TypeOfExpressionSyntax or DefaultExpressionSyntax:
-                    break;
-
-                case var node:
+                default:
                     foreach ( var child in node.ChildNodes() )
                     {
                         stack.Push( child );
