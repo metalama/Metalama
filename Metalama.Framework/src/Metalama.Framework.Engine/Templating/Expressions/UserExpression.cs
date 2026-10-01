@@ -7,9 +7,9 @@ using Metalama.Framework.CompileTimeContracts;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.SyntaxSerialization;
+using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System.Collections.Generic;
 using System.Linq;
 using RefKind = Metalama.Framework.Code.RefKind;
 
@@ -131,48 +131,13 @@ namespace Metalama.Framework.Engine.Templating.Expressions
                     null,
                     null ) );
 
-            if ( IsDeeperThan( syntax, _maxNormalizedDepth ) )
+            if ( !syntax.CanNormalizeWhitespace() )
             {
                 // NormalizeWhitespace is recursive and can overflow the stack on a deep expression (see #2083).
-                return string.Join( " ", syntax.DescendantTokens().Select( t => t.Text ) );
+                return string.Join( " ", syntax.DescendantTokens().Where( t => t.Text.Length > 0 ).Select( t => t.Text ) );
             }
 
             return syntax.NormalizeWhitespace().ToString();
-        }
-
-        /// <summary>
-        /// The maximal depth of an expression that <see cref="ToStringCore"/> renders with
-        /// <see cref="SyntaxNodeExtensions.NormalizeWhitespace{TNode}(TNode, string, string, bool)"/>.
-        /// </summary>
-        private const int _maxNormalizedDepth = 100;
-
-        /// <summary>
-        /// Determines whether the given node has a descendant whose depth below the node is greater than <paramref name="maxDepth"/>.
-        /// </summary>
-        /// <remarks>
-        /// The method uses an explicit stack instead of a recursion, so that it can process a deep node.
-        /// </remarks>
-        private static bool IsDeeperThan( SyntaxNode node, int maxDepth )
-        {
-            var stack = new Stack<(SyntaxNode Node, int Depth)>();
-            stack.Push( (node, 0) );
-
-            while ( stack.Count > 0 )
-            {
-                var (current, depth) = stack.Pop();
-
-                if ( depth > maxDepth )
-                {
-                    return true;
-                }
-
-                foreach ( var child in current.ChildNodes() )
-                {
-                    stack.Push( (child, depth + 1) );
-                }
-            }
-
-            return false;
         }
     }
 }

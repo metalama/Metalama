@@ -206,14 +206,26 @@ public sealed partial class ContextualSyntaxGenerator
 
     internal ArrayCreationExpressionSyntax ArrayCreationExpression( TypeSyntax elementType, IEnumerable<SyntaxNode> elements )
     {
-        // The elements can be user expressions, which can be deep. NormalizeWhitespace is recursive and can overflow the stack
-        // on a deep expression (see #2083), so we normalize the array creation before we add the elements.
-        var array = (ArrayCreationExpressionSyntax) _roslynSyntaxGenerator.ArrayCreationExpression( elementType, [] );
+        var elementList = elements.ToReadOnlyList();
 
-        array = array.WithType( array.Type.WithSimplifierAnnotationIfNecessary( this.SyntaxGenerationContext ) )
-            .NormalizeWhitespaceIfNecessary( this.SyntaxGenerationContext );
+        if ( !this.SyntaxGenerationContext.Options.WillBeTextualized || elementList.All( e => e.CanNormalizeWhitespace() ) )
+        {
+            var array = (ArrayCreationExpressionSyntax) _roslynSyntaxGenerator.ArrayCreationExpression( elementType, elementList );
 
-        return array.WithInitializer( array.Initializer.AssertNotNull().WithExpressions( SeparatedList( elements.OfType<ExpressionSyntax>() ) ) );
+            return array.WithType( array.Type.WithSimplifierAnnotationIfNecessary( this.SyntaxGenerationContext ) )
+                .NormalizeWhitespaceIfNecessary( this.SyntaxGenerationContext );
+        }
+        else
+        {
+            // An element is a deep expression, typically from user code. NormalizeWhitespace is recursive and can overflow the
+            // stack on a deep expression (see #2083), so we normalize the array creation before we add the elements.
+            var array = (ArrayCreationExpressionSyntax) _roslynSyntaxGenerator.ArrayCreationExpression( elementType, [] );
+
+            array = array.WithType( array.Type.WithSimplifierAnnotationIfNecessary( this.SyntaxGenerationContext ) )
+                .NormalizeWhitespaceIfNecessary( this.SyntaxGenerationContext );
+
+            return array.WithInitializer( array.Initializer.AssertNotNull().WithExpressions( SeparatedList( elementList.OfType<ExpressionSyntax>() ) ) );
+        }
     }
 
     internal TypeSyntax TypeSyntax( SpecialType specialType )

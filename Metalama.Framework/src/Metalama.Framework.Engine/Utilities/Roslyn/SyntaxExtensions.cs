@@ -143,6 +143,49 @@ public static class SyntaxExtensions
 #pragma warning restore LAMA0830
     }
 
+    /// <summary>
+    /// The maximal depth of a node that <see cref="CanNormalizeWhitespace"/> accepts.
+    /// </summary>
+    private const int _maxNormalizedDepth = 100;
+
+    /// <summary>
+    /// Determines whether the depth of the given node is small enough for
+    /// <see cref="SyntaxNodeExtensions.NormalizeWhitespace{TNode}(TNode, string, string, bool)"/> to process it safely.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The normalizer of Roslyn is recursive. It calls itself for each ancestor of a node without checking the remaining
+    /// stack, so it can cause a <see cref="StackOverflowException"/> on a deep node (see #2083). Such a node typically
+    /// comes from user code.
+    /// </para>
+    /// <para>
+    /// The method uses an explicit stack instead of a recursion, so that it can process a deep node. It returns as soon as
+    /// it finds a descendant that is too deep.
+    /// </para>
+    /// </remarks>
+    internal static bool CanNormalizeWhitespace( this SyntaxNode node )
+    {
+        var stack = new Stack<(SyntaxNode Node, int Depth)>();
+        stack.Push( (node, 0) );
+
+        while ( stack.Count > 0 )
+        {
+            var (current, depth) = stack.Pop();
+
+            if ( depth > _maxNormalizedDepth )
+            {
+                return false;
+            }
+
+            foreach ( var child in current.ChildNodes() )
+            {
+                stack.Push( (child, depth + 1) );
+            }
+        }
+
+        return true;
+    }
+
     internal static TNode WithSimplifierAnnotationIfNecessary<TNode>( this TNode node, SyntaxGenerationContext context )
         where TNode : SyntaxNode
         => node.WithSimplifierAnnotationIfNecessary( context.Options );

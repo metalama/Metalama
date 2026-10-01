@@ -13,6 +13,9 @@ using Xunit;
 
 namespace Metalama.Framework.Tests.UnitTests.Templating;
 
+/// <summary>
+/// Tests <see cref="InterpolationSyntaxHelper.Fix"/>.
+/// </summary>
 public sealed class InterpolationSyntaxHelperTests
 {
     /// <summary>
@@ -20,6 +23,9 @@ public sealed class InterpolationSyntaxHelperTests
     /// </summary>
     private const int _threadStackSize = 1024 * 1024;
 
+    /// <summary>
+    /// Verifies that <see cref="InterpolationSyntaxHelper.Fix"/> replaces a line break in an interpolation by a space.
+    /// </summary>
     [Fact]
     public void LineBreakIsRemoved()
     {
@@ -60,6 +66,9 @@ public sealed class InterpolationSyntaxHelperTests
         Assert.StartsWith( "{this.M().M()", text, StringComparison.Ordinal );
     }
 
+    /// <summary>
+    /// Parses the given expression and returns an interpolation that contains it.
+    /// </summary>
     private static InterpolationSyntax CreateInterpolation( string expression )
         => SyntaxFactory.Interpolation( SyntaxFactory.ParseExpression( expression ) );
 
