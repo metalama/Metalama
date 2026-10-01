@@ -206,7 +206,7 @@ public sealed partial class ContextualSyntaxGenerator
 
     internal ArrayCreationExpressionSyntax ArrayCreationExpression( TypeSyntax elementType, IEnumerable<SyntaxNode> elements )
     {
-        var elementList = elements.ToReadOnlyList();
+        var elementList = elements.ToImmutableArray();
 
         if ( !this.SyntaxGenerationContext.Options.WillBeTextualized || elementList.All( e => e.CanNormalizeWhitespace() ) )
         {
