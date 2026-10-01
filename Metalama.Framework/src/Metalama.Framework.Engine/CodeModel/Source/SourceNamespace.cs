@@ -6,6 +6,7 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Code.Collections;
 using Metalama.Framework.Engine.CodeModel.Collections;
 using Metalama.Framework.Engine.CodeModel.References;
+using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
@@ -71,7 +72,9 @@ internal sealed class SourceNamespace : SourceDeclaration, INamespace
 
     public override bool CanBeInherited => false;
 
-    public override IEnumerable<IDeclaration> GetDerivedDeclarations( DerivedTypesOptions options = default ) => [];
+    public override IEnumerable<IDeclaration> GetDerivedDeclarations(
+        DerivedTypesOptions options = DerivedTypesOptions.Default,
+        IDiagnosticAdder? diagnosticAdder = null ) => [];
 
     [Memo]
     public INamespace? ContainingNamespace => this.IsGlobalNamespace ? null : this.Compilation.Factory.GetNamespace( this._symbol.ContainingNamespace );

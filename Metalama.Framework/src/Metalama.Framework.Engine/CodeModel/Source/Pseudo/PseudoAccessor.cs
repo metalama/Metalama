@@ -10,6 +10,7 @@ using Metalama.Framework.Engine.CodeModel.Collections;
 using Metalama.Framework.Engine.CodeModel.GenericContexts;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.References;
+using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.SerializableIds;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Metrics;
@@ -181,7 +182,7 @@ internal abstract class PseudoAccessor : IMethodImpl
 
     bool IDeclarationImpl.CanBeInherited => false;
 
-    IEnumerable<IDeclaration> IDeclarationImpl.GetDerivedDeclarations( DerivedTypesOptions options )
+    IEnumerable<IDeclaration> IDeclarationImpl.GetDerivedDeclarations( DerivedTypesOptions options, IDiagnosticAdder? diagnosticAdder )
     {
         switch ( this.MethodKind )
         {

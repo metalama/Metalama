@@ -7,6 +7,7 @@ using Metalama.Framework.CompileTimeContracts;
 using Metalama.Framework.Engine.CodeModel.Abstractions;
 using Metalama.Framework.Engine.CodeModel.GenericContexts;
 using Metalama.Framework.Engine.CodeModel.References;
+using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.ReflectionMocks;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.SyntaxSerialization;
@@ -79,8 +80,10 @@ namespace Metalama.Framework.Engine.CodeModel.Source
 
         public override bool CanBeInherited => this.DeclaringMember.CanBeInherited;
 
-        public override IEnumerable<IDeclaration> GetDerivedDeclarations( DerivedTypesOptions options = default )
-            => this.DeclaringMember.GetDerivedDeclarations( options ).Select( d => ((IHasParameters) d).Parameters[this.Index] );
+        public override IEnumerable<IDeclaration> GetDerivedDeclarations(
+            DerivedTypesOptions options = DerivedTypesOptions.Default,
+            IDiagnosticAdder? diagnosticAdder = null )
+            => this.DeclaringMember.GetDerivedDeclarations( options, diagnosticAdder ).Select( d => ((IHasParameters) d).Parameters[this.Index] );
 
         public TypedConstant? DefaultValue
             => this._parameterSymbol.HasExplicitDefaultValue

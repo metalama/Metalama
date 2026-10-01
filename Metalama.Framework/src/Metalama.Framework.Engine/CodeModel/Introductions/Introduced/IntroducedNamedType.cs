@@ -13,6 +13,7 @@ using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 using Metalama.Framework.Engine.CodeModel.Introductions.ConstructedTypes;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.CodeModel.Visitors;
+using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Utilities;
 using System;
 using System.Collections.Generic;
@@ -318,7 +319,9 @@ internal sealed class IntroducedNamedType : IntroducedMemberOrNamedType, INamedT
 
     public override bool CanBeInherited => !this.IsSealed;
 
-    public override IEnumerable<IDeclaration> GetDerivedDeclarations( DerivedTypesOptions options = DerivedTypesOptions.Default )
+    public override IEnumerable<IDeclaration> GetDerivedDeclarations(
+        DerivedTypesOptions options = DerivedTypesOptions.Default,
+        IDiagnosticAdder? diagnosticAdder = null )
         => Array.Empty<IDeclaration>(); // TODO
 
     public bool IsSubclassOf( INamedType type ) => type.SpecialType == SpecialType.Object;

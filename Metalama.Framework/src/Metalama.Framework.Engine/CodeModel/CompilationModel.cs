@@ -19,6 +19,7 @@ using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.CodeModel.Source;
 using Metalama.Framework.Engine.CodeModel.UpdatableCollections;
 using Metalama.Framework.Engine.Collections;
+using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.HierarchicalOptions;
 using Metalama.Framework.Engine.Metrics;
 using Metalama.Framework.Engine.SerializableIds;
@@ -649,7 +650,9 @@ namespace Metalama.Framework.Engine.CodeModel
 
         public override ImmutableArray<SyntaxReference> DeclaringSyntaxReferences => ImmutableArray<SyntaxReference>.Empty;
 
-        public override IEnumerable<IDeclaration> GetDerivedDeclarations( DerivedTypesOptions options = default ) => [];
+        public override IEnumerable<IDeclaration> GetDerivedDeclarations(
+            DerivedTypesOptions options = DerivedTypesOptions.Default,
+            IDiagnosticAdder? diagnosticAdder = null ) => [];
 
         string IDisplayable.ToDisplayString( CodeDisplayFormat? format, CodeDisplayContext? context ) => this.RoslynCompilation.AssemblyName ?? "";
 

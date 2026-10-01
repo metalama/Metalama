@@ -10,6 +10,7 @@ using Metalama.Framework.Engine.CodeModel.Abstractions;
 using Metalama.Framework.Engine.CodeModel.GenericContexts;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.CodeModel.Visitors;
+using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.UserCode;
 using Microsoft.CodeAnalysis;
@@ -67,11 +68,13 @@ namespace Metalama.Framework.Engine.CodeModel.Source
             }
         }
 
-        public override IEnumerable<IDeclaration> GetDerivedDeclarations( DerivedTypesOptions options = default )
+        public override IEnumerable<IDeclaration> GetDerivedDeclarations(
+            DerivedTypesOptions options = DerivedTypesOptions.Default,
+            IDiagnosticAdder? diagnosticAdder = null )
         {
             this.OnUsingDeclaration();
 
-            return this.Implementation.GetDerivedDeclarations( options );
+            return this.Implementation.GetDerivedDeclarations( options, diagnosticAdder );
         }
 
         public override DeclarationKind DeclarationKind

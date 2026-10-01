@@ -10,6 +10,7 @@ using Metalama.Framework.Engine.CodeModel.Collections;
 using Metalama.Framework.Engine.CodeModel.GenericContexts;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.References;
+using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.ReflectionMocks;
 using Metalama.Framework.Engine.Utilities;
 using Microsoft.CodeAnalysis;
@@ -115,8 +116,10 @@ internal sealed class PseudoReturnParameter : BaseDeclaration, IParameterImpl
         IGenericContext? genericContext = null )
         => ((IMethod?) this._declaringMethod.Translate( newCompilation, genericContext ))?.ReturnParameter;
 
-    public override IEnumerable<IDeclaration> GetDerivedDeclarations( DerivedTypesOptions options = default )
-        => this._declaringMethod.GetDerivedDeclarations( options ).Select( d => ((IMethod) d).ReturnParameter );
+    public override IEnumerable<IDeclaration> GetDerivedDeclarations(
+        DerivedTypesOptions options = DerivedTypesOptions.Default,
+        IDiagnosticAdder? diagnosticAdder = null )
+        => this._declaringMethod.GetDerivedDeclarations( options, diagnosticAdder ).Select( d => ((IMethod) d).ReturnParameter );
 
     [Memo]
     public override IAttributeCollection Attributes

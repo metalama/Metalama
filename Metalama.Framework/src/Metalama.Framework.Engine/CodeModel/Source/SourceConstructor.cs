@@ -8,6 +8,7 @@ using Metalama.Framework.Engine.CodeModel.Abstractions;
 using Metalama.Framework.Engine.CodeModel.GenericContexts;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.References;
+using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.ReflectionMocks;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Roslyn;
@@ -102,7 +103,9 @@ namespace Metalama.Framework.Engine.CodeModel.Source
 
         public override DeclarationKind DeclarationKind => DeclarationKind.Constructor;
 
-        public override IEnumerable<IDeclaration> GetDerivedDeclarations( DerivedTypesOptions options = default ) => [];
+        public override IEnumerable<IDeclaration> GetDerivedDeclarations(
+            DerivedTypesOptions options = DerivedTypesOptions.Default,
+            IDiagnosticAdder? diagnosticAdder = null ) => [];
 
         public override bool IsExplicitInterfaceImplementation => false;
 

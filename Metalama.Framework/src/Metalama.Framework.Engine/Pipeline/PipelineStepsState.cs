@@ -355,7 +355,7 @@ internal sealed class PipelineStepsState
         // Gets aspects that have been inherited by the source, including abstract instances that can in turn be only inherited. 
         var inheritedAspectInstancesInProject = inheritableAspectInstances
             .SelectMany(
-                a => a.TargetDeclaration.GetDerivedDeclarations()
+                a => a.TargetDeclaration.GetDerivedDeclarations( diagnosticAdder: this.Diagnostics )
                     .Where( d => !IsExcluded( d ) )
                     .Select( d => (TargetDeclaration: (IDeclarationImpl) d, DerivedAspectInstance: a.AspectInstance.CreateDerivedInstance( d )) )
                     .Select(
