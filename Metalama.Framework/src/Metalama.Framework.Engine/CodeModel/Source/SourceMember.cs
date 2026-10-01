@@ -5,6 +5,7 @@
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.CodeModel.Abstractions;
 using Metalama.Framework.Engine.CodeModel.GenericContexts;
+using Metalama.Framework.Engine.Diagnostics;
 using Microsoft.CodeAnalysis;
 using System.Collections.Generic;
 using TypeKind = Metalama.Framework.Code.TypeKind;
@@ -64,7 +65,9 @@ namespace Metalama.Framework.Engine.CodeModel.Source
             }
         }
 
-        public override IEnumerable<IDeclaration> GetDerivedDeclarations( DerivedTypesOptions options = default )
+        public override IEnumerable<IDeclaration> GetDerivedDeclarations(
+            DerivedTypesOptions options = DerivedTypesOptions.Default,
+            IDiagnosticAdder? diagnosticAdder = null )
         {
             if ( !this.CanBeInherited )
             {

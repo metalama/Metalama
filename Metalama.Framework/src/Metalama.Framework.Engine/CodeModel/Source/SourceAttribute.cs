@@ -137,7 +137,7 @@ internal sealed class SourceAttribute : IAttributeImpl
 
     SyntaxTree? IDeclarationImpl.PrimarySyntaxTree => this.AttributeData.ApplicationSyntaxReference?.SyntaxTree;
 
-    IEnumerable<IDeclaration> IDeclarationImpl.GetDerivedDeclarations( DerivedTypesOptions options ) => [];
+    IEnumerable<IDeclaration> IDeclarationImpl.GetDerivedDeclarations( DerivedTypesOptions options, IDiagnosticAdder? diagnosticAdder ) => [];
 
     public bool Equals( IDeclaration? other ) => other is SourceAttribute attribute && this.AttributeData == attribute.AttributeData;
 

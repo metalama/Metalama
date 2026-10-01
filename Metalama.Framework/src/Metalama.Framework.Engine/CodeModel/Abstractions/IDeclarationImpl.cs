@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Code;
+using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Metrics;
 using Microsoft.CodeAnalysis;
 using System.Collections.Generic;
@@ -30,7 +31,7 @@ internal interface IDeclarationImpl : ISdkDeclaration, ICompilationElementImpl, 
     /// </summary>
     SyntaxTree? PrimarySyntaxTree { get; }
 
-    IEnumerable<IDeclaration> GetDerivedDeclarations( DerivedTypesOptions options = default );
+    IEnumerable<IDeclaration> GetDerivedDeclarations( DerivedTypesOptions options = DerivedTypesOptions.Default, IDiagnosticAdder? diagnosticAdder = null );
 
     DeclarationImplementationKind ImplementationKind { get; }
 }

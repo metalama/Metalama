@@ -7,6 +7,7 @@ using Metalama.Framework.CompileTimeContracts;
 using Metalama.Framework.Engine.CodeModel.Abstractions;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 using Metalama.Framework.Engine.CodeModel.References;
+using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.SyntaxSerialization;
 using Metalama.Framework.Engine.Templating.Expressions;
@@ -97,8 +98,10 @@ internal sealed class IntroducedParameter : IntroducedDeclaration, IParameterImp
 
     public override bool CanBeInherited => ((IDeclarationImpl) this.ContainingDeclaration).CanBeInherited;
 
-    public override IEnumerable<IDeclaration> GetDerivedDeclarations( DerivedTypesOptions options = default )
+    public override IEnumerable<IDeclaration> GetDerivedDeclarations(
+        DerivedTypesOptions options = DerivedTypesOptions.Default,
+        IDiagnosticAdder? diagnosticAdder = null )
         => this.DeclaringMember is { DeclarationKind.IsMember: true } and IMemberImpl memberImpl
-            ? memberImpl.GetDerivedDeclarations( options ).Select( d => ((IHasParameters) d).Parameters[this.Index] )
+            ? memberImpl.GetDerivedDeclarations( options, diagnosticAdder ).Select( d => ((IHasParameters) d).Parameters[this.Index] )
             : [];
 }
