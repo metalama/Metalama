@@ -8,6 +8,9 @@
         
         <RootNamespace>Metalama.Framework.Engine</RootNamespace>
 
+        <!-- Required by StackLimits, which reads the address of a local variable and passes pointers to the operating system. -->
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+
         <!-- This is to prevent the Metalama.Compiler.Sdk package to change our nuspec -->
         <MetalamaCompilerDisablePackCustomization>True</MetalamaCompilerDisablePackCustomization>
 
@@ -26,6 +29,8 @@
 
         <InternalsVisibleTo Include="Metalama.Framework.Tests.LinkerTests.4.12.0" />
         <InternalsVisibleTo Include="Metalama.Framework.Tests.LinkerTests.5.0.0" />
+
+        <InternalsVisibleTo Include="Metalama.Framework.PlatformTests" />
 
 
         <InternalsVisibleTo Include="DynamicProxyGenAssembly2" Key="$(FakeItEasyKey)" LoadsWithinVisualStudio="false" />
