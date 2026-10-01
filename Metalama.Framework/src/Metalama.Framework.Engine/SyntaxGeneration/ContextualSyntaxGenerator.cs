@@ -206,10 +206,14 @@ public sealed partial class ContextualSyntaxGenerator
 
     internal ArrayCreationExpressionSyntax ArrayCreationExpression( TypeSyntax elementType, IEnumerable<SyntaxNode> elements )
     {
-        var array = (ArrayCreationExpressionSyntax) _roslynSyntaxGenerator.ArrayCreationExpression( elementType, elements );
+        // The elements can be user expressions, which can be deep. NormalizeWhitespace is recursive and can overflow the stack
+        // on a deep expression (see #2083), so we normalize the array creation before we add the elements.
+        var array = (ArrayCreationExpressionSyntax) _roslynSyntaxGenerator.ArrayCreationExpression( elementType, [] );
 
-        return array.WithType( array.Type.WithSimplifierAnnotationIfNecessary( this.SyntaxGenerationContext ) )
+        array = array.WithType( array.Type.WithSimplifierAnnotationIfNecessary( this.SyntaxGenerationContext ) )
             .NormalizeWhitespaceIfNecessary( this.SyntaxGenerationContext );
+
+        return array.WithInitializer( array.Initializer.AssertNotNull().WithExpressions( SeparatedList( elements.OfType<ExpressionSyntax>() ) ) );
     }
 
     internal TypeSyntax TypeSyntax( SpecialType specialType )
