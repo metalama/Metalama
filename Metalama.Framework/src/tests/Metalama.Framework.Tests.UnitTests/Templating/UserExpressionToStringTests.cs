@@ -111,7 +111,7 @@ public sealed class UserExpressionToStringTests : UnitTestClass
     /// <summary>
     /// Parses the given expressions and calls <see cref="ArrayToString(ExpressionSyntax[])"/>.
     /// </summary>
-    private string ArrayToString( params string[] elements ) => this.ArrayToString( elements.Select( e => SyntaxFactory.ParseExpression( e ) ).ToArray() );
+    private string ArrayToString( params string[] elements ) => this.ArrayToString( elements.SelectAsArray( e => SyntaxFactory.ParseExpression( e ) ) );
 
     /// <summary>
     /// Creates an <see cref="ArrayUserExpression"/> whose elements are the given expressions, and returns the result of its
