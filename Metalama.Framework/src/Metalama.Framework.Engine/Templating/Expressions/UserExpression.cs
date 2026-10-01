@@ -10,7 +10,6 @@ using Metalama.Framework.Engine.SyntaxSerialization;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System.Linq;
 using RefKind = Metalama.Framework.Code.RefKind;
 
 namespace Metalama.Framework.Engine.Templating.Expressions
@@ -134,7 +133,7 @@ namespace Metalama.Framework.Engine.Templating.Expressions
             if ( !syntax.CanNormalizeWhitespace() )
             {
                 // NormalizeWhitespace is recursive and can overflow the stack on a deep expression (see #2083).
-                return string.Join( " ", syntax.DescendantTokens().Where( t => t.Text.Length > 0 ).Select( t => t.Text ) );
+                return syntax.ToStringWithTokenSeparators();
             }
 
             return syntax.NormalizeWhitespace().ToString();

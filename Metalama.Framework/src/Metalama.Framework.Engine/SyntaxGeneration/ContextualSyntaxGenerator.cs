@@ -218,13 +218,20 @@ public sealed partial class ContextualSyntaxGenerator
         else
         {
             // An element is a deep expression, typically from user code. NormalizeWhitespace is recursive and can overflow the
-            // stack on a deep expression (see #2083), so we normalize the array creation before we add the elements.
+            // stack on a deep expression (see #2083), so we normalize the array creation before we add the elements. Each shallow
+            // element is normalized separately. In each deep element, we only add the spaces that are missing between tokens.
             var array = (ArrayCreationExpressionSyntax) _roslynSyntaxGenerator.ArrayCreationExpression( elementType, [] );
 
             array = array.WithType( array.Type.WithSimplifierAnnotationIfNecessary( this.SyntaxGenerationContext ) )
                 .NormalizeWhitespaceIfNecessary( this.SyntaxGenerationContext );
 
-            return array.WithInitializer( array.Initializer.AssertNotNull().WithExpressions( SeparatedList( elementList.OfType<ExpressionSyntax>() ) ) );
+            var normalizedElements = elementList.OfType<ExpressionSyntax>()
+                .Select(
+                    e => e.CanNormalizeWhitespace()
+                        ? e.NormalizeWhitespaceIfNecessary( this.SyntaxGenerationContext )
+                        : e.AddMissingTokenSeparators() );
+
+            return array.WithInitializer( array.Initializer.AssertNotNull().WithExpressions( SeparatedList( normalizedElements ) ) );
         }
     }
 

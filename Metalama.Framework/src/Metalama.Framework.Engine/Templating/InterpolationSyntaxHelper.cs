@@ -14,9 +14,14 @@ internal static class InterpolationSyntaxHelper
 {
     public static InterpolationSyntax Fix( InterpolationSyntax interpolation )
     {
-        // Interpolations cannot contain EOL, so we need to remove them. We do not call NormalizeWhitespace because it is
-        // recursive and can overflow the stack on a deep expression (see #2083).
-        var fixedInterpolation = (InterpolationSyntax) new RemoveEndOfLinesRewriter().Visit( interpolation )!;
+        // NormalizeWhitespace adds the spaces that are missing between the tokens of a generated expression. It is recursive
+        // and can overflow the stack on a deep expression (see #2083), so we only add the missing spaces in this case.
+        var normalizedInterpolation = interpolation.CanNormalizeWhitespace()
+            ? interpolation.NormalizeWhitespace()
+            : interpolation.AddMissingTokenSeparators();
+
+        // Interpolations cannot contain EOL, so we need to remove them.
+        var fixedInterpolation = (InterpolationSyntax) new RemoveEndOfLinesRewriter().Visit( normalizedInterpolation )!;
 
         // If the interpolation expression contains an alias-prefixed identifier (for instance global::System) that is not
         // in a parenthesis or a square bracket, we need to parenthesize the expression.

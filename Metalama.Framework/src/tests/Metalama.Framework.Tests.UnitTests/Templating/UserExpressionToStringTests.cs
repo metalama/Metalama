@@ -10,7 +10,9 @@ using Metalama.Framework.Engine.Templating;
 using Metalama.Framework.Engine.Templating.Expressions;
 using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
+using System.Linq;
 using System.Runtime.ExceptionServices;
 using System.Text;
 using System.Threading;
@@ -46,27 +48,76 @@ public sealed class UserExpressionToStringTests : UnitTestClass
     [Fact]
     public void ArrayOfDeepExpression()
     {
+        var text = this.ArrayToString( CreateDeepExpression( "this" ) );
+
+        Assert.StartsWith( "new global::System.Object[]", text, StringComparison.Ordinal );
+        Assert.Contains( "{\r\nthis.M().M()", text, StringComparison.Ordinal );
+        Assert.EndsWith( ".M()}", text, StringComparison.Ordinal );
+    }
+
+    /// <summary>
+    /// Verifies that the rendering of a deep expression does not change the content of an interpolated string.
+    /// </summary>
+    [Fact]
+    public void ArrayOfDeepExpressionWithInterpolatedString()
+    {
+        var text = this.ArrayToString( CreateDeepExpression( "$\"a{b}c{d:N2}\"" ) );
+
+        Assert.Contains( "{\r\n$\"a{b}c{d:N2}\".M().M()", text, StringComparison.Ordinal );
+    }
+
+    /// <summary>
+    /// Verifies that the shallow elements of an array that also contains a deep element are normalized, and that spaces are
+    /// added between the tokens of a generated deep element.
+    /// </summary>
+    [Fact]
+    public void ArrayOfDeepAndGeneratedExpressions()
+    {
+        var generatedIsExpression = SyntaxFactory.BinaryExpression(
+            SyntaxKind.IsExpression,
+            SyntaxFactory.IdentifierName( "x" ),
+            SyntaxFactory.PredefinedType( SyntaxFactory.Token( SyntaxKind.IntKeyword ) ) );
+
+        var deepGeneratedExpression = SyntaxFactory.BinaryExpression(
+            SyntaxKind.IsExpression,
+            CreateDeepExpression( "y" ),
+            SyntaxFactory.PredefinedType( SyntaxFactory.Token( SyntaxKind.IntKeyword ) ) );
+
+        var text = this.ArrayToString( generatedIsExpression, deepGeneratedExpression );
+
+        Assert.Contains( "x is int,", text, StringComparison.Ordinal );
+        Assert.Contains( "y.M().M()", text, StringComparison.Ordinal );
+        Assert.EndsWith( ".M()is int}", text, StringComparison.Ordinal );
+    }
+
+    /// <summary>
+    /// Parses a chain of 1,400 calls to a method <c>M</c> on the given receiver. The depth of the resulting expression is about 2,800.
+    /// </summary>
+    private static ExpressionSyntax CreateDeepExpression( string receiver )
+    {
         const int callCount = 1400;
 
         var code = new StringBuilder();
-        code.Append( "this" );
+        code.Append( receiver );
 
         for ( var i = 0; i < callCount; i++ )
         {
             code.Append( ".M()" );
         }
 
-        var text = this.ArrayToString( code.ToString() );
-
-        Assert.StartsWith( "new global :: System . Object [ ] { this . M ( ) . M ( )", text, StringComparison.Ordinal );
-        Assert.EndsWith( ". M ( ) }", text, StringComparison.Ordinal );
+        return SyntaxFactory.ParseExpression( code.ToString() );
     }
+
+    /// <summary>
+    /// Parses the given expressions and calls <see cref="ArrayToString(ExpressionSyntax[])"/>.
+    /// </summary>
+    private string ArrayToString( params string[] elements ) => this.ArrayToString( elements.Select( e => SyntaxFactory.ParseExpression( e ) ).ToArray() );
 
     /// <summary>
     /// Creates an <see cref="ArrayUserExpression"/> whose elements are the given expressions, and returns the result of its
     /// <see cref="UserExpression.ToString"/> method, called on a thread with a stack of <see cref="_threadStackSize"/> bytes.
     /// </summary>
-    private string ArrayToString( params string[] elements )
+    private string ArrayToString( params ExpressionSyntax[] elements )
     {
         using var testContext = this.CreateTestContext();
         var compilation = testContext.CreateCompilationModel( "" );
@@ -82,7 +133,7 @@ public sealed class UserExpressionToStringTests : UnitTestClass
 
                     foreach ( var element in elements )
                     {
-                        arrayBuilder.Add( new SyntaxUserExpression( SyntaxFactory.ParseExpression( element ), objectType ) );
+                        arrayBuilder.Add( new SyntaxUserExpression( element, objectType ) );
                     }
 
                     return new ArrayUserExpression( arrayBuilder ).ToString();

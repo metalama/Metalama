@@ -67,6 +67,59 @@ public sealed class InterpolationSyntaxHelperTests
     }
 
     /// <summary>
+    /// Verifies that <see cref="InterpolationSyntaxHelper.Fix"/> adds the spaces that are missing between the tokens of a
+    /// generated expression.
+    /// </summary>
+    [Fact]
+    public void GeneratedExpression()
+    {
+        var interpolation = SyntaxFactory.Interpolation( CreateIsIntExpression( SyntaxFactory.IdentifierName( "x" ) ) );
+
+        var text = InterpolationSyntaxHelper.Fix( interpolation ).ToFullString();
+
+        Assert.Equal( "{x is int}", text );
+    }
+
+    /// <summary>
+    /// Verifies that <see cref="InterpolationSyntaxHelper.Fix"/> adds the spaces that are missing between the tokens of a
+    /// generated expression that contains a deep expression, on a thread with a stack of 1 MB (issue #2083).
+    /// </summary>
+    [Fact]
+    public void DeepGeneratedExpression()
+    {
+        const int callCount = 1400;
+
+        var code = new StringBuilder();
+        code.Append( "this" );
+
+        for ( var i = 0; i < callCount; i++ )
+        {
+            code.Append( ".M()" );
+        }
+
+        var expression = SyntaxFactory.BinaryExpression(
+            SyntaxKind.LogicalAndExpression,
+            SyntaxFactory.ParseExpression( code.ToString() ),
+            CreateIsIntExpression( SyntaxFactory.IdentifierName( "x" ) ) );
+
+        var interpolation = SyntaxFactory.Interpolation( expression );
+
+        var text = RunOnThread( () => InterpolationSyntaxHelper.Fix( interpolation ).ToFullString() );
+
+        Assert.StartsWith( "{this.M().M()", text, StringComparison.Ordinal );
+        Assert.EndsWith( ".M()&&x is int}", text, StringComparison.Ordinal );
+    }
+
+    /// <summary>
+    /// Creates the expression <c>operand is int</c> with <see cref="SyntaxFactory"/>, without trivia between the tokens.
+    /// </summary>
+    private static BinaryExpressionSyntax CreateIsIntExpression( ExpressionSyntax operand )
+        => SyntaxFactory.BinaryExpression(
+            SyntaxKind.IsExpression,
+            operand,
+            SyntaxFactory.PredefinedType( SyntaxFactory.Token( SyntaxKind.IntKeyword ) ) );
+
+    /// <summary>
     /// Parses the given expression and returns an interpolation that contains it.
     /// </summary>
     private static InterpolationSyntax CreateInterpolation( string expression )
