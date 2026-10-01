@@ -11,7 +11,6 @@ using PostSharp.Engineering.BuildTools.Build.Model;
 using PostSharp.Engineering.BuildTools.Build.Solutions;
 using PostSharp.Engineering.BuildTools.ContinuousIntegration.Model;
 using PostSharp.Engineering.BuildTools.Docker;
-using PostSharp.Engineering.BuildTools.Tools.TeamCity;
 using PostSharp.Engineering.BuildTools.Utilities;
 using System;
 using System.IO;
@@ -84,12 +83,12 @@ var product = new Product( MetalamaDependencies.Metalama )
                 "**\\*.props", "**\\*.targets", "**\\*.csproj", "**\\*.md", "**\\*.xml", "**\\*.config"
             ]
         },
-        // The platform tests are Microsoft.Testing.Platform applications, which the VSTest mode of 'dotnet test' refuses, so the
-        // solution is built but not tested. The build packs them into test archives, which the TestAgents run on Linux and
-        // macOS, and OnTestCompleted runs them on Windows.
+        // The platform tests are Microsoft.Testing.Platform applications, which the VSTest mode of 'dotnet test' refuses. The
+        // build packs them into test archives: 'Build.ps1 test' runs those of Windows on the build host with eng/RunTests.ps1,
+        // and the TestAgents run those of Linux and macOS.
         new DotNetSolution( "Metalama.Framework/Metalama.Framework.PlatformTests.sln" )
         {
-            BuildMethod = BuildMethod.Build, TestMethod = BuildMethod.None, ContainsTestApplications = true
+            BuildMethod = BuildMethod.Build, TestRunner = TestRunner.MicrosoftTestingPlatform, ContainsTestApplications = true
         },
         new DotNetSolution( "Metalama.Framework/src/tests/Metalama.Framework.TestApp\\Metalama.Framework.TestApp.sln" )
         {
@@ -257,7 +256,6 @@ var product = new Product( MetalamaDependencies.Metalama )
 };
 
 product.PrepareCompleted += OnPrepareCompleted;
-product.TestCompleted += OnTestCompleted;
 
 return new EngineeringApp( product ).Run( args );
 
@@ -284,72 +282,6 @@ static void OnPrepareCompleted( PrepareCompletedEventArgs args )
     var srcDirectory = Path.Combine( args.Context.RepoDirectory, "Metalama.Framework" );
 
     GenerateMetaSyntaxRewriter.Generate( srcDirectory );
-}
-
-// Runs the platform tests (Metalama.Framework.PlatformTests) on Windows, for .NET Framework and for .NET.
-//
-// The platform tests are Microsoft.Testing.Platform applications, which the VSTest mode of 'dotnet test' refuses, so the
-// test step does not run them. This handler runs the executables of the build instead, writes their TRX reports to the test
-// results directory, and imports the reports into TeamCity. The TestAgents run the same tests on Linux and macOS.
-//
-// The test command does not read BuildCompletedEventArgs.IsFailed after this event, so the handler also throws
-// an exception when a test run fails, which fails the command.
-static void OnTestCompleted( BuildCompletedEventArgs args )
-{
-    const string projectName = "Metalama.Framework.PlatformTests";
-
-    var context = args.Context;
-    var msbuildConfiguration = context.Product.DependencyDefinition.MSBuildConfiguration[args.Settings.BuildConfiguration];
-
-    var outputDirectory = Path.Combine(
-        context.RepoDirectory,
-        "Metalama.Framework",
-        "src",
-        "tests",
-        projectName,
-        "bin",
-        msbuildConfiguration );
-
-    var resultsDirectory = Path.Combine( context.RepoDirectory, context.Product.TestResultsDirectory, projectName );
-
-    context.Console.WriteHeading( "Running the platform tests" );
-
-    var runs = new (string TargetFramework, string FileName, string EntryArgument)[]
-    {
-        ("net48", Path.Combine( outputDirectory, "net48", $"{projectName}.exe" ), ""),
-        ("net8.0", "dotnet", $"\"{Path.Combine( outputDirectory, "net8.0", $"{projectName}.dll" )}\" ")
-    };
-
-    var success = true;
-
-    foreach ( var run in runs )
-    {
-        var runResultsDirectory = Path.Combine( resultsDirectory, run.TargetFramework );
-
-        if ( !ToolInvocationHelper.InvokeTool(
-                context.Console,
-                run.FileName,
-                $"{run.EntryArgument}--report-trx --results-directory \"{runResultsDirectory}\"",
-                Path.Combine( outputDirectory, run.TargetFramework ) ) )
-        {
-            success = false;
-        }
-
-        if ( context.IsContinuousIntegrationBuild && Directory.Exists( runResultsDirectory ) )
-        {
-            foreach ( var report in Directory.EnumerateFiles( runResultsDirectory, "*.trx", SearchOption.AllDirectories ) )
-            {
-                TeamCityHelper.SendImportDataMessage( "mstest", report.Replace( Path.DirectorySeparatorChar, '/' ), projectName, false );
-            }
-        }
-    }
-
-    if ( !success )
-    {
-        args.IsFailed = true;
-
-        throw new InvalidOperationException( "The platform tests failed on Windows. See the output above." );
-    }
 }
 
 // Creates the requirements of the Linux agents that run the test archives in a container.
