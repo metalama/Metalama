@@ -727,5 +727,15 @@ namespace Metalama.Framework.Engine.Templating
                     + "netstandard2.0, which does not support this feature.",
                     _category,
                     Error );
+
+        internal static readonly DiagnosticDefinition<string> CantResolveDeclarativeAdvice
+            = new(
+                "LAMA0295",
+                "Could not resolve the declaration of a declarative advice.",
+                "Could not resolve the declaration with id '{0}' while preparing the declarative advice of an aspect. That advice is ignored. "
+                + "This can happen when the declaration is absent from the compilation that the aspect runs against, or when several "
+                + "references of the compilation contain a type that is part of the signature of the declaration.",
+                _category,
+                Error );
     }
 }

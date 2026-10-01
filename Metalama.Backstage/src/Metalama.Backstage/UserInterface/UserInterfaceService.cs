@@ -43,6 +43,9 @@ public abstract class UserInterfaceService : IUserInterfaceService
 
     public abstract void ShowToastNotification( ToastNotification notification );
 
+    /// <inheritdoc />
+    public abstract bool AreToastNotificationsSupported { get; }
+
     protected virtual ProcessStartInfo GetProcessStartInfoForUrl( string url, BrowserMode browserMode ) => new( url ) { UseShellExecute = true };
 
     public void OpenExternalWebPage( string url, BrowserMode browserMode )

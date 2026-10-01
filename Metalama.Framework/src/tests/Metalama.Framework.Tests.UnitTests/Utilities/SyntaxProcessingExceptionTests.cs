@@ -54,6 +54,36 @@ namespace Metalama.Framework.Tests.UnitTests.Utilities
         }
 
         /// <summary>
+        /// Verifies that the code in the message is on a single line when a token of the node contains line breaks, as a
+        /// verbatim string literal does, and that a sequence of line breaks is replaced by a single space.
+        /// </summary>
+        [Fact]
+        public void MessageIsOnASingleLineWhenATokenContainsLineBreaks()
+        {
+            const string code = "[My(@\"first\r\n\r\nsecond\")]\r\nclass Target { }\r\n";
+
+            var exception = GetExceptionForAttributeOf( SourceText.From( code ) );
+
+            Assert.Contains( "`My(@\"first second\")`", exception.Message, StringComparison.Ordinal );
+            Assert.DoesNotContain( "\r", exception.Message, StringComparison.Ordinal );
+            Assert.DoesNotContain( "\n", exception.Message, StringComparison.Ordinal );
+        }
+
+        /// <summary>
+        /// Verifies that the code in the message is truncated to 40 characters when a single token of the node is longer
+        /// than that.
+        /// </summary>
+        [Fact]
+        public void MessageIsTruncatedWhenATokenIsLong()
+        {
+            var code = "[My(\"" + new string( 'x', 10_000 ) + "\")]\r\nclass Target { }\r\n";
+
+            var exception = GetExceptionForAttributeOf( SourceText.From( code ) );
+
+            Assert.Contains( "`My(\"" + new string( 'x', 33 ) + "...`", exception.Message, StringComparison.Ordinal );
+        }
+
+        /// <summary>
         /// Asserts that the given message names the kind of the node, the code of the node, the path of the node in
         /// the syntax tree, the file, and the type and the message of the inner exception. These are the details that
         /// both tests expect, whether the position of the node is available or not.

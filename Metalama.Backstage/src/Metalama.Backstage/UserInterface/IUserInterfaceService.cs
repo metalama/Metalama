@@ -19,6 +19,19 @@ public interface IUserInterfaceService : IBackstageService
     /// This is the job of the <see cref="IToastNotificationService"/>.
     /// </summary>
     void ShowToastNotification( ToastNotification notification );
+
+    /// <summary>
+    /// Gets a value indicating whether the current machine can display a toast notification.
+    /// </summary>
+    /// <remarks>
+    /// The Windows notification platform declines to serve the process on a Windows installation that does not
+    /// include the notification platform, in a session that has no interactive desktop, and when a policy disables
+    /// notifications. When this property returns <c>false</c>,
+    /// <see cref="IToastNotificationDetectionService"/> skips the detection and
+    /// <see cref="IToastNotificationService"/> does not display any notification, because the notification platform
+    /// would decline the call. See issue #2047.
+    /// </remarks>
+    bool AreToastNotificationsSupported { get; }
 }
 
 public enum BrowserMode

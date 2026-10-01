@@ -130,11 +130,12 @@ public abstract class TemplateClass : IDiagnosticSource
         in ProjectServiceProvider serviceProvider,
         CompilationModel compilation,
         TemplateProvider templateProvider,
-        IObjectReader tags )
+        IObjectReader tags,
+        IDiagnosticAdder diagnosticAdder )
     {
         var compilationModelForTemplateReflection = this._templateReflectionContext?.GetCompilationModel( compilation ) ?? compilation;
 
-        return this.GetDeclarativeAdvice( serviceProvider, compilation.CompilationContext )
+        return this.GetDeclarativeAdvice( serviceProvider, compilation.CompilationContext, diagnosticAdder )
             .Select(
                 x => TemplateMemberFactory.Create(
                     (IMemberOrNamedType) compilationModelForTemplateReflection.Factory.GetDeclaration(
@@ -146,46 +147,80 @@ public abstract class TemplateClass : IDiagnosticSource
                     tags ) );
     }
 
+    /// <summary>
+    /// Returns the declarative advice members of the current class that resolve in the given compilation, ordered by
+    /// <see cref="DeclarativeAdviceSymbolComparer"/>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A member whose declaration identifier does not resolve is skipped, and the identifier is named by a
+    /// <c>LAMA0295</c> error. The identifier is written when the current class is created, and the current class is
+    /// reached from the pipeline configuration, which is reused across compilations at design time, so the compilation
+    /// an identifier is resolved against is not necessarily the one it was written from. The resolution therefore has
+    /// to be allowed to fail: aborting here costs the project every aspect, every diagnostic and every suppression of
+    /// the editor, which is what issue #2052 reports.
+    /// </para>
+    /// <para>
+    /// The error is reported on every call, and therefore for every aspect instance, so that every instance of the
+    /// aspect has the same outcome. The user sees the error only once because it carries a deduplication key, which
+    /// <see cref="UserDiagnosticSink"/> applies when the diagnostics of all the aspect instances are collected. The
+    /// current class must not remember which identifiers it has already reported: it is reused across compilations at
+    /// design time, so an identifier reported in one compilation would then be silently skipped in the next one.
+    /// </para>
+    /// </remarks>
     private IEnumerable<(TemplateClassMember TemplateClassMember, ISymbol Symbol, Compilation SymbolCompilation, DeclarativeAdviceAttribute Attribute)>
         GetDeclarativeAdvice(
             ProjectServiceProvider serviceProvider,
-            CompilationContext compilationContext )
+            CompilationContext compilationContext,
+            IDiagnosticAdder diagnosticAdder )
     {
         TemplateAttributeFactory? templateAttributeFactory = null;
 
         var templateReflectionCompilationContext = this._templateReflectionContext?.CompilationContext ?? compilationContext;
         var templateReflectionCompilation = templateReflectionCompilationContext.Compilation;
 
-        // We are sorting the declarative advice by symbol name and not by source order because the source is not available
-        // if the aspect library is a compiled assembly.
+        var resolvedMembers = new List<(TemplateClassMember TemplateClassMember, ISymbol Symbol, DeclarativeAdviceAttribute Attribute)>();
 
-        return this.Members
-            .Where( m => m.Value.TemplateInfo.AttributeType == TemplateAttributeType.DeclarativeAdvice )
-            .Select(
-                m =>
-                {
-                    var symbol = m.Value.DeclarationId.ResolveToSymbol( templateReflectionCompilationContext );
-
-                    return (Template: m.Value, Symbol: symbol, Syntax: symbol.GetPrimarySyntaxReference());
-                } )
-            .OrderBy( m => m.Symbol, DeclarativeAdviceSymbolComparer.Instance )
-            .Select( m => (m.Template, m.Symbol, templateReflectionCompilation, ResolveAttribute( m.Template.DeclarationId )) );
-
-        DeclarativeAdviceAttribute ResolveAttribute( SerializableDeclarationId declarationId )
+        foreach ( var member in this.Members.Values )
         {
+            if ( member.TemplateInfo.AttributeType != TemplateAttributeType.DeclarativeAdvice )
+            {
+                continue;
+            }
+
+            var symbol = member.DeclarationId.ResolveToSymbolOrNull( templateReflectionCompilationContext );
+
+            if ( symbol == null )
+            {
+                diagnosticAdder.Report(
+                    TemplatingDiagnosticDescriptors.CantResolveDeclarativeAdvice.CreateRoslynDiagnostic(
+                        null,
+                        member.DeclarationId.Id,
+                        this,
+                        deduplicationKey: member.DeclarationId.Id ) );
+
+                continue;
+            }
+
             templateAttributeFactory ??= serviceProvider.GetRequiredService<TemplateAttributeFactory>();
 
             if ( !templateAttributeFactory.TryGetTemplateAttribute(
-                    declarationId,
+                    member.DeclarationId,
                     templateReflectionCompilationContext,
-                    ThrowingDiagnosticAdder.Instance,
+                    diagnosticAdder,
                     out var attribute ) )
             {
-                throw new AssertionFailedException( $"Cannot get a template for '{declarationId}'." );
+                continue;
             }
 
-            return (DeclarativeAdviceAttribute) attribute;
+            resolvedMembers.Add( (member, symbol, (DeclarativeAdviceAttribute) attribute) );
         }
+
+        // We are sorting the declarative advice by symbol name and not by source order because the source is not available
+        // if the aspect library is a compiled assembly.
+        return resolvedMembers
+            .OrderBy( m => m.Symbol, DeclarativeAdviceSymbolComparer.Instance )
+            .Select( m => (m.TemplateClassMember, m.Symbol, templateReflectionCompilation, m.Attribute) );
     }
 
     internal ITemplateReflectionContext GetTemplateReflectionContext( CompilationContext compilationContext )

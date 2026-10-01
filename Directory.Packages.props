@@ -9,7 +9,7 @@
   <PropertyGroup>
     <!-- 2023.2.398 is the first version that exposes ManySolutions and TestableSolution, which the design-time
          scenarios under Metalama.Framework/src/tests/DesignTimeStandalone derive from. -->
-    <PostSharpEngineeringVersion Condition="'$(PostSharpEngineeringVersion)'==''">2023.2.461</PostSharpEngineeringVersion>
+    <PostSharpEngineeringVersion Condition="'$(PostSharpEngineeringVersion)'==''">2023.2.480</PostSharpEngineeringVersion>
 
 
     <!-- We must match the version used by the lowest version of Visual Studio supported by the VSX, i.e. VS 17.14. -->
@@ -151,6 +151,11 @@
     <PackageVersion Include="xunit.assemblyfixture" Condition="'$(TargetFramework)'!='net472'" Version="2.2.0" />
     <PackageVersion Include="xunit.assemblyfixture" Condition="'$(TargetFramework)'=='net472'" Version="2.0.3" />
     <PackageVersion Include="Xunit.SkippableFact" Version="1.5.61" />
+
+    <!-- The platform tests (Metalama.Framework.PlatformTests) are Microsoft.Testing.Platform applications, so that
+         PostSharp.Engineering can run them on Linux and macOS as test archives. They use xunit.v3, unlike the other tests. -->
+    <PackageVersion Include="xunit.v3" Version="4.0.1" />
+    <PackageVersion Include="Microsoft.Testing.Extensions.TrxReport" Version="2.4.1" />
     <PackageVersion Include="coverlet.collector" Version="6.0.4" />
     <PackageVersion Include="coverlet.msbuild" Version="6.0.4" />
 

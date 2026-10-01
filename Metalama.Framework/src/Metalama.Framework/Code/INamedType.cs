@@ -202,6 +202,15 @@ namespace Metalama.Framework.Code
         bool IsRecord { get; }
 
         /// <summary>
+        /// Gets a value indicating whether the type is declared with the <c>file</c> modifier. The name of a file-local type can be resolved only in the file that declares it.
+        /// </summary>
+        /// <remarks>
+        /// The <c>file</c> modifier does not define an accessibility. For a file-local type, <see cref="IMemberOrNamedType.Accessibility"/> returns <see cref="Accessibility.Internal"/>.
+        /// A type nested in a file-local type is not file-local itself. This property returns <c>false</c> for a type introduced by an aspect.
+        /// </remarks>
+        bool IsFileLocal { get; }
+
+        /// <summary>
         /// Determines whether the type if subclass of the given class or interface.
         /// </summary>
         bool IsSubclassOf( INamedType type );

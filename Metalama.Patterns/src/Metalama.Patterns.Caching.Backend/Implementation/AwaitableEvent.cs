@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Testing.Hooks;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -39,7 +40,7 @@ internal sealed class AwaitableEvent
     // ReSharper restore InconsistentNaming
 
     private readonly int _resetMode;
-    internal readonly ConcurrentQueue<WaitOperationBase> Operations;
+    internal readonly WaitOperationQueue Operations;
 
     /// <summary>
     /// The optional test synchronization service, resolved once from the service provider. Never registered in
@@ -63,7 +64,7 @@ internal sealed class AwaitableEvent
     {
         // Make sure that readonly field values are visible for other threads when we leave constructor.
         Volatile.Write( ref this._resetMode, (int) resetMode );
-        Volatile.Write( ref this.Operations, new ConcurrentQueue<WaitOperationBase>() );
+        Volatile.Write( ref this.Operations, new WaitOperationQueue() );
 
         this._testSynchronizationProvider = (ITestSynchronizationProvider?) serviceProvider?.GetService( typeof(ITestSynchronizationProvider) );
         this._workItemDispatcher = serviceProvider.GetWorkItemDispatcher();
@@ -465,11 +466,15 @@ internal sealed class AwaitableEvent
                     }
                     catch ( OperationCanceledException )
                     {
-                        // Withdraw the operation (WAITING -> TIMEOUT) so a later Set() drain neither strands it
-                        // nor, via the shared thread-static event, spuriously wakes an unrelated wait on this
-                        // thread. If the CAS loses, Activate() already delivered the signal to us (op is SUCCESS);
-                        // for auto-reset we consumed it, so hand it back to another waiter before propagating.
-                        if ( WAITING != Interlocked.CompareExchange( ref op.State, TIMEOUT, WAITING ) )
+                        // Withdraw the operation (WAITING -> TIMEOUT) and remove it from the queue, so that a later
+                        // Set() neither activates it nor retains it. If the CAS loses, Activate() already delivered
+                        // the signal to us (op is SUCCESS); for auto-reset we consumed it, so hand it back to another
+                        // waiter before propagating.
+                        if ( WAITING == Interlocked.CompareExchange( ref op.State, TIMEOUT, WAITING ) )
+                        {
+                            this.Operations.Remove( op );
+                        }
+                        else
                         {
                             Debug.Assert( op.State == SUCCESS );
                             this.Set();
@@ -492,6 +497,8 @@ internal sealed class AwaitableEvent
 
                         if ( WAITING == Interlocked.CompareExchange( ref op.State, TIMEOUT, WAITING ) )
                         {
+                            // Remove the withdrawn operation from the queue, so that a later Set() does not retain it.
+                            this.Operations.Remove( op );
                             this.SyncPoint( "Operation timed out, return false." );
 
                             return false;
@@ -589,10 +596,13 @@ internal sealed class AwaitableEvent
                     }
                     catch ( OperationCanceledException )
                     {
-                        // Withdraw the operation (WAITING -> TIMEOUT) so a later Set() drain skips it instead of
-                        // setting the shared thread-static event and spuriously waking an unrelated wait on this
-                        // thread. Manual-reset stays SIGNALED, so there is no consumed signal to restore.
-                        Interlocked.CompareExchange( ref op.State, TIMEOUT, WAITING );
+                        // Withdraw the operation (WAITING -> TIMEOUT) and remove it from the queue, so that a later
+                        // Set() neither activates it nor retains it. Manual-reset stays SIGNALED, so there is no
+                        // consumed signal to restore.
+                        if ( WAITING == Interlocked.CompareExchange( ref op.State, TIMEOUT, WAITING ) )
+                        {
+                            this.Operations.Remove( op );
+                        }
 
                         throw;
                     }
@@ -611,6 +621,8 @@ internal sealed class AwaitableEvent
 
                         if ( WAITING == Interlocked.CompareExchange( ref op.State, TIMEOUT, WAITING ) )
                         {
+                            // Remove the withdrawn operation from the queue, so that a later Set() does not retain it.
+                            this.Operations.Remove( op );
                             this.SyncPoint( "Operation timed out, return false." );
 
                             return false;
@@ -646,10 +658,7 @@ internal sealed class AwaitableEvent
             throw new InvalidOperationException( "Support for non-zero finite timeout is not currently implemented." );
         }
 
-        if ( cancellationToken != CancellationToken.None )
-        {
-            throw new InvalidOperationException( "Support for cancellation tokens is not currently implemented." );
-        }
+        cancellationToken.ThrowIfCancellationRequested();
 
         if ( timeout == TimeSpan.Zero )
         {
@@ -736,10 +745,7 @@ internal sealed class AwaitableEvent
             throw new InvalidOperationException( "Support for non-zero finite timeout is not currently implemented." );
         }
 
-        if ( cancellationToken != CancellationToken.None )
-        {
-            throw new InvalidOperationException( "Support for cancellation tokens is not currently implemented." );
-        }
+        cancellationToken.ThrowIfCancellationRequested();
 
         if ( timeout == TimeSpan.Zero )
         {
@@ -901,12 +907,8 @@ internal sealed class AwaitableEvent
 
                         if ( op.Timeout == _infiniteTimeSpan )
                         {
-                            // if there is no cancellation token, we simply exit
-
-                            if ( op.CancellationToken != CancellationToken.None )
-                            {
-                                throw new NotImplementedException( "Cancellation tokens are currently is not implemented." );
-                            }
+                            // Set() activates the operation. If the token is cancelled first, the operation is withdrawn instead.
+                            op.RegisterCancellation();
                         }
                         else
                         {
@@ -976,12 +978,8 @@ internal sealed class AwaitableEvent
 
                         if ( op.Timeout == _infiniteTimeSpan )
                         {
-                            // if there is no cancellation token, we simply exit
-
-                            if ( op.CancellationToken != CancellationToken.None )
-                            {
-                                throw new NotImplementedException( "Cancellation tokens are currently not implemented." );
-                            }
+                            // Set() activates the operation. If the token is cancelled first, the operation is withdrawn instead.
+                            op.RegisterCancellation();
                         }
                         else
                         {
@@ -1022,10 +1020,127 @@ internal sealed class AwaitableEvent
         // Copied from the owning AwaitableEvent for the same reason as TestSynchronizationProvider.
         public IWorkItemDispatcher WorkItemDispatcher = ThreadPoolWorkItemDispatcher.Instance;
 
+        // The queue in which the operation was enqueued, or null if the operation was never enqueued.
+        public WaitOperationQueue? Queue;
+
+        // The node of the operation in Queue, or null if the operation is not in the queue. Accessed only under the
+        // lock of the queue.
+        public LinkedListNode<WaitOperationBase>? QueueNode;
+
         /// <inheritdoc cref="AwaitableEvent.SyncPoint"/>
         protected void SyncPoint( string name ) => this.TestSynchronizationProvider?.SyncPoint( name );
 
         public abstract bool Activate();
+    }
+
+    /// <summary>
+    /// The first-in, first-out queue of the wait operations of an <see cref="AwaitableEvent"/>. Unlike
+    /// <see cref="ConcurrentQueue{T}"/>, it supports the removal of an operation from any position.
+    /// </summary>
+    /// <remarks>
+    /// Each method is atomic with respect to the other methods, as the methods of <see cref="ConcurrentQueue{T}"/> are.
+    /// The methods take a lock, which is also a full memory barrier. An operation can be enqueued only once.
+    /// </remarks>
+    internal sealed class WaitOperationQueue : IEnumerable<WaitOperationBase>
+    {
+        private readonly LinkedList<WaitOperationBase> _list = new();
+
+        public bool IsEmpty
+        {
+            get
+            {
+                lock ( this._list )
+                {
+                    return this._list.Count == 0;
+                }
+            }
+        }
+
+        public int Count
+        {
+            get
+            {
+                lock ( this._list )
+                {
+                    return this._list.Count;
+                }
+            }
+        }
+
+        public void Enqueue( WaitOperationBase operation )
+        {
+            lock ( this._list )
+            {
+                operation.Queue = this;
+                operation.QueueNode = this._list.AddLast( operation );
+            }
+        }
+
+        public bool TryDequeue( out WaitOperationBase operation )
+        {
+            lock ( this._list )
+            {
+                var node = this._list.First;
+
+                if ( node == null )
+                {
+                    operation = null;
+
+                    return false;
+                }
+
+                this._list.RemoveFirst();
+                operation = node.Value;
+                operation.QueueNode = null;
+
+                return true;
+            }
+        }
+
+        public bool TryPeek( out WaitOperationBase operation )
+        {
+            lock ( this._list )
+            {
+                operation = this._list.First?.Value;
+
+                return operation != null;
+            }
+        }
+
+        /// <summary>
+        /// Removes an operation from the queue if it is still in the queue.
+        /// </summary>
+        /// <returns><c>true</c> if the operation was removed, or <c>false</c> if it had already been dequeued.</returns>
+        public bool Remove( WaitOperationBase operation )
+        {
+            lock ( this._list )
+            {
+                var node = operation.QueueNode;
+
+                if ( node == null )
+                {
+                    return false;
+                }
+
+                this._list.Remove( node );
+                operation.QueueNode = null;
+
+                return true;
+            }
+        }
+
+        /// <summary>
+        /// Returns an enumerator over a snapshot of the queue.
+        /// </summary>
+        public IEnumerator<WaitOperationBase> GetEnumerator()
+        {
+            lock ( this._list )
+            {
+                return new List<WaitOperationBase>( this._list ).GetEnumerator();
+            }
+        }
+
+        IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
     }
 
     internal class WaitOperationSync : WaitOperationBase
@@ -1076,6 +1191,84 @@ internal sealed class AwaitableEvent
 
         // token received for wait cancellation
         public CancellationToken CancellationToken;
+
+        private static readonly Action<object> _cancelCallback = state => ((WaitOperationAsyncBase) state).Cancel();
+
+        /// <summary>
+        /// The registration of the cancellation callback while the operation is WAITING, or <c>null</c>.
+        /// </summary>
+        /// <remarks>
+        /// The registration is stored boxed so that it can be exchanged atomically. It is disposed when the operation is
+        /// activated, so that a long-lived token does not keep the operation and its continuation alive.
+        /// </remarks>
+        private IDisposable? _cancellationRegistration;
+
+        /// <summary>
+        /// Registers a callback that withdraws the operation when <see cref="CancellationToken"/> is cancelled.
+        /// Called after the operation moved to the WAITING state.
+        /// </summary>
+        public void RegisterCancellation()
+        {
+            if ( !this.CancellationToken.CanBeCanceled )
+            {
+                return;
+            }
+
+            // If the token is already cancelled, the callback runs synchronously.
+            IDisposable registration = this.CancellationToken.Register( _cancelCallback, this );
+
+            Interlocked.Exchange( ref this._cancellationRegistration, registration );
+
+            // Activate() may have run before the registration was stored, in which case it could not dispose it.
+            if ( this.State != WAITING )
+            {
+                this.DisposeCancellationRegistration();
+            }
+        }
+
+        /// <summary>
+        /// Disposes the registration of the cancellation callback, if it has not been disposed yet.
+        /// </summary>
+        protected void DisposeCancellationRegistration()
+        {
+            Interlocked.Exchange( ref this._cancellationRegistration, null )?.Dispose();
+        }
+
+        /// <summary>
+        /// Withdraws the operation when its <see cref="CancellationToken"/> is cancelled.
+        /// </summary>
+        private void Cancel()
+        {
+            // Withdraw the operation (WAITING -> TIMEOUT) so that a Set() that has already dequeued it skips it and
+            // does not consume the signal. Then remove the operation from the queue, so that the queue does not
+            // retain the operation, its continuation and its token until the next Set(). If the CAS fails,
+            // Activate() already moved the operation to SUCCESS and scheduled the continuation.
+            if ( WAITING == Interlocked.CompareExchange( ref this.State, TIMEOUT, WAITING ) )
+            {
+                this.Queue?.Remove( this );
+                this.SyncPoint( "Operation cancelled, schedule continuation." );
+                this.ScheduleContinuation();
+            }
+        }
+
+        /// <summary>
+        /// Throws an <see cref="OperationCanceledException"/> if the operation was withdrawn because its
+        /// <see cref="CancellationToken"/> was cancelled.
+        /// </summary>
+        public void ThrowIfCancelled()
+        {
+            // An asynchronous operation supports only an infinite timeout, so it reaches the TIMEOUT state only
+            // through Cancel().
+            if ( this.State == TIMEOUT )
+            {
+                throw new OperationCanceledException( this.CancellationToken );
+            }
+        }
+
+        /// <summary>
+        /// Schedules the continuation, at most once.
+        /// </summary>
+        protected abstract void ScheduleContinuation();
     }
 
     internal sealed class WaitOperationAsync : WaitOperationAsyncBase
@@ -1092,7 +1285,12 @@ internal sealed class AwaitableEvent
         public override bool Activate()
         {
             var state = this.State;
-            Debug.Assert( state != TIMEOUT );
+
+            if ( state == TIMEOUT )
+            {
+                // The operation was withdrawn by cancellation.
+                return false;
+            }
 
             if ( state == SUCCESS )
             {
@@ -1114,13 +1312,21 @@ internal sealed class AwaitableEvent
                 return false;
             }
 
+            this.DisposeCancellationRegistration();
+            this.ScheduleContinuation();
+
+            return true;
+        }
+
+        protected override void ScheduleContinuation()
+        {
             // Activate() can legitimately be reached more than once for the same operation (e.g. Set() activates
             // the enqueued operation while the scheduling thread also calls Activate() after its now-stale CAS).
             // The continuation must be scheduled exactly once: scheduling it twice re-runs an already-completed
             // async state machine ("attempt to transition a task to a final state when it had already completed").
             if ( Interlocked.CompareExchange( ref this._continuationScheduled, 1, 0 ) != 0 )
             {
-                return true;
+                return;
             }
 
             // NOTE: this is how YieldAwaiter handles reactivation, but we omit SynchronizationContext.CurrentNoFlow which is internal
@@ -1138,8 +1344,6 @@ internal sealed class AwaitableEvent
             {
                 this.WorkItemDispatcher.Dispatch( _runContinuationWaitCallback, this.Continuation, false );
             }
-
-            return true;
         }
 
         public static void RunContinuation( object state )
@@ -1168,15 +1372,30 @@ internal sealed class AwaitableEvent
         // 0 until the continuation has been scheduled, then 1. Guarantees the continuation is scheduled at most once.
         private int _continuationScheduled;
 
+        /// <summary>
+        /// Gets a value indicating whether the wait succeeded. Throws an <see cref="OperationCanceledException"/> if the
+        /// operation was withdrawn because its <see cref="WaitOperationAsyncBase.CancellationToken"/> was cancelled,
+        /// so that a continuation that reads the operation it receives observes the cancellation.
+        /// </summary>
         public bool Result
         {
-            get { return this.State == SUCCESS; }
+            get
+            {
+                this.ThrowIfCancelled();
+
+                return this.State == SUCCESS;
+            }
         }
 
         public override bool Activate()
         {
             var state = this.State;
-            Debug.Assert( state != TIMEOUT );
+
+            if ( state == TIMEOUT )
+            {
+                // The operation was withdrawn by cancellation.
+                return false;
+            }
 
             if ( state == SUCCESS )
             {
@@ -1198,13 +1417,21 @@ internal sealed class AwaitableEvent
                 return false;
             }
 
+            this.DisposeCancellationRegistration();
+            this.ScheduleContinuation();
+
+            return true;
+        }
+
+        protected override void ScheduleContinuation()
+        {
             // Activate() can legitimately be reached more than once for the same operation (e.g. Set() activates
             // the enqueued operation while the scheduling thread also calls Activate() after its now-stale CAS).
             // The continuation must be scheduled exactly once: scheduling it twice re-runs an already-completed
             // async state machine ("attempt to transition a task to a final state when it had already completed").
             if ( Interlocked.CompareExchange( ref this._continuationScheduled, 1, 0 ) != 0 )
             {
-                return true;
+                return;
             }
 
             // NOTE: this is how YieldAwaiter handles reactivation, but we omit SynchronizationContext.CurrentNoFlow which is internal
@@ -1227,8 +1454,6 @@ internal sealed class AwaitableEvent
             {
                 this.WorkItemDispatcher.Dispatch( _runContinuationWaitCallback, this, false );
             }
-
-            return true;
         }
 
         public static void RunContinuation( object state )
@@ -1281,7 +1506,14 @@ internal sealed class AwaitableEvent
 
         public bool GetResult()
         {
-            return this._immediateResult ?? (this._operation.State == SUCCESS);
+            if ( this._immediateResult != null )
+            {
+                return this._immediateResult.Value;
+            }
+
+            this._operation.ThrowIfCancelled();
+
+            return this._operation.State == SUCCESS;
         }
 
         public Awaiter GetAwaiter()
@@ -1334,7 +1566,14 @@ internal sealed class AwaitableEvent
 
         public bool GetResult()
         {
-            return this._immediateResult ?? (this.Operation.State == SUCCESS);
+            if ( this._immediateResult != null )
+            {
+                return this._immediateResult.Value;
+            }
+
+            this.Operation.ThrowIfCancelled();
+
+            return this.Operation.State == SUCCESS;
         }
 
         public Awaiter<TData> GetAwaiter()

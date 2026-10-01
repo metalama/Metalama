@@ -29,6 +29,9 @@ internal sealed class WindowsUserInterfaceService : UserInterfaceService
         this._toolsExecutor = serviceProvider.GetRequiredBackstageService<IBackstageToolsExecutor>();
     }
 
+    /// <inheritdoc />
+    public override bool AreToastNotificationsSupported => ToastNotificationSupport.IsSupported;
+
     public override void ShowToastNotification( ToastNotification notification )
     {
         // Build the argument vector. Title/Text/Uri can come from an untrusted RSS feed, so they MUST be passed as

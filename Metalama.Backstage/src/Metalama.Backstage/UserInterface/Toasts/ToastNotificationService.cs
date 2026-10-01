@@ -34,6 +34,14 @@ internal sealed class ToastNotificationService : IToastNotificationService
             return false;
         }
 
+        if ( !this._userInterfaceService.AreToastNotificationsSupported )
+        {
+            this._logger.Trace?.Log(
+                $"The notification of kind {notification.Kind.Name} was not displayed because the current machine cannot display a toast notification." );
+
+            return false;
+        }
+
         if ( this._toastNotificationStatusService.TryAcquire( notification.Kind ) )
         {
             this._logger.Trace?.Log( $"Displaying the notification using {this._userInterfaceService}." );

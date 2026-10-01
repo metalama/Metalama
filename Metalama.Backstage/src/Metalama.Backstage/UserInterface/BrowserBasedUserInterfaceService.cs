@@ -18,6 +18,14 @@ internal class BrowserBasedUserInterfaceService : UserInterfaceService
         this._logger = serviceProvider.GetLoggerFactory().GetLogger( this.GetType().Name );
     }
 
+    /// <inheritdoc />
+    /// <remarks>
+    /// This implementation does not use the Windows notification platform, therefore no notification platform can
+    /// decline the call. A notification of the <see cref="ToastNotificationKinds.RequiresLicense"/> kind opens the
+    /// configuration web page, and a notification of any other kind is logged and ignored.
+    /// </remarks>
+    public override bool AreToastNotificationsSupported => true;
+
     public override void ShowToastNotification( ToastNotification notification )
     {
         if ( notification.Kind == ToastNotificationKinds.RequiresLicense )

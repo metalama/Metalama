@@ -59,6 +59,36 @@ public sealed class ToastNotificationDetectionServiceTests : LicensingTestsBase
         await this._toastNotificationDetectionService.DetectAsync();
     }
 
+    /// <summary>
+    /// Asserts that no toast notification is detected when the user interface service reports that the current
+    /// machine cannot display a toast notification. See issue #2047.
+    /// </summary>
+    /// <remarks>
+    /// The Windows notification platform declines to serve the process on a Windows installation that does not
+    /// include the notification platform, in a session that has no interactive desktop, and when a policy disables
+    /// notifications. The desktop notification tool then failed with an unhandled <c>COMException</c>.
+    /// </remarks>
+    /// <param name="areToastNotificationsSupported">Whether the current machine can display a toast notification.</param>
+    [Theory]
+    [InlineData( true )]
+    [InlineData( false )]
+    public async Task IsDetectionSkippedWhenToastNotificationsAreNotSupportedAsync( bool areToastNotificationsSupported )
+    {
+        this.UserDeviceDetection.IsInteractiveDevice = true;
+        this.UserInterface.AreToastNotificationsSupported = areToastNotificationsSupported;
+
+        await this.DetectToastNotificationsAsync( openTelemetrySession: false );
+
+        if ( areToastNotificationsSupported )
+        {
+            Assert.Single( this.UserInterface.Notifications, n => n.Kind == ToastNotificationKinds.RequiresLicense );
+        }
+        else
+        {
+            Assert.Empty( this.UserInterface.Notifications );
+        }
+    }
+
     [Theory]
     [InlineData( true, true )]
     [InlineData( false, false )]

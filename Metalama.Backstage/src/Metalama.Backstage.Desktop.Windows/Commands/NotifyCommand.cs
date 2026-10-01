@@ -79,7 +79,22 @@ public sealed class NotifyCommand : BaseCommand<NotifyCommandSettings>
 
         logger.Trace?.Log( builder.Content.GetXml().GetXml() );
 
-        builder.Show();
+        try
+        {
+            builder.Show();
+        }
+        catch ( Exception e )
+        {
+            // The Windows notification platform declines to serve the process on a Windows installation without the
+            // notification platform, in a session with no interactive desktop, while the shell is still starting, and
+            // when a policy disables notifications. It reports the refusal as a COMException whose message is
+            // sometimes empty, therefore the HRESULT is logged explicitly. A notification that cannot be displayed is
+            // an ordinary condition and must not be reported as a crash of the tool. See issue #2047.
+            logger.Warning?.Log(
+                $"The Windows notification platform declined to display the notification (HRESULT 0x{e.HResult:x8}): {e.Message}" );
+
+            return -1;
+        }
 
         return 0;
     }

@@ -204,6 +204,8 @@ internal sealed class IntroducedNamedType : IntroducedMemberOrNamedType, INamedT
 
     public bool IsRecord => this._namedTypeBuilderData.IsRecord;
 
+    public bool IsFileLocal => false;
+
     public bool? IsNullable { get; }
 
     [Memo]
