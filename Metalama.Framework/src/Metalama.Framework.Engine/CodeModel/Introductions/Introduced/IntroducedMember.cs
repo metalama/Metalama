@@ -7,6 +7,7 @@ using Metalama.Framework.Engine.CodeModel.Abstractions;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.CodeModel.Source;
+using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Utilities;
 using System.Collections.Generic;
 
@@ -37,9 +38,19 @@ internal abstract class IntroducedMember : IntroducedMemberOrNamedType, IMemberI
     [Memo]
     public IMember? OverriddenMember => this.MapDeclaration( this.MemberBuilderData.OverriddenMember );
 
-    public override IEnumerable<IDeclaration> GetDerivedDeclarations( DerivedTypesOptions options = default )
+    /// <inheritdoc/>
+    /// <remarks>
+    /// The enumeration reads <see cref="DeclaringType"/>, which resolves a reference and therefore throws when the
+    /// declaring type is absent from the compilation this member is read in. That absence is an error situation, and
+    /// <see cref="IntroducedMemberOrNamedType.TryGetDeclaringType"/> reports it as an error diagnostic, but it does not
+    /// have to terminate the pipeline here: a member whose declaring type is absent from a compilation has no derived
+    /// declaration in that compilation, so the empty result is correct. See issue #2048.
+    /// </remarks>
+    public override IEnumerable<IDeclaration> GetDerivedDeclarations(
+        DerivedTypesOptions options = DerivedTypesOptions.Default,
+        IDiagnosticAdder? diagnosticAdder = null )
     {
-        if ( !this.CanBeInherited )
+        if ( !this.CanBeInherited || !this.TryGetDeclaringType( out _, diagnosticAdder ) )
         {
             return [];
         }

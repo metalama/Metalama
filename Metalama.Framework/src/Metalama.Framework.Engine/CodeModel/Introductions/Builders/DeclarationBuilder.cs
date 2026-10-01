@@ -12,6 +12,7 @@ using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.Introductions.Collections;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.CodeModel.Visitors;
+using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.SerializableIds;
 using Metalama.Framework.Metrics;
 using Microsoft.CodeAnalysis;
@@ -170,7 +171,7 @@ internal abstract class DeclarationBuilder : IDeclarationBuilderImpl
 
     public virtual SyntaxTree? PrimarySyntaxTree => this.ContainingDeclaration.AssertNotNull().GetPrimarySyntaxTree();
 
-    public IEnumerable<IDeclaration> GetDerivedDeclarations( DerivedTypesOptions options = default ) => throw new NotImplementedException();
+    public IEnumerable<IDeclaration> GetDerivedDeclarations( DerivedTypesOptions options = DerivedTypesOptions.Default, IDiagnosticAdder? diagnosticAdder = null ) => throw new NotImplementedException();
 
     public sealed override string ToString() => this.ToDisplayString( CodeDisplayFormat.ShortDiagnosticMessage );
 

@@ -330,6 +330,12 @@ public abstract class ServerEndpoint : BaseEndpoint
     {
         base.Dispose( disposing );
 
+        // When the constructor has failed, the finalizer calls this method on an object whose fields can be null.
+        if ( this._pipes == null )
+        {
+            return;
+        }
+
         foreach ( var pipe in this._pipes )
         {
             try

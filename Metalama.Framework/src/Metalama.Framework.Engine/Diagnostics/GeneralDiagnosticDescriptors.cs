@@ -587,6 +587,15 @@ namespace Metalama.Framework.Engine.Diagnostics
                     Error,
                     "The transitive aspect manifest of a reference cannot be read." );
 
+        internal static readonly DiagnosticDefinition<(string DeclaringType, string Declaration, string Compilation)>
+            IntroducedDeclaringTypeNotFound =
+                new(
+                    "LAMA0088",
+                    _category,
+                    "The declaring type '{0}' of the introduced declaration '{1}' cannot be resolved in the compilation '{2}'.",
+                    Error,
+                    "The declaring type of an introduced declaration cannot be resolved." );
+
         // TODO: Use formattable string (C# does not seem to find extension methods).
         internal static readonly DiagnosticDefinition<string>
             UnsupportedFeature = new(

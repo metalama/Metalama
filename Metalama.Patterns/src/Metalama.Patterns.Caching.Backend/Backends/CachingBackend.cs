@@ -386,8 +386,9 @@ public abstract class CachingBackend : IDisposable, IAsyncDisposable
     /// Gets a cache item given its key. This protected method is part of the implementation API and is meant to be overridden in user code, not invoked. Arguments are already validated by the consumer API.
     /// </summary>
     /// <param name="key">The cache item.</param>
-    /// <param name="includeDependencies"><c>true</c> if the <see cref="CacheItem.Dependencies"/> properties of the
-    /// resulting <see cref="CacheItem"/> should be populated, otherwise <c>false</c>.</param>
+    /// <param name="includeDependencies"><c>true</c> if the <see cref="CacheItem.Dependencies"/> property of the resulting
+    /// <see cref="CacheItem"/> must be populated. When <c>false</c>, a backend may populate it anyway, so the caller must
+    /// not assume that it is empty.</param>
     /// <returns>A <see cref="CacheItem"/>, or <c>null</c> if there is no item in cache of the given <paramref name="key"/>.</returns>
     protected abstract CacheItem? GetItemCore( string key, bool includeDependencies );
 
@@ -395,8 +396,9 @@ public abstract class CachingBackend : IDisposable, IAsyncDisposable
     /// Asynchronously gets a cache item given its key. This protected method is part of the implementation API and is meant to be overridden in user code, not invoked. Arguments are already validated by the consumer API.
     /// </summary>
     /// <param name="key">The cache item.</param>
-    /// <param name="includeDependencies"><c>true</c> if the <see cref="CacheItem.Dependencies"/> properties of the
-    ///     resulting <see cref="CacheItem"/> should be populated, otherwise <c>false</c>.</param>
+    /// <param name="includeDependencies"><c>true</c> if the <see cref="CacheItem.Dependencies"/> property of the resulting
+    /// <see cref="CacheItem"/> must be populated. When <c>false</c>, a backend may populate it anyway, so the caller must
+    /// not assume that it is empty.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns>A <see cref="Task"/> evaluating to a <see cref="CacheItem"/>, or evaluating to <c>null</c> if there is no item in cache of the given <paramref name="key"/>.</returns>
     protected virtual ValueTask<CacheItem?> GetItemAsyncCore( string key, bool includeDependencies, CancellationToken cancellationToken )
@@ -410,8 +412,9 @@ public abstract class CachingBackend : IDisposable, IAsyncDisposable
     /// Gets a cache item given its key.
     /// </summary>
     /// <param name="key">The cache item.</param>
-    /// <param name="includeDependencies"><c>true</c> if the <see cref="CacheItem.Dependencies"/> properties of the
-    /// resulting <see cref="CacheItem"/> should be populated, otherwise <c>false</c>.</param>
+    /// <param name="includeDependencies"><c>true</c> if the <see cref="CacheItem.Dependencies"/> property of the resulting
+    /// <see cref="CacheItem"/> must be populated. When <c>false</c>, a backend may populate it anyway, so the caller must
+    /// not assume that it is empty.</param>
     /// <returns>A <see cref="CacheItem"/>, or <c>null</c> if there is no item in cache of the given <paramref name="key"/>.</returns>
     public CacheItem? GetItem( string key, bool includeDependencies = false )
     {
@@ -461,8 +464,9 @@ public abstract class CachingBackend : IDisposable, IAsyncDisposable
     /// Asynchronously gets a cache item given its key.
     /// </summary>
     /// <param name="key">The cache item.</param>
-    /// <param name="includeDependencies"><c>true</c> if the <see cref="CacheItem.Dependencies"/> properties of the
-    /// resulting <see cref="CacheItem"/> should be populated, otherwise <c>false</c>.</param>
+    /// <param name="includeDependencies"><c>true</c> if the <see cref="CacheItem.Dependencies"/> property of the resulting
+    /// <see cref="CacheItem"/> must be populated. When <c>false</c>, a backend may populate it anyway, so the caller must
+    /// not assume that it is empty.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns>A <see cref="Task"/> evaluating to a <see cref="CacheItem"/>, or evaluating to <c>null</c> if there is no item in cache of the given <paramref name="key"/>.</returns>
     public async ValueTask<CacheItem?> GetItemAsync(
@@ -989,7 +993,24 @@ public abstract class CachingBackend : IDisposable, IAsyncDisposable
         }
     }
 
-    private void RaiseEvent( WaitCallback action ) => this.WorkItemDispatcher.Dispatch( action, null );
+    /// <summary>
+    /// Invokes the handlers of an event in a work item of the <see cref="WorkItemDispatcher"/>. An exception thrown by a
+    /// handler is logged and does not escape the work item, where it would terminate the process.
+    /// </summary>
+    private void RaiseEvent( WaitCallback action )
+        => this.WorkItemDispatcher.Dispatch(
+            state =>
+            {
+                try
+                {
+                    action( state );
+                }
+                catch ( Exception e )
+                {
+                    this.LogSource.Error.Write( Formatted( "An event handler of {Backend} threw an exception.", this ), e );
+                }
+            },
+            null );
 
     /// <summary>
     /// Raises the <see cref="ItemRemoved"/> event given a <see cref="CacheItemRemovedEventArgs"/>.
@@ -1080,14 +1101,26 @@ public abstract class CachingBackend : IDisposable, IAsyncDisposable
     {
         using ( cancellationToken.Register( this._disposeCancellationTokenSource.Cancel ) )
         {
+            var initializeSemaphoreAcquired = false;
+
             if ( this.Status == CachingBackendStatus.Initializing )
             {
                 this._initializeSemaphore.Wait( cancellationToken );
+                initializeSemaphoreAcquired = true;
             }
 
-            if ( this.TryChangeStatus( CachingBackendStatus.Initialized, CachingBackendStatus.Disposing ) ||
-                 this.TryChangeStatus( CachingBackendStatus.Default, CachingBackendStatus.Disposing ) ||
-                 this.TryChangeStatus( CachingBackendStatus.Failed, CachingBackendStatus.Disposing ) )
+            var isStatusChanged = this.TryChangeStatus( CachingBackendStatus.Initialized, CachingBackendStatus.Disposing ) ||
+                                  this.TryChangeStatus( CachingBackendStatus.Default, CachingBackendStatus.Disposing ) ||
+                                  this.TryChangeStatus( CachingBackendStatus.Failed, CachingBackendStatus.Disposing );
+
+            // The semaphore is released rather than disposed, so that a caller that waits for the initialization acquires
+            // it, observes the new status and fails with an ObjectDisposedException.
+            if ( initializeSemaphoreAcquired )
+            {
+                this._initializeSemaphore.Release();
+            }
+
+            if ( isStatusChanged )
             {
                 using ( var activity = this.LogSource.Default.OpenActivity( Formatted( "Disposing( backend = {Backend}", this ) ) )
                 {
@@ -1098,8 +1131,6 @@ public abstract class CachingBackend : IDisposable, IAsyncDisposable
                         this._dependencyInvalidated = null;
 
                         this.DisposeCore( disposing, cancellationToken );
-
-                        this._initializeSemaphore.Dispose();
 
                         if ( !this.TryChangeStatus( CachingBackendStatus.Disposing, CachingBackendStatus.Disposed ) )
                         {
@@ -1164,14 +1195,25 @@ public abstract class CachingBackend : IDisposable, IAsyncDisposable
         using ( cancellationToken.Register( this._disposeCancellationTokenSource.Cancel ) )
 #endif
         {
+            var initializeSemaphoreAcquired = false;
+
             if ( this.Status == CachingBackendStatus.Initializing )
             {
                 await this._initializeSemaphore.WaitAsync( cancellationToken );
+                initializeSemaphoreAcquired = true;
             }
 
-            if ( this.TryChangeStatus( CachingBackendStatus.Initialized, CachingBackendStatus.Disposing ) ||
-                 this.TryChangeStatus( CachingBackendStatus.Default, CachingBackendStatus.Disposing ) ||
-                 this.TryChangeStatus( CachingBackendStatus.Failed, CachingBackendStatus.Disposing ) )
+            var isStatusChanged = this.TryChangeStatus( CachingBackendStatus.Initialized, CachingBackendStatus.Disposing ) ||
+                                  this.TryChangeStatus( CachingBackendStatus.Default, CachingBackendStatus.Disposing ) ||
+                                  this.TryChangeStatus( CachingBackendStatus.Failed, CachingBackendStatus.Disposing );
+
+            // See the comment in Dispose.
+            if ( initializeSemaphoreAcquired )
+            {
+                this._initializeSemaphore.Release();
+            }
+
+            if ( isStatusChanged )
             {
                 using ( var activity = this.LogSource.Default.OpenAsyncActivity( Formatted( "Disposing" ) ) )
                 {
@@ -1187,8 +1229,6 @@ public abstract class CachingBackend : IDisposable, IAsyncDisposable
                         {
                             throw new CachingAssertionFailedException();
                         }
-
-                        this._initializeSemaphore.Dispose();
 
                         this._disposeTask.SetResult( true );
                         activity.SetSuccess();
@@ -1209,7 +1249,7 @@ public abstract class CachingBackend : IDisposable, IAsyncDisposable
             }
             else
             {
-                await this._disposeTask.Task;
+                await this._disposeTask.Task.WithCancellation( cancellationToken );
             }
         }
     }
