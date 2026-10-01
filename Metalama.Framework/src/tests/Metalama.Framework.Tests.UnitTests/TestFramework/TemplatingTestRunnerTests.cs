@@ -70,6 +70,10 @@ namespace Metalama.Framework.Tests.UnitTests.TestFramework
             var secondPath = await this.RunAndGetCompileTimePathAsync( testContext, Path.Combine( "Second", "SameName.cs" ) );
 
             Assert.NotEqual( Path.GetFullPath( firstPath ), Path.GetFullPath( secondPath ) );
+
+            var generatedDirectory = Path.Combine( testContext.BaseDirectory, "obj", _targetFramework, "generated" );
+            Assert.Equal( Path.Combine( generatedDirectory, "First", "SameName.cs" ), firstPath );
+            Assert.Equal( Path.Combine( generatedDirectory, "Second", "SameName.cs" ), secondPath );
         }
 
         private async Task<string> RunAndGetCompileTimePathAsync( TestContext testContext, string relativePath )

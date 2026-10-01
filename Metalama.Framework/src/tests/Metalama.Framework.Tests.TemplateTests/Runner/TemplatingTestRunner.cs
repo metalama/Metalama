@@ -151,9 +151,13 @@ namespace Metalama.Framework.Tests.TemplateTests.Runner
 
             testSyntaxTree.AnnotatedSyntaxRoot = annotatedTemplateSyntax;
 
-            // Write the transformed code to disk.
+            // Write the transformed code to disk. The path includes the directory of the test, so that tests with the same name
+            // in different directories do not write to the same file.
             var generatedDirectoryPath = Path.Combine( testInput.ProjectDirectory, "obj", testInput.ProjectProperties.TargetFramework, "generated" );
-            var transformedTemplatePath = Path.Combine( generatedDirectoryPath, Path.ChangeExtension( testInput.TestName, ".cs" ) );
+            var transformedTemplatePath = Path.Combine(
+                generatedDirectoryPath,
+                Path.GetDirectoryName( testInput.RelativePath ) ?? "",
+                Path.ChangeExtension( testInput.TestName, ".cs" ) );
             var transformedTemplateText = await transformedTemplateSyntax!.SyntaxTree.GetTextAsync();
             Directory.CreateDirectory( Path.GetDirectoryName( transformedTemplatePath )! );
 
