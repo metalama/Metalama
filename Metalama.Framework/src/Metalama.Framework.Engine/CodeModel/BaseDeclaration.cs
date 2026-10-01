@@ -9,6 +9,7 @@ using Metalama.Framework.Engine.CodeModel.Abstractions;
 using Metalama.Framework.Engine.CodeModel.GenericContexts;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.References;
+using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.SerializableIds;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.UserCode;
@@ -55,7 +56,7 @@ namespace Metalama.Framework.Engine.CodeModel
 
         public abstract bool CanBeInherited { get; }
 
-        public abstract IEnumerable<IDeclaration> GetDerivedDeclarations( DerivedTypesOptions options = default );
+        public abstract IEnumerable<IDeclaration> GetDerivedDeclarations( DerivedTypesOptions options = DerivedTypesOptions.Default, IDiagnosticAdder? diagnosticAdder = null );
 
         DeclarationImplementationKind IDeclarationImpl.ImplementationKind => this.ImplementationKind;
 
