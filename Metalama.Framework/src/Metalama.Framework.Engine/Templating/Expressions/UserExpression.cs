@@ -7,6 +7,7 @@ using Metalama.Framework.CompileTimeContracts;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.SyntaxSerialization;
+using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using RefKind = Metalama.Framework.Code.RefKind;
@@ -122,15 +123,20 @@ namespace Metalama.Framework.Engine.Templating.Expressions
         {
             var compilation = this.Type.GetCompilationModel();
 
-            return
-                this.ToSyntax(
-                        new SyntaxSerializationContext(
-                            compilation,
-                            compilation.CompilationContext.GetSyntaxGenerationContext( SyntaxGenerationOptions.Formatted, isNullOblivious: false ),
-                            null,
-                            null ) )
-                    .NormalizeWhitespace()
-                    .ToString();
+            var syntax = this.ToSyntax(
+                new SyntaxSerializationContext(
+                    compilation,
+                    compilation.CompilationContext.GetSyntaxGenerationContext( SyntaxGenerationOptions.Formatted, isNullOblivious: false ),
+                    null,
+                    null ) );
+
+            if ( !syntax.CanNormalizeWhitespace() )
+            {
+                // NormalizeWhitespace is recursive and can overflow the stack on a deep expression (see #2083).
+                return syntax.ToStringWithTokenSeparators();
+            }
+
+            return syntax.NormalizeWhitespace().ToString();
         }
     }
 }
