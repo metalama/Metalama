@@ -19,6 +19,7 @@ Tests are orchestrated by PostSharp.Engineering through `Build.ps1 test`. The au
 | **Benchmarks** | `Metalama.Framework.Tests.Benchmarks` | Performance, BenchmarkDotNet. | Exe |
 | **Test app** | `Metalama.Framework.TestApp` | "It builds": exercises the real MSBuild targets end to end. | build-only |
 | **Docker tests** | `docker/` | Container end-to-end (Windows and WSL/Linux). | CI-only PowerShell |
+| **Platform tests** | `Metalama.Framework.PlatformTests` | Code whose behavior depends on the operating system, run on Windows, Linux and macOS. | xunit.v3 (Microsoft.Testing.Platform) |
 
 Two supporting projects are not test suites themselves but underpin the above: [`Metalama.Testing.UnitTesting`](../src/Metalama.Testing.UnitTesting) (the shared, packable unit-testing framework) and [`Metalama.Testing.AspectTesting`](../src/Metalama.Testing.AspectTesting) (the shared aspect-testing framework and custom xUnit runner). [`Metalama.AspectWorkbench`](../src/tests/Metalama.AspectWorkbench) is a WPF developer tool for authoring and debugging aspect tests.
 
@@ -243,6 +244,27 @@ A scenario asserts on the diagnostics of the simulation itself through a **`desi
 
 [`Metalama.DesignTime.HostSimulator`](../src/tests/Metalama.DesignTime.HostSimulator) is a command-line program that simulates what an IDE does at design time (documented thoroughly in its `README.md`). It deliberately **does not reference Metalama**: it hosts Metalama the way an editor does, through each project's restored analyzer references loaded from disk (via a per-directory `AssemblyLoadContext`, mimicking Roslyn's `DirectoryLoadContext`), so it exercises whatever Metalama version each project references — including two versions in one solution. It opens the solution in an `MSBuildWorkspace` configured like a real design-time build (`DesignTimeBuild=true`, `BuildingInsideVisualStudio=true`), runs source generators, and issues per-document syntax and semantic analyzer requests as an open editor would. It fails on an analyzer that threw (`AD0001`), an unhandled Metalama exception (`LAMA0001`), any Metalama error, or an analyzer assembly that failed to load (exit `0` = ok, `1` = failure, `2` = usage). Options include traversal order, `--permutations` (each order in a fresh child process, since analyzer load contexts are non-collectible), `--property`, and `--timeout`. It does **not** simulate Visual Studio's two-process RPC split (it loads analyzers in-process, like Rider/OmniSharp), incremental editing, or Roslyn's concurrent scheduling. See [cross-process-communication.md](cross-process-communication.md) for the real design-time architecture.
 
+## Platform tests
+
+[`Metalama.Framework.PlatformTests`](../src/tests/Metalama.Framework.PlatformTests) tests the code whose behavior depends on the operating system or on the runtime, and which the Windows build alone therefore cannot verify. It contains `RecursionGuardTests`, which test `StackLimits` (the bounds of the stack are queried from Windows, Linux or macOS, and the margin of `RuntimeHelpers.EnsureSufficientExecutionStack` differs between .NET Framework and .NET) and the recursion guard of `SafeSyntaxWalker` and `SafeSyntaxRewriter`.
+
+The project differs from the other test projects in these ways:
+
+- It uses xunit.v3 and is a Microsoft.Testing.Platform application, because PostSharp.Engineering runs only such applications on other platforms. The other test projects use xunit v2 and VSTest. The project must therefore not reference `Metalama.Testing.UnitTesting` or `Metalama.Backstage.Testing`, which use xunit v2.
+- It is in its own solution, `Metalama.Framework/Metalama.Framework.PlatformTests.sln`, registered with `TestRunner = TestRunner.MicrosoftTestingPlatform` and `ContainsTestApplications = true`. The VSTest mode of `dotnet test` refuses a Microsoft.Testing.Platform application, so `Build.ps1 test` does not run `dotnet test` for this solution.
+- The build packs each target framework into a test archive (`artifacts/tests`, listed in `eng/test-archives.txt`). `Build.ps1 test` runs the `win-x64` archives (`net48` and `net8.0`) on the build host with `eng/RunTests.ps1`, which writes the TRX reports into `artifacts/testResults` and reports them to TeamCity. The TeamCity configurations of the `Platform Tests` sub-project run the `net8.0` archive in a Linux x64 container and on the macOS ARM64 agent. These configurations have no trigger: start `RunAllTestArchives` after a Debug build to run them.
+
+To run the tests locally:
+
+- `Build.ps1 test --solution <id>`, with the identifier that `Build.ps1 list-solutions` gives, runs them as the build does.
+- After a build, `eng/RunTests.ps1` runs the archives of the current platform; `-Name` selects archives and `-ApplicationArguments` passes options to the applications, for instance `-ApplicationArguments '--filter-class','Metalama.Framework.Tests.PlatformTests.RecursionGuardTests'`. On Linux or macOS (for instance in WSL), the same script runs the archives copied from a Windows build, with `-Platform linux-x64` or `-Platform osx-arm64`; it needs PowerShell 7.5 and the .NET runtime.
+- The project is an executable: `dotnet run --project src/tests/Metalama.Framework.PlatformTests -f net8.0`, or run `bin/Debug/net48/Metalama.Framework.PlatformTests.exe` or `dotnet bin/Debug/net8.0/Metalama.Framework.PlatformTests.dll`.
+- `dotnet test` does not work for this project, because the `global.json` of the repository selects the mode of VSTest.
+
+After a change to the test applications, run `Build.ps1 generate-scripts`, because `Build.ps1 build` fails when the archives differ from `eng/test-archives.txt`.
+
+Add a test here only when the code under test takes a different path on another operating system or runtime. A test that mocks the operating system belongs in the unit tests.
+
 ## Other test projects
 
 - [`Metalama.Framework.TestApp`](../src/tests/Metalama.Framework.TestApp) — a small solution (an `Exe`, its aspects, a library, a test-runner) whose whole test is that **it builds** through the real MSBuild targets (with `MetalamaEmitCompilerTransformedFiles`/`MetalamaDebugTransformedCode` on). Registered twice, once per build engine.
@@ -261,7 +283,7 @@ Each product solution ships its own tests, discovered by the same conventions:
 ## Shared configuration
 
 - [`src/tests/Directory.Build.props`](../src/tests/Directory.Build.props) — sets `IsPackable=False`, `Deterministic=False` (avoids the deterministic-source-paths error), `AddAssemblyMetadataAttributes=False` for the whole test tree.
-- [`src/tests/Directory.Build.targets`](../src/tests/Directory.Build.targets) — copies the shared `xunit.runner.json` next to every test assembly.
+- [`src/tests/Directory.Build.targets`](../src/tests/Directory.Build.targets) — copies the shared `xunit.runner.json` next to every test assembly, and imports `TestArchive.targets` of PostSharp.Engineering into the Microsoft.Testing.Platform applications (the platform tests).
 - [`src/tests/xunit.runner.json`](../src/tests/xunit.runner.json) — `parallelizeAssembly: true`, `shadowCopy: false` (shadow copying is incompatible with the public-signed test assemblies), `diagnosticMessages: true`.
 - `eng/Coverage.props` — a project imports this to opt into coverlet coverage (with assembly/namespace exclusions), collected when the engineering `test` command runs with coverage enabled.
 
@@ -276,5 +298,6 @@ Each product solution ships its own tests, discovered by the same conventions:
 | MSBuild targets, packaging, real package references, cross-engine behavior | **Standalone test** (`+ test.json`) |
 | A defect that only appears in the IDE / design-time host | **Design-time standalone test** (host simulator) |
 | A performance regression | **Benchmark** |
+| Code whose behavior depends on the operating system or the runtime | **Platform test** (`Metalama.Framework.PlatformTests`) |
 
 See also [pipeline.md](pipeline.md), [compilation-model.md](compilation-model.md), [linker-overview.md](linker-overview.md), and [updating-roslyn.md](updating-roslyn.md).

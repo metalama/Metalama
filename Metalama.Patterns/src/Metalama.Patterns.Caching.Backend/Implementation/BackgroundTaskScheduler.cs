@@ -504,11 +504,8 @@ public sealed class BackgroundTaskScheduler : IAsyncDisposable, ITestableCaching
     /// <returns>A <see cref="Task"/> that completes when all enqueued background tasks complete.</returns>
     public async Task WhenBackgroundTasksCompleted( CancellationToken cancellationToken )
     {
-        cancellationToken.ThrowIfCancellationRequested();
-
-        // AwaitableEvent does not support CancellationToken.
         // ReSharper disable once InconsistentlySynchronizedField
-        await this._backgroundTasksFinishedEvent.WaitAsync( CancellationToken.None );
+        await this._backgroundTasksFinishedEvent.WaitAsync( cancellationToken );
     }
 
     /// <inheritdoc />

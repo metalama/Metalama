@@ -16,7 +16,9 @@
         identify it by the same key.
     -->
     <PropertyGroup>
-        <MetalamaRootDirectory Condition="'$(MetalamaRootDirectory)'==''">$(SolutionDir)</MetalamaRootDirectory>
+        <!-- When a project is built without a solution, MSBuild sets SolutionDir to the placeholder '*Undefined*', which is
+             not a valid path, so it is ignored like an empty SolutionDir. See https://github.com/metalama/Metalama/issues/2087. -->
+        <MetalamaRootDirectory Condition="'$(MetalamaRootDirectory)'=='' AND '$(SolutionDir)'!='*Undefined*'">$(SolutionDir)</MetalamaRootDirectory>
 
         <_MetalamaProjectPath Condition="'$(MetalamaRootDirectory)'!=''">$([MSBuild]::MakeRelative('$(MetalamaRootDirectory)', '$(MSBuildProjectFullPath)'))</_MetalamaProjectPath>
         <!-- Without a root directory there is no stable path to be relative to, so only the file name of the project is
