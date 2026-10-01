@@ -756,9 +756,9 @@ public sealed class NuGetHelperTests : UnitTestClass
     /// Creates the <see cref="NuGetHelper"/> under test, which reads the file system and the environment through the
     /// services of the test context.
     /// </summary>
-    private static NuGetHelper CreateNuGetHelper( TestContext testContext ) => new( testContext.ServiceProvider.Global );
+    private static NuGetHelper CreateNuGetHelper( MetalamaTestContext testContext ) => new( testContext.ServiceProvider.Global );
 
-    private static XDocument MergeConfigFiles( TestContext testContext, string path )
+    private static XDocument MergeConfigFiles( MetalamaTestContext testContext, string path )
     {
         var nuGetHelper = CreateNuGetHelper( testContext );
 
@@ -1262,7 +1262,7 @@ public sealed class NuGetHelperTests : UnitTestClass
     /// the resolution of the user-level configuration file does not depend on the machine that runs the test.
     /// </summary>
     private static NuGetHelper CreateNuGetHelper(
-        TestContext testContext,
+        MetalamaTestContext testContext,
         IEnvironmentVariableProvider environmentVariables,
         OSPlatform platform )
         => new(
@@ -1274,7 +1274,7 @@ public sealed class NuGetHelperTests : UnitTestClass
     /// Creates a directory under the base directory of the test context and writes a NuGet configuration file into it,
     /// under the name that the NuGet tools give it, and returns the path of that file.
     /// </summary>
-    private static string WriteUserConfigFile( TestContext testContext, params string[] directoryParts )
+    private static string WriteUserConfigFile( MetalamaTestContext testContext, params string[] directoryParts )
     {
         var directory = Path.Combine( new[] { testContext.BaseDirectory }.Concat( directoryParts ).ToArray() );
         Directory.CreateDirectory( directory );

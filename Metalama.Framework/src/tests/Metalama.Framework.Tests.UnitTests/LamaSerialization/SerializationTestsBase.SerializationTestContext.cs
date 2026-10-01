@@ -8,17 +8,21 @@ using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.UserCode;
 using Metalama.Testing.UnitTesting;
+using System.Threading;
 
 namespace Metalama.Framework.Tests.UnitTests.LamaSerialization;
 
 public abstract partial class SerializationTestsBase
 {
-    protected sealed class SerializationTestContext : TestContext
+    protected sealed class SerializationTestContext : MetalamaTestContext
     {
         private readonly DisposeAction _disposeAction;
 
-        public SerializationTestContext( TestContextOptions contextOptions, IAdditionalServiceCollection? additionalServices = null )
-            : base( contextOptions, additionalServices )
+        public SerializationTestContext(
+            MetalamaTestContextOptions contextOptions,
+            IAdditionalServiceCollection? additionalServices = null,
+            CancellationToken cancellationToken = default )
+            : base( contextOptions, additionalServices, cancellationToken )
         {
             var specializedOptions = contextOptions as SerializationTestContextOptions;
 

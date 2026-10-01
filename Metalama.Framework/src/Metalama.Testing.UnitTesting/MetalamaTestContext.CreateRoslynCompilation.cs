@@ -21,7 +21,7 @@ using System.Runtime.CompilerServices;
 
 namespace Metalama.Testing.UnitTesting;
 
-public partial class TestContext
+public partial class MetalamaTestContext
 {
     private static readonly ConcurrentDictionary<string, PortableExecutableReference> _metadataReferenceCacheByPath = new();
 
@@ -52,6 +52,39 @@ public partial class TestContext
         "System.Threading.Thread",
         "System.Threading.ThreadPool",
         "System.Private.CoreLib" );
+
+#if NET5_0_OR_GREATER
+    /// <summary>
+    /// Loads every assembly of <see cref="_allowedSystemAssemblies"/> that the runtime provides, once per process.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="GetMetadataReferences"/> references the allowed system assemblies that are loaded in the process. When an
+    /// assembly is loaded by another test between two calls, two compilations of the same test receive different
+    /// references, and the design-time pipeline factory recreates its pipelines. Loading every allowed assembly before
+    /// the first call makes the set of references identical for every compilation of the process.
+    /// </remarks>
+    private static readonly Lazy<bool> _allowedSystemAssembliesLoaded = new( LoadAllowedSystemAssemblies );
+
+    /// <summary>
+    /// Loads every assembly of <see cref="_allowedSystemAssemblies"/> that the runtime provides.
+    /// </summary>
+    private static bool LoadAllowedSystemAssemblies()
+    {
+        foreach ( var name in _allowedSystemAssemblies )
+        {
+            try
+            {
+                _ = Assembly.Load( new AssemblyName( name ) );
+            }
+            catch ( FileNotFoundException )
+            {
+                // The runtime does not provide this assembly, so no compilation references it.
+            }
+        }
+
+        return true;
+    }
+#endif
 
     public CSharpCompilation CreateEmptyCSharpCompilation(
         string? name,
@@ -122,7 +155,9 @@ public partial class TestContext
         // Force the loading of some system assemblies before we search them in the AppDomain.
         _ = typeof(DynamicAttribute).Assembly;
         _ = typeof(Console).Assembly;
-#if NETFRAMEWORK
+#if NET5_0_OR_GREATER
+        _ = _allowedSystemAssembliesLoaded.Value;
+#else
         _ = Assembly.Load( "System.Reflection, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" );
         _ = Assembly.Load( "System.Linq, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" );
 #endif

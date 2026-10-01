@@ -14,6 +14,7 @@ using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using Xunit;
 
 namespace Metalama.Framework.Tests.UnitTests.LamaSerialization
@@ -33,8 +34,11 @@ namespace Metalama.Framework.Tests.UnitTests.LamaSerialization
             this.ServiceProvider = serviceProvider;
         }
 
-        protected override TestContext CreateTestContextCore( TestContextOptions contextOptions, IAdditionalServiceCollection services )
-            => new SerializationTestContext( contextOptions, services );
+        protected override MetalamaTestContext CreateTestContextCore(
+            MetalamaTestContextOptions contextOptions,
+            IAdditionalServiceCollection services,
+            CancellationToken cancellationToken )
+            => new SerializationTestContext( contextOptions, services, cancellationToken );
 
         // ReSharper disable ExplicitCallerInfoArgument
 

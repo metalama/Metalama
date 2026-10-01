@@ -34,5 +34,11 @@
              silently. -->
         <WarningsNotAsErrors>$(WarningsNotAsErrors);LAMA0880;LAMA0881;LAMA0882;LAMA0883;LAMA0884;LAMA0885;LAMA0886;LAMA0887;LAMA0888;LAMA0889</WarningsNotAsErrors>
 
+        <!-- The tests are written with xunit.v3 and are run by VSTest (xunit.runner.visualstudio), because the build
+             runs 'dotnet test' in its VSTest mode. xunit.v3 declares a test project to be a Microsoft.Testing.Platform
+             application by default, and the .NET 10 SDK refuses such a project in the VSTest mode. The property has
+             no effect on a project that does not reference xunit.v3. -->
+        <IsTestingPlatformApplication>false</IsTestingPlatformApplication>
+
     </PropertyGroup>
 </Project>

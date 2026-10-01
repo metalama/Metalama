@@ -150,7 +150,8 @@ public sealed class LocalLockingStrategyTests
                 {
                     lockHandle.Release();
                 }
-            } );
+            },
+            TestContext.Current.CancellationToken );
 
         var task2 = Task.Run(
             async () =>
@@ -167,7 +168,8 @@ public sealed class LocalLockingStrategyTests
                 {
                     lockHandle.Release();
                 }
-            } );
+            },
+            TestContext.Current.CancellationToken );
 
         // Both locks should be acquired independently
         await lock1Acquired.Task.WaitWithTimeoutAsync();
@@ -206,7 +208,8 @@ public sealed class LocalLockingStrategyTests
                 {
                     lockHandle.Release();
                 }
-            } );
+            },
+            TestContext.Current.CancellationToken );
 
         await firstLockHeld.Task.WaitWithTimeoutAsync();
 
@@ -243,7 +246,8 @@ public sealed class LocalLockingStrategyTests
                 {
                     await lockHandle.ReleaseAsync();
                 }
-            } );
+            },
+            TestContext.Current.CancellationToken );
 
         await firstLockHeld.Task.WaitWithTimeoutAsync();
 
@@ -362,7 +366,8 @@ public sealed class LocalLockingStrategyTests
                             }
                         }
                     }
-                } );
+                },
+                TestContext.Current.CancellationToken );
         }
 
         await Task.WhenAll( tasks ).WaitWithTimeoutAsync( timeout: TimeSpan.FromMinutes( 1 ) );
@@ -406,7 +411,8 @@ public sealed class LocalLockingStrategyTests
                             }
                         }
                     }
-                } );
+                },
+                TestContext.Current.CancellationToken );
         }
 
         await Task.WhenAll( tasks ).WaitWithTimeoutAsync( timeout: TimeSpan.FromMinutes( 1 ) );

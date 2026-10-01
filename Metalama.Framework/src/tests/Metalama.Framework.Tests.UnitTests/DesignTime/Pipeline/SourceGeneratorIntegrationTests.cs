@@ -25,7 +25,7 @@ public sealed class SourceGeneratorIntegrationTests : UnitTestClass
         var masterProjectKey = ProjectKeyFactory.CreateTest( "Master" );
 
         var mocks = new AdditionalServiceCollection();
-        using var testContext = this.CreateTestContext( new TestContextOptions { HasSourceGeneratorTouchFile = true }, mocks );
+        using var testContext = this.CreateTestContext( new MetalamaTestContextOptions { HasSourceGeneratorTouchFile = true }, mocks );
 
         using TestDesignTimeAspectPipelineFactory factory = new( testContext );
 
@@ -87,7 +87,7 @@ partial class C : BaseClass
 
         Assert.True( factory.TryExecute( testContext.ProjectOptions, masterCompilation2, TestableCancellationToken.None, out _ ) );
 
-        var notification = dirtyProjectNotifications.Take();
+        var notification = dirtyProjectNotifications.Take( testContext.CancellationToken );
 
         Assert.Equal( dependentProjectKey.AssemblyName, notification.AssemblyName );
     }

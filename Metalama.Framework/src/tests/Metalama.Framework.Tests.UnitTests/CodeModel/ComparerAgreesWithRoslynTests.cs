@@ -10,7 +10,6 @@ using Microsoft.CodeAnalysis.CSharp;
 using System.Collections.Generic;
 using System.Linq;
 using Xunit;
-using Xunit.Abstractions;
 using SymbolEqualityComparer = Microsoft.CodeAnalysis.SymbolEqualityComparer;
 #if ROSLYN_5_11_0_OR_GREATER && NET7_0_OR_GREATER
 using Metalama.Framework.Engine.Utilities;
@@ -260,10 +259,10 @@ public sealed class ComparerAgreesWithRoslynTests : UnitTestClass
 
         var roslynCompilation = testContext.CreateEmptyCSharpCompilation( null )
             .AddSyntaxTrees(
-                CSharpSyntaxTree.ParseText( _unionSupportCode, parseOptions, "support.cs" ),
-                CSharpSyntaxTree.ParseText( _unionCode, parseOptions, "unions.cs" ) );
+                CSharpSyntaxTree.ParseText( _unionSupportCode, parseOptions, "support.cs", cancellationToken: testContext.CancellationToken ),
+                CSharpSyntaxTree.ParseText( _unionCode, parseOptions, "unions.cs", cancellationToken: testContext.CancellationToken ) );
 
-        Assert.Empty( roslynCompilation.GetDiagnostics().Where( d => d.Severity == DiagnosticSeverity.Error ) );
+        Assert.Empty( roslynCompilation.GetDiagnostics( testContext.CancellationToken ).Where( d => d.Severity == DiagnosticSeverity.Error ) );
 
         var compilation = testContext.CreateCompilationModel( roslynCompilation );
 

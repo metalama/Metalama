@@ -36,7 +36,7 @@ public sealed class AwaitableEventCancellationTests
         // Pause the waiter right before it blocks on the event, while its operation is in the WAITING state.
         // The point is one-shot, so the fresh waiter below passes straight through it.
         var syncPoint = syncProvider.Arm( preBlockMessage );
-        var waiterTask = Task.Run( () => awaitableEvent.Wait( cts.Token ) );
+        var waiterTask = Task.Run( () => awaitableEvent.Wait( cts.Token ), TestContext.Current.CancellationToken );
 
         Assert.True(
             syncPoint.WaitUntilReached( TimeSpan.FromSeconds( 10 ) ),

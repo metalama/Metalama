@@ -49,7 +49,7 @@ public class GenAttribute<T> : System.Attribute
             // We must create the dll on disk because MetadataReader reads from a file path.
             using ( var stream = File.Create( assemblyPath ) )
             {
-                var emitResult = compilation.Emit( stream );
+                var emitResult = compilation.Emit( stream, cancellationToken: testContext.CancellationToken );
                 Assert.True( emitResult.Success );
             }
 

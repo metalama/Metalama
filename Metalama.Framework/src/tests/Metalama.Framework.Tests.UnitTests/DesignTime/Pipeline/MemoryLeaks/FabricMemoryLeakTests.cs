@@ -9,7 +9,6 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline.MemoryLeaks;
 
@@ -153,7 +152,7 @@ public sealed class FabricMemoryLeakTests : DesignTimeTestBase
     /// </remarks>
     [MethodImpl( MethodImplOptions.NoInlining )]
     private WeakReference RunEditingSession(
-        TestContext testContext,
+        MetalamaTestContext testContext,
         TestDesignTimeAspectPipelineFactory factory,
         bool withFabric,
         int editCount )
@@ -246,7 +245,7 @@ public sealed class FabricMemoryLeakTests : DesignTimeTestBase
 
     [MethodImpl( MethodImplOptions.NoInlining )]
     private WeakReference RunEditingSessionWithTemplateParameterAspect(
-        TestContext testContext,
+        MetalamaTestContext testContext,
         TestDesignTimeAspectPipelineFactory factory,
         int editCount )
     {

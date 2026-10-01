@@ -31,7 +31,7 @@ internal static class PendingTasksHelper
     /// <summary>
     /// Waits until every task of <paramref name="taskBag"/> has run.
     /// </summary>
-    public static async Task WaitForPendingTasksAsync( TaskBag taskBag, TestContext testContext )
+    public static async Task WaitForPendingTasksAsync( TaskBag taskBag, MetalamaTestContext testContext )
     {
         try
         {

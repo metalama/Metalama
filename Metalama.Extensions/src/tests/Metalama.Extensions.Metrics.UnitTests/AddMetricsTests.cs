@@ -38,7 +38,8 @@ namespace Metalama.Extensions.Metrics.UnitTests
         <TargetFramework>net10.0</TargetFramework>
     </PropertyGroup>
 </Project>
-" );
+",
+                testContext.CancellationToken );
 
             await File.WriteAllTextAsync(
                 codePath,
@@ -52,12 +53,13 @@ class C
         x++;
     }
 }
-" );
+",
+                testContext.CancellationToken );
 
             var workspaceCollection = new WorkspaceCollection( testContext.ServiceProvider );
             workspaceCollection.ServiceBuilder.AddMetrics();
 
-            using var workspace = await workspaceCollection.LoadAsync( [projectPath], _buildProperties );
+            using var workspace = await workspaceCollection.LoadAsync( [projectPath], _buildProperties, cancellationToken: testContext.CancellationToken );
 
             var type = workspace.SourceCode.Types.Single( t => t.Name == "C" );
 

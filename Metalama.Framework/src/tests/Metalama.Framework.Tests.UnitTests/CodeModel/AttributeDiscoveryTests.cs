@@ -115,9 +115,10 @@ class C< [MyAttribute(4)]T>
             var brokenTree = CSharpSyntaxTree.ParseText(
                 InconsistentLineIndexSourceText.Create( brokenCode ),
                 parseOptions,
-                "Broken.cs" );
+                "Broken.cs",
+                cancellationToken: testContext.CancellationToken );
 
-            var healthyTree = CSharpSyntaxTree.ParseText( healthyCode, parseOptions, "Healthy.cs" );
+            var healthyTree = CSharpSyntaxTree.ParseText( healthyCode, parseOptions, "Healthy.cs", cancellationToken: testContext.CancellationToken );
 
             var roslynCompilation = testContext.CreateEmptyCSharpCompilation( "test" ).AddSyntaxTrees( brokenTree, healthyTree );
 

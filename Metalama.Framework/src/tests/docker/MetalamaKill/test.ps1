@@ -71,103 +71,79 @@ try {
     Invoke-Metalama version
     if ($LASTEXITCODE -ne 0) { throw "metalama tool not available" }
 
-    # Build the project - this will start VBCSCompiler
-    Write-Host "`nBuilding project (this starts VBCSCompiler)..."
-    dotnet build --no-restore
-    if ($LASTEXITCODE -ne 0) { throw "dotnet build failed with exit code $LASTEXITCODE" }
-
-    # Check for VBCSCompiler processes before kill
-    Write-Host "`nProcesses before 'metalama kill':"
-    $beforeProcesses = Get-Process -Name "dotnet" -ErrorAction SilentlyContinue
-    $vbcsBeforeCount = 0
-    foreach ($proc in $beforeProcesses) {
-        try {
-            # On Linux, check /proc/<pid>/cmdline to find VBCSCompiler
-            $cmdline = Get-Content "/proc/$($proc.Id)/cmdline" -Raw -ErrorAction SilentlyContinue
-            if ($cmdline -and $cmdline -match "VBCSCompiler") {
-                Write-Host "  VBCSCompiler process found: PID $($proc.Id)"
-                Write-Host "    cmdline: $($cmdline -replace '\0', ' ')"
-                $vbcsBeforeCount++
-            }
-        } catch {
-            # Process may have exited
-        }
-    }
-
-    if ($vbcsBeforeCount -eq 0) {
-        Write-Host "  No VBCSCompiler processes found before kill."
-        Write-Host "  (VBCSCompiler may not have stayed running - trying to keep it alive with UseSharedCompilation=true)"
-
-        # Retry build with Roslyn shared compilation to keep VBCSCompiler alive
-        Write-Host "`nRebuilding with Roslyn shared compilation (UseSharedCompilation=true)..."
-        dotnet build --no-restore /p:UseSharedCompilation=true
-        if ($LASTEXITCODE -ne 0) { throw "dotnet build (retry) failed with exit code $LASTEXITCODE" }
-
-        Start-Sleep -Seconds 2
-
-        $beforeProcesses = Get-Process -Name "dotnet" -ErrorAction SilentlyContinue
-        foreach ($proc in $beforeProcesses) {
+    # The processes of the compiler server, found from their command line: VBCSCompiler runs under 'dotnet' in some SDKs
+    # and as its own application host in others, so the process name alone does not find it.
+    function Get-CompilerServerProcessIds {
+        $ids = @()
+        foreach ($directory in Get-ChildItem /proc -Directory -ErrorAction SilentlyContinue | Where-Object { $_.Name -match '^\d+$' }) {
             try {
-                $cmdline = Get-Content "/proc/$($proc.Id)/cmdline" -Raw -ErrorAction SilentlyContinue
-                if ($cmdline -and $cmdline -match "VBCSCompiler") {
-                    Write-Host "  VBCSCompiler process found: PID $($proc.Id)"
-                    $vbcsBeforeCount++
+                $cmdline = Get-Content "/proc/$($directory.Name)/cmdline" -Raw -ErrorAction Stop
+                if ($cmdline -and $cmdline -match 'VBCSCompiler(\.dll)?(\x00|$)') {
+                    $ids += [int] $directory.Name
                 }
-            } catch { }
-        }
-    }
-
-    if ($vbcsBeforeCount -eq 0) {
-        Write-Host "WARNING: No VBCSCompiler processes found. The test may be inconclusive."
-        Write-Host "Listing all dotnet processes for diagnostics:"
-        foreach ($proc in (Get-Process -Name "dotnet" -ErrorAction SilentlyContinue)) {
-            try {
-                $cmdline = Get-Content "/proc/$($proc.Id)/cmdline" -Raw -ErrorAction SilentlyContinue
-                Write-Host "  PID $($proc.Id): $($cmdline -replace '\0', ' ')"
-            } catch { }
-        }
-        # Even without VBCSCompiler running, still run kill to verify it doesn't crash
-    }
-
-    Write-Host "`nRunning 'metalama kill --verbose'..."
-    & dotnet exec $toolDll.FullName kill --verbose
-    $killExitCode = $LASTEXITCODE
-    Write-Host "Exit code: $killExitCode"
-
-    if ($killExitCode -ne 0) { throw "metalama kill failed with exit code $killExitCode" }
-
-    # Wait a moment for processes to terminate
-    Start-Sleep -Seconds 3
-
-    # Check for VBCSCompiler processes after kill
-    Write-Host "`nProcesses after 'metalama kill':"
-    $afterProcesses = Get-Process -Name "dotnet" -ErrorAction SilentlyContinue
-    $vbcsAfterCount = 0
-    foreach ($proc in $afterProcesses) {
-        try {
-            $cmdline = Get-Content "/proc/$($proc.Id)/cmdline" -Raw -ErrorAction SilentlyContinue
-            if ($cmdline -and $cmdline -match "VBCSCompiler") {
-                Write-Host "  VBCSCompiler STILL RUNNING: PID $($proc.Id)"
-                Write-Host "    cmdline: $($cmdline -replace '\0', ' ')"
-                $vbcsAfterCount++
+            } catch {
+                # The process exited meanwhile.
             }
-        } catch { }
+        }
+        return $ids
     }
 
-    if ($vbcsBeforeCount -gt 0 -and $vbcsAfterCount -gt 0) {
-        Write-Error "FAILURE: 'metalama kill' did not kill $vbcsAfterCount VBCSCompiler process(es) on Linux"
-        exit 1
+    # Builds the project so that it leaves the compiler server running, and fails when it does not, because the test
+    # would then verify nothing.
+    function Start-CompilerServer {
+        Write-Host "`nBuilding the project with the shared compiler, which leaves VBCSCompiler running..."
+        # Out-Host, so that the output of the build is not returned with the identifiers of the processes.
+        dotnet build --no-restore --no-incremental /p:UseSharedCompilation=true | Out-Host
+        if ($LASTEXITCODE -ne 0) { throw "dotnet build failed with exit code $LASTEXITCODE" }
+
+        $ids = Get-CompilerServerProcessIds
+        if ($ids.Count -eq 0) { throw "The build left no VBCSCompiler process running, so there is nothing to shut down." }
+        Write-Host "VBCSCompiler running: $($ids -join ', ')"
+        return $ids
     }
-    elseif ($vbcsBeforeCount -gt 0 -and $vbcsAfterCount -eq 0) {
-        Write-Host "`nSUCCESS: All VBCSCompiler processes were killed by 'metalama kill'"
-        exit 0
+
+    # Runs the tool and returns its exit code and output, which is also written to the console.
+    function Invoke-MetalamaCommand {
+        $output = & dotnet exec $toolDll.FullName @args 2>&1 | ForEach-Object { "$_" }
+        $exitCode = $LASTEXITCODE
+        $output | ForEach-Object { Write-Host "  $_" }
+        return [pscustomobject] @{ ExitCode = $exitCode; Output = ($output -join "`n") }
     }
-    else {
-        Write-Host "`nFAILURE: No VBCSCompiler processes were running before 'metalama kill'"
-        Write-Host "The test could not verify kill behavior. This may indicate VBCSCompiler is not persisting on this configuration."
-        exit 1
+
+    # 1. 'metalama shutdown' asks the compiler server to exit, lets it exit on its own, and reports it as exited, not
+    #    ended. Without --force, a process that does not exit in time is reported as still running and the exit code is 1.
+    $ids = Start-CompilerServer
+
+    Write-Host "`nRunning 'metalama shutdown'..."
+    $result = Invoke-MetalamaCommand shutdown --timeout 60
+    if ($result.ExitCode -ne 0) { throw "'metalama shutdown' failed with exit code $($result.ExitCode)." }
+
+    foreach ($id in $ids) {
+        if ($result.Output -notmatch "Compiler server \(VBCSCompiler\) \(process $id\): exited\.") {
+            throw "'metalama shutdown' did not report the compiler server $id as having exited on request."
+        }
     }
+
+    $remaining = Get-CompilerServerProcessIds
+    if ($remaining.Count -ne 0) { throw "VBCSCompiler is still running after 'metalama shutdown': $($remaining -join ', ')." }
+
+    Write-Host "SUCCESS: 'metalama shutdown' stopped the compiler server gracefully."
+
+    # 2. 'metalama kill --force' is the same command with --force: it stops the compiler server too, and ends the
+    #    processes that do not exit.
+    $ids = Start-CompilerServer
+
+    Write-Host "`nRunning 'metalama kill --force'..."
+    $result = Invoke-MetalamaCommand kill --force --timeout 60
+    if ($result.ExitCode -ne 0) { throw "'metalama kill --force' failed with exit code $($result.ExitCode)." }
+
+    $remaining = Get-CompilerServerProcessIds
+    if ($remaining.Count -ne 0) { throw "VBCSCompiler is still running after 'metalama kill --force': $($remaining -join ', ')." }
+
+    Write-Host "SUCCESS: 'metalama kill --force' stopped the compiler server."
+    exit 0
 }
+
 finally {
     Pop-Location
 }

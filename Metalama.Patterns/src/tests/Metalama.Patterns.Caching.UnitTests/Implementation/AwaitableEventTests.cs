@@ -5,7 +5,6 @@
 using Metalama.Patterns.Caching.Implementation;
 using Metalama.Patterns.Caching.TestHelpers;
 using Xunit;
-using Xunit.Abstractions;
 
 // ReSharper disable AccessToDisposedClosure
 
@@ -45,14 +44,14 @@ public sealed class AwaitableEventTests
         var awaitableEvent = new AwaitableEvent( EventResetMode.ManualReset, signaled: true );
 
         // Wait should return immediately for a signaled event
-        var result = awaitableEvent.Wait( TimeSpan.Zero );
+        var result = awaitableEvent.Wait( TimeSpan.Zero, TestContext.Current.CancellationToken );
         Assert.True( result );
 
         // Manual reset should stay signaled after wait
         Assert.Equal( AwaitableEvent.SIGNALED, awaitableEvent.SignalState );
 
         // Second wait should also succeed
-        result = awaitableEvent.Wait( TimeSpan.Zero );
+        result = awaitableEvent.Wait( TimeSpan.Zero, TestContext.Current.CancellationToken );
         Assert.True( result );
     }
 
@@ -118,7 +117,7 @@ public sealed class AwaitableEventTests
     {
         var awaitableEvent = new AwaitableEvent( EventResetMode.ManualReset );
 
-        var result = awaitableEvent.Wait( TimeSpan.FromMilliseconds( 10 ) );
+        var result = awaitableEvent.Wait( TimeSpan.FromMilliseconds( 10 ), TestContext.Current.CancellationToken );
 
         Assert.False( result );
     }
@@ -133,14 +132,14 @@ public sealed class AwaitableEventTests
         var awaitableEvent = new AwaitableEvent( EventResetMode.AutoReset, signaled: true );
 
         // First wait should consume the signal
-        var result = awaitableEvent.Wait( TimeSpan.Zero );
+        var result = awaitableEvent.Wait( TimeSpan.Zero, TestContext.Current.CancellationToken );
         Assert.True( result );
 
         // Should be not signaled after wait consumed it
         Assert.Equal( AwaitableEvent.NOT_SIGNALED, awaitableEvent.SignalState );
 
         // Second wait should fail since signal was consumed
-        result = awaitableEvent.Wait( TimeSpan.Zero );
+        result = awaitableEvent.Wait( TimeSpan.Zero, TestContext.Current.CancellationToken );
         Assert.False( result );
     }
 
@@ -257,7 +256,9 @@ public sealed class AwaitableEventTests
     {
         var awaitableEvent = new AwaitableEvent( EventResetMode.ManualReset, signaled: true );
 
+#pragma warning disable xUnit1051 // AwaitableEvent.WaitAsync throws when it receives a cancellation token (#2079).
         var awaiter = awaitableEvent.WaitAsync();
+#pragma warning restore xUnit1051
 
         Assert.True( awaiter.IsCompleted );
 
@@ -272,7 +273,9 @@ public sealed class AwaitableEventTests
     {
         var awaitableEvent = new AwaitableEvent( EventResetMode.ManualReset );
 
+#pragma warning disable xUnit1051 // AwaitableEvent.WaitAsync throws when it receives a cancellation token (#2079).
         var awaiter = awaitableEvent.WaitAsync( TimeSpan.Zero );
+#pragma warning restore xUnit1051
 
         Assert.True( awaiter.IsCompleted );
 
@@ -284,7 +287,9 @@ public sealed class AwaitableEventTests
         // Signal and try again
         awaitableEvent.Set();
 
+#pragma warning disable xUnit1051 // AwaitableEvent.WaitAsync throws when it receives a cancellation token (#2079).
         awaiter = awaitableEvent.WaitAsync( TimeSpan.Zero );
+#pragma warning restore xUnit1051
 
         Assert.True( awaiter.IsCompleted );
 
@@ -299,7 +304,9 @@ public sealed class AwaitableEventTests
     {
         var awaitableEvent = new AwaitableEvent( EventResetMode.AutoReset, signaled: true );
 
+#pragma warning disable xUnit1051 // AwaitableEvent.WaitAsync throws when it receives a cancellation token (#2079).
         var awaiter = awaitableEvent.WaitAsync( TimeSpan.Zero );
+#pragma warning restore xUnit1051
 
         Assert.True( awaiter.IsCompleted );
 
@@ -318,7 +325,9 @@ public sealed class AwaitableEventTests
         var awaitableEvent = new AwaitableEvent( EventResetMode.ManualReset );
         var waitCompleted = new TaskCompletionSource<bool>();
 
+#pragma warning disable xUnit1051 // AwaitableEvent.WaitAsync throws when it receives a cancellation token (#2079).
         var awaiter = awaitableEvent.WaitAsync();
+#pragma warning restore xUnit1051
         Assert.False( awaiter.IsCompleted );
 
         // Schedule continuation
@@ -337,7 +346,9 @@ public sealed class AwaitableEventTests
         var awaitableEvent = new AwaitableEvent( EventResetMode.AutoReset );
         var waitCompleted = new TaskCompletionSource<bool>();
 
+#pragma warning disable xUnit1051 // AwaitableEvent.WaitAsync throws when it receives a cancellation token (#2079).
         var awaiter = awaitableEvent.WaitAsync();
+#pragma warning restore xUnit1051
         Assert.False( awaiter.IsCompleted );
 
         // Schedule continuation
@@ -517,7 +528,9 @@ public sealed class AwaitableEventTests
     {
         var awaitableEvent = new AwaitableEvent( EventResetMode.ManualReset, signaled: true );
 
+#pragma warning disable xUnit1051 // AwaitableEvent.WaitAsync throws when it receives a cancellation token (#2079).
         var awaiter = awaitableEvent.WaitAsync<int>();
+#pragma warning restore xUnit1051
 
         Assert.True( awaiter.IsCompleted );
         Assert.True( awaiter.GetResult() );
@@ -528,7 +541,9 @@ public sealed class AwaitableEventTests
     {
         var awaitableEvent = new AwaitableEvent( EventResetMode.ManualReset );
 
+#pragma warning disable xUnit1051 // AwaitableEvent.WaitAsync throws when it receives a cancellation token (#2079).
         var awaiter = awaitableEvent.WaitAsync<string>( TimeSpan.Zero );
+#pragma warning restore xUnit1051
 
         Assert.True( awaiter.IsCompleted );
         Assert.False( awaiter.GetResult() );

@@ -16,7 +16,7 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline
         [Fact]
         public void IsDifferent_SameTrees()
         {
-            var syntaxTree = CSharpSyntaxTree.ParseText( @"class C {}" );
+            var syntaxTree = CSharpSyntaxTree.ParseText( @"class C {}", cancellationToken: TestContext.Current.CancellationToken );
 
             Assert.False( this._strategyWithoutPartialTypeDetection.IsDifferent( syntaxTree, syntaxTree ) );
         }
@@ -24,8 +24,8 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline
         [Fact]
         public void IsDifferent_SameContent()
         {
-            var syntaxTree1 = CSharpSyntaxTree.ParseText( @"class C {}" );
-            var syntaxTree2 = CSharpSyntaxTree.ParseText( @"class C {}" );
+            var syntaxTree1 = CSharpSyntaxTree.ParseText( @"class C {}", cancellationToken: TestContext.Current.CancellationToken );
+            var syntaxTree2 = CSharpSyntaxTree.ParseText( @"class C {}", cancellationToken: TestContext.Current.CancellationToken );
 
             Assert.False( this._strategyWithoutPartialTypeDetection.IsDifferent( syntaxTree1, syntaxTree2 ) );
         }
@@ -33,9 +33,9 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline
         [Fact]
         public void IsDifferent_ChangeInCommentLine()
         {
-            var syntaxTree1 = CSharpSyntaxTree.ParseText( "// Comment 1\nclass C {}" );
+            var syntaxTree1 = CSharpSyntaxTree.ParseText( "// Comment 1\nclass C {}", cancellationToken: TestContext.Current.CancellationToken );
 
-            var syntaxTree2 = CSharpSyntaxTree.ParseText( "// Comment 2\nclass C {}" );
+            var syntaxTree2 = CSharpSyntaxTree.ParseText( "// Comment 2\nclass C {}", cancellationToken: TestContext.Current.CancellationToken );
 
             Assert.False( this._strategyWithoutPartialTypeDetection.IsDifferent( syntaxTree1, syntaxTree2 ) );
         }
@@ -43,9 +43,9 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline
         [Fact]
         public void IsDifferent_TypingInCommentBlock()
         {
-            var syntaxTree1 = CSharpSyntaxTree.ParseText( "/* Comment */ class C {}" );
+            var syntaxTree1 = CSharpSyntaxTree.ParseText( "/* Comment */ class C {}", cancellationToken: TestContext.Current.CancellationToken );
 
-            var syntaxTree2 = CSharpSyntaxTree.ParseText( "/* Comment 2222222222 */ class C {}" );
+            var syntaxTree2 = CSharpSyntaxTree.ParseText( "/* Comment 2222222222 */ class C {}", cancellationToken: TestContext.Current.CancellationToken );
 
             Assert.False( this._strategyWithoutPartialTypeDetection.IsDifferent( syntaxTree1, syntaxTree2 ) );
         }
@@ -53,9 +53,9 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline
         [Fact]
         public void IsDifferent_DeletingInCommentBlock()
         {
-            var syntaxTree1 = CSharpSyntaxTree.ParseText( "/* Comment 111111111111111111 */ class C {} " );
+            var syntaxTree1 = CSharpSyntaxTree.ParseText( "/* Comment 111111111111111111 */ class C {} ", cancellationToken: TestContext.Current.CancellationToken );
 
-            var syntaxTree2 = CSharpSyntaxTree.ParseText( "/* Comment */ class C {} " );
+            var syntaxTree2 = CSharpSyntaxTree.ParseText( "/* Comment */ class C {} ", cancellationToken: TestContext.Current.CancellationToken );
 
             Assert.False( this._strategyWithoutPartialTypeDetection.IsDifferent( syntaxTree1, syntaxTree2 ) );
         }
@@ -63,9 +63,9 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline
         [Fact]
         public void IsDifferent_CommentOutDeclaration()
         {
-            var syntaxTree1 = CSharpSyntaxTree.ParseText( "class C {} " );
+            var syntaxTree1 = CSharpSyntaxTree.ParseText( "class C {} ", cancellationToken: TestContext.Current.CancellationToken );
 
-            var syntaxTree2 = CSharpSyntaxTree.ParseText( "// class C {}" );
+            var syntaxTree2 = CSharpSyntaxTree.ParseText( "// class C {}", cancellationToken: TestContext.Current.CancellationToken );
 
             Assert.True( this._strategyWithoutPartialTypeDetection.IsDifferent( syntaxTree1, syntaxTree2 ) );
         }
@@ -73,9 +73,9 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline
         [Fact]
         public void IsDifferent_UncommentDeclaration()
         {
-            var syntaxTree1 = CSharpSyntaxTree.ParseText( "// class C {}" );
+            var syntaxTree1 = CSharpSyntaxTree.ParseText( "// class C {}", cancellationToken: TestContext.Current.CancellationToken );
 
-            var syntaxTree2 = CSharpSyntaxTree.ParseText( "class C {}" );
+            var syntaxTree2 = CSharpSyntaxTree.ParseText( "class C {}", cancellationToken: TestContext.Current.CancellationToken );
 
             Assert.True( this._strategyWithoutPartialTypeDetection.IsDifferent( syntaxTree1, syntaxTree2 ) );
         }
@@ -83,9 +83,9 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline
         [Fact]
         public void IsDifferent_AddingWhitespace()
         {
-            var syntaxTree1 = CSharpSyntaxTree.ParseText( "class C {}" );
+            var syntaxTree1 = CSharpSyntaxTree.ParseText( "class C {}", cancellationToken: TestContext.Current.CancellationToken );
 
-            var syntaxTree2 = CSharpSyntaxTree.ParseText( "class C {  }" );
+            var syntaxTree2 = CSharpSyntaxTree.ParseText( "class C {  }", cancellationToken: TestContext.Current.CancellationToken );
 
             Assert.False( this._strategyWithoutPartialTypeDetection.IsDifferent( syntaxTree1, syntaxTree2 ) );
         }
@@ -93,9 +93,9 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline
         [Fact]
         public void IsDifferent_RemovingSomeWhitespace()
         {
-            var syntaxTree1 = CSharpSyntaxTree.ParseText( "class C {   }" );
+            var syntaxTree1 = CSharpSyntaxTree.ParseText( "class C {   }", cancellationToken: TestContext.Current.CancellationToken );
 
-            var syntaxTree2 = CSharpSyntaxTree.ParseText( "class C { }" );
+            var syntaxTree2 = CSharpSyntaxTree.ParseText( "class C { }", cancellationToken: TestContext.Current.CancellationToken );
 
             Assert.False( this._strategyWithoutPartialTypeDetection.IsDifferent( syntaxTree1, syntaxTree2 ) );
         }
@@ -103,9 +103,9 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline
         [Fact]
         public void IsDifferent_RemovingAllWhitespace()
         {
-            var syntaxTree1 = CSharpSyntaxTree.ParseText( "class C {   }" );
+            var syntaxTree1 = CSharpSyntaxTree.ParseText( "class C {   }", cancellationToken: TestContext.Current.CancellationToken );
 
-            var syntaxTree2 = CSharpSyntaxTree.ParseText( "class C {}" );
+            var syntaxTree2 = CSharpSyntaxTree.ParseText( "class C {}", cancellationToken: TestContext.Current.CancellationToken );
 
             Assert.False( this._strategyWithoutPartialTypeDetection.IsDifferent( syntaxTree1, syntaxTree2 ) );
         }
@@ -113,9 +113,9 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline
         [Fact]
         public void IsDifferent_RemovingRequiredWhitespace()
         {
-            var syntaxTree1 = CSharpSyntaxTree.ParseText( "class C {}" );
+            var syntaxTree1 = CSharpSyntaxTree.ParseText( "class C {}", cancellationToken: TestContext.Current.CancellationToken );
 
-            var syntaxTree2 = CSharpSyntaxTree.ParseText( "classC {}" );
+            var syntaxTree2 = CSharpSyntaxTree.ParseText( "classC {}", cancellationToken: TestContext.Current.CancellationToken );
 
             Assert.True( this._strategyWithoutPartialTypeDetection.IsDifferent( syntaxTree1, syntaxTree2 ) );
         }
@@ -123,9 +123,9 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline
         [Fact]
         public void IsDifferent_ChangeInMethodBody()
         {
-            var syntaxTree1 = CSharpSyntaxTree.ParseText( "class C { int M() { return 1; } }" );
+            var syntaxTree1 = CSharpSyntaxTree.ParseText( "class C { int M() { return 1; } }", cancellationToken: TestContext.Current.CancellationToken );
 
-            var syntaxTree2 = CSharpSyntaxTree.ParseText( "class C { int M() { return 2; } }" );
+            var syntaxTree2 = CSharpSyntaxTree.ParseText( "class C { int M() { return 2; } }", cancellationToken: TestContext.Current.CancellationToken );
 
             Assert.False( this._strategyWithoutPartialTypeDetection.IsDifferent( syntaxTree1, syntaxTree2 ) );
         }
@@ -133,9 +133,9 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline
         [Fact]
         public void IsDifferent_ChangeInMethodExpression()
         {
-            var syntaxTree1 = CSharpSyntaxTree.ParseText( "class C { int M() => 1; } }" );
+            var syntaxTree1 = CSharpSyntaxTree.ParseText( "class C { int M() => 1; } }", cancellationToken: TestContext.Current.CancellationToken );
 
-            var syntaxTree2 = CSharpSyntaxTree.ParseText( "class C { int M() => 2; } }" );
+            var syntaxTree2 = CSharpSyntaxTree.ParseText( "class C { int M() => 2; } }", cancellationToken: TestContext.Current.CancellationToken );
 
             Assert.False( this._strategyWithoutPartialTypeDetection.IsDifferent( syntaxTree1, syntaxTree2 ) );
         }
@@ -143,9 +143,9 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline
         [Fact]
         public void IsDifferent_ChangeInMethodReturnType()
         {
-            var syntaxTree1 = CSharpSyntaxTree.ParseText( "class C { int M() => 1; } }" );
+            var syntaxTree1 = CSharpSyntaxTree.ParseText( "class C { int M() => 1; } }", cancellationToken: TestContext.Current.CancellationToken );
 
-            var syntaxTree2 = CSharpSyntaxTree.ParseText( "class C { long M() => 1; } }" );
+            var syntaxTree2 = CSharpSyntaxTree.ParseText( "class C { long M() => 1; } }", cancellationToken: TestContext.Current.CancellationToken );
 
             Assert.True( this._strategyWithoutPartialTypeDetection.IsDifferent( syntaxTree1, syntaxTree2 ) );
         }
@@ -153,9 +153,9 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline
         [Fact]
         public void IsDifferent_ChangeInPropertyGetterBody()
         {
-            var syntaxTree1 = CSharpSyntaxTree.ParseText( "class C { int M { get { return 1; } } }" );
+            var syntaxTree1 = CSharpSyntaxTree.ParseText( "class C { int M { get { return 1; } } }", cancellationToken: TestContext.Current.CancellationToken );
 
-            var syntaxTree2 = CSharpSyntaxTree.ParseText( "class C { int M { get { return 2; } } }" );
+            var syntaxTree2 = CSharpSyntaxTree.ParseText( "class C { int M { get { return 2; } } }", cancellationToken: TestContext.Current.CancellationToken );
 
             Assert.False( this._strategyWithoutPartialTypeDetection.IsDifferent( syntaxTree1, syntaxTree2 ) );
         }
@@ -163,9 +163,9 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline
         [Fact]
         public void IsDifferent_ChangeInPropertyGetterExpression()
         {
-            var syntaxTree1 = CSharpSyntaxTree.ParseText( "class C { int M { get => 1; } }" );
+            var syntaxTree1 = CSharpSyntaxTree.ParseText( "class C { int M { get => 1; } }", cancellationToken: TestContext.Current.CancellationToken );
 
-            var syntaxTree2 = CSharpSyntaxTree.ParseText( "class C { int M { get => 2; } }" );
+            var syntaxTree2 = CSharpSyntaxTree.ParseText( "class C { int M { get => 2; } }", cancellationToken: TestContext.Current.CancellationToken );
 
             Assert.False( this._strategyWithoutPartialTypeDetection.IsDifferent( syntaxTree1, syntaxTree2 ) );
         }
@@ -173,9 +173,9 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline
         [Fact]
         public void IsDifferent_ChangeInPropertyExpression()
         {
-            var syntaxTree1 = CSharpSyntaxTree.ParseText( "class C { int M => 1; }" );
+            var syntaxTree1 = CSharpSyntaxTree.ParseText( "class C { int M => 1; }", cancellationToken: TestContext.Current.CancellationToken );
 
-            var syntaxTree2 = CSharpSyntaxTree.ParseText( "class C { int M => 2; }" );
+            var syntaxTree2 = CSharpSyntaxTree.ParseText( "class C { int M => 2; }", cancellationToken: TestContext.Current.CancellationToken );
 
             Assert.False( this._strategyWithoutPartialTypeDetection.IsDifferent( syntaxTree1, syntaxTree2 ) );
         }
@@ -183,9 +183,9 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline
         [Fact]
         public void IsDifferent_ChangeInPropertyInitializer()
         {
-            var syntaxTree1 = CSharpSyntaxTree.ParseText( "class C { int M { get; } = 1; }" );
+            var syntaxTree1 = CSharpSyntaxTree.ParseText( "class C { int M { get; } = 1; }", cancellationToken: TestContext.Current.CancellationToken );
 
-            var syntaxTree2 = CSharpSyntaxTree.ParseText( "class C { int M { get; } = 2; }" );
+            var syntaxTree2 = CSharpSyntaxTree.ParseText( "class C { int M { get; } = 2; }", cancellationToken: TestContext.Current.CancellationToken );
 
             Assert.False( this._strategyWithoutPartialTypeDetection.IsDifferent( syntaxTree1, syntaxTree2 ) );
         }
@@ -193,9 +193,9 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline
         [Fact]
         public void IsDifferent_ChangeInFieldInitializer()
         {
-            var syntaxTree1 = CSharpSyntaxTree.ParseText( "class C { int M = 1; }" );
+            var syntaxTree1 = CSharpSyntaxTree.ParseText( "class C { int M = 1; }", cancellationToken: TestContext.Current.CancellationToken );
 
-            var syntaxTree2 = CSharpSyntaxTree.ParseText( "class C { int M = 2; }" );
+            var syntaxTree2 = CSharpSyntaxTree.ParseText( "class C { int M = 2; }", cancellationToken: TestContext.Current.CancellationToken );
 
             Assert.False( this._strategyWithoutPartialTypeDetection.IsDifferent( syntaxTree1, syntaxTree2 ) );
         }
@@ -203,9 +203,9 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline
         [Fact( Skip = "Adding aspects to local functions is not yet supported." )]
         public void IsDifferent_AddLocalFunction()
         {
-            var syntaxTree1 = CSharpSyntaxTree.ParseText( "class C { int M() {} }" );
+            var syntaxTree1 = CSharpSyntaxTree.ParseText( "class C { int M() {} }", cancellationToken: TestContext.Current.CancellationToken );
 
-            var syntaxTree2 = CSharpSyntaxTree.ParseText( "class C { int M() { void N() {] } }" );
+            var syntaxTree2 = CSharpSyntaxTree.ParseText( "class C { int M() { void N() {] } }", cancellationToken: TestContext.Current.CancellationToken );
 
             Assert.True( this._strategyWithoutPartialTypeDetection.IsDifferent( syntaxTree1, syntaxTree2 ) );
         }
@@ -213,9 +213,13 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline
         [Fact]
         public void IsDifferent_ChangeInCompileTimeCode()
         {
-            var syntaxTree1 = CSharpSyntaxTree.ParseText( "using Metalama.Framework.Aspects;  class C { int M { get => 1; } }" );
+            var syntaxTree1 = CSharpSyntaxTree.ParseText(
+                "using Metalama.Framework.Aspects;  class C { int M { get => 1; } }",
+                cancellationToken: TestContext.Current.CancellationToken );
 
-            var syntaxTree2 = CSharpSyntaxTree.ParseText( "using Metalama.Framework.Aspects;  class C { int M { get => 2; } }" );
+            var syntaxTree2 = CSharpSyntaxTree.ParseText(
+                "using Metalama.Framework.Aspects;  class C { int M { get => 2; } }",
+                cancellationToken: TestContext.Current.CancellationToken );
 
             Assert.True( this._strategyWithoutPartialTypeDetection.IsDifferent( syntaxTree1, syntaxTree2 ) );
         }
@@ -223,9 +227,9 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline
         [Fact]
         public void IsDifferent_AddPartial()
         {
-            var syntaxTree1 = CSharpSyntaxTree.ParseText( "class C {}" );
+            var syntaxTree1 = CSharpSyntaxTree.ParseText( "class C {}", cancellationToken: TestContext.Current.CancellationToken );
 
-            var syntaxTree2 = CSharpSyntaxTree.ParseText( "partial class C {}" );
+            var syntaxTree2 = CSharpSyntaxTree.ParseText( "partial class C {}", cancellationToken: TestContext.Current.CancellationToken );
 
             Assert.True( this._strategyWithoutPartialTypeDetection.IsDifferent( syntaxTree1, syntaxTree2 ) );
         }
@@ -233,9 +237,9 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline
         [Fact]
         public void IsDifferent_RemovePartial()
         {
-            var syntaxTree1 = CSharpSyntaxTree.ParseText( "partial class C {}" );
+            var syntaxTree1 = CSharpSyntaxTree.ParseText( "partial class C {}", cancellationToken: TestContext.Current.CancellationToken );
 
-            var syntaxTree2 = CSharpSyntaxTree.ParseText( "class C {}" );
+            var syntaxTree2 = CSharpSyntaxTree.ParseText( "class C {}", cancellationToken: TestContext.Current.CancellationToken );
 
             Assert.True( this._strategyWithoutPartialTypeDetection.IsDifferent( syntaxTree1, syntaxTree2 ) );
         }

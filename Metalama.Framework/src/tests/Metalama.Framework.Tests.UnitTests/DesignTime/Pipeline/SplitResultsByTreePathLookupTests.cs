@@ -22,7 +22,6 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline;
 
@@ -133,7 +132,7 @@ public sealed class SplitResultsByTreePathLookupTests : UnitTestClass
     /// and a real inheritable aspect instance targeting <c>BaseClass</c>, declared in <c>base.cs</c>.
     /// </summary>
     private static (DesignTimeAspectPipelineResultAndState Executed, Compilation Compilation, InheritableAspectInstance InheritableAspect) Execute(
-        TestContext testContext,
+        MetalamaTestContext testContext,
         TestDesignTimeAspectPipelineFactory factory )
     {
         var compilation = testContext.CreateCSharpCompilation(

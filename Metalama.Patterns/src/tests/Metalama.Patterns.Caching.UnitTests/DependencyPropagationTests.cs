@@ -6,7 +6,6 @@ using Metalama.Patterns.Caching.Aspects;
 using Metalama.Patterns.Caching.Implementation;
 using Metalama.Patterns.Caching.TestHelpers;
 using Xunit;
-using Xunit.Abstractions;
 
 // ReSharper disable UnusedMethodReturnValue.Local
 // ReSharper disable MemberCanBeMadeStatic.Local
@@ -136,7 +135,7 @@ namespace Metalama.Patterns.Caching.Tests
             cachingClass.WasGetValueIntermediateCalled = false;
             cachingClass.WasGetValueDependencyCalled = false;
 
-            await CachingService.Default.InvalidateAsync( cachingClass.GetValueDependencyAsync );
+            await CachingService.Default.InvalidateAsync( cachingClass.GetValueDependencyAsync, TestContext.Current.CancellationToken );
 
             await cachingClass.GetValueAsync();
 
@@ -210,7 +209,7 @@ namespace Metalama.Patterns.Caching.Tests
             cachingClass.WasGetValueCalled = false;
             cachingClass.WasGetValueDependencyCalled = false;
 
-            await CachingService.Default.InvalidateAsync( cachingClass.GetValueDependencyAsync );
+            await CachingService.Default.InvalidateAsync( cachingClass.GetValueDependencyAsync, TestContext.Current.CancellationToken );
 
             await cachingClass.GetValueAsync();
 
@@ -346,7 +345,7 @@ namespace Metalama.Patterns.Caching.Tests
             cachingClass.WasGetValueIntermediateCalled = false;
             cachingClass.WasGetValueDependencyCalled = false;
 
-            await CachingService.Default.InvalidateAsync( cachingClass.GetValueDependencyAsync );
+            await CachingService.Default.InvalidateAsync( cachingClass.GetValueDependencyAsync, TestContext.Current.CancellationToken );
 
             await cachingClass.GetValueAsync();
 

@@ -93,7 +93,7 @@ public sealed class CompileTimeProjectTypeLoadTests : UnitTestClass
     /// the second one.
     /// </summary>
     private static CompileTimeProject CreateProjectWithUnloadableTypes(
-        TestContext testContext,
+        MetalamaTestContext testContext,
         CompileTimeDomain domain,
         string compileTimeAssemblyName,
         string compileTimeAssemblyCode )
@@ -160,7 +160,7 @@ public sealed class CompileTimeProjectTypeLoadTests : UnitTestClass
     /// Compiles <paramref name="code"/> into an assembly written to <paramref name="directory"/> and returns its path.
     /// </summary>
     private static string EmitAssembly(
-        TestContext testContext,
+        MetalamaTestContext testContext,
         string directory,
         string assemblyName,
         string code,

@@ -3,6 +3,7 @@
 
 
     <PropertyGroup>
+        <OutputType>Exe</OutputType>
         <!-- .NET 10, to match Metalama.Framework.Workspaces. -->
         <TargetFramework>net10.0</TargetFramework>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -11,7 +12,9 @@
 
     <ItemGroup>
         <PackageReference Include="Microsoft.NET.Test.Sdk" />
-        <PackageReference Include="xunit" />
+        <PackageReference Include="xunit.v3" />
+        <!-- xunit.v3.common depends on Microsoft.Bcl.AsyncInterfaces 6.0, which conflicts with the version that Roslyn requires. -->
+        <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" VersionOverride="$(MicrosoftBclAsyncInterfacesLatestVersion)" />
         <PackageReference Include="xunit.runner.visualstudio" />
         <ProjectReference Include="../../Metalama.Framework.Workspaces/Metalama.Framework.Workspaces.csproj" />
         <PackageReference Include="Metalama.Compiler.Sdk" />

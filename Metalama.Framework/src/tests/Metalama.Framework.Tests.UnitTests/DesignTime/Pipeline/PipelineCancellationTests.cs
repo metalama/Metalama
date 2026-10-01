@@ -25,7 +25,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline;
 
@@ -90,7 +89,7 @@ public sealed class PipelineCancellationTests : UnitTestClass
         // We need a large timeout because this test has many "yield" points, and other tests running concurrently will take precedence over it.
         // Therefore, a timeout equal than the expected duration of all tests is not exagerated.
 
-        using var testContext = this.CreateTestContext( new TestContextOptions() { HasSourceGeneratorTouchFile = true, Timeout = TimeSpan.FromMinutes( 10 ) } );
+        using var testContext = this.CreateTestContext( new MetalamaTestContextOptions() { HasSourceGeneratorTouchFile = true, Timeout = TimeSpan.FromMinutes( 10 ) } );
         var serviceProvider = testContext.ServiceProvider.Global;
         serviceProvider = serviceProvider.WithService( new AnalysisProcessEventHub( serviceProvider ) );
 

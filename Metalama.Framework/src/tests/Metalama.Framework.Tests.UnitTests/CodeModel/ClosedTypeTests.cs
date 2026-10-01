@@ -369,7 +369,7 @@ public sealed class ClosedTypeTests : UnitTestClass
     /// <c>closed</c> modifier, so no override is needed. Issue #2005 removed the preview override that stood here
     /// while C# 15 was reached through <see cref="LanguageVersion.Preview"/>.
     /// </summary>
-    private static ICompilation CreateClosedTypeCompilation( TestContext testContext )
+    private static ICompilation CreateClosedTypeCompilation( MetalamaTestContext testContext )
     {
         var parseOptions = SupportedCSharpVersions.DefaultParseOptions;
 

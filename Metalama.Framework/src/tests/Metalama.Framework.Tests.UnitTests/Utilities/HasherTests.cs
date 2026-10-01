@@ -8,7 +8,6 @@ using Metalama.Framework.Engine.Utilities;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Framework.Tests.UnitTests.Utilities;
 
@@ -38,8 +37,8 @@ public sealed class HasherTests
     {
         var xxh = new XxHash64();
 
-        var tree1 = CSharpSyntaxTree.ParseText( code1, SupportedCSharpVersions.DefaultParseOptions );
-        var tree2 = CSharpSyntaxTree.ParseText( code2, SupportedCSharpVersions.DefaultParseOptions );
+        var tree1 = CSharpSyntaxTree.ParseText( code1, SupportedCSharpVersions.DefaultParseOptions, cancellationToken: TestContext.Current.CancellationToken );
+        var tree2 = CSharpSyntaxTree.ParseText( code2, SupportedCSharpVersions.DefaultParseOptions, cancellationToken: TestContext.Current.CancellationToken );
 
         var compileTimeHash1 = HashCompileTime( tree1 );
         var compileTimeHash2 = HashCompileTime( tree2 );

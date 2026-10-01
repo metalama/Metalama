@@ -231,7 +231,7 @@ public sealed class RangeAttributeTests
         Assert.Contains( "parameter", e!.Message, StringComparison.Ordinal );
     }
 
-    [SkippableFact( Skip = "#33302" )]
+    [Fact( Skip = "#33302" )]
     public void Given_MethodWithInRangeRef_When_IncorrectValueReturned_Then_ExceptionThrown()
     {
         var cut = new RangeTestClass();

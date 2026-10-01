@@ -8,7 +8,6 @@ using Microsoft.CodeAnalysis;
 using System;
 using System.Runtime.CompilerServices;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline.MemoryLeaks;
 
@@ -153,7 +152,7 @@ public sealed class TemplateReflectionContextMemoryLeakTests : UnitTestClass
     /// compilation in its own body would retain it whatever the product code does.
     /// </remarks>
     [MethodImpl( MethodImplOptions.NoInlining )]
-    private static CacheableTemplateDiscoveryContextProvider CreateProvider( TestContext testContext, out WeakReference sourceCompilation )
+    private static CacheableTemplateDiscoveryContextProvider CreateProvider( MetalamaTestContext testContext, out WeakReference sourceCompilation )
     {
         var compilation = testContext.CreateCSharpCompilation( _code );
 
@@ -173,6 +172,6 @@ public sealed class TemplateReflectionContextMemoryLeakTests : UnitTestClass
     /// retaining the provider.
     /// </summary>
     [MethodImpl( MethodImplOptions.NoInlining )]
-    private static ITemplateReflectionContext CreateContext( TestContext testContext, out WeakReference sourceCompilation )
+    private static ITemplateReflectionContext CreateContext( MetalamaTestContext testContext, out WeakReference sourceCompilation )
         => CreateProvider( testContext, out sourceCompilation ).GetTemplateDiscoveryContext()!;
 }

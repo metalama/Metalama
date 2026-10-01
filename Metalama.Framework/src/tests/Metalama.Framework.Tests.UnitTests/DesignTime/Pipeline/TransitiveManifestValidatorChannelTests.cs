@@ -25,7 +25,6 @@ using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline;
 
@@ -72,7 +71,7 @@ public sealed class TransitiveManifestValidatorChannelTests : UnitTestClass
     /// only exists once the compilation does.
     /// </param>
     private static DesignTimeAspectPipelineResult CreateResultWithExtensions(
-        TestContext testContext,
+        MetalamaTestContext testContext,
         TestDesignTimeAspectPipelineFactory factory,
         Func<SymbolDictionaryKey, ITransitivePipelineContributor[]> createExtensions )
     {

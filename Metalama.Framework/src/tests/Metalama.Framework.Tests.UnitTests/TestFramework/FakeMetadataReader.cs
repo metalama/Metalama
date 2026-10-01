@@ -5,7 +5,7 @@
 using Metalama.Framework.Engine.Options;
 using Metalama.Testing.AspectTesting;
 using System.Collections.Immutable;
-using Xunit.Abstractions;
+using System.Reflection;
 
 namespace Metalama.Framework.Tests.UnitTests.TestFramework;
 
@@ -18,7 +18,7 @@ internal sealed class FakeMetadataReader : ITestAssemblyMetadataReader
         this._projectDirectory = projectDirectory;
     }
 
-    public TestAssemblyMetadata GetMetadata( IAssemblyInfo assembly )
+    public TestAssemblyMetadata GetMetadata( Assembly assembly )
         => new(
             this._projectDirectory,
             this._projectDirectory,

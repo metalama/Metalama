@@ -5,7 +5,6 @@
 using Metalama.Patterns.Caching.Aspects;
 using Metalama.Patterns.Caching.TestHelpers;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Patterns.Caching.Tests
 {
@@ -105,7 +104,7 @@ namespace Metalama.Patterns.Caching.Tests
                 value2,
                 "The first value, which should be returned from the cache, is not the same as the one which should have been cached." );
 
-            await CachingService.Default.InvalidateObjectAsync( value1 );
+            await CachingService.Default.InvalidateObjectAsync( value1, TestContext.Current.CancellationToken );
 
             ++currentId;
             var value3 = await cachingClass.GetValueAsDependencyAsync();
@@ -240,7 +239,7 @@ namespace Metalama.Patterns.Caching.Tests
             cachingClass1.Reset();
             cachingClass2.Reset();
 
-            await CachingService.Default.InvalidateObjectAsync( value1 );
+            await CachingService.Default.InvalidateObjectAsync( value1, TestContext.Current.CancellationToken );
 
             await cachingClass2.GetValueAsDependencyAsync();
             var called = cachingClass1.Reset();

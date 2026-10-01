@@ -5,7 +5,6 @@
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Testing.UnitTesting;
 using Xunit;
-using Xunit.Abstractions;
 using static Metalama.Framework.Tests.UnitTests.Utilities.SerializableDeclarationIdTests;
 
 namespace Metalama.Framework.Tests.UnitTests.Utilities;

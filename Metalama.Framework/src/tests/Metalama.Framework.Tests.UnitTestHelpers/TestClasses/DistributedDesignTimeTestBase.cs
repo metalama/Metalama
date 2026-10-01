@@ -12,7 +12,8 @@ using Metalama.Framework.Services;
 using Metalama.Framework.Tests.UnitTestHelpers.Mocks;
 using Metalama.Testing.UnitTesting;
 using System;
-using Xunit.Abstractions;
+using System.Threading;
+using Xunit;
 
 namespace Metalama.Framework.Tests.UnitTestHelpers.TestClasses;
 
@@ -26,21 +27,24 @@ public class DistributedDesignTimeTestBase : UnitTestClass
         services.AddGlobalService<IUserDiagnosticRegistrationService>( new TestUserDiagnosticRegistrationService() );
     }
 
-    protected override TestContext CreateTestContextCore( TestContextOptions contextOptions, IAdditionalServiceCollection services )
+    protected override MetalamaTestContext CreateTestContextCore(
+        MetalamaTestContextOptions contextOptions,
+        IAdditionalServiceCollection services,
+        CancellationToken cancellationToken )
     {
         if ( contextOptions.ProjectName != null )
         {
             throw new ArgumentOutOfRangeException();
         }
 
-        return new DistributedDesignTimeTestContext( contextOptions, services );
+        return new DistributedDesignTimeTestContext( contextOptions, services, cancellationToken );
     }
 
     [MustDisposeResource]
     protected DistributedDesignTimeTestContext CreateDistributedDesignTimeTestContext(
         ServiceProviderBuilder<IGlobalService>? userProcessServices = null,
         ServiceProviderBuilder<IGlobalService>? analysisProcessServices = null,
-        TestContextOptions? options = null )
+        MetalamaTestContextOptions? options = null )
     {
         var services = new AdditionalServiceCollection();
         services.AddGlobalService( provider => new TestWorkspaceProvider( provider ) );

@@ -7,7 +7,6 @@ using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis.CSharp;
 using System;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Framework.Tests.UnitTests.Utilities;
 

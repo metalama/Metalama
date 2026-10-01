@@ -6,7 +6,7 @@ using JetBrains.Annotations;
 using Metalama.Testing.UnitTesting;
 using SharpCrafters.Common.Testing.Hooks;
 using System.Runtime.CompilerServices;
-using Xunit.Abstractions;
+using Xunit;
 
 namespace Metalama.Framework.Tests.UnitTests.DesignTime.Rpc;
 
@@ -21,14 +21,14 @@ public abstract class RpcUnitTestClass : UnitTestClass
     /// <summary>
     /// Creates an RPC test context with synchronization provider pre-configured.
     /// </summary>
-    /// <param name="contextOptions">Optional non-default <see cref="TestContextOptions"/> (e.g. a shorter
-    /// <see cref="TestContextOptions.Timeout"/>). When <c>null</c>, the default options are used.</param>
+    /// <param name="contextOptions">Optional non-default <see cref="MetalamaTestContextOptions"/> (e.g. a shorter
+    /// <see cref="MetalamaTestContextOptions.Timeout"/>). When <c>null</c>, the default options are used.</param>
     /// <param name="callerFile">Automatically populated by the compiler.</param>
     /// <param name="callerMemberName">Automatically populated by the compiler.</param>
     /// <returns>An <see cref="RpcTestContext"/> that must be disposed after the test.</returns>
     [MustDisposeResource]
     private protected RpcTestContext CreateRpcTestContext(
-        TestContextOptions? contextOptions = null,
+        MetalamaTestContextOptions? contextOptions = null,
         [CallerFilePath] string? callerFile = null,
         [CallerMemberName] string? callerMemberName = null )
     {

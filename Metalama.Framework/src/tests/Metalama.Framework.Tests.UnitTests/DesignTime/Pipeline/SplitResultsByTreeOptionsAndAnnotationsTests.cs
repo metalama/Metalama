@@ -24,7 +24,6 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline;
 
@@ -197,7 +196,7 @@ public sealed class SplitResultsByTreeOptionsAndAnnotationsTests : UnitTestClass
     /// declared in <c>dependency.cs</c>.
     /// </summary>
     private static (DesignTimeAspectPipelineResultAndState Executed, Compilation Compilation) Execute(
-        TestContext testContext,
+        MetalamaTestContext testContext,
         TestDesignTimeAspectPipelineFactory factory )
     {
         var compilation = testContext.CreateCSharpCompilation(
@@ -228,7 +227,7 @@ public sealed class SplitResultsByTreeOptionsAndAnnotationsTests : UnitTestClass
     /// Creates an exported annotation on <c>ExternalClass</c>, which is declared in <c>dependency.cs</c>.
     /// </summary>
     private static ImmutableDictionaryOfArray<IRef<IDeclaration>, AnnotationInstance> CreateAnnotations(
-        TestContext testContext,
+        MetalamaTestContext testContext,
         Compilation compilation )
     {
         var model = testContext.CreateCompilationModel( compilation );

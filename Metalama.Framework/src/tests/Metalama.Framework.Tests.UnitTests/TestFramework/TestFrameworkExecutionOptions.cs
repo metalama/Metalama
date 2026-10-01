@@ -2,20 +2,22 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using System;
-using Xunit.Abstractions;
+using System.Collections.Generic;
+using Xunit.Sdk;
 
 namespace Metalama.Framework.Tests.UnitTests.TestFramework;
 
+/// <summary>
+/// An implementation of <see cref="ITestFrameworkExecutionOptions"/> in which every option that has not been set has its
+/// default value.
+/// </summary>
 internal sealed class TestFrameworkExecutionOptions : ITestFrameworkExecutionOptions
 {
-    public TValue GetValue<TValue>( string name )
-        => name switch
-        {
-            "xunit.execution.MaxParallelThreads" => (TValue) (object) 4,
-            "xunit.execution.DisableParallelization" => (TValue) (object) false,
-            _ => throw new ArgumentOutOfRangeException()
-        };
+    private readonly Dictionary<string, object?> _values = new();
 
-    public void SetValue<TValue>( string name, TValue value ) => throw new NotImplementedException();
+    public TValue GetValue<TValue>( string name ) => this._values.TryGetValue( name, out var value ) ? (TValue) value! : default!;
+
+    public void SetValue<TValue>( string name, TValue value ) => this._values[name] = value;
+
+    public string ToJson() => "{}";
 }

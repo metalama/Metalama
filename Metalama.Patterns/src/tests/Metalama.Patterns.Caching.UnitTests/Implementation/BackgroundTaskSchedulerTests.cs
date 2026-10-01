@@ -7,7 +7,6 @@ using Metalama.Patterns.Caching.TestHelpers;
 using Microsoft.Extensions.DependencyInjection;
 using System.Collections.Concurrent;
 using Xunit;
-using Xunit.Abstractions;
 
 // ReSharper disable MethodHasAsyncOverload
 
@@ -46,7 +45,8 @@ public sealed partial class BackgroundTaskSchedulerTests : IDisposable
                 taskExecuted.SetResult( true );
 
                 return Task.CompletedTask;
-            } );
+            },
+            TestContext.Current.CancellationToken );
 
         await scheduler.WhenBackgroundTasksCompleted( CancellationToken.None ).WaitWithTimeoutAsync();
 
@@ -78,9 +78,9 @@ public sealed partial class BackgroundTaskSchedulerTests : IDisposable
     public void EnqueueAfterDispose_Throws()
     {
         var scheduler = new BackgroundTaskScheduler( this._serviceProvider );
-        scheduler.Dispose();
+        scheduler.Dispose( TestContext.Current.CancellationToken );
 
-        Assert.Throws<ObjectDisposedException>( () => scheduler.EnqueueBackgroundTask( _ => Task.CompletedTask ) );
+        Assert.Throws<ObjectDisposedException>( () => scheduler.EnqueueBackgroundTask( _ => Task.CompletedTask, TestContext.Current.CancellationToken ) );
     }
 
     [Fact]
@@ -89,7 +89,7 @@ public sealed partial class BackgroundTaskSchedulerTests : IDisposable
         var scheduler = new BackgroundTaskScheduler( this._serviceProvider );
         scheduler.StopAcceptingBackgroundTasks();
 
-        Assert.Throws<ObjectDisposedException>( () => scheduler.EnqueueBackgroundTask( _ => Task.CompletedTask ) );
+        Assert.Throws<ObjectDisposedException>( () => scheduler.EnqueueBackgroundTask( _ => Task.CompletedTask, TestContext.Current.CancellationToken ) );
     }
 
     #endregion
@@ -122,7 +122,8 @@ public sealed partial class BackgroundTaskSchedulerTests : IDisposable
                 executionOrder.Enqueue( 2 );
 
                 return Task.CompletedTask;
-            } );
+            },
+            TestContext.Current.CancellationToken );
 
         // Wait for task 1 to start
         await task1Started.Task.WaitWithTimeoutAsync();
@@ -168,7 +169,8 @@ public sealed partial class BackgroundTaskSchedulerTests : IDisposable
                 task2Executed.SetResult( true );
 
                 return Task.CompletedTask;
-            } );
+            },
+            TestContext.Current.CancellationToken );
 
         await scheduler.WhenBackgroundTasksCompleted( CancellationToken.None ).WaitWithTimeoutAsync();
 
@@ -262,7 +264,7 @@ public sealed partial class BackgroundTaskSchedulerTests : IDisposable
         }
 
         // Give some time for tasks to start
-        await Task.Delay( 100 );
+        await Task.Delay( 100, TestContext.Current.CancellationToken );
 
         // Release all tasks
         holdTasks.SetResult( true );
@@ -302,7 +304,7 @@ public sealed partial class BackgroundTaskSchedulerTests : IDisposable
 
         for ( var i = 0; i < taskCount; i++ )
         {
-            scheduler.EnqueueBackgroundTask( _ => holdTasks.Task );
+            scheduler.EnqueueBackgroundTask( _ => holdTasks.Task, TestContext.Current.CancellationToken );
         }
 
         // Check if overloaded
@@ -337,7 +339,7 @@ public sealed partial class BackgroundTaskSchedulerTests : IDisposable
 
         for ( var i = 0; i < taskCount; i++ )
         {
-            scheduler.EnqueueBackgroundTask( _ => holdTasks.Task );
+            scheduler.EnqueueBackgroundTask( _ => holdTasks.Task, TestContext.Current.CancellationToken );
         }
 
         var wasOverloaded = scheduler.IsOverloaded;
@@ -376,7 +378,7 @@ public sealed partial class BackgroundTaskSchedulerTests : IDisposable
 
         for ( var i = 0; i < taskCount; i++ )
         {
-            scheduler.EnqueueBackgroundTask( _ => holdTasks.Task );
+            scheduler.EnqueueBackgroundTask( _ => holdTasks.Task, TestContext.Current.CancellationToken );
         }
 
         // Release all tasks
@@ -526,7 +528,7 @@ public sealed partial class BackgroundTaskSchedulerTests : IDisposable
         taskCts.Cancel();
 
         // Let task complete
-        holdTask.TrySetCanceled();
+        holdTask.TrySetCanceled( TestContext.Current.CancellationToken );
 
         await scheduler.WhenBackgroundTasksCompleted( CancellationToken.None ).WaitWithTimeoutAsync();
 
@@ -559,7 +561,8 @@ public sealed partial class BackgroundTaskSchedulerTests : IDisposable
                 succeeded.SetResult( true );
 
                 return Task.CompletedTask;
-            } );
+            },
+            TestContext.Current.CancellationToken );
 
         await scheduler.WhenBackgroundTasksCompleted( CancellationToken.None ).WaitWithTimeoutAsync();
 
@@ -594,7 +597,8 @@ public sealed partial class BackgroundTaskSchedulerTests : IDisposable
                 }
 
                 return Task.CompletedTask;
-            } );
+            },
+            TestContext.Current.CancellationToken );
 
         // Wait for task 1 to fail
         await task1Failed.Task.WaitWithTimeoutAsync();
@@ -606,7 +610,8 @@ public sealed partial class BackgroundTaskSchedulerTests : IDisposable
                 task2Executed.SetResult( true );
 
                 return Task.CompletedTask;
-            } );
+            },
+            TestContext.Current.CancellationToken );
 
         // Wait for task 2 to execute (this proves semaphore was released)
         var task2ExecutedResult = await task2Executed.Task.WaitWithTimeoutAsync();
@@ -639,7 +644,8 @@ public sealed partial class BackgroundTaskSchedulerTests : IDisposable
                 }
 
                 return Task.CompletedTask;
-            } );
+            },
+            TestContext.Current.CancellationToken );
 
         await scheduler.WhenBackgroundTasksCompleted( CancellationToken.None ).WaitWithTimeoutAsync();
 
@@ -702,7 +708,7 @@ public sealed partial class BackgroundTaskSchedulerTests : IDisposable
         var scheduler = new BackgroundTaskScheduler( this._serviceProvider );
         var holdTask = new TaskCompletionSource<bool>();
 
-        scheduler.EnqueueBackgroundTask( _ => holdTask.Task );
+        scheduler.EnqueueBackgroundTask( _ => holdTask.Task, TestContext.Current.CancellationToken );
 
         using var cts = new CancellationTokenSource();
         cts.Cancel();
@@ -773,7 +779,8 @@ public sealed partial class BackgroundTaskSchedulerTests : IDisposable
                 // Release the task after a short delay
                 holdTask.SetResult( true );
                 scheduler.Dispose();
-            } );
+            },
+            TestContext.Current.CancellationToken );
 
         await disposeTask.WaitWithTimeoutAsync();
 
@@ -797,7 +804,7 @@ public sealed partial class BackgroundTaskSchedulerTests : IDisposable
         // Release the task
         holdTask.SetResult( true );
 
-        await scheduler.DisposeAsync();
+        await scheduler.DisposeAsync( TestContext.Current.CancellationToken );
 
         Assert.True( taskCompleted );
     }
@@ -846,7 +853,7 @@ public sealed partial class BackgroundTaskSchedulerTests : IDisposable
 
         for ( var i = 0; i < taskCount; i++ )
         {
-            scheduler.EnqueueBackgroundTask( _ => Task.CompletedTask );
+            scheduler.EnqueueBackgroundTask( _ => Task.CompletedTask, TestContext.Current.CancellationToken );
         }
 
         await scheduler.WhenBackgroundTasksCompleted( CancellationToken.None ).WaitWithTimeoutAsync();
@@ -867,7 +874,7 @@ public sealed partial class BackgroundTaskSchedulerTests : IDisposable
 
         for ( var i = 0; i < taskCount; i++ )
         {
-            scheduler.EnqueueBackgroundTask( _ => Task.CompletedTask );
+            scheduler.EnqueueBackgroundTask( _ => Task.CompletedTask, TestContext.Current.CancellationToken );
         }
 
         await scheduler.WhenBackgroundTasksCompleted( CancellationToken.None ).WaitWithTimeoutAsync();
@@ -901,7 +908,8 @@ public sealed partial class BackgroundTaskSchedulerTests : IDisposable
                     Interlocked.Increment( ref completedCount );
 
                     return Task.CompletedTask;
-                } );
+                },
+                TestContext.Current.CancellationToken );
         }
 
         await scheduler.WhenBackgroundTasksCompleted( CancellationToken.None ).WaitWithTimeoutAsync();

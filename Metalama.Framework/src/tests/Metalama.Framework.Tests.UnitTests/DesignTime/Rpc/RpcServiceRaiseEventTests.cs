@@ -13,7 +13,6 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Framework.Tests.UnitTests.DesignTime.Rpc;
 
@@ -630,7 +629,7 @@ public sealed partial class RpcServiceRaiseEventTests : RpcUnitTestClass
     [Fact]
     public async Task ClientEndpointDispose_MidConnect_ClosesPendingPipe_ServerSeesDisconnect()
     {
-        using var testContext = this.CreateRpcTestContext( new TestContextOptions { Timeout = TimeSpan.FromSeconds( 30 ) } );
+        using var testContext = this.CreateRpcTestContext( new MetalamaTestContextOptions { Timeout = TimeSpan.FromSeconds( 30 ) } );
 
         var pipeName = $"{nameof(RpcServiceRaiseEventTests)}_{Guid.NewGuid()}";
 
@@ -701,7 +700,7 @@ public sealed partial class RpcServiceRaiseEventTests : RpcUnitTestClass
     {
         // A short timeout keeps the test fast: without the fix the accept loop dies and the waits below fail
         // via cancellation in a few seconds instead of the 240s default.
-        using var testContext = this.CreateRpcTestContext( new TestContextOptions { Timeout = TimeSpan.FromSeconds( 30 ) } );
+        using var testContext = this.CreateRpcTestContext( new MetalamaTestContextOptions { Timeout = TimeSpan.FromSeconds( 30 ) } );
 
         var pipeName = $"{nameof(RpcServiceRaiseEventTests)}_{Guid.NewGuid()}";
 

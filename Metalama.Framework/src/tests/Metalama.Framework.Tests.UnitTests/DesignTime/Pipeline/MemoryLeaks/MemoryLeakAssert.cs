@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline.MemoryLeaks;
@@ -20,6 +21,11 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline.MemoryLeaks;
 /// </remarks>
 internal static class MemoryLeakAssert
 {
+    /// <summary>
+    /// The maximum number of times that <see cref="CollectedAsync"/> leaves the current stack and collects before it fails.
+    /// </summary>
+    private const int _maxCollectionAttempts = 5;
+
     /// <summary>
     /// Asserts that the target of a weak reference has been collected, and explains the retention if it has not.
     /// </summary>
@@ -39,6 +45,78 @@ internal static class MemoryLeakAssert
         }
 
         Assert.Fail( BuildFailureMessage( target, description, roots ) );
+    }
+
+    /// <summary>
+    /// Asserts that the target of a weak reference has been collected, after resuming the calling asynchronous method on
+    /// a thread of the thread pool.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// An asynchronous test must use this method instead of <see cref="Collected"/> when it has awaited the code under
+    /// test. When no synchronization context is installed, which is the case under xunit v3, the continuation of an
+    /// <c>await</c> runs synchronously on the thread that completed the awaited task. The rest of the test then runs
+    /// above the stack frames of the code under test, and the local variables of these frames still reference the
+    /// objects that the test expects to be collected. These frames are not garbage-collection roots that a caller can
+    /// supply, so <see cref="RetentionPathFinder"/> cannot report them.
+    /// </para>
+    /// <para>
+    /// <see cref="Task.Yield"/> queues the rest of the test to the thread pool or to the synchronization context, and
+    /// the thread that ran the code under test then returns from these frames. No API lets the test wait until a given
+    /// thread has returned from its frames, so the method yields, collects and checks the reference up to
+    /// <see cref="_maxCollectionAttempts"/> times before it fails. None of these attempts waits for a fixed time. Each
+    /// attempt gives the other thread the time of several blocking rounds of collection, and the other thread needs a
+    /// few instructions to return. <see cref="MemoryLeakAssertSelfTests"/> verifies both that the synchronous assertion
+    /// fails in this situation and that this method succeeds.
+    /// </para>
+    /// </remarks>
+    /// <param name="weakReference">A weak reference to the object that was expected to be collected.</param>
+    /// <param name="description">A description of the object, used in the failure message.</param>
+    /// <param name="roots">The objects that play the role of garbage-collection roots in the failure analysis.</param>
+    public static async Task CollectedAsync( WeakReference weakReference, string description, params (string Name, object Root)[] roots )
+    {
+        for ( var attempt = 1; attempt < _maxCollectionAttempts; attempt++ )
+        {
+            await Task.Yield();
+
+            if ( GarbageCollectionHelper.CountAlive( weakReference ) == 0 )
+            {
+                return;
+            }
+        }
+
+        await Task.Yield();
+
+        Collected( weakReference, description, roots );
+    }
+
+    /// <summary>
+    /// Asserts that at most <paramref name="expectedMaximum"/> of the given weak references are still alive, after
+    /// resuming the calling asynchronous method on another thread.
+    /// </summary>
+    /// <remarks>
+    /// An asynchronous test must use this method instead of <see cref="AtMostAlive"/> when it has awaited the code under
+    /// test, for the reason given for <see cref="CollectedAsync"/>.
+    /// </remarks>
+    public static async Task AtMostAliveAsync(
+        IReadOnlyList<WeakReference> weakReferences,
+        int expectedMaximum,
+        string description,
+        params (string Name, object Root)[] roots )
+    {
+        for ( var attempt = 1; attempt < _maxCollectionAttempts; attempt++ )
+        {
+            await Task.Yield();
+
+            if ( GarbageCollectionHelper.CountAlive( [..weakReferences] ) <= expectedMaximum )
+            {
+                return;
+            }
+        }
+
+        await Task.Yield();
+
+        AtMostAlive( weakReferences, expectedMaximum, description, roots );
     }
 
     /// <summary>

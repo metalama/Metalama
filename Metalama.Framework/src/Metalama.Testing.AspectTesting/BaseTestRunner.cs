@@ -33,7 +33,6 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
-using Xunit.Abstractions;
 
 // ReSharper disable MethodHasAsyncOverload
 
@@ -74,7 +73,7 @@ internal abstract partial class BaseTestRunner
 
     protected ITestOutputHelper? Logger { get; }
 
-    public async Task RunAndAssertAsync( TestInput testInput, TestContextOptions testContextOptions, CancellationToken cancellationToken = default )
+    public async Task RunAndAssertAsync( TestInput testInput, MetalamaTestContextOptions testContextOptions, CancellationToken cancellationToken = default )
     {
         CollectibleExecutionContext? collectibleExecutionContext;
 
@@ -108,7 +107,7 @@ internal abstract partial class BaseTestRunner
 
     protected virtual TestResult CreateTestResult() => new();
 
-    private async Task RunAndAssertCoreAsync( TestInput testInput, TestContextOptions testContextOptions, CancellationToken cancellationToken )
+    private async Task RunAndAssertCoreAsync( TestInput testInput, MetalamaTestContextOptions testContextOptions, CancellationToken cancellationToken )
     {
         var originalCulture = CultureInfo.CurrentCulture;
 
@@ -123,7 +122,7 @@ internal abstract partial class BaseTestRunner
                     ProjectName = testInput.Options.ProjectName ?? testInput.TestName, RunnerServiceProvider = this._serviceProvider
                 };
 
-            using var testContext = new TestContext( transformedOptions, cancellationToken );
+            using var testContext = new MetalamaTestContext( transformedOptions, cancellationToken );
             testContext.TestName = testInput.FullPath;
             testContext.TestOutputWriter = this.Logger;
 
@@ -150,11 +149,11 @@ internal abstract partial class BaseTestRunner
         }
     }
 
-    protected virtual TestContextOptions GetContextOptions( TestContextOptions options ) => options;
+    protected virtual MetalamaTestContextOptions GetContextOptions( MetalamaTestContextOptions options ) => options;
 
     public async Task<TestResult> RunAsync(
         TestInput testInput,
-        TestContext testContext )
+        MetalamaTestContext testContext )
     {
         var testResult = this.CreateTestResult();
 
@@ -181,7 +180,7 @@ internal abstract partial class BaseTestRunner
     protected virtual async Task RunAsync(
         TestInput testInput,
         TestResult testResult,
-        TestContext testContext )
+        MetalamaTestContext testContext )
     {
         if ( testInput.Options.InvalidSourceOptions.Count > 0 )
         {
@@ -365,7 +364,7 @@ internal abstract partial class BaseTestRunner
 
             testResult.InputProject = mainProject;
             testResult.InputCompilation = initialCompilation;
-            testResult.TestContext = testContext;
+            testResult.MetalamaTestContext = testContext;
 
             async Task<Project> AddAdditionalDocumentsAsync( Project project, CSharpParseOptions parseOptions )
             {
@@ -500,7 +499,7 @@ internal abstract partial class BaseTestRunner
         string code,
         Project emptyProject,
         TestResult testResult,
-        TestContext testContext )
+        MetalamaTestContext testContext )
     {
         // The assembly name must match the file name otherwise it wont be found by AssemblyLocator.
         var name = "dependency_" + RandomIdGenerator.GenerateId();
@@ -568,7 +567,7 @@ internal abstract partial class BaseTestRunner
     // Resharper disable once VirtualMemberNeverOverridden.Global
     protected virtual bool CompareTransformedCode => true;
 
-    private protected virtual async Task SaveResultsAsync( TestInput testInput, TestResult testResult, TestContext testContext )
+    private protected virtual async Task SaveResultsAsync( TestInput testInput, TestResult testResult, MetalamaTestContext testContext )
     {
         if ( this.ProjectDirectory == null )
         {
@@ -664,7 +663,7 @@ internal abstract partial class BaseTestRunner
                 logger.WriteLine( "Actual transformed file: " + actualTransformedPath );
                 logger.WriteLine( "" );
                 logger.WriteLine( "=== ACTUAL TRANSFORMED CODE ===" );
-                logger.WriteLine( actualTransformedSourceTextForStorage );
+                logger.WriteLine( actualTransformedSourceTextForStorage ?? "" );
                 logger.WriteLine( "=====================" );
 
                 // Write all diagnostics to the logger.
@@ -692,7 +691,7 @@ internal abstract partial class BaseTestRunner
     private async Task SaveCompiledTemplateResultsAsync(
         TestInput testInput,
         TestResult testResult,
-        TestContext testContext,
+        MetalamaTestContext testContext,
         string sourceDirectory,
         bool compareWhitespace )
     {
@@ -778,7 +777,7 @@ internal abstract partial class BaseTestRunner
                 this.Logger.WriteLine( "Actual compiled template file: " + actualCompiledTemplatePath );
                 this.Logger.WriteLine( "" );
                 this.Logger.WriteLine( "=== ACTUAL COMPILED TEMPLATE ===" );
-                this.Logger.WriteLine( actualCompiledTemplateTextForStorage );
+                this.Logger.WriteLine( actualCompiledTemplateTextForStorage ?? "" );
                 this.Logger.WriteLine( "=====================" );
             }
 
@@ -799,7 +798,7 @@ internal abstract partial class BaseTestRunner
         }
 
         // Get the diff tool runner from plugins (may be null if DiffEngine package is not referenced).
-        var diffToolRunner = testResult.TestContext?.DiffToolRunner;
+        var diffToolRunner = testResult.MetalamaTestContext?.DiffToolRunner;
 
         // Configure max instances if available.
         diffToolRunner?.SetMaxInstances( this._testRunnerOptions.MaxDiffToolInstances );
@@ -937,7 +936,7 @@ internal abstract partial class BaseTestRunner
     /// </summary>
     /// <returns>A new project instance.</returns>
     [PublicAPI]
-    public Project CreateProject( TestContext testContext, TestOptions options )
+    public Project CreateProject( MetalamaTestContext testContext, TestOptions options )
     {
         var compilation = testContext.CreateEmptyCSharpCompilation(
             null,
@@ -968,7 +967,7 @@ internal abstract partial class BaseTestRunner
         TestResult testResult,
         CancellationToken cancellationToken )
     {
-        var testContext = testResult.TestContext.AssertNotNull();
+        var testContext = testResult.MetalamaTestContext.AssertNotNull();
         var htmlCodeWriter = testContext.CreateHtmlCodeWriter( testContext.ServiceProvider )
                              ?? throw new InvalidOperationException(
                                  "HTML output is requested but Metalama.Extensions.HtmlWriter package is not installed. " +

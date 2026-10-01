@@ -4,7 +4,6 @@
 
 #if NETCOREAPP3_0_OR_GREATER
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Patterns.Caching.Tests;
 

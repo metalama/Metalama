@@ -168,13 +168,13 @@ namespace Metalama.AspectWorkbench.ViewModels
             }
 
             var testContextOptions =
-                new TestContextOptions()
+                new MetalamaTestContextOptions()
                 {
                     FormatCompileTimeCode = testInput.Options.FormatCompileTimeCode ?? true,
                     AdditionalMetadataReferences = [MetadataReference.CreateFromFile( typeof(TestTemplateAttribute).Assembly.Location )]
                 };
 
-            using var testContext = new TestContext( testContextOptions );
+            using var testContext = new MetalamaTestContext( testContextOptions );
 
             var serviceProvider = testContext.ServiceProvider;
 

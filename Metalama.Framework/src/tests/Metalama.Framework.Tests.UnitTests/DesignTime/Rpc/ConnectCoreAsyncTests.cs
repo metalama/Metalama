@@ -10,7 +10,6 @@ using System;
 using System.Collections.Immutable;
 using System.Threading.Tasks;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Framework.Tests.UnitTests.DesignTime.Rpc;
 

@@ -18,7 +18,6 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline.MemoryLeaks;
 
@@ -98,7 +97,7 @@ public sealed class SourceGeneratorMemoryLeakTests : DesignTimeTestBase
     [Fact]
     public async Task CancelledAnalyses_DoNotRetainTheirCompilations()
     {
-        using var testContext = this.CreateTestContext( new TestContextOptions { HasSourceGeneratorTouchFile = true } );
+        using var testContext = this.CreateTestContext( new MetalamaTestContextOptions { HasSourceGeneratorTouchFile = true } );
 
         GlobalServiceProvider serviceProvider = testContext.ServiceProvider;
         serviceProvider = serviceProvider.Underlying.WithService( new AnalysisProcessEventHub( serviceProvider ) );
@@ -128,7 +127,7 @@ public sealed class SourceGeneratorMemoryLeakTests : DesignTimeTestBase
             // result would depend on how loaded the thread pool happens to be.
             await PendingTasksHelper.WaitForPendingTasksAsync( sourceGenerator.PendingTasks, testContext );
 
-            MemoryLeakAssert.AtMostAlive(
+            await MemoryLeakAssert.AtMostAliveAsync(
                 compilations,
                 2,
                 $"compilations submitted to the source generator during {editCount} edits",
@@ -170,7 +169,7 @@ public sealed class SourceGeneratorMemoryLeakTests : DesignTimeTestBase
     /// of the calling test method.
     /// </remarks>
     [MethodImpl( MethodImplOptions.NoInlining )]
-    private static WeakReference[] RunEditingSession( TestContext testContext, ProjectSourceGenerator sourceGenerator, int editCount )
+    private static WeakReference[] RunEditingSession( MetalamaTestContext testContext, ProjectSourceGenerator sourceGenerator, int editCount )
     {
         var code = new Dictionary<string, string> { [_aspectFileName] = _aspectCode, [_targetFileName] = GetTargetCode( 0 ) };
 

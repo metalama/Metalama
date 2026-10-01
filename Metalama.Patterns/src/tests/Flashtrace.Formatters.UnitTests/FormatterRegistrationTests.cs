@@ -6,7 +6,6 @@ using Flashtrace.Formatters.UnitTests.Assets;
 using System.Collections;
 using System.Collections.ObjectModel;
 using Xunit;
-using Xunit.Abstractions;
 
 // ReSharper disable RedundantTypeArgumentsOfMethod
 

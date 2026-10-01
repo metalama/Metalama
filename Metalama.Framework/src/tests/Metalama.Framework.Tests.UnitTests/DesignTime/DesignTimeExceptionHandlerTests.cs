@@ -17,7 +17,7 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime;
 // OperationCanceledException must never be reported (it must flow to the caller, else VS caches incomplete results). See #1701.
 public sealed class DesignTimeExceptionHandlerTests : UnitTestClass
 {
-    private static DesignTimeExceptionHandler GetHandler( TestContext testContext )
+    private static DesignTimeExceptionHandler GetHandler( MetalamaTestContext testContext )
         => testContext.ServiceProvider.Global.GetRequiredService<DesignTimeExceptionHandler>();
 
     [Fact]

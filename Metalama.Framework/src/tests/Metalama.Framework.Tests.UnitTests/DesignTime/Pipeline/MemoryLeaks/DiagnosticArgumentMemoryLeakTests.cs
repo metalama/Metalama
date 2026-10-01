@@ -9,7 +9,6 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline.MemoryLeaks;
 
@@ -112,7 +111,7 @@ public sealed class DiagnosticArgumentMemoryLeakTests : DesignTimeTestBase
     /// </summary>
     [MethodImpl( MethodImplOptions.NoInlining )]
     private WeakReference RunEditingSession(
-        TestContext testContext,
+        MetalamaTestContext testContext,
         TestDesignTimeAspectPipelineFactory factory,
         string sessionName,
         string argumentExpression,
@@ -258,7 +257,7 @@ public sealed class DiagnosticArgumentMemoryLeakTests : DesignTimeTestBase
     /// produced by each edit.
     /// </summary>
     [MethodImpl( MethodImplOptions.NoInlining )]
-    private static WeakReference[] RunMultiFileEditingSession( TestContext testContext, TestDesignTimeAspectPipelineFactory factory, int fileCount )
+    private static WeakReference[] RunMultiFileEditingSession( MetalamaTestContext testContext, TestDesignTimeAspectPipelineFactory factory, int fileCount )
     {
         var code = new Dictionary<string, string> { [_aspectFileName] = GetAspectCode( "m", "IDeclaration" ) };
 

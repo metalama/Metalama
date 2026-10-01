@@ -14,12 +14,13 @@ using Metalama.Framework.Services;
 using Metalama.Framework.Tests.UnitTestHelpers.Mocks;
 using Metalama.Testing.UnitTesting;
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 
 namespace Metalama.Framework.Tests.UnitTestHelpers.TestClasses;
 
-public sealed class DistributedDesignTimeTestContext : TestContext
+public sealed class DistributedDesignTimeTestContext : MetalamaTestContext
 {
     private readonly TaskCompletionSource<bool> _whenInitialized = new();
     private readonly TaskCompletionSource<bool> _whenFieldsInitialized = new();
@@ -30,9 +31,13 @@ public sealed class DistributedDesignTimeTestContext : TestContext
     private TestDesignTimeAspectPipelineFactory? _pipelineFactory;
 #pragma warning restore IDE0032
 
-    internal DistributedDesignTimeTestContext( TestContextOptions contextOptions, IAdditionalServiceCollection additionalServices ) : base(
+    internal DistributedDesignTimeTestContext(
+        MetalamaTestContextOptions contextOptions,
+        IAdditionalServiceCollection additionalServices,
+        CancellationToken cancellationToken ) : base(
         contextOptions with { RequiresExclusivity = true },
-        additionalServices )
+        additionalServices,
+        cancellationToken )
     {
         this.WorkspaceProvider = this.ServiceProvider.Global.GetRequiredService<TestWorkspaceProvider>();
     }

@@ -8,7 +8,6 @@ using Metalama.Patterns.Caching.Backends;
 using Metalama.Patterns.Caching.TestHelpers;
 using System.Text;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Patterns.Caching.Tests;
 
@@ -40,14 +39,14 @@ public abstract class AsyncEnumTestsBase : BaseCachingTests, IAsyncLifetime
     }
 
     /// <inheritdoc />
-    public Task InitializeAsync() => Task.CompletedTask;
+    public ValueTask InitializeAsync() => default;
 
     /// <inheritdoc />
     /// <remarks>
     /// The enumeration released by <see cref="FinishBlockingTaskAsync"/> is awaited before the log is read, so
     /// that the log is complete and no append is in flight while it is being read.
     /// </remarks>
-    public async Task DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         try
         {

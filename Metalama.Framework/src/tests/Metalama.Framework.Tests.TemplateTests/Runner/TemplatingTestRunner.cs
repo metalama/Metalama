@@ -35,7 +35,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using Xunit;
-using Xunit.Abstractions;
+using TestResult = Metalama.Testing.AspectTesting.TestResult;
 using MethodKind = Microsoft.CodeAnalysis.MethodKind;
 using RefKind = Metalama.Framework.Code.RefKind;
 #if NET5_0_OR_GREATER
@@ -99,7 +99,7 @@ namespace Metalama.Framework.Tests.TemplateTests.Runner
         protected override async Task RunAsync(
             TestInput testInput,
             TestResult testResult,
-            TestContext testContext )
+            MetalamaTestContext testContext )
         {
             await base.RunAsync( testInput, testResult, testContext );
 

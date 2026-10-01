@@ -13,7 +13,6 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline.MemoryLeaks;
 
@@ -68,7 +67,7 @@ public sealed class ProjectVersionProviderMemoryLeakTests : DesignTimeTestBase
 
         var compilations = await RunSequentialChainAsync( testContext, provider, nameof(this.SequentialDiffChain_NoCompilationIsRetained), 30 );
 
-        MemoryLeakAssert.AtMostAlive( compilations, 0, "compilations of a sequential difference chain", ("projectVersionProvider", provider) );
+        await MemoryLeakAssert.AtMostAliveAsync( compilations, 0, "compilations of a sequential difference chain", ("projectVersionProvider", provider) );
     }
 
     /// <summary>
@@ -80,7 +79,7 @@ public sealed class ProjectVersionProviderMemoryLeakTests : DesignTimeTestBase
     /// </remarks>
     [MethodImpl( MethodImplOptions.NoInlining )]
     private static async Task<WeakReference[]> RunSequentialChainAsync(
-        TestContext testContext,
+        MetalamaTestContext testContext,
         ProjectVersionProvider provider,
         string assemblyName,
         int versionCount )
@@ -123,7 +122,7 @@ public sealed class ProjectVersionProviderMemoryLeakTests : DesignTimeTestBase
 
         var intermediateCompilations = await RunPinnedChainAsync( provider, pinned, 30 );
 
-        MemoryLeakAssert.AtMostAlive(
+        await MemoryLeakAssert.AtMostAliveAsync(
             intermediateCompilations,
             1,
             "intermediate compilations compared against a pinned version",
@@ -170,7 +169,7 @@ public sealed class ProjectVersionProviderMemoryLeakTests : DesignTimeTestBase
 
         var compilations = await RunReferenceChainAsync( testContext, provider, nameof(this.ReferencedProjectVersions_AreNotRetained), 15 );
 
-        MemoryLeakAssert.AtMostAlive(
+        await MemoryLeakAssert.AtMostAliveAsync(
             compilations,
             0,
             "compilations of a referenced project and of its dependent project",
@@ -182,7 +181,7 @@ public sealed class ProjectVersionProviderMemoryLeakTests : DesignTimeTestBase
     /// </summary>
     [MethodImpl( MethodImplOptions.NoInlining )]
     private static async Task<WeakReference[]> RunReferenceChainAsync(
-        TestContext testContext,
+        MetalamaTestContext testContext,
         ProjectVersionProvider provider,
         string assemblyName,
         int versionCount )
@@ -228,7 +227,7 @@ public sealed class ProjectVersionProviderMemoryLeakTests : DesignTimeTestBase
     /// <summary>
     /// Creates the first version of the simulated project.
     /// </summary>
-    private static Compilation CreateInitialCompilation( TestContext testContext, string assemblyName )
+    private static Compilation CreateInitialCompilation( MetalamaTestContext testContext, string assemblyName )
         => testContext.CreateCSharpCompilation( new Dictionary<string, string> { ["Code.cs"] = GetCode( 0 ) }, assemblyName: assemblyName );
 
     /// <summary>

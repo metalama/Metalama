@@ -32,7 +32,7 @@ public sealed class TestWorkspaceProvider : WorkspaceProvider
 
     protected override Task<Workspace?> GetWorkspaceAsync( CancellationToken cancellationToken = default ) => Task.FromResult( (Workspace?) this._workspace );
 
-    private ProjectKey GetOrAddProject( TestContext testContext, string projectName, string[]? projectReferences = null, string[]? preprocessorSymbols = null )
+    private ProjectKey GetOrAddProject( MetalamaTestContext testContext, string projectName, string[]? projectReferences = null, string[]? preprocessorSymbols = null )
     {
         if ( this._projectIdsByProjectName.TryGetValue( projectName, out var projectData ) )
         {
@@ -72,7 +72,7 @@ public sealed class TestWorkspaceProvider : WorkspaceProvider
     }
 
     public ProjectKey AddOrUpdateProject(
-        TestContext testContext,
+        MetalamaTestContext testContext,
         string projectName,
         Dictionary<string, string> code,
         string[]? projectReferences = null,

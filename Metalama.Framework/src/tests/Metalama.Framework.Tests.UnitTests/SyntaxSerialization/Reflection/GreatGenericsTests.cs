@@ -10,7 +10,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using Xunit;
-using Xunit.Abstractions;
 
 // ReSharper disable RedundantTypeArgumentsOfMethod
 // ReSharper disable ParameterOnlyUsedForPreconditionCheck.Local

@@ -7,7 +7,6 @@ using Metalama.Patterns.Caching.TestHelpers;
 using Metalama.Patterns.Caching.Tests.Mocks;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Metalama.Patterns.Caching.Tests.Implementation;
 
@@ -54,7 +53,7 @@ public sealed class BackgroundTaskSchedulerEdgeCaseTests : IDisposable
 
         for ( var i = 0; i < taskCount; i++ )
         {
-            scheduler.EnqueueBackgroundTask( _ => holdTasks.Task );
+            scheduler.EnqueueBackgroundTask( _ => holdTasks.Task, TestContext.Current.CancellationToken );
         }
 
         // At exactly the threshold, should not be overloaded
@@ -87,7 +86,7 @@ public sealed class BackgroundTaskSchedulerEdgeCaseTests : IDisposable
 
         for ( var i = 0; i < taskCount; i++ )
         {
-            scheduler.EnqueueBackgroundTask( _ => holdTasks.Task );
+            scheduler.EnqueueBackgroundTask( _ => holdTasks.Task, TestContext.Current.CancellationToken );
         }
 
         Assert.True( scheduler.IsOverloaded );
@@ -122,7 +121,8 @@ public sealed class BackgroundTaskSchedulerEdgeCaseTests : IDisposable
                 }
 
                 return Task.CompletedTask;
-            } );
+            },
+            TestContext.Current.CancellationToken );
 
         await scheduler.WhenBackgroundTasksCompleted( CancellationToken.None ).WaitWithTimeoutAsync();
 
@@ -171,7 +171,8 @@ public sealed class BackgroundTaskSchedulerEdgeCaseTests : IDisposable
                         completedTasks[index] = true;
 
                         return Task.CompletedTask;
-                    } );
+                    },
+                    TestContext.Current.CancellationToken );
             }
         }
 
@@ -232,13 +233,14 @@ public sealed class BackgroundTaskSchedulerEdgeCaseTests : IDisposable
 
                     await Task.Yield();
                 }
-            } );
+            },
+            TestContext.Current.CancellationToken );
 
         // Wait until a minimum number of tasks have been enqueued
         await minimumTasksEnqueued.Task.WaitWithTimeoutAsync();
 
         // Start disposal
-        var disposeTask = scheduler.DisposeAsync();
+        var disposeTask = scheduler.DisposeAsync( TestContext.Current.CancellationToken );
 
         await Task.WhenAll( enqueueTask, disposeTask ).WaitWithTimeoutAsync();
 
@@ -261,7 +263,7 @@ public sealed class BackgroundTaskSchedulerEdgeCaseTests : IDisposable
         // Enqueue some tasks
         for ( var i = 0; i < 3; i++ )
         {
-            scheduler.EnqueueBackgroundTask( _ => holdTasks.Task );
+            scheduler.EnqueueBackgroundTask( _ => holdTasks.Task, TestContext.Current.CancellationToken );
         }
 
         // Start multiple waits
@@ -282,7 +284,7 @@ public sealed class BackgroundTaskSchedulerEdgeCaseTests : IDisposable
         var scheduler = new BackgroundTaskScheduler( this._serviceProvider );
 
         // First batch
-        scheduler.EnqueueBackgroundTask( _ => Task.CompletedTask );
+        scheduler.EnqueueBackgroundTask( _ => Task.CompletedTask, TestContext.Current.CancellationToken );
         await scheduler.WhenBackgroundTasksCompleted( CancellationToken.None ).WaitWithTimeoutAsync();
 
         // Second batch
@@ -294,7 +296,8 @@ public sealed class BackgroundTaskSchedulerEdgeCaseTests : IDisposable
                 secondBatchCompleted = true;
 
                 return Task.CompletedTask;
-            } );
+            },
+            TestContext.Current.CancellationToken );
 
         await scheduler.WhenBackgroundTasksCompleted( CancellationToken.None ).WaitWithTimeoutAsync();
 
@@ -344,7 +347,7 @@ public sealed class BackgroundTaskSchedulerEdgeCaseTests : IDisposable
         // Release all tasks in sequence
         foreach ( var tcs in tasks )
         {
-            await Task.Delay( 10 );
+            await Task.Delay( 10, TestContext.Current.CancellationToken );
             tcs.SetResult( true );
         }
 

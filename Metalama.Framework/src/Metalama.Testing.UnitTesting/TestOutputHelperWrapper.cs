@@ -4,10 +4,13 @@
 
 using System;
 using System.Globalization;
-using Xunit.Abstractions;
+using Xunit;
 
 namespace Metalama.Testing.UnitTesting;
 
+/// <summary>
+/// An <see cref="ITestOutputHelper"/> that prefixes every line with the time at which it is written.
+/// </summary>
 internal sealed class TestOutputHelperWrapper : ITestOutputHelper
 {
     private readonly ITestOutputHelper _underlying;
@@ -16,6 +19,12 @@ internal sealed class TestOutputHelperWrapper : ITestOutputHelper
     {
         this._underlying = underlying;
     }
+
+    public string Output => this._underlying.Output;
+
+    public void Write( string message ) => this._underlying.Write( message );
+
+    public void Write( string format, params object[] args ) => this._underlying.Write( format, args );
 
     public void WriteLine( string message )
         => this._underlying.WriteLine( DateTime.Now.ToString( "HH:mm:ss.fff", CultureInfo.InvariantCulture ) + " - " + message );

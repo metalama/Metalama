@@ -70,7 +70,7 @@ public class LogAttribute : OMA
         using var testContext = this.CreateTestContext();
         var result = await CompileAsync( testContext, _globalUsings + _code );
         Assert.True( result.IsSuccessful );
-        Assert.Empty( result.Value.ResultingCompilation.Compilation.GetDiagnostics().Where( d => d.Severity >= DiagnosticSeverity.Warning ) );
+        Assert.Empty( result.Value.ResultingCompilation.Compilation.GetDiagnostics( testContext.CancellationToken ).Where( d => d.Severity >= DiagnosticSeverity.Warning ) );
     }
 
     [Fact]
@@ -79,6 +79,6 @@ public class LogAttribute : OMA
         using var testContext = this.CreateTestContext();
         var result = await CompileAsync( testContext, new Dictionary<string, string>() { ["usings.cs"] = _globalUsings, ["code.cs"] = _code } );
         Assert.True( result.IsSuccessful );
-        Assert.Empty( result.Value.ResultingCompilation.Compilation.GetDiagnostics().Where( d => d.Severity >= DiagnosticSeverity.Warning ) );
+        Assert.Empty( result.Value.ResultingCompilation.Compilation.GetDiagnostics( testContext.CancellationToken ).Where( d => d.Severity >= DiagnosticSeverity.Warning ) );
     }
 }

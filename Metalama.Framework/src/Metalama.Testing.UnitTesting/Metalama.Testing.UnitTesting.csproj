@@ -39,8 +39,8 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="xunit.assert" />
-        <PackageReference Include="xunit.abstractions" />
+        <PackageReference Include="xunit.v3.assert" />
+        <PackageReference Include="xunit.v3.extensibility.core" />
 
         <!-- MemoryDumpHelper drives dotMemory. The package reached this project through SharpCrafters.Backstage
              until the profiling feature of Backstage moved to a package of its own. -->
