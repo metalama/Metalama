@@ -27,6 +27,13 @@
     </ItemGroup>
 
     <ItemGroup>
+        <!-- The template test project uses the file-based test framework, which does not run xUnit facts, so the template
+             test runner is compiled into this project in order to be unit tested. -->
+        <Compile Include="..\Metalama.Framework.Tests.TemplateTests\Runner\TemplatingTestRunner.cs" Link="TestFramework\TemplateTests\TemplatingTestRunner.cs" />
+        <Compile Include="..\Metalama.Framework.Tests.TemplateTests\Runner\TestTemplateCompiler.cs" Link="TestFramework\TemplateTests\TestTemplateCompiler.cs" />
+    </ItemGroup>
+
+    <ItemGroup>
         <PackageReference Include="Microsoft.NET.Test.Sdk" />
         <PackageReference Include="xunit" />
         <PackageReference Include="xunit.runner.visualstudio" />
