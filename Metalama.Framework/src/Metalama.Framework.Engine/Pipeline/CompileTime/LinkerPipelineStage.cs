@@ -76,12 +76,15 @@ namespace Metalama.Framework.Engine.Pipeline.CompileTime
                 finalCompilation,
                 this.HighLevelStageIndex,
                 extensionDiagnostics,
-                sourceReferenceIndex );
+                sourceReferenceIndex,
+                input.AspectLayers );
 
             foreach ( var extension in extensions )
             {
                 await extension.ExecuteTransformingContributorsAsync( extensionTransformationContext, cancellationToken );
             }
+
+            var extensionLinkerInput = extensionTransformationContext.CompleteTransformationFactory();
 
             // Run the linker.
             var linker = new AspectLinker(
@@ -91,7 +94,8 @@ namespace Metalama.Framework.Engine.Pipeline.CompileTime
                     pipelineStepsResult.LastCompilation,
                     pipelineStepsResult.Transformations,
                     input.AspectLayers,
-                    new CallSiteAdviceInfo( input.ContributorSources.ReferencesContainInitializableTypes ) ) );
+                    new CallSiteAdviceInfo( input.ContributorSources.ReferencesContainInitializableTypes ),
+                    extensionLinkerInput ) );
 
             var linkerResult = await linker.ExecuteAsync( cancellationToken );
 

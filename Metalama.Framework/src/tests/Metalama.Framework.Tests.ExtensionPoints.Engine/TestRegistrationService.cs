@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -47,6 +47,30 @@ internal sealed class TestRegistrationService : ITestRegistrationService
             : null;
 
         context.Owner.AddContributor( new TestReferenceReport( methodName, roots ) );
+    }
+
+    public void RedirectCalls<T>( IAdviser<T> adviser, string methodName, IMethod replacement, TestRedirectionOptions options )
+        where T : class, IDeclaration
+    {
+        var context = adviser.GetExtensionContext();
+        context.ThrowIfDisposed();
+
+        var roots = adviser.Target.Sources.Select( s => s.SyntaxNodeOrToken().AsNode() ).OfType<SyntaxNode>().ToImmutableArray();
+
+        context.Owner.AddContributor(
+            new TestRedirection( methodName, context.CaptureOrigin(), options, replacement.ToRef(), null, adviser.Target.ToRef(), null, roots ) );
+    }
+
+    public void RedirectCalls<T>( IQuery<T> query, string methodName, string replacementTypeName, string replacementMethodName, TestRedirectionOptions options )
+        where T : class, IDeclaration
+    {
+        var queryImpl = (IQueryImpl<T>) query;
+        queryImpl.OnChildAdded();
+
+        var origin = ExtensionContributionOrigin.Capture( queryImpl.Owner );
+
+        queryImpl.Owner.AddContributor(
+            new TestRedirection( methodName, origin, options, null, (replacementTypeName, replacementMethodName), null, queryImpl, null ) );
     }
 
     public void Register<T>( IQuery<T> query, string tag )

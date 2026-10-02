@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -46,6 +46,36 @@ public static class TestExtensionPointsExtensions
     public static void TestReportReferences<T>( this IAdviser<T> adviser, string methodName, bool restrictToTarget = false )
         where T : class, IDeclaration
         => GetService( adviser.Target.Compilation.Project ).ReportReferences( adviser, methodName, restrictToTarget );
+
+    /// <summary>
+    /// Redirects the source calls to the methods of a given name, inside the target of the adviser, to another method. With
+    /// <see cref="TestRedirectionOptions.MethodReferences"/>, it redirects the method groups instead of the calls.
+    /// </summary>
+    /// <param name="adviser">The adviser, whose target is the scope of the redirection.</param>
+    /// <param name="methodName">The name of the source methods.</param>
+    /// <param name="replacement">The method that replaces the source methods.</param>
+    /// <param name="options">The options of the redirection, or <c>null</c> for the default options.</param>
+    public static void TestRedirectCalls<T>( this IAdviser<T> adviser, string methodName, IMethod replacement, TestRedirectionOptions? options = null )
+        where T : class, IDeclaration
+        => GetService( adviser.Target.Compilation.Project ).RedirectCalls( adviser, methodName, replacement, options ?? new TestRedirectionOptions() );
+
+    /// <summary>
+    /// Redirects the source calls to the methods of a given name, inside the declarations selected by a query, to another method. This verb is
+    /// used by fabrics.
+    /// </summary>
+    /// <param name="query">The query, whose declarations are the scope of the redirection.</param>
+    /// <param name="methodName">The name of the source methods.</param>
+    /// <param name="replacementTypeName">The full name of the type that declares the replacement method.</param>
+    /// <param name="replacementMethodName">The name of the replacement method, which must not be overloaded.</param>
+    /// <param name="options">The options of the redirection, or <c>null</c> for the default options.</param>
+    public static void TestRedirectCalls<T>(
+        this IQuery<T> query,
+        string methodName,
+        string replacementTypeName,
+        string replacementMethodName,
+        TestRedirectionOptions? options = null )
+        where T : class, IDeclaration
+        => GetService( query.Project ).RedirectCalls( query, methodName, replacementTypeName, replacementMethodName, options ?? new TestRedirectionOptions() );
 
     private static ITestRegistrationService GetService( IProject project )
         => project.ServiceProvider.GetService<ITestRegistrationService>()

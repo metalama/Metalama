@@ -1,0 +1,569 @@
+// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+// SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
+// Refer to LICENSE.md in the repository root for complete details.
+
+using JetBrains.Annotations;
+using Metalama.Framework.Aspects;
+using Metalama.Framework.Code;
+using Metalama.Framework.Engine.AspectOrdering;
+using Metalama.Framework.Engine.Aspects;
+using Metalama.Framework.Engine.CodeModel;
+using Metalama.Framework.Engine.Linking;
+using Metalama.Framework.Engine.SyntaxGeneration;
+using Metalama.Framework.Engine.Utilities.Roslyn;
+using Metalama.Framework.Fabrics;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Operations;
+using System;
+using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Linq;
+using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
+using MethodKind = Microsoft.CodeAnalysis.MethodKind;
+
+namespace Metalama.Framework.Engine.Extensibility.Transformations;
+
+/// <summary>
+/// Creates linker transformations on behalf of a <see cref="PipelineExtension"/>: it redirects source call sites and method references to other
+/// methods.
+/// </summary>
+/// <remarks>
+/// <para>
+/// The engine creates one instance per high-level stage and passes it to the transforming hook of every extension through
+/// <see cref="ExtensionTransformationContext.TransformationFactory"/>. The instance validates every request and throws an
+/// <see cref="ArgumentException"/> for a request that it cannot honor.
+/// </para>
+/// <para>
+/// The factory does not change the code model. The rewritten call sites are not visible to aspects and do not appear in design-time generated code.
+/// </para>
+/// </remarks>
+[PublicAPI]
+public sealed class ExtensionTransformationFactory
+{
+    private readonly object _sync = new();
+    private readonly CompilationModel _compilation;
+    private readonly IReadOnlyList<OrderedAspectLayer> _aspectLayers;
+    private readonly SyntaxGenerationOptions _syntaxGenerationOptions;
+    private readonly Dictionary<SyntaxTree, Dictionary<SyntaxNode, CallSiteRedirection>> _redirections = new();
+    private int _nextRedirectionId;
+    private bool _isCompleted;
+
+    internal ExtensionTransformationFactory(
+        CompilationModel compilation,
+        IReadOnlyList<OrderedAspectLayer> aspectLayers,
+        SyntaxGenerationOptions syntaxGenerationOptions )
+    {
+        this._compilation = compilation;
+        this._aspectLayers = aspectLayers;
+        this._syntaxGenerationOptions = syntaxGenerationOptions;
+    }
+
+    /// <summary>
+    /// Gets the compilation that results from all aspects of the stage. In the first stage, its syntax trees are those of the source compilation.
+    /// </summary>
+    public ICompilation Compilation => this._compilation;
+
+    /// <summary>
+    /// Requests that a source invocation be replaced by an invocation of another method.
+    /// </summary>
+    /// <param name="origin">The aspect or fabric that requested the redirection.</param>
+    /// <param name="request">The request.</param>
+    /// <exception cref="ArgumentException">The request is not valid.</exception>
+    /// <exception cref="InvalidOperationException">A redirection was already requested for the same call site, or the factory was completed.</exception>
+    public void RedirectInvocation( ExtensionContributionOrigin origin, InvocationRedirectionRequest request )
+    {
+        var callSite = request.CallSite;
+        var annotation = this.GetGeneratedCodeAnnotation( origin );
+        var semanticModel = this.GetSemanticModel( callSite );
+        var context = this._compilation.CompilationContext.GetSyntaxGenerationContext( this._syntaxGenerationOptions, callSite );
+
+        if ( semanticModel.GetOperation( callSite ) is not IInvocationOperation { TargetMethod: { } sourceMethod } operation
+             || sourceMethod.MethodKind is not (MethodKind.Ordinary or MethodKind.ReducedExtension) )
+        {
+            throw new ArgumentException( $"The call site '{callSite}' is not an invocation of an ordinary or extension method.", nameof(request) );
+        }
+
+        var targetMethod = request.Target.Method;
+
+        if ( !targetMethod.IsStatic )
+        {
+            throw new ArgumentException( $"The target method '{targetMethod}' must be static.", nameof(request) );
+        }
+
+        // The receiver of a call to a classic extension method in reduced form is its first argument, whose syntax is not an ArgumentSyntax.
+        var isReducedExtensionCall = sourceMethod.IsExtensionMethod && operation.Arguments is [{ Syntax: not ArgumentSyntax }, ..];
+        var hasReceiverValue = isReducedExtensionCall || operation.Instance != null;
+        var isConditionalAccess = callSite.Expression.Kind() == SyntaxKind.MemberBindingExpression;
+        var isBaseCall = callSite.Expression.Kind() == SyntaxKind.SimpleMemberAccessExpression
+                         && ((MemberAccessExpressionSyntax) callSite.Expression).Expression.Kind() == SyntaxKind.BaseExpression;
+        var argumentPlan = default(ImmutableArray<CallSiteArgumentPlanItem>?);
+
+        switch ( request.ReceiverMode )
+        {
+            case CallSiteReceiverMode.Drop:
+                if ( hasReceiverValue && request.Arguments.IsDefault )
+                {
+                    throw new ArgumentException(
+                        $"The receiver of '{callSite}' must be passed, because the method is not static. Use another receiver mode or pass {nameof(RedirectedArgument)}.{nameof(RedirectedArgument.SourceReceiver)}.",
+                        nameof(request) );
+                }
+
+                if ( isConditionalAccess )
+                {
+                    throw new ArgumentException( $"The receiver mode {request.ReceiverMode} cannot be used in the conditional access '{callSite}'.", nameof(request) );
+                }
+
+                break;
+
+            case CallSiteReceiverMode.FirstArgument or CallSiteReceiverMode.FirstArgumentByRef or CallSiteReceiverMode.FirstArgumentByIn:
+                if ( !hasReceiverValue )
+                {
+                    throw new ArgumentException( $"The call site '{callSite}' has no receiver to pass.", nameof(request) );
+                }
+
+                if ( isConditionalAccess )
+                {
+                    throw new ArgumentException(
+                        $"The receiver mode {request.ReceiverMode} cannot be used in the conditional access '{callSite}', because the receiver exists only inside the conditional access. Use {nameof(CallSiteReceiverMode.ExtensionReceiver)}.",
+                        nameof(request) );
+                }
+
+                if ( isBaseCall && (sourceMethod.IsVirtual || sourceMethod.IsOverride || sourceMethod.IsAbstract) )
+                {
+                    throw new ArgumentException( $"The base call '{callSite}' to a virtual method cannot pass its receiver.", nameof(request) );
+                }
+
+                break;
+
+            case CallSiteReceiverMode.ExtensionReceiver:
+                if ( targetMethod.Parameters is not [{ IsThis: true }, ..] )
+                {
+                    throw new ArgumentException( $"The receiver mode {request.ReceiverMode} requires an extension method, but '{targetMethod}' is not one.", nameof(request) );
+                }
+
+                if ( !hasReceiverValue )
+                {
+                    throw new ArgumentException( $"The call site '{callSite}' has no receiver to pass.", nameof(request) );
+                }
+
+                if ( isBaseCall )
+                {
+                    throw new ArgumentException( $"The receiver mode {request.ReceiverMode} cannot be used with the base call '{callSite}'.", nameof(request) );
+                }
+
+                break;
+
+            default:
+                throw new ArgumentOutOfRangeException( nameof(request), $"Unexpected receiver mode: {request.ReceiverMode}." );
+        }
+
+        if ( request.ResultCast != null && IsInConditionalAccess( callSite ) )
+        {
+            throw new ArgumentException( $"A result cast cannot be written inside the conditional access of '{callSite}'.", nameof(request) );
+        }
+
+        if ( !request.Arguments.IsDefault )
+        {
+            argumentPlan = CreateArgumentPlan( request, operation, isReducedExtensionCall, hasReceiverValue );
+        }
+
+        var callee = request.ReceiverMode == CallSiteReceiverMode.ExtensionReceiver
+            ? CreateMethodName( targetMethod, request.TypeArguments, context )
+            : CreateStaticCallee( request.Target, request.TypeArguments, context );
+
+        var extraArguments = request.ExtraArguments.IsDefaultOrEmpty
+            ? ImmutableArray<ArgumentSyntax>.Empty
+            : request.ExtraArguments.SelectAsImmutableArray(
+                a => Argument( NameColon( SyntaxFactoryEx.SafeIdentifierName( a.ParameterName ) ), default, a.Value ).WithAdditionalAnnotations( annotation ) );
+
+        var resultCast = request.ResultCast == null ? null : context.SyntaxGenerator.TypeSyntax( request.ResultCast );
+
+        this.AddRedirection(
+            callSite,
+            id => new CallSiteRedirection(
+                id,
+                callSite,
+                CallSiteRedirectionKind.Invocation,
+                request.ReceiverMode,
+                callee.WithAdditionalAnnotations( annotation ),
+                argumentPlan,
+                extraArguments,
+                resultCast,
+                request.Description ?? $"the call '{callSite}' redirected to '{targetMethod}' by {origin.DiagnosticSourceDescription}" ) );
+    }
+
+    /// <summary>
+    /// Requests that a source method group, converted to a delegate or to a function pointer, be replaced by a method group of another method.
+    /// </summary>
+    /// <param name="origin">The aspect or fabric that requested the redirection.</param>
+    /// <param name="request">The request.</param>
+    /// <exception cref="ArgumentException">The request is not valid.</exception>
+    /// <exception cref="InvalidOperationException">A redirection was already requested for the same method group, or the factory was completed.</exception>
+    public void RedirectMethodReference( ExtensionContributionOrigin origin, MethodReferenceRedirectionRequest request )
+    {
+        var annotation = this.GetGeneratedCodeAnnotation( origin );
+        var node = request.MethodReference;
+
+        // A simple name that is the name of a member access designates the member access.
+        if ( node.Parent.IsKind( SyntaxKind.SimpleMemberAccessExpression ) && node.Parent is MemberAccessExpressionSyntax parentMemberAccess
+                                                                       && parentMemberAccess.Name == node )
+        {
+            node = parentMemberAccess;
+        }
+
+        var semanticModel = this.GetSemanticModel( node );
+
+        if ( semanticModel.GetOperation( node ) is not IMethodReferenceOperation { Method: { } sourceMethod } operation
+             || operation.Parent is not (IDelegateCreationOperation or IAddressOfOperation) )
+        {
+            throw new ArgumentException( $"The node '{node}' is not a method group converted to a delegate or to a function pointer.", nameof(request) );
+        }
+
+        if ( request.ReceiverMode != CallSiteReceiverMode.Drop )
+        {
+            throw new ArgumentException( $"The receiver mode {request.ReceiverMode} is not supported for a method reference.", nameof(request) );
+        }
+
+        if ( !sourceMethod.IsStatic || sourceMethod.MethodKind == MethodKind.ReducedExtension || operation.Instance != null )
+        {
+            throw new ArgumentException( $"The method group '{node}' has a receiver, so it cannot be redirected with the receiver mode {request.ReceiverMode}.", nameof(request) );
+        }
+
+        if ( !request.Target.Method.IsStatic )
+        {
+            throw new ArgumentException( $"The target method '{request.Target.Method}' must be static.", nameof(request) );
+        }
+
+        var context = this._compilation.CompilationContext.GetSyntaxGenerationContext( this._syntaxGenerationOptions, node );
+        var callee = CreateStaticCallee( request.Target, request.TypeArguments, context ).WithAdditionalAnnotations( annotation );
+
+        this.AddRedirection(
+            node,
+            id => new CallSiteRedirection(
+                id,
+                node,
+                CallSiteRedirectionKind.MethodReference,
+                request.ReceiverMode,
+                callee,
+                null,
+                ImmutableArray<ArgumentSyntax>.Empty,
+                null,
+                request.Description ?? $"the method reference '{node}' redirected to '{request.Target.Method}' by {origin.DiagnosticSourceDescription}" ) );
+    }
+
+    /// <summary>
+    /// Determines whether a redirection was already requested for a call site or a method group.
+    /// </summary>
+    public bool IsRedirected( ExpressionSyntax callSite )
+    {
+        lock ( this._sync )
+        {
+            return this._redirections.TryGetValue( callSite.SyntaxTree, out var redirections ) && redirections.ContainsKey( callSite );
+        }
+    }
+
+    /// <summary>
+    /// Freezes the factory and returns the linker input. Called by the pipeline stage after all extensions.
+    /// </summary>
+    internal ExtensionLinkerInput Complete()
+    {
+        lock ( this._sync )
+        {
+            this._isCompleted = true;
+
+            if ( this._redirections.Count == 0 )
+            {
+                return ExtensionLinkerInput.Empty;
+            }
+
+            return new ExtensionLinkerInput(
+                this._redirections.ToDictionary(
+                    x => x.Key,
+                    x => (IReadOnlyDictionary<SyntaxNode, CallSiteRedirection>) x.Value ) );
+        }
+    }
+
+    private void AddRedirection( SyntaxNode node, Func<int, CallSiteRedirection> createRedirection )
+    {
+        lock ( this._sync )
+        {
+            this.ThrowIfCompleted();
+
+            if ( !this._redirections.TryGetValue( node.SyntaxTree, out var redirections ) )
+            {
+                redirections = new Dictionary<SyntaxNode, CallSiteRedirection>( SyntaxNodeReferenceComparer.Instance );
+                this._redirections.Add( node.SyntaxTree, redirections );
+            }
+
+            if ( redirections.ContainsKey( node ) )
+            {
+                throw new InvalidOperationException( $"A redirection was already requested for '{node}'." );
+            }
+
+            redirections.Add( node, createRedirection( this._nextRedirectionId++ ) );
+        }
+    }
+
+    private void ThrowIfCompleted()
+    {
+        if ( this._isCompleted )
+        {
+            throw new InvalidOperationException( "The factory of transformations can no longer be used, because the transforming hook has completed." );
+        }
+    }
+
+    private SemanticModel GetSemanticModel( SyntaxNode node )
+    {
+        lock ( this._sync )
+        {
+            this.ThrowIfCompleted();
+        }
+
+        var syntaxTree = node.SyntaxTree;
+
+        if ( !this._compilation.PartialCompilation.TryGetSyntaxTree( syntaxTree.GetDocumentKey(), out var compilationTree )
+             || !ReferenceEquals( compilationTree, syntaxTree ) )
+        {
+            throw new ArgumentException( $"The node '{node}' does not belong to a syntax tree of the compilation of the stage." );
+        }
+
+        return this._compilation.CompilationContext.SemanticModelProvider.GetSemanticModel( syntaxTree );
+    }
+
+    /// <summary>
+    /// Validates the aspect layer of the origin and returns the annotation that marks the syntax that the origin generates.
+    /// </summary>
+    private SyntaxAnnotation GetGeneratedCodeAnnotation( ExtensionContributionOrigin origin )
+    {
+        _ = origin ?? throw new ArgumentNullException( nameof(origin) );
+
+        // A project or namespace fabric is processed by the top-level fabric aspect class, whose layer is identified by the type of Fabric.
+        var layer = this._aspectLayers.FirstOrDefault( l => l.AspectLayerId == origin.AspectLayerId )
+                    ?? (origin.Predecessor.Kind == AspectPredecessorKind.Fabric
+                        ? this._aspectLayers.FirstOrDefault( l => l.AspectName == typeof(Fabric).FullName )
+                        : null)
+                    ?? throw new ArgumentException(
+                        $"The aspect layer '{origin.AspectLayerId}' of the origin is not an ordered layer of the pipeline.",
+                        nameof(origin) );
+
+        return origin.AspectInstance?.AspectClass is IAspectClassImpl aspectClass
+            ? aspectClass.GeneratedCodeAnnotation
+            : layer.AspectClass.GeneratedCodeAnnotation;
+    }
+
+    private static ImmutableArray<CallSiteArgumentPlanItem> CreateArgumentPlan(
+        InvocationRedirectionRequest request,
+        IInvocationOperation operation,
+        bool isReducedExtensionCall,
+        bool hasReceiverValue )
+    {
+        var callSite = request.CallSite;
+        var targetParameters = request.Target.Method.Parameters;
+        var parameterOffset = request.ReceiverMode == CallSiteReceiverMode.Drop ? 0 : 1;
+
+        if ( request.Arguments.Length > targetParameters.Count - parameterOffset )
+        {
+            throw new ArgumentException( $"The argument list has more elements than the parameters of '{request.Target.Method}'.", nameof(request) );
+        }
+
+        // Map each parameter of the source method to the index of its argument in the source argument list.
+        var sourceArgumentIndices = new Dictionary<int, int>();
+        var sourceArgumentSyntaxes = callSite.ArgumentList.Arguments;
+
+        foreach ( var argument in operation.Arguments )
+        {
+            if ( argument is { ArgumentKind: ArgumentKind.Explicit, Parameter: { } parameter, Syntax: ArgumentSyntax argumentSyntax } )
+            {
+                sourceArgumentIndices[parameter.Ordinal] = sourceArgumentSyntaxes.IndexOf( argumentSyntax );
+            }
+        }
+
+        var usedSourceArguments = new HashSet<int>();
+        var receiverUsed = false;
+        var names = new HashSet<string>( StringComparer.Ordinal );
+        var items = new List<(int Order, CallSiteArgumentPlanItem Item)>();
+
+        for ( var i = 0; i < request.Arguments.Length; i++ )
+        {
+            var argument = request.Arguments[i];
+            var name = argument.Name ?? targetParameters[i + parameterOffset].Name;
+
+            if ( !names.Add( name ) )
+            {
+                throw new ArgumentException( $"The argument list names the parameter '{name}' twice.", nameof(request) );
+            }
+
+            switch ( argument.Kind )
+            {
+                case RedirectedArgumentKind.SourceReceiver:
+                    if ( request.ReceiverMode != CallSiteReceiverMode.Drop || receiverUsed )
+                    {
+                        throw new ArgumentException( "The receiver of the source call site is passed more than once.", nameof(request) );
+                    }
+
+                    if ( isReducedExtensionCall || !hasReceiverValue )
+                    {
+                        throw new ArgumentException(
+                            $"The call site '{callSite}' has no receiver, or it calls an extension method in reduced form, whose receiver is its first argument and is passed with {nameof(RedirectedArgument)}.{nameof(RedirectedArgument.SourceArgument)}( 0 ).",
+                            nameof(request) );
+                    }
+
+                    receiverUsed = true;
+
+                    // The receiver is evaluated before the arguments.
+                    items.Add( (-1, new CallSiteArgumentPlanItem( RedirectedArgumentKind.SourceReceiver, -1, null, name )) );
+
+                    break;
+
+                case RedirectedArgumentKind.SourceArgument:
+                    if ( isReducedExtensionCall && argument.ParameterOrdinal == 0 )
+                    {
+                        if ( request.ReceiverMode != CallSiteReceiverMode.Drop || receiverUsed )
+                        {
+                            throw new ArgumentException( "The receiver of the source call site is passed more than once.", nameof(request) );
+                        }
+
+                        receiverUsed = true;
+                        items.Add( (-1, new CallSiteArgumentPlanItem( RedirectedArgumentKind.SourceReceiver, -1, null, name )) );
+
+                        break;
+                    }
+
+                    if ( !sourceArgumentIndices.TryGetValue( argument.ParameterOrdinal, out var sourceIndex ) || sourceIndex < 0 )
+                    {
+                        throw new ArgumentException(
+                            $"The parameter {argument.ParameterOrdinal} of the source method has no argument written at the call site '{callSite}'.",
+                            nameof(request) );
+                    }
+
+                    if ( !usedSourceArguments.Add( sourceIndex ) )
+                    {
+                        throw new ArgumentException( $"The argument {sourceIndex} of the call site '{callSite}' is passed more than once.", nameof(request) );
+                    }
+
+                    var sourceArgument = sourceArgumentSyntaxes[sourceIndex];
+                    var targetParameter = targetParameters[i + parameterOffset];
+
+                    if ( !IsCompatibleRefKind( sourceArgument, targetParameter ) )
+                    {
+                        throw new ArgumentException(
+                            $"The argument '{sourceArgument}' cannot be passed to the parameter '{targetParameter.Name}', whose passing mode is different.",
+                            nameof(request) );
+                    }
+
+                    items.Add( (sourceIndex, new CallSiteArgumentPlanItem( RedirectedArgumentKind.SourceArgument, sourceIndex, null, name )) );
+
+                    break;
+
+                default:
+                    // Expressions are evaluated after all the values of the source call site.
+                    items.Add( (int.MaxValue, new CallSiteArgumentPlanItem( RedirectedArgumentKind.Value, -1, argument.Expression, name )) );
+
+                    break;
+            }
+        }
+
+        if ( request.ReceiverMode == CallSiteReceiverMode.Drop && hasReceiverValue && !receiverUsed )
+        {
+            throw new ArgumentException( $"The receiver of '{callSite}' is not passed.", nameof(request) );
+        }
+
+        // A value of the source call site that is not passed is not evaluated any more, so it must have no side effect.
+        for ( var i = 0; i < sourceArgumentSyntaxes.Count; i++ )
+        {
+            if ( usedSourceArguments.Contains( i ) )
+            {
+                continue;
+            }
+
+            var argument = sourceArgumentSyntaxes[i];
+
+            if ( !argument.RefKindKeyword.IsKind( SyntaxKind.None ) || !IsWithoutSideEffect( argument.Expression ) )
+            {
+                throw new ArgumentException(
+                    $"The argument '{argument}' of the call site '{callSite}' is not passed, but it can have a side effect or it is passed by reference.",
+                    nameof(request) );
+            }
+        }
+
+        // The order of the list is the order of evaluation of the source call site. The linker writes named arguments, so the order does not need
+        // to match the order of the parameters.
+        return items.OrderBy( x => x.Order ).Select( x => x.Item ).ToImmutableArray();
+    }
+
+    private static bool IsCompatibleRefKind( ArgumentSyntax argument, IParameter parameter )
+        => (argument.RefKindKeyword.Kind(), parameter.RefKind) switch
+        {
+            (SyntaxKind.None, Code.RefKind.None or Code.RefKind.In or Code.RefKind.RefReadOnly) => true,
+            (SyntaxKind.InKeyword, Code.RefKind.In or Code.RefKind.RefReadOnly) => true,
+            (SyntaxKind.RefKeyword, Code.RefKind.Ref or Code.RefKind.RefReadOnly or Code.RefKind.In) => true,
+            (SyntaxKind.OutKeyword, Code.RefKind.Out) => true,
+            _ => false
+        };
+
+    private static bool IsWithoutSideEffect( ExpressionSyntax expression )
+        => expression.Kind() switch
+        {
+            SyntaxKind.NumericLiteralExpression or SyntaxKind.StringLiteralExpression or SyntaxKind.CharacterLiteralExpression
+                or SyntaxKind.TrueLiteralExpression or SyntaxKind.FalseLiteralExpression or SyntaxKind.NullLiteralExpression
+                or SyntaxKind.DefaultLiteralExpression or SyntaxKind.IdentifierName or SyntaxKind.ThisExpression or SyntaxKind.DefaultExpression
+                or SyntaxKind.TypeOfExpression => true,
+            SyntaxKind.SimpleMemberAccessExpression => IsWithoutSideEffect( ((MemberAccessExpressionSyntax) expression).Expression ),
+            SyntaxKind.ParenthesizedExpression => IsWithoutSideEffect( ((ParenthesizedExpressionSyntax) expression).Expression ),
+            _ => false
+        };
+
+    private static bool IsInConditionalAccess( InvocationExpressionSyntax callSite )
+    {
+        SyntaxNode node = callSite;
+
+        while ( node.Parent != null )
+        {
+            if ( node.Parent.IsKind( SyntaxKind.ConditionalAccessExpression ) && ((ConditionalAccessExpressionSyntax) node.Parent).WhenNotNull == node )
+            {
+                return true;
+            }
+
+            if ( node.Parent is not (MemberAccessExpressionSyntax or InvocationExpressionSyntax or ElementAccessExpressionSyntax or ConditionalAccessExpressionSyntax) )
+            {
+                return false;
+            }
+
+            node = node.Parent;
+        }
+
+        return false;
+    }
+
+    private static SimpleNameSyntax CreateMethodName( IMethod method, ImmutableArray<IType> typeArguments, SyntaxGenerationContext context )
+        => typeArguments.IsDefaultOrEmpty
+            ? SyntaxFactoryEx.SafeIdentifierName( method.Name )
+            : GenericName( SyntaxFactoryEx.SafeIdentifier( method.Name ), TypeArgumentList( SeparatedList( typeArguments.Select( t => context.SyntaxGenerator.TypeSyntax( t ) ) ) ) );
+
+    private static ExpressionSyntax CreateStaticCallee( CallSiteRedirectionTarget target, ImmutableArray<IType> typeArguments, SyntaxGenerationContext context )
+    {
+        var containingType = target.ContainingTypeAtCallSite ?? target.Method.DeclaringType;
+
+        return MemberAccessExpression(
+                SyntaxKind.SimpleMemberAccessExpression,
+                context.SyntaxGenerator.TypeExpression( containingType ),
+                CreateMethodName( target.Method, typeArguments, context ) )
+            .WithSimplifierAnnotationIfNecessary( context );
+    }
+}
+
+/// <summary>
+/// Compares syntax nodes by reference, because a redirection is keyed by the identity of its source node.
+/// </summary>
+internal sealed class SyntaxNodeReferenceComparer : IEqualityComparer<SyntaxNode>
+{
+    public static SyntaxNodeReferenceComparer Instance { get; } = new();
+
+    private SyntaxNodeReferenceComparer() { }
+
+    public bool Equals( SyntaxNode? x, SyntaxNode? y ) => ReferenceEquals( x, y );
+
+    public int GetHashCode( SyntaxNode obj ) => System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode( obj );
+}

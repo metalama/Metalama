@@ -1,17 +1,22 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Code;
 using Metalama.Framework.Diagnostics;
 using Metalama.Framework.Engine.Diagnostics;
+using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Extensibility;
+using Metalama.Framework.Engine.Extensibility.Transformations;
 using Metalama.Framework.Engine.ReferenceGraph;
 using Metalama.Framework.Tests.ExtensionPoints.Engine;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -40,10 +45,22 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
     internal static DiagnosticDefinition<(string MethodName, string ReferencingSymbol, string ReferenceKinds, bool IsRestricted)> ReferenceObserved { get; } =
         new( "TEST0002", Severity.Warning, "Reference to '{0}' from '{1}' ({2}), index restricted to declaration roots: {3}." );
 
+    /// <summary>
+    /// The warning that reports a redirection that the factory of transformations refused, with the message of the exception.
+    /// </summary>
+    internal static DiagnosticDefinition<(string Site, string ExceptionType, string Message)> RedirectionRefused { get; } =
+        new( "TEST0003", Severity.Warning, "The redirection of '{0}' was refused with {1}: {2}" );
+
+    /// <summary>
+    /// The error that reports a declaration selected by a query that is not contained in the declaration of the owner of the query.
+    /// </summary>
+    internal static DiagnosticDefinition<(FormattableString Predecessor, IDeclaration Child, IDeclaration Parent)> ScopeNotContained { get; } =
+        new( "TEST0004", Severity.Error, "{0} cannot redirect the calls in '{1}', because '{1}' is not contained in '{2}'." );
+
     public override bool Initialize( PipelineExtensionInitializationContext context )
     {
         context.ServiceBuilder.Add( _ => new TestRegistrationService() );
-        context.AddDiagnosticDefinitions( [RegistrationObserved, ReferenceObserved] );
+        context.AddDiagnosticDefinitions( [RegistrationObserved, ReferenceObserved, RedirectionRefused, ScopeNotContained] );
 
         return true;
     }
@@ -54,19 +71,22 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
     /// </summary>
     public override SourceIndexRequirements GetSourceIndexRequirements( SourceIndexRequirementsContext context )
     {
-        var reports = context.Contributors.OfKind( TestContributorKinds.ReferenceReport ).ToList();
+        var consumers = context.Contributors.OfKind( TestContributorKinds.ReferenceReport )
+            .Select( r => (r.MethodName, r.DeclarationRoots) )
+            .Concat( context.Contributors.OfKind( TestContributorKinds.Redirection ).Select( r => (r.MethodName, r.DeclarationRoots) ) )
+            .ToList();
 
-        if ( reports.Count == 0 || context.HighLevelStageIndex != 0 )
+        if ( consumers.Count == 0 || context.HighLevelStageIndex != 0 )
         {
             return SourceIndexRequirements.None;
         }
 
-        var requirements = reports
+        var requirements = consumers
             .Select( r => new ReferenceIndexerRequirements( ReferenceKinds.Invocation | ReferenceKinds.Default, false, DeclarationKind.Method, r.MethodName ) )
             .ToImmutableArray();
 
-        ImmutableArray<SyntaxNode>? roots = reports.All( r => r.DeclarationRoots != null )
-            ? reports.SelectMany( r => r.DeclarationRoots!.Value ).ToImmutableArray()
+        ImmutableArray<SyntaxNode>? roots = consumers.All( r => r.DeclarationRoots != null )
+            ? consumers.SelectMany( r => r.DeclarationRoots!.Value ).ToImmutableArray()
             : null;
 
         return new SourceIndexRequirements( requirements ) { DeclarationRoots = roots };
@@ -76,6 +96,227 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
     {
         ReportRegistrations( context );
         await ReportReferencesAsync( context, cancellationToken );
+        await RedirectCallsAsync( context, cancellationToken );
+    }
+
+    /// <summary>
+    /// Reads the references of the requested methods from the shared index, keeps those that are inside the scope of each request, and passes
+    /// them to the factory of transformations. A refused request is reported as a warning, so that the expected output of a test shows it.
+    /// </summary>
+    private static async Task RedirectCallsAsync( ExtensionTransformationContext context, CancellationToken cancellationToken )
+    {
+        var redirections = context.Contributors.OfKind( TestContributorKinds.Redirection ).ToList();
+
+        if ( redirections.Count == 0 || !context.IsSourceStage )
+        {
+            return;
+        }
+
+        var compilation = context.StageFinalCompilation;
+        var index = await context.SourceReferenceIndex.GetIndexAsync( cancellationToken );
+        var factory = context.TransformationFactory;
+
+        foreach ( var redirection in redirections )
+        {
+            var roots = await GetScopeRootsAsync( redirection, context, cancellationToken );
+            var replacement = GetReplacement( redirection, compilation );
+
+            var sites = index.ReferencedSymbols
+                .Where( s => s.ReferencedSymbol.Kind == SymbolKind.Method && s.ReferencedSymbol.Name == redirection.MethodName )
+                .SelectMany( s => s.References.SelectMany( r => r.Nodes ) )
+                .Select( n => n.Syntax.IsNode ? n.Syntax.AsNode()! : n.Syntax.Parent! )
+                .Where( n => roots.Any( r => r.SyntaxTree == n.SyntaxTree && r.FullSpan.Contains( n.Span ) ) )
+                .Distinct()
+                .OrderBy( n => n.SyntaxTree.FilePath, StringComparer.Ordinal )
+                .ThenBy( n => n.SpanStart )
+                .ToList();
+
+            foreach ( var site in sites )
+            {
+                var invocation = GetInvocation( site );
+
+                try
+                {
+                    if ( invocation != null && !redirection.Options.MethodReferences )
+                    {
+                        factory.RedirectInvocation( redirection.Origin, CreateInvocationRequest( invocation, replacement, redirection.Options, compilation ) );
+                    }
+                    else if ( invocation == null && redirection.Options.MethodReferences )
+                    {
+                        factory.RedirectMethodReference(
+                            redirection.Origin,
+                            new MethodReferenceRedirectionRequest(
+                                (ExpressionSyntax) site,
+                                CallSiteRedirectionTarget.Existing( replacement ),
+                                ParseReceiverMode( redirection.Options ) )
+                            {
+                                TypeArguments = redirection.Options.ExplicitTypeArguments ? GetTypeArguments( site, compilation ) : default
+                            } );
+                    }
+                }
+                catch ( Exception e ) when ( e is ArgumentException or InvalidOperationException )
+                {
+                    context.Diagnostics.Report(
+                        RedirectionRefused.CreateRoslynDiagnostic( site.GetLocation(), ((invocation ?? site).ToString(), e.GetType().Name, GetMessage( e )) ) );
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Returns the message of an exception without the name of the parameter that <see cref="ArgumentException"/> appends, because its format
+    /// differs between .NET Framework and .NET.
+    /// </summary>
+    private static string GetMessage( Exception exception )
+    {
+        var message = exception.Message;
+
+        if ( exception is ArgumentException { ParamName: { } parameterName } )
+        {
+            foreach ( var suffix in new[] { $" (Parameter '{parameterName}')", $"{Environment.NewLine}Parameter name: {parameterName}" } )
+            {
+                if ( message.EndsWith( suffix, StringComparison.Ordinal ) )
+                {
+                    return message.Substring( 0, message.Length - suffix.Length );
+                }
+            }
+        }
+
+        return message;
+    }
+
+    private static InvocationRedirectionRequest CreateInvocationRequest(
+        InvocationExpressionSyntax invocation,
+        IMethod replacement,
+        TestRedirectionOptions options,
+        CompilationModel compilation )
+    {
+        var semanticModel = compilation.RoslynCompilation.GetSemanticModel( invocation.SyntaxTree );
+        var sourceMethod = (IMethodSymbol) semanticModel.GetSymbolInfo( invocation ).Symbol!;
+
+        return new InvocationRedirectionRequest( invocation, CallSiteRedirectionTarget.Existing( replacement ), ParseReceiverMode( options ) )
+        {
+            Arguments = options.Arguments == null ? default : ParseItems( options.Arguments ).Select( ParseArgument ).ToImmutableArray(),
+            ExtraArguments = options.ExtraArguments == null ? default : ParseItems( options.ExtraArguments ).Select( ParseExtraArgument ).ToImmutableArray(),
+            ResultCast = options.CastResult ? compilation.Factory.GetIType( sourceMethod.ReturnType ) : null,
+            TypeArguments = options.ExplicitTypeArguments ? GetTypeArguments( invocation.Expression, compilation ) : default
+        };
+    }
+
+    private static ImmutableArray<IType> GetTypeArguments( SyntaxNode node, CompilationModel compilation )
+    {
+        var semanticModel = compilation.RoslynCompilation.GetSemanticModel( node.SyntaxTree );
+        var symbolInfo = semanticModel.GetSymbolInfo( node );
+        var method = (IMethodSymbol) (symbolInfo.Symbol ?? symbolInfo.CandidateSymbols.Single());
+
+        return method.TypeArguments.Select( t => compilation.Factory.GetIType( t ) ).ToImmutableArray();
+    }
+
+    private static CallSiteReceiverMode ParseReceiverMode( TestRedirectionOptions options )
+        => (CallSiteReceiverMode) Enum.Parse( typeof(CallSiteReceiverMode), options.ReceiverMode );
+
+    private static IEnumerable<string> ParseItems( string list ) => list.Split( ';' ).Select( x => x.Trim() ).Where( x => x.Length > 0 );
+
+    /// <summary>
+    /// Parses an item of <see cref="TestRedirectionOptions.Arguments"/>.
+    /// </summary>
+    private static RedirectedArgument ParseArgument( string item )
+    {
+        string? name = null;
+        var equals = item.IndexOf( '=' );
+        var colon = item.IndexOf( ':' );
+
+        if ( equals > 0 && (colon < 0 || equals < colon) )
+        {
+            name = item.Substring( 0, equals ).Trim();
+            item = item.Substring( equals + 1 ).Trim();
+            colon = item.IndexOf( ':' );
+        }
+
+        var kind = colon < 0 ? item : item.Substring( 0, colon );
+        var value = colon < 0 ? "" : item.Substring( colon + 1 );
+
+        var argument = kind switch
+        {
+            "receiver" => RedirectedArgument.SourceReceiver,
+            "argument" => RedirectedArgument.SourceArgument( int.Parse( value, CultureInfo.InvariantCulture ) ),
+            "value" => RedirectedArgument.Value( SyntaxFactory.ParseExpression( value ) ),
+            _ => throw new InvalidOperationException( $"Unknown argument item: '{item}'." )
+        };
+
+        return name == null ? argument : argument.WithName( name );
+    }
+
+    private static CallSiteExtraArgument ParseExtraArgument( string item )
+    {
+        var equals = item.IndexOf( '=' );
+
+        return new CallSiteExtraArgument( item.Substring( 0, equals ).Trim(), SyntaxFactory.ParseExpression( item.Substring( equals + 1 ) ) );
+    }
+
+    /// <summary>
+    /// Returns the invocation whose invoked expression is the given method name, or <c>null</c> when the name is a method group.
+    /// </summary>
+    private static InvocationExpressionSyntax? GetInvocation( SyntaxNode name )
+    {
+        var expression = name;
+
+        if ( name.Parent is MemberAccessExpressionSyntax memberAccess && memberAccess.Name == name )
+        {
+            expression = memberAccess;
+        }
+        else if ( name.Parent is MemberBindingExpressionSyntax memberBinding && memberBinding.Name == name )
+        {
+            expression = memberBinding;
+        }
+
+        return expression.Parent is InvocationExpressionSyntax invocation && invocation.Expression == expression ? invocation : null;
+    }
+
+    private static IMethod GetReplacement( TestRedirection redirection, CompilationModel compilation )
+    {
+        if ( redirection.Replacement != null )
+        {
+            return redirection.Replacement.GetTarget( compilation );
+        }
+
+        var (typeName, methodName) = redirection.ReplacementName!.Value;
+
+        return compilation.AllTypes.Single( t => t.FullName == typeName ).Methods.OfName( methodName ).Single();
+    }
+
+    /// <summary>
+    /// Returns the syntax of the declarations that are the scope of a redirection. For a query, the query is evaluated on the compilation of the
+    /// stage.
+    /// </summary>
+    private static async Task<IReadOnlyList<SyntaxNode>> GetScopeRootsAsync(
+        TestRedirection redirection,
+        ExtensionTransformationContext context,
+        CancellationToken cancellationToken )
+    {
+        if ( redirection.DeclarationRoots != null )
+        {
+            return redirection.DeclarationRoots.Value;
+        }
+
+        var roots = new List<SyntaxNode>();
+
+        await redirection.ScopeQuery!.InvokeAsync(
+            context.StageFinalCompilation,
+            context.Diagnostics,
+            ScopeNotContained,
+            ( declaration, _, _ ) =>
+            {
+                lock ( roots )
+                {
+                    roots.AddRange( declaration.Sources.Select( s => s.SyntaxNodeOrToken().AsNode() ).OfType<SyntaxNode>() );
+                }
+
+                return Task.CompletedTask;
+            },
+            cancellationToken );
+
+        return roots;
     }
 
     private static async Task ReportReferencesAsync( ExtensionTransformationContext context, CancellationToken cancellationToken )

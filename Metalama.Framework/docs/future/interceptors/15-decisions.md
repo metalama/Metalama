@@ -31,6 +31,15 @@ The product owner took the open decisions that milestones M0 and M1 depend on in
 | Engine API | The extensibility API of the engine has no consumer outside the PostSharp repositories, so breaking changes are allowed in it. Change S1 therefore changes the signature of `PipelineExtension.ExecuteDesignTimePipelineContributorsAsync`, which takes a context object, instead of adding an overload. |
 | Index stage | `SourceReferenceIndexService` has no `Current` property. The index of a stage is passed to the extensions through the context objects of the hooks, because one service instance can be shared by several pipelines that run at the same time. In the implementation, `SourceReferenceIndexService` is a static class: a project service that stored the service provider of an execution retained its compilation. The index is passed to `ExecuteTransformingContributorsAsync` only; the validator hook receives it with the migration of the Validation engine (F20). |
 
+The implementation of the transformation factory in M0 differs from sections [10.4](10a-oss-bridge-hook-factory.md#104-extension-transformation-factory-b2c) and [10.5](10b-oss-linker-and-templates.md#105-linker-changes) on the following points. These are engineering choices, not decisions of the product owner.
+
+- The linker writes every argument of a redirected call with its parameter name and in the order of the source call. C# evaluates named arguments in the order in which they are written, so a reordered argument list keeps the original order of evaluation without temporary variables, without a block in a statement context and without pattern variables in an expression context.
+- A source argument that the new argument list omits must have no side effect and must not be passed by reference. The factory refuses the request otherwise. The discards of PO72 are therefore not generated, and the premium tests that expect a discard must expect a refusal or keep the argument.
+- The target of a redirection must be a static method. Instance targets and the call-site mode `MemberOfReceiver` are added with the receiver rule R2 in M3.
+- `RedirectedArgument.Value` takes an `ExpressionSyntax` instead of an `IExpression`, and `CallSiteExtraArgument.FromConstant` is not provided. The caller creates the syntax.
+- `LinkerNamingServices` and `ExtensionTransformationFactoryContext` are not created in M0, because no M0 request introduces a member.
+- The redirections are tested by the aspect tests of the proof of concept (`Metalama.Framework.Tests.AspectTests.ExtensionPoints`, folders `Redirection` and `MethodReferences`) instead of linker tests with pseudo-attributes. The proof of concept exercises the public API end to end, from an aspect and from a fabric.
+
 ### 15.1 Top decisions
 
 | Id | Question | Recommendation | Consequence of the alternative | Needed before |

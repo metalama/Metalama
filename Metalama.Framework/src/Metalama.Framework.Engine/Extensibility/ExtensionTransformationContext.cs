@@ -3,7 +3,11 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using JetBrains.Annotations;
+using Metalama.Framework.Engine.AspectOrdering;
 using Metalama.Framework.Engine.CodeModel;
+using Metalama.Framework.Engine.Extensibility.Transformations;
+using Metalama.Framework.Engine.Linking;
+using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Pipeline;
 using Metalama.Framework.Engine.ReferenceGraph;
@@ -23,6 +27,10 @@ namespace Metalama.Framework.Engine.Extensibility;
 [PublicAPI]
 public sealed class ExtensionTransformationContext
 {
+    private readonly object _sync = new();
+    private readonly IReadOnlyList<OrderedAspectLayer> _aspectLayers;
+    private ExtensionTransformationFactory? _transformationFactory;
+
     internal ExtensionTransformationContext(
         AspectPipelineConfiguration pipelineConfiguration,
         IReadOnlyCollection<IExtensionPipelineContributor> contributors,
@@ -32,8 +40,10 @@ public sealed class ExtensionTransformationContext
         CompilationModel stageFinalCompilation,
         int highLevelStageIndex,
         UserDiagnosticSink diagnostics,
-        SourceReferenceIndexStage sourceReferenceIndex )
+        SourceReferenceIndexStage sourceReferenceIndex,
+        IReadOnlyList<OrderedAspectLayer> aspectLayers )
     {
+        this._aspectLayers = aspectLayers;
         this.SourceReferenceIndex = sourceReferenceIndex;
         this.PipelineConfiguration = pipelineConfiguration;
         this.Contributors = contributors;
@@ -112,6 +122,34 @@ public sealed class ExtensionTransformationContext
     /// Gets the sink for the diagnostics and suppressions of the extensions.
     /// </summary>
     public UserDiagnosticSink Diagnostics { get; }
+
+    /// <summary>
+    /// Gets the factory of the transformations of this stage. It is shared by all extensions of the stage.
+    /// </summary>
+    public ExtensionTransformationFactory TransformationFactory
+    {
+        get
+        {
+            lock ( this._sync )
+            {
+                return this._transformationFactory ??= new ExtensionTransformationFactory(
+                    this.StageFinalCompilation,
+                    this._aspectLayers,
+                    this.ServiceProvider.GetRequiredService<SyntaxGenerationOptions>() );
+            }
+        }
+    }
+
+    /// <summary>
+    /// Completes the factory of transformations, if an extension used it, and returns the input of the linker.
+    /// </summary>
+    internal ExtensionLinkerInput CompleteTransformationFactory()
+    {
+        lock ( this._sync )
+        {
+            return this._transformationFactory?.Complete() ?? ExtensionLinkerInput.Empty;
+        }
+    }
 
     /// <summary>
     /// Gets the index of the references of the source compilation for this stage, which is shared by all extensions and built from the
