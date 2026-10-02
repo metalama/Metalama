@@ -17,14 +17,12 @@ using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.HierarchicalOptions;
 using Metalama.Framework.Engine.Pipeline;
-using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.Utilities.Diagnostics;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Metalama.Framework.Options;
 using Microsoft.CodeAnalysis;
 using SharpCrafters.Backstage.Diagnostics;
-using SharpCrafters.Backstage.Threading;
 using System.Collections.Immutable;
 
 namespace Metalama.Framework.DesignTime.Pipeline;
@@ -336,25 +334,12 @@ public sealed partial class DesignTimeAspectPipeline
                 {
                     logger.Trace?.Log( $"DesignTimeAspectPipeline.InvalidateCache('{newCompilation.AssemblyName}'): compile-time change detected." );
 
-                    var pipeline = newState._pipeline;
-
                     if ( requiresRebuild )
                     {
                         logger.Trace?.Log( "Pausing the pipeline." );
 
+                        // The pipeline resumes when the next build of the project updates the build touch file.
                         newStatus = DesignTimeAspectPipelineStatus.Paused;
-
-                        if ( pipeline.ProjectOptions.BuildTouchFile != null && File.Exists( pipeline.ProjectOptions.BuildTouchFile ) )
-                        {
-                            if ( File.Exists( pipeline.ProjectOptions.BuildTouchFile ) )
-                            {
-                                using ( pipeline.ServiceProvider.Global.GetRequiredBackstageService<INamedLockService>()
-                                            .WithGlobalLock( pipeline.ProjectOptions.BuildTouchFile ) )
-                                {
-                                    File.Delete( pipeline.ProjectOptions.BuildTouchFile );
-                                }
-                            }
-                        }
                     }
                     else
                     {

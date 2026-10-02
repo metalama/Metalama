@@ -21,7 +21,9 @@ namespace Metalama.Framework.Engine.Utilities.Roslyn;
 /// </para>
 /// <para>
 /// It also includes a recursion guard to prevent <see cref="InsufficientExecutionStackException"/> when processing
-/// deeply nested syntax trees.
+/// deeply nested syntax trees. When the remaining stack of the current thread becomes small, the guard continues the
+/// processing of the current node on a thread of the thread pool and waits for its completion. Exceptions thrown on that
+/// thread are rethrown to the caller.
 /// </para>
 /// <para>
 /// Use this class instead of directly inheriting from <see cref="CSharpSyntaxWalker"/> in your aspect weaver implementations.

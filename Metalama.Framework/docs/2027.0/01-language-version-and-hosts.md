@@ -328,7 +328,7 @@ inference rather than on a file that was read, the finding says so.
   `SupportedCSharpVersions.Latest` would not work once LV-3 raises that value, because it is a single value shared
   by both variants, whereas `ToLanguageVersion` is per Roslyn API version. A new descriptor is required in
   `GeneralDiagnosticDescriptors`; both sites already have an `IDiagnosticAdder` in scope and already import the
-  required namespaces, and the wording should follow the precedent of `LAMA0087`, introduced by #1898. Do not format
+  required namespaces, and the wording should follow the precedent of `LAMA0089`, introduced by #1898. Do not format
   the unknown value with `ToDisplayStringSafe` unless LV-2 has landed, because that method has no arm for 1500 and
   throws; format the unknown value numerically otherwise.
 - Size: S. Adding the numeric arm is a single line and is required by LV-3 in any case.

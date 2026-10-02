@@ -55,7 +55,7 @@ internal sealed partial class TransitivePipelineContributorSource
 
                 // We need to provide instances on the first level of derivation only because the caller will add to the next levels.
 
-                foreach ( var derived in ((IDeclarationImpl) baseDeclaration).GetDerivedDeclarations( DerivedTypesOptions.DirectOnly ) )
+                foreach ( var derived in ((IDeclarationImpl) baseDeclaration).GetDerivedDeclarations( DerivedTypesOptions.DirectOnly, collector.Diagnostics ) )
                 {
                     collector.AddAspectInstance(
                         new AspectInstance(

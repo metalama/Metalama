@@ -101,6 +101,13 @@ var product = new Product( MetalamaDependencies.Metalama )
                 "**\\*.props", "**\\*.targets", "**\\*.csproj", "**\\*.md", "**\\*.xml", "**\\*.config"
             ]
         },
+        // The platform tests are Microsoft.Testing.Platform applications, which the VSTest mode of 'dotnet test' refuses. The
+        // build packs them into test archives: 'Build.ps1 test' runs those of Windows on the build host with eng/RunTests.ps1,
+        // and the TestAgents run those of Linux and macOS.
+        new DotNetSolution( "Metalama.Framework/Metalama.Framework.PlatformTests.sln" )
+        {
+            BuildMethod = BuildMethod.Build, TestRunner = TestRunner.MicrosoftTestingPlatform, ContainsTestApplications = true
+        },
         new DotNetSolution( "Metalama.Framework/src/tests/Metalama.Framework.TestApp\\Metalama.Framework.TestApp.sln" )
         {
             IsTestOnly = true, TestMethod = BuildMethod.Build
@@ -169,6 +176,8 @@ var product = new Product( MetalamaDependencies.Metalama )
             BuildConfiguration.Debug,
             c => c with
             {
+                // The Debug build writes the test archives that the TestAgents run.
+                RunsTestArchives = true,
                 AdditionalArtifactRules =
                 [
                     @"+:%system.teamcity.build.tempDir%/Metalama/ExtractExceptions/**/*=>logs",
@@ -220,6 +229,42 @@ var product = new Product( MetalamaDependencies.Metalama )
         new DependentPackageExclusion( "Flashtrace", "Current repository." )
     ],
     AddWslSupport = true,
+
+    // The Linux image of the platform tests. The product builds on Windows only, so this image runs the test archives and
+    // builds nothing: it needs PowerShell, which RunTests.ps1 requires, and the runtime of the tests, which the .NET 10 SDK
+    // includes.
+    AdditionalDockerfiles =
+    [
+        new AdditionalDockerfile( "linux-x64", [] )
+        {
+            Requirements = new ContainerRequirements( ContainerHostKind.Linux )
+            {
+                OperatingSystem = ContainerOperatingSystem.Linux,
+                Components =
+                [
+                    new PowershellComponent( ContainerArchitecture.X64 ),
+                    new DotNetComponent( dotNet10SdkVersion, DotNetComponentKind.Sdk )
+                ]
+            }
+        }
+    ],
+
+    // The agents that run the test archives of the platform tests (Metalama.Framework.PlatformTests). Linux runs them in a
+    // container, and macOS on the agent, because no container engine provides a macOS container.
+    TestAgents =
+    [
+        new TestAgent( "linux-x64", "PlatformTestLinuxX64", "Platform Tests Linux x64", CreateLinuxContainerHostRequirements() )
+        {
+            Dockerfile = "eng/docker/linux-x64-build.Dockerfile", ProjectFolder = "Platform Tests"
+        },
+        new TestAgent(
+            "osx-arm64",
+            "PlatformTestMacOsArm64",
+            "Platform Tests macOS ARM64",
+            new BuildAgentRequirements(
+                new BuildAgentRequirement( "teamcity.agent.jvm.os.name", "Mac OS X" ),
+                new BuildAgentRequirement( "teamcity.agent.jvm.os.arch", "aarch64" ) ) ) { ProjectFolder = "Platform Tests" }
+    ],
     AdditionalCiBuildConfigurations = DockerTestsAdditionalCiBuildConfiguration.WithCompositeConfiguration(
         CreateDockerTestConfiguration( DockerTestPlatform.WindowsX64, "Windows x64" ),
         CreateDockerTestConfiguration( DockerTestPlatform.LinuxX64, "Linux x64" ) )
@@ -253,6 +298,21 @@ static void OnPrepareCompleted( PrepareCompletedEventArgs args )
 
     GenerateMetaSyntaxRewriter.Generate( srcDirectory );
 }
+
+// Creates the requirements of the Linux agents that run the test archives in a container.
+//
+// The requirements that PostSharp.Engineering derives for a Linux container host ask for an env.BuildAgentType that
+// the Linux agents do not publish, so no agent would be compatible. The operating system and the architecture are what the
+// agents publish.
+static ContainerHostRequirements CreateLinuxContainerHostRequirements()
+    => new ContainerHostRequirements( ContainerHostKind.Linux ) with
+    {
+        Items =
+        [
+            new BuildAgentRequirement( "teamcity.agent.jvm.os.name", "Linux" ),
+            new BuildAgentRequirement( "teamcity.agent.jvm.os.arch", "amd64" )
+        ]
+    };
 
 /// <summary>
 /// Creates the configuration that runs the Docker-based tests of one platform.

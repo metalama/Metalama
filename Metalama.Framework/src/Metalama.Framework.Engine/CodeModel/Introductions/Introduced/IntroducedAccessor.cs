@@ -11,6 +11,7 @@ using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.CodeModel.Source;
+using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.ReflectionMocks;
 using Metalama.Framework.Engine.Utilities;
 using System;
@@ -211,9 +212,16 @@ internal sealed class IntroducedAccessor : IntroducedDeclaration, IMethodImpl
 
     public override bool CanBeInherited => this._introducedMember.CanBeInherited;
 
-    public override IEnumerable<IDeclaration> GetDerivedDeclarations( DerivedTypesOptions options = default )
+    /// <inheritdoc/>
+    /// <remarks>
+    /// The declaring type of an accessor is the declaring type of the member that declares it, so this method is
+    /// guarded in the same way as <see cref="IntroducedMember.GetDerivedDeclarations"/>. See issue #2048.
+    /// </remarks>
+    public override IEnumerable<IDeclaration> GetDerivedDeclarations(
+        DerivedTypesOptions options = DerivedTypesOptions.Default,
+        IDiagnosticAdder? diagnosticAdder = null )
     {
-        if ( !this.CanBeInherited )
+        if ( !this.CanBeInherited || !this._introducedMember.TryGetDeclaringType( out _, diagnosticAdder ) )
         {
             return [];
         }

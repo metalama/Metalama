@@ -184,6 +184,8 @@ internal class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, I
     /// </remarks>
     public virtual bool IsUnion => false;
 
+    public bool IsFileLocal => false;
+
     public IntroducedRef<INamedType> Ref { get; }
 
     public TypeParameterBuilderList TypeParameters { get; } = [];

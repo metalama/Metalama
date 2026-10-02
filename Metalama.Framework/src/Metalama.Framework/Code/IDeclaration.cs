@@ -69,6 +69,11 @@ namespace Metalama.Framework.Code
         /// be resolvable in a different process, even with a different version of Metalama.
         /// </para>
         /// <para>
+        /// For a declaration of a file-local type, that guarantee holds on the machine that produced the identifier,
+        /// and on another machine only when both projects are built with the <c>pathmap</c> option, as a deterministic
+        /// build does. See <see cref="SerializableDeclarationId"/>.
+        /// </para>
+        /// <para>
         /// Use <see cref="SerializableDeclarationId.Resolve"/> or <see cref="IDeclarationFactory.GetDeclarationFromId"/>
         /// to resolve the identifier back to a declaration.
         /// </para>

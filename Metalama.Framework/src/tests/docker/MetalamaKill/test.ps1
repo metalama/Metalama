@@ -33,6 +33,10 @@ try {
     # Extract the local package source from nuget.wsl.config
     $nugetXml = [xml](Get-Content $nugetConfig)
     $metalamaSource = ($nugetXml.configuration.packageSources.add | Where-Object { $_.key -eq 'Metalama' }).value
+
+    # NuGet resolves a relative source against the directory of the config file, not the current directory.
+    # Path.Combine keeps an absolute source unchanged.
+    $metalamaSource = [System.IO.Path]::GetFullPath([System.IO.Path]::Combine((Split-Path $nugetConfig -Parent), $metalamaSource))
     Write-Host "Metalama package source: $metalamaSource"
 
     # Extract Metalama.Tool from the nupkg to run it directly via 'dotnet exec'.

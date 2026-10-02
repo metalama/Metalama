@@ -6,42 +6,26 @@ using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System.Linq;
+using System.Collections.Generic;
 
 namespace Metalama.Framework.Engine.Templating;
 
-internal sealed class InterpolationSyntaxHelper : SafeSyntaxVisitor<bool>
+internal static class InterpolationSyntaxHelper
 {
-    private static readonly InterpolationSyntaxHelper _instance = new();
-
-    private InterpolationSyntaxHelper() { }
-
-    public override bool DefaultVisit( SyntaxNode node ) => node.ChildNodes().Any( this.Visit );
-
-    public override bool VisitAliasQualifiedName( AliasQualifiedNameSyntax node ) => true;
-
-    public override bool VisitInvocationExpression( InvocationExpressionSyntax node ) => this.Visit( node.Expression );
-
-    public override bool VisitElementAccessExpression( ElementAccessExpressionSyntax node ) => this.Visit( node.Expression );
-
-    public override bool VisitParenthesizedExpression( ParenthesizedExpressionSyntax node ) => false;
-
-    public override bool VisitParenthesizedPattern( ParenthesizedPatternSyntax node ) => false;
-
-    public override bool VisitTypeOfExpression( TypeOfExpressionSyntax node ) => false;
-
-    public override bool VisitDefaultExpression( DefaultExpressionSyntax node ) => false;
-
-    public override bool VisitLiteralExpression( LiteralExpressionSyntax node ) => node.IsKind( SyntaxKind.StringLiteralExpression );
-
     public static InterpolationSyntax Fix( InterpolationSyntax interpolation )
     {
+        // NormalizeWhitespace adds the spaces that are missing between the tokens of a generated expression. It is recursive
+        // and can overflow the stack on a deep expression (see #2083), so we only add the missing spaces in this case.
+        var normalizedInterpolation = interpolation.CanNormalizeWhitespace()
+            ? interpolation.NormalizeWhitespace()
+            : interpolation.AddMissingTokenSeparators();
+
         // Interpolations cannot contain EOL, so we need to remove them.
-        var fixedInterpolation = (InterpolationSyntax) new RemoveEndOfLinesRewriter().Visit( interpolation.NormalizeWhitespace() )!;
+        var fixedInterpolation = (InterpolationSyntax) new RemoveEndOfLinesRewriter().Visit( normalizedInterpolation )!;
 
         // If the interpolation expression contains an alias-prefixed identifier (for instance global::System) that is not
         // in a parenthesis or a square bracket, we need to parenthesize the expression.
-        if ( _instance.Visit( fixedInterpolation ) )
+        if ( RequiresParentheses( fixedInterpolation ) )
         {
             return fixedInterpolation.WithExpression( SyntaxFactory.ParenthesizedExpression( fixedInterpolation.Expression ) );
         }
@@ -49,6 +33,57 @@ internal sealed class InterpolationSyntaxHelper : SafeSyntaxVisitor<bool>
         {
             return fixedInterpolation;
         }
+    }
+
+    /// <summary>
+    /// Determines whether the given interpolation contains an alias-qualified name or a string literal that is not in a
+    /// parenthesis, in an argument list, or in the brackets of an element access.
+    /// </summary>
+    /// <remarks>
+    /// The method uses an explicit stack instead of a recursion, so that it can process a deep expression (see #2083).
+    /// </remarks>
+    private static bool RequiresParentheses( InterpolationSyntax interpolation )
+    {
+        var stack = new Stack<SyntaxNode>();
+        stack.Push( interpolation );
+
+        while ( stack.Count > 0 )
+        {
+            var node = stack.Pop();
+
+            switch ( node.Kind() )
+            {
+                case SyntaxKind.AliasQualifiedName:
+                case SyntaxKind.StringLiteralExpression:
+                    return true;
+
+                case SyntaxKind.InvocationExpression:
+                    stack.Push( ((InvocationExpressionSyntax) node).Expression );
+
+                    break;
+
+                case SyntaxKind.ElementAccessExpression:
+                    stack.Push( ((ElementAccessExpressionSyntax) node).Expression );
+
+                    break;
+
+                case SyntaxKind.ParenthesizedExpression:
+                case SyntaxKind.ParenthesizedPattern:
+                case SyntaxKind.TypeOfExpression:
+                case SyntaxKind.DefaultExpression:
+                    break;
+
+                default:
+                    foreach ( var child in node.ChildNodes() )
+                    {
+                        stack.Push( child );
+                    }
+
+                    break;
+            }
+        }
+
+        return false;
     }
 
     private sealed class RemoveEndOfLinesRewriter : SafeSyntaxRewriter

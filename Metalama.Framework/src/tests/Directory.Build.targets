@@ -10,4 +10,8 @@
         <Content Include="$(MSBuildThisFileDirectory)xunit.runner.json" Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest"/>
     </ItemGroup>
 
+    <!-- The platform tests are packed into test archives, which PostSharp.Engineering runs on Linux and macOS. See
+         Metalama.Framework/docs/testing.md. -->
+    <Import Sdk="PostSharp.Engineering.Sdk" Project="TestArchive.targets" Condition="'$(UseMicrosoftTestingPlatformRunner)' == 'true'" />
+
 </Project>

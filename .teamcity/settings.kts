@@ -16,12 +16,14 @@ project {
     buildType(PublicBuild)
     buildType(PublicDeployment)
     buildType(UpstreamMerge)
+    buildType(RunAllTestArchives)
 
-    buildTypesOrder = arrayListOf(DebugBuild,ReleaseBuild,PublicBuild,PublicDeployment,UpstreamMerge)
+    buildTypesOrder = arrayListOf(DebugBuild,ReleaseBuild,PublicBuild,PublicDeployment,UpstreamMerge,RunAllTestArchives)
 
     subProject(DockerTests)
+    subProject(PlatformTests)
 
-    subProjectsOrder = arrayListOf(DockerTests)
+    subProjectsOrder = arrayListOf(DockerTests,PlatformTests)
 
 }
 
@@ -34,6 +36,7 @@ object DebugBuild : BuildType({
 +:artifacts/testResults/**/*=>artifacts/testResults
 +:artifacts/logs/**/*=>logs
 +:artifacts/dumps/**/*=>dumps
++:artifacts/tests/*.zip=>artifacts/tests
 -:%system.teamcity.build.tempDir%/Metalama/CrashReports/**/*.dmp=>logs
 +:%system.teamcity.build.tempDir%/Metalama/CrashReports/**/*=>logs
 +:%system.teamcity.build.tempDir%/Metalama/Extract/**/.completed=>logs
@@ -58,10 +61,11 @@ object DebugBuild : BuildType({
             name = "Clean NuGet cache of produced and dependency packages"
             id = "CleanNuGetCache"
             edition = PowerShellStep.Edition.Core
-            scriptMode = script {
-                content = "${'$'}nugetPackages = if ( ${'$'}env:NUGET_PACKAGES ) { ${'$'}env:NUGET_PACKAGES } else { Join-Path ${'$'}HOME '.nuget' 'packages' }; ${'$'}removedDirs = 0; ${'$'}removedFiles = 0; if ( Test-Path -LiteralPath ${'$'}nugetPackages ) { foreach ( ${'$'}pattern in @('flashtrace*', 'metalama.backstage*', 'metalama.compiler', 'metalama.compiler.*', 'metalama.extensions.dependencyinjection', 'metalama.extensions.dependencyinjection.servicelocator', 'metalama.extensions.diffengine', 'metalama.extensions.htmlwriter', 'metalama.extensions.metrics', 'metalama.extensions.multicast', 'metalama.framework*', 'metalama.linqpad', 'metalama.migration', 'metalama.patterns.caching', 'metalama.patterns.caching.aspects', 'metalama.patterns.caching.backend', 'metalama.patterns.caching.testhelpers', 'metalama.patterns.contracts', 'metalama.patterns.immutability', 'metalama.patterns.memoization', 'metalama.patterns.observability', 'metalama.patterns.testhelpers', 'metalama.patterns.wpf', 'metalama.testing.*', 'metalama.tool', 'postsharp.engineering', 'postsharp.engineering.*', 'sharpcrafters.backstage*', 'sharpcrafters.common*') ) { Get-ChildItem -LiteralPath ${'$'}nugetPackages -Directory -Filter ${'$'}pattern -ErrorAction SilentlyContinue | ForEach-Object { ${'$'}files = @( Get-ChildItem -LiteralPath ${'$'}_.FullName -Recurse -File -ErrorAction SilentlyContinue ).Count; Write-Host \"Removing NuGet cache directory: ${'$'}(${'$'}_.FullName) (${'$'}files file(s))\"; Remove-Item -LiteralPath ${'$'}_.FullName -Recurse -Force -ErrorAction SilentlyContinue; if ( -not ( Test-Path -LiteralPath ${'$'}_.FullName ) ) { ${'$'}removedDirs++; ${'$'}removedFiles += ${'$'}files } } } Write-Host \"Removed ${'$'}removedDirs package directory(ies) and ${'$'}removedFiles file(s) from the NuGet cache.\"; } else { Write-Host \"NuGet packages folder not found: ${'$'}nugetPackages\" }"
+            scriptMode = file {
+                path = "eng/CleanUpBuildAgent.ps1"
             }
             noProfile = false
+            scriptArgs = "-DeferToContainer "
         }
         powerShell {
             name = "Prepare Docker image metalama-2027.0"
@@ -84,14 +88,15 @@ object DebugBuild : BuildType({
             scriptArgs = "-Script Build.ps1 -ImageName metalama-2027.0 -NoBuildImage -Label %system.teamcity.buildType.id%_%build.number% test --configuration Debug --buildNumber %build.number% --buildType %system.teamcity.buildType.id% --timeout %Build.Timeout% %Build.Arguments%"
         }
         powerShell {
-            name = "Cleanup Docker containers"
+            name = "Clean up the build agent"
             id = "DockerCleanup"
             executionMode = BuildStep.ExecutionMode.ALWAYS
             edition = PowerShellStep.Edition.Core
-            scriptMode = script {
-                content = "${'$'}label = \"%system.teamcity.buildType.id%_%build.number%\"; ${'$'}ids = docker ps -a -q --filter \"label=postsharp.build=${'$'}label\"; if (${'$'}ids) { docker rm -f ${'$'}ids 2>&1 | Out-Null }; if (${'$'}env:BUILDAGENT_CLEANUP_SCRIPT) { Write-Host \"Running the agent cleanup script: ${'$'}(${'$'}env:BUILDAGENT_CLEANUP_SCRIPT)\"; try { Invoke-Expression ${'$'}env:BUILDAGENT_CLEANUP_SCRIPT; if (${'$'}LASTEXITCODE -ne 0) { Write-Host \"The agent cleanup script exited with code ${'$'}LASTEXITCODE.\" } } catch { Write-Host \"The agent cleanup script failed: ${'$'}_\" } }"
+            scriptMode = file {
+                path = "eng/CleanUpBuildAgent.ps1"
             }
             noProfile = false
+            scriptArgs = "-After -BuildLabel %system.teamcity.buildType.id%_%build.number% "
         }
     }
 
@@ -191,10 +196,11 @@ object ReleaseBuild : BuildType({
             name = "Clean NuGet cache of produced and dependency packages"
             id = "CleanNuGetCache"
             edition = PowerShellStep.Edition.Core
-            scriptMode = script {
-                content = "${'$'}nugetPackages = if ( ${'$'}env:NUGET_PACKAGES ) { ${'$'}env:NUGET_PACKAGES } else { Join-Path ${'$'}HOME '.nuget' 'packages' }; ${'$'}removedDirs = 0; ${'$'}removedFiles = 0; if ( Test-Path -LiteralPath ${'$'}nugetPackages ) { foreach ( ${'$'}pattern in @('flashtrace*', 'metalama.backstage*', 'metalama.compiler', 'metalama.compiler.*', 'metalama.extensions.dependencyinjection', 'metalama.extensions.dependencyinjection.servicelocator', 'metalama.extensions.diffengine', 'metalama.extensions.htmlwriter', 'metalama.extensions.metrics', 'metalama.extensions.multicast', 'metalama.framework*', 'metalama.linqpad', 'metalama.migration', 'metalama.patterns.caching', 'metalama.patterns.caching.aspects', 'metalama.patterns.caching.backend', 'metalama.patterns.caching.testhelpers', 'metalama.patterns.contracts', 'metalama.patterns.immutability', 'metalama.patterns.memoization', 'metalama.patterns.observability', 'metalama.patterns.testhelpers', 'metalama.patterns.wpf', 'metalama.testing.*', 'metalama.tool', 'postsharp.engineering', 'postsharp.engineering.*', 'sharpcrafters.backstage*', 'sharpcrafters.common*') ) { Get-ChildItem -LiteralPath ${'$'}nugetPackages -Directory -Filter ${'$'}pattern -ErrorAction SilentlyContinue | ForEach-Object { ${'$'}files = @( Get-ChildItem -LiteralPath ${'$'}_.FullName -Recurse -File -ErrorAction SilentlyContinue ).Count; Write-Host \"Removing NuGet cache directory: ${'$'}(${'$'}_.FullName) (${'$'}files file(s))\"; Remove-Item -LiteralPath ${'$'}_.FullName -Recurse -Force -ErrorAction SilentlyContinue; if ( -not ( Test-Path -LiteralPath ${'$'}_.FullName ) ) { ${'$'}removedDirs++; ${'$'}removedFiles += ${'$'}files } } } Write-Host \"Removed ${'$'}removedDirs package directory(ies) and ${'$'}removedFiles file(s) from the NuGet cache.\"; } else { Write-Host \"NuGet packages folder not found: ${'$'}nugetPackages\" }"
+            scriptMode = file {
+                path = "eng/CleanUpBuildAgent.ps1"
             }
             noProfile = false
+            scriptArgs = "-DeferToContainer "
         }
         powerShell {
             name = "Prepare Docker image metalama-2027.0"
@@ -217,14 +223,15 @@ object ReleaseBuild : BuildType({
             scriptArgs = "-Script Build.ps1 -ImageName metalama-2027.0 -NoBuildImage -Label %system.teamcity.buildType.id%_%build.number% test --configuration Release --buildNumber %build.number% --buildType %system.teamcity.buildType.id% --timeout %Build.Timeout% %Build.Arguments%"
         }
         powerShell {
-            name = "Cleanup Docker containers"
+            name = "Clean up the build agent"
             id = "DockerCleanup"
             executionMode = BuildStep.ExecutionMode.ALWAYS
             edition = PowerShellStep.Edition.Core
-            scriptMode = script {
-                content = "${'$'}label = \"%system.teamcity.buildType.id%_%build.number%\"; ${'$'}ids = docker ps -a -q --filter \"label=postsharp.build=${'$'}label\"; if (${'$'}ids) { docker rm -f ${'$'}ids 2>&1 | Out-Null }; if (${'$'}env:BUILDAGENT_CLEANUP_SCRIPT) { Write-Host \"Running the agent cleanup script: ${'$'}(${'$'}env:BUILDAGENT_CLEANUP_SCRIPT)\"; try { Invoke-Expression ${'$'}env:BUILDAGENT_CLEANUP_SCRIPT; if (${'$'}LASTEXITCODE -ne 0) { Write-Host \"The agent cleanup script exited with code ${'$'}LASTEXITCODE.\" } } catch { Write-Host \"The agent cleanup script failed: ${'$'}_\" } }"
+            scriptMode = file {
+                path = "eng/CleanUpBuildAgent.ps1"
             }
             noProfile = false
+            scriptArgs = "-After -BuildLabel %system.teamcity.buildType.id%_%build.number% "
         }
     }
 
@@ -313,10 +320,11 @@ object PublicBuild : BuildType({
             name = "Clean NuGet cache of produced and dependency packages"
             id = "CleanNuGetCache"
             edition = PowerShellStep.Edition.Core
-            scriptMode = script {
-                content = "${'$'}nugetPackages = if ( ${'$'}env:NUGET_PACKAGES ) { ${'$'}env:NUGET_PACKAGES } else { Join-Path ${'$'}HOME '.nuget' 'packages' }; ${'$'}removedDirs = 0; ${'$'}removedFiles = 0; if ( Test-Path -LiteralPath ${'$'}nugetPackages ) { foreach ( ${'$'}pattern in @('flashtrace*', 'metalama.backstage*', 'metalama.compiler', 'metalama.compiler.*', 'metalama.extensions.dependencyinjection', 'metalama.extensions.dependencyinjection.servicelocator', 'metalama.extensions.diffengine', 'metalama.extensions.htmlwriter', 'metalama.extensions.metrics', 'metalama.extensions.multicast', 'metalama.framework*', 'metalama.linqpad', 'metalama.migration', 'metalama.patterns.caching', 'metalama.patterns.caching.aspects', 'metalama.patterns.caching.backend', 'metalama.patterns.caching.testhelpers', 'metalama.patterns.contracts', 'metalama.patterns.immutability', 'metalama.patterns.memoization', 'metalama.patterns.observability', 'metalama.patterns.testhelpers', 'metalama.patterns.wpf', 'metalama.testing.*', 'metalama.tool', 'postsharp.engineering', 'postsharp.engineering.*', 'sharpcrafters.backstage*', 'sharpcrafters.common*') ) { Get-ChildItem -LiteralPath ${'$'}nugetPackages -Directory -Filter ${'$'}pattern -ErrorAction SilentlyContinue | ForEach-Object { ${'$'}files = @( Get-ChildItem -LiteralPath ${'$'}_.FullName -Recurse -File -ErrorAction SilentlyContinue ).Count; Write-Host \"Removing NuGet cache directory: ${'$'}(${'$'}_.FullName) (${'$'}files file(s))\"; Remove-Item -LiteralPath ${'$'}_.FullName -Recurse -Force -ErrorAction SilentlyContinue; if ( -not ( Test-Path -LiteralPath ${'$'}_.FullName ) ) { ${'$'}removedDirs++; ${'$'}removedFiles += ${'$'}files } } } Write-Host \"Removed ${'$'}removedDirs package directory(ies) and ${'$'}removedFiles file(s) from the NuGet cache.\"; } else { Write-Host \"NuGet packages folder not found: ${'$'}nugetPackages\" }"
+            scriptMode = file {
+                path = "eng/CleanUpBuildAgent.ps1"
             }
             noProfile = false
+            scriptArgs = "-DeferToContainer "
         }
         powerShell {
             name = "Prepare Docker image metalama-2027.0"
@@ -339,14 +347,15 @@ object PublicBuild : BuildType({
             scriptArgs = "-Script Build.ps1 -ImageName metalama-2027.0 -NoBuildImage -Label %system.teamcity.buildType.id%_%build.number% test --configuration Public --buildNumber %build.number% --buildType %system.teamcity.buildType.id% --timeout %Build.Timeout% %Build.Arguments%"
         }
         powerShell {
-            name = "Cleanup Docker containers"
+            name = "Clean up the build agent"
             id = "DockerCleanup"
             executionMode = BuildStep.ExecutionMode.ALWAYS
             edition = PowerShellStep.Edition.Core
-            scriptMode = script {
-                content = "${'$'}label = \"%system.teamcity.buildType.id%_%build.number%\"; ${'$'}ids = docker ps -a -q --filter \"label=postsharp.build=${'$'}label\"; if (${'$'}ids) { docker rm -f ${'$'}ids 2>&1 | Out-Null }; if (${'$'}env:BUILDAGENT_CLEANUP_SCRIPT) { Write-Host \"Running the agent cleanup script: ${'$'}(${'$'}env:BUILDAGENT_CLEANUP_SCRIPT)\"; try { Invoke-Expression ${'$'}env:BUILDAGENT_CLEANUP_SCRIPT; if (${'$'}LASTEXITCODE -ne 0) { Write-Host \"The agent cleanup script exited with code ${'$'}LASTEXITCODE.\" } } catch { Write-Host \"The agent cleanup script failed: ${'$'}_\" } }"
+            scriptMode = file {
+                path = "eng/CleanUpBuildAgent.ps1"
             }
             noProfile = false
+            scriptArgs = "-After -BuildLabel %system.teamcity.buildType.id%_%build.number% "
         }
     }
 
@@ -430,10 +439,11 @@ object PublicDeployment : BuildType({
             name = "Clean NuGet cache of produced and dependency packages"
             id = "CleanNuGetCache"
             edition = PowerShellStep.Edition.Core
-            scriptMode = script {
-                content = "${'$'}nugetPackages = if ( ${'$'}env:NUGET_PACKAGES ) { ${'$'}env:NUGET_PACKAGES } else { Join-Path ${'$'}HOME '.nuget' 'packages' }; ${'$'}removedDirs = 0; ${'$'}removedFiles = 0; if ( Test-Path -LiteralPath ${'$'}nugetPackages ) { foreach ( ${'$'}pattern in @('flashtrace*', 'metalama.backstage*', 'metalama.compiler', 'metalama.compiler.*', 'metalama.extensions.dependencyinjection', 'metalama.extensions.dependencyinjection.servicelocator', 'metalama.extensions.diffengine', 'metalama.extensions.htmlwriter', 'metalama.extensions.metrics', 'metalama.extensions.multicast', 'metalama.framework*', 'metalama.linqpad', 'metalama.migration', 'metalama.patterns.caching', 'metalama.patterns.caching.aspects', 'metalama.patterns.caching.backend', 'metalama.patterns.caching.testhelpers', 'metalama.patterns.contracts', 'metalama.patterns.immutability', 'metalama.patterns.memoization', 'metalama.patterns.observability', 'metalama.patterns.testhelpers', 'metalama.patterns.wpf', 'metalama.testing.*', 'metalama.tool', 'postsharp.engineering', 'postsharp.engineering.*', 'sharpcrafters.backstage*', 'sharpcrafters.common*') ) { Get-ChildItem -LiteralPath ${'$'}nugetPackages -Directory -Filter ${'$'}pattern -ErrorAction SilentlyContinue | ForEach-Object { ${'$'}files = @( Get-ChildItem -LiteralPath ${'$'}_.FullName -Recurse -File -ErrorAction SilentlyContinue ).Count; Write-Host \"Removing NuGet cache directory: ${'$'}(${'$'}_.FullName) (${'$'}files file(s))\"; Remove-Item -LiteralPath ${'$'}_.FullName -Recurse -Force -ErrorAction SilentlyContinue; if ( -not ( Test-Path -LiteralPath ${'$'}_.FullName ) ) { ${'$'}removedDirs++; ${'$'}removedFiles += ${'$'}files } } } Write-Host \"Removed ${'$'}removedDirs package directory(ies) and ${'$'}removedFiles file(s) from the NuGet cache.\"; } else { Write-Host \"NuGet packages folder not found: ${'$'}nugetPackages\" }"
+            scriptMode = file {
+                path = "eng/CleanUpBuildAgent.ps1"
             }
             noProfile = false
+            scriptArgs = "-DeferToContainer "
         }
         powerShell {
             name = "Prepare Docker image metalama-2027.0"
@@ -456,14 +466,15 @@ object PublicDeployment : BuildType({
             scriptArgs = "-Script Build.ps1 -ImageName metalama-2027.0 -NoBuildImage -Label %system.teamcity.buildType.id%_%build.number% publish --configuration Public --deployment default --timeout %Publish.Timeout% %Publish.Arguments%"
         }
         powerShell {
-            name = "Cleanup Docker containers"
+            name = "Clean up the build agent"
             id = "DockerCleanup"
             executionMode = BuildStep.ExecutionMode.ALWAYS
             edition = PowerShellStep.Edition.Core
-            scriptMode = script {
-                content = "${'$'}label = \"%system.teamcity.buildType.id%_%build.number%\"; ${'$'}ids = docker ps -a -q --filter \"label=postsharp.build=${'$'}label\"; if (${'$'}ids) { docker rm -f ${'$'}ids 2>&1 | Out-Null }; if (${'$'}env:BUILDAGENT_CLEANUP_SCRIPT) { Write-Host \"Running the agent cleanup script: ${'$'}(${'$'}env:BUILDAGENT_CLEANUP_SCRIPT)\"; try { Invoke-Expression ${'$'}env:BUILDAGENT_CLEANUP_SCRIPT; if (${'$'}LASTEXITCODE -ne 0) { Write-Host \"The agent cleanup script exited with code ${'$'}LASTEXITCODE.\" } } catch { Write-Host \"The agent cleanup script failed: ${'$'}_\" } }"
+            scriptMode = file {
+                path = "eng/CleanUpBuildAgent.ps1"
             }
             noProfile = false
+            scriptArgs = "-After -BuildLabel %system.teamcity.buildType.id%_%build.number% "
         }
     }
 
@@ -544,10 +555,11 @@ object UpstreamMerge : BuildType({
             name = "Clean NuGet cache of produced and dependency packages"
             id = "CleanNuGetCache"
             edition = PowerShellStep.Edition.Core
-            scriptMode = script {
-                content = "${'$'}nugetPackages = if ( ${'$'}env:NUGET_PACKAGES ) { ${'$'}env:NUGET_PACKAGES } else { Join-Path ${'$'}HOME '.nuget' 'packages' }; ${'$'}removedDirs = 0; ${'$'}removedFiles = 0; if ( Test-Path -LiteralPath ${'$'}nugetPackages ) { foreach ( ${'$'}pattern in @('flashtrace*', 'metalama.backstage*', 'metalama.compiler', 'metalama.compiler.*', 'metalama.extensions.dependencyinjection', 'metalama.extensions.dependencyinjection.servicelocator', 'metalama.extensions.diffengine', 'metalama.extensions.htmlwriter', 'metalama.extensions.metrics', 'metalama.extensions.multicast', 'metalama.framework*', 'metalama.linqpad', 'metalama.migration', 'metalama.patterns.caching', 'metalama.patterns.caching.aspects', 'metalama.patterns.caching.backend', 'metalama.patterns.caching.testhelpers', 'metalama.patterns.contracts', 'metalama.patterns.immutability', 'metalama.patterns.memoization', 'metalama.patterns.observability', 'metalama.patterns.testhelpers', 'metalama.patterns.wpf', 'metalama.testing.*', 'metalama.tool', 'postsharp.engineering', 'postsharp.engineering.*', 'sharpcrafters.backstage*', 'sharpcrafters.common*') ) { Get-ChildItem -LiteralPath ${'$'}nugetPackages -Directory -Filter ${'$'}pattern -ErrorAction SilentlyContinue | ForEach-Object { ${'$'}files = @( Get-ChildItem -LiteralPath ${'$'}_.FullName -Recurse -File -ErrorAction SilentlyContinue ).Count; Write-Host \"Removing NuGet cache directory: ${'$'}(${'$'}_.FullName) (${'$'}files file(s))\"; Remove-Item -LiteralPath ${'$'}_.FullName -Recurse -Force -ErrorAction SilentlyContinue; if ( -not ( Test-Path -LiteralPath ${'$'}_.FullName ) ) { ${'$'}removedDirs++; ${'$'}removedFiles += ${'$'}files } } } Write-Host \"Removed ${'$'}removedDirs package directory(ies) and ${'$'}removedFiles file(s) from the NuGet cache.\"; } else { Write-Host \"NuGet packages folder not found: ${'$'}nugetPackages\" }"
+            scriptMode = file {
+                path = "eng/CleanUpBuildAgent.ps1"
             }
             noProfile = false
+            scriptArgs = "-DeferToContainer "
         }
         powerShell {
             name = "Prepare Docker image metalama-2027.0"
@@ -570,14 +582,15 @@ object UpstreamMerge : BuildType({
             scriptArgs = "-Script Build.ps1 -ImageName metalama-2027.0 -Dockerfile eng/docker/claude.Dockerfile -NoBuildImage -Label %system.teamcity.buildType.id%_%build.number% -Snapshot upstream-merge --timeout %UpstreamMerge.Timeout% %UpstreamMerge.Arguments%"
         }
         powerShell {
-            name = "Cleanup Docker containers"
+            name = "Clean up the build agent"
             id = "DockerCleanup"
             executionMode = BuildStep.ExecutionMode.ALWAYS
             edition = PowerShellStep.Edition.Core
-            scriptMode = script {
-                content = "${'$'}label = \"%system.teamcity.buildType.id%_%build.number%\"; ${'$'}ids = docker ps -a -q --filter \"label=postsharp.build=${'$'}label\"; if (${'$'}ids) { docker rm -f ${'$'}ids 2>&1 | Out-Null }; if (${'$'}env:BUILDAGENT_CLEANUP_SCRIPT) { Write-Host \"Running the agent cleanup script: ${'$'}(${'$'}env:BUILDAGENT_CLEANUP_SCRIPT)\"; try { Invoke-Expression ${'$'}env:BUILDAGENT_CLEANUP_SCRIPT; if (${'$'}LASTEXITCODE -ne 0) { Write-Host \"The agent cleanup script exited with code ${'$'}LASTEXITCODE.\" } } catch { Write-Host \"The agent cleanup script failed: ${'$'}_\" } }"
+            scriptMode = file {
+                path = "eng/CleanUpBuildAgent.ps1"
             }
             noProfile = false
+            scriptArgs = "-After -BuildLabel %system.teamcity.buildType.id%_%build.number% "
         }
     }
 
@@ -599,6 +612,37 @@ object UpstreamMerge : BuildType({
             targetRepositories = "Metalama"
         }
     }
+
+})
+
+object RunAllTestArchives : BuildType({
+
+    name = "Run All Test Archives"
+
+    type = Type.COMPOSITE
+
+    vcs {
+        root(AbsoluteId("Metalama_Metalama20261_Metalama"))
+        showDependenciesChanges = true
+     checkoutMode = CheckoutMode.ON_AGENT
+    }
+
+    features {
+        gitHubAppBuildScopedToken {
+            parameterName = "env.GITHUB_TOKEN"
+            connectionId = "%GITHUB_CONNECTION_METALAMA%"
+            targetRepositories = "Metalama"
+        }
+    }
+
+    dependencies {
+        snapshot(PlatformTestLinuxX64Net80) {
+                 onDependencyFailure = FailureAction.FAIL_TO_START
+        }
+        snapshot(PlatformTestMacOsArm64Net80) {
+                 onDependencyFailure = FailureAction.FAIL_TO_START
+        }
+     }
 
 })
 
@@ -624,10 +668,11 @@ object DockerTestsWindowsX64 : BuildType({
             name = "Clean NuGet cache of produced and dependency packages"
             id = "CleanNuGetCache"
             edition = PowerShellStep.Edition.Core
-            scriptMode = script {
-                content = "${'$'}nugetPackages = if ( ${'$'}env:NUGET_PACKAGES ) { ${'$'}env:NUGET_PACKAGES } else { Join-Path ${'$'}HOME '.nuget' 'packages' }; ${'$'}removedDirs = 0; ${'$'}removedFiles = 0; if ( Test-Path -LiteralPath ${'$'}nugetPackages ) { foreach ( ${'$'}pattern in @('flashtrace*', 'metalama.backstage*', 'metalama.compiler', 'metalama.compiler.*', 'metalama.extensions.dependencyinjection', 'metalama.extensions.dependencyinjection.servicelocator', 'metalama.extensions.diffengine', 'metalama.extensions.htmlwriter', 'metalama.extensions.metrics', 'metalama.extensions.multicast', 'metalama.framework*', 'metalama.linqpad', 'metalama.migration', 'metalama.patterns.caching', 'metalama.patterns.caching.aspects', 'metalama.patterns.caching.backend', 'metalama.patterns.caching.testhelpers', 'metalama.patterns.contracts', 'metalama.patterns.immutability', 'metalama.patterns.memoization', 'metalama.patterns.observability', 'metalama.patterns.testhelpers', 'metalama.patterns.wpf', 'metalama.testing.*', 'metalama.tool', 'postsharp.engineering', 'postsharp.engineering.*', 'sharpcrafters.backstage*', 'sharpcrafters.common*') ) { Get-ChildItem -LiteralPath ${'$'}nugetPackages -Directory -Filter ${'$'}pattern -ErrorAction SilentlyContinue | ForEach-Object { ${'$'}files = @( Get-ChildItem -LiteralPath ${'$'}_.FullName -Recurse -File -ErrorAction SilentlyContinue ).Count; Write-Host \"Removing NuGet cache directory: ${'$'}(${'$'}_.FullName) (${'$'}files file(s))\"; Remove-Item -LiteralPath ${'$'}_.FullName -Recurse -Force -ErrorAction SilentlyContinue; if ( -not ( Test-Path -LiteralPath ${'$'}_.FullName ) ) { ${'$'}removedDirs++; ${'$'}removedFiles += ${'$'}files } } } Write-Host \"Removed ${'$'}removedDirs package directory(ies) and ${'$'}removedFiles file(s) from the NuGet cache.\"; } else { Write-Host \"NuGet packages folder not found: ${'$'}nugetPackages\" }"
+            scriptMode = file {
+                path = "eng/CleanUpBuildAgent.ps1"
             }
             noProfile = false
+            scriptArgs = "-DeferToContainer "
         }
         powerShell {
             name = "Copy nuget.restored.config to nuget.config"
@@ -658,14 +703,15 @@ object DockerTestsWindowsX64 : BuildType({
             scriptArgs = "-Platform win-x64 %Exec.Arguments%"
         }
         powerShell {
-            name = "Cleanup Docker containers"
+            name = "Clean up the build agent"
             id = "DockerCleanup"
             executionMode = BuildStep.ExecutionMode.ALWAYS
             edition = PowerShellStep.Edition.Core
-            scriptMode = script {
-                content = "${'$'}label = \"%system.teamcity.buildType.id%_%build.number%\"; ${'$'}ids = docker ps -a -q --filter \"label=postsharp.build=${'$'}label\"; if (${'$'}ids) { docker rm -f ${'$'}ids 2>&1 | Out-Null }; if (${'$'}env:BUILDAGENT_CLEANUP_SCRIPT) { Write-Host \"Running the agent cleanup script: ${'$'}(${'$'}env:BUILDAGENT_CLEANUP_SCRIPT)\"; try { Invoke-Expression ${'$'}env:BUILDAGENT_CLEANUP_SCRIPT; if (${'$'}LASTEXITCODE -ne 0) { Write-Host \"The agent cleanup script exited with code ${'$'}LASTEXITCODE.\" } } catch { Write-Host \"The agent cleanup script failed: ${'$'}_\" } }"
+            scriptMode = file {
+                path = "eng/CleanUpBuildAgent.ps1"
             }
             noProfile = false
+            scriptArgs = "-After -BuildLabel %system.teamcity.buildType.id%_%build.number% "
         }
     }
 
@@ -738,10 +784,11 @@ object DockerTestsLinuxX64 : BuildType({
             name = "Clean NuGet cache of produced and dependency packages"
             id = "CleanNuGetCache"
             edition = PowerShellStep.Edition.Core
-            scriptMode = script {
-                content = "${'$'}nugetPackages = if ( ${'$'}env:NUGET_PACKAGES ) { ${'$'}env:NUGET_PACKAGES } else { Join-Path ${'$'}HOME '.nuget' 'packages' }; ${'$'}removedDirs = 0; ${'$'}removedFiles = 0; if ( Test-Path -LiteralPath ${'$'}nugetPackages ) { foreach ( ${'$'}pattern in @('flashtrace*', 'metalama.backstage*', 'metalama.compiler', 'metalama.compiler.*', 'metalama.extensions.dependencyinjection', 'metalama.extensions.dependencyinjection.servicelocator', 'metalama.extensions.diffengine', 'metalama.extensions.htmlwriter', 'metalama.extensions.metrics', 'metalama.extensions.multicast', 'metalama.framework*', 'metalama.linqpad', 'metalama.migration', 'metalama.patterns.caching', 'metalama.patterns.caching.aspects', 'metalama.patterns.caching.backend', 'metalama.patterns.caching.testhelpers', 'metalama.patterns.contracts', 'metalama.patterns.immutability', 'metalama.patterns.memoization', 'metalama.patterns.observability', 'metalama.patterns.testhelpers', 'metalama.patterns.wpf', 'metalama.testing.*', 'metalama.tool', 'postsharp.engineering', 'postsharp.engineering.*', 'sharpcrafters.backstage*', 'sharpcrafters.common*') ) { Get-ChildItem -LiteralPath ${'$'}nugetPackages -Directory -Filter ${'$'}pattern -ErrorAction SilentlyContinue | ForEach-Object { ${'$'}files = @( Get-ChildItem -LiteralPath ${'$'}_.FullName -Recurse -File -ErrorAction SilentlyContinue ).Count; Write-Host \"Removing NuGet cache directory: ${'$'}(${'$'}_.FullName) (${'$'}files file(s))\"; Remove-Item -LiteralPath ${'$'}_.FullName -Recurse -Force -ErrorAction SilentlyContinue; if ( -not ( Test-Path -LiteralPath ${'$'}_.FullName ) ) { ${'$'}removedDirs++; ${'$'}removedFiles += ${'$'}files } } } Write-Host \"Removed ${'$'}removedDirs package directory(ies) and ${'$'}removedFiles file(s) from the NuGet cache.\"; } else { Write-Host \"NuGet packages folder not found: ${'$'}nugetPackages\" }"
+            scriptMode = file {
+                path = "eng/CleanUpBuildAgent.ps1"
             }
             noProfile = false
+            scriptArgs = "-DeferToContainer "
         }
         powerShell {
             name = "Copy nuget.restored.config to nuget.config"
@@ -772,14 +819,15 @@ object DockerTestsLinuxX64 : BuildType({
             scriptArgs = "-Platform linux-x64 %Exec.Arguments%"
         }
         powerShell {
-            name = "Cleanup Docker containers"
+            name = "Clean up the build agent"
             id = "DockerCleanup"
             executionMode = BuildStep.ExecutionMode.ALWAYS
             edition = PowerShellStep.Edition.Core
-            scriptMode = script {
-                content = "${'$'}label = \"%system.teamcity.buildType.id%_%build.number%\"; ${'$'}ids = docker ps -a -q --filter \"label=postsharp.build=${'$'}label\"; if (${'$'}ids) { docker rm -f ${'$'}ids 2>&1 | Out-Null }; if (${'$'}env:BUILDAGENT_CLEANUP_SCRIPT) { Write-Host \"Running the agent cleanup script: ${'$'}(${'$'}env:BUILDAGENT_CLEANUP_SCRIPT)\"; try { Invoke-Expression ${'$'}env:BUILDAGENT_CLEANUP_SCRIPT; if (${'$'}LASTEXITCODE -ne 0) { Write-Host \"The agent cleanup script exited with code ${'$'}LASTEXITCODE.\" } } catch { Write-Host \"The agent cleanup script failed: ${'$'}_\" } }"
+            scriptMode = file {
+                path = "eng/CleanUpBuildAgent.ps1"
             }
             noProfile = false
+            scriptArgs = "-After -BuildLabel %system.teamcity.buildType.id%_%build.number% "
         }
     }
 
@@ -861,6 +909,189 @@ object RunAllDockerTests : BuildType({
 
 })
 
+object PlatformTestLinuxX64Net80 : BuildType({
+
+    name = "Platform Tests Linux x64: net8.0"
+
+    artifactRules = """+:artifacts/testResults/**/*=>artifacts/testResults"""
+
+    params {
+        text(
+            "Exec.Arguments", 
+            "", 
+            label ="DockerBuild.ps1 Arguments",
+            description = "Arguments to append to the 'Execute eng/RunTests.ps1' build step.", allowEmpty = true)
+    }
+
+    vcs {
+        root(AbsoluteId("Metalama_Metalama20261_Metalama"))
+     checkoutMode = CheckoutMode.ON_AGENT
+    }
+
+    steps {
+        powerShell {
+            name = "Clean NuGet cache of produced and dependency packages"
+            id = "CleanNuGetCache"
+            edition = PowerShellStep.Edition.Core
+            scriptMode = file {
+                path = "eng/CleanUpBuildAgent.ps1"
+            }
+            noProfile = false
+            scriptArgs = "-DeferToContainer "
+        }
+        powerShell {
+            name = "Prepare Docker image metalama-2026.1-platformtestlinuxx64net80"
+            id = "PrepareImage"
+            edition = PowerShellStep.Edition.Core
+            scriptMode = file {
+                path = "DockerBuild.ps1"
+            }
+            noProfile = false
+            scriptArgs = "-BuildImage -ImageName metalama-2026.1-platformtestlinuxx64net80 -Dockerfile eng/docker/linux-x64-build.Dockerfile "
+        }
+        powerShell {
+            name = "Execute eng/RunTests.ps1"
+            id = "Exec"
+            edition = PowerShellStep.Edition.Core
+            scriptMode = file {
+                path = "DockerBuild.ps1"
+            }
+            noProfile = false
+            scriptArgs = "-Script eng/RunTests.ps1 -ImageName metalama-2026.1-platformtestlinuxx64net80 -Dockerfile eng/docker/linux-x64-build.Dockerfile -NoBuildImage -Label %system.teamcity.buildType.id%_%build.number% -Platform linux-x64 %Exec.Arguments%"
+        }
+        powerShell {
+            name = "Clean up the build agent"
+            id = "DockerCleanup"
+            executionMode = BuildStep.ExecutionMode.ALWAYS
+            edition = PowerShellStep.Edition.Core
+            scriptMode = file {
+                path = "eng/CleanUpBuildAgent.ps1"
+            }
+            noProfile = false
+            scriptArgs = "-After -BuildLabel %system.teamcity.buildType.id%_%build.number% "
+        }
+    }
+
+    requirements {
+        equals("teamcity.agent.jvm.os.name", "Linux")
+        equals("teamcity.agent.jvm.os.arch", "amd64")
+    }
+
+    features {
+        swabra {
+            filesCleanup = Swabra.FilesCleanup.BEFORE_BUILD
+            lockingProcesses = Swabra.LockingProcessPolicy.KILL
+            verbose = true
+        }
+        gitHubAppBuildScopedToken {
+            parameterName = "env.GITHUB_TOKEN"
+            connectionId = "%GITHUB_CONNECTION_METALAMA%"
+            targetRepositories = "Metalama"
+        }
+    }
+
+    dependencies {
+        snapshot(DebugBuild) {
+                 onDependencyFailure = FailureAction.FAIL_TO_START
+        }
+
+        artifacts(DebugBuild) { 
+            cleanDestination = true
+            artifactRules = "+:artifacts/tests/Metalama.Framework.PlatformTests.net8.0.zip=>artifacts/tests"
+        }
+        snapshot(AbsoluteId("Metalama_Metalama20261_MetalamaCompiler_ReleaseBuild")) {
+                 onDependencyFailure = FailureAction.FAIL_TO_START
+        }
+
+        artifacts(AbsoluteId("Metalama_Metalama20261_MetalamaCompiler_ReleaseBuild")) { 
+            cleanDestination = true
+            artifactRules = "+:artifacts/packages/Release/Shipping/Metalama.Compiler.Sdk.*.nupkg=>artifacts/test-packages/Metalama.Compiler"
+        }
+     }
+
+})
+
+object PlatformTestMacOsArm64Net80 : BuildType({
+
+    name = "Platform Tests macOS ARM64: net8.0"
+
+    artifactRules = """+:artifacts/testResults/**/*=>artifacts/testResults"""
+
+    params {
+        text(
+            "Exec.Arguments", 
+            "", 
+            label ="eng/RunTests.ps1 Arguments",
+            description = "Arguments to append to the 'Execute eng/RunTests.ps1' build step.", allowEmpty = true)
+    }
+
+    vcs {
+        root(AbsoluteId("Metalama_Metalama20261_Metalama"))
+     checkoutMode = CheckoutMode.ON_AGENT
+    }
+
+    steps {
+        powerShell {
+            name = "Clean NuGet cache of produced and dependency packages"
+            id = "CleanNuGetCache"
+            edition = PowerShellStep.Edition.Core
+            scriptMode = file {
+                path = "eng/CleanUpBuildAgent.ps1"
+            }
+            noProfile = false
+            scriptArgs = " "
+        }
+        powerShell {
+            name = "Execute eng/RunTests.ps1"
+            id = "Exec"
+            edition = PowerShellStep.Edition.Core
+            scriptMode = file {
+                path = "eng/RunTests.ps1"
+            }
+            noProfile = false
+            scriptArgs = "-Platform osx-arm64 %Exec.Arguments%"
+        }
+    }
+
+    requirements {
+        equals("teamcity.agent.jvm.os.name", "Mac OS X")
+        equals("teamcity.agent.jvm.os.arch", "aarch64")
+    }
+
+    features {
+        swabra {
+            filesCleanup = Swabra.FilesCleanup.BEFORE_BUILD
+            lockingProcesses = Swabra.LockingProcessPolicy.KILL
+            verbose = true
+        }
+        gitHubAppBuildScopedToken {
+            parameterName = "env.GITHUB_TOKEN"
+            connectionId = "%GITHUB_CONNECTION_METALAMA%"
+            targetRepositories = "Metalama"
+        }
+    }
+
+    dependencies {
+        snapshot(DebugBuild) {
+                 onDependencyFailure = FailureAction.FAIL_TO_START
+        }
+
+        artifacts(DebugBuild) { 
+            cleanDestination = true
+            artifactRules = "+:artifacts/tests/Metalama.Framework.PlatformTests.net8.0.zip=>artifacts/tests"
+        }
+        snapshot(AbsoluteId("Metalama_Metalama20261_MetalamaCompiler_ReleaseBuild")) {
+                 onDependencyFailure = FailureAction.FAIL_TO_START
+        }
+
+        artifacts(AbsoluteId("Metalama_Metalama20261_MetalamaCompiler_ReleaseBuild")) { 
+            cleanDestination = true
+            artifactRules = "+:artifacts/packages/Release/Shipping/Metalama.Compiler.Sdk.*.nupkg=>artifacts/test-packages/Metalama.Compiler"
+        }
+     }
+
+})
+
 object DockerTests : Project({
 
     name = "Docker Tests"
@@ -870,5 +1101,15 @@ object DockerTests : Project({
     buildType(RunAllDockerTests)
 
     buildTypesOrder = arrayListOf(DockerTestsWindowsX64,DockerTestsLinuxX64,RunAllDockerTests)
+
+})
+object PlatformTests : Project({
+
+    name = "Platform Tests"
+
+    buildType(PlatformTestLinuxX64Net80)
+    buildType(PlatformTestMacOsArm64Net80)
+
+    buildTypesOrder = arrayListOf(PlatformTestLinuxX64Net80,PlatformTestMacOsArm64Net80)
 
 })

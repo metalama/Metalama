@@ -38,7 +38,11 @@ internal sealed class AspectDriver : IAspectDriver
 
     public IEligibilityRule<IDeclaration>? EligibilityRule { get; }
 
-    public AspectDriver( ProjectServiceProvider serviceProvider, IAspectClassImpl aspectClass, CompilationModel compilation )
+    public AspectDriver(
+        ProjectServiceProvider serviceProvider,
+        IAspectClassImpl aspectClass,
+        CompilationModel compilation,
+        IDiagnosticAdder diagnosticAdder )
     {
         this._aspectClass = aspectClass;
         this._pipelineExtensions = serviceProvider.GetRequiredService<PipelineExtensionProvider>().Extensions;
@@ -49,7 +53,7 @@ internal sealed class AspectDriver : IAspectDriver
         // Introductions must have a deterministic order because of testing.
         // We can pass a null TemplateProvider here because the templates will not be executed, but only used to discover eligibility.
         var declarativeAdviceAttributes = aspectClass
-            .TemplateClasses.SelectMany( c => c.GetDeclarativeAdvice( serviceProvider, compilation, default, ObjectReader.Empty ) )
+            .TemplateClasses.SelectMany( c => c.GetDeclarativeAdvice( serviceProvider, compilation, default, ObjectReader.Empty, diagnosticAdder ) )
             .ToReadOnlyList();
 
         if ( declarativeAdviceAttributes.Count > 0 )
@@ -233,7 +237,8 @@ internal sealed class AspectDriver : IAspectDriver
                         serviceProvider,
                         initialCompilationRevision,
                         TemplateProvider.FromInstance( aspectInstance.Aspect ),
-                        adviceFactoryState.AspectBuilderState.GetTagsReader( null ) ) )
+                        adviceFactoryState.AspectBuilderState.GetTagsReader( null ),
+                        diagnosticSink ) )
                 .ToReadOnlyList();
 
             // ReSharper disable AccessToDisposedClosure

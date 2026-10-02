@@ -1,0 +1,50 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!--
+      The platform tests test the code whose behavior depends on the operating system, for instance StackLimits. They are
+      Microsoft.Testing.Platform applications (xunit.v3), which PostSharp.Engineering packs into test archives and runs on
+      Linux and macOS (see Metalama.Framework/docs/testing.md). The other test projects run on VSTest, which cannot
+      run a Microsoft.Testing.Platform application, so this project is in its own solution,
+      Metalama.Framework.PlatformTests.sln. Its TestRunner is Microsoft.Testing.Platform (see eng/src/Program.cs), so
+      'Build.ps1 test' runs its test archives on Windows with eng/RunTests.ps1, as the test agents run them on Linux and
+      macOS. Locally, run eng/RunTests.ps1 after a build, or run the executable of this project.
+    -->
+
+    <PropertyGroup>
+        <TargetFrameworks>net48;net10.0</TargetFrameworks>
+        <OutputType>Exe</OutputType>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <RootNamespace>Metalama.Framework.Tests.PlatformTests</RootNamespace>
+
+        <!-- Read by PostSharp.Engineering, which discovers the test applications without restoring them. -->
+        <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
+        <IsTestingPlatformApplication>true</IsTestingPlatformApplication>
+    </PropertyGroup>
+
+    <!-- The platforms of the test archives. 'Build.ps1 test' runs the win-x64 archives on the Windows build host, and the
+         test agents run the others. -->
+    <PropertyGroup Condition="'$(TargetFramework)' == 'net48'">
+        <TestApplicationPlatforms>win-x64</TestApplicationPlatforms>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0'">
+        <TestApplicationPlatforms>win-x64;linux-x64;osx-arm64</TestApplicationPlatforms>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="xunit.v3" />
+        <PackageReference Include="Microsoft.Testing.Extensions.TrxReport" />
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+
+        <!-- Microsoft.CodeAnalysis.Features, which Metalama.Framework.Sdk references, depends on this package, which the tests
+             do not load. Its assets are excluded so that the test archive does not contain it: the build on TeamCity
+             recorded it as a package that is not from nuget.org, which the build configurations of the test agents cannot
+             download, and 'Build.ps1 build' fails in that case. -->
+        <PackageReference Include="Microsoft.CodeAnalysis.Elfie" VersionOverride="1.0.0" ExcludeAssets="all" PrivateAssets="all" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="../../Metalama.Framework.Sdk/Metalama.Framework.Sdk.csproj" />
+    </ItemGroup>
+
+</Project>

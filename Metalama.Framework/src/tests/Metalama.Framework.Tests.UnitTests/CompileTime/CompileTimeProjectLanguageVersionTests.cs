@@ -132,7 +132,7 @@ public sealed class CompileTimeProjectLanguageVersionTests : UnitTestClass
         Assert.DoesNotContain( consumerDiagnostics, d => d.Severity == DiagnosticSeverity.Error );
 
         // The warning must name the reference, the version it requires and the version the host supports.
-        var warning = Assert.Single( consumerDiagnostics, d => d.Id == "LAMA0088" );
+        var warning = Assert.Single( consumerDiagnostics, d => d.Id == "LAMA0090" );
         var message = warning.GetMessage( CultureInfo.InvariantCulture );
 
         Assert.Contains( referencedCompilation.AssemblyName!, message, StringComparison.Ordinal );

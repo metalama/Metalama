@@ -21,7 +21,7 @@ namespace Metalama.Framework.CompilerExtensions
         /// than failing the build, so this is an error and not a warning.
         /// </summary>
         private static readonly DiagnosticDescriptor _unsupportedRoslynVersion = new(
-            "LAMA0087",
+            "LAMA0089",
             "The Roslyn version of the compiler is not supported by Metalama",
             "Metalama requires Roslyn {0} or later, but the compiler is running Roslyn {1}, for which this build of "
             + "Metalama embeds no implementation. No aspect has been applied to this project. Upgrade the .NET SDK, "
