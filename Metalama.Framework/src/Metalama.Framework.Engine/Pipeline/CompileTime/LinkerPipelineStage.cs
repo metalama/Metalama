@@ -55,6 +55,24 @@ namespace Metalama.Framework.Engine.Pipeline.CompileTime
                         cancellationToken ) );
             }
 
+            // Run the extensions that produce transformations. They run after the validators and before the linker.
+            var extensionDiagnostics = new UserDiagnosticSink( pipelineConfiguration.ServiceProvider );
+
+            var extensionTransformationContext = new ExtensionTransformationContext(
+                pipelineConfiguration,
+                pipelineStepsResult.ExtensionContributors,
+                pipelineStepsResult.ExtensionContributorsAddedInStage,
+                input.FirstCompilationModel.AssertNotNull(),
+                initialCompilation,
+                finalCompilation,
+                this.HighLevelStageIndex,
+                extensionDiagnostics );
+
+            foreach ( var extension in extensions )
+            {
+                await extension.ExecuteTransformingContributorsAsync( extensionTransformationContext, cancellationToken );
+            }
+
             // Run the linker.
             var linker = new AspectLinker(
                 pipelineConfiguration.ServiceProvider,
@@ -91,7 +109,8 @@ namespace Metalama.Framework.Engine.Pipeline.CompileTime
                     input.Configuration,
                     input.Diagnostics.Concat( pipelineStepsResult.Diagnostics )
                         .Concat( linkerResult.Diagnostics )
-                        .Concat( pipelineContributorsResult.Diagnostics ),
+                        .Concat( pipelineContributorsResult.Diagnostics )
+                        .Concat( extensionDiagnostics.ToImmutable() ),
                     new PipelineContributorSources( input.ContributorSources.Contributors.Add( pipelineStepsResult.OverflowAspectSource ) ),
                     input.ExternallyInheritableAspects.AddRange(
                         pipelineStepsResult.InheritableAspectInstances.SelectAsReadOnlyCollection( i => new InheritableAspectInstance( i ) ) ),

@@ -144,7 +144,7 @@ internal sealed class ExecuteAspectLayerPipelineStep : PipelineStep
                     currentCompilation = newCompilation;
 
                     this.Parent.AddAspectSources( aspectResult.Contributors.OfKind( ContributorKind.AspectSource ), true, cancellationToken );
-                    this.Parent.AddExtendedContributors( aspectResult.Contributors.Extensions() );
+                    this.Parent.AddExtendedContributors( aspectResult.Contributors.Extensions(), true );
 
                     await this.Parent.AddOptionsSourcesAsync(
                         aspectResult.Contributors.OfKind( ContributorKind.HierarchicalOptionsSource ),

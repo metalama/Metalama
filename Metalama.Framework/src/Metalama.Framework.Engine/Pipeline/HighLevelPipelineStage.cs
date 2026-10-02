@@ -25,6 +25,14 @@ namespace Metalama.Framework.Engine.Pipeline
             this._aspectLayers = aspectLayers;
         }
 
+        /// <summary>
+        /// Gets or sets the zero-based index of this stage among the high-level stages of the current pipeline execution.
+        /// </summary>
+        /// <remarks>
+        /// A stage object is created for each pipeline execution, so the property can be set by the pipeline before the stage executes.
+        /// </remarks>
+        internal int HighLevelStageIndex { get; set; }
+
         /// <inheritdoc/>
         public override async Task<FallibleResult<AspectPipelineResult>> ExecuteAsync(
             AspectPipelineConfiguration pipelineConfiguration,

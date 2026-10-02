@@ -213,7 +213,8 @@ internal sealed class AspectDriver : IAspectDriver
                 aspectInstance.TemplateInstances.Count == 1 ? aspectInstance.TemplateInstances.Values.Single() : null,
                 layer,
                 null,
-                diagnosticSink );
+                diagnosticSink,
+                null );
 
             // Create the AspectBuilder.
             var aspectBuilderState = new AspectBuilderState(
@@ -229,6 +230,7 @@ internal sealed class AspectDriver : IAspectDriver
             var aspectBuilder = new AspectBuilder<T>( targetDeclaration, aspectBuilderState, adviceFactory );
 
             adviceFactoryState.AspectBuilderState = aspectBuilderState;
+            adviceFactoryState.Owner = aspectBuilder;
 
             // Prepare declarative advice.
             var declarativeAdvice = this._aspectClass.TemplateClasses

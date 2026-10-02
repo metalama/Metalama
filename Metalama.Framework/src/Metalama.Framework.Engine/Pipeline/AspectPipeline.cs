@@ -753,6 +753,7 @@ public abstract class AspectPipeline : IDisposable
             additionalCompilationOutputFiles: additionalCompilationOutputFiles );
 
         var allAspects = Enumerable.Empty<AspectInstanceResult>();
+        var highLevelStageIndex = 0;
 
         foreach ( var stageConfiguration in pipelineConfiguration.Stages )
         {
@@ -763,6 +764,12 @@ public abstract class AspectPipeline : IDisposable
                 // This stage is skipped in the current pipeline (e.g. design-time).
 
                 continue;
+            }
+
+            if ( stage is HighLevelPipelineStage highLevelStage )
+            {
+                highLevelStage.HighLevelStageIndex = highLevelStageIndex;
+                highLevelStageIndex++;
             }
 
             var stageResult = await stage.ExecuteAsync( pipelineConfiguration, pipelineStageResult, diagnosticAdder, cancellationToken );

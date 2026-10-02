@@ -44,6 +44,7 @@ internal sealed class PipelineStepsState
     private readonly ConcurrentLinkedList<IAspectInstance> _inheritableAspectInstances = new();
     private readonly ConcurrentLinkedList<AspectInstanceResult> _aspectInstanceResults = new();
     private readonly ConcurrentLinkedList<IExtensionPipelineContributor> _extensionContributors = new();
+    private readonly ConcurrentLinkedList<IExtensionPipelineContributor> _extensionContributorsAddedInStage = new();
     private readonly OverflowAspectSource _overflowAspectSource = new();
     private readonly IntrospectionPipelineListener? _introspectionListener;
     private readonly bool _shouldDetectUnorderedAspects;
@@ -96,7 +97,7 @@ internal sealed class PipelineStepsState
         // Add the initial sources.
         // TODO: process failure of the next line.
         this.AddAspectSources( sources.Contributors.OfKind( ContributorKind.AspectSource ), false, cancellationToken );
-        this.AddExtendedContributors( sources.Contributors.Extensions() );
+        this.AddExtendedContributors( sources.Contributors.Extensions(), false );
     }
 
     public async Task<PipelineStepsResult> ExecuteAsync( CancellationToken cancellationToken )
@@ -129,6 +130,7 @@ internal sealed class PipelineStepsState
             this.Diagnostics.ToImmutable(),
             this._overflowAspectSource,
             this._extensionContributors,
+            this._extensionContributorsAddedInStage,
             this._aspectInstanceResults );
     }
 
@@ -489,11 +491,22 @@ internal sealed class PipelineStepsState
         }
     }
 
-    public void AddExtendedContributors( IEnumerable<IExtensionPipelineContributor> contributors )
+    /// <summary>
+    /// Adds extension contributors to the result of the stage.
+    /// </summary>
+    /// <param name="contributors">The contributors.</param>
+    /// <param name="isAddedInStage"><c>true</c> when the contributors were added by an aspect that executed in this stage, and
+    /// <c>false</c> when they are replayed from the contributor sources of the pipeline.</param>
+    public void AddExtendedContributors( IEnumerable<IExtensionPipelineContributor> contributors, bool isAddedInStage )
     {
         foreach ( var source in contributors )
         {
             this._extensionContributors.Add( source );
+
+            if ( isAddedInStage )
+            {
+                this._extensionContributorsAddedInStage.Add( source );
+            }
         }
     }
 
