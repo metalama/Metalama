@@ -361,6 +361,12 @@ A contribution made through a query captures its origin with `ExtensionContribut
 
 `PipelineExtension.ExecuteTransformingContributorsAsync( ExtensionTransformationContext, CancellationToken )` runs at the end of every high-level stage that runs the linker, after `ExecutePipelineContributorsAsync` and before the linker. It runs at compile time and in the preview, live-template and introspection scenarios, and not at design time. The context gives the contributors of the stage (`Contributors`) and those added by the aspects of the stage (`ContributorsAddedInStage`), the source compilation, the initial and final compilations of the stage, `HighLevelStageIndex`, `IsSourceStage` and a diagnostic sink. Only the first high-level stage has `IsSourceStage`; a low-level weaver starts a new stage.
 
+### Source expressions for compile-time code
+
+An extension can give compile-time code an expression of the source code without letting it be emitted. `SourceExpressionFactory.CreateInspectionOnly( expression, type )` (namespace `Metalama.Framework.Engine.Templating`) returns an `ISourceExpression` whose `AsSyntaxNode`, `AsString`, `AsFullString`, `AsTypedConstant` and `Type` behave as for any source expression, and which is not assignable. Emitting it in generated code reports LAMA0297, during a template expansion and through the textual conversion of expressions, because the expression is already evaluated at its original location: a second evaluation can have side effects, and it can reference local variables and parameters that do not exist in the generated code.
+
+In the other direction, `SourceExpressionExtensions.GetSourceSyntax()` (SDK, namespace `Metalama.Framework.Engine.CodeModel`) returns the source `ExpressionSyntax` of an expression that wraps source syntax, for instance the initializer of a source field, or `null` for a generated expression, a parameter or a `TypedConstant`.
+
 ### Design-time hook
 
 `PipelineExtension.ExecuteDesignTimePipelineContributorsAsync( DesignTimeContributorsContext, CancellationToken )` runs at the end of every high-level stage of the design-time pipeline that has extension contributors. The context gives `Contributors`, `ContributorsAddedInStage`, `NewContributors`, the initial and final compilations of the stage and `HighLevelStageIndex`.

@@ -1,9 +1,10 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.CodeModel.Helpers;
+using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.SyntaxSerialization;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Roslyn;
@@ -15,21 +16,56 @@ using TypeKind = Microsoft.CodeAnalysis.TypeKind;
 
 namespace Metalama.Framework.Engine.Templating.Expressions;
 
-internal sealed class SourceUserExpression : SyntaxUserExpression, ISourceExpression
+internal sealed class SourceUserExpression : SyntaxUserExpression, ISourceExpression, IContextlessExpression
 {
-    public SourceUserExpression( ExpressionSyntax expression, IType type, bool isReferenceable = false, bool isAssignable = false ) : base(
+    public SourceUserExpression(
+        ExpressionSyntax expression,
+        IType type,
+        bool isReferenceable = false,
+        bool isAssignable = false,
+        bool isInspectionOnly = false ) : base(
         expression,
         type,
         isReferenceable,
-        isAssignable ) { }
+        isAssignable && !isInspectionOnly )
+    {
+        this.IsInspectionOnly = isInspectionOnly;
+    }
+
+    /// <summary>
+    /// Gets a value indicating whether the expression can only be inspected by compile-time code. Such an expression cannot be emitted in
+    /// generated code: <see cref="ToSyntax"/> throws an exception that reports LAMA0297.
+    /// </summary>
+    public bool IsInspectionOnly { get; }
 
     public object AsSyntaxNode => this.Expression;
+
+    /// <summary>
+    /// Returns the source syntax for the textual conversion of the expression, which can be emitted in generated code, so it applies the same
+    /// refusal as <see cref="ToSyntax"/>.
+    /// </summary>
+    ExpressionSyntax IContextlessExpression.ToSyntax()
+    {
+        this.ThrowIfInspectionOnly();
+
+        return this.Expression;
+    }
+
+    private void ThrowIfInspectionOnly()
+    {
+        if ( this.IsInspectionOnly )
+        {
+            throw TemplatingDiagnosticDescriptors.InspectionOnlyExpressionCannotBeEmitted.CreateException( this.AsString );
+        }
+    }
 
     // When targetType differs from this.Type, we add a cast to this.Type (not to targetType) because the original
     // source expression may be target-typed in its original context. The cast ensures the expression retains its
     // semantics when placed in a different context. The output type is always this.Type, so no GetSyntaxType override is needed.
     protected override ExpressionSyntax ToSyntax( SyntaxSerializationContext syntaxSerializationContext, IType? targetType = null )
     {
+        this.ThrowIfInspectionOnly();
+
         if ( targetType?.Equals( this.Type ) != true )
         {
             return syntaxSerializationContext.SyntaxGenerator.CastExpression( this.Type, this.Expression );

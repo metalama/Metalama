@@ -77,6 +77,14 @@ public static class TestExtensionPointsExtensions
         where T : class, IDeclaration
         => GetService( query.Project ).RedirectCalls( query, methodName, replacementTypeName, replacementMethodName, options ?? new TestRedirectionOptions() );
 
+    /// <summary>
+    /// Gets the initializer of a field or property as an expression that compile-time code can inspect but that cannot be emitted in generated
+    /// code.
+    /// </summary>
+    /// <param name="fieldOrProperty">A field or property with an initializer in source code.</param>
+    public static IExpression TestGetInspectionOnlyInitializer( this IFieldOrProperty fieldOrProperty )
+        => GetService( fieldOrProperty.Compilation.Project ).GetInspectionOnlyInitializer( fieldOrProperty );
+
     private static ITestRegistrationService GetService( IProject project )
         => project.ServiceProvider.GetService<ITestRegistrationService>()
            ?? throw new InvalidOperationException( "The test extension of the extension points is not loaded." );

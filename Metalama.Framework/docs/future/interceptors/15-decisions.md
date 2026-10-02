@@ -47,6 +47,12 @@ The implementation of change S1 (metalama/Metalama#2098) makes the following cho
 - The design-time stage also accumulates the inheritable aspects, which it lost in the same way.
 - The compile-time linker stage still publishes only the transitive contributors of its own stage, so the compile-time transitive manifest loses those of the earlier stages in the same way. The fix needs a context object for `ExecutePipelineContributorsAsync` first, because that hook also receives the replayed contributors in every stage. It is tracked by metalama/Metalama#2108.
 
+The implementation of the open-source items of M1 makes the following choices.
+
+- LAMA0295 is no longer free: metalama/Metalama#2052 uses it for `CantResolveDeclarativeAdvice`, after the check of PO41. The inspection-only source expressions use LAMA0297 as planned. `AnyAwaitable` (section [10.6.9](10b-oss-linker-and-templates.md#1069-anyawaitable)) must take another identifier than LAMA0295 for its `ConfigureAwait` diagnostic.
+- An inspection-only expression is also refused by the textual conversion of expressions (`IExpressionHelper.ConvertExpressionToText`), which can produce generated code, and not only by the template expansion.
+- The emission of an inspection-only expression is tested by the aspect tests of the proof of concept (folder `SourceExpressions`), through a verb that creates the expression, instead of template tests. Template tests have no way to obtain such an expression, because only an extension can create it.
+
 ### 15.1 Top decisions
 
 | Id | Question | Recommendation | Consequence of the alternative | Needed before |

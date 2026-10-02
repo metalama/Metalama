@@ -8,8 +8,10 @@ using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Queries;
+using Metalama.Framework.Engine.Templating;
 using Metalama.Framework.Fabrics;
 using Microsoft.CodeAnalysis;
+using System;
 using System.Collections.Immutable;
 using System.Linq;
 
@@ -71,6 +73,14 @@ internal sealed class TestRegistrationService : ITestRegistrationService
 
         queryImpl.Owner.AddContributor(
             new TestRedirection( methodName, origin, options, null, (replacementTypeName, replacementMethodName), null, queryImpl, null ) );
+    }
+
+    public IExpression GetInspectionOnlyInitializer( IFieldOrProperty fieldOrProperty )
+    {
+        var syntax = fieldOrProperty.InitializerExpression?.GetSourceSyntax()
+                     ?? throw new InvalidOperationException( $"'{fieldOrProperty}' has no initializer in source code." );
+
+        return SourceExpressionFactory.CreateInspectionOnly( syntax, fieldOrProperty.Type );
     }
 
     public void Register<T>( IQuery<T> query, string tag )
