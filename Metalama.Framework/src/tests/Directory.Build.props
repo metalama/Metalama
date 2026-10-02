@@ -11,6 +11,11 @@
 
         <AddAssemblyMetadataAttributes>False</AddAssemblyMetadataAttributes>
 
+        <!-- The documentation of test projects is not packaged, so the internal members do not need to be removed from it.
+             The CleanXmlDoc target also loads the project in a design-time build, which changes CoreCompileInputs.cache
+             and causes the next build to run CoreCompile again (see the Issue2060 standalone test). -->
+        <EnableCleanXmlDoc>False</EnableCleanXmlDoc>
+
     </PropertyGroup>
 
 </Project>
