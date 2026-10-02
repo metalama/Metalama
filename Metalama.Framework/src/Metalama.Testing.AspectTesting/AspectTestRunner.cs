@@ -475,23 +475,25 @@ internal class AspectTestRunner : BaseTestRunner
             Path.GetDirectoryName( testInput.RelativePath ) ?? "",
             Path.GetFileNameWithoutExtension( testInput.RelativePath ) + FileExtensions.ProgramOutput );
 
+        string? programNotExecutedMessage = null;
+
         if ( !string.IsNullOrWhiteSpace( actualProgramOutput ) )
         {
             // If the expectation file does not exist, create it with some placeholder content.
-            if ( !File.Exists( expectedProgramOutputPath ) )
+            if ( !this.FileSystem.FileExists( expectedProgramOutputPath ) )
             {
                 // Coverage: Ignore
 
-                File.WriteAllText(
+                this.FileSystem.WriteAllText(
                     expectedProgramOutputPath,
                     "TODO: Replace this file with the correct program output. See the test output for the actual transformed code." );
             }
 
-            expectedProgramOutput = TestOutputNormalizer.NormalizeEndOfLines( File.ReadAllText( expectedProgramOutputPath ) );
+            expectedProgramOutput = TestOutputNormalizer.NormalizeEndOfLines( this.FileSystem.ReadAllText( expectedProgramOutputPath ) );
 
             if ( actualProgramOutput != expectedProgramOutput )
             {
-                File.WriteAllText( actualProgramOutputPath, actualProgramOutput );
+                this.FileSystem.WriteAllText( actualProgramOutputPath, actualProgramOutput );
             }
 
             this.Logger?.WriteLine( "=== ACTUAL PROGRAM OUTPUT ===" );
@@ -502,24 +504,62 @@ internal class AspectTestRunner : BaseTestRunner
         {
             expectedProgramOutput = "";
 
-            if ( File.Exists( expectedProgramOutputPath ) && string.IsNullOrWhiteSpace( File.ReadAllText( expectedProgramOutputPath ) ) )
+            var existingExpectedProgramOutput = this.FileSystem.FileExists( expectedProgramOutputPath )
+                ? this.FileSystem.ReadAllText( expectedProgramOutputPath )
+                : null;
+
+            if ( existingExpectedProgramOutput != null && string.IsNullOrWhiteSpace( existingExpectedProgramOutput ) )
             {
                 // Coverage: Ignore
 
-                File.Delete( expectedProgramOutputPath );
+                this.FileSystem.DeleteFile( expectedProgramOutputPath );
+            }
+            else if ( existingExpectedProgramOutput != null )
+            {
+                if ( testResult.ProgramOutput != null )
+                {
+                    // The program was executed and wrote nothing, so the comparison must fail.
+                    expectedProgramOutput = TestOutputNormalizer.NormalizeEndOfLines( existingExpectedProgramOutput );
+                }
+                else if ( testResult.Success && CanExecuteProgram( testInput ) )
+                {
+                    programNotExecutedMessage =
+                        $"The expected program output '{expectedProgramOutputPath}' is not empty, but the program of the test was not executed. "
+                        + $"The test must declare a class named 'Program' with a static method named '{testInput.Options.MainMethod ?? "Main"}'.";
+                }
             }
 
-            if ( File.Exists( actualProgramOutputPath ) )
+            if ( this.FileSystem.FileExists( actualProgramOutputPath ) )
             {
                 // Coverage: Ignore
 
-                File.Delete( actualProgramOutputPath );
+                this.FileSystem.DeleteFile( actualProgramOutputPath );
             }
         }
 
         var aspectTestResult = (AspectTestResult) testResult;
 
-        aspectTestResult.SetProgramOutput( actualProgramOutput, actualProgramOutputPath, expectedProgramOutput, expectedProgramOutputPath );
+        aspectTestResult.SetProgramOutput(
+            actualProgramOutput,
+            actualProgramOutputPath,
+            expectedProgramOutput,
+            expectedProgramOutputPath,
+            programNotExecutedMessage );
+    }
+
+    /// <summary>
+    /// Determines whether the runner executes the program of a test. The program is never executed on .NET Framework, and it is not executed
+    /// when the test disables the execution.
+    /// </summary>
+    private static bool CanExecuteProgram( TestInput testInput )
+    {
+#if NET5_0_OR_GREATER
+        return testInput.Options.ExecuteProgram.GetValueOrDefault( true );
+#else
+        _ = testInput;
+
+        return false;
+#endif
     }
 
     protected override void ExecuteAssertions( TestInput testInput, TestResult testResult )
@@ -530,16 +570,24 @@ internal class AspectTestRunner : BaseTestRunner
         {
             var aspectTestResult = (AspectTestResult) testResult;
 
+            if ( aspectTestResult.ProgramNotExecutedMessage != null )
+            {
+                Assert.Fail( aspectTestResult.ProgramNotExecutedMessage );
+            }
+
             // Get the diff tool runner from plugins (may be null if DiffEngine package is not referenced).
             var diffToolRunner = testResult.MetalamaTestContext?.DiffToolRunner;
 
-            this.CompareFiles(
-                aspectTestResult.ExpectedProgramOutputText!,
-                aspectTestResult.ExpectedProgramOutputPath!,
-                aspectTestResult.ActualProgramOutputText!,
-                aspectTestResult.ActualProgramOutputPath!,
-                testInput.Options,
-                diffToolRunner );
+            if ( this.CompareFiles(
+                    aspectTestResult.ExpectedProgramOutputText!,
+                    aspectTestResult.ExpectedProgramOutputPath!,
+                    aspectTestResult.ActualProgramOutputText!,
+                    aspectTestResult.ActualProgramOutputPath!,
+                    testInput.Options,
+                    diffToolRunner ) )
+            {
+                Assert.Equal( aspectTestResult.ExpectedProgramOutputText, aspectTestResult.ActualProgramOutputText );
+            }
         }
 
 #if DEBUG
@@ -577,16 +625,23 @@ internal class AspectTestRunner : BaseTestRunner
 
         public string? ExpectedProgramOutputPath { get; private set; }
 
+        /// <summary>
+        /// Gets the message of the failure reported when the expected program output is not empty but the program was not executed, or <c>null</c>.
+        /// </summary>
+        public string? ProgramNotExecutedMessage { get; private set; }
+
         public void SetProgramOutput(
             string actualProgramOutputText,
             string actualProgramOutputPath,
             string expectedProgramOutputText,
-            string expectedProgramOutputPath )
+            string expectedProgramOutputPath,
+            string? programNotExecutedMessage )
         {
             this.ActualProgramOutputText = actualProgramOutputText;
             this.ActualProgramOutputPath = actualProgramOutputPath;
             this.ExpectedProgramOutputText = expectedProgramOutputText;
             this.ExpectedProgramOutputPath = expectedProgramOutputPath;
+            this.ProgramNotExecutedMessage = programNotExecutedMessage;
         }
     }
 
