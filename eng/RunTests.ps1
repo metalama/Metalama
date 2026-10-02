@@ -17,8 +17,9 @@
 
     An archive does not hold the files that the application takes from NuGet packages. Its manifest lists them, and this
     script puts them in place after it extracts the archive. It takes each package from the NuGet cache of this host when
-    the cache has the same package, or else from its URL on nuget.org, or else, for a package that a build of the product
-    or of a dependency publishes, from -PackagesPath, to which the build configuration downloads it. It takes a package by
+    the cache has the same package, or else from its URL on nuget.org, or else from another feed of nuget.config, whose
+    service index the manifest gives, or else, for a package that a build of the product or of a dependency publishes,
+    from -PackagesPath, to which the build configuration downloads it. It takes a package by
     its identifier and version only: it does not check its hash, because a build of the product signs the packages that
     ship after the archives have recorded them, which changes the nupkg but not its identifier or version.
 
@@ -29,8 +30,8 @@
     The directory that contains the archives. Defaults to artifacts/tests.
 
 .PARAMETER PackagesPath
-    The directory that contains the packages that are not from nuget.org, in any subdirectory. Defaults to
-    artifacts/test-packages.
+    The directory that contains the packages that the builds of the product and of its dependencies publish, which no
+    feed serves, in any subdirectory. Defaults to artifacts/test-packages.
 
 .PARAMETER Platform
     The platform to run: win-x64, win-arm64, linux-x64, linux-arm64, osx-x64 or osx-arm64. Defaults to the platform
@@ -249,6 +250,42 @@ function Read-ArchiveManifest([string]$archivePath)
     }
 }
 
+# Returns the address of the package base address resource of a NuGet feed, read from its service index, with a trailing
+# slash. The manifest of an archive gives the service index of a feed other than nuget.org, because the address of the
+# packages on such a feed is known only from that index. The address is read once per feed and kept in
+# $script:FeedBaseAddresses. A feed that cannot be read is returned with an Error.
+function Get-FeedPackageBaseAddress([string]$feed)
+{
+    if ($script:FeedBaseAddresses.ContainsKey($feed))
+    {
+        return $script:FeedBaseAddresses[$feed]
+    }
+
+    try
+    {
+        $index = Invoke-RestMethod -Uri $feed -MaximumRetryCount 4 -RetryIntervalSec 5 -ErrorAction Stop
+        $resource = @($index.resources | Where-Object { $_.'@type' -eq 'PackageBaseAddress/3.0.0' }) | Select-Object -First 1
+
+        # ProGet writes the address with a leading space, which NuGet ignores, so it is trimmed.
+        $result = if ($resource -and $resource.'@id' -and $resource.'@id'.Trim())
+        {
+            @{ Address = $resource.'@id'.Trim().TrimEnd('/') + '/' }
+        }
+        else
+        {
+            @{ Error = "The service index declares no PackageBaseAddress/3.0.0 resource." }
+        }
+    }
+    catch
+    {
+        $result = @{ Error = "The service index cannot be read: $( $_.Exception.Message )" }
+    }
+
+    $script:FeedBaseAddresses[$feed] = $result
+
+    return $result
+}
+
 # Finds a package that the manifest of an archive lists, and returns where its files are: the directory of the package in
 # the NuGet cache, or a nupkg. A package that cannot be found is returned with an Error, which fails the archives that need
 # it and not the others.
@@ -269,7 +306,26 @@ function Get-Package([hashtable]$package)
         return @{ Directory = $cacheDirectory }
     }
 
-    if (-not $package.Url)
+    # A package of nuget.org has a URL. A package of another feed has the service index of the feed, from which the URL is
+    # computed. A package that a build of the product or of a dependency publishes has neither.
+    $url = $package.Url
+
+    if (-not $url -and $package.Feed)
+    {
+        $baseAddress = Get-FeedPackageBaseAddress $package.Feed
+
+        if ($baseAddress.Error)
+        {
+            return @{ Error = "The package '$id' $version cannot be downloaded from the feed $( $package.Feed ). $( $baseAddress.Error )" }
+        }
+
+        # The package base address resource takes the identifier and the version in lower case.
+        $lowerId = $id.ToLowerInvariant()
+        $lowerVersion = $version.ToLowerInvariant()
+        $url = "$( $baseAddress.Address )$lowerId/$lowerVersion/$lowerId.$lowerVersion.nupkg"
+    }
+
+    if (-not $url)
     {
         # The build configuration downloads the package from the build that published it, under its original file name, to
         # a directory per producer. The file name is compared without case, because the manifest has the identifier and the
@@ -294,17 +350,17 @@ function Get-Package([hashtable]$package)
         {
             New-Item -ItemType Directory -Path (Split-Path $file) -Force | Out-Null
             $temporaryFile = "$file.download"
-            Write-Host "Downloading $( $package.Url )." -ForegroundColor DarkGray
+            Write-Host "Downloading $url." -ForegroundColor DarkGray
 
             try
             {
-                Invoke-WebRequest -Uri $package.Url -OutFile $temporaryFile -MaximumRetryCount 4 -RetryIntervalSec 5 -ErrorAction Stop
+                Invoke-WebRequest -Uri $url -OutFile $temporaryFile -MaximumRetryCount 4 -RetryIntervalSec 5 -ErrorAction Stop
             }
             catch
             {
                 Remove-Item -LiteralPath $temporaryFile -Force -ErrorAction SilentlyContinue
 
-                return @{ Error = "The package '$id' $version cannot be downloaded from $( $package.Url ): $( $_.Exception.Message )" }
+                return @{ Error = "The package '$id' $version cannot be downloaded from $( $url ): $( $_.Exception.Message )" }
             }
 
             Move-Item -LiteralPath $temporaryFile -Destination $file -Force
@@ -1217,6 +1273,7 @@ try
 
     # Each package is found, downloaded and checked once, before the applications start, and not once per archive.
     $script:Packages = @{ }
+$script:FeedBaseAddresses = @{ }
 
     foreach ($package in @($runs | ForEach-Object { $_.Manifest.Packages }))
     {

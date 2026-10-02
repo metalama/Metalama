@@ -622,7 +622,7 @@ object RunAllTestArchives : BuildType({
     type = Type.COMPOSITE
 
     vcs {
-        root(AbsoluteId("Metalama_Metalama20261_Metalama"))
+        root(AbsoluteId("Metalama_Metalama20270_Metalama"))
         showDependenciesChanges = true
      checkoutMode = CheckoutMode.ON_AGENT
     }
@@ -636,10 +636,10 @@ object RunAllTestArchives : BuildType({
     }
 
     dependencies {
-        snapshot(PlatformTestLinuxX64Net80) {
+        snapshot(PlatformTestLinuxX64Net100) {
                  onDependencyFailure = FailureAction.FAIL_TO_START
         }
-        snapshot(PlatformTestMacOsArm64Net80) {
+        snapshot(PlatformTestMacOsArm64Net100) {
                  onDependencyFailure = FailureAction.FAIL_TO_START
         }
      }
@@ -909,9 +909,9 @@ object RunAllDockerTests : BuildType({
 
 })
 
-object PlatformTestLinuxX64Net80 : BuildType({
+object PlatformTestLinuxX64Net100 : BuildType({
 
-    name = "Platform Tests Linux x64: net8.0"
+    name = "Platform Tests Linux x64: net10.0"
 
     artifactRules = """+:artifacts/testResults/**/*=>artifacts/testResults"""
 
@@ -924,7 +924,7 @@ object PlatformTestLinuxX64Net80 : BuildType({
     }
 
     vcs {
-        root(AbsoluteId("Metalama_Metalama20261_Metalama"))
+        root(AbsoluteId("Metalama_Metalama20270_Metalama"))
      checkoutMode = CheckoutMode.ON_AGENT
     }
 
@@ -940,14 +940,14 @@ object PlatformTestLinuxX64Net80 : BuildType({
             scriptArgs = "-DeferToContainer "
         }
         powerShell {
-            name = "Prepare Docker image metalama-2026.1-platformtestlinuxx64net80"
+            name = "Prepare Docker image metalama-2027.0-platformtestlinuxx64net100"
             id = "PrepareImage"
             edition = PowerShellStep.Edition.Core
             scriptMode = file {
                 path = "DockerBuild.ps1"
             }
             noProfile = false
-            scriptArgs = "-BuildImage -ImageName metalama-2026.1-platformtestlinuxx64net80 -Dockerfile eng/docker/linux-x64-build.Dockerfile "
+            scriptArgs = "-BuildImage -ImageName metalama-2027.0-platformtestlinuxx64net100 -Dockerfile eng/docker/linux-x64-build.Dockerfile "
         }
         powerShell {
             name = "Execute eng/RunTests.ps1"
@@ -957,7 +957,7 @@ object PlatformTestLinuxX64Net80 : BuildType({
                 path = "DockerBuild.ps1"
             }
             noProfile = false
-            scriptArgs = "-Script eng/RunTests.ps1 -ImageName metalama-2026.1-platformtestlinuxx64net80 -Dockerfile eng/docker/linux-x64-build.Dockerfile -NoBuildImage -Label %system.teamcity.buildType.id%_%build.number% -Platform linux-x64 %Exec.Arguments%"
+            scriptArgs = "-Script eng/RunTests.ps1 -ImageName metalama-2027.0-platformtestlinuxx64net100 -Dockerfile eng/docker/linux-x64-build.Dockerfile -NoBuildImage -Label %system.teamcity.buildType.id%_%build.number% -Platform linux-x64 %Exec.Arguments%"
         }
         powerShell {
             name = "Clean up the build agent"
@@ -997,13 +997,13 @@ object PlatformTestLinuxX64Net80 : BuildType({
 
         artifacts(DebugBuild) { 
             cleanDestination = true
-            artifactRules = "+:artifacts/tests/Metalama.Framework.PlatformTests.net8.0.zip=>artifacts/tests"
+            artifactRules = "+:artifacts/tests/Metalama.Framework.PlatformTests.net10.0.zip=>artifacts/tests"
         }
-        snapshot(AbsoluteId("Metalama_Metalama20261_MetalamaCompiler_ReleaseBuild")) {
+        snapshot(AbsoluteId("Metalama_Metalama20270_MetalamaCompiler_ReleaseBuild")) {
                  onDependencyFailure = FailureAction.FAIL_TO_START
         }
 
-        artifacts(AbsoluteId("Metalama_Metalama20261_MetalamaCompiler_ReleaseBuild")) { 
+        artifacts(AbsoluteId("Metalama_Metalama20270_MetalamaCompiler_ReleaseBuild")) { 
             cleanDestination = true
             artifactRules = "+:artifacts/packages/Release/Shipping/Metalama.Compiler.Sdk.*.nupkg=>artifacts/test-packages/Metalama.Compiler"
         }
@@ -1011,9 +1011,9 @@ object PlatformTestLinuxX64Net80 : BuildType({
 
 })
 
-object PlatformTestMacOsArm64Net80 : BuildType({
+object PlatformTestMacOsArm64Net100 : BuildType({
 
-    name = "Platform Tests macOS ARM64: net8.0"
+    name = "Platform Tests macOS ARM64: net10.0"
 
     artifactRules = """+:artifacts/testResults/**/*=>artifacts/testResults"""
 
@@ -1026,7 +1026,7 @@ object PlatformTestMacOsArm64Net80 : BuildType({
     }
 
     vcs {
-        root(AbsoluteId("Metalama_Metalama20261_Metalama"))
+        root(AbsoluteId("Metalama_Metalama20270_Metalama"))
      checkoutMode = CheckoutMode.ON_AGENT
     }
 
@@ -1078,13 +1078,13 @@ object PlatformTestMacOsArm64Net80 : BuildType({
 
         artifacts(DebugBuild) { 
             cleanDestination = true
-            artifactRules = "+:artifacts/tests/Metalama.Framework.PlatformTests.net8.0.zip=>artifacts/tests"
+            artifactRules = "+:artifacts/tests/Metalama.Framework.PlatformTests.net10.0.zip=>artifacts/tests"
         }
-        snapshot(AbsoluteId("Metalama_Metalama20261_MetalamaCompiler_ReleaseBuild")) {
+        snapshot(AbsoluteId("Metalama_Metalama20270_MetalamaCompiler_ReleaseBuild")) {
                  onDependencyFailure = FailureAction.FAIL_TO_START
         }
 
-        artifacts(AbsoluteId("Metalama_Metalama20261_MetalamaCompiler_ReleaseBuild")) { 
+        artifacts(AbsoluteId("Metalama_Metalama20270_MetalamaCompiler_ReleaseBuild")) { 
             cleanDestination = true
             artifactRules = "+:artifacts/packages/Release/Shipping/Metalama.Compiler.Sdk.*.nupkg=>artifacts/test-packages/Metalama.Compiler"
         }
@@ -1107,9 +1107,9 @@ object PlatformTests : Project({
 
     name = "Platform Tests"
 
-    buildType(PlatformTestLinuxX64Net80)
-    buildType(PlatformTestMacOsArm64Net80)
+    buildType(PlatformTestLinuxX64Net100)
+    buildType(PlatformTestMacOsArm64Net100)
 
-    buildTypesOrder = arrayListOf(PlatformTestLinuxX64Net80,PlatformTestMacOsArm64Net80)
+    buildTypesOrder = arrayListOf(PlatformTestLinuxX64Net100,PlatformTestMacOsArm64Net100)
 
 })
