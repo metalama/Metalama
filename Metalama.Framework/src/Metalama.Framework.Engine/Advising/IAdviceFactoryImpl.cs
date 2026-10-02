@@ -7,6 +7,7 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Diagnostics;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel;
+using Metalama.Framework.Engine.Queries;
 
 namespace Metalama.Framework.Engine.Advising;
 
@@ -24,4 +25,15 @@ internal interface IAdviceFactoryImpl : IAdviceFactory
     IAdviceFactoryImpl WithTemplateClassInstance( TemplateClassInstance templateClassInstance );
 
     IAdviceFactoryImpl WithExplicitInterfaceImplementation( INamedType explicitlyImplementedInterfaceType );
+
+    /// <summary>
+    /// Returns a copy of the factory whose contributions are attributed to a given owner instead of the default owner of the state.
+    /// </summary>
+    IAdviceFactoryImpl WithOwner( IQueryOwner owner );
+
+    /// <summary>
+    /// Creates the extension context of an adviser that uses this factory.
+    /// </summary>
+    /// <param name="adviserOwner">The adviser when it is itself an owner, or <c>null</c>, in which case the owner of the factory is used.</param>
+    AdviserExtensionContext CreateExtensionContext( IQueryOwner? adviserOwner );
 }

@@ -22,7 +22,7 @@ using System.Threading;
 
 namespace Metalama.Framework.Engine.Aspects
 {
-    internal sealed class AspectBuilder<T> : IAspectBuilder<T>, IAspectBuilderInternal, IQueryOwner, IDisposable
+    internal sealed class AspectBuilder<T> : IAspectBuilder<T>, IAspectBuilderInternal, IQueryOwner, IExtensionContributionOriginSource, IDisposable
         where T : class, IDeclaration
     {
         private readonly AspectBuilderState _aspectBuilderState;
@@ -197,6 +197,8 @@ namespace Metalama.Framework.Engine.Aspects
         IAdviser<TNewDeclaration> IAdviser.With<TNewDeclaration>( TNewDeclaration declaration ) => this.With( declaration );
 
         public void AddContributor( IPipelineContributor contributor ) => this._aspectBuilderState.AddContributor( contributor );
+
+        public ExtensionContributionOrigin CaptureContributionOrigin() => this.AdviceFactory.CreateExtensionContext( this ).CaptureOrigin();
 
         public void Dispose() => this.AdviceFactory.Dispose();
     }

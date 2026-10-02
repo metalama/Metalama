@@ -6,6 +6,7 @@ using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Introspection;
+using Metalama.Framework.Engine.Queries;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.Utilities.UserCode;
@@ -38,6 +39,11 @@ internal sealed class AdviceFactoryState : IAdviceExecutionContext
     public ImmutableArray<ITransformation> Transformations { get; private set; } = ImmutableArray<ITransformation>.Empty;
 
     public AspectBuilderState? AspectBuilderState { get; set; }
+
+    /// <summary>
+    /// Gets or sets the default owner of the contributions made through every factory that shares this state. It is the aspect builder.
+    /// </summary>
+    public IQueryOwner? Owner { get; set; }
 
     public UserCodeExecutionContext ExecutionContext { get; }
 

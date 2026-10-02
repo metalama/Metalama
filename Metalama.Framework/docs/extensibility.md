@@ -343,6 +343,26 @@ public class MyPipelineExtension : PipelineExtension
 }
 ```
 
+### Contributions made through an adviser
+
+An extension method of `IAdviser<T>` that registers a contribution gets the engine state behind the adviser with `AdviserExtensibility.GetExtensionContext` (namespace `Metalama.Framework.Engine.Advising`). The returned `AdviserExtensionContext` gives:
+
+- `Owner`: the `IQueryOwner` to which the contributor is added. It is the aspect builder for an aspect, including the advisers that `With` and the introduction advice return, and the amender for a type fabric.
+- `AspectTarget` and `TemplateProvider`. The template provider takes `WithTemplateProvider` into account.
+- `ThrowIfDisposed()`, which throws when the aspect or the fabric has finished executing.
+- `CreateQuery( declaration )`, a query of one declaration owned by `Owner`.
+- `CaptureOrigin()`, which returns an `ExtensionContributionOrigin`: the predecessor, the description and the default template provider of the contribution, and the aspect layer to which the code that it produces is attributed.
+
+A contribution made through a query captures its origin with `ExtensionContributionOrigin.Capture( queryImpl.Owner )`. The origin of a project or namespace fabric holds no aspect instance, because the fabric amender belongs to the long-lived pipeline configuration.
+
+`AspectBuilderState.AddContributor` throws after `BuildAspect` has completed, because a contributor added later would not be part of the result of the aspect.
+
+### Transforming hook
+
+`PipelineExtension.ExecuteTransformingContributorsAsync( ExtensionTransformationContext, CancellationToken )` runs at the end of every high-level stage that runs the linker, after `ExecutePipelineContributorsAsync` and before the linker. It runs at compile time and in the preview, live-template and introspection scenarios, and not at design time. The context gives the contributors of the stage (`Contributors`) and those added by the aspects of the stage (`ContributorsAddedInStage`), the source compilation, the initial and final compilations of the stage, `HighLevelStageIndex`, `IsSourceStage` and a diagnostic sink. Only the first high-level stage has `IsSourceStage`; a low-level weaver starts a new stage.
+
+The in-repository proof of concept in `src/tests/Metalama.Framework.Tests.ExtensionPoints.*` and `src/tests/Metalama.Framework.Tests.AspectTests.ExtensionPoints` uses these extension points with the public API only. None of these assemblies is in an `InternalsVisibleTo` list, so its tests fail to compile if an extension point needs internal API. The design of the extension points is in `docs/future/interceptors/`, sections 10.2 and 10.3.
+
 ## Test Framework Plugins
 
 The test framework supports plugins for optional functionality like diff tools.
