@@ -6,7 +6,12 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Diagnostics;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Extensibility;
+using Metalama.Framework.Engine.ReferenceGraph;
 using Metalama.Framework.Tests.ExtensionPoints.Engine;
+using Microsoft.CodeAnalysis;
+using System;
+using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -29,15 +34,78 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
         Severity.Warning,
         "Registration '{0}' through the {1}: origin '{2}', predecessor {3}, template provider {4}, stage {5}, source stage {6}." );
 
+    /// <summary>
+    /// The warning that describes each reference that the extension reads from the shared index of source references.
+    /// </summary>
+    internal static DiagnosticDefinition<(string MethodName, string ReferencingSymbol, string ReferenceKinds, bool IsRestricted)> ReferenceObserved { get; } =
+        new( "TEST0002", Severity.Warning, "Reference to '{0}' from '{1}' ({2}), index restricted to declaration roots: {3}." );
+
     public override bool Initialize( PipelineExtensionInitializationContext context )
     {
         context.ServiceBuilder.Add( _ => new TestRegistrationService() );
-        context.AddDiagnosticDefinitions( [RegistrationObserved] );
+        context.AddDiagnosticDefinitions( [RegistrationObserved, ReferenceObserved] );
 
         return true;
     }
 
-    public override Task ExecuteTransformingContributorsAsync( ExtensionTransformationContext context, CancellationToken cancellationToken )
+    /// <summary>
+    /// Returns, in the first stage only, one requirement per requested method name for invocations and for the default reference kind, which
+    /// includes method groups.
+    /// </summary>
+    public override SourceIndexRequirements GetSourceIndexRequirements( SourceIndexRequirementsContext context )
+    {
+        var reports = context.Contributors.OfKind( TestContributorKinds.ReferenceReport ).ToList();
+
+        if ( reports.Count == 0 || context.HighLevelStageIndex != 0 )
+        {
+            return SourceIndexRequirements.None;
+        }
+
+        var requirements = reports
+            .Select( r => new ReferenceIndexerRequirements( ReferenceKinds.Invocation | ReferenceKinds.Default, false, DeclarationKind.Method, r.MethodName ) )
+            .ToImmutableArray();
+
+        ImmutableArray<SyntaxNode>? roots = reports.All( r => r.DeclarationRoots != null )
+            ? reports.SelectMany( r => r.DeclarationRoots!.Value ).ToImmutableArray()
+            : null;
+
+        return new SourceIndexRequirements( requirements ) { DeclarationRoots = roots };
+    }
+
+    public override async Task ExecuteTransformingContributorsAsync( ExtensionTransformationContext context, CancellationToken cancellationToken )
+    {
+        ReportRegistrations( context );
+        await ReportReferencesAsync( context, cancellationToken );
+    }
+
+    private static async Task ReportReferencesAsync( ExtensionTransformationContext context, CancellationToken cancellationToken )
+    {
+        var methodNames = new HashSet<string>( context.Contributors.OfKind( TestContributorKinds.ReferenceReport ).Select( r => r.MethodName ) );
+
+        if ( methodNames.Count == 0 || !context.IsSourceStage )
+        {
+            return;
+        }
+
+        var index = await context.SourceReferenceIndex.GetIndexAsync( cancellationToken );
+
+        var references = index.ReferencedSymbols
+            .Where( s => s.ReferencedSymbol.Kind == SymbolKind.Method && methodNames.Contains( s.ReferencedSymbol.Name ) )
+            .SelectMany( s => s.References.SelectMany( r => r.Nodes.Select( n => (Symbol: s.ReferencedSymbol, Reference: r, Node: n) ) ) )
+            .OrderBy( x => x.Node.Syntax.SyntaxTree?.FilePath, StringComparer.Ordinal )
+            .ThenBy( x => x.Node.Syntax.SpanStart );
+
+        foreach ( var (symbol, reference, node) in references )
+        {
+            context.Diagnostics.Report(
+                ReferenceObserved.CreateRoslynDiagnostic(
+                    node.Syntax.GetLocation(),
+                    (symbol.Name, reference.ReferencingSymbol.ToDisplayString(), node.ReferenceKind.ToString(),
+                     context.SourceReferenceIndex.IsRestrictedToDeclarationRoots) ) );
+        }
+    }
+
+    private static void ReportRegistrations( ExtensionTransformationContext context )
     {
         foreach ( var registration in context.Contributors.OfKind( TestContributorKinds.Registration ).OrderBy( r => r.Tag ) )
         {
@@ -56,7 +124,5 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
                     (registration.Tag, registration.Channel, registration.Origin.DiagnosticSourceDescription,
                      registration.Origin.Predecessor.Kind.ToString(), templateProvider, context.HighLevelStageIndex, context.IsSourceStage) ) );
         }
-
-        return Task.CompletedTask;
     }
 }

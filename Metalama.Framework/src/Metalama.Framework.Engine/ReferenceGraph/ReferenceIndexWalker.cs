@@ -94,6 +94,55 @@ internal sealed class ReferenceIndexWalker : SafeSyntaxWalker
         this.Visit( this._syntaxTree.GetRoot() );
     }
 
+    /// <summary>
+    /// Walks the syntax of one declaration: a member, a type, a namespace, a compilation unit, a variable declarator of a field or an event
+    /// field, or the expression body of a property or an indexer.
+    /// </summary>
+    /// <remarks>
+    /// A walk of a whole syntax tree enters the declaration of a field or of an expression body when it visits the enclosing declaration. A walk
+    /// that starts at such a node must enter it itself, because <see cref="IndexReference(SyntaxNode,SyntaxNodeOrToken,SyntaxToken,ReferenceKinds)"/>
+    /// ignores references outside of a declaration. All the roots of one walker must belong to the same syntax tree.
+    /// </remarks>
+    internal void VisitDeclarationRoot( SyntaxNode node )
+    {
+        this._syntaxTree ??= node.SyntaxTree;
+
+        switch ( node.Kind() )
+        {
+            case SyntaxKind.VariableDeclarator
+                when node is VariableDeclaratorSyntax { Parent.Parent: BaseFieldDeclarationSyntax fieldDeclaration } variable:
+                using ( this.EnterDeclaration( variable ) )
+                {
+                    this.VisitTypeReference( fieldDeclaration.Declaration.Type, ReferenceKinds.MemberType );
+
+                    if ( variable.Initializer != null && this._options.MustDescendIntoImplementation() )
+                    {
+                        this.Visit( variable.Initializer );
+                    }
+                }
+
+                break;
+
+            case SyntaxKind.ArrowExpressionClause
+                when node is ArrowExpressionClauseSyntax { Parent: BasePropertyDeclarationSyntax propertyDeclaration } arrow:
+                if ( this.SemanticModel.GetDeclaredSymbol( propertyDeclaration ) is { Kind: SymbolKind.Property } propertySymbol
+                     && ((IPropertySymbol) propertySymbol).GetMethod is { } getter )
+                {
+                    using ( this.EnterDeclaration( arrow, getter ) )
+                    {
+                        this.Visit( arrow );
+                    }
+                }
+
+                break;
+
+            default:
+                this.Visit( node );
+
+                break;
+        }
+    }
+
     public override void DefaultVisit( SyntaxNode node )
     {
         this._cancellationToken.ThrowIfCancellationRequested();
