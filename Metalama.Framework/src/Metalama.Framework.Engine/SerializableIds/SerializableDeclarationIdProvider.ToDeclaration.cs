@@ -46,7 +46,9 @@ public static partial class SerializableDeclarationIdProvider
 
     private static ICompilationElement? ResolveToDeclarationCore( SerializableDeclarationId id, CompilationModel compilation )
     {
-        var idString = id.Id;
+        // The discriminator of a file-local type is removed before the identifier is parsed, so that the rest of the
+        // parsing sees the string that a declaration outside a file-local type would have produced.
+        var idString = id.StripFileLocalType( out var fileLocalTypeMetadataName ).Id;
 
         var indexOfAt = idString.IndexOfOrdinal( ';' );
 
@@ -80,7 +82,7 @@ public static partial class SerializableDeclarationIdProvider
 
             foreach ( var candidate in orderedCandidates )
             {
-                if ( ResolveChild( candidate ) is { } child )
+                if ( MatchesFileLocalType( candidate, fileLocalTypeMetadataName ) && ResolveChild( candidate ) is { } child )
                 {
                     return child;
                 }
@@ -136,8 +138,32 @@ public static partial class SerializableDeclarationIdProvider
         }
         else
         {
-            return DocumentationIdHelper.GetFirstDeclarationForDeclarationId( idString, compilation );
+            return GetFirstDeclarationForDeclarationId( idString, compilation, fileLocalTypeMetadataName );
         }
+    }
+
+    /// <summary>
+    /// Returns the first declaration that matches the given documentation comment identifier and belongs to the
+    /// file-local type that the identifier named, or <c>null</c> when there is none.
+    /// </summary>
+    /// <remarks>
+    /// A documentation comment identifier cannot express a file-local type, so the compilation can contain several
+    /// declarations that match it. All of them are enumerated and the discriminator selects among them.
+    /// </remarks>
+    private static IDeclaration? GetFirstDeclarationForDeclarationId(
+        string documentationId,
+        CompilationModel compilation,
+        string? fileLocalTypeMetadataName )
+    {
+        foreach ( var candidate in DocumentationIdHelper.GetDeclarationsForDeclarationId( documentationId, compilation ) )
+        {
+            if ( MatchesFileLocalType( candidate, fileLocalTypeMetadataName ) )
+            {
+                return candidate;
+            }
+        }
+
+        return null;
     }
 
     /// <summary>

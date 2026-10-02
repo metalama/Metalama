@@ -850,7 +850,7 @@ passes unless a finding depends on them, so they are recorded as read on 2026-09
   version is read from the assembly version of the Roslyn assembly, with a special case for the JetBrains build
   (`ResourceExtractor.cs:633-656`), and the assembly resolution accepts a same-or-higher version for non-embedded
   assemblies (`AssemblyResolutionPolicy.cs:61-80`). A host below Roslyn 5.0 gets no variant and a report file
-  (`ResourceExtractor.cs:157-211`), and the compiler entry point reports `LAMA0087`
+  (`ResourceExtractor.cs:157-211`), and the compiler entry point reports `LAMA0089`
   (`MetalamaSourceTransformer.cs:23-31` and `:48-63`); every other entry point routes through the same factory and
   holds no version literal. The embedded resource lists (`Metalama.Framework.CompilerExtensions.csproj:53-70`) name
   the `net472` and `net10.0` outputs, and [`platform-support.md`](../platform-support.md):141-160 records that the

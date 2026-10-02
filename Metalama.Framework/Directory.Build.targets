@@ -3,7 +3,9 @@
     <Import Sdk="PostSharp.Engineering.Sdk" Project="AssemblyMetadata.targets"/>
     <Import Sdk="PostSharp.Engineering.Sdk" Project="TeamCity.targets"/>
     <Import Sdk="PostSharp.Engineering.Sdk" Project="CodeQuality.targets"/>
-    <Import Sdk="PostSharp.Engineering.Sdk" Project="CleanXmlDoc.targets" Condition="'$(EngineeringConfiguration)'=='Public'"/>
+    <!-- The CleanXmlDoc target removes the internal members from the documentation file that gets packaged. Projects that are not
+         packaged, and projects that set EnableCleanXmlDoc to False, do not import it. -->
+    <Import Sdk="PostSharp.Engineering.Sdk" Project="CleanXmlDoc.targets" Condition="'$(EngineeringConfiguration)'=='Public' AND '$(EnableCleanXmlDoc)'!='False' AND '$(IsPackable)'!='False'"/>
 
 
 

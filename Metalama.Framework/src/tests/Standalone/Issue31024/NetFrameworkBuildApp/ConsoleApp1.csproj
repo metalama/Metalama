@@ -56,6 +56,10 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Metalama.Framework" />
+    <!-- The build container installs no .NET Framework targeting pack, so the reference assemblies come from this package. The
+         .NET SDK adds this package implicitly to SDK-style projects, so central package management forbids a PackageVersion
+         for it, and the version is given here. -->
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" VersionOverride="1.0.3" PrivateAssets="all" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)/Microsoft.CSharp.targets" />
 </Project>

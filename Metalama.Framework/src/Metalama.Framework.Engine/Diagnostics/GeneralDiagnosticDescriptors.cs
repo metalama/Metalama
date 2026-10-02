@@ -571,6 +571,31 @@ namespace Metalama.Framework.Engine.Diagnostics
                     Warning,
                     "The analysis of the references retained by compile-time code is complete." );
 
+        // A manifest that cannot be read makes one reference unusable, so the aspects inherited through that reference
+        // are lost. It says nothing about the consuming project, whose own aspects, diagnostics and suppressions must
+        // still be produced, therefore the reference is skipped instead of the execution being aborted. The diagnostic
+        // is reported during initialization, which does not stop the pipeline, so the design-time pass still produces
+        // the rest of its result. The severity is an error because, during a batch compilation, an inherited aspect
+        // that is not applied changes the emitted code, and such a compilation must fail. See #2049.
+        internal static readonly DiagnosticDefinition<(string Reference, string Reason)>
+            CannotReadTransitiveAspectManifest =
+                new(
+                    "LAMA0087",
+                    _category,
+                    "Metalama cannot read the transitive aspect manifest of the reference '{0}', therefore no aspect is "
+                    + "inherited from that reference. The rest of the project is analyzed normally. The reason is: {1}",
+                    Error,
+                    "The transitive aspect manifest of a reference cannot be read." );
+
+        internal static readonly DiagnosticDefinition<(string DeclaringType, string Declaration, string Compilation)>
+            IntroducedDeclaringTypeNotFound =
+                new(
+                    "LAMA0088",
+                    _category,
+                    "The declaring type '{0}' of the introduced declaration '{1}' cannot be resolved in the compilation '{2}'.",
+                    Error,
+                    "The declaring type of an introduced declaration cannot be resolved." );
+
         // The language version of a compile-time project is serialized as an integer, so a project built by a higher
         // Roslyn version can carry a version that the Roslyn of the current process does not accept. Parsing at that
         // version makes Roslyn report CS8192 on every syntax tree of the compile-time project and fails the whole
@@ -580,7 +605,7 @@ namespace Metalama.Framework.Engine.Diagnostics
         internal static readonly DiagnosticDefinition<(AssemblyIdentity ReferencedAssembly, string RequiredVersion, string SupportedVersion)>
             CompileTimeLanguageVersionTooHigh =
                 new(
-                    "LAMA0088",
+                    "LAMA0090",
                     _category,
                     "The compile-time code of '{0}' was compiled with the C# language version {1}, but the current process "
                     + "runs a version of Roslyn that supports at most the C# language version {2}. That code is read as C# {2} "

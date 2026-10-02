@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -31,6 +31,7 @@ using Metalama.Framework.Engine.Utilities.Diagnostics;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Metalama.Framework.Services;
+using SharpCrafters.Common.Testing.Hooks;
 using Microsoft.CodeAnalysis;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
@@ -54,12 +55,35 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
     private readonly SemaphoreSlim _sync = new( 1, 1 );
     private readonly IDesignTimeEntryPointConsumer? _entryPointConsumer;
     private readonly AnalysisProcessEventHub? _eventHub;
+
+    /// <summary>
+    /// The optional test synchronization service. It is never registered in production, in which case every
+    /// synchronization point is skipped.
+    /// </summary>
+    private readonly ITestSynchronizationProvider? _testSyncProvider;
     private readonly DesignTimeAspectPipelineFactory _pipelineFactory;
     private readonly ITaskRunner _taskRunner;
     private readonly ProjectVersionProvider _projectVersionProvider;
     private readonly IUserDiagnosticRegistrationService? _userDiagnosticsRegistrationService;
     private readonly DesignTimeExceptionHandler _exceptionHandler;
     private readonly CancellationToken _applicationExitingToken;
+
+    /// <summary>
+    /// Cancelled when the pipeline is disposed, or when the application exits. The asynchronous operations of the
+    /// pipeline observe this token, so that an operation that is still in flight when the pipeline is disposed ends
+    /// with an <see cref="OperationCanceledException"/> instead of failing on a resource of the disposed pipeline.
+    /// See #2085.
+    /// </summary>
+    private readonly CancellationTokenSource _disposeCancellationTokenSource;
+
+    /// <inheritdoc cref="_disposeCancellationTokenSource"/>
+    private readonly CancellationToken _disposeCancellationToken;
+
+    /// <summary>
+    /// Zero until <see cref="Dispose(bool)"/> runs, then one. The factory and the tests may dispose a pipeline more
+    /// than once.
+    /// </summary>
+    private int _isDisposed;
 
     private bool _mustProcessQueue;
 
@@ -101,6 +125,9 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
         this._eventHub = this.ServiceProvider.Global.GetService<AnalysisProcessEventHub>();
         this._exceptionHandler = this.ServiceProvider.Global.GetRequiredService<DesignTimeExceptionHandler>();
         this._applicationExitingToken = this.ServiceProvider.Global.GetRequiredService<ApplicationExitManager>().Token;
+        this._disposeCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource( this._applicationExitingToken );
+        this._disposeCancellationToken = this._disposeCancellationTokenSource.Token;
+        this._testSyncProvider = this.ServiceProvider.Global.Underlying.GetService( typeof(ITestSynchronizationProvider) ) as ITestSynchronizationProvider;
 
         if ( this._eventHub != null )
         {
@@ -282,17 +309,17 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
 #pragma warning disable VSTHRD100
     private async void OnTouchFileChanged( object sender, FileSystemEventArgs e )
     {
+        if ( this.Status != DesignTimeAspectPipelineStatus.Paused )
+        {
+            return;
+        }
+
         try
         {
-            if ( this.Status != DesignTimeAspectPipelineStatus.Paused )
-            {
-                return;
-            }
-
             // There was an external build. Touch the files to re-run the analyzer.
             this.Logger.Trace?.Log( $"Detected an external build for project '{this.ProjectKey}'." );
 
-            await this.ResumeAsync( AsyncExecutionContext.Get(), false, this._applicationExitingToken );
+            await this.ResumeAsync( AsyncExecutionContext.Get(), false, this._disposeCancellationToken );
 
             // Raise the event.
             if ( this._eventHub != null )
@@ -300,9 +327,23 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
                 await this._eventHub.OnExternalBuildCompletedEventAsync( this.ProjectKey );
             }
         }
+        catch ( OperationCanceledException ) when ( this._disposeCancellationToken.IsCancellationRequested )
+        {
+            // The pipeline was disposed, or the application is exiting, while the build was being processed.
+            this.Logger.Trace?.Log( $"The processing of the external build for project '{this.ProjectKey}' was cancelled." );
+        }
         catch ( Exception exception )
         {
             this._exceptionHandler.ReportException( exception, this.ProjectOptions );
+        }
+        finally
+        {
+            // Test synchronization point: lets a test wait until a handler that found the pipeline paused has completed,
+            // because the handler is not awaitable.
+            if ( this._testSyncProvider != null )
+            {
+                await this._testSyncProvider.SyncPointAsync( "DesignTimeAspectPipeline.OnTouchFileChanged.Completed", this._applicationExitingToken );
+            }
         }
     }
 #pragma warning restore VSTHRD100
@@ -403,9 +444,22 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
 
     protected override void Dispose( bool disposing )
     {
+        if ( Interlocked.Exchange( ref this._isDisposed, 1 ) != 0 )
+        {
+            return;
+        }
+
+        // Cancel the operations that are still in flight before releasing any resource, so that they end with an
+        // OperationCanceledException instead of failing on a resource of the disposed pipeline. See #2085.
+        this._disposeCancellationTokenSource.Cancel();
+        this._disposeCancellationTokenSource.Dispose();
+
         base.Dispose( disposing );
         this._fileSystemWatcher?.Dispose();
-        this._sync.Dispose();
+
+        // The semaphore is deliberately not disposed. SemaphoreSlim.Dispose is not safe to call while another thread
+        // waits on the semaphore, and a cancelled operation may still be waiting. The semaphore holds no unmanaged
+        // resource, because AvailableWaitHandle is never used.
 
         if ( this._eventHub != null )
         {
@@ -431,7 +485,28 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
 
     internal async ValueTask ResetCacheAsync( AsyncExecutionContext executionContext, CancellationToken cancellationToken )
     {
-        using ( await this.WithLockAsync( executionContext, cancellationToken ) )
+        // Test synchronization point: lets a test dispose the pipeline while a cache reset is pending.
+        if ( this._testSyncProvider != null )
+        {
+            await this._testSyncProvider.SyncPointAsync( "DesignTimeAspectPipeline.ResetCacheAsync.BeforeLock", cancellationToken );
+        }
+
+        Lock @lock;
+
+        try
+        {
+            @lock = await this.WithLockAsync( executionContext, cancellationToken );
+        }
+        catch ( OperationCanceledException ) when ( this._disposeCancellationToken.IsCancellationRequested && !cancellationToken.IsCancellationRequested )
+        {
+            // The pipeline was disposed while the reset was pending. It has no cache to reset, and the caller must
+            // still reset the other pipelines.
+            this.Logger.Trace?.Log( $"The cache of project '{this.ProjectKey}' is not reset because the pipeline was disposed." );
+
+            return;
+        }
+
+        using ( @lock )
         {
             try
             {
@@ -1178,6 +1253,10 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
 
     private async ValueTask<Lock> WithLockAsync( AsyncExecutionContext executionContext, int timeout, CancellationToken cancellationToken )
     {
+        // A disposed pipeline accepts no operation. The check is repeated after the wait, because the pipeline can be
+        // disposed while the operation waits for the lock.
+        this._disposeCancellationToken.ThrowIfCancellationRequested();
+
         if ( this._sync.CurrentCount < 1 )
         {
             this.Logger.Trace?.Log( $"Waiting for lock on '{this.ProjectKey}'." );
@@ -1203,6 +1282,12 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
         }
 
         Action? lockDisposeAction = null;
+
+        if ( acquired && this._disposeCancellationToken.IsCancellationRequested )
+        {
+            this._sync.Release();
+            this._disposeCancellationToken.ThrowIfCancellationRequested();
+        }
 
         if ( acquired )
         {

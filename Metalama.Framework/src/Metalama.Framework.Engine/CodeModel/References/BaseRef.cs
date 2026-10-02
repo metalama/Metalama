@@ -34,6 +34,22 @@ internal abstract class BaseRef<T> : ISdkRef, IRef<T>
 
     public abstract SerializableDeclarationId ToSerializableId();
 
+    /// <summary>
+    /// Returns the <see cref="SerializableDeclarationId"/> of the referenced declaration, unless that declaration has none,
+    /// in which case the method returns <c>false</c>. This is the non-throwing form of <see cref="ToSerializableId"/>.
+    /// </summary>
+    /// <remarks>
+    /// This implementation always succeeds and serves the references that are identified by a string, for which
+    /// <see cref="ToSerializableId"/> cannot fail. The overrides that resolve a symbol or a declaration can fail, because
+    /// a local function, a local variable and a module have no identifier. See issue #2051.
+    /// </remarks>
+    public virtual bool TryGetSerializableId( out SerializableDeclarationId id )
+    {
+        id = this.ToSerializableId();
+
+        return true;
+    }
+
     public abstract IDurableRef<T> ToDurable();
 
     public abstract bool IsDurable { get; }

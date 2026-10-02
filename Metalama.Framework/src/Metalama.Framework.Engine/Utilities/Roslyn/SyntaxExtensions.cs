@@ -10,6 +10,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace Metalama.Framework.Engine.Utilities.Roslyn;
@@ -153,6 +154,172 @@ public static class SyntaxExtensions
 #pragma warning disable LAMA0830 // NormalizeWhitespace is expensive.
         return node.NormalizeWhitespace( elasticTrivia: true, eol: context.EndOfLine );
 #pragma warning restore LAMA0830
+    }
+
+    /// <summary>
+    /// The maximal depth of a node that <see cref="CanNormalizeWhitespace"/> accepts.
+    /// </summary>
+    private const int _maxNormalizedDepth = 100;
+
+    /// <summary>
+    /// Determines whether the depth of the given node is small enough for
+    /// <see cref="Microsoft.CodeAnalysis.SyntaxNodeExtensions.NormalizeWhitespace{TNode}(TNode, string, string, bool)"/> to process it safely.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The normalizer of Roslyn is recursive. It calls itself for each ancestor of a node without checking the remaining
+    /// stack, so it can cause a <see cref="StackOverflowException"/> on a deep node (see #2083). Such a node typically
+    /// comes from user code.
+    /// </para>
+    /// <para>
+    /// The method uses an explicit stack instead of a recursion, so that it can process a deep node. It returns as soon as
+    /// it finds a descendant that is too deep.
+    /// </para>
+    /// </remarks>
+    internal static bool CanNormalizeWhitespace( this SyntaxNode node )
+    {
+        var stack = new Stack<(SyntaxNode Node, int Depth)>();
+        stack.Push( (node, 0) );
+
+        while ( stack.Count > 0 )
+        {
+            var (current, depth) = stack.Pop();
+
+            if ( depth > _maxNormalizedDepth )
+            {
+                return false;
+            }
+
+            foreach ( var child in current.ChildNodes() )
+            {
+                stack.Push( (child, depth + 1) );
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Adds a space after each token of the given node that the lexer would merge with the next token, because no trivia
+    /// separates them. The other trivia do not change.
+    /// </summary>
+    /// <remarks>
+    /// This method is an alternative to <see cref="Microsoft.CodeAnalysis.SyntaxNodeExtensions.NormalizeWhitespace{TNode}(TNode, string, string, bool)"/>
+    /// for a node that <see cref="CanNormalizeWhitespace"/> rejects. It enumerates the tokens without a recursion and
+    /// rewrites the node with a <see cref="SafeSyntaxRewriter"/>, so that it can process a deep node (see #2083).
+    /// </remarks>
+    internal static TNode AddMissingTokenSeparators<TNode>( this TNode node )
+        where TNode : SyntaxNode
+    {
+        var tokensRequiringSeparator = new HashSet<SyntaxToken>();
+        SyntaxToken? previousToken = null;
+
+        foreach ( var token in node.DescendantTokens() )
+        {
+            if ( previousToken != null && RequiresSeparator( previousToken.Value, token ) )
+            {
+                tokensRequiringSeparator.Add( previousToken.Value );
+            }
+
+            previousToken = token;
+        }
+
+        if ( tokensRequiringSeparator.Count == 0 )
+        {
+            return node;
+        }
+
+        return (TNode) new AddTokenSeparatorRewriter( tokensRequiringSeparator ).Visit( node ).AssertNotNull();
+    }
+
+    /// <summary>
+    /// Returns the text of the given node, like <see cref="SyntaxNode.ToString"/>, but with a space between two tokens that
+    /// the lexer would merge because no trivia separates them.
+    /// </summary>
+    /// <remarks>
+    /// This method is an alternative to <see cref="Microsoft.CodeAnalysis.SyntaxNodeExtensions.NormalizeWhitespace{TNode}(TNode, string, string, bool)"/>
+    /// for a node that <see cref="CanNormalizeWhitespace"/> rejects. It enumerates the tokens without a recursion, so that it
+    /// can process a deep node (see #2083). The trivia and the text of the tokens, including the content of interpolated
+    /// strings, do not change.
+    /// </remarks>
+    internal static string ToStringWithTokenSeparators( this SyntaxNode node )
+    {
+        var stringBuilder = new StringBuilder();
+        SyntaxToken? previousToken = null;
+
+        foreach ( var token in node.DescendantTokens() )
+        {
+            if ( previousToken != null )
+            {
+                stringBuilder.Append( previousToken.Value.TrailingTrivia.ToFullString() );
+
+                if ( RequiresSeparator( previousToken.Value, token ) )
+                {
+                    stringBuilder.Append( ' ' );
+                }
+
+                stringBuilder.Append( token.LeadingTrivia.ToFullString() );
+            }
+
+            stringBuilder.Append( token.Text );
+
+            previousToken = token;
+        }
+
+        return stringBuilder.ToString();
+    }
+
+    /// <summary>
+    /// Determines whether the lexer would read the two given adjacent tokens as a different sequence of tokens, because no
+    /// trivia separates them. For instance, <c>x</c> and <c>is</c> would be read as the identifier <c>xis</c>,
+    /// and <c>+</c> and <c>+</c> would be read as <c>++</c>.
+    /// </summary>
+    private static bool RequiresSeparator( SyntaxToken previousToken, SyntaxToken nextToken )
+    {
+        if ( previousToken.Span.End != previousToken.FullSpan.End || nextToken.Span.Start != nextToken.FullSpan.Start
+                                                                   || previousToken.Span.Length == 0 || nextToken.Span.Length == 0 )
+        {
+            // There is a trivia between the tokens, or one of the tokens is empty.
+            return false;
+        }
+
+        if ( previousToken.Kind() is SyntaxKind.InterpolatedStringStartToken or SyntaxKind.InterpolatedVerbatimStringStartToken
+                or SyntaxKind.InterpolatedSingleLineRawStringStartToken or SyntaxKind.InterpolatedMultiLineRawStringStartToken
+                or SyntaxKind.InterpolatedStringTextToken
+            || nextToken.Kind() is SyntaxKind.InterpolatedStringTextToken or SyntaxKind.InterpolatedStringEndToken
+                or SyntaxKind.InterpolatedRawStringEndToken )
+        {
+            // The content of an interpolated string must not change.
+            return false;
+        }
+
+        if ( previousToken.Kind() is SyntaxKind.InterpolatedStringEndToken or SyntaxKind.InterpolatedRawStringEndToken )
+        {
+            // The end of an interpolated string cannot be merged with the next token. It cannot be lexed alone because the
+            // lexer would read it as the start of a string.
+            return false;
+        }
+
+        var previousText = previousToken.Text;
+        var lexedToken = ParseToken( previousText + nextToken.Text );
+
+        return lexedToken.Text != previousText;
+    }
+
+    private sealed class AddTokenSeparatorRewriter : SafeSyntaxRewriter
+    {
+        private readonly HashSet<SyntaxToken> _tokensRequiringSeparator;
+
+        public AddTokenSeparatorRewriter( HashSet<SyntaxToken> tokensRequiringSeparator )
+        {
+            this._tokensRequiringSeparator = tokensRequiringSeparator;
+        }
+
+        // The space is required for the code to be valid, so it must be added even when the options do not require trivia.
+#pragma warning disable LAMA0832 // Avoid WithLeadingTrivia and WithTrailingTrivia calls.
+        public override SyntaxToken VisitToken( SyntaxToken token )
+            => this._tokensRequiringSeparator.Contains( token ) ? token.WithTrailingTrivia( token.TrailingTrivia.Add( Space ) ) : token;
+#pragma warning restore LAMA0832
     }
 
     internal static TNode WithSimplifierAnnotationIfNecessary<TNode>( this TNode node, SyntaxGenerationContext context )

@@ -51,6 +51,19 @@ internal partial class SymbolRef<T> : FullRef<T>, ISymbolRef<T>
         }
     }
 
+    /// <inheritdoc />
+    public override bool TryGetSerializableId( out SerializableDeclarationId id )
+    {
+        if ( this.SymbolMustBeMapped )
+        {
+            return ((IDeclaration) this.Definition).TryGetSerializableId( this.TargetKind, out id );
+        }
+        else
+        {
+            return this.Symbol.TryGetSerializableId( this.TargetKind, out id );
+        }
+    }
+
     public SymbolRef(
         ISymbol symbol,
         GenericContext? genericContextForSymbolMapping,

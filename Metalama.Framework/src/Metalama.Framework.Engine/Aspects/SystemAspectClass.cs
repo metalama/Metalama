@@ -9,6 +9,7 @@ using Metalama.Framework.Eligibility;
 using Metalama.Framework.Engine.AspectOrdering;
 using Metalama.Framework.Engine.AspectWeavers;
 using Metalama.Framework.Engine.CodeModel;
+using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Services;
 using Microsoft.CodeAnalysis;
 using System;
@@ -48,7 +49,10 @@ internal sealed class SystemAspectClass : IBoundAspectClass
         this.Type = type;
         this.Layer = new AspectLayer( this, null, shortName );
         this.Layers = ImmutableArray.Create( this.Layer );
-        this.AspectDriver = new AspectDriver( serviceProvider, this, compilation );
+
+        // A system aspect class has no template class, therefore no declarative advice, so the driver has no diagnostic
+        // to report while it is created.
+        this.AspectDriver = new AspectDriver( serviceProvider, this, compilation, NullDiagnosticAdder.Instance );
         this.GeneratedCodeAnnotation = MetalamaCompilerAnnotations.CreateGeneratedCodeAnnotation( shortName );
     }
 

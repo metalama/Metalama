@@ -141,6 +141,25 @@ internal sealed partial class IntroducedRef<T> : FullRef<T>, IIntroducedRef
     public override SerializableDeclarationId ToSerializableId()
         => this.ConstructedDeclaration.ToSerializableId().WithNullability( this._isNullable );
 
+    /// <inheritdoc />
+    /// <remarks>
+    /// The base implementation resolves the symbol, which an introduced declaration does not have, so this override
+    /// reproduces <see cref="ToSerializableId"/> over the non-throwing form of the identifier provider.
+    /// </remarks>
+    public override bool TryGetSerializableId( out SerializableDeclarationId id )
+    {
+        if ( !this.ConstructedDeclaration.TryGetSerializableId( out var declarationId ) )
+        {
+            id = default;
+
+            return false;
+        }
+
+        id = declarationId.WithNullability( this._isNullable );
+
+        return true;
+    }
+
     protected override ISymbol GetSymbolIgnoringRefKind( CompilationContext compilationContext ) => throw new NotSupportedException();
 
     /// <summary>

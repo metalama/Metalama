@@ -188,15 +188,16 @@ public abstract class BaseEndpoint : IDisposable
 
     protected virtual void Dispose( bool disposing )
     {
-        this.Logger.Trace?.Log( $"Disposing endpoint '{this.PipeName}'." );
+        // When the constructor has failed, the finalizer calls this method on an object whose fields can be null.
+        this.Logger?.Trace?.Log( $"Disposing endpoint '{this.PipeName}'." );
 
         try
         {
-            this._disposeCancellationSource.Cancel();
+            this._disposeCancellationSource?.Cancel();
         }
         catch ( Exception e )
         {
-            this.Logger.LogException( e );
+            this.Logger?.LogException( e );
         }
 
         GC.SuppressFinalize( this );
@@ -233,6 +234,22 @@ public abstract class BaseEndpoint : IDisposable
 
     ~BaseEndpoint()
     {
-        this.Dispose( false );
+        // An exception that escapes a finalizer is unhandled and terminates the process, so the finalizer must not throw.
+        try
+        {
+            this.Dispose( false );
+        }
+        catch ( Exception e )
+        {
+            // The logger is null when the constructor has failed, and it can be unusable on the finalizer thread.
+            try
+            {
+                this.Logger?.Error?.Log( $"Finalizing the endpoint '{this.PipeName}' failed: {e}" );
+            }
+            catch
+            {
+                // The exception cannot be reported.
+            }
+        }
     }
 }
