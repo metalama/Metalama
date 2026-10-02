@@ -64,9 +64,10 @@ var product = new Product( MetalamaDependencies.Metalama )
                     // the reference assemblies of a .NET Framework target framework from the
                     // Microsoft.NETFramework.ReferenceAssemblies packages, which is why net462 and net481 build
                     // although no component installs their packs. No project and no build script uses a tool of the
-                    // developer packs, such as sn.exe or al.exe. The desktop MSBuild builds, which are the ones that
-                    // do not necessarily follow the .NET SDK, were compared with and without these components and
-                    // reported the same diagnostics.
+                    // developer packs, such as sn.exe or al.exe. The desktop MSBuild builds do not necessarily follow
+                    // the .NET SDK: a project that is not an SDK-style project, such as the .NET Framework projects of
+                    // the Issue31024 and Issue32772 standalone tests, must reference the
+                    // Microsoft.NETFramework.ReferenceAssemblies package itself, or the desktop MSBuild reports MSB3644.
                 ] ),
 
             // Required to download test license keys.

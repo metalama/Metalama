@@ -42,6 +42,8 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Metalama.Framework" />
+    <!-- The build container installs no .NET Framework targeting pack, so the reference assemblies come from this package. -->
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" PrivateAssets="all" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="TargetClass.cs" />

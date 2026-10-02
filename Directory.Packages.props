@@ -225,6 +225,10 @@
     <PackageVersion Include="Microsoft.Build.Locator" Version="1.7.8" />
     <PackageVersion Include="Microsoft.VisualStudio.SolutionPersistence" Version="1.0.52" />
     <PackageVersion Include="Microsoft.CSharp" Version="4.7.0" />
+    <!-- Gives the reference assemblies of .NET Framework to the projects that are not SDK-style projects, such as the
+         standalone tests built with the desktop MSBuild. The build container installs no .NET Framework targeting pack
+         (see eng/src/Program.cs). -->
+    <PackageVersion Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" />
     
     <PackageVersion Include="PostSharp.Patterns.Model" Version="$(PostSharpPackageVersion)" />
     <PackageVersion Include="xunit.v3" Version="$(xUnitApiVersion)" />
