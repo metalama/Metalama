@@ -304,6 +304,64 @@ public sealed class SplitResultsByTreeExtensionAccumulationTests : UnitTestClass
     }
 
     /// <summary>
+    /// Verifies that a contributor filed under the default key survives a run that also reports a diagnostic without a syntax tree.
+    /// </summary>
+    /// <remarks>
+    /// The default-key result was created twice: once for the contributor and once for the diagnostic. The second builder was stored under the
+    /// default key at the end of the split, and it replaced the first one with the contributor that it held.
+    /// </remarks>
+    [Fact]
+    public void DefaultKeyContributor_SurvivesTreelessDiagnostic()
+    {
+        using var testContext = this.CreateTestContext();
+        using var factory = new TestDesignTimeAspectPipelineFactory( testContext );
+
+        var (executed, compilation) = Execute( testContext, factory );
+
+        var targetTree = compilation.SyntaxTrees.Single( t => t.FilePath == "target.cs" );
+        var partialCompilation = PartialCompilation.CreatePartial( compilation, targetTree );
+
+        var contributor = new TestContributor( default(DocumentKey) );
+
+        var treelessDiagnostic = Diagnostic.Create(
+            new DiagnosticDescriptor( "TEST01", "Test", "A diagnostic without a syntax tree.", "Test", DiagnosticSeverity.Warning, true ),
+            Location.None );
+
+        var updated = Update(
+            executed.Result,
+            compilation,
+            partialCompilation,
+            ImmutableArray.Create<ITransitivePipelineContributor>( contributor ),
+            ImmutableArray.Create( treelessDiagnostic ) );
+
+        Assert.Contains( contributor, updated.Extensions.Extensions );
+        Assert.Contains( updated.SyntaxTreeResults[default].Diagnostics, d => d.Id == "TEST01" );
+    }
+
+    /// <summary>
+    /// Verifies that the contributors filed under the default key are replaced by each run, and not accumulated.
+    /// </summary>
+    [Fact]
+    public void DefaultKeyContributor_ReplacedOnNextRun()
+    {
+        using var testContext = this.CreateTestContext();
+        using var factory = new TestDesignTimeAspectPipelineFactory( testContext );
+
+        var (executed, compilation) = Execute( testContext, factory );
+
+        var targetTree = compilation.SyntaxTrees.Single( t => t.FilePath == "target.cs" );
+        var partialCompilation = PartialCompilation.CreatePartial( compilation, targetTree );
+
+        var firstContributor = new TestContributor( default(DocumentKey) );
+        var secondContributor = new TestContributor( default(DocumentKey) );
+
+        var afterFirstRun = Update( executed.Result, compilation, partialCompilation, firstContributor );
+        var afterSecondRun = Update( afterFirstRun, compilation, partialCompilation, secondContributor );
+
+        Assert.Same( secondContributor, Assert.Single( afterSecondRun.Extensions.Extensions ) );
+    }
+
+    /// <summary>
     /// Runs a full design-time execution, which supplies the real pipeline configuration that <c>Update</c> requires.
     /// </summary>
     private static (DesignTimeAspectPipelineResultAndState Executed, Compilation Compilation) Execute(
@@ -336,12 +394,13 @@ public sealed class SplitResultsByTreeExtensionAccumulationTests : UnitTestClass
         DesignTimeAspectPipelineResult result,
         Compilation compilation,
         PartialCompilation partialCompilation,
-        ImmutableArray<ITransitivePipelineContributor> contributors )
+        ImmutableArray<ITransitivePipelineContributor> contributors,
+        ImmutableArray<Diagnostic> diagnostics = default )
     {
         var pipelineResults = new DesignTimePipelineExecutionResult(
             partialCompilation.SyntaxTreeCollection,
             ImmutableArray<IntroducedSyntaxTree>.Empty,
-            ImmutableUserDiagnosticList.Empty,
+            diagnostics.IsDefaultOrEmpty ? ImmutableUserDiagnosticList.Empty : new ImmutableUserDiagnosticList( diagnostics, null, null ),
             ImmutableArray<InheritableAspectInstance>.Empty,
             ImmutableArray<KeyValuePair<HierarchicalOptionsKey, IHierarchicalOptions>>.Empty,
             contributors,
@@ -372,6 +431,11 @@ public sealed class SplitResultsByTreeExtensionAccumulationTests : UnitTestClass
         public TestContributor( SyntaxTree syntaxTree )
         {
             this.DocumentKey = syntaxTree.GetDocumentKey();
+        }
+
+        public TestContributor( DocumentKey documentKey )
+        {
+            this.DocumentKey = documentKey;
         }
 
         public DocumentKey DocumentKey { get; }

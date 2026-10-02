@@ -102,6 +102,19 @@ internal sealed class ReferenceIndexWalker : SafeSyntaxWalker
 
     public override void VisitIdentifierName( IdentifierNameSyntax node ) => this.IndexReference( node, node.Identifier );
 
+    /// <summary>
+    /// Indexes the reference of a generic name, for instance the method of an invocation with explicit type arguments, and then visits its type arguments.
+    /// </summary>
+    /// <remarks>
+    /// Type references that are generic names are handled by <see cref="VisitTypeReference"/>, which does not call this method.
+    /// This method handles the generic names that appear in expressions, in qualified names and in attribute names.
+    /// </remarks>
+    public override void VisitGenericName( GenericNameSyntax node )
+    {
+        this.IndexReference( node, node.Identifier );
+        this.Visit( node.TypeArgumentList );
+    }
+
     public override void VisitPredefinedType( PredefinedTypeSyntax node )
     {
         this.IndexReference( node, node, default );
@@ -110,27 +123,18 @@ internal sealed class ReferenceIndexWalker : SafeSyntaxWalker
     public override void VisitAssignmentExpression( AssignmentExpressionSyntax node )
     {
         this.Visit( node.Right );
-        this.VisitWithReferenceKinds( node.Left, ReferenceKinds.Assignment );
 
-        switch ( node.Left.Kind() )
+        if ( node.Left.Kind() == SyntaxKind.ElementAccessExpression && node.Left is ElementAccessExpressionSyntax elementAccess )
         {
-            case SyntaxKind.SimpleMemberAccessExpression when node.Left is MemberAccessExpressionSyntax memberAccess:
-                this.Visit( memberAccess.Expression );
-
-                break;
-
-            case SyntaxKind.ElementAccessExpression when node.Left is ElementAccessExpressionSyntax elementAccess:
-                this.Visit( elementAccess.Expression );
-                this.Visit( elementAccess.ArgumentList );
-
-                break;
-
-            case SyntaxKind.IdentifierName:
-                // If we just have an identifier, we have nothing to visit.
-                break;
-
-            // Other cases are possible but we don't implement them.
-            // For instance, we can assign the return value of a ref method.
+            // The indexer is the assigned member. The receiver and the arguments are read, so they are visited with the default reference kind.
+            this.IndexReference( elementAccess, elementAccess.ArgumentList, default, ReferenceKinds.Assignment );
+            this.Visit( elementAccess.Expression );
+            this.Visit( elementAccess.ArgumentList );
+        }
+        else
+        {
+            // The visit of a member access indexes the receiver itself, so the receiver must not be visited again here.
+            this.VisitWithReferenceKinds( node.Left, ReferenceKinds.Assignment );
         }
     }
 
@@ -211,8 +215,6 @@ internal sealed class ReferenceIndexWalker : SafeSyntaxWalker
                 if ( SyntaxFacts.IsTypeDeclaration( member.Kind() ) )
                 {
                     this.Visit( member );
-
-                    break;
                 }
             }
         }
@@ -532,6 +534,12 @@ internal sealed class ReferenceIndexWalker : SafeSyntaxWalker
             if ( node.Initializer != null )
             {
                 this.IndexReference( node.Initializer, node.Initializer.ThisOrBaseKeyword, baseClassIdentifier, ReferenceKinds.BaseConstructor );
+
+                // The arguments of the constructor initializer belong to the implementation of the constructor.
+                if ( this._options.MustDescendIntoImplementation() )
+                {
+                    this.Visit( node.Initializer.ArgumentList );
+                }
             }
             else
             {
@@ -675,31 +683,40 @@ internal sealed class ReferenceIndexWalker : SafeSyntaxWalker
     {
         this.IndexReference( node, GetTypeIdentifier( node.Type ), ReferenceKinds.ArrayCreation );
 
+        // The rank sizes are expressions, for instance invocations, and must be visited like any other expression.
+        foreach ( var rankSpecifier in node.Type.RankSpecifiers )
+        {
+            this.Visit( rankSpecifier );
+        }
+
         this.Visit( node.Initializer );
     }
 
     public override void VisitCollectionExpression( CollectionExpressionSyntax node )
     {
-        if ( this._options.MustIndexReferenceKind( ReferenceKinds.ArrayCreation | ReferenceKinds.ObjectCreation ) && this._currentDeclarationNode != null )
+        if ( this._options.MustIndexReferenceKind( ReferenceKinds.ArrayCreation | ReferenceKinds.ObjectCreation )
+             && this._currentDeclarationNode != null
+             && this.IsCurrentDeclarationInRunTimeCode() )
         {
             var expressionType = this.SemanticModel.GetTypeInfo( node ).ConvertedType;
 
-            if ( expressionType == null )
+            if ( expressionType != null )
             {
-                return;
-            }
+                this._observer?.OnSymbolResolved( expressionType );
 
-            this._observer?.OnSymbolResolved( expressionType );
-
-            if ( expressionType.Kind == SymbolKind.ArrayType && expressionType is IArrayTypeSymbol arrayType )
-            {
-                this._referenceIndexBuilder.AddReference( arrayType.ElementType, this.CurrentDeclarationSymbol, node, ReferenceKinds.ArrayCreation );
-            }
-            else
-            {
-                this._referenceIndexBuilder.AddReference( expressionType, this.CurrentDeclarationSymbol, node, ReferenceKinds.ObjectCreation );
+                if ( expressionType.Kind == SymbolKind.ArrayType && expressionType is IArrayTypeSymbol arrayType )
+                {
+                    this._referenceIndexBuilder.AddReference( arrayType.ElementType, this.CurrentDeclarationSymbol, node, ReferenceKinds.ArrayCreation );
+                }
+                else
+                {
+                    this._referenceIndexBuilder.AddReference( expressionType, this.CurrentDeclarationSymbol, node, ReferenceKinds.ObjectCreation );
+                }
             }
         }
+
+        // The elements are expressions and must be visited whether or not the collection itself is indexed.
+        base.VisitCollectionExpression( node );
     }
 
     public override void VisitImplicitObjectCreationExpression( ImplicitObjectCreationExpressionSyntax node )
@@ -918,15 +935,17 @@ internal sealed class ReferenceIndexWalker : SafeSyntaxWalker
                 return false;
         }
 
-        // Ignore any compile-time type declaration.
+        return this.IsCurrentDeclarationInRunTimeCode();
+    }
+
+    /// <summary>
+    /// Determines whether the current declaration belongs to run-time code. References from compile-time types are not indexed.
+    /// </summary>
+    private bool IsCurrentDeclarationInRunTimeCode()
+    {
         var currentType = this.CurrentDeclarationSymbol?.GetClosestContainingType();
 
-        if ( currentType != null && this._symbolClassifier?.GetExecutionScope( currentType ) is not (null or ExecutionScope.RunTime) )
-        {
-            return false;
-        }
-
-        return true;
+        return currentType == null || this._symbolClassifier?.GetExecutionScope( currentType ) is null or ExecutionScope.RunTime;
     }
 
     // We are accepting nulls to be more resilient at design time.

@@ -11,6 +11,7 @@ using Metalama.Framework.Engine.Pipeline;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.Utilities.UserCode;
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Threading;
@@ -23,6 +24,7 @@ internal sealed class AspectBuilderState : IPipelineContributorCollector
     private readonly ObjectReaderFactory _objectReaderFactory;
     private readonly IObjectReader _defaultTagReader;
     private List<IPipelineContributor>? _pipelineContributors;
+    private bool _isCompleted;
 
     public ProjectServiceProvider ServiceProvider { get; }
 
@@ -77,6 +79,8 @@ internal sealed class AspectBuilderState : IPipelineContributorCollector
 
     internal AspectInstanceResult ToResult()
     {
+        this._isCompleted = true;
+
         var outcome = this.Diagnostics.ErrorCount == 0 ? this.AspectInstance.IsSkipped ? AdviceOutcome.Ignore : AdviceOutcome.Default : AdviceOutcome.Error;
 
         return outcome == AdviceOutcome.Default
@@ -94,8 +98,21 @@ internal sealed class AspectBuilderState : IPipelineContributorCollector
                 ImmutableArray<IPipelineContributor>.Empty );
     }
 
+    /// <summary>
+    /// Adds a pipeline contributor to the result of the aspect instance.
+    /// </summary>
+    /// <remarks>
+    /// The method throws after <see cref="ToResult"/> has been called, because the contributor would not be part of the result.
+    /// This happens when an aspect stores the builder, or an object that the builder created, and uses it after <c>BuildAspect</c>.
+    /// </remarks>
     public void AddContributor( IPipelineContributor contributor )
     {
+        if ( this._isCompleted )
+        {
+            throw new InvalidOperationException(
+                $"Cannot add a contributor to the aspect instance '{this.AspectInstance}' because the BuildAspect method has already completed." );
+        }
+
         this._pipelineContributors ??= new List<IPipelineContributor>();
         this._pipelineContributors.Add( contributor );
     }
