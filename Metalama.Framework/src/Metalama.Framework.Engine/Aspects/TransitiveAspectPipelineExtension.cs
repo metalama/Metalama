@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -61,14 +61,15 @@ internal sealed partial class TransitiveAspectPipelineExtension : PipelineExtens
                 contributors.OfKind( ContributorKind.TransitiveAspectInstance ).ToImmutableArray<ITransitivePipelineContributor>(),
                 ImmutableUserDiagnosticList.Empty ) );
 
+    /// <summary>
+    /// Returns the transitive aspect instances added in the stage. The design-time pipeline accumulates them across stages, so the instances
+    /// replayed in every stage are returned only once, from the first stage.
+    /// </summary>
     public override Task<ExtensionPipelineContributorsResult> ExecuteDesignTimePipelineContributorsAsync(
-        AspectPipelineConfiguration pipelineConfiguration,
-        IEnumerable<IPipelineContributor> contributors,
-        CompilationModel initialCompilation,
-        CompilationModel finalCompilation,
+        DesignTimeContributorsContext context,
         CancellationToken cancellationToken )
         => Task.FromResult(
             new ExtensionPipelineContributorsResult(
-                contributors.OfKind( ContributorKind.TransitiveAspectInstance ).ToImmutableArray<ITransitivePipelineContributor>(),
+                context.NewContributors.OfKind( ContributorKind.TransitiveAspectInstance ).ToImmutableArray<ITransitivePipelineContributor>(),
                 ImmutableUserDiagnosticList.Empty ) );
 }

@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -40,11 +40,17 @@ internal sealed class DiagnosticQueryPipelineExtension : PipelineExtension
         return new ExtensionPipelineContributorsResult( ImmutableArray<ITransitivePipelineContributor>.Empty, diagnostics.ToImmutable() );
     }
 
+    /// <summary>
+    /// Evaluates the diagnostic queries on the final compilation of the stage. The result contains no transitive contributor, so all the
+    /// contributors of the stage are processed, as at compile time.
+    /// </summary>
     public override Task<ExtensionPipelineContributorsResult> ExecuteDesignTimePipelineContributorsAsync(
-        AspectPipelineConfiguration pipelineConfiguration,
-        IEnumerable<IPipelineContributor> contributors,
-        CompilationModel initialCompilation,
-        CompilationModel finalCompilation,
+        DesignTimeContributorsContext context,
         CancellationToken cancellationToken )
-        => this.ExecutePipelineContributorsAsync( pipelineConfiguration, contributors, initialCompilation, finalCompilation, cancellationToken );
+        => this.ExecutePipelineContributorsAsync(
+            context.PipelineConfiguration,
+            context.Contributors,
+            context.StageInitialCompilation,
+            context.StageFinalCompilation,
+            cancellationToken );
 }

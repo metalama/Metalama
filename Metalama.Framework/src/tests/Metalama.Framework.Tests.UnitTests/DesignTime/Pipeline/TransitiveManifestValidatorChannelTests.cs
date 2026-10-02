@@ -172,6 +172,74 @@ public sealed class TransitiveManifestValidatorChannelTests : UnitTestClass
     }
 
     /// <summary>
+    /// A design-time result of a project-local kind is kept in the collection of the producing project, where
+    /// <see cref="PipelineExtension.AnalyzeSemanticModel"/> reads it, but it is never exported: neither the live manifest nor the transitive form
+    /// for a cross-version consumer contains it. <see cref="FakeContributor"/> throws when the export is attempted.
+    /// </summary>
+    [Fact]
+    public void ProjectLocalExtension_NotInLiveManifestOrTransitiveInstances()
+    {
+        using var testContext = this.CreateTestContext();
+        using var factory = new TestDesignTimeAspectPipelineFactory( testContext );
+
+        FakeContributor? projectLocal = null;
+        FakeContributor? other = null;
+
+        var result = CreateResultWithExtensions(
+            testContext,
+            factory,
+            key =>
+            {
+                projectLocal = new FakeContributor( key, isValidator: false, isProjectLocal: true );
+                other = new FakeContributor( key, isValidator: false );
+
+                return [projectLocal, other];
+            } );
+
+        Assert.Contains( projectLocal.AssertNotNull(), result.Extensions.Extensions );
+        Assert.True( result.HasTransitiveAspectManifestContent );
+
+        Assert.Equal( [other.AssertNotNull().ManifestExtension], result.LiveTransitiveAspectManifest.Extensions );
+        Assert.Equal( [other.AssertNotNull().ManifestExtension], result.Extensions.ToTransitiveValidatorInstances( includeValidators: true ) );
+    }
+
+    /// <summary>
+    /// A project whose only design-time results are project-local exports nothing, so the manifest is not produced, although the collection of
+    /// the project still holds the results.
+    /// </summary>
+    [Fact]
+    public void ProjectLocalOnly_HasNoManifestContent()
+    {
+        using var testContext = this.CreateTestContext();
+        using var factory = new TestDesignTimeAspectPipelineFactory( testContext );
+
+        var result = CreateResultWithExtensions( testContext, factory, key => [new FakeContributor( key, isValidator: false, isProjectLocal: true )] );
+
+        Assert.Single( result.Extensions.Extensions );
+        Assert.False( result.Extensions.HasExportedContent );
+        Assert.False( result.HasTransitiveAspectManifestContent );
+
+        var serialized = result.SerializedTransitiveAspectManifestWithoutValidators;
+
+        var deserialized = TransitiveAspectsManifest.Deserialize(
+            new MemoryStream( serialized.Bytes.ToArray() ),
+            result.Configuration.AssertNotNull().ServiceProvider,
+            "Producer" );
+
+        Assert.Empty( deserialized.Extensions );
+    }
+
+    /// <summary>
+    /// A kind cannot be both project-local and a design-time validator, in whichever order the properties are initialized.
+    /// </summary>
+    [Fact]
+    public void ProjectLocalValidatorKind_Throws()
+    {
+        Assert.Throws<InvalidOperationException>( () => new ContributorKind<FakeContributor>( "Invalid" ) { IsProjectLocal = true, IsDesignTimeValidator = true } );
+        Assert.Throws<InvalidOperationException>( () => new ContributorKind<FakeContributor>( "Invalid" ) { IsDesignTimeValidator = true, IsProjectLocal = true } );
+    }
+
+    /// <summary>
     /// Stands in for a design-time validator, which in production comes from Metalama.Extensions.Validation and so
     /// is not available here. One class covers both roles, with <c>isValidator</c> the only difference: routing
     /// keys off <see cref="ContributorKind.IsDesignTimeValidator"/> (in conjunction with the interface, which both
@@ -179,13 +247,16 @@ public sealed class TransitiveManifestValidatorChannelTests : UnitTestClass
     /// </summary>
     private sealed class FakeContributor : ITransitivePipelineContributor, IDesignTimeValidatorExtension
     {
-        public FakeContributor( SymbolDictionaryKey validatedDeclaration, bool isValidator )
+        private readonly bool _isProjectLocal;
+
+        public FakeContributor( SymbolDictionaryKey validatedDeclaration, bool isValidator, bool isProjectLocal = false )
         {
             this.ValidatedDeclaration = validatedDeclaration;
+            this._isProjectLocal = isProjectLocal;
 
-            this.ContributorKind = new ContributorKind<FakeContributor>( isValidator ? "FakeValidator" : "FakeExtension" )
+            this.ContributorKind = new ContributorKind<FakeContributor>( isValidator ? "FakeValidator" : isProjectLocal ? "FakeProjectLocal" : "FakeExtension" )
             {
-                IsDesignTimeValidator = isValidator
+                IsDesignTimeValidator = isValidator, IsProjectLocal = isProjectLocal
             };
 
             this.ManifestExtension = new FakeManifestExtension( this.ContributorKind );
@@ -201,7 +272,10 @@ public sealed class TransitiveManifestValidatorChannelTests : UnitTestClass
 
         public IDesignTimePipelineResultExtension ToDesignTime() => this;
 
-        public ITransitiveAspectsManifestExtension ToTransitiveAspectManifestExtension() => this.ManifestExtension;
+        public ITransitiveAspectsManifestExtension ToTransitiveAspectManifestExtension()
+            => this._isProjectLocal
+                ? throw new InvalidOperationException( "The transitive form of a project-local result must never be requested." )
+                : this.ManifestExtension;
 
         public ReferenceIndexerRequirements? ReferenceIndexerRequirements => null;
 

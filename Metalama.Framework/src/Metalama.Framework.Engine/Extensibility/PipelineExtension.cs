@@ -61,11 +61,17 @@ public abstract class PipelineExtension
         CancellationToken cancellationToken )
         => Task.FromResult( ExtensionPipelineContributorsResult.Empty );
 
+    /// <summary>
+    /// Executes the contributors at design time. The method is invoked at the end of every high-level stage of the design-time pipeline that has
+    /// extension contributors.
+    /// </summary>
+    /// <remarks>
+    /// The design-time pipeline accumulates the transitive contributors that this method returns across the high-level stages. An implementation
+    /// that returns transitive contributors must therefore process <see cref="DesignTimeContributorsContext.NewContributors"/>, and not
+    /// <see cref="DesignTimeContributorsContext.Contributors"/>, which includes the contributors replayed in every stage.
+    /// </remarks>
     public virtual Task<ExtensionPipelineContributorsResult> ExecuteDesignTimePipelineContributorsAsync(
-        AspectPipelineConfiguration pipelineConfiguration,
-        IEnumerable<IPipelineContributor> contributors,
-        CompilationModel initialCompilation,
-        CompilationModel finalCompilation,
+        DesignTimeContributorsContext context,
         CancellationToken cancellationToken )
         => Task.FromResult( ExtensionPipelineContributorsResult.Empty );
 

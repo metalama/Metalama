@@ -34,15 +34,18 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
 
             if ( pipelineStepsResult.ExtensionContributors.Count > 0 )
             {
+                var context = new DesignTimeContributorsContext(
+                    pipelineConfiguration,
+                    pipelineStepsResult.ExtensionContributors,
+                    pipelineStepsResult.ExtensionContributorsAddedInStage,
+                    pipelineStepsResult.FirstCompilation,
+                    pipelineStepsResult.LastCompilation,
+                    this.HighLevelStageIndex );
+
                 foreach ( var pipelineExtension in pipelineConfiguration.Extensions )
                 {
                     extensionPipelineContributorsResult = extensionPipelineContributorsResult.Concat(
-                        await pipelineExtension.ExecuteDesignTimePipelineContributorsAsync(
-                            pipelineConfiguration,
-                            pipelineStepsResult.ExtensionContributors,
-                            pipelineStepsResult.FirstCompilation,
-                            pipelineStepsResult.LastCompilation,
-                            cancellationToken ) );
+                        await pipelineExtension.ExecuteDesignTimePipelineContributorsAsync( context, cancellationToken ) );
                 }
             }
 
@@ -69,9 +72,12 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                         .Concat( diagnosticSink.ToImmutable() )
                         .Concat( extensionPipelineContributorsResult.Diagnostics ),
                     new PipelineContributorSources( input.ContributorSources.Contributors.Add( pipelineStepsResult.OverflowAspectSource ) ),
-                    pipelineStepsResult.InheritableAspectInstances.ToImmutableArray(),
+
+                    // The inheritable aspects and the transitive contributors of the earlier stages are kept, because the design-time pipeline
+                    // reads them from the result of the last stage.
+                    input.ExternallyInheritableAspects.AddRange( pipelineStepsResult.InheritableAspectInstances ),
                     pipelineStepsResult.LastCompilation.Annotations,
-                    extensionPipelineContributorsResult.TransitiveContributors,
+                    input.TransitiveContributors.AddRange( extensionPipelineContributorsResult.TransitiveContributors ),
                     input.AdditionalSyntaxTrees.AddRange( additionalSyntaxTrees ),
                     input.AspectInstanceResults.AddRange( pipelineStepsResult.AspectInstanceResults ),
                     transformations: pipelineStepsResult.Transformations.ToImmutableArray<ITransformationBase>() );

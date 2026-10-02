@@ -98,10 +98,23 @@ public sealed class DesignTimeAspectPipelineResultExtensionCollection
 
     public Builder ToBuilder() => new( this._ownValidators.ToBuilder(), this.Extensions.ToBuilder() );
 
+    /// <summary>
+    /// Returns the transitive form of the design-time results that referencing projects receive. The results of a project-local kind
+    /// (<see cref="ContributorKind.IsProjectLocal"/>) are never exported.
+    /// </summary>
+    /// <param name="includeValidators"><c>true</c> to include the results whose kind is <see cref="ContributorKind.IsDesignTimeValidator"/>.</param>
     public ImmutableArray<ITransitiveAspectsManifestExtension> ToTransitiveValidatorInstances( bool includeValidators )
-        => includeValidators
-            ? this.Extensions.SelectAsImmutableArray( x => x.ToTransitiveAspectManifestExtension() )
-            : this.Extensions.Where( e => !e.ContributorKind.IsDesignTimeValidator ).Select( x => x.ToTransitiveAspectManifestExtension() ).ToImmutableArray();
+        => this.Extensions
+            .Where( e => !e.ContributorKind.IsProjectLocal && (includeValidators || !e.ContributorKind.IsDesignTimeValidator) )
+            .Select( e => e.ToTransitiveAspectManifestExtension() )
+            .ToImmutableArray();
+
+    /// <summary>
+    /// Gets a value indicating whether referencing projects receive anything from this collection: a validator of this project or of a referenced
+    /// project, or a design-time result whose kind is not project-local.
+    /// </summary>
+    [Memo]
+    public bool HasExportedContent => !this._allValidators.IsEmpty || this.Extensions.Any( e => !e.ContributorKind.IsProjectLocal );
 
     public sealed class Builder
     {

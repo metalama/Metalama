@@ -10,7 +10,6 @@ using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Options;
-using Metalama.Framework.Engine.Pipeline;
 using Metalama.Framework.Tests.UnitTestHelpers.Mocks;
 using Metalama.Framework.Tests.UnitTestHelpers.TestClasses;
 using Metalama.Testing.UnitTesting;
@@ -218,6 +217,25 @@ public sealed class ExtensionContributorMemoryLeakTests : DesignTimeTestBase
     }
 
     /// <summary>
+    /// Verifies that a durable contributor of a project-local kind (<see cref="ContributorKind.IsProjectLocal"/>) does not retain the version of
+    /// the project in which it was produced either. Such a contributor stays in the extension collection of the project instead of being exported
+    /// through the transitive manifest.
+    /// </summary>
+    [Fact]
+    public void ProjectLocalDurableContributor_DoesNotRetainTheCompilationItWasProducedIn()
+    {
+        using var testContext = this.CreateTestContextWithExtension( typeof(ProjectLocalDurableContributorExtension) );
+        using var factory = new TestDesignTimeAspectPipelineFactory( testContext );
+
+        var initialCompilation = this.RunEditingSession( testContext, factory, "ProjectLocalDurableContributor", 10 );
+
+        MemoryLeakAssert.Collected(
+            initialCompilation,
+            "The compilation in which a project-local durable contributor was produced",
+            ("pipelineFactory", factory) );
+    }
+
+    /// <summary>
     /// Verifies that a contributor holding a reference obtained from the code model, without making it durable, does
     /// retain the version of the project in which it was produced.
     /// </summary>
@@ -301,14 +319,16 @@ public sealed class ExtensionContributorMemoryLeakTests : DesignTimeTestBase
         /// </summary>
         protected abstract object CreatePayload( INamedType anchor );
 
+        /// <summary>
+        /// Gets a value indicating whether the contributor has a project-local kind.
+        /// </summary>
+        protected virtual bool IsProjectLocal => false;
+
         public override Task<ExtensionPipelineContributorsResult> ExecuteDesignTimePipelineContributorsAsync(
-            AspectPipelineConfiguration pipelineConfiguration,
-            IEnumerable<IPipelineContributor> contributors,
-            CompilationModel initialCompilation,
-            CompilationModel finalCompilation,
+            DesignTimeContributorsContext context,
             CancellationToken cancellationToken )
         {
-            var anchor = initialCompilation.Types.SingleOrDefault( t => t.Name == "Anchor" );
+            var anchor = context.StageInitialCompilation.Types.SingleOrDefault( t => t.Name == "Anchor" );
 
             if ( anchor == null )
             {
@@ -318,7 +338,7 @@ public sealed class ExtensionContributorMemoryLeakTests : DesignTimeTestBase
                 return Task.FromResult( ExtensionPipelineContributorsResult.Empty );
             }
 
-            var contributor = new TestContributor( anchor.GetPrimarySyntaxTree(), this.CreatePayload( anchor ) );
+            var contributor = new TestContributor( anchor.GetPrimarySyntaxTree(), this.CreatePayload( anchor ), this.IsProjectLocal );
 
             return Task.FromResult(
                 new ExtensionPipelineContributorsResult(
@@ -333,6 +353,16 @@ public sealed class ExtensionContributorMemoryLeakTests : DesignTimeTestBase
     private sealed class DurableContributorExtension : ContributorExtension
     {
         protected override object CreatePayload( INamedType anchor ) => anchor.ToRef().ToDurable();
+    }
+
+    /// <summary>
+    /// Produces a contributor of a project-local kind whose reference is durable.
+    /// </summary>
+    private sealed class ProjectLocalDurableContributorExtension : ContributorExtension
+    {
+        protected override object CreatePayload( INamedType anchor ) => anchor.ToRef().ToDurable();
+
+        protected override bool IsProjectLocal => true;
     }
 
     /// <summary>
@@ -354,15 +384,17 @@ public sealed class ExtensionContributorMemoryLeakTests : DesignTimeTestBase
     private sealed class TestContributor : ITransitivePipelineContributor, IDesignTimePipelineResultExtension
     {
         private static readonly ContributorKind<TestContributor> _kind = new( nameof(TestContributor) );
+        private static readonly ContributorKind<TestContributor> _projectLocalKind = new( "ProjectLocalTestContributor" ) { IsProjectLocal = true };
 
 #pragma warning disable IDE0052 // The field is never read: holding the payload is its entire purpose.
         private readonly object _payload;
 #pragma warning restore IDE0052
 
-        public TestContributor( SyntaxTree? syntaxTree, object payload )
+        public TestContributor( SyntaxTree? syntaxTree, object payload, bool isProjectLocal )
         {
             this.DocumentKey = syntaxTree?.GetDocumentKey() ?? default;
             this._payload = payload;
+            this.ContributorKind = isProjectLocal ? _projectLocalKind : _kind;
         }
 
         /// <remarks>
@@ -371,7 +403,7 @@ public sealed class ExtensionContributorMemoryLeakTests : DesignTimeTestBase
         /// </remarks>
         public DocumentKey DocumentKey { get; }
 
-        public ContributorKind ContributorKind => _kind;
+        public ContributorKind ContributorKind { get; }
 
         public IDesignTimePipelineResultExtension? ToDesignTime() => this;
 
