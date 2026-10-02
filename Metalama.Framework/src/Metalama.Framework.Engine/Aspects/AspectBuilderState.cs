@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -77,9 +77,18 @@ internal sealed class AspectBuilderState : IPipelineContributorCollector
         }
     }
 
+    /// <summary>
+    /// Marks the execution of the aspect as completed, so that <see cref="AddContributor"/> throws from now on.
+    /// </summary>
+    /// <remarks>
+    /// The aspect driver calls this method on every exit from the execution of the aspect, including when <c>BuildAspect</c> throws, because a
+    /// query created before the exception can still be used afterwards.
+    /// </remarks>
+    internal void Complete() => this._isCompleted = true;
+
     internal AspectInstanceResult ToResult()
     {
-        this._isCompleted = true;
+        this.Complete();
 
         var outcome = this.Diagnostics.ErrorCount == 0 ? this.AspectInstance.IsSkipped ? AdviceOutcome.Ignore : AdviceOutcome.Default : AdviceOutcome.Error;
 
@@ -102,7 +111,7 @@ internal sealed class AspectBuilderState : IPipelineContributorCollector
     /// Adds a pipeline contributor to the result of the aspect instance.
     /// </summary>
     /// <remarks>
-    /// The method throws after <see cref="ToResult"/> has been called, because the contributor would not be part of the result.
+    /// The method throws after <see cref="Complete"/> has been called, because the contributor would not be part of the result.
     /// This happens when an aspect stores the builder, or an object that the builder created, and uses it after <c>BuildAspect</c>.
     /// </remarks>
     public void AddContributor( IPipelineContributor contributor )

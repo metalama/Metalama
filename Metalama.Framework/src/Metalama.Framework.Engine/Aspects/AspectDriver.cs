@@ -266,6 +266,7 @@ internal sealed class AspectDriver : IAspectDriver
             {
                 aspectInstance.Skip();
                 aspectBuilder.Dispose();
+                aspectBuilderState.Complete();
 
                 return
                     new AspectInstanceResult(
