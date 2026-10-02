@@ -459,6 +459,16 @@ public sealed class AwaitableEventTests
         this._testOutput.WriteLine( $"Wait succeeded {waitSuccessCount} times out of {iterations}" );
     }
 
+    /// <summary>
+    /// Tests that each <see cref="AwaitableEvent.Set"/> of an auto-reset event releases exactly one of several concurrent waiters.
+    /// </summary>
+    /// <remarks>
+    /// An auto-reset event does not count signals. When <see cref="AwaitableEvent.Set"/> is called while the event is already
+    /// signaled, the second signal is lost. A waiter task that has started is not necessarily blocked inside
+    /// <see cref="AwaitableEvent.Wait(TimeSpan, CancellationToken)"/>, so calling <see cref="AwaitableEvent.Set"/> several times
+    /// in a row can lose signals and cause waiters to time out. The test therefore calls <see cref="AwaitableEvent.Set"/> once,
+    /// waits until one waiter reports that it was released, and only then signals again.
+    /// </remarks>
     [Fact]
     public async Task ConcurrentWaiters_AutoReset_CorrectWaiterCount()
     {
@@ -468,6 +478,7 @@ public sealed class AwaitableEventTests
         var allWaitersStarted = new TaskCompletionSource<bool>();
         var waitersStarted = 0;
         var syncLock = new object();
+        using var releasedSemaphore = new SemaphoreSlim( 0 );
         using var cts = new CancellationTokenSource( TimeSpan.FromSeconds( 30 ) );
 
         var waiterTasks = new Task[waiterCount];
@@ -491,16 +502,20 @@ public sealed class AwaitableEventTests
                     {
                         Interlocked.Increment( ref waitersReleased );
                     }
+
+                    releasedSemaphore.Release();
                 },
                 CancellationToken.None );
         }
 
         await allWaitersStarted.Task.WaitWithTimeoutAsync();
 
-        // Signal exactly waiterCount times
+        // Signal exactly waiterCount times. Each signal is either taken by a blocked waiter or stays set until the next waiter
+        // consumes it. Waiting for one waiter to complete before the next signal ensures that no signal is lost.
         for ( var i = 0; i < waiterCount; i++ )
         {
             awaitableEvent.Set();
+            await releasedSemaphore.WaitAsync( cts.Token );
         }
 
         await Task.WhenAll( waiterTasks ).WaitWithTimeoutAsync();
