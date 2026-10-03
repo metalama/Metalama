@@ -15,6 +15,9 @@ namespace Metalama.Framework.Tests.ExtensionPoints.Engine;
 /// </summary>
 internal sealed class TestRedirection : IExtensionPipelineContributor
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="TestRedirection"/> class.
+    /// </summary>
     public TestRedirection(
         string methodName,
         ExtensionContributionOrigin origin,
@@ -45,6 +48,9 @@ internal sealed class TestRedirection : IExtensionPipelineContributor
     /// </summary>
     public ExtensionContributionOrigin Origin { get; }
 
+    /// <summary>
+    /// Gets the options of the redirection.
+    /// </summary>
     public TestRedirectionOptions Options { get; }
 
     /// <summary>
@@ -72,5 +78,6 @@ internal sealed class TestRedirection : IExtensionPipelineContributor
     /// </summary>
     public ImmutableArray<SyntaxNode>? DeclarationRoots { get; }
 
+    /// <inheritdoc />
     public ContributorKind ContributorKind => TestContributorKinds.Redirection;
 }

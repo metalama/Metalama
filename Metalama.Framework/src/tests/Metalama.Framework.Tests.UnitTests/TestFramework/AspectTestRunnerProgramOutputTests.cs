@@ -28,8 +28,14 @@ namespace Metalama.Framework.Tests.UnitTests.TestFramework;
 public sealed class AspectTestRunnerProgramOutputTests : UnitTestClass
 {
 #if NET5_0_OR_GREATER
+    /// <summary>
+    /// Indicates whether the runner executes the program of a test on the target framework of this test assembly.
+    /// </summary>
     private const bool _runnerExecutesPrograms = true;
 #else
+    /// <summary>
+    /// Indicates whether the runner executes the program of a test on the target framework of this test assembly.
+    /// </summary>
     private const bool _runnerExecutesPrograms = false;
 #endif
 
@@ -43,6 +49,10 @@ public sealed class AspectTestRunnerProgramOutputTests : UnitTestClass
                                  }
                                  """;
 
+    /// <summary>
+    /// Verifies that a test whose expected program output is not empty fails when the runner does not find the main method of the program, and that
+    /// the message names the expected <c>Main</c> method.
+    /// </summary>
     [Fact]
     public async Task NonEmptyExpectedOutput_ProgramNotExecuted_Fails()
     {
@@ -54,6 +64,10 @@ public sealed class AspectTestRunnerProgramOutputTests : UnitTestClass
         Assert.Contains( "'Main'", exception.Message, StringComparison.Ordinal );
     }
 
+    /// <summary>
+    /// Verifies that a test passes when the runner executes the program through the main method that the test sets, and the output of the program
+    /// matches the expected output.
+    /// </summary>
     [Fact]
     public async Task NonEmptyExpectedOutput_ProgramExecuted_Passes()
     {
@@ -80,6 +94,9 @@ public sealed class AspectTestRunnerProgramOutputTests : UnitTestClass
         await Assert.ThrowsAnyAsync<XunitException>( () => this.RunAsync( silentCode, "hello", options => options.MainMethod = "TestMain" ) );
     }
 
+    /// <summary>
+    /// Verifies that, on .NET Framework, where the runner executes no program, a non-empty expected output does not make the test fail.
+    /// </summary>
     [Fact]
     public async Task NonEmptyExpectedOutput_Net48_Skipped()
     {
@@ -88,6 +105,9 @@ public sealed class AspectTestRunnerProgramOutputTests : UnitTestClass
         await this.RunAsync( _code, "hello" );
     }
 
+    /// <summary>
+    /// Verifies that the check does not apply to a test that disables the execution of its program.
+    /// </summary>
     [Fact]
     public async Task NonEmptyExpectedOutput_DisableExecuteProgram_Skipped()
         => await this.RunAsync( _code, "hello", options => options.ExecuteProgram = false );
@@ -108,9 +128,74 @@ public sealed class AspectTestRunnerProgramOutputTests : UnitTestClass
             } );
 
     /// <summary>
+    /// Verifies that a test whose program writes an output and that has no expected output fails, and that the runner creates an expected output
+    /// file with a placeholder text.
+    /// </summary>
+    [Fact]
+    public async Task MissingExpectedOutput_ProgramWritesOutput_CreatesPlaceholderAndFails()
+    {
+        Assert.SkipUnless( _runnerExecutesPrograms, "The runner executes no program on .NET Framework." );
+
+        TestFileSystem? fileSystem = null;
+
+        await Assert.ThrowsAnyAsync<XunitException>(
+            () => this.RunAsync( _code, null, options => options.MainMethod = "TestMain", fs => fileSystem = fs ) );
+
+        var expectedOutputPath = Path.Combine( Environment.CurrentDirectory, "tests", "Test.t.txt" );
+
+        Assert.NotNull( fileSystem );
+        Assert.True( fileSystem.FileExists( expectedOutputPath ) );
+        Assert.StartsWith( "TODO: Replace this file with the correct program output.", fileSystem.ReadAllText( expectedOutputPath ), StringComparison.Ordinal );
+    }
+
+    /// <summary>
+    /// Verifies that a test whose program writes another output than the expected one fails, and that the runner writes the actual output under
+    /// <c>obj/transformed</c>.
+    /// </summary>
+    [Fact]
+    public async Task ExpectedOutputDiffers_FailsAndWritesActualOutput()
+    {
+        Assert.SkipUnless( _runnerExecutesPrograms, "The runner executes no program on .NET Framework." );
+
+        TestFileSystem? fileSystem = null;
+
+        await Assert.ThrowsAnyAsync<XunitException>(
+            () => this.RunAsync( _code, "goodbye", options => options.MainMethod = "TestMain", fs => fileSystem = fs ) );
+
+        var actualOutputPath = Path.Combine( Environment.CurrentDirectory, "tests", "obj", "transformed", "net10.0", "Test.t.txt" );
+
+        Assert.NotNull( fileSystem );
+        Assert.True( fileSystem.FileExists( actualOutputPath ) );
+        Assert.Equal( "hello", fileSystem.ReadAllText( actualOutputPath ).Trim() );
+    }
+
+    /// <summary>
+    /// Verifies that a test that disables the comparison of the program output passes although its program writes another output than the
+    /// expected one.
+    /// </summary>
+    [Fact]
+    public async Task ExpectedOutputDiffers_CompareProgramOutputDisabled_Passes()
+        => await this.RunAsync(
+            _code,
+            "goodbye",
+            options =>
+            {
+                options.MainMethod = "TestMain";
+                options.CompareProgramOutput = false;
+            } );
+
+    /// <summary>
     /// Runs a test file through <see cref="AspectTestRunner"/> on a virtual file system, with the given expected program output.
     /// </summary>
-    private async Task RunAsync( string code, string expectedProgramOutput, Action<TestOptions>? configureOptions = null )
+    /// <param name="code">The code of the test, which is also its expected transformed code.</param>
+    /// <param name="expectedProgramOutput">The content of the expected program output file, or <c>null</c> to create no such file.</param>
+    /// <param name="configureOptions">A delegate that sets the options of the test, or <c>null</c>.</param>
+    /// <param name="onFileSystemCreated">A delegate that receives the virtual file system, so that the test can inspect it after the run.</param>
+    private async Task RunAsync(
+        string code,
+        string? expectedProgramOutput,
+        Action<TestOptions>? configureOptions = null,
+        Action<TestFileSystem>? onFileSystemCreated = null )
     {
         using var testContext = this.CreateTestContext();
         var fileSystem = new TestFileSystem( testContext.ServiceProvider.Underlying );
@@ -119,7 +204,12 @@ public sealed class AspectTestRunnerProgramOutputTests : UnitTestClass
         fileSystem.CreateDirectory( directory );
         fileSystem.WriteAllText( Path.Combine( directory, "Test.cs" ), code );
         fileSystem.WriteAllText( Path.Combine( directory, "Test.t.cs" ), code );
-        fileSystem.WriteAllText( Path.Combine( directory, "Test.t.txt" ), expectedProgramOutput );
+        onFileSystemCreated?.Invoke( fileSystem );
+
+        if ( expectedProgramOutput != null )
+        {
+            fileSystem.WriteAllText( Path.Combine( directory, "Test.t.txt" ), expectedProgramOutput );
+        }
 
         var serviceProvider = (GlobalServiceProvider) testContext.ServiceProvider.Global.Underlying
             .WithUntypedService( typeof(IFileSystem), fileSystem )

@@ -28,6 +28,9 @@ namespace Metalama.Framework.Engine.Extensibility;
 [PublicAPI]
 public sealed class DesignTimeContributorsContext
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DesignTimeContributorsContext"/> class.
+    /// </summary>
     internal DesignTimeContributorsContext(
         AspectPipelineConfiguration pipelineConfiguration,
         IReadOnlyCollection<IExtensionPipelineContributor> contributors,

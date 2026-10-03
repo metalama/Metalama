@@ -22,10 +22,11 @@ public sealed class ReferenceIndexerOptions
         ReferenceKinds.Default | ReferenceKinds.OverrideMember | ReferenceKinds.Assignment
         | ReferenceKinds.Invocation | ReferenceKinds.InterfaceMemberImplementation | ReferenceKinds.NameOf;
 
-    // Reference kinds that do not require descending into implementations. 
+    // Reference kinds that do not require descending into implementations. NameOf is not one of them, because a nameof expression
+    // is most often in the body of a member.
     private const ReferenceKinds _memberDeclarationOnlyKinds =
         ReferenceKinds.ParameterType | ReferenceKinds.ReturnType | ReferenceKinds.AttributeType | ReferenceKinds.InterfaceMemberImplementation
-        | ReferenceKinds.OverrideMember | ReferenceKinds.MemberType | ReferenceKinds.NameOf | ReferenceKinds.UsingNamespace;
+        | ReferenceKinds.OverrideMember | ReferenceKinds.MemberType | ReferenceKinds.UsingNamespace;
 
     private readonly bool _mustDescendIntoMembers;
     private readonly ReferenceKinds _kindsRequiringDescentIntoBaseTypes;
@@ -183,8 +184,14 @@ public sealed class ReferenceIndexerOptions
         }
     }
 
+    /// <summary>
+    /// The number of bits of the underlying type of <see cref="ReferenceKinds"/>, which is also the length of the arrays indexed by the bit of a kind.
+    /// </summary>
     private const int _kindBitCount = 64;
 
+    /// <summary>
+    /// Returns the zero-based positions of the bits that are set in a combination of <see cref="ReferenceKinds"/>.
+    /// </summary>
     private static IEnumerable<int> GetBits( ReferenceKinds kinds )
     {
         var value = (ulong) kinds;
@@ -236,6 +243,11 @@ public sealed class ReferenceIndexerOptions
 
     internal bool MustIndexReferenceKind( ReferenceKinds kind ) => (this._allReferenceKinds & kind) != 0;
 
+    /// <summary>
+    /// Determines whether a reference of a given kind, whose identifier is given, must be indexed.
+    /// </summary>
+    /// <param name="kind">The kind of the reference. The walker passes a single kind.</param>
+    /// <param name="identifier">The identifier of the referenced declaration at the reference, or <c>default</c> when the reference has none.</param>
     internal bool MustIndexReference( ReferenceKinds kind, in SyntaxToken identifier )
     {
         if ( (this._allReferenceKinds & kind) == 0 )
@@ -251,12 +263,6 @@ public sealed class ReferenceIndexerOptions
 
             if ( identifierText != "var" )
             {
-                // A kind of the request that is indexed without identifier filtering admits the reference.
-                if ( (kind & this._allReferenceKinds & ~this._kindsSupportingIdentifierFiltering) != 0 )
-                {
-                    return true;
-                }
-
                 // The loop is written without an iterator because this method is called for every identifier of the walked code.
                 var bits = (ulong) filteredKinds;
 

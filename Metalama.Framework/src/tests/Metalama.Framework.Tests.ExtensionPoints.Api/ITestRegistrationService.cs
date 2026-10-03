@@ -22,6 +22,9 @@ internal interface ITestRegistrationService : IProjectService
     void Register<T>( IQuery<T> query, string tag )
         where T : class, IDeclaration;
 
+    void RegisterThroughCreatedQuery<T>( IAdviser<T> adviser, string tag )
+        where T : class, IDeclaration;
+
     void ReportReferences<T>( IAdviser<T> adviser, string methodName, bool restrictToTarget )
         where T : class, IDeclaration;
 

@@ -22,6 +22,11 @@ namespace Metalama.Framework.Tests.ExtensionPoints.Engine;
 /// </summary>
 internal sealed class TestRegistrationService : ITestRegistrationService
 {
+    /// <summary>
+    /// Adds a <see cref="TestRegistration"/> whose channel is <c>adviser</c> to the owner of an adviser. When
+    /// <paramref name="expectedTemplateProvider"/> is not <c>null</c>, the registration records whether the template provider of the adviser
+    /// is the expected one.
+    /// </summary>
     public void Register<T>( IAdviser<T> adviser, string tag, ITemplateProvider? expectedTemplateProvider )
         where T : class, IDeclaration
     {
@@ -38,6 +43,18 @@ internal sealed class TestRegistrationService : ITestRegistrationService
         context.Owner.AddContributor( new TestRegistration( tag, context.CaptureOrigin(), adviser.Target.ToRef(), "adviser", templateProviderMatches ) );
     }
 
+    /// <summary>
+    /// Creates a query that selects the target of an adviser, with <see cref="AdviserExtensionContext.CreateQuery{T}"/>, and registers a
+    /// contribution through this query.
+    /// </summary>
+    public void RegisterThroughCreatedQuery<T>( IAdviser<T> adviser, string tag )
+        where T : class, IDeclaration
+        => this.Register( adviser.GetExtensionContext().CreateQuery( adviser.Target ), tag );
+
+    /// <summary>
+    /// Adds a <see cref="TestReferenceReport"/> to the owner of an adviser. When <paramref name="restrictToTarget"/> is <c>true</c>, the syntax
+    /// of the target of the adviser gives the declaration roots of the shared index.
+    /// </summary>
     public void ReportReferences<T>( IAdviser<T> adviser, string methodName, bool restrictToTarget )
         where T : class, IDeclaration
     {
@@ -51,6 +68,10 @@ internal sealed class TestRegistrationService : ITestRegistrationService
         context.Owner.AddContributor( new TestReferenceReport( methodName, roots ) );
     }
 
+    /// <summary>
+    /// Adds a <see cref="TestRedirection"/> to the owner of an adviser. The target of the adviser is the scope of the redirection, and its syntax
+    /// gives the declaration roots of the shared index.
+    /// </summary>
     public void RedirectCalls<T>( IAdviser<T> adviser, string methodName, IMethod replacement, TestRedirectionOptions options )
         where T : class, IDeclaration
     {
@@ -63,6 +84,10 @@ internal sealed class TestRegistrationService : ITestRegistrationService
             new TestRedirection( methodName, context.CaptureOrigin(), options, replacement.ToRef(), null, adviser.Target.ToRef(), null, roots ) );
     }
 
+    /// <summary>
+    /// Adds a <see cref="TestRedirection"/> to the owner of a query. The query is the scope of the redirection, and the replacement method is
+    /// given by name.
+    /// </summary>
     public void RedirectCalls<T>( IQuery<T> query, string methodName, string replacementTypeName, string replacementMethodName, TestRedirectionOptions options )
         where T : class, IDeclaration
     {

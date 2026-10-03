@@ -37,6 +37,16 @@ public static class TestExtensionPointsExtensions
         => GetService( query.Project ).Register( query, tag );
 
     /// <summary>
+    /// Registers a contribution through a query that the extension creates from the adviser, with <c>AdviserExtensionContext.CreateQuery</c>.
+    /// The query selects the target of the adviser and is owned by the owner of the adviser.
+    /// </summary>
+    /// <param name="adviser">The adviser.</param>
+    /// <param name="tag">A tag that identifies the registration in the diagnostic.</param>
+    public static void TestRegisterThroughCreatedQuery<T>( this IAdviser<T> adviser, string tag )
+        where T : class, IDeclaration
+        => GetService( adviser.Compilation.Project ).RegisterThroughCreatedQuery( adviser, tag );
+
+    /// <summary>
     /// Requests the references to the methods of a given name from the shared index of source references. The test extension reports a warning
     /// for each reference that it reads from the index.
     /// </summary>

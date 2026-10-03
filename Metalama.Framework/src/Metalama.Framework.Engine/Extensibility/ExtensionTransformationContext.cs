@@ -28,10 +28,25 @@ namespace Metalama.Framework.Engine.Extensibility;
 [PublicAPI]
 public sealed class ExtensionTransformationContext
 {
+    /// <summary>
+    /// The lock that serializes the creation and the completion of <see cref="_transformationFactory"/>.
+    /// </summary>
     private readonly object _sync = new();
+
+    /// <summary>
+    /// The ordered aspect layers of the pipeline, which are passed to the factory of transformations.
+    /// </summary>
     private readonly IReadOnlyList<OrderedAspectLayer> _aspectLayers;
+
+    /// <summary>
+    /// The factory of transformations, created by the first access to <see cref="TransformationFactory"/>, or <c>null</c> when no extension
+    /// has used it.
+    /// </summary>
     private ExtensionTransformationFactory? _transformationFactory;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ExtensionTransformationContext"/> class.
+    /// </summary>
     internal ExtensionTransformationContext(
         AspectPipelineConfiguration pipelineConfiguration,
         IReadOnlyCollection<IExtensionPipelineContributor> contributors,
