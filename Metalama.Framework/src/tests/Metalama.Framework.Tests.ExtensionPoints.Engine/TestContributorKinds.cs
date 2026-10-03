@@ -11,9 +11,18 @@ namespace Metalama.Framework.Tests.ExtensionPoints.Engine;
 /// </summary>
 internal static class TestContributorKinds
 {
+    /// <summary>
+    /// Gets the kind of the <see cref="TestRegistration"/> contributors.
+    /// </summary>
     public static ContributorKind<TestRegistration> Registration { get; } = new( "TestExtensionPointsRegistration" );
 
+    /// <summary>
+    /// Gets the kind of the <see cref="TestReferenceReport"/> contributors.
+    /// </summary>
     public static ContributorKind<TestReferenceReport> ReferenceReport { get; } = new( "TestExtensionPointsReferenceReport" );
 
+    /// <summary>
+    /// Gets the kind of the <see cref="TestRedirection"/> contributors.
+    /// </summary>
     public static ContributorKind<TestRedirection> Redirection { get; } = new( "TestExtensionPointsRedirection" );
 }

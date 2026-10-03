@@ -17,81 +17,20 @@ using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 namespace Metalama.Framework.Engine.Linking;
 
 /// <summary>
-/// The kinds of <see cref="CallSiteRedirection"/>.
-/// </summary>
-internal enum CallSiteRedirectionKind
-{
-    Invocation,
-    MethodReference
-}
-
-/// <summary>
-/// One element of the argument list of a redirected invocation, in the order in which it is written.
-/// </summary>
-/// <param name="Kind">The kind of the argument.</param>
-/// <param name="SourceArgumentIndex">For <see cref="RedirectedArgumentKind.SourceArgument"/>, the index of the argument in the argument list of the
-/// source invocation.</param>
-/// <param name="Value">For <see cref="RedirectedArgumentKind.Value"/>, the expression of the argument.</param>
-/// <param name="Name">The parameter name with which the argument is written.</param>
-internal readonly record struct CallSiteArgumentPlanItem( RedirectedArgumentKind Kind, int SourceArgumentIndex, ExpressionSyntax? Value, string Name )
-{
-    /// <summary>
-    /// Gets the indices of the source arguments that the new call does not pass and that are evaluated, and discarded, before the value of this
-    /// argument. The argument is written <c>D switch { _ =&gt; value }</c>.
-    /// </summary>
-    public ImmutableArray<int> PrecedingDiscards { get; init; }
-
-    /// <summary>
-    /// Gets the indices of the source arguments that the new call does not pass and that are evaluated, and discarded, after the value of this
-    /// argument. The argument is written <c>value switch { var t =&gt; D switch { _ =&gt; t } }</c>, where <c>t</c> is
-    /// <see cref="ValueVariableName"/>.
-    /// </summary>
-    public ImmutableArray<int> FollowingDiscards { get; init; }
-
-    /// <summary>
-    /// Gets the name of the pattern variable that holds the value of this argument while <see cref="FollowingDiscards"/> are evaluated.
-    /// </summary>
-    public string? ValueVariableName { get; init; }
-
-    /// <summary>
-    /// Gets the type to which the value of a <see cref="RedirectedArgumentKind.SourceArgument"/> is cast, or <c>null</c>. The argument is written
-    /// <c>(T)(value)</c>.
-    /// </summary>
-    public TypeSyntax? CastType { get; init; }
-
-    /// <summary>
-    /// Gets the indices of the source arguments that are the elements of an expanded <c>params</c> argument, which this argument packs into one
-    /// collection, or a default array when the argument is not packed. <see cref="SourceArgumentIndex"/> is then -1.
-    /// </summary>
-    public ImmutableArray<int> PackedElements { get; init; }
-
-    /// <summary>
-    /// Gets the element type of the array that packs <see cref="PackedElements"/>, or <c>null</c> to pack them into a collection expression.
-    /// </summary>
-    public TypeSyntax? PackedArrayElementType { get; init; }
-
-    /// <summary>
-    /// Gets the expression that is written when <see cref="PackedElements"/> is empty.
-    /// </summary>
-    public ExpressionSyntax? PackedEmptyValue { get; init; }
-
-    /// <summary>
-    /// Gets a value indicating whether this argument packs the elements of an expanded <c>params</c> argument.
-    /// </summary>
-    public bool IsPacked => !this.PackedElements.IsDefault;
-}
-
-/// <summary>
 /// Describes a requested rewrite of a source call site. All the syntax is computed when the request is validated, so the injection rewriter builds
 /// the final call from syntax only.
 /// </summary>
 internal sealed class CallSiteRedirection
 {
     /// <summary>
-    /// A trivia list that contains one space that is not elastic, so that the formatter keeps a switch expression on one line.
+    /// A trivia list that contains one space that is not elastic. The switch expressions that the rewrite generates are therefore readable when the
+    /// code is not formatted. When the code is formatted, the formatter still places the arms of a switch expression on separate lines.
     /// </summary>
     private static readonly SyntaxTriviaList _space = TriviaList( Space );
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CallSiteRedirection"/> class.
+    /// </summary>
     public CallSiteRedirection(
         int id,
         ExpressionSyntax sourceNode,
@@ -124,8 +63,14 @@ internal sealed class CallSiteRedirection
     /// </summary>
     public ExpressionSyntax SourceNode { get; }
 
+    /// <summary>
+    /// Gets a value indicating whether the redirection rewrites an invocation or a method reference.
+    /// </summary>
     public CallSiteRedirectionKind Kind { get; }
 
+    /// <summary>
+    /// Gets the mode that determines how the new call handles the receiver of the source call site.
+    /// </summary>
     public CallSiteReceiverMode ReceiverMode { get; }
 
     /// <summary>
@@ -150,6 +95,9 @@ internal sealed class CallSiteRedirection
     /// </summary>
     public TypeSyntax? ResultCast { get; }
 
+    /// <summary>
+    /// Gets a human-readable description of the redirection, which is used in the diagnostic reported when the redirection is not applied.
+    /// </summary>
     public string Description { get; }
 
     /// <summary>
@@ -321,7 +269,10 @@ internal sealed class CallSiteRedirection
     /// <remarks>
     /// A switch expression evaluates its governing expression before the selected arm. The form <c>D switch { _ =&gt; value }</c> therefore
     /// evaluates <c>D</c> before the value, and the form <c>value switch { var t =&gt; D switch { _ =&gt; t } }</c> evaluates it after the value.
-    /// Both forms are target-typed, so the conversion of the value to the type of the parameter does not change.
+    /// In the first form, the value is an arm of the switch expression, so it is converted to the type of the parameter as in the source call. In
+    /// the second form, the value is the governing expression, and the variable <c>t</c> has the natural type of the value, which is then converted
+    /// to the type of the parameter. The factory therefore uses the second form only for a value whose natural type gives the same conversion,
+    /// which excludes target-typed expressions such as <c>default</c> and <c>new()</c>.
     /// </remarks>
     private static ExpressionSyntax AddDiscards( ExpressionSyntax value, CallSiteArgumentPlanItem item, SeparatedSyntaxList<ArgumentSyntax> sourceArguments )
     {
@@ -456,6 +407,9 @@ internal sealed class CallSiteRedirection
         }
     }
 
+    /// <summary>
+    /// Determines whether a trivia is a single-line or a multi-line comment.
+    /// </summary>
     private static bool IsComment( SyntaxTrivia trivia ) => trivia.IsKind( SyntaxKind.SingleLineCommentTrivia ) || trivia.IsKind( SyntaxKind.MultiLineCommentTrivia );
 
     /// <summary>

@@ -13,12 +13,18 @@ namespace Metalama.Framework.Tests.ExtensionPoints.Engine;
 /// </summary>
 internal sealed class TestReferenceReport : IExtensionPipelineContributor
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="TestReferenceReport"/> class.
+    /// </summary>
     public TestReferenceReport( string methodName, ImmutableArray<SyntaxNode>? declarationRoots )
     {
         this.MethodName = methodName;
         this.DeclarationRoots = declarationRoots;
     }
 
+    /// <summary>
+    /// Gets the name of the methods whose references are reported.
+    /// </summary>
     public string MethodName { get; }
 
     /// <summary>
@@ -26,5 +32,6 @@ internal sealed class TestReferenceReport : IExtensionPipelineContributor
     /// </summary>
     public ImmutableArray<SyntaxNode>? DeclarationRoots { get; }
 
+    /// <inheritdoc />
     public ContributorKind ContributorKind => TestContributorKinds.ReferenceReport;
 }

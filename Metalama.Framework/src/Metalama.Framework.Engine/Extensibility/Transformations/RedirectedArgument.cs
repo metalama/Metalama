@@ -31,6 +31,9 @@ namespace Metalama.Framework.Engine.Extensibility.Transformations;
 [PublicAPI]
 public sealed class RedirectedArgument
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="RedirectedArgument"/> class. Use the static members of the class to create an instance.
+    /// </summary>
     private RedirectedArgument( RedirectedArgumentKind kind, int parameterOrdinal, ExpressionSyntax? expression, string? name, IType? castType = null )
     {
         this.Kind = kind;

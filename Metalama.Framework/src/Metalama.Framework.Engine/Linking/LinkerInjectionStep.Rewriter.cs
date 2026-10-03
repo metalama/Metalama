@@ -1936,8 +1936,13 @@ internal sealed partial class LinkerInjectionStep
 
                 if ( this._callSiteRedirections != null )
                 {
-                    node = node.WithDeclaration(
-                        node.Declaration.WithVariables( SeparatedList( originalNode.Declaration.Variables.SelectAsArray( this.VisitDeclaratorForCallSites ) ) ) );
+                    var rewrittenVariables = originalNode.Declaration.Variables.SelectAsArray( this.VisitDeclaratorForCallSites );
+
+                    // The declaration is rebuilt only when a declarator changed, as for a field, so that an unchanged declaration keeps its separators.
+                    if ( !rewrittenVariables.SequenceEqual( originalNode.Declaration.Variables ) )
+                    {
+                        node = node.WithDeclaration( node.Declaration.WithVariables( SeparatedList( rewrittenVariables ) ) );
+                    }
                 }
 
                 return [node];

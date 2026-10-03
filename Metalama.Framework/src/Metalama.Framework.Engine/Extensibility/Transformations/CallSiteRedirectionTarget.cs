@@ -14,6 +14,9 @@ namespace Metalama.Framework.Engine.Extensibility.Transformations;
 [PublicAPI]
 public sealed class CallSiteRedirectionTarget
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CallSiteRedirectionTarget"/> class. Use <see cref="Existing"/> to create an instance.
+    /// </summary>
     private CallSiteRedirectionTarget( IMethod method, INamedType? containingTypeAtCallSite )
     {
         this.Method = method;
