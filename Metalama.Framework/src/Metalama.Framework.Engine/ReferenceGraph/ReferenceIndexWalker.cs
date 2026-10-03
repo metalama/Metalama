@@ -106,11 +106,21 @@ internal sealed class ReferenceIndexWalker : SafeSyntaxWalker
     /// Indexes the reference of a generic name, for instance the method of an invocation with explicit type arguments, and then visits its type arguments.
     /// </summary>
     /// <remarks>
-    /// Type references that are generic names are handled by <see cref="VisitTypeReference"/>, which does not call this method.
-    /// This method handles the generic names that appear in expressions, in qualified names and in attribute names.
+    /// <see cref="VisitTypeReference"/> handles a type reference that is a generic name without calling this method. This method handles the
+    /// generic names that appear in expressions, in attribute names, and in the type references that <see cref="VisitTypeReference"/> visits
+    /// through <see cref="VisitWithReferenceKinds"/>, for instance a qualified name or the element type of an array. As in
+    /// <see cref="VisitTypeReference"/>, <c>Nullable&lt;T&gt;</c> is processed as <c>T?</c>: its type argument is visited with the reference kinds
+    /// of the name, and no reference to <c>Nullable&lt;T&gt;</c> is indexed.
     /// </remarks>
     public override void VisitGenericName( GenericNameSyntax node )
     {
+        if ( node.Identifier.Text == nameof(Nullable<int>) && node.TypeArgumentList.Arguments.Count == 1 && !IsInvokedName( node ) )
+        {
+            this.Visit( node.TypeArgumentList.Arguments[0] );
+
+            return;
+        }
+
         this.IndexReference( node, node.Identifier );
         this.Visit( node.TypeArgumentList );
     }
@@ -228,10 +238,11 @@ internal sealed class ReferenceIndexWalker : SafeSyntaxWalker
             this.Visit( node.BaseList );
             this.Visit( node.ConstraintClauses );
 
+            // VisitMembers visits the nested types even when the walker does not descend into members.
+            this.VisitMembers( node.Members );
+
             if ( this._options.MustDescendIntoMembers() )
             {
-                this.VisitMembers( node.Members );
-
                 this.Visit( node.ParameterList );
             }
         }
@@ -262,10 +273,11 @@ internal sealed class ReferenceIndexWalker : SafeSyntaxWalker
             this.Visit( node.BaseList );
             this.Visit( node.ConstraintClauses );
 
+            // VisitMembers visits the nested types even when the walker does not descend into members.
+            this.VisitMembers( node.Members );
+
             if ( this._options.MustDescendIntoMembers() )
             {
-                this.VisitMembers( node.Members );
-
                 this.Visit( node.ParameterList );
             }
         }
@@ -302,10 +314,8 @@ internal sealed class ReferenceIndexWalker : SafeSyntaxWalker
                 }
             }
 
-            if ( this._options.MustDescendIntoMembers() )
-            {
-                this.VisitMembers( node.Members );
-            }
+            // VisitMembers visits the nested types even when the walker does not descend into members.
+            this.VisitMembers( node.Members );
         }
     }
 #endif
@@ -1021,6 +1031,18 @@ internal sealed class ReferenceIndexWalker : SafeSyntaxWalker
             this.Visit( node );
         }
     }
+
+    /// <summary>
+    /// Determines whether a generic name is the name of an invoked method, as in <c>M&lt;T&gt;()</c> or <c>x.M&lt;T&gt;()</c>.
+    /// </summary>
+    private static bool IsInvokedName( GenericNameSyntax node )
+        => node.Parent?.Kind() switch
+        {
+            SyntaxKind.InvocationExpression => true,
+            SyntaxKind.SimpleMemberAccessExpression => ((MemberAccessExpressionSyntax) node.Parent).Name == node
+                                                       && node.Parent.Parent.IsKind( SyntaxKind.InvocationExpression ),
+            _ => false
+        };
 
     private void VisitTypeReference( SyntaxNode? type, ReferenceKinds kind )
     {
