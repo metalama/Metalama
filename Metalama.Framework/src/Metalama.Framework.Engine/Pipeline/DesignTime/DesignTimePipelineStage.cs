@@ -5,10 +5,8 @@
 using Metalama.Framework.Engine.AspectOrdering;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Extensibility;
-using Metalama.Framework.Engine.Transformations;
 using Metalama.Framework.Engine.Utilities.Threading;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace Metalama.Framework.Engine.Pipeline.DesignTime
@@ -73,14 +71,14 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
                         .Concat( extensionPipelineContributorsResult.Diagnostics ),
                     new PipelineContributorSources( input.ContributorSources.Contributors.Add( pipelineStepsResult.OverflowAspectSource ) ),
 
-                    // The inheritable aspects and the transitive contributors of the earlier stages are kept, because the design-time pipeline
-                    // reads them from the result of the last stage.
+                    // The inheritable aspects, the transitive contributors and the transformations of the earlier stages are kept, because the
+                    // design-time pipeline reads them from the result of the last stage.
                     input.ExternallyInheritableAspects.AddRange( pipelineStepsResult.InheritableAspectInstances ),
                     pipelineStepsResult.LastCompilation.Annotations,
                     input.TransitiveContributors.AddRange( extensionPipelineContributorsResult.TransitiveContributors ),
                     input.AdditionalSyntaxTrees.AddRange( additionalSyntaxTrees ),
                     input.AspectInstanceResults.AddRange( pipelineStepsResult.AspectInstanceResults ),
-                    transformations: pipelineStepsResult.Transformations.ToImmutableArray<ITransformationBase>() );
+                    transformations: input.Transformations.AddRange( pipelineStepsResult.Transformations ) );
         }
     }
 }
