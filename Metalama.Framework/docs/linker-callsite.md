@@ -209,12 +209,12 @@ A pipeline extension can also rewrite consumer sites, through the redirections t
 
 The factory validates a request before it accepts it: the receiver mode, the argument plan, the reference kinds of the arguments, and the binding of the rewritten call, which it checks with a speculative semantic model (rules E16 and E18). A redirection that the injection step does not reach, for instance a call in the initializer of a field that an aspect promoted to a property, is reported with the warning LAMA0660, in the order in which the redirections were requested, and the site is kept unchanged.
 
-The argument plan of a redirection can reorder, cast, pack and omit the source arguments. An omitted argument that can have a side effect is evaluated in its source order, into a discard held by an adjacent argument passed by value: `D switch { _ => value }` before the value, or `value switch { var t => D switch { _ => t } }` after it. The elements of an expanded `params` argument are packed into a collection expression from C# 12, or into an array creation before. The trivia of a source argument moves with it.
+The argument plan of a redirection can reorder, cast, pack and omit the source arguments. An omitted argument that can have a side effect is evaluated in its source order, together with an adjacent argument passed by value, by the run-time helper `Metalama.Framework.RunTime.CallSiteHelper`: `DropBefore( D, value )` before the value, or `DropAfter( value, D )` after it. Several consecutive dropped values are passed as one tuple. The elements of an expanded `params` argument are packed into a collection expression from C# 12, or into an array creation before. The trivia of a source argument moves with it.
 
 | File | Role |
 |---|---|
 | `Metalama.Framework.Engine/Extensibility/Transformations/ExtensionTransformationFactory.cs` | Validates the requests and creates the redirections |
-| `Metalama.Framework.Engine/Extensibility/Transformations/ExtensionTransformationFactory.ArgumentPlan.cs` | Validates the argument plan and places the discards |
+| `Metalama.Framework.Engine/Extensibility/Transformations/ExtensionTransformationFactory.ArgumentPlan.cs` | Validates the argument plan and attaches the dropped values to the kept ones |
 | `Metalama.Framework.Engine/Linking/CallSiteRedirection.cs` | Holds the syntax of one redirection and writes the rewritten call |
 | `Metalama.Framework.Engine/Linking/CallSiteArgumentPlanItem.cs` | One argument of the rewritten call |
 | `Metalama.Framework.Engine/Linking/ExtensionLinkerInput.cs` | The redirections of each syntax tree, passed to the linker |
