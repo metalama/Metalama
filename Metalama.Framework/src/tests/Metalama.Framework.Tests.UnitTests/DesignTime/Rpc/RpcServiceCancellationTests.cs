@@ -5,7 +5,7 @@
 #pragma warning disable VSTHRD003 // Avoid awaiting foreign Tasks - acceptable in test code
 #pragma warning disable VSTHRD103 // Cancel synchronously blocks - CancelAsync not available on all target frameworks
 
-using Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline.MemoryLeaks;
+using Metalama.Framework.Tests.UnitTestHelpers.MemoryLeaks;
 using System;
 using System.Runtime.CompilerServices;
 using System.Threading;

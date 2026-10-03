@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 #if TEST_OPTIONS
+// @MainMethod(Main)
 // @IgnoredDiagnostic(CS1998)
 #endif
 

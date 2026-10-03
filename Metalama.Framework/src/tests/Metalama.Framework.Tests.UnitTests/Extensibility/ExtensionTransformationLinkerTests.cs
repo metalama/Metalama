@@ -13,6 +13,7 @@ using Metalama.Framework.Engine.Observers;
 using Metalama.Framework.Engine.Pipeline.CompileTime;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Services;
+using Metalama.Framework.Tests.UnitTestHelpers.MemoryLeaks;
 using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -20,6 +21,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
@@ -35,6 +37,10 @@ namespace Metalama.Framework.Tests.UnitTests.Extensibility;
 /// </remarks>
 public sealed class ExtensionTransformationLinkerTests : UnitTestClass
 {
+    /// <summary>
+    /// The code of the tests, indexed by file path. The file <c>A.cs</c> declares the aspect, the source and target methods and the type <c>C</c>,
+    /// and the file <c>B.cs</c> declares the type <c>D</c>. Both files call <c>Source.Compute</c>.
+    /// </summary>
     private static readonly Dictionary<string, string> _code = new()
     {
         ["A.cs"] = """
@@ -108,12 +114,76 @@ public sealed class ExtensionTransformationLinkerTests : UnitTestClass
         Assert.Equal( text1, text2 );
     }
 
+    /// <summary>
+    /// Verifies that a call in a top-level statement is redirected. The rewritten call is in the compilation unit, outside of any type declaration.
+    /// </summary>
+    [Fact]
+    public async Task TopLevelStatement_Redirected()
+    {
+        var code = _code.ToOrderedList( p => p.Key, StringComparer.Ordinal ).ToMutableList();
+        code.Insert( 0, new KeyValuePair<string, string>( "Program.cs", "System.Console.WriteLine( Source.Compute( 4 ) );" ) );
+
+        var result = await this.ExecuteAsync( code, outputKind: OutputKind.ConsoleApplication );
+
+        var text = result.ResultingCompilation.SyntaxTreeCollection.Single( t => t.FilePath == "Program.cs" ).ToString();
+
+        Assert.Contains( "global::Interceptors.Compute(4)", text.Replace( " ", "" ), StringComparison.Ordinal );
+    }
+
+    /// <summary>
+    /// Verifies that the objects of a stage that redirects calls, which include the transformation factory and the index of the references, do
+    /// not retain the compilation after the pipeline has completed, while the project services and the extension instances stay alive.
+    /// </summary>
+    [Fact]
+    public async Task Redirections_DoNotRetainCompilation()
+    {
+        var additionalServices = new AdditionalServiceCollection();
+        additionalServices.AddProjectService( new RedirectionSwitch() );
+
+        using var testContext = this.CreateTestContext(
+            this.CreateDefaultTestContextOptions() with { ExtensionTypes = ImmutableArray.Create( typeof(RedirectingExtension) ) },
+            additionalServices );
+
+        var compilation = await ExecuteInNewCompilationAsync( testContext );
+
+        await MemoryLeakAssert.CollectedAsync( compilation, "The compilation of a pipeline that redirects calls", ("testContext", testContext) );
+    }
+
+    /// <summary>
+    /// Runs the pipeline on a compilation that only this method references, and returns a weak reference to the compilation.
+    /// </summary>
+    [MethodImpl( MethodImplOptions.NoInlining )]
+    private static async Task<WeakReference> ExecuteInNewCompilationAsync( MetalamaTestContext testContext )
+    {
+        var pipeline = new CompileTimeAspectPipeline( testContext.ServiceProvider );
+        var compilation = testContext.CreateCSharpCompilation( _code );
+
+        var result = await pipeline.ExecuteAsync( null, null, compilation, ImmutableArray<ManagedResource>.Empty, testContext.CancellationToken );
+
+        Assert.True( result.IsSuccessful );
+
+        return new WeakReference( compilation );
+    }
+
+    /// <summary>
+    /// Returns the text of the resulting syntax trees of <c>A.cs</c> and <c>B.cs</c>, indexed by file path.
+    /// </summary>
     private static IReadOnlyDictionary<string, string> GetTextByPath( CompileTimeAspectPipelineResult result )
         => result.ResultingCompilation.SyntaxTreeCollection
             .Where( t => t.FilePath is "A.cs" or "B.cs" )
             .ToDictionary( t => t.FilePath, t => t.ToString() );
 
-    private async Task<CompileTimeAspectPipelineResult> ExecuteAsync( IReadOnlyList<KeyValuePair<string, string>> code, ILinkerObserver? observer = null )
+    /// <summary>
+    /// Runs the compile-time pipeline with <see cref="RedirectingExtension"/> on the given files, with the syntax trees in the order of the files,
+    /// and asserts that the pipeline succeeds.
+    /// </summary>
+    /// <param name="code">The files of the compilation, as pairs of a file path and a text.</param>
+    /// <param name="observer">An observer of the linker that is registered as a project service, or <c>null</c>.</param>
+    /// <param name="outputKind">The output kind of the compilation.</param>
+    private async Task<CompileTimeAspectPipelineResult> ExecuteAsync(
+        IReadOnlyList<KeyValuePair<string, string>> code,
+        ILinkerObserver? observer = null,
+        OutputKind outputKind = OutputKind.DynamicallyLinkedLibrary )
     {
         var additionalServices = new AdditionalServiceCollection();
         additionalServices.AddProjectService( new RedirectionSwitch() );
@@ -130,9 +200,11 @@ public sealed class ExtensionTransformationLinkerTests : UnitTestClass
         var pipeline = new CompileTimeAspectPipeline( testContext.ServiceProvider );
 
         // The dictionary that the helper receives keeps the insertion order, which is the order of the syntax trees in the compilation.
-        var compilation = testContext.CreateCSharpCompilation( new OrderedCode( code ) );
+        var compilation = testContext.CreateCSharpCompilation( new OrderedCode( code ), outputKind: outputKind );
 
-        Assert.Equal( code.SelectAsArray( p => p.Key ), compilation.SyntaxTrees.Select( t => t.FilePath ).Where( p => p is "A.cs" or "B.cs" ) );
+        Assert.Equal(
+            code.SelectAsArray( p => p.Key ).Where( p => p is "A.cs" or "B.cs" ),
+            compilation.SyntaxTrees.Select( t => t.FilePath ).Where( p => p is "A.cs" or "B.cs" ) );
 
         var diagnostics = new List<Diagnostic>();
 
@@ -148,23 +220,35 @@ public sealed class ExtensionTransformationLinkerTests : UnitTestClass
     /// </summary>
     private sealed class OrderedCode : IReadOnlyDictionary<string, string>
     {
+        /// <summary>
+        /// The entries of the dictionary, in the order of enumeration.
+        /// </summary>
         private readonly IReadOnlyList<KeyValuePair<string, string>> _entries;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="OrderedCode"/> class.
+        /// </summary>
         public OrderedCode( IReadOnlyList<KeyValuePair<string, string>> entries )
         {
             this._entries = entries;
         }
 
+        /// <inheritdoc />
         public int Count => this._entries.Count;
 
+        /// <inheritdoc />
         public string this[ string key ] => this._entries.Single( p => p.Key == key ).Value;
 
+        /// <inheritdoc />
         public IEnumerable<string> Keys => this._entries.SelectAsArray( p => p.Key );
 
+        /// <inheritdoc />
         public IEnumerable<string> Values => this._entries.SelectAsArray( p => p.Value );
 
+        /// <inheritdoc />
         public bool ContainsKey( string key ) => this._entries.Any( p => p.Key == key );
 
+        /// <inheritdoc />
         public bool TryGetValue( string key, out string value )
         {
             foreach ( var entry in this._entries )
@@ -182,6 +266,7 @@ public sealed class ExtensionTransformationLinkerTests : UnitTestClass
             return false;
         }
 
+        /// <inheritdoc />
         public IEnumerator<KeyValuePair<string, string>> GetEnumerator() => this._entries.GetEnumerator();
 
         System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => this.GetEnumerator();
@@ -197,8 +282,12 @@ public sealed class ExtensionTransformationLinkerTests : UnitTestClass
     /// </summary>
     private sealed class IntermediateCompilationObserver : ILinkerObserver
     {
+        /// <summary>
+        /// Gets the intermediate compilations that the linker reported.
+        /// </summary>
         public List<PartialCompilation> Compilations { get; } = new();
 
+        /// <inheritdoc />
         public void OnIntermediateCompilationCreated( PartialCompilation compilation ) => this.Compilations.Add( compilation );
     }
 
