@@ -265,6 +265,7 @@ The rewritten method group keeps the trivia of the source node. The receiver `r`
 | `MemberOfReceiver` | `r.M(args)` | `r.I(args, extra)` |
 | `MemberOfReceiver` | `.M(args)` inside `a?....` | `.I(args, extra)` |
 | `MemberOfReceiver` | `M(args)` or `this.M(args)` | `this.I(args, extra)` |
+| Any mode, an argument list that omits source arguments with side effects | `M(d1, k, d2)` redirected to `I(k)` | `I(k: CallSiteHelper.DropBefore(d1, CallSiteHelper.DropAfter(k, d2)))`; several consecutive dropped values are one tuple, `DropBefore((d1, d2), k)`; the type arguments are written when the kept value has no natural type (decision of 2026-10-03, section 15.0) |
 
 | Target | Callee |
 |---|---|

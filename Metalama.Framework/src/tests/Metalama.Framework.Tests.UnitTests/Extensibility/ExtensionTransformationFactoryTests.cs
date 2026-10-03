@@ -600,8 +600,8 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
 
         var compactText = GetText( result ).Replace( " ", "" );
 
-        Assert.Matches( @"Interceptors\.Compute\(x:10switch\{var(__value\d+)=>Propertyswitch\{_=>\1\}\}\)", compactText );
-        Assert.Matches( @"Interceptors\.Compute\(x:12switch\{var(__value\d+)=>i\.Fieldswitch\{_=>\1\}\}\)", compactText );
+        Assert.Matches( @"Interceptors\.Compute\(x:(global::)?(Metalama\.Framework\.RunTime\.)?CallSiteHelper\.DropAfter\(10,Property\)\)", compactText );
+        Assert.Matches( @"Interceptors\.Compute\(x:(global::)?(Metalama\.Framework\.RunTime\.)?CallSiteHelper\.DropAfter\(12,i\.Field\)\)", compactText );
     }
 
     /// <summary>
@@ -618,7 +618,7 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
                     Arguments = ImmutableArray.Create( RedirectedArgument.SourceArgument( 1 ) )
                 } ) );
 
-        Assert.Contains( "Interceptors.Compute(x:Propertyswitch{_=>20})", GetText( result ).Replace( " ", "" ), StringComparison.Ordinal );
+        Assert.Matches( @"Interceptors\.Compute\(x:(global::)?(Metalama\.Framework\.RunTime\.)?CallSiteHelper\.DropBefore\(Property,20\)\)", GetText( result ).Replace( " ", "" ) );
     }
 
     /// <summary>
@@ -962,8 +962,8 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
             expectedMessage: "result cast" );
 
     /// <summary>
-    /// Verifies that a dropped argument that is parenthesized, or whose nullability is suppressed, can be discarded like the same argument
-    /// without the parentheses or the suppression.
+    /// Verifies that a dropped argument that is parenthesized, or whose nullability is suppressed, is evaluated like the same argument without
+    /// the parentheses or the suppression.
     /// </summary>
     [Theory]
     [InlineData( "Source.Two( 31, (Next()) )", "Compute" )]
@@ -981,17 +981,21 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
     }
 
     /// <summary>
-    /// Verifies that a target-typed value, whose type is given by the parameter, does not hold a following discard, because the pattern variable
-    /// of the holder needs a natural type.
+    /// Verifies that a target-typed value, which has no natural type, holds a following dropped value. Both type arguments of the helper are
+    /// written, so that the value is converted to the type of the parameter as in the original call.
     /// </summary>
     [Fact]
-    public async Task RedirectInvocation_DroppedArgumentAfterTargetTypedValue_Throws()
-        => await this.AssertInvocationRefusedAsync(
-            "Source.Make( new(), Next() )",
-            "Interceptors",
-            "MakeOne",
-            CallSiteReceiverMode.Drop,
-            DropSecondArgument );
+    public async Task RedirectInvocation_DroppedArgumentAfterTargetTypedValue_ExplicitTypeArguments()
+    {
+        var result = await this.ExecuteAsync(
+            s => s.Factory.RedirectInvocation(
+                s.Origin,
+                DropSecondArgument(
+                    s,
+                    new InvocationRedirectionRequest( s.Invocation( "Source.Make( new(), Next() )" ), s.Target( "Interceptors", "MakeOne" ), CallSiteReceiverMode.Drop ) ) ) );
+
+        Assert.Matches( @"DropAfter<(global::)?Instance,(int|global::System\.Int32)>\(new\(\),Next\(\)\)", GetText( result ).Replace( " ", "" ) );
+    }
 
     /// <summary>
     /// Verifies that a method group is not redirected when the method group of the target binds to another overload of the target.
@@ -1146,7 +1150,7 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
         var compactText = GetText( result ).Replace( " ", "" );
 
         Assert.Contains( "Interceptors.Compute(x:1)", compactText, StringComparison.Ordinal );
-        Assert.Matches( @"Interceptors\.Compute\(x:33switch\{var(__value\d+)=>Next\(\)switch\{_=>\1\}\}\)", compactText );
+        Assert.Matches( @"Interceptors\.Compute\(x:(global::)?(Metalama\.Framework\.RunTime\.)?CallSiteHelper\.DropAfter\(33,Next\(\)\)\)", compactText );
     }
 
     /// <summary>
