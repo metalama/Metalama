@@ -12,6 +12,9 @@ namespace Metalama.Framework.Tests.ExtensionPoints.Engine;
 /// </summary>
 internal sealed class TestRegistration : IExtensionPipelineContributor
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="TestRegistration"/> class.
+    /// </summary>
     public TestRegistration( string tag, ExtensionContributionOrigin origin, IRef<IDeclaration>? scope, string channel, bool? templateProviderMatches )
     {
         this.Tag = tag;
@@ -46,5 +49,6 @@ internal sealed class TestRegistration : IExtensionPipelineContributor
     /// </summary>
     public bool? TemplateProviderMatches { get; }
 
+    /// <inheritdoc />
     public ContributorKind ContributorKind => TestContributorKinds.Registration;
 }

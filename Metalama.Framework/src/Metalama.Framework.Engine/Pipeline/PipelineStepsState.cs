@@ -44,7 +44,13 @@ internal sealed class PipelineStepsState
     private readonly ConcurrentLinkedList<IAspectInstance> _inheritableAspectInstances = new();
     private readonly ConcurrentLinkedList<AspectInstanceResult> _aspectInstanceResults = new();
     private readonly ConcurrentLinkedList<IExtensionPipelineContributor> _extensionContributors = new();
+
+    /// <summary>
+    /// The subset of the extension contributors that were added by an aspect that executed in this stage, as opposed to the contributors replayed
+    /// from the contributor sources of the pipeline.
+    /// </summary>
     private readonly ConcurrentLinkedList<IExtensionPipelineContributor> _extensionContributorsAddedInStage = new();
+
     private readonly OverflowAspectSource _overflowAspectSource = new();
     private readonly IntrospectionPipelineListener? _introspectionListener;
     private readonly bool _shouldDetectUnorderedAspects;

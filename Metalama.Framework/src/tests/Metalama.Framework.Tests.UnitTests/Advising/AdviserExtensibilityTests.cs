@@ -17,6 +17,10 @@ namespace Metalama.Framework.Tests.UnitTests.Advising;
 /// </summary>
 public sealed class AdviserExtensibilityTests
 {
+    /// <summary>
+    /// Verifies that <see cref="AdviserExtensibility.GetExtensionContext"/> throws an <see cref="ArgumentException"/> for an adviser that was not
+    /// created by the engine.
+    /// </summary>
     [Fact]
     public void ForeignAdviser_Throws()
         => Assert.Throws<ArgumentException>( () => new ForeignAdviser().GetExtensionContext() );
@@ -26,14 +30,19 @@ public sealed class AdviserExtensibilityTests
     /// </summary>
     private sealed class ForeignAdviser : IAdviser
     {
+        /// <inheritdoc />
         public ScopedDiagnosticSink Diagnostics => throw new NotSupportedException();
 
+        /// <inheritdoc />
         public IDeclaration Target => throw new NotSupportedException();
 
+        /// <inheritdoc />
         public ICompilation Compilation => throw new NotSupportedException();
 
+        /// <inheritdoc />
         public ICompilation MutableCompilation => throw new NotSupportedException();
 
+        /// <inheritdoc />
         public IAdviser<TNewDeclaration> With<TNewDeclaration>( TNewDeclaration declaration )
             where TNewDeclaration : class, IDeclaration
             => throw new NotSupportedException();
