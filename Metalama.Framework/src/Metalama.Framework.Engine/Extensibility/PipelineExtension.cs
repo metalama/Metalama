@@ -69,6 +69,23 @@ public abstract class PipelineExtension
         => Task.FromResult( ExtensionPipelineContributorsResult.Empty );
 
     /// <summary>
+    /// Executes the contributors that produce code transformations. The method is invoked once at the end of every high-level pipeline stage
+    /// that runs the linker, after <see cref="ExecutePipelineContributorsAsync"/> has been invoked for all extensions and before the linker runs.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The method is invoked at compile time and in the preview, live-template and introspection scenarios. It is not invoked at design time
+    /// or in the WPF precompilation scenario, because these scenarios run no linker.
+    /// </para>
+    /// <para>
+    /// Use <see cref="ExtensionTransformationContext.IsSourceStage"/> and <see cref="ExtensionTransformationContext.HighLevelStageIndex"/> to
+    /// decide what to do in a given stage.
+    /// </para>
+    /// </remarks>
+    public virtual Task ExecuteTransformingContributorsAsync( ExtensionTransformationContext context, CancellationToken cancellationToken )
+        => Task.CompletedTask;
+
+    /// <summary>
     /// Method invoked at design time out-of-pipeline by the Analyzer. It must report any diagnostic supported by the extension.
     /// </summary>
     public virtual ImmutableUserDiagnosticList AnalyzeSemanticModel(

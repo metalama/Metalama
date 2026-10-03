@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <Compile Include="../Metalama.Framework.Tests.AspectTests.ExtensionPoints/**/*.cs" Exclude="../Metalama.Framework.Tests.AspectTests.ExtensionPoints/bin/**/*.cs;../Metalama.Framework.Tests.AspectTests.ExtensionPoints/obj/**/*.cs" />
+  </ItemGroup>
+  <Import Project="../../../../eng/RoslynVersions/Roslyn.5.0.0.props" />
+  <Import Project="../Metalama.Framework.Tests.AspectTests.ExtensionPoints/Metalama.Framework.Tests.AspectTests.ExtensionPoints.csproj" />
+</Project>

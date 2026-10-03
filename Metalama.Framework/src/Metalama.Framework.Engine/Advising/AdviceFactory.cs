@@ -21,6 +21,7 @@ using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.Abstractions;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.Diagnostics;
+using Metalama.Framework.Engine.Queries;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Framework.Utilities;
@@ -51,7 +52,17 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
     private readonly INamedType? _aspectTargetType;
     private readonly ObjectReaderFactory _objectReaderFactory;
 
+    /// <summary>
+    /// The owner set by <see cref="WithOwner"/>, or <c>null</c> when the contributions are attributed to the owner of the state.
+    /// </summary>
+    private readonly IQueryOwner? _ownerOverride;
+
     public T Target { get; }
+
+    /// <summary>
+    /// Gets the owner of the contributions made through this factory: the owner set by <see cref="WithOwner"/>, or the aspect builder.
+    /// </summary>
+    internal IQueryOwner? Owner => this._ownerOverride ?? this._state.Owner;
 
     public AdviceFactory(
         T target,
@@ -59,10 +70,12 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
         TemplateClassInstance? templateClassInstance,
         string? layerName,
         INamedType? explicitlyImplementedInterfaceType,
-        UserDiagnosticSink diagnostics )
+        UserDiagnosticSink diagnostics,
+        IQueryOwner? ownerOverride )
     {
         this.Target = target;
         this._state = state;
+        this._ownerOverride = ownerOverride;
         this._templateClassInstance = templateClassInstance;
         this._layerName = layerName;
         this._explicitlyImplementedInterfaceType = explicitlyImplementedInterfaceType;
@@ -183,7 +196,35 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
     }
 
     private AdviceFactory<T> WithTemplateClassInstance( TemplateClassInstance templateClassInstance )
-        => new( this.Target, this._state, templateClassInstance, this._layerName, this._explicitlyImplementedInterfaceType, this._diagnostics );
+        => new(
+            this.Target,
+            this._state,
+            templateClassInstance,
+            this._layerName,
+            this._explicitlyImplementedInterfaceType,
+            this._diagnostics,
+            this._ownerOverride );
+
+    /// <inheritdoc />
+    public IAdviceFactoryImpl WithOwner( IQueryOwner owner )
+        => new AdviceFactory<T>(
+            this.Target,
+            this._state,
+            this._templateClassInstance,
+            this._layerName,
+            this._explicitlyImplementedInterfaceType,
+            this._diagnostics,
+            owner );
+
+    /// <inheritdoc />
+    public AdviserExtensionContext CreateExtensionContext( IQueryOwner? adviserOwner )
+    {
+        var owner = adviserOwner
+                    ?? this.Owner
+                    ?? throw new InvalidOperationException( "The adviser has no owner, so it cannot be used by an extension." );
+
+        return new AdviserExtensionContext( owner, this._state, this._templateClassInstance, this._aspectTarget );
+    }
 
     IAdviceFactoryImpl IAdviceFactoryImpl.WithTemplateClassInstance( TemplateClassInstance templateClassInstance )
         => this.WithTemplateClassInstance( templateClassInstance );
@@ -206,7 +247,8 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
             this._templateClassInstance,
             this._layerName,
             explicitlyImplementedInterfaceType,
-            this._diagnostics );
+            this._diagnostics,
+            this._ownerOverride );
 
     private TemplateProvider TemplateProvider => this._templateClassInstance.AssertNotNull().TemplateProvider;
 
@@ -385,7 +427,8 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
                 this._templateClassInstance,
                 this._layerName,
                 this._explicitlyImplementedInterfaceType,
-                this._diagnostics );
+                this._diagnostics,
+                this._ownerOverride );
         }
     }
 
