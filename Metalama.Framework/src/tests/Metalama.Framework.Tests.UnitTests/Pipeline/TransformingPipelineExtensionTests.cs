@@ -2,21 +2,27 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using JetBrains.Annotations;
 using Metalama.Compiler;
 using Metalama.Framework.Code;
+using Metalama.Framework.Engine.CodeModel;
+using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Pipeline;
 using Metalama.Framework.Engine.Pipeline.CompileTime;
+using Metalama.Framework.Engine.Pipeline.DesignTime;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Services;
 using Metalama.Framework.Tests.UnitTestHelpers.Mocks;
 using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
@@ -155,27 +161,188 @@ public sealed class TransformingPipelineExtensionTests : UnitTestClass
         Assert.Empty( recorder.Calls );
     }
 
-    private async Task<(HookRecorder Recorder, Compilation Compilation, FallibleResult<CompileTimeAspectPipelineResult> Result)> ExecuteAsync(
+    [Fact]
+    public async Task NotCalledInWpfPrecompile()
+    {
+        var recorder = new HookRecorder();
+
+        using var testContext = this.CreateRecordingTestContext( recorder );
+
+        var pipeline = new WpfPrecompileAspectPipeline( testContext.ServiceProvider );
+        var compilation = testContext.CreateCSharpCompilation( "class C { }" );
+
+        var result = await pipeline.ExecuteAsync( null, null, compilation, default, testContext.CancellationToken );
+
+        Assert.True( result.IsSuccessful );
+        Assert.Empty( recorder.Calls );
+    }
+
+    [Fact]
+    public async Task CalledInPreview()
+    {
+        var recorder = new HookRecorder();
+
+        using var testContext = this.CreateRecordingTestContext( recorder );
+
+        var pipeline = new TestablePreviewAspectPipeline( testContext.ServiceProvider );
+        var compilation = testContext.CreateCSharpCompilation( "class C { }" );
+        var diagnostics = new DiagnosticBag();
+
+        Assert.True( pipeline.InvokeTryInitialize( diagnostics, compilation, testContext.CancellationToken, out var configuration ) );
+
+        var result = await pipeline.ExecutePreviewAsync( diagnostics, PartialCompilation.CreateComplete( compilation ), configuration!, default );
+
+        Assert.True( result.IsSuccessful );
+
+        var call = Assert.Single( recorder.Calls );
+        Assert.True( call.IsSourceStage );
+    }
+
+    /// <summary>
+    /// Verifies that a low-level weaver splits the pipeline into two high-level stages, and that only the first one sees the source compilation.
+    /// In the second stage, <see cref="ExtensionTransformationContext.SourceCompilationWithFinalAspects"/> throws, which the extension asserts.
+    /// </summary>
+    [Fact]
+    public async Task WeaverSplitsStages_LaterStageIsNotSource()
+    {
+        var (recorder, _, result) = await this.ExecuteAsync(
+            new Dictionary<string, string> { ["code.cs"] = _weaverTargetCode + "[Aspect1] [WeaverAspect] [Aspect2] class C { }", ["weaver.cs"] = _weaverCode },
+            cancellationToken: TestContext.Current.CancellationToken );
+
+        Assert.True( result.IsSuccessful );
+
+        Assert.Equal(
+            [(0, true, true), (1, false, false)],
+            recorder.Calls.OrderBy( c => c.HighLevelStageIndex ).Select( c => (c.HighLevelStageIndex, c.IsSourceStage, c.AspectInstanceCountOnC.HasValue) ) );
+    }
+
+    /// <summary>
+    /// Verifies that a weaver that has no aspect instance does not make the first high-level stage that the hook sees lose the source compilation.
+    /// </summary>
+    [Fact]
+    public async Task WeaverWithoutInstancesBeforeFirstStage_FirstStageIsSource()
+    {
+        var (recorder, _, result) = await this.ExecuteAsync(
+            new Dictionary<string, string> { ["code.cs"] = _weaverTargetCode + "[Aspect1] [Aspect2] class C { }", ["weaver.cs"] = _weaverFirstCode },
+            cancellationToken: TestContext.Current.CancellationToken );
+
+        Assert.True( result.IsSuccessful );
+
+        Assert.True( recorder.Calls.OrderBy( c => c.HighLevelStageIndex ).First().IsSourceStage );
+    }
+
+    /// <summary>
+    /// Verifies that the hook receives the cancellation token of the pipeline. The hook cancels the source of that token itself, so the test
+    /// does not depend on timing.
+    /// </summary>
+    [Fact]
+    public async Task Cancellation_IsHonored()
+    {
+        using var cancellationTokenSource = new CancellationTokenSource();
+        var recorder = new HookRecorder { CancellationTokenSource = cancellationTokenSource };
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => this.ExecuteAsync( new Dictionary<string, string> { ["code.cs"] = "class C { }" }, recorder, cancellationToken: cancellationTokenSource.Token ) );
+
+        Assert.True( Assert.Single( recorder.Calls ).IsCancellationRequested );
+    }
+
+    /// <summary>
+    /// The aspects that the weaver tests apply. They do nothing, because only the number of stages matters.
+    /// </summary>
+    private const string _weaverTargetCode = """
+                                             using Metalama.Framework.Aspects;
+
+                                             internal class Aspect1 : TypeAspect { }
+
+                                             internal class Aspect2 : TypeAspect { }
+
+                                             """;
+
+    /// <summary>
+    /// A weaver aspect that is ordered between <c>Aspect1</c> and <c>Aspect2</c>, so that the pipeline has two high-level stages.
+    /// </summary>
+    private const string _weaverCode = """
+                                       using System.Threading.Tasks;
+                                       using Metalama.Framework.Aspects;
+                                       using Metalama.Framework.Engine;
+                                       using Metalama.Framework.Engine.AspectWeavers;
+
+                                       [assembly: AspectOrder( AspectOrderDirection.RunTime, typeof(Aspect1), typeof(WeaverAspect), typeof(Aspect2) )]
+
+                                       [RequireAspectWeaver( "AspectWeaver" )]
+                                       internal class WeaverAspect : TypeAspect { }
+
+                                       [MetalamaPlugIn]
+                                       internal class AspectWeaver : IAspectWeaver
+                                       {
+                                           public Task TransformAsync( AspectWeaverContext context ) => Task.CompletedTask;
+                                       }
+                                       """;
+
+    /// <summary>
+    /// A weaver aspect that executes before the other aspects and that no declaration uses.
+    /// </summary>
+    private const string _weaverFirstCode = """
+                                            using System.Threading.Tasks;
+                                            using Metalama.Framework.Aspects;
+                                            using Metalama.Framework.Engine;
+                                            using Metalama.Framework.Engine.AspectWeavers;
+
+                                            [assembly: AspectOrder( AspectOrderDirection.RunTime, typeof(Aspect1), typeof(Aspect2), typeof(WeaverAspect) )]
+
+                                            [RequireAspectWeaver( "AspectWeaver" )]
+                                            internal class WeaverAspect : TypeAspect { }
+
+                                            [MetalamaPlugIn]
+                                            internal class AspectWeaver : IAspectWeaver
+                                            {
+                                                public Task TransformAsync( AspectWeaverContext context ) => Task.CompletedTask;
+                                            }
+                                            """;
+
+    private Task<(HookRecorder Recorder, Compilation Compilation, FallibleResult<CompileTimeAspectPipelineResult> Result)> ExecuteAsync(
         string code,
         HookRecorder? recorder = null,
         List<Diagnostic>? diagnostics = null )
+        => this.ExecuteAsync( new Dictionary<string, string> { ["code.cs"] = code }, recorder, diagnostics, TestContext.Current.CancellationToken );
+
+    private async Task<(HookRecorder Recorder, Compilation Compilation, FallibleResult<CompileTimeAspectPipelineResult> Result)> ExecuteAsync(
+        Dictionary<string, string> code,
+        HookRecorder? recorder = null,
+        List<Diagnostic>? diagnostics = null,
+        CancellationToken cancellationToken = default )
     {
         recorder ??= new HookRecorder();
         diagnostics ??= new List<Diagnostic>();
 
+        using var testContext = this.CreateRecordingTestContext( recorder );
+
+        var pipeline = new CompileTimeAspectPipeline( testContext.ServiceProvider );
+
+        var compilation = testContext.CreateCSharpCompilation(
+            code,
+            additionalReferences:
+            [
+                MetadataReference.CreateFromFile( typeof(Compilation).Assembly.Location ),
+                MetadataReference.CreateFromFile( typeof(CSharpSyntaxTree).Assembly.Location )
+            ] );
+
+        var result = await pipeline.ExecuteAsync( diagnostics.Add, null, compilation, ImmutableArray<ManagedResource>.Empty, cancellationToken );
+
+        return (recorder, compilation, result);
+    }
+
+    [MustDisposeResource]
+    private MetalamaTestContext CreateRecordingTestContext( HookRecorder recorder, [CallerMemberName] string? callerMemberName = null )
+    {
         var additionalServices = new AdditionalServiceCollection();
         additionalServices.AddProjectService( recorder );
 
-        using var testContext = this.CreateTestContext(
+        return this.CreateTestContext(
             this.CreateDefaultTestContextOptions() with { ExtensionTypes = ImmutableArray.Create( typeof(RecordingExtension) ) },
-            additionalServices );
-
-        var pipeline = new CompileTimeAspectPipeline( testContext.ServiceProvider );
-        var compilation = testContext.CreateCSharpCompilation( code );
-
-        var result = await pipeline.ExecuteAsync( diagnostics.Add, null, compilation, ImmutableArray<ManagedResource>.Empty );
-
-        return (recorder, compilation, result);
+            additionalServices,
+            callerMemberName: callerMemberName );
     }
 
     /// <summary>
@@ -190,6 +357,28 @@ public sealed class TransformingPipelineExtensionTests : UnitTestClass
         public bool ReportDiagnostic { get; init; }
 
         public bool Throw { get; init; }
+
+        /// <summary>
+        /// Gets the source of the cancellation token of the pipeline. When it is set, the hook cancels it, records whether the token that it
+        /// received is cancelled, and throws if it is.
+        /// </summary>
+        public CancellationTokenSource? CancellationTokenSource { get; init; }
+    }
+
+    /// <summary>
+    /// A preview pipeline that exposes <see cref="AspectPipeline.TryInitialize"/>.
+    /// </summary>
+    private sealed class TestablePreviewAspectPipeline : PreviewAspectPipeline
+    {
+        public TestablePreviewAspectPipeline( ProjectServiceProvider serviceProvider )
+            : base( serviceProvider, ExecutionScenario.Preview ) { }
+
+        public bool InvokeTryInitialize(
+            IDiagnosticAdder diagnosticAdder,
+            Compilation compilation,
+            CancellationToken cancellationToken,
+            out AspectPipelineConfiguration? configuration )
+            => this.TryInitialize( diagnosticAdder, compilation, null, cancellationToken, out configuration );
     }
 
     /// <summary>
@@ -201,7 +390,8 @@ public sealed class TransformingPipelineExtensionTests : UnitTestClass
         ImmutableArray<SyntaxTree> SourceSyntaxTrees,
         int ContributorCount,
         int ContributorsAddedInStageCount,
-        int AspectInstanceCountOnC );
+        int? AspectInstanceCountOnC,
+        bool IsCancellationRequested );
 
     /// <summary>
     /// A transforming extension that records each call in the <see cref="HookRecorder"/> of the project.
@@ -222,7 +412,22 @@ public sealed class TransformingPipelineExtensionTests : UnitTestClass
                 throw new InvalidOperationException( "The test extension failed." );
             }
 
-            var typeC = context.SourceCompilationWithFinalAspects.Types.OfName( "C" ).SingleOrDefault();
+            int? aspectInstanceCountOnC;
+
+            if ( context.IsSourceStage )
+            {
+                var typeC = context.SourceCompilationWithFinalAspects.Types.OfName( "C" ).SingleOrDefault();
+                aspectInstanceCountOnC = typeC?.Enhancements().GetAspectInstances().Count() ?? 0;
+            }
+            else
+            {
+                Assert.Throws<InvalidOperationException>( () => context.SourceCompilationWithFinalAspects );
+                aspectInstanceCountOnC = null;
+            }
+
+#pragma warning disable VSTHRD103 // CancelAsync does not exist on .NET Framework.
+            recorder.CancellationTokenSource?.Cancel();
+#pragma warning restore VSTHRD103
 
             recorder.Calls.Enqueue(
                 new HookCall(
@@ -231,7 +436,10 @@ public sealed class TransformingPipelineExtensionTests : UnitTestClass
                     context.SourceCompilation.PartialCompilation.SyntaxTreeCollection.ToImmutableArray(),
                     context.Contributors.Count,
                     context.ContributorsAddedInStage.Count,
-                    typeC?.Enhancements().GetAspectInstances().Count() ?? 0 ) );
+                    aspectInstanceCountOnC,
+                    cancellationToken.IsCancellationRequested ) );
+
+            cancellationToken.ThrowIfCancellationRequested();
 
             if ( recorder.ReportDiagnostic )
             {
