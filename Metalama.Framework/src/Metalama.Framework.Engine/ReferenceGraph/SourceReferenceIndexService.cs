@@ -7,6 +7,7 @@ using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Services;
 using Microsoft.CodeAnalysis;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -42,6 +43,11 @@ public static class SourceReferenceIndexService
     /// <param name="serviceProvider">The service provider of the pipeline execution.</param>
     /// <param name="sourceCompilation">The source compilation of the pipeline.</param>
     /// <param name="requirements">The requirements that each extension returned for the stage.</param>
+    /// <exception cref="ArgumentException">A declaration root does not belong to a syntax tree of <paramref name="sourceCompilation"/>.</exception>
+    /// <remarks>
+    /// The index of every stage covers <paramref name="sourceCompilation"/>, which is the source compilation of the pipeline, including in a stage
+    /// after a low-level weaver. The declaration roots must therefore be nodes of the source compilation.
+    /// </remarks>
     internal static SourceReferenceIndexStage BeginStage(
         in ProjectServiceProvider serviceProvider,
         CompilationModel sourceCompilation,
@@ -55,6 +61,20 @@ public static class SourceReferenceIndexService
         var rootsByTree = nonEmptyRequirements.Count > 0 && nonEmptyRequirements.All( r => r.DeclarationRoots != null )
             ? SourceReferenceIndexStage.MergeRoots( nonEmptyRequirements.SelectMany( r => r.DeclarationRoots!.Value ) )
             : null;
+
+        // A root of another syntax tree would make a task of the build fail when it gets the semantic model of the tree.
+        if ( rootsByTree != null )
+        {
+            foreach ( var syntaxTree in rootsByTree.Keys )
+            {
+                if ( !sourceCompilation.RoslynCompilation.ContainsSyntaxTree( syntaxTree ) )
+                {
+                    throw new ArgumentException(
+                        $"A declaration root belongs to the syntax tree '{syntaxTree.FilePath}', which is not a syntax tree of the source compilation.",
+                        nameof(requirements) );
+                }
+            }
+        }
 
         return new SourceReferenceIndexStage( serviceProvider, sourceCompilation, options, nonEmptyRequirements.Count > 0, rootsByTree );
     }
