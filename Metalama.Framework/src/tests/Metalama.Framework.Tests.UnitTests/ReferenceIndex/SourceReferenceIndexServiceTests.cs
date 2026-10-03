@@ -8,7 +8,7 @@ using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.ReferenceGraph;
 using Metalama.Framework.Engine.Services;
-using Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline.MemoryLeaks;
+using Metalama.Framework.Tests.UnitTestHelpers.MemoryLeaks;
 using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
