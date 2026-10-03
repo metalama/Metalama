@@ -8,8 +8,10 @@ using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace Metalama.Framework.Engine.Linking;
@@ -129,9 +131,40 @@ internal sealed class CallSiteRedirection
             arguments.Add( receiverArgument );
         }
 
+        SeparatedSyntaxList<ArgumentSyntax> newArguments;
+
         if ( this.ArgumentPlan == null )
         {
-            arguments.AddRange( sourceArguments );
+            // The source arguments are kept with their separators, so that the trivia of the separators is kept too.
+            var nodesAndTokens = new List<SyntaxNodeOrToken>( (2 * arguments.Count) + (2 * this.ExtraArguments.Length) + sourceArguments.SeparatorCount + sourceArguments.Count + 1 );
+
+            void AddSeparatorIfNecessary()
+            {
+                if ( nodesAndTokens.Count > 0 )
+                {
+                    nodesAndTokens.Add( Token( SyntaxKind.CommaToken ) );
+                }
+            }
+
+            foreach ( var argument in arguments )
+            {
+                AddSeparatorIfNecessary();
+                nodesAndTokens.Add( argument );
+            }
+
+            if ( sourceArguments.Count > 0 )
+            {
+                AddSeparatorIfNecessary();
+                nodesAndTokens.AddRange( sourceArguments.GetWithSeparators() );
+            }
+
+            foreach ( var argument in this.ExtraArguments )
+            {
+                AddSeparatorIfNecessary();
+                nodesAndTokens.Add( argument );
+            }
+
+            newArguments = SeparatedList<ArgumentSyntax>( nodesAndTokens );
         }
         else
         {
@@ -142,17 +175,18 @@ internal sealed class CallSiteRedirection
                 var argument = item.Kind switch
                 {
                     RedirectedArgumentKind.SourceReceiver => Argument( GetReceiverExpression( invocation.Expression ) ),
-                    RedirectedArgumentKind.SourceArgument => sourceArguments[item.SourceArgumentIndex].WithoutTrivia(),
+                    RedirectedArgumentKind.SourceArgument => sourceArguments[item.SourceArgumentIndex],
                     _ => Argument( item.Value! )
                 };
 
                 arguments.Add( argument.WithNameColon( nameColon ) );
             }
+
+            arguments.AddRange( this.ExtraArguments );
+            newArguments = SeparatedList( arguments );
         }
 
-        arguments.AddRange( this.ExtraArguments );
-
-        var argumentList = invocation.ArgumentList.WithArguments( SeparatedList( arguments ) );
+        var argumentList = invocation.ArgumentList.WithArguments( newArguments );
 
         ExpressionSyntax result;
 
@@ -167,7 +201,8 @@ internal sealed class CallSiteRedirection
                 _ => MemberAccessExpression( SyntaxKind.SimpleMemberAccessExpression, ThisExpression(), name )
             };
 
-            result = invocation.PartialUpdate( expression: expression, argumentList: argumentList );
+            // The outer trivia of the source node is restored below, so it is removed here to avoid duplicating it inside a result cast.
+            result = invocation.PartialUpdate( expression: expression, argumentList: argumentList ).WithoutTrivia();
         }
         else
         {
@@ -183,10 +218,113 @@ internal sealed class CallSiteRedirection
     }
 
     /// <summary>
-    /// Gives the rewritten node the trivia of the source node, which can contain comments and preprocessor directives.
+    /// Gives the rewritten node the trivia of the source node, which can contain comments and preprocessor directives, and moves the comments of
+    /// the discarded parts of the source node to the leading trivia of the rewritten node.
     /// </summary>
+    /// <remarks>
+    /// The rewritten node reuses some parts of the source node, for instance the receiver and the arguments, and discards the others, for instance
+    /// the name of the source method. A comment of the source node that does not occur in the rewritten node belongs to a discarded part. The
+    /// factory refuses a request whose discarded parts contain a preprocessor directive or disabled text, so comments are the only trivia that
+    /// must be moved.
+    /// </remarks>
     private static ExpressionSyntax WithTriviaOf( ExpressionSyntax node, SyntaxNode source )
-        => node.WithRequiredLeadingTrivia( source.GetLeadingTrivia() ).WithRequiredTrailingTrivia( source.GetTrailingTrivia() );
+    {
+        var leadingTrivia = source.GetLeadingTrivia().AddRange( GetDiscardedComments( source, node ) );
+
+        return node.WithRequiredLeadingTrivia( leadingTrivia ).WithRequiredTrailingTrivia( source.GetTrailingTrivia() );
+    }
+
+    /// <summary>
+    /// Returns the comments of the inner trivia of a source node that do not occur in the inner trivia of the rewritten node, in source order.
+    /// Each comment is followed by the trivia that separates it from the next token.
+    /// </summary>
+    private static IEnumerable<SyntaxTrivia> GetDiscardedComments( SyntaxNode source, SyntaxNode rewritten )
+    {
+        // Comments are compared by text, because the rewritten node contains copies of the trivia of the reused parts.
+        var keptComments = new Dictionary<string, int>( StringComparer.Ordinal );
+
+        foreach ( var trivia in GetInnerTriviaLists( rewritten ).SelectMany( l => l ) )
+        {
+            if ( IsComment( trivia ) )
+            {
+                var text = trivia.ToString();
+                keptComments.TryGetValue( text, out var count );
+                keptComments[text] = count + 1;
+            }
+        }
+
+        foreach ( var triviaList in GetInnerTriviaLists( source ) )
+        {
+            for ( var i = 0; i < triviaList.Count; i++ )
+            {
+                var trivia = triviaList[i];
+
+                if ( !IsComment( trivia ) )
+                {
+                    continue;
+                }
+
+                var text = trivia.ToString();
+
+                if ( keptComments.TryGetValue( text, out var count ) && count > 0 )
+                {
+                    keptComments[text] = count - 1;
+
+                    continue;
+                }
+
+                yield return trivia;
+
+                if ( trivia.IsKind( SyntaxKind.SingleLineCommentTrivia ) )
+                {
+                    // A single-line comment must be followed by a line break. In the source, the line break is the next trivia.
+                    yield return i + 1 < triviaList.Count && triviaList[i + 1].IsKind( SyntaxKind.EndOfLineTrivia ) ? triviaList[i + 1] : LineFeed;
+                }
+                else
+                {
+                    yield return Space;
+                }
+            }
+        }
+    }
+
+    private static bool IsComment( SyntaxTrivia trivia ) => trivia.IsKind( SyntaxKind.SingleLineCommentTrivia ) || trivia.IsKind( SyntaxKind.MultiLineCommentTrivia );
+
+    /// <summary>
+    /// Returns the trivia lists of the tokens of a node, except the leading trivia of the first token and the trailing trivia of the last token of
+    /// an outer node, which the rewrite keeps.
+    /// </summary>
+    /// <param name="outerNode">The node whose first and last tokens delimit the inner trivia.</param>
+    /// <param name="node">The node whose tokens are enumerated. It is <paramref name="outerNode"/> or one of its descendants. The default value is
+    /// <paramref name="outerNode"/>.</param>
+    internal static IEnumerable<SyntaxTriviaList> GetInnerTriviaLists( SyntaxNode outerNode, SyntaxNode? node = null )
+    {
+        var firstToken = outerNode.GetFirstToken();
+        var lastToken = outerNode.GetLastToken();
+
+        foreach ( var token in (node ?? outerNode).DescendantTokens() )
+        {
+            if ( token != firstToken )
+            {
+                yield return token.LeadingTrivia;
+            }
+
+            if ( token != lastToken )
+            {
+                yield return token.TrailingTrivia;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Determines whether the inner trivia of a node contains a preprocessor directive or disabled text.
+    /// </summary>
+    /// <param name="outerNode">The node whose first and last tokens delimit the inner trivia.</param>
+    /// <param name="node">The node whose tokens are examined. It is <paramref name="outerNode"/> or one of its descendants. The default value is
+    /// <paramref name="outerNode"/>.</param>
+    internal static bool HasDirectiveInInnerTrivia( SyntaxNode outerNode, SyntaxNode? node = null )
+        => (node ?? outerNode).ContainsDirectives
+           && GetInnerTriviaLists( outerNode, node ).Any( l => l.Any( t => t.IsDirective || t.IsKind( SyntaxKind.DisabledTextTrivia ) ) );
 
     /// <summary>
     /// Returns the expression that passes the receiver of the source call as an argument: the receiver of a member access, <c>this</c> for an

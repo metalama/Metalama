@@ -3,10 +3,12 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using JetBrains.Annotations;
+using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Extensibility;
 using Microsoft.CodeAnalysis;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq;
 
 namespace Metalama.Framework.Engine.ReferenceGraph;
 
@@ -42,7 +44,13 @@ public sealed record SourceIndexRequirements( ImmutableArray<ReferenceIndexerReq
     public ImmutableArray<SyntaxNode>? DeclarationRoots { get; init; }
 
     /// <summary>
-    /// Gets a value indicating whether the instance requires nothing.
+    /// Gets a value indicating whether the instance requires nothing: it has no requirement, or every requirement has
+    /// <see cref="ReferenceKinds.None"/>.
     /// </summary>
-    public bool IsEmpty => this.Requirements.IsDefaultOrEmpty;
+    /// <remarks>
+    /// <see cref="ReferenceIndexerRequirements.Create"/> returns <see cref="ReferenceKinds.None"/> for a request that the index cannot serve, for
+    /// instance the references of a finalizer. <see cref="ReferenceIndexerOptions"/> ignores such a requirement, so a stage that receives only
+    /// such requirements does not walk the source compilation.
+    /// </remarks>
+    public bool IsEmpty => this.Requirements.IsDefaultOrEmpty || this.Requirements.All( r => r.ReferenceKinds == ReferenceKinds.None );
 }
