@@ -384,12 +384,21 @@ public sealed class ExtensionContributorMemoryLeakTests : DesignTimeTestBase
     private sealed class TestContributor : ITransitivePipelineContributor, IDesignTimePipelineResultExtension
     {
         private static readonly ContributorKind<TestContributor> _kind = new( nameof(TestContributor) );
+        /// <summary>
+        /// The project-local kind of <see cref="TestContributor"/>.
+        /// </summary>
         private static readonly ContributorKind<TestContributor> _projectLocalKind = new( "ProjectLocalTestContributor" ) { IsProjectLocal = true };
 
 #pragma warning disable IDE0052 // The field is never read: holding the payload is its entire purpose.
         private readonly object _payload;
 #pragma warning restore IDE0052
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TestContributor"/> class.
+        /// </summary>
+        /// <param name="syntaxTree">The syntax tree to which the contributor belongs, or <c>null</c> for a contributor without document.</param>
+        /// <param name="payload">The object that the contributor retains.</param>
+        /// <param name="isProjectLocal"><c>true</c> to give the contributor a project-local kind.</param>
         public TestContributor( SyntaxTree? syntaxTree, object payload, bool isProjectLocal )
         {
             this.DocumentKey = syntaxTree?.GetDocumentKey() ?? default;
@@ -403,6 +412,9 @@ public sealed class ExtensionContributorMemoryLeakTests : DesignTimeTestBase
         /// </remarks>
         public DocumentKey DocumentKey { get; }
 
+        /// <summary>
+        /// Gets the kind of the contributor, which is project-local when the constructor received <c>true</c> for <c>isProjectLocal</c>.
+        /// </summary>
         public ContributorKind ContributorKind { get; }
 
         public IDesignTimePipelineResultExtension? ToDesignTime() => this;

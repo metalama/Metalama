@@ -36,6 +36,10 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.EndToEnd;
 /// </remarks>
 public sealed class ProjectLocalExtensionTests : UnitTestClass
 {
+    /// <summary>
+    /// The code of both projects: a project fabric that adds a diagnostic query, which is the contributor for which the extension returns a
+    /// project-local result.
+    /// </summary>
     private const string _code = """
                                  using Metalama.Framework.Aspects;
                                  using Metalama.Framework.Code;
@@ -57,8 +61,15 @@ public sealed class ProjectLocalExtensionTests : UnitTestClass
                                  public class C { }
                                  """;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ProjectLocalExtensionTests"/> class.
+    /// </summary>
     public ProjectLocalExtensionTests( ITestOutputHelper testOutput ) : base( testOutput ) { }
 
+    /// <summary>
+    /// Verifies that the analysis of each project receives the project-local results of that project only, and not those of the project that it
+    /// references.
+    /// </summary>
     [Fact]
     public async Task ReferencingProject_DoesNotReceiveProjectLocalExtensions()
     {
@@ -106,13 +117,23 @@ public sealed class ProjectLocalExtensionTests : UnitTestClass
     /// </summary>
     private sealed class Recorder : IProjectService
     {
+        /// <summary>
+        /// Gets the assembly names of the project-local results that <see cref="PipelineExtension.AnalyzeSemanticModel"/> received, for all projects.
+        /// </summary>
         public ConcurrentQueue<string> AnalyzedProjectLocalResults { get; } = new();
 
+        /// <summary>
+        /// Gets the assembly names of the project-local results that <see cref="PipelineExtension.AnalyzeSemanticModel"/> received, indexed by the
+        /// assembly name of the analyzed project.
+        /// </summary>
         public ConcurrentDictionary<string, ConcurrentQueue<string>> AnalyzedProjectLocalResultsByAnalyzedProject { get; } = new();
     }
 
     private sealed class TestExtension : PipelineExtension
     {
+        /// <summary>
+        /// The recorder of the project, or <c>null</c> when the test did not register one.
+        /// </summary>
         private Recorder? _recorder;
 
         public override bool Initialize( PipelineExtensionInitializationContext context )
@@ -157,21 +178,36 @@ public sealed class ProjectLocalExtensionTests : UnitTestClass
     /// </summary>
     private sealed class ProjectLocalResult : ITransitivePipelineContributor, IDesignTimePipelineResultExtension
     {
+        /// <summary>
+        /// The project-local kind of <see cref="ProjectLocalResult"/>.
+        /// </summary>
         private static readonly ContributorKind<ProjectLocalResult> _kind = new( nameof(ProjectLocalResult) ) { IsProjectLocal = true };
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ProjectLocalResult"/> class.
+        /// </summary>
         public ProjectLocalResult( string assemblyName )
         {
             this.AssemblyName = assemblyName;
         }
 
+        /// <summary>
+        /// Gets the name of the assembly of the project that produced the result.
+        /// </summary>
         public string AssemblyName { get; }
 
+        /// <inheritdoc />
         public ContributorKind ContributorKind => _kind;
 
+        /// <inheritdoc />
         public DocumentKey DocumentKey => default;
 
+        /// <inheritdoc />
         public IDesignTimePipelineResultExtension ToDesignTime() => this;
 
+        /// <summary>
+        /// Throws an <see cref="InvalidOperationException"/>, because the transitive form of a project-local result must never be requested.
+        /// </summary>
         public ITransitiveAspectsManifestExtension ToTransitiveAspectManifestExtension()
             => throw new InvalidOperationException( "The transitive form of a project-local result must never be requested." );
     }

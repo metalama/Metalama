@@ -204,6 +204,31 @@ public sealed class TransitiveManifestValidatorChannelTests : UnitTestClass
     }
 
     /// <summary>
+    /// The transitive form without the validators, which a referencing project of another version receives, contains neither the validators nor
+    /// the project-local results.
+    /// </summary>
+    [Fact]
+    public void ProjectLocalExtension_NotInTransitiveInstancesWithoutValidators()
+    {
+        using var testContext = this.CreateTestContext();
+        using var factory = new TestDesignTimeAspectPipelineFactory( testContext );
+
+        FakeContributor? other = null;
+
+        var result = CreateResultWithExtensions(
+            testContext,
+            factory,
+            key =>
+            {
+                other = new FakeContributor( key, isValidator: false );
+
+                return [new FakeContributor( key, isValidator: false, isProjectLocal: true ), new FakeContributor( key, isValidator: true ), other];
+            } );
+
+        Assert.Equal( [other.AssertNotNull().ManifestExtension], result.Extensions.ToTransitiveValidatorInstances( includeValidators: false ) );
+    }
+
+    /// <summary>
     /// A project whose only design-time results are project-local exports nothing, so the manifest is not produced, although the collection of
     /// the project still holds the results.
     /// </summary>
@@ -247,8 +272,17 @@ public sealed class TransitiveManifestValidatorChannelTests : UnitTestClass
     /// </summary>
     private sealed class FakeContributor : ITransitivePipelineContributor, IDesignTimeValidatorExtension
     {
+        /// <summary>
+        /// Indicates whether the kind of the contributor is project-local, in which case <see cref="ToTransitiveAspectManifestExtension"/> throws.
+        /// </summary>
         private readonly bool _isProjectLocal;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="FakeContributor"/> class.
+        /// </summary>
+        /// <param name="validatedDeclaration">The declaration that the contributor validates.</param>
+        /// <param name="isValidator"><c>true</c> to give the contributor a design-time validator kind.</param>
+        /// <param name="isProjectLocal"><c>true</c> to give the contributor a project-local kind.</param>
         public FakeContributor( SymbolDictionaryKey validatedDeclaration, bool isValidator, bool isProjectLocal = false )
         {
             this.ValidatedDeclaration = validatedDeclaration;
@@ -272,6 +306,10 @@ public sealed class TransitiveManifestValidatorChannelTests : UnitTestClass
 
         public IDesignTimePipelineResultExtension ToDesignTime() => this;
 
+        /// <summary>
+        /// Returns <see cref="ManifestExtension"/>, or throws an <see cref="InvalidOperationException"/> when the kind of the contributor is
+        /// project-local, because the transitive form of a project-local result must never be requested.
+        /// </summary>
         public ITransitiveAspectsManifestExtension ToTransitiveAspectManifestExtension()
             => this._isProjectLocal
                 ? throw new InvalidOperationException( "The transitive form of a project-local result must never be requested." )

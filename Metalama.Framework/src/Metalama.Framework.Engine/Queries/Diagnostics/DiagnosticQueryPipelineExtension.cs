@@ -41,15 +41,19 @@ internal sealed class DiagnosticQueryPipelineExtension : PipelineExtension
     }
 
     /// <summary>
-    /// Evaluates the diagnostic queries on the final compilation of the stage. The result contains no transitive contributor, so all the
-    /// contributors of the stage are processed, as at compile time.
+    /// Evaluates the diagnostic queries of <see cref="DesignTimeContributorsContext.NewContributors"/> on the final compilation of the stage.
     /// </summary>
+    /// <remarks>
+    /// The design-time pipeline accumulates the diagnostics of all the high-level stages. A contributor that is replayed in a later stage, for instance
+    /// the contributor of a fabric when a low-level weaver splits the pipeline, is therefore evaluated only in the first stage, so that its
+    /// diagnostics are reported once. The queries of the replayed contributors do not see the declarations that the later stages introduce.
+    /// </remarks>
     public override Task<ExtensionPipelineContributorsResult> ExecuteDesignTimePipelineContributorsAsync(
         DesignTimeContributorsContext context,
         CancellationToken cancellationToken )
         => this.ExecutePipelineContributorsAsync(
             context.PipelineConfiguration,
-            context.Contributors,
+            context.NewContributors,
             context.StageInitialCompilation,
             context.StageFinalCompilation,
             cancellationToken );

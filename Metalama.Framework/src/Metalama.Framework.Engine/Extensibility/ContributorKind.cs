@@ -13,7 +13,14 @@ namespace Metalama.Framework.Engine.Extensibility;
 [PublicAPI]
 public abstract class ContributorKind
 {
+    /// <summary>
+    /// The backing field of <see cref="IsDesignTimeValidator"/>.
+    /// </summary>
     private readonly bool _isDesignTimeValidator;
+
+    /// <summary>
+    /// The backing field of <see cref="IsProjectLocal"/>.
+    /// </summary>
     private readonly bool _isProjectLocal;
 
     protected ContributorKind( string name )
