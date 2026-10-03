@@ -288,11 +288,12 @@ public sealed class ExtensionTransformationFactory
             return;
         }
 
-        var outcome = symbolInfo.Symbol != null
-            ? $"it binds to '{symbolInfo.Symbol}'"
-            : $"it does not bind ({symbolInfo.CandidateReason})";
+        // The message is also embedded in the diagnostics of the clients of the factory, so it does not repeat the call site.
+        var message = symbolInfo.Symbol != null
+            ? $"The rewritten call binds to '{symbolInfo.Symbol.ToDisplayString( SymbolDisplayFormat.CSharpShortErrorMessageFormat )}' instead of '{targetMethod}'."
+            : $"The rewritten call does not bind to '{targetMethod}' ({symbolInfo.CandidateReason}).";
 
-        throw new ArgumentException( $"The call site '{callSite}' cannot be redirected to '{targetMethod}', because {outcome} when it is written as '{invocation}'." );
+        throw new ArgumentException( message );
     }
 
     /// <summary>
