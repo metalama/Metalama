@@ -298,6 +298,8 @@ internal class AspectTestRunner : BaseTestRunner
             return;
         }
 
+        testResult.IsProgramExecutionAttempted = true;
+
         var mainMethod = FindProgramMain( testInput.Options, testResult );
 
         if ( mainMethod == null )
@@ -521,7 +523,7 @@ internal class AspectTestRunner : BaseTestRunner
                     // The program was executed and wrote nothing, so the comparison must fail.
                     expectedProgramOutput = TestOutputNormalizer.NormalizeEndOfLines( existingExpectedProgramOutput );
                 }
-                else if ( testResult.Success && CanExecuteProgram( testInput ) )
+                else if ( testResult.Success && testResult.IsProgramExecutionAttempted )
                 {
                     programNotExecutedMessage =
                         $"The expected program output '{expectedProgramOutputPath}' is not empty, but the program of the test was not executed. "
@@ -545,21 +547,6 @@ internal class AspectTestRunner : BaseTestRunner
             expectedProgramOutput,
             expectedProgramOutputPath,
             programNotExecutedMessage );
-    }
-
-    /// <summary>
-    /// Determines whether the runner executes the program of a test. The program is never executed on .NET Framework, and it is not executed
-    /// when the test disables the execution.
-    /// </summary>
-    private static bool CanExecuteProgram( TestInput testInput )
-    {
-#if NET5_0_OR_GREATER
-        return testInput.Options.ExecuteProgram.GetValueOrDefault( true );
-#else
-        _ = testInput;
-
-        return false;
-#endif
     }
 
     protected override void ExecuteAssertions( TestInput testInput, TestResult testResult )

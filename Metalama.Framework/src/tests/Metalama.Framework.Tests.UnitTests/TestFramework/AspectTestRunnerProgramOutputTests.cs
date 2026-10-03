@@ -93,6 +93,21 @@ public sealed class AspectTestRunnerProgramOutputTests : UnitTestClass
         => await this.RunAsync( _code, "hello", options => options.ExecuteProgram = false );
 
     /// <summary>
+    /// Verifies that the check does not apply to a test whose output is not compiled, because the runner does not execute its program, even when
+    /// the test sets the main method.
+    /// </summary>
+    [Fact]
+    public async Task NonEmptyExpectedOutput_OutputCompilationDisabled_Skipped()
+        => await this.RunAsync(
+            _code,
+            "hello",
+            options =>
+            {
+                options.MainMethod = "TestMain";
+                options.OutputCompilationDisabled = true;
+            } );
+
+    /// <summary>
     /// Runs a test file through <see cref="AspectTestRunner"/> on a virtual file system, with the given expected program output.
     /// </summary>
     private async Task RunAsync( string code, string expectedProgramOutput, Action<TestOptions>? configureOptions = null )

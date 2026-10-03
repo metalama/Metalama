@@ -13,7 +13,8 @@ namespace Metalama.Framework.Engine.Extensibility.Transformations;
 public enum CallSiteReceiverMode
 {
     /// <summary>
-    /// The receiver is not passed. Valid when the source method is static, which includes a classic extension method called in its static form.
+    /// The receiver is not passed as the first argument. Valid when the source method is static, which includes a classic extension method called in
+    /// its static form, and when the request passes the receiver at another position with <see cref="RedirectedArgument.SourceReceiver"/>.
     /// </summary>
     Drop,
 

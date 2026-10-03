@@ -95,7 +95,7 @@ public sealed class ExtensionTransformationFactory
         // The receiver of a call to a classic extension method in reduced form is its first argument, whose syntax is not an ArgumentSyntax.
         var isReducedExtensionCall = sourceMethod.IsExtensionMethod && operation.Arguments is [{ Syntax: not ArgumentSyntax }, ..];
         var hasReceiverValue = isReducedExtensionCall || operation.Instance != null;
-        var isConditionalAccess = callSite.Expression.Kind() == SyntaxKind.MemberBindingExpression;
+        var isConditionalAccess = GetConditionalAccessBinding( callSite.Expression ) != null;
         var isBaseCall = callSite.Expression.Kind() == SyntaxKind.SimpleMemberAccessExpression
                          && ((MemberAccessExpressionSyntax) callSite.Expression).Expression.Kind() == SyntaxKind.BaseExpression;
         var argumentPlan = default(ImmutableArray<CallSiteArgumentPlanItem>?);
@@ -115,6 +115,12 @@ public sealed class ExtensionTransformationFactory
                     throw new ArgumentException( $"The receiver mode {request.ReceiverMode} cannot be used in the conditional access '{callSite}'.", nameof(request) );
                 }
 
+                if ( isBaseCall && IsVirtual( sourceMethod ) && !request.Arguments.IsDefault
+                     && request.Arguments.Any( a => a.Kind == RedirectedArgumentKind.SourceReceiver ) )
+                {
+                    throw new ArgumentException( $"The base call '{callSite}' to a virtual method cannot pass its receiver.", nameof(request) );
+                }
+
                 break;
 
             case CallSiteReceiverMode.FirstArgument or CallSiteReceiverMode.FirstArgumentByRef or CallSiteReceiverMode.FirstArgumentByIn:
@@ -130,7 +136,7 @@ public sealed class ExtensionTransformationFactory
                         nameof(request) );
                 }
 
-                if ( isBaseCall && (sourceMethod.IsVirtual || sourceMethod.IsOverride || sourceMethod.IsAbstract) )
+                if ( isBaseCall && IsVirtual( sourceMethod ) )
                 {
                     throw new ArgumentException( $"The base call '{callSite}' to a virtual method cannot pass its receiver.", nameof(request) );
                 }
@@ -159,9 +165,24 @@ public sealed class ExtensionTransformationFactory
                 throw new ArgumentOutOfRangeException( nameof(request), $"Unexpected receiver mode: {request.ReceiverMode}." );
         }
 
-        if ( request.ResultCast != null && IsInConditionalAccess( callSite ) )
+        if ( request.ResultCast != null )
         {
-            throw new ArgumentException( $"A result cast cannot be written inside the conditional access of '{callSite}'.", nameof(request) );
+            if ( IsInConditionalAccess( callSite ) )
+            {
+                throw new ArgumentException( $"A result cast cannot be written inside the conditional access of '{callSite}'.", nameof(request) );
+            }
+
+            if ( targetMethod.ReturnType.SpecialType == Code.SpecialType.Void )
+            {
+                throw new ArgumentException( $"A result cast cannot be written for '{callSite}', because the target method '{targetMethod}' returns void.", nameof(request) );
+            }
+
+            // A cast expression is not a statement, so the call must be used as a value. The body of an expression-bodied member or lambda that
+            // returns void is also an expression statement in the operation tree.
+            if ( operation.Parent is IExpressionStatementOperation )
+            {
+                throw new ArgumentException( $"A result cast cannot be written for '{callSite}', because the call is a statement.", nameof(request) );
+            }
         }
 
         // The rewrite discards the invoked expression, except the receiver, and the separators of the argument list when the arguments are
@@ -206,7 +227,7 @@ public sealed class ExtensionTransformationFactory
                 resultCast,
                 request.Description ?? $"the call '{callSite}' redirected to '{targetMethod}' by {origin.DiagnosticSourceDescription}" );
 
-        VerifyBinding( semanticModel, operation, isReducedExtensionCall, CreateRedirection( -1 ).Rewrite( callSite ), targetMethod, context );
+        VerifyBinding( semanticModel, operation, CreateRedirection( -1 ).Rewrite( callSite ), targetMethod, context );
 
         this.AddRedirection( callSite, CreateRedirection );
     }
@@ -230,7 +251,6 @@ public sealed class ExtensionTransformationFactory
     private static void VerifyBinding(
         SemanticModel semanticModel,
         IInvocationOperation operation,
-        bool isReducedExtensionCall,
         ExpressionSyntax rewrittenCall,
         IMethod targetMethod,
         SyntaxGenerationContext context )
@@ -259,25 +279,36 @@ public sealed class ExtensionTransformationFactory
 
         var invocation = (InvocationExpressionSyntax) expression;
 
-        if ( invocation.Expression.IsKind( SyntaxKind.MemberBindingExpression ) )
+        if ( GetConditionalAccessBinding( invocation.Expression ) is { } binding )
         {
-            var receiver = isReducedExtensionCall ? operation.Arguments[0].Value : operation.Instance;
-
-            while ( receiver is IConversionOperation { IsImplicit: true } conversion )
-            {
-                receiver = conversion.Operand;
-            }
-
-            if ( receiver?.Type is not { } receiverType || !CanBeNamed( receiverType ) )
+            // The receiver of the binding is the expression of the innermost conditional access that contains the call site.
+            if ( GetConditionalAccessBinding( callSite.Expression )?.FirstAncestorOrSelf<ConditionalAccessExpressionSyntax>() is not { } conditionalAccess
+                 || semanticModel.GetTypeInfo( conditionalAccess.Expression ).Type is not { } receiverType )
             {
                 return;
             }
 
-            invocation = invocation.WithExpression(
-                MemberAccessExpression(
-                    SyntaxKind.SimpleMemberAccessExpression,
-                    DefaultExpression( context.SyntaxGenerator.TypeSyntax( receiverType ) ),
-                    ((MemberBindingExpressionSyntax) invocation.Expression).Name ) );
+            // In the conditional access, a receiver of a nullable value type has its underlying type, and a receiver of a reference type is not null.
+            if ( receiverType.Kind == SymbolKind.NamedType
+                 && receiverType.OriginalDefinition.SpecialType == Microsoft.CodeAnalysis.SpecialType.System_Nullable_T )
+            {
+                receiverType = ((INamedTypeSymbol) receiverType).TypeArguments[0];
+            }
+
+            receiverType = receiverType.WithNullableAnnotation( NullableAnnotation.NotAnnotated );
+
+            if ( !CanBeNamed( receiverType ) )
+            {
+                return;
+            }
+
+            var defaultReceiver = DefaultExpression( context.SyntaxGenerator.TypeSyntax( receiverType ) );
+
+            ExpressionSyntax replacement = binding.Kind() == SyntaxKind.MemberBindingExpression
+                ? MemberAccessExpression( SyntaxKind.SimpleMemberAccessExpression, defaultReceiver, ((MemberBindingExpressionSyntax) binding).Name )
+                : ElementAccessExpression( defaultReceiver, ((ElementBindingExpressionSyntax) binding).ArgumentList );
+
+            invocation = invocation.ReplaceNode( binding, replacement );
         }
 
         var symbolInfo = semanticModel.GetSpeculativeSymbolInfo( callSite.SpanStart, invocation, SpeculativeBindingOption.BindAsExpression );
@@ -292,6 +323,92 @@ public sealed class ExtensionTransformationFactory
         var message = symbolInfo.Symbol != null
             ? $"The rewritten call binds to '{symbolInfo.Symbol.ToDisplayString( SymbolDisplayFormat.CSharpShortErrorMessageFormat )}' instead of '{targetMethod}'."
             : $"The rewritten call does not bind to '{targetMethod}' ({symbolInfo.CandidateReason}).";
+
+        throw new ArgumentException( message );
+    }
+
+    /// <summary>
+    /// Verifies that the method group of the target, written in place of the source method group, converts to the same delegate or function
+    /// pointer type and binds to the target method, and throws an <see cref="ArgumentException"/> otherwise.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The conversion of a method group depends on its context: an overload of the target can be selected for the delegate type, and a method
+    /// group whose delegate type is inferred (<c>var d = M;</c>) has no natural type when the target is overloaded. The method group is therefore
+    /// bound in its statement, initializer or expression body, with a speculative semantic model.
+    /// </para>
+    /// <para>
+    /// The check is skipped when the target has no symbol in the compilation of the method group, which is the case of an introduced method, and
+    /// when the method group is in a context that has no speculative semantic model, for instance an attribute argument.
+    /// </para>
+    /// </remarks>
+    private static void VerifyMethodReferenceBinding(
+        SemanticModel semanticModel,
+        ExpressionSyntax node,
+        IMethodReferenceOperation operation,
+        ExpressionSyntax callee,
+        IMethod targetMethod )
+    {
+        if ( targetMethod.GetSymbol() is not { } targetSymbol )
+        {
+            return;
+        }
+
+        var marker = new SyntaxAnnotation();
+        var replacement = callee.WithAdditionalAnnotations( marker );
+        SemanticModel? speculativeModel;
+        SyntaxNode speculativeRoot;
+
+        if ( node.FirstAncestorOrSelf<StatementSyntax>() is { } statement )
+        {
+            var newStatement = statement.ReplaceNode( node, replacement );
+            speculativeRoot = newStatement;
+
+            if ( !semanticModel.TryGetSpeculativeSemanticModel( statement.SpanStart, newStatement, out speculativeModel ) )
+            {
+                return;
+            }
+        }
+        else if ( node.FirstAncestorOrSelf<EqualsValueClauseSyntax>() is { } initializer )
+        {
+            var newInitializer = initializer.ReplaceNode( node, replacement );
+            speculativeRoot = newInitializer;
+
+            if ( !semanticModel.TryGetSpeculativeSemanticModel( initializer.SpanStart, newInitializer, out speculativeModel ) )
+            {
+                return;
+            }
+        }
+        else if ( node.FirstAncestorOrSelf<ArrowExpressionClauseSyntax>() is { } arrow )
+        {
+            var newArrow = arrow.ReplaceNode( node, replacement );
+            speculativeRoot = newArrow;
+
+            if ( !semanticModel.TryGetSpeculativeSemanticModel( arrow.SpanStart, newArrow, out speculativeModel ) )
+            {
+                return;
+            }
+        }
+        else
+        {
+            return;
+        }
+
+        var newNode = speculativeRoot.GetAnnotatedNodes( marker ).Single();
+        var newOperation = speculativeModel.GetOperation( newNode );
+
+        if ( newOperation is IMethodReferenceOperation { Method: { } boundMethod } newMethodReference
+             && SymbolEqualityComparer.Default.Equals( boundMethod.OriginalDefinition, targetSymbol.OriginalDefinition )
+             && SymbolEqualityComparer.Default.Equals( newMethodReference.Parent?.Type, operation.Parent?.Type ) )
+        {
+            return;
+        }
+
+        // The message is also embedded in the diagnostics of the clients of the factory, so it does not repeat the method group.
+        var message = newOperation is IMethodReferenceOperation { Method: { } otherMethod }
+                      && !SymbolEqualityComparer.Default.Equals( otherMethod.OriginalDefinition, targetSymbol.OriginalDefinition )
+            ? $"The rewritten method group binds to '{otherMethod.ToDisplayString( SymbolDisplayFormat.CSharpShortErrorMessageFormat )}' instead of '{targetMethod}'."
+            : $"The rewritten method group does not convert to '{operation.Parent?.Type?.ToDisplayString( SymbolDisplayFormat.CSharpShortErrorMessageFormat )}' with '{targetMethod}'.";
 
         throw new ArgumentException( message );
     }
@@ -353,6 +470,8 @@ public sealed class ExtensionTransformationFactory
 
         var context = this._compilation.CompilationContext.GetSyntaxGenerationContext( this._syntaxGenerationOptions, node );
         var callee = CreateStaticCallee( request.Target, request.TypeArguments, context ).WithAdditionalAnnotations( annotation );
+
+        VerifyMethodReferenceBinding( semanticModel, node, operation, callee, request.Target.Method );
 
         this.AddRedirection(
             node,
@@ -800,6 +919,19 @@ public sealed class ExtensionTransformationFactory
     {
         var expression = argument.Expression;
 
+        // The operation tree has no node for parentheses and for the suppression of a nullable warning, so the syntax of the value can be the
+        // expression of the argument or an expression inside these nodes.
+        var expressionForms = new List<SyntaxNode> { expression };
+
+        while ( expression.Kind() is SyntaxKind.ParenthesizedExpression or SyntaxKind.SuppressNullableWarningExpression )
+        {
+            expression = expression.Kind() == SyntaxKind.ParenthesizedExpression
+                ? ((ParenthesizedExpressionSyntax) expression).Expression
+                : ((PostfixUnaryExpressionSyntax) expression).Operand;
+
+            expressionForms.Add( expression );
+        }
+
         // The implicit conversion to the type of the parameter is not evaluated when the value is discarded. A user-defined conversion runs user code
         // at the source call site, so it cannot be omitted.
         while ( value is IConversionOperation { IsImplicit: true } conversion )
@@ -814,7 +946,7 @@ public sealed class ExtensionTransformationFactory
             value = conversion.Operand;
         }
 
-        if ( value == null || value.Syntax != expression || value is IInterpolatedStringHandlerCreationOperation
+        if ( value == null || !expressionForms.Contains( value.Syntax ) || value is IInterpolatedStringHandlerCreationOperation
              || expression.Kind() is SyntaxKind.ImplicitObjectCreationExpression or SyntaxKind.CollectionExpression )
         {
             reason = "its value depends on the type of the parameter.";
@@ -872,6 +1004,13 @@ public sealed class ExtensionTransformationFactory
 
         var sourceArgument = sourceArguments[item.Item.SourceArgumentIndex];
 
+        // The pattern variable of the holder takes the natural type of the value, and a target-typed value has none.
+        if ( sourceArgument.Expression.Kind() is SyntaxKind.ImplicitObjectCreationExpression or SyntaxKind.CollectionExpression or SyntaxKind.DefaultLiteralExpression
+             || semanticModel.GetOperation( sourceArgument.Expression ) is IInterpolatedStringHandlerCreationOperation )
+        {
+            return false;
+        }
+
         if ( !sourceArgument.RefKindKeyword.IsKind( SyntaxKind.None )
              || discardedArgument.Expression.DescendantNodesAndSelf().Any( n => n.Kind() is SyntaxKind.DeclarationExpression or SyntaxKind.SingleVariableDesignation ) )
         {
@@ -915,9 +1054,9 @@ public sealed class ExtensionTransformationFactory
     private static bool IsCompatibleRefKind( ArgumentSyntax argument, IParameter parameter )
         => (argument.RefKindKeyword.Kind(), parameter.RefKind) switch
         {
-            (SyntaxKind.None, Code.RefKind.None or Code.RefKind.In or Code.RefKind.RefReadOnly) => true,
+            (SyntaxKind.None, Code.RefKind.None or Code.RefKind.In) => true,
             (SyntaxKind.InKeyword, Code.RefKind.In or Code.RefKind.RefReadOnly) => true,
-            (SyntaxKind.RefKeyword, Code.RefKind.Ref or Code.RefKind.RefReadOnly or Code.RefKind.In) => true,
+            (SyntaxKind.RefKeyword, Code.RefKind.Ref or Code.RefKind.RefReadOnly) => true,
             (SyntaxKind.OutKeyword, Code.RefKind.Out) => true,
             _ => false
         };
@@ -932,11 +1071,21 @@ public sealed class ExtensionTransformationFactory
             return argumentOperation.Value;
         }
 
-        // An element of an expanded params argument has no argument operation of its own. Its value is wrapped in the implicit conversions to the
-        // type of the elements, whose syntax is the expression of the argument.
-        var operation = semanticModel.GetOperation( argument.Expression );
+        // An element of an expanded params argument has no argument operation of its own, and neither has an argument whose expression is in
+        // parentheses or suppresses a nullable warning, because the operation tree has no node for these expressions. The value is the operation
+        // of the inner expression, wrapped in the implicit conversions to the type of the parameter or of the elements.
+        var expression = argument.Expression;
 
-        while ( operation?.Parent is IConversionOperation conversion && conversion.Syntax == argument.Expression )
+        while ( expression.Kind() is SyntaxKind.ParenthesizedExpression or SyntaxKind.SuppressNullableWarningExpression )
+        {
+            expression = expression.Kind() == SyntaxKind.ParenthesizedExpression
+                ? ((ParenthesizedExpressionSyntax) expression).Expression
+                : ((PostfixUnaryExpressionSyntax) expression).Operand;
+        }
+
+        var operation = semanticModel.GetOperation( expression );
+
+        while ( operation?.Parent is IConversionOperation conversion && (conversion.Syntax == expression || conversion.Syntax == argument.Expression) )
         {
             operation = conversion;
         }
@@ -966,6 +1115,56 @@ public sealed class ExtensionTransformationFactory
                 => IsWithoutSideEffect( conversion.Operand ),
             _ => false
         };
+
+    /// <summary>
+    /// Determines whether a method can be dispatched virtually.
+    /// </summary>
+    private static bool IsVirtual( IMethodSymbol method ) => method.IsVirtual || method.IsOverride || method.IsAbstract;
+
+    /// <summary>
+    /// Returns the member binding or the element binding that starts the receiver chain of an invoked expression, or <c>null</c> when the
+    /// invoked expression is not in the <c>WhenNotNull</c> part of a conditional access.
+    /// </summary>
+    /// <remarks>
+    /// In <c>a?.M()</c>, the invoked expression is the binding <c>.M</c>. In <c>a?.B.M()</c> or <c>a?[0].M()</c>, it is a member access whose
+    /// receiver chain starts with the binding <c>.B</c> or <c>[0]</c>. In both cases, the receiver of the call exists only in the conditional access.
+    /// </remarks>
+    private static ExpressionSyntax? GetConditionalAccessBinding( ExpressionSyntax invokedExpression )
+    {
+        var node = invokedExpression;
+
+        while ( true )
+        {
+            switch ( node.Kind() )
+            {
+                case SyntaxKind.MemberBindingExpression or SyntaxKind.ElementBindingExpression:
+                    return node;
+
+                case SyntaxKind.SimpleMemberAccessExpression:
+                    node = ((MemberAccessExpressionSyntax) node).Expression;
+
+                    break;
+
+                case SyntaxKind.InvocationExpression:
+                    node = ((InvocationExpressionSyntax) node).Expression;
+
+                    break;
+
+                case SyntaxKind.ElementAccessExpression:
+                    node = ((ElementAccessExpressionSyntax) node).Expression;
+
+                    break;
+
+                case SyntaxKind.SuppressNullableWarningExpression:
+                    node = ((PostfixUnaryExpressionSyntax) node).Operand;
+
+                    break;
+
+                default:
+                    return null;
+            }
+        }
+    }
 
     private static bool IsInConditionalAccess( InvocationExpressionSyntax callSite )
     {

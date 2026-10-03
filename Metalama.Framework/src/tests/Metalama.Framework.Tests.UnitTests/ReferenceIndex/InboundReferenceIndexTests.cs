@@ -547,6 +547,52 @@ public sealed class InboundReferenceIndexTests : UnitTestClass
         Assert.Equal( ["R.N1", "R.N2"], result.ReferencingSymbols );
     }
 
+    /// <summary>
+    /// Verifies that the nested types of a class and of a struct are visited when the walker does not descend into members, as the nested types
+    /// of a record are.
+    /// </summary>
+    [Fact]
+    public void NestedTypesOfClassAndStructVisited()
+    {
+        var code = new Dictionary<string, string>() { ["A.cs"] = "class A;", ["C.cs"] = "class C { class N : A; }", ["S.cs"] = "struct S { class M : A; }" };
+
+        var result = this.BuildIndex( code, compilation => compilation.Types.OfName( "A" ), ReferenceKinds.BaseType );
+
+        Assert.Equal( ["C.N", "S.M"], result.ReferencingSymbols );
+    }
+
+    /// <summary>
+    /// Verifies that <c>Nullable&lt;T&gt;</c> written as a generic name references its type argument with the kind of the reference, as <c>T?</c>
+    /// does, whether the name is qualified or is the element type of an array.
+    /// </summary>
+    [Fact]
+    public void NullableGenericNameIndexedLikeNullableType()
+    {
+        var code = new Dictionary<string, string>()
+        {
+            ["A.cs"] = "struct A;",
+            ["B.cs"] = """
+                       using System;
+                       class B
+                       {
+                           A? _f1;
+                           Nullable<A> _f2;
+                           System.Nullable<A> _f3;
+                           Nullable<A>[] _f4;
+                           A?[] _f5;
+                       }
+                       """
+        };
+
+        var memberTypes = this.BuildIndex( code, compilation => compilation.Types.OfName( "A" ), ReferenceKinds.MemberType );
+
+        Assert.Equal( ["B._f1", "B._f2", "B._f3"], memberTypes.ReferencingSymbols );
+
+        var arrayElementTypes = this.BuildIndex( code, compilation => compilation.Types.OfName( "A" ), ReferenceKinds.ArrayElementType );
+
+        Assert.Equal( ["B._f4", "B._f5"], arrayElementTypes.ReferencingSymbols );
+    }
+
     private static Func<ICompilation, IEnumerable<IDeclaration>> GetMethodsOfA( params string[] names )
         => compilation => compilation.Types.OfName( "A" ).SelectMany( t => t.Methods ).Where( m => names.Contains( m.Name ) );
 
