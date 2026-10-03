@@ -53,6 +53,14 @@ The implementation of the open-source items of M1 makes the following choices.
 - An inspection-only expression is also refused by the textual conversion of expressions (`IExpressionHelper.ConvertExpressionToText`), which can produce generated code, and not only by the template expansion.
 - The emission of an inspection-only expression is tested by the aspect tests of the proof of concept (folder `SourceExpressions`), through a verb that creates the expression, instead of template tests. Template tests have no way to obtain such an expression, because only an extension can create it.
 
+The public API of `Metalama.Extensions.Interceptors` in M1 (metalama/Metalama#2097) is the subset of section 5 that M1 needs. The members of later milestones are added with them.
+
+- Only `InterceptMethods` exists, with the four target selections and the provider, delegate, existing-method, template-shorthand and factory forms, on `IQuery<T>`, `ITaggedQuery<T, TTag>`, `IAdviser<T>` and `ITypeAmender`. `InterceptAccessors`, `InterceptAwaits` and their types come with M2 and M5.
+- `InterceptionContext.SupportsPlacement` comes with the placements of M2. The accessor members of `MethodInterceptionContext` (`AssignmentOperator`, `IsPostfix`, `IsChecked`), `InvocationArgumentKind.Computed`, and the accessor and await reasons of `NonInterceptableReason` come with accessors and awaits. The await members of `InterceptorResult` come with M5.
+- `IInterceptorMethodBinder` and `IInterceptorBuilder` exist without members, so that the `bind` and `configure` parameters have their final types. The engine of M1 reports a `bind` or `configure` function, and every template result, as not supported in this version.
+- The internal `InterceptionRegistration` describes method registrations only, and `InterceptorDefinition.FromFactory` takes a typed factory of `IMethodInterceptorProvider`.
+- The package has no reference to `Metalama.Licensing`, because it is available under the Community license (PO3).
+
 ### 15.1 Top decisions
 
 | Id | Question | Recommendation | Consequence of the alternative | Needed before |
