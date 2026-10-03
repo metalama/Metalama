@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Code;
+using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Extensibility;
@@ -304,6 +305,200 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
         var index = IndexRoots( context, programTree.GetRoot( Xunit.TestContext.Current.CancellationToken ), "F" );
 
         Assert.Single( GetReferencingNames( index ) );
+    }
+
+    [Fact]
+    public void Root_Method()
+    {
+        using var context = this.CreateContext( _code );
+
+        var index = IndexRoots( context, GetMethodSyntax( context.Compilation, "B", "M" ), "F", "G" );
+
+        Assert.Equal( ["B.M()"], GetReferencingNames( index ) );
+    }
+
+    /// <summary>
+    /// Verifies that a reference in a lambda is attributed to the member that contains the lambda, which is the member that a consumer selects.
+    /// </summary>
+    [Fact]
+    public void Root_LambdaAttributedToEnclosingMember()
+    {
+        using var context = this.CreateContext( _code );
+
+        var index = IndexRoots( context, GetMethodSyntax( context.Compilation, "B", "M" ), "G" );
+
+        Assert.Equal( ["B.M()"], GetReferencingNames( index ) );
+    }
+
+    [Fact]
+    public void Root_PrimaryConstructorBaseArgumentAttributedToType()
+    {
+        using var context = this.CreateContext(
+            new Dictionary<string, string>
+            {
+                ["A.cs"] = "class A { public static int F() => 0; }", ["D.cs"] = "class Base( int x ) { } class D() : Base( A.F() ) { }"
+            } );
+
+        var index = IndexRoots( context, GetTypeSyntax( context.Compilation, "D" ), "F" );
+
+        Assert.Equal( ["D"], GetReferencingNames( index ) );
+    }
+
+    [Fact]
+    public void Root_Namespace()
+    {
+        using var context = this.CreateContext(
+            new Dictionary<string, string>
+            {
+                ["A.cs"] = "class A { public static int F() => 0; }",
+                ["N.cs"] = "namespace N { class X { void M() => A.F(); } namespace Inner { class Y { void M() => A.F(); } } } class Z { void M() => A.F(); }"
+            } );
+
+        var namespaceSyntax = context.Compilation.RoslynCompilation.SyntaxTrees.Single( t => t.FilePath == "N.cs" )
+            .GetRoot( Xunit.TestContext.Current.CancellationToken )
+            .DescendantNodes()
+            .OfType<NamespaceDeclarationSyntax>()
+            .First();
+
+        var index = IndexRoots( context, namespaceSyntax, "F" );
+
+        Assert.Equal( ["X.M()", "Y.M()"], GetReferencingNames( index ) );
+    }
+
+    /// <summary>
+    /// Verifies that the stage walks every part of a partial type when the consumer gives every part as a root, including the parts in other
+    /// syntax trees.
+    /// </summary>
+    [Fact]
+    public async Task Root_TypeAllPartialParts()
+    {
+        using var context = this.CreateContext(
+            new Dictionary<string, string>
+            {
+                ["A.cs"] = "class A { public static int F() => 0; }",
+                ["P1.cs"] = "partial class P { void M1() => A.F(); }",
+                ["P2.cs"] = "partial class P { void M2() => A.F(); }",
+                ["Q.cs"] = "class Q { void M() => A.F(); }"
+            } );
+
+        var parts = context.Compilation.RoslynCompilation.SyntaxTrees.SelectMany( t => t.GetRoot().DescendantNodes().OfType<TypeDeclarationSyntax>() )
+            .Where( t => t.Identifier.Text == "P" )
+            .ToArray();
+
+        Assert.Equal( 2, parts.Length );
+
+        using var stage = SourceReferenceIndexService.BeginStage(
+            context.ServiceProvider,
+            context.Compilation,
+            [Requirements( context.Compilation, "F" ) with { DeclarationRoots = [..parts] }] );
+
+        var index = await stage.GetIndexAsync( Xunit.TestContext.Current.CancellationToken );
+
+        Assert.Equal( ["P.M1()", "P.M2()"], GetReferencingNames( index ) );
+        Assert.Equal( ["P1.cs", "P2.cs"], context.Observer.ResolvedSemanticModelNames );
+    }
+
+    /// <summary>
+    /// Verifies that a root that contains no identifier of the requirements does not cause the semantic model of its syntax tree to be created.
+    /// </summary>
+    [Fact]
+    public async Task Root_NoSemanticModelWithoutNameMatch()
+    {
+        using var context = this.CreateContext(
+            new Dictionary<string, string> { ["A.cs"] = "class A { public static int F() => 0; }", ["E.cs"] = "class E { int M() => 1 + 2; }" } );
+
+        using var stage = SourceReferenceIndexService.BeginStage(
+            context.ServiceProvider,
+            context.Compilation,
+            [Requirements( context.Compilation, "F" ) with { DeclarationRoots = [GetTypeSyntax( context.Compilation, "E" )] }] );
+
+        var index = await stage.GetIndexAsync( Xunit.TestContext.Current.CancellationToken );
+
+        Assert.Empty( GetReferencingNames( index ) );
+        Assert.Empty( context.Observer.ResolvedSemanticModelNames );
+    }
+
+    /// <summary>
+    /// Verifies that the roots of several syntax trees, which the stage indexes concurrently, give the same index as the walk of each root alone.
+    /// </summary>
+    [Fact]
+    public async Task Root_ConcurrentRoots()
+    {
+        using var context = this.CreateContext( _code );
+
+        SyntaxNode[] roots =
+        [
+            GetMethodSyntax( context.Compilation, "B", "M" ), GetTypeSyntax( context.Compilation, "Nested" ), GetMethodSyntax( context.Compilation, "C", "M" )
+        ];
+
+        using var stage = SourceReferenceIndexService.BeginStage(
+            context.ServiceProvider,
+            context.Compilation,
+            [Requirements( context.Compilation, "F", "G" ) with { DeclarationRoots = [..roots] }] );
+
+        var index = await stage.GetIndexAsync( Xunit.TestContext.Current.CancellationToken );
+
+        var expected = roots.SelectMany( r => GetReferencingNames( IndexRoots( context, r, "F", "G" ) ) ).Distinct().ToOrderedList( x => x, StringComparer.Ordinal );
+
+        Assert.Equal( ["B.M()", "B.Nested.N()", "C.M()"], expected );
+        Assert.Equal( expected, GetReferencingNames( index ) );
+    }
+
+    /// <summary>
+    /// Verifies that a requirement on the compilation, which admits references to any declaration of the compilation, disables the filtering by
+    /// identifier of its reference kind, even when another consumer filters the same kind by identifier.
+    /// </summary>
+    [Fact]
+    public void CompilationKind_DisablesIdentifierFilteringOfInvocations()
+    {
+        var options = new ReferenceIndexerOptions(
+        [
+            new ReferenceIndexerRequirements( ReferenceKinds.Invocation, false, DeclarationKind.Method, "F" ),
+            new ReferenceIndexerRequirements( ReferenceKinds.Invocation, false, DeclarationKind.Compilation, null )
+        ] );
+
+        var tokenG = Microsoft.CodeAnalysis.CSharp.SyntaxFactory.Identifier( "G" );
+
+        Assert.True( options.MustIndexReference( ReferenceKinds.Invocation, tokenG ) );
+    }
+
+    /// <summary>
+    /// Verifies that the requirements of a design-time result of a project apply to the design-time index of that project, but not to the index
+    /// of a project that references it.
+    /// </summary>
+    [Fact]
+    public void DesignTimeIndex_ProjectLocalRequirementsNotMergedIntoReferencingProject()
+    {
+        var builder = DesignTimeAspectPipelineResultExtensionCollection.Empty.ToBuilder();
+        builder.Add( new RequirementsProvider( "F" ) );
+        var referencedProject = builder.ToImmutable( [] );
+
+        var referencingProject = DesignTimeAspectPipelineResultExtensionCollection.Empty.WithChildCollections( [referencedProject] );
+
+        var tokenF = Microsoft.CodeAnalysis.CSharp.SyntaxFactory.Identifier( "F" );
+
+        Assert.True( referencedProject.IndexOptions.MustIndexReference( ReferenceKinds.Invocation, tokenF ) );
+        Assert.False( referencingProject.IndexOptions.MustIndexReference( ReferenceKinds.Invocation, tokenF ) );
+    }
+
+    /// <summary>
+    /// A design-time result that requests the invocations of one method name.
+    /// </summary>
+    private sealed class RequirementsProvider : IDesignTimePipelineResultExtension, IDesignTimeReferenceIndexRequirementsProvider
+    {
+        private static readonly ContributorKind<RequirementsProvider> _kind = new( nameof(RequirementsProvider) );
+
+        public RequirementsProvider( string methodName )
+        {
+            this.ReferenceIndexerRequirements = [new ReferenceIndexerRequirements( ReferenceKinds.Invocation, false, DeclarationKind.Method, methodName )];
+        }
+
+        public ContributorKind ContributorKind => _kind;
+
+        public IEnumerable<ReferenceIndexerRequirements> ReferenceIndexerRequirements { get; }
+
+        public ITransitiveAspectsManifestExtension ToTransitiveAspectManifestExtension()
+            => throw new InvalidOperationException( "The test does not export the result." );
     }
 
     private static InboundReferenceIndex IndexRoots( TestContext context, SyntaxNode root, params string[] methodNames )
