@@ -87,6 +87,15 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
                                      public static int None() => 0;
 
                                      public static void Widen( object value ) { }
+
+                                     public static int Pick( int x ) => x;
+
+                                     public static int Pick( int x, int y = 0 ) => x;
+                                 }
+
+                                 internal static class InstanceExtensions
+                                 {
+                                     public static int Get( this Instance instance, int x ) => x;
                                  }
 
                                  internal class NonStatic
@@ -459,6 +468,43 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
             ( _, r ) => new InvocationRedirectionRequest( r.CallSite, r.Target, r.ReceiverMode ) { Arguments = ImmutableArray<RedirectedArgument>.Empty } );
 
     /// <summary>
+    /// Verifies that a request is refused when the rewritten call binds to an overload of the target, here an overload without the optional
+    /// parameter of the target.
+    /// </summary>
+    [Fact]
+    public async Task RedirectInvocation_BindsToOtherOverload_Throws()
+        => await this.ExecuteAsync(
+            s =>
+            {
+                var exception = Assert.Throws<ArgumentException>(
+                    () => s.Factory.RedirectInvocation(
+                        s.Origin,
+                        new InvocationRedirectionRequest(
+                            s.Invocation( "Source.Compute( 1 )" ),
+                            s.Target( "Interceptors", "Pick", m => m.Parameters.Count == 2 ),
+                            CallSiteReceiverMode.Drop ) ) );
+
+                Assert.Contains( "binds to 'Interceptors.Pick(int)'", exception.Message, StringComparison.Ordinal );
+            } );
+
+    /// <summary>
+    /// Verifies that a request in a conditional access is refused when the rewritten call binds to an instance method of the receiver instead of
+    /// the extension method of the target.
+    /// </summary>
+    [Fact]
+    public async Task RedirectInvocation_ExtensionReceiver_BindsToInstanceMethod_Throws()
+        => await this.ExecuteAsync(
+            s =>
+            {
+                var exception = Assert.Throws<ArgumentException>(
+                    () => s.Factory.RedirectInvocation(
+                        s.Origin,
+                        new InvocationRedirectionRequest( s.Invocation( ".Get( 3 )" ), s.Target( "InstanceExtensions", "Get" ), CallSiteReceiverMode.ExtensionReceiver ) ) );
+
+                Assert.Contains( "binds to 'Instance.Get(int)'", exception.Message, StringComparison.Ordinal );
+            } );
+
+    /// <summary>
     /// Verifies that a source argument can be cast to the type of the parameter of the source method, and that the linker writes the cast.
     /// </summary>
     [Fact]
@@ -750,8 +796,9 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
                 .OfType<T>()
                 .Single( n => (text == null || n.ToString() == text) && (predicate == null || predicate( n )) );
 
-        public CallSiteRedirectionTarget Target( string typeName, string methodName )
-            => CallSiteRedirectionTarget.Existing( this.Compilation.Types.OfName( typeName ).Single().Methods.OfName( methodName ).Single() );
+        public CallSiteRedirectionTarget Target( string typeName, string methodName, Func<IMethod, bool>? predicate = null )
+            => CallSiteRedirectionTarget.Existing(
+                this.Compilation.Types.OfName( typeName ).Single().Methods.OfName( methodName ).Single( m => predicate == null || predicate( m ) ) );
     }
 
     /// <summary>

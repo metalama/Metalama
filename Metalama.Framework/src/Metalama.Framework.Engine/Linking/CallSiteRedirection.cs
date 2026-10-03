@@ -58,6 +58,27 @@ internal readonly record struct CallSiteArgumentPlanItem( RedirectedArgumentKind
     /// <c>(T)(value)</c>.
     /// </summary>
     public TypeSyntax? CastType { get; init; }
+
+    /// <summary>
+    /// Gets the indices of the source arguments that are the elements of an expanded <c>params</c> argument, which this argument packs into one
+    /// collection, or a default array when the argument is not packed. <see cref="SourceArgumentIndex"/> is then -1.
+    /// </summary>
+    public ImmutableArray<int> PackedElements { get; init; }
+
+    /// <summary>
+    /// Gets the element type of the array that packs <see cref="PackedElements"/>, or <c>null</c> to pack them into a collection expression.
+    /// </summary>
+    public TypeSyntax? PackedArrayElementType { get; init; }
+
+    /// <summary>
+    /// Gets the expression that is written when <see cref="PackedElements"/> is empty.
+    /// </summary>
+    public ExpressionSyntax? PackedEmptyValue { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether this argument packs the elements of an expanded <c>params</c> argument.
+    /// </summary>
+    public bool IsPacked => !this.PackedElements.IsDefault;
 }
 
 /// <summary>
@@ -205,6 +226,7 @@ internal sealed class CallSiteRedirection
                 var argument = item.Kind switch
                 {
                     RedirectedArgumentKind.SourceReceiver => Argument( GetReceiverExpression( invocation.Expression ) ),
+                    RedirectedArgumentKind.SourceArgument when item.IsPacked => Argument( CreatePackedCollection( item, sourceArguments ) ),
                     RedirectedArgumentKind.SourceArgument => sourceArguments[item.SourceArgumentIndex],
                     _ => Argument( item.Value! )
                 };
@@ -257,6 +279,33 @@ internal sealed class CallSiteRedirection
         }
 
         return WithTriviaOf( result, visitedNode );
+    }
+
+    /// <summary>
+    /// Packs the elements of an expanded <c>params</c> argument into one collection: <c>[e1, e2]</c>, or <c>new T[] { e1, e2 }</c> before C# 12.
+    /// </summary>
+    /// <remarks>
+    /// The compiler evaluates the elements of an expanded <c>params</c> argument into a collection that it creates at the call site. The packed
+    /// collection creates the same collection, with the elements evaluated in the same order, and it can be written as a named argument.
+    /// </remarks>
+    private static ExpressionSyntax CreatePackedCollection( CallSiteArgumentPlanItem item, SeparatedSyntaxList<ArgumentSyntax> sourceArguments )
+    {
+        if ( item.PackedElements.IsEmpty )
+        {
+            return item.PackedEmptyValue!;
+        }
+
+        var elements = item.PackedElements.SelectAsArray( i => sourceArguments[i].Expression.WithoutTrivia() );
+
+        if ( item.PackedArrayElementType == null )
+        {
+            return CollectionExpression( SeparatedList<CollectionElementSyntax>( elements.SelectAsArray( e => (CollectionElementSyntax) ExpressionElement( e ) ) ) );
+        }
+
+        return ArrayCreationExpression(
+            SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.NewKeyword ),
+            ArrayType( item.PackedArrayElementType, SingletonList( ArrayRankSpecifier( SingletonSeparatedList<ExpressionSyntax>( OmittedArraySizeExpression() ) ) ) ),
+            InitializerExpression( SyntaxKind.ArrayInitializerExpression, SeparatedList( elements ) ) );
     }
 
     /// <summary>
