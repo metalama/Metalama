@@ -1,2 +1,2 @@
-intercepted a
-a B
+intercepted
+A
