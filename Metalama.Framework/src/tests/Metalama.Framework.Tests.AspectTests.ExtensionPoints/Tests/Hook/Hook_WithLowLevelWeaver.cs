@@ -14,8 +14,9 @@ using Metalama.Framework.Tests.ExtensionPoints;
 
 namespace Metalama.Framework.Tests.AspectTests.ExtensionPoints.Tests.Hook.Hook_WithLowLevelWeaver;
 
-// A low-level weaver splits the pipeline into two high-level stages. The hook runs at the end of each of them, and only the first one
-// starts from the source compilation.
+// A low-level weaver splits the pipeline into two high-level stages. The transforming hook runs only in the first one, which starts from the
+// source compilation. The registration made after the weaver is reported by the contributors hook of its stage, from the stage index that its
+// origin records.
 
 [RequireAspectWeaver( "Metalama.Framework.Tests.AspectTests.ExtensionPoints.Tests.Hook.Hook_WithLowLevelWeaver.AspectWeaver" )]
 internal class WeaverAspect : TypeAspect { }

@@ -26,6 +26,11 @@ namespace Metalama.Framework.Engine.AspectOrdering
 
         public IBoundAspectClass AspectClass => this._aspectClass.AssertNotNull();
 
+        /// <summary>
+        /// Gets the aspect class, or <c>null</c> when the layer was created from the name of the aspect type only.
+        /// </summary>
+        public IBoundAspectClass? AspectClassIfAny => this._aspectClass;
+
         public AspectLayerId AspectLayerId { get; }
 
         public bool IsDefault => this.AspectLayerId.IsDefault;

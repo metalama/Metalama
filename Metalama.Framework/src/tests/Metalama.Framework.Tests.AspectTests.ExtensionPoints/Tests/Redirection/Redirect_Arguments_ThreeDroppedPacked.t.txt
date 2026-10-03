@@ -1,0 +1,4 @@
+evaluating a
+evaluating b
+evaluating c
+intercepted 4

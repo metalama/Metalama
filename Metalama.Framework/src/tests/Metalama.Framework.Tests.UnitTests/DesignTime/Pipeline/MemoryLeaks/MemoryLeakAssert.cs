@@ -24,7 +24,12 @@ internal static class MemoryLeakAssert
     /// <summary>
     /// The maximum number of times that <see cref="CollectedAsync"/> leaves the current stack and collects before it fails.
     /// </summary>
-    private const int _maxCollectionAttempts = 5;
+    /// <remarks>
+    /// Each attempt runs several blocking collections, which also suspend the thread that must return from its frames. On a loaded build agent,
+    /// five attempts were not always enough for that thread to be scheduled. An attempt that succeeds returns immediately, so a higher limit costs
+    /// time only when the assertion fails.
+    /// </remarks>
+    private const int _maxCollectionAttempts = 20;
 
     /// <summary>
     /// Asserts that the target of a weak reference has been collected, and explains the retention if it has not.

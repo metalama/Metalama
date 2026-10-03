@@ -17,11 +17,12 @@ using System.Threading.Tasks;
 namespace Metalama.Framework.Engine.ReferenceGraph;
 
 /// <summary>
-/// The index of the references of the source compilation for one high-level stage, shared by all extensions of the stage.
+/// The index of the references of the source compilation for one pipeline execution, shared by all extensions.
 /// </summary>
 /// <remarks>
-/// The object references a compilation. It must not outlive the stage. An instance is created by <see cref="SourceReferenceIndexService"/> and
-/// passed to the extensions through the contexts of their hooks.
+/// The pipeline creates one instance in the source stage, which is the first high-level stage, and disposes it at the end of that stage. The
+/// stages that follow a low-level weaver have no index. The object references a compilation, so it must not outlive the pipeline execution. An
+/// instance is created by <see cref="SourceReferenceIndexService"/> and passed to the extensions through the context of their transforming hook.
 /// </remarks>
 [PublicAPI]
 public sealed class SourceReferenceIndexStage : IDisposable
@@ -74,12 +75,12 @@ public sealed class SourceReferenceIndexStage : IDisposable
     }
 
     /// <summary>
-    /// Gets the merged options of the stage.
+    /// Gets the merged options of the extensions.
     /// </summary>
     public ReferenceIndexerOptions Options { get; }
 
     /// <summary>
-    /// Gets a value indicating whether at least one extension returned requirements for the stage. When it is <c>false</c>, the index is empty.
+    /// Gets a value indicating whether at least one extension returned requirements. When it is <c>false</c>, the index is empty.
     /// </summary>
     public bool HasRequirements { get; }
 
@@ -89,14 +90,14 @@ public sealed class SourceReferenceIndexStage : IDisposable
     public bool IsRestrictedToDeclarationRoots => this._rootsByTree != null;
 
     /// <summary>
-    /// Returns the index of the stage. The index is built on the first call, with the semantic models of the source compilation, one concurrent
+    /// Returns the index. The index is built on the first call, with the semantic models of the source compilation, one concurrent
     /// task per syntax tree.
     /// </summary>
     /// <param name="cancellationToken">A cancellation token, which also cancels the build of the index when this call starts it.</param>
-    /// <exception cref="ObjectDisposedException">The stage has ended.</exception>
+    /// <exception cref="ObjectDisposedException">The source stage has ended.</exception>
     /// <remarks>
     /// <para>
-    /// The build runs outside of the lock of the stage. A build runs synchronously until its first incomplete task, which can be the whole build
+    /// The build runs outside of the lock of the instance. A build runs synchronously until its first incomplete task, which can be the whole build
     /// for a single syntax tree, and the other callers and <see cref="Dispose"/> must not wait for it on the lock.
     /// </para>
     /// <para>
@@ -192,7 +193,7 @@ public sealed class SourceReferenceIndexStage : IDisposable
     }
 
     /// <summary>
-    /// Ends the stage and releases the compilation and the index.
+    /// Ends the lifetime of the index and releases the compilation and the index.
     /// </summary>
     public void Dispose()
     {

@@ -5,6 +5,7 @@
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Services;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Metalama.Framework.Engine.Aspects;
 
@@ -18,4 +19,21 @@ internal sealed class TemplateClassProvider : IProjectService
     }
 
     public TemplateClass Get( TemplateProvider templateProvider ) => this._templateClasses[templateProvider.Type.AssertNotNull().FullName.AssertNotNull()];
+
+    /// <summary>
+    /// Gets the template class of a template provider, or returns <c>false</c> when the type of the provider is not a template class of the project.
+    /// </summary>
+    public bool TryGet( TemplateProvider templateProvider, [NotNullWhen( true )] out TemplateClass? templateClass )
+    {
+        var typeName = templateProvider.Type?.FullName;
+
+        if ( typeName == null )
+        {
+            templateClass = null;
+
+            return false;
+        }
+
+        return this._templateClasses.TryGetValue( typeName, out templateClass );
+    }
 }

@@ -137,7 +137,8 @@ internal abstract partial class FabricDriver
         /// <remarks>
         /// The amender of a project or namespace fabric belongs to the pipeline configuration, which is long-lived at design time, so the
         /// origin holds no aspect instance and no template class instance (see issue #1799). The code that the contribution produces is
-        /// attributed to the layer of the top-level fabric aggregate aspect class.
+        /// attributed to the layer of the top-level fabric aggregate aspect class. The fabrics execute in the source stage, whose index is 0, because
+        /// the system layers precede the user layers.
         /// </remarks>
         public virtual ExtensionContributionOrigin CaptureContributionOrigin()
             => new(
@@ -146,6 +147,7 @@ internal abstract partial class FabricDriver
                 TemplateProvider.FromInstance( this._fabricInstance.Fabric ),
                 null,
                 new AspectLayerId( FabricAggregateAspectClass.AspectClassName ),
-                null );
+                null,
+                0 );
     }
 }

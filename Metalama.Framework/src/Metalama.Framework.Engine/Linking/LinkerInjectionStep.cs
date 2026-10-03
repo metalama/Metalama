@@ -351,17 +351,34 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
         // Update the syntax trees and create a new partial compilation.
         var transformations = new ConcurrentQueue<SyntaxTreeTransformation>();
 
+        var unappliedRedirections = new ConcurrentQueue<CallSiteRedirection>();
+
         async Task RewriteSyntaxTreeAsync( SyntaxTree initialSyntaxTree )
         {
+            input.Extensions.CallSiteRedirections.TryGetValue( initialSyntaxTree, out var callSiteRedirections );
+
             Rewriter rewriter = new(
                 this,
                 transformationCollection,
                 input.FinalCompilationModel,
                 syntaxTreeForGlobalAttributes,
-                lexicalScopeFactory );
+                lexicalScopeFactory,
+                callSiteRedirections );
 
             var oldRoot = await initialSyntaxTree.GetRootAsync( cancellationToken );
             var newRoot = rewriter.Visit( oldRoot ).AssertNotNull();
+
+            // Every requested redirection must have been applied by the visit. A redirection that was not applied leaves the source code unchanged.
+            if ( callSiteRedirections != null )
+            {
+                foreach ( var redirection in callSiteRedirections.Values )
+                {
+                    if ( !rewriter.IsApplied( redirection ) )
+                    {
+                        unappliedRedirections.Enqueue( redirection );
+                    }
+                }
+            }
 
             if ( oldRoot != newRoot )
             {
@@ -376,6 +393,28 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
                 compilationWithIntroducedTrees.SyntaxTreeCollection,
                 RewriteSyntaxTreeAsync,
                 cancellationToken );
+
+        // A redirection whose syntax tree was not rewritten at all was not applied either.
+        var rewrittenTrees = new HashSet<SyntaxTree>( compilationWithIntroducedTrees.SyntaxTreeCollection );
+
+        foreach ( var treeRedirections in input.Extensions.CallSiteRedirections )
+        {
+            if ( !rewrittenTrees.Contains( treeRedirections.Key ) )
+            {
+                foreach ( var redirection in treeRedirections.Value.Values )
+                {
+                    unappliedRedirections.Enqueue( redirection );
+                }
+            }
+        }
+
+        foreach ( var redirection in unappliedRedirections.OrderBy( r => r.Id ) )
+        {
+            diagnostics.Report(
+                AspectLinkerDiagnosticDescriptors.CallSiteRedirectionNotApplied.CreateRoslynDiagnostic(
+                    redirection.SourceNode.GetLocation(),
+                    redirection.Description ) );
+        }
 
         var helperSyntaxTree = injectionHelperProvider.GetLinkerHelperSyntaxTree( compilationWithIntroducedTrees.LanguageOptions );
         transformations.Enqueue( SyntaxTreeTransformation.AddTree( helperSyntaxTree ) );
