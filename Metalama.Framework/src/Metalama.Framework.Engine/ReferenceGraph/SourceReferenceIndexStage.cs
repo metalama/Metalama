@@ -68,8 +68,15 @@ public sealed class SourceReferenceIndexStage : IDisposable
     /// </summary>
     /// <param name="cancellationToken">A cancellation token, which also cancels the build of the index when this call starts it.</param>
     /// <exception cref="ObjectDisposedException">The stage has ended.</exception>
+    /// <remarks>
+    /// The build runs outside of the lock of the stage. A build runs synchronously until its first incomplete task, which can be the whole build
+    /// for a single syntax tree, and the other callers and <see cref="Dispose"/> must not wait for it on the lock.
+    /// </remarks>
     public Task<InboundReferenceIndex> GetIndexAsync( CancellationToken cancellationToken )
     {
+        TaskCompletionSource<InboundReferenceIndex> completionSource;
+        CompilationModel sourceCompilation;
+
         lock ( this._sync )
         {
             if ( this._isDisposed )
@@ -78,12 +85,45 @@ public sealed class SourceReferenceIndexStage : IDisposable
             }
 
             // A build that was canceled or that failed is not cached, so a later call can start it again.
-            if ( this._index == null || this._index.IsCanceled || this._index.IsFaulted )
+            if ( this._index != null && !this._index.IsCanceled && !this._index.IsFaulted )
             {
-                this._index = this.BuildIndexAsync( this._sourceCompilation!, cancellationToken );
+                return this._index;
             }
 
-            return this._index;
+            completionSource = new TaskCompletionSource<InboundReferenceIndex>( TaskCreationOptions.RunContinuationsAsynchronously );
+            this._index = completionSource.Task;
+            sourceCompilation = this._sourceCompilation!;
+        }
+
+        return this.BuildAndPublishIndexAsync( sourceCompilation, completionSource, cancellationToken );
+    }
+
+    /// <summary>
+    /// Builds the index and completes the task that the other callers of <see cref="GetIndexAsync"/> receive.
+    /// </summary>
+    private async Task<InboundReferenceIndex> BuildAndPublishIndexAsync(
+        CompilationModel sourceCompilation,
+        TaskCompletionSource<InboundReferenceIndex> completionSource,
+        CancellationToken cancellationToken )
+    {
+        try
+        {
+            var index = await this.BuildIndexAsync( sourceCompilation, cancellationToken );
+            completionSource.TrySetResult( index );
+
+            return index;
+        }
+        catch ( OperationCanceledException ) when ( cancellationToken.IsCancellationRequested )
+        {
+            completionSource.TrySetCanceled( cancellationToken );
+
+            throw;
+        }
+        catch ( Exception e )
+        {
+            completionSource.TrySetException( e );
+
+            throw;
         }
     }
 
