@@ -59,6 +59,8 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
                                      public static void Out( int a, out int x ) => x = a;
 
                                      public static void Log( string message, string origin = "source" ) { }
+
+                                     public static void Widen( long value ) { }
                                  }
 
                                  internal class Instance
@@ -83,6 +85,8 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
                                      public static void Out( int a ) { }
 
                                      public static int None() => 0;
+
+                                     public static void Widen( object value ) { }
                                  }
 
                                  internal class NonStatic
@@ -142,6 +146,7 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
                                          int? r = n?.Get( 7 );
                                          Source.Two( Property, 20 );
                                          Source.Compute( Property );
+                                         Source.Widen( y );
                                      }
                                  }
                                  """;
@@ -452,6 +457,48 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
             "None",
             CallSiteReceiverMode.Drop,
             ( _, r ) => new InvocationRedirectionRequest( r.CallSite, r.Target, r.ReceiverMode ) { Arguments = ImmutableArray<RedirectedArgument>.Empty } );
+
+    /// <summary>
+    /// Verifies that a source argument can be cast to the type of the parameter of the source method, and that the linker writes the cast.
+    /// </summary>
+    [Fact]
+    public async Task RedirectInvocation_CastSourceArgument_WritesCast()
+    {
+        var result = await this.ExecuteAsync(
+            s => s.Factory.RedirectInvocation(
+                s.Origin,
+                new InvocationRedirectionRequest( s.Invocation( "Source.Widen( y )" ), s.Target( "Interceptors", "Widen" ), CallSiteReceiverMode.Drop )
+                {
+                    Arguments = ImmutableArray.Create( RedirectedArgument.SourceArgument( 0 ).WithCast( s.Compilation.Factory.GetSpecialType( Code.SpecialType.Int64 ) ) )
+                } ) );
+
+        Assert.Contains( "Interceptors.Widen(value:(global::System.Int64)(y))", GetText( result ).Replace( " ", "" ), StringComparison.Ordinal );
+    }
+
+    [Fact]
+    public async Task RedirectInvocation_CastValue_Throws()
+        => await this.AssertInvocationRefusedAsync(
+            "Source.Compute( 1 )",
+            "Interceptors",
+            "Compute",
+            CallSiteReceiverMode.Drop,
+            ( s, r ) => new InvocationRedirectionRequest( r.CallSite, r.Target, r.ReceiverMode )
+            {
+                Arguments = ImmutableArray.Create(
+                    RedirectedArgument.Value( SyntaxFactory.ParseExpression( "1" ) ).WithCast( s.Compilation.Factory.GetSpecialType( Code.SpecialType.Int32 ) ) )
+            } );
+
+    [Fact]
+    public async Task RedirectInvocation_CastRefArgument_Throws()
+        => await this.AssertInvocationRefusedAsync(
+            "Source.Ref( ref y )",
+            "Source",
+            "Ref",
+            CallSiteReceiverMode.Drop,
+            ( s, r ) => new InvocationRedirectionRequest( r.CallSite, r.Target, r.ReceiverMode )
+            {
+                Arguments = ImmutableArray.Create( RedirectedArgument.SourceArgument( 0 ).WithCast( s.Compilation.Factory.GetSpecialType( Code.SpecialType.Int32 ) ) )
+            } );
 
     /// <summary>
     /// Verifies that a dropped argument is refused when it is passed by reference, because its evaluation cannot be separated from the call.
