@@ -262,6 +262,12 @@ internal sealed class CallSiteRedirection
             {
                 SyntaxKind.SimpleMemberAccessExpression when invocation.Expression is MemberAccessExpressionSyntax memberAccess => memberAccess.WithName( name ),
                 SyntaxKind.MemberBindingExpression when invocation.Expression is MemberBindingExpressionSyntax memberBinding => memberBinding.WithName( name ),
+
+                // The receiver of p->M() is the variable *p, so the extension method is called on (*p).
+                SyntaxKind.PointerMemberAccessExpression => MemberAccessExpression(
+                    SyntaxKind.SimpleMemberAccessExpression,
+                    ParenthesizedExpression( GetReceiverExpression( invocation.Expression ) ),
+                    name ),
                 _ => MemberAccessExpression( SyntaxKind.SimpleMemberAccessExpression, ThisExpression(), name )
             };
 

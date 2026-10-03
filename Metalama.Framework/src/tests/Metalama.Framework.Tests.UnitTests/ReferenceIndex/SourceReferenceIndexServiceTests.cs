@@ -12,12 +12,15 @@ using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Tests.UnitTestHelpers.MemoryLeaks;
 using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -307,6 +310,51 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
         Assert.Single( GetReferencingNames( index ) );
     }
 
+    /// <summary>
+    /// Verifies that the index is not built while the stage holds its lock. A build of a single syntax tree runs synchronously in the call that
+    /// starts it, so a build under the lock would block the other extensions and <see cref="SourceReferenceIndexStage.Dispose"/>.
+    /// </summary>
+    [Fact]
+    public async Task GetIndex_BuildsOutsideOfLock()
+    {
+        var observer = new LockObserver();
+        var additionalServices = new AdditionalServiceCollection();
+        additionalServices.AddProjectService( observer );
+        additionalServices.AddProjectService( SymbolClassificationService.CreateTestInstance() );
+        using var testContext = this.CreateTestContext( additionalServices );
+        var compilation = testContext.CreateCompilationModel( testContext.CreateCSharpCompilation( _code ) );
+
+        using var stage = SourceReferenceIndexService.BeginStage(
+            testContext.ServiceProvider,
+            compilation,
+            [Requirements( compilation, "F" ) with { DeclarationRoots = [GetMethodSyntax( compilation, "C", "M" )] }] );
+
+        observer.Lock = typeof(SourceReferenceIndexStage).GetField( "_sync", BindingFlags.Instance | BindingFlags.NonPublic )!.GetValue( stage );
+
+        await stage.GetIndexAsync( Xunit.TestContext.Current.CancellationToken );
+
+        Assert.True( observer.WasCalled );
+        Assert.False( observer.WasLockHeld );
+    }
+
+    /// <summary>
+    /// Verifies that a declaration root of a syntax tree that is not part of the source compilation is refused when the stage begins, and not
+    /// when a task of the build binds it.
+    /// </summary>
+    [Fact]
+    public void BeginStage_RootOfForeignTree_Throws()
+    {
+        using var context = this.CreateContext( _code );
+        var foreignRoot = CSharpSyntaxTree.ParseText( "class D { void M() { } }", cancellationToken: Xunit.TestContext.Current.CancellationToken )
+            .GetRoot( Xunit.TestContext.Current.CancellationToken );
+
+        Assert.Throws<ArgumentException>(
+            () => SourceReferenceIndexService.BeginStage(
+                context.ServiceProvider,
+                context.Compilation,
+                [Requirements( context.Compilation, "F" ) with { DeclarationRoots = [foreignRoot] }] ) );
+    }
+
     [Fact]
     public void Root_Method()
     {
@@ -479,6 +527,26 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
 
         Assert.True( referencedProject.IndexOptions.MustIndexReference( ReferenceKinds.Invocation, tokenF ) );
         Assert.False( referencingProject.IndexOptions.MustIndexReference( ReferenceKinds.Invocation, tokenF ) );
+    }
+
+    /// <summary>
+    /// An observer that records whether the thread that resolves a semantic model holds the lock of the stage.
+    /// </summary>
+    private sealed class LockObserver : IReferenceIndexObserver
+    {
+        public object? Lock { get; set; }
+
+        public bool WasCalled { get; private set; }
+
+        public bool WasLockHeld { get; private set; }
+
+        public void OnSymbolResolved( ISymbol symbol ) { }
+
+        public void OnSemanticModelResolved( SemanticModel semanticModel )
+        {
+            this.WasCalled = true;
+            this.WasLockHeld |= this.Lock != null && Monitor.IsEntered( this.Lock );
+        }
     }
 
     /// <summary>

@@ -57,6 +57,9 @@ public sealed class DesignTimeContributorsContextTests : UnitTestClass
                                        {
                                            public override void BuildAspect( IAspectBuilder<INamedType> builder )
                                                => builder.Outbound.ReportDiagnostic( _ => Definitions.Warning );
+
+                                           [Introduce]
+                                           public void IntroducedByAspect1() { }
                                        }
 
                                        [Inheritable]
@@ -64,6 +67,9 @@ public sealed class DesignTimeContributorsContextTests : UnitTestClass
                                        {
                                            public override void BuildAspect( IAspectBuilder<INamedType> builder )
                                                => builder.Outbound.ReportDiagnostic( _ => Definitions.Warning );
+
+                                           [Introduce]
+                                           public void IntroducedByAspect2() { }
                                        }
 
                                        """;
@@ -150,6 +156,24 @@ public sealed class DesignTimeContributorsContextTests : UnitTestClass
         Assert.Single( result.GetInheritableAspects( "Aspect2" ) );
     }
 
+    /// <summary>
+    /// Verifies that the transformations of the first stage are part of the design-time result, which is read from the last stage. Each aspect
+    /// introduces a method, and the aspects execute in different stages.
+    /// </summary>
+    [Fact]
+    public void Transformations_AccumulatedAcrossStages()
+    {
+        var (_, result) = this.Execute( _twoStagesCode );
+
+        var aspectClasses = result.SyntaxTreeResults.Values
+            .SelectMany( r => r.Transformations )
+            .Select( t => t.AspectClassFullName )
+            .Distinct()
+            .OrderBy( x => x, StringComparer.Ordinal );
+
+        Assert.Equal( ["Aspect1", "Aspect2"], aspectClasses );
+    }
+
     private (StageRecorder Recorder, DesignTimeAspectPipelineResult Result) Execute( string code )
     {
         var recorder = new StageRecorder();
@@ -167,7 +191,7 @@ public sealed class DesignTimeContributorsContextTests : UnitTestClass
         using var factory = new TestDesignTimeAspectPipelineFactory( testContext );
 
         var compilation = testContext.CreateCSharpCompilation(
-            code == _twoStagesCode
+            code.Contains( "[WeaverAspect]", StringComparison.Ordinal )
                 ? new Dictionary<string, string> { ["code.cs"] = code, ["weaver.cs"] = _weaverCode }
                 : new Dictionary<string, string> { ["code.cs"] = code },
             additionalReferences: [MetadataReference.CreateFromFile( typeof(Compilation).Assembly.Location ), MetadataReference.CreateFromFile( typeof(CSharpSyntaxTree).Assembly.Location )] );
