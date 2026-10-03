@@ -40,10 +40,17 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
     internal static DiagnosticDefinition<(string MethodName, string ReferencingSymbol, string ReferenceKinds, bool IsRestricted)> ReferenceObserved { get; } =
         new( "TEST0002", Severity.Warning, "Reference to '{0}' from '{1}' ({2}), index restricted to declaration roots: {3}." );
 
+    /// <summary>
+    /// The warning that lists the names of all the symbols that the shared index of source references contains, so that the expected output of
+    /// an aspect test shows that the index contains nothing else than what the extensions requested.
+    /// </summary>
+    internal static DiagnosticDefinition<string> IndexContent { get; } =
+        new( "TEST0005", Severity.Warning, "The shared index contains references to: {0}." );
+
     public override bool Initialize( PipelineExtensionInitializationContext context )
     {
         context.ServiceBuilder.Add( _ => new TestRegistrationService() );
-        context.AddDiagnosticDefinitions( [RegistrationObserved, ReferenceObserved] );
+        context.AddDiagnosticDefinitions( [RegistrationObserved, ReferenceObserved, IndexContent] );
 
         return true;
     }
