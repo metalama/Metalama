@@ -53,7 +53,8 @@
 
      <Target Name="GetILMergeInputs">
         <PropertyGroup>
-            <ILMergeTouchFile>$(OutDir)repack.touch</ILMergeTouchFile>
+            <ILMergeOutputDirectory>$(ProjectDir)$(IntermediateOutputPath)merged\</ILMergeOutputDirectory>
+            <ILMergeOutputAssembly>$(ILMergeOutputDirectory)$(TargetFileName)</ILMergeOutputAssembly>
         </PropertyGroup>
         <ItemGroup>
             <ILMergeOtherInputs Include="$(OutDir)StreamJsonRpc.dll"  />
@@ -86,15 +87,30 @@
         </ItemGroup>
     </Target>
 
-    <Target Name="ILMerge" AfterTargets="Build" Inputs="$(OutDir)$(AssemblyName).dll;@(ILMergeOtherInputs)" Outputs="$(ILMergeTouchFile)" DependsOnTargets="GetILMergeInputs">
+    <!-- Merges the assembly produced by the compiler and the selected dependencies into a separate assembly in the
+         intermediate directory. The assembly produced by the compiler is left unchanged, so that a merge never takes
+         the output of a previous merge as input. The target runs after CopyFilesToOutputDirectory, because the
+         dependencies are read from the output directory. -->
+    <Target Name="ILMerge" AfterTargets="CopyFilesToOutputDirectory" Inputs="@(IntermediateAssembly);@(ILMergeOtherInputs)" Outputs="$(ILMergeOutputAssembly)" DependsOnTargets="GetILMergeInputs">
         <PropertyGroup>
             <DotnetExePrefix Condition="!$([MSBuild]::IsOSPlatform('windows'))">mono </DotnetExePrefix>
         </PropertyGroup>
         <Error Text="The ILRepack package is not installed or restored in the project." Condition="'$(ILRepack)'==''"/>
-        <Move SourceFiles="$(OutDir)$(AssemblyName).dll" DestinationFiles="$(OutDir)$(AssemblyName).input.dll"/>
-        <Exec Command="$(DotnetExePrefix) $(ILRepack) /parallel /target:library /copyattrs /allowMultiple /out:$(OutDir)$(AssemblyName).dll /lib:@(ILMergeLibs, ' /lib:') $(OutDir)$(AssemblyName).input.dll @(ILMergeOtherInputs, ' ') /internalize /keyfile:$(AssemblyOriginatorKeyFile) /allowdup:@(ILMergeAllowDuplicate, ' /allowdup:')" />
-        
-        <Touch Files="$(ILMergeTouchFile)" AlwaysCreate="true"/>
+        <MakeDir Directories="$(ILMergeOutputDirectory)"/>
+        <Exec Command="$(DotnetExePrefix) $(ILRepack) /parallel /target:library /copyattrs /allowMultiple /out:&quot;$(ILMergeOutputAssembly)&quot; /lib:@(ILMergeLibs, ' /lib:') &quot;@(IntermediateAssembly->'%(FullPath)')&quot; @(ILMergeOtherInputs, ' ') /internalize /keyfile:$(AssemblyOriginatorKeyFile) /allowdup:@(ILMergeAllowDuplicate, ' /allowdup:')" />
+    </Target>
+
+    <!-- Replaces the assembly that CopyFilesToOutputDirectory copied to the output directory by the merged assembly.
+         When ILRepack produced a symbol file, the target also copies it. This target runs on every build, because CopyFilesToOutputDirectory copies
+         the unmerged assembly to the output directory on every build, even when the ILMerge target is up to date. -->
+    <Target Name="CopyILMergedAssemblyToOutputDirectory" AfterTargets="ILMerge" DependsOnTargets="GetILMergeInputs">
+        <ItemGroup>
+            <ILMergedFile Include="$(ILMergeOutputAssembly)" />
+            <ILMergedFile Include="$(ILMergeOutputDirectory)$(TargetName).pdb" Condition="Exists('$(ILMergeOutputDirectory)$(TargetName).pdb')" />
+            <FileWrites Include="@(ILMergedFile)" />
+        </ItemGroup>
+
+        <Copy SourceFiles="@(ILMergedFile)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
     </Target>
     
 </Project>
