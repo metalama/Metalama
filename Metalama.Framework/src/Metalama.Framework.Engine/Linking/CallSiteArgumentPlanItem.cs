@@ -19,22 +19,38 @@ namespace Metalama.Framework.Engine.Linking;
 internal readonly record struct CallSiteArgumentPlanItem( RedirectedArgumentKind Kind, int SourceArgumentIndex, ExpressionSyntax? Value, string Name )
 {
     /// <summary>
-    /// Gets the indices of the source arguments that the new call does not pass and that are evaluated, and discarded, before the value of this
-    /// argument. The argument is written <c>D switch { _ =&gt; value }</c>.
+    /// Gets the indices of the source arguments that the new call does not pass and that are evaluated before the value of this argument. The
+    /// argument is written <c>CallSiteHelper.DropBefore( D, value )</c>, where <c>D</c> is the dropped value, or a tuple of the dropped values when
+    /// there are several.
     /// </summary>
     public ImmutableArray<int> PrecedingDiscards { get; init; }
 
     /// <summary>
-    /// Gets the indices of the source arguments that the new call does not pass and that are evaluated, and discarded, after the value of this
-    /// argument. The argument is written <c>value switch { var t =&gt; D switch { _ =&gt; t } }</c>, where <c>t</c> is
-    /// <see cref="ValueVariableName"/>.
+    /// Gets the indices of the source arguments that the new call does not pass and that are evaluated after the value of this argument. The
+    /// argument is written <c>CallSiteHelper.DropAfter( value, D )</c>.
     /// </summary>
     public ImmutableArray<int> FollowingDiscards { get; init; }
 
     /// <summary>
-    /// Gets the name of the pattern variable that holds the value of this argument while <see cref="FollowingDiscards"/> are evaluated.
+    /// Gets the type syntax of <c>Metalama.Framework.RunTime.CallSiteHelper</c>, or <c>null</c> when the argument has no dropped value.
     /// </summary>
-    public string? ValueVariableName { get; init; }
+    public TypeSyntax? DropHelperType { get; init; }
+
+    /// <summary>
+    /// Gets the type argument of the kept value of the calls of <c>CallSiteHelper</c>, or <c>null</c> when the type arguments are inferred. When it is
+    /// not <c>null</c>, both type arguments are written, so that the kept value is converted to the type of the parameter as in the original call.
+    /// </summary>
+    public TypeSyntax? KeepTypeArgument { get; init; }
+
+    /// <summary>
+    /// Gets the type argument of the values of <see cref="PrecedingDiscards"/> when <see cref="KeepTypeArgument"/> is not <c>null</c>.
+    /// </summary>
+    public TypeSyntax? PrecedingDropTypeArgument { get; init; }
+
+    /// <summary>
+    /// Gets the type argument of the values of <see cref="FollowingDiscards"/> when <see cref="KeepTypeArgument"/> is not <c>null</c>.
+    /// </summary>
+    public TypeSyntax? FollowingDropTypeArgument { get; init; }
 
     /// <summary>
     /// Gets the type to which the value of a <see cref="RedirectedArgumentKind.SourceArgument"/> is cast, or <c>null</c>. The argument is written

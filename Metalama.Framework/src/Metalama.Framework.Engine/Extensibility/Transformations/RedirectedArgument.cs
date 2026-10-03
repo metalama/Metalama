@@ -22,10 +22,11 @@ namespace Metalama.Framework.Engine.Extensibility.Transformations;
 /// </para>
 /// <para>
 /// A value of the source call site that the list does not use is still evaluated, in its source order, when it can have a side effect. The linker
-/// evaluates it as the governing expression of a switch expression whose value is the next argument, <c>D switch { _ =&gt; value }</c>, or, when
-/// the next argument cannot hold it, after the previous argument, <c>value switch { var t =&gt; D switch { _ =&gt; t } }</c>. The factory refuses
-/// a request when the omitted value is passed by reference, when no adjacent argument is passed by value, or when the language version is earlier
-/// than C# 9. A value without side effect, such as a constant or a local, is not evaluated.
+/// passes it to the run-time helper <c>Metalama.Framework.RunTime.CallSiteHelper</c> together with the next argument,
+/// <c>CallSiteHelper.DropBefore( D, value )</c>, or, when the next argument cannot hold it, together with the previous argument,
+/// <c>CallSiteHelper.DropAfter( value, D )</c>. The factory refuses a request when the omitted value is passed by reference, when no adjacent
+/// argument is passed by value, or when a dropped or kept value has a ref struct or pointer type. A value without side effect, such as a constant
+/// or a local, is not evaluated.
 /// </para>
 /// </remarks>
 [PublicAPI]
