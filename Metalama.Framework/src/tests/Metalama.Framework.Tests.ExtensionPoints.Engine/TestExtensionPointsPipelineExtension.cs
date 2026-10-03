@@ -46,6 +46,13 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
         new( "TEST0002", Severity.Warning, "Reference to '{0}' from '{1}' ({2}), index restricted to declaration roots: {3}." );
 
     /// <summary>
+    /// The warning that lists the names of all the symbols that the shared index of source references contains, so that the expected output of
+    /// an aspect test shows that the index contains nothing else than what the extensions requested.
+    /// </summary>
+    internal static DiagnosticDefinition<string> IndexContent { get; } =
+        new( "TEST0005", Severity.Warning, "The shared index contains references to: {0}." );
+
+    /// <summary>
     /// The warning that reports a redirection that the factory of transformations refused, with the message of the exception.
     /// </summary>
     internal static DiagnosticDefinition<(string Site, string ExceptionType, string Message)> RedirectionRefused { get; } =
@@ -60,7 +67,7 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
     public override bool Initialize( PipelineExtensionInitializationContext context )
     {
         context.ServiceBuilder.Add( _ => new TestRegistrationService() );
-        context.AddDiagnosticDefinitions( [RegistrationObserved, ReferenceObserved, RedirectionRefused, ScopeNotContained] );
+        context.AddDiagnosticDefinitions( [RegistrationObserved, ReferenceObserved, IndexContent, RedirectionRefused, ScopeNotContained] );
 
         return true;
     }
@@ -157,7 +164,9 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
                 catch ( Exception e ) when ( e is ArgumentException or InvalidOperationException )
                 {
                     context.Diagnostics.Report(
-                        RedirectionRefused.CreateRoslynDiagnostic( site.GetLocation(), ((invocation ?? site).ToString(), e.GetType().Name, GetMessage( e )) ) );
+                        RedirectionRefused.CreateRoslynDiagnostic(
+                            site.GetLocation(),
+                            ((invocation ?? GetMethodGroup( site )).ToString(), e.GetType().Name, GetMessage( e )) ) );
                 }
             }
         }
@@ -185,6 +194,9 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
         return message;
     }
 
+    /// <summary>
+    /// Creates the request that redirects an invocation to a replacement method according to the options of a <see cref="TestRedirection"/>.
+    /// </summary>
     private static InvocationRedirectionRequest CreateInvocationRequest(
         InvocationExpressionSyntax invocation,
         IMethod replacement,
@@ -203,6 +215,9 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
         };
     }
 
+    /// <summary>
+    /// Returns the type arguments of the method to which a node binds, or of its single candidate when the binding fails.
+    /// </summary>
     private static ImmutableArray<IType> GetTypeArguments( SyntaxNode node, CompilationModel compilation )
     {
         var semanticModel = compilation.RoslynCompilation.GetSemanticModel( node.SyntaxTree );
@@ -212,9 +227,15 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
         return method.TypeArguments.Select( t => compilation.Factory.GetIType( t ) ).ToImmutableArray();
     }
 
+    /// <summary>
+    /// Parses <see cref="TestRedirectionOptions.ReceiverMode"/> as a <see cref="CallSiteReceiverMode"/>.
+    /// </summary>
     private static CallSiteReceiverMode ParseReceiverMode( TestRedirectionOptions options )
         => (CallSiteReceiverMode) Enum.Parse( typeof(CallSiteReceiverMode), options.ReceiverMode );
 
+    /// <summary>
+    /// Splits a list of items separated by semicolons, trims the items and removes the empty ones.
+    /// </summary>
     private static IEnumerable<string> ParseItems( string list ) => list.Split( ';' ).Select( x => x.Trim() ).Where( x => x.Length > 0 );
 
     /// <summary>
@@ -257,6 +278,9 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
         return name == null ? argument : argument.WithName( name );
     }
 
+    /// <summary>
+    /// Parses an item of <see cref="TestRedirectionOptions.ExtraArguments"/>, which has the form <c>name=E</c>.
+    /// </summary>
     private static CallSiteExtraArgument ParseExtraArgument( string item )
     {
         var equals = item.IndexOf( '=' );
@@ -283,6 +307,17 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
         return expression.Parent is InvocationExpressionSyntax invocation && invocation.Expression == expression ? invocation : null;
     }
 
+    /// <summary>
+    /// Returns the method group that contains the given method name, which is the member access whose name it is, as the factory of
+    /// transformations normalizes it.
+    /// </summary>
+    private static SyntaxNode GetMethodGroup( SyntaxNode name )
+        => name.Parent is MemberAccessExpressionSyntax memberAccess && memberAccess.Name == name ? memberAccess : name;
+
+    /// <summary>
+    /// Returns the replacement method of a redirection in a compilation: the method given by reference, or else the single method that has the
+    /// given type name and method name.
+    /// </summary>
     private static IMethod GetReplacement( TestRedirection redirection, CompilationModel compilation )
     {
         if ( redirection.Replacement != null )
@@ -329,6 +364,10 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
         return roots;
     }
 
+    /// <summary>
+    /// In the source stage, reports a diagnostic that lists the names of the symbols in the shared index, and a diagnostic for each reference to a
+    /// method named by a <see cref="TestReferenceReport"/>. The references are sorted by file path and position.
+    /// </summary>
     private static async Task ReportReferencesAsync( ExtensionTransformationContext context, CancellationToken cancellationToken )
     {
         var methodNames = new HashSet<string>( context.Contributors.OfKind( TestContributorKinds.ReferenceReport ).Select( r => r.MethodName ) );

@@ -36,6 +36,10 @@ namespace Metalama.Framework.Tests.UnitTests.Extensibility;
 /// </remarks>
 public sealed class ExtensionTransformationFactoryTests : UnitTestClass
 {
+    /// <summary>
+    /// The code of every test. It declares the aspect applied to the type <c>C</c>, the source methods, the target methods of the redirections,
+    /// and the call sites in the members of <c>C</c>.
+    /// </summary>
     private const string _code = """
                                  using Metalama.Framework.Aspects;
                                  using System;
@@ -65,6 +69,15 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
                                      public static int Make( Instance a, int b ) => b;
 
                                      public static string Join( string a, string b ) => a + b;
+
+                                     public static int Many( int a, params int[] values ) => a;
+
+                                     public static int Measure( int a, Meters b ) => a;
+                                 }
+
+                                 internal struct Meters
+                                 {
+                                     public static implicit operator Meters( int value ) => default;
                                  }
 
                                  internal class Instance
@@ -72,6 +85,8 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
                                      public int Field;
 
                                      public int Get( int x ) => x;
+
+                                     public int Self() => Get( 40 );
                                  }
 
                                  internal class Outer
@@ -82,6 +97,8 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
                                  internal struct Point
                                  {
                                      public int Get() => 0;
+
+                                     public readonly int Read() => 0;
                                  }
 
                                  internal class VirtualBase
@@ -92,6 +109,13 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
                                  internal class VirtualDerived : VirtualBase
                                  {
                                      public override int Virtual() => base.Virtual();
+                                 }
+
+                                 internal class ReadOnlyHolder
+                                 {
+                                     private readonly Point _point;
+
+                                     public int M() => _point.Get();
                                  }
 
                                  internal static class Interceptors
@@ -117,6 +141,18 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
                                      public static int Pick( int x, int y = 0 ) => x;
 
                                      public static int GetPoint( this Point p ) => 1;
+
+                                     public static int GetPointByRef( ref Point p ) => 1;
+
+                                     public static int ReadPoint( in Point p ) => 1;
+
+                                     public static int TakeBaseByRef( ref VirtualBase instance ) => 1;
+
+                                     public static int TakeBaseExtension( this VirtualBase instance ) => 1;
+
+                                     public static int TakeTwo( Instance a, Instance b ) => 1;
+
+                                     public static int ManyOne( int a, params int[] values ) => a;
 
                                      public static int TakeBase( VirtualBase instance ) => 1;
 
@@ -207,6 +243,9 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
                                          Source.Two( 31, (Next()) );
                                          Source.Join( "32", NextString()! );
                                          Source.Make( new(), Next() );
+                                         Source.Many( 1, 2, 3 );
+                                         Source.Many( 33, Next() );
+                                         Source.Measure( 34, Next() );
                                          var natural = Source.Two;
                                      }
 
@@ -215,6 +254,7 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
                                          Point pt = default;
                                          Point* pp = &pt;
                                          pp->Get();
+                                         pt.Read();
                                      }
 
                                      private static int Next() => 0;
@@ -223,6 +263,10 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
                                  }
                                  """;
 
+    /// <summary>
+    /// Verifies that a call site that does not belong to a syntax tree of the compilation of the stage is refused with an
+    /// <see cref="ArgumentException"/>.
+    /// </summary>
     [Fact]
     public async Task Redirect_NodeNotInSourceCompilation_Throws()
         => await this.ExecuteAsync(
@@ -236,6 +280,9 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
                         new InvocationRedirectionRequest( foreignCallSite, s.Target( "Interceptors", "Compute" ), CallSiteReceiverMode.Drop ) ) );
             } );
 
+    /// <summary>
+    /// Verifies that a second request for the same call site throws an <see cref="InvalidOperationException"/>.
+    /// </summary>
     [Fact]
     public async Task RedirectTwice_Throws()
         => await this.ExecuteAsync(
@@ -251,6 +298,9 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
                 Assert.Throws<InvalidOperationException>( () => s.Factory.RedirectInvocation( s.Origin, request ) );
             } );
 
+    /// <summary>
+    /// Verifies that the factory throws an <see cref="InvalidOperationException"/> when it is used after the transforming hook has completed.
+    /// </summary>
     [Fact]
     public async Task CompletedFactory_Throws()
     {
@@ -272,6 +322,9 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
         Assert.Throws<InvalidOperationException>( () => captured.Factory.RedirectInvocation( captured.Origin, request! ) );
     }
 
+    /// <summary>
+    /// Verifies that a request is refused when the aspect layer of its origin is not an ordered layer of the pipeline.
+    /// </summary>
     [Fact]
     public async Task UnknownLayer_Throws()
         => await this.ExecuteAsync(
@@ -280,7 +333,7 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
                 var origin = new ExtensionContributionOrigin(
                     s.Origin.Predecessor,
                     "unknown",
-                    null,
+                    default,
                     null,
                     new AspectLayerId( "UnknownAspect" ),
                     null );
@@ -294,26 +347,48 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
                             CallSiteReceiverMode.Drop ) ) );
             } );
 
+    /// <summary>
+    /// Verifies that a request whose target method is not static is refused.
+    /// </summary>
     [Fact]
     public async Task RedirectInvocation_NonStaticTarget_Throws()
         => await this.AssertInvocationRefusedAsync( "Source.Compute( 1 )", "NonStatic", "Compute", CallSiteReceiverMode.Drop );
 
+    /// <summary>
+    /// Verifies that the receiver mode <see cref="CallSiteReceiverMode.Drop"/> is refused for a call that has an instance receiver, when the request
+    /// does not plan the arguments.
+    /// </summary>
     [Fact]
     public async Task RedirectInvocation_Drop_InstanceReceiver_Throws()
         => await this.AssertInvocationRefusedAsync( "i.Get( 2 )", "Interceptors", "Compute", CallSiteReceiverMode.Drop );
 
+    /// <summary>
+    /// Verifies that the receiver mode <see cref="CallSiteReceiverMode.FirstArgument"/> is refused for a call to a static method, which has
+    /// no receiver to pass.
+    /// </summary>
     [Fact]
     public async Task RedirectInvocation_FirstArgument_StaticSource_Throws()
         => await this.AssertInvocationRefusedAsync( "Source.Compute( 1 )", "Interceptors", "Get", CallSiteReceiverMode.FirstArgument );
 
+    /// <summary>
+    /// Verifies that the receiver mode <see cref="CallSiteReceiverMode.FirstArgument"/> is refused for a call in a conditional access, whose receiver
+    /// exists only inside the conditional access.
+    /// </summary>
     [Fact]
     public async Task RedirectInvocation_FirstArgument_ConditionalAccess_Throws()
         => await this.AssertInvocationRefusedAsync( ".Get( 3 )", "Interceptors", "Get", CallSiteReceiverMode.FirstArgument );
 
+    /// <summary>
+    /// Verifies that the receiver mode <see cref="CallSiteReceiverMode.ExtensionReceiver"/> is refused when the target method is not an extension
+    /// method.
+    /// </summary>
     [Fact]
     public async Task RedirectInvocation_ExtensionReceiver_NonExtensionTarget_Throws()
         => await this.AssertInvocationRefusedAsync( "i.Get( 2 )", "Interceptors", "Get", CallSiteReceiverMode.ExtensionReceiver );
 
+    /// <summary>
+    /// Verifies that the receiver mode <see cref="CallSiteReceiverMode.ExtensionReceiver"/> is accepted for a call in a conditional access.
+    /// </summary>
     [Fact]
     public async Task RedirectInvocation_ExtensionReceiver_ConditionalAccess_Accepted()
         => await this.ExecuteAsync(
@@ -328,6 +403,9 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
                 Assert.True( s.Factory.IsRedirected( callSite ) );
             } );
 
+    /// <summary>
+    /// Verifies that a result cast is refused for a call in a conditional access.
+    /// </summary>
     [Fact]
     public async Task RedirectInvocation_ResultCastInConditionalAccess_Throws()
         => await this.AssertInvocationRefusedAsync(
@@ -337,6 +415,9 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
             CallSiteReceiverMode.ExtensionReceiver,
             ( s, r ) => new InvocationRedirectionRequest( r.CallSite, r.Target, r.ReceiverMode ) { ResultCast = s.Compilation.Factory.GetSpecialType( Code.SpecialType.Int32 ) } );
 
+    /// <summary>
+    /// Verifies that an argument list that passes the same source argument twice is refused.
+    /// </summary>
     [Fact]
     public async Task RedirectInvocation_ArgumentsUseSourceValueTwice_Throws()
         => await this.AssertInvocationRefusedAsync(
@@ -349,6 +430,9 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
                 Arguments = ImmutableArray.Create( RedirectedArgument.SourceArgument( 0 ), RedirectedArgument.SourceArgument( 0 ) )
             } );
 
+    /// <summary>
+    /// Verifies that an argument list that names the same parameter twice is refused.
+    /// </summary>
     [Fact]
     public async Task RedirectInvocation_ArgumentsNameParameterTwice_Throws()
         => await this.AssertInvocationRefusedAsync(
@@ -361,6 +445,9 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
                 Arguments = ImmutableArray.Create( RedirectedArgument.SourceArgument( 0 ).WithName( "a" ), RedirectedArgument.SourceArgument( 1 ).WithName( "a" ) )
             } );
 
+    /// <summary>
+    /// Verifies that a source argument passed with the <c>ref</c> modifier is refused when the parameter of the target method is passed by value.
+    /// </summary>
     [Fact]
     public async Task RedirectInvocation_ArgumentsDropRefModifier_Throws()
         => await this.AssertInvocationRefusedAsync(
@@ -373,6 +460,9 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
                 Arguments = ImmutableArray.Create( RedirectedArgument.SourceArgument( 0 ) )
             } );
 
+    /// <summary>
+    /// Verifies that an argument list that omits an <c>out</c> argument of the source call site is refused.
+    /// </summary>
     [Fact]
     public async Task RedirectInvocation_ArgumentsOmitOutArgument_Throws()
         => await this.AssertInvocationRefusedAsync(
@@ -385,6 +475,9 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
                 Arguments = ImmutableArray.Create( RedirectedArgument.SourceArgument( 0 ) )
             } );
 
+    /// <summary>
+    /// Verifies that an argument list that has more elements than the parameters of the target method is refused.
+    /// </summary>
     [Fact]
     public async Task RedirectInvocation_ArgumentsLongerThanParameters_Throws()
         => await this.AssertInvocationRefusedAsync(
@@ -416,6 +509,9 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
         Assert.Contains( "Source.Log(\"message\",origin:\"redirected\")", GetText( result ).Replace( " ", "" ), StringComparison.Ordinal );
     }
 
+    /// <summary>
+    /// Verifies that a method group that is not converted to a delegate or to a function pointer, here the operand of <c>nameof</c>, is refused.
+    /// </summary>
     [Fact]
     public async Task RedirectMethodReference_NotConverted_Throws()
         => await this.ExecuteAsync(
@@ -427,6 +523,9 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
                         s.Target( "Interceptors", "Two" ),
                         CallSiteReceiverMode.Drop ) ) ) );
 
+    /// <summary>
+    /// Verifies that the invoked expression of an invocation is refused as a method reference.
+    /// </summary>
     [Fact]
     public async Task RedirectMethodReference_InvokedExpression_Throws()
         => await this.ExecuteAsync(
@@ -438,6 +537,9 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
                         s.Target( "Interceptors", "Compute" ),
                         CallSiteReceiverMode.Drop ) ) ) );
 
+    /// <summary>
+    /// Verifies that a method reference is refused with a receiver mode other than <see cref="CallSiteReceiverMode.Drop"/>.
+    /// </summary>
     [Fact]
     public async Task RedirectMethodReference_ReceiverModeOtherThanDrop_Throws()
         => await this.ExecuteAsync(
@@ -584,6 +686,9 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
         Assert.Contains( "Interceptors.Widen(value:(global::System.Int64)(y))", GetText( result ).Replace( " ", "" ), StringComparison.Ordinal );
     }
 
+    /// <summary>
+    /// Verifies that a cast is refused on an argument that is an expression emitted at the call site, because only a source argument can be cast.
+    /// </summary>
     [Fact]
     public async Task RedirectInvocation_CastValue_Throws()
         => await this.AssertInvocationRefusedAsync(
@@ -597,6 +702,9 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
                     RedirectedArgument.Value( SyntaxFactory.ParseExpression( "1" ) ).WithCast( s.Compilation.Factory.GetSpecialType( Code.SpecialType.Int32 ) ) )
             } );
 
+    /// <summary>
+    /// Verifies that a cast is refused on a source argument that is passed by reference.
+    /// </summary>
     [Fact]
     public async Task RedirectInvocation_CastRefArgument_Throws()
         => await this.AssertInvocationRefusedAsync(
@@ -641,6 +749,9 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
                 }
             } );
 
+    /// <summary>
+    /// Verifies that a call site whose invoked expression contains a preprocessor directive is refused.
+    /// </summary>
     [Fact]
     public async Task RedirectInvocation_DirectiveInInvokedExpression_Throws()
         => await this.ExecuteAsync(
@@ -649,6 +760,9 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
                     s.Origin,
                     new InvocationRedirectionRequest( s.InvocationWithArgument( "17" ), s.Target( "Interceptors", "Compute" ), CallSiteReceiverMode.Drop ) ) ) );
 
+    /// <summary>
+    /// Verifies that a call site whose argument list contains a preprocessor directive is refused when the request plans the arguments.
+    /// </summary>
     [Fact]
     public async Task RedirectInvocation_DirectiveInPlannedArgumentList_Throws()
         => await this.ExecuteAsync(
@@ -677,6 +791,9 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
         Assert.Equal( 3, CountOccurrences( text, "#if DEBUG" ) );
     }
 
+    /// <summary>
+    /// Verifies that a method group that contains a preprocessor directive is refused.
+    /// </summary>
     [Fact]
     public async Task RedirectMethodReference_DirectiveInMethodGroup_Throws()
         => await this.ExecuteAsync(
@@ -735,13 +852,18 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
         }
     }
 
+    /// <summary>
+    /// Verifies that <see cref="ExtensionTemplateServices.MethodTemplateExists"/> returns <c>true</c> only for a method of the template provider that
+    /// is a template, and <c>false</c> for a method that is not a template, for a missing method, for a provider that is not a template provider, and
+    /// for the default provider.
+    /// </summary>
     [Fact]
     public async Task ExtensionTemplateServices_MethodTemplateExists()
         => await this.ExecuteAsync(
             s =>
             {
                 var serviceProvider = s.Context.ServiceProvider;
-                var aspectProvider = s.Origin.DefaultTemplateProvider!.Value;
+                var aspectProvider = s.Origin.DefaultTemplateProvider;
 
                 Assert.True( ExtensionTemplateServices.MethodTemplateExists( serviceProvider, aspectProvider, "Template" ) );
                 Assert.False( ExtensionTemplateServices.MethodTemplateExists( serviceProvider, aspectProvider, "NotTemplate" ) );
@@ -917,14 +1039,185 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
             ( _, r ) => new InvocationRedirectionRequest( r.CallSite, r.Target, r.ReceiverMode ) { Arguments = ImmutableArray.Create( RedirectedArgument.SourceArgument( 0 ) ) } );
 
     /// <summary>
+    /// Verifies that <see cref="ExtensionTransformationFactory.RedirectInvocation"/> throws an <see cref="ArgumentNullException"/> when the request is
+    /// <c>null</c>.
+    /// </summary>
+    [Fact]
+    public async Task RedirectInvocation_NullRequest_Throws()
+        => await this.ExecuteAsync( s => Assert.Throws<ArgumentNullException>( () => s.Factory.RedirectInvocation( s.Origin, null! ) ) );
+
+    /// <summary>
+    /// Verifies that <see cref="ExtensionTransformationFactory.RedirectInvocation"/> throws an <see cref="ArgumentNullException"/> when the origin is
+    /// <c>null</c>.
+    /// </summary>
+    [Fact]
+    public async Task RedirectInvocation_NullOrigin_Throws()
+        => await this.ExecuteAsync(
+            s => Assert.Throws<ArgumentNullException>(
+                () => s.Factory.RedirectInvocation(
+                    null!,
+                    new InvocationRedirectionRequest( s.Invocation( "Source.Compute( 1 )" ), s.Target( "Interceptors", "Compute" ), CallSiteReceiverMode.Drop ) ) ) );
+
+    /// <summary>
+    /// Verifies that <see cref="ExtensionTransformationFactory.RedirectMethodReference"/> throws an <see cref="ArgumentNullException"/> when the
+    /// request is <c>null</c>.
+    /// </summary>
+    [Fact]
+    public async Task RedirectMethodReference_NullRequest_Throws()
+        => await this.ExecuteAsync( s => Assert.Throws<ArgumentNullException>( () => s.Factory.RedirectMethodReference( s.Origin, null! ) ) );
+
+    /// <summary>
+    /// Verifies that the receiver of a base call to a virtual method is refused with every receiver mode that passes it.
+    /// </summary>
+    [Theory]
+    [InlineData( CallSiteReceiverMode.FirstArgument, "TakeBase" )]
+    [InlineData( CallSiteReceiverMode.FirstArgumentByRef, "TakeBaseByRef" )]
+    [InlineData( CallSiteReceiverMode.ExtensionReceiver, "TakeBaseExtension" )]
+    public async Task RedirectInvocation_VirtualBaseCall_AnyReceiverMode_Throws( CallSiteReceiverMode receiverMode, string targetName )
+        => await this.AssertInvocationRefusedAsync( "base.Virtual()", "Interceptors", targetName, receiverMode, expectedMessage: "base call" );
+
+    /// <summary>
+    /// Verifies that the receiver cannot be passed both by the receiver mode and as a planned argument, nor twice as a planned argument.
+    /// </summary>
+    [Fact]
+    public async Task RedirectInvocation_SourceReceiverPassedTwice_Throws()
+    {
+        await this.AssertInvocationRefusedAsync(
+            "i.Get( 2 )",
+            "Interceptors",
+            "TakeTwo",
+            CallSiteReceiverMode.FirstArgument,
+            ( _, r ) => new InvocationRedirectionRequest( r.CallSite, r.Target, r.ReceiverMode )
+            {
+                Arguments = ImmutableArray.Create( RedirectedArgument.SourceReceiver.WithName( "b" ) )
+            } );
+
+        await this.AssertInvocationRefusedAsync(
+            "i.Get( 2 )",
+            "Interceptors",
+            "TakeTwo",
+            CallSiteReceiverMode.Drop,
+            ( _, r ) => new InvocationRedirectionRequest( r.CallSite, r.Target, r.ReceiverMode )
+            {
+                Arguments = ImmutableArray.Create( RedirectedArgument.SourceReceiver.WithName( "a" ), RedirectedArgument.SourceReceiver.WithName( "b" ) )
+            } );
+    }
+
+    /// <summary>
+    /// Verifies that the elements of an expanded <c>params</c> argument cannot be cast, because they are packed into one collection.
+    /// </summary>
+    [Fact]
+    public async Task RedirectInvocation_CastExpandedParams_Throws()
+        => await this.AssertInvocationRefusedAsync(
+            "Source.Many( 1, 2, 3 )",
+            "Interceptors",
+            "ManyOne",
+            CallSiteReceiverMode.Drop,
+            ( s, r ) => new InvocationRedirectionRequest( r.CallSite, r.Target, r.ReceiverMode )
+            {
+                Arguments = ImmutableArray.Create(
+                    RedirectedArgument.SourceArgument( 0 ),
+                    RedirectedArgument.SourceArgument( 1 ).WithCast( s.Compilation.Factory.GetSpecialType( Code.SpecialType.Int32 ) ) )
+            },
+            expectedMessage: "cannot be cast" );
+
+    /// <summary>
+    /// Verifies that the elements of an expanded <c>params</c> argument that the plan omits are not evaluated when they have no side effect, and
+    /// are evaluated into a discard when they have one.
+    /// </summary>
+    [Fact]
+    public async Task RedirectInvocation_ParamsArgumentOmitted()
+    {
+        var result = await this.ExecuteAsync(
+            s =>
+            {
+                foreach ( var callSiteText in new[] { "Source.Many( 1, 2, 3 )", "Source.Many( 33, Next() )" } )
+                {
+                    s.Factory.RedirectInvocation(
+                        s.Origin,
+                        new InvocationRedirectionRequest( s.Invocation( callSiteText ), s.Target( "Interceptors", "Compute" ), CallSiteReceiverMode.Drop )
+                        {
+                            Arguments = ImmutableArray.Create( RedirectedArgument.SourceArgument( 0 ) )
+                        } );
+                }
+            } );
+
+        var compactText = GetText( result ).Replace( " ", "" );
+
+        Assert.Contains( "Interceptors.Compute(x:1)", compactText, StringComparison.Ordinal );
+        Assert.Matches( @"Interceptors\.Compute\(x:33switch\{var(__value\d+)=>Next\(\)switch\{_=>\1\}\}\)", compactText );
+    }
+
+    /// <summary>
+    /// Verifies that an omitted argument whose conversion to the type of the parameter calls a user-defined operator is refused, because the
+    /// discard would not call the operator.
+    /// </summary>
+    [Fact]
+    public async Task RedirectInvocation_DroppedArgumentWithUserDefinedConversion_Throws()
+        => await this.AssertInvocationRefusedAsync(
+            "Source.Measure( 34, Next() )",
+            "Interceptors",
+            "Compute",
+            CallSiteReceiverMode.Drop,
+            DropSecondArgument,
+            expectedMessage: "user-defined operator" );
+
+    /// <summary>
+    /// Verifies that a call with an implicit receiver is redirected to an extension method called on <c>this</c>.
+    /// </summary>
+    [Fact]
+    public async Task RedirectInvocation_ExtensionReceiver_ImplicitThis()
+    {
+        var result = await this.ExecuteAsync(
+            s => s.Factory.RedirectInvocation(
+                s.Origin,
+                new InvocationRedirectionRequest( s.Invocation( "Get( 40 )" ), s.Target( "Interceptors", "GetExtension" ), CallSiteReceiverMode.ExtensionReceiver ) ) );
+
+        Assert.Contains( "this.GetExtension(40)", GetText( result ).Replace( " ", "" ), StringComparison.Ordinal );
+    }
+
+    /// <summary>
+    /// Verifies that the receiver of a call to a readonly member of a struct is passed with the <c>in</c> modifier.
+    /// </summary>
+    [Fact]
+    public async Task RedirectInvocation_FirstArgumentByIn()
+    {
+        var result = await this.ExecuteAsync(
+            s => s.Factory.RedirectInvocation(
+                s.Origin,
+                new InvocationRedirectionRequest( s.Invocation( "pt.Read()" ), s.Target( "Interceptors", "ReadPoint" ), CallSiteReceiverMode.FirstArgumentByIn ) ) );
+
+        Assert.Contains( "Interceptors.ReadPoint(inpt)", GetText( result ).Replace( " ", "" ), StringComparison.Ordinal );
+    }
+
+    /// <summary>
+    /// Verifies that a receiver that is not a writable variable, here a readonly field outside of a constructor, cannot be passed by reference.
+    /// </summary>
+    [Fact]
+    public async Task RedirectInvocation_FirstArgumentByRef_ReadOnlyReceiver_Throws()
+        => await this.AssertInvocationRefusedAsync(
+            "_point.Get()",
+            "Interceptors",
+            "GetPointByRef",
+            CallSiteReceiverMode.FirstArgumentByRef,
+            expectedMessage: "writable variable" );
+
+    /// <summary>
     /// Customizes a request so that it passes the first source argument and drops the second one.
     /// </summary>
     private static InvocationRedirectionRequest DropSecondArgument( ScriptContext s, InvocationRedirectionRequest r )
         => new( r.CallSite, r.Target, r.ReceiverMode ) { Arguments = ImmutableArray.Create( RedirectedArgument.SourceArgument( 0 ) ) };
 
+    /// <summary>
+    /// Returns the concatenated text of the syntax trees of the resulting compilation.
+    /// </summary>
     private static string GetText( CompileTimeAspectPipelineResult result )
         => string.Concat( result.ResultingCompilation.SyntaxTreeCollection.SelectAsReadOnlyCollection( t => t.ToString() ) );
 
+    /// <summary>
+    /// Returns the number of occurrences of <paramref name="value"/> in <paramref name="text"/>, including the overlapping ones, with an
+    /// ordinal comparison.
+    /// </summary>
     private static int CountOccurrences( string text, string value )
     {
         var count = 0;
@@ -937,6 +1230,16 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
         return count;
     }
 
+    /// <summary>
+    /// Runs a script that requests the redirection of a call site and asserts that the factory refuses the request with an
+    /// <see cref="ArgumentException"/> and does not record the redirection.
+    /// </summary>
+    /// <param name="callSiteText">The text of the invocation in the test code.</param>
+    /// <param name="targetType">The name of the type that declares the target method.</param>
+    /// <param name="targetMethod">The name of the target method, which must not be overloaded.</param>
+    /// <param name="receiverMode">The receiver mode of the request.</param>
+    /// <param name="customize">A delegate that returns a customized copy of the request, or <c>null</c>.</param>
+    /// <param name="expectedMessage">A text that the message of the exception must contain, or <c>null</c> to skip this check.</param>
     private Task AssertInvocationRefusedAsync(
         string callSiteText,
         string targetType,
@@ -963,6 +1266,10 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
                 }
             } );
 
+    /// <summary>
+    /// Runs the compile-time pipeline on <see cref="_code"/> with <see cref="ScriptedExtension"/>, which runs the given script in its transforming
+    /// hook, and asserts that the pipeline succeeds and that the script has run.
+    /// </summary>
     private async Task<CompileTimeAspectPipelineResult> ExecuteAsync( Action<ScriptContext> script )
     {
         var scriptService = new Script( script );
@@ -990,13 +1297,22 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
     /// </summary>
     private sealed class Script : IProjectService
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Script"/> class.
+        /// </summary>
         public Script( Action<ScriptContext> action )
         {
             this.Action = action;
         }
 
+        /// <summary>
+        /// Gets the script.
+        /// </summary>
         public Action<ScriptContext> Action { get; }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether <see cref="ScriptedExtension"/> has run the script.
+        /// </summary>
         public bool HasRun { get; set; }
     }
 
@@ -1005,8 +1321,14 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
     /// </summary>
     private sealed record ScriptContext( ExtensionTransformationContext Context, ExtensionTransformationFactory Factory, ExtensionContributionOrigin Origin )
     {
+        /// <summary>
+        /// Gets the compilation that results from all aspects of the stage.
+        /// </summary>
         public CompilationModel Compilation => this.Context.StageFinalCompilation;
 
+        /// <summary>
+        /// Gets the single invocation that has the given text.
+        /// </summary>
         public InvocationExpressionSyntax Invocation( string text ) => this.Node<InvocationExpressionSyntax>( text );
 
         /// <summary>
@@ -1024,6 +1346,11 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
         public MemberAccessExpressionSyntax MethodGroup()
             => this.Node<MemberAccessExpressionSyntax>( "Source.Compute", n => n.Parent.IsKind( SyntaxKind.EqualsValueClause ) );
 
+        /// <summary>
+        /// Gets the single node of type <typeparamref name="T"/> that has the given text and satisfies the given predicate.
+        /// </summary>
+        /// <param name="text">The text of the node, or <c>null</c> to match any text.</param>
+        /// <param name="predicate">An additional condition, or <c>null</c>.</param>
         public T Node<T>( string? text, Func<T, bool>? predicate = null )
             where T : SyntaxNode
             => this.Compilation.PartialCompilation.SyntaxTreeCollection
@@ -1031,6 +1358,10 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
                 .OfType<T>()
                 .Single( n => (text == null || n.ToString() == text) && (predicate == null || predicate( n )) );
 
+        /// <summary>
+        /// Creates a redirection target from the single method of the given name, in the single type of the given name, that satisfies the given
+        /// predicate.
+        /// </summary>
         public CallSiteRedirectionTarget Target( string typeName, string methodName, Func<IMethod, bool>? predicate = null )
             => CallSiteRedirectionTarget.Existing(
                 this.Compilation.Types.OfName( typeName ).Single().Methods.OfName( methodName ).Single( m => predicate == null || predicate( m ) ) );
