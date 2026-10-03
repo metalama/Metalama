@@ -1900,11 +1900,12 @@ internal sealed partial class LinkerInjectionStep
 
             if ( injections.Count > 0 )
             {
-                return
-                    ((CompilationUnitSyntax) base.VisitCompilationUnit( node )!)
-                    .PartialUpdate(
-                        attributeLists: List( outputLists ),
-                        members: node.Members.AddRange( injections ) );
+                // The members of the visited node must be kept, and not those of the original node, because the visit rewrites them.
+                var visitedNode = (CompilationUnitSyntax) base.VisitCompilationUnit( node )!;
+
+                return visitedNode.PartialUpdate(
+                    attributeLists: List( outputLists ),
+                    members: visitedNode.Members.AddRange( injections ) );
             }
             else
             {
@@ -1924,7 +1925,9 @@ internal sealed partial class LinkerInjectionStep
 
             if ( injections.Count > 0 )
             {
-                return ((NamespaceDeclarationSyntax) base.VisitNamespaceDeclaration( node )!).WithMembers( node.Members.AddRange( injections ) );
+                var visitedNode = (NamespaceDeclarationSyntax) base.VisitNamespaceDeclaration( node )!;
+
+                return visitedNode.WithMembers( visitedNode.Members.AddRange( injections ) );
             }
             else
             {
@@ -1944,8 +1947,9 @@ internal sealed partial class LinkerInjectionStep
 
             if ( injections.Count > 0 )
             {
-                return ((FileScopedNamespaceDeclarationSyntax) base.VisitFileScopedNamespaceDeclaration( node )!).WithMembers(
-                    node.Members.AddRange( injections ) );
+                var visitedNode = (FileScopedNamespaceDeclarationSyntax) base.VisitFileScopedNamespaceDeclaration( node )!;
+
+                return visitedNode.WithMembers( visitedNode.Members.AddRange( injections ) );
             }
             else
             {

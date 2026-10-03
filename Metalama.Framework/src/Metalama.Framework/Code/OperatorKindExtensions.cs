@@ -114,6 +114,9 @@ public static class OperatorKindExtensions
             OperatorKind.CheckedIncrementAssignment => OperatorCategory.UnaryAssignment,
             OperatorKind.CheckedDecrementAssignment => OperatorCategory.UnaryAssignment,
 
+            // Null-coalescing assignment (not user-definable in C#)
+            OperatorKind.NullCoalescingAssignment => OperatorCategory.BinaryAssignment,
+
             _ => throw new ArgumentOutOfRangeException( nameof(operatorKind), operatorKind, null )
         };
 }

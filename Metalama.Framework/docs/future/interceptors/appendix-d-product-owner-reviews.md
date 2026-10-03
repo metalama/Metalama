@@ -150,3 +150,16 @@ Choices made by the lead while applying the sixth batch, and discrepancies with 
 - The `IMethod` shorthands of the registration surfaces receive an optional `[Durable]` `bind` function, so that a shorthand can use an existing method whose parameter names differ from those of the target.
 - An existing method can now drop an argument of the site, because the canonical binding matches names. E7 checks that every required parameter has a source, instead of a count.
 - The await example is written `await Await_Interceptor( this.LoadAsync( id ), cancellationToken: ct )`, with a named argument, because added arguments are always named.
+
+## Seventh batch of 2026-10-02
+
+The product owner took the open decisions that M0 and M1 depend on in an interview on 2026-10-02. Section [15.0](15-decisions.md#150-decisions-of-2026-10-02) lists them. The decisions below change the design. The other decisions of the interview confirm a recommendation.
+
+| Id | Decision | Sections |
+|---|---|---|
+| D-AV | The interceptor packages are available under the Community license. The package declares no `MetalamaPremiumComponent`, the build program has no licensing entry for it, and the test `InterceptorsLicenseFailure` and the LAMA0806 exit criterion of M1 are removed. The Redist package is kept. | 9.1, 11.3, 12.13, PO3 |
+| D-AW | LAMA0660 is a warning. A redirection that the injection rewriter did not apply leaves the original call, which is valid code. | 10.5.9, PO34 |
+| D-AX | The extensibility API of the engine may change incompatibly. Change S1 replaces the parameters of `PipelineExtension.ExecuteDesignTimePipelineContributorsAsync` with a context object that also carries the contributors added in the stage and the index of the high-level stage. | 10.8, PO33 |
+| D-AY | `SourceReferenceIndexService` has no `Current` property. The stage index is passed through `ExtensionTransformationContext.SourceReferenceIndex` and through the context of the validator hook, because one configuration, and therefore one service instance, can be used by several pipelines at the same time. | 10.7.5 |
+| D-AZ | No cross-project interception mechanism is needed. Transitive aspects and transitive fabrics register interceptors in the referencing project through the existing mechanisms, and the scope of a registration is always a declaration of the project in which the registration is made. | 9.9, PO4 |
+| D-BA | Expression trees are never intercepted and produce no diagnostic. | 6.2, PO11 |

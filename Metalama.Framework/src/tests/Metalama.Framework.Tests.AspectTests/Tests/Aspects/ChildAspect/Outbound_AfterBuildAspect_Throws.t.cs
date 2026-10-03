@@ -1,0 +1,2 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0041 on `C`: `'Exception of type 'System.InvalidOperationException' thrown while executing BuildAspect for aspect [SecondAspect] applied to 'C': Cannot add a contributor to the aspect instance 'FirstAspect@C' because the BuildAspect method has already completed. Exception details are in '(none)'. To attach a debugger to the compiler, use the  '-p:MetalamaDebugCompiler=True' command-line option.`

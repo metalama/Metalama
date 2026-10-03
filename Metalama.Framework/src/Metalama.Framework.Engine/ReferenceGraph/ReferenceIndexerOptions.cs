@@ -22,10 +22,11 @@ public sealed class ReferenceIndexerOptions
         ReferenceKinds.Default | ReferenceKinds.OverrideMember | ReferenceKinds.Assignment
         | ReferenceKinds.Invocation | ReferenceKinds.InterfaceMemberImplementation | ReferenceKinds.NameOf;
 
-    // Reference kinds that do not require descending into implementations. 
+    // Reference kinds that do not require descending into implementations. NameOf is not one of them, because a nameof expression
+    // is most often in the body of a member.
     private const ReferenceKinds _memberDeclarationOnlyKinds =
         ReferenceKinds.ParameterType | ReferenceKinds.ReturnType | ReferenceKinds.AttributeType | ReferenceKinds.InterfaceMemberImplementation
-        | ReferenceKinds.OverrideMember | ReferenceKinds.MemberType | ReferenceKinds.NameOf | ReferenceKinds.UsingNamespace;
+        | ReferenceKinds.OverrideMember | ReferenceKinds.MemberType | ReferenceKinds.UsingNamespace;
 
     private readonly bool _mustDescendIntoMembers;
     private readonly ReferenceKinds _kindsRequiringDescentIntoBaseTypes;
@@ -188,6 +189,11 @@ public sealed class ReferenceIndexerOptions
 
     internal bool MustIndexReferenceKind( ReferenceKinds kind ) => (this._allReferenceKinds & kind) != 0;
 
+    /// <summary>
+    /// Determines whether a reference of a given kind, whose identifier is given, must be indexed.
+    /// </summary>
+    /// <param name="kind">The kind of the reference. The walker passes a single kind.</param>
+    /// <param name="identifier">The identifier of the referenced declaration at the reference, or <c>default</c> when the reference has none.</param>
     internal bool MustIndexReference( ReferenceKinds kind, in SyntaxToken identifier )
     {
         if ( (this._allReferenceKinds & kind) == 0 )

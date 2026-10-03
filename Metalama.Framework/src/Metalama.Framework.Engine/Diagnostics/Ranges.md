@@ -13,7 +13,7 @@
 | 0500-0539 | Advices
 | 0540-0549 | Extension Block Introduction
 | 0600-0649 | Metalama.Compiler
-| 0650-0699 | Linker
+| 0650-0699 | Linker (0656-0669: primitives for extensions, such as call-site redirections)
 | 0700      | Metalama.Framework
 | 0701-0749 | Extensions.DependencyInjection
 | 0750-0799 | Metalama.Framework
@@ -22,6 +22,7 @@
 | 0870-0879 | Framework.Analyzers (the [Durable] contract)
 | 0880-0889 | Framework.Analyzers (the [ImmutableType] contract)
 | 0900-0999 | Extensions.Architecture
+| 1000-1049 | Extensions.Interceptors (Metalama.Premium)
 | 5000-5019 | Metalama.Patterns.Contracts
 | 5020-5039 | Metalama.Patterns.Immutability
 | 5100-5120 | Metalama.Patterns.Caching

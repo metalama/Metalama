@@ -6,6 +6,31 @@
 
 Each decision has a recommendation. The "Needed before" column gives the milestone that depends on it.
 
+### 15.0 Decisions of 2026-10-02
+
+The product owner took the open decisions that milestones M0 and M1 depend on in an interview on 2026-10-02, before the implementation of M0 and M1 started (issues metalama/Metalama#2096 and metalama/Metalama#2097). The table below records them. They supersede the recommendations of sections [15.1](#151-top-decisions) and [15.2](#152-other-decisions) where they differ. [Appendix D](appendix-d-product-owner-reviews.md) records them as the seventh batch, with their consequences on the other sections.
+
+| Id | Decision |
+|---|---|
+| PO1, PO2 | As recommended. |
+| PO3 | The interceptor packages are available under the Community license, with a Redist package that contains only the API. The package declares no premium component, so no license check applies. The license-failure test of section [12.13](12-test-plan.md#1213-license-failure-test) and the LAMA0806 exit criterion of M1 are removed. |
+| PO4 | Not applicable. The scope of a registration is always a declaration of the current project. A transitive aspect or a transitive fabric can register interceptors in a referencing project through the existing mechanisms, so no cross-project interception mechanism is needed. |
+| PO5 | Deferred, as recommended. |
+| PO6, PO7, PO12, PO38 | As recommended. |
+| PO8 | As recommended. |
+| PO9 | As recommended. The `ExtensionReceiver` mode is built in M0. |
+| PO10, PO14 | As recommended. |
+| PO11 | Expression trees are never intercepted, and no diagnostic is reported. Only code written explicitly in the source is intercepted. |
+| PO13, PO40, PO50 | Confirmed. |
+| PO21, PO31 | As recommended, with release notes. |
+| PO29, PO30 | Low-level features receive no special support. LAMA1007 is reported for the registrations of aspects that run after a low-level weaver, as designed. No live-template scenario is tested. |
+| PO33 | F6, F13 and change S1 are filed as separate issues: metalama/Metalama#2099, metalama/Metalama#2100 and metalama/Metalama#2098. S1 is implemented with M0, because Phase A needs it. |
+| PO34 | LAMA0660 is a warning, not an error. |
+| PO41 | Confirmed after a check of the 2027.0 branches: LAMA0295 to LAMA0298, LAMA0656 to LAMA0669 and LAMA1000 to LAMA1049 are free. The ranges are recorded in `Metalama.Framework.Engine/Diagnostics/Ranges.md`. |
+| PO46 | As recommended. The shared index is built in M0. |
+| Engine API | The extensibility API of the engine has no consumer outside the PostSharp repositories, so breaking changes are allowed in it. Change S1 therefore changes the signature of `PipelineExtension.ExecuteDesignTimePipelineContributorsAsync`, which takes a context object, instead of adding an overload. |
+| Index stage | `SourceReferenceIndexService` has no `Current` property. The index of a stage is passed to the extensions through the context objects of the hooks, because one service instance can be shared by several pipelines that run at the same time. |
+
 ### 15.1 Top decisions
 
 | Id | Question | Recommendation | Consequence of the alternative | Needed before |

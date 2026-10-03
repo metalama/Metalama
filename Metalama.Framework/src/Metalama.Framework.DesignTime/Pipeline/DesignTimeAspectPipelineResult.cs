@@ -561,7 +561,9 @@ public sealed partial class DesignTimeAspectPipelineResult
 
             if ( documentKey.IsDefault && !resultBuilders.ContainsKey( default ) )
             {
-                resultBuilders.Add( default, new SyntaxTreePipelineResult.Builder( null ) );
+                // The builder must be the one stored in emptySyntaxTreeResult, because that variable is stored under the default key at the
+                // end of the method, and a separate builder would be overwritten with everything added to it.
+                resultBuilders.Add( default, emptySyntaxTreeResult ??= new SyntaxTreePipelineResult.Builder( null ) );
             }
 
             var designTimeExtension = extension.ToDesignTime();
@@ -642,7 +644,8 @@ public sealed partial class DesignTimeAspectPipelineResult
             // No continue here to handle even aspect instances without a syntax tree.
             if ( syntaxTree == null && !resultBuilders.ContainsKey( default ) )
             {
-                resultBuilders.Add( default, new SyntaxTreePipelineResult.Builder( null ) );
+                // See the comment on the same statement for extensions above.
+                resultBuilders.Add( default, emptySyntaxTreeResult ??= new SyntaxTreePipelineResult.Builder( null ) );
             }
 
             SerializableDeclarationId? predecessorDeclarationId = null;

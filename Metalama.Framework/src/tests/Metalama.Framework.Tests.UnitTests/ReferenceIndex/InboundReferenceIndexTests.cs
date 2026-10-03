@@ -348,6 +348,348 @@ public sealed class InboundReferenceIndexTests : UnitTestClass
         Assert.Single( result.ReferencingSymbols, "B.M(string)" );
     }
 
+    /// <summary>
+    /// Verifies that an invocation of a generic method with explicit type arguments is indexed. The method name is then a generic name
+    /// and not an identifier name.
+    /// </summary>
+    [Fact]
+    public void GenericMethodInvocation()
+    {
+        var code = new Dictionary<string, string>()
+        {
+            ["A.cs"] = "class A { public static void M<T>() {} }", ["B.cs"] = "class B { void N() => A.M<int>(); }"
+        };
+
+        var result = this.BuildIndex( code, GetMethodsOfA( "M" ), ReferenceKinds.Invocation );
+
+        Assert.Equal( ["B.N()"], result.ReferencingSymbols );
+    }
+
+    /// <summary>
+    /// Verifies that an invocation of a generic method with explicit type arguments in a conditional access is indexed.
+    /// </summary>
+    [Fact]
+    public void ConditionalGenericMethodInvocation()
+    {
+        var code = new Dictionary<string, string>()
+        {
+            ["A.cs"] = "class A { public void M<T>() {} }", ["B.cs"] = "class B { void N( A a ) => a?.M<int>(); }"
+        };
+
+        var result = this.BuildIndex( code, GetMethodsOfA( "M" ), ReferenceKinds.Invocation );
+
+        Assert.Equal( ["B.N(A)"], result.ReferencingSymbols );
+    }
+
+    /// <summary>
+    /// Verifies that a reference to a generic type through a qualified name, in a <c>typeof</c> expression, is indexed.
+    /// </summary>
+    [Fact]
+    public void QualifiedGenericTypeName()
+    {
+        var code = new Dictionary<string, string>()
+        {
+            ["G.cs"] = "namespace N { class G<T>; }", ["B.cs"] = "class B { object M() => typeof(N.G<int>); }"
+        };
+
+        var result = this.BuildIndex( code, compilation => compilation.Types.OfName( "G" ), ReferenceKinds.TypeOf );
+
+        Assert.Equal( ["B.M()"], result.ReferencingSymbols );
+    }
+
+    /// <summary>
+    /// Verifies that the type of a generic attribute is indexed.
+    /// </summary>
+    [Fact]
+    public void GenericAttribute()
+    {
+        var code = new Dictionary<string, string>()
+        {
+            ["GA.cs"] = "class GA<T> : System.Attribute;", ["B.cs"] = "[GA<int>] class B;"
+        };
+
+        var result = this.BuildIndex( code, compilation => compilation.Types.OfName( "GA" ), ReferenceKinds.AttributeType );
+
+        Assert.Equal( ["B"], result.ReferencingSymbols );
+    }
+
+    /// <summary>
+    /// Verifies that an invocation in an element of a collection expression is indexed.
+    /// </summary>
+    [Fact]
+    public void InvocationInCollectionExpressionElement()
+    {
+        var code = new Dictionary<string, string>()
+        {
+            ["A.cs"] = "class A { public static int F() => 0; }", ["B.cs"] = "class B { int[] M() => [A.F()]; }"
+        };
+
+        var result = this.BuildIndex( code, GetMethodsOfA( "F" ), ReferenceKinds.Invocation );
+
+        Assert.Equal( ["B.M()"], result.ReferencingSymbols );
+    }
+
+    /// <summary>
+    /// Verifies that an invocation in a spread element of a collection expression is indexed.
+    /// </summary>
+    [Fact]
+    public void InvocationInSpreadElement()
+    {
+        var code = new Dictionary<string, string>()
+        {
+            ["A.cs"] = "class A { public static int[] F() => []; }", ["B.cs"] = "class B { int[] M() => [..A.F()]; }"
+        };
+
+        var result = this.BuildIndex( code, GetMethodsOfA( "F" ), ReferenceKinds.Invocation );
+
+        Assert.Equal( ["B.M()"], result.ReferencingSymbols );
+    }
+
+    /// <summary>
+    /// Verifies that an invocation in an argument of a constructor initializer is indexed and attributed to the constructor.
+    /// </summary>
+    [Fact]
+    public void InvocationInConstructorInitializerArgument()
+    {
+        var code = new Dictionary<string, string>()
+        {
+            ["A.cs"] = "class A { public static int F() => 0; }",
+            ["B.cs"] = "class Base { public Base( int x ) {} } class B : Base { public B() : base( A.F() ) {} }"
+        };
+
+        var result = this.BuildIndex( code, GetMethodsOfA( "F" ), ReferenceKinds.Invocation );
+
+        Assert.Equal( ["B.B()"], result.ReferencingSymbols );
+    }
+
+    /// <summary>
+    /// Verifies that an invocation in the size of an array creation is indexed.
+    /// </summary>
+    [Fact]
+    public void InvocationInArraySize()
+    {
+        var code = new Dictionary<string, string>()
+        {
+            ["A.cs"] = "class A { public static int F() => 0; }", ["B.cs"] = "class B { int[] M() => new int[A.F()]; }"
+        };
+
+        var result = this.BuildIndex( code, GetMethodsOfA( "F" ), ReferenceKinds.Invocation );
+
+        Assert.Equal( ["B.M()"], result.ReferencingSymbols );
+    }
+
+    /// <summary>
+    /// Verifies that the receiver of an assigned member, and the arguments of an assigned indexer, are indexed once. The walker used to visit them
+    /// a second time after the assignment target.
+    /// </summary>
+    [Fact]
+    public void AssignmentReceiverInvocationIndexedOnce()
+    {
+        var code = new Dictionary<string, string>()
+        {
+            ["A.cs"] = "class A { public static C F() => new(); public static int G() => 0; }",
+            ["C.cs"] = "class C { public int P { get; set; } public int this[int i] { get => 0; set {} } }",
+            ["B.cs"] = "class B { void M() { A.F().P = 1; A.F()[A.G()] = 2; } }"
+        };
+
+        var result = this.BuildIndex( code, GetMethodsOfA( "F", "G" ), ReferenceKinds.Invocation );
+
+        var nodeCounts = result.Index.ReferencedSymbols
+            .SelectMany( s => s.References )
+            .ToDictionary( r => r.ReferencedSymbol.Name, r => r.Nodes.Count );
+
+        Assert.Equal( 2, nodeCounts["F"] );
+        Assert.Equal( 1, nodeCounts["G"] );
+    }
+
+    /// <summary>
+    /// Verifies that the indexer of an element-access assignment is indexed as an assignment, and that its receiver is not.
+    /// </summary>
+    [Fact]
+    public void ElementAccessAssignmentKinds()
+    {
+        var code = new Dictionary<string, string>()
+        {
+            ["C.cs"] = "class C { public int this[int i] { get => 0; set {} } }", ["B.cs"] = "class B { C c = new(); void M() { this.c[0] = 1; } }"
+        };
+
+        var indexerResult = this.BuildIndex(
+            code,
+            compilation => compilation.Types.OfName( "C" ).SelectMany( t => t.Indexers ),
+            ReferenceKinds.Assignment );
+
+        Assert.Equal( ["B.M()"], indexerResult.ReferencingSymbols );
+
+        var fieldResult = this.BuildIndex(
+            code,
+            compilation => compilation.Types.OfName( "B" ).SelectMany( t => t.Fields.OfName( "c" ) ),
+            ReferenceKinds.All );
+
+        // The index also contains the indexer, whose identifier is not filtered, so the references of the field are selected by name.
+        var fieldNodeKinds = fieldResult.Index.ReferencedSymbols
+            .Where( s => s.ReferencedSymbol.Name == "c" )
+            .SelectMany( s => s.References )
+            .SelectMany( r => r.Nodes )
+            .Select( n => n.ReferenceKind )
+            .ToReadOnlyList();
+
+        Assert.NotEmpty( fieldNodeKinds );
+        Assert.DoesNotContain( ReferenceKinds.Assignment, fieldNodeKinds );
+    }
+
+    /// <summary>
+    /// Verifies that an unqualified generic type in a <c>typeof</c> expression references the generic type with the <c>TypeOf</c> kind.
+    /// </summary>
+    [Fact]
+    public void TypeOfUnqualifiedGenericType()
+    {
+        var code = new Dictionary<string, string>() { ["A.cs"] = "class A<T>;", ["B.cs"] = "class B { object M() => typeof(A<int>); }" };
+
+        var result = this.BuildIndex( code, compilation => compilation.Types.OfName( "A" ), ReferenceKinds.TypeOf );
+
+        Assert.Equal( ["B.M()"], result.ReferencingSymbols );
+    }
+
+    /// <summary>
+    /// Verifies that a generic type named in a <c>nameof</c> expression with type arguments is referenced with the <c>NameOf</c> kind. A method group
+    /// cannot have type arguments in a <c>nameof</c> expression.
+    /// </summary>
+    [Fact]
+    public void NameOfGenericName()
+    {
+        var code = new Dictionary<string, string>()
+        {
+            ["A.cs"] = "class A<T>;", ["B.cs"] = "class B { string M() => nameof(A<int>); }"
+        };
+
+        var result = this.BuildIndex( code, compilation => compilation.Types.OfName( "A" ), ReferenceKinds.NameOf );
+
+        Assert.Equal( ["B.M()"], result.ReferencingSymbols );
+    }
+
+    /// <summary>
+    /// Verifies that a <c>nameof</c> expression in the body of a member is indexed when <see cref="ReferenceKinds.NameOf"/> is the only requested
+    /// kind, which requires the walker to descend into the implementations of members.
+    /// </summary>
+    [Fact]
+    public void NameOfInMemberBody_OnlyKindRequested()
+    {
+        var code = new Dictionary<string, string>()
+        {
+            ["A.cs"] = "class A { public static void F() {} }", ["B.cs"] = "class B { string M() { return nameof(A.F); } }"
+        };
+
+        var result = this.BuildIndex( code, GetMethodsOfA( "F" ), ReferenceKinds.NameOf );
+
+        Assert.Equal( ["B.M()"], result.ReferencingSymbols );
+    }
+
+    /// <summary>
+    /// Verifies that the indexer of a compound assignment and of a null-coalescing assignment of an element is indexed as an assignment, as for
+    /// a simple assignment.
+    /// </summary>
+    [Theory]
+    [InlineData( "this.c[0] += 1;" )]
+    [InlineData( "this.c[0] ??= \"x\";" )]
+    public void ElementAccessCompoundAssignmentKinds( string statement )
+    {
+        var code = new Dictionary<string, string>()
+        {
+            ["C.cs"] = "class C { public int this[int i] { get => 0; set {} } public string? this[string s] { get => null; set {} } }",
+            ["B.cs"] = "class B { C c = new(); void M() { " + statement.Replace( "[0] ??=", "[\"k\"] ??=" ) + " } }"
+        };
+
+        var indexerResult = this.BuildIndex(
+            code,
+            compilation => compilation.Types.OfName( "C" ).SelectMany( t => t.Indexers ),
+            ReferenceKinds.Assignment );
+
+        Assert.Equal( ["B.M()"], indexerResult.ReferencingSymbols );
+    }
+
+    /// <summary>
+    /// Verifies that an invocation of a classic extension method in reduced form is keyed by the static method, so that a validator of the
+    /// static method sees it.
+    /// </summary>
+    [Fact]
+    public void ReducedExtensionInvocationKeyedByStaticMethod()
+    {
+        var code = new Dictionary<string, string>()
+        {
+            ["A.cs"] = "static class A { public static int Twice( this int x ) => x * 2; }", ["B.cs"] = "class B { int M( int i ) => i.Twice(); }"
+        };
+
+        var result = this.BuildIndex( code, GetMethodsOfA( "Twice" ), ReferenceKinds.Invocation );
+
+        Assert.Equal( ["B.M(int)"], result.ReferencingSymbols );
+    }
+
+    /// <summary>
+    /// Verifies that every nested type of a record is visited when the walker does not descend into members. The walker used to stop after the
+    /// first nested type.
+    /// </summary>
+    [Fact]
+    public void NestedTypesOfRecordAllVisited()
+    {
+        var code = new Dictionary<string, string>() { ["A.cs"] = "class A;", ["R.cs"] = "record R { class N1 : A; class N2 : A; }" };
+
+        var result = this.BuildIndex( code, compilation => compilation.Types.OfName( "A" ), ReferenceKinds.BaseType );
+
+        Assert.Equal( ["R.N1", "R.N2"], result.ReferencingSymbols );
+    }
+
+    /// <summary>
+    /// Verifies that the nested types of a class and of a struct are visited when the walker does not descend into members, as the nested types
+    /// of a record are.
+    /// </summary>
+    [Fact]
+    public void NestedTypesOfClassAndStructVisited()
+    {
+        var code = new Dictionary<string, string>() { ["A.cs"] = "class A;", ["C.cs"] = "class C { class N : A; }", ["S.cs"] = "struct S { class M : A; }" };
+
+        var result = this.BuildIndex( code, compilation => compilation.Types.OfName( "A" ), ReferenceKinds.BaseType );
+
+        Assert.Equal( ["C.N", "S.M"], result.ReferencingSymbols );
+    }
+
+    /// <summary>
+    /// Verifies that <c>Nullable&lt;T&gt;</c> written as a generic name references its type argument with the kind of the reference, as <c>T?</c>
+    /// does, whether the name is qualified or is the element type of an array.
+    /// </summary>
+    [Fact]
+    public void NullableGenericNameIndexedLikeNullableType()
+    {
+        var code = new Dictionary<string, string>()
+        {
+            ["A.cs"] = "struct A;",
+            ["B.cs"] = """
+                       using System;
+                       class B
+                       {
+                           A? _f1;
+                           Nullable<A> _f2;
+                           System.Nullable<A> _f3;
+                           Nullable<A>[] _f4;
+                           A?[] _f5;
+                       }
+                       """
+        };
+
+        var memberTypes = this.BuildIndex( code, compilation => compilation.Types.OfName( "A" ), ReferenceKinds.MemberType );
+
+        Assert.Equal( ["B._f1", "B._f2", "B._f3"], memberTypes.ReferencingSymbols );
+
+        var arrayElementTypes = this.BuildIndex( code, compilation => compilation.Types.OfName( "A" ), ReferenceKinds.ArrayElementType );
+
+        Assert.Equal( ["B._f4", "B._f5"], arrayElementTypes.ReferencingSymbols );
+    }
+
+    /// <summary>
+    /// Returns a function that selects the methods of the type <c>A</c> that have one of the given names.
+    /// </summary>
+    private static Func<ICompilation, IEnumerable<IDeclaration>> GetMethodsOfA( params string[] names )
+        => compilation => compilation.Types.OfName( "A" ).SelectMany( t => t.Methods ).Where( m => names.Contains( m.Name ) );
+
     // TODO: other reference kinds.
 
 #if ROSLYN_5_11_0_OR_GREATER && NET7_0_OR_GREATER

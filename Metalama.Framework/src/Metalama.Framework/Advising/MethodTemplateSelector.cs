@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Aspects;
+using Metalama.Framework.Utilities;
 using System.Collections;
 using System.Collections.Generic;
 
@@ -55,6 +56,7 @@ namespace Metalama.Framework.Advising
     /// <seealso href="@overriding-methods"/>
     /// <seealso href="@templates"/>
     [CompileTime]
+    [Durable]
     public readonly struct MethodTemplateSelector
     {
         /// <summary>
