@@ -24,6 +24,10 @@ internal sealed class AspectBuilderState : IPipelineContributorCollector
     private readonly ObjectReaderFactory _objectReaderFactory;
     private readonly IObjectReader _defaultTagReader;
     private List<IPipelineContributor>? _pipelineContributors;
+
+    /// <summary>
+    /// Indicates whether <see cref="Complete"/> has been called, after which <see cref="AddContributor"/> throws.
+    /// </summary>
     private bool _isCompleted;
 
     public ProjectServiceProvider ServiceProvider { get; }

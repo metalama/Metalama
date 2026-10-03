@@ -51,6 +51,10 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
     private readonly IDeclaration _aspectTarget;
     private readonly INamedType? _aspectTargetType;
     private readonly ObjectReaderFactory _objectReaderFactory;
+
+    /// <summary>
+    /// The owner set by <see cref="WithOwner"/>, or <c>null</c> when the contributions are attributed to the owner of the state.
+    /// </summary>
     private readonly IQueryOwner? _ownerOverride;
 
     public T Target { get; }
@@ -201,6 +205,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
             this._diagnostics,
             this._ownerOverride );
 
+    /// <inheritdoc />
     public IAdviceFactoryImpl WithOwner( IQueryOwner owner )
         => new AdviceFactory<T>(
             this.Target,
@@ -211,6 +216,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
             this._diagnostics,
             owner );
 
+    /// <inheritdoc />
     public AdviserExtensionContext CreateExtensionContext( IQueryOwner? adviserOwner )
     {
         var owner = adviserOwner

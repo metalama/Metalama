@@ -895,28 +895,42 @@ internal sealed class ReferenceIndexWalker : SafeSyntaxWalker
 
         if ( this._options.MustIndexReference( referenceKind, identifierForFiltering ) )
         {
-            var symbol = this.SemanticModel.GetSymbolInfo( nodeForSymbol ).Symbol;
+            var symbolInfo = this.SemanticModel.GetSymbolInfo( nodeForSymbol );
 
-            if ( symbol == null )
+            if ( symbolInfo.Symbol != null )
             {
-                return;
+                this.IndexSymbol( symbolInfo.Symbol, nodeForReference, referenceKind, isMemberAccessKind );
             }
-
-            this._observer?.OnSymbolResolved( symbol );
-
-            if ( !this.CanIndexSymbol( symbol ) )
+            else if ( referenceKind == ReferenceKinds.NameOf && symbolInfo.CandidateReason == CandidateReason.MemberGroup )
             {
-                return;
+                // The argument of nameof can be a method group, which binds to no single method. It references every method of the group.
+                foreach ( var candidate in symbolInfo.CandidateSymbols )
+                {
+                    this.IndexSymbol( candidate, nodeForReference, referenceKind, isMemberAccessKind );
+                }
             }
-
-            if ( isMemberAccessKind && symbol.Kind == SymbolKind.NamedType )
-            {
-                // We don't index access of static members on type level.
-                return;
-            }
-
-            this._referenceIndexBuilder.AddReference( symbol, this.CurrentDeclarationSymbol, nodeForReference, referenceKind );
         }
+    }
+
+    /// <summary>
+    /// Adds a reference to a resolved symbol to the index, unless the symbol is of a kind that the index does not hold.
+    /// </summary>
+    private void IndexSymbol( ISymbol symbol, SyntaxNodeOrToken nodeForReference, ReferenceKinds referenceKind, bool isMemberAccessKind )
+    {
+        this._observer?.OnSymbolResolved( symbol );
+
+        if ( !this.CanIndexSymbol( symbol ) )
+        {
+            return;
+        }
+
+        if ( isMemberAccessKind && symbol.Kind == SymbolKind.NamedType )
+        {
+            // We don't index access of static members on type level.
+            return;
+        }
+
+        this._referenceIndexBuilder.AddReference( symbol, this.CurrentDeclarationSymbol, nodeForReference, referenceKind );
     }
 
     private void IndexMember<T>(

@@ -433,6 +433,9 @@ public sealed class SplitResultsByTreeExtensionAccumulationTests : UnitTestClass
             this.DocumentKey = syntaxTree.GetDocumentKey();
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TestContributor"/> class bound to the document of the given key.
+        /// </summary>
         public TestContributor( DocumentKey documentKey )
         {
             this.DocumentKey = documentKey;

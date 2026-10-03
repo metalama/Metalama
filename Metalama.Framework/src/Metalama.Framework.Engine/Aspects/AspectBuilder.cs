@@ -198,6 +198,7 @@ namespace Metalama.Framework.Engine.Aspects
 
         public void AddContributor( IPipelineContributor contributor ) => this._aspectBuilderState.AddContributor( contributor );
 
+        /// <inheritdoc />
         public ExtensionContributionOrigin CaptureContributionOrigin() => this.AdviceFactory.CreateExtensionContext( this ).CaptureOrigin();
 
         public void Dispose() => this.AdviceFactory.Dispose();
