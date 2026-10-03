@@ -8,6 +8,7 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Extensibility;
+using Metalama.Framework.Engine.Introspection;
 using Metalama.Framework.Engine.Pipeline;
 using Metalama.Framework.Engine.Pipeline.CompileTime;
 using Metalama.Framework.Engine.Pipeline.DesignTime;
@@ -34,6 +35,10 @@ namespace Metalama.Framework.Tests.UnitTests.Pipeline;
 /// </summary>
 public sealed class TransformingPipelineExtensionTests : UnitTestClass
 {
+    /// <summary>
+    /// The code of the tests that count the contributors: a project fabric and an aspect applied to the type <c>C</c>, each of which adds a
+    /// diagnostic query.
+    /// </summary>
     private const string _diagnosticQueriesCode = """
                                                   using Metalama.Framework.Aspects;
                                                   using Metalama.Framework.Code;
@@ -62,6 +67,10 @@ public sealed class TransformingPipelineExtensionTests : UnitTestClass
                                                   internal class C { }
                                                   """;
 
+    /// <summary>
+    /// Verifies that, in a pipeline with a single high-level stage, the hook is called once, with the stage index zero, and that this stage is the
+    /// source stage.
+    /// </summary>
     [Fact]
     public async Task SingleStage_HookCalledOnce()
     {
@@ -74,6 +83,9 @@ public sealed class TransformingPipelineExtensionTests : UnitTestClass
         Assert.True( call.IsSourceStage );
     }
 
+    /// <summary>
+    /// Verifies that the syntax trees of <see cref="ExtensionTransformationContext.SourceCompilation"/> are the syntax trees of the input compilation.
+    /// </summary>
     [Fact]
     public async Task SourceCompilationTreesAreInputTrees()
     {
@@ -105,6 +117,10 @@ public sealed class TransformingPipelineExtensionTests : UnitTestClass
         Assert.Equal( 1, call.ContributorsAddedInStageCount );
     }
 
+    /// <summary>
+    /// Verifies that <see cref="ExtensionTransformationContext.SourceCompilationWithFinalAspects"/> exposes the aspect instance applied to the type
+    /// <c>C</c>.
+    /// </summary>
     [Fact]
     public async Task SourceCompilationWithFinalAspectsSeesAspects()
     {
@@ -116,6 +132,9 @@ public sealed class TransformingPipelineExtensionTests : UnitTestClass
         Assert.Equal( 1, call.AspectInstanceCountOnC );
     }
 
+    /// <summary>
+    /// Verifies that a diagnostic reported through <see cref="ExtensionTransformationContext.Diagnostics"/> is reported by the pipeline.
+    /// </summary>
     [Fact]
     public async Task ContextDiagnosticsReachResult()
     {
@@ -139,6 +158,9 @@ public sealed class TransformingPipelineExtensionTests : UnitTestClass
         Assert.Equal( "The test extension failed.", exception.Message );
     }
 
+    /// <summary>
+    /// Verifies that the design-time pipeline does not call the hook.
+    /// </summary>
     [Fact]
     public void NotCalledAtDesignTime()
     {
@@ -157,10 +179,13 @@ public sealed class TransformingPipelineExtensionTests : UnitTestClass
         using var factory = new TestDesignTimeAspectPipelineFactory( testContext );
         var compilation = testContext.CreateCSharpCompilation( "class C { }" );
 
-        Assert.True( factory.TryExecute( testContext.ProjectOptions, compilation, default, out _ ) );
+        Assert.True( factory.TryExecute( testContext.ProjectOptions, compilation, TestContext.Current.CancellationToken, out _ ) );
         Assert.Empty( recorder.Calls );
     }
 
+    /// <summary>
+    /// Verifies that the pipeline that precompiles a WPF project does not call the hook.
+    /// </summary>
     [Fact]
     public async Task NotCalledInWpfPrecompile()
     {
@@ -177,6 +202,9 @@ public sealed class TransformingPipelineExtensionTests : UnitTestClass
         Assert.Empty( recorder.Calls );
     }
 
+    /// <summary>
+    /// Verifies that the preview pipeline calls the hook once, in the source stage.
+    /// </summary>
     [Fact]
     public async Task CalledInPreview()
     {
@@ -190,9 +218,30 @@ public sealed class TransformingPipelineExtensionTests : UnitTestClass
 
         Assert.True( pipeline.InvokeTryInitialize( diagnostics, compilation, testContext.CancellationToken, out var configuration ) );
 
-        var result = await pipeline.ExecutePreviewAsync( diagnostics, PartialCompilation.CreateComplete( compilation ), configuration!, default );
+        var result = await pipeline.ExecutePreviewAsync( diagnostics, PartialCompilation.CreateComplete( compilation ), configuration!, testContext.CancellationToken );
 
         Assert.True( result.IsSuccessful );
+
+        var call = Assert.Single( recorder.Calls );
+        Assert.True( call.IsSourceStage );
+    }
+
+    /// <summary>
+    /// Verifies that the hook runs in the introspection pipeline, which the workspaces API and the code lens use.
+    /// </summary>
+    [Fact]
+    public async Task CalledInIntrospection()
+    {
+        var recorder = new HookRecorder();
+
+        using var testContext = this.CreateRecordingTestContext( recorder );
+
+        var compilation = testContext.CreateCompilationModel( "class C { }" );
+        using var pipeline = new IntrospectionAspectPipeline( testContext.ServiceProvider, null );
+
+        var result = await pipeline.ExecuteAsync( compilation, testContext.CancellationToken );
+
+        Assert.True( result.HasMetalamaSucceeded );
 
         var call = Assert.Single( recorder.Calls );
         Assert.True( call.IsSourceStage );
@@ -301,12 +350,23 @@ public sealed class TransformingPipelineExtensionTests : UnitTestClass
                                             }
                                             """;
 
+    /// <summary>
+    /// Runs the compile-time pipeline on code that consists of a single file, with the cancellation token of the current test.
+    /// </summary>
     private Task<(HookRecorder Recorder, Compilation Compilation, FallibleResult<CompileTimeAspectPipelineResult> Result)> ExecuteAsync(
         string code,
         HookRecorder? recorder = null,
         List<Diagnostic>? diagnostics = null )
         => this.ExecuteAsync( new Dictionary<string, string> { ["code.cs"] = code }, recorder, diagnostics, TestContext.Current.CancellationToken );
 
+    /// <summary>
+    /// Runs the compile-time pipeline with <see cref="RecordingExtension"/> on the given files, and returns the recorder, the input compilation and
+    /// the result. The compilation references the Roslyn assemblies, which the weaver requires.
+    /// </summary>
+    /// <param name="code">The files of the compilation, indexed by file path.</param>
+    /// <param name="recorder">The recorder of the extension, or <c>null</c> to create one.</param>
+    /// <param name="diagnostics">The list that receives the diagnostics of the pipeline, or <c>null</c> to create one.</param>
+    /// <param name="cancellationToken">The cancellation token of the pipeline.</param>
     private async Task<(HookRecorder Recorder, Compilation Compilation, FallibleResult<CompileTimeAspectPipelineResult> Result)> ExecuteAsync(
         Dictionary<string, string> code,
         HookRecorder? recorder = null,
@@ -333,6 +393,9 @@ public sealed class TransformingPipelineExtensionTests : UnitTestClass
         return (recorder, compilation, result);
     }
 
+    /// <summary>
+    /// Creates a test context in which <see cref="RecordingExtension"/> is loaded and records its calls in the given recorder.
+    /// </summary>
     [MustDisposeResource]
     private MetalamaTestContext CreateRecordingTestContext( HookRecorder recorder, [CallerMemberName] string? callerMemberName = null )
     {
@@ -350,12 +413,24 @@ public sealed class TransformingPipelineExtensionTests : UnitTestClass
     /// </summary>
     private sealed class HookRecorder : IProjectService
     {
+        /// <summary>
+        /// The identifier of the diagnostic that the hook reports when <see cref="ReportDiagnostic"/> is <c>true</c>.
+        /// </summary>
         public const string DiagnosticId = "TEST_HOOK";
 
+        /// <summary>
+        /// Gets the calls recorded by the hook.
+        /// </summary>
         public ConcurrentQueue<HookCall> Calls { get; } = new();
 
+        /// <summary>
+        /// Gets a value indicating whether the hook reports a diagnostic whose identifier is <see cref="DiagnosticId"/>.
+        /// </summary>
         public bool ReportDiagnostic { get; init; }
 
+        /// <summary>
+        /// Gets a value indicating whether the hook throws an <see cref="InvalidOperationException"/>.
+        /// </summary>
         public bool Throw { get; init; }
 
         /// <summary>
@@ -370,9 +445,15 @@ public sealed class TransformingPipelineExtensionTests : UnitTestClass
     /// </summary>
     private sealed class TestablePreviewAspectPipeline : PreviewAspectPipeline
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TestablePreviewAspectPipeline"/> class.
+        /// </summary>
         public TestablePreviewAspectPipeline( ProjectServiceProvider serviceProvider )
             : base( serviceProvider, ExecutionScenario.Preview ) { }
 
+        /// <summary>
+        /// Calls <see cref="AspectPipeline.TryInitialize"/> without a hint of the compile-time syntax trees, and returns its result.
+        /// </summary>
         public bool InvokeTryInitialize(
             IDiagnosticAdder diagnosticAdder,
             Compilation compilation,

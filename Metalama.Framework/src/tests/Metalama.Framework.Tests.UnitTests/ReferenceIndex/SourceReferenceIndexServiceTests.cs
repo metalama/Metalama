@@ -32,6 +32,10 @@ namespace Metalama.Framework.Tests.UnitTests.ReferenceIndex;
 /// </summary>
 public sealed class SourceReferenceIndexServiceTests : UnitTestClass
 {
+    /// <summary>
+    /// The code of most tests, indexed by file path: the methods <c>A.F</c> and <c>A.G</c>, references to them in a field initializer, a property,
+    /// a method, a lambda and a nested type of <c>B</c>, and a reference in a method of <c>C</c>.
+    /// </summary>
     private static readonly Dictionary<string, string> _code = new()
     {
         ["A.cs"] = "class A { public static int F() => 0; public static int G() => 0; }",
@@ -47,6 +51,10 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
         ["C.cs"] = "class C { void M() => A.F(); }"
     };
 
+    /// <summary>
+    /// Verifies that two calls of <see cref="SourceReferenceIndexStage.GetIndexAsync"/> return the same index, and that the semantic models of
+    /// <c>B.cs</c> and <c>C.cs</c> are resolved once.
+    /// </summary>
     [Fact]
     public async Task SharedIndex_BuiltOncePerStage()
     {
@@ -64,6 +72,10 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
         Assert.Equal( ["B.cs", "C.cs"], context.Observer.ResolvedSemanticModelNames );
     }
 
+    /// <summary>
+    /// Verifies that the index of a stage that receives the requirements of two consumers contains the references requested by both, all of the kind
+    /// <see cref="ReferenceKinds.Invocation"/>.
+    /// </summary>
     [Fact]
     public async Task MergedRequirements_UnionPerKind()
     {
@@ -77,6 +89,130 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
         var index = await stage.GetIndexAsync( Xunit.TestContext.Current.CancellationToken );
 
         Assert.Equal( ["F", "G"], GetReferencedNames( index ) );
+
+        Assert.All(
+            index.ReferencedSymbols.SelectMany( s => s.References ).SelectMany( r => r.Nodes ),
+            n => Assert.Equal( ReferenceKinds.Invocation, n.ReferenceKind ) );
+    }
+
+    /// <summary>
+    /// Verifies that the constructor that merges the options of several consumers merges the identifiers per reference kind.
+    /// </summary>
+    [Fact]
+    public void MergedOptions_UnionPerKind()
+    {
+        var invocationOptions = new ReferenceIndexerOptions( [new ReferenceIndexerRequirements( ReferenceKinds.Invocation, false, DeclarationKind.Method, "F" )] );
+        var nameOfOptions = new ReferenceIndexerOptions( [new ReferenceIndexerRequirements( ReferenceKinds.NameOf, false, DeclarationKind.Method, "G" )] );
+
+        var merged = new ReferenceIndexerOptions( new[] { invocationOptions, nameOfOptions } );
+
+        var tokenF = Microsoft.CodeAnalysis.CSharp.SyntaxFactory.Identifier( "F" );
+        var tokenG = Microsoft.CodeAnalysis.CSharp.SyntaxFactory.Identifier( "G" );
+
+        Assert.True( merged.MustIndexReference( ReferenceKinds.Invocation, tokenF ) );
+        Assert.False( merged.MustIndexReference( ReferenceKinds.Invocation, tokenG ) );
+        Assert.True( merged.MustIndexReference( ReferenceKinds.NameOf, tokenG ) );
+        Assert.False( merged.MustIndexReference( ReferenceKinds.NameOf, tokenF ) );
+    }
+
+    /// <summary>
+    /// Verifies that two concurrent calls of <see cref="SourceReferenceIndexStage.GetIndexAsync"/> share one build of the index.
+    /// </summary>
+    [Fact]
+    public async Task GetIndex_ConcurrentCalls_ShareOneBuild()
+    {
+        using var context = this.CreateContext( _code );
+
+        using var stage = SourceReferenceIndexService.BeginStage(
+            context.ServiceProvider,
+            context.Compilation,
+            [Requirements( context.Compilation, "F", "G" )] );
+
+        var cancellationToken = Xunit.TestContext.Current.CancellationToken;
+
+        var indexes = await Task.WhenAll(
+            Task.Run( () => stage.GetIndexAsync( cancellationToken ) ),
+            Task.Run( () => stage.GetIndexAsync( cancellationToken ) ) );
+
+        Assert.Same( indexes[0], indexes[1] );
+        Assert.Equal( ["B.cs", "C.cs"], context.Observer.ResolvedSemanticModelNames );
+    }
+
+    /// <summary>
+    /// Verifies that a build that was canceled is not cached, so that a later call builds the index.
+    /// </summary>
+    [Fact]
+    public async Task GetIndex_AfterCanceledBuild_BuildsAgain()
+    {
+        using var context = this.CreateContext( _code );
+
+        using var stage = SourceReferenceIndexService.BeginStage( context.ServiceProvider, context.Compilation, [Requirements( context.Compilation, "F" )] );
+
+        using var canceledSource = new CancellationTokenSource();
+#pragma warning disable VSTHRD103 // CancelAsync does not exist on .NET Framework.
+        canceledSource.Cancel();
+#pragma warning restore VSTHRD103
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>( () => stage.GetIndexAsync( canceledSource.Token ) );
+
+        var index = await stage.GetIndexAsync( Xunit.TestContext.Current.CancellationToken );
+
+        Assert.Equal( ["F"], GetReferencedNames( index ) );
+    }
+
+    /// <summary>
+    /// Verifies that a default array of declaration roots is equivalent to no roots, instead of failing when the roots are merged.
+    /// </summary>
+    [Fact]
+    public async Task DeclarationRoots_DefaultArray_EquivalentToNull()
+    {
+        using var context = this.CreateContext( _code );
+
+        using var stage = SourceReferenceIndexService.BeginStage(
+            context.ServiceProvider,
+            context.Compilation,
+            [Requirements( context.Compilation, "F" ) with { DeclarationRoots = default(ImmutableArray<SyntaxNode>) }] );
+
+        Assert.False( stage.IsRestrictedToDeclarationRoots );
+
+        var index = await stage.GetIndexAsync( Xunit.TestContext.Current.CancellationToken );
+
+        Assert.Equal( ["F"], GetReferencedNames( index ) );
+    }
+
+    /// <summary>
+    /// Verifies that a variable declarator of a field, as a root, also indexes the attributes of the field declaration, as the walk of the whole
+    /// syntax tree does.
+    /// </summary>
+    [Fact]
+    public void Root_FieldDeclarator_IndexesAttributes()
+    {
+        using var context = this.CreateContext(
+            new Dictionary<string, string>
+            {
+                ["Mark.cs"] = "class MarkAttribute : System.Attribute { }", ["D.cs"] = "class D { [MarkAttribute] int _x = 0; }"
+            } );
+
+        var declarator = context.Compilation.RoslynCompilation.SyntaxTrees.Single( t => t.FilePath == "D.cs" )
+            .GetRoot( Xunit.TestContext.Current.CancellationToken )
+            .DescendantNodes()
+            .OfType<VariableDeclaratorSyntax>()
+            .Single();
+
+        var options = new ReferenceIndexerOptions( [new ReferenceIndexerRequirements( ReferenceKinds.AttributeType, false, DeclarationKind.NamedType, "MarkAttribute" )] );
+        var builder = new InboundReferenceIndexBuilder( context.ServiceProvider, options, SymbolEqualityComparer.Default );
+
+        builder.IndexDeclarationRoots(
+            declarator.SyntaxTree,
+            [declarator],
+            context.Compilation.CompilationContext.SemanticModelProvider,
+            Xunit.TestContext.Current.CancellationToken );
+
+        // The name of an attribute binds to the constructor of the attribute type, so the reference is keyed by the constructor.
+        var referencedSymbol = Assert.Single( builder.ToReadOnly().ReferencedSymbols, s => s.References.Any() ).ReferencedSymbol;
+
+        Assert.Equal( "MarkAttribute", referencedSymbol.ContainingType.Name );
+        Assert.Equal( Microsoft.CodeAnalysis.MethodKind.Constructor, ( (IMethodSymbol) referencedSymbol ).MethodKind );
     }
 
     /// <summary>
@@ -119,6 +255,10 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
         Assert.True( options.MustIndexReference( ReferenceKinds.TypeOf, tokenG ) );
     }
 
+    /// <summary>
+    /// Verifies that the stage is restricted to the declaration roots when every consumer returns roots, and that only the syntax tree of the roots
+    /// is bound.
+    /// </summary>
     [Fact]
     public async Task ScopeRestricted_WhenEveryConsumerReturnsRoots()
     {
@@ -138,6 +278,10 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
         Assert.Equal( ["C.cs"], context.Observer.ResolvedSemanticModelNames );
     }
 
+    /// <summary>
+    /// Verifies that the stage is not restricted to the declaration roots when one consumer returns no root, so that the index contains references
+    /// outside of the roots of the other consumer.
+    /// </summary>
     [Fact]
     public async Task OneConsumerWithoutRoots_WalksEveryTree()
     {
@@ -156,6 +300,9 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
         Assert.Contains( "B.M()", GetReferencingNames( index ) );
     }
 
+    /// <summary>
+    /// Verifies that <see cref="SourceReferenceIndexStage.MergeRoots"/> removes a duplicate root and a root that is contained in another root.
+    /// </summary>
     [Fact]
     public void NestedRoots_WalkedOnce()
     {
@@ -168,6 +315,9 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
         Assert.Same( typeB, Assert.Single( Assert.Single( merged ).Value ) );
     }
 
+    /// <summary>
+    /// Verifies that a stage without requirements returns an empty index and resolves no semantic model.
+    /// </summary>
     [Fact]
     public async Task NoRequirement_IndexNotBuilt()
     {
@@ -246,6 +396,10 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
         return new WeakReference( compilation );
     }
 
+    /// <summary>
+    /// Verifies that <see cref="SourceReferenceIndexStage.GetIndexAsync"/> throws an <see cref="ObjectDisposedException"/> after the stage is
+    /// disposed.
+    /// </summary>
     [Fact]
     public async Task Stage_DisposedThrows()
     {
@@ -257,6 +411,9 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
         await Assert.ThrowsAsync<ObjectDisposedException>( () => stage.GetIndexAsync( Xunit.TestContext.Current.CancellationToken ) );
     }
 
+    /// <summary>
+    /// Verifies that <see cref="SourceReferenceIndexService.GetDesignTimeIndex"/> returns the same index for two calls with the same semantic model.
+    /// </summary>
     [Fact]
     public void DesignTimeIndex_OnePerSemanticModel()
     {
@@ -269,6 +426,10 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
         Assert.Same( index1, index2 );
     }
 
+    /// <summary>
+    /// Verifies that a root that is the declarator of a field or the expression body of a property is walked, and that its reference is attributed
+    /// to the field or to the getter of the property.
+    /// </summary>
     [Theory]
     [InlineData( "B", "_field", "B._field" )]
     [InlineData( "B", "Property", "B.Property.get" )]
@@ -286,6 +447,9 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
         Assert.Equal( [expectedReferencingSymbol], GetReferencingNames( index ) );
     }
 
+    /// <summary>
+    /// Verifies that a type root includes the members, the nested types and the lambdas of the type.
+    /// </summary>
     [Fact]
     public void Root_TypeIncludesNestedTypesAndLambdas()
     {
@@ -296,6 +460,9 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
         Assert.Equal( ["B.M()", "B.Nested.N()", "B.Property.get", "B._field"], GetReferencingNames( index ) );
     }
 
+    /// <summary>
+    /// Verifies that the reference in a compilation unit that contains top-level statements is indexed when the compilation unit is the root.
+    /// </summary>
     [Fact]
     public void Root_CompilationUnitWithTopLevelStatements()
     {
@@ -355,6 +522,9 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
                 [Requirements( context.Compilation, "F" ) with { DeclarationRoots = [foreignRoot] }] ) );
     }
 
+    /// <summary>
+    /// Verifies that a method root includes only the references in that method.
+    /// </summary>
     [Fact]
     public void Root_Method()
     {
@@ -378,6 +548,9 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
         Assert.Equal( ["B.M()"], GetReferencingNames( index ) );
     }
 
+    /// <summary>
+    /// Verifies that a reference in an argument of the base type of a type with a primary constructor is attributed to the type.
+    /// </summary>
     [Fact]
     public void Root_PrimaryConstructorBaseArgumentAttributedToType()
     {
@@ -392,6 +565,9 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
         Assert.Equal( ["D"], GetReferencingNames( index ) );
     }
 
+    /// <summary>
+    /// Verifies that a namespace root includes the types of the namespace and of its nested namespaces, and not the types outside of the namespace.
+    /// </summary>
     [Fact]
     public void Root_Namespace()
     {
@@ -534,14 +710,27 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
     /// </summary>
     private sealed class LockObserver : IReferenceIndexObserver
     {
+        /// <summary>
+        /// Gets or sets the lock of the stage.
+        /// </summary>
         public object? Lock { get; set; }
 
+        /// <summary>
+        /// Gets a value indicating whether a semantic model was resolved.
+        /// </summary>
         public bool WasCalled { get; private set; }
 
+        /// <summary>
+        /// Gets a value indicating whether a thread resolved a semantic model while it held <see cref="Lock"/>.
+        /// </summary>
         public bool WasLockHeld { get; private set; }
 
+        /// <inheritdoc />
         public void OnSymbolResolved( ISymbol symbol ) { }
 
+        /// <summary>
+        /// Records that a semantic model was resolved, and whether the current thread holds <see cref="Lock"/>.
+        /// </summary>
         public void OnSemanticModelResolved( SemanticModel semanticModel )
         {
             this.WasCalled = true;
@@ -554,21 +743,35 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
     /// </summary>
     private sealed class RequirementsProvider : IDesignTimePipelineResultExtension, IDesignTimeReferenceIndexRequirementsProvider
     {
+        /// <summary>
+        /// The kind of <see cref="RequirementsProvider"/>.
+        /// </summary>
         private static readonly ContributorKind<RequirementsProvider> _kind = new( nameof(RequirementsProvider) );
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="RequirementsProvider"/> class that requests the invocations of the methods of the given name.
+        /// </summary>
         public RequirementsProvider( string methodName )
         {
             this.ReferenceIndexerRequirements = [new ReferenceIndexerRequirements( ReferenceKinds.Invocation, false, DeclarationKind.Method, methodName )];
         }
 
+        /// <inheritdoc />
         public ContributorKind ContributorKind => _kind;
 
+        /// <inheritdoc />
         public IEnumerable<ReferenceIndexerRequirements> ReferenceIndexerRequirements { get; }
 
+        /// <summary>
+        /// Throws an <see cref="InvalidOperationException"/>, because the test does not export the result.
+        /// </summary>
         public ITransitiveAspectsManifestExtension ToTransitiveAspectManifestExtension()
             => throw new InvalidOperationException( "The test does not export the result." );
     }
 
+    /// <summary>
+    /// Builds an index of the invocations of the given methods of the type <c>A</c> by walking a single declaration root.
+    /// </summary>
     private static InboundReferenceIndex IndexRoots( TestContext context, SyntaxNode root, params string[] methodNames )
     {
         var options = new ReferenceIndexerOptions( Requirements( context.Compilation, methodNames ).Requirements );
@@ -578,6 +781,9 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
         return builder.ToReadOnly();
     }
 
+    /// <summary>
+    /// Returns the requirements of the invocations of the given methods of the type <c>A</c>.
+    /// </summary>
     private static SourceIndexRequirements Requirements( CompilationModel compilation, params string[] methodNames )
         => new(
             compilation.Types.OfName( "A" )
@@ -586,19 +792,34 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
                 .Select( m => ReferenceIndexerRequirements.Create( m, ReferenceKinds.Invocation, false ) )
                 .ToImmutableArray() );
 
+    /// <summary>
+    /// Returns the single type declaration of the given name in the compilation.
+    /// </summary>
     private static TypeDeclarationSyntax GetTypeSyntax( CompilationModel compilation, string typeName )
         => compilation.RoslynCompilation.SyntaxTrees.SelectMany( t => t.GetRoot().DescendantNodes().OfType<TypeDeclarationSyntax>() )
             .Single( t => t.Identifier.Text == typeName );
 
+    /// <summary>
+    /// Returns the declaration of a method of a type, both given by name.
+    /// </summary>
     private static MethodDeclarationSyntax GetMethodSyntax( CompilationModel compilation, string typeName, string methodName )
         => GetTypeSyntax( compilation, typeName ).Members.OfType<MethodDeclarationSyntax>().Single( m => m.Identifier.Text == methodName );
 
+    /// <summary>
+    /// Returns the sorted names of the symbols that have at least one reference in the index.
+    /// </summary>
     private static IReadOnlyList<string> GetReferencedNames( InboundReferenceIndex index )
         => index.ReferencedSymbols.Where( s => s.References.Any() ).Select( s => s.ReferencedSymbol.Name ).ToOrderedList( x => x, StringComparer.Ordinal );
 
+    /// <summary>
+    /// Returns the sorted and distinct test names of the symbols that contain a reference in the index.
+    /// </summary>
     private static IReadOnlyList<string> GetReferencingNames( InboundReferenceIndex index )
         => index.ReferencedSymbols.SelectMany( s => s.References ).Select( r => r.ReferencingSymbol.ToTestName() ).Distinct().ToOrderedList( x => x, StringComparer.Ordinal );
 
+    /// <summary>
+    /// Creates a test context that has a <see cref="ReferenceIndexObserver"/>, and the compilation model of the given code.
+    /// </summary>
     private TestContext CreateContext( Dictionary<string, string> code, OutputKind outputKind = OutputKind.DynamicallyLinkedLibrary )
     {
         var observer = new ReferenceIndexObserver();
@@ -613,8 +834,14 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
 
     private sealed class TestContext : IDisposable
     {
+        /// <summary>
+        /// The Metalama test context, which <see cref="Dispose"/> disposes.
+        /// </summary>
         private readonly MetalamaTestContext _testContext;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TestContext"/> class.
+        /// </summary>
         public TestContext( MetalamaTestContext testContext, CompilationModel compilation, ReferenceIndexObserver observer )
         {
             this._testContext = testContext;
@@ -622,12 +849,24 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
             this.Observer = observer;
         }
 
+        /// <summary>
+        /// Gets the compilation model of the code of the test.
+        /// </summary>
         public CompilationModel Compilation { get; }
 
+        /// <summary>
+        /// Gets the observer of the reference indexer.
+        /// </summary>
         public ReferenceIndexObserver Observer { get; }
 
+        /// <summary>
+        /// Gets the service provider of the project.
+        /// </summary>
         public ProjectServiceProvider ServiceProvider => this._testContext.ServiceProvider;
 
+        /// <summary>
+        /// Disposes the Metalama test context.
+        /// </summary>
         public void Dispose() => this._testContext.Dispose();
     }
 }

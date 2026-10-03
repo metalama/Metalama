@@ -15,6 +15,9 @@ namespace Metalama.Framework.Analyzers.Tests;
 /// </remarks>
 public sealed class DurableFrameworkTypeTests : DurableAnalyzerTestBase
 {
+    /// <summary>
+    /// The <c>using</c> directives that precede the code of every test.
+    /// </summary>
     private const string _preamble = """
                                      using Metalama.Framework.Advising;
                                      using Metalama.Framework.Utilities;
@@ -22,8 +25,14 @@ public sealed class DurableFrameworkTypeTests : DurableAnalyzerTestBase
 
                                      """;
 
+    /// <summary>
+    /// Returns the code of a test: <see cref="_preamble"/> followed by <paramref name="body"/>.
+    /// </summary>
     private static string Code( string body ) => _preamble + body;
 
+    /// <summary>
+    /// Verifies that the analyzer reports no diagnostic for a field of type <c>MethodTemplateSelector</c> in a <c>[Durable]</c> type.
+    /// </summary>
     [Fact]
     public async Task MethodTemplateSelectorField_IsNotReported()
         => await AssertNoDiagnosticAsync( Code( "[Durable] class Registration { private MethodTemplateSelector _templates; }" ) );

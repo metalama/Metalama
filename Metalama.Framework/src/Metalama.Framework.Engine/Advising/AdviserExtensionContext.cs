@@ -23,9 +23,19 @@ namespace Metalama.Framework.Engine.Advising;
 [PublicAPI]
 public sealed class AdviserExtensionContext
 {
+    /// <summary>
+    /// The state of the advice factory behind the adviser.
+    /// </summary>
     private readonly AdviceFactoryState _state;
+
+    /// <summary>
+    /// The template class instance set on the adviser, or <c>null</c> when templates are resolved against the aspect instance.
+    /// </summary>
     private readonly TemplateClassInstance? _templateClassInstance;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AdviserExtensionContext"/> class.
+    /// </summary>
     internal AdviserExtensionContext(
         IQueryOwner owner,
         AdviceFactoryState state,

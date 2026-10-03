@@ -340,6 +340,9 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
 
         var index = await context.SourceReferenceIndex.GetIndexAsync( cancellationToken );
 
+        var indexedNames = index.ReferencedSymbols.Select( s => s.ReferencedSymbol.Name ).Distinct().OrderBy( n => n, StringComparer.Ordinal );
+        context.Diagnostics.Report( IndexContent.CreateRoslynDiagnostic( Location.None, string.Join( ", ", indexedNames ) ) );
+
         var references = index.ReferencedSymbols
             .Where( s => s.ReferencedSymbol.Kind == SymbolKind.Method && methodNames.Contains( s.ReferencedSymbol.Name ) )
             .SelectMany( s => s.References.SelectMany( r => r.Nodes.Select( n => (Symbol: s.ReferencedSymbol, Reference: r, Node: n) ) ) )
@@ -356,6 +359,10 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
         }
     }
 
+    /// <summary>
+    /// Reports a diagnostic for each <see cref="TestRegistration"/> of the stage, in the order of the tags, so that a test can verify what
+    /// the extension received.
+    /// </summary>
     private static void ReportRegistrations( ExtensionTransformationContext context )
     {
         foreach ( var registration in context.Contributors.OfKind( TestContributorKinds.Registration ).OrderBy( r => r.Tag ) )
