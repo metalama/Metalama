@@ -13,6 +13,16 @@ namespace Metalama.Framework.Engine.Extensibility;
 [PublicAPI]
 public abstract class ContributorKind
 {
+    /// <summary>
+    /// The backing field of <see cref="IsDesignTimeValidator"/>.
+    /// </summary>
+    private readonly bool _isDesignTimeValidator;
+
+    /// <summary>
+    /// The backing field of <see cref="IsProjectLocal"/>.
+    /// </summary>
+    private readonly bool _isProjectLocal;
+
     protected ContributorKind( string name )
     {
         this.Name = name;
@@ -22,7 +32,59 @@ public abstract class ContributorKind
 
     internal bool IsExtension { get; init; } = true;
 
-    public bool IsDesignTimeValidator { get; init; }
+    /// <summary>
+    /// Gets a value indicating whether the design-time results of this kind are validators of declarations, indexed by the validated declaration
+    /// and merged from referenced projects.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">The kind is also project-local.</exception>
+    public bool IsDesignTimeValidator
+    {
+        get => this._isDesignTimeValidator;
+        init
+        {
+            if ( value && this._isProjectLocal )
+            {
+                throw new InvalidOperationException( $"The contributor kind '{this.Name}' cannot be both project-local and a design-time validator." );
+            }
+
+            this._isDesignTimeValidator = value;
+        }
+    }
+
+    /// <summary>
+    /// Gets a value indicating whether the design-time results of this kind remain in the project that produced them.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The design-time pipeline stores the design-time form of every contributor that an extension returns. By default, it also exports this form
+    /// to the projects that reference the project: it writes it to the design-time transitive manifest, and the presence of such a form makes the
+    /// pipeline produce this manifest.
+    /// </para>
+    /// <para>
+    /// The design-time forms of a project-local kind are excluded from both. Only <see cref="PipelineExtension.AnalyzeSemanticModel"/> of the
+    /// producing project sees them, and <see cref="IDesignTimePipelineResultExtension.ToTransitiveAspectManifestExtension"/> is never called for
+    /// them. The flag is read from the kind of the design-time form. The compile-time pipeline does not read it.
+    /// </para>
+    /// <para>
+    /// A kind cannot be both project-local and a design-time validator. The <c>init</c> accessors of this property and of
+    /// <see cref="IsDesignTimeValidator"/> throw <see cref="InvalidOperationException"/> for this combination, so that an invalid kind fails when
+    /// it is declared.
+    /// </para>
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">The kind is also a design-time validator.</exception>
+    public bool IsProjectLocal
+    {
+        get => this._isProjectLocal;
+        init
+        {
+            if ( value && this._isDesignTimeValidator )
+            {
+                throw new InvalidOperationException( $"The contributor kind '{this.Name}' cannot be both project-local and a design-time validator." );
+            }
+
+            this._isProjectLocal = value;
+        }
+    }
 
     public abstract Type Type { get; }
 

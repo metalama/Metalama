@@ -61,14 +61,15 @@ internal sealed partial class TransitiveAspectPipelineExtension : PipelineExtens
                 contributors.OfKind( ContributorKind.TransitiveAspectInstance ).ToImmutableArray<ITransitivePipelineContributor>(),
                 ImmutableUserDiagnosticList.Empty ) );
 
+    /// <summary>
+    /// Returns the transitive aspect instances added in the stage. The design-time pipeline accumulates them across stages, so the instances
+    /// replayed in every stage are returned only once, from the first stage.
+    /// </summary>
     public override Task<ExtensionPipelineContributorsResult> ExecuteDesignTimePipelineContributorsAsync(
-        AspectPipelineConfiguration pipelineConfiguration,
-        IEnumerable<IPipelineContributor> contributors,
-        CompilationModel initialCompilation,
-        CompilationModel finalCompilation,
+        DesignTimeContributorsContext context,
         CancellationToken cancellationToken )
         => Task.FromResult(
             new ExtensionPipelineContributorsResult(
-                contributors.OfKind( ContributorKind.TransitiveAspectInstance ).ToImmutableArray<ITransitivePipelineContributor>(),
+                context.NewContributors.OfKind( ContributorKind.TransitiveAspectInstance ).ToImmutableArray<ITransitivePipelineContributor>(),
                 ImmutableUserDiagnosticList.Empty ) );
 }

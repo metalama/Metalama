@@ -44,6 +44,13 @@ The implementation of the transformation factory in M0 differs from sections [10
 - `LinkerNamingServices` and `ExtensionTransformationFactoryContext` are not created in M0, because no M0 request introduces a member.
 - The redirections are tested by the aspect tests of the proof of concept (`Metalama.Framework.Tests.AspectTests.ExtensionPoints`, folders `Redirection` and `MethodReferences`) instead of linker tests with pseudo-attributes. The proof of concept exercises the public API end to end, from an aspect and from a fabric.
 
+The implementation of change S1 (metalama/Metalama#2098) makes the following choices.
+
+- `DesignTimeContributorsContext` passes all the contributors of the stage, as before, together with `ContributorsAddedInStage`, `HighLevelStageIndex` and `NewContributors`. `NewContributors` is `Contributors` in the first stage and `ContributorsAddedInStage` in the later stages. The pipeline does not filter the contributors itself, so that an extension can still evaluate a replayed contributor on the compilation of a later stage.
+- An extension that returns transitive contributors builds them from `NewContributors`, because the pipeline accumulates them. `TransitiveAspectPipelineExtension` does so. The Validation engine runs the declaration validators of all the contributors, as before, and returns the reference validators of `NewContributors` only. `DiagnosticQueryPipelineExtension` returns no transitive contributor and is unchanged.
+- The design-time stage also accumulates the inheritable aspects, which it lost in the same way.
+- The compile-time linker stage still publishes only the transitive contributors of its own stage, so the compile-time transitive manifest loses those of the earlier stages in the same way. The fix needs a context object for `ExecutePipelineContributorsAsync` first, because that hook also receives the replayed contributors in every stage. It is tracked by metalama/Metalama#2108.
+
 ### 15.1 Top decisions
 
 | Id | Question | Recommendation | Consequence of the alternative | Needed before |
