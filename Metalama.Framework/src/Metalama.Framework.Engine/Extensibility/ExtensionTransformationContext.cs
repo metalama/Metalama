@@ -8,6 +8,7 @@ using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Pipeline;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities;
+using System;
 using System.Collections.Generic;
 
 namespace Metalama.Framework.Engine.Extensibility;
@@ -87,8 +88,22 @@ public sealed class ExtensionTransformationContext
     /// <summary>
     /// Gets <see cref="SourceCompilation"/> bound to the aspect repository of <see cref="StageFinalCompilation"/>.
     /// </summary>
-    [Memo]
+    /// <remarks>
+    /// The property is available only when <see cref="IsSourceStage"/> is <c>true</c>. In a later stage, the aspect repository contains the
+    /// declarations of the compilation that a low-level weaver produced, and these declarations are not declarations of the source compilation.
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">The stage is not the source stage.</exception>
     public CompilationModel SourceCompilationWithFinalAspects
+        => this.IsSourceStage
+            ? this.SourceCompilationWithFinalAspectsCore
+            : throw new InvalidOperationException(
+                $"The {nameof(this.SourceCompilationWithFinalAspects)} property is available only in the source stage. Check the {nameof(this.IsSourceStage)} property." );
+
+    /// <summary>
+    /// Gets the value of <see cref="SourceCompilationWithFinalAspects"/> without the check of the stage.
+    /// </summary>
+    [Memo]
+    private CompilationModel SourceCompilationWithFinalAspectsCore
         => this.SourceCompilation.WithAspectRepository( this.StageFinalCompilation.AspectRepository, "Source with final aspects" );
 
     /// <summary>
