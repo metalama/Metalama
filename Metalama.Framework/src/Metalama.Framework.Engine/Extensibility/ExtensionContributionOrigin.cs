@@ -64,6 +64,7 @@ public sealed class ExtensionContributionOrigin
     /// </summary>
     /// <param name="owner">The owner of the query.</param>
     /// <exception cref="ArgumentException">The owner was not created by the Metalama engine.</exception>
+    /// <exception cref="ObjectDisposedException">The owner is an aspect builder whose aspect has finished executing.</exception>
     public static ExtensionContributionOrigin Capture( IQueryOwner owner )
         => owner is IExtensionContributionOriginSource source
             ? source.CaptureContributionOrigin()
