@@ -8,8 +8,10 @@ using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Queries;
+using Metalama.Framework.Engine.Templating;
 using Metalama.Framework.Fabrics;
 using Microsoft.CodeAnalysis;
+using System;
 using System.Collections.Immutable;
 using System.Linq;
 
@@ -98,6 +100,22 @@ internal sealed class TestRegistrationService : ITestRegistrationService
             new TestRedirection( methodName, origin, options, null, (replacementTypeName, replacementMethodName), null, queryImpl, null ) );
     }
 
+    /// <summary>
+    /// Returns the source initializer of a field or property as an inspection-only expression created by
+    /// <see cref="SourceExpressionFactory.CreateInspectionOnly"/>.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">The field or property has no initializer in source code.</exception>
+    public IExpression GetInspectionOnlyInitializer( IFieldOrProperty fieldOrProperty )
+    {
+        var syntax = fieldOrProperty.InitializerExpression?.GetSourceSyntax()
+                     ?? throw new InvalidOperationException( $"'{fieldOrProperty}' has no initializer in source code." );
+
+        return SourceExpressionFactory.CreateInspectionOnly( syntax, fieldOrProperty.Type );
+    }
+
+    /// <summary>
+    /// Adds a <see cref="TestRegistration"/> whose channel is <c>query</c> to the owner of a query, with the origin captured from this owner.
+    /// </summary>
     public void Register<T>( IQuery<T> query, string tag )
         where T : class, IDeclaration
     {

@@ -1,0 +1,2 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0297 on `Target`: `The source expression '42' is only available for inspection: it can be read by compile-time code but it cannot be used in generated code. It is already evaluated at its original location, so it may have side effects, and it may reference local variables and parameters that do not exist in the generated code.`

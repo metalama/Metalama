@@ -28,6 +28,8 @@ internal interface ITestRegistrationService : IProjectService
     void ReportReferences<T>( IAdviser<T> adviser, string methodName, bool restrictToTarget )
         where T : class, IDeclaration;
 
+    IExpression GetInspectionOnlyInitializer( IFieldOrProperty fieldOrProperty );
+
     void RedirectCalls<T>( IAdviser<T> adviser, string methodName, IMethod replacement, TestRedirectionOptions options )
         where T : class, IDeclaration;
 

@@ -359,7 +359,15 @@ A contribution made through a query captures its origin with `ExtensionContribut
 
 ### Transforming hook
 
-`PipelineExtension.ExecuteTransformingContributorsAsync( ExtensionTransformationContext, CancellationToken )` runs at the end of every high-level stage that runs the linker, after `ExecutePipelineContributorsAsync` and before the linker. It runs at compile time and in the preview, live-template and introspection scenarios, and not at design time. The context gives the contributors of the stage (`Contributors`) and those added by the aspects of the stage (`ContributorsAddedInStage`), the source compilation, the initial and final compilations of the stage, `HighLevelStageIndex`, `IsSourceStage` and a diagnostic sink. Only the first high-level stage has `IsSourceStage`; a low-level weaver starts a new stage. `SourceCompilationWithFinalAspects`, which binds the source compilation to the aspects of the stage, is available only in that stage and throws in a later one, because the aspects of a later stage target the declarations of the compilation that the weaver produced.
+`PipelineExtension.ExecuteTransformingContributorsAsync( ExtensionTransformationContext, CancellationToken )` runs once per pipeline execution, at the end of the source stage, which is the first high-level stage, after `ExecutePipelineContributorsAsync` and before the linker. It runs at compile time and in the preview, live-template and introspection scenarios, and not at design time. The context gives the contributors of the source stage (`Contributors`), the source compilation, the final compilation of the source stage, `SourceCompilationWithFinalAspects`, which binds the source compilation to the aspects of the source stage, and a diagnostic sink.
+
+The hook does not run in the stages that follow a low-level weaver. A contribution made in such a stage, by an aspect that executes after the weaver, never reaches the hook. `ExtensionContributionOrigin.HighLevelStageIndex` records the stage in which a contribution was made, so that an extension can report such a contribution from `ExecutePipelineContributorsAsync`, which runs in every stage. The interceptor engine reports LAMA1007 this way.
+
+### Source expressions for compile-time code
+
+An extension can give compile-time code an expression of the source code without letting it be emitted. `SourceExpressionFactory.CreateInspectionOnly( expression, type )` (namespace `Metalama.Framework.Engine.Templating`) returns an `ISourceExpression` whose `AsSyntaxNode`, `AsString`, `AsFullString`, `AsTypedConstant` and `Type` behave as for any source expression, and which is not assignable. Emitting it in generated code reports LAMA0297, during a template expansion and through the textual conversion of expressions, because the expression is already evaluated at its original location: a second evaluation can have side effects, and it can reference local variables and parameters that do not exist in the generated code.
+
+In the other direction, `SourceExpressionExtensions.GetSourceSyntax()` (SDK, namespace `Metalama.Framework.Engine.CodeModel`) returns the source `ExpressionSyntax` of an expression that wraps source syntax, for instance the initializer of a source field, or `null` for a generated expression, a parameter or a `TypedConstant`.
 
 ### Design-time hook
 
