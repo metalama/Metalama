@@ -194,9 +194,8 @@ public sealed class ExtensionTransformationFactory
 
         var resultCast = request.ResultCast == null ? null : context.SyntaxGenerator.TypeSyntax( request.ResultCast );
 
-        this.AddRedirection(
-            callSite,
-            id => new CallSiteRedirection(
+        CallSiteRedirection CreateRedirection( int id )
+            => new(
                 id,
                 callSite,
                 CallSiteRedirectionKind.Invocation,
@@ -205,8 +204,111 @@ public sealed class ExtensionTransformationFactory
                 argumentPlan,
                 extraArguments,
                 resultCast,
-                request.Description ?? $"the call '{callSite}' redirected to '{targetMethod}' by {origin.DiagnosticSourceDescription}" ) );
+                request.Description ?? $"the call '{callSite}' redirected to '{targetMethod}' by {origin.DiagnosticSourceDescription}" );
+
+        VerifyBinding( semanticModel, operation, isReducedExtensionCall, CreateRedirection( -1 ).Rewrite( callSite ), targetMethod, context );
+
+        this.AddRedirection( callSite, CreateRedirection );
     }
+
+    /// <summary>
+    /// Verifies that the rewritten call binds to the target method at the position of the call site, and throws an <see cref="ArgumentException"/>
+    /// otherwise.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The rewritten call is bound speculatively, exactly as the linker writes it, without the redirections nested in its arguments. Overload
+    /// resolution can select another method than the target, for instance an overload with fewer optional parameters, or an instance method of the
+    /// receiver when the target is an extension method. The linker would then emit a call to that method without notice.
+    /// </para>
+    /// <para>
+    /// A call in a conditional access cannot be bound alone, because its receiver exists only in the conditional access. Its receiver is replaced by
+    /// <c>default(T)</c>, where <c>T</c> is the type of the receiver in the conditional access, which gives the same member lookup and the same
+    /// overload resolution. The check is skipped when <c>T</c> cannot be named.
+    /// </para>
+    /// </remarks>
+    private static void VerifyBinding(
+        SemanticModel semanticModel,
+        IInvocationOperation operation,
+        bool isReducedExtensionCall,
+        ExpressionSyntax rewrittenCall,
+        IMethod targetMethod,
+        SyntaxGenerationContext context )
+    {
+        if ( targetMethod.GetSymbol() is not { } targetSymbol )
+        {
+            // An introduced method has no symbol in the compilation of the call site.
+            return;
+        }
+
+        var callSite = (InvocationExpressionSyntax) operation.Syntax;
+        var expression = rewrittenCall;
+
+        // Remove the result cast, ((T)(call)).
+        while ( expression.Kind() is SyntaxKind.ParenthesizedExpression or SyntaxKind.CastExpression )
+        {
+            expression = expression.Kind() == SyntaxKind.ParenthesizedExpression
+                ? ((ParenthesizedExpressionSyntax) expression).Expression
+                : ((CastExpressionSyntax) expression).Expression;
+        }
+
+        if ( !expression.IsKind( SyntaxKind.InvocationExpression ) )
+        {
+            return;
+        }
+
+        var invocation = (InvocationExpressionSyntax) expression;
+
+        if ( invocation.Expression.IsKind( SyntaxKind.MemberBindingExpression ) )
+        {
+            var receiver = isReducedExtensionCall ? operation.Arguments[0].Value : operation.Instance;
+
+            while ( receiver is IConversionOperation { IsImplicit: true } conversion )
+            {
+                receiver = conversion.Operand;
+            }
+
+            if ( receiver?.Type is not { } receiverType || !CanBeNamed( receiverType ) )
+            {
+                return;
+            }
+
+            invocation = invocation.WithExpression(
+                MemberAccessExpression(
+                    SyntaxKind.SimpleMemberAccessExpression,
+                    DefaultExpression( context.SyntaxGenerator.TypeSyntax( receiverType ) ),
+                    ((MemberBindingExpressionSyntax) invocation.Expression).Name ) );
+        }
+
+        var symbolInfo = semanticModel.GetSpeculativeSymbolInfo( callSite.SpanStart, invocation, SpeculativeBindingOption.BindAsExpression );
+
+        if ( symbolInfo.Symbol is { Kind: SymbolKind.Method } and IMethodSymbol boundMethod
+             && SymbolEqualityComparer.Default.Equals( (boundMethod.ReducedFrom ?? boundMethod).OriginalDefinition, targetSymbol.OriginalDefinition ) )
+        {
+            return;
+        }
+
+        var outcome = symbolInfo.Symbol != null
+            ? $"it binds to '{symbolInfo.Symbol}'"
+            : $"it does not bind ({symbolInfo.CandidateReason})";
+
+        throw new ArgumentException( $"The call site '{callSite}' cannot be redirected to '{targetMethod}', because {outcome} when it is written as '{invocation}'." );
+    }
+
+    /// <summary>
+    /// Determines whether a type can be written in C#, which excludes anonymous types and the types that contain them.
+    /// </summary>
+    private static bool CanBeNamed( ITypeSymbol type )
+        => type.TypeKind switch
+        {
+            Microsoft.CodeAnalysis.TypeKind.Error => false,
+            Microsoft.CodeAnalysis.TypeKind.Array => CanBeNamed( ((IArrayTypeSymbol) type).ElementType ),
+            Microsoft.CodeAnalysis.TypeKind.Pointer => CanBeNamed( ((IPointerTypeSymbol) type).PointedAtType ),
+            _ when type.IsAnonymousType => false,
+            _ when type.Kind == SymbolKind.NamedType => ((INamedTypeSymbol) type).TypeArguments.All( CanBeNamed )
+                                                        && (type.ContainingType == null || CanBeNamed( type.ContainingType )),
+            _ => true
+        };
 
     /// <summary>
     /// Requests that a source method group, converted to a delegate or to a function pointer, be replaced by a method group of another method.
@@ -407,6 +509,13 @@ public sealed class ExtensionTransformationFactory
             }
         }
 
+        // The elements of an expanded params argument are the source arguments that no parameter maps. They are written last.
+        var expandedParams = operation.Arguments.FirstOrDefault( a => a.ArgumentKind is ArgumentKind.ParamArray or ArgumentKind.ParamCollection );
+
+        var expandedElements = expandedParams == null
+            ? ImmutableArray<int>.Empty
+            : Enumerable.Range( 0, sourceArgumentSyntaxes.Count ).Where( i => !sourceArgumentIndices.ContainsValue( i ) ).ToImmutableArray();
+
         var usedSourceArguments = new HashSet<int>();
         var receiverUsed = false;
         var names = new HashSet<string>( StringComparer.Ordinal );
@@ -462,6 +571,36 @@ public sealed class ExtensionTransformationFactory
 
                         receiverUsed = true;
                         items.Add( (-1, new CallSiteArgumentPlanItem( RedirectedArgumentKind.SourceReceiver, -1, null, name ), receivingParameter, null) );
+
+                        break;
+                    }
+
+                    if ( expandedParams != null && argument.ParameterOrdinal == expandedParams.Parameter!.Ordinal )
+                    {
+                        if ( argument.CastType != null )
+                        {
+                            throw new ArgumentException( $"The expanded params argument of the call site '{callSite}' cannot be cast.", nameof(request) );
+                        }
+
+                        if ( expandedElements.Any( e => !usedSourceArguments.Add( e ) ) )
+                        {
+                            throw new ArgumentException( $"The params argument of the call site '{callSite}' is passed more than once.", nameof(request) );
+                        }
+
+                        if ( receivingParameter.RefKind != Code.RefKind.None )
+                        {
+                            throw new ArgumentException(
+                                $"The params argument of the call site '{callSite}' cannot be passed to the parameter '{receivingParameter.Name}', which is passed by reference.",
+                                nameof(request) );
+                        }
+
+                        // An empty collection has no evaluation, so it is written after the other values of the call site.
+                        var order = expandedElements.IsEmpty ? sourceArgumentSyntaxes.Count : expandedElements[0];
+
+                        items.Add(
+                            (order,
+                             CreatePackedArgument( name, expandedElements, expandedParams.Parameter.Type, callSite, semanticModel: operation.SemanticModel!, context ),
+                             receivingParameter, null) );
 
                         break;
                     }
@@ -603,6 +742,56 @@ public sealed class ExtensionTransformationFactory
     }
 
     /// <summary>
+    /// Creates the argument that packs the elements of an expanded <c>params</c> argument into one collection, which is written as a named argument.
+    /// </summary>
+    /// <remarks>
+    /// From C# 12, the collection is a collection expression, which creates the collection that the compiler creates for the expanded argument,
+    /// also for a <c>params</c> collection of C# 13. Before C# 12, only <c>params</c> arrays exist, and the collection is an array creation. An
+    /// empty array is written <c>Array.Empty&lt;T&gt;()</c> when the method exists, as the compiler does.
+    /// </remarks>
+    private static CallSiteArgumentPlanItem CreatePackedArgument(
+        string name,
+        ImmutableArray<int> elements,
+        ITypeSymbol parameterType,
+        InvocationExpressionSyntax callSite,
+        SemanticModel semanticModel,
+        SyntaxGenerationContext context )
+    {
+        var item = new CallSiteArgumentPlanItem( RedirectedArgumentKind.SourceArgument, -1, null, name ) { PackedElements = elements };
+
+        if ( ((CSharpParseOptions) callSite.SyntaxTree.Options).LanguageVersion >= LanguageVersion.CSharp12 )
+        {
+            return item with { PackedEmptyValue = CollectionExpression() };
+        }
+
+        if ( parameterType.TypeKind != Microsoft.CodeAnalysis.TypeKind.Array )
+        {
+            throw new ArgumentException( $"The params collection of the call site '{callSite}' can be packed only with C# 12 or later." );
+        }
+
+        var elementType = context.SyntaxGenerator.TypeSyntax( ((IArrayTypeSymbol) parameterType).ElementType ).WithSimplifierAnnotationIfNecessary( context );
+
+        var hasArrayEmpty = semanticModel.Compilation.GetSpecialType( Microsoft.CodeAnalysis.SpecialType.System_Array )
+            .GetMembers( "Empty" )
+            .Any( m => m.Kind == SymbolKind.Method && m.IsStatic && m.DeclaredAccessibility == Microsoft.CodeAnalysis.Accessibility.Public );
+
+        ExpressionSyntax emptyValue = hasArrayEmpty
+            ? InvocationExpression(
+                MemberAccessExpression(
+                    SyntaxKind.SimpleMemberAccessExpression,
+                    context.SyntaxGenerator.TypeSyntax( semanticModel.Compilation.GetSpecialType( Microsoft.CodeAnalysis.SpecialType.System_Array ) ),
+                    GenericName( Identifier( "Empty" ), TypeArgumentList( SingletonSeparatedList( elementType ) ) ) ) )
+            : ArrayCreationExpression(
+                SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.NewKeyword ),
+                ArrayType(
+                    elementType,
+                    SingletonList( ArrayRankSpecifier( SingletonSeparatedList<ExpressionSyntax>( LiteralExpression( SyntaxKind.NumericLiteralExpression, Literal( 0 ) ) ) ) ) ),
+                null );
+
+        return item with { PackedArrayElementType = elementType, PackedEmptyValue = emptyValue };
+    }
+
+    /// <summary>
     /// Determines whether a source argument that can have a side effect can be evaluated alone, as the governing expression of a switch expression,
     /// with the same effects as at the source call site.
     /// </summary>
@@ -655,6 +844,7 @@ public sealed class ExtensionTransformationFactory
         => item.Parameter.RefKind == Code.RefKind.None
            && item.Item.Kind switch
            {
+               RedirectedArgumentKind.SourceArgument when item.Item.IsPacked => true,
                RedirectedArgumentKind.SourceArgument => sourceArguments[item.Item.SourceArgumentIndex].RefKindKeyword.IsKind( SyntaxKind.None ),
                RedirectedArgumentKind.Value => true,
                _ => false
@@ -674,7 +864,7 @@ public sealed class ExtensionTransformationFactory
         SeparatedSyntaxList<ArgumentSyntax> sourceArguments,
         ArgumentSyntax discardedArgument )
     {
-        if ( item.Parameter.RefKind != Code.RefKind.None || item.Item.Kind != RedirectedArgumentKind.SourceArgument )
+        if ( item.Parameter.RefKind != Code.RefKind.None || item.Item.Kind != RedirectedArgumentKind.SourceArgument || item.Item.IsPacked )
         {
             return false;
         }
