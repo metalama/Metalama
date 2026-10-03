@@ -47,6 +47,11 @@ internal sealed class AdviceFactoryState : IAdviceExecutionContext
 
     public UserCodeExecutionContext ExecutionContext { get; }
 
+    /// <summary>
+    /// Gets the zero-based index, among the high-level stages of the pipeline, of the stage that executes the aspect layer.
+    /// </summary>
+    public int HighLevelStageIndex { get; init; }
+
     public AdviceFactoryState(
         in ProjectServiceProvider serviceProvider,
         AspectLayerInstance aspectLayerInstance,

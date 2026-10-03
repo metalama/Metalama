@@ -15,10 +15,9 @@ namespace Metalama.Framework.Engine.ReferenceGraph;
 /// <summary>
 /// The inputs of <see cref="PipelineExtension.GetSourceIndexRequirements"/>.
 /// </summary>
-/// <param name="Contributors">All extension contributors of the stage.</param>
-/// <param name="HighLevelStageIndex">The zero-based index of the stage among the high-level stages of the pipeline execution.</param>
+/// <param name="Contributors">All extension contributors of the source stage, which is the first high-level stage of the pipeline execution.</param>
 [PublicAPI]
-public sealed record SourceIndexRequirementsContext( IReadOnlyCollection<IPipelineContributor> Contributors, int HighLevelStageIndex );
+public sealed record SourceIndexRequirementsContext( IReadOnlyCollection<IPipelineContributor> Contributors );
 
 /// <summary>
 /// The requirements of one extension for the index of the references of the source compilation of one stage.

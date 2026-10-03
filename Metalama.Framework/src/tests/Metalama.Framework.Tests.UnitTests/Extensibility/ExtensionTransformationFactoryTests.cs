@@ -336,7 +336,8 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
                     default,
                     null,
                     new AspectLayerId( "UnknownAspect" ),
-                    null );
+                    null,
+                    0 );
 
                 Assert.Throws<ArgumentException>(
                     () => s.Factory.RedirectInvocation(
@@ -1390,7 +1391,8 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
                 TemplateProvider.FromInstance( aspectInstance.Aspect ),
                 null,
                 new AspectLayerId( aspectInstance.AspectClass ),
-                aspectInstance );
+                aspectInstance,
+                0 );
 
             script.Action( new ScriptContext( context, context.TransformationFactory, origin ) );
             script.HasRun = true;
