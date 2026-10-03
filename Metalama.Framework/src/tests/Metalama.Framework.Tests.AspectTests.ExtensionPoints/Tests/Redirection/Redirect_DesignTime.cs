@@ -14,7 +14,8 @@ using System.Linq;
 
 namespace Metalama.Framework.Tests.AspectTests.ExtensionPoints.Tests.Redirection.Redirect_DesignTime;
 
-// The transforming hook does not run at design time, so the call is not redirected and no code is generated for it.
+// The transforming hook does not run at design time, so the call is not redirected and no code is generated for it. The target type is not
+// partial, which shows that a redirection does not require a partial type at design time.
 
 internal class RedirectAttribute : TypeAspect
 {
@@ -36,7 +37,7 @@ internal static class Interceptors
 
 // <target>
 [Redirect]
-internal partial class C
+internal class C
 {
     private int M() => Source.Compute( 1 );
 }

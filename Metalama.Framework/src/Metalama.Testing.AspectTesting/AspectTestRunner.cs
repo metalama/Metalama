@@ -488,7 +488,7 @@ internal class AspectTestRunner : BaseTestRunner
 
                 this.FileSystem.WriteAllText(
                     expectedProgramOutputPath,
-                    "TODO: Replace this file with the correct program output. See the test output for the actual transformed code." );
+                    "TODO: Replace this file with the correct program output. See the test output for the actual program output." );
             }
 
             expectedProgramOutput = TestOutputNormalizer.NormalizeEndOfLines( this.FileSystem.ReadAllText( expectedProgramOutputPath ) );
