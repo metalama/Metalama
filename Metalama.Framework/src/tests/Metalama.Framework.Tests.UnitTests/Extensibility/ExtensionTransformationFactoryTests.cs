@@ -63,6 +63,8 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
 
                                  internal class Instance
                                  {
+                                     public int Field;
+
                                      public int Get( int x ) => x;
                                  }
 
@@ -89,8 +91,42 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
                                  [TheAspect]
                                  internal class C
                                  {
+                                     private const int Constant = 1;
+
+                                     private int _field;
+
+                                     private static int Property => 0;
+
                                      private void M( Instance i, Instance? n )
                                      {
+                                         Source.Two( 10, Property );
+                                         Source.Two( 11, Constant );
+                                         Source.Two( 12, i.Field );
+                                         Source.Two( 13, _field );
+                                         Source /* callee */ . Compute( 14 );
+                                         Source.Two( /* first */ 15, // second
+                                             16 );
+                                         Source.
+                                 #if DEBUG
+                                             Compute
+                                 #else
+                                             Compute
+                                 #endif
+                                             ( 17 );
+                                         Source.Two( 18,
+                                 #if DEBUG
+                                             19
+                                 #else
+                                             20
+                                 #endif
+                                             );
+                                         Func<int, int> g = Source /* group */ . Compute;
+                                         Func<int, int> h = Source.
+                                 #if DEBUG
+                                             Compute;
+                                 #else
+                                             Compute;
+                                 #endif
                                          Source.Compute( 1 );
                                          i.Get( 2 );
                                          n?.Get( 3 );
@@ -295,10 +331,8 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
                     ExtraArguments = ImmutableArray.Create( new CallSiteExtraArgument( "origin", SyntaxFactory.ParseExpression( "\"redirected\"" ) ) )
                 } ) );
 
-        var text = string.Concat( result.ResultingCompilation.SyntaxTreeCollection.SelectAsReadOnlyCollection( t => t.ToString() ) );
-
         // The linker output is not formatted, so the test ignores the whitespace.
-        Assert.Contains( "Source.Log(\"message\",origin:\"redirected\")", text.Replace( " ", "" ), StringComparison.Ordinal );
+        Assert.Contains( "Source.Log(\"message\",origin:\"redirected\")", GetText( result ).Replace( " ", "" ), StringComparison.Ordinal );
     }
 
     [Fact]
@@ -356,8 +390,131 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
 
                 Assert.True( s.Factory.IsRedirected( callSite ) );
                 Assert.True( s.Factory.IsRedirected( methodGroup ) );
+                Assert.True( s.Factory.IsRedirected( methodGroup.Name ) );
                 Assert.False( s.Factory.IsRedirected( s.Invocation( "i.Get( 2 )" ) ) );
             } );
+
+    [Fact]
+    public async Task RedirectInvocation_DroppedPropertyArgument_Throws()
+        => await this.AssertInvocationRefusedAsync( "Source.Two( 10, Property )", "Interceptors", "Compute", CallSiteReceiverMode.Drop, DropSecondArgument );
+
+    [Fact]
+    public async Task RedirectInvocation_DroppedFieldOfOtherObject_Throws()
+        => await this.AssertInvocationRefusedAsync( "Source.Two( 12, i.Field )", "Interceptors", "Compute", CallSiteReceiverMode.Drop, DropSecondArgument );
+
+    /// <summary>
+    /// Verifies that an argument whose evaluation has no side effect can be dropped: a constant, and a field of <c>this</c>.
+    /// </summary>
+    [Fact]
+    public async Task RedirectInvocation_DroppedArgumentWithoutSideEffect_Accepted()
+        => await this.ExecuteAsync(
+            s =>
+            {
+                foreach ( var callSiteText in new[] { "Source.Two( 11, Constant )", "Source.Two( 13, _field )" } )
+                {
+                    var request = DropSecondArgument(
+                        s,
+                        new InvocationRedirectionRequest( s.Invocation( callSiteText ), s.Target( "Interceptors", "Compute" ), CallSiteReceiverMode.Drop ) );
+
+                    s.Factory.RedirectInvocation( s.Origin, request );
+
+                    Assert.True( s.Factory.IsRedirected( request.CallSite ) );
+                }
+            } );
+
+    [Fact]
+    public async Task RedirectInvocation_DirectiveInInvokedExpression_Throws()
+        => await this.ExecuteAsync(
+            s => Assert.Throws<ArgumentException>(
+                () => s.Factory.RedirectInvocation(
+                    s.Origin,
+                    new InvocationRedirectionRequest( s.InvocationWithArgument( "17" ), s.Target( "Interceptors", "Compute" ), CallSiteReceiverMode.Drop ) ) ) );
+
+    [Fact]
+    public async Task RedirectInvocation_DirectiveInPlannedArgumentList_Throws()
+        => await this.ExecuteAsync(
+            s => Assert.Throws<ArgumentException>(
+                () => s.Factory.RedirectInvocation(
+                    s.Origin,
+                    new InvocationRedirectionRequest( s.InvocationWithArgument( "18" ), s.Target( "Interceptors", "Two" ), CallSiteReceiverMode.Drop )
+                    {
+                        Arguments = ImmutableArray.Create( RedirectedArgument.SourceArgument( 0 ), RedirectedArgument.SourceArgument( 1 ) )
+                    } ) ) );
+
+    /// <summary>
+    /// Verifies that a directive in the argument list is kept when the arguments are not planned, because the linker keeps the argument list.
+    /// </summary>
+    [Fact]
+    public async Task RedirectInvocation_DirectiveInArgumentListWithoutPlan_Kept()
+    {
+        var result = await this.ExecuteAsync(
+            s => s.Factory.RedirectInvocation(
+                s.Origin,
+                new InvocationRedirectionRequest( s.InvocationWithArgument( "18" ), s.Target( "Interceptors", "Two" ), CallSiteReceiverMode.Drop ) ) );
+
+        var text = GetText( result );
+
+        Assert.Contains( "Interceptors.Two(18,", text.Replace( " ", "" ), StringComparison.Ordinal );
+        Assert.Equal( 3, CountOccurrences( text, "#if DEBUG" ) );
+    }
+
+    [Fact]
+    public async Task RedirectMethodReference_DirectiveInMethodGroup_Throws()
+        => await this.ExecuteAsync(
+            s => Assert.Throws<ArgumentException>(
+                () => s.Factory.RedirectMethodReference(
+                    s.Origin,
+                    new MethodReferenceRedirectionRequest(
+                        s.Node<MemberAccessExpressionSyntax>( null, n => n.ContainsDirectives && n.Parent.IsKind( SyntaxKind.EqualsValueClause ) ),
+                        s.Target( "Interceptors", "Compute" ),
+                        CallSiteReceiverMode.Drop ) ) ) );
+
+    /// <summary>
+    /// Verifies that the comments of the discarded parts of a call site are moved before the rewritten call site, that the comments of the reused
+    /// parts are kept, and that no comment is duplicated.
+    /// </summary>
+    [Fact]
+    public async Task Redirect_CommentsAreKeptOnce()
+    {
+        var result = await this.ExecuteAsync(
+            s =>
+            {
+                s.Factory.RedirectInvocation(
+                    s.Origin,
+                    new InvocationRedirectionRequest( s.InvocationWithArgument( "14" ), s.Target( "Interceptors", "Compute" ), CallSiteReceiverMode.Drop ) );
+
+                s.Factory.RedirectInvocation(
+                    s.Origin,
+                    new InvocationRedirectionRequest( s.InvocationWithArgument( "15" ), s.Target( "Interceptors", "Two" ), CallSiteReceiverMode.Drop )
+                    {
+                        Arguments = ImmutableArray.Create( RedirectedArgument.SourceArgument( 1 ).WithName( "a" ), RedirectedArgument.SourceArgument( 0 ).WithName( "b" ) )
+                    } );
+
+                s.Factory.RedirectMethodReference(
+                    s.Origin,
+                    new MethodReferenceRedirectionRequest(
+                        s.Node<MemberAccessExpressionSyntax>( "Source /* group */ . Compute" ),
+                        s.Target( "Interceptors", "Compute" ),
+                        CallSiteReceiverMode.Drop ) );
+            } );
+
+        var text = GetText( result );
+        var compactText = text.Replace( " ", "" );
+
+        Assert.Contains( "/*callee*/global::Interceptors.Compute(14)", compactText, StringComparison.Ordinal );
+        Assert.Contains( "g=/*group*/global::Interceptors.Compute;", compactText, StringComparison.Ordinal );
+
+        // The comment after the separator of the source arguments is moved before the call, because the planned arguments get new separators.
+        // The comment after the opening parenthesis is kept in place, because the parenthesis is kept.
+        var reorderedCallIndex = compactText.IndexOf( "global::Interceptors.Two(/*first*/b:15,a:16)", StringComparison.Ordinal );
+        Assert.True( reorderedCallIndex > 0 );
+        Assert.True( compactText.LastIndexOf( "//second", reorderedCallIndex, StringComparison.Ordinal ) > 0 );
+
+        foreach ( var comment in new[] { "/* callee */", "/* first */", "// second", "/* group */" } )
+        {
+            Assert.Equal( 1, CountOccurrences( text, comment ) );
+        }
+    }
 
     [Fact]
     public async Task ExtensionTemplateServices_MethodTemplateExists()
@@ -373,6 +530,27 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
                 Assert.False( ExtensionTemplateServices.MethodTemplateExists( serviceProvider, TemplateProvider.FromInstanceUnsafe( new object() ), "Template" ) );
                 Assert.False( ExtensionTemplateServices.MethodTemplateExists( serviceProvider, default, "Template" ) );
             } );
+
+    /// <summary>
+    /// Customizes a request so that it passes the first source argument and drops the second one.
+    /// </summary>
+    private static InvocationRedirectionRequest DropSecondArgument( ScriptContext s, InvocationRedirectionRequest r )
+        => new( r.CallSite, r.Target, r.ReceiverMode ) { Arguments = ImmutableArray.Create( RedirectedArgument.SourceArgument( 0 ) ) };
+
+    private static string GetText( CompileTimeAspectPipelineResult result )
+        => string.Concat( result.ResultingCompilation.SyntaxTreeCollection.SelectAsReadOnlyCollection( t => t.ToString() ) );
+
+    private static int CountOccurrences( string text, string value )
+    {
+        var count = 0;
+
+        for ( var index = text.IndexOf( value, StringComparison.Ordinal ); index >= 0; index = text.IndexOf( value, index + 1, StringComparison.Ordinal ) )
+        {
+            count++;
+        }
+
+        return count;
+    }
 
     private Task AssertInvocationRefusedAsync(
         string callSiteText,
@@ -441,17 +619,26 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
         public InvocationExpressionSyntax Invocation( string text ) => this.Node<InvocationExpressionSyntax>( text );
 
         /// <summary>
+        /// Gets the invocation whose first argument has the given text, for the invocations whose text spans several lines.
+        /// </summary>
+        public InvocationExpressionSyntax InvocationWithArgument( string firstArgument )
+            => this.Compilation.PartialCompilation.SyntaxTreeCollection
+                .SelectMany( t => t.GetRoot().DescendantNodes() )
+                .OfType<InvocationExpressionSyntax>()
+                .Single( n => n.ArgumentList.Arguments is [{ } argument, ..] && argument.Expression.ToString() == firstArgument );
+
+        /// <summary>
         /// Gets the method group <c>Source.Compute</c> that is converted to a delegate.
         /// </summary>
         public MemberAccessExpressionSyntax MethodGroup()
             => this.Node<MemberAccessExpressionSyntax>( "Source.Compute", n => n.Parent.IsKind( SyntaxKind.EqualsValueClause ) );
 
-        public T Node<T>( string text, Func<T, bool>? predicate = null )
+        public T Node<T>( string? text, Func<T, bool>? predicate = null )
             where T : SyntaxNode
             => this.Compilation.PartialCompilation.SyntaxTreeCollection
                 .SelectMany( t => t.GetRoot().DescendantNodes() )
                 .OfType<T>()
-                .Single( n => n.ToString() == text && (predicate == null || predicate( n )) );
+                .Single( n => (text == null || n.ToString() == text) && (predicate == null || predicate( n )) );
 
         public CallSiteRedirectionTarget Target( string typeName, string methodName )
             => CallSiteRedirectionTarget.Existing( this.Compilation.Types.OfName( typeName ).Single().Methods.OfName( methodName ).Single() );

@@ -57,7 +57,7 @@ public static class TestExtensionPointsExtensions
     /// <param name="options">The options of the redirection, or <c>null</c> for the default options.</param>
     public static void TestRedirectCalls<T>( this IAdviser<T> adviser, string methodName, IMethod replacement, TestRedirectionOptions? options = null )
         where T : class, IDeclaration
-        => GetService( adviser.Target.Compilation.Project ).RedirectCalls( adviser, methodName, replacement, options ?? new TestRedirectionOptions() );
+        => GetService( adviser.Compilation.Project ).RedirectCalls( adviser, methodName, replacement, options ?? new TestRedirectionOptions() );
 
     /// <summary>
     /// Redirects the source calls to the methods of a given name, inside the declarations selected by a query, to another method. This verb is
