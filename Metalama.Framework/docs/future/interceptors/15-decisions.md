@@ -68,10 +68,10 @@ The engine of M1 implements the compile-time run of section 9.5 for existing sta
 
 - A registration made through an adviser is converted to a query of the adviser target, created by the adviser context. The containment check of section 9.4.3 is made at registration, and LAMA1000 is reported by `ExecuteContributorsAsync`.
 - The engine returns no declaration roots to the shared index. The names of the registrations already restrict the binding to the bodies that contain them.
-- The speculative binding of the rewritten call (rule E16) is not implemented. The rewrite writes the arguments by name, so an overload of the interceptor with the same parameter names is the only case that E16 would detect.
+- The speculative binding of the rewritten call (rule E16) is made by the factory of transformations, as described above for M0. A refusal is reported with LAMA1013.
 - A by-value argument whose natural type differs from the type of the parameter of the target, and whose parameter of the interceptor has another type than that parameter, is cast to the type of the parameter of the target (rule E10), with `RedirectedArgument.WithCast`. A target-typed argument is still refused in that case, as E10 requires.
 - A dropped argument with side effects (PO72) is evaluated into a discard by the factory of transformations, with the switch-expression forms described above for M0. When the factory refuses the request, for instance because the dropped argument is passed by reference, the engine reports the refusal with LAMA1013.
-- The arguments are rearranged only when the binding requires it: an argument is dropped, or a positional argument would not bind to the parameter of the same name. A call that passes the elements of a `params` collection cannot be rearranged.
+- The arguments are rearranged only when the binding requires it: an argument is dropped, or a positional argument would not bind to the parameter of the same name. When a call that passes the elements of a `params` parameter in expanded form is rearranged, the factory packs the elements into one collection.
 - Instance interceptors (rules R2 to R4), placements, templates, accessors and awaits come with the later milestones.
 
 ### 15.1 Top decisions
