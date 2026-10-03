@@ -95,6 +95,10 @@ public static class TestExtensionPointsExtensions
     public static IExpression TestGetInspectionOnlyInitializer( this IFieldOrProperty fieldOrProperty )
         => GetService( fieldOrProperty.Compilation.Project ).GetInspectionOnlyInitializer( fieldOrProperty );
 
+    /// <summary>
+    /// Returns the <see cref="ITestRegistrationService"/> of a project.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">The test extension of the extension points is not loaded.</exception>
     private static ITestRegistrationService GetService( IProject project )
         => project.ServiceProvider.GetService<ITestRegistrationService>()
            ?? throw new InvalidOperationException( "The test extension of the extension points is not loaded." );

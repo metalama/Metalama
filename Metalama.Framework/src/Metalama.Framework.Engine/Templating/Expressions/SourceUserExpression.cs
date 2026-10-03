@@ -18,6 +18,15 @@ namespace Metalama.Framework.Engine.Templating.Expressions;
 
 internal sealed class SourceUserExpression : SyntaxUserExpression, ISourceExpression, IContextlessExpression
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SourceUserExpression"/> class.
+    /// </summary>
+    /// <param name="expression">The source syntax of the expression.</param>
+    /// <param name="type">The type of the expression.</param>
+    /// <param name="isReferenceable">A value indicating whether the expression can be used in <c>ref</c> or <c>out</c> situations.</param>
+    /// <param name="isAssignable">A value indicating whether the expression can be assigned. It is ignored when <paramref name="isInspectionOnly"/>
+    /// is <c>true</c>.</param>
+    /// <param name="isInspectionOnly">A value indicating whether the expression can only be inspected by compile-time code.</param>
     public SourceUserExpression(
         ExpressionSyntax expression,
         IType type,
@@ -51,6 +60,9 @@ internal sealed class SourceUserExpression : SyntaxUserExpression, ISourceExpres
         return this.Expression;
     }
 
+    /// <summary>
+    /// Throws a <see cref="DiagnosticException"/> that reports LAMA0297 when the expression is only available for inspection.
+    /// </summary>
     private void ThrowIfInspectionOnly()
     {
         if ( this.IsInspectionOnly )
@@ -101,7 +113,9 @@ internal sealed class SourceUserExpression : SyntaxUserExpression, ISourceExpres
         if ( expressionKind.IsLiteralExpression )
         {
             var literal = (LiteralExpressionSyntax) expression;
-            var value = literal.Token.Value;
+
+            // The value of the token of the default literal is the text of the keyword, so the literal is processed as the null literal.
+            var value = expressionKind == SyntaxKind.DefaultLiteralExpression ? null : literal.Token.Value;
 
             if ( value != null )
             {

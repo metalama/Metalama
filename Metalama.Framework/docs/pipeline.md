@@ -38,6 +38,17 @@ AspectPipeline.ExecuteAsync():
       → AspectPipelineResult (feeds into next stage)
 ```
 
+### Extension hooks of a high-level stage
+
+After the aspect layers of a high-level stage have executed, `LinkerPipelineStage` (compile time) and `DesignTimePipelineStage` (design time) give the extension contributors of the stage to the pipeline extensions, in this order:
+
+1. The stage starts a `SourceReferenceIndexStage`, from the requirements that each extension returns from `GetSourceIndexRequirements`. The index covers the source compilation of the pipeline, also after a low-level weaver, and it is built lazily, at most once per stage.
+2. At compile time, `ExecutePipelineContributorsAsync` runs the validators. At design time, `ExecuteDesignTimePipelineContributorsAsync` receives a `DesignTimeContributorsContext`, whose `NewContributors` are all the contributors in the first stage and only the contributors added in the stage afterwards.
+3. In every pipeline that runs the linker, which excludes the design-time pipeline, `ExecuteTransformingContributorsAsync` receives an `ExtensionTransformationContext`, whose factory of transformations collects the redirections of call sites (see `linker-callsite.md`). `IsSourceStage` is true only in the first high-level stage, before any low-level weaver.
+4. The linker applies the transformations of the aspects and the redirections of the extensions.
+
+The contributors of fabrics and of transitive aspects are replayed in every high-level stage, so `PipelineStepsResult.ExtensionContributors` contains them in every stage, while `ExtensionContributorsAddedInStage` contains only the contributors that the aspects of the stage added. `HighLevelPipelineStage.HighLevelStageIndex` is the zero-based index of the stage among the high-level stages. The design-time pipeline accumulates the results of all the stages: the transitive contributors, the inheritable aspects, the transformations and the diagnostics.
+
 ## Level 2: Aspect Layers
 
 Within a `HighLevelPipelineStage`, processing is orchestrated by `PipelineStepsState`, which manages a `SkipListDictionary<PipelineStepId, PipelineStep>`.
@@ -258,3 +269,7 @@ This replay is necessary because the mutable compilations used during execution 
 | `Aspects/AspectDriver.cs` | Executes single aspect: creates AdviceFactoryState |
 | `Aspects/AspectBuilder.cs` | `IAspectBuilder`: exposes `Target` (initial) and `AdvisedTarget` (mutable) |
 | `Transformations/TransformationObservability.cs` | `Always`, `CompileTimeOnly`, `None` |
+| `Pipeline/CompileTime/LinkerPipelineStage.cs` | Runs the extension hooks of a high-level stage, then the linker |
+| `Pipeline/DesignTime/DesignTimePipelineStage.cs` | Runs the design-time extension hook of a high-level stage and accumulates the results |
+| `ReferenceGraph/SourceReferenceIndexStage.cs` | The shared index of the source references of one stage |
+| `Extensibility/ExtensionTransformationContext.cs` | The context of the transforming hook |

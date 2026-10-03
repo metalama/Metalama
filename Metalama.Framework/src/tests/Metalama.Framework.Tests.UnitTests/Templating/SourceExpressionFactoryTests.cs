@@ -27,8 +27,15 @@ namespace Metalama.Framework.Tests.UnitTests.Templating;
 /// </summary>
 public sealed class SourceExpressionFactoryTests : UnitTestClass
 {
+    /// <summary>
+    /// The options of syntax generation that the tests use to serialize an expression.
+    /// </summary>
     private static readonly SyntaxGenerationOptions _syntaxGenerationOptions = new( CodeFormattingOptions.Default );
 
+    /// <summary>
+    /// The code of most tests: fields whose initializers are a constant, an enumeration member, a sum, <c>null</c> and <c>default</c>, a property and
+    /// an event with initializers, and a method with a parameter.
+    /// </summary>
     private const string _code = """
                                  enum Color { Red, Green }
 
@@ -37,11 +44,20 @@ public sealed class SourceExpressionFactoryTests : UnitTestClass
                                      int _number = 42;
                                      Color _color = Color.Green;
                                      int _sum = 1 + 2;
+                                     object? _null = null;
+                                     int _default = default;
+
+                                     int P { get; } = 7;
+                                     event System.Action? E = null;
 
                                      void M( int p ) { }
                                  }
                                  """;
 
+    /// <summary>
+    /// Verifies that an inspection-only expression has the given type, that it gives the value of a constant initializer, including an enumeration
+    /// member, and that a non-constant initializer has no constant value but has its source text.
+    /// </summary>
     [Fact]
     public void CreateInspectionOnly_TypeAndConstant()
     {
@@ -59,6 +75,77 @@ public sealed class SourceExpressionFactoryTests : UnitTestClass
         Assert.Equal( "1 + 2", sum.AsString );
     }
 
+    /// <summary>
+    /// Verifies that the <c>null</c> and <c>default</c> literals give the default constant of the type of the expression.
+    /// </summary>
+    [Fact]
+    public void CreateInspectionOnly_NullAndDefault_AsTypedConstant()
+    {
+        using var testContext = this.CreateTestContext();
+        var compilation = testContext.CreateCompilationModel( _code );
+
+        var nullExpression = SourceExpressionFactory.CreateInspectionOnly( GetInitializer( compilation, "_null" ), GetFieldType( compilation, "_null" ) );
+
+        var defaultExpression = SourceExpressionFactory.CreateInspectionOnly(
+            GetInitializer( compilation, "_default" ),
+            GetFieldType( compilation, "_default" ) );
+
+        var nullConstant = nullExpression.AsTypedConstant;
+        var defaultConstant = defaultExpression.AsTypedConstant;
+
+        Assert.NotNull( nullConstant );
+        Assert.Null( nullConstant.Value.Value );
+        Assert.Equal( SpecialType.Object, nullConstant.Value.Type.SpecialType );
+
+        Assert.NotNull( defaultConstant );
+        Assert.Equal( SpecialType.Int32, defaultConstant.Value.Type.SpecialType );
+    }
+
+    /// <summary>
+    /// Verifies that the textual representation of the expression, which a debugger or a log message uses, does not report LAMA0297.
+    /// </summary>
+    [Fact]
+    public void CreateInspectionOnly_ToString_DoesNotThrow()
+    {
+        using var testContext = this.CreateTestContext();
+        var compilation = testContext.CreateCompilationModel( _code );
+
+        var expression = SourceExpressionFactory.CreateInspectionOnly( GetInitializer( compilation, "_sum" ), GetFieldType( compilation, "_sum" ) );
+
+        Assert.Equal( "1 + 2", expression.ToString() );
+    }
+
+    /// <summary>
+    /// Verifies that the guard of the syntax tree accepts an expression of a syntax tree that a partial compilation does not include, because the
+    /// tree belongs to the Roslyn compilation of the type, which has a semantic model for it.
+    /// </summary>
+    [Fact]
+    public void CreateInspectionOnly_PartialCompilation_AcceptsTreeOfRoslynCompilation()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var roslynCompilation = testContext.CreateCSharpCompilation(
+            new System.Collections.Generic.Dictionary<string, string> { ["A.cs"] = "class A { int _a = 1; }", ["B.cs"] = "class B { int _b = 2; }" } );
+
+        var partialCompilation = PartialCompilation.CreatePartial( roslynCompilation, roslynCompilation.SyntaxTrees.Single( t => t.FilePath == "A.cs" ) );
+        var compilation = CompilationModel.CreateInitialInstance( new ProjectModel( roslynCompilation, testContext.ServiceProvider ), partialCompilation );
+
+        var initializerOfB = roslynCompilation.SyntaxTrees.Single( t => t.FilePath == "B.cs" )
+            .GetRoot( TestContext.Current.CancellationToken )
+            .DescendantNodes()
+            .OfType<VariableDeclaratorSyntax>()
+            .Single()
+            .Initializer!.Value;
+
+        var expression = SourceExpressionFactory.CreateInspectionOnly( initializerOfB, compilation.Factory.GetSpecialType( SpecialType.Int32 ) );
+
+        Assert.Equal( 2, expression.AsTypedConstant!.Value.Value );
+    }
+
+    /// <summary>
+    /// Verifies that the syntax node of an inspection-only expression, given by <c>AsSyntaxNode</c> and by
+    /// <see cref="SourceExpressionExtensions.GetSourceSyntax"/>, is the source node.
+    /// </summary>
     [Fact]
     public void CreateInspectionOnly_AsSyntaxNodeIsSourceNode()
     {
@@ -72,6 +159,9 @@ public sealed class SourceExpressionFactoryTests : UnitTestClass
         Assert.Same( syntax, expression.GetSourceSyntax() );
     }
 
+    /// <summary>
+    /// Verifies that an inspection-only expression is not assignable.
+    /// </summary>
     [Fact]
     public void CreateInspectionOnly_IsNotAssignable()
     {
@@ -130,6 +220,9 @@ public sealed class SourceExpressionFactoryTests : UnitTestClass
         }
     }
 
+    /// <summary>
+    /// Verifies that an expression whose syntax tree does not belong to the compilation is refused with an <see cref="ArgumentException"/>.
+    /// </summary>
     [Fact]
     public void CreateInspectionOnly_ForeignSyntaxTree_Throws()
     {
@@ -140,6 +233,9 @@ public sealed class SourceExpressionFactoryTests : UnitTestClass
             () => SourceExpressionFactory.CreateInspectionOnly( SyntaxFactory.ParseExpression( "42" ), GetFieldType( compilation, "_number" ) ) );
     }
 
+    /// <summary>
+    /// Verifies that the source syntax of the initializer of a field is the source node of the initializer.
+    /// </summary>
     [Fact]
     public void GetSourceSyntax_FieldInitializer_ReturnsSourceNode()
     {
@@ -150,6 +246,28 @@ public sealed class SourceExpressionFactoryTests : UnitTestClass
         Assert.Same( GetInitializer( compilation, "_number" ), field.InitializerExpression.AssertNotNull().GetSourceSyntax() );
     }
 
+    /// <summary>
+    /// Verifies that the source syntax of the initializer of a property and of an event field is the expression of the initializer.
+    /// </summary>
+    [Fact]
+    public void GetSourceSyntax_PropertyAndEventInitializers_ReturnSourceNode()
+    {
+        using var testContext = this.CreateTestContext();
+        var compilation = testContext.CreateCompilationModel( _code );
+        var type = compilation.Types.OfName( "C" ).Single();
+
+        var propertySyntax = type.Properties.OfName( "P" ).Single().InitializerExpression.AssertNotNull().GetSourceSyntax();
+        var eventSyntax = type.Events.OfName( "E" ).Single().InitializerExpression.AssertNotNull().GetSourceSyntax();
+
+        Assert.Equal( "7", propertySyntax?.ToString() );
+        Assert.IsType<PropertyDeclarationSyntax>( propertySyntax?.Parent?.Parent );
+        Assert.Equal( "null", eventSyntax?.ToString() );
+        Assert.IsType<VariableDeclaratorSyntax>( eventSyntax?.Parent?.Parent );
+    }
+
+    /// <summary>
+    /// Verifies that <see cref="SourceExpressionExtensions.GetSourceSyntax"/> returns <c>null</c> for a parameter.
+    /// </summary>
     [Fact]
     public void GetSourceSyntax_Parameter_ReturnsNull()
     {
@@ -160,6 +278,9 @@ public sealed class SourceExpressionFactoryTests : UnitTestClass
         Assert.Null( parameter.GetSourceSyntax() );
     }
 
+    /// <summary>
+    /// Verifies that <see cref="SourceExpressionExtensions.GetSourceSyntax"/> returns <c>null</c> for a typed constant.
+    /// </summary>
     [Fact]
     public void GetSourceSyntax_TypedConstant_ReturnsNull()
     {
@@ -169,6 +290,10 @@ public sealed class SourceExpressionFactoryTests : UnitTestClass
         Assert.Null( TypedConstant.Create( 1, compilation.Factory.GetSpecialType( SpecialType.Int32 ) ).GetSourceSyntax() );
     }
 
+    /// <summary>
+    /// Verifies that <see cref="SourceExpressionExtensions.GetSourceSyntax"/> returns <c>null</c> for an expression built by
+    /// <see cref="ExpressionFactory"/>.
+    /// </summary>
     [Fact]
     public void GetSourceSyntax_BuiltExpression_ReturnsNull()
     {
@@ -181,6 +306,9 @@ public sealed class SourceExpressionFactoryTests : UnitTestClass
         }
     }
 
+    /// <summary>
+    /// Returns the initializer expression of the variable declarator of the given name.
+    /// </summary>
     private static ExpressionSyntax GetInitializer( CompilationModel compilation, string fieldName )
         => compilation.RoslynCompilation.SyntaxTrees
             .SelectMany( t => t.GetRoot().DescendantNodes() )
@@ -188,6 +316,9 @@ public sealed class SourceExpressionFactoryTests : UnitTestClass
             .Single( v => v.Identifier.Text == fieldName )
             .Initializer!.Value;
 
+    /// <summary>
+    /// Returns the type of a field of the type <c>C</c>.
+    /// </summary>
     private static IType GetFieldType( CompilationModel compilation, string fieldName )
         => compilation.Types.OfName( "C" ).Single().Fields.OfName( fieldName ).Single().Type;
 }
