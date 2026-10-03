@@ -7,6 +7,7 @@ using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Pipeline;
+using Metalama.Framework.Engine.ReferenceGraph;
 using Metalama.Framework.Utilities;
 using Microsoft.CodeAnalysis;
 using System.Collections.Generic;
@@ -67,6 +68,17 @@ public abstract class PipelineExtension
         CompilationModel finalCompilation,
         CancellationToken cancellationToken )
         => Task.FromResult( ExtensionPipelineContributorsResult.Empty );
+
+    /// <summary>
+    /// Returns the requirements of the extension for the index of the references of the source compilation of the current high-level stage.
+    /// The method is invoked once per stage, on every extension, before <see cref="ExecutePipelineContributorsAsync"/>.
+    /// </summary>
+    /// <remarks>
+    /// The requirements of all extensions are merged, and the index is built at most once per stage, when an extension first reads it through
+    /// <see cref="ExtensionTransformationContext.SourceReferenceIndex"/>. An extension that returns no requirement can still read the index, but
+    /// the index then contains only the references that other extensions requested.
+    /// </remarks>
+    public virtual SourceIndexRequirements GetSourceIndexRequirements( SourceIndexRequirementsContext context ) => SourceIndexRequirements.None;
 
     /// <summary>
     /// Executes the contributors that produce code transformations. The method is invoked once at the end of every high-level pipeline stage

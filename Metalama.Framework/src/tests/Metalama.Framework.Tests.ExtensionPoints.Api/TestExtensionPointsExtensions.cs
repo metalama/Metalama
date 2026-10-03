@@ -36,6 +36,17 @@ public static class TestExtensionPointsExtensions
         where T : class, IDeclaration
         => GetService( query.Project ).Register( query, tag );
 
+    /// <summary>
+    /// Requests the references to the methods of a given name from the shared index of source references. The test extension reports a warning
+    /// for each reference that it reads from the index.
+    /// </summary>
+    /// <param name="adviser">The adviser.</param>
+    /// <param name="methodName">The name of the referenced methods.</param>
+    /// <param name="restrictToTarget"><c>true</c> to give the target of the adviser as the only declaration root of the index.</param>
+    public static void TestReportReferences<T>( this IAdviser<T> adviser, string methodName, bool restrictToTarget = false )
+        where T : class, IDeclaration
+        => GetService( adviser.Compilation.Project ).ReportReferences( adviser, methodName, restrictToTarget );
+
     private static ITestRegistrationService GetService( IProject project )
         => project.ServiceProvider.GetService<ITestRegistrationService>()
            ?? throw new InvalidOperationException( "The test extension of the extension points is not loaded." );

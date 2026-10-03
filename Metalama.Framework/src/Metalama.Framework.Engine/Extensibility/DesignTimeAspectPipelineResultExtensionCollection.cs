@@ -7,6 +7,7 @@ using Metalama.Framework.Code.Collections;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.Collections;
 using Metalama.Framework.Engine.ReferenceGraph;
+using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using System.Collections.Generic;
@@ -33,6 +34,24 @@ public sealed class DesignTimeAspectPipelineResultExtensionCollection
             ImmutableArray<DesignTimeAspectPipelineResultExtensionCollection>.Empty );
 
     public ReferenceIndexerOptions Options { get; }
+
+    /// <summary>
+    /// Gets the options of the design-time index of the references of the analyzed file: <see cref="Options"/>, plus the requirements of the
+    /// extensions of this project that implement <see cref="IDesignTimeReferenceIndexRequirementsProvider"/>.
+    /// </summary>
+    /// <remarks>
+    /// The requirements of <see cref="IDesignTimeReferenceIndexRequirementsProvider"/> are project-local: they are not part of <see cref="Options"/>, which
+    /// referencing projects merge.
+    /// </remarks>
+    [Memo]
+    public ReferenceIndexerOptions IndexOptions
+        => new(
+            new[]
+            {
+                this.Options,
+                new ReferenceIndexerOptions(
+                    this.Extensions.OfType<IDesignTimeReferenceIndexRequirementsProvider>().SelectMany( p => p.ReferenceIndexerRequirements ) )
+            } );
 
     public ImmutableArray<IDesignTimePipelineResultExtension> Extensions { get; }
 

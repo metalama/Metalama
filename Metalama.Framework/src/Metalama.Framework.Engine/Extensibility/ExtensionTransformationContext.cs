@@ -6,6 +6,7 @@ using JetBrains.Annotations;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Pipeline;
+using Metalama.Framework.Engine.ReferenceGraph;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities;
 using System;
@@ -31,8 +32,10 @@ public sealed class ExtensionTransformationContext
         CompilationModel stageInitialCompilation,
         CompilationModel stageFinalCompilation,
         int highLevelStageIndex,
-        UserDiagnosticSink diagnostics )
+        UserDiagnosticSink diagnostics,
+        SourceReferenceIndexStage sourceReferenceIndex )
     {
+        this.SourceReferenceIndex = sourceReferenceIndex;
         this.PipelineConfiguration = pipelineConfiguration;
         this.Contributors = contributors;
         this.ContributorsAddedInStage = contributorsAddedInStage;
@@ -124,4 +127,10 @@ public sealed class ExtensionTransformationContext
     /// Gets the sink for the diagnostics and suppressions of the extensions.
     /// </summary>
     public UserDiagnosticSink Diagnostics { get; }
+
+    /// <summary>
+    /// Gets the index of the references of the source compilation for this stage, which is shared by all extensions and built from the
+    /// requirements that they returned from <see cref="PipelineExtension.GetSourceIndexRequirements"/>.
+    /// </summary>
+    public SourceReferenceIndexStage SourceReferenceIndex { get; }
 }

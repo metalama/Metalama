@@ -36,11 +36,20 @@ public sealed class ReferenceIndexerOptions
     private readonly ReferenceKinds _kindsRequiringDescentIntoReferencedAssembly;
     private readonly ReferenceKinds _kindsSupportingIdentifierFiltering = ReferenceKinds.All;
     private readonly ReferenceKinds _allReferenceKinds;
-    private readonly ImmutableHashSet<string> _filteredIdentifiers;
+
+    /// <summary>
+    /// The identifiers admitted for each reference kind, indexed by the position of the bit of the kind. A kind that has no element admits no
+    /// identifier when it is filtered.
+    /// </summary>
+    /// <remarks>
+    /// The identifiers are kept per kind so that a name that one consumer requests for a kind does not admit references of other kinds, which
+    /// matters when the options of several consumers are merged.
+    /// </remarks>
+    private readonly ImmutableHashSet<string>?[] _filteredIdentifiersByKind;
 
     public ReferenceIndexerOptions( IEnumerable<ReferenceIndexerRequirements> requirements )
     {
-        var filteredIdentifiers = ImmutableHashSet.CreateBuilder<string>();
+        var filteredIdentifiers = new ImmutableHashSet<string>.Builder?[_kindBitCount];
 
         foreach ( var validator in requirements )
         {
@@ -121,17 +130,32 @@ public sealed class ReferenceIndexerOptions
 
                 if ( identifier != null )
                 {
-                    filteredIdentifiers.Add( identifier );
+                    foreach ( var bit in GetBits( validatorReferenceKinds ) )
+                    {
+                        (filteredIdentifiers[bit] ??= ImmutableHashSet.CreateBuilder<string>()).Add( identifier );
+                    }
                 }
             }
         }
 
-        this._filteredIdentifiers = filteredIdentifiers.ToImmutable();
+        this._filteredIdentifiersByKind = new ImmutableHashSet<string>?[_kindBitCount];
+
+        for ( var bit = 0; bit < _kindBitCount; bit++ )
+        {
+            this._filteredIdentifiersByKind[bit] = filteredIdentifiers[bit]?.ToImmutable();
+        }
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ReferenceIndexerOptions"/> class that merges the options of several consumers.
+    /// </summary>
+    /// <remarks>
+    /// The identifiers of each kind are the union of the identifiers that the consumers admit for that kind. A kind is filtered only when it is
+    /// filtered by every consumer.
+    /// </remarks>
     internal ReferenceIndexerOptions( IEnumerable<ReferenceIndexerOptions>? childIndexerOptions )
     {
-        this._filteredIdentifiers = ImmutableHashSet<string>.Empty;
+        this._filteredIdentifiersByKind = new ImmutableHashSet<string>?[_kindBitCount];
 
         if ( childIndexerOptions != null )
         {
@@ -146,7 +170,37 @@ public sealed class ReferenceIndexerOptions
                 this._kindsRequiringDescentIntoReferencedDeclaringType |= child._kindsRequiringDescentIntoReferencedDeclaringType;
                 this._kindsRequiringDescentIntoBaseTypes |= child._kindsRequiringDescentIntoBaseTypes;
                 this._kindsSupportingIdentifierFiltering &= child._kindsSupportingIdentifierFiltering;
-                this._filteredIdentifiers = this._filteredIdentifiers.Union( child._filteredIdentifiers );
+
+                for ( var bit = 0; bit < _kindBitCount; bit++ )
+                {
+                    var childIdentifiers = child._filteredIdentifiersByKind[bit];
+
+                    if ( childIdentifiers != null )
+                    {
+                        this._filteredIdentifiersByKind[bit] = this._filteredIdentifiersByKind[bit]?.Union( childIdentifiers ) ?? childIdentifiers;
+                    }
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// The number of bits of the underlying type of <see cref="ReferenceKinds"/>, which is also the length of the arrays indexed by the bit of a kind.
+    /// </summary>
+    private const int _kindBitCount = 64;
+
+    /// <summary>
+    /// Returns the zero-based positions of the bits that are set in a combination of <see cref="ReferenceKinds"/>.
+    /// </summary>
+    private static IEnumerable<int> GetBits( ReferenceKinds kinds )
+    {
+        var value = (ulong) kinds;
+
+        for ( var bit = 0; value != 0; bit++, value >>= 1 )
+        {
+            if ( (value & 1) != 0 )
+            {
+                yield return bit;
             }
         }
     }
@@ -160,7 +214,7 @@ public sealed class ReferenceIndexerOptions
         ReferenceKinds kindsRequiringDescentIntoReferencedAssembly,
         ReferenceKinds kindsSupportingIdentifierFiltering,
         ReferenceKinds allReferenceKinds,
-        ImmutableHashSet<string> filteredIdentifiers )
+        ImmutableHashSet<string>?[] filteredIdentifiersByKind )
     {
         this._mustDescendIntoMembers = mustDescendIntoMembers;
         this._kindsRequiringDescentIntoBaseTypes = kindsRequiringDescentIntoBaseTypes;
@@ -170,7 +224,7 @@ public sealed class ReferenceIndexerOptions
         this._kindsRequiringDescentIntoReferencedAssembly = kindsRequiringDescentIntoReferencedAssembly;
         this._kindsSupportingIdentifierFiltering = kindsSupportingIdentifierFiltering;
         this._allReferenceKinds = allReferenceKinds;
-        this._filteredIdentifiers = filteredIdentifiers;
+        this._filteredIdentifiersByKind = filteredIdentifiersByKind;
     }
 
     internal static ReferenceIndexerOptions All
@@ -183,7 +237,7 @@ public sealed class ReferenceIndexerOptions
             ReferenceKinds.All,
             ReferenceKinds.None,
             ReferenceKinds.All,
-            ImmutableHashSet<string>.Empty );
+            new ImmutableHashSet<string>?[_kindBitCount] );
 
     internal static ReferenceIndexerOptions Empty { get; } = new( ImmutableArray<ReferenceIndexerRequirements>.Empty );
 
@@ -201,13 +255,26 @@ public sealed class ReferenceIndexerOptions
             return false;
         }
 
-        if ( !identifier.IsKind( SyntaxKind.None ) && (this._kindsSupportingIdentifierFiltering & kind) != 0 )
+        var filteredKinds = this._kindsSupportingIdentifierFiltering & kind;
+
+        if ( !identifier.IsKind( SyntaxKind.None ) && filteredKinds != 0 )
         {
             var identifierText = identifier.ValueText;
 
             if ( identifierText != "var" )
             {
-                return this._filteredIdentifiers.Contains( identifierText );
+                // The loop is written without an iterator because this method is called for every identifier of the walked code.
+                var bits = (ulong) filteredKinds;
+
+                for ( var bit = 0; bits != 0; bit++, bits >>= 1 )
+                {
+                    if ( (bits & 1) != 0 && this._filteredIdentifiersByKind[bit]?.Contains( identifierText ) == true )
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
             }
         }
 

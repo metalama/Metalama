@@ -9,6 +9,7 @@ using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Linking;
 using Metalama.Framework.Engine.Options;
+using Metalama.Framework.Engine.ReferenceGraph;
 using Metalama.Framework.Engine.Pipeline.DesignTime;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.Threading;
@@ -44,6 +45,14 @@ namespace Metalama.Framework.Engine.Pipeline.CompileTime
             var extensions = pipelineConfiguration.ServiceProvider.GetRequiredService<PipelineExtensionProvider>().Extensions;
             var pipelineContributorsResult = ExtensionPipelineContributorsResult.Empty;
 
+            // Start the stage of the index of the references of the source compilation, which the extensions share.
+            var sourceIndexRequirementsContext = new SourceIndexRequirementsContext( pipelineStepsResult.ExtensionContributors, this.HighLevelStageIndex );
+
+            using var sourceReferenceIndex = SourceReferenceIndexService.BeginStage(
+                pipelineConfiguration.ServiceProvider,
+                input.FirstCompilationModel.AssertNotNull(),
+                extensions.Select( e => e.GetSourceIndexRequirements( sourceIndexRequirementsContext ) ).ToList() );
+
             foreach ( var extension in extensions )
             {
                 pipelineContributorsResult = pipelineContributorsResult.Concat(
@@ -66,7 +75,8 @@ namespace Metalama.Framework.Engine.Pipeline.CompileTime
                 initialCompilation,
                 finalCompilation,
                 this.HighLevelStageIndex,
-                extensionDiagnostics );
+                extensionDiagnostics,
+                sourceReferenceIndex );
 
             foreach ( var extension in extensions )
             {

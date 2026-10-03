@@ -5,9 +5,13 @@
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Advising;
+using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Queries;
 using Metalama.Framework.Fabrics;
+using Microsoft.CodeAnalysis;
+using System.Collections.Immutable;
+using System.Linq;
 
 namespace Metalama.Framework.Tests.ExtensionPoints.Engine;
 
@@ -30,6 +34,19 @@ internal sealed class TestRegistrationService : ITestRegistrationService
         }
 
         context.Owner.AddContributor( new TestRegistration( tag, context.CaptureOrigin(), adviser.Target.ToRef(), "adviser", templateProviderMatches ) );
+    }
+
+    public void ReportReferences<T>( IAdviser<T> adviser, string methodName, bool restrictToTarget )
+        where T : class, IDeclaration
+    {
+        var context = adviser.GetExtensionContext();
+        context.ThrowIfDisposed();
+
+        ImmutableArray<SyntaxNode>? roots = restrictToTarget
+            ? adviser.Target.Sources.Select( s => s.SyntaxNodeOrToken().AsNode() ).OfType<SyntaxNode>().ToImmutableArray()
+            : null;
+
+        context.Owner.AddContributor( new TestReferenceReport( methodName, roots ) );
     }
 
     public void Register<T>( IQuery<T> query, string tag )
