@@ -164,8 +164,22 @@ public sealed class ExtensionTransformationFactory
             throw new ArgumentException( $"A result cast cannot be written inside the conditional access of '{callSite}'.", nameof(request) );
         }
 
+        // The rewrite discards the invoked expression, except the receiver, and the separators of the argument list when the arguments are
+        // planned. A directive in a discarded part would leave the directives of the file unbalanced.
+        if ( CallSiteRedirection.HasDirectiveInInnerTrivia( callSite, callSite.Expression ) )
+        {
+            throw new ArgumentException( $"The invoked expression of '{callSite}' contains a preprocessor directive.", nameof(request) );
+        }
+
         if ( !request.Arguments.IsDefault )
         {
+            if ( CallSiteRedirection.HasDirectiveInInnerTrivia( callSite, callSite.ArgumentList ) )
+            {
+                throw new ArgumentException(
+                    $"The argument list of '{callSite}' contains a preprocessor directive, so its arguments cannot be rearranged.",
+                    nameof(request) );
+            }
+
             argumentPlan = CreateArgumentPlan( request, operation, isReducedExtensionCall, hasReceiverValue );
         }
 
@@ -204,15 +218,7 @@ public sealed class ExtensionTransformationFactory
     public void RedirectMethodReference( ExtensionContributionOrigin origin, MethodReferenceRedirectionRequest request )
     {
         var annotation = this.GetGeneratedCodeAnnotation( origin );
-        var node = request.MethodReference;
-
-        // A simple name that is the name of a member access designates the member access.
-        if ( node.Parent.IsKind( SyntaxKind.SimpleMemberAccessExpression ) && node.Parent is MemberAccessExpressionSyntax parentMemberAccess
-                                                                       && parentMemberAccess.Name == node )
-        {
-            node = parentMemberAccess;
-        }
-
+        var node = NormalizeNode( request.MethodReference );
         var semanticModel = this.GetSemanticModel( node );
 
         if ( semanticModel.GetOperation( node ) is not IMethodReferenceOperation { Method: { } sourceMethod } operation
@@ -236,6 +242,12 @@ public sealed class ExtensionTransformationFactory
             throw new ArgumentException( $"The target method '{request.Target.Method}' must be static.", nameof(request) );
         }
 
+        // The rewrite replaces the whole method group, so a directive inside it would leave the directives of the file unbalanced.
+        if ( CallSiteRedirection.HasDirectiveInInnerTrivia( node ) )
+        {
+            throw new ArgumentException( $"The method group '{node}' contains a preprocessor directive.", nameof(request) );
+        }
+
         var context = this._compilation.CompilationContext.GetSyntaxGenerationContext( this._syntaxGenerationOptions, node );
         var callee = CreateStaticCallee( request.Target, request.TypeArguments, context ).WithAdditionalAnnotations( annotation );
 
@@ -256,13 +268,27 @@ public sealed class ExtensionTransformationFactory
     /// <summary>
     /// Determines whether a redirection was already requested for a call site or a method group.
     /// </summary>
+    /// <remarks>
+    /// As in <see cref="RedirectMethodReference"/>, a simple name that is the name of a member access designates the member access.
+    /// </remarks>
     public bool IsRedirected( ExpressionSyntax callSite )
     {
+        var node = NormalizeNode( callSite );
+
         lock ( this._sync )
         {
-            return this._redirections.TryGetValue( callSite.SyntaxTree, out var redirections ) && redirections.ContainsKey( callSite );
+            return this._redirections.TryGetValue( node.SyntaxTree, out var redirections ) && redirections.ContainsKey( node );
         }
     }
+
+    /// <summary>
+    /// Returns the member access of which a node is the name, or the node itself.
+    /// </summary>
+    private static ExpressionSyntax NormalizeNode( ExpressionSyntax node )
+        => node.Parent.IsKind( SyntaxKind.SimpleMemberAccessExpression ) && node.Parent is MemberAccessExpressionSyntax parentMemberAccess
+                                                                       && parentMemberAccess.Name == node
+            ? parentMemberAccess
+            : node;
 
     /// <summary>
     /// Freezes the factory and returns the linker input. Called by the pipeline stage after all extensions.
@@ -480,7 +506,7 @@ public sealed class ExtensionTransformationFactory
 
             var argument = sourceArgumentSyntaxes[i];
 
-            if ( !argument.RefKindKeyword.IsKind( SyntaxKind.None ) || !IsWithoutSideEffect( argument.Expression ) )
+            if ( !argument.RefKindKeyword.IsKind( SyntaxKind.None ) || !IsWithoutSideEffect( GetArgumentValue( operation.SemanticModel!, argument ) ) )
             {
                 throw new ArgumentException(
                     $"The argument '{argument}' of the call site '{callSite}' is not passed, but it can have a side effect or it is passed by reference.",
@@ -503,15 +529,45 @@ public sealed class ExtensionTransformationFactory
             _ => false
         };
 
-    private static bool IsWithoutSideEffect( ExpressionSyntax expression )
-        => expression.Kind() switch
+    /// <summary>
+    /// Returns the operation of the value that a source argument passes, including the implicit conversion to the type of the parameter.
+    /// </summary>
+    private static IOperation? GetArgumentValue( SemanticModel semanticModel, ArgumentSyntax argument )
+    {
+        if ( semanticModel.GetOperation( argument ) is IArgumentOperation argumentOperation )
         {
-            SyntaxKind.NumericLiteralExpression or SyntaxKind.StringLiteralExpression or SyntaxKind.CharacterLiteralExpression
-                or SyntaxKind.TrueLiteralExpression or SyntaxKind.FalseLiteralExpression or SyntaxKind.NullLiteralExpression
-                or SyntaxKind.DefaultLiteralExpression or SyntaxKind.IdentifierName or SyntaxKind.ThisExpression or SyntaxKind.DefaultExpression
-                or SyntaxKind.TypeOfExpression => true,
-            SyntaxKind.SimpleMemberAccessExpression => IsWithoutSideEffect( ((MemberAccessExpressionSyntax) expression).Expression ),
-            SyntaxKind.ParenthesizedExpression => IsWithoutSideEffect( ((ParenthesizedExpressionSyntax) expression).Expression ),
+            return argumentOperation.Value;
+        }
+
+        // An element of an expanded params argument has no argument operation of its own. Its value is wrapped in the implicit conversions to the
+        // type of the elements, whose syntax is the expression of the argument.
+        var operation = semanticModel.GetOperation( argument.Expression );
+
+        while ( operation?.Parent is IConversionOperation conversion && conversion.Syntax == argument.Expression )
+        {
+            operation = conversion;
+        }
+
+        return operation;
+    }
+
+    /// <summary>
+    /// Determines whether the evaluation of a value can be omitted without changing the behavior of the program.
+    /// </summary>
+    /// <remarks>
+    /// The method accepts constants, <c>default</c>, <c>typeof</c>, <c>this</c>, the values of locals and parameters, and the fields of <c>this</c>,
+    /// through conversions that are not user-defined. It refuses static fields, because reading a static field can run the static constructor of
+    /// its type. It refuses any other form, for instance a property, which runs a getter, and a field of another object, which can throw a
+    /// <see cref="NullReferenceException"/>.
+    /// </remarks>
+    private static bool IsWithoutSideEffect( IOperation? operation )
+        => operation switch
+        {
+            { ConstantValue.HasValue: true } => true,
+            IDefaultValueOperation or ITypeOfOperation or IInstanceReferenceOperation or ILocalReferenceOperation or IParameterReferenceOperation => true,
+            IFieldReferenceOperation { Field.IsStatic: false, Instance: IInstanceReferenceOperation } => true,
+            IConversionOperation { IsImplicit: true, OperatorMethod: null } conversion
+                => IsWithoutSideEffect( conversion.Operand ),
             _ => false
         };
 
