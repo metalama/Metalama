@@ -13,6 +13,7 @@ using Metalama.Framework.Engine.Observers;
 using Metalama.Framework.Engine.Pipeline.CompileTime;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Services;
+using Metalama.Framework.Tests.UnitTestHelpers.MemoryLeaks;
 using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -20,6 +21,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
@@ -106,6 +108,41 @@ public sealed class ExtensionTransformationLinkerTests : UnitTestClass
 
         Assert.Contains( "global::Interceptors.Compute(2)", text1["B.cs"].Replace( " ", "" ), StringComparison.Ordinal );
         Assert.Equal( text1, text2 );
+    }
+
+    /// <summary>
+    /// Verifies that the objects of a stage that redirects calls, which include the transformation factory and the index of the references, do
+    /// not retain the compilation after the pipeline has completed, while the project services and the extension instances stay alive.
+    /// </summary>
+    [Fact]
+    public async Task Redirections_DoNotRetainCompilation()
+    {
+        var additionalServices = new AdditionalServiceCollection();
+        additionalServices.AddProjectService( new RedirectionSwitch() );
+
+        using var testContext = this.CreateTestContext(
+            this.CreateDefaultTestContextOptions() with { ExtensionTypes = ImmutableArray.Create( typeof(RedirectingExtension) ) },
+            additionalServices );
+
+        var compilation = await ExecuteInNewCompilationAsync( testContext );
+
+        await MemoryLeakAssert.CollectedAsync( compilation, "The compilation of a pipeline that redirects calls", ("testContext", testContext) );
+    }
+
+    /// <summary>
+    /// Runs the pipeline on a compilation that only this method references, and returns a weak reference to the compilation.
+    /// </summary>
+    [MethodImpl( MethodImplOptions.NoInlining )]
+    private static async Task<WeakReference> ExecuteInNewCompilationAsync( MetalamaTestContext testContext )
+    {
+        var pipeline = new CompileTimeAspectPipeline( testContext.ServiceProvider );
+        var compilation = testContext.CreateCSharpCompilation( _code );
+
+        var result = await pipeline.ExecuteAsync( null, null, compilation, ImmutableArray<ManagedResource>.Empty, testContext.CancellationToken );
+
+        Assert.True( result.IsSuccessful );
+
+        return new WeakReference( compilation );
     }
 
     private static IReadOnlyDictionary<string, string> GetTextByPath( CompileTimeAspectPipelineResult result )
