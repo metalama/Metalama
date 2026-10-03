@@ -409,12 +409,15 @@ public sealed class ExtensionTransformationFactory
         var usedSourceArguments = new HashSet<int>();
         var receiverUsed = false;
         var names = new HashSet<string>( StringComparer.Ordinal );
-        var items = new List<(int Order, CallSiteArgumentPlanItem Item)>();
+        var items = new List<(int Order, CallSiteArgumentPlanItem Item, IParameter Parameter)>();
 
         for ( var i = 0; i < request.Arguments.Length; i++ )
         {
             var argument = request.Arguments[i];
             var name = argument.Name ?? targetParameters[i + parameterOffset].Name;
+
+            // The linker writes the argument with this name, so the parameter of this name receives it.
+            var receivingParameter = targetParameters.FirstOrDefault( p => p.Name == name ) ?? targetParameters[i + parameterOffset];
 
             if ( !names.Add( name ) )
             {
@@ -439,7 +442,7 @@ public sealed class ExtensionTransformationFactory
                     receiverUsed = true;
 
                     // The receiver is evaluated before the arguments.
-                    items.Add( (-1, new CallSiteArgumentPlanItem( RedirectedArgumentKind.SourceReceiver, -1, null, name )) );
+                    items.Add( (-1, new CallSiteArgumentPlanItem( RedirectedArgumentKind.SourceReceiver, -1, null, name ), receivingParameter) );
 
                     break;
 
@@ -452,7 +455,7 @@ public sealed class ExtensionTransformationFactory
                         }
 
                         receiverUsed = true;
-                        items.Add( (-1, new CallSiteArgumentPlanItem( RedirectedArgumentKind.SourceReceiver, -1, null, name )) );
+                        items.Add( (-1, new CallSiteArgumentPlanItem( RedirectedArgumentKind.SourceReceiver, -1, null, name ), receivingParameter) );
 
                         break;
                     }
@@ -470,22 +473,21 @@ public sealed class ExtensionTransformationFactory
                     }
 
                     var sourceArgument = sourceArgumentSyntaxes[sourceIndex];
-                    var targetParameter = targetParameters[i + parameterOffset];
 
-                    if ( !IsCompatibleRefKind( sourceArgument, targetParameter ) )
+                    if ( !IsCompatibleRefKind( sourceArgument, receivingParameter ) )
                     {
                         throw new ArgumentException(
-                            $"The argument '{sourceArgument}' cannot be passed to the parameter '{targetParameter.Name}', whose passing mode is different.",
+                            $"The argument '{sourceArgument}' cannot be passed to the parameter '{receivingParameter.Name}', whose passing mode is different.",
                             nameof(request) );
                     }
 
-                    items.Add( (sourceIndex, new CallSiteArgumentPlanItem( RedirectedArgumentKind.SourceArgument, sourceIndex, null, name )) );
+                    items.Add( (sourceIndex, new CallSiteArgumentPlanItem( RedirectedArgumentKind.SourceArgument, sourceIndex, null, name ), receivingParameter) );
 
                     break;
 
                 default:
                     // Expressions are evaluated after all the values of the source call site.
-                    items.Add( (int.MaxValue, new CallSiteArgumentPlanItem( RedirectedArgumentKind.Value, -1, argument.Expression, name )) );
+                    items.Add( (int.MaxValue, new CallSiteArgumentPlanItem( RedirectedArgumentKind.Value, -1, argument.Expression, name ), receivingParameter) );
 
                     break;
             }
@@ -496,7 +498,15 @@ public sealed class ExtensionTransformationFactory
             throw new ArgumentException( $"The receiver of '{callSite}' is not passed.", nameof(request) );
         }
 
-        // A value of the source call site that is not passed is not evaluated any more, so it must have no side effect.
+        // The order of the list is the order of evaluation of the source call site. The linker writes named arguments, so the order does not need
+        // to match the order of the parameters.
+        var orderedItems = items.OrderBy( x => x.Order ).ToImmutableArray();
+        var precedingDiscards = new List<int>?[orderedItems.Length];
+        var followingDiscards = new List<int>?[orderedItems.Length];
+        var semanticModel = operation.SemanticModel!;
+
+        // A value of the source call site that is not passed is still evaluated, in its source order, when it can have a side effect. It is evaluated
+        // and discarded before the next argument of the new call, or after the previous one when the next one cannot hold it.
         for ( var i = 0; i < sourceArgumentSyntaxes.Count; i++ )
         {
             if ( usedSourceArguments.Contains( i ) )
@@ -506,17 +516,181 @@ public sealed class ExtensionTransformationFactory
 
             var argument = sourceArgumentSyntaxes[i];
 
-            if ( !argument.RefKindKeyword.IsKind( SyntaxKind.None ) || !IsWithoutSideEffect( GetArgumentValue( operation.SemanticModel!, argument ) ) )
+            if ( !argument.RefKindKeyword.IsKind( SyntaxKind.None ) )
+            {
+                throw new ArgumentException( $"The argument '{argument}' of the call site '{callSite}' is passed by reference, so it must be passed.", nameof(request) );
+            }
+
+            var value = GetArgumentValue( semanticModel, argument );
+
+            if ( IsWithoutSideEffect( value ) )
+            {
+                continue;
+            }
+
+            if ( !CanBeDiscarded( semanticModel, argument, value, out var reason ) )
             {
                 throw new ArgumentException(
-                    $"The argument '{argument}' of the call site '{callSite}' is not passed, but it can have a side effect or it is passed by reference.",
+                    $"The argument '{argument}' of the call site '{callSite}' is not passed, and it can have a side effect, but it cannot be evaluated into a discard: {reason}",
+                    nameof(request) );
+            }
+
+            var nextIndex = 0;
+
+            while ( nextIndex < orderedItems.Length && orderedItems[nextIndex].Order < i )
+            {
+                nextIndex++;
+            }
+
+            var previousIndex = nextIndex - 1;
+
+            if ( nextIndex < orderedItems.Length && CanHoldPrecedingDiscard( orderedItems[nextIndex], sourceArgumentSyntaxes ) )
+            {
+                (precedingDiscards[nextIndex] ??= new List<int>()).Add( i );
+            }
+            else if ( previousIndex >= 0 && CanHoldFollowingDiscard( semanticModel, orderedItems[previousIndex], sourceArgumentSyntaxes, argument ) )
+            {
+                (followingDiscards[previousIndex] ??= new List<int>()).Add( i );
+            }
+            else
+            {
+                throw new ArgumentException(
+                    $"The argument '{argument}' of the call site '{callSite}' is not passed, and it can have a side effect, but no argument of the new call can evaluate it in its source order. An adjacent argument must be passed by value.",
                     nameof(request) );
             }
         }
 
-        // The order of the list is the order of evaluation of the source call site. The linker writes named arguments, so the order does not need
-        // to match the order of the parameters.
-        return items.OrderBy( x => x.Order ).Select( x => x.Item ).ToImmutableArray();
+        if ( (precedingDiscards.Any( d => d != null ) || followingDiscards.Any( d => d != null ))
+             && ((CSharpParseOptions) callSite.SyntaxTree.Options).LanguageVersion < LanguageVersion.CSharp9 )
+        {
+            throw new ArgumentException(
+                $"An argument of the call site '{callSite}' that is not passed can have a side effect, and the switch expression that evaluates it requires C# 9 or later.",
+                nameof(request) );
+        }
+
+        var valueVariableName = followingDiscards.Any( d => d != null ) ? GetValueVariableName( semanticModel, callSite ) : null;
+
+        return orderedItems.Select(
+                ( x, index ) => x.Item with
+                {
+                    PrecedingDiscards = precedingDiscards[index]?.ToImmutableArray() ?? default,
+                    FollowingDiscards = followingDiscards[index]?.ToImmutableArray() ?? default,
+                    ValueVariableName = followingDiscards[index] != null ? valueVariableName : null
+                } )
+            .ToImmutableArray();
+    }
+
+    /// <summary>
+    /// Determines whether a source argument that can have a side effect can be evaluated alone, as the governing expression of a switch expression,
+    /// with the same effects as at the source call site.
+    /// </summary>
+    private static bool CanBeDiscarded( SemanticModel semanticModel, ArgumentSyntax argument, IOperation? value, out string reason )
+    {
+        var expression = argument.Expression;
+
+        // The implicit conversion to the type of the parameter is not evaluated when the value is discarded. A user-defined conversion runs user code
+        // at the source call site, so it cannot be omitted.
+        while ( value is IConversionOperation { IsImplicit: true } conversion )
+        {
+            if ( conversion.OperatorMethod != null )
+            {
+                reason = "its conversion to the type of the parameter calls a user-defined operator.";
+
+                return false;
+            }
+
+            value = conversion.Operand;
+        }
+
+        if ( value == null || value.Syntax != expression || value is IInterpolatedStringHandlerCreationOperation
+             || expression.Kind() is SyntaxKind.ImplicitObjectCreationExpression or SyntaxKind.CollectionExpression )
+        {
+            reason = "its value depends on the type of the parameter.";
+
+            return false;
+        }
+
+        var type = semanticModel.GetTypeInfo( expression ).Type;
+
+        if ( type == null || type.TypeKind is Microsoft.CodeAnalysis.TypeKind.Pointer or Microsoft.CodeAnalysis.TypeKind.FunctionPointer || type.SpecialType == Microsoft.CodeAnalysis.SpecialType.System_Void )
+        {
+            reason = "it has no type, or it has a pointer type, which a switch expression cannot take.";
+
+            return false;
+        }
+
+        reason = "";
+
+        return true;
+    }
+
+    /// <summary>
+    /// Determines whether an argument of the new call can be written <c>D switch { _ =&gt; value }</c>.
+    /// </summary>
+    private static bool CanHoldPrecedingDiscard(
+        (int Order, CallSiteArgumentPlanItem Item, IParameter Parameter) item,
+        SeparatedSyntaxList<ArgumentSyntax> sourceArguments )
+        => item.Parameter.RefKind == Code.RefKind.None
+           && item.Item.Kind switch
+           {
+               RedirectedArgumentKind.SourceArgument => sourceArguments[item.Item.SourceArgumentIndex].RefKindKeyword.IsKind( SyntaxKind.None ),
+               RedirectedArgumentKind.Value => true,
+               _ => false
+           };
+
+    /// <summary>
+    /// Determines whether an argument of the new call can be written <c>value switch { var t =&gt; D switch { _ =&gt; t } }</c>.
+    /// </summary>
+    /// <remarks>
+    /// The pattern variable has the natural type of the value, so the natural type must convert implicitly to the type of the parameter. This
+    /// excludes a value whose conversion depends on the expression, for instance a constant that a constant conversion narrows. The discarded
+    /// argument becomes part of an arm, so it must not declare a variable, whose scope would end with the arm.
+    /// </remarks>
+    private static bool CanHoldFollowingDiscard(
+        SemanticModel semanticModel,
+        (int Order, CallSiteArgumentPlanItem Item, IParameter Parameter) item,
+        SeparatedSyntaxList<ArgumentSyntax> sourceArguments,
+        ArgumentSyntax discardedArgument )
+    {
+        if ( item.Parameter.RefKind != Code.RefKind.None || item.Item.Kind != RedirectedArgumentKind.SourceArgument )
+        {
+            return false;
+        }
+
+        var sourceArgument = sourceArguments[item.Item.SourceArgumentIndex];
+
+        if ( !sourceArgument.RefKindKeyword.IsKind( SyntaxKind.None )
+             || discardedArgument.Expression.DescendantNodesAndSelf().Any( n => n.Kind() is SyntaxKind.DeclarationExpression or SyntaxKind.SingleVariableDesignation ) )
+        {
+            return false;
+        }
+
+        var naturalType = semanticModel.GetTypeInfo( sourceArgument.Expression ).Type;
+        var parameterType = item.Parameter.Type.GetSymbol();
+
+        return naturalType != null && parameterType != null && naturalType.TypeKind is not (Microsoft.CodeAnalysis.TypeKind.Pointer or Microsoft.CodeAnalysis.TypeKind.FunctionPointer)
+               && semanticModel.Compilation.ClassifyConversion( naturalType, parameterType ).IsImplicit;
+    }
+
+    /// <summary>
+    /// Returns the name of the pattern variable that holds the value of an argument while the discards that follow it are evaluated. The name is
+    /// derived from the position of the call site, so that the call sites nested in its arguments get other names, and it is not the name of a
+    /// symbol in scope.
+    /// </summary>
+    private static string GetValueVariableName( SemanticModel semanticModel, InvocationExpressionSyntax callSite )
+    {
+        var baseName = $"__value{callSite.SpanStart}";
+
+        for ( var i = 0;; i++ )
+        {
+            var name = i == 0 ? baseName : $"{baseName}_{i}";
+
+            if ( semanticModel.LookupSymbols( callSite.SpanStart, name: name ).IsEmpty
+                 && !callSite.DescendantTokens().Any( t => t.IsKind( SyntaxKind.IdentifierToken ) && t.ValueText == name ) )
+            {
+                return name;
+            }
+        }
     }
 
     private static bool IsCompatibleRefKind( ArgumentSyntax argument, IParameter parameter )
@@ -555,10 +729,10 @@ public sealed class ExtensionTransformationFactory
     /// Determines whether the evaluation of a value can be omitted without changing the behavior of the program.
     /// </summary>
     /// <remarks>
-    /// The method accepts constants, <c>default</c>, <c>typeof</c>, <c>this</c>, the values of locals and parameters, and the fields of <c>this</c>,
-    /// through conversions that are not user-defined. It refuses static fields, because reading a static field can run the static constructor of
-    /// its type. It refuses any other form, for instance a property, which runs a getter, and a field of another object, which can throw a
-    /// <see cref="NullReferenceException"/>.
+    /// The method accepts constants, <c>default</c>, <c>typeof</c>, <c>this</c>, the values of locals and parameters, the fields of <c>this</c>,
+    /// anonymous functions, and the delegates of static methods or of methods of such a value, through conversions that are not user-defined. It
+    /// refuses static fields, because reading a static field can run the static constructor of its type. It refuses any other form, for instance a
+    /// property, which runs a getter, and a field of another object, which can throw a <see cref="NullReferenceException"/>.
     /// </remarks>
     private static bool IsWithoutSideEffect( IOperation? operation )
         => operation switch
@@ -566,6 +740,9 @@ public sealed class ExtensionTransformationFactory
             { ConstantValue.HasValue: true } => true,
             IDefaultValueOperation or ITypeOfOperation or IInstanceReferenceOperation or ILocalReferenceOperation or IParameterReferenceOperation => true,
             IFieldReferenceOperation { Field.IsStatic: false, Instance: IInstanceReferenceOperation } => true,
+            IAnonymousFunctionOperation => true,
+            IMethodReferenceOperation methodReference => methodReference.Instance == null || IsWithoutSideEffect( methodReference.Instance ),
+            IDelegateCreationOperation delegateCreation => IsWithoutSideEffect( delegateCreation.Target ),
             IConversionOperation { IsImplicit: true, OperatorMethod: null } conversion
                 => IsWithoutSideEffect( conversion.Operand ),
             _ => false
