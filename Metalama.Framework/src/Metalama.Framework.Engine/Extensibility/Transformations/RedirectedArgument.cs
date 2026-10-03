@@ -20,7 +20,11 @@ namespace Metalama.Framework.Engine.Extensibility.Transformations;
 /// expressions after them.
 /// </para>
 /// <para>
-/// A value of the source call site that the list does not use must have no side effect, because it is not evaluated any more.
+/// A value of the source call site that the list does not use is still evaluated, in its source order, when it can have a side effect. The linker
+/// evaluates it as the governing expression of a switch expression whose value is the next argument, <c>D switch { _ =&gt; value }</c>, or, when
+/// the next argument cannot hold it, after the previous argument, <c>value switch { var t =&gt; D switch { _ =&gt; t } }</c>. The factory refuses
+/// a request when the omitted value is passed by reference, when no adjacent argument is passed by value, or when the language version is earlier
+/// than C# 9. A value without side effect, such as a constant or a local, is not evaluated.
 /// </para>
 /// </remarks>
 [PublicAPI]

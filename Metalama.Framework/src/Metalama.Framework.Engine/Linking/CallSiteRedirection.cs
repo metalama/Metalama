@@ -33,7 +33,26 @@ internal enum CallSiteRedirectionKind
 /// source invocation.</param>
 /// <param name="Value">For <see cref="RedirectedArgumentKind.Value"/>, the expression of the argument.</param>
 /// <param name="Name">The parameter name with which the argument is written.</param>
-internal readonly record struct CallSiteArgumentPlanItem( RedirectedArgumentKind Kind, int SourceArgumentIndex, ExpressionSyntax? Value, string Name );
+internal readonly record struct CallSiteArgumentPlanItem( RedirectedArgumentKind Kind, int SourceArgumentIndex, ExpressionSyntax? Value, string Name )
+{
+    /// <summary>
+    /// Gets the indices of the source arguments that the new call does not pass and that are evaluated, and discarded, before the value of this
+    /// argument. The argument is written <c>D switch { _ =&gt; value }</c>.
+    /// </summary>
+    public ImmutableArray<int> PrecedingDiscards { get; init; }
+
+    /// <summary>
+    /// Gets the indices of the source arguments that the new call does not pass and that are evaluated, and discarded, after the value of this
+    /// argument. The argument is written <c>value switch { var t =&gt; D switch { _ =&gt; t } }</c>, where <c>t</c> is
+    /// <see cref="ValueVariableName"/>.
+    /// </summary>
+    public ImmutableArray<int> FollowingDiscards { get; init; }
+
+    /// <summary>
+    /// Gets the name of the pattern variable that holds the value of this argument while <see cref="FollowingDiscards"/> are evaluated.
+    /// </summary>
+    public string? ValueVariableName { get; init; }
+}
 
 /// <summary>
 /// Describes a requested rewrite of a source call site. All the syntax is computed when the request is validated, so the injection rewriter builds
@@ -41,6 +60,11 @@ internal readonly record struct CallSiteArgumentPlanItem( RedirectedArgumentKind
 /// </summary>
 internal sealed class CallSiteRedirection
 {
+    /// <summary>
+    /// A trivia list that contains one space that is not elastic, so that the formatter keeps a switch expression on one line.
+    /// </summary>
+    private static readonly SyntaxTriviaList _space = TriviaList( Space );
+
     public CallSiteRedirection(
         int id,
         ExpressionSyntax sourceNode,
@@ -179,6 +203,12 @@ internal sealed class CallSiteRedirection
                     _ => Argument( item.Value! )
                 };
 
+                if ( !item.PrecedingDiscards.IsDefaultOrEmpty || !item.FollowingDiscards.IsDefaultOrEmpty )
+                {
+                    // The factory accepts discards only next to an argument that is passed by value, so the argument has no modifier.
+                    argument = Argument( AddDiscards( argument.Expression, item, sourceArguments ) );
+                }
+
                 arguments.Add( argument.WithNameColon( nameColon ) );
             }
 
@@ -216,6 +246,77 @@ internal sealed class CallSiteRedirection
 
         return WithTriviaOf( result, visitedNode );
     }
+
+    /// <summary>
+    /// Wraps the value of an argument into the switch expressions that evaluate the source arguments that the new call does not pass, in the
+    /// order of the source call site.
+    /// </summary>
+    /// <remarks>
+    /// A switch expression evaluates its governing expression before the selected arm. The form <c>D switch { _ =&gt; value }</c> therefore
+    /// evaluates <c>D</c> before the value, and the form <c>value switch { var t =&gt; D switch { _ =&gt; t } }</c> evaluates it after the value.
+    /// Both forms are target-typed, so the conversion of the value to the type of the parameter does not change.
+    /// </remarks>
+    private static ExpressionSyntax AddDiscards( ExpressionSyntax value, CallSiteArgumentPlanItem item, SeparatedSyntaxList<ArgumentSyntax> sourceArguments )
+    {
+        var result = value.WithoutTrivia();
+
+        if ( !item.FollowingDiscards.IsDefaultOrEmpty )
+        {
+            ExpressionSyntax inner = SyntaxFactoryEx.SafeIdentifierName( item.ValueVariableName! );
+
+            for ( var i = item.FollowingDiscards.Length - 1; i >= 0; i-- )
+            {
+                inner = CreateSwitchExpression( sourceArguments[item.FollowingDiscards[i]].Expression, DiscardPattern(), inner );
+            }
+
+            var pattern = VarPattern(
+                Token( default, SyntaxKind.VarKeyword, _space ),
+                SingleVariableDesignation( SyntaxFactoryEx.SafeIdentifier( item.ValueVariableName! ) ) );
+
+            result = CreateSwitchExpression( result, pattern, inner );
+        }
+
+        if ( !item.PrecedingDiscards.IsDefaultOrEmpty )
+        {
+            for ( var i = item.PrecedingDiscards.Length - 1; i >= 0; i-- )
+            {
+                result = CreateSwitchExpression( sourceArguments[item.PrecedingDiscards[i]].Expression, DiscardPattern(), result );
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Creates the switch expression <c>governing switch { pattern =&gt; value }</c> on one line.
+    /// </summary>
+    private static SwitchExpressionSyntax CreateSwitchExpression( ExpressionSyntax governing, PatternSyntax pattern, ExpressionSyntax value )
+        => SwitchExpression(
+            ParenthesizeIfNecessary( governing.WithoutTrivia() ),
+            Token( _space, SyntaxKind.SwitchKeyword, _space ),
+            Token( default, SyntaxKind.OpenBraceToken, _space ),
+            SingletonSeparatedList(
+                SwitchExpressionArm(
+                    pattern,
+                    null,
+                    Token( _space, SyntaxKind.EqualsGreaterThanToken, _space ),
+                    ParenthesizeIfNecessary( value.WithoutTrivia() ) ) ),
+            Token( _space, SyntaxKind.CloseBraceToken, default ) );
+
+    /// <summary>
+    /// Parenthesizes an expression unless it is a primary expression, so that the text of a switch expression keeps the structure of the syntax
+    /// tree.
+    /// </summary>
+    private static ExpressionSyntax ParenthesizeIfNecessary( ExpressionSyntax expression )
+        => expression.Kind() switch
+        {
+            SyntaxKind.IdentifierName or SyntaxKind.GenericName or SyntaxKind.SimpleMemberAccessExpression or SyntaxKind.InvocationExpression
+                or SyntaxKind.ElementAccessExpression or SyntaxKind.ObjectCreationExpression or SyntaxKind.ParenthesizedExpression
+                or SyntaxKind.TupleExpression or SyntaxKind.ThisExpression or SyntaxKind.StringLiteralExpression or SyntaxKind.NumericLiteralExpression
+                or SyntaxKind.CharacterLiteralExpression or SyntaxKind.TrueLiteralExpression or SyntaxKind.FalseLiteralExpression
+                or SyntaxKind.NullLiteralExpression or SyntaxKind.SwitchExpression => expression,
+            _ => ParenthesizedExpression( expression )
+        };
 
     /// <summary>
     /// Gives the rewritten node the trivia of the source node, which can contain comments and preprocessor directives, and moves the comments of

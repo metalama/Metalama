@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -81,6 +81,8 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
                                      public static void Ref( int x ) { }
 
                                      public static void Out( int a ) { }
+
+                                     public static int None() => 0;
                                  }
 
                                  internal class NonStatic
@@ -138,6 +140,8 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
                                          Func<int, int> f = Source.Compute;
                                          _ = nameof(Source.Two);
                                          int? r = n?.Get( 7 );
+                                         Source.Two( Property, 20 );
+                                         Source.Compute( Property );
                                      }
                                  }
                                  """;
@@ -394,13 +398,72 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
                 Assert.False( s.Factory.IsRedirected( s.Invocation( "i.Get( 2 )" ) ) );
             } );
 
+    /// <summary>
+    /// Verifies that a dropped argument that can have a side effect, and that no argument follows, is evaluated after the previous argument: a
+    /// property, which runs a getter, and a field of another object, which can throw.
+    /// </summary>
     [Fact]
-    public async Task RedirectInvocation_DroppedPropertyArgument_Throws()
-        => await this.AssertInvocationRefusedAsync( "Source.Two( 10, Property )", "Interceptors", "Compute", CallSiteReceiverMode.Drop, DropSecondArgument );
+    public async Task RedirectInvocation_DroppedArgumentWithSideEffect_EvaluatedAfterPreviousArgument()
+    {
+        var result = await this.ExecuteAsync(
+            s =>
+            {
+                foreach ( var callSiteText in new[] { "Source.Two( 10, Property )", "Source.Two( 12, i.Field )" } )
+                {
+                    s.Factory.RedirectInvocation(
+                        s.Origin,
+                        DropSecondArgument(
+                            s,
+                            new InvocationRedirectionRequest( s.Invocation( callSiteText ), s.Target( "Interceptors", "Compute" ), CallSiteReceiverMode.Drop ) ) );
+                }
+            } );
 
+        var compactText = GetText( result ).Replace( " ", "" );
+
+        Assert.Matches( @"Interceptors\.Compute\(x:10switch\{var(__value\d+)=>Propertyswitch\{_=>\1\}\}\)", compactText );
+        Assert.Matches( @"Interceptors\.Compute\(x:12switch\{var(__value\d+)=>i\.Fieldswitch\{_=>\1\}\}\)", compactText );
+    }
+
+    /// <summary>
+    /// Verifies that a dropped argument that can have a side effect is evaluated before the next argument.
+    /// </summary>
     [Fact]
-    public async Task RedirectInvocation_DroppedFieldOfOtherObject_Throws()
-        => await this.AssertInvocationRefusedAsync( "Source.Two( 12, i.Field )", "Interceptors", "Compute", CallSiteReceiverMode.Drop, DropSecondArgument );
+    public async Task RedirectInvocation_DroppedArgumentWithSideEffect_EvaluatedBeforeNextArgument()
+    {
+        var result = await this.ExecuteAsync(
+            s => s.Factory.RedirectInvocation(
+                s.Origin,
+                new InvocationRedirectionRequest( s.Invocation( "Source.Two( Property, 20 )" ), s.Target( "Interceptors", "Compute" ), CallSiteReceiverMode.Drop )
+                {
+                    Arguments = ImmutableArray.Create( RedirectedArgument.SourceArgument( 1 ) )
+                } ) );
+
+        Assert.Contains( "Interceptors.Compute(x:Propertyswitch{_=>20})", GetText( result ).Replace( " ", "" ), StringComparison.Ordinal );
+    }
+
+    /// <summary>
+    /// Verifies that a dropped argument that can have a side effect is refused when the new call has no argument that can evaluate it.
+    /// </summary>
+    [Fact]
+    public async Task RedirectInvocation_DroppedArgumentWithSideEffect_NoAdjacentArgument_Throws()
+        => await this.AssertInvocationRefusedAsync(
+            "Source.Compute( Property )",
+            "Interceptors",
+            "None",
+            CallSiteReceiverMode.Drop,
+            ( _, r ) => new InvocationRedirectionRequest( r.CallSite, r.Target, r.ReceiverMode ) { Arguments = ImmutableArray<RedirectedArgument>.Empty } );
+
+    /// <summary>
+    /// Verifies that a dropped argument is refused when it is passed by reference, because its evaluation cannot be separated from the call.
+    /// </summary>
+    [Fact]
+    public async Task RedirectInvocation_DroppedRefArgument_Throws()
+        => await this.AssertInvocationRefusedAsync(
+            "Source.Ref( ref y )",
+            "Interceptors",
+            "None",
+            CallSiteReceiverMode.Drop,
+            ( _, r ) => new InvocationRedirectionRequest( r.CallSite, r.Target, r.ReceiverMode ) { Arguments = ImmutableArray<RedirectedArgument>.Empty } );
 
     /// <summary>
     /// Verifies that an argument whose evaluation has no side effect can be dropped: a constant, and a field of <c>this</c>.
