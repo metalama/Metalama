@@ -365,6 +365,9 @@ public sealed class InboundReferenceIndexTests : UnitTestClass
         Assert.Equal( ["B.N()"], result.ReferencingSymbols );
     }
 
+    /// <summary>
+    /// Verifies that an invocation of a generic method with explicit type arguments in a conditional access is indexed.
+    /// </summary>
     [Fact]
     public void ConditionalGenericMethodInvocation()
     {
@@ -378,6 +381,9 @@ public sealed class InboundReferenceIndexTests : UnitTestClass
         Assert.Equal( ["B.N(A)"], result.ReferencingSymbols );
     }
 
+    /// <summary>
+    /// Verifies that a reference to a generic type through a qualified name, in a <c>typeof</c> expression, is indexed.
+    /// </summary>
     [Fact]
     public void QualifiedGenericTypeName()
     {
@@ -391,6 +397,9 @@ public sealed class InboundReferenceIndexTests : UnitTestClass
         Assert.Equal( ["B.M()"], result.ReferencingSymbols );
     }
 
+    /// <summary>
+    /// Verifies that the type of a generic attribute is indexed.
+    /// </summary>
     [Fact]
     public void GenericAttribute()
     {
@@ -404,6 +413,9 @@ public sealed class InboundReferenceIndexTests : UnitTestClass
         Assert.Equal( ["B"], result.ReferencingSymbols );
     }
 
+    /// <summary>
+    /// Verifies that an invocation in an element of a collection expression is indexed.
+    /// </summary>
     [Fact]
     public void InvocationInCollectionExpressionElement()
     {
@@ -417,6 +429,9 @@ public sealed class InboundReferenceIndexTests : UnitTestClass
         Assert.Equal( ["B.M()"], result.ReferencingSymbols );
     }
 
+    /// <summary>
+    /// Verifies that an invocation in a spread element of a collection expression is indexed.
+    /// </summary>
     [Fact]
     public void InvocationInSpreadElement()
     {
@@ -430,6 +445,9 @@ public sealed class InboundReferenceIndexTests : UnitTestClass
         Assert.Equal( ["B.M()"], result.ReferencingSymbols );
     }
 
+    /// <summary>
+    /// Verifies that an invocation in an argument of a constructor initializer is indexed and attributed to the constructor.
+    /// </summary>
     [Fact]
     public void InvocationInConstructorInitializerArgument()
     {
@@ -444,6 +462,9 @@ public sealed class InboundReferenceIndexTests : UnitTestClass
         Assert.Equal( ["B.B()"], result.ReferencingSymbols );
     }
 
+    /// <summary>
+    /// Verifies that an invocation in the size of an array creation is indexed.
+    /// </summary>
     [Fact]
     public void InvocationInArraySize()
     {
@@ -514,6 +535,76 @@ public sealed class InboundReferenceIndexTests : UnitTestClass
 
         Assert.NotEmpty( fieldNodeKinds );
         Assert.DoesNotContain( ReferenceKinds.Assignment, fieldNodeKinds );
+    }
+
+    /// <summary>
+    /// Verifies that an unqualified generic type in a <c>typeof</c> expression references the generic type with the <c>TypeOf</c> kind.
+    /// </summary>
+    [Fact]
+    public void TypeOfUnqualifiedGenericType()
+    {
+        var code = new Dictionary<string, string>() { ["A.cs"] = "class A<T>;", ["B.cs"] = "class B { object M() => typeof(A<int>); }" };
+
+        var result = this.BuildIndex( code, compilation => compilation.Types.OfName( "A" ), ReferenceKinds.TypeOf );
+
+        Assert.Equal( ["B.M()"], result.ReferencingSymbols );
+    }
+
+    /// <summary>
+    /// Verifies that a generic type named in a <c>nameof</c> expression with type arguments is referenced with the <c>NameOf</c> kind. A method group
+    /// cannot have type arguments in a <c>nameof</c> expression.
+    /// </summary>
+    [Fact]
+    public void NameOfGenericName()
+    {
+        var code = new Dictionary<string, string>()
+        {
+            ["A.cs"] = "class A<T>;", ["B.cs"] = "class B { string M() => nameof(A<int>); }"
+        };
+
+        var result = this.BuildIndex( code, compilation => compilation.Types.OfName( "A" ), ReferenceKinds.NameOf );
+
+        Assert.Equal( ["B.M()"], result.ReferencingSymbols );
+    }
+
+    /// <summary>
+    /// Verifies that a <c>nameof</c> expression in the body of a member is indexed when <see cref="ReferenceKinds.NameOf"/> is the only requested
+    /// kind, which requires the walker to descend into the implementations of members.
+    /// </summary>
+    [Fact]
+    public void NameOfInMemberBody_OnlyKindRequested()
+    {
+        var code = new Dictionary<string, string>()
+        {
+            ["A.cs"] = "class A { public static void F() {} }", ["B.cs"] = "class B { string M() { return nameof(A.F); } }"
+        };
+
+        var result = this.BuildIndex( code, GetMethodsOfA( "F" ), ReferenceKinds.NameOf );
+
+        Assert.Equal( ["B.M()"], result.ReferencingSymbols );
+    }
+
+    /// <summary>
+    /// Verifies that the indexer of a compound assignment and of a null-coalescing assignment of an element is indexed as an assignment, as for
+    /// a simple assignment.
+    /// </summary>
+    [Theory]
+    [InlineData( "this.c[0] += 1;" )]
+    [InlineData( "this.c[0] ??= \"x\";" )]
+    public void ElementAccessCompoundAssignmentKinds( string statement )
+    {
+        var code = new Dictionary<string, string>()
+        {
+            ["C.cs"] = "class C { public int this[int i] { get => 0; set {} } public string? this[string s] { get => null; set {} } }",
+            ["B.cs"] = "class B { C c = new(); void M() { " + statement.Replace( "[0] ??=", "[\"k\"] ??=" ) + " } }"
+        };
+
+        var indexerResult = this.BuildIndex(
+            code,
+            compilation => compilation.Types.OfName( "C" ).SelectMany( t => t.Indexers ),
+            ReferenceKinds.Assignment );
+
+        Assert.Equal( ["B.M()"], indexerResult.ReferencingSymbols );
     }
 
     /// <summary>
@@ -593,6 +684,9 @@ public sealed class InboundReferenceIndexTests : UnitTestClass
         Assert.Equal( ["B._f4", "B._f5"], arrayElementTypes.ReferencingSymbols );
     }
 
+    /// <summary>
+    /// Returns a function that selects the methods of the type <c>A</c> that have one of the given names.
+    /// </summary>
     private static Func<ICompilation, IEnumerable<IDeclaration>> GetMethodsOfA( params string[] names )
         => compilation => compilation.Types.OfName( "A" ).SelectMany( t => t.Methods ).Where( m => names.Contains( m.Name ) );
 
