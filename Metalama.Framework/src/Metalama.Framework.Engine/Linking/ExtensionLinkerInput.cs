@@ -13,8 +13,14 @@ namespace Metalama.Framework.Engine.Linking;
 /// </summary>
 internal sealed class ExtensionLinkerInput
 {
+    /// <summary>
+    /// Gets an input that contains no redirection.
+    /// </summary>
     public static ExtensionLinkerInput Empty { get; } = new( ImmutableDictionary<SyntaxTree, IReadOnlyDictionary<SyntaxNode, CallSiteRedirection>>.Empty );
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ExtensionLinkerInput"/> class.
+    /// </summary>
     public ExtensionLinkerInput( IReadOnlyDictionary<SyntaxTree, IReadOnlyDictionary<SyntaxNode, CallSiteRedirection>> callSiteRedirections )
     {
         this.CallSiteRedirections = callSiteRedirections;
@@ -26,5 +32,8 @@ internal sealed class ExtensionLinkerInput
     /// </summary>
     public IReadOnlyDictionary<SyntaxTree, IReadOnlyDictionary<SyntaxNode, CallSiteRedirection>> CallSiteRedirections { get; }
 
+    /// <summary>
+    /// Gets a value indicating whether the input contains no redirection.
+    /// </summary>
     public bool IsEmpty => this.CallSiteRedirections.Count == 0;
 }

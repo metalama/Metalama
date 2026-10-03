@@ -23,6 +23,10 @@ public sealed class OperatorKindTests : UnitTestClass
     public void NullCoalescingAssignment_IsLastMember()
         => Assert.Equal( OperatorKind.NullCoalescingAssignment, Enum.GetValues( typeof(OperatorKind) ).Cast<OperatorKind>().Max() );
 
+    /// <summary>
+    /// Verifies that <see cref="OperatorKindExtensions.GetCategory"/> classifies <see cref="OperatorKind.NullCoalescingAssignment"/> as
+    /// <see cref="OperatorCategory.BinaryAssignment"/>.
+    /// </summary>
     [Fact]
     public void NullCoalescingAssignment_GetCategory_IsBinaryAssignment()
         => Assert.Equal( OperatorCategory.BinaryAssignment, OperatorKind.NullCoalescingAssignment.GetCategory() );

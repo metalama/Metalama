@@ -28,10 +28,13 @@ namespace Metalama.Framework.Engine.Extensibility;
 [PublicAPI]
 public sealed class ExtensionContributionOrigin
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ExtensionContributionOrigin"/> class.
+    /// </summary>
     internal ExtensionContributionOrigin(
         AspectPredecessor predecessor,
         string diagnosticSourceDescription,
-        TemplateProvider? defaultTemplateProvider,
+        TemplateProvider defaultTemplateProvider,
         TemplateClassInstance? templateClassInstance,
         AspectLayerId aspectLayerId,
         IAspectInstanceInternal? aspectInstance )
@@ -55,9 +58,11 @@ public sealed class ExtensionContributionOrigin
     public string DiagnosticSourceDescription { get; }
 
     /// <summary>
-    /// Gets the default template provider of the contribution, or <c>null</c>.
+    /// Gets the default template provider of the contribution: the template provider given to
+    /// <see cref="AdviserExtensions.WithTemplateProvider{TDeclaration}(IAdviser{TDeclaration}, in TemplateProvider)"/>, or else the aspect or the
+    /// fabric that made the contribution.
     /// </summary>
-    public TemplateProvider? DefaultTemplateProvider { get; }
+    public TemplateProvider DefaultTemplateProvider { get; }
 
     /// <summary>
     /// Captures the origin of a contribution made through a query, for example through a fabric amender or <see cref="IAspectBuilder{TAspectTarget}.Outbound"/>.

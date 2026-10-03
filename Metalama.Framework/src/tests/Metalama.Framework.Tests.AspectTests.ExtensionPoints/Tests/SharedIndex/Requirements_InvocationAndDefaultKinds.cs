@@ -10,7 +10,7 @@ using Metalama.Framework.Tests.ExtensionPoints;
 namespace Metalama.Framework.Tests.AspectTests.ExtensionPoints.Tests.SharedIndex.Requirements_InvocationAndDefaultKinds;
 
 // The extension requests the invocations and the default references of the methods named F, and reads them from the shared index of the
-// stage. The method group converted to a delegate is a default reference. The calls of G are not indexed.
+// stage. The method group converted to a delegate is a default reference. The calls of G are not indexed, which TEST0005 shows.
 
 internal class TheAspect : TypeAspect
 {

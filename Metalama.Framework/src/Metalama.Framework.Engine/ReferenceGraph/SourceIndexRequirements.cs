@@ -39,9 +39,18 @@ public sealed record SourceIndexRequirements( ImmutableArray<ReferenceIndexerReq
     /// <remarks>
     /// A root is the syntax node of a member, a type, a namespace, a compilation unit, a variable declarator of a field or an event field, or
     /// the expression body of a property or an indexer. The stage walks only the union of the roots when every extension that returned
-    /// requirements also returned roots.
+    /// requirements also returned roots. A default array is equivalent to <c>null</c>.
     /// </remarks>
-    public ImmutableArray<SyntaxNode>? DeclarationRoots { get; init; }
+    public ImmutableArray<SyntaxNode>? DeclarationRoots
+    {
+        get => this._declarationRoots;
+        init => this._declarationRoots = value is { IsDefault: true } ? null : value;
+    }
+
+    /// <summary>
+    /// The value of <see cref="DeclarationRoots"/>.
+    /// </summary>
+    private readonly ImmutableArray<SyntaxNode>? _declarationRoots;
 
     /// <summary>
     /// Gets a value indicating whether the instance requires nothing: it has no requirement, or every requirement has

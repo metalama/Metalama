@@ -26,13 +26,39 @@ namespace Metalama.Framework.Engine.ReferenceGraph;
 [PublicAPI]
 public sealed class SourceReferenceIndexStage : IDisposable
 {
+    /// <summary>
+    /// The lock that protects <see cref="_sourceCompilation"/>, <see cref="_index"/> and <see cref="_isDisposed"/>.
+    /// </summary>
     private readonly object _sync = new();
+
+    /// <summary>
+    /// The service provider of the project.
+    /// </summary>
     private readonly ProjectServiceProvider _serviceProvider;
+
+    /// <summary>
+    /// The declaration roots to index, grouped by syntax tree, or <c>null</c> when every syntax tree is indexed.
+    /// </summary>
     private readonly IReadOnlyDictionary<SyntaxTree, ImmutableArray<SyntaxNode>>? _rootsByTree;
+
+    /// <summary>
+    /// The source compilation, or <c>null</c> after <see cref="Dispose"/>.
+    /// </summary>
     private CompilationModel? _sourceCompilation;
+
+    /// <summary>
+    /// The task that builds the index, or <c>null</c> when no build has started or after <see cref="Dispose"/>.
+    /// </summary>
     private Task<InboundReferenceIndex>? _index;
+
+    /// <summary>
+    /// Indicates whether <see cref="Dispose"/> has been called.
+    /// </summary>
     private bool _isDisposed;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SourceReferenceIndexStage"/> class.
+    /// </summary>
     internal SourceReferenceIndexStage(
         ProjectServiceProvider serviceProvider,
         CompilationModel sourceCompilation,
@@ -69,8 +95,14 @@ public sealed class SourceReferenceIndexStage : IDisposable
     /// <param name="cancellationToken">A cancellation token, which also cancels the build of the index when this call starts it.</param>
     /// <exception cref="ObjectDisposedException">The stage has ended.</exception>
     /// <remarks>
+    /// <para>
     /// The build runs outside of the lock of the stage. A build runs synchronously until its first incomplete task, which can be the whole build
     /// for a single syntax tree, and the other callers and <see cref="Dispose"/> must not wait for it on the lock.
+    /// </para>
+    /// <para>
+    /// The syntax trees are indexed concurrently, so the order of the referenced symbols and of their references in the index is not
+    /// deterministic. A consumer that reports diagnostics or creates transformations from the index must sort what it reads.
+    /// </para>
     /// </remarks>
     public Task<InboundReferenceIndex> GetIndexAsync( CancellationToken cancellationToken )
     {
@@ -127,6 +159,10 @@ public sealed class SourceReferenceIndexStage : IDisposable
         }
     }
 
+    /// <summary>
+    /// Builds the index from the declaration roots when the index is restricted to them, or else from every syntax tree of the source compilation.
+    /// The index is empty when no extension returned requirements.
+    /// </summary>
     private async Task<InboundReferenceIndex> BuildIndexAsync( CompilationModel sourceCompilation, CancellationToken cancellationToken )
     {
         var builder = new InboundReferenceIndexBuilder( this._serviceProvider, this.Options, SymbolEqualityComparer.Default );

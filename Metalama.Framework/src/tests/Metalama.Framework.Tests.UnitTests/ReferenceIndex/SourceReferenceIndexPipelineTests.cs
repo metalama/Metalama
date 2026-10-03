@@ -30,6 +30,9 @@ namespace Metalama.Framework.Tests.UnitTests.ReferenceIndex;
 /// </summary>
 public sealed class SourceReferenceIndexPipelineTests : UnitTestClass
 {
+    /// <summary>
+    /// The code of the tests that have a single high-level stage: the method <c>A.F</c> and an invocation of it in <c>B.M</c>.
+    /// </summary>
     private const string _code = """
                                  class A { public static int F() => 0; }
                                  class B { void M() => A.F(); }
@@ -62,6 +65,10 @@ public sealed class SourceReferenceIndexPipelineTests : UnitTestClass
                                           [Aspect1] [WeaverAspect] [Aspect2] class C { }
                                           """;
 
+    /// <summary>
+    /// Verifies that the context of the transforming hook passes the stage of the index, which has the requirements that the extension returned and
+    /// whose index contains the reference from <c>B.M</c>.
+    /// </summary>
     [Fact]
     public async Task StageIsPassedThroughContexts()
     {
@@ -76,6 +83,10 @@ public sealed class SourceReferenceIndexPipelineTests : UnitTestClass
         Assert.Equal( ["B.M()"], call.ReferencingNames );
     }
 
+    /// <summary>
+    /// Verifies that, in a pipeline with two high-level stages, the contexts of <see cref="PipelineExtension.GetSourceIndexRequirements"/> and of the
+    /// transforming hook give the index of each stage.
+    /// </summary>
     [Fact]
     public async Task Context_GivesHighLevelStageIndex()
     {
@@ -130,6 +141,10 @@ public sealed class SourceReferenceIndexPipelineTests : UnitTestClass
         Assert.Equal( ["B2.M()"], calls[1].ReferencingNames );
     }
 
+    /// <summary>
+    /// Runs the compile-time pipeline on the given code, with the given assembly name, and asserts that it succeeds. The compilation references the
+    /// Roslyn assemblies, which the weaver requires.
+    /// </summary>
     private static async Task ExecuteAsync( MetalamaTestContext testContext, string code, string assemblyName )
     {
         var pipeline = new CompileTimeAspectPipeline( testContext.ServiceProvider );
@@ -150,6 +165,9 @@ public sealed class SourceReferenceIndexPipelineTests : UnitTestClass
         Assert.True( result.IsSuccessful, string.Join( Environment.NewLine, diagnostics ) );
     }
 
+    /// <summary>
+    /// Creates a test context in which <see cref="IndexingExtension"/> is loaded and records its observations in the given recorder.
+    /// </summary>
     [MustDisposeResource]
     private MetalamaTestContext CreateRecordingTestContext(
         IndexRecorder recorder,
@@ -174,10 +192,20 @@ public sealed class SourceReferenceIndexPipelineTests : UnitTestClass
     /// </summary>
     private sealed class IndexRecorder : IProjectService
     {
+        /// <summary>
+        /// Gets the stage indexes that <see cref="IndexingExtension"/> received in the context of
+        /// <see cref="PipelineExtension.GetSourceIndexRequirements"/>.
+        /// </summary>
         public ConcurrentQueue<int> RequirementStageIndexes { get; } = new();
 
+        /// <summary>
+        /// Gets the observations of the transforming hook.
+        /// </summary>
         public ConcurrentQueue<IndexCall> Calls { get; } = new();
 
+        /// <summary>
+        /// Gets the object that makes the hooks of two pipelines wait for each other, or <c>null</c> when the hooks do not wait.
+        /// </summary>
         public Rendezvous? Rendezvous { get; init; }
     }
 
@@ -187,13 +215,22 @@ public sealed class SourceReferenceIndexPipelineTests : UnitTestClass
     /// </summary>
     private sealed class Rendezvous
     {
+        /// <summary>
+        /// The semaphore of each assembly, which is released when the hook of the pipeline of this assembly arrives.
+        /// </summary>
         private readonly Dictionary<string, SemaphoreSlim> _arrivals;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Rendezvous"/> class for the pipelines of two assemblies.
+        /// </summary>
         public Rendezvous( string assemblyName1, string assemblyName2 )
         {
             this._arrivals = new Dictionary<string, SemaphoreSlim> { [assemblyName1] = new( 0 ), [assemblyName2] = new( 0 ) };
         }
 
+        /// <summary>
+        /// Signals that the hook of the pipeline of the given assembly has arrived, and waits until the hook of the other pipeline has arrived.
+        /// </summary>
         public async Task ArriveAsync( string assemblyName, CancellationToken cancellationToken )
         {
             this._arrivals[assemblyName].Release();
@@ -209,6 +246,9 @@ public sealed class SourceReferenceIndexPipelineTests : UnitTestClass
     /// </summary>
     private sealed class IndexingExtension : PipelineExtension
     {
+        /// <summary>
+        /// The recorder of the project, or <c>null</c> when the test did not register one.
+        /// </summary>
         private IndexRecorder? _recorder;
 
         public override bool Initialize( PipelineExtensionInitializationContext context )
