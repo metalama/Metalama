@@ -48,8 +48,9 @@ public sealed class RedirectedArgument
     /// <summary>
     /// Gets an argument that passes the argument written at the source call site for a parameter of the source method.
     /// </summary>
-    /// <param name="parameterOrdinal">The ordinal of the parameter of the source method. The argument must be written at the source call site, and
-    /// must not be an expanded <c>params</c> argument.</param>
+    /// <param name="parameterOrdinal">The ordinal of the parameter of the source method. The argument must be written at the source call site. When
+    /// the call site passes the elements of a <c>params</c> parameter in expanded form, the elements are packed into one collection, <c>[e1, e2]</c>,
+    /// or an array creation before C# 12.</param>
     public static RedirectedArgument SourceArgument( int parameterOrdinal )
     {
         if ( parameterOrdinal < 0 )
