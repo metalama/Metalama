@@ -184,8 +184,14 @@ public sealed class ReferenceIndexerOptions
         }
     }
 
+    /// <summary>
+    /// The number of bits of the underlying type of <see cref="ReferenceKinds"/>, which is also the length of the arrays indexed by the bit of a kind.
+    /// </summary>
     private const int _kindBitCount = 64;
 
+    /// <summary>
+    /// Returns the zero-based positions of the bits that are set in a combination of <see cref="ReferenceKinds"/>.
+    /// </summary>
     private static IEnumerable<int> GetBits( ReferenceKinds kinds )
     {
         var value = (ulong) kinds;
@@ -257,12 +263,6 @@ public sealed class ReferenceIndexerOptions
 
             if ( identifierText != "var" )
             {
-                // A kind of the request that is indexed without identifier filtering admits the reference.
-                if ( (kind & this._allReferenceKinds & ~this._kindsSupportingIdentifierFiltering) != 0 )
-                {
-                    return true;
-                }
-
                 // The loop is written without an iterator because this method is called for every identifier of the walked code.
                 var bits = (ulong) filteredKinds;
 

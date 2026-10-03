@@ -113,6 +113,12 @@ internal sealed class ReferenceIndexWalker : SafeSyntaxWalker
                 when node is VariableDeclaratorSyntax { Parent.Parent: BaseFieldDeclarationSyntax fieldDeclaration } variable:
                 using ( this.EnterDeclaration( variable ) )
                 {
+                    // As in VisitFieldDeclaration, the attributes of the declaration are visited with its first declarator.
+                    if ( fieldDeclaration.Declaration.Variables[0] == variable )
+                    {
+                        this.Visit( fieldDeclaration.AttributeLists );
+                    }
+
                     this.VisitTypeReference( fieldDeclaration.Declaration.Type, ReferenceKinds.MemberType );
 
                     if ( variable.Initializer != null && this._options.MustDescendIntoImplementation() )

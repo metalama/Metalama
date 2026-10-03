@@ -86,6 +86,10 @@ public static class SourceReferenceIndexService
     /// The index is built once per <see cref="SemanticModel"/> object with <see cref="DesignTimeAspectPipelineResultExtensionCollection.IndexOptions"/>,
     /// and cached in a table whose entries are collected with the semantic model, so every extension that analyzes the same semantic model reads
     /// the same index.
+    /// The cache is keyed by the semantic model only, although the index depends on the options. A semantic model belongs to one compilation of
+    /// one project, and the design-time pipeline gives the same extension collection to every analysis of that compilation, so a second call
+    /// with other options does not happen in practice. A caller that passes other options for the same semantic model receives the index of
+    /// the first call.
     /// </remarks>
     public static InboundReferenceIndex GetDesignTimeIndex(
         in ProjectServiceProvider serviceProvider,
