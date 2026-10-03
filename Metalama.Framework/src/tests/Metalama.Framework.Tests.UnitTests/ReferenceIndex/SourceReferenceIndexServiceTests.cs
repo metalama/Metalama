@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -8,6 +8,7 @@ using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.ReferenceGraph;
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline.MemoryLeaks;
 using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -15,6 +16,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -175,6 +177,69 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
 
         Assert.Empty( index.ReferencedSymbols );
         Assert.Empty( context.Observer.ResolvedSemanticModelNames );
+    }
+
+    /// <summary>
+    /// Verifies that requirements whose reference kinds are all <see cref="ReferenceKinds.None"/>, which <see cref="ReferenceIndexerRequirements.Create"/>
+    /// returns for a request that the index cannot serve, do not make the stage walk the source compilation.
+    /// </summary>
+    [Fact]
+    public async Task NoneKindRequirements_IndexNotBuilt()
+    {
+        using var context = this.CreateContext( _code );
+
+        var requirements = new SourceIndexRequirements( [new ReferenceIndexerRequirements( ReferenceKinds.None, false, DeclarationKind.Method, "F" )] );
+
+        Assert.True( requirements.IsEmpty );
+
+        using var stage = SourceReferenceIndexService.BeginStage( context.ServiceProvider, context.Compilation, [requirements] );
+
+        Assert.False( stage.HasRequirements );
+
+        var index = await stage.GetIndexAsync( Xunit.TestContext.Current.CancellationToken );
+
+        Assert.Empty( index.ReferencedSymbols );
+        Assert.Empty( context.Observer.ResolvedSemanticModelNames );
+    }
+
+    /// <summary>
+    /// Verifies that the cache of the design-time indexes does not retain the semantic model and the compilation of an index, although the index
+    /// references their symbols and syntax.
+    /// </summary>
+    [Fact]
+    public void DesignTimeIndex_DoesNotRetainCompilation()
+    {
+        using var context = this.CreateContext( _code );
+
+        var compilation = IndexNewCompilation( context );
+
+        MemoryLeakAssert.Collected( compilation, "The compilation of a design-time index" );
+    }
+
+    /// <summary>
+    /// Creates a compilation that only this method references, builds its design-time index, and returns a weak reference to the compilation.
+    /// </summary>
+    [MethodImpl( MethodImplOptions.NoInlining )]
+    private static WeakReference IndexNewCompilation( TestContext context )
+    {
+        var compilation = context.Compilation.RoslynCompilation.WithAssemblyName( "DesignTimeIndex_DoesNotRetainCompilation" );
+        var semanticModel = compilation.GetSemanticModel( compilation.SyntaxTrees.First() );
+
+        var index = SourceReferenceIndexService.GetDesignTimeIndex(
+            context.ServiceProvider,
+            semanticModel,
+            DesignTimeAspectPipelineResultExtensionCollection.Empty,
+            Xunit.TestContext.Current.CancellationToken );
+
+        Assert.Same(
+            index,
+            SourceReferenceIndexService.GetDesignTimeIndex(
+                context.ServiceProvider,
+                semanticModel,
+                DesignTimeAspectPipelineResultExtensionCollection.Empty,
+                Xunit.TestContext.Current.CancellationToken ) );
+
+        return new WeakReference( compilation );
     }
 
     [Fact]
