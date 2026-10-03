@@ -23,12 +23,6 @@ namespace Metalama.Framework.Engine.Linking;
 internal sealed class CallSiteRedirection
 {
     /// <summary>
-    /// A trivia list that contains one space that is not elastic. The switch expressions that the rewrite generates are therefore readable when the
-    /// code is not formatted. When the code is formatted, the formatter still places the arms of a switch expression on separate lines.
-    /// </summary>
-    private static readonly SyntaxTriviaList _space = TriviaList( Space );
-
-    /// <summary>
     /// Initializes a new instance of the <see cref="CallSiteRedirection"/> class.
     /// </summary>
     public CallSiteRedirection(
@@ -187,7 +181,7 @@ internal sealed class CallSiteRedirection
 
                 if ( !item.PrecedingDiscards.IsDefaultOrEmpty || !item.FollowingDiscards.IsDefaultOrEmpty )
                 {
-                    // The factory accepts discards only next to an argument that is passed by value, so the argument has no modifier.
+                    // The factory attaches dropped values only to an argument that is passed by value, so the argument has no modifier.
                     argument = Argument( AddDiscards( argument.Expression, item, sourceArguments ) );
                 }
 
@@ -263,16 +257,15 @@ internal sealed class CallSiteRedirection
     }
 
     /// <summary>
-    /// Wraps the value of an argument into the switch expressions that evaluate the source arguments that the new call does not pass, in the
-    /// order of the source call site.
+    /// Wraps the value of an argument into the calls of <c>Metalama.Framework.RunTime.CallSiteHelper</c> that evaluate the source arguments that the
+    /// new call does not pass, in the order of the source call site.
     /// </summary>
     /// <remarks>
-    /// A switch expression evaluates its governing expression before the selected arm. The form <c>D switch { _ =&gt; value }</c> therefore
-    /// evaluates <c>D</c> before the value, and the form <c>value switch { var t =&gt; D switch { _ =&gt; t } }</c> evaluates it after the value.
-    /// In the first form, the value is an arm of the switch expression, so it is converted to the type of the parameter as in the source call. In
-    /// the second form, the value is the governing expression, and the variable <c>t</c> has the natural type of the value, which is then converted
-    /// to the type of the parameter. The factory therefore uses the second form only for a value whose natural type gives the same conversion,
-    /// which excludes target-typed expressions such as <c>default</c> and <c>new()</c>.
+    /// C# evaluates the arguments of a call in the order in which they are written. <c>DropBefore( D, value )</c> therefore evaluates <c>D</c>
+    /// before the value, and <c>DropAfter( value, D )</c> evaluates it after the value. Several consecutive dropped values are passed as one tuple,
+    /// in the source order. When both forms apply, <c>DropBefore( D1, DropAfter( value, D2 ) )</c> evaluates <c>D1</c>, the value and <c>D2</c>.
+    /// The type arguments are written when the plan gives them, so that a value without natural type is converted to the same type as in the
+    /// original call.
     /// </remarks>
     private static ExpressionSyntax AddDiscards( ExpressionSyntax value, CallSiteArgumentPlanItem item, SeparatedSyntaxList<ArgumentSyntax> sourceArguments )
     {
@@ -280,61 +273,54 @@ internal sealed class CallSiteRedirection
 
         if ( !item.FollowingDiscards.IsDefaultOrEmpty )
         {
-            ExpressionSyntax inner = SyntaxFactoryEx.SafeIdentifierName( item.ValueVariableName! );
-
-            for ( var i = item.FollowingDiscards.Length - 1; i >= 0; i-- )
-            {
-                inner = CreateSwitchExpression( sourceArguments[item.FollowingDiscards[i]].Expression, DiscardPattern(), inner );
-            }
-
-            var pattern = VarPattern(
-                Token( default, SyntaxKind.VarKeyword, _space ),
-                SingleVariableDesignation( SyntaxFactoryEx.SafeIdentifier( item.ValueVariableName! ) ) );
-
-            result = CreateSwitchExpression( result, pattern, inner );
+            result = CreateDropCall(
+                item,
+                "DropAfter",
+                item.KeepTypeArgument != null ? [item.KeepTypeArgument, item.FollowingDropTypeArgument!] : null,
+                result,
+                CreateDroppedValue( item.FollowingDiscards, sourceArguments ) );
         }
 
         if ( !item.PrecedingDiscards.IsDefaultOrEmpty )
         {
-            for ( var i = item.PrecedingDiscards.Length - 1; i >= 0; i-- )
-            {
-                result = CreateSwitchExpression( sourceArguments[item.PrecedingDiscards[i]].Expression, DiscardPattern(), result );
-            }
+            result = CreateDropCall(
+                item,
+                "DropBefore",
+                item.KeepTypeArgument != null ? [item.PrecedingDropTypeArgument!, item.KeepTypeArgument] : null,
+                CreateDroppedValue( item.PrecedingDiscards, sourceArguments ),
+                result );
         }
 
         return result;
     }
 
     /// <summary>
-    /// Creates the switch expression <c>governing switch { pattern =&gt; value }</c> on one line.
+    /// Creates a call of a method of <c>CallSiteHelper</c> with two arguments, in the order of evaluation.
     /// </summary>
-    private static SwitchExpressionSyntax CreateSwitchExpression( ExpressionSyntax governing, PatternSyntax pattern, ExpressionSyntax value )
-        => SwitchExpression(
-            ParenthesizeIfNecessary( governing.WithoutTrivia() ),
-            Token( _space, SyntaxKind.SwitchKeyword, _space ),
-            Token( default, SyntaxKind.OpenBraceToken, _space ),
-            SingletonSeparatedList(
-                SwitchExpressionArm(
-                    pattern,
-                    null,
-                    Token( _space, SyntaxKind.EqualsGreaterThanToken, _space ),
-                    ParenthesizeIfNecessary( value.WithoutTrivia() ) ) ),
-            Token( _space, SyntaxKind.CloseBraceToken, default ) );
+    private static InvocationExpressionSyntax CreateDropCall(
+        CallSiteArgumentPlanItem item,
+        string methodName,
+        TypeSyntax[]? typeArguments,
+        ExpressionSyntax firstArgument,
+        ExpressionSyntax secondArgument )
+    {
+        SimpleNameSyntax name = typeArguments == null
+            ? SyntaxFactoryEx.SafeIdentifierName( methodName )
+            : GenericName( SyntaxFactoryEx.SafeIdentifier( methodName ), TypeArgumentList( SeparatedList( typeArguments ) ) );
+
+        return InvocationExpression(
+            MemberAccessExpression( SyntaxKind.SimpleMemberAccessExpression, item.DropHelperType!, name ),
+            ArgumentList( SeparatedList( [Argument( firstArgument ), Argument( secondArgument )] ) ) );
+    }
 
     /// <summary>
-    /// Parenthesizes an expression unless it is a primary expression, so that the text of a switch expression keeps the structure of the syntax
-    /// tree.
+    /// Creates the expression of the dropped values: the source argument itself when there is one, or a tuple of the source arguments in their
+    /// source order when there are several.
     /// </summary>
-    private static ExpressionSyntax ParenthesizeIfNecessary( ExpressionSyntax expression )
-        => expression.Kind() switch
-        {
-            SyntaxKind.IdentifierName or SyntaxKind.GenericName or SyntaxKind.SimpleMemberAccessExpression or SyntaxKind.InvocationExpression
-                or SyntaxKind.ElementAccessExpression or SyntaxKind.ObjectCreationExpression or SyntaxKind.ParenthesizedExpression
-                or SyntaxKind.TupleExpression or SyntaxKind.ThisExpression or SyntaxKind.StringLiteralExpression or SyntaxKind.NumericLiteralExpression
-                or SyntaxKind.CharacterLiteralExpression or SyntaxKind.TrueLiteralExpression or SyntaxKind.FalseLiteralExpression
-                or SyntaxKind.NullLiteralExpression or SyntaxKind.SwitchExpression => expression,
-            _ => ParenthesizedExpression( expression )
-        };
+    private static ExpressionSyntax CreateDroppedValue( ImmutableArray<int> indices, SeparatedSyntaxList<ArgumentSyntax> sourceArguments )
+        => indices.Length == 1
+            ? sourceArguments[indices[0]].Expression.WithoutTrivia()
+            : TupleExpression( SeparatedList( indices.Select( i => Argument( sourceArguments[i].Expression.WithoutTrivia() ) ) ) );
 
     /// <summary>
     /// Gives the rewritten node the trivia of the source node, which can contain comments and preprocessor directives, and moves the comments of

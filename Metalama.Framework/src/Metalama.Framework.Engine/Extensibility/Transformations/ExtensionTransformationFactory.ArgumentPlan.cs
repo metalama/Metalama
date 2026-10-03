@@ -7,6 +7,7 @@ using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Linking;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Utilities.Roslyn;
+using Metalama.Framework.RunTime;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -208,10 +209,12 @@ namespace Metalama.Framework.Engine.Extensibility.Transformations
             var orderedItems = items.OrderBy( x => x.Order ).ToImmutableArray();
             var precedingDiscards = new List<int>?[orderedItems.Length];
             var followingDiscards = new List<int>?[orderedItems.Length];
+            var dropTypes = new Dictionary<int, (ITypeSymbol Type, bool IsNatural)>();
             var semanticModel = operation.SemanticModel!;
 
-            // A value of the source call site that is not passed is still evaluated, in its source order, when it can have a side effect. It is evaluated
-            // and discarded before the next argument of the new call, or after the previous one when the next one cannot hold it.
+            // A value of the source call site that is not passed is still evaluated, in its source order, when it can have a side effect. It is passed
+            // to CallSiteHelper.DropBefore together with the next argument of the new call, or to CallSiteHelper.DropAfter together with the previous
+            // one when the next one cannot hold it.
             for ( var i = 0; i < sourceArgumentSyntaxes.Count; i++ )
             {
                 if ( usedSourceArguments.Contains( i ) )
@@ -233,12 +236,14 @@ namespace Metalama.Framework.Engine.Extensibility.Transformations
                     continue;
                 }
 
-                if ( !CanBeDiscarded( semanticModel, argument, value, out var reason ) )
+                if ( !CanBeDropped( semanticModel, argument, value, out var dropType, out var isNaturalType, out var reason ) )
                 {
                     throw new ArgumentException(
-                        $"The argument '{argument}' of the call site '{callSite}' is not passed, and it can have a side effect, but it cannot be evaluated into a discard: {reason}",
+                        $"The argument '{argument}' of the call site '{callSite}' is not passed, and it can have a side effect, but it cannot be evaluated separately: {reason}",
                         nameof(request) );
                 }
+
+                dropTypes[i] = (dropType, isNaturalType);
 
                 var nextIndex = 0;
 
@@ -249,11 +254,11 @@ namespace Metalama.Framework.Engine.Extensibility.Transformations
 
                 var previousIndex = nextIndex - 1;
 
-                if ( nextIndex < orderedItems.Length && CanHoldPrecedingDiscard( orderedItems[nextIndex], sourceArgumentSyntaxes ) )
+                if ( nextIndex < orderedItems.Length && CanHoldDroppedValue( semanticModel, orderedItems[nextIndex], sourceArgumentSyntaxes ) )
                 {
                     (precedingDiscards[nextIndex] ??= new List<int>()).Add( i );
                 }
-                else if ( previousIndex >= 0 && CanHoldFollowingDiscard( semanticModel, orderedItems[previousIndex], sourceArgumentSyntaxes, argument ) )
+                else if ( previousIndex >= 0 && CanHoldDroppedValue( semanticModel, orderedItems[previousIndex], sourceArgumentSyntaxes ) )
                 {
                     (followingDiscards[previousIndex] ??= new List<int>()).Add( i );
                 }
@@ -265,22 +270,74 @@ namespace Metalama.Framework.Engine.Extensibility.Transformations
                 }
             }
 
-            if ( (precedingDiscards.Any( d => d != null ) || followingDiscards.Any( d => d != null ))
-                 && ((CSharpParseOptions) callSite.SyntaxTree.Options).LanguageVersion < LanguageVersion.CSharp9 )
+            if ( dropTypes.Count == 0 )
             {
-                throw new ArgumentException(
-                    $"An argument of the call site '{callSite}' that is not passed can have a side effect, and the switch expression that evaluates it requires C# 9 or later.",
-                    nameof(request) );
+                return orderedItems.SelectAsImmutableArray( x => x.Item );
             }
 
-            var valueVariableName = followingDiscards.Any( d => d != null ) ? GetValueVariableName( semanticModel, callSite ) : null;
+            var dropHelperType = context.SyntaxGenerator.TypeSyntax( context.ReflectionMapper.GetTypeSymbol( typeof(CallSiteHelper) ) )
+                .WithSimplifierAnnotationIfNecessary( context );
+
+            var targetMethodSymbol = request.Target.Method.GetSymbol();
 
             return orderedItems.Select(
-                    ( x, index ) => x.Item with
+                    ( x, index ) =>
                     {
-                        PrecedingDiscards = precedingDiscards[index]?.ToImmutableArray() ?? default,
-                        FollowingDiscards = followingDiscards[index]?.ToImmutableArray() ?? default,
-                        ValueVariableName = followingDiscards[index] != null ? valueVariableName : null
+                        var preceding = precedingDiscards[index]?.ToImmutableArray() ?? default;
+                        var following = followingDiscards[index]?.ToImmutableArray() ?? default;
+
+                        if ( preceding.IsDefault && following.IsDefault )
+                        {
+                            return x.Item;
+                        }
+
+                        var item = x.Item with { PrecedingDiscards = preceding, FollowingDiscards = following, DropHelperType = dropHelperType };
+
+                        // The type arguments of the helper are inferred, unless the kept value has no natural type, or a type that does not convert
+                        // implicitly to the type of the parameter, or a dropped value has no natural type. Then both type arguments are written, so that
+                        // each value is converted to the same type as in the original call.
+                        var dropped = (preceding.IsDefault ? Enumerable.Empty<int>() : preceding).Concat( following.IsDefault ? Enumerable.Empty<int>() : following );
+
+                        if ( !NeedsExplicitKeepType( semanticModel, x, sourceArgumentSyntaxes ) && dropped.All( i => dropTypes[i].IsNatural ) )
+                        {
+                            return item;
+                        }
+
+                        if ( x.Parameter.Type.GetSymbol() is not { } parameterType
+                             || !CanBeWrittenAsTypeArgument( parameterType, targetMethodSymbol ) )
+                        {
+                            throw new ArgumentException(
+                                $"An argument of the call site '{callSite}' that is not passed can have a side effect, and the type of the parameter '{x.Parameter.Name}' of the target cannot be written as a type argument of the call that evaluates it.",
+                                nameof(request) );
+                        }
+
+                        foreach ( var i in dropped )
+                        {
+                            if ( !CanBeWrittenAsTypeArgument( dropTypes[i].Type, targetMethodSymbol ) )
+                            {
+                                throw new ArgumentException(
+                                    $"The argument '{sourceArgumentSyntaxes[i]}' of the call site '{callSite}' is not passed, and it can have a side effect, but its type '{dropTypes[i].Type.ToDisplayString( SymbolDisplayFormat.CSharpShortErrorMessageFormat )}' cannot be written as a type argument of the call that evaluates it.",
+                                    nameof(request) );
+                            }
+                        }
+
+                        TypeSyntax? CreateDropType( ImmutableArray<int> indices )
+                            => indices.IsDefault
+                                ? null
+                                : indices.Length == 1
+                                    ? context.SyntaxGenerator.TypeSyntax( dropTypes[indices[0]].Type ).WithSimplifierAnnotationIfNecessary( context )
+                                    : TupleType(
+                                        SeparatedList(
+                                            indices.Select(
+                                                i => TupleElement(
+                                                    context.SyntaxGenerator.TypeSyntax( dropTypes[i].Type ).WithSimplifierAnnotationIfNecessary( context ) ) ) ) );
+
+                        return item with
+                        {
+                            KeepTypeArgument = context.SyntaxGenerator.TypeSyntax( parameterType ).WithSimplifierAnnotationIfNecessary( context ),
+                            PrecedingDropTypeArgument = CreateDropType( preceding ),
+                            FollowingDropTypeArgument = CreateDropType( following )
+                        };
                     } )
                 .ToImmutableArray();
         }
@@ -334,28 +391,28 @@ namespace Metalama.Framework.Engine.Extensibility.Transformations
         }
 
         /// <summary>
-        /// Determines whether a source argument that can have a side effect can be evaluated alone, as the governing expression of a switch expression,
-        /// with the same effects as at the source call site.
+        /// Determines whether a source argument that can have a side effect can be passed alone to <c>CallSiteHelper</c>, with the same effects as at
+        /// the source call site, and returns the type with which it is passed.
         /// </summary>
-        private static bool CanBeDiscarded( SemanticModel semanticModel, ArgumentSyntax argument, IOperation? value, out string reason )
+        /// <param name="semanticModel">The semantic model of the call site.</param>
+        /// <param name="argument">The source argument.</param>
+        /// <param name="value">The operation of the value of the argument, including its conversion to the type of the parameter.</param>
+        /// <param name="type">The natural type of the value, or the type of the parameter when the value has no natural type.</param>
+        /// <param name="isNaturalType">Indicates whether <paramref name="type"/> is the natural type of the value.</param>
+        /// <param name="reason">The reason of a refusal.</param>
+        private static bool CanBeDropped(
+            SemanticModel semanticModel,
+            ArgumentSyntax argument,
+            IOperation? value,
+            out ITypeSymbol type,
+            out bool isNaturalType,
+            out string reason )
         {
-            var expression = argument.Expression;
+            type = null!;
+            isNaturalType = false;
 
-            // The operation tree has no node for parentheses and for the suppression of a nullable warning, so the syntax of the value can be the
-            // expression of the argument or an expression inside these nodes.
-            var expressionForms = new List<SyntaxNode> { expression };
-
-            while ( expression.Kind() is SyntaxKind.ParenthesizedExpression or SyntaxKind.SuppressNullableWarningExpression )
-            {
-                expression = expression.Kind() == SyntaxKind.ParenthesizedExpression
-                    ? ((ParenthesizedExpressionSyntax) expression).Expression
-                    : ((PostfixUnaryExpressionSyntax) expression).Operand;
-
-                expressionForms.Add( expression );
-            }
-
-            // The implicit conversion to the type of the parameter is not evaluated when the value is discarded. A user-defined conversion runs user code
-            // at the source call site, so it cannot be omitted.
+            // The implicit conversion to the type of the parameter is not evaluated when the value is dropped with its natural type. A user-defined
+            // conversion runs user code at the source call site, so it cannot be omitted.
             while ( value is IConversionOperation { IsImplicit: true } conversion )
             {
                 if ( conversion.OperatorMethod != null )
@@ -368,110 +425,152 @@ namespace Metalama.Framework.Engine.Extensibility.Transformations
                 value = conversion.Operand;
             }
 
-            if ( value == null || !expressionForms.Contains( value.Syntax ) || value is IInterpolatedStringHandlerCreationOperation
-                 || expression.Kind() is SyntaxKind.ImplicitObjectCreationExpression or SyntaxKind.CollectionExpression )
+            if ( value is IInterpolatedStringHandlerCreationOperation )
             {
-                reason = "its value depends on the type of the parameter.";
+                reason = "it creates an interpolated string handler, whose construction depends on the other arguments of the call.";
 
                 return false;
             }
 
-            var type = semanticModel.GetTypeInfo( expression ).Type;
+            var naturalType = GetNaturalType( semanticModel, argument.Expression );
+            var actualType = naturalType ?? semanticModel.GetTypeInfo( argument.Expression ).ConvertedType;
 
-            if ( type == null || type.TypeKind is Microsoft.CodeAnalysis.TypeKind.Pointer or Microsoft.CodeAnalysis.TypeKind.FunctionPointer || type.SpecialType == Microsoft.CodeAnalysis.SpecialType.System_Void )
+            if ( actualType == null || actualType.SpecialType == Microsoft.CodeAnalysis.SpecialType.System_Void )
             {
-                reason = "it has no type, or it has a pointer type, which a switch expression cannot take.";
+                reason = "it has no type.";
 
                 return false;
             }
 
+            if ( actualType.IsRefLikeType || actualType.TypeKind is Microsoft.CodeAnalysis.TypeKind.Pointer or Microsoft.CodeAnalysis.TypeKind.FunctionPointer )
+            {
+                reason = $"its type '{actualType.ToDisplayString( SymbolDisplayFormat.CSharpShortErrorMessageFormat )}' is a ref struct or a pointer type, which cannot be a type argument.";
+
+                return false;
+            }
+
+            type = actualType;
+            isNaturalType = naturalType != null;
             reason = "";
 
             return true;
         }
 
         /// <summary>
-        /// Determines whether an argument of the new call can be written <c>D switch { _ =&gt; value }</c>.
-        /// </summary>
-        private static bool CanHoldPrecedingDiscard(
-            (int Order, CallSiteArgumentPlanItem Item, IParameter Parameter, IType? CastType) item,
-            SeparatedSyntaxList<ArgumentSyntax> sourceArguments )
-            => item.Parameter.RefKind == Code.RefKind.None
-               && item.Item.Kind switch
-               {
-                   RedirectedArgumentKind.SourceArgument when item.Item.IsPacked => true,
-                   RedirectedArgumentKind.SourceArgument => sourceArguments[item.Item.SourceArgumentIndex].RefKindKeyword.IsKind( SyntaxKind.None ),
-                   RedirectedArgumentKind.Value => true,
-                   _ => false
-               };
-
-        /// <summary>
-        /// Determines whether an argument of the new call can be written <c>value switch { var t =&gt; D switch { _ =&gt; t } }</c>.
+        /// Determines whether an argument of the new call can be passed to <c>CallSiteHelper</c> together with dropped values.
         /// </summary>
         /// <remarks>
-        /// The pattern variable has the natural type of the value, so the natural type must convert implicitly to the type of the parameter. This
-        /// excludes a value whose conversion depends on the expression, for instance a constant that a constant conversion narrows. The discarded
-        /// argument becomes part of an arm, so it must not declare a variable, whose scope would end with the arm.
+        /// The argument must be passed by value. An interpolated string passed to an interpolated string handler cannot be passed, because the handler
+        /// would be created for the parameter of the helper, which is not the parameter of the target. A ref struct or a pointer cannot be a type
+        /// argument.
         /// </remarks>
-        private static bool CanHoldFollowingDiscard(
+        private static bool CanHoldDroppedValue(
             SemanticModel semanticModel,
             (int Order, CallSiteArgumentPlanItem Item, IParameter Parameter, IType? CastType) item,
-            SeparatedSyntaxList<ArgumentSyntax> sourceArguments,
-            ArgumentSyntax discardedArgument )
+            SeparatedSyntaxList<ArgumentSyntax> sourceArguments )
         {
-            if ( item.Parameter.RefKind != Code.RefKind.None || item.Item.Kind != RedirectedArgumentKind.SourceArgument || item.Item.IsPacked )
+            if ( item.Parameter.RefKind != Code.RefKind.None || (item.Parameter.Type.GetSymbol() is { } parameterType && !IsTypeArgumentKind( parameterType )) )
             {
                 return false;
             }
 
+            if ( item.Item.Kind != RedirectedArgumentKind.SourceArgument || item.Item.IsPacked )
+            {
+                return item.Item.Kind is RedirectedArgumentKind.SourceArgument or RedirectedArgumentKind.Value;
+            }
+
             var sourceArgument = sourceArguments[item.Item.SourceArgumentIndex];
 
-            // The pattern variable of the holder takes the natural type of the value, and a target-typed value has none.
-            if ( sourceArgument.Expression.Kind() is SyntaxKind.ImplicitObjectCreationExpression or SyntaxKind.CollectionExpression or SyntaxKind.DefaultLiteralExpression
+            if ( !sourceArgument.RefKindKeyword.IsKind( SyntaxKind.None )
                  || semanticModel.GetOperation( sourceArgument.Expression ) is IInterpolatedStringHandlerCreationOperation )
             {
                 return false;
             }
 
-            if ( !sourceArgument.RefKindKeyword.IsKind( SyntaxKind.None )
-                 || discardedArgument.Expression.DescendantNodesAndSelf().Any( n => n.Kind() is SyntaxKind.DeclarationExpression or SyntaxKind.SingleVariableDesignation ) )
-            {
-                return false;
-            }
+            var naturalType = item.CastType != null ? item.CastType.GetSymbol() : GetNaturalType( semanticModel, sourceArgument.Expression );
 
-            // The natural type of a cast argument is the type of the cast.
-            var naturalType = item.CastType != null ? item.CastType.GetSymbol() : semanticModel.GetTypeInfo( sourceArgument.Expression ).Type;
-            var parameterType = item.Parameter.Type.GetSymbol();
-
-            return naturalType != null && parameterType != null && naturalType.TypeKind is not (Microsoft.CodeAnalysis.TypeKind.Pointer or Microsoft.CodeAnalysis.TypeKind.FunctionPointer)
-                   && semanticModel.Compilation.ClassifyConversion( naturalType, parameterType ).IsImplicit;
+            return naturalType == null || IsTypeArgumentKind( naturalType );
         }
 
         /// <summary>
-        /// Returns the name of the pattern variable that holds the value of an argument while the discards that follow it are evaluated. The name is
-        /// not the name of a symbol in scope.
+        /// Determines whether the type arguments of <c>CallSiteHelper</c> must be written for an argument of the new call, because the kept value has
+        /// no natural type, or because its natural type does not convert implicitly to the type of the parameter, for instance a constant that a
+        /// constant conversion narrows.
+        /// </summary>
+        private static bool NeedsExplicitKeepType(
+            SemanticModel semanticModel,
+            (int Order, CallSiteArgumentPlanItem Item, IParameter Parameter, IType? CastType) item,
+            SeparatedSyntaxList<ArgumentSyntax> sourceArguments )
+        {
+            if ( item.Item.Kind != RedirectedArgumentKind.SourceArgument || item.Item.IsPacked )
+            {
+                // The type of an expression of the request or of a packed collection is not known before the rewrite.
+                return true;
+            }
+
+            var naturalType = item.CastType != null
+                ? item.CastType.GetSymbol()
+                : GetNaturalType( semanticModel, sourceArguments[item.Item.SourceArgumentIndex].Expression );
+
+            var parameterType = item.Parameter.Type.GetSymbol();
+
+            return naturalType == null || parameterType == null || !semanticModel.Compilation.ClassifyConversion( naturalType, parameterType ).IsImplicit;
+        }
+
+        /// <summary>
+        /// Returns the natural type of an expression, or <c>null</c> when the expression has none and takes its type from its target.
         /// </summary>
         /// <remarks>
-        /// The name contains the number of invocations that contain the call site. A call site nested in an argument of another one therefore gets
-        /// another name, so the scope of its pattern variable, which is an arm of the switch expression of the outer call site, does not declare the
-        /// name twice. Call sites with the same depth are in separate arms, which are separate scopes.
+        /// The semantic model gives the type of the target as the type of a target-typed object creation (<c>new()</c>) and of the <c>default</c>
+        /// literal, so these forms and collection expressions are recognized by their syntax. The other expressions without natural type, for
+        /// instance <c>null</c>, a lambda or a target-typed conditional expression, have no type in the semantic model.
         /// </remarks>
-        private static string GetValueVariableName( SemanticModel semanticModel, InvocationExpressionSyntax callSite )
+        private static ITypeSymbol? GetNaturalType( SemanticModel semanticModel, ExpressionSyntax expression )
         {
-            var depth = callSite.Ancestors().Count( n => n.IsKind( SyntaxKind.InvocationExpression ) );
-            var baseName = $"__value{depth}";
+            var unwrapped = expression;
 
-            for ( var i = 0;; i++ )
+            while ( unwrapped.Kind() is SyntaxKind.ParenthesizedExpression or SyntaxKind.SuppressNullableWarningExpression )
             {
-                var name = i == 0 ? baseName : $"{baseName}_{i}";
-
-                if ( semanticModel.LookupSymbols( callSite.SpanStart, name: name ).IsEmpty
-                     && !callSite.DescendantTokens().Any( t => t.IsKind( SyntaxKind.IdentifierToken ) && t.ValueText == name ) )
-                {
-                    return name;
-                }
+                unwrapped = unwrapped.Kind() == SyntaxKind.ParenthesizedExpression
+                    ? ((ParenthesizedExpressionSyntax) unwrapped).Expression
+                    : ((PostfixUnaryExpressionSyntax) unwrapped).Operand;
             }
+
+            if ( unwrapped.Kind() is SyntaxKind.ImplicitObjectCreationExpression or SyntaxKind.DefaultLiteralExpression or SyntaxKind.CollectionExpression )
+            {
+                return null;
+            }
+
+            return semanticModel.GetTypeInfo( expression ).Type;
         }
+
+        /// <summary>
+        /// Determines whether a type can be a type argument of a method: it is not a ref struct, a pointer type or a function pointer type.
+        /// </summary>
+        private static bool IsTypeArgumentKind( ITypeSymbol type )
+            => !type.IsRefLikeType && type.TypeKind is not (Microsoft.CodeAnalysis.TypeKind.Pointer or Microsoft.CodeAnalysis.TypeKind.FunctionPointer);
+
+        /// <summary>
+        /// Determines whether a type can be written as a type argument at the call site: it can be a type argument, it can be named, and it does not
+        /// contain a type parameter of the target method, which is not in scope at the call site.
+        /// </summary>
+        private static bool CanBeWrittenAsTypeArgument( ITypeSymbol type, ISymbol? targetMethod )
+            => IsTypeArgumentKind( type ) && CanBeNamed( type ) && !ContainsTypeParameterOf( type, targetMethod );
+
+        /// <summary>
+        /// Determines whether a type contains a type parameter of a given method.
+        /// </summary>
+        private static bool ContainsTypeParameterOf( ITypeSymbol type, ISymbol? method )
+            => method != null
+               && type.Kind switch
+               {
+                   SymbolKind.TypeParameter => SymbolEqualityComparer.Default.Equals(
+                       ((ITypeParameterSymbol) type).DeclaringMethod?.OriginalDefinition,
+                       method.OriginalDefinition ),
+                   SymbolKind.ArrayType => ContainsTypeParameterOf( ((IArrayTypeSymbol) type).ElementType, method ),
+                   SymbolKind.NamedType => ((INamedTypeSymbol) type).TypeArguments.Any( t => ContainsTypeParameterOf( t, method ) ),
+                   _ => false
+               };
 
         private static bool IsCompatibleRefKind( ArgumentSyntax argument, IParameter parameter )
             => (argument.RefKindKeyword.Kind(), parameter.RefKind) switch
