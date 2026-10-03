@@ -80,12 +80,17 @@ public sealed class AdviserExtensionContext
     /// <summary>
     /// Captures the attribution information of a contribution made now through the adviser.
     /// </summary>
+    /// <exception cref="ObjectDisposedException">The aspect or fabric that received the adviser has finished executing.</exception>
     public ExtensionContributionOrigin CaptureOrigin()
-        => new(
+    {
+        this.ThrowIfDisposed();
+
+        return new ExtensionContributionOrigin(
             this.Owner.AspectPredecessor,
             this.Owner.DiagnosticSourceDescription,
             this.TemplateProvider,
             this._templateClassInstance,
             this._state.AspectLayerInstance.AspectLayerId,
             this._state.AspectInstance );
+    }
 }
