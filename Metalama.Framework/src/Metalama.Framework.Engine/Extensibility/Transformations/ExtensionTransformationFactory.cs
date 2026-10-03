@@ -49,7 +49,7 @@ public sealed partial class ExtensionTransformationFactory
     private readonly object _sync = new();
 
     /// <summary>
-    /// The compilation that results from all aspects of the stage.
+    /// The compilation that results from all aspects of the source stage.
     /// </summary>
     private readonly CompilationModel _compilation;
 
@@ -92,7 +92,7 @@ public sealed partial class ExtensionTransformationFactory
     }
 
     /// <summary>
-    /// Gets the compilation that results from all aspects of the stage. In the first stage, its syntax trees are those of the source compilation.
+    /// Gets the compilation that results from all aspects of the source stage. Its syntax trees are those of the source compilation.
     /// </summary>
     public ICompilation Compilation => this._compilation;
 

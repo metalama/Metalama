@@ -313,7 +313,8 @@ public sealed class ExtensionTransformationLinkerTests : UnitTestClass
                 TemplateProvider.FromInstance( aspectInstance.Aspect ),
                 null,
                 new AspectLayerId( aspectInstance.AspectClass ),
-                aspectInstance );
+                aspectInstance,
+                0 );
 
             var target = CallSiteRedirectionTarget.Existing(
                 context.StageFinalCompilation.Types.OfName( "Interceptors" ).Single().Methods.OfName( "Compute" ).Single() );

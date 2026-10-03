@@ -37,8 +37,10 @@ public sealed class ExtensionContributionOrigin
         TemplateProvider defaultTemplateProvider,
         TemplateClassInstance? templateClassInstance,
         AspectLayerId aspectLayerId,
-        IAspectInstanceInternal? aspectInstance )
+        IAspectInstanceInternal? aspectInstance,
+        int highLevelStageIndex )
     {
+        this.HighLevelStageIndex = highLevelStageIndex;
         this.Predecessor = predecessor;
         this.DiagnosticSourceDescription = diagnosticSourceDescription;
         this.DefaultTemplateProvider = defaultTemplateProvider;
@@ -51,6 +53,17 @@ public sealed class ExtensionContributionOrigin
     /// Gets the aspect instance or the fabric instance that made the contribution.
     /// </summary>
     public AspectPredecessor Predecessor { get; }
+
+    /// <summary>
+    /// Gets the zero-based index, among the high-level stages of the pipeline, of the stage in which the contribution was made.
+    /// </summary>
+    /// <remarks>
+    /// The extensions that use the shared index of source references, and the transforming hook, run only in the first high-level stage, on the
+    /// source compilation. A contribution made in a later stage, by an aspect that executes after a low-level weaver, is not processed by them.
+    /// An extension can test this property to report such a contribution, for instance from
+    /// <see cref="PipelineExtension.ExecutePipelineContributorsAsync"/>, which runs in every stage.
+    /// </remarks>
+    public int HighLevelStageIndex { get; }
 
     /// <summary>
     /// Gets a human-readable description of the aspect or fabric, used in diagnostics.

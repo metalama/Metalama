@@ -68,8 +68,7 @@ public sealed class TransformingPipelineExtensionTests : UnitTestClass
                                                   """;
 
     /// <summary>
-    /// Verifies that, in a pipeline with a single high-level stage, the hook is called once, with the stage index zero, and that this stage is the
-    /// source stage.
+    /// Verifies that, in a pipeline with a single high-level stage, the hook is called once.
     /// </summary>
     [Fact]
     public async Task SingleStage_HookCalledOnce()
@@ -77,10 +76,7 @@ public sealed class TransformingPipelineExtensionTests : UnitTestClass
         var (recorder, _, result) = await this.ExecuteAsync( "class C { }" );
 
         Assert.True( result.IsSuccessful );
-
-        var call = Assert.Single( recorder.Calls );
-        Assert.Equal( 0, call.HighLevelStageIndex );
-        Assert.True( call.IsSourceStage );
+        Assert.Single( recorder.Calls );
     }
 
     /// <summary>
@@ -103,10 +99,10 @@ public sealed class TransformingPipelineExtensionTests : UnitTestClass
     }
 
     /// <summary>
-    /// Verifies that the contributors added by the aspects of the stage are distinguished from the contributors replayed from the fabrics.
+    /// Verifies that the hook receives the contributors of the fabrics and those of the aspects of the source stage.
     /// </summary>
     [Fact]
-    public async Task ContributorsAddedInStage_ExcludesReplays()
+    public async Task Contributors_IncludeFabricAndAspectContributors()
     {
         var (recorder, _, result) = await this.ExecuteAsync( _diagnosticQueriesCode );
 
@@ -114,7 +110,6 @@ public sealed class TransformingPipelineExtensionTests : UnitTestClass
 
         var call = Assert.Single( recorder.Calls );
         Assert.Equal( 2, call.ContributorCount );
-        Assert.Equal( 1, call.ContributorsAddedInStageCount );
     }
 
     /// <summary>
@@ -221,9 +216,7 @@ public sealed class TransformingPipelineExtensionTests : UnitTestClass
         var result = await pipeline.ExecutePreviewAsync( diagnostics, PartialCompilation.CreateComplete( compilation ), configuration!, testContext.CancellationToken );
 
         Assert.True( result.IsSuccessful );
-
-        var call = Assert.Single( recorder.Calls );
-        Assert.True( call.IsSourceStage );
+        Assert.Single( recorder.Calls );
     }
 
     /// <summary>
@@ -242,17 +235,15 @@ public sealed class TransformingPipelineExtensionTests : UnitTestClass
         var result = await pipeline.ExecuteAsync( compilation, testContext.CancellationToken );
 
         Assert.True( result.HasMetalamaSucceeded );
-
-        var call = Assert.Single( recorder.Calls );
-        Assert.True( call.IsSourceStage );
+        Assert.Single( recorder.Calls );
     }
 
     /// <summary>
-    /// Verifies that a low-level weaver splits the pipeline into two high-level stages, and that only the first one sees the source compilation.
-    /// In the second stage, <see cref="ExtensionTransformationContext.SourceCompilationWithFinalAspects"/> throws, which the extension asserts.
+    /// Verifies that, when a low-level weaver splits the pipeline into two high-level stages, the hook is called once, in the first stage, which
+    /// starts from the source compilation and sees the aspect of that stage.
     /// </summary>
     [Fact]
-    public async Task WeaverSplitsStages_LaterStageIsNotSource()
+    public async Task WeaverSplitsStages_HookCalledOnceInSourceStage()
     {
         var (recorder, _, result) = await this.ExecuteAsync(
             new Dictionary<string, string> { ["code.cs"] = _weaverTargetCode + "[Aspect1] [WeaverAspect] [Aspect2] class C { }", ["weaver.cs"] = _weaverCode },
@@ -260,16 +251,15 @@ public sealed class TransformingPipelineExtensionTests : UnitTestClass
 
         Assert.True( result.IsSuccessful );
 
-        Assert.Equal(
-            [(0, true, true), (1, false, false)],
-            recorder.Calls.OrderBy( c => c.HighLevelStageIndex ).Select( c => (c.HighLevelStageIndex, c.IsSourceStage, c.AspectInstanceCountOnC.HasValue) ) );
+        var call = Assert.Single( recorder.Calls );
+        Assert.True( call.AspectInstanceCountOnC > 0 );
     }
 
     /// <summary>
-    /// Verifies that a weaver that has no aspect instance does not make the first high-level stage that the hook sees lose the source compilation.
+    /// Verifies that a weaver that has no aspect instance does not prevent the hook from being called once, in the source stage.
     /// </summary>
     [Fact]
-    public async Task WeaverWithoutInstancesBeforeFirstStage_FirstStageIsSource()
+    public async Task WeaverWithoutInstancesBeforeFirstStage_HookCalledOnce()
     {
         var (recorder, _, result) = await this.ExecuteAsync(
             new Dictionary<string, string> { ["code.cs"] = _weaverTargetCode + "[Aspect1] [Aspect2] class C { }", ["weaver.cs"] = _weaverFirstCode },
@@ -277,7 +267,7 @@ public sealed class TransformingPipelineExtensionTests : UnitTestClass
 
         Assert.True( result.IsSuccessful );
 
-        Assert.True( recorder.Calls.OrderBy( c => c.HighLevelStageIndex ).First().IsSourceStage );
+        Assert.Single( recorder.Calls );
     }
 
     /// <summary>
@@ -466,12 +456,9 @@ public sealed class TransformingPipelineExtensionTests : UnitTestClass
     /// The data observed by one call of the hook.
     /// </summary>
     private sealed record HookCall(
-        int HighLevelStageIndex,
-        bool IsSourceStage,
         ImmutableArray<SyntaxTree> SourceSyntaxTrees,
         int ContributorCount,
-        int ContributorsAddedInStageCount,
-        int? AspectInstanceCountOnC,
+        int AspectInstanceCountOnC,
         bool IsCancellationRequested );
 
     /// <summary>
@@ -493,18 +480,8 @@ public sealed class TransformingPipelineExtensionTests : UnitTestClass
                 throw new InvalidOperationException( "The test extension failed." );
             }
 
-            int? aspectInstanceCountOnC;
-
-            if ( context.IsSourceStage )
-            {
-                var typeC = context.SourceCompilationWithFinalAspects.Types.OfName( "C" ).SingleOrDefault();
-                aspectInstanceCountOnC = typeC?.Enhancements().GetAspectInstances().Count() ?? 0;
-            }
-            else
-            {
-                Assert.Throws<InvalidOperationException>( () => context.SourceCompilationWithFinalAspects );
-                aspectInstanceCountOnC = null;
-            }
+            var typeC = context.SourceCompilationWithFinalAspects.Types.OfName( "C" ).SingleOrDefault();
+            var aspectInstanceCountOnC = typeC?.Enhancements().GetAspectInstances().Count() ?? 0;
 
 #pragma warning disable VSTHRD103 // CancelAsync does not exist on .NET Framework.
             recorder.CancellationTokenSource?.Cancel();
@@ -512,11 +489,8 @@ public sealed class TransformingPipelineExtensionTests : UnitTestClass
 
             recorder.Calls.Enqueue(
                 new HookCall(
-                    context.HighLevelStageIndex,
-                    context.IsSourceStage,
                     context.SourceCompilation.PartialCompilation.SyntaxTreeCollection.ToImmutableArray(),
                     context.Contributors.Count,
-                    context.ContributorsAddedInStage.Count,
                     aspectInstanceCountOnC,
                     cancellationToken.IsCancellationRequested ) );
 
