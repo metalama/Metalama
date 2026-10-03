@@ -45,7 +45,7 @@ public static class TestExtensionPointsExtensions
     /// <param name="restrictToTarget"><c>true</c> to give the target of the adviser as the only declaration root of the index.</param>
     public static void TestReportReferences<T>( this IAdviser<T> adviser, string methodName, bool restrictToTarget = false )
         where T : class, IDeclaration
-        => GetService( adviser.Target.Compilation.Project ).ReportReferences( adviser, methodName, restrictToTarget );
+        => GetService( adviser.Compilation.Project ).ReportReferences( adviser, methodName, restrictToTarget );
 
     private static ITestRegistrationService GetService( IProject project )
         => project.ServiceProvider.GetService<ITestRegistrationService>()
