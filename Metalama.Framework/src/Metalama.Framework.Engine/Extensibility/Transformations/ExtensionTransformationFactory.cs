@@ -180,7 +180,7 @@ public sealed class ExtensionTransformationFactory
                     nameof(request) );
             }
 
-            argumentPlan = CreateArgumentPlan( request, operation, isReducedExtensionCall, hasReceiverValue );
+            argumentPlan = CreateArgumentPlan( request, operation, isReducedExtensionCall, hasReceiverValue, context );
         }
 
         var callee = request.ReceiverMode == CallSiteReceiverMode.ExtensionReceiver
@@ -383,7 +383,8 @@ public sealed class ExtensionTransformationFactory
         InvocationRedirectionRequest request,
         IInvocationOperation operation,
         bool isReducedExtensionCall,
-        bool hasReceiverValue )
+        bool hasReceiverValue,
+        SyntaxGenerationContext context )
     {
         var callSite = request.CallSite;
         var targetParameters = request.Target.Method.Parameters;
@@ -409,7 +410,7 @@ public sealed class ExtensionTransformationFactory
         var usedSourceArguments = new HashSet<int>();
         var receiverUsed = false;
         var names = new HashSet<string>( StringComparer.Ordinal );
-        var items = new List<(int Order, CallSiteArgumentPlanItem Item, IParameter Parameter)>();
+        var items = new List<(int Order, CallSiteArgumentPlanItem Item, IParameter Parameter, IType? CastType)>();
 
         for ( var i = 0; i < request.Arguments.Length; i++ )
         {
@@ -422,6 +423,11 @@ public sealed class ExtensionTransformationFactory
             if ( !names.Add( name ) )
             {
                 throw new ArgumentException( $"The argument list names the parameter '{name}' twice.", nameof(request) );
+            }
+
+            if ( argument.CastType != null && (argument.Kind != RedirectedArgumentKind.SourceArgument || (isReducedExtensionCall && argument.ParameterOrdinal == 0)) )
+            {
+                throw new ArgumentException( $"The argument '{name}' cannot be cast, because only a source argument other than the receiver can be cast.", nameof(request) );
             }
 
             switch ( argument.Kind )
@@ -442,7 +448,7 @@ public sealed class ExtensionTransformationFactory
                     receiverUsed = true;
 
                     // The receiver is evaluated before the arguments.
-                    items.Add( (-1, new CallSiteArgumentPlanItem( RedirectedArgumentKind.SourceReceiver, -1, null, name ), receivingParameter) );
+                    items.Add( (-1, new CallSiteArgumentPlanItem( RedirectedArgumentKind.SourceReceiver, -1, null, name ), receivingParameter, null) );
 
                     break;
 
@@ -455,7 +461,7 @@ public sealed class ExtensionTransformationFactory
                         }
 
                         receiverUsed = true;
-                        items.Add( (-1, new CallSiteArgumentPlanItem( RedirectedArgumentKind.SourceReceiver, -1, null, name ), receivingParameter) );
+                        items.Add( (-1, new CallSiteArgumentPlanItem( RedirectedArgumentKind.SourceReceiver, -1, null, name ), receivingParameter, null) );
 
                         break;
                     }
@@ -481,13 +487,29 @@ public sealed class ExtensionTransformationFactory
                             nameof(request) );
                     }
 
-                    items.Add( (sourceIndex, new CallSiteArgumentPlanItem( RedirectedArgumentKind.SourceArgument, sourceIndex, null, name ), receivingParameter) );
+                    TypeSyntax? castType = null;
+
+                    if ( argument.CastType != null )
+                    {
+                        if ( !sourceArgument.RefKindKeyword.IsKind( SyntaxKind.None ) || receivingParameter.RefKind != Code.RefKind.None )
+                        {
+                            throw new ArgumentException(
+                                $"The argument '{sourceArgument}' cannot be cast, because it is not passed by value to the parameter '{receivingParameter.Name}'.",
+                                nameof(request) );
+                        }
+
+                        castType = context.SyntaxGenerator.TypeSyntax( argument.CastType ).WithSimplifierAnnotationIfNecessary( context );
+                    }
+
+                    items.Add(
+                        (sourceIndex, new CallSiteArgumentPlanItem( RedirectedArgumentKind.SourceArgument, sourceIndex, null, name ) { CastType = castType },
+                         receivingParameter, argument.CastType) );
 
                     break;
 
                 default:
                     // Expressions are evaluated after all the values of the source call site.
-                    items.Add( (int.MaxValue, new CallSiteArgumentPlanItem( RedirectedArgumentKind.Value, -1, argument.Expression, name ), receivingParameter) );
+                    items.Add( (int.MaxValue, new CallSiteArgumentPlanItem( RedirectedArgumentKind.Value, -1, argument.Expression, name ), receivingParameter, null) );
 
                     break;
             }
@@ -628,7 +650,7 @@ public sealed class ExtensionTransformationFactory
     /// Determines whether an argument of the new call can be written <c>D switch { _ =&gt; value }</c>.
     /// </summary>
     private static bool CanHoldPrecedingDiscard(
-        (int Order, CallSiteArgumentPlanItem Item, IParameter Parameter) item,
+        (int Order, CallSiteArgumentPlanItem Item, IParameter Parameter, IType? CastType) item,
         SeparatedSyntaxList<ArgumentSyntax> sourceArguments )
         => item.Parameter.RefKind == Code.RefKind.None
            && item.Item.Kind switch
@@ -648,7 +670,7 @@ public sealed class ExtensionTransformationFactory
     /// </remarks>
     private static bool CanHoldFollowingDiscard(
         SemanticModel semanticModel,
-        (int Order, CallSiteArgumentPlanItem Item, IParameter Parameter) item,
+        (int Order, CallSiteArgumentPlanItem Item, IParameter Parameter, IType? CastType) item,
         SeparatedSyntaxList<ArgumentSyntax> sourceArguments,
         ArgumentSyntax discardedArgument )
     {
@@ -665,7 +687,8 @@ public sealed class ExtensionTransformationFactory
             return false;
         }
 
-        var naturalType = semanticModel.GetTypeInfo( sourceArgument.Expression ).Type;
+        // The natural type of a cast argument is the type of the cast.
+        var naturalType = item.CastType != null ? item.CastType.GetSymbol() : semanticModel.GetTypeInfo( sourceArgument.Expression ).Type;
         var parameterType = item.Parameter.Type.GetSymbol();
 
         return naturalType != null && parameterType != null && naturalType.TypeKind is not (Microsoft.CodeAnalysis.TypeKind.Pointer or Microsoft.CodeAnalysis.TypeKind.FunctionPointer)
@@ -674,12 +697,17 @@ public sealed class ExtensionTransformationFactory
 
     /// <summary>
     /// Returns the name of the pattern variable that holds the value of an argument while the discards that follow it are evaluated. The name is
-    /// derived from the position of the call site, so that the call sites nested in its arguments get other names, and it is not the name of a
-    /// symbol in scope.
+    /// not the name of a symbol in scope.
     /// </summary>
+    /// <remarks>
+    /// The name contains the number of invocations that contain the call site. A call site nested in an argument of another one therefore gets
+    /// another name, so the scope of its pattern variable, which is an arm of the switch expression of the outer call site, does not declare the
+    /// name twice. Call sites with the same depth are in separate arms, which are separate scopes.
+    /// </remarks>
     private static string GetValueVariableName( SemanticModel semanticModel, InvocationExpressionSyntax callSite )
     {
-        var baseName = $"__value{callSite.SpanStart}";
+        var depth = callSite.Ancestors().Count( n => n.IsKind( SyntaxKind.InvocationExpression ) );
+        var baseName = $"__value{depth}";
 
         for ( var i = 0;; i++ )
         {

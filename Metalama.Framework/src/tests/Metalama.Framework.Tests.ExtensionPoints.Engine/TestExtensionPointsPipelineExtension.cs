@@ -196,7 +196,7 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
 
         return new InvocationRedirectionRequest( invocation, CallSiteRedirectionTarget.Existing( replacement ), ParseReceiverMode( options ) )
         {
-            Arguments = options.Arguments == null ? default : ParseItems( options.Arguments ).Select( ParseArgument ).ToImmutableArray(),
+            Arguments = options.Arguments == null ? default : ParseItems( options.Arguments ).Select( x => ParseArgument( x, compilation ) ).ToImmutableArray(),
             ExtraArguments = options.ExtraArguments == null ? default : ParseItems( options.ExtraArguments ).Select( ParseExtraArgument ).ToImmutableArray(),
             ResultCast = options.CastResult ? compilation.Factory.GetIType( sourceMethod.ReturnType ) : null,
             TypeArguments = options.ExplicitTypeArguments ? GetTypeArguments( invocation.Expression, compilation ) : default
@@ -220,8 +220,18 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
     /// <summary>
     /// Parses an item of <see cref="TestRedirectionOptions.Arguments"/>.
     /// </summary>
-    private static RedirectedArgument ParseArgument( string item )
+    private static RedirectedArgument ParseArgument( string item, CompilationModel compilation )
     {
+        // The suffix " as <reflection name>" casts the argument to the named type.
+        var asIndex = item.IndexOf( " as ", StringComparison.Ordinal );
+
+        if ( asIndex > 0 )
+        {
+            var castType = compilation.Factory.GetTypeByReflectionName( item.Substring( asIndex + 4 ).Trim() );
+
+            return ParseArgument( item.Substring( 0, asIndex ), compilation ).WithCast( castType );
+        }
+
         string? name = null;
         var equals = item.IndexOf( '=' );
         var colon = item.IndexOf( ':' );

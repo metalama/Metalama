@@ -28,7 +28,8 @@ public sealed class TestRedirectionOptions
     /// <summary>
     /// Gets or sets the argument list of the new call, or <c>null</c> to keep the arguments of the source call site. The items are separated by
     /// semicolons. An item is <c>receiver</c>, <c>argument:N</c> for the argument of the parameter <c>N</c> of the source method, or
-    /// <c>value:E</c> for the C# expression <c>E</c>. An item can be prefixed by <c>name=</c> to give the parameter name explicitly.
+    /// <c>value:E</c> for the C# expression <c>E</c>. An item can be prefixed by <c>name=</c> to give the parameter name explicitly, and it can be
+    /// followed by <c> as T</c> to cast the argument to the type whose reflection name is <c>T</c>.
     /// </summary>
     public string? Arguments { get; set; }
 

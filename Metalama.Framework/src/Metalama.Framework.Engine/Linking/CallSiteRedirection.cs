@@ -52,6 +52,12 @@ internal readonly record struct CallSiteArgumentPlanItem( RedirectedArgumentKind
     /// Gets the name of the pattern variable that holds the value of this argument while <see cref="FollowingDiscards"/> are evaluated.
     /// </summary>
     public string? ValueVariableName { get; init; }
+
+    /// <summary>
+    /// Gets the type to which the value of a <see cref="RedirectedArgumentKind.SourceArgument"/> is cast, or <c>null</c>. The argument is written
+    /// <c>(T)(value)</c>.
+    /// </summary>
+    public TypeSyntax? CastType { get; init; }
 }
 
 /// <summary>
@@ -202,6 +208,12 @@ internal sealed class CallSiteRedirection
                     RedirectedArgumentKind.SourceArgument => sourceArguments[item.SourceArgumentIndex],
                     _ => Argument( item.Value! )
                 };
+
+                if ( item.CastType != null )
+                {
+                    // The factory accepts a cast only on an argument that is passed by value, so the argument has no modifier.
+                    argument = Argument( CastExpression( item.CastType, ParenthesizedExpression( argument.Expression.WithoutTrivia() ) ) );
+                }
 
                 if ( !item.PrecedingDiscards.IsDefaultOrEmpty || !item.FollowingDiscards.IsDefaultOrEmpty )
                 {
