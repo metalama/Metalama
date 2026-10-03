@@ -111,6 +111,25 @@ public sealed class SourceExpressionFactoryTests : UnitTestClass
         }
     }
 
+    /// <summary>
+    /// Verifies that an inspection-only expression cannot be made durable, and that the error says so instead of reporting a template error.
+    /// </summary>
+    [Fact]
+    public void CreateInspectionOnly_ToDurable_Throws()
+    {
+        using var testContext = this.CreateTestContext();
+        var compilation = testContext.CreateCompilationModel( _code );
+
+        var expression = SourceExpressionFactory.CreateInspectionOnly( GetInitializer( compilation, "_number" ), GetFieldType( compilation, "_number" ) );
+
+        using ( testContext.WithExecutionContext( compilation ) )
+        {
+            var exception = Assert.Throws<InvalidOperationException>( () => expression.ToDurable() );
+
+            Assert.Contains( "inspection", exception.Message, StringComparison.Ordinal );
+        }
+    }
+
     [Fact]
     public void CreateInspectionOnly_ForeignSyntaxTree_Throws()
     {

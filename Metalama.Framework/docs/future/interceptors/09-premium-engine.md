@@ -6,6 +6,8 @@
 
 ### 9.1 Assemblies, packaging and licensing
 
+DECIDED on 2026-10-02 (PO3, section [15.0](15-decisions.md#150-decisions-of-2026-10-02)): the interceptor packages are available under the Community license. The Package project does not reference `Metalama.Licensing` and declares no `MetalamaPremiumComponent`, and the build program adds no licensing entry. The licensing content of sections 9.1.1 to 9.1.5 and 9.9.2 is superseded.
+
 #### 9.1.1 Projects
 
 PROPOSED. The package mirrors the layout of Metalama.Extensions.Validation.
@@ -417,7 +419,7 @@ Durability rules (grounded in DOCS27 `design-time-memory.md:28-47, 269-305`):
 | The declaring type, stored as a durable reference, resolves in the current compilation. It does not resolve when, for example, the design-time compilation no longer references its assembly. | LAMA1003 |
 | The scope of an adviser registration is contained in the containing declaration of the aspect target. The result of the check is computed at registration (section [9.4.3](#943-adviser-path-aspects-and-type-fabrics), step 4) and stored in the source. | LAMA1000 |
 | The declaring type is not introduced by an aspect. Uses of the members of an introduced type do not exist in the source code. | LAMA1004 |
-| For a declaring type given as a `Type` or an `INamedType`, each name designates at least one member of the right kind, declared or inherited: an ordinary method, a classic extension method or a C# 14 extension method for `InterceptMethods`, and a property or an event that has an accessor of the requested kind for `InterceptAccessors`. The message advises the other verb when the name designates a member of the other kind. No check is possible for a type predicate. | LAMA1008 (warning) |
+| For a declaring type given as a `Type` or an `INamedType`, each name designates at least one member of the right kind declared by the type, because a call binds to the type that declares the member (a name that the type only inherits is reported): an ordinary method, a classic extension method or a C# 14 extension method for `InterceptMethods`, and a property or an event that has an accessor of the requested kind for `InterceptAccessors`. The message advises the other verb when the name designates a member of the other kind. No check is possible for a type predicate. | LAMA1008 (warning) |
 | A shorthand template resolves on its template provider and is a method template, through the template-existence helper of section [10.6.1](10b-oss-linker-and-templates.md#1061-selection-at-declaration-time). | LAMA1005 |
 | The type of a shorthand placement is a class, struct or record declared in the source of the current project, not a compile-time type, not introduced by an aspect. | LAMA1006 |
 

@@ -31,6 +31,11 @@ public static class SourceExpressionFactory
     /// Emitting the expression is refused because it is already evaluated at its original location: a second evaluation can have side effects,
     /// and the expression can reference local variables and parameters that do not exist where it would be emitted.
     /// </para>
+    /// <para>
+    /// For the same reason, the expression cannot be made durable: <see cref="Metalama.Framework.Code.ExpressionExtensions.ToDurable(IExpression)"/> throws an
+    /// <see cref="InvalidOperationException"/>. The expression references the syntax tree and the compilation, so it must not be stored in an
+    /// object that outlives the request in which it was created.
+    /// </para>
     /// </remarks>
     /// <param name="expression">An expression of a syntax tree of the compilation of <paramref name="type"/>.</param>
     /// <param name="type">The type of the expression, in the compilation that contains the syntax tree.</param>
