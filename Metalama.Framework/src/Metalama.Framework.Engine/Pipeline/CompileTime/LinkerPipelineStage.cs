@@ -40,18 +40,10 @@ namespace Metalama.Framework.Engine.Pipeline.CompileTime
             var initialCompilation = pipelineStepsResult.FirstCompilation;
             var finalCompilation = pipelineStepsResult.LastCompilation;
 
-            // TODO: validators should not run here but after all pipeline stages. If there are several high-level stages, they may run several times.
-            // Run the validators.
+            // Run the validators. They run in every high-level stage. The extensions that use the shared index of the source references run only in
+            // the source stage, see below.
             var extensions = pipelineConfiguration.ServiceProvider.GetRequiredService<PipelineExtensionProvider>().Extensions;
             var pipelineContributorsResult = ExtensionPipelineContributorsResult.Empty;
-
-            // Start the stage of the index of the references of the source compilation, which the extensions share.
-            var sourceIndexRequirementsContext = new SourceIndexRequirementsContext( pipelineStepsResult.ExtensionContributors, this.HighLevelStageIndex );
-
-            using var sourceReferenceIndex = SourceReferenceIndexService.BeginStage(
-                pipelineConfiguration.ServiceProvider,
-                input.FirstCompilationModel.AssertNotNull(),
-                extensions.Select( e => e.GetSourceIndexRequirements( sourceIndexRequirementsContext ) ).ToList() );
 
             foreach ( var extension in extensions )
             {
@@ -64,27 +56,37 @@ namespace Metalama.Framework.Engine.Pipeline.CompileTime
                         cancellationToken ) );
             }
 
-            // Run the extensions that produce transformations. They run after the validators and before the linker.
+            // Run the extensions that produce transformations, after the validators and before the linker. They run only in the source stage, which
+            // is the first high-level stage: the system layers precede the user layers, so no low-level weaver executes before it. The shared index
+            // of the source references is created for them, once per pipeline execution.
             var extensionDiagnostics = new UserDiagnosticSink( pipelineConfiguration.ServiceProvider );
+            var extensionLinkerInput = ExtensionLinkerInput.Empty;
 
-            var extensionTransformationContext = new ExtensionTransformationContext(
-                pipelineConfiguration,
-                pipelineStepsResult.ExtensionContributors,
-                pipelineStepsResult.ExtensionContributorsAddedInStage,
-                input.FirstCompilationModel.AssertNotNull(),
-                initialCompilation,
-                finalCompilation,
-                this.HighLevelStageIndex,
-                extensionDiagnostics,
-                sourceReferenceIndex,
-                input.AspectLayers );
-
-            foreach ( var extension in extensions )
+            if ( this.HighLevelStageIndex == 0 )
             {
-                await extension.ExecuteTransformingContributorsAsync( extensionTransformationContext, cancellationToken );
-            }
+                var sourceIndexRequirementsContext = new SourceIndexRequirementsContext( pipelineStepsResult.ExtensionContributors );
 
-            var extensionLinkerInput = extensionTransformationContext.CompleteTransformationFactory();
+                using var sourceReferenceIndex = SourceReferenceIndexService.BeginStage(
+                    pipelineConfiguration.ServiceProvider,
+                    input.FirstCompilationModel.AssertNotNull(),
+                    extensions.Select( e => e.GetSourceIndexRequirements( sourceIndexRequirementsContext ) ).ToList() );
+
+                var extensionTransformationContext = new ExtensionTransformationContext(
+                    pipelineConfiguration,
+                    pipelineStepsResult.ExtensionContributors,
+                    input.FirstCompilationModel.AssertNotNull(),
+                    finalCompilation,
+                    extensionDiagnostics,
+                    sourceReferenceIndex,
+                    input.AspectLayers );
+
+                foreach ( var extension in extensions )
+                {
+                    await extension.ExecuteTransformingContributorsAsync( extensionTransformationContext, cancellationToken );
+                }
+
+                extensionLinkerInput = extensionTransformationContext.CompleteTransformationFactory();
+            }
 
             // Run the linker.
             var linker = new AspectLinker(

@@ -25,7 +25,7 @@ using Xunit;
 namespace Metalama.Framework.Tests.UnitTests.ReferenceIndex;
 
 /// <summary>
-/// Tests of the <see cref="SourceReferenceIndexStage"/> that the compile-time pipeline starts for each high-level stage and passes to the
+/// Tests of the <see cref="SourceReferenceIndexStage"/> that the compile-time pipeline starts once, in the source stage, and passes to the
 /// extensions.
 /// </summary>
 public sealed class SourceReferenceIndexPipelineTests : UnitTestClass
@@ -84,11 +84,11 @@ public sealed class SourceReferenceIndexPipelineTests : UnitTestClass
     }
 
     /// <summary>
-    /// Verifies that, in a pipeline with two high-level stages, the contexts of <see cref="PipelineExtension.GetSourceIndexRequirements"/> and of the
-    /// transforming hook give the index of each stage.
+    /// Verifies that, in a pipeline with two high-level stages, <see cref="PipelineExtension.GetSourceIndexRequirements"/> and the transforming
+    /// hook are invoked once, in the source stage, so that the index is created once per pipeline execution.
     /// </summary>
     [Fact]
-    public async Task Context_GivesHighLevelStageIndex()
+    public async Task TwoStages_IndexCreatedOnceInSourceStage()
     {
         var recorder = new IndexRecorder();
 
@@ -96,8 +96,8 @@ public sealed class SourceReferenceIndexPipelineTests : UnitTestClass
 
         await ExecuteAsync( testContext, _twoStagesCode, "Assembly" );
 
-        Assert.Equal( [0, 1], recorder.RequirementStageIndexes.OrderBy( i => i ) );
-        Assert.Equal( [0, 1], recorder.Calls.SelectAsArray( c => c.HighLevelStageIndex ).OrderBy( i => i ) );
+        Assert.Equal( 1, recorder.RequirementCallCount );
+        Assert.Single( recorder.Calls );
     }
 
     /// <summary>
@@ -183,9 +183,9 @@ public sealed class SourceReferenceIndexPipelineTests : UnitTestClass
     }
 
     /// <summary>
-    /// The data that the hook observed in one stage of one pipeline.
+    /// The data that the hook observed in one pipeline execution.
     /// </summary>
-    private sealed record IndexCall( string AssemblyName, int HighLevelStageIndex, SourceReferenceIndexStage Stage, IReadOnlyList<string> ReferencingNames );
+    private sealed record IndexCall( string AssemblyName, SourceReferenceIndexStage Stage, IReadOnlyList<string> ReferencingNames );
 
     /// <summary>
     /// Records what <see cref="IndexingExtension"/> observes.
@@ -193,10 +193,9 @@ public sealed class SourceReferenceIndexPipelineTests : UnitTestClass
     private sealed class IndexRecorder : IProjectService
     {
         /// <summary>
-        /// Gets the stage indexes that <see cref="IndexingExtension"/> received in the context of
-        /// <see cref="PipelineExtension.GetSourceIndexRequirements"/>.
+        /// The number of times that <see cref="PipelineExtension.GetSourceIndexRequirements"/> was invoked on <see cref="IndexingExtension"/>.
         /// </summary>
-        public ConcurrentQueue<int> RequirementStageIndexes { get; } = new();
+        public int RequirementCallCount;
 
         /// <summary>
         /// Gets the observations of the transforming hook.
@@ -260,7 +259,10 @@ public sealed class SourceReferenceIndexPipelineTests : UnitTestClass
 
         public override SourceIndexRequirements GetSourceIndexRequirements( SourceIndexRequirementsContext context )
         {
-            this._recorder?.RequirementStageIndexes.Enqueue( context.HighLevelStageIndex );
+            if ( this._recorder != null )
+            {
+                Interlocked.Increment( ref this._recorder.RequirementCallCount );
+            }
 
             return new SourceIndexRequirements( [new ReferenceIndexerRequirements( ReferenceKinds.Invocation, false, DeclarationKind.Method, "F" )] );
         }
@@ -286,7 +288,7 @@ public sealed class SourceReferenceIndexPipelineTests : UnitTestClass
                 .Distinct()
                 .ToOrderedList( x => x, StringComparer.Ordinal );
 
-            this._recorder.Calls.Enqueue( new IndexCall( assemblyName, context.HighLevelStageIndex, context.SourceReferenceIndex, referencingNames ) );
+            this._recorder.Calls.Enqueue( new IndexCall( assemblyName, context.SourceReferenceIndex, referencingNames ) );
         }
     }
 }

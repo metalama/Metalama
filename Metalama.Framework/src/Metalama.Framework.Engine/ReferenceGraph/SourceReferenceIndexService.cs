@@ -16,13 +16,14 @@ using System.Threading;
 namespace Metalama.Framework.Engine.ReferenceGraph;
 
 /// <summary>
-/// Builds the index of the references of the source compilation once per high-level stage, from the merged requirements of all extensions,
-/// so that the extensions share the walk of the syntax and the binding of member bodies.
+/// Builds the index of the references of the source compilation once per pipeline execution, in the source stage, from the merged requirements
+/// of all extensions, so that the extensions share the walk of the syntax and the binding of member bodies.
 /// </summary>
 /// <remarks>
 /// <para>
 /// The class holds no state that belongs to a pipeline execution, because several pipelines can use one configuration at the same time. The
-/// index of a stage is a <see cref="SourceReferenceIndexStage"/>, which the pipeline passes to the extensions through the contexts of their hooks.
+/// index of a pipeline execution is a <see cref="SourceReferenceIndexStage"/>, which the pipeline passes to the extensions through the context
+/// of their transforming hook.
 /// </para>
 /// <para>
 /// The methods receive the service provider of the pipeline execution. A project service that stored it would be cached in the project service
@@ -38,15 +39,16 @@ public static class SourceReferenceIndexService
     private static readonly ConditionalWeakTable<SemanticModel, InboundReferenceIndex> _designTimeIndexes = new();
 
     /// <summary>
-    /// Starts a stage. The index is not built until an extension reads it.
+    /// Starts the index of the source stage, which is the first high-level stage of the pipeline execution. The index is not built until an
+    /// extension reads it.
     /// </summary>
     /// <param name="serviceProvider">The service provider of the pipeline execution.</param>
     /// <param name="sourceCompilation">The source compilation of the pipeline.</param>
-    /// <param name="requirements">The requirements that each extension returned for the stage.</param>
+    /// <param name="requirements">The requirements that each extension returned.</param>
     /// <exception cref="ArgumentException">A declaration root does not belong to a syntax tree of <paramref name="sourceCompilation"/>.</exception>
     /// <remarks>
-    /// The index of every stage covers <paramref name="sourceCompilation"/>, which is the source compilation of the pipeline, including in a stage
-    /// after a low-level weaver. The declaration roots must therefore be nodes of the source compilation.
+    /// The index covers <paramref name="sourceCompilation"/>, which is the source compilation of the pipeline. The declaration roots must
+    /// therefore be nodes of the source compilation. The stages that follow a low-level weaver create no index.
     /// </remarks>
     internal static SourceReferenceIndexStage BeginStage(
         in ProjectServiceProvider serviceProvider,
