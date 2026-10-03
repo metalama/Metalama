@@ -61,6 +61,16 @@ The public API of `Metalama.Extensions.Interceptors` in M1 (metalama/Metalama#20
 - The internal `InterceptionRegistration` describes method registrations only, and `InterceptorDefinition.FromFactory` takes a typed factory of `IMethodInterceptorProvider`.
 - The package has no reference to `Metalama.Licensing`, because it is available under the Community license (PO3).
 
+The engine of M1 implements the compile-time run of section 9.5 for existing static methods. It makes the following choices.
+
+- A registration made through an adviser is converted to a query of the adviser target, created by the adviser context. The containment check of section 9.4.3 is made at registration, and LAMA1000 is reported by `ExecuteContributorsAsync`.
+- The engine returns no declaration roots to the shared index. The names of the registrations already restrict the binding to the bodies that contain them.
+- The speculative binding of the rewritten call (rule E16) is not implemented. The rewrite writes the arguments by name, so an overload of the interceptor with the same parameter names is the only case that E16 would detect.
+- A by-value argument whose type differs from the type of the parameter of the target is refused when the conversion to the parameter of the interceptor is not an identity, because the cast of section 6.6 (rule E10) is not implemented.
+- The discard of a dropped argument with side effects (PO72) is not implemented. The factory of transformations refuses such a request, and the engine reports the refusal with LAMA1013.
+- The arguments are rearranged only when the binding requires it: an argument is dropped, or a positional argument would not bind to the parameter of the same name. A call that passes the elements of a `params` collection cannot be rearranged.
+- Instance interceptors (rules R2 to R4), placements, templates, accessors and awaits come with the later milestones.
+
 ### 15.1 Top decisions
 
 | Id | Question | Recommendation | Consequence of the alternative | Needed before |
