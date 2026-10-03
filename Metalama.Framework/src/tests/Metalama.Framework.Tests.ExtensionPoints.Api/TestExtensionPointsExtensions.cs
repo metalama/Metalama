@@ -25,7 +25,7 @@ public static class TestExtensionPointsExtensions
     /// <param name="expectedTemplateProvider">The template provider that the adviser is expected to use, or <c>null</c> to skip this check.</param>
     public static void TestRegister<T>( this IAdviser<T> adviser, string tag, ITemplateProvider? expectedTemplateProvider = null )
         where T : class, IDeclaration
-        => GetService( adviser.Target.Compilation.Project ).Register( adviser, tag, expectedTemplateProvider );
+        => GetService( adviser.Compilation.Project ).Register( adviser, tag, expectedTemplateProvider );
 
     /// <summary>
     /// Registers a contribution through a query, for example from a project fabric or from <see cref="IAspectBuilder{TAspectTarget}.Outbound"/>.

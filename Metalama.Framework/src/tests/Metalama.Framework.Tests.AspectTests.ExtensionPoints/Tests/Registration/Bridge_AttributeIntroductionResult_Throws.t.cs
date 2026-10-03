@@ -1,2 +1,2 @@
 // CompileTimeAspectPipeline.ExecuteAsync failed.
-// Error LAMA0041 on `C`: `'Exception of type 'System.NotSupportedException' thrown while executing BuildAspect for aspect [TheAspect] applied to 'C': Specified method is not supported. Exception details are in '(none)'. To attach a debugger to the compiler, use the  '-p:MetalamaDebugCompiler=True' command-line option.`
+// Error LAMA0041 on `C`: `'Exception of type 'System.NotSupportedException' thrown while executing BuildAspect for aspect [TheAspect] applied to 'C': The result of an attribute introduction cannot be used as an adviser. Exception details are in '(none)'. To attach a debugger to the compiler, use the  '-p:MetalamaDebugCompiler=True' command-line option.`
