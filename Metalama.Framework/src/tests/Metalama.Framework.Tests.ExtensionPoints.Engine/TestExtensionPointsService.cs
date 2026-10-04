@@ -18,7 +18,7 @@ namespace Metalama.Framework.Tests.ExtensionPoints.Engine;
 /// <summary>
 /// Implements the verbs of the proof of concept with the public extension points of the engine.
 /// </summary>
-internal sealed class TestRegistrationService : ITestRegistrationService
+internal sealed class TestExtensionPointsService : ITestExtensionPointsService
 {
     public void Register<T>( IAdviser<T> adviser, string tag, ITemplateProvider? expectedTemplateProvider )
         where T : class, IDeclaration
@@ -33,7 +33,7 @@ internal sealed class TestRegistrationService : ITestRegistrationService
             templateProviderMatches = context.TemplateProvider == TemplateProvider.FromInstance( expectedTemplateProvider );
         }
 
-        context.Owner.AddContributor( new TestRegistration( tag, context.CaptureOrigin(), adviser.Target.ToRef(), "adviser", templateProviderMatches ) );
+        context.QueryOwner.AddContributor( new TestExtensionPipelineContributor( tag, context.CaptureOrigin(), adviser.Target.ToRef(), "adviser", templateProviderMatches ) );
     }
 
     public void ReportReferences<T>( IAdviser<T> adviser, string methodName, bool restrictToTarget )
@@ -46,7 +46,7 @@ internal sealed class TestRegistrationService : ITestRegistrationService
             ? adviser.Target.Sources.Select( s => s.SyntaxNodeOrToken().AsNode() ).OfType<SyntaxNode>().ToImmutableArray()
             : null;
 
-        context.Owner.AddContributor( new TestReferenceReport( methodName, roots ) );
+        context.QueryOwner.AddContributor( new TestReferenceReport( methodName, roots ) );
     }
 
     public void Register<T>( IQuery<T> query, string tag )
@@ -57,6 +57,6 @@ internal sealed class TestRegistrationService : ITestRegistrationService
 
         var origin = ExtensionContributionOrigin.Capture( queryImpl.Owner );
 
-        queryImpl.Owner.AddContributor( new TestRegistration( tag, origin, null, "query", null ) );
+        queryImpl.Owner.AddContributor( new TestExtensionPipelineContributor( tag, origin, null, "query", null ) );
     }
 }

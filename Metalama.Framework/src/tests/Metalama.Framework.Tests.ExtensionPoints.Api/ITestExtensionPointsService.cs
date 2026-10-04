@@ -14,7 +14,7 @@ namespace Metalama.Framework.Tests.ExtensionPoints;
 /// The service that the verbs of <see cref="TestExtensionPointsExtensions"/> call. It is implemented by the test engine assembly.
 /// </summary>
 [CompileTime]
-internal interface ITestRegistrationService : IProjectService
+internal interface ITestExtensionPointsService : IProjectService
 {
     void Register<T>( IAdviser<T> adviser, string tag, ITemplateProvider? expectedTemplateProvider )
         where T : class, IDeclaration;

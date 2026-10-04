@@ -47,7 +47,7 @@ public static class TestExtensionPointsExtensions
         where T : class, IDeclaration
         => GetService( adviser.Compilation.Project ).ReportReferences( adviser, methodName, restrictToTarget );
 
-    private static ITestRegistrationService GetService( IProject project )
-        => project.ServiceProvider.GetService<ITestRegistrationService>()
+    private static ITestExtensionPointsService GetService( IProject project )
+        => project.ServiceProvider.GetService<ITestExtensionPointsService>()
            ?? throw new InvalidOperationException( "The test extension of the extension points is not loaded." );
 }

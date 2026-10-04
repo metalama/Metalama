@@ -49,7 +49,7 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
 
     public override bool Initialize( PipelineExtensionInitializationContext context )
     {
-        context.ServiceBuilder.Add( _ => new TestRegistrationService() );
+        context.ServiceBuilder.Add( _ => new TestExtensionPointsService() );
         context.AddDiagnosticDefinitions( [RegistrationObserved, ReferenceObserved, IndexContent] );
 
         return true;
@@ -116,7 +116,7 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
     }
 
     /// <summary>
-    /// Reports a diagnostic for each <see cref="TestRegistration"/> of the stage, in the order of the tags, so that a test can verify what
+    /// Reports a diagnostic for each <see cref="TestExtensionPipelineContributor"/> of the stage, in the order of the tags, so that a test can verify what
     /// the extension received.
     /// </summary>
     private static void ReportRegistrations( ExtensionTransformationContext context )

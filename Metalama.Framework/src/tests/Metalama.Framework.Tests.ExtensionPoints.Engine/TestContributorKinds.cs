@@ -11,7 +11,7 @@ namespace Metalama.Framework.Tests.ExtensionPoints.Engine;
 /// </summary>
 internal static class TestContributorKinds
 {
-    public static ContributorKind<TestRegistration> Registration { get; } = new( "TestExtensionPointsRegistration" );
+    public static ContributorKind<TestExtensionPipelineContributor> Registration { get; } = new( "TestExtensionPointsRegistration" );
 
     public static ContributorKind<TestReferenceReport> ReferenceReport { get; } = new( "TestExtensionPointsReferenceReport" );
 }
