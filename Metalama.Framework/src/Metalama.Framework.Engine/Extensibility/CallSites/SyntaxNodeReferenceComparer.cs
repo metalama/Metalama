@@ -5,7 +5,7 @@
 using Microsoft.CodeAnalysis;
 using System.Collections.Generic;
 
-namespace Metalama.Framework.Engine.Extensibility.Transformations;
+namespace Metalama.Framework.Engine.Extensibility.CallSites;
 
 /// <summary>
 /// Compares syntax nodes by reference, because a redirection is keyed by the identity of its source node.

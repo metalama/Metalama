@@ -8,7 +8,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Immutable;
 
-namespace Metalama.Framework.Engine.Extensibility.Transformations;
+namespace Metalama.Framework.Engine.Extensibility.CallSites;
 
 /// <summary>
 /// Describes a request to replace a source method group, converted to a delegate or to a function pointer, by a method group of another method.

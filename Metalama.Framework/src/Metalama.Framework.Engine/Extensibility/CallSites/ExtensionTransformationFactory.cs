@@ -24,7 +24,7 @@ using System.Threading;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 using MethodKind = Microsoft.CodeAnalysis.MethodKind;
 
-namespace Metalama.Framework.Engine.Extensibility.Transformations;
+namespace Metalama.Framework.Engine.Extensibility.CallSites;
 
 /// <summary>
 /// Creates linker transformations on behalf of a <see cref="PipelineExtension"/>: it redirects source call sites and method references to other

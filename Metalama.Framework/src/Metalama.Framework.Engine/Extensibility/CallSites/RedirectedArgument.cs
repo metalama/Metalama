@@ -7,7 +7,7 @@ using Metalama.Framework.Code;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 
-namespace Metalama.Framework.Engine.Extensibility.Transformations;
+namespace Metalama.Framework.Engine.Extensibility.CallSites;
 
 /// <summary>
 /// Describes one argument of a rewritten call whose argument list differs from the source call: a value of the source call site, or an

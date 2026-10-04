@@ -18,7 +18,7 @@ using System.Collections.Immutable;
 using System.Linq;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
-namespace Metalama.Framework.Engine.Extensibility.Transformations
+namespace Metalama.Framework.Engine.Extensibility.CallSites
 {
     public sealed partial class ExtensionTransformationFactory
     {

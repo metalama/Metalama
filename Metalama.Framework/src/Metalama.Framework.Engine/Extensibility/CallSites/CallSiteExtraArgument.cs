@@ -5,7 +5,7 @@
 using JetBrains.Annotations;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
-namespace Metalama.Framework.Engine.Extensibility.Transformations;
+namespace Metalama.Framework.Engine.Extensibility.CallSites;
 
 /// <summary>
 /// Represents an argument appended to the rewritten call as a named argument, for example a caller-information value computed from the source
