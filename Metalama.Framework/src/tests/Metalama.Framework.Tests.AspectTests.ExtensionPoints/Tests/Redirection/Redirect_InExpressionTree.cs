@@ -19,7 +19,7 @@ internal class RedirectAttribute : TypeAspect
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
         => builder.TestRedirectCalls(
             "Compute",
-            ( (INamedType) TypeFactory.GetType( typeof(Interceptors) ) ).Methods.OfName( "Compute" ).Single() );
+            TypeFactory.GetNamedType( typeof(Interceptors) ).Methods.OfName( "Compute" ).Single() );
 }
 
 internal static class Source
