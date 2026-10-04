@@ -347,10 +347,10 @@ public class MyPipelineExtension : PipelineExtension
 
 An extension method of `IAdviser<T>` that registers a contribution gets the engine state behind the adviser with `AdviserExtensibility.GetExtensionContext` (namespace `Metalama.Framework.Engine.Advising`). The returned `AdviserExtensionContext` gives:
 
-- `Owner`: the `IQueryOwner` to which the contributor is added. It is the aspect builder for an aspect, including the advisers that `With` and the introduction advice return, and the amender for a type fabric.
+- `QueryOwner`: the `IQueryOwner` to which the contributor is added. It is the aspect builder for an aspect, including the advisers that `With` and the introduction advice return, and the amender for a type fabric.
 - `AspectTarget` and `TemplateProvider`. The template provider takes `WithTemplateProvider` into account.
 - `ThrowIfDisposed()`, which throws when the aspect or the fabric has finished executing.
-- `CreateQuery( declaration )`, a query of one declaration owned by `Owner`.
+- `CreateQuery( declaration )`, a query of one declaration owned by `QueryOwner`.
 - `CaptureOrigin()`, which returns an `ExtensionContributionOrigin`: the predecessor, the description and the default template provider of the contribution, and the aspect layer to which the code that it produces is attributed.
 
 A contribution made through a query captures its origin with `ExtensionContributionOrigin.Capture( queryImpl.Owner )`. The origin of a project or namespace fabric holds no aspect instance, because the fabric amender belongs to the long-lived pipeline configuration.
