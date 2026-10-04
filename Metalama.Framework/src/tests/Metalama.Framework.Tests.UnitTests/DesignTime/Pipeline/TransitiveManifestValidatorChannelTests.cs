@@ -255,13 +255,13 @@ public sealed class TransitiveManifestValidatorChannelTests : UnitTestClass
     }
 
     /// <summary>
-    /// A kind cannot be both project-local and a design-time validator, in whichever order the properties are initialized.
+    /// A design-time validator kind must be project-transitive, in whichever order the properties are initialized.
     /// </summary>
     [Fact]
     public void ProjectLocalValidatorKind_Throws()
     {
-        Assert.Throws<InvalidOperationException>( () => new ContributorKind<FakeContributor>( "Invalid" ) { IsProjectLocal = true, IsDesignTimeValidator = true } );
-        Assert.Throws<InvalidOperationException>( () => new ContributorKind<FakeContributor>( "Invalid" ) { IsDesignTimeValidator = true, IsProjectLocal = true } );
+        Assert.Throws<InvalidOperationException>( () => new ContributorKind<FakeContributor>( "Invalid" ) { IsProjectTransitive = false, IsDesignTimeValidator = true } );
+        Assert.Throws<InvalidOperationException>( () => new ContributorKind<FakeContributor>( "Invalid" ) { IsDesignTimeValidator = true, IsProjectTransitive = false } );
     }
 
     /// <summary>
@@ -290,7 +290,7 @@ public sealed class TransitiveManifestValidatorChannelTests : UnitTestClass
 
             this.ContributorKind = new ContributorKind<FakeContributor>( isValidator ? "FakeValidator" : isProjectLocal ? "FakeProjectLocal" : "FakeExtension" )
             {
-                IsDesignTimeValidator = isValidator, IsProjectLocal = isProjectLocal
+                IsDesignTimeValidator = isValidator, IsProjectTransitive = !isProjectLocal
             };
 
             this.ManifestExtension = new FakeManifestExtension( this.ContributorKind );

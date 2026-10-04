@@ -1,2 +1,0 @@
-intercepted a 2 3
-intercepted b 0 0

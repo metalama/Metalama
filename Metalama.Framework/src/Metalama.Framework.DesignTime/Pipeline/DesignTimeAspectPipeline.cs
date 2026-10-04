@@ -691,7 +691,7 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
                     // annotation or validator carries neither the live nor the serialized form, so nothing is
                     // serialized here and nothing is deserialized or merged on the consumer's side. Dropping the live
                     // manifest along with it is safe. The Extensions collection of a project with nothing to inherit
-                    // holds no exported result, although it can hold project-local results (ContributorKind.IsProjectLocal),
+                    // holds no exported result, although it can hold project-local results (ContributorKind.IsProjectTransitive is false),
                     // which a referencing project does not receive. DesignTimeProjectVersion.ReferencedExtensions therefore
                     // loses nothing.
                     //

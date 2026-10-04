@@ -347,10 +347,10 @@ public class MyPipelineExtension : PipelineExtension
 
 An extension method of `IAdviser<T>` that registers a contribution gets the engine state behind the adviser with `AdviserExtensibility.GetExtensionContext` (namespace `Metalama.Framework.Engine.Advising`). The returned `AdviserExtensionContext` gives:
 
-- `Owner`: the `IQueryOwner` to which the contributor is added. It is the aspect builder for an aspect, including the advisers that `With` and the introduction advice return, and the amender for a type fabric.
+- `QueryOwner`: the `IQueryOwner` to which the contributor is added. It is the aspect builder for an aspect, including the advisers that `With` and the introduction advice return, and the amender for a type fabric.
 - `AspectTarget` and `TemplateProvider`. The template provider takes `WithTemplateProvider` into account.
 - `ThrowIfDisposed()`, which throws when the aspect or the fabric has finished executing.
-- `CreateQuery( declaration )`, a query of one declaration owned by `Owner`.
+- `CreateQuery( declaration )`, a query of one declaration owned by `QueryOwner`.
 - `CaptureOrigin()`, which returns an `ExtensionContributionOrigin`: the predecessor, the description and the default template provider of the contribution, and the aspect layer to which the code that it produces is attributed.
 
 A contribution made through a query captures its origin with `ExtensionContributionOrigin.Capture( queryImpl.Owner )`. The origin of a project or namespace fabric holds no aspect instance, because the fabric amender belongs to the long-lived pipeline configuration.
@@ -363,13 +363,13 @@ A contribution made through a query captures its origin with `ExtensionContribut
 
 ### Design-time hook
 
-`PipelineExtension.ExecuteDesignTimePipelineContributorsAsync( DesignTimeContributorsContext, CancellationToken )` runs at the end of every high-level stage of the design-time pipeline that has extension contributors. The context gives `Contributors`, `ContributorsAddedInStage`, `NewContributors`, the initial and final compilations of the stage and `HighLevelStageIndex`.
+`PipelineExtension.ExecuteDesignTimePipelineContributorsAsync( DesignTimeContributorsContext, CancellationToken )` runs once per execution of the design-time pipeline, at the end of the source stage, which is the first high-level stage, when the stage has extension contributors. The context gives the contributors of the source stage (`Contributors`) and the initial and final compilations of the source stage.
 
-The design-time pipeline accumulates the transitive contributors that the extensions return across the high-level stages, and the design-time result is read from the last stage. The contributors replayed from the contributor sources of the pipeline, for instance those of fabrics and of referenced projects, are part of `Contributors` in every stage. An extension that returns transitive contributors must therefore build them from `NewContributors`, which is `Contributors` in the first stage and `ContributorsAddedInStage` in the later stages. Otherwise, a pipeline split by a low-level weaver returns the transitive contributors of the replayed contributors once per stage. The inheritable aspects of every stage are accumulated in the same way.
+The hook does not run in the stages that follow a low-level weaver, as the transforming hook at compile time. A contributor added by an aspect that executes after a weaver therefore never reaches the hook. The design-time result is read from the last stage, so the pipeline carries the transitive contributors returned in the source stage to the result of the last stage. It accumulates the inheritable aspects, the transformations and the diagnostics of every stage in the same way.
 
 ### Project-local design-time results
 
-By default, the design-time form of a transitive contributor (`ITransitivePipelineContributor.ToDesignTime`) is exported to the projects that reference the project: it is written to the design-time transitive manifest, and its presence makes the pipeline produce the manifest. A kind declared with `ContributorKind.IsProjectLocal` keeps its results in the project that produced them. Only `PipelineExtension.AnalyzeSemanticModel` of that project sees them, `ToTransitiveAspectManifestExtension` is never called for them, and they do not count in `DesignTimeAspectPipelineResultExtensionCollection.HasExportedContent`, which decides whether the manifest is produced. A kind cannot be both project-local and `IsDesignTimeValidator`; the `init` accessors throw `InvalidOperationException` for this combination.
+By default, the design-time form of a transitive contributor (`ITransitivePipelineContributor.ToDesignTime`) is exported to the projects that reference the project: it is written to the design-time transitive manifest, and its presence makes the pipeline produce the manifest. A kind declared with `ContributorKind.IsProjectTransitive = false`, which is a project-local kind, keeps its results in the project that produced them. Only `PipelineExtension.AnalyzeSemanticModel` of that project sees them, `ToTransitiveAspectManifestExtension` is never called for them, and they do not count in `DesignTimeAspectPipelineResultExtensionCollection.HasExportedContent`, which decides whether the manifest is produced. A kind that is `IsDesignTimeValidator` must be project-transitive; the `init` accessors throw `InvalidOperationException` for a project-local validator kind.
 
 ### Shared index of source references
 
@@ -377,7 +377,7 @@ An extension that needs references of the source compilation returns its require
 
 - The names of the requirements are merged per reference kind, so a name that one extension requests for a kind does not admit references of another kind.
 - When every extension that returned requirements also returned `DeclarationRoots`, the stage walks only those declarations. Otherwise it walks every syntax tree.
-- At design time, `SourceReferenceIndexService.GetDesignTimeIndex( serviceProvider, semanticModel, extensions, cancellationToken )` returns one index per `SemanticModel`, built with `DesignTimeAspectPipelineResultExtensionCollection.IndexOptions`. These options add the requirements of the design-time results of the project that implement `IDesignTimeReferenceIndexRequirementsProvider` to `Options`, which are the options that referencing projects merge. A result that implements this interface should have a project-local kind (`ContributorKind.IsProjectLocal`), so that the result itself is not exported to referencing projects either.
+- At design time, `SourceReferenceIndexService.GetDesignTimeIndex( serviceProvider, semanticModel, extensions, cancellationToken )` returns one index per `SemanticModel`, built with `DesignTimeAspectPipelineResultExtensionCollection.IndexOptions`. These options add the requirements of the design-time results of the project that implement `IDesignTimeReferenceIndexRequirementsProvider` to `Options`, which are the options that referencing projects merge. A result that implements this interface should have a project-local kind (`ContributorKind.IsProjectTransitive = false`), so that the result itself is not exported to referencing projects either.
 - `SourceReferenceIndexService` is a static class and holds no state of a pipeline execution, because several pipelines can use one configuration at the same time. It is not a project service: a project service that stored the service provider of an execution would retain the compilation of that execution. The validators of Metalama.Premium still build their own index; their migration to the shared index is tracked as item F20 of the interceptor design.
 
 ### Redirection of call sites

@@ -116,14 +116,22 @@ internal sealed class AspectBuilderState : IPipelineContributorCollector
     /// </summary>
     /// <remarks>
     /// The method throws after <see cref="Complete"/> has been called, because the contributor would not be part of the result.
-    /// This happens when an aspect stores the builder, or an object that the builder created, and uses it after <c>BuildAspect</c>.
+    /// This happens when an aspect stores the builder, or an object that the builder created, and uses it after <c>BuildAspect</c>,
+    /// typically in the execution context of another aspect instance.
     /// </remarks>
     public void AddContributor( IPipelineContributor contributor )
     {
         if ( this._isCompleted )
         {
+            var currentContext = UserCodeExecutionContext.CurrentOrNull?.Description.ToString();
+
+            var usage = currentContext != null
+                ? $"cannot be used while {currentContext}"
+                : "cannot be used outside of an execution context";
+
             throw new InvalidOperationException(
-                $"Cannot add a contributor to the aspect instance '{this.AspectInstance}' because the BuildAspect method has already completed." );
+                $"The aspect builder of the aspect instance '{this.AspectInstance}', or an object that it created, belongs to a different execution context and {usage}. "
+                + $"It can be used only during the BuildAspect method of '{this.AspectInstance}'." );
         }
 
         this._pipelineContributors ??= new List<IPipelineContributor>();

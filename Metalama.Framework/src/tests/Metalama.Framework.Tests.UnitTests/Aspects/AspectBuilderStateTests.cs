@@ -74,6 +74,6 @@ public sealed class AspectBuilderStateTests : UnitTestClass
         Assert.Contains(
             diagnostics,
             d => d.Severity == DiagnosticSeverity.Error
-                 && d.GetMessage( CultureInfo.InvariantCulture ).Contains( "because the BuildAspect method has already completed", StringComparison.Ordinal ) );
+                 && d.GetMessage( CultureInfo.InvariantCulture ).Contains( "belongs to a different execution context", StringComparison.Ordinal ) );
     }
 }
