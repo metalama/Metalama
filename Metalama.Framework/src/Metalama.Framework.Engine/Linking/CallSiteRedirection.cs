@@ -30,6 +30,7 @@ internal sealed class CallSiteRedirection
         ExpressionSyntax sourceNode,
         CallSiteRedirectionKind kind,
         CallSiteReceiverMode receiverMode,
+        bool usesForwarder,
         ExpressionSyntax callee,
         ImmutableArray<CallSiteArgumentPlanItem>? argumentPlan,
         ImmutableArray<ArgumentSyntax> extraArguments,
@@ -40,6 +41,7 @@ internal sealed class CallSiteRedirection
         this.SourceNode = sourceNode;
         this.Kind = kind;
         this.ReceiverMode = receiverMode;
+        this.UsesForwarder = usesForwarder;
         this.Callee = callee;
         this.ArgumentPlan = argumentPlan;
         this.ExtraArguments = extraArguments;
@@ -68,8 +70,14 @@ internal sealed class CallSiteRedirection
     public CallSiteReceiverMode ReceiverMode { get; }
 
     /// <summary>
-    /// Gets the expression that designates the new target: the qualified name of a static method, or the simple name of an extension method for
-    /// <see cref="CallSiteReceiverMode.ExtensionReceiver"/>.
+    /// Gets a value indicating whether the call site is in a conditional access and calls the forwarder of the target as an extension method, so that
+    /// its receiver stays in the conditional access.
+    /// </summary>
+    public bool UsesForwarder { get; }
+
+    /// <summary>
+    /// Gets the expression that designates the new target: the qualified name of a static method, or the simple name of a forwarder when
+    /// <see cref="UsesForwarder"/> is <c>true</c>.
     /// </summary>
     public ExpressionSyntax Callee { get; }
 
@@ -110,8 +118,9 @@ internal sealed class CallSiteRedirection
         var sourceArguments = invocation.ArgumentList.Arguments;
         var arguments = new List<ArgumentSyntax>( sourceArguments.Count + this.ExtraArguments.Length + 1 );
 
-        // The receiver is passed positionally, before the other arguments, by the FirstArgument modes.
-        var receiverArgument = this.ReceiverMode switch
+        // The receiver is passed positionally, before the other arguments, by the FirstArgument modes, except to a forwarder, whose receiver is the
+        // receiver of the call.
+        var receiverArgument = this.UsesForwarder ? null : this.ReceiverMode switch
         {
             CallSiteReceiverMode.FirstArgument => Argument( GetReceiverExpression( invocation.Expression ) ),
             CallSiteReceiverMode.FirstArgumentByRef => Argument( null, SyntaxFactoryEx.TokenWithTrailingSpace( SyntaxKind.RefKeyword ), GetReceiverExpression( invocation.Expression ) ),
@@ -196,7 +205,7 @@ internal sealed class CallSiteRedirection
 
         ExpressionSyntax result;
 
-        if ( this.ReceiverMode == CallSiteReceiverMode.ExtensionReceiver )
+        if ( this.UsesForwarder )
         {
             var name = (SimpleNameSyntax) this.Callee;
 

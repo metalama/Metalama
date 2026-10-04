@@ -21,6 +21,12 @@ public enum CallSiteReceiverMode
     /// <summary>
     /// The receiver is passed by value as the first argument. An implicit receiver is written <c>this</c>, and <c>p-&gt;M()</c> gives <c>*p</c>.
     /// </summary>
+    /// <remarks>
+    /// In a conditional access, <c>a?.M(x)</c>, the receiver exists only inside the conditional access, so the call cannot be written in the static
+    /// form. The call is written <c>a?.F(x)</c>, where <c>F</c> is a forwarder: an extension method that the linker generates in an internal static
+    /// class of the global namespace, and that calls the target with its fully qualified name. The receiver must convert to the first parameter of
+    /// the target by an identity, reference or boxing conversion, and the target must be accessible from a top-level class of the project.
+    /// </remarks>
     FirstArgument,
 
     /// <summary>
@@ -31,26 +37,5 @@ public enum CallSiteReceiverMode
     /// <summary>
     /// The receiver is passed with <c>in</c> as the first argument, for a <c>ref readonly</c> or <c>in</c> receiver parameter.
     /// </summary>
-    FirstArgumentByIn,
-
-    /// <summary>
-    /// The receiver syntax is kept, and the target is invoked as an extension method: <c>r.M(x)</c> becomes <c>r.I(x)</c>, <c>a?.M(x)</c> becomes
-    /// <c>a?.I(x)</c>, and an implicit receiver <c>M(x)</c> becomes <c>this.I(x)</c>. This is the mode that keeps the short-circuit of a conditional
-    /// access.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// The code generator of Metalama writes a call of an extension method in its static form and lets the simplifier reduce it, so that the
-    /// generated code does not depend on the namespaces imported at the call site. The other modes follow this rule. This mode is the exception,
-    /// because the static form cannot be written in a conditional access: in <c>a?.M(x)</c>, the receiver exists only inside the conditional
-    /// access, so <c>I(a, x)</c> would require a second evaluation of <c>a</c> or a temporary variable. Only the extension form <c>a?.I(x)</c>
-    /// keeps the evaluation and the short-circuit of the source call.
-    /// </para>
-    /// <para>
-    /// The target is written with its name only, so it must be accessible as an extension method at the call site. The factory binds the rewritten
-    /// call at the position of the call site and refuses the request when it does not bind to the target, for instance because the namespace of
-    /// the target is not imported.
-    /// </para>
-    /// </remarks>
-    ExtensionReceiver
+    FirstArgumentByIn
 }

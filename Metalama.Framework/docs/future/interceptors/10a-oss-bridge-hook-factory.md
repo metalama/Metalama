@@ -447,6 +447,8 @@ The new member of `PipelineExtension` is virtual with a default implementation, 
 
 ### 10.4 Extension transformation factory (B2c)
 
+> Superseded by the decision "Call-site forwarders" of section [15.0](15-decisions.md) (2026-10-04): a call in a conditional access is rewritten as a call of a forwarder, an extension method that the linker generates in one internal static class of the global namespace per project, and that calls the interceptor with its fully qualified name. The interceptor itself does not need to be an extension method, no directive is added, and the extension form is never used against a method written by the user. The receiver mode `ExtensionReceiver` described below is removed: the factory uses a forwarder for a request with `FirstArgument` in a conditional access, and no request kind is added for it.
+
 All public types live in the new namespace `Metalama.Framework.Engine.Extensibility.Transformations` of `Metalama.Framework.Engine`.
 
 #### 10.4.1 Factory

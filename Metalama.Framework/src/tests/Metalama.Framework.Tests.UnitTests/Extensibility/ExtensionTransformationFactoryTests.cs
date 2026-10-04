@@ -5,6 +5,7 @@
 using Metalama.Compiler;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
+using Metalama.Framework.Engine;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Extensibility;
@@ -174,6 +175,22 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
                                      public static void RefIn( in int x ) { }
 
                                      public static int ComputeRefReadOnly( ref readonly int x ) => x;
+
+                                     public static int GetGeneric<T>( T instance, int x ) => x;
+
+                                     public static int GetWrapped( Wrapper wrapper, int x ) => x;
+
+                                     public static int GetObject( object instance, int x ) => x;
+                                 }
+
+                                 internal struct Wrapper
+                                 {
+                                     public static implicit operator Wrapper( Instance instance ) => default;
+                                 }
+
+                                 internal static class Hidden
+                                 {
+                                     private static int Get( Instance instance, int x ) => x;
                                  }
 
                                  internal static class InstanceExtensions
@@ -373,37 +390,159 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
         => await this.AssertInvocationRefusedAsync( "Source.Compute( 1 )", "Interceptors", "Get", CallSiteReceiverMode.FirstArgument );
 
     /// <summary>
-    /// Verifies that the receiver mode <see cref="CallSiteReceiverMode.FirstArgument"/> is refused for a call in a conditional access, whose receiver
-    /// exists only inside the conditional access.
+    /// Verifies that a call in a conditional access, whose receiver exists only inside the conditional access, is redirected to the forwarder of the
+    /// target, which the linker generates in an internal static class of the global namespace, and that the forwarder calls the target with its
+    /// fully qualified name.
     /// </summary>
     [Fact]
-    public async Task RedirectInvocation_FirstArgument_ConditionalAccess_Throws()
-        => await this.AssertInvocationRefusedAsync( ".Get( 3 )", "Interceptors", "Get", CallSiteReceiverMode.FirstArgument );
+    public async Task RedirectInvocation_FirstArgument_ConditionalAccess_UsesForwarder()
+    {
+        var result = await this.ExecuteAsync(
+            s => s.Factory.RedirectInvocation(
+                s.Origin,
+                new InvocationRedirectionRequest( s.Invocation( ".Get( 3 )" ), s.Target( "Interceptors", "Get" ), CallSiteReceiverMode.FirstArgument ) ) );
+
+        var text = GetText( result ).Replace( " ", "" );
+
+        Assert.Contains( "n?.__Interceptors_Get(3)", text, StringComparison.Ordinal );
+        Assert.Contains( "internalstaticclass__MetalamaCallSites_", text, StringComparison.Ordinal );
+
+        Assert.Contains(
+            "publicstaticglobal::System.Int32__Interceptors_Get(thisglobal::Instanceinstance,global::System.Int32x)=>global::Interceptors.Get(instance,x);",
+            text,
+            StringComparison.Ordinal );
+    }
 
     /// <summary>
-    /// Verifies that the receiver mode <see cref="CallSiteReceiverMode.ExtensionReceiver"/> is refused when the target method is not an extension
-    /// method.
+    /// Verifies that the call sites that are redirected to the same target method share one forwarder.
     /// </summary>
     [Fact]
-    public async Task RedirectInvocation_ExtensionReceiver_NonExtensionTarget_Throws()
-        => await this.AssertInvocationRefusedAsync( "i.Get( 2 )", "Interceptors", "Get", CallSiteReceiverMode.ExtensionReceiver );
-
-    /// <summary>
-    /// Verifies that the receiver mode <see cref="CallSiteReceiverMode.ExtensionReceiver"/> is accepted for a call in a conditional access.
-    /// </summary>
-    [Fact]
-    public async Task RedirectInvocation_ExtensionReceiver_ConditionalAccess_Accepted()
-        => await this.ExecuteAsync(
+    public async Task RedirectInvocation_ConditionalAccess_ForwarderShared()
+    {
+        var result = await this.ExecuteAsync(
             s =>
             {
-                var callSite = s.Invocation( ".Get( 3 )" );
+                s.Factory.RedirectInvocation(
+                    s.Origin,
+                    new InvocationRedirectionRequest( s.Invocation( ".Get( 3 )" ), s.Target( "Interceptors", "Get" ), CallSiteReceiverMode.FirstArgument ) );
 
                 s.Factory.RedirectInvocation(
                     s.Origin,
-                    new InvocationRedirectionRequest( callSite, s.Target( "Interceptors", "GetExtension" ), CallSiteReceiverMode.ExtensionReceiver ) );
-
-                Assert.True( s.Factory.IsRedirected( callSite ) );
+                    new InvocationRedirectionRequest( s.Invocation( ".Get( 7 )" ), s.Target( "Interceptors", "Get" ), CallSiteReceiverMode.FirstArgument ) );
             } );
+
+        var text = GetText( result ).Replace( " ", "" );
+
+        Assert.Contains( "n?.__Interceptors_Get(7)", text, StringComparison.Ordinal );
+        Assert.Equal( 1, CountOccurrences( text, "publicstaticglobal::System.Int32__Interceptors_Get(" ) );
+    }
+
+    /// <summary>
+    /// Verifies that the forwarder of a generic target method is generic, and that the call site passes the type arguments explicitly.
+    /// </summary>
+    [Fact]
+    public async Task RedirectInvocation_ConditionalAccess_GenericForwarder()
+    {
+        var result = await this.ExecuteAsync(
+            s => s.Factory.RedirectInvocation(
+                s.Origin,
+                new InvocationRedirectionRequest( s.Invocation( ".Get( 3 )" ), s.Target( "Interceptors", "GetGeneric" ), CallSiteReceiverMode.FirstArgument ) ) );
+
+        var text = GetText( result ).Replace( " ", "" );
+
+        // The type argument is the one inferred for the static form of the call, which is nullable because the receiver can be null.
+        Assert.Contains( "n?.__Interceptors_GetGeneric<global::Instance?>(3)", text, StringComparison.Ordinal );
+        Assert.Contains( "publicstaticglobal::System.Int32__Interceptors_GetGeneric<T>(thisTinstance,global::System.Int32x)=>global::Interceptors.GetGeneric<T>(instance,x);", text, StringComparison.Ordinal );
+    }
+
+    /// <summary>
+    /// Verifies that a receiver that converts to the first parameter of the target by a boxing or reference conversion is accepted.
+    /// </summary>
+    [Fact]
+    public async Task RedirectInvocation_ConditionalAccess_ReferenceConversion_Accepted()
+    {
+        var result = await this.ExecuteAsync(
+            s => s.Factory.RedirectInvocation(
+                s.Origin,
+                new InvocationRedirectionRequest( s.Invocation( ".Get( 3 )" ), s.Target( "Interceptors", "GetObject" ), CallSiteReceiverMode.FirstArgument ) ) );
+
+        Assert.Contains( "n?.__Interceptors_GetObject(3)", GetText( result ).Replace( " ", "" ), StringComparison.Ordinal );
+    }
+
+    /// <summary>
+    /// Verifies that a receiver that converts to the first parameter of the target only by a user-defined conversion is refused, because the
+    /// receiver of an extension method cannot be converted by a user-defined conversion.
+    /// </summary>
+    [Fact]
+    public async Task RedirectInvocation_ConditionalAccess_UserDefinedReceiverConversion_Throws()
+        => await this.AssertInvocationRefusedAsync(
+            ".Get( 3 )",
+            "Interceptors",
+            "GetWrapped",
+            CallSiteReceiverMode.FirstArgument,
+            expectedMessage: "neither an identity, a reference nor a boxing conversion" );
+
+    /// <summary>
+    /// Verifies that a target method that is not accessible from a top-level class of the project is refused, because its forwarder could not call
+    /// it.
+    /// </summary>
+    [Fact]
+    public async Task RedirectInvocation_ConditionalAccess_PrivateTarget_Throws()
+        => await this.AssertInvocationRefusedAsync( ".Get( 3 )", "Hidden", "Get", CallSiteReceiverMode.FirstArgument, expectedMessage: "not accessible" );
+
+    /// <summary>
+    /// Verifies that a receiver in a conditional access cannot be passed by reference.
+    /// </summary>
+    [Fact]
+    public async Task RedirectInvocation_ConditionalAccess_ByRef_Throws()
+        => await this.AssertInvocationRefusedAsync(
+            ".Get( 3 )",
+            "Interceptors",
+            "Get",
+            CallSiteReceiverMode.FirstArgumentByRef,
+            expectedMessage: "cannot be passed by reference" );
+
+    /// <summary>
+    /// Verifies that the name of a forwarder doubles the underscores of the source names, so that different methods have different names, and that a
+    /// generic type is written with its arity.
+    /// </summary>
+    [Fact]
+    public void GetForwarderName_EscapesUnderscoresAndArity()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var compilation = testContext.CreateCompilationModel(
+                """
+                namespace A_B
+                {
+                    public static class C
+                    {
+                        public static void M_N( int x ) { }
+                    }
+                }
+
+                namespace A
+                {
+                    public static class B_C
+                    {
+                        public static void M_N( int x ) { }
+                    }
+
+                    public static class Hooks<T>
+                    {
+                        public static void Validate( T x ) { }
+                    }
+                }
+                """ )
+            .RoslynCompilation;
+
+        IMethodSymbol GetMethod( string typeName, string methodName )
+            => (IMethodSymbol) compilation.GetTypeByMetadataName( typeName ).AssertNotNull().GetMembers( methodName ).Single();
+
+        Assert.Equal( "__A__B_C_M__N", ExtensionTransformationFactory.GetForwarderName( GetMethod( "A_B.C", "M_N" ) ) );
+        Assert.Equal( "__A_B__C_M__N", ExtensionTransformationFactory.GetForwarderName( GetMethod( "A.B_C", "M_N" ) ) );
+        Assert.Equal( "__A_Hooks_1_Validate", ExtensionTransformationFactory.GetForwarderName( GetMethod( "A.Hooks`1", "Validate" ) ) );
+    }
 
     /// <summary>
     /// Verifies that a result cast is refused for a call in a conditional access.
@@ -413,8 +552,8 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
         => await this.AssertInvocationRefusedAsync(
             ".Get( 7 )",
             "Interceptors",
-            "GetExtension",
-            CallSiteReceiverMode.ExtensionReceiver,
+            "Get",
+            CallSiteReceiverMode.FirstArgument,
             ( s, r ) => new InvocationRedirectionRequest( r.CallSite, r.Target, r.ReceiverMode ) { ResultCast = s.Compilation.Factory.GetSpecialType( Code.SpecialType.Int32 ) } );
 
     /// <summary>
@@ -655,23 +794,6 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
             } );
 
     /// <summary>
-    /// Verifies that a request in a conditional access is refused when the rewritten call binds to an instance method of the receiver instead of
-    /// the extension method of the target.
-    /// </summary>
-    [Fact]
-    public async Task RedirectInvocation_ExtensionReceiver_BindsToInstanceMethod_Throws()
-        => await this.ExecuteAsync(
-            s =>
-            {
-                var exception = Assert.Throws<ArgumentException>(
-                    () => s.Factory.RedirectInvocation(
-                        s.Origin,
-                        new InvocationRedirectionRequest( s.Invocation( ".Get( 3 )" ), s.Target( "InstanceExtensions", "Get" ), CallSiteReceiverMode.ExtensionReceiver ) ) );
-
-                Assert.Contains( "binds to 'Instance.Get(int)'", exception.Message, StringComparison.Ordinal );
-            } );
-
-    /// <summary>
     /// Verifies that a source argument can be cast to the type of the parameter of the source method, and that the linker writes the cast.
     /// </summary>
     [Fact]
@@ -875,31 +997,18 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
             } );
 
     /// <summary>
-    /// Verifies that a call in a chain that starts with a conditional access, <c>o?.Inner.Get( 30 )</c>, is a conditional access: its receiver
-    /// cannot be passed as an argument.
+    /// Verifies that a call in a chain that starts with a conditional access, <c>o?.Inner.Get( 30 )</c>, is a conditional access: it is redirected to
+    /// a forwarder, so that the receiver stays in the chain.
     /// </summary>
     [Fact]
-    public async Task RedirectInvocation_FirstArgument_ConditionalAccessChain_Throws()
-        => await this.AssertInvocationRefusedAsync(
-            ".Inner.Get( 30 )",
-            "Interceptors",
-            "Get",
-            CallSiteReceiverMode.FirstArgument,
-            expectedMessage: "conditional access" );
-
-    /// <summary>
-    /// Verifies that a call in a chain that starts with a conditional access can be redirected to an extension method, which is the rewrite that
-    /// keeps the conditional access.
-    /// </summary>
-    [Fact]
-    public async Task RedirectInvocation_ExtensionReceiver_ConditionalAccessChain_Accepted()
+    public async Task RedirectInvocation_FirstArgument_ConditionalAccessChain_UsesForwarder()
     {
         var result = await this.ExecuteAsync(
             s => s.Factory.RedirectInvocation(
                 s.Origin,
-                new InvocationRedirectionRequest( s.Invocation( ".Inner.Get( 30 )" ), s.Target( "Interceptors", "GetExtension" ), CallSiteReceiverMode.ExtensionReceiver ) ) );
+                new InvocationRedirectionRequest( s.Invocation( ".Inner.Get( 30 )" ), s.Target( "Interceptors", "Get" ), CallSiteReceiverMode.FirstArgument ) ) );
 
-        Assert.Contains( "o?.Inner.GetExtension(30)", GetText( result ).Replace( " ", "" ), StringComparison.Ordinal );
+        Assert.Contains( "o?.Inner.__Interceptors_Get(30)", GetText( result ).Replace( " ", "" ), StringComparison.Ordinal );
     }
 
     /// <summary>
@@ -915,20 +1024,6 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
             CallSiteReceiverMode.Drop,
             ( _, r ) => new InvocationRedirectionRequest( r.CallSite, r.Target, r.ReceiverMode ) { Arguments = ImmutableArray.Create( RedirectedArgument.SourceReceiver ) },
             expectedMessage: "base call" );
-
-    /// <summary>
-    /// Verifies that the receiver of a pointer member access is kept when the call is redirected to an extension method.
-    /// </summary>
-    [Fact]
-    public async Task RedirectInvocation_ExtensionReceiver_PointerMemberAccess_DereferencesPointer()
-    {
-        var result = await this.ExecuteAsync(
-            s => s.Factory.RedirectInvocation(
-                s.Origin,
-                new InvocationRedirectionRequest( s.Invocation( "pp->Get()" ), s.Target( "Interceptors", "GetPoint" ), CallSiteReceiverMode.ExtensionReceiver ) ) );
-
-        Assert.Contains( "(*(pp)).GetPoint()", GetText( result ).Replace( " ", "" ), StringComparison.Ordinal );
-    }
 
     /// <summary>
     /// Verifies that a result cast is refused when the target method returns <c>void</c>.
@@ -1078,7 +1173,6 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
     [Theory]
     [InlineData( CallSiteReceiverMode.FirstArgument, "TakeBase" )]
     [InlineData( CallSiteReceiverMode.FirstArgumentByRef, "TakeBaseByRef" )]
-    [InlineData( CallSiteReceiverMode.ExtensionReceiver, "TakeBaseExtension" )]
     public async Task RedirectInvocation_VirtualBaseCall_AnyReceiverMode_Throws( CallSiteReceiverMode receiverMode, string targetName )
         => await this.AssertInvocationRefusedAsync( "base.Virtual()", "Interceptors", targetName, receiverMode, expectedMessage: "base call" );
 
@@ -1167,20 +1261,6 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
             CallSiteReceiverMode.Drop,
             DropSecondArgument,
             expectedMessage: "user-defined operator" );
-
-    /// <summary>
-    /// Verifies that a call with an implicit receiver is redirected to an extension method called on <c>this</c>.
-    /// </summary>
-    [Fact]
-    public async Task RedirectInvocation_ExtensionReceiver_ImplicitThis()
-    {
-        var result = await this.ExecuteAsync(
-            s => s.Factory.RedirectInvocation(
-                s.Origin,
-                new InvocationRedirectionRequest( s.Invocation( "Get( 40 )" ), s.Target( "Interceptors", "GetExtension" ), CallSiteReceiverMode.ExtensionReceiver ) ) );
-
-        Assert.Contains( "this.GetExtension(40)", GetText( result ).Replace( " ", "" ), StringComparison.Ordinal );
-    }
 
     /// <summary>
     /// Verifies that the receiver of a call to a readonly member of a struct is passed with the <c>in</c> modifier.
