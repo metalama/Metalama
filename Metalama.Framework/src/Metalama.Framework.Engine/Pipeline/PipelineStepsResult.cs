@@ -17,7 +17,6 @@ namespace Metalama.Framework.Engine.Pipeline
     /// </summary>
     /// <param name="ExtensionContributors">All extension contributors of the stage: those replayed from the contributor sources of the
     /// pipeline and those added by the aspects of the stage.</param>
-    /// <param name="ExtensionContributorsAddedInStage">The extension contributors added by the aspects that executed in the stage.</param>
     internal sealed record PipelineStepsResult(
         CompilationModel FirstCompilation,
         CompilationModel LastCompilation,
@@ -26,6 +25,5 @@ namespace Metalama.Framework.Engine.Pipeline
         ImmutableUserDiagnosticList Diagnostics,
         IAspectSource OverflowAspectSource,
         IReadOnlyCollection<IExtensionPipelineContributor> ExtensionContributors,
-        IReadOnlyCollection<IExtensionPipelineContributor> ExtensionContributorsAddedInStage,
         IReadOnlyCollection<AspectInstanceResult> AspectInstanceResults );
 }

@@ -1,2 +1,0 @@
-intercepted greeter: explicit
-intercepted program: implicit
