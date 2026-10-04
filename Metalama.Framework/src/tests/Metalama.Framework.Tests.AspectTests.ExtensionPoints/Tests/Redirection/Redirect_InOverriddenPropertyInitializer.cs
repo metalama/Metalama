@@ -20,7 +20,7 @@ internal class RedirectAttribute : TypeAspect
 
         builder.TestRedirectCalls(
             "Compute",
-            ( (INamedType) TypeFactory.GetType( typeof(Interceptors) ) ).Methods.OfName( "Compute" ).Single() );
+            TypeFactory.GetNamedType( typeof(Interceptors) ).Methods.OfName( "Compute" ).Single() );
     }
 
     [Template]

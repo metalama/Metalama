@@ -27,7 +27,7 @@ internal class RedirectAttribute : TypeAspect
 
         builder.TestRedirectCalls(
             "Where",
-            ( (INamedType) TypeFactory.GetType( typeof(Interceptors) ) ).Methods.OfName( "Where" ).Single() );
+            TypeFactory.GetNamedType( typeof(Interceptors) ).Methods.OfName( "Where" ).Single() );
     }
 
     [Template]
