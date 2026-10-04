@@ -12,10 +12,11 @@ using Metalama.Framework.Tests.ExtensionPoints;
 using System;
 using System.Linq;
 
-namespace Metalama.Framework.Tests.AspectTests.ExtensionPoints.Tests.Redirection.Redirect_ConditionalAccess_ExtensionReceiver;
+namespace Metalama.Framework.Tests.AspectTests.ExtensionPoints.Tests.Redirection.Redirect_ConditionalAccess_Forwarder;
 
-// A call in a conditional access is redirected to an extension method with the receiver syntax kept, so that a null receiver still skips the
-// call.
+// A call in a conditional access is redirected through a forwarder: an extension method that the linker generates and that calls the static
+// interceptor. The receiver stays in the conditional access, so a null receiver still skips the call. The last call is not in a conditional
+// access, so it calls the interceptor directly.
 
 internal class RedirectAttribute : TypeAspect
 {
@@ -23,7 +24,7 @@ internal class RedirectAttribute : TypeAspect
         => builder.TestRedirectCalls(
             "Hello",
             ( (INamedType) TypeFactory.GetType( typeof(Interceptors) ) ).Methods.OfName( "InterceptedHello" ).Single(),
-            new TestRedirectionOptions { ReceiverMode = "ExtensionReceiver" } );
+            new TestRedirectionOptions { ReceiverMode = "FirstArgument" } );
 }
 
 internal class Greeter
@@ -33,7 +34,7 @@ internal class Greeter
 
 internal static class Interceptors
 {
-    public static string InterceptedHello( this Greeter greeter, string name ) => $"intercepted hello {name}";
+    public static string InterceptedHello( Greeter greeter, string name ) => $"intercepted hello {name}";
 }
 
 // <target>

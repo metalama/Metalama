@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Engine.Extensibility.CallSites;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 
@@ -22,9 +23,12 @@ internal sealed class ExtensionLinkerInput
     /// <summary>
     /// Initializes a new instance of the <see cref="ExtensionLinkerInput"/> class.
     /// </summary>
-    public ExtensionLinkerInput( IReadOnlyDictionary<SyntaxTree, IReadOnlyDictionary<SyntaxNode, CallSiteRedirection>> callSiteRedirections )
+    public ExtensionLinkerInput(
+        IReadOnlyDictionary<SyntaxTree, IReadOnlyDictionary<SyntaxNode, CallSiteRedirection>> callSiteRedirections,
+        CompilationUnitSyntax? callSiteForwarders = null )
     {
         this.CallSiteRedirections = callSiteRedirections;
+        this.CallSiteForwarders = callSiteForwarders;
     }
 
     /// <summary>
@@ -32,6 +36,12 @@ internal sealed class ExtensionLinkerInput
     /// compared by reference.
     /// </summary>
     public IReadOnlyDictionary<SyntaxTree, IReadOnlyDictionary<SyntaxNode, CallSiteRedirection>> CallSiteRedirections { get; }
+
+    /// <summary>
+    /// Gets the compilation unit that declares the forwarders called by the redirected call sites in conditional accesses, or <c>null</c> when no
+    /// forwarder is needed. The linker adds it to the compilation as a new syntax tree.
+    /// </summary>
+    public CompilationUnitSyntax? CallSiteForwarders { get; }
 
     /// <summary>
     /// Gets a value indicating whether the input contains no redirection.
