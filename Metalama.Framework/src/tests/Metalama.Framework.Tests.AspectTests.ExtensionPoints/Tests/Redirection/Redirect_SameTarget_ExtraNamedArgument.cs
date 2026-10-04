@@ -17,7 +17,7 @@ internal class RedirectAttribute : TypeAspect
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
         => builder.TestRedirectCalls(
             "Log",
-            ( (INamedType) TypeFactory.GetType( typeof(Logger) ) ).Methods.OfName( "Log" ).Single(),
+            TypeFactory.GetNamedType( typeof(Logger) ).Methods.OfName( "Log" ).Single(),
             new TestRedirectionOptions { ExtraArguments = "origin=\"redirected\"" } );
 }
 

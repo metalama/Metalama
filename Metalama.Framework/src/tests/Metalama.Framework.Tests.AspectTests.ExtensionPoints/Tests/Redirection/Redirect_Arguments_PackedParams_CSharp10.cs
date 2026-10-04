@@ -22,7 +22,7 @@ internal class RedirectAttribute : TypeAspect
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
         => builder.TestRedirectCalls(
             "Sum",
-            ( (INamedType) TypeFactory.GetType( typeof(Interceptors) ) ).Methods.OfName( "Sum" ).Single(),
+            TypeFactory.GetNamedType( typeof(Interceptors) ).Methods.OfName( "Sum" ).Single(),
             new TestRedirectionOptions { Arguments = "argument:1; argument:0" } );
 }
 
