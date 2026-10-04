@@ -10,12 +10,12 @@ namespace Metalama.Framework.Tests.ExtensionPoints.Engine;
 /// <summary>
 /// The contributor that a verb of the proof of concept adds to the pipeline.
 /// </summary>
-internal sealed class TestRegistration : IExtensionPipelineContributor
+internal sealed class TestExtensionPipelineContributor : IExtensionPipelineContributor
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="TestRegistration"/> class.
+    /// Initializes a new instance of the <see cref="TestExtensionPipelineContributor"/> class.
     /// </summary>
-    public TestRegistration( string tag, ExtensionContributionOrigin origin, IRef<IDeclaration>? scope, string channel, bool? templateProviderMatches )
+    public TestExtensionPipelineContributor( string tag, ExtensionContributionOrigin origin, IRef<IDeclaration>? scope, string channel, bool? templateProviderMatches )
     {
         this.Tag = tag;
         this.Origin = origin;

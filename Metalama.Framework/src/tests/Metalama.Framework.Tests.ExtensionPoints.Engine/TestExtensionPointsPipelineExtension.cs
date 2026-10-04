@@ -7,7 +7,7 @@ using Metalama.Framework.Diagnostics;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Extensibility;
-using Metalama.Framework.Engine.Extensibility.Transformations;
+using Metalama.Framework.Engine.Extensibility.CallSites;
 using Metalama.Framework.Engine.Pipeline;
 using Metalama.Framework.Engine.ReferenceGraph;
 using Metalama.Framework.Tests.ExtensionPoints.Engine;
@@ -67,7 +67,7 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
 
     public override bool Initialize( PipelineExtensionInitializationContext context )
     {
-        context.ServiceBuilder.Add( _ => new TestRegistrationService() );
+        context.ServiceBuilder.Add( _ => new TestExtensionPointsService() );
         context.AddDiagnosticDefinitions( [RegistrationObserved, ReferenceObserved, IndexContent, RedirectionRefused, ScopeNotContained] );
 
         return true;
@@ -420,10 +420,10 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
     }
 
     /// <summary>
-    /// Reports a diagnostic for each <see cref="TestRegistration"/>, in the order of the tags, so that a test can verify what the extension
+    /// Reports a diagnostic for each <see cref="TestExtensionPipelineContributor"/>, in the order of the tags, so that a test can verify what the extension
     /// received. The stage is the stage in which the registration was made.
     /// </summary>
-    private static void ReportRegistrations( IEnumerable<TestRegistration> registrations, CompilationModel compilation, UserDiagnosticSink diagnostics )
+    private static void ReportRegistrations( IEnumerable<TestExtensionPipelineContributor> registrations, CompilationModel compilation, UserDiagnosticSink diagnostics )
     {
         foreach ( var registration in registrations.OrderBy( r => r.Tag ) )
         {

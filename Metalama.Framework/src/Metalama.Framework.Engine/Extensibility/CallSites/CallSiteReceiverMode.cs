@@ -4,7 +4,7 @@
 
 using JetBrains.Annotations;
 
-namespace Metalama.Framework.Engine.Extensibility.Transformations;
+namespace Metalama.Framework.Engine.Extensibility.CallSites;
 
 /// <summary>
 /// Describes how the receiver of the source invocation is passed to the new target.

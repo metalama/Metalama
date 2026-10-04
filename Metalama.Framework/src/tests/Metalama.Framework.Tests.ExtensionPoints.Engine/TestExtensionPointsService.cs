@@ -18,10 +18,10 @@ namespace Metalama.Framework.Tests.ExtensionPoints.Engine;
 /// <summary>
 /// Implements the verbs of the proof of concept with the public extension points of the engine.
 /// </summary>
-internal sealed class TestRegistrationService : ITestRegistrationService
+internal sealed class TestExtensionPointsService : ITestExtensionPointsService
 {
     /// <summary>
-    /// Adds a <see cref="TestRegistration"/> whose channel is <c>adviser</c> to the owner of an adviser. When
+    /// Adds a <see cref="TestExtensionPipelineContributor"/> whose channel is <c>adviser</c> to the owner of an adviser. When
     /// <paramref name="expectedTemplateProvider"/> is not <c>null</c>, the registration records whether the template provider of the adviser
     /// is the expected one.
     /// </summary>
@@ -38,7 +38,7 @@ internal sealed class TestRegistrationService : ITestRegistrationService
             templateProviderMatches = context.TemplateProvider == TemplateProvider.FromInstance( expectedTemplateProvider );
         }
 
-        context.Owner.AddContributor( new TestRegistration( tag, context.CaptureOrigin(), adviser.Target.ToRef(), "adviser", templateProviderMatches ) );
+        context.QueryOwner.AddContributor( new TestExtensionPipelineContributor( tag, context.CaptureOrigin(), adviser.Target.ToRef(), "adviser", templateProviderMatches ) );
     }
 
     /// <summary>
@@ -63,7 +63,7 @@ internal sealed class TestRegistrationService : ITestRegistrationService
             ? adviser.Target.Sources.Select( s => s.SyntaxNodeOrToken().AsNode() ).OfType<SyntaxNode>().ToImmutableArray()
             : null;
 
-        context.Owner.AddContributor( new TestReferenceReport( methodName, roots ) );
+        context.QueryOwner.AddContributor( new TestReferenceReport( methodName, roots ) );
     }
 
     /// <summary>
@@ -78,7 +78,7 @@ internal sealed class TestRegistrationService : ITestRegistrationService
 
         var roots = adviser.Target.Sources.Select( s => s.SyntaxNodeOrToken().AsNode() ).OfType<SyntaxNode>().ToImmutableArray();
 
-        context.Owner.AddContributor(
+        context.QueryOwner.AddContributor(
             new TestRedirection( methodName, context.CaptureOrigin(), options, replacement.ToRef(), null, adviser.Target.ToRef(), null, roots ) );
     }
 
@@ -106,6 +106,6 @@ internal sealed class TestRegistrationService : ITestRegistrationService
 
         var origin = ExtensionContributionOrigin.Capture( queryImpl.Owner );
 
-        queryImpl.Owner.AddContributor( new TestRegistration( tag, origin, null, "query", null ) );
+        queryImpl.Owner.AddContributor( new TestExtensionPipelineContributor( tag, origin, null, "query", null ) );
     }
 }
