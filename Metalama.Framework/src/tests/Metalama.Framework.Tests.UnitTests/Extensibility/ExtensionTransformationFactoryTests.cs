@@ -8,6 +8,7 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Extensibility;
+using Metalama.Framework.Engine.Extensibility.CallSites;
 using Metalama.Framework.Engine.Extensibility.Transformations;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Pipeline.CompileTime;

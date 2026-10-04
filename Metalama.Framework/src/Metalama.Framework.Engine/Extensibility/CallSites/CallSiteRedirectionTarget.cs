@@ -6,7 +6,7 @@ using JetBrains.Annotations;
 using Metalama.Framework.Code;
 using System;
 
-namespace Metalama.Framework.Engine.Extensibility.Transformations;
+namespace Metalama.Framework.Engine.Extensibility.CallSites;
 
 /// <summary>
 /// Represents the method that replaces a call site.
