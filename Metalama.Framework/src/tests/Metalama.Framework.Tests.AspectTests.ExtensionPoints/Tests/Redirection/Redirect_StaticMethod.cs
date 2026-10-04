@@ -16,7 +16,7 @@ namespace Metalama.Framework.Tests.AspectTests.ExtensionPoints.Tests.Redirection
 internal class RedirectAttribute : TypeAspect
 {
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
-        => builder.TestRedirectCalls( "WriteLine", ( (INamedType) TypeFactory.GetType( typeof(Interceptors) ) ).Methods.OfName( "Log" ).Single() );
+        => builder.TestRedirectCalls( "WriteLine", TypeFactory.GetNamedType( typeof(Interceptors) ).Methods.OfName( "Log" ).Single() );
 }
 
 internal static class Interceptors

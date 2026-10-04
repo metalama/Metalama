@@ -18,7 +18,7 @@ internal class RedirectAttribute : TypeAspect
     {
         builder.TestRedirectCalls(
             "Format",
-            ( (INamedType) TypeFactory.GetType( typeof(Interceptors) ) ).Methods.OfName( "FormatReversed" ).Single(),
+            TypeFactory.GetNamedType( typeof(Interceptors) ).Methods.OfName( "FormatReversed" ).Single(),
             new TestRedirectionOptions { Arguments = "argument:1; argument:0" } );
     }
 }

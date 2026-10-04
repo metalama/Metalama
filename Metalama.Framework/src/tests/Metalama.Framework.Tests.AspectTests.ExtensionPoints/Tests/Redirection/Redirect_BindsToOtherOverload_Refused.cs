@@ -18,7 +18,7 @@ internal class RedirectAttribute : TypeAspect
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
         => builder.TestRedirectCalls(
             "Print",
-            ( (INamedType) TypeFactory.GetType( typeof(Interceptors) ) ).Methods.OfName( "Print" ).Single( m => m.Parameters.Count == 2 ) );
+            TypeFactory.GetNamedType( typeof(Interceptors) ).Methods.OfName( "Print" ).Single( m => m.Parameters.Count == 2 ) );
 }
 
 internal static class Source
