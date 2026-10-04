@@ -845,7 +845,7 @@ public sealed partial class DesignTimeAspectPipelineResult
     /// <remarks>
     /// The extensions are tested with <see cref="DesignTimeAspectPipelineResultExtensionCollection.HasExportedContent"/>, which is <c>true</c>
     /// when the collection holds a validator of this project or of a referenced project, or a design-time result whose kind is not
-    /// project-local (<see cref="ContributorKind.IsProjectLocal"/>). When the manifest is dropped, <see cref="Extensions"/> can therefore still
+    /// project-local (<see cref="ContributorKind.IsProjectTransitive"/> is <c>false</c>). When the manifest is dropped, <see cref="Extensions"/> can therefore still
     /// hold project-local results. <c>DesignTimeProjectVersion.ReferencedExtensions</c> loses nothing, because a referencing project does not
     /// receive project-local results.
     /// </remarks>

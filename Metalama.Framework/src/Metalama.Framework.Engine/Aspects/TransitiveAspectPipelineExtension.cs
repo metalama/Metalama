@@ -62,14 +62,13 @@ internal sealed partial class TransitiveAspectPipelineExtension : PipelineExtens
                 ImmutableUserDiagnosticList.Empty ) );
 
     /// <summary>
-    /// Returns the transitive aspect instances added in the stage. The design-time pipeline accumulates them across stages, so the instances
-    /// replayed in every stage are returned only once, from the first stage.
+    /// Returns the transitive aspect instances of the source stage, which is the only stage in which the design-time hook runs.
     /// </summary>
     public override Task<ExtensionPipelineContributorsResult> ExecuteDesignTimePipelineContributorsAsync(
         DesignTimeContributorsContext context,
         CancellationToken cancellationToken )
         => Task.FromResult(
             new ExtensionPipelineContributorsResult(
-                context.NewContributors.OfKind( ContributorKind.TransitiveAspectInstance ).ToImmutableArray<ITransitivePipelineContributor>(),
+                context.Contributors.OfKind( ContributorKind.TransitiveAspectInstance ).ToImmutableArray<ITransitivePipelineContributor>(),
                 ImmutableUserDiagnosticList.Empty ) );
 }
