@@ -15,14 +15,13 @@ namespace Metalama.Framework.Engine.Extensibility;
 /// </summary>
 /// <remarks>
 /// <para>
-/// The design-time pipeline runs its high-level stages one after the other and accumulates the transitive contributors that the extensions return
-/// in every stage. The contributors replayed from the contributor sources of the pipeline, for instance those of fabrics and of referenced
-/// projects, are part of <see cref="Contributors"/> in every stage. An extension that returns transitive contributors must therefore process
-/// <see cref="NewContributors"/>, so that the same contributor is not processed in two stages.
+/// The hook runs only in the source stage, which is the first high-level stage of the pipeline, as the transforming hook does at compile time. Its
+/// transitive contributors are kept in the design-time result, which the pipeline reads from its last stage. A contributor added by an aspect that
+/// executes after a low-level weaver is not passed to the hook.
 /// </para>
 /// <para>
-/// One instance is shared by all extensions of a stage. It references the compilations of the stage, so it must not be stored in an object
-/// that outlives the call.
+/// One instance is shared by all extensions. It references the compilations of the source stage, so it must not be stored in an object that
+/// outlives the call.
 /// </para>
 /// </remarks>
 [PublicAPI]
@@ -34,17 +33,13 @@ public sealed class DesignTimeContributorsContext
     internal DesignTimeContributorsContext(
         AspectPipelineConfiguration pipelineConfiguration,
         IReadOnlyCollection<IExtensionPipelineContributor> contributors,
-        IReadOnlyCollection<IExtensionPipelineContributor> contributorsAddedInStage,
         CompilationModel stageInitialCompilation,
-        CompilationModel stageFinalCompilation,
-        int highLevelStageIndex )
+        CompilationModel stageFinalCompilation )
     {
         this.PipelineConfiguration = pipelineConfiguration;
         this.Contributors = contributors;
-        this.ContributorsAddedInStage = contributorsAddedInStage;
         this.StageInitialCompilation = stageInitialCompilation;
         this.StageFinalCompilation = stageFinalCompilation;
-        this.HighLevelStageIndex = highLevelStageIndex;
     }
 
     /// <summary>
@@ -58,34 +53,18 @@ public sealed class DesignTimeContributorsContext
     public ProjectServiceProvider ServiceProvider => this.PipelineConfiguration.ServiceProvider;
 
     /// <summary>
-    /// Gets all extension contributors of the stage: those replayed from the contributor sources of the pipeline, and those added by the aspects
-    /// that executed in the stage.
+    /// Gets all extension contributors of the source stage: those of the contributor sources of the pipeline, and those added by the aspects that
+    /// executed in the source stage.
     /// </summary>
     public IReadOnlyCollection<IExtensionPipelineContributor> Contributors { get; }
 
     /// <summary>
-    /// Gets the extension contributors added by the aspects that executed in the stage.
-    /// </summary>
-    public IReadOnlyCollection<IExtensionPipelineContributor> ContributorsAddedInStage { get; }
-
-    /// <summary>
-    /// Gets the extension contributors that no earlier stage passed to the extensions: <see cref="Contributors"/> in the first high-level stage,
-    /// and <see cref="ContributorsAddedInStage"/> in the later stages.
-    /// </summary>
-    public IReadOnlyCollection<IExtensionPipelineContributor> NewContributors => this.HighLevelStageIndex == 0 ? this.Contributors : this.ContributorsAddedInStage;
-
-    /// <summary>
-    /// Gets the compilation at the start of the stage.
+    /// Gets the compilation at the start of the source stage, which is the source compilation.
     /// </summary>
     public CompilationModel StageInitialCompilation { get; }
 
     /// <summary>
-    /// Gets the compilation that results from all aspects of the stage.
+    /// Gets the compilation that results from all aspects of the source stage.
     /// </summary>
     public CompilationModel StageFinalCompilation { get; }
-
-    /// <summary>
-    /// Gets the zero-based index of the stage among the high-level stages of the pipeline. A low-level weaver starts a new high-level stage.
-    /// </summary>
-    public int HighLevelStageIndex { get; }
 }

@@ -30,8 +30,8 @@ using Xunit;
 namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline;
 
 /// <summary>
-/// Tests of <see cref="DesignTimeContributorsContext"/> and of the accumulation of the results of the high-level stages of the design-time
-/// pipeline (change S1, issue #2098).
+/// Tests of <see cref="DesignTimeContributorsContext"/>, which the design-time pipeline passes to the extensions only in the source stage, and of
+/// the results of the high-level stages that the design-time result keeps (change S1, issue #2098).
 /// </summary>
 /// <remarks>
 /// The test code has a project fabric and two aspects that add extension contributors (diagnostic queries). With a low-level weaver aspect
@@ -131,41 +131,39 @@ public sealed class DesignTimeContributorsContextTests : UnitTestClass
     public DesignTimeContributorsContextTests( ITestOutputHelper testOutput ) : base( testOutput ) { }
 
     /// <summary>
-    /// Verifies that, with a single high-level stage, the extension is called once with the stage index zero, and that the contributor of the fabric
-    /// and the contributors of the two aspects are all new contributors.
+    /// Verifies that, with a single high-level stage, the extension is called once, with the contributor of the fabric and the contributors of the
+    /// two aspects.
     /// </summary>
     [Fact]
-    public void SingleStage_ReceivesAllContributors_IndexZero()
+    public void SingleStage_ReceivesAllContributors()
     {
         var (recorder, _) = this.Execute( _singleStageCode );
 
-        var call = Assert.Single( recorder.Calls );
-        Assert.Equal( new StageCall( 0, 3, 2, 3 ), call );
+        Assert.Equal( 3, Assert.Single( recorder.Calls ) );
     }
 
     /// <summary>
-    /// Verifies that the stage after the weaver passes the contributor of the fabric again in <see cref="DesignTimeContributorsContext.Contributors"/>,
-    /// but not in <see cref="DesignTimeContributorsContext.NewContributors"/>.
+    /// Verifies that, when a low-level weaver splits the pipeline into two high-level stages, the extension is called once, in the source stage,
+    /// with the contributor of the fabric and the contributor of the aspect that executes in that stage.
     /// </summary>
     [Fact]
-    public void WeaverSplitsStages_LaterStageReceivesOnlyAddedContributors()
+    public void WeaverSplitsStages_CalledOnlyInSourceStage()
     {
         var (recorder, _) = this.Execute( _twoStagesCode );
 
-        Assert.Equal( [new StageCall( 0, 2, 1, 2 ), new StageCall( 1, 2, 1, 1 )], recorder.Calls.OrderBy( c => c.HighLevelStageIndex ) );
+        Assert.Equal( 2, Assert.Single( recorder.Calls ) );
     }
 
     /// <summary>
-    /// Verifies that the transitive contributors returned in the first stage are part of the design-time result, which is read from the last
-    /// stage. The extension returns one transitive contributor per new contributor.
+    /// Verifies that the transitive contributors returned in the source stage are part of the design-time result, which is read from the last
+    /// stage. The extension returns one transitive contributor per contributor.
     /// </summary>
     [Fact]
-    public void TransitiveContributors_AccumulatedAcrossStages()
+    public void TransitiveContributors_KeptFromSourceStage()
     {
         var (_, result) = this.Execute( _twoStagesCode );
 
-        Assert.Equal( 3, result.Extensions.Extensions.OfType<RecordedContributor>().Count() );
-        Assert.Equal( [0, 0, 1], result.Extensions.Extensions.OfType<RecordedContributor>().Select( c => c.HighLevelStageIndex ).OrderBy( i => i ) );
+        Assert.Equal( 2, result.Extensions.Extensions.OfType<RecordedContributor>().Count() );
     }
 
     /// <summary>
@@ -199,17 +197,17 @@ public sealed class DesignTimeContributorsContextTests : UnitTestClass
     }
 
     /// <summary>
-    /// Verifies that the design-time validators returned in the first stage are part of the design-time result, together with those of the second
-    /// stage. The extension returns one validator of the type <c>C</c> per new contributor.
+    /// Verifies that the design-time validators returned in the source stage are part of the design-time result, which is read from the last
+    /// stage. The extension returns one validator of the type <c>C</c> per contributor.
     /// </summary>
     [Fact]
-    public void DesignTimeValidators_AccumulatedAcrossStages()
+    public void DesignTimeValidators_KeptFromSourceStage()
     {
         var (_, result, compilation) = this.ExecuteWithCompilation( _twoStagesCode );
 
         var validators = result.Extensions.GetValidatorsForSymbol( compilation.GetTypeByMetadataName( "C" ).AssertNotNull() );
 
-        Assert.Equal( [0, 0, 1], validators.OfType<RecordedValidator>().Select( v => v.HighLevelStageIndex ).OrderBy( i => i ) );
+        Assert.Equal( 2, validators.OfType<RecordedValidator>().Count() );
     }
 
     /// <summary>
@@ -311,17 +309,13 @@ public sealed class DesignTimeContributorsContextTests : UnitTestClass
             code,
             additionalReferences: [MetadataReference.CreateFromFile( typeof(Compilation).Assembly.Location ), MetadataReference.CreateFromFile( typeof(CSharpSyntaxTree).Assembly.Location )] );
 
-    /// <summary>
-    /// The counts observed by one call of <see cref="PipelineExtension.ExecuteDesignTimePipelineContributorsAsync"/>.
-    /// </summary>
-    private sealed record StageCall( int HighLevelStageIndex, int ContributorCount, int ContributorsAddedInStageCount, int NewContributorCount );
-
     private sealed class StageRecorder : IProjectService
     {
         /// <summary>
-        /// Gets the calls recorded by <see cref="RecordingExtension"/>.
+        /// Gets the number of contributors passed to each call of <see cref="PipelineExtension.ExecuteDesignTimePipelineContributorsAsync"/>, as
+        /// recorded by <see cref="RecordingExtension"/>.
         /// </summary>
-        public ConcurrentQueue<StageCall> Calls { get; } = new();
+        public ConcurrentQueue<int> Calls { get; } = new();
     }
 
     private sealed class RecordingExtension : PipelineExtension
@@ -337,24 +331,19 @@ public sealed class DesignTimeContributorsContextTests : UnitTestClass
                 return Task.FromResult( ExtensionPipelineContributorsResult.Empty );
             }
 
-            recorder.Calls.Enqueue(
-                new StageCall(
-                    context.HighLevelStageIndex,
-                    context.Contributors.Count,
-                    context.ContributorsAddedInStage.Count,
-                    context.NewContributors.Count ) );
+            recorder.Calls.Enqueue( context.Contributors.Count );
 
             var transitiveContributors = ImmutableArray.CreateBuilder<ITransitivePipelineContributor>();
 
             var validatedType = context.StageFinalCompilation.RoslynCompilation.GetTypeByMetadataName( "C" );
 
-            for ( var i = 0; i < context.NewContributors.Count; i++ )
+            for ( var i = 0; i < context.Contributors.Count; i++ )
             {
-                transitiveContributors.Add( new RecordedContributor( context.HighLevelStageIndex ) );
+                transitiveContributors.Add( new RecordedContributor() );
 
                 if ( validatedType != null )
                 {
-                    transitiveContributors.Add( new RecordedValidator( context.HighLevelStageIndex, SymbolDictionaryKey.CreatePersistentKey( validatedType ) ) );
+                    transitiveContributors.Add( new RecordedValidator( SymbolDictionaryKey.CreatePersistentKey( validatedType ) ) );
                 }
             }
 
@@ -363,27 +352,14 @@ public sealed class DesignTimeContributorsContextTests : UnitTestClass
     }
 
     /// <summary>
-    /// A project-local transitive contributor that records the stage that returned it.
+    /// A project-local transitive contributor that <see cref="RecordingExtension"/> returns.
     /// </summary>
     private sealed class RecordedContributor : ITransitivePipelineContributor, IDesignTimePipelineResultExtension
     {
         /// <summary>
         /// The project-local kind of <see cref="RecordedContributor"/>.
         /// </summary>
-        private static readonly ContributorKind<RecordedContributor> _kind = new( nameof(RecordedContributor) ) { IsProjectLocal = true };
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="RecordedContributor"/> class.
-        /// </summary>
-        public RecordedContributor( int highLevelStageIndex )
-        {
-            this.HighLevelStageIndex = highLevelStageIndex;
-        }
-
-        /// <summary>
-        /// Gets the index of the high-level stage that returned the contributor.
-        /// </summary>
-        public int HighLevelStageIndex { get; }
+        private static readonly ContributorKind<RecordedContributor> _kind = new( nameof(RecordedContributor) ) { IsProjectTransitive = false };
 
         /// <inheritdoc />
         public ContributorKind ContributorKind => _kind;
@@ -402,7 +378,7 @@ public sealed class DesignTimeContributorsContextTests : UnitTestClass
     }
 
     /// <summary>
-    /// A design-time validator of the type <c>C</c> that records the stage that returned it.
+    /// A design-time validator of the type <c>C</c> that <see cref="RecordingExtension"/> returns.
     /// </summary>
     private sealed class RecordedValidator : ITransitivePipelineContributor, IDesignTimeValidatorExtension, ITransitiveAspectsManifestExtension
     {
@@ -414,16 +390,10 @@ public sealed class DesignTimeContributorsContextTests : UnitTestClass
         /// <summary>
         /// Initializes a new instance of the <see cref="RecordedValidator"/> class.
         /// </summary>
-        public RecordedValidator( int highLevelStageIndex, SymbolDictionaryKey validatedDeclaration )
+        public RecordedValidator( SymbolDictionaryKey validatedDeclaration )
         {
-            this.HighLevelStageIndex = highLevelStageIndex;
             this.ValidatedDeclaration = validatedDeclaration;
         }
-
-        /// <summary>
-        /// Gets the index of the high-level stage that returned the validator.
-        /// </summary>
-        public int HighLevelStageIndex { get; }
 
         /// <inheritdoc />
         public ContributorKind ContributorKind => _kind;

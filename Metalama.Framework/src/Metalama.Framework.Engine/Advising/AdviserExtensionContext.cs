@@ -42,7 +42,7 @@ public sealed class AdviserExtensionContext
         TemplateClassInstance? templateClassInstance,
         IDeclaration aspectTarget )
     {
-        this.Owner = owner;
+        this.QueryOwner = owner;
         this._state = state;
         this._templateClassInstance = templateClassInstance;
         this.AspectTarget = aspectTarget;
@@ -52,7 +52,7 @@ public sealed class AdviserExtensionContext
     /// Gets the owner of the contributions made through the adviser: the aspect builder for an aspect, or the amender for a type fabric. The
     /// predecessor of the contributions is the <see cref="IQueryOwner.AspectPredecessor"/> of the owner.
     /// </summary>
-    public IQueryOwner Owner { get; }
+    public IQueryOwner QueryOwner { get; }
 
     /// <summary>
     /// Gets the target declaration of the aspect instance whose <c>BuildAspect</c> method is executing, in the compilation of the adviser.
@@ -80,12 +80,12 @@ public sealed class AdviserExtensionContext
     }
 
     /// <summary>
-    /// Creates a query that selects a single declaration and whose owner is <see cref="Owner"/>.
+    /// Creates a query that selects a single declaration and whose owner is <see cref="QueryOwner"/>.
     /// </summary>
     /// <param name="declaration">The declaration to select.</param>
     public IQuery<T> CreateQuery<T>( T declaration )
         where T : class, IDeclaration
-        => new RootQuery<T>( declaration.ToRef(), this.Owner, CompilationModelVersion.Current );
+        => new RootQuery<T>( declaration.ToRef(), this.QueryOwner, CompilationModelVersion.Current );
 
     /// <summary>
     /// Captures the attribution information of a contribution made now through the adviser.
@@ -96,8 +96,8 @@ public sealed class AdviserExtensionContext
         this.ThrowIfDisposed();
 
         return new ExtensionContributionOrigin(
-            this.Owner.AspectPredecessor,
-            this.Owner.DiagnosticSourceDescription,
+            this.QueryOwner.AspectPredecessor,
+            this.QueryOwner.DiagnosticSourceDescription,
             this.TemplateProvider,
             this._templateClassInstance,
             this._state.AspectLayerInstance.AspectLayerId,

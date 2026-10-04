@@ -10,7 +10,11 @@ using System.Linq;
 
 namespace Metalama.Framework.Tests.AspectTests.ExtensionPoints.Tests.MethodReferences.MethodGroup_InstanceReceiver_Refused;
 
-// A method group of an instance method has a receiver, which the receiver mode Drop would not evaluate. The factory refuses the request.
+// The method group 'new Greeter().Greet' refers to an instance method, so it has a receiver: the object created by 'new Greeter()', which the
+// delegate binds. The receiver mode Drop means that the new method group does not pass the receiver to the target: the method group is replaced
+// by the static method 'Interceptors.Greet', which has no parameter for it. The object would then be neither created nor used, so the factory
+// refuses the request, and the source code is not changed. The receiver mode is written explicitly, although Drop is the default of the test
+// extension.
 
 internal class RedirectAttribute : TypeAspect
 {
@@ -18,7 +22,7 @@ internal class RedirectAttribute : TypeAspect
         => builder.TestRedirectCalls(
             "Greet",
             ( (INamedType) TypeFactory.GetType( typeof(Interceptors) ) ).Methods.OfName( "Greet" ).Single(),
-            new TestRedirectionOptions { MethodReferences = true } );
+            new TestRedirectionOptions { MethodReferences = true, ReceiverMode = "Drop" } );
 }
 
 internal class Greeter

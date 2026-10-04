@@ -218,7 +218,7 @@ public sealed class ExtensionContributorMemoryLeakTests : DesignTimeTestBase
     }
 
     /// <summary>
-    /// Verifies that a durable contributor of a project-local kind (<see cref="ContributorKind.IsProjectLocal"/>) does not retain the version of
+    /// Verifies that a durable contributor of a project-local kind (<see cref="ContributorKind.IsProjectTransitive"/> is <c>false</c>) does not retain the version of
     /// the project in which it was produced either. Such a contributor stays in the extension collection of the project instead of being exported
     /// through the transitive manifest.
     /// </summary>
@@ -388,7 +388,7 @@ public sealed class ExtensionContributorMemoryLeakTests : DesignTimeTestBase
         /// <summary>
         /// The project-local kind of <see cref="TestContributor"/>.
         /// </summary>
-        private static readonly ContributorKind<TestContributor> _projectLocalKind = new( "ProjectLocalTestContributor" ) { IsProjectLocal = true };
+        private static readonly ContributorKind<TestContributor> _projectLocalKind = new( "ProjectLocalTestContributor" ) { IsProjectTransitive = false };
 
 #pragma warning disable IDE0052 // The field is never read: holding the payload is its entire purpose.
         private readonly object _payload;

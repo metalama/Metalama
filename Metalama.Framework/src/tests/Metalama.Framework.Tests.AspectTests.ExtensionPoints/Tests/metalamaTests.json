@@ -15,7 +15,6 @@
     "CS8604",
     "CS8625"
  ],
- "MainMethod": "TestMain",
  "CheckMemoryLeaks": true,
  "IgnoreUserProfileLicenses": true
 }

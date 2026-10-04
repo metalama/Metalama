@@ -100,12 +100,12 @@ public sealed class DesignTimeAspectPipelineResultExtensionCollection
 
     /// <summary>
     /// Returns the transitive form of the design-time results that referencing projects receive. The results of a project-local kind
-    /// (<see cref="ContributorKind.IsProjectLocal"/>) are never exported.
+    /// (<see cref="ContributorKind.IsProjectTransitive"/> is <c>false</c>) are never exported.
     /// </summary>
     /// <param name="includeValidators"><c>true</c> to include the results whose kind is <see cref="ContributorKind.IsDesignTimeValidator"/>.</param>
     public ImmutableArray<ITransitiveAspectsManifestExtension> ToTransitiveValidatorInstances( bool includeValidators )
         => this.Extensions
-            .Where( e => !e.ContributorKind.IsProjectLocal && (includeValidators || !e.ContributorKind.IsDesignTimeValidator) )
+            .Where( e => e.ContributorKind.IsProjectTransitive && (includeValidators || !e.ContributorKind.IsDesignTimeValidator) )
             .Select( e => e.ToTransitiveAspectManifestExtension() )
             .ToImmutableArray();
 
@@ -114,7 +114,7 @@ public sealed class DesignTimeAspectPipelineResultExtensionCollection
     /// project, or a design-time result whose kind is not project-local.
     /// </summary>
     [Memo]
-    public bool HasExportedContent => !this._allValidators.IsEmpty || this.Extensions.Any( e => !e.ContributorKind.IsProjectLocal );
+    public bool HasExportedContent => !this._allValidators.IsEmpty || this.Extensions.Any( e => e.ContributorKind.IsProjectTransitive );
 
     public sealed class Builder
     {

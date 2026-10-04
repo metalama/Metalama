@@ -38,5 +38,19 @@ public enum CallSiteReceiverMode
     /// <c>a?.I(x)</c>, and an implicit receiver <c>M(x)</c> becomes <c>this.I(x)</c>. This is the mode that keeps the short-circuit of a conditional
     /// access.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The code generator of Metalama writes a call of an extension method in its static form and lets the simplifier reduce it, so that the
+    /// generated code does not depend on the namespaces imported at the call site. The other modes follow this rule. This mode is the exception,
+    /// because the static form cannot be written in a conditional access: in <c>a?.M(x)</c>, the receiver exists only inside the conditional
+    /// access, so <c>I(a, x)</c> would require a second evaluation of <c>a</c> or a temporary variable. Only the extension form <c>a?.I(x)</c>
+    /// keeps the evaluation and the short-circuit of the source call.
+    /// </para>
+    /// <para>
+    /// The target is written with its name only, so it must be accessible as an extension method at the call site. The factory binds the rewritten
+    /// call at the position of the call site and refuses the request when it does not bind to the target, for instance because the namespace of
+    /// the target is not imported.
+    /// </para>
+    /// </remarks>
     ExtensionReceiver
 }

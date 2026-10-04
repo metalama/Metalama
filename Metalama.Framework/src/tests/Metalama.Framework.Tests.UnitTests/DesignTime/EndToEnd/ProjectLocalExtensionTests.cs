@@ -26,7 +26,7 @@ using Xunit;
 namespace Metalama.Framework.Tests.UnitTests.DesignTime.EndToEnd;
 
 /// <summary>
-/// Tests that the design-time results of a project-local kind (<see cref="ContributorKind.IsProjectLocal"/>) stay in the project that produced
+/// Tests that the design-time results of a project-local kind (<see cref="ContributorKind.IsProjectTransitive"/> is <c>false</c>) stay in the project that produced
 /// them, when another project references that project.
 /// </summary>
 /// <remarks>
@@ -149,7 +149,7 @@ public sealed class ProjectLocalExtensionTests : UnitTestClass
         {
             var assemblyName = context.StageInitialCompilation.RoslynCompilation.AssemblyName!;
 
-            var results = ImmutableArray.CreateRange( context.NewContributors.SelectAsArray( ITransitivePipelineContributor ( _ ) => new ProjectLocalResult( assemblyName ) ) );
+            var results = ImmutableArray.CreateRange( context.Contributors.SelectAsArray( ITransitivePipelineContributor ( _ ) => new ProjectLocalResult( assemblyName ) ) );
 
             return Task.FromResult( new ExtensionPipelineContributorsResult( results, ImmutableUserDiagnosticList.Empty ) );
         }
@@ -181,7 +181,7 @@ public sealed class ProjectLocalExtensionTests : UnitTestClass
         /// <summary>
         /// The project-local kind of <see cref="ProjectLocalResult"/>.
         /// </summary>
-        private static readonly ContributorKind<ProjectLocalResult> _kind = new( nameof(ProjectLocalResult) ) { IsProjectLocal = true };
+        private static readonly ContributorKind<ProjectLocalResult> _kind = new( nameof(ProjectLocalResult) ) { IsProjectTransitive = false };
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ProjectLocalResult"/> class.

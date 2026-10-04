@@ -30,15 +30,15 @@ namespace Metalama.Framework.Engine.Pipeline.DesignTime
 
             var extensionPipelineContributorsResult = ExtensionPipelineContributorsResult.Empty;
 
-            if ( pipelineStepsResult.ExtensionContributors.Count > 0 )
+            // The extensions run only in the source stage, which is the first high-level stage, as at compile time. Their transitive contributors are
+            // carried to the result of the last stage below.
+            if ( this.HighLevelStageIndex == 0 && pipelineStepsResult.ExtensionContributors.Count > 0 )
             {
                 var context = new DesignTimeContributorsContext(
                     pipelineConfiguration,
                     pipelineStepsResult.ExtensionContributors,
-                    pipelineStepsResult.ExtensionContributorsAddedInStage,
                     pipelineStepsResult.FirstCompilation,
-                    pipelineStepsResult.LastCompilation,
-                    this.HighLevelStageIndex );
+                    pipelineStepsResult.LastCompilation );
 
                 foreach ( var pipelineExtension in pipelineConfiguration.Extensions )
                 {
