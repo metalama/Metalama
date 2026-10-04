@@ -1,1 +1,0 @@
-// The compilation was successful.
