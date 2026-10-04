@@ -13,6 +13,7 @@ using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.Diagnostics;
+using Metalama.Framework.Engine.Extensibility.CallSites;
 using Metalama.Framework.Engine.Observers;
 using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Services;
@@ -29,6 +30,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using SpecialType = Metalama.Framework.Code.SpecialType;
@@ -418,6 +420,18 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
 
         var helperSyntaxTree = injectionHelperProvider.GetLinkerHelperSyntaxTree( compilationWithIntroducedTrees.LanguageOptions );
         transformations.Enqueue( SyntaxTreeTransformation.AddTree( helperSyntaxTree ) );
+
+        // Add the forwarders of the redirected call sites in conditional accesses, in one syntax tree per project.
+        if ( input.Extensions.CallSiteForwarders != null )
+        {
+            var forwarderSyntaxTree = CSharpSyntaxTree.Create(
+                input.Extensions.CallSiteForwarders,
+                helperSyntaxTree.Options as CSharpParseOptions ?? CSharpParseOptions.Default,
+                ExtensionTransformationFactory.ForwarderSyntaxTreePath,
+                Encoding.UTF8 );
+
+            transformations.Enqueue( SyntaxTreeTransformation.AddTree( forwarderSyntaxTree ) );
+        }
 
         var intermediateCompilation = compilationWithIntroducedTrees.Update( transformations );
 

@@ -44,7 +44,7 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites;
 public sealed partial class ExtensionTransformationFactory
 {
     /// <summary>
-    /// The lock that protects <see cref="_redirections"/>, <see cref="_nextRedirectionId"/> and <see cref="_isCompleted"/>.
+    /// The lock that protects <see cref="_redirections"/>, <see cref="_forwarders"/>, <see cref="_nextRedirectionId"/> and <see cref="_isCompleted"/>.
     /// </summary>
     private readonly object _sync = new();
 
@@ -134,6 +134,7 @@ public sealed partial class ExtensionTransformationFactory
         var isBaseCall = callSite.Expression.Kind() == SyntaxKind.SimpleMemberAccessExpression
                          && ((MemberAccessExpressionSyntax) callSite.Expression).Expression.Kind() == SyntaxKind.BaseExpression;
         var argumentPlan = default(ImmutableArray<CallSiteArgumentPlanItem>?);
+        var usesForwarder = false;
 
         switch ( request.ReceiverMode )
         {
@@ -166,32 +167,20 @@ public sealed partial class ExtensionTransformationFactory
 
                 if ( isConditionalAccess )
                 {
-                    throw new ArgumentException(
-                        $"The receiver mode {request.ReceiverMode} cannot be used in the conditional access '{callSite}', because the receiver exists only inside the conditional access. Use {nameof(CallSiteReceiverMode.ExtensionReceiver)}.",
-                        nameof(request) );
+                    // The receiver exists only inside the conditional access, so it is passed as the receiver of a forwarder.
+                    if ( request.ReceiverMode != CallSiteReceiverMode.FirstArgument )
+                    {
+                        throw new ArgumentException(
+                            $"The receiver mode {request.ReceiverMode} cannot be used in the conditional access '{callSite}', because the receiver exists only inside the conditional access and cannot be passed by reference.",
+                            nameof(request) );
+                    }
+
+                    usesForwarder = true;
                 }
 
                 if ( isBaseCall && IsVirtual( sourceMethod ) )
                 {
                     throw new ArgumentException( $"The base call '{callSite}' to a virtual method cannot pass its receiver.", nameof(request) );
-                }
-
-                break;
-
-            case CallSiteReceiverMode.ExtensionReceiver:
-                if ( targetMethod.Parameters is not [{ IsThis: true }, ..] )
-                {
-                    throw new ArgumentException( $"The receiver mode {request.ReceiverMode} requires an extension method, but '{targetMethod}' is not one.", nameof(request) );
-                }
-
-                if ( !hasReceiverValue )
-                {
-                    throw new ArgumentException( $"The call site '{callSite}' has no receiver to pass.", nameof(request) );
-                }
-
-                if ( isBaseCall )
-                {
-                    throw new ArgumentException( $"The receiver mode {request.ReceiverMode} cannot be used with the base call '{callSite}'.", nameof(request) );
                 }
 
                 break;
@@ -239,10 +228,6 @@ public sealed partial class ExtensionTransformationFactory
             argumentPlan = CreateArgumentPlan( request, operation, isReducedExtensionCall, hasReceiverValue, context );
         }
 
-        var callee = request.ReceiverMode == CallSiteReceiverMode.ExtensionReceiver
-            ? CreateMethodName( targetMethod, request.TypeArguments, context )
-            : CreateStaticCallee( request.Target, request.TypeArguments, context );
-
         var extraArguments = request.ExtraArguments.IsDefaultOrEmpty
             ? ImmutableArray<ArgumentSyntax>.Empty
             : request.ExtraArguments.SelectAsImmutableArray(
@@ -250,28 +235,43 @@ public sealed partial class ExtensionTransformationFactory
 
         var resultCast = request.ResultCast == null ? null : context.SyntaxGenerator.TypeSyntax( request.ResultCast );
 
-        CallSiteRedirection CreateRedirection( int id )
+        CallSiteRedirection CreateRedirection( int id, ExpressionSyntax callee )
             => new(
                 id,
                 callSite,
                 CallSiteRedirectionKind.Invocation,
                 request.ReceiverMode,
+                usesForwarder,
                 callee.WithAdditionalAnnotations( annotation ),
                 argumentPlan,
                 extraArguments,
                 resultCast,
                 request.Description ?? $"the call '{callSite}' redirected to '{targetMethod}' by {origin.DiagnosticSourceDescription}" );
 
-        var rewrittenCall = CreateRedirection( -1 ).Rewrite( callSite );
+        ExpressionSyntax callee;
+        ExpressionSyntax rewrittenCall;
 
-        VerifyBinding( semanticModel, operation, rewrittenCall, targetMethod, context );
+        if ( usesForwarder )
+        {
+            // The arguments of the forwarder call do not depend on its name, which is computed from the binding of the static form of the call.
+            var argumentList = ((InvocationExpressionSyntax) CreateRedirection( -1, IdentifierName( "_" ) ).Rewrite( callSite )).ArgumentList;
+            callee = this.GetForwarderCallee( request, operation, semanticModel, argumentList, context );
+            rewrittenCall = CreateRedirection( -1, callee ).Rewrite( callSite );
+        }
+        else
+        {
+            callee = CreateStaticCallee( request.Target, request.TypeArguments, context );
+            rewrittenCall = CreateRedirection( -1, callee ).Rewrite( callSite );
+
+            VerifyBinding( semanticModel, operation, rewrittenCall, targetMethod );
+        }
 
         if ( request.ReceiverMode == CallSiteReceiverMode.FirstArgumentByRef )
         {
             VerifyReferenceArguments( semanticModel, callSite, rewrittenCall, CancellationToken.None );
         }
 
-        this.AddRedirection( callSite, CreateRedirection );
+        this.AddRedirection( callSite, id => CreateRedirection( id, callee ) );
     }
 
     /// <summary>
@@ -285,17 +285,14 @@ public sealed partial class ExtensionTransformationFactory
     /// receiver when the target is an extension method. The linker would then emit a call to that method without notice.
     /// </para>
     /// <para>
-    /// A call in a conditional access cannot be bound alone, because its receiver exists only in the conditional access. Its receiver is replaced by
-    /// <c>default(T)</c>, where <c>T</c> is the type of the receiver in the conditional access, which gives the same member lookup and the same
-    /// overload resolution. The check is skipped when <c>T</c> cannot be named.
+    /// A call in a conditional access is verified by <see cref="GetForwarderCallee"/> instead, because it calls a forwarder.
     /// </para>
     /// </remarks>
     private static void VerifyBinding(
         SemanticModel semanticModel,
         IInvocationOperation operation,
         ExpressionSyntax rewrittenCall,
-        IMethod targetMethod,
-        SyntaxGenerationContext context )
+        IMethod targetMethod )
     {
         if ( targetMethod.GetSymbol() is not { } targetSymbol )
         {
@@ -320,38 +317,6 @@ public sealed partial class ExtensionTransformationFactory
         }
 
         var invocation = (InvocationExpressionSyntax) expression;
-
-        if ( GetConditionalAccessBinding( invocation.Expression ) is { } binding )
-        {
-            // The receiver of the binding is the expression of the innermost conditional access that contains the call site.
-            if ( GetConditionalAccessBinding( callSite.Expression )?.FirstAncestorOrSelf<ConditionalAccessExpressionSyntax>() is not { } conditionalAccess
-                 || semanticModel.GetTypeInfo( conditionalAccess.Expression ).Type is not { } receiverType )
-            {
-                return;
-            }
-
-            // In the conditional access, a receiver of a nullable value type has its underlying type, and a receiver of a reference type is not null.
-            if ( receiverType.Kind == SymbolKind.NamedType
-                 && receiverType.OriginalDefinition.SpecialType == Microsoft.CodeAnalysis.SpecialType.System_Nullable_T )
-            {
-                receiverType = ((INamedTypeSymbol) receiverType).TypeArguments[0];
-            }
-
-            receiverType = receiverType.WithNullableAnnotation( NullableAnnotation.NotAnnotated );
-
-            if ( !CanBeNamed( receiverType ) )
-            {
-                return;
-            }
-
-            var defaultReceiver = DefaultExpression( context.SyntaxGenerator.TypeSyntax( receiverType ) );
-
-            ExpressionSyntax replacement = binding.Kind() == SyntaxKind.MemberBindingExpression
-                ? MemberAccessExpression( SyntaxKind.SimpleMemberAccessExpression, defaultReceiver, ((MemberBindingExpressionSyntax) binding).Name )
-                : ElementAccessExpression( defaultReceiver, ((ElementBindingExpressionSyntax) binding).ArgumentList );
-
-            invocation = invocation.ReplaceNode( binding, replacement );
-        }
 
         var symbolInfo = semanticModel.GetSpeculativeSymbolInfo( callSite.SpanStart, invocation, SpeculativeBindingOption.BindAsExpression );
 
@@ -606,6 +571,7 @@ public sealed partial class ExtensionTransformationFactory
                 node,
                 CallSiteRedirectionKind.MethodReference,
                 request.ReceiverMode,
+                false,
                 callee,
                 null,
                 ImmutableArray<ArgumentSyntax>.Empty,
@@ -655,7 +621,8 @@ public sealed partial class ExtensionTransformationFactory
             return new ExtensionLinkerInput(
                 this._redirections.ToDictionary(
                     x => x.Key,
-                    x => (IReadOnlyDictionary<SyntaxNode, CallSiteRedirection>) x.Value ) );
+                    x => (IReadOnlyDictionary<SyntaxNode, CallSiteRedirection>) x.Value ),
+                this.CreateForwarderCompilationUnit() );
         }
     }
 
