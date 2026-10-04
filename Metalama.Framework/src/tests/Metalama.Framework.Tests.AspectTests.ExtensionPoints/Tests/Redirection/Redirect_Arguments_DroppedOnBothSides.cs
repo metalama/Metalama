@@ -23,7 +23,7 @@ internal class RedirectAttribute : TypeAspect
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
         => builder.TestRedirectCalls(
             "Format",
-            ( (INamedType) TypeFactory.GetType( typeof(Interceptors) ) ).Methods.OfName( "FormatMiddle" ).Single(),
+            TypeFactory.GetNamedType( typeof(Interceptors) ).Methods.OfName( "FormatMiddle" ).Single(),
             new TestRedirectionOptions { Arguments = "argument:1" } );
 }
 

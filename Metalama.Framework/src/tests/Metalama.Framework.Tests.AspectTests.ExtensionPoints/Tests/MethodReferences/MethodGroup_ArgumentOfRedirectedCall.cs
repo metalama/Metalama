@@ -16,7 +16,7 @@ internal class RedirectAttribute : TypeAspect
 {
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        var interceptors = (INamedType) TypeFactory.GetType( typeof(Interceptors) );
+        var interceptors = TypeFactory.GetNamedType( typeof(Interceptors) );
 
         builder.TestRedirectCalls( "Run", interceptors.Methods.OfName( "Run" ).Single() );
         builder.TestRedirectCalls( "Compute", interceptors.Methods.OfName( "Compute" ).Single(), new TestRedirectionOptions { MethodReferences = true } );
