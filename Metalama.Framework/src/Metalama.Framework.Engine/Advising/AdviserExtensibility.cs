@@ -7,6 +7,7 @@ using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.AdviceImpl.Attributes;
 using Metalama.Framework.Engine.Queries;
+using Metalama.Framework.Utilities;
 using System;
 
 namespace Metalama.Framework.Engine.Advising;
@@ -22,7 +23,10 @@ public static class AdviserExtensibility
     /// </summary>
     /// <param name="adviser">An adviser created by the engine, of any kind.</param>
     /// <returns>A new context. The context is valid only during the execution of the aspect or fabric that received the adviser.</returns>
-    /// <exception cref="ArgumentException">The adviser was not created by the Metalama engine.</exception>
+    /// <remarks>
+    /// <see cref="IAdviser"/> is marked with <see cref="InternalImplementAttribute"/>, so every adviser is created by the engine and implements
+    /// <see cref="IAdviserInternal"/>.
+    /// </remarks>
     /// <exception cref="NotSupportedException">The adviser is the result of an attribute introduction.</exception>
     /// <exception cref="InvalidOperationException">The adviser is the result of an introduction whose outcome is an error or was ignored, so it has no target.</exception>
     public static AdviserExtensionContext GetExtensionContext( this IAdviser adviser )
@@ -32,15 +36,10 @@ public static class AdviserExtensibility
             throw new NotSupportedException( "The result of an attribute introduction cannot be used as an adviser." );
         }
 
-        if ( adviser is not IAdviserInternal internalAdviser )
-        {
-            throw new ArgumentException( "The adviser was not created by the Metalama engine.", nameof(adviser) );
-        }
-
         // Reading the target throws InvalidOperationException for the result of an introduction that failed or was ignored.
         _ = adviser.Target;
 
-        var factory = (IAdviceFactoryImpl) internalAdviser.AdviceFactory;
+        var factory = (IAdviceFactoryImpl) ((IAdviserInternal) adviser).AdviceFactory;
 
         // An adviser that is itself an owner, such as an aspect builder or a type fabric amender, is the owner of the contributions.
         // Otherwise, the owner is the one that the factory carries.
