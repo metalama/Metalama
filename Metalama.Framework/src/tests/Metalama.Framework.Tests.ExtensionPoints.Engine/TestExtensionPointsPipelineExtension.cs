@@ -31,7 +31,7 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
 
     public override bool Initialize( PipelineExtensionInitializationContext context )
     {
-        context.ServiceBuilder.Add( _ => new TestRegistrationService() );
+        context.ServiceBuilder.Add( _ => new TestExtensionPointsService() );
         context.AddDiagnosticDefinitions( [RegistrationObserved] );
 
         return true;
