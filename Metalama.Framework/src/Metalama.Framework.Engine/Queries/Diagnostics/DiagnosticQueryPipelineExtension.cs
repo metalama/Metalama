@@ -41,7 +41,7 @@ internal sealed class DiagnosticQueryPipelineExtension : PipelineExtension
     }
 
     /// <summary>
-    /// Evaluates the diagnostic queries on the final compilation of the source stage, which is the only stage in which the design-time hook runs.
+    /// Evaluates the diagnostic queries on the final compilation of the design-time hook.
     /// </summary>
     public override Task<ExtensionPipelineContributorsResult> ExecuteDesignTimePipelineContributorsAsync(
         DesignTimeContributorsContext context,

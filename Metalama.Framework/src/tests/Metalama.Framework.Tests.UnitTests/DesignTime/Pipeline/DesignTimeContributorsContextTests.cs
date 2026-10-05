@@ -30,8 +30,8 @@ using Xunit;
 namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline;
 
 /// <summary>
-/// Tests of <see cref="DesignTimeContributorsContext"/>, which the design-time pipeline passes to the extensions only in the source stage, and of
-/// the results of the high-level stages that the design-time result keeps (change S1, issue #2098).
+/// Tests of <see cref="DesignTimeContributorsContext"/>, which the design-time pipeline passes to the extensions once per pipeline execution, and
+/// of the results that the design-time result keeps when the project uses a low-level aspect weaver (change S1, issue #2098).
 /// </summary>
 /// <remarks>
 /// The test code has a project fabric and two aspects that add extension contributors (diagnostic queries). With a low-level weaver aspect
@@ -88,7 +88,7 @@ public sealed class DesignTimeContributorsContextTests : UnitTestClass
     /// <summary>
     /// The code of a pipeline that has a single high-level stage, in which both aspects are applied to the type <c>C</c>.
     /// </summary>
-    private const string _singleStageCode = _commonCode + """
+    private const string _withoutWeaverCode = _commonCode + """
                                                           [Aspect1]
                                                           [Aspect2]
                                                           public class C { }
@@ -97,7 +97,7 @@ public sealed class DesignTimeContributorsContextTests : UnitTestClass
     /// <summary>
     /// The code of a pipeline that has two high-level stages, because the weaver aspect is applied to the type <c>C</c> between the two aspects.
     /// </summary>
-    private const string _twoStagesCode = _commonCode + """
+    private const string _withWeaverCode = _commonCode + """
                                                         [Aspect1]
                                                         [WeaverAspect]
                                                         [Aspect2]
@@ -131,37 +131,37 @@ public sealed class DesignTimeContributorsContextTests : UnitTestClass
     public DesignTimeContributorsContextTests( ITestOutputHelper testOutput ) : base( testOutput ) { }
 
     /// <summary>
-    /// Verifies that, with a single high-level stage, the extension is called once, with the contributor of the fabric and the contributors of the
-    /// two aspects.
+    /// Verifies that, without a low-level aspect weaver, the extension is called once, with the contributor of the fabric and the contributors of
+    /// the two aspects.
     /// </summary>
     [Fact]
-    public void SingleStage_ReceivesAllContributors()
+    public void WithoutWeaver_ReceivesAllContributors()
     {
-        var (recorder, _) = this.Execute( _singleStageCode );
+        var (recorder, _) = this.Execute( _withoutWeaverCode );
 
         Assert.Equal( 3, Assert.Single( recorder.Calls ) );
     }
 
     /// <summary>
-    /// Verifies that, when a low-level weaver splits the pipeline into two high-level stages, the extension is called once, in the source stage,
-    /// with the contributor of the fabric and the contributor of the aspect that executes in that stage.
+    /// Verifies that, with a low-level aspect weaver, the extension is called once, with the contributor of the fabric and the contributor of the
+    /// aspect that executes before the weaver.
     /// </summary>
     [Fact]
-    public void WeaverSplitsStages_CalledOnlyInSourceStage()
+    public void WithLowLevelWeaver_CalledOnce()
     {
-        var (recorder, _) = this.Execute( _twoStagesCode );
+        var (recorder, _) = this.Execute( _withWeaverCode );
 
         Assert.Equal( 2, Assert.Single( recorder.Calls ) );
     }
 
     /// <summary>
-    /// Verifies that the transitive contributors returned in the source stage are part of the design-time result, which is read from the last
-    /// stage. The extension returns one transitive contributor per contributor.
+    /// Verifies that the transitive contributors returned by the extension are part of the design-time result when the project uses a low-level
+    /// aspect weaver. The extension returns one transitive contributor per contributor.
     /// </summary>
     [Fact]
-    public void TransitiveContributors_KeptFromSourceStage()
+    public void WithLowLevelWeaver_TransitiveContributorsKept()
     {
-        var (_, result) = this.Execute( _twoStagesCode );
+        var (_, result) = this.Execute( _withWeaverCode );
 
         Assert.Equal( 2, result.Extensions.Extensions.OfType<RecordedContributor>().Count() );
     }
@@ -173,7 +173,7 @@ public sealed class DesignTimeContributorsContextTests : UnitTestClass
     [Fact]
     public void InheritableAspects_AccumulatedAcrossStages()
     {
-        var (_, result) = this.Execute( _twoStagesCode );
+        var (_, result) = this.Execute( _withWeaverCode );
 
         Assert.Single( result.GetInheritableAspects( "Aspect2" ) );
     }
@@ -185,7 +185,7 @@ public sealed class DesignTimeContributorsContextTests : UnitTestClass
     [Fact]
     public void Transformations_AccumulatedAcrossStages()
     {
-        var (_, result) = this.Execute( _twoStagesCode );
+        var (_, result) = this.Execute( _withWeaverCode );
 
         var aspectClasses = result.SyntaxTreeResults.Values
             .SelectMany( r => r.Transformations )
@@ -197,13 +197,13 @@ public sealed class DesignTimeContributorsContextTests : UnitTestClass
     }
 
     /// <summary>
-    /// Verifies that the design-time validators returned in the source stage are part of the design-time result, which is read from the last
-    /// stage. The extension returns one validator of the type <c>C</c> per contributor.
+    /// Verifies that the design-time validators returned by the extension are part of the design-time result when the project uses a low-level
+    /// aspect weaver. The extension returns one validator of the type <c>C</c> per contributor.
     /// </summary>
     [Fact]
-    public void DesignTimeValidators_KeptFromSourceStage()
+    public void WithLowLevelWeaver_DesignTimeValidatorsKept()
     {
-        var (_, result, compilation) = this.ExecuteWithCompilation( _twoStagesCode );
+        var (_, result, compilation) = this.ExecuteWithCompilation( _withWeaverCode );
 
         var validators = result.Extensions.GetValidatorsForSymbol( compilation.GetTypeByMetadataName( "C" ).AssertNotNull() );
 
@@ -216,7 +216,7 @@ public sealed class DesignTimeContributorsContextTests : UnitTestClass
     [Fact]
     public void DiagnosticQuery_ReplayedContributor_ReportedOnce()
     {
-        var (_, result) = this.Execute( _twoStagesCode );
+        var (_, result) = this.Execute( _withWeaverCode );
 
         var diagnostics = result.SyntaxTreeResults.Values
             .SelectMany( r => r.Diagnostics )
@@ -237,7 +237,7 @@ public sealed class DesignTimeContributorsContextTests : UnitTestClass
         using var testContext = this.CreateTestContext();
 
         var compilation = testContext.CreateCSharpCompilation(
-            new Dictionary<string, string> { ["code.cs"] = _twoStagesCode, ["weaver.cs"] = _weaverCode },
+            new Dictionary<string, string> { ["code.cs"] = _withWeaverCode, ["weaver.cs"] = _weaverCode },
             additionalReferences: [MetadataReference.CreateFromFile( typeof(Compilation).Assembly.Location ), MetadataReference.CreateFromFile( typeof(CSharpSyntaxTree).Assembly.Location )] );
 
         var pipeline = new CompileTimeAspectPipeline( testContext.ServiceProvider );
@@ -256,7 +256,7 @@ public sealed class DesignTimeContributorsContextTests : UnitTestClass
     /// <summary>
     /// Executes the design-time pipeline on the given code and returns the recorder and the result.
     /// </summary>
-    private (StageRecorder Recorder, DesignTimeAspectPipelineResult Result) Execute( string code )
+    private (HookRecorder Recorder, DesignTimeAspectPipelineResult Result) Execute( string code )
     {
         var (recorder, result, _) = this.ExecuteWithCompilation( code );
 
@@ -267,9 +267,9 @@ public sealed class DesignTimeContributorsContextTests : UnitTestClass
     /// Executes the design-time pipeline on the given code, with the weaver in a separate file when the code uses it, and returns the compilation
     /// together with the result.
     /// </summary>
-    private (StageRecorder Recorder, DesignTimeAspectPipelineResult Result, Compilation Compilation) ExecuteWithCompilation( string code )
+    private (HookRecorder Recorder, DesignTimeAspectPipelineResult Result, Compilation Compilation) ExecuteWithCompilation( string code )
     {
-        var recorder = new StageRecorder();
+        var recorder = new HookRecorder();
         using var testContext = this.CreateRecordingTestContext( recorder );
         using var factory = new TestDesignTimeAspectPipelineFactory( testContext );
 
@@ -287,7 +287,7 @@ public sealed class DesignTimeContributorsContextTests : UnitTestClass
     /// <summary>
     /// Creates a test context in which <see cref="RecordingExtension"/> is loaded and records its calls in the given recorder.
     /// </summary>
-    private MetalamaTestContext CreateRecordingTestContext( StageRecorder recorder )
+    private MetalamaTestContext CreateRecordingTestContext( HookRecorder recorder )
     {
         var additionalServices = new AdditionalServiceCollection();
         additionalServices.AddProjectService( recorder );
@@ -309,7 +309,7 @@ public sealed class DesignTimeContributorsContextTests : UnitTestClass
             code,
             additionalReferences: [MetadataReference.CreateFromFile( typeof(Compilation).Assembly.Location ), MetadataReference.CreateFromFile( typeof(CSharpSyntaxTree).Assembly.Location )] );
 
-    private sealed class StageRecorder : IProjectService
+    private sealed class HookRecorder : IProjectService
     {
         /// <summary>
         /// Gets the number of contributors passed to each call of <see cref="PipelineExtension.ExecuteDesignTimePipelineContributorsAsync"/>, as
@@ -324,7 +324,7 @@ public sealed class DesignTimeContributorsContextTests : UnitTestClass
             DesignTimeContributorsContext context,
             CancellationToken cancellationToken )
         {
-            var recorder = context.ServiceProvider.GetService<StageRecorder>();
+            var recorder = context.ServiceProvider.GetService<HookRecorder>();
 
             if ( recorder == null )
             {

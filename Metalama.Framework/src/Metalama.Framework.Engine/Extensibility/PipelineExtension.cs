@@ -62,12 +62,11 @@ public abstract class PipelineExtension
         => Task.FromResult( ExtensionPipelineContributorsResult.Empty );
 
     /// <summary>
-    /// Executes the contributors at design time. The method is invoked once per pipeline execution, at the end of the source stage, which is the
-    /// first high-level stage of the design-time pipeline, when that stage has extension contributors.
+    /// Executes the contributors at design time. The method is invoked once per pipeline execution, on the source compilation, before any
+    /// low-level aspect weaver, when there are extension contributors.
     /// </summary>
     /// <remarks>
-    /// The transitive contributors that this method returns are kept in the design-time result, which the pipeline reads from its last stage. A
-    /// contributor added by an aspect that executes after a low-level weaver is not passed to this method.
+    /// The transitive contributors that this method returns are kept in the design-time result. A contribution made by an aspect that executes after a low-level aspect weaver is not processed.
     /// </remarks>
     public virtual Task<ExtensionPipelineContributorsResult> ExecuteDesignTimePipelineContributorsAsync(
         DesignTimeContributorsContext context,
