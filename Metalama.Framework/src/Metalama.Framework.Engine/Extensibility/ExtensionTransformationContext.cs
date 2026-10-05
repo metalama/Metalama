@@ -21,9 +21,8 @@ namespace Metalama.Framework.Engine.Extensibility;
 /// Exposes the inputs of <see cref="PipelineExtension.ExecuteTransformingContributorsAsync"/>.
 /// </summary>
 /// <remarks>
-/// The transforming hook runs only in the source stage, which is the first high-level stage of the pipeline execution, before any low-level
-/// weaver. One instance is shared by all extensions. It references the compilations of the source stage, so it must not be stored in an object
-/// that outlives the call.
+/// The transforming hook runs once per pipeline execution, on the source compilation, before any low-level aspect weaver. One instance is shared
+/// by all extensions. It references the compilations of the pipeline execution, so it must not be stored in an object that outlives the call.
 /// </remarks>
 [PublicAPI]
 public sealed class ExtensionTransformationContext
@@ -82,29 +81,27 @@ public sealed class ExtensionTransformationContext
     public ExecutionScenario ExecutionScenario => this.ServiceProvider.GetRequiredService<ExecutionScenario>();
 
     /// <summary>
-    /// Gets all extension contributors of the source stage: those of the contributor sources of the pipeline, such as fabrics and referenced
-    /// assemblies, and those added by the aspects of the source stage. The order is not deterministic.
+    /// Gets all extension contributors: those of the contributor sources of the pipeline, such as fabrics and referenced assemblies, and those
+    /// added by the aspects. The order is not deterministic.
     /// </summary>
     /// <remarks>
-    /// A contributor added by an aspect that executes after a low-level weaver is not in this collection, because the hook does not run in later
-    /// stages. <see cref="ExtensionContributionOrigin.HighLevelStageIndex"/> lets an extension report such a contributor from
-    /// <see cref="PipelineExtension.ExecutePipelineContributorsAsync"/>.
+    /// A contributor added by an aspect that executes after a low-level aspect weaver is not in this collection.
     /// </remarks>
     public IReadOnlyCollection<IExtensionPipelineContributor> Contributors { get; }
 
     /// <summary>
-    /// Gets the model of the source compilation of the pipeline, from which the aspects of the source stage started.
+    /// Gets the model of the source compilation of the pipeline, from which the aspects started.
     /// </summary>
     public CompilationModel SourceCompilation { get; }
 
     /// <summary>
-    /// Gets the model that results from all aspects of the source stage.
+    /// Gets the model that results from all aspects that execute before any low-level aspect weaver.
     /// </summary>
     public CompilationModel FinalCompilation { get; }
 
     /// <summary>
     /// Gets <see cref="SourceCompilation"/> bound to the aspect repository of <see cref="FinalCompilation"/>, so that the declarations of
-    /// the source compilation report the aspects of the source stage.
+    /// the source compilation report the aspects.
     /// </summary>
     [Memo]
     public CompilationModel SourceCompilationWithFinalAspects
@@ -116,7 +113,7 @@ public sealed class ExtensionTransformationContext
     public UserDiagnosticSink Diagnostics { get; }
 
     /// <summary>
-    /// Gets the factory of the transformations of the source stage. It is shared by all extensions.
+    /// Gets the factory of the transformations of the pipeline execution. It is shared by all extensions.
     /// </summary>
     public ExtensionTransformationFactory TransformationFactory
     {

@@ -131,7 +131,7 @@ public sealed class ExtensionTransformationLinkerTests : UnitTestClass
     }
 
     /// <summary>
-    /// Verifies that the objects of a stage that redirects calls, which include the transformation factory and the index of the references, do
+    /// Verifies that the objects of a pipeline execution that redirects calls, which include the transformation factory and the index of the references, do
     /// not retain the compilation after the pipeline has completed, while the project services and the extension instances stay alive.
     /// </summary>
     [Fact]
@@ -313,8 +313,7 @@ public sealed class ExtensionTransformationLinkerTests : UnitTestClass
                 TemplateProvider.FromInstance( aspectInstance.Aspect ),
                 null,
                 new AspectLayerId( aspectInstance.AspectClass ),
-                aspectInstance,
-                0 );
+                aspectInstance );
 
             var target = CallSiteRedirectionTarget.Existing(
                 context.FinalCompilation.Types.OfName( "Interceptors" ).Single().Methods.OfName( "Compute" ).Single() );

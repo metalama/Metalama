@@ -32,7 +32,7 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites;
 /// </summary>
 /// <remarks>
 /// <para>
-/// The engine creates one instance per high-level stage and passes it to the transforming hook of every extension through
+/// The engine creates one instance per pipeline execution and passes it to the transforming hook of every extension through
 /// <see cref="ExtensionTransformationContext.TransformationFactory"/>. The instance validates every request and throws an
 /// <see cref="ArgumentException"/> for a request that it cannot honor.
 /// </para>
@@ -49,7 +49,7 @@ public sealed partial class ExtensionTransformationFactory
     private readonly object _sync = new();
 
     /// <summary>
-    /// The compilation that results from all aspects of the source stage.
+    /// The compilation that results from all aspects that execute before any low-level aspect weaver.
     /// </summary>
     private readonly CompilationModel _compilation;
 
@@ -92,7 +92,8 @@ public sealed partial class ExtensionTransformationFactory
     }
 
     /// <summary>
-    /// Gets the compilation that results from all aspects of the source stage. Its syntax trees are those of the source compilation.
+    /// Gets the compilation that results from all aspects that execute before any low-level aspect weaver. Its syntax trees are those of the
+    /// source compilation.
     /// </summary>
     public ICompilation Compilation => this._compilation;
 
@@ -605,7 +606,7 @@ public sealed partial class ExtensionTransformationFactory
             : node;
 
     /// <summary>
-    /// Freezes the factory and returns the linker input. Called by the pipeline stage after all extensions.
+    /// Freezes the factory and returns the linker input. Called by the pipeline after all extensions.
     /// </summary>
     internal ExtensionLinkerInput Complete()
     {
@@ -666,9 +667,9 @@ public sealed partial class ExtensionTransformationFactory
 
     /// <summary>
     /// Returns the semantic model of the syntax tree of a node, after checking that the factory is not completed and that the syntax tree belongs
-    /// to the compilation of the stage.
+    /// to the compilation of the pipeline.
     /// </summary>
-    /// <exception cref="ArgumentException">The node does not belong to a syntax tree of the compilation of the stage.</exception>
+    /// <exception cref="ArgumentException">The node does not belong to a syntax tree of the compilation of the pipeline.</exception>
     /// <exception cref="InvalidOperationException">The factory was completed.</exception>
     private SemanticModel GetSemanticModel( SyntaxNode node )
     {
@@ -682,7 +683,7 @@ public sealed partial class ExtensionTransformationFactory
         if ( !this._compilation.PartialCompilation.TryGetSyntaxTree( syntaxTree.GetDocumentKey(), out var compilationTree )
              || !ReferenceEquals( compilationTree, syntaxTree ) )
         {
-            throw new ArgumentException( $"The node '{node}' does not belong to a syntax tree of the compilation of the stage.", "request" );
+            throw new ArgumentException( $"The node '{node}' does not belong to a syntax tree of the compilation of the pipeline.", "request" );
         }
 
         return this._compilation.CompilationContext.SemanticModelProvider.GetSemanticModel( syntaxTree );

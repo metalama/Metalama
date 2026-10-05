@@ -26,7 +26,7 @@ internal sealed class TestRedirection : IExtensionPipelineContributor
         (string TypeName, string MethodName)? replacementName,
         IRef<IDeclaration>? scope,
         IQueryImpl<IDeclaration>? scopeQuery,
-        ImmutableArray<SyntaxNode>? declarationRoots )
+        ImmutableArray<SyntaxNode> declarationRoots )
     {
         this.MethodName = methodName;
         this.Origin = origin;
@@ -74,9 +74,9 @@ internal sealed class TestRedirection : IExtensionPipelineContributor
     public IQueryImpl<IDeclaration>? ScopeQuery { get; }
 
     /// <summary>
-    /// Gets the syntax of the target of the adviser, which restricts the shared index, or <c>null</c> for a query.
+    /// Gets the syntax of the target of the adviser, which restricts the shared index, or a default array for a query.
     /// </summary>
-    public ImmutableArray<SyntaxNode>? DeclarationRoots { get; }
+    public ImmutableArray<SyntaxNode> DeclarationRoots { get; }
 
     /// <inheritdoc />
     public ContributorKind ContributorKind => TestContributorKinds.Redirection;

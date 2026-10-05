@@ -1,5 +1,5 @@
-// Warning TEST0001 on `C`: `Registration 'amender' through the adviser: origin 'fabric Metalama.Framework.Tests.AspectTests.ExtensionPoints.Tests.Registration.Bridge_TypeFabricAmenderWith_Attribution.C_Fabric', predecessor Fabric, template provider as expected, stage 0, source stage True.`
-// Warning TEST0001 on `M`: `Registration 'amender-with' through the adviser: origin 'fabric Metalama.Framework.Tests.AspectTests.ExtensionPoints.Tests.Registration.Bridge_TypeFabricAmenderWith_Attribution.C_Fabric', predecessor Fabric, template provider as expected, stage 0, source stage True.`
+// Warning TEST0001 on `C`: `Registration 'amender' through the adviser: origin 'fabric Metalama.Framework.Tests.AspectTests.ExtensionPoints.Tests.Registration.Bridge_TypeFabricAmenderWith_Attribution.C_Fabric', predecessor Fabric, template provider as expected.`
+// Warning TEST0001 on `M`: `Registration 'amender-with' through the adviser: origin 'fabric Metalama.Framework.Tests.AspectTests.ExtensionPoints.Tests.Registration.Bridge_TypeFabricAmenderWith_Attribution.C_Fabric', predecessor Fabric, template provider as expected.`
 internal class C
 {
   private void M()
