@@ -753,7 +753,7 @@ public abstract class AspectPipeline : IDisposable
             additionalCompilationOutputFiles: additionalCompilationOutputFiles );
 
         var allAspects = Enumerable.Empty<AspectInstanceResult>();
-        var highLevelStageIndex = 0;
+        var isFirstHighLevelStage = true;
 
         foreach ( var stageConfiguration in pipelineConfiguration.Stages )
         {
@@ -768,8 +768,8 @@ public abstract class AspectPipeline : IDisposable
 
             if ( stage is HighLevelPipelineStage highLevelStage )
             {
-                highLevelStage.HighLevelStageIndex = highLevelStageIndex;
-                highLevelStageIndex++;
+                highLevelStage.IsFirstHighLevelStage = isFirstHighLevelStage;
+                isFirstHighLevelStage = false;
             }
 
             var stageResult = await stage.ExecuteAsync( pipelineConfiguration, pipelineStageResult, diagnosticAdder, cancellationToken );

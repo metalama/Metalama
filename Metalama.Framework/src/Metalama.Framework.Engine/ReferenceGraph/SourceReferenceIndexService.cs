@@ -16,8 +16,8 @@ using System.Threading;
 namespace Metalama.Framework.Engine.ReferenceGraph;
 
 /// <summary>
-/// Builds the index of the references of the source compilation once per pipeline execution, in the source stage, from the merged requirements
-/// of all extensions, so that the extensions share the walk of the syntax and the binding of member bodies.
+/// Builds the index of the references of the source compilation once per pipeline execution, from the merged requirements of all extensions,
+/// so that the extensions share the walk of the syntax and the binding of member bodies.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -39,8 +39,7 @@ public static class SourceReferenceIndexService
     private static readonly ConditionalWeakTable<SemanticModel, InboundReferenceIndex> _designTimeIndexes = new();
 
     /// <summary>
-    /// Starts the index of the source stage, which is the first high-level stage of the pipeline execution. The index is not built until an
-    /// extension reads it.
+    /// Creates the index of the source references of a pipeline execution. The index is not built until an extension reads it.
     /// </summary>
     /// <param name="serviceProvider">The service provider of the pipeline execution.</param>
     /// <param name="sourceCompilation">The source compilation of the pipeline.</param>
@@ -48,7 +47,7 @@ public static class SourceReferenceIndexService
     /// <exception cref="ArgumentException">A declaration root does not belong to a syntax tree of <paramref name="sourceCompilation"/>.</exception>
     /// <remarks>
     /// The index covers <paramref name="sourceCompilation"/>, which is the source compilation of the pipeline. The declaration roots must
-    /// therefore be nodes of the source compilation. The stages that follow a low-level weaver create no index.
+    /// therefore be nodes of the source compilation.
     /// </remarks>
     internal static SourceReferenceIndex Create(
         in ProjectServiceProvider serviceProvider,

@@ -12,7 +12,6 @@ using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Services;
 using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -25,13 +24,13 @@ using Xunit;
 namespace Metalama.Framework.Tests.UnitTests.ReferenceIndex;
 
 /// <summary>
-/// Tests of the <see cref="SourceReferenceIndex"/> that the compile-time pipeline starts once, in the source stage, and passes to the
+/// Tests of the <see cref="SourceReferenceIndex"/> that the compile-time pipeline creates once per pipeline execution and passes to the
 /// extensions.
 /// </summary>
 public sealed class SourceReferenceIndexPipelineTests : UnitTestClass
 {
     /// <summary>
-    /// The code of the tests that have a single high-level stage: the method <c>A.F</c> and an invocation of it in <c>B.M</c>.
+    /// The code of the tests: the method <c>A.F</c> and an invocation of it in <c>B.M</c>.
     /// </summary>
     private const string _code = """
                                  class A { public static int F() => 0; }
@@ -39,38 +38,11 @@ public sealed class SourceReferenceIndexPipelineTests : UnitTestClass
                                  """;
 
     /// <summary>
-    /// A weaver aspect that is ordered between two aspects, so that the pipeline has two high-level stages.
-    /// </summary>
-    private const string _twoStagesCode = """
-                                          using System.Threading.Tasks;
-                                          using Metalama.Framework.Aspects;
-                                          using Metalama.Framework.Engine;
-                                          using Metalama.Framework.Engine.AspectWeavers;
-
-                                          [assembly: AspectOrder( AspectOrderDirection.RunTime, typeof(Aspect1), typeof(WeaverAspect), typeof(Aspect2) )]
-
-                                          internal class Aspect1 : TypeAspect { }
-
-                                          internal class Aspect2 : TypeAspect { }
-
-                                          [RequireAspectWeaver( "AspectWeaver" )]
-                                          internal class WeaverAspect : TypeAspect { }
-
-                                          [MetalamaPlugIn]
-                                          internal class AspectWeaver : IAspectWeaver
-                                          {
-                                              public Task TransformAsync( AspectWeaverContext context ) => Task.CompletedTask;
-                                          }
-
-                                          [Aspect1] [WeaverAspect] [Aspect2] class C { }
-                                          """;
-
-    /// <summary>
-    /// Verifies that the context of the transforming hook passes the stage of the index, which has the requirements that the extension returned and
-    /// whose index contains the reference from <c>B.M</c>.
+    /// Verifies that the context of the transforming hook passes the index of the source references, which has the requirements that the extension
+    /// returned and contains the reference from <c>B.M</c>.
     /// </summary>
     [Fact]
-    public async Task StageIsPassedThroughContexts()
+    public async Task IndexIsPassedThroughContext()
     {
         var recorder = new IndexRecorder();
 
@@ -79,33 +51,16 @@ public sealed class SourceReferenceIndexPipelineTests : UnitTestClass
         await ExecuteAsync( testContext, _code, "Assembly" );
 
         var call = Assert.Single( recorder.Calls );
-        Assert.True( call.Stage.HasRequirements );
+        Assert.True( call.SourceIndex.HasRequirements );
         Assert.Equal( ["B.M()"], call.ReferencingNames );
     }
 
     /// <summary>
-    /// Verifies that, in a pipeline with two high-level stages, <see cref="PipelineExtension.GetSourceIndexRequirements"/> and the transforming
-    /// hook are invoked once, in the source stage, so that the index is created once per pipeline execution.
-    /// </summary>
-    [Fact]
-    public async Task TwoStages_IndexCreatedOnceInSourceStage()
-    {
-        var recorder = new IndexRecorder();
-
-        using var testContext = this.CreateRecordingTestContext( recorder );
-
-        await ExecuteAsync( testContext, _twoStagesCode, "Assembly" );
-
-        Assert.Equal( 1, recorder.RequirementCallCount );
-        Assert.Single( recorder.Calls );
-    }
-
-    /// <summary>
-    /// Verifies that the pipeline disposes the stage when the linker has completed, so that an extension that keeps the stage cannot read an
+    /// Verifies that the pipeline disposes the index when the linker has completed, so that an extension that keeps the index cannot read an
     /// index that retains the compilation.
     /// </summary>
     [Fact]
-    public async Task Stage_DisposedAfterLinker()
+    public async Task Index_DisposedAfterLinker()
     {
         var recorder = new IndexRecorder();
 
@@ -113,17 +68,17 @@ public sealed class SourceReferenceIndexPipelineTests : UnitTestClass
 
         await ExecuteAsync( testContext, _code, "Assembly" );
 
-        var stage = Assert.Single( recorder.Calls ).Stage;
+        var sourceIndex = Assert.Single( recorder.Calls ).SourceIndex;
 
-        await Assert.ThrowsAsync<ObjectDisposedException>( () => stage.GetIndexAsync( testContext.CancellationToken ) );
+        await Assert.ThrowsAsync<ObjectDisposedException>( () => sourceIndex.GetIndexAsync( testContext.CancellationToken ) );
     }
 
     /// <summary>
-    /// Verifies that two pipelines that run at the same time in the same project have independent stages. The hook of each pipeline waits until
-    /// the hook of the other pipeline has started, so both stages are alive at the same time.
+    /// Verifies that two pipelines that run at the same time in the same project have independent indexes. The hook of each pipeline waits until
+    /// the hook of the other pipeline has started, so both indexes are alive at the same time.
     /// </summary>
     [Fact]
-    public async Task ConcurrentPipelines_SameConfiguration_IndependentStages()
+    public async Task ConcurrentPipelines_SameConfiguration_IndependentIndexes()
     {
         var recorder = new IndexRecorder { Rendezvous = new Rendezvous( "Assembly1", "Assembly2" ) };
 
@@ -136,27 +91,19 @@ public sealed class SourceReferenceIndexPipelineTests : UnitTestClass
         var calls = recorder.Calls.ToOrderedList( c => c.AssemblyName, StringComparer.Ordinal );
 
         Assert.Equal( 2, calls.Count );
-        Assert.NotSame( calls[0].Stage, calls[1].Stage );
+        Assert.NotSame( calls[0].SourceIndex, calls[1].SourceIndex );
         Assert.Equal( ["B1.M()"], calls[0].ReferencingNames );
         Assert.Equal( ["B2.M()"], calls[1].ReferencingNames );
     }
 
     /// <summary>
-    /// Runs the compile-time pipeline on the given code, with the given assembly name, and asserts that it succeeds. The compilation references the
-    /// Roslyn assemblies, which the weaver requires.
+    /// Runs the compile-time pipeline on the given code, with the given assembly name, and asserts that it succeeds.
     /// </summary>
     private static async Task ExecuteAsync( MetalamaTestContext testContext, string code, string assemblyName )
     {
         var pipeline = new CompileTimeAspectPipeline( testContext.ServiceProvider );
 
-        var compilation = testContext.CreateCSharpCompilation(
-            code,
-            assemblyName: assemblyName,
-            additionalReferences:
-            [
-                MetadataReference.CreateFromFile( typeof(Compilation).Assembly.Location ),
-                MetadataReference.CreateFromFile( typeof(CSharpSyntaxTree).Assembly.Location )
-            ] );
+        var compilation = testContext.CreateCSharpCompilation( code, assemblyName: assemblyName );
 
         var diagnostics = new List<Diagnostic>();
 
@@ -185,18 +132,13 @@ public sealed class SourceReferenceIndexPipelineTests : UnitTestClass
     /// <summary>
     /// The data that the hook observed in one pipeline execution.
     /// </summary>
-    private sealed record IndexCall( string AssemblyName, SourceReferenceIndex Stage, IReadOnlyList<string> ReferencingNames );
+    private sealed record IndexCall( string AssemblyName, SourceReferenceIndex SourceIndex, IReadOnlyList<string> ReferencingNames );
 
     /// <summary>
     /// Records what <see cref="IndexingExtension"/> observes.
     /// </summary>
     private sealed class IndexRecorder : IProjectService
     {
-        /// <summary>
-        /// The number of times that <see cref="PipelineExtension.GetSourceIndexRequirements"/> was invoked on <see cref="IndexingExtension"/>.
-        /// </summary>
-        public int RequirementCallCount;
-
         /// <summary>
         /// Gets the observations of the transforming hook.
         /// </summary>
@@ -241,7 +183,7 @@ public sealed class SourceReferenceIndexPipelineTests : UnitTestClass
     }
 
     /// <summary>
-    /// An extension that requests the invocations of the method <c>F</c> and reads the index of the stage in its transforming hook.
+    /// An extension that requests the invocations of the method <c>F</c> and reads the index in its transforming hook.
     /// </summary>
     private sealed class IndexingExtension : PipelineExtension
     {
@@ -259,11 +201,6 @@ public sealed class SourceReferenceIndexPipelineTests : UnitTestClass
 
         public override SourceIndexRequirements GetSourceIndexRequirements( SourceIndexRequirementsContext context )
         {
-            if ( this._recorder != null )
-            {
-                Interlocked.Increment( ref this._recorder.RequirementCallCount );
-            }
-
             return new SourceIndexRequirements( [new ReferenceIndexerRequirements( ReferenceKinds.Invocation, false, DeclarationKind.Method, "F" )] );
         }
 

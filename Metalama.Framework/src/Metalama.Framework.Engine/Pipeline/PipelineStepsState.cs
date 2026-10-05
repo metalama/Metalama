@@ -490,7 +490,7 @@ internal sealed class PipelineStepsState
     }
 
     /// <summary>
-    /// Adds extension contributors to the result of the stage.
+    /// Adds extension contributors to the result of the steps.
     /// </summary>
     public void AddExtendedContributors( IEnumerable<IExtensionPipelineContributor> contributors )
     {

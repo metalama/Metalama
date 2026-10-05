@@ -68,10 +68,10 @@ public sealed class TransformingPipelineExtensionTests : UnitTestClass
                                                   """;
 
     /// <summary>
-    /// Verifies that, in a pipeline with a single high-level stage, the hook is called once.
+    /// Verifies that the hook is called once per pipeline execution.
     /// </summary>
     [Fact]
-    public async Task SingleStage_HookCalledOnce()
+    public async Task HookCalledOnce()
     {
         var (recorder, _, result) = await this.ExecuteAsync( "class C { }" );
 
@@ -99,7 +99,7 @@ public sealed class TransformingPipelineExtensionTests : UnitTestClass
     }
 
     /// <summary>
-    /// Verifies that the hook receives the contributors of the fabrics and those of the aspects of the source stage.
+    /// Verifies that the hook receives the contributors of the fabrics and those of the aspects.
     /// </summary>
     [Fact]
     public async Task Contributors_IncludeFabricAndAspectContributors()
@@ -142,7 +142,7 @@ public sealed class TransformingPipelineExtensionTests : UnitTestClass
     }
 
     /// <summary>
-    /// Verifies that an exception of an extension is not swallowed by the stage. It is handled by the pipeline like an exception of
+    /// Verifies that an exception of an extension is not swallowed. It is handled by the pipeline like an exception of
     /// <see cref="PipelineExtension.ExecutePipelineContributorsAsync"/>.
     /// </summary>
     [Fact]
@@ -198,7 +198,7 @@ public sealed class TransformingPipelineExtensionTests : UnitTestClass
     }
 
     /// <summary>
-    /// Verifies that the preview pipeline calls the hook once, in the source stage.
+    /// Verifies that the preview pipeline calls the hook once.
     /// </summary>
     [Fact]
     public async Task CalledInPreview()
@@ -239,11 +239,11 @@ public sealed class TransformingPipelineExtensionTests : UnitTestClass
     }
 
     /// <summary>
-    /// Verifies that, when a low-level weaver splits the pipeline into two high-level stages, the hook is called once, in the first stage, which
-    /// starts from the source compilation and sees the aspect of that stage.
+    /// Verifies that, when the project uses a low-level aspect weaver, the hook is called once, on the source compilation, and sees the aspect
+    /// that executes before the weaver.
     /// </summary>
     [Fact]
-    public async Task WeaverSplitsStages_HookCalledOnceInSourceStage()
+    public async Task WithLowLevelWeaver_HookCalledOnce()
     {
         var (recorder, _, result) = await this.ExecuteAsync(
             new Dictionary<string, string> { ["code.cs"] = _weaverTargetCode + "[Aspect1] [WeaverAspect] [Aspect2] class C { }", ["weaver.cs"] = _weaverCode },
@@ -256,10 +256,10 @@ public sealed class TransformingPipelineExtensionTests : UnitTestClass
     }
 
     /// <summary>
-    /// Verifies that a weaver that has no aspect instance does not prevent the hook from being called once, in the source stage.
+    /// Verifies that a weaver that has no aspect instance does not prevent the hook from being called once.
     /// </summary>
     [Fact]
-    public async Task WeaverWithoutInstancesBeforeFirstStage_HookCalledOnce()
+    public async Task WeaverWithoutInstances_HookCalledOnce()
     {
         var (recorder, _, result) = await this.ExecuteAsync(
             new Dictionary<string, string> { ["code.cs"] = _weaverTargetCode + "[Aspect1] [Aspect2] class C { }", ["weaver.cs"] = _weaverFirstCode },
@@ -287,7 +287,7 @@ public sealed class TransformingPipelineExtensionTests : UnitTestClass
     }
 
     /// <summary>
-    /// The aspects that the weaver tests apply. They do nothing, because only the number of stages matters.
+    /// The aspects that the weaver tests apply. They do nothing, because only their order relative to the weaver matters.
     /// </summary>
     private const string _weaverTargetCode = """
                                              using Metalama.Framework.Aspects;
@@ -299,7 +299,7 @@ public sealed class TransformingPipelineExtensionTests : UnitTestClass
                                              """;
 
     /// <summary>
-    /// A weaver aspect that is ordered between <c>Aspect1</c> and <c>Aspect2</c>, so that the pipeline has two high-level stages.
+    /// A weaver aspect that is ordered between <c>Aspect1</c> and <c>Aspect2</c>, so that <c>Aspect2</c> executes after the weaver.
     /// </summary>
     private const string _weaverCode = """
                                        using System.Threading.Tasks;

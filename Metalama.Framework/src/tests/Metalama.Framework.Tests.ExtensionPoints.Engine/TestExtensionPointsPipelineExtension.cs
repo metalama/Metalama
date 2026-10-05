@@ -8,7 +8,6 @@ using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Extensibility.CallSites;
-using Metalama.Framework.Engine.Pipeline;
 using Metalama.Framework.Engine.ReferenceGraph;
 using Metalama.Framework.Tests.ExtensionPoints.Engine;
 using Microsoft.CodeAnalysis;
@@ -92,32 +91,11 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
             .Select( r => new ReferenceIndexerRequirements( ReferenceKinds.Invocation | ReferenceKinds.Default, false, DeclarationKind.Method, r.MethodName ) )
             .ToImmutableArray();
 
-        ImmutableArray<SyntaxNode>? roots = consumers.All( r => r.DeclarationRoots != null )
-            ? consumers.SelectMany( r => r.DeclarationRoots!.Value ).ToImmutableArray()
-            : null;
+        var roots = consumers.All( r => !r.DeclarationRoots.IsDefault )
+            ? consumers.SelectMany( r => r.DeclarationRoots ).ToImmutableArray()
+            : default;
 
         return new SourceIndexRequirements( requirements ) { DeclarationRoots = roots };
-    }
-
-    /// <summary>
-    /// Reports the registrations made by the aspects that execute after a low-level weaver. The transforming hook does not run in their stage, so
-    /// this hook, which runs in every stage, reports them.
-    /// </summary>
-    public override Task<ExtensionPipelineContributorsResult> ExecutePipelineContributorsAsync(
-        AspectPipelineConfiguration pipelineConfiguration,
-        IEnumerable<IPipelineContributor> contributors,
-        CompilationModel initialCompilation,
-        CompilationModel finalCompilation,
-        CancellationToken cancellationToken )
-    {
-        var diagnostics = new UserDiagnosticSink( pipelineConfiguration.ServiceProvider );
-
-        ReportRegistrations(
-            contributors.OfKind( TestContributorKinds.Registration ).Where( r => r.Origin.HighLevelStageIndex > 0 ),
-            finalCompilation,
-            diagnostics );
-
-        return Task.FromResult( new ExtensionPipelineContributorsResult( ImmutableArray<ITransitivePipelineContributor>.Empty, diagnostics.ToImmutable() ) );
     }
 
     public override async Task ExecuteTransformingContributorsAsync( ExtensionTransformationContext context, CancellationToken cancellationToken )
@@ -352,17 +330,16 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
     }
 
     /// <summary>
-    /// Returns the syntax of the declarations that are the scope of a redirection. For a query, the query is evaluated on the compilation of the
-    /// stage.
+    /// Returns the syntax of the declarations that are the scope of a redirection. For a query, the query is evaluated on the final compilation.
     /// </summary>
     private static async Task<IReadOnlyList<SyntaxNode>> GetScopeRootsAsync(
         TestRedirection redirection,
         ExtensionTransformationContext context,
         CancellationToken cancellationToken )
     {
-        if ( redirection.DeclarationRoots != null )
+        if ( !redirection.DeclarationRoots.IsDefault )
         {
-            return redirection.DeclarationRoots.Value;
+            return redirection.DeclarationRoots;
         }
 
         var roots = new List<SyntaxNode>();
@@ -421,7 +398,7 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
 
     /// <summary>
     /// Reports a diagnostic for each <see cref="TestExtensionPipelineContributor"/>, in the order of the tags, so that a test can verify what the extension
-    /// received. The stage is the stage in which the registration was made.
+    /// received.
     /// </summary>
     private static void ReportRegistrations( IEnumerable<TestExtensionPipelineContributor> registrations, CompilationModel compilation, UserDiagnosticSink diagnostics )
     {
@@ -440,8 +417,7 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
                 RegistrationObserved.CreateRoslynDiagnostic(
                     scope.GetDiagnosticLocation(),
                     (registration.Tag, registration.Channel, registration.Origin.DiagnosticSourceDescription,
-                     registration.Origin.Predecessor.Kind.ToString(), templateProvider, registration.Origin.HighLevelStageIndex,
-                     registration.Origin.HighLevelStageIndex == 0) ) );
+                     registration.Origin.Predecessor.Kind.ToString(), templateProvider) ) );
         }
     }
 }

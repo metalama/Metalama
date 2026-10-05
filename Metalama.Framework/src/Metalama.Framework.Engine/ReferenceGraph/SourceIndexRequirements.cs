@@ -15,12 +15,12 @@ namespace Metalama.Framework.Engine.ReferenceGraph;
 /// <summary>
 /// The inputs of <see cref="PipelineExtension.GetSourceIndexRequirements"/>.
 /// </summary>
-/// <param name="Contributors">All extension contributors of the source stage, which is the first high-level stage of the pipeline execution.</param>
+/// <param name="Contributors">All extension contributors of the pipeline execution.</param>
 [PublicAPI]
 public sealed record SourceIndexRequirementsContext( IReadOnlyCollection<IPipelineContributor> Contributors );
 
 /// <summary>
-/// The requirements of one extension for the index of the references of the source compilation of one stage.
+/// The requirements of one extension for the index of the references of the source compilation.
 /// </summary>
 /// <param name="Requirements">The requirements, which are merged with those of the other extensions.</param>
 [PublicAPI]

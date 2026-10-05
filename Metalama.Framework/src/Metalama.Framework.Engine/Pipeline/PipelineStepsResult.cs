@@ -15,8 +15,8 @@ namespace Metalama.Framework.Engine.Pipeline
     /// <summary>
     /// The result of a <see cref="PipelineStepsState"/>.
     /// </summary>
-    /// <param name="ExtensionContributors">All extension contributors of the stage: those replayed from the contributor sources of the
-    /// pipeline and those added by the aspects of the stage.</param>
+    /// <param name="ExtensionContributors">All extension contributors: those replayed from the contributor sources of the pipeline and those
+    /// added by the aspects that executed in the steps.</param>
     internal sealed record PipelineStepsResult(
         CompilationModel FirstCompilation,
         CompilationModel LastCompilation,

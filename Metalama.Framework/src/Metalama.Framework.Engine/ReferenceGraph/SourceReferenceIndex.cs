@@ -20,9 +20,9 @@ namespace Metalama.Framework.Engine.ReferenceGraph;
 /// The index of the references of the source compilation for one pipeline execution, shared by all extensions.
 /// </summary>
 /// <remarks>
-/// The pipeline creates one instance in the source stage, which is the first high-level stage, and disposes it at the end of that stage. The
-/// stages that follow a low-level weaver have no index. The object references a compilation, so it must not outlive the pipeline execution. An
-/// instance is created by <see cref="SourceReferenceIndexService"/> and passed to the extensions through the context of their transforming hook.
+/// The pipeline creates one instance per pipeline execution, before the transforming hook, and disposes it when the linker has completed. The
+/// object references a compilation, so it must not outlive the pipeline execution. An instance is created by
+/// <see cref="SourceReferenceIndexService"/> and passed to the extensions through the context of their transforming hook.
 /// </remarks>
 [PublicAPI]
 public sealed class SourceReferenceIndex : IDisposable
@@ -94,7 +94,7 @@ public sealed class SourceReferenceIndex : IDisposable
     /// task per syntax tree.
     /// </summary>
     /// <param name="cancellationToken">A cancellation token, which also cancels the build of the index when this call starts it.</param>
-    /// <exception cref="ObjectDisposedException">The source stage has ended.</exception>
+    /// <exception cref="ObjectDisposedException">The index has been disposed.</exception>
     /// <remarks>
     /// <para>
     /// The build runs outside of the lock of the instance. A build runs synchronously until its first incomplete task, which can be the whole build

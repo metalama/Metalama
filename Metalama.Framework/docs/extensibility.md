@@ -383,7 +383,7 @@ The transforming hook can replace source call sites through `ExtensionTransforma
 - `IsRedirected( node )` tells whether a request already exists for a node. A second request for the same node throws `InvalidOperationException`.
 - `ExtensionTemplateServices.MethodTemplateExists( serviceProvider, templateProvider, name )` tells whether a template provider declares a method template of a given name, without throwing for a type that is not a template class of the project.
 
-The factory validates each request against the semantic model of the final compilation of the stage and throws `ArgumentException` for a request that it cannot honor. The node of a request must belong to a syntax tree of that compilation. The origin must be attributed to an ordered aspect layer of the pipeline, and the generated syntax receives the annotation of the aspect class of the origin.
+The factory validates each request against the semantic model of the final compilation and throws `ArgumentException` for a request that it cannot honor. The node of a request must belong to a syntax tree of that compilation. The origin must be attributed to an ordered aspect layer of the pipeline, and the generated syntax receives the annotation of the aspect class of the origin.
 
 The factory does not change the code model. The injection step of the linker (`LinkerInjectionStep.Rewriter`) applies the redirections while it visits the source syntax trees, including the initializers of fields and events, constructor initializers and the base arguments of primary constructors. A redirection that the injection step does not reach, for example a call in the initializer of a field that an aspect promoted to a property, is reported with the warning LAMA0660 and the call site is kept unchanged.
 
