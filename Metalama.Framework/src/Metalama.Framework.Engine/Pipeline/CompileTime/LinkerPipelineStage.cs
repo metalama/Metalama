@@ -66,7 +66,7 @@ namespace Metalama.Framework.Engine.Pipeline.CompileTime
             {
                 var sourceIndexRequirementsContext = new SourceIndexRequirementsContext( pipelineStepsResult.ExtensionContributors );
 
-                using var sourceReferenceIndex = SourceReferenceIndexService.BeginStage(
+                using var sourceReferenceIndex = SourceReferenceIndexService.Create(
                     pipelineConfiguration.ServiceProvider,
                     input.FirstCompilationModel.AssertNotNull(),
                     extensions.Select( e => e.GetSourceIndexRequirements( sourceIndexRequirementsContext ) ).ToList() );

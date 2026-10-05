@@ -335,7 +335,7 @@ public sealed class DesignTimeContributorsContextTests : UnitTestClass
 
             var transitiveContributors = ImmutableArray.CreateBuilder<ITransitivePipelineContributor>();
 
-            var validatedType = context.StageFinalCompilation.RoslynCompilation.GetTypeByMetadataName( "C" );
+            var validatedType = context.FinalCompilation.RoslynCompilation.GetTypeByMetadataName( "C" );
 
             for ( var i = 0; i < context.Contributors.Count; i++ )
             {

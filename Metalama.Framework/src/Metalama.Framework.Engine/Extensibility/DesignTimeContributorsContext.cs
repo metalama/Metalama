@@ -33,13 +33,13 @@ public sealed class DesignTimeContributorsContext
     internal DesignTimeContributorsContext(
         AspectPipelineConfiguration pipelineConfiguration,
         IReadOnlyCollection<IExtensionPipelineContributor> contributors,
-        CompilationModel stageInitialCompilation,
-        CompilationModel stageFinalCompilation )
+        CompilationModel sourceCompilation,
+        CompilationModel finalCompilation )
     {
         this.PipelineConfiguration = pipelineConfiguration;
         this.Contributors = contributors;
-        this.StageInitialCompilation = stageInitialCompilation;
-        this.StageFinalCompilation = stageFinalCompilation;
+        this.SourceCompilation = sourceCompilation;
+        this.FinalCompilation = finalCompilation;
     }
 
     /// <summary>
@@ -61,10 +61,10 @@ public sealed class DesignTimeContributorsContext
     /// <summary>
     /// Gets the compilation at the start of the source stage, which is the source compilation.
     /// </summary>
-    public CompilationModel StageInitialCompilation { get; }
+    public CompilationModel SourceCompilation { get; }
 
     /// <summary>
     /// Gets the compilation that results from all aspects of the source stage.
     /// </summary>
-    public CompilationModel StageFinalCompilation { get; }
+    public CompilationModel FinalCompilation { get; }
 }

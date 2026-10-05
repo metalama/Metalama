@@ -317,7 +317,7 @@ public sealed class ExtensionTransformationLinkerTests : UnitTestClass
                 0 );
 
             var target = CallSiteRedirectionTarget.Existing(
-                context.StageFinalCompilation.Types.OfName( "Interceptors" ).Single().Methods.OfName( "Compute" ).Single() );
+                context.FinalCompilation.Types.OfName( "Interceptors" ).Single().Methods.OfName( "Compute" ).Single() );
 
             var callSites = context.SourceCompilation.PartialCompilation.SyntaxTreeCollection
                 .SelectMany( t => t.GetRoot( cancellationToken ).DescendantNodes() )

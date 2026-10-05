@@ -1410,7 +1410,7 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
         /// <summary>
         /// Gets the compilation that results from all aspects of the stage.
         /// </summary>
-        public CompilationModel Compilation => this.Context.StageFinalCompilation;
+        public CompilationModel Compilation => this.Context.FinalCompilation;
 
         /// <summary>
         /// Gets the single invocation that has the given text.

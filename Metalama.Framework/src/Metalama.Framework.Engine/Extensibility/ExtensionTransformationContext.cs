@@ -51,9 +51,9 @@ public sealed class ExtensionTransformationContext
         AspectPipelineConfiguration pipelineConfiguration,
         IReadOnlyCollection<IExtensionPipelineContributor> contributors,
         CompilationModel sourceCompilation,
-        CompilationModel stageFinalCompilation,
+        CompilationModel finalCompilation,
         UserDiagnosticSink diagnostics,
-        SourceReferenceIndexStage sourceReferenceIndex,
+        SourceReferenceIndex sourceReferenceIndex,
         IReadOnlyList<OrderedAspectLayer> aspectLayers )
     {
         this._aspectLayers = aspectLayers;
@@ -61,7 +61,7 @@ public sealed class ExtensionTransformationContext
         this.PipelineConfiguration = pipelineConfiguration;
         this.Contributors = contributors;
         this.SourceCompilation = sourceCompilation;
-        this.StageFinalCompilation = stageFinalCompilation;
+        this.FinalCompilation = finalCompilation;
         this.Diagnostics = diagnostics;
     }
 
@@ -100,15 +100,15 @@ public sealed class ExtensionTransformationContext
     /// <summary>
     /// Gets the model that results from all aspects of the source stage.
     /// </summary>
-    public CompilationModel StageFinalCompilation { get; }
+    public CompilationModel FinalCompilation { get; }
 
     /// <summary>
-    /// Gets <see cref="SourceCompilation"/> bound to the aspect repository of <see cref="StageFinalCompilation"/>, so that the declarations of
+    /// Gets <see cref="SourceCompilation"/> bound to the aspect repository of <see cref="FinalCompilation"/>, so that the declarations of
     /// the source compilation report the aspects of the source stage.
     /// </summary>
     [Memo]
     public CompilationModel SourceCompilationWithFinalAspects
-        => this.SourceCompilation.WithAspectRepository( this.StageFinalCompilation.AspectRepository, "Source with final aspects" );
+        => this.SourceCompilation.WithAspectRepository( this.FinalCompilation.AspectRepository, "Source with final aspects" );
 
     /// <summary>
     /// Gets the sink for the diagnostics and suppressions of the extensions.
@@ -125,7 +125,7 @@ public sealed class ExtensionTransformationContext
             lock ( this._sync )
             {
                 return this._transformationFactory ??= new ExtensionTransformationFactory(
-                    this.StageFinalCompilation,
+                    this.FinalCompilation,
                     this._aspectLayers,
                     this.ServiceProvider.GetRequiredService<SyntaxGenerationOptions>() );
             }
@@ -147,5 +147,5 @@ public sealed class ExtensionTransformationContext
     /// Gets the index of the references of the source compilation, which is shared by all extensions and built from the requirements that they
     /// returned from <see cref="PipelineExtension.GetSourceIndexRequirements"/>.
     /// </summary>
-    public SourceReferenceIndexStage SourceReferenceIndex { get; }
+    public SourceReferenceIndex SourceReferenceIndex { get; }
 }
