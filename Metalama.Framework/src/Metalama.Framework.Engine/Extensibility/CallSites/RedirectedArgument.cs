@@ -6,6 +6,7 @@ using JetBrains.Annotations;
 using Metalama.Framework.Code;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
+using System.Linq;
 
 namespace Metalama.Framework.Engine.Extensibility.CallSites;
 
@@ -50,6 +51,16 @@ public sealed class RedirectedArgument
     public static RedirectedArgument SourceReceiver { get; } = new( RedirectedArgumentKind.SourceReceiver, -1, null, null );
 
     /// <summary>
+    /// The instances that <see cref="SourceArgument"/> returns for the ordinals 0 to 15, which cover the parameters of almost every method.
+    /// </summary>
+    /// <remarks>
+    /// The instances can be shared because the class is immutable: <see cref="WithName"/> and <see cref="WithCast"/> return new instances.
+    /// </remarks>
+    private static readonly RedirectedArgument[] _sourceArguments = Enumerable.Range( 0, 16 )
+        .Select( i => new RedirectedArgument( RedirectedArgumentKind.SourceArgument, i, null, null ) )
+        .ToArray();
+
+    /// <summary>
     /// Gets an argument that passes the argument written at the source call site for a parameter of the source method.
     /// </summary>
     /// <param name="parameterOrdinal">The ordinal of the parameter of the source method. The argument must be written at the source call site. When
@@ -62,7 +73,9 @@ public sealed class RedirectedArgument
             throw new ArgumentOutOfRangeException( nameof(parameterOrdinal) );
         }
 
-        return new RedirectedArgument( RedirectedArgumentKind.SourceArgument, parameterOrdinal, null, null );
+        return parameterOrdinal < _sourceArguments.Length
+            ? _sourceArguments[parameterOrdinal]
+            : new RedirectedArgument( RedirectedArgumentKind.SourceArgument, parameterOrdinal, null, null );
     }
 
     /// <summary>

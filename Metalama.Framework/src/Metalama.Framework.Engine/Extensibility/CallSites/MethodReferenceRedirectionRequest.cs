@@ -21,8 +21,14 @@ public sealed class MethodReferenceRedirectionRequest
     /// <param name="target">The method that replaces the method group. It must be static.</param>
     /// <param name="receiverMode">The receiver mode. Only <see cref="CallSiteReceiverMode.Drop"/> is supported: the source method must be static,
     /// and the method group becomes <c>X.I</c>.</param>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="receiverMode"/> is <see cref="CallSiteReceiverMode.None"/>.</exception>
     public MethodReferenceRedirectionRequest( ExpressionSyntax methodReference, CallSiteRedirectionTarget target, CallSiteReceiverMode receiverMode )
     {
+        if ( receiverMode == CallSiteReceiverMode.None )
+        {
+            throw new ArgumentOutOfRangeException( nameof(receiverMode), $"The receiver mode {nameof(CallSiteReceiverMode.None)} is not valid." );
+        }
+
         this.MethodReference = methodReference ?? throw new ArgumentNullException( nameof(methodReference) );
         this.Target = target ?? throw new ArgumentNullException( nameof(target) );
         this.ReceiverMode = receiverMode;

@@ -13,6 +13,12 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites;
 public enum CallSiteReceiverMode
 {
     /// <summary>
+    /// The default value, which is not a valid receiver mode. The constructors of the requests throw <see cref="System.ArgumentOutOfRangeException"/>
+    /// for it.
+    /// </summary>
+    None,
+
+    /// <summary>
     /// The receiver is not passed as the first argument. Valid when the source method is static, which includes a classic extension method called in
     /// its static form, and when the request passes the receiver at another position with <see cref="RedirectedArgument.SourceReceiver"/>.
     /// </summary>
