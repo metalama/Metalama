@@ -13,6 +13,11 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites;
 public enum RedirectedArgumentKind
 {
     /// <summary>
+    /// The default value, which no <see cref="RedirectedArgument"/> has.
+    /// </summary>
+    None,
+
+    /// <summary>
     /// The receiver of the source call site.
     /// </summary>
     SourceReceiver,

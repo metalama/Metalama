@@ -29,6 +29,11 @@ namespace Metalama.Framework.RunTime
         /// <param name="drop">The dropped value. It is evaluated by the caller before <paramref name="keep"/> and ignored.</param>
         /// <param name="keep">The value that the rewritten call passes.</param>
         /// <returns><paramref name="keep"/>.</returns>
+        // The dropped value is passed by value and not with 'in', although it can be a value tuple of several dropped values. An 'in' argument
+        // must be a variable, so the compiler stores an rvalue argument in a temporary and passes the address of that temporary. Taking the
+        // address of a local can prevent the JIT compiler from keeping the local in registers. A value parameter of an inlined method becomes a
+        // local that is never read, so the JIT compiler can remove the copy. The order of evaluation is the same with both forms, because the
+        // argument is evaluated by the caller in both cases.
         [MethodImpl( MethodImplOptions.AggressiveInlining )]
         [DebuggerHidden]
         public static TKeep DropBefore<TDrop, TKeep>( TDrop drop, TKeep keep ) => keep;
@@ -42,6 +47,7 @@ namespace Metalama.Framework.RunTime
         /// <param name="keep">The value that the rewritten call passes.</param>
         /// <param name="drop">The dropped value. It is evaluated by the caller after <paramref name="keep"/> and ignored.</param>
         /// <returns><paramref name="keep"/>.</returns>
+        // The dropped value is passed by value for the reason given in DropBefore.
         [MethodImpl( MethodImplOptions.AggressiveInlining )]
         [DebuggerHidden]
         public static TKeep DropAfter<TKeep, TDrop>( TKeep keep, TDrop drop ) => keep;
