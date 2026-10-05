@@ -11,7 +11,6 @@ using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.CompileTime.Manifest;
 using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Services;
-using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.UserCode;
 using System;
 using System.Collections.Generic;
@@ -90,48 +89,6 @@ public sealed class AspectPipelineConfiguration
         this.ServiceProvider = serviceProvider;
         this.Extensions = extensions;
         this.DiagnosticManifest = diagnosticManifest;
-    }
-
-    /// <summary>
-    /// Returns the zero-based index, among the high-level stages of the pipeline, of the stage that executes an aspect layer.
-    /// </summary>
-    /// <remarks>
-    /// The index is the same at compile time and at design time, because the design-time pipeline skips only the low-level stages. A layer that
-    /// no stage executes gets the index 0.
-    /// </remarks>
-    internal int GetHighLevelStageIndex( AspectLayerId aspectLayerId )
-        => this.HighLevelStageIndices.TryGetValue( aspectLayerId, out var index ) ? index : 0;
-
-    /// <summary>
-    /// Gets the index of the high-level stage of each aspect layer.
-    /// </summary>
-    [Memo]
-    private IReadOnlyDictionary<AspectLayerId, int> HighLevelStageIndices => this.ComputeHighLevelStageIndices();
-
-    /// <summary>
-    /// Computes the value of <see cref="HighLevelStageIndices"/>.
-    /// </summary>
-    private Dictionary<AspectLayerId, int> ComputeHighLevelStageIndices()
-    {
-        var indices = new Dictionary<AspectLayerId, int>();
-        var highLevelStageIndex = 0;
-
-        foreach ( var stage in this.Stages )
-        {
-            if ( stage.Kind != PipelineStageKind.HighLevel )
-            {
-                continue;
-            }
-
-            foreach ( var layer in stage.AspectLayers )
-            {
-                indices[layer.AspectLayerId] = highLevelStageIndex;
-            }
-
-            highLevelStageIndex++;
-        }
-
-        return indices;
     }
 
     public AspectPipelineConfiguration WithServiceProvider( in ProjectServiceProvider serviceProvider )

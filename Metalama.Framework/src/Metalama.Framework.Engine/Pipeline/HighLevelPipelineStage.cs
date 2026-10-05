@@ -26,12 +26,15 @@ namespace Metalama.Framework.Engine.Pipeline
         }
 
         /// <summary>
-        /// Gets or sets the zero-based index of this stage among the high-level stages of the current pipeline execution.
+        /// Gets or sets a value indicating whether this stage is the first high-level stage of the current pipeline execution, which starts from the
+        /// source compilation.
         /// </summary>
         /// <remarks>
-        /// A stage object is created for each pipeline execution, so the property can be set by the pipeline before the stage executes.
+        /// A stage object is created for each pipeline execution, so the property can be set by the pipeline before the stage executes. The hooks
+        /// of the pipeline extensions run only in this stage. The system layers precede the user layers, so no low-level aspect weaver executes
+        /// before it.
         /// </remarks>
-        internal int HighLevelStageIndex { get; set; }
+        internal bool IsFirstHighLevelStage { get; set; }
 
         /// <inheritdoc/>
         public override async Task<FallibleResult<AspectPipelineResult>> ExecuteAsync(

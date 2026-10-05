@@ -33,7 +33,7 @@ namespace Metalama.Framework.Tests.UnitTests.Extensibility;
 /// </summary>
 /// <remarks>
 /// Each test runs the compile-time pipeline with an extension whose transforming hook runs a script given by the test. The script receives the
-/// factory of the stage and an origin that represents the aspect applied to the type <c>C</c>. The rewritten code is tested by the aspect tests
+/// factory of the pipeline execution and an origin that represents the aspect applied to the type <c>C</c>. The rewritten code is tested by the aspect tests
 /// of the proof of concept in <c>Metalama.Framework.Tests.AspectTests.ExtensionPoints</c>.
 /// </remarks>
 public sealed class ExtensionTransformationFactoryTests : UnitTestClass
@@ -282,7 +282,7 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
                                  """;
 
     /// <summary>
-    /// Verifies that a call site that does not belong to a syntax tree of the compilation of the stage is refused with an
+    /// Verifies that a call site that does not belong to a syntax tree of the compilation of the pipeline is refused with an
     /// <see cref="ArgumentException"/>.
     /// </summary>
     [Fact]
@@ -354,8 +354,7 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
                     default,
                     null,
                     new AspectLayerId( "UnknownAspect" ),
-                    null,
-                    0 );
+                    null );
 
                 Assert.Throws<ArgumentException>(
                     () => s.Factory.RedirectInvocation(
@@ -1408,7 +1407,7 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
     private sealed record ScriptContext( ExtensionTransformationContext Context, ExtensionTransformationFactory Factory, ExtensionContributionOrigin Origin )
     {
         /// <summary>
-        /// Gets the compilation that results from all aspects of the stage.
+        /// Gets the compilation that results from all aspects.
         /// </summary>
         public CompilationModel Compilation => this.Context.FinalCompilation;
 
@@ -1476,8 +1475,7 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
                 TemplateProvider.FromInstance( aspectInstance.Aspect ),
                 null,
                 new AspectLayerId( aspectInstance.AspectClass ),
-                aspectInstance,
-                0 );
+                aspectInstance );
 
             script.Action( new ScriptContext( context, context.TransformationFactory, origin ) );
             script.HasRun = true;
