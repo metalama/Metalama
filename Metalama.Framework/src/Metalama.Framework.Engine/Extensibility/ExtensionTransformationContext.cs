@@ -28,8 +28,8 @@ public sealed class ExtensionTransformationContext
         IReadOnlyCollection<IExtensionPipelineContributor> contributors,
         IReadOnlyCollection<IExtensionPipelineContributor> contributorsAddedInStage,
         CompilationModel sourceCompilation,
-        CompilationModel stageInitialCompilation,
-        CompilationModel stageFinalCompilation,
+        CompilationModel sourceCompilation,
+        CompilationModel finalCompilation,
         int highLevelStageIndex,
         UserDiagnosticSink diagnostics )
     {
@@ -37,8 +37,8 @@ public sealed class ExtensionTransformationContext
         this.Contributors = contributors;
         this.ContributorsAddedInStage = contributorsAddedInStage;
         this.SourceCompilation = sourceCompilation;
-        this.StageInitialCompilation = stageInitialCompilation;
-        this.StageFinalCompilation = stageFinalCompilation;
+        this.SourceCompilation = sourceCompilation;
+        this.FinalCompilation = finalCompilation;
         this.HighLevelStageIndex = highLevelStageIndex;
         this.Diagnostics = diagnostics;
     }
@@ -78,15 +78,15 @@ public sealed class ExtensionTransformationContext
     /// <summary>
     /// Gets the model from which the aspects of this stage started.
     /// </summary>
-    public CompilationModel StageInitialCompilation { get; }
+    public CompilationModel SourceCompilation { get; }
 
     /// <summary>
     /// Gets the model that results from all aspects of this stage.
     /// </summary>
-    public CompilationModel StageFinalCompilation { get; }
+    public CompilationModel FinalCompilation { get; }
 
     /// <summary>
-    /// Gets <see cref="SourceCompilation"/> bound to the aspect repository of <see cref="StageFinalCompilation"/>.
+    /// Gets <see cref="SourceCompilation"/> bound to the aspect repository of <see cref="FinalCompilation"/>.
     /// </summary>
     /// <remarks>
     /// The property is available only when <see cref="IsSourceStage"/> is <c>true</c>. In a later stage, the aspect repository contains the
@@ -104,7 +104,7 @@ public sealed class ExtensionTransformationContext
     /// </summary>
     [Memo]
     private CompilationModel SourceCompilationWithFinalAspectsCore
-        => this.SourceCompilation.WithAspectRepository( this.StageFinalCompilation.AspectRepository, "Source with final aspects" );
+        => this.SourceCompilation.WithAspectRepository( this.FinalCompilation.AspectRepository, "Source with final aspects" );
 
     /// <summary>
     /// Gets the zero-based index of the stage among the high-level stages that this pipeline executes.
@@ -118,7 +118,7 @@ public sealed class ExtensionTransformationContext
     /// <remarks>
     /// The value compares the partial compilations and not the models, because all code-model versions of a stage share one partial compilation.
     /// </remarks>
-    public bool IsSourceStage => ReferenceEquals( this.StageInitialCompilation.PartialCompilation, this.SourceCompilation.PartialCompilation );
+    public bool IsSourceStage => ReferenceEquals( this.SourceCompilation.PartialCompilation, this.SourceCompilation.PartialCompilation );
 
     /// <summary>
     /// Gets the sink for the diagnostics and suppressions of the extensions.

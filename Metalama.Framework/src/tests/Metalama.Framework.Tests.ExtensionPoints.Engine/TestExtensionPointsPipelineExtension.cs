@@ -41,7 +41,7 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
     {
         foreach ( var registration in context.Contributors.OfKind( TestContributorKinds.Registration ).OrderBy( r => r.Tag ) )
         {
-            var scope = registration.Scope?.GetTargetOrNull( context.StageFinalCompilation );
+            var scope = registration.Scope?.GetTargetOrNull( context.FinalCompilation );
 
             var templateProvider = registration.TemplateProviderMatches switch
             {
