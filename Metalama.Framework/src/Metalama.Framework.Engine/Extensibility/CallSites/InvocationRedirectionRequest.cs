@@ -23,8 +23,14 @@ public sealed class InvocationRedirectionRequest
     /// <param name="target">The method that replaces the call site.</param>
     /// <param name="receiverMode">The way the receiver of the source invocation is passed to the target.</param>
     /// <exception cref="ArgumentNullException"><paramref name="callSite"/> or <paramref name="target"/> is <c>null</c>.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="receiverMode"/> is <see cref="CallSiteReceiverMode.None"/>.</exception>
     public InvocationRedirectionRequest( InvocationExpressionSyntax callSite, CallSiteRedirectionTarget target, CallSiteReceiverMode receiverMode )
     {
+        if ( receiverMode == CallSiteReceiverMode.None )
+        {
+            throw new ArgumentOutOfRangeException( nameof(receiverMode), $"The receiver mode {nameof(CallSiteReceiverMode.None)} is not valid." );
+        }
+
         this.CallSite = callSite ?? throw new ArgumentNullException( nameof(callSite) );
         this.Target = target ?? throw new ArgumentNullException( nameof(target) );
         this.ReceiverMode = receiverMode;

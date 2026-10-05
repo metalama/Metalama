@@ -502,6 +502,38 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
             expectedMessage: "cannot be passed by reference" );
 
     /// <summary>
+    /// Verifies that the constructors of the requests refuse <see cref="CallSiteReceiverMode.None"/>, which is the default value of the enumeration.
+    /// </summary>
+    [Fact]
+    public void Request_NoneReceiverMode_Throws()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var compilation = testContext.CreateCompilationModel( "static class C { static void M() { M(); } }" );
+        var target = CallSiteRedirectionTarget.Existing( compilation.Types.OfName( "C" ).Single().Methods.OfName( "M" ).Single() );
+        var invocation = compilation.PartialCompilation.SyntaxTreeCollection.Single().GetRoot( TestContext.Current.CancellationToken ).DescendantNodes().OfType<InvocationExpressionSyntax>().Single();
+
+        Assert.Throws<ArgumentOutOfRangeException>( () => new InvocationRedirectionRequest( invocation, target, CallSiteReceiverMode.None ) );
+        Assert.Throws<ArgumentOutOfRangeException>( () => new MethodReferenceRedirectionRequest( invocation.Expression, target, CallSiteReceiverMode.None ) );
+    }
+
+    /// <summary>
+    /// Verifies that <see cref="RedirectedArgument.SourceArgument"/> returns a shared instance for the first ordinals and a new instance with the
+    /// requested ordinal beyond them.
+    /// </summary>
+    [Fact]
+    public void SourceArgument_SharesInstancesOfFirstOrdinals()
+    {
+        Assert.Same( RedirectedArgument.SourceArgument( 3 ), RedirectedArgument.SourceArgument( 3 ) );
+        Assert.Equal( 15, RedirectedArgument.SourceArgument( 15 ).ParameterOrdinal );
+
+        var beyond = RedirectedArgument.SourceArgument( 16 );
+
+        Assert.Equal( 16, beyond.ParameterOrdinal );
+        Assert.Equal( RedirectedArgumentKind.SourceArgument, beyond.Kind );
+    }
+
+    /// <summary>
     /// Verifies that the name of a forwarder doubles the underscores of the source names, so that different methods have different names, and that a
     /// generic type is written with its arity.
     /// </summary>
