@@ -62,7 +62,7 @@ internal sealed partial class TransitiveAspectPipelineExtension : PipelineExtens
                 ImmutableUserDiagnosticList.Empty ) );
 
     /// <summary>
-    /// Returns the transitive aspect instances of the source stage, which is the only stage in which the design-time hook runs.
+    /// Returns the transitive aspect instances of the pipeline execution.
     /// </summary>
     public override Task<ExtensionPipelineContributorsResult> ExecuteDesignTimePipelineContributorsAsync(
         DesignTimeContributorsContext context,

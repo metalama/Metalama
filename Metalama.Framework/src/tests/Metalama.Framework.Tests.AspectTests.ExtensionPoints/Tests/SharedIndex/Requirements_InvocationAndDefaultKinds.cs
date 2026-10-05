@@ -2,6 +2,10 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+#if TEST_OPTIONS
+// @RemoveOutputCode
+#endif
+
 using System;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
@@ -9,8 +13,8 @@ using Metalama.Framework.Tests.ExtensionPoints;
 
 namespace Metalama.Framework.Tests.AspectTests.ExtensionPoints.Tests.SharedIndex.Requirements_InvocationAndDefaultKinds;
 
-// The extension requests the invocations and the default references of the methods named F, and reads them from the shared index of the
-// stage. The method group converted to a delegate is a default reference. The calls of G are not indexed, which TEST0005 shows.
+// The extension requests the invocations and the default references of the methods named F, and reads them from the shared index. The method
+// group converted to a delegate is a default reference. The calls of G are not indexed, which TEST0005 shows.
 
 internal class TheAspect : TypeAspect
 {
@@ -24,7 +28,6 @@ internal static class A
     public static int G() => 0;
 }
 
-// <target>
 [TheAspect]
 internal class C
 {

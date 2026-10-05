@@ -62,12 +62,11 @@ public abstract class PipelineExtension
         => Task.FromResult( ExtensionPipelineContributorsResult.Empty );
 
     /// <summary>
-    /// Executes the contributors at design time. The method is invoked once per pipeline execution, at the end of the source stage, which is the
-    /// first high-level stage of the design-time pipeline, when that stage has extension contributors.
+    /// Executes the contributors at design time. The method is invoked once per pipeline execution, on the source compilation, before any
+    /// low-level aspect weaver, when there are extension contributors.
     /// </summary>
     /// <remarks>
-    /// The transitive contributors that this method returns are kept in the design-time result, which the pipeline reads from its last stage. A
-    /// contributor added by an aspect that executes after a low-level weaver is not passed to this method.
+    /// The transitive contributors that this method returns are kept in the design-time result. A contribution made by an aspect that executes after a low-level aspect weaver is not processed.
     /// </remarks>
     public virtual Task<ExtensionPipelineContributorsResult> ExecuteDesignTimePipelineContributorsAsync(
         DesignTimeContributorsContext context,
@@ -76,21 +75,20 @@ public abstract class PipelineExtension
 
     /// <summary>
     /// Returns the requirements of the extension for the index of the references of the source compilation. The method is invoked once per
-    /// pipeline execution, on every extension, in the source stage, which is the first high-level stage, after
-    /// <see cref="ExecutePipelineContributorsAsync"/> and before <see cref="ExecuteTransformingContributorsAsync"/>.
+    /// pipeline execution, on every extension, after <see cref="ExecutePipelineContributorsAsync"/> and before
+    /// <see cref="ExecuteTransformingContributorsAsync"/>.
     /// </summary>
     /// <remarks>
     /// The requirements of all extensions are merged, and the index is built at most once, when an extension first reads it through
     /// <see cref="ExtensionTransformationContext.SourceReferenceIndex"/>. An extension that returns no requirement can still read the index, but
-    /// the index then contains only the references that other extensions requested. The contributors added by an aspect that executes after a
-    /// low-level weaver are not given to this method.
+    /// the index then contains only the references that other extensions requested. A contribution made by an aspect that executes after a low-level aspect weaver is not processed.
     /// </remarks>
     public virtual SourceIndexRequirements GetSourceIndexRequirements( SourceIndexRequirementsContext context ) => SourceIndexRequirements.None;
 
     /// <summary>
-    /// Executes the contributors that produce code transformations. The method is invoked once per pipeline execution, at the end of the source
-    /// stage, which is the first high-level stage, after <see cref="ExecutePipelineContributorsAsync"/> has been invoked for all extensions and
-    /// before the linker runs.
+    /// Executes the contributors that produce code transformations. The method is invoked once per pipeline execution, on the source
+    /// compilation, before any low-level aspect weaver, after <see cref="ExecutePipelineContributorsAsync"/> has been invoked for all extensions
+    /// and before the linker runs.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -98,8 +96,7 @@ public abstract class PipelineExtension
     /// or in the WPF precompilation scenario, because these scenarios run no linker.
     /// </para>
     /// <para>
-    /// The method is not invoked in the stages that follow a low-level weaver. A contributor added in such a stage can be detected through
-    /// <see cref="ExtensionContributionOrigin.HighLevelStageIndex"/> in <see cref="ExecutePipelineContributorsAsync"/>, which runs in every stage.
+    /// A contribution made by an aspect that executes after a low-level aspect weaver is not processed.
     /// </para>
     /// </remarks>
     public virtual Task ExecuteTransformingContributorsAsync( ExtensionTransformationContext context, CancellationToken cancellationToken )

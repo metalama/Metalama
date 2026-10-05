@@ -40,8 +40,7 @@ namespace Metalama.Framework.Engine.Pipeline.CompileTime
             var initialCompilation = pipelineStepsResult.FirstCompilation;
             var finalCompilation = pipelineStepsResult.LastCompilation;
 
-            // Run the validators. They run in every high-level stage. The extensions that use the shared index of the source references run only in
-            // the source stage, see below.
+            // Run the validators. They run in every high-level stage.
             var extensions = pipelineConfiguration.ServiceProvider.GetRequiredService<PipelineExtensionProvider>().Extensions;
             var pipelineContributorsResult = ExtensionPipelineContributorsResult.Empty;
 
@@ -56,13 +55,12 @@ namespace Metalama.Framework.Engine.Pipeline.CompileTime
                         cancellationToken ) );
             }
 
-            // Run the extensions that produce transformations, after the validators and before the linker. They run only in the source stage, which
-            // is the first high-level stage: the system layers precede the user layers, so no low-level weaver executes before it. The shared index
-            // of the source references is created for them, once per pipeline execution.
+            // Run the extensions that produce transformations, after the validators and before the linker. They run once per pipeline execution, on
+            // the source compilation, before any low-level aspect weaver. The shared index of the source references is created for them.
             var extensionDiagnostics = new UserDiagnosticSink( pipelineConfiguration.ServiceProvider );
             var extensionLinkerInput = ExtensionLinkerInput.Empty;
 
-            if ( this.HighLevelStageIndex == 0 )
+            if ( this.IsFirstHighLevelStage )
             {
                 var sourceIndexRequirementsContext = new SourceIndexRequirementsContext( pipelineStepsResult.ExtensionContributors );
 

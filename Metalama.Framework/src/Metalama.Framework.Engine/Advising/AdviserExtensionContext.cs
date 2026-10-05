@@ -101,7 +101,6 @@ public sealed class AdviserExtensionContext
             this.TemplateProvider,
             this._templateClassInstance,
             this._state.AspectLayerInstance.AspectLayerId,
-            this._state.AspectInstance,
-            this._state.HighLevelStageIndex );
+            this._state.AspectInstance );
     }
 }

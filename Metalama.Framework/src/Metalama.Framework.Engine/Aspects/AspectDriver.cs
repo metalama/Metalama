@@ -205,7 +205,7 @@ internal sealed class AspectDriver : IAspectDriver
                 buildAspectExecutionContext,
                 pipelineStepIndex,
                 indexWithinType,
-                pipelineConfiguration.BoundAspectClasses ) { HighLevelStageIndex = pipelineConfiguration.GetHighLevelStageIndex( aspectLayerInstance.AspectLayerId ) };
+                pipelineConfiguration.BoundAspectClasses );
 
             var adviceFactory = new AdviceFactory<T>(
                 targetDeclaration,

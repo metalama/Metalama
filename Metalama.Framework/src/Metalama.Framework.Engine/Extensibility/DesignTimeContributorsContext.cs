@@ -15,13 +15,13 @@ namespace Metalama.Framework.Engine.Extensibility;
 /// </summary>
 /// <remarks>
 /// <para>
-/// The hook runs only in the source stage, which is the first high-level stage of the pipeline, as the transforming hook does at compile time. Its
-/// transitive contributors are kept in the design-time result, which the pipeline reads from its last stage. A contributor added by an aspect that
-/// executes after a low-level weaver is not passed to the hook.
+/// The hook runs once per pipeline execution, on the source compilation, before any low-level aspect weaver, as the transforming hook does at
+/// compile time. Its transitive contributors are kept in the design-time result. A contributor added by an aspect that executes after a
+/// low-level aspect weaver is not passed to the hook.
 /// </para>
 /// <para>
-/// One instance is shared by all extensions. It references the compilations of the source stage, so it must not be stored in an object that
-/// outlives the call.
+/// One instance is shared by all extensions. It references the compilations of the pipeline execution, so it must not be stored in an object
+/// that outlives the call.
 /// </para>
 /// </remarks>
 [PublicAPI]
@@ -53,18 +53,17 @@ public sealed class DesignTimeContributorsContext
     public ProjectServiceProvider ServiceProvider => this.PipelineConfiguration.ServiceProvider;
 
     /// <summary>
-    /// Gets all extension contributors of the source stage: those of the contributor sources of the pipeline, and those added by the aspects that
-    /// executed in the source stage.
+    /// Gets all extension contributors: those of the contributor sources of the pipeline, and those added by the aspects.
     /// </summary>
     public IReadOnlyCollection<IExtensionPipelineContributor> Contributors { get; }
 
     /// <summary>
-    /// Gets the compilation at the start of the source stage, which is the source compilation.
+    /// Gets the source compilation of the pipeline, from which the aspects started.
     /// </summary>
     public CompilationModel SourceCompilation { get; }
 
     /// <summary>
-    /// Gets the compilation that results from all aspects of the source stage.
+    /// Gets the compilation that results from all aspects that execute before any low-level aspect weaver.
     /// </summary>
     public CompilationModel FinalCompilation { get; }
 }
