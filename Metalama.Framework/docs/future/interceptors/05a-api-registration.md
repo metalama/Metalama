@@ -194,7 +194,7 @@ A site is in the scope when its origin is contained in the scope declaration. Th
 
 Code in lambdas and local functions is in scope unless `InterceptionScopeOptions.ExcludeLambdasAndLocalFunctions` is set.
 
-The following code is never in scope: compile-time code; code introduced by aspects (R6, interpretation I5); code produced by source generators, which runs after Metalama (section [3.8](03-background.md#38-roslyn-fork-and-compiler-order)); and, by default, files that Roslyn classifies as generated code (PO12). Code of a member that aspects override is in scope, because it is source code.
+The following code is never in scope: compile-time code; code introduced by aspects (R6, interpretation I5); code produced by source generators, which runs after Metalama (section [3.8](03-background.md#38-roslyn-fork-and-compiler-order)); and, by default, files that Roslyn classifies as generated code (PO12). Code of a member that aspects override is in scope, because it is source code. Superseded by the rewritten decision PO12 (2026-10-05): files classified as generated code are in scope like any other source file, and `IncludeGeneratedFiles` does not exist.
 
 Nested types are excluded by default for a concrete reason (RC18). An aspect applied to every type of a namespace through `amender.SelectTypes()`, whose `includeNestedTypes` parameter defaults to `true` (FW27 `Fabrics\IQuery{T}.cs:83`), creates one aspect instance on the outer type and one on the nested type. If both scopes contained the nested code, each call site in the nested type would receive two interceptors from two different sources, which is an error under R7.
 
