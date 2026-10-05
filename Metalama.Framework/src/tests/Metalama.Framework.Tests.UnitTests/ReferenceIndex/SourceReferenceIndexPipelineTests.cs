@@ -25,7 +25,7 @@ using Xunit;
 namespace Metalama.Framework.Tests.UnitTests.ReferenceIndex;
 
 /// <summary>
-/// Tests of the <see cref="SourceReferenceIndexStage"/> that the compile-time pipeline starts for each high-level stage and passes to the
+/// Tests of the <see cref="SourceReferenceIndex"/> that the compile-time pipeline starts for each high-level stage and passes to the
 /// extensions.
 /// </summary>
 public sealed class SourceReferenceIndexPipelineTests : UnitTestClass
@@ -185,7 +185,7 @@ public sealed class SourceReferenceIndexPipelineTests : UnitTestClass
     /// <summary>
     /// The data that the hook observed in one stage of one pipeline.
     /// </summary>
-    private sealed record IndexCall( string AssemblyName, int HighLevelStageIndex, SourceReferenceIndexStage Stage, IReadOnlyList<string> ReferencingNames );
+    private sealed record IndexCall( string AssemblyName, int HighLevelStageIndex, SourceReferenceIndex Stage, IReadOnlyList<string> ReferencingNames );
 
     /// <summary>
     /// Records what <see cref="IndexingExtension"/> observes.

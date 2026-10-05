@@ -33,7 +33,7 @@ public sealed class ExtensionTransformationContext
         CompilationModel finalCompilation,
         int highLevelStageIndex,
         UserDiagnosticSink diagnostics,
-        SourceReferenceIndexStage sourceReferenceIndex )
+        SourceReferenceIndex sourceReferenceIndex )
     {
         this.SourceReferenceIndex = sourceReferenceIndex;
         this.PipelineConfiguration = pipelineConfiguration;
@@ -132,5 +132,5 @@ public sealed class ExtensionTransformationContext
     /// Gets the index of the references of the source compilation for this stage, which is shared by all extensions and built from the
     /// requirements that they returned from <see cref="PipelineExtension.GetSourceIndexRequirements"/>.
     /// </summary>
-    public SourceReferenceIndexStage SourceReferenceIndex { get; }
+    public SourceReferenceIndex SourceReferenceIndex { get; }
 }

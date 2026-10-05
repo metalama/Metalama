@@ -27,7 +27,7 @@ using Xunit;
 namespace Metalama.Framework.Tests.UnitTests.ReferenceIndex;
 
 /// <summary>
-/// Tests of <see cref="SourceReferenceIndexService"/>, <see cref="SourceReferenceIndexStage"/>, the walk of declaration roots and the merge of the
+/// Tests of <see cref="SourceReferenceIndexService"/>, <see cref="SourceReferenceIndex"/>, the walk of declaration roots and the merge of the
 /// options of several consumers.
 /// </summary>
 public sealed class SourceReferenceIndexServiceTests : UnitTestClass
@@ -52,7 +52,7 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
     };
 
     /// <summary>
-    /// Verifies that two calls of <see cref="SourceReferenceIndexStage.GetIndexAsync"/> return the same index, and that the semantic models of
+    /// Verifies that two calls of <see cref="SourceReferenceIndex.GetIndexAsync"/> return the same index, and that the semantic models of
     /// <c>B.cs</c> and <c>C.cs</c> are resolved once.
     /// </summary>
     [Fact]
@@ -60,7 +60,7 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
     {
         using var context = this.CreateContext( _code );
 
-        using var stage = SourceReferenceIndexService.BeginStage(
+        using var stage = SourceReferenceIndexService.Create(
             context.ServiceProvider,
             context.Compilation,
             [Requirements( context.Compilation, "F" ), Requirements( context.Compilation, "G" )] );
@@ -81,7 +81,7 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
     {
         using var context = this.CreateContext( _code );
 
-        using var stage = SourceReferenceIndexService.BeginStage(
+        using var stage = SourceReferenceIndexService.Create(
             context.ServiceProvider,
             context.Compilation,
             [Requirements( context.Compilation, "F" ), Requirements( context.Compilation, "G" )] );
@@ -116,14 +116,14 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
     }
 
     /// <summary>
-    /// Verifies that two concurrent calls of <see cref="SourceReferenceIndexStage.GetIndexAsync"/> share one build of the index.
+    /// Verifies that two concurrent calls of <see cref="SourceReferenceIndex.GetIndexAsync"/> share one build of the index.
     /// </summary>
     [Fact]
     public async Task GetIndex_ConcurrentCalls_ShareOneBuild()
     {
         using var context = this.CreateContext( _code );
 
-        using var stage = SourceReferenceIndexService.BeginStage(
+        using var stage = SourceReferenceIndexService.Create(
             context.ServiceProvider,
             context.Compilation,
             [Requirements( context.Compilation, "F", "G" )] );
@@ -146,7 +146,7 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
     {
         using var context = this.CreateContext( _code );
 
-        using var stage = SourceReferenceIndexService.BeginStage( context.ServiceProvider, context.Compilation, [Requirements( context.Compilation, "F" )] );
+        using var stage = SourceReferenceIndexService.Create( context.ServiceProvider, context.Compilation, [Requirements( context.Compilation, "F" )] );
 
         using var canceledSource = new CancellationTokenSource();
 #pragma warning disable VSTHRD103 // CancelAsync does not exist on .NET Framework.
@@ -168,7 +168,7 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
     {
         using var context = this.CreateContext( _code );
 
-        using var stage = SourceReferenceIndexService.BeginStage(
+        using var stage = SourceReferenceIndexService.Create(
             context.ServiceProvider,
             context.Compilation,
             [Requirements( context.Compilation, "F" ) with { DeclarationRoots = default(ImmutableArray<SyntaxNode>) }] );
@@ -265,7 +265,7 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
         using var context = this.CreateContext( _code );
         var methodOfC = GetMethodSyntax( context.Compilation, "C", "M" );
 
-        using var stage = SourceReferenceIndexService.BeginStage(
+        using var stage = SourceReferenceIndexService.Create(
             context.ServiceProvider,
             context.Compilation,
             [Requirements( context.Compilation, "F" ) with { DeclarationRoots = [methodOfC] }] );
@@ -288,7 +288,7 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
         using var context = this.CreateContext( _code );
         var methodOfC = GetMethodSyntax( context.Compilation, "C", "M" );
 
-        using var stage = SourceReferenceIndexService.BeginStage(
+        using var stage = SourceReferenceIndexService.Create(
             context.ServiceProvider,
             context.Compilation,
             [Requirements( context.Compilation, "F" ) with { DeclarationRoots = [methodOfC] }, Requirements( context.Compilation, "G" )] );
@@ -301,7 +301,7 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
     }
 
     /// <summary>
-    /// Verifies that <see cref="SourceReferenceIndexStage.MergeRoots"/> removes a duplicate root and a root that is contained in another root.
+    /// Verifies that <see cref="SourceReferenceIndex.MergeRoots"/> removes a duplicate root and a root that is contained in another root.
     /// </summary>
     [Fact]
     public void NestedRoots_WalkedOnce()
@@ -310,7 +310,7 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
         var typeB = GetTypeSyntax( context.Compilation, "B" );
         var methodOfB = GetMethodSyntax( context.Compilation, "B", "M" );
 
-        var merged = SourceReferenceIndexStage.MergeRoots( [methodOfB, typeB, typeB] );
+        var merged = SourceReferenceIndex.MergeRoots( [methodOfB, typeB, typeB] );
 
         Assert.Same( typeB, Assert.Single( Assert.Single( merged ).Value ) );
     }
@@ -323,7 +323,7 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
     {
         using var context = this.CreateContext( _code );
 
-        using var stage = SourceReferenceIndexService.BeginStage( context.ServiceProvider, context.Compilation, [SourceIndexRequirements.None] );
+        using var stage = SourceReferenceIndexService.Create( context.ServiceProvider, context.Compilation, [SourceIndexRequirements.None] );
 
         Assert.False( stage.HasRequirements );
 
@@ -346,7 +346,7 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
 
         Assert.True( requirements.IsEmpty );
 
-        using var stage = SourceReferenceIndexService.BeginStage( context.ServiceProvider, context.Compilation, [requirements] );
+        using var stage = SourceReferenceIndexService.Create( context.ServiceProvider, context.Compilation, [requirements] );
 
         Assert.False( stage.HasRequirements );
 
@@ -397,7 +397,7 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
     }
 
     /// <summary>
-    /// Verifies that <see cref="SourceReferenceIndexStage.GetIndexAsync"/> throws an <see cref="ObjectDisposedException"/> after the stage is
+    /// Verifies that <see cref="SourceReferenceIndex.GetIndexAsync"/> throws an <see cref="ObjectDisposedException"/> after the stage is
     /// disposed.
     /// </summary>
     [Fact]
@@ -405,7 +405,7 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
     {
         using var context = this.CreateContext( _code );
 
-        var stage = SourceReferenceIndexService.BeginStage( context.ServiceProvider, context.Compilation, [Requirements( context.Compilation, "F" )] );
+        var stage = SourceReferenceIndexService.Create( context.ServiceProvider, context.Compilation, [Requirements( context.Compilation, "F" )] );
         stage.Dispose();
 
         await Assert.ThrowsAsync<ObjectDisposedException>( () => stage.GetIndexAsync( Xunit.TestContext.Current.CancellationToken ) );
@@ -479,7 +479,7 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
 
     /// <summary>
     /// Verifies that the index is not built while the stage holds its lock. A build of a single syntax tree runs synchronously in the call that
-    /// starts it, so a build under the lock would block the other extensions and <see cref="SourceReferenceIndexStage.Dispose"/>.
+    /// starts it, so a build under the lock would block the other extensions and <see cref="SourceReferenceIndex.Dispose"/>.
     /// </summary>
     [Fact]
     public async Task GetIndex_BuildsOutsideOfLock()
@@ -491,12 +491,12 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
         using var testContext = this.CreateTestContext( additionalServices );
         var compilation = testContext.CreateCompilationModel( testContext.CreateCSharpCompilation( _code ) );
 
-        using var stage = SourceReferenceIndexService.BeginStage(
+        using var stage = SourceReferenceIndexService.Create(
             testContext.ServiceProvider,
             compilation,
             [Requirements( compilation, "F" ) with { DeclarationRoots = [GetMethodSyntax( compilation, "C", "M" )] }] );
 
-        observer.Lock = typeof(SourceReferenceIndexStage).GetField( "_sync", BindingFlags.Instance | BindingFlags.NonPublic )!.GetValue( stage );
+        observer.Lock = typeof(SourceReferenceIndex).GetField( "_sync", BindingFlags.Instance | BindingFlags.NonPublic )!.GetValue( stage );
 
         await stage.GetIndexAsync( Xunit.TestContext.Current.CancellationToken );
 
@@ -509,14 +509,14 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
     /// when a task of the build binds it.
     /// </summary>
     [Fact]
-    public void BeginStage_RootOfForeignTree_Throws()
+    public void Create_RootOfForeignTree_Throws()
     {
         using var context = this.CreateContext( _code );
         var foreignRoot = CSharpSyntaxTree.ParseText( "class D { void M() { } }", cancellationToken: Xunit.TestContext.Current.CancellationToken )
             .GetRoot( Xunit.TestContext.Current.CancellationToken );
 
         Assert.Throws<ArgumentException>(
-            () => SourceReferenceIndexService.BeginStage(
+            () => SourceReferenceIndexService.Create(
                 context.ServiceProvider,
                 context.Compilation,
                 [Requirements( context.Compilation, "F" ) with { DeclarationRoots = [foreignRoot] }] ) );
@@ -611,7 +611,7 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
 
         Assert.Equal( 2, parts.Length );
 
-        using var stage = SourceReferenceIndexService.BeginStage(
+        using var stage = SourceReferenceIndexService.Create(
             context.ServiceProvider,
             context.Compilation,
             [Requirements( context.Compilation, "F" ) with { DeclarationRoots = [..parts] }] );
@@ -631,7 +631,7 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
         using var context = this.CreateContext(
             new Dictionary<string, string> { ["A.cs"] = "class A { public static int F() => 0; }", ["E.cs"] = "class E { int M() => 1 + 2; }" } );
 
-        using var stage = SourceReferenceIndexService.BeginStage(
+        using var stage = SourceReferenceIndexService.Create(
             context.ServiceProvider,
             context.Compilation,
             [Requirements( context.Compilation, "F" ) with { DeclarationRoots = [GetTypeSyntax( context.Compilation, "E" )] }] );
@@ -655,7 +655,7 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
             GetMethodSyntax( context.Compilation, "B", "M" ), GetTypeSyntax( context.Compilation, "Nested" ), GetMethodSyntax( context.Compilation, "C", "M" )
         ];
 
-        using var stage = SourceReferenceIndexService.BeginStage(
+        using var stage = SourceReferenceIndexService.Create(
             context.ServiceProvider,
             context.Compilation,
             [Requirements( context.Compilation, "F", "G" ) with { DeclarationRoots = [..roots] }] );

@@ -48,7 +48,7 @@ namespace Metalama.Framework.Engine.Pipeline.CompileTime
             // Start the stage of the index of the references of the source compilation, which the extensions share.
             var sourceIndexRequirementsContext = new SourceIndexRequirementsContext( pipelineStepsResult.ExtensionContributors, this.HighLevelStageIndex );
 
-            using var sourceReferenceIndex = SourceReferenceIndexService.BeginStage(
+            using var sourceReferenceIndex = SourceReferenceIndexService.Create(
                 pipelineConfiguration.ServiceProvider,
                 input.FirstCompilationModel.AssertNotNull(),
                 extensions.Select( e => e.GetSourceIndexRequirements( sourceIndexRequirementsContext ) ).ToList() );
