@@ -147,7 +147,7 @@ public sealed class ProjectLocalExtensionTests : UnitTestClass
             DesignTimeContributorsContext context,
             CancellationToken cancellationToken )
         {
-            var assemblyName = context.StageInitialCompilation.RoslynCompilation.AssemblyName!;
+            var assemblyName = context.SourceCompilation.RoslynCompilation.AssemblyName!;
 
             var results = ImmutableArray.CreateRange( context.Contributors.SelectAsArray( ITransitivePipelineContributor ( _ ) => new ProjectLocalResult( assemblyName ) ) );
 

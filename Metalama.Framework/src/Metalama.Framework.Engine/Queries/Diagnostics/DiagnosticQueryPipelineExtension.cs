@@ -49,7 +49,7 @@ internal sealed class DiagnosticQueryPipelineExtension : PipelineExtension
         => this.ExecutePipelineContributorsAsync(
             context.PipelineConfiguration,
             context.Contributors,
-            context.StageInitialCompilation,
-            context.StageFinalCompilation,
+            context.SourceCompilation,
+            context.FinalCompilation,
             cancellationToken );
 }

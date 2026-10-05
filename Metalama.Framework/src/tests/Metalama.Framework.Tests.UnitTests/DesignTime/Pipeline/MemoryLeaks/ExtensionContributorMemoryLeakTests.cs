@@ -329,7 +329,7 @@ public sealed class ExtensionContributorMemoryLeakTests : DesignTimeTestBase
             DesignTimeContributorsContext context,
             CancellationToken cancellationToken )
         {
-            var anchor = context.StageInitialCompilation.Types.SingleOrDefault( t => t.Name == "Anchor" );
+            var anchor = context.SourceCompilation.Types.SingleOrDefault( t => t.Name == "Anchor" );
 
             if ( anchor == null )
             {
