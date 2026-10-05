@@ -95,7 +95,7 @@ internal sealed class TestExtensionPointsService : ITestExtensionPointsService
         var origin = ExtensionContributionOrigin.Capture( queryImpl.Owner );
 
         queryImpl.Owner.AddContributor(
-            new TestRedirection( methodName, origin, options, null, (replacementTypeName, replacementMethodName), null, queryImpl, null ) );
+            new TestRedirection( methodName, origin, options, null, (replacementTypeName, replacementMethodName), null, queryImpl, default ) );
     }
 
     public void Register<T>( IQuery<T> query, string tag )
