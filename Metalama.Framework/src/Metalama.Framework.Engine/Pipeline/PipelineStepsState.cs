@@ -49,7 +49,7 @@ internal sealed class PipelineStepsState
     /// The subset of the extension contributors that were added by an aspect that executed in this stage, as opposed to the contributors replayed
     /// from the contributor sources of the pipeline.
     /// </summary>
-    private readonly ConcurrentLinkedList<IExtensionPipelineContributor> _extensionContributorsAddedInStage = new();
+    private readonly ConcurrentLinkedList<IExtensionPipelineContributor> _extensionContributorsAddedInCurrentStage = new();
 
     private readonly OverflowAspectSource _overflowAspectSource = new();
     private readonly IntrospectionPipelineListener? _introspectionListener;
@@ -136,7 +136,7 @@ internal sealed class PipelineStepsState
             this.Diagnostics.ToImmutable(),
             this._overflowAspectSource,
             this._extensionContributors,
-            this._extensionContributorsAddedInStage,
+            this._extensionContributorsAddedInCurrentStage,
             this._aspectInstanceResults );
     }
 
@@ -501,17 +501,17 @@ internal sealed class PipelineStepsState
     /// Adds extension contributors to the result of the stage.
     /// </summary>
     /// <param name="contributors">The contributors.</param>
-    /// <param name="isAddedInStage"><c>true</c> when the contributors were added by an aspect that executed in this stage, and
+    /// <param name="isAddedInCurrentStage"><c>true</c> when the contributors were added by an aspect that executed in this stage, and
     /// <c>false</c> when they are replayed from the contributor sources of the pipeline.</param>
-    public void AddExtendedContributors( IEnumerable<IExtensionPipelineContributor> contributors, bool isAddedInStage )
+    public void AddExtendedContributors( IEnumerable<IExtensionPipelineContributor> contributors, bool isAddedInCurrentStage )
     {
         foreach ( var source in contributors )
         {
             this._extensionContributors.Add( source );
 
-            if ( isAddedInStage )
+            if ( isAddedInCurrentStage )
             {
-                this._extensionContributorsAddedInStage.Add( source );
+                this._extensionContributorsAddedInCurrentStage.Add( source );
             }
         }
     }
