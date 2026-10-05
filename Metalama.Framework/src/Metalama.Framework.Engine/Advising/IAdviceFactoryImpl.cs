@@ -29,7 +29,7 @@ internal interface IAdviceFactoryImpl : IAdviceFactory
     /// <summary>
     /// Returns a copy of the factory whose contributions are attributed to a given owner instead of the default owner of the state.
     /// </summary>
-    IAdviceFactoryImpl WithOwner( IQueryOwner owner );
+    IAdviceFactoryImpl WithQueryOwner( IQueryOwner owner );
 
     /// <summary>
     /// Creates the extension context of an adviser that uses this factory.
