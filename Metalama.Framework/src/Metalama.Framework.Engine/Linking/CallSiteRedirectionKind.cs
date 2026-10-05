@@ -10,6 +10,11 @@ namespace Metalama.Framework.Engine.Linking;
 internal enum CallSiteRedirectionKind
 {
     /// <summary>
+    /// The default value, which no <see cref="CallSiteRedirection"/> has.
+    /// </summary>
+    None,
+
+    /// <summary>
     /// The redirection rewrites an invocation.
     /// </summary>
     Invocation,
