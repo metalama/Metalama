@@ -122,7 +122,7 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
 
     public override async Task ExecuteTransformingContributorsAsync( ExtensionTransformationContext context, CancellationToken cancellationToken )
     {
-        ReportRegistrations( context.Contributors.OfKind( TestContributorKinds.Registration ), context.StageFinalCompilation, context.Diagnostics );
+        ReportRegistrations( context.Contributors.OfKind( TestContributorKinds.Registration ), context.FinalCompilation, context.Diagnostics );
         await ReportReferencesAsync( context, cancellationToken );
         await RedirectCallsAsync( context, cancellationToken );
     }
@@ -140,7 +140,7 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
             return;
         }
 
-        var compilation = context.StageFinalCompilation;
+        var compilation = context.FinalCompilation;
         var index = await context.SourceReferenceIndex.GetIndexAsync( cancellationToken );
         var factory = context.TransformationFactory;
 
@@ -368,7 +368,7 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
         var roots = new List<SyntaxNode>();
 
         await redirection.ScopeQuery!.InvokeAsync(
-            context.StageFinalCompilation,
+            context.FinalCompilation,
             context.Diagnostics,
             ScopeNotContained,
             ( declaration, _, _ ) =>

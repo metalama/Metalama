@@ -25,7 +25,7 @@ namespace Metalama.Framework.Engine.ReferenceGraph;
 /// instance is created by <see cref="SourceReferenceIndexService"/> and passed to the extensions through the context of their transforming hook.
 /// </remarks>
 [PublicAPI]
-public sealed class SourceReferenceIndexStage : IDisposable
+public sealed class SourceReferenceIndex : IDisposable
 {
     /// <summary>
     /// The lock that protects <see cref="_sourceCompilation"/>, <see cref="_index"/> and <see cref="_isDisposed"/>.
@@ -58,9 +58,9 @@ public sealed class SourceReferenceIndexStage : IDisposable
     private bool _isDisposed;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="SourceReferenceIndexStage"/> class.
+    /// Initializes a new instance of the <see cref="SourceReferenceIndex"/> class.
     /// </summary>
-    internal SourceReferenceIndexStage(
+    internal SourceReferenceIndex(
         ProjectServiceProvider serviceProvider,
         CompilationModel sourceCompilation,
         ReferenceIndexerOptions options,
@@ -114,7 +114,7 @@ public sealed class SourceReferenceIndexStage : IDisposable
         {
             if ( this._isDisposed )
             {
-                throw new ObjectDisposedException( nameof(SourceReferenceIndexStage), "The stage of the index of source references has ended." );
+                throw new ObjectDisposedException( nameof(SourceReferenceIndex), "The stage of the index of source references has ended." );
             }
 
             // A build that was canceled or that failed is not cached, so a later call can start it again.
