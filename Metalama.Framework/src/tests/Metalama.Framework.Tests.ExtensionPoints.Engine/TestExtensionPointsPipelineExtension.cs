@@ -28,11 +28,11 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
     /// <summary>
     /// The warning that describes each registration, so that the expected output of an aspect test shows what the extension observed.
     /// </summary>
-    internal static DiagnosticDefinition<(string Tag, string Channel, string Origin, string PredecessorKind, string TemplateProvider)>
+    internal static DiagnosticDefinition<(string Tag, string Channel, string Origin, string PredecessorKind, string TemplateProvider, int Stage, bool IsSourceStage)>
         RegistrationObserved { get; } = new(
         "TEST0001",
         Severity.Warning,
-        "Registration '{0}' through the {1}: origin '{2}', predecessor {3}, template provider {4}." );
+        "Registration '{0}' through the {1}: origin '{2}', predecessor {3}, template provider {4}, stage {5}, source stage {6}." );
 
     /// <summary>
     /// The warning that describes each reference that the extension reads from the shared index of source references.
@@ -72,9 +72,9 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
             .Select( r => new ReferenceIndexerRequirements( ReferenceKinds.Invocation | ReferenceKinds.Default, false, DeclarationKind.Method, r.MethodName ) )
             .ToImmutableArray();
 
-        ImmutableArray<SyntaxNode>? roots = reports.All( r => r.DeclarationRoots != null )
-            ? reports.SelectMany( r => r.DeclarationRoots!.Value ).ToImmutableArray()
-            : null;
+        var roots = reports.All( r => !r.DeclarationRoots.IsDefault )
+            ? reports.SelectMany( r => r.DeclarationRoots ).ToImmutableArray()
+            : default;
 
         return new SourceIndexRequirements( requirements ) { DeclarationRoots = roots };
     }
