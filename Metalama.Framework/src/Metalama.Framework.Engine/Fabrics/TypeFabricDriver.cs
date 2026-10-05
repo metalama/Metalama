@@ -140,7 +140,7 @@ internal sealed class TypeFabricDriver : FabricDriver
             this.Type = namedType;
 
 #pragma warning disable CS0618 // ITypeAmender.Advice is obsolete
-            this.Advice = ((IAdviceFactoryImpl) aspectBuilder.AdviceFactory).WithTemplateClassInstance( templateClassInstance ).WithOwner( this );
+            this.Advice = ((IAdviceFactoryImpl) aspectBuilder.AdviceFactory).WithTemplateClassInstance( templateClassInstance ).WithQueryOwner( this );
 #pragma warning restore CS0618
             this._adviser = (IAdviser<INamedType>) this.Advice;
         }
