@@ -56,24 +56,24 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
     /// <c>B.cs</c> and <c>C.cs</c> are resolved once.
     /// </summary>
     [Fact]
-    public async Task SharedIndex_BuiltOncePerStage()
+    public async Task SharedIndex_BuiltOnce()
     {
         using var context = this.CreateContext( _code );
 
-        using var stage = SourceReferenceIndexService.Create(
+        using var sourceIndex = SourceReferenceIndexService.Create(
             context.ServiceProvider,
             context.Compilation,
             [Requirements( context.Compilation, "F" ), Requirements( context.Compilation, "G" )] );
 
-        var index1 = await stage.GetIndexAsync( Xunit.TestContext.Current.CancellationToken );
-        var index2 = await stage.GetIndexAsync( Xunit.TestContext.Current.CancellationToken );
+        var index1 = await sourceIndex.GetIndexAsync( Xunit.TestContext.Current.CancellationToken );
+        var index2 = await sourceIndex.GetIndexAsync( Xunit.TestContext.Current.CancellationToken );
 
         Assert.Same( index1, index2 );
         Assert.Equal( ["B.cs", "C.cs"], context.Observer.ResolvedSemanticModelNames );
     }
 
     /// <summary>
-    /// Verifies that the index of a stage that receives the requirements of two consumers contains the references requested by both, all of the kind
+    /// Verifies that an index that receives the requirements of two consumers contains the references requested by both, all of the kind
     /// <see cref="ReferenceKinds.Invocation"/>.
     /// </summary>
     [Fact]
@@ -81,12 +81,12 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
     {
         using var context = this.CreateContext( _code );
 
-        using var stage = SourceReferenceIndexService.Create(
+        using var sourceIndex = SourceReferenceIndexService.Create(
             context.ServiceProvider,
             context.Compilation,
             [Requirements( context.Compilation, "F" ), Requirements( context.Compilation, "G" )] );
 
-        var index = await stage.GetIndexAsync( Xunit.TestContext.Current.CancellationToken );
+        var index = await sourceIndex.GetIndexAsync( Xunit.TestContext.Current.CancellationToken );
 
         Assert.Equal( ["F", "G"], GetReferencedNames( index ) );
 
@@ -123,7 +123,7 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
     {
         using var context = this.CreateContext( _code );
 
-        using var stage = SourceReferenceIndexService.Create(
+        using var sourceIndex = SourceReferenceIndexService.Create(
             context.ServiceProvider,
             context.Compilation,
             [Requirements( context.Compilation, "F", "G" )] );
@@ -131,8 +131,8 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
         var cancellationToken = Xunit.TestContext.Current.CancellationToken;
 
         var indexes = await Task.WhenAll(
-            Task.Run( () => stage.GetIndexAsync( cancellationToken ) ),
-            Task.Run( () => stage.GetIndexAsync( cancellationToken ) ) );
+            Task.Run( () => sourceIndex.GetIndexAsync( cancellationToken ) ),
+            Task.Run( () => sourceIndex.GetIndexAsync( cancellationToken ) ) );
 
         Assert.Same( indexes[0], indexes[1] );
         Assert.Equal( ["B.cs", "C.cs"], context.Observer.ResolvedSemanticModelNames );
@@ -146,36 +146,36 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
     {
         using var context = this.CreateContext( _code );
 
-        using var stage = SourceReferenceIndexService.Create( context.ServiceProvider, context.Compilation, [Requirements( context.Compilation, "F" )] );
+        using var sourceIndex = SourceReferenceIndexService.Create( context.ServiceProvider, context.Compilation, [Requirements( context.Compilation, "F" )] );
 
         using var canceledSource = new CancellationTokenSource();
 #pragma warning disable VSTHRD103 // CancelAsync does not exist on .NET Framework.
         canceledSource.Cancel();
 #pragma warning restore VSTHRD103
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>( () => stage.GetIndexAsync( canceledSource.Token ) );
+        await Assert.ThrowsAnyAsync<OperationCanceledException>( () => sourceIndex.GetIndexAsync( canceledSource.Token ) );
 
-        var index = await stage.GetIndexAsync( Xunit.TestContext.Current.CancellationToken );
+        var index = await sourceIndex.GetIndexAsync( Xunit.TestContext.Current.CancellationToken );
 
         Assert.Equal( ["F"], GetReferencedNames( index ) );
     }
 
     /// <summary>
-    /// Verifies that a default array of declaration roots is equivalent to no roots, instead of failing when the roots are merged.
+    /// Verifies that a default array of declaration roots means that the extension needs the references of every syntax tree.
     /// </summary>
     [Fact]
-    public async Task DeclarationRoots_DefaultArray_EquivalentToNull()
+    public async Task DeclarationRoots_DefaultArray_NotRestricted()
     {
         using var context = this.CreateContext( _code );
 
-        using var stage = SourceReferenceIndexService.Create(
+        using var sourceIndex = SourceReferenceIndexService.Create(
             context.ServiceProvider,
             context.Compilation,
-            [Requirements( context.Compilation, "F" ) with { DeclarationRoots = default(ImmutableArray<SyntaxNode>) }] );
+            [Requirements( context.Compilation, "F" ) with { DeclarationRoots = default }] );
 
-        Assert.False( stage.IsRestrictedToDeclarationRoots );
+        Assert.False( sourceIndex.IsRestrictedToDeclarationRoots );
 
-        var index = await stage.GetIndexAsync( Xunit.TestContext.Current.CancellationToken );
+        var index = await sourceIndex.GetIndexAsync( Xunit.TestContext.Current.CancellationToken );
 
         Assert.Equal( ["F"], GetReferencedNames( index ) );
     }
@@ -256,7 +256,7 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
     }
 
     /// <summary>
-    /// Verifies that the stage is restricted to the declaration roots when every consumer returns roots, and that only the syntax tree of the roots
+    /// Verifies that the index is restricted to the declaration roots when every consumer returns roots, and that only the syntax tree of the roots
     /// is bound.
     /// </summary>
     [Fact]
@@ -265,21 +265,21 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
         using var context = this.CreateContext( _code );
         var methodOfC = GetMethodSyntax( context.Compilation, "C", "M" );
 
-        using var stage = SourceReferenceIndexService.Create(
+        using var sourceIndex = SourceReferenceIndexService.Create(
             context.ServiceProvider,
             context.Compilation,
             [Requirements( context.Compilation, "F" ) with { DeclarationRoots = [methodOfC] }] );
 
-        Assert.True( stage.IsRestrictedToDeclarationRoots );
+        Assert.True( sourceIndex.IsRestrictedToDeclarationRoots );
 
-        var index = await stage.GetIndexAsync( Xunit.TestContext.Current.CancellationToken );
+        var index = await sourceIndex.GetIndexAsync( Xunit.TestContext.Current.CancellationToken );
 
         Assert.Equal( ["C.M()"], GetReferencingNames( index ) );
         Assert.Equal( ["C.cs"], context.Observer.ResolvedSemanticModelNames );
     }
 
     /// <summary>
-    /// Verifies that the stage is not restricted to the declaration roots when one consumer returns no root, so that the index contains references
+    /// Verifies that the index is not restricted to the declaration roots when one consumer returns no root, so that the index contains references
     /// outside of the roots of the other consumer.
     /// </summary>
     [Fact]
@@ -288,14 +288,14 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
         using var context = this.CreateContext( _code );
         var methodOfC = GetMethodSyntax( context.Compilation, "C", "M" );
 
-        using var stage = SourceReferenceIndexService.Create(
+        using var sourceIndex = SourceReferenceIndexService.Create(
             context.ServiceProvider,
             context.Compilation,
             [Requirements( context.Compilation, "F" ) with { DeclarationRoots = [methodOfC] }, Requirements( context.Compilation, "G" )] );
 
-        Assert.False( stage.IsRestrictedToDeclarationRoots );
+        Assert.False( sourceIndex.IsRestrictedToDeclarationRoots );
 
-        var index = await stage.GetIndexAsync( Xunit.TestContext.Current.CancellationToken );
+        var index = await sourceIndex.GetIndexAsync( Xunit.TestContext.Current.CancellationToken );
 
         Assert.Contains( "B.M()", GetReferencingNames( index ) );
     }
@@ -316,18 +316,18 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
     }
 
     /// <summary>
-    /// Verifies that a stage without requirements returns an empty index and resolves no semantic model.
+    /// Verifies that an index without requirements is empty and resolves no semantic model.
     /// </summary>
     [Fact]
     public async Task NoRequirement_IndexNotBuilt()
     {
         using var context = this.CreateContext( _code );
 
-        using var stage = SourceReferenceIndexService.Create( context.ServiceProvider, context.Compilation, [SourceIndexRequirements.None] );
+        using var sourceIndex = SourceReferenceIndexService.Create( context.ServiceProvider, context.Compilation, [SourceIndexRequirements.None] );
 
-        Assert.False( stage.HasRequirements );
+        Assert.False( sourceIndex.HasRequirements );
 
-        var index = await stage.GetIndexAsync( Xunit.TestContext.Current.CancellationToken );
+        var index = await sourceIndex.GetIndexAsync( Xunit.TestContext.Current.CancellationToken );
 
         Assert.Empty( index.ReferencedSymbols );
         Assert.Empty( context.Observer.ResolvedSemanticModelNames );
@@ -335,7 +335,7 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
 
     /// <summary>
     /// Verifies that requirements whose reference kinds are all <see cref="ReferenceKinds.None"/>, which <see cref="ReferenceIndexerRequirements.Create"/>
-    /// returns for a request that the index cannot serve, do not make the stage walk the source compilation.
+    /// returns for a request that the index cannot serve, do not make the index walk the source compilation.
     /// </summary>
     [Fact]
     public async Task NoneKindRequirements_IndexNotBuilt()
@@ -346,11 +346,11 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
 
         Assert.True( requirements.IsEmpty );
 
-        using var stage = SourceReferenceIndexService.Create( context.ServiceProvider, context.Compilation, [requirements] );
+        using var sourceIndex = SourceReferenceIndexService.Create( context.ServiceProvider, context.Compilation, [requirements] );
 
-        Assert.False( stage.HasRequirements );
+        Assert.False( sourceIndex.HasRequirements );
 
-        var index = await stage.GetIndexAsync( Xunit.TestContext.Current.CancellationToken );
+        var index = await sourceIndex.GetIndexAsync( Xunit.TestContext.Current.CancellationToken );
 
         Assert.Empty( index.ReferencedSymbols );
         Assert.Empty( context.Observer.ResolvedSemanticModelNames );
@@ -397,18 +397,18 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
     }
 
     /// <summary>
-    /// Verifies that <see cref="SourceReferenceIndex.GetIndexAsync"/> throws an <see cref="ObjectDisposedException"/> after the stage is
+    /// Verifies that <see cref="SourceReferenceIndex.GetIndexAsync"/> throws an <see cref="ObjectDisposedException"/> after the index is
     /// disposed.
     /// </summary>
     [Fact]
-    public async Task Stage_DisposedThrows()
+    public async Task Index_DisposedThrows()
     {
         using var context = this.CreateContext( _code );
 
-        var stage = SourceReferenceIndexService.Create( context.ServiceProvider, context.Compilation, [Requirements( context.Compilation, "F" )] );
-        stage.Dispose();
+        var sourceIndex = SourceReferenceIndexService.Create( context.ServiceProvider, context.Compilation, [Requirements( context.Compilation, "F" )] );
+        sourceIndex.Dispose();
 
-        await Assert.ThrowsAsync<ObjectDisposedException>( () => stage.GetIndexAsync( Xunit.TestContext.Current.CancellationToken ) );
+        await Assert.ThrowsAsync<ObjectDisposedException>( () => sourceIndex.GetIndexAsync( Xunit.TestContext.Current.CancellationToken ) );
     }
 
     /// <summary>
@@ -478,7 +478,7 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
     }
 
     /// <summary>
-    /// Verifies that the index is not built while the stage holds its lock. A build of a single syntax tree runs synchronously in the call that
+    /// Verifies that the index is not built while the index holds its lock. A build of a single syntax tree runs synchronously in the call that
     /// starts it, so a build under the lock would block the other extensions and <see cref="SourceReferenceIndex.Dispose"/>.
     /// </summary>
     [Fact]
@@ -491,21 +491,21 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
         using var testContext = this.CreateTestContext( additionalServices );
         var compilation = testContext.CreateCompilationModel( testContext.CreateCSharpCompilation( _code ) );
 
-        using var stage = SourceReferenceIndexService.Create(
+        using var sourceIndex = SourceReferenceIndexService.Create(
             testContext.ServiceProvider,
             compilation,
             [Requirements( compilation, "F" ) with { DeclarationRoots = [GetMethodSyntax( compilation, "C", "M" )] }] );
 
-        observer.Lock = typeof(SourceReferenceIndex).GetField( "_sync", BindingFlags.Instance | BindingFlags.NonPublic )!.GetValue( stage );
+        observer.Lock = typeof(SourceReferenceIndex).GetField( "_sync", BindingFlags.Instance | BindingFlags.NonPublic )!.GetValue( sourceIndex );
 
-        await stage.GetIndexAsync( Xunit.TestContext.Current.CancellationToken );
+        await sourceIndex.GetIndexAsync( Xunit.TestContext.Current.CancellationToken );
 
         Assert.True( observer.WasCalled );
         Assert.False( observer.WasLockHeld );
     }
 
     /// <summary>
-    /// Verifies that a declaration root of a syntax tree that is not part of the source compilation is refused when the stage begins, and not
+    /// Verifies that a declaration root of a syntax tree that is not part of the source compilation is refused when the index is created, and not
     /// when a task of the build binds it.
     /// </summary>
     [Fact]
@@ -590,7 +590,7 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
     }
 
     /// <summary>
-    /// Verifies that the stage walks every part of a partial type when the consumer gives every part as a root, including the parts in other
+    /// Verifies that the index covers every part of a partial type when the consumer gives every part as a root, including the parts in other
     /// syntax trees.
     /// </summary>
     [Fact]
@@ -611,12 +611,12 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
 
         Assert.Equal( 2, parts.Length );
 
-        using var stage = SourceReferenceIndexService.Create(
+        using var sourceIndex = SourceReferenceIndexService.Create(
             context.ServiceProvider,
             context.Compilation,
             [Requirements( context.Compilation, "F" ) with { DeclarationRoots = [..parts] }] );
 
-        var index = await stage.GetIndexAsync( Xunit.TestContext.Current.CancellationToken );
+        var index = await sourceIndex.GetIndexAsync( Xunit.TestContext.Current.CancellationToken );
 
         Assert.Equal( ["P.M1()", "P.M2()"], GetReferencingNames( index ) );
         Assert.Equal( ["P1.cs", "P2.cs"], context.Observer.ResolvedSemanticModelNames );
@@ -631,19 +631,19 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
         using var context = this.CreateContext(
             new Dictionary<string, string> { ["A.cs"] = "class A { public static int F() => 0; }", ["E.cs"] = "class E { int M() => 1 + 2; }" } );
 
-        using var stage = SourceReferenceIndexService.Create(
+        using var sourceIndex = SourceReferenceIndexService.Create(
             context.ServiceProvider,
             context.Compilation,
             [Requirements( context.Compilation, "F" ) with { DeclarationRoots = [GetTypeSyntax( context.Compilation, "E" )] }] );
 
-        var index = await stage.GetIndexAsync( Xunit.TestContext.Current.CancellationToken );
+        var index = await sourceIndex.GetIndexAsync( Xunit.TestContext.Current.CancellationToken );
 
         Assert.Empty( GetReferencingNames( index ) );
         Assert.Empty( context.Observer.ResolvedSemanticModelNames );
     }
 
     /// <summary>
-    /// Verifies that the roots of several syntax trees, which the stage indexes concurrently, give the same index as the walk of each root alone.
+    /// Verifies that the roots of several syntax trees, which the index walks concurrently, give the same index as the walk of each root alone.
     /// </summary>
     [Fact]
     public async Task Root_ConcurrentRoots()
@@ -655,12 +655,12 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
             GetMethodSyntax( context.Compilation, "B", "M" ), GetTypeSyntax( context.Compilation, "Nested" ), GetMethodSyntax( context.Compilation, "C", "M" )
         ];
 
-        using var stage = SourceReferenceIndexService.Create(
+        using var sourceIndex = SourceReferenceIndexService.Create(
             context.ServiceProvider,
             context.Compilation,
             [Requirements( context.Compilation, "F", "G" ) with { DeclarationRoots = [..roots] }] );
 
-        var index = await stage.GetIndexAsync( Xunit.TestContext.Current.CancellationToken );
+        var index = await sourceIndex.GetIndexAsync( Xunit.TestContext.Current.CancellationToken );
 
         var expected = roots.SelectMany( r => GetReferencingNames( IndexRoots( context, r, "F", "G" ) ) ).Distinct().ToOrderedList( x => x, StringComparer.Ordinal );
 
@@ -706,12 +706,12 @@ public sealed class SourceReferenceIndexServiceTests : UnitTestClass
     }
 
     /// <summary>
-    /// An observer that records whether the thread that resolves a semantic model holds the lock of the stage.
+    /// An observer that records whether the thread that resolves a semantic model holds the lock of the index.
     /// </summary>
     private sealed class LockObserver : IReferenceIndexObserver
     {
         /// <summary>
-        /// Gets or sets the lock of the stage.
+        /// Gets or sets the lock of the index.
         /// </summary>
         public object? Lock { get; set; }
 

@@ -33,24 +33,15 @@ public sealed record SourceIndexRequirements( ImmutableArray<ReferenceIndexerReq
     public static SourceIndexRequirements None { get; } = new( ImmutableArray<ReferenceIndexerRequirements>.Empty );
 
     /// <summary>
-    /// Gets the syntax nodes of the declarations that contain every reference that the extension needs, or <c>null</c> when the extension needs
-    /// the references of every syntax tree.
+    /// Gets the syntax nodes of the declarations that contain every reference that the extension needs, or a default array when the extension
+    /// needs the references of every syntax tree.
     /// </summary>
     /// <remarks>
     /// A root is the syntax node of a member, a type, a namespace, a compilation unit, a variable declarator of a field or an event field, or
-    /// the expression body of a property or an indexer. The stage walks only the union of the roots when every extension that returned
-    /// requirements also returned roots. A default array is equivalent to <c>null</c>.
+    /// the expression body of a property or an indexer. The index covers only the union of the roots when every extension that returned
+    /// requirements also returned roots. An empty array means that the extension needs the references of no declaration.
     /// </remarks>
-    public ImmutableArray<SyntaxNode>? DeclarationRoots
-    {
-        get => this._declarationRoots;
-        init => this._declarationRoots = value is { IsDefault: true } ? null : value;
-    }
-
-    /// <summary>
-    /// The value of <see cref="DeclarationRoots"/>.
-    /// </summary>
-    private readonly ImmutableArray<SyntaxNode>? _declarationRoots;
+    public ImmutableArray<SyntaxNode> DeclarationRoots { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether the instance requires nothing: it has no requirement, or every requirement has
@@ -58,7 +49,7 @@ public sealed record SourceIndexRequirements( ImmutableArray<ReferenceIndexerReq
     /// </summary>
     /// <remarks>
     /// <see cref="ReferenceIndexerRequirements.Create"/> returns <see cref="ReferenceKinds.None"/> for a request that the index cannot serve, for
-    /// instance the references of a finalizer. <see cref="ReferenceIndexerOptions"/> ignores such a requirement, so a stage that receives only
+    /// instance the references of a finalizer. <see cref="ReferenceIndexerOptions"/> ignores such a requirement, so an index that receives only
     /// such requirements does not walk the source compilation.
     /// </remarks>
     public bool IsEmpty => this.Requirements.IsDefaultOrEmpty || this.Requirements.All( r => r.ReferenceKinds == ReferenceKinds.None );

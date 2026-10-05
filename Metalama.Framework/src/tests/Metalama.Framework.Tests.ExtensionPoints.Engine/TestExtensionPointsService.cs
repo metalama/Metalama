@@ -42,9 +42,9 @@ internal sealed class TestExtensionPointsService : ITestExtensionPointsService
         var context = adviser.GetExtensionContext();
         context.ThrowIfDisposed();
 
-        ImmutableArray<SyntaxNode>? roots = restrictToTarget
+        var roots = restrictToTarget
             ? adviser.Target.Sources.Select( s => s.SyntaxNodeOrToken().AsNode() ).OfType<SyntaxNode>().ToImmutableArray()
-            : null;
+            : default;
 
         context.QueryOwner.AddContributor( new TestReferenceReport( methodName, roots ) );
     }
