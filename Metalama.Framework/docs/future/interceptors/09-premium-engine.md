@@ -461,6 +461,8 @@ internal sealed record InterceptorRegistrationCollector(
 1. `sources = context.Contributors.OfKind( InterceptorSource )`. When the set is empty, return. This is the only cost for projects that reference the package without using it.
 2. Stage check:
 
+> Superseded in part by the decision "No multi-stage support" of section 15.0 (2026-10-05): the hook runs only on the source compilation, and LAMA1007 is not reported. A registration made by an aspect that executes after a low-level weaver is not processed.
+
 | Condition | Behavior |
 |---|---|
 | `context.IsSourceStage` | Continue with step 3. |

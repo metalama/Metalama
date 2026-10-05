@@ -42,11 +42,11 @@ AspectPipeline.ExecuteAsync():
 
 After the aspect layers of a high-level stage have executed, `LinkerPipelineStage` (compile time) and `DesignTimePipelineStage` (design time) give the extension contributors of the stage to the pipeline extensions, in this order:
 
-1. At compile time, `ExecutePipelineContributorsAsync` runs the validators, in every stage. At design time, `ExecuteDesignTimePipelineContributorsAsync` receives a `DesignTimeContributorsContext`, in the source stage only.
-2. In the source stage only, which is the first high-level stage, and in every pipeline that runs the linker, which excludes the design-time pipeline: the stage starts a `SourceReferenceIndex` from the requirements that each extension returns from `GetSourceIndexRequirements`, and `ExecuteTransformingContributorsAsync` receives an `ExtensionTransformationContext`, whose factory of transformations collects the redirections of call sites (see `linker-callsite.md`). The index covers the source compilation and is built lazily, at most once per pipeline execution. The system layers precede the user layers, so no low-level weaver executes before the source stage.
+1. At compile time, `ExecutePipelineContributorsAsync` runs the validators, in every high-level stage. At design time, `ExecuteDesignTimePipelineContributorsAsync` receives a `DesignTimeContributorsContext`, once per pipeline execution.
+2. Once per pipeline execution, in every pipeline that runs the linker, which excludes the design-time pipeline: the pipeline creates a `SourceReferenceIndex` from the requirements that each extension returns from `GetSourceIndexRequirements`, and `ExecuteTransformingContributorsAsync` receives an `ExtensionTransformationContext`, whose factory of transformations collects the redirections of call sites (see `linker-callsite.md`). The index covers the source compilation and is built lazily, at most once.
 3. The linker applies the transformations of the aspects and the redirections of the extensions.
 
-The contributors of fabrics and of transitive aspects are replayed in every high-level stage, so `PipelineStepsResult.ExtensionContributors` contains them in every stage. `ExtensionContributionOrigin.HighLevelStageIndex` records the stage in which a contribution was made, so that an extension can report, from `ExecutePipelineContributorsAsync`, a contribution that the transforming hook never receives. `HighLevelPipelineStage.HighLevelStageIndex` is the zero-based index of the stage among the high-level stages. The design-time pipeline accumulates the results of all the stages: the transitive contributors, which only the source stage produces, the inheritable aspects, the transformations and the diagnostics.
+The design-time hook and the transforming hook run only in the first high-level stage, which `HighLevelPipelineStage.IsFirstHighLevelStage` identifies. That stage starts from the source compilation, because the system layers precede the user layers and no low-level aspect weaver executes before it. The extension hooks do not support low-level aspect weavers: a contribution made by an aspect that executes after a weaver is not processed, and no diagnostic is reported for it. The design-time pipeline accumulates the results of all the high-level stages in the result of the last one: the transitive contributors, the inheritable aspects, the transformations and the diagnostics.
 
 ## Level 2: Aspect Layers
 
@@ -270,5 +270,5 @@ This replay is necessary because the mutable compilations used during execution 
 | `Transformations/TransformationObservability.cs` | `Always`, `CompileTimeOnly`, `None` |
 | `Pipeline/CompileTime/LinkerPipelineStage.cs` | Runs the extension hooks of a high-level stage, then the linker |
 | `Pipeline/DesignTime/DesignTimePipelineStage.cs` | Runs the design-time extension hook of a high-level stage and accumulates the results |
-| `ReferenceGraph/SourceReferenceIndex.cs` | The shared index of the source references of one stage |
+| `ReferenceGraph/SourceReferenceIndex.cs` | The shared index of the source references of one pipeline execution |
 | `Extensibility/ExtensionTransformationContext.cs` | The context of the transforming hook |

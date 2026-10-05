@@ -359,9 +359,9 @@ A contribution made through a query captures its origin with `ExtensionContribut
 
 ### Transforming hook
 
-`PipelineExtension.ExecuteTransformingContributorsAsync( ExtensionTransformationContext, CancellationToken )` runs once per pipeline execution, at the end of the source stage, which is the first high-level stage, after `ExecutePipelineContributorsAsync` and before the linker. It runs at compile time and in the preview, live-template and introspection scenarios, and not at design time. The context gives the contributors of the source stage (`Contributors`), the source compilation, the final compilation of the source stage, `SourceCompilationWithFinalAspects`, which binds the source compilation to the aspects of the source stage, and a diagnostic sink.
+`PipelineExtension.ExecuteTransformingContributorsAsync( ExtensionTransformationContext, CancellationToken )` runs once per pipeline execution, on the source compilation, after `ExecutePipelineContributorsAsync` and before the linker. It runs at compile time and in the preview, live-template and introspection scenarios, and not at design time. The context gives the contributors (`Contributors`), the source compilation (`SourceCompilation`), the compilation that results from the aspects (`FinalCompilation`), `SourceCompilationWithFinalAspects`, which binds the source compilation to the aspects, and a diagnostic sink.
 
-The hook does not run in the stages that follow a low-level weaver. A contribution made in such a stage, by an aspect that executes after the weaver, never reaches the hook. `ExtensionContributionOrigin.HighLevelStageIndex` records the stage in which a contribution was made, so that an extension can report such a contribution from `ExecutePipelineContributorsAsync`, which runs in every stage. The interceptor engine reports LAMA1007 this way.
+The extension hooks do not support low-level aspect weavers. They run before any weaver, and a contribution made by an aspect that executes after a weaver is not processed. No diagnostic is reported for such a contribution.
 
 ### Source expressions for compile-time code
 

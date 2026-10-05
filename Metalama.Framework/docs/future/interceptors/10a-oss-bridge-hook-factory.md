@@ -240,6 +240,8 @@ The last row fixes the attribution of type-fabric contributions for extensions. 
 ### 10.3 Transforming pipeline hook (B2b)
 
 > Superseded in part by the decision "Source stage only" of section 15.0 (2026-10-03): the hook runs only in the source stage, so the members `HighLevelStageIndex`, `IsSourceStage`, `ContributorsAddedInStage` and `StageInitialCompilation` of the context described below were removed, and the stage index of a contribution is recorded by `ExtensionContributionOrigin.HighLevelStageIndex`.
+>
+> Superseded in part by the decision "No multi-stage support" of section 15.0 (2026-10-05): `ExtensionContributionOrigin.HighLevelStageIndex` is removed as well, `StageFinalCompilation` is renamed `FinalCompilation`, and a contribution made after a low-level weaver is not processed.
 
 #### 10.3.1 The hook
 

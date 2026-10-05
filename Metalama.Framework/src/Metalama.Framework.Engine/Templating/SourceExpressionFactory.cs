@@ -40,8 +40,8 @@ public static class SourceExpressionFactory
     /// <param name="expression">An expression of a syntax tree of the compilation of <paramref name="type"/>.</param>
     /// <param name="type">The type of the expression, in the compilation that contains the syntax tree.</param>
     /// <exception cref="ArgumentException">The syntax tree of <paramref name="expression"/> is not a syntax tree of the compilation of
-    /// <paramref name="type"/>. After a low-level weaver, the compilations of the later stages have new instances of the syntax trees, so the
-    /// type must come from the compilation that contains <paramref name="expression"/>, for instance the source compilation.</exception>
+    /// <paramref name="type"/>. The type must come from the compilation that contains <paramref name="expression"/>, for instance the source
+    /// compilation.</exception>
     public static ISourceExpression CreateInspectionOnly( ExpressionSyntax expression, IType type )
     {
         if ( expression == null )
