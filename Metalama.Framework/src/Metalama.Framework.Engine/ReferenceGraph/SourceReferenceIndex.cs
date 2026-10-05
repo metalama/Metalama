@@ -114,7 +114,7 @@ public sealed class SourceReferenceIndex : IDisposable
         {
             if ( this._isDisposed )
             {
-                throw new ObjectDisposedException( nameof(SourceReferenceIndex), "The stage of the index of source references has ended." );
+                throw new ObjectDisposedException( nameof(SourceReferenceIndex), "The index of source references has been disposed." );
             }
 
             // A build that was canceled or that failed is not cached, so a later call can start it again.

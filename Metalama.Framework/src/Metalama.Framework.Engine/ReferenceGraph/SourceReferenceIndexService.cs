@@ -60,8 +60,8 @@ public static class SourceReferenceIndexService
         var options = new ReferenceIndexerOptions( nonEmptyRequirements.SelectMany( r => r.Requirements ) );
 
         // The walk is restricted to the declaration roots only when every extension that needs references gave roots.
-        var rootsByTree = nonEmptyRequirements.Count > 0 && nonEmptyRequirements.All( r => r.DeclarationRoots != null )
-            ? SourceReferenceIndex.MergeRoots( nonEmptyRequirements.SelectMany( r => r.DeclarationRoots!.Value ) )
+        var rootsByTree = nonEmptyRequirements.Count > 0 && nonEmptyRequirements.All( r => !r.DeclarationRoots.IsDefault )
+            ? SourceReferenceIndex.MergeRoots( nonEmptyRequirements.SelectMany( r => r.DeclarationRoots ) )
             : null;
 
         // A root of another syntax tree would make a task of the build fail when it gets the semantic model of the tree.

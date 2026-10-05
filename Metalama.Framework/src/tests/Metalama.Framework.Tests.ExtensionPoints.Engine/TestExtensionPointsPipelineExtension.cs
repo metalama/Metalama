@@ -34,11 +34,11 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
     /// <summary>
     /// The warning that describes each registration, so that the expected output of an aspect test shows what the extension observed.
     /// </summary>
-    internal static DiagnosticDefinition<(string Tag, string Channel, string Origin, string PredecessorKind, string TemplateProvider, int Stage, bool IsSourceStage)>
+    internal static DiagnosticDefinition<(string Tag, string Channel, string Origin, string PredecessorKind, string TemplateProvider)>
         RegistrationObserved { get; } = new(
         "TEST0001",
         Severity.Warning,
-        "Registration '{0}' through the {1}: origin '{2}', predecessor {3}, template provider {4}, stage {5}, source stage {6}." );
+        "Registration '{0}' through the {1}: origin '{2}', predecessor {3}, template provider {4}." );
 
     /// <summary>
     /// The warning that describes each reference that the extension reads from the shared index of source references.

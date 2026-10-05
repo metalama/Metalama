@@ -16,7 +16,7 @@ internal sealed class TestReferenceReport : IExtensionPipelineContributor
     /// <summary>
     /// Initializes a new instance of the <see cref="TestReferenceReport"/> class.
     /// </summary>
-    public TestReferenceReport( string methodName, ImmutableArray<SyntaxNode>? declarationRoots )
+    public TestReferenceReport( string methodName, ImmutableArray<SyntaxNode> declarationRoots )
     {
         this.MethodName = methodName;
         this.DeclarationRoots = declarationRoots;
@@ -28,9 +28,9 @@ internal sealed class TestReferenceReport : IExtensionPipelineContributor
     public string MethodName { get; }
 
     /// <summary>
-    /// Gets the syntax of the target of the adviser when the index must be restricted to it, or <c>null</c>.
+    /// Gets the syntax of the target of the adviser when the index must be restricted to it, or a default array.
     /// </summary>
-    public ImmutableArray<SyntaxNode>? DeclarationRoots { get; }
+    public ImmutableArray<SyntaxNode> DeclarationRoots { get; }
 
     /// <inheritdoc />
     public ContributorKind ContributorKind => TestContributorKinds.ReferenceReport;
