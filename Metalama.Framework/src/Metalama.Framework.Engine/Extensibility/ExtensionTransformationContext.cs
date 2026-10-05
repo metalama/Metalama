@@ -28,7 +28,7 @@ public sealed class ExtensionTransformationContext
         IReadOnlyCollection<IExtensionPipelineContributor> contributors,
         IReadOnlyCollection<IExtensionPipelineContributor> contributorsAddedInStage,
         CompilationModel sourceCompilation,
-        CompilationModel sourceCompilation,
+        CompilationModel stageInitialCompilation,
         CompilationModel finalCompilation,
         int highLevelStageIndex,
         UserDiagnosticSink diagnostics )
@@ -37,7 +37,7 @@ public sealed class ExtensionTransformationContext
         this.Contributors = contributors;
         this.ContributorsAddedInStage = contributorsAddedInStage;
         this.SourceCompilation = sourceCompilation;
-        this.SourceCompilation = sourceCompilation;
+        this.StageInitialCompilation = stageInitialCompilation;
         this.FinalCompilation = finalCompilation;
         this.HighLevelStageIndex = highLevelStageIndex;
         this.Diagnostics = diagnostics;
@@ -78,7 +78,7 @@ public sealed class ExtensionTransformationContext
     /// <summary>
     /// Gets the model from which the aspects of this stage started.
     /// </summary>
-    public CompilationModel SourceCompilation { get; }
+    public CompilationModel StageInitialCompilation { get; }
 
     /// <summary>
     /// Gets the model that results from all aspects of this stage.
@@ -118,7 +118,7 @@ public sealed class ExtensionTransformationContext
     /// <remarks>
     /// The value compares the partial compilations and not the models, because all code-model versions of a stage share one partial compilation.
     /// </remarks>
-    public bool IsSourceStage => ReferenceEquals( this.SourceCompilation.PartialCompilation, this.SourceCompilation.PartialCompilation );
+    public bool IsSourceStage => ReferenceEquals( this.StageInitialCompilation.PartialCompilation, this.SourceCompilation.PartialCompilation );
 
     /// <summary>
     /// Gets the sink for the diagnostics and suppressions of the extensions.
