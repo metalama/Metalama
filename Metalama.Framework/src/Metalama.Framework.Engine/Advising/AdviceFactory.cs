@@ -53,14 +53,14 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
     private readonly ObjectReaderFactory _objectReaderFactory;
 
     /// <summary>
-    /// The owner set by <see cref="WithOwner"/>, or <c>null</c> when the contributions are attributed to the owner of the state.
+    /// The owner set by <see cref="WithQueryOwner"/>, or <c>null</c> when the contributions are attributed to the owner of the state.
     /// </summary>
     private readonly IQueryOwner? _ownerOverride;
 
     public T Target { get; }
 
     /// <summary>
-    /// Gets the owner of the contributions made through this factory: the owner set by <see cref="WithOwner"/>, or the aspect builder.
+    /// Gets the owner of the contributions made through this factory: the owner set by <see cref="WithQueryOwner"/>, or the aspect builder.
     /// </summary>
     internal IQueryOwner? Owner => this._ownerOverride ?? this._state.Owner;
 
@@ -206,7 +206,7 @@ internal sealed class AdviceFactory<T> : IAdviser<T>, IAdviceFactoryImpl, IDiagn
             this._ownerOverride );
 
     /// <inheritdoc />
-    public IAdviceFactoryImpl WithOwner( IQueryOwner owner )
+    public IAdviceFactoryImpl WithQueryOwner( IQueryOwner owner )
         => new AdviceFactory<T>(
             this.Target,
             this._state,
