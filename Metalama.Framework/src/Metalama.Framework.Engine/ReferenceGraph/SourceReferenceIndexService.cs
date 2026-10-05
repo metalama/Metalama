@@ -22,7 +22,7 @@ namespace Metalama.Framework.Engine.ReferenceGraph;
 /// <remarks>
 /// <para>
 /// The class holds no state that belongs to a pipeline execution, because several pipelines can use one configuration at the same time. The
-/// index of a pipeline execution is a <see cref="SourceReferenceIndexStage"/>, which the pipeline passes to the extensions through the context
+/// index of a pipeline execution is a <see cref="SourceReferenceIndex"/>, which the pipeline passes to the extensions through the context
 /// of their transforming hook.
 /// </para>
 /// <para>
@@ -50,7 +50,7 @@ public static class SourceReferenceIndexService
     /// The index covers <paramref name="sourceCompilation"/>, which is the source compilation of the pipeline. The declaration roots must
     /// therefore be nodes of the source compilation. The stages that follow a low-level weaver create no index.
     /// </remarks>
-    internal static SourceReferenceIndexStage BeginStage(
+    internal static SourceReferenceIndex Create(
         in ProjectServiceProvider serviceProvider,
         CompilationModel sourceCompilation,
         IEnumerable<SourceIndexRequirements> requirements )
@@ -61,7 +61,7 @@ public static class SourceReferenceIndexService
 
         // The walk is restricted to the declaration roots only when every extension that needs references gave roots.
         var rootsByTree = nonEmptyRequirements.Count > 0 && nonEmptyRequirements.All( r => r.DeclarationRoots != null )
-            ? SourceReferenceIndexStage.MergeRoots( nonEmptyRequirements.SelectMany( r => r.DeclarationRoots!.Value ) )
+            ? SourceReferenceIndex.MergeRoots( nonEmptyRequirements.SelectMany( r => r.DeclarationRoots!.Value ) )
             : null;
 
         // A root of another syntax tree would make a task of the build fail when it gets the semantic model of the tree.
@@ -78,7 +78,7 @@ public static class SourceReferenceIndexService
             }
         }
 
-        return new SourceReferenceIndexStage( serviceProvider, sourceCompilation, options, nonEmptyRequirements.Count > 0, rootsByTree );
+        return new SourceReferenceIndex( serviceProvider, sourceCompilation, options, nonEmptyRequirements.Count > 0, rootsByTree );
     }
 
     /// <summary>

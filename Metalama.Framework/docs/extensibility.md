@@ -363,7 +363,7 @@ A contribution made through a query captures its origin with `ExtensionContribut
 
 ### Shared index of source references
 
-An extension that needs references of the source compilation returns its requirements from `PipelineExtension.GetSourceIndexRequirements( SourceIndexRequirementsContext )` instead of walking the syntax trees itself. `SourceReferenceIndexService.BeginStage` merges the requirements of all extensions into one `SourceReferenceIndexStage` per high-level stage, and the extension reads the index with `ExtensionTransformationContext.SourceReferenceIndex.GetIndexAsync()`. The index is built once, on the first read, so the extensions share the walk and the binding of member bodies.
+An extension that needs references of the source compilation returns its requirements from `PipelineExtension.GetSourceIndexRequirements( SourceIndexRequirementsContext )` instead of walking the syntax trees itself. `SourceReferenceIndexService.BeginStage` merges the requirements of all extensions into one `SourceReferenceIndex` per high-level stage, and the extension reads the index with `ExtensionTransformationContext.SourceReferenceIndex.GetIndexAsync()`. The index is built once, on the first read, so the extensions share the walk and the binding of member bodies.
 
 - The names of the requirements are merged per reference kind, so a name that one extension requests for a kind does not admit references of another kind.
 - When every extension that returned requirements also returned `DeclarationRoots`, the stage walks only those declarations. Otherwise it walks every syntax tree.
