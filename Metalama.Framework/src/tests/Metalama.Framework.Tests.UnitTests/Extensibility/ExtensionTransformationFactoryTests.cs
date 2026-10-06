@@ -139,6 +139,10 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
 
                                      public static int Typed( int x, System.Type type ) => x;
 
+                                     public static int Pair( object a, object b ) => 0;
+
+                                     public static int Boxed( object value ) => 0;
+
                                      public static void Widen( object value ) { }
 
                                      public static int Pick( int x ) => x;
@@ -753,6 +757,65 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
         // The linker output is not formatted, so the test ignores the whitespace.
         Assert.Contains( "Interceptors.Typed(x:1,type:typeof(", GetText( result ).Replace( " ", "" ), StringComparison.Ordinal );
     }
+
+    /// <summary>
+    /// Verifies that an argument given as an instance field of the calling type is generated in the context of the calling member, with
+    /// <c>this</c>.
+    /// </summary>
+    [Fact]
+    public async Task RedirectInvocation_ValueOfInstanceField_Written()
+    {
+        var result = await this.ExecuteAsync(
+            s => s.Factory.RedirectInvocation(
+                s.Origin,
+                new InvocationRedirectionRequest( s.Invocation( "Source.Compute( 1 )" ), s.Target( "Interceptors", "Two" ), CallSiteReceiverMode.Drop )
+                {
+                    Arguments = ImmutableArray.Create(
+                        RedirectedArgument.SourceArgument( 0 ).WithName( "a" ),
+                        RedirectedArgument.Value( s.Compilation.Types.OfName( "C" ).Single().Fields.OfName( "_field" ).Single() ).WithName( "b" ) )
+                } ) );
+
+        // The linker output is not formatted, so the test ignores the whitespace.
+        Assert.Contains( "Interceptors.Two(a:1,b:this._field)", GetText( result ).Replace( " ", "" ), StringComparison.Ordinal );
+    }
+
+    /// <summary>
+    /// Verifies that a constant of an integral type narrower than <see cref="int"/> is cast to its type, so that a parameter of type
+    /// <see cref="object"/> receives a boxed value of that type and not a boxed <see cref="int"/>.
+    /// </summary>
+    [Fact]
+    public async Task RedirectInvocation_ValueOfNarrowConstant_Cast()
+    {
+        var result = await this.ExecuteAsync(
+            s => s.Factory.RedirectInvocation(
+                s.Origin,
+                new InvocationRedirectionRequest( s.Invocation( "Source.Compute( 1 )" ), s.Target( "Interceptors", "Boxed" ), CallSiteReceiverMode.Drop )
+                {
+                    Arguments = ImmutableArray.Create(
+                        RedirectedArgument.Value( Code.TypedConstant.Create( (byte) 7, s.Compilation.Factory.GetSpecialType( Code.SpecialType.Byte ) ) )
+                            .WithName( "value" ) )
+                } ) );
+
+        // The linker output is not formatted or simplified, so the test ignores the whitespace and accepts the qualified name of the type.
+        Assert.Matches( @"Interceptors\.Boxed\(value:\(\((byte|global::System\.Byte)\)7\)\)", GetText( result ).Replace( " ", "" ) );
+    }
+
+    /// <summary>
+    /// Verifies that a source argument of a value type passed twice to parameters of a reference type is refused, because each occurrence would
+    /// be boxed into a different object.
+    /// </summary>
+    [Fact]
+    public async Task RedirectInvocation_ArgumentsUseBoxedSourceValueTwice_Throws()
+        => await this.AssertInvocationRefusedAsync(
+            "Source.Compute( 1 )",
+            "Interceptors",
+            "Pair",
+            CallSiteReceiverMode.Drop,
+            ( _, r ) => new InvocationRedirectionRequest( r.CallSite, r.Target, r.ReceiverMode )
+            {
+                Arguments = ImmutableArray.Create( RedirectedArgument.SourceArgument( 0 ).WithName( "a" ), RedirectedArgument.SourceArgument( 0 ).WithName( "b" ) )
+            },
+            "is passed more than once" );
 
     /// <summary>
     /// Verifies that an argument given as an inspection-only source expression, which cannot be emitted, is refused.

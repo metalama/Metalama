@@ -162,14 +162,14 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
 
                         var sourceArgument = sourceArgumentSyntaxes[sourceIndex];
 
-                        // An argument can be passed more than once only when it is passed by value and its evaluation has no side effect, because
-                        // each occurrence is evaluated.
+                        // An argument can be passed more than once only when it is passed by value and each occurrence gives the same value, because
+                        // each occurrence is evaluated and converted.
                         if ( !usedSourceArguments.Add( sourceIndex )
                              && (!sourceArgument.RefKindKeyword.IsKind( SyntaxKind.None )
-                                 || !IsWithoutSideEffect( GetArgumentValue( operation.SemanticModel!, sourceArgument ) )) )
+                                 || !CanBeDuplicated( operation.SemanticModel!, sourceArgument, receivingParameter )) )
                         {
                             throw new ArgumentException(
-                                $"The argument '{sourceArgument}' of the call site '{callSite}' is passed more than once, which is accepted only for an argument passed by value whose evaluation has no side effect.",
+                                $"The argument '{sourceArgument}' of the call site '{callSite}' is passed more than once, which is accepted only for an argument passed by value whose evaluation has no side effect and gives the same value at each occurrence.",
                                 nameof(request) );
                         }
 
@@ -203,7 +203,8 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
                     default:
                         // Expressions are evaluated after all the values of the source call site. An expression of the code model is generated in the
                         // context of the call site.
-                        var valueSyntax = argument.Expression ?? GetValueExpressionSyntax( argument.ValueExpression!, name, compilation, context );
+                        var valueSyntax = argument.Expression
+                                          ?? GetValueExpressionSyntax( argument.ValueExpression!, name, compilation, operation.SemanticModel!, callSite, context );
 
                         items.Add( (int.MaxValue, new CallSiteArgumentPlanItem( RedirectedArgumentKind.Value, -1, valueSyntax, name ), receivingParameter, null) );
 
@@ -535,16 +536,76 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
         /// </summary>
         /// <exception cref="ArgumentException">The expression cannot be emitted, for instance because it is an inspection-only source
         /// expression.</exception>
-        private static ExpressionSyntax GetValueExpressionSyntax( IExpression expression, string name, CompilationModel compilation, SyntaxGenerationContext context )
+        /// <remarks>
+        /// The expression is generated in the context of the declaration that contains the call site, so that an instance member of the calling type
+        /// is written with <c>this</c>. A constant of an integral type narrower than <see cref="int"/> is cast to its type, because its literal has the
+        /// type <see cref="int"/>, which would change the conversion of the value and the overload resolution at the new call site.
+        /// </remarks>
+        private static ExpressionSyntax GetValueExpressionSyntax(
+            IExpression expression,
+            string name,
+            CompilationModel compilation,
+            SemanticModel semanticModel,
+            SyntaxNode callSite,
+            SyntaxGenerationContext context )
         {
             try
             {
-                return expression.ToTypedExpressionSyntax( new SyntaxSerializationContext( compilation, context, null, null ) ).Syntax;
+                var serializationContext = new SyntaxSerializationContext( compilation, context, null, GetEnclosingDeclaration( semanticModel, callSite, compilation ) );
+                var syntax = expression.ToTypedExpressionSyntax( serializationContext ).Syntax;
+
+                if ( expression is Code.TypedConstant
+                    {
+                        IsNullOrDefault: false, Type: INamedType { SpecialType: Code.SpecialType.Byte or Code.SpecialType.SByte or Code.SpecialType.Int16 or Code.SpecialType.UInt16 } type
+                    } )
+                {
+                    syntax = ParenthesizedExpression( context.SyntaxGenerator.CastExpression( type, syntax ) );
+                }
+
+                return syntax;
             }
             catch ( Exception e ) when ( e is not OperationCanceledException )
             {
                 throw new ArgumentException( $"The value of the argument '{name}' cannot be emitted at the call site: {e.Message}", "request", e );
             }
+        }
+
+        /// <summary>
+        /// Returns the declaration of the code model that contains a call site: the member, or the field, property or event of an initializer. A
+        /// lambda or a local function is attributed to the member that contains it.
+        /// </summary>
+        private static IDeclaration? GetEnclosingDeclaration( SemanticModel semanticModel, SyntaxNode callSite, CompilationModel compilation )
+        {
+            var symbol = semanticModel.GetEnclosingSymbol( callSite.SpanStart );
+
+            while ( symbol is { Kind: SymbolKind.Method } && ((IMethodSymbol) symbol).MethodKind is Microsoft.CodeAnalysis.MethodKind.AnonymousFunction or Microsoft.CodeAnalysis.MethodKind.LocalFunction )
+            {
+                symbol = symbol.ContainingSymbol;
+            }
+
+            return symbol != null && compilation.Factory.TryGetDeclaration( symbol, out var declaration ) ? declaration : null;
+        }
+
+        /// <summary>
+        /// Determines whether an argument of the call site can be passed to a second parameter, which evaluates and converts it a second time.
+        /// </summary>
+        /// <remarks>
+        /// The argument must have no side effect, and the two evaluations must give the same value. An anonymous function or a method group creates a
+        /// new delegate at each evaluation, and a value of a value type that is converted to a reference type is boxed at each evaluation, so these
+        /// arguments are refused, because the two parameters would receive two different objects.
+        /// </remarks>
+        private static bool CanBeDuplicated( SemanticModel semanticModel, ArgumentSyntax argument, IParameter receivingParameter )
+        {
+            var value = GetArgumentValue( semanticModel, argument );
+
+            if ( !IsWithoutSideEffect( value ) || value is IAnonymousFunctionOperation or IMethodReferenceOperation or IDelegateCreationOperation )
+            {
+                return false;
+            }
+
+            var type = semanticModel.GetTypeInfo( argument.Expression ).Type;
+
+            return type is not { IsValueType: true } || receivingParameter.Type.GetSymbol() is { IsValueType: true };
         }
 
         /// <summary>
