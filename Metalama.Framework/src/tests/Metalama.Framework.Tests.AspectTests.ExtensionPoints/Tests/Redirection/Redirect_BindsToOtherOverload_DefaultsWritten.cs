@@ -8,10 +8,10 @@ using Metalama.Framework.Tests.ExtensionPoints;
 using System;
 using System.Linq;
 
-namespace Metalama.Framework.Tests.AspectTests.ExtensionPoints.Tests.Redirection.Redirect_BindsToOtherOverload_Refused;
+namespace Metalama.Framework.Tests.AspectTests.ExtensionPoints.Tests.Redirection.Redirect_BindsToOtherOverload_DefaultsWritten;
 
-// The target has a params parameter, and an overload of the target without it exists. The rewritten call binds to the overload, and a params
-// parameter receives no default value, so the factory refuses the request.
+// The target has an optional parameter, and an overload of the target without it exists. The rewritten call would bind to the overload, so the
+// factory writes the default value of the optional parameter by name, and the call binds to the target.
 
 internal class RedirectAttribute : TypeAspect
 {
@@ -30,7 +30,7 @@ internal static class Interceptors
 {
     public static void Print( string value ) => Console.WriteLine( $"overload {value}" );
 
-    public static void Print( string value, params int[] counts ) => Console.WriteLine( $"intercepted {value} {counts.Length}" );
+    public static void Print( string value, int count = 1 ) => Console.WriteLine( $"intercepted {value} {count}" );
 }
 
 // <target>
