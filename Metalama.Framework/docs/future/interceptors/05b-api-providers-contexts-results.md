@@ -1176,6 +1176,8 @@ Consequences that the documentation states:
 
 #### 5.6.8 Parameter binding and the signature builder
 
+DECIDED on 2026-10-06 (row "Explicit binding through arguments" of section [15.0](15-decisions.md#150-decisions-of-2026-10-02), metalama/Metalama#2126): an existing method is bound with an `args` object of names and values, and not with the binder API of this section. `IInterceptorMethodBinder`, `InterceptorArgument` and `BindRemainingByPosition` are not introduced for existing methods. The signature builder of template interceptors is redesigned by metalama/Metalama#2133.
+
 A result can bind the parameters of its interceptor, and a template result can also adjust the signature of the generated method (decisions PO49, PO62 and PO63, RC62 to RC64). Existing methods and synthesized interceptors do not share one interface, because the signature of an existing method is fixed. Both need parameter binding: each parameter of the interceptor receives its value at a site from a source, `InterceptorArgument`.
 
 - `InterceptorResult.ExistingMethod( method, bind )` passes an `IInterceptorMethodBinder` to `bind`. The binder describes the existing method, and it binds its parameters.

@@ -536,6 +536,11 @@ public sealed partial class ContextualSyntaxGenerator
         {
             return this.FieldReference( field );
         }
+        else if ( typedConstant.RawValue is IType type )
+        {
+            // A constant of type System.Type, as in an attribute argument, is written as typeof.
+            return this.TypeOfExpression( type );
+        }
         else if ( typedConstant.Type is INamedType { TypeKind: TypeKind.Enum } enumType )
         {
             return this.EnumValueExpression( enumType, typedConstant.Value! );

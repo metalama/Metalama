@@ -12,6 +12,7 @@ using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Extensibility.CallSites;
 using Metalama.Framework.Engine.Extensibility.Transformations;
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Engine.Templating;
 using Metalama.Framework.Engine.Pipeline.CompileTime;
 using Metalama.Framework.Services;
 using Metalama.Testing.UnitTesting;
@@ -135,6 +136,8 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
                                      public static void Out( int a ) { }
 
                                      public static int None() => 0;
+
+                                     public static int Typed( int x, System.Type type ) => x;
 
                                      public static void Widen( object value ) { }
 
@@ -684,6 +687,72 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
         // The linker output is not formatted, so the test ignores the whitespace.
         Assert.Contains( "Source.Log(\"message\",origin:\"redirected\")", GetText( result ).Replace( " ", "" ), StringComparison.Ordinal );
     }
+
+    /// <summary>
+    /// Verifies that an argument given as an expression of the code model is generated at the call site.
+    /// </summary>
+    [Fact]
+    public async Task RedirectInvocation_ValueOfCodeModelExpression_Written()
+    {
+        var result = await this.ExecuteAsync(
+            s => s.Factory.RedirectInvocation(
+                s.Origin,
+                new InvocationRedirectionRequest( s.Invocation( "Source.Compute( 1 )" ), s.Target( "Interceptors", "Two" ), CallSiteReceiverMode.Drop )
+                {
+                    Arguments = ImmutableArray.Create(
+                        RedirectedArgument.SourceArgument( 0 ).WithName( "a" ),
+                        RedirectedArgument.Value( Code.TypedConstant.Create( 7, s.Compilation.Factory.GetSpecialType( Code.SpecialType.Int32 ) ) )
+                            .WithName( "b" ) )
+                } ) );
+
+        // The linker output is not formatted, so the test ignores the whitespace.
+        Assert.Contains( "Interceptors.Two(a:1,b:7)", GetText( result ).Replace( " ", "" ), StringComparison.Ordinal );
+    }
+
+    /// <summary>
+    /// Verifies that an argument given as a <see cref="Code.TypedConstant"/> whose value is a type is written as <c>typeof</c>.
+    /// </summary>
+    [Fact]
+    public async Task RedirectInvocation_ValueOfTypeConstant_WrittenAsTypeOf()
+    {
+        var result = await this.ExecuteAsync(
+            s => s.Factory.RedirectInvocation(
+                s.Origin,
+                new InvocationRedirectionRequest( s.Invocation( "Source.Compute( 1 )" ), s.Target( "Interceptors", "Typed" ), CallSiteReceiverMode.Drop )
+                {
+                    Arguments = ImmutableArray.Create(
+                        RedirectedArgument.SourceArgument( 0 ).WithName( "x" ),
+                        RedirectedArgument.Value(
+                                Code.TypedConstant.Create(
+                                    s.Compilation.Factory.GetSpecialType( Code.SpecialType.String ),
+                                    s.Compilation.Factory.GetTypeByReflectionType( typeof(Type) ) ) )
+                            .WithName( "type" ) )
+                } ) );
+
+        // The linker output is not formatted, so the test ignores the whitespace.
+        Assert.Contains( "Interceptors.Typed(x:1,type:typeof(", GetText( result ).Replace( " ", "" ), StringComparison.Ordinal );
+    }
+
+    /// <summary>
+    /// Verifies that an argument given as an inspection-only source expression, which cannot be emitted, is refused.
+    /// </summary>
+    [Fact]
+    public async Task RedirectInvocation_ValueOfInspectionOnlyExpression_Throws()
+        => await this.AssertInvocationRefusedAsync(
+            "Source.Compute( 1 )",
+            "Interceptors",
+            "Two",
+            CallSiteReceiverMode.Drop,
+            ( s, r ) => new InvocationRedirectionRequest( r.CallSite, r.Target, r.ReceiverMode )
+            {
+                Arguments = ImmutableArray.Create(
+                    RedirectedArgument.SourceArgument( 0 ).WithName( "a" ),
+                    RedirectedArgument.Value(
+                            SourceExpressionFactory.CreateInspectionOnly(
+                                r.CallSite.ArgumentList.Arguments[0].Expression,
+                                s.Compilation.Factory.GetSpecialType( Code.SpecialType.Int32 ) ) )
+                        .WithName( "b" ) )
+            } );
 
     /// <summary>
     /// Verifies that a method group that is not converted to a delegate or to a function pointer, here the operand of <c>nameof</c>, is refused.

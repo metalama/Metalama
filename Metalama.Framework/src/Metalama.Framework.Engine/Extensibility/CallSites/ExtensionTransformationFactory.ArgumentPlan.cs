@@ -6,6 +6,8 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Linking;
 using Metalama.Framework.Engine.SyntaxGeneration;
+using Metalama.Framework.Engine.SyntaxSerialization;
+using Metalama.Framework.Engine.Templating.Expressions;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Framework.RunTime;
 using Microsoft.CodeAnalysis;
@@ -31,6 +33,7 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
             IInvocationOperation operation,
             bool isReducedExtensionCall,
             bool hasReceiverValue,
+            CompilationModel compilation,
             SyntaxGenerationContext context )
         {
             var callSite = request.CallSite;
@@ -192,8 +195,11 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
                         break;
 
                     default:
-                        // Expressions are evaluated after all the values of the source call site.
-                        items.Add( (int.MaxValue, new CallSiteArgumentPlanItem( RedirectedArgumentKind.Value, -1, argument.Expression, name ), receivingParameter, null) );
+                        // Expressions are evaluated after all the values of the source call site. An expression of the code model is generated in the
+                        // context of the call site.
+                        var valueSyntax = argument.Expression ?? GetValueExpressionSyntax( argument.ValueExpression!, name, compilation, context );
+
+                        items.Add( (int.MaxValue, new CallSiteArgumentPlanItem( RedirectedArgumentKind.Value, -1, valueSyntax, name ), receivingParameter, null) );
 
                         break;
                 }
@@ -515,6 +521,24 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
             var parameterType = item.Parameter.Type.GetSymbol();
 
             return naturalType == null || parameterType == null || !semanticModel.Compilation.ClassifyConversion( naturalType, parameterType ).IsImplicit;
+        }
+
+        /// <summary>
+        /// Generates the syntax of an expression of the code model that a request passes with <see cref="RedirectedArgument.Value(IExpression)"/>,
+        /// in the context of the call site.
+        /// </summary>
+        /// <exception cref="ArgumentException">The expression cannot be emitted, for instance because it is an inspection-only source
+        /// expression.</exception>
+        private static ExpressionSyntax GetValueExpressionSyntax( IExpression expression, string name, CompilationModel compilation, SyntaxGenerationContext context )
+        {
+            try
+            {
+                return expression.ToTypedExpressionSyntax( new SyntaxSerializationContext( compilation, context, null, null ) ).Syntax;
+            }
+            catch ( Exception e ) when ( e is not OperationCanceledException )
+            {
+                throw new ArgumentException( $"The value of the argument '{name}' cannot be emitted at the call site: {e.Message}", "request", e );
+            }
         }
 
         /// <summary>

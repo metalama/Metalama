@@ -226,7 +226,7 @@ public sealed partial class ExtensionTransformationFactory
                     nameof(request) );
             }
 
-            argumentPlan = CreateArgumentPlan( request, operation, isReducedExtensionCall, hasReceiverValue, context );
+            argumentPlan = CreateArgumentPlan( request, operation, isReducedExtensionCall, hasReceiverValue, this._compilation, context );
         }
 
         var extraArguments = request.ExtraArguments.IsDefaultOrEmpty
