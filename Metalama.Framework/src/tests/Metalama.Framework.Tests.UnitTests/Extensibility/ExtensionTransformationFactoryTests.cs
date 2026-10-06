@@ -69,6 +69,12 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
 
                                      public static void Widen( long value ) { }
 
+                                     public static int Lambda( Func<int> f ) => 0;
+
+                                     public static int Tree( System.Linq.Expressions.Expression<Func<int, int>> e ) => 0;
+
+                                     public static int Gen<T>( T item ) => 0;
+
                                      public static int Make( Instance a, int b ) => b;
 
                                      public static string Join( string a, string b ) => a + b;
@@ -142,6 +148,12 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
                                      public static int Pair( object a, object b ) => 0;
 
                                      public static int Boxed( object value ) => 0;
+
+                                     public static int Mixed( object a, int b ) => 0;
+
+                                     public static int LambdaPair( Func<int> a, Func<int> b ) => 0;
+
+                                     public static int TreePair( System.Linq.Expressions.Expression<Func<int, int>> a, System.Linq.Expressions.Expression<Func<int, int>> b ) => 0;
 
                                      public static void Widen( object value ) { }
 
@@ -276,7 +288,12 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
                                          Source.Many( 33, Next() );
                                          Source.Measure( 34, Next() );
                                          var natural = Source.Two;
+                                         Source.Lambda( () => 1 );
+                                         Source.Lambda( Next );
+                                         Source.Tree( x => x );
                                      }
+
+                                     private void G<T>( T item ) => Source.Gen( item );
 
                                      private unsafe void P()
                                      {
@@ -797,7 +814,7 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
                 } ) );
 
         // The linker output is not formatted or simplified, so the test ignores the whitespace and accepts the qualified name of the type.
-        Assert.Matches( @"Interceptors\.Boxed\(value:\(\((byte|global::System\.Byte)\)7\)\)", GetText( result ).Replace( " ", "" ) );
+        Assert.Matches( @"Interceptors\.Boxed\(value:\((byte|global::System\.Byte)\)7\)", GetText( result ).Replace( " ", "" ) );
     }
 
     /// <summary>
@@ -810,6 +827,62 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
             "Source.Compute( 1 )",
             "Interceptors",
             "Pair",
+            CallSiteReceiverMode.Drop,
+            ( _, r ) => new InvocationRedirectionRequest( r.CallSite, r.Target, r.ReceiverMode )
+            {
+                Arguments = ImmutableArray.Create( RedirectedArgument.SourceArgument( 0 ).WithName( "a" ), RedirectedArgument.SourceArgument( 0 ).WithName( "b" ) )
+            },
+            "is passed more than once" );
+
+    /// <summary>
+    /// Verifies that a source argument passed to a parameter of a value type and to a parameter of a reference type is refused in either order of
+    /// the argument list, because the occurrence received by the reference type is boxed.
+    /// </summary>
+    [Theory]
+    [InlineData( "a", "b" )]
+    [InlineData( "b", "a" )]
+    public async Task RedirectInvocation_ArgumentsUseSourceValueTwice_BoxedOnce_Throws( string first, string second )
+        => await this.AssertInvocationRefusedAsync(
+            "Source.Compute( 1 )",
+            "Interceptors",
+            "Mixed",
+            CallSiteReceiverMode.Drop,
+            ( _, r ) => new InvocationRedirectionRequest( r.CallSite, r.Target, r.ReceiverMode )
+            {
+                Arguments = ImmutableArray.Create( RedirectedArgument.SourceArgument( 0 ).WithName( first ), RedirectedArgument.SourceArgument( 0 ).WithName( second ) )
+            },
+            "is passed more than once" );
+
+    /// <summary>
+    /// Verifies that a source argument of a type parameter without the <c>class</c> constraint, passed twice to parameters of a reference type, is
+    /// refused, because the type argument can be a value type, which is boxed at each occurrence.
+    /// </summary>
+    [Fact]
+    public async Task RedirectInvocation_ArgumentsUseTypeParameterValueTwice_Throws()
+        => await this.AssertInvocationRefusedAsync(
+            "Source.Gen( item )",
+            "Interceptors",
+            "Pair",
+            CallSiteReceiverMode.Drop,
+            ( _, r ) => new InvocationRedirectionRequest( r.CallSite, r.Target, r.ReceiverMode )
+            {
+                Arguments = ImmutableArray.Create( RedirectedArgument.SourceArgument( 0 ).WithName( "a" ), RedirectedArgument.SourceArgument( 0 ).WithName( "b" ) )
+            },
+            "is passed more than once" );
+
+    /// <summary>
+    /// Verifies that a lambda, a method group, or a lambda converted to an expression tree, passed twice, is refused, because each occurrence creates
+    /// a new delegate or a new expression tree.
+    /// </summary>
+    [Theory]
+    [InlineData( "Source.Lambda( () => 1 )", "LambdaPair" )]
+    [InlineData( "Source.Lambda( Next )", "LambdaPair" )]
+    [InlineData( "Source.Tree( x => x )", "TreePair" )]
+    public async Task RedirectInvocation_ArgumentsUseDelegateTwice_Throws( string callSite, string target )
+        => await this.AssertInvocationRefusedAsync(
+            callSite,
+            "Interceptors",
+            target,
             CallSiteReceiverMode.Drop,
             ( _, r ) => new InvocationRedirectionRequest( r.CallSite, r.Target, r.ReceiverMode )
             {

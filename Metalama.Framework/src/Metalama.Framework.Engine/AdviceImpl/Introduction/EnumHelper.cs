@@ -53,10 +53,11 @@ internal static class EnumHelper
 
             // The code model reports the value of every member, including one that the aspect added without a value,
             // so the declaration is written with a value only when the aspect supplied one. A member of an enum read
-            // from source is written the same way.
+            // from source is written the same way. The value is written as a literal without a cast, because a constant
+            // converts implicitly to the underlying type of the enum, including a narrow integral type.
             var equalsValue =
                 builderData.MemberHasExplicitValue[i] && value is { IsInitialized: true, Value: not null }
-                    ? EqualsValueClause( context.SyntaxGenerator.TypedConstant( value.Value ) )
+                    ? EqualsValueClause( SyntaxFactoryEx.LiteralExpression( value.Value.Value! ) )
                     : null;
 
             yield return
