@@ -168,6 +168,7 @@ public static class ServiceProviderFactory
             .WithService( provider => new ClassifyingCompilationContextFactory( provider ) )
             .WithService( provider => new ProjectIntrospectionService( provider ) )
             .WithService( provider => new SourceGeneratorDetectionService( provider ) )
+            .WithService( provider => new ObjectReaderFactoryService( provider ) )
             .WithService( _ => new OptionQueryService() )
             .WithService( provider => new AspectQueryService( provider ) )
             .WithServiceConditional<ILanguageVersionProvider>( provider => new LanguageVersionProvider( provider ) );

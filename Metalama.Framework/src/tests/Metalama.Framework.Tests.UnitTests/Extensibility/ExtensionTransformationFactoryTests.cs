@@ -595,19 +595,40 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
             ( s, r ) => new InvocationRedirectionRequest( r.CallSite, r.Target, r.ReceiverMode ) { ResultCast = s.Compilation.Factory.GetSpecialType( Code.SpecialType.Int32 ) } );
 
     /// <summary>
-    /// Verifies that an argument list that passes the same source argument twice is refused.
+    /// Verifies that an argument list that passes the same source argument twice is refused when the evaluation of the argument can have a side
+    /// effect, here a property, because each occurrence would be evaluated.
     /// </summary>
     [Fact]
-    public async Task RedirectInvocation_ArgumentsUseSourceValueTwice_Throws()
+    public async Task RedirectInvocation_ArgumentsUseSourceValueWithSideEffectTwice_Throws()
         => await this.AssertInvocationRefusedAsync(
-            "Source.Two( 5, 6 )",
+            "Source.Two( Property, 20 )",
             "Interceptors",
             "Two",
             CallSiteReceiverMode.Drop,
             ( _, r ) => new InvocationRedirectionRequest( r.CallSite, r.Target, r.ReceiverMode )
             {
                 Arguments = ImmutableArray.Create( RedirectedArgument.SourceArgument( 0 ), RedirectedArgument.SourceArgument( 0 ) )
-            } );
+            },
+            "is passed more than once" );
+
+    /// <summary>
+    /// Verifies that an argument list that passes the same source argument twice is accepted when the evaluation of the argument has no side
+    /// effect, here a constant, and that the linker writes the argument twice.
+    /// </summary>
+    [Fact]
+    public async Task RedirectInvocation_ArgumentsUseSourceValueWithoutSideEffectTwice_Accepted()
+    {
+        var result = await this.ExecuteAsync(
+            s => s.Factory.RedirectInvocation(
+                s.Origin,
+                new InvocationRedirectionRequest( s.Invocation( "Source.Two( 5, 6 )" ), s.Target( "Interceptors", "Two" ), CallSiteReceiverMode.Drop )
+                {
+                    Arguments = ImmutableArray.Create( RedirectedArgument.SourceArgument( 0 ), RedirectedArgument.SourceArgument( 0 ) )
+                } ) );
+
+        // The linker output is not formatted, so the test ignores the whitespace.
+        Assert.Contains( "Interceptors.Two(a:5,b:5)", GetText( result ).Replace( " ", "" ), StringComparison.Ordinal );
+    }
 
     /// <summary>
     /// Verifies that an argument list that names the same parameter twice is refused.

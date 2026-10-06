@@ -160,12 +160,18 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
                                 nameof(request) );
                         }
 
-                        if ( !usedSourceArguments.Add( sourceIndex ) )
-                        {
-                            throw new ArgumentException( $"The argument {sourceIndex} of the call site '{callSite}' is passed more than once.", nameof(request) );
-                        }
-
                         var sourceArgument = sourceArgumentSyntaxes[sourceIndex];
+
+                        // An argument can be passed more than once only when it is passed by value and its evaluation has no side effect, because
+                        // each occurrence is evaluated.
+                        if ( !usedSourceArguments.Add( sourceIndex )
+                             && (!sourceArgument.RefKindKeyword.IsKind( SyntaxKind.None )
+                                 || !IsWithoutSideEffect( GetArgumentValue( operation.SemanticModel!, sourceArgument ) )) )
+                        {
+                            throw new ArgumentException(
+                                $"The argument '{sourceArgument}' of the call site '{callSite}' is passed more than once, which is accepted only for an argument passed by value whose evaluation has no side effect.",
+                                nameof(request) );
+                        }
 
                         if ( !IsCompatibleRefKind( sourceArgument, receivingParameter ) )
                         {
