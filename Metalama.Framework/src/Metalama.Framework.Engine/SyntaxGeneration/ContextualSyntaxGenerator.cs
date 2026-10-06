@@ -401,11 +401,16 @@ public sealed partial class ContextualSyntaxGenerator
 
     internal ExpressionSyntax EnumValueExpression( INamedTypeSymbol type, object value )
     {
-        var member = type.GetMembers()
+        var members = type.GetMembers()
             .OfType<IFieldSymbol>()
-            .FirstOrDefault( f => f is { IsConst: true, ConstantValue: not null } && f.ConstantValue.Equals( value ) );
+            .Where( f => f is { IsConst: true, ConstantValue: not null } )
+            .Select( f => (f.Name, f.ConstantValue!) )
+            .ToList();
 
-        return this.EnumValueExpression( this.TypeSyntax( type ), value, member?.Name );
+        var isFlags = type.GetAttributes()
+            .Any( a => a.AttributeClass is { Name: nameof(FlagsAttribute) } attributeClass && attributeClass.ContainingNamespace.ToDisplayString() == "System" );
+
+        return this.EnumValueExpression( this.TypeSyntax( type ), value, members, isFlags );
     }
 
     private ExpressionSyntax EnumValueExpression( INamedType type, object value )
@@ -415,28 +420,92 @@ public sealed partial class ContextualSyntaxGenerator
             return this.EnumValueExpression( symbol, value );
         }
 
-        var member = type.Fields
-            .FirstOrDefault( f => f is { Writeability: Writeability.None, ConstantValue.Value: { } constantValue } && constantValue.Equals( value ) );
+        var members = type.Fields
+            .Where( f => f is { Writeability: Writeability.None, ConstantValue.Value: not null } )
+            .Select( f => (f.Name, f.ConstantValue!.Value.Value!) )
+            .ToList();
 
-        return this.EnumValueExpression( this.TypeSyntax( type ), value, member?.Name );
+        var isFlags = type.Attributes.Any( a => a.Type.Name == nameof(FlagsAttribute) && a.Type.ContainingNamespace.FullName == "System" );
+
+        return this.EnumValueExpression( this.TypeSyntax( type ), value, members, isFlags );
     }
 
-    private ExpressionSyntax EnumValueExpression( TypeSyntax type, object value, string? memberName )
+    /// <summary>
+    /// Returns the expression of an enumeration value: the member that has the value, the members of a flags enumeration whose bitwise
+    /// combination gives the value, or a cast of the literal value to the enumeration type.
+    /// </summary>
+    private ExpressionSyntax EnumValueExpression( TypeSyntax type, object value, IReadOnlyList<(string Name, object Value)> members, bool isFlags )
     {
-        if ( memberName == null )
+        var memberName = members.FirstOrDefault( m => m.Value.Equals( value ) ).Name;
+
+        if ( memberName != null )
         {
-            return this.CastExpression( type, LiteralExpression( value ) );
+            return this.EnumMemberExpression( type, memberName );
         }
-        else
+
+        if ( isFlags && DecomposeFlags( members, value ) is { } flagMembers )
         {
-            return
-                MemberAccessExpression(
-                        SyntaxKind.SimpleMemberAccessExpression,
-                        type,
-                        this.IdentifierName( memberName ) )
-                    .WithSimplifierAnnotationIfNecessary( this.SyntaxGenerationContext );
+            var expression = this.EnumMemberExpression( type, flagMembers[0] );
+
+            for ( var i = 1; i < flagMembers.Count; i++ )
+            {
+                expression = BinaryExpression( SyntaxKind.BitwiseOrExpression, expression, this.EnumMemberExpression( type, flagMembers[i] ) );
+            }
+
+            return ParenthesizedExpression( expression ).WithSimplifierAnnotationIfNecessary( this.SyntaxGenerationContext );
         }
+
+        return this.CastExpression( type, LiteralExpression( value ) );
     }
+
+    /// <summary>
+    /// Returns the access to a member of an enumeration type.
+    /// </summary>
+    private ExpressionSyntax EnumMemberExpression( TypeSyntax type, string memberName )
+        => MemberAccessExpression( SyntaxKind.SimpleMemberAccessExpression, type, this.IdentifierName( memberName ) )
+            .WithSimplifierAnnotationIfNecessary( this.SyntaxGenerationContext );
+
+    /// <summary>
+    /// Returns the names of the members of a flags enumeration whose bitwise combination gives a value, in ascending order of value, or
+    /// <c>null</c> when the members do not compose the value.
+    /// </summary>
+    /// <remarks>
+    /// The members are taken greedily in descending order of value, so a member that combines several bits is preferred to the members of its
+    /// bits. A member is taken only when all its bits are in the part of the value that the members taken before do not cover.
+    /// </remarks>
+    private static IReadOnlyList<string>? DecomposeFlags( IReadOnlyList<(string Name, object Value)> members, object value )
+    {
+        var remaining = ToBits( value );
+
+        if ( remaining == 0 )
+        {
+            return null;
+        }
+
+        var selected = new List<(string Name, ulong Bits)>();
+
+        foreach ( var (name, bits) in members.SelectAsArray( m => (m.Name, Bits: ToBits( m.Value )) ).Where( m => m.Bits != 0 ).OrderByDescending( m => m.Bits ) )
+        {
+            if ( (bits & remaining) == bits )
+            {
+                selected.Add( (name, bits) );
+                remaining &= ~bits;
+
+                if ( remaining == 0 )
+                {
+                    break;
+                }
+            }
+        }
+
+        return remaining == 0 && selected.Count > 1 ? selected.OrderBy( m => m.Bits ).Select( m => m.Name ).ToList() : null;
+    }
+
+    /// <summary>
+    /// Returns the bits of a value of the underlying type of an enumeration.
+    /// </summary>
+    private static ulong ToBits( object value )
+        => value is ulong unsignedValue ? unsignedValue : unchecked( (ulong) Convert.ToInt64( value, System.Globalization.CultureInfo.InvariantCulture ) );
 
     private ExpressionSyntax FieldReference( IField field )
     {
