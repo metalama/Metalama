@@ -424,8 +424,8 @@ public static class AspectHelper
 
             using var domain = testContext.Domain;
 
-            var aspectsProjectWithV1 = CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, aspectsWithV1 ).AssertNotNull().RootProject;
-            var aspectsProjectWithV2 = CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, aspectsWithV2 ).AssertNotNull().RootProject;
+            var aspectsProjectWithV1 = CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, aspectsWithV1, cancellationToken: testContext.CancellationToken ).AssertNotNull().RootProject;
+            var aspectsProjectWithV2 = CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, aspectsWithV2, cancellationToken: testContext.CancellationToken ).AssertNotNull().RootProject;
 
             var primitivesProjectV1 = aspectsProjectWithV1.References.Single( p => p.RunTimeIdentity.Name == primitivesAssemblyName );
             var primitivesProjectV2 = aspectsProjectWithV2.References.Single( p => p.RunTimeIdentity.Name == primitivesAssemblyName );
