@@ -164,7 +164,7 @@ internal sealed class SystemHookProvider : IMethodInterceptorProvider, ITemplate
 {
     public InterceptorResult GetInterceptor( MethodInterceptionContext context )
     {
-        var hooks = TypeFactory.GetNamedType( typeof(SystemHooks) );
+        var hooks = typeof(SystemHooks).AsINamedType();
         var hook = hooks.Properties.OfName( context.InterceptedMethod.Name ).SingleOrDefault();
 
         if ( hook == null )
