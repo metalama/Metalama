@@ -1163,19 +1163,22 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
             } );
 
     /// <summary>
-    /// Verifies that a method group whose delegate type is its natural type is not redirected to an overloaded method group, which has no
-    /// natural type.
+    /// Verifies that a method group whose delegate type is its natural type is redirected to an overloaded method group, which has no natural
+    /// type, by an explicit delegate creation of the delegate type of the source.
     /// </summary>
     [Fact]
-    public async Task RedirectMethodReference_NaturalTypeOfOverloadedTarget_Throws()
-        => await this.ExecuteAsync(
-            s => Assert.Throws<ArgumentException>(
-                () => s.Factory.RedirectMethodReference(
-                    s.Origin,
-                    new MethodReferenceRedirectionRequest(
-                        s.Node<MemberAccessExpressionSyntax>( "Source.Two", n => n.Parent.IsKind( SyntaxKind.EqualsValueClause ) ),
-                        s.Target( "Interceptors", "Over2", m => m.Parameters[0].Type.SpecialType == Code.SpecialType.Int32 ),
-                        CallSiteReceiverMode.Drop ) ) ) );
+    public async Task RedirectMethodReference_NaturalTypeOfOverloadedTarget_WritesDelegateCreation()
+    {
+        var result = await this.ExecuteAsync(
+            s => s.Factory.RedirectMethodReference(
+                s.Origin,
+                new MethodReferenceRedirectionRequest(
+                    s.Node<MemberAccessExpressionSyntax>( "Source.Two", n => n.Parent.IsKind( SyntaxKind.EqualsValueClause ) ),
+                    s.Target( "Interceptors", "Over2", m => m.Parameters[0].Type.SpecialType == Code.SpecialType.Int32 ),
+                    CallSiteReceiverMode.Drop ) ) );
+
+        Assert.Matches( @"=new[^;]*\([^;]*Interceptors\.Over2\);", GetText( result ).Replace( " ", "" ) );
+    }
 
     /// <summary>
     /// Verifies that a source argument is not passed to a parameter whose reference kind differs from the reference kind of the argument, except a

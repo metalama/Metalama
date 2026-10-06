@@ -418,8 +418,8 @@ public sealed partial class ExtensionTransformationFactory
     }
 
     /// <summary>
-    /// Verifies that the method group of the target, written in place of the source method group, converts to the same delegate or function
-    /// pointer type and binds to the target method, and throws an <see cref="ArgumentException"/> otherwise.
+    /// Returns <c>null</c> when the method group of the target, written in place of the source method group, converts to the same delegate or
+    /// function pointer type and binds to the target method, and otherwise the message that describes the difference.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -432,7 +432,7 @@ public sealed partial class ExtensionTransformationFactory
     /// when the method group is in a context that has no speculative semantic model, for instance an attribute argument.
     /// </para>
     /// </remarks>
-    private static void VerifyMethodReferenceBinding(
+    private static string? GetMethodReferenceBindingError(
         SemanticModel semanticModel,
         ExpressionSyntax node,
         IMethodReferenceOperation operation,
@@ -441,30 +441,38 @@ public sealed partial class ExtensionTransformationFactory
     {
         if ( targetMethod.GetSymbol() is not { } targetSymbol )
         {
-            return;
+            return null;
         }
 
         if ( !TryBindInContext( semanticModel, node, callee, out var speculativeModel, out var newNode ) )
         {
-            return;
+            return null;
         }
 
+        // The rewritten expression is a method group, or an explicit delegate creation whose argument is the method group.
         var newOperation = speculativeModel.GetOperation( newNode );
 
-        if ( newOperation is IMethodReferenceOperation { Method: { } boundMethod } newMethodReference
-             && SymbolEqualityComparer.Default.Equals( boundMethod.OriginalDefinition, targetSymbol.OriginalDefinition )
-             && SymbolEqualityComparer.Default.Equals( newMethodReference.Parent?.Type, operation.Parent?.Type ) )
+        var newMethodReference = newOperation switch
         {
-            return;
+            IMethodReferenceOperation methodReference => methodReference,
+            IDelegateCreationOperation { Target: IMethodReferenceOperation methodReference } => methodReference,
+            _ => null
+        };
+
+        var convertedType = newOperation is IDelegateCreationOperation delegateCreation ? delegateCreation.Type : newMethodReference?.Parent?.Type;
+
+        if ( newMethodReference is { Method: { } boundMethod }
+             && SymbolEqualityComparer.Default.Equals( boundMethod.OriginalDefinition, targetSymbol.OriginalDefinition )
+             && SymbolEqualityComparer.Default.Equals( convertedType, operation.Parent?.Type ) )
+        {
+            return null;
         }
 
         // The message is also embedded in the diagnostics of the clients of the factory, so it does not repeat the method group.
-        var message = newOperation is IMethodReferenceOperation { Method: { } otherMethod }
-                      && !SymbolEqualityComparer.Default.Equals( otherMethod.OriginalDefinition, targetSymbol.OriginalDefinition )
+        return newMethodReference is { Method: { } otherMethod }
+               && !SymbolEqualityComparer.Default.Equals( otherMethod.OriginalDefinition, targetSymbol.OriginalDefinition )
             ? $"The rewritten method group binds to '{otherMethod.ToDisplayString( SymbolDisplayFormat.CSharpShortErrorMessageFormat )}' instead of '{targetMethod}'."
             : $"The rewritten method group does not convert to '{operation.Parent?.Type?.ToDisplayString( SymbolDisplayFormat.CSharpShortErrorMessageFormat )}' with '{targetMethod}'.";
-
-        throw new ArgumentException( message, "request" );
     }
 
     /// <summary>
@@ -645,7 +653,22 @@ public sealed partial class ExtensionTransformationFactory
         var context = this._compilation.CompilationContext.GetSyntaxGenerationContext( this._syntaxGenerationOptions, node );
         var callee = CreateStaticCallee( request.Target, request.TypeArguments, context ).WithAdditionalAnnotations( annotation );
 
-        VerifyMethodReferenceBinding( semanticModel, node, operation, callee, request.Target.Method );
+        // A method group of an overloaded target can lose the natural type of the source method group (var d = M;). The delegate creation is
+        // then written explicitly with the delegate type of the source, which selects the target and keeps the type of the expression.
+        if ( GetMethodReferenceBindingError( semanticModel, node, operation, callee, request.Target.Method ) != null
+             && operation.Parent is IDelegateCreationOperation { Type: { } delegateType } )
+        {
+            callee = ObjectCreationExpression(
+                    context.SyntaxGenerator.TypeSyntax( delegateType ),
+                    ArgumentList( SingletonSeparatedList( Argument( callee ) ) ),
+                    null )
+                .WithAdditionalAnnotations( annotation );
+        }
+
+        if ( GetMethodReferenceBindingError( semanticModel, node, operation, callee, request.Target.Method ) is { } bindingError )
+        {
+            throw new ArgumentException( bindingError, nameof(request) );
+        }
 
         this.AddRedirection(
             node,
