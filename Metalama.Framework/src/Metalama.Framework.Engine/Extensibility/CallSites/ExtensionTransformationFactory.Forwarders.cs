@@ -328,9 +328,11 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
                 ? TriviaList( Trivia( NullableDirectiveTrivia( Token( SyntaxKind.EnableKeyword ), true ) ) )
                 : default;
 
+            // The class and its methods are hidden from IntelliSense, because the methods are extension methods in the global namespace and would
+            // otherwise be proposed on every receiver type.
             var classDeclaration = ClassDeclaration(
-                default,
-                TokenList( Token( leadingTrivia, SyntaxKind.InternalKeyword, default ), Token( SyntaxKind.StaticKeyword ) ),
+                SingletonList( CreateEditorBrowsableNeverAttributeList( leadingTrivia ) ),
+                TokenList( Token( SyntaxKind.InternalKeyword ), Token( SyntaxKind.StaticKeyword ) ),
                 SyntaxFactoryEx.SafeIdentifier( className ),
                 null,
                 null,
@@ -428,7 +430,7 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
                     SingletonSeparatedList( AttributeArgument( ParseExpression( "global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining" ) ) ) ) );
 
             return MethodDeclaration(
-                SingletonList( AttributeList( SingletonSeparatedList( attribute ) ) ),
+                List( [AttributeList( SingletonSeparatedList( attribute ) ), CreateEditorBrowsableNeverAttributeList()] ),
                 TokenList( Token( SyntaxKind.PublicKeyword ), Token( SyntaxKind.StaticKeyword ) ),
                 definition.ReturnsVoid ? PredefinedType( Token( SyntaxKind.VoidKeyword ) ) : syntaxGenerator.TypeSyntax( definition.ReturnType ),
                 null,
@@ -542,6 +544,22 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
         /// <param name="Name">The name of the forwarder.</param>
         /// <param name="Signature">The name and the parameters, which identify the forwarder in its class.</param>
         /// <param name="Declaration">The declaration of the forwarder.</param>
+        /// <summary>
+        /// Creates the attribute list <c>[EditorBrowsable( EditorBrowsableState.Never )]</c>, which hides a forwarder from IntelliSense.
+        /// </summary>
+        /// <param name="leadingTrivia">The trivia before the opening bracket, or <c>default</c>.</param>
+        private static AttributeListSyntax CreateEditorBrowsableNeverAttributeList( SyntaxTriviaList leadingTrivia = default )
+            => AttributeList(
+                Token( leadingTrivia, SyntaxKind.OpenBracketToken, default ),
+                null,
+                SingletonSeparatedList(
+                    Attribute(
+                        ParseName( "global::System.ComponentModel.EditorBrowsable" ),
+                        AttributeArgumentList(
+                            SingletonSeparatedList(
+                                AttributeArgument( ParseExpression( "global::System.ComponentModel.EditorBrowsableState.Never" ) ) ) ) ) ),
+                Token( SyntaxKind.CloseBracketToken ) );
+
         private sealed record CallSiteForwarder( string Name, string Signature, MethodDeclarationSyntax Declaration );
     }
 }
