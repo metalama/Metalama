@@ -69,7 +69,7 @@ public interface IAwaitInterceptorProvider
 
 #### 5.5.1 InterceptionContext
 
-> Superseded in part by the decision "Interception contexts, type selector and implicit calls" of section 15.0 (2026-10-06): the members that describe the call site, the receiver and the method reference moved to `ICallSite`, `IInvocationReceiver` and `IMethodReference`, `Destination` is removed, and `NonInterceptableReason` is not nullable.
+> Superseded in part by the decision "Interception contexts, method selector and implicit calls" of section 15.0 (2026-10-06): the members that describe the call site, the receiver and the method reference moved to `ICallSite`, `IInvocationReceiver` and `IMethodReference`, `Destination` is removed, and `NonInterceptableReason` is not nullable.
 
 ```csharp
 namespace Metalama.Extensions.Interceptors;
@@ -290,7 +290,7 @@ Call sites with a limitation are presented to the interceptor (RC5). Method grou
 
 #### 5.5.2 MethodInterceptionContext and InvocationArgument
 
-> Superseded in part by the decision "Interception contexts, type selector and implicit calls" of section 15.0 (2026-10-06): the members that describe the call site, the receiver and the method reference moved to `ICallSite`, `IInvocationReceiver` and `IMethodReference`, `Destination` is removed, and `NonInterceptableReason` is not nullable.
+> Superseded in part by the decision "Interception contexts, method selector and implicit calls" of section 15.0 (2026-10-06): the members that describe the call site, the receiver and the method reference moved to `ICallSite`, `IInvocationReceiver` and `IMethodReference`, `Destination` is removed, and `NonInterceptableReason` is not nullable.
 
 ```csharp
 /// <summary>

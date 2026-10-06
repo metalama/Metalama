@@ -447,7 +447,7 @@ A flags enumeration follows the precedent of `ReferenceValidationOptions` (P27 `
 
 #### 5.3.6 Fabric and query surface
 
-> Superseded in part by the decision "Interception contexts, type selector and implicit calls" of section 15.0 (2026-10-06): the declaring types are given by the union `TypeSelector`, each surface has one overload per provider form, and the overloads with a single name are removed.
+> Superseded in part by the decision "Interception contexts, method selector and implicit calls" of section 15.0 (2026-10-06): the intercepted methods are given by `MethodSelector` (`Named` and `AllMethodsOf`), and each surface has one overload per provider form.
 
 Fabrics call these methods on their amender, because `IAmender<T>` derives from `IQuery<T>` (FW27 `Fabrics\IAmender.cs:63`). Aspects can call them on `IAspectBuilder<T>.Outbound` (FW27 `Aspects\IAspectBuilder.cs:240`).
 
@@ -690,7 +690,7 @@ Overload resolution was checked shape by shape. The first parameter after the re
 
 #### 5.3.7 Aspect surface through IAdviser
 
-> Superseded in part by the decision "Interception contexts, type selector and implicit calls" of section 15.0 (2026-10-06): the declaring types are given by the union `TypeSelector`, each surface has one overload per provider form, and the overloads with a single name are removed.
+> Superseded in part by the decision "Interception contexts, method selector and implicit calls" of section 15.0 (2026-10-06): the intercepted methods are given by `MethodSelector` (`Named` and `AllMethodsOf`), and each surface has one overload per provider form.
 
 ```csharp
 namespace Metalama.Extensions.Interceptors;
@@ -807,7 +807,7 @@ No factory overload exists on `IAdviser<T>`, because an adviser has a single tar
 
 #### 5.3.8 ITypeAmender overloads
 
-> Superseded in part by the decision "Interception contexts, type selector and implicit calls" of section 15.0 (2026-10-06): the declaring types are given by the union `TypeSelector`, each surface has one overload per provider form, and the overloads with a single name are removed.
+> Superseded in part by the decision "Interception contexts, method selector and implicit calls" of section 15.0 (2026-10-06): the intercepted methods are given by `MethodSelector` (`Named` and `AllMethodsOf`), and each surface has one overload per provider form.
 
 EXISTING: `ITypeAmender` implements both `IAmender<INamedType>`, which is an `IQuery<INamedType>`, and `IAdviser<INamedType>` (FW27 `Fabrics\ITypeAmender.cs:34`). A call such as `amender.InterceptMethods( typeof(File), ["ReadAllText"], provider )` would find two candidates with equally good receiver conversions (CS0121). The framework solves the same problem for `AddAspect` with `ITypeAmender` overloads (FW27 `Aspects\AdviserExtensions.cs:1944-1967`).
 
