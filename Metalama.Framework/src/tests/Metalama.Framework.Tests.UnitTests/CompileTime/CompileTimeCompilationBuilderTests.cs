@@ -363,6 +363,91 @@ class B
             }
         }
 
+        /// <summary>
+        /// Verifies that the compile-time identity of a project changes when the version of a referenced project changes
+        /// and its source does not.
+        /// </summary>
+        /// <remarks>
+        /// The compiled assembly of the referencing project contains a reference to the compile-time assembly name of each
+        /// referenced project. When the hash of the referencing project ignored the version of a referenced project, a
+        /// stale compiled assembly was served from the cache after the referenced package was upgraded. That assembly
+        /// still referenced the compile-time assembly of the previous version, which was not loaded, and the build failed
+        /// with a <see cref="FileNotFoundException"/>. See issue #1722.
+        /// </remarks>
+        [Fact]
+        public void ReferencedVersionChangesCompileTimeIdentity()
+        {
+            const string primitivesCode = @"
+using Metalama.Framework.Aspects;
+[assembly: CompileTime]
+public static class AspectUtilities
+{
+    public static bool IsResultTask( this string typeName ) => typeName.StartsWith( ""Task"" );
+}
+";
+
+            const string aspectsCode = @"
+using Metalama.Framework.Aspects;
+[assembly: CompileTime]
+public static class AspectHelper
+{
+    public static bool IsResultTask( string typeName ) => typeName.IsResultTask();
+}
+";
+
+            // The version is declared in a syntax tree without compile-time code, as the generated AssemblyInfo.cs file is,
+            // so that both versions have the same source hash.
+            static Dictionary<string, string> GetPrimitivesCode( string version )
+                => new()
+                {
+                    ["AspectUtilities.cs"] = primitivesCode,
+                    ["AssemblyInfo.cs"] = $"[assembly: System.Reflection.AssemblyVersion( \"{version}\" )]"
+                };
+
+            using var testContext = this.CreateTestContext();
+
+            var guid = RandomIdGenerator.GenerateId();
+            var primitivesAssemblyName = "test_Primitives_" + guid;
+            var primitivesV1 = testContext.CreateCSharpCompilation( GetPrimitivesCode( "1.0.0" ), assemblyName: primitivesAssemblyName );
+            var primitivesV2 = testContext.CreateCSharpCompilation( GetPrimitivesCode( "2.0.0" ), assemblyName: primitivesAssemblyName );
+
+            // The source hash includes the file paths, so each compilation is given the same file name.
+            var aspectsWithV1 = testContext.CreateCSharpCompilation(
+                new Dictionary<string, string> { ["AspectHelper.cs"] = aspectsCode },
+                additionalReferences: [primitivesV1.ToMetadataReference()],
+                assemblyName: "test_Aspects_" + guid );
+
+            var aspectsWithV2 = testContext.CreateCSharpCompilation(
+                new Dictionary<string, string> { ["AspectHelper.cs"] = aspectsCode },
+                additionalReferences: [primitivesV2.ToMetadataReference()],
+                assemblyName: "test_Aspects_" + guid );
+
+            using var domain = testContext.Domain;
+
+            var aspectsProjectWithV1 = CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, aspectsWithV1 ).AssertNotNull().RootProject;
+            var aspectsProjectWithV2 = CompileTimeProjectRepository.Create( domain, testContext.ServiceProvider, aspectsWithV2 ).AssertNotNull().RootProject;
+
+            var primitivesProjectV1 = aspectsProjectWithV1.References.Single( p => p.RunTimeIdentity.Name == primitivesAssemblyName );
+            var primitivesProjectV2 = aspectsProjectWithV2.References.Single( p => p.RunTimeIdentity.Name == primitivesAssemblyName );
+
+            // The scenario requires two versions of the referenced project with the same source.
+            Assert.Equal( primitivesProjectV1.Hash, primitivesProjectV2.Hash );
+            Assert.NotEqual( primitivesProjectV1.CompileTimeIdentity.Name, primitivesProjectV2.CompileTimeIdentity.Name );
+
+            // The referencing project has the same source in both cases, so only the referenced version can change its identity.
+            Assert.Equal( aspectsProjectWithV1.Hash, aspectsProjectWithV2.Hash );
+            Assert.NotEqual( aspectsProjectWithV1.CompileTimeIdentity.Name, aspectsProjectWithV2.CompileTimeIdentity.Name );
+
+            // The compiled assembly of the referencing project must reference the compile-time assembly of the version that is loaded.
+            var helperMethod = aspectsProjectWithV2.GetType( "AspectHelper" ).GetMethod( "IsResultTask" )!;
+
+            Assert.Contains(
+                helperMethod.DeclaringType!.Assembly.GetReferencedAssemblies(),
+                a => a.Name == primitivesProjectV2.CompileTimeIdentity.Name );
+
+            Assert.Equal( true, helperMethod.Invoke( null, ["Task<int>"] ) );
+        }
+
         [Fact]
         public void CanCreateCompileTimeProjectWithInvalidRunTimeCode()
         {
