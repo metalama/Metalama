@@ -142,6 +142,10 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
 
                                      public static int Pick( int x, int y = 0 ) => x;
 
+                                     public static int PickAll( int x ) => x;
+
+                                     public static int PickAll( int x, params int[] others ) => x;
+
                                      public static int GetPoint( this Point p ) => 1;
 
                                      public static int GetPointByRef( ref Point p ) => 1;
@@ -805,8 +809,26 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
             ( _, r ) => new InvocationRedirectionRequest( r.CallSite, r.Target, r.ReceiverMode ) { Arguments = ImmutableArray<RedirectedArgument>.Empty } );
 
     /// <summary>
-    /// Verifies that a request is refused when the rewritten call binds to an overload of the target, here an overload without the optional
-    /// parameter of the target.
+    /// Verifies that the default value of an optional parameter of the target is written by name when the rewritten call would otherwise bind to
+    /// an overload of the target without that parameter.
+    /// </summary>
+    [Fact]
+    public async Task RedirectInvocation_BindsToOtherOverload_WritesDefault()
+    {
+        var result = await this.ExecuteAsync(
+            s => s.Factory.RedirectInvocation(
+                s.Origin,
+                new InvocationRedirectionRequest(
+                    s.Invocation( "Source.Compute( 1 )" ),
+                    s.Target( "Interceptors", "Pick", m => m.Parameters.Count == 2 ),
+                    CallSiteReceiverMode.Drop ) ) );
+
+        Assert.Contains( "Interceptors.Pick(1,y:0)", GetText( result ).Replace( " ", "" ), StringComparison.Ordinal );
+    }
+
+    /// <summary>
+    /// Verifies that a request is refused when the rewritten call binds to an overload of the target and no default value can be written, here
+    /// because the parameter that the overload lacks is a <c>params</c> parameter.
     /// </summary>
     [Fact]
     public async Task RedirectInvocation_BindsToOtherOverload_Throws()
@@ -818,10 +840,10 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
                         s.Origin,
                         new InvocationRedirectionRequest(
                             s.Invocation( "Source.Compute( 1 )" ),
-                            s.Target( "Interceptors", "Pick", m => m.Parameters.Count == 2 ),
+                            s.Target( "Interceptors", "PickAll", m => m.Parameters.Count == 2 ),
                             CallSiteReceiverMode.Drop ) ) );
 
-                Assert.Contains( "binds to 'Interceptors.Pick(int)'", exception.Message, StringComparison.Ordinal );
+                Assert.Contains( "binds to 'Interceptors.PickAll(int)'", exception.Message, StringComparison.Ordinal );
             } );
 
     /// <summary>
