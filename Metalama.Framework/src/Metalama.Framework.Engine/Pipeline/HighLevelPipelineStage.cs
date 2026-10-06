@@ -52,6 +52,7 @@ namespace Metalama.Framework.Engine.Pipeline
                 compilation,
                 input.ContributorSources,
                 pipelineConfiguration,
+                this.IsFirstHighLevelStage,
                 cancellationToken );
 
             var pipelineStepsResult = await pipelineStepsState.ExecuteAsync( cancellationToken );

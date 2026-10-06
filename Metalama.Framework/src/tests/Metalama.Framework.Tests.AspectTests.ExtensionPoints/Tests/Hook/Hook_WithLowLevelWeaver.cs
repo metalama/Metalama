@@ -16,7 +16,7 @@ namespace Metalama.Framework.Tests.AspectTests.ExtensionPoints.Tests.Hook.Hook_W
 
 // A low-level weaver executes between the two aspects. The transforming hook runs once, on the source compilation, so it receives the
 // registration of the aspect that executes before the weaver. The registration of the aspect that executes after the weaver is not processed,
-// and no diagnostic is reported for it.
+// so LAMA0091 is reported for that aspect.
 
 [RequireAspectWeaver( "Metalama.Framework.Tests.AspectTests.ExtensionPoints.Tests.Hook.Hook_WithLowLevelWeaver.AspectWeaver" )]
 internal class WeaverAspect : TypeAspect { }

@@ -602,6 +602,18 @@ namespace Metalama.Framework.Engine.Diagnostics
         // compile-time build of the reference, which is what issue #1185 reported and which names a number rather than
         // the reference that requires it. The language version is therefore clamped, and this warning names the
         // reference and both versions. See issue #1928.
+        // The extensions process the contributions of the first high-level stage only, because they run once per pipeline execution, before any
+        // low-level aspect weaver.
+        internal static readonly DiagnosticDefinition<string> ExtensionContributionAfterLowLevelWeaver =
+            new(
+                "LAMA0091",
+                _category,
+                "The aspect '{0}' makes an extension contribution, such as an interceptor registration, but it executes after a low-level aspect "
+                + "weaver, and contributions are processed only before the first low-level aspect weaver. Order the aspect before the aspects that "
+                + "require a low-level weaver.",
+                Error,
+                "An extension contribution cannot be made after a low-level aspect weaver." );
+
         internal static readonly DiagnosticDefinition<(AssemblyIdentity ReferencedAssembly, string RequiredVersion, string SupportedVersion)>
             CompileTimeLanguageVersionTooHigh =
                 new(

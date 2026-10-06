@@ -144,7 +144,19 @@ internal sealed class ExecuteAspectLayerPipelineStep : PipelineStep
                     currentCompilation = newCompilation;
 
                     this.Parent.AddAspectSources( aspectResult.Contributors.OfKind( ContributorKind.AspectSource ), true, cancellationToken );
-                    this.Parent.AddExtendedContributors( aspectResult.Contributors.Extensions() );
+                    // The extensions process only the contributions of the first high-level stage. A contribution made by an aspect that executes
+                    // after a low-level aspect weaver would be ignored, so it is reported as an error.
+                    if ( this.Parent.IsFirstHighLevelStage )
+                    {
+                        this.Parent.AddExtendedContributors( aspectResult.Contributors.Extensions() );
+                    }
+                    else if ( aspectResult.Contributors.Extensions().Any() )
+                    {
+                        this.Parent.ReportDiagnostic(
+                            GeneralDiagnosticDescriptors.ExtensionContributionAfterLowLevelWeaver.CreateRoslynDiagnostic(
+                                aspect.AspectInstance.TargetDeclaration.GetTarget( currentCompilation ).GetDiagnosticLocation(),
+                                aspect.AspectInstance.AspectClass.ShortName ) );
+                    }
 
                     await this.Parent.AddOptionsSourcesAsync(
                         aspectResult.Contributors.OfKind( ContributorKind.HierarchicalOptionsSource ),
