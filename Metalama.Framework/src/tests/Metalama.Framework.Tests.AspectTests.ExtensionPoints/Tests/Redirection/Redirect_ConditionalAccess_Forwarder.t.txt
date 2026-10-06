@@ -1,0 +1,3 @@
+null
+intercepted hello b
+intercepted hello c

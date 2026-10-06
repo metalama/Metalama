@@ -41,12 +41,23 @@ internal sealed partial class LinkerInjectionStep
         private readonly SyntaxTree _syntaxTreeForGlobalAttributes;
         private readonly LexicalScopeFactory _lexicalScopeFactory;
 
+        /// <summary>
+        /// The call-site redirections of the syntax tree, keyed by source node, or <c>null</c> when the tree has none.
+        /// </summary>
+        private readonly IReadOnlyDictionary<SyntaxNode, CallSiteRedirection>? _callSiteRedirections;
+
+        /// <summary>
+        /// The redirections that the visit applied. A rewriter processes a single tree on a single thread, so the set needs no synchronization.
+        /// </summary>
+        private readonly HashSet<CallSiteRedirection> _appliedCallSiteRedirections = new();
+
         public Rewriter(
             LinkerInjectionStep parent,
             TransformationCollection syntaxTransformationCollection,
             CompilationModel compilation,
             SyntaxTree syntaxTreeForGlobalAttributes,
-            LexicalScopeFactory lexicalScopeFactory )
+            LexicalScopeFactory lexicalScopeFactory,
+            IReadOnlyDictionary<SyntaxNode, CallSiteRedirection>? callSiteRedirections = null )
         {
             this._parent = parent;
             this._compilation = compilation;
@@ -54,7 +65,50 @@ internal sealed partial class LinkerInjectionStep
             this._semanticModelProvider = compilation.RoslynCompilation.GetSemanticModelProvider();
             this._syntaxTreeForGlobalAttributes = syntaxTreeForGlobalAttributes;
             this._lexicalScopeFactory = lexicalScopeFactory;
+            this._callSiteRedirections = callSiteRedirections is { Count: > 0 } ? callSiteRedirections : null;
         }
+
+        /// <summary>
+        /// Determines whether the visit applied a redirection.
+        /// </summary>
+        public bool IsApplied( CallSiteRedirection redirection ) => this._appliedCallSiteRedirections.Contains( redirection );
+
+        /// <summary>
+        /// Applies the redirection of a source node, if any, to the node that results from the visit of its children.
+        /// </summary>
+        /// <param name="originalNode">The source node, which is the key of the redirection.</param>
+        /// <param name="visitedNode">The node after the visit of its children.</param>
+        private SyntaxNode? ApplyCallSiteRedirection( SyntaxNode originalNode, SyntaxNode? visitedNode )
+        {
+            if ( this._callSiteRedirections != null
+                 && visitedNode is ExpressionSyntax visitedExpression
+                 && this._callSiteRedirections.TryGetValue( originalNode, out var redirection ) )
+            {
+                this._appliedCallSiteRedirections.Add( redirection );
+
+                return redirection.Rewrite( visitedExpression );
+            }
+
+            return visitedNode;
+        }
+
+        public override SyntaxNode? VisitInvocationExpression( InvocationExpressionSyntax node )
+            => this.ApplyCallSiteRedirection( node, base.VisitInvocationExpression( node ) );
+
+        public override SyntaxNode? VisitIdentifierName( IdentifierNameSyntax node )
+            => this.ApplyCallSiteRedirection( node, base.VisitIdentifierName( node ) );
+
+        public override SyntaxNode? VisitGenericName( GenericNameSyntax node ) => this.ApplyCallSiteRedirection( node, base.VisitGenericName( node ) );
+
+        public override SyntaxNode? VisitMemberAccessExpression( MemberAccessExpressionSyntax node )
+            => this.ApplyCallSiteRedirection( node, base.VisitMemberAccessExpression( node ) );
+
+        /// <summary>
+        /// Visits a variable declarator of a field or an event field, so that the call sites of its initializer are rewritten. The declarators are
+        /// visited only when the tree has redirections, because the rest of the rewriter does not change them.
+        /// </summary>
+        private VariableDeclaratorSyntax VisitDeclaratorForCallSites( VariableDeclaratorSyntax variable )
+            => this._callSiteRedirections == null ? variable : (VariableDeclaratorSyntax) this.Visit( variable )!;
 
         private RefFactory RefFactory => this._compilation.RefFactory;
 
@@ -381,6 +435,12 @@ internal sealed partial class LinkerInjectionStep
 
             var baseList = node.BaseList;
             var parameterList = node.GetParameterList();
+
+            // The arguments of a primary constructor base type can contain call sites to rewrite.
+            if ( this._callSiteRedirections != null && baseList != null )
+            {
+                baseList = (BaseListSyntax) this.Visit( baseList )!;
+            }
 
             this.ApplyMemberLevelTransformationsToPrimaryConstructor(
                 node,
@@ -1203,11 +1263,13 @@ internal sealed partial class LinkerInjectionStep
             Invariant.AssertNot( typeDeclaration.GetParameterList() == null );
 
             parameterList = this.AppendParameters( typeDeclaration.GetParameterList()!, memberLevelTransformations.Parameters, syntaxGenerationContext );
-            baseList = typeDeclaration.BaseList;
+
+            // The base list given by the caller is kept, because its arguments may already contain rewritten call sites.
+            baseList ??= typeDeclaration.BaseList;
 
             if ( memberLevelTransformations.Arguments.Length > 0 )
             {
-                var baseTypeSyntax = typeDeclaration.BaseList.AssertNotNull().Types[0];
+                var baseTypeSyntax = baseList.AssertNotNull().Types[0];
 
                 BaseTypeSyntax newBaseTypeSyntax;
 
@@ -1235,7 +1297,7 @@ internal sealed partial class LinkerInjectionStep
                 }
 
                 // TODO: This may be slower than replacing specific index.
-                baseList = typeDeclaration.BaseList.ReplaceNode( baseTypeSyntax, newBaseTypeSyntax );
+                baseList = baseList.ReplaceNode( baseTypeSyntax, newBaseTypeSyntax );
             }
         }
 
@@ -1451,7 +1513,7 @@ internal sealed partial class LinkerInjectionStep
                         continue;
                     }
 
-                    var declaration = VariableDeclaration( node.Declaration.Type, SingletonSeparatedList( variable ) );
+                    var declaration = VariableDeclaration( node.Declaration.Type, SingletonSeparatedList( this.VisitDeclaratorForCallSites( variable ) ) );
                     var attributes = this.RewriteDeclarationAttributeLists( variable, originalNode.AttributeLists, originalNode );
 
                     var fieldDeclaration = FieldDeclaration(
@@ -1488,7 +1550,9 @@ internal sealed partial class LinkerInjectionStep
                         continue;
                     }
 
-                    rewrittenVariables.Add( variable );
+                    var rewrittenVariable = this.VisitDeclaratorForCallSites( variable );
+                    anyChangeToVariables |= rewrittenVariable != variable;
+                    rewrittenVariables.Add( rewrittenVariable );
                 }
 
                 if ( anyChangeToVariables )
@@ -1847,7 +1911,7 @@ internal sealed partial class LinkerInjectionStep
                 // If we have changes in attributes and several members, we have to split them.
                 foreach ( var variable in originalNode.Declaration.Variables )
                 {
-                    var declaration = VariableDeclaration( node.Declaration.Type, SingletonSeparatedList( variable ) );
+                    var declaration = VariableDeclaration( node.Declaration.Type, SingletonSeparatedList( this.VisitDeclaratorForCallSites( variable ) ) );
 
                     var attributes = this.RewriteDeclarationAttributeLists( variable, originalNode.AttributeLists, node );
 
@@ -1869,6 +1933,17 @@ internal sealed partial class LinkerInjectionStep
             {
                 var rewrittenAttributes = this.RewriteDeclarationAttributeLists( originalNode.Declaration.Variables[0], originalNode.AttributeLists, node );
                 node = this.ReplaceAttributes( node, rewrittenAttributes );
+
+                if ( this._callSiteRedirections != null )
+                {
+                    var rewrittenVariables = originalNode.Declaration.Variables.SelectAsArray( this.VisitDeclaratorForCallSites );
+
+                    // The declaration is rebuilt only when a declarator changed, as for a field, so that an unchanged declaration keeps its separators.
+                    if ( !rewrittenVariables.SequenceEqual( originalNode.Declaration.Variables ) )
+                    {
+                        node = node.WithDeclaration( node.Declaration.WithVariables( SeparatedList( rewrittenVariables ) ) );
+                    }
+                }
 
                 return [node];
             }

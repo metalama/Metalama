@@ -330,7 +330,9 @@ composing it with `WithCancellation` rather than handing it to a helper that onl
 ## Testing it
 
 `Metalama.Framework.Tests.UnitTests/DesignTime/Pipeline/MemoryLeaks/` contains the suite that guards these rules.
-Add to it whenever a change touches something the rules cover.
+Add to it whenever a change touches something the rules cover. The harness (`MemoryLeakAssert`, `GarbageCollectionHelper`,
+`RetentionPathFinder` and `DesignTimeEditingSimulator`) is in `Metalama.Framework.Tests.UnitTestHelpers/MemoryLeaks/`,
+so that the test projects of Metalama.Premium can use it.
 
 The shape of a test is: build a project, run the design-time pipeline, apply a number of edits to **run-time** code,
 force a full collection, and assert on the liveness of weak references to the versions that were superseded.

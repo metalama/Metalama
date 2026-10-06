@@ -1,0 +1,41 @@
+// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+// SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
+// Refer to LICENSE.md in the repository root for complete details.
+
+using Metalama.Framework.Aspects;
+using Metalama.Framework.Code;
+using Metalama.Framework.Tests.ExtensionPoints;
+using System;
+using System.Linq;
+
+namespace Metalama.Framework.Tests.AspectTests.ExtensionPoints.Tests.Redirection.Redirect_BindsToOtherOverload_Refused;
+
+// The target has a params parameter, and an overload of the target without it exists. The rewritten call binds to the overload, and a params
+// parameter receives no default value, so the factory refuses the request.
+
+internal class RedirectAttribute : TypeAspect
+{
+    public override void BuildAspect( IAspectBuilder<INamedType> builder )
+        => builder.TestRedirectCalls(
+            "Print",
+            TypeFactory.GetNamedType( typeof(Interceptors) ).Methods.OfName( "Print" ).Single( m => m.Parameters.Count == 2 ) );
+}
+
+internal static class Source
+{
+    public static void Print( string value ) => Console.WriteLine( $"source {value}" );
+}
+
+internal static class Interceptors
+{
+    public static void Print( string value ) => Console.WriteLine( $"overload {value}" );
+
+    public static void Print( string value, params int[] counts ) => Console.WriteLine( $"intercepted {value} {counts.Length}" );
+}
+
+// <target>
+[Redirect]
+internal static class Program
+{
+    public static void TestMain() => Source.Print( "a" );
+}

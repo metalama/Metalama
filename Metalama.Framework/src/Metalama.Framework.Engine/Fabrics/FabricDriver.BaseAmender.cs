@@ -22,7 +22,7 @@ namespace Metalama.Framework.Engine.Fabrics;
 
 internal abstract partial class FabricDriver
 {
-    protected abstract class BaseAmender<T> : Query<T, int>, IAmender<T>, IQueryOwner
+    protected abstract class BaseAmender<T> : Query<T, int>, IAmender<T>, IQueryOwner, IExtensionContributionOriginSource
         where T : class, IDeclaration
     {
         // The Target property is protected (and not exposed to the API) because
@@ -130,5 +130,22 @@ internal abstract partial class FabricDriver
         string IDiagnosticSource.DiagnosticSourceDescription => $"fabric {this._fabricInstance.Fabric.GetType().FullName}";
 
         public abstract void AddContributor( IPipelineContributor contributor );
+
+        /// <summary>
+        /// Captures the origin of a contribution made through this amender.
+        /// </summary>
+        /// <remarks>
+        /// The amender of a project or namespace fabric belongs to the pipeline configuration, which is long-lived at design time, so the
+        /// origin holds no aspect instance and no template class instance (see issue #1799). The code that the contribution produces is
+        /// attributed to the layer of the top-level fabric aggregate aspect class.
+        /// </remarks>
+        public virtual ExtensionContributionOrigin CaptureContributionOrigin()
+            => new(
+                this.AspectPredecessor,
+                ((IDiagnosticSource) this).DiagnosticSourceDescription,
+                TemplateProvider.FromInstance( this._fabricInstance.Fabric ),
+                null,
+                new AspectLayerId( FabricAggregateAspectClass.AspectClassName ),
+                null );
     }
 }

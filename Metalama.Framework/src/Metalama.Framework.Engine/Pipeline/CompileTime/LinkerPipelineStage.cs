@@ -9,6 +9,7 @@ using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Linking;
 using Metalama.Framework.Engine.Options;
+using Metalama.Framework.Engine.ReferenceGraph;
 using Metalama.Framework.Engine.Pipeline.DesignTime;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.Threading;
@@ -39,8 +40,7 @@ namespace Metalama.Framework.Engine.Pipeline.CompileTime
             var initialCompilation = pipelineStepsResult.FirstCompilation;
             var finalCompilation = pipelineStepsResult.LastCompilation;
 
-            // TODO: validators should not run here but after all pipeline stages. If there are several high-level stages, they may run several times.
-            // Run the validators.
+            // Run the validators. They run in every high-level stage.
             var extensions = pipelineConfiguration.ServiceProvider.GetRequiredService<PipelineExtensionProvider>().Extensions;
             var pipelineContributorsResult = ExtensionPipelineContributorsResult.Empty;
 
@@ -55,6 +55,37 @@ namespace Metalama.Framework.Engine.Pipeline.CompileTime
                         cancellationToken ) );
             }
 
+            // Run the extensions that produce transformations, after the validators and before the linker. They run once per pipeline execution, on
+            // the source compilation, before any low-level aspect weaver. The shared index of the source references is created for them.
+            var extensionDiagnostics = new UserDiagnosticSink( pipelineConfiguration.ServiceProvider );
+            var extensionLinkerInput = ExtensionLinkerInput.Empty;
+
+            if ( this.IsFirstHighLevelStage )
+            {
+                var sourceIndexRequirementsContext = new SourceIndexRequirementsContext( pipelineStepsResult.ExtensionContributors );
+
+                using var sourceReferenceIndex = SourceReferenceIndexService.Create(
+                    pipelineConfiguration.ServiceProvider,
+                    input.FirstCompilationModel.AssertNotNull(),
+                    extensions.Select( e => e.GetSourceIndexRequirements( sourceIndexRequirementsContext ) ).ToList() );
+
+                var extensionTransformationContext = new ExtensionTransformationContext(
+                    pipelineConfiguration,
+                    pipelineStepsResult.ExtensionContributors,
+                    input.FirstCompilationModel.AssertNotNull(),
+                    finalCompilation,
+                    extensionDiagnostics,
+                    sourceReferenceIndex,
+                    input.AspectLayers );
+
+                foreach ( var extension in extensions )
+                {
+                    await extension.ExecuteTransformingContributorsAsync( extensionTransformationContext, cancellationToken );
+                }
+
+                extensionLinkerInput = extensionTransformationContext.CompleteTransformationFactory();
+            }
+
             // Run the linker.
             var linker = new AspectLinker(
                 pipelineConfiguration.ServiceProvider,
@@ -63,7 +94,8 @@ namespace Metalama.Framework.Engine.Pipeline.CompileTime
                     pipelineStepsResult.LastCompilation,
                     pipelineStepsResult.Transformations,
                     input.AspectLayers,
-                    new CallSiteAdviceInfo( input.ContributorSources.ReferencesContainInitializableTypes ) ) );
+                    new CallSiteAdviceInfo( input.ContributorSources.ReferencesContainInitializableTypes ),
+                    extensionLinkerInput ) );
 
             var linkerResult = await linker.ExecuteAsync( cancellationToken );
 
@@ -91,7 +123,8 @@ namespace Metalama.Framework.Engine.Pipeline.CompileTime
                     input.Configuration,
                     input.Diagnostics.Concat( pipelineStepsResult.Diagnostics )
                         .Concat( linkerResult.Diagnostics )
-                        .Concat( pipelineContributorsResult.Diagnostics ),
+                        .Concat( pipelineContributorsResult.Diagnostics )
+                        .Concat( extensionDiagnostics.ToImmutable() ),
                     new PipelineContributorSources( input.ContributorSources.Contributors.Add( pipelineStepsResult.OverflowAspectSource ) ),
                     input.ExternallyInheritableAspects.AddRange(
                         pipelineStepsResult.InheritableAspectInstances.SelectAsReadOnlyCollection( i => new InheritableAspectInstance( i ) ) ),

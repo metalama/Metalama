@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.DesignTime.Pipeline.Diff;
+using Metalama.Framework.Tests.UnitTestHelpers.MemoryLeaks;
 using Metalama.Framework.Tests.UnitTestHelpers.TestClasses;
 using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis;

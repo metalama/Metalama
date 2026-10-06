@@ -1,0 +1,5 @@
+evaluating a
+evaluating b
+intercepted a
+evaluating c
+intercepted c

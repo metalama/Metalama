@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.CodeModel.Helpers;
+using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.SyntaxSerialization;
 using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Roslyn;
@@ -15,21 +16,68 @@ using TypeKind = Microsoft.CodeAnalysis.TypeKind;
 
 namespace Metalama.Framework.Engine.Templating.Expressions;
 
-internal sealed class SourceUserExpression : SyntaxUserExpression, ISourceExpression
+internal sealed class SourceUserExpression : SyntaxUserExpression, ISourceExpression, IContextlessExpression
 {
-    public SourceUserExpression( ExpressionSyntax expression, IType type, bool isReferenceable = false, bool isAssignable = false ) : base(
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SourceUserExpression"/> class.
+    /// </summary>
+    /// <param name="expression">The source syntax of the expression.</param>
+    /// <param name="type">The type of the expression.</param>
+    /// <param name="isReferenceable">A value indicating whether the expression can be used in <c>ref</c> or <c>out</c> situations.</param>
+    /// <param name="isAssignable">A value indicating whether the expression can be assigned. It is ignored when <paramref name="isInspectionOnly"/>
+    /// is <c>true</c>.</param>
+    /// <param name="isInspectionOnly">A value indicating whether the expression can only be inspected by compile-time code.</param>
+    public SourceUserExpression(
+        ExpressionSyntax expression,
+        IType type,
+        bool isReferenceable = false,
+        bool isAssignable = false,
+        bool isInspectionOnly = false ) : base(
         expression,
         type,
         isReferenceable,
-        isAssignable ) { }
+        isAssignable && !isInspectionOnly )
+    {
+        this.IsInspectionOnly = isInspectionOnly;
+    }
+
+    /// <summary>
+    /// Gets a value indicating whether the expression can only be inspected by compile-time code. Such an expression cannot be emitted in
+    /// generated code: <see cref="ToSyntax"/> throws an exception that reports LAMA0297.
+    /// </summary>
+    public bool IsInspectionOnly { get; }
 
     public object AsSyntaxNode => this.Expression;
+
+    /// <summary>
+    /// Returns the source syntax for the textual conversion of the expression, which can be emitted in generated code, so it applies the same
+    /// refusal as <see cref="ToSyntax"/>.
+    /// </summary>
+    ExpressionSyntax IContextlessExpression.ToSyntax()
+    {
+        this.ThrowIfInspectionOnly();
+
+        return this.Expression;
+    }
+
+    /// <summary>
+    /// Throws a <see cref="DiagnosticException"/> that reports LAMA0297 when the expression is only available for inspection.
+    /// </summary>
+    private void ThrowIfInspectionOnly()
+    {
+        if ( this.IsInspectionOnly )
+        {
+            throw TemplatingDiagnosticDescriptors.InspectionOnlyExpressionCannotBeEmitted.CreateException( this.AsString );
+        }
+    }
 
     // When targetType differs from this.Type, we add a cast to this.Type (not to targetType) because the original
     // source expression may be target-typed in its original context. The cast ensures the expression retains its
     // semantics when placed in a different context. The output type is always this.Type, so no GetSyntaxType override is needed.
     protected override ExpressionSyntax ToSyntax( SyntaxSerializationContext syntaxSerializationContext, IType? targetType = null )
     {
+        this.ThrowIfInspectionOnly();
+
         if ( targetType?.Equals( this.Type ) != true )
         {
             return syntaxSerializationContext.SyntaxGenerator.CastExpression( this.Type, this.Expression );
@@ -65,7 +113,9 @@ internal sealed class SourceUserExpression : SyntaxUserExpression, ISourceExpres
         if ( expressionKind.IsLiteralExpression )
         {
             var literal = (LiteralExpressionSyntax) expression;
-            var value = literal.Token.Value;
+
+            // The value of the token of the default literal is the text of the keyword, so the literal is processed as the null literal.
+            var value = expressionKind == SyntaxKind.DefaultLiteralExpression ? null : literal.Token.Value;
 
             if ( value != null )
             {

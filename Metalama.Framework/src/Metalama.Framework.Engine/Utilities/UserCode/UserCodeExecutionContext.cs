@@ -174,6 +174,22 @@ public class UserCodeExecutionContext : IExecutionContextInternal
         => new( serviceProvider, description, compilation, diagnostics: diagnostics );
 
     /// <summary>
+    /// Creates a context for the execution of user code with a compilation, whose exceptions are reported on a given declaration.
+    /// </summary>
+    /// <param name="serviceProvider">The service provider of the project.</param>
+    /// <param name="description">The description of the user code, used in the messages of the exceptions it throws.</param>
+    /// <param name="compilation">The compilation that the user code sees.</param>
+    /// <param name="diagnostics">The sink of the diagnostics, including the exceptions of the user code.</param>
+    /// <param name="targetDeclaration">The declaration on which an exception of the user code is reported.</param>
+    public static UserCodeExecutionContext CreateInstance(
+        ProjectServiceProvider serviceProvider,
+        UserCodeDescription description,
+        CompilationModel compilation,
+        IDiagnosticAdder? diagnostics,
+        IDeclaration targetDeclaration )
+        => new( serviceProvider, description, compilation, targetDeclaration: targetDeclaration, diagnostics: diagnostics );
+
+    /// <summary>
     /// Creates a <see cref="UserCodeExecutionContext"/> that inherits nothing from the context that happens to be
     /// current, as opposed to <see cref="CreateInstance(ProjectServiceProvider,UserCodeDescription,CompilationModel,IDiagnosticAdder)"/>,
     /// which fills in its target declaration, meta API and syntax builder from that context.

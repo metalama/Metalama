@@ -4,6 +4,8 @@
 
 ### 5.4 Interceptor provider interfaces
 
+> Superseded in part by the decision "Provider factories, event subscriptions as a use kind, and the call-site member" of section 15.0 (2026-10-06): `MethodInterceptorProvider.FromDelegate` (formerly `Create`), `MethodInterceptorProvider.ExistingMethod` and `MethodInterceptorProvider.Template` create the providers that most registrations need.
+
 An interceptor provider is the user object that chooses the interceptor of each call site. The interceptor itself is the method that the rewritten call site calls (section [0.4](00-conventions.md#04-terminology-aligned-with-roslyn-interceptors)).
 
 ```csharp
@@ -68,6 +70,10 @@ public interface IAwaitInterceptorProvider
 ### 5.5 Interception contexts
 
 #### 5.5.1 InterceptionContext
+
+> Superseded in part by the decision "Interception contexts, method selector and implicit calls" of section 15.0 (2026-10-06): the members that describe the call site, the receiver and the method reference moved to `ICallSite`, `IInvocationReceiver` and `IMethodReference`, `Destination` is removed, and `NonInterceptableReason` is not nullable.
+>
+> Superseded in part by the decision "Provider factories, event subscriptions as a use kind, and the call-site member" of section 15.0 (2026-10-06): `ICallSite.Origin` is `IMember Member`, `CallingType`, `CallingNamespace` and `DiagnosticLocation` are removed, and `IMethodReference` is removed in favor of the use kind `MethodUseKind.EventSubscription`.
 
 ```csharp
 namespace Metalama.Extensions.Interceptors;
@@ -287,6 +293,10 @@ public enum NonInterceptableReason
 Call sites with a limitation are presented to the interceptor (RC5). Method groups converted to a delegate or to a function pointer are presented as method-reference sites (section [5.3.11](05a-api-registration.md#5311-kinds-of-method-use)). Uses of property and event accessors are presented as accessor sites (section [5.3.13](05a-api-registration.md#5313-accessors), [6.2.11](06a-call-site-model.md#6211-accessor-sites)). Call sites that are not calls in any observable sense are never presented: calls and method groups in expression trees (including query expressions over `IQueryable`), `nameof`, method groups that are not converted, delegate invocations, local-function calls, function-pointer invocations, dynamic invocations, dynamic awaits, calls that the compiler omits (`[Conditional]` without the symbol, partial methods without implementation), calls that do not bind, calls in compile-time code, and `await foreach` and `await using`. Section [6.2.2](06a-call-site-model.md#622-silent-refusals) gives the detection rules.
 
 #### 5.5.2 MethodInterceptionContext and InvocationArgument
+
+> Superseded in part by the decision "Interception contexts, method selector and implicit calls" of section 15.0 (2026-10-06): the members that describe the call site, the receiver and the method reference moved to `ICallSite`, `IInvocationReceiver` and `IMethodReference`, `Destination` is removed, and `NonInterceptableReason` is not nullable.
+>
+> Superseded in part by the decision "Provider factories, event subscriptions as a use kind, and the call-site member" of section 15.0 (2026-10-06): `ICallSite.Origin` is `IMember Member`, `CallingType`, `CallingNamespace` and `DiagnosticLocation` are removed, and `IMethodReference` is removed in favor of the use kind `MethodUseKind.EventSubscription`.
 
 ```csharp
 /// <summary>
@@ -1137,7 +1147,7 @@ These rules implement R9 and R13 for `InterceptorResult.ExistingMethod` and for 
 - When the return type differs and is implicitly convertible, the engine inserts a cast when the value of the call site is used, so that the rewritten expression keeps the original type. When the value is not used, no cast is inserted, because a cast is not a valid statement expression (CS0201). An existing method whose return type differs cannot intercept a call site inside a conditional access, because a cast cannot be placed inside a `?.` chain (section [6.6](06b-signatures-and-validation.md#66-signature-validation-existing-methods-and-adjusted-signatures-r9), E14).
 - For an await expression, the call site is rewritten according to the rules of section [7.5](07-await-interception.md#75-the-adaptive-rewrite-challenge-to-b8-adopted), which depend on the type returned by the method. The method can return another awaitable type than the awaited expression. The result of awaiting its return value must convert implicitly to the result type of the await, and a cast restores the original result type when the value is used (section [7.6.1](07-await-interception.md#761-result-compatibility)).
 - For an accessor site, the method follows the accessor shapes of section [6.4.13](06b-signatures-and-validation.md#6413-accessor-sites) and rule E19 of section [6.6](06b-signatures-and-validation.md#66-signature-validation-existing-methods-and-adjusted-signatures-r9). A `void` setter interceptor is admissible only at sites whose value is not used. A setter interceptor that returns a type implicitly convertible to the property type is admissible at every site.
-- A call site located inside the body of the existing method that intercepts it is reported with LAMA1018 (RC28), because the rewrite would make the method call itself.
+- A call site located inside the body of the existing method that intercepts it is reported with LAMA1018 (RC28), because the rewrite would make the method call itself. Superseded by the decision "Conversions of invocations, optional parameters, exclusions and flags enumerations" of section 15.0 (2026-10-06): LAMA1018 is removed, and `[ExcludeInterceptors]` excludes the code of a declaration.
 - Violations are reported with LAMA1013 at the call site, and the call site is left unchanged.
 
 #### 5.6.5 Rules for template results

@@ -178,6 +178,12 @@ internal class TestResult : IDisposable
 
     public string? ProgramOutput { get; set; }
 
+    /// <summary>
+    /// Gets or sets a value indicating whether the runner tried to execute the program of the test: the output compilation was emitted and the
+    /// test does not disable the execution. The program is executed when it also declares the expected main method.
+    /// </summary>
+    internal bool IsProgramExecutionAttempted { get; set; }
+
     public MetalamaTestContext? MetalamaTestContext { get; set; }
 
     internal async Task AddInputDocumentAsync( Document document, string? path )

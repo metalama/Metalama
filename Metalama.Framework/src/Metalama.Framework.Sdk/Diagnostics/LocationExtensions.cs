@@ -19,6 +19,7 @@ public static class LocationExtensions
     public static Location? GetDiagnosticLocation( this IDiagnosticLocation? location )
         => location switch
         {
+            null => null,
             ISdkDeclaration sdkDeclaration => sdkDeclaration.DiagnosticLocation,
             LocationWrapper wrapper => wrapper.DiagnosticLocation,
             SourceReference sourceReference => sourceReference.NodeOrTokenInternal switch

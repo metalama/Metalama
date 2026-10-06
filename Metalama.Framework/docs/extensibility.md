@@ -343,6 +343,69 @@ public class MyPipelineExtension : PipelineExtension
 }
 ```
 
+### Contributions made through an adviser
+
+An extension method of `IAdviser<T>` that registers a contribution gets the engine state behind the adviser with `AdviserExtensibility.GetExtensionContext` (namespace `Metalama.Framework.Engine.Advising`). The returned `AdviserExtensionContext` gives:
+
+- `QueryOwner`: the `IQueryOwner` to which the contributor is added. It is the aspect builder for an aspect, including the advisers that `With` and the introduction advice return, and the amender for a type fabric.
+- `AspectTarget` and `TemplateProvider`. The template provider takes `WithTemplateProvider` into account.
+- `ThrowIfDisposed()`, which throws when the aspect or the fabric has finished executing.
+- `CreateQuery( declaration )`, a query of one declaration owned by `QueryOwner`.
+- `CaptureOrigin()`, which returns an `ExtensionContributionOrigin`: the predecessor, the description and the default template provider of the contribution, and the aspect layer to which the code that it produces is attributed.
+
+A contribution made through a query captures its origin with `ExtensionContributionOrigin.Capture( queryImpl.Owner )`. The origin of a project or namespace fabric holds no aspect instance, because the fabric amender belongs to the long-lived pipeline configuration.
+
+`AspectBuilderState.AddContributor` throws after `BuildAspect` has completed, because a contributor added later would not be part of the result of the aspect.
+
+### Transforming hook
+
+`PipelineExtension.ExecuteTransformingContributorsAsync( ExtensionTransformationContext, CancellationToken )` runs once per pipeline execution, on the source compilation, after `ExecutePipelineContributorsAsync` and before the linker. It runs at compile time and in the preview, live-template and introspection scenarios, and not at design time. The context gives the contributors (`Contributors`), the source compilation (`SourceCompilation`), the compilation that results from the aspects (`FinalCompilation`), `SourceCompilationWithFinalAspects`, which binds the source compilation to the aspects, and a diagnostic sink.
+
+The extension hooks do not support low-level aspect weavers. They run before any weaver, and a contribution made by an aspect that executes after a weaver is not processed. No diagnostic is reported for such a contribution.
+
+### Source expressions for compile-time code
+
+An extension can give compile-time code an expression of the source code without letting it be emitted. `SourceExpressionFactory.CreateInspectionOnly( expression, type )` (namespace `Metalama.Framework.Engine.Templating`) returns an `ISourceExpression` whose `AsSyntaxNode`, `AsString`, `AsFullString`, `AsTypedConstant` and `Type` behave as for any source expression, and which is not assignable. Emitting it in generated code reports LAMA0297, during a template expansion and through the textual conversion of expressions, because the expression is already evaluated at its original location: a second evaluation can have side effects, and it can reference local variables and parameters that do not exist in the generated code.
+
+In the other direction, `SourceExpressionExtensions.GetSourceSyntax()` (SDK, namespace `Metalama.Framework.Engine.CodeModel`) returns the source `ExpressionSyntax` of an expression that wraps source syntax, for instance the initializer of a source field, or `null` for a generated expression, a parameter or a `TypedConstant`.
+
+### Design-time hook
+
+`PipelineExtension.ExecuteDesignTimePipelineContributorsAsync( DesignTimeContributorsContext, CancellationToken )` runs once per execution of the design-time pipeline, on the source compilation, when there are extension contributors. The context gives the contributors (`Contributors`), the source compilation (`SourceCompilation`) and the compilation that results from the aspects (`FinalCompilation`).
+
+As the transforming hook at compile time, the hook runs before any low-level aspect weaver, and a contributor added by an aspect that executes after a weaver is not processed. The transitive contributors that the hook returns are kept in the design-time result.
+
+### Project-local design-time results
+
+By default, the design-time form of a transitive contributor (`ITransitivePipelineContributor.ToDesignTime`) is exported to the projects that reference the project: it is written to the design-time transitive manifest, and its presence makes the pipeline produce the manifest. A kind declared with `ContributorKind.IsProjectTransitive = false`, which is a project-local kind, keeps its results in the project that produced them. Only `PipelineExtension.AnalyzeSemanticModel` of that project sees them, `ToTransitiveAspectManifestExtension` is never called for them, and they do not count in `DesignTimeAspectPipelineResultExtensionCollection.HasExportedContent`, which decides whether the manifest is produced. A kind that is `IsDesignTimeValidator` must be project-transitive; the `init` accessors throw `InvalidOperationException` for a project-local validator kind.
+
+### Shared index of source references
+
+An extension that needs references of the source compilation returns its requirements from `PipelineExtension.GetSourceIndexRequirements( SourceIndexRequirementsContext )` instead of walking the syntax trees itself. `SourceReferenceIndexService.Create` merges the requirements of all extensions into one `SourceReferenceIndex` per pipeline execution, and the extension reads the index with `ExtensionTransformationContext.SourceReferenceIndex.GetIndexAsync()`. `GetSourceIndexRequirements` is called once per pipeline execution. The index is built once, on the first read, so the extensions share the walk and the binding of member bodies. The pipeline disposes the index when the linker has completed.
+
+- The names of the requirements are merged per reference kind, so a name that one extension requests for a kind does not admit references of another kind.
+- When every extension that returned requirements also returned `DeclarationRoots`, the index covers only those declarations. Otherwise it covers every syntax tree. A default `DeclarationRoots` array means every syntax tree.
+- At design time, `SourceReferenceIndexService.GetDesignTimeIndex( serviceProvider, semanticModel, extensions, cancellationToken )` returns one index per `SemanticModel`, built with `DesignTimeAspectPipelineResultExtensionCollection.IndexOptions`. These options add the requirements of the design-time results of the project that implement `IDesignTimeReferenceIndexRequirementsProvider` to `Options`, which are the options that referencing projects merge. A result that implements this interface should have a project-local kind (`ContributorKind.IsProjectTransitive = false`), so that the result itself is not exported to referencing projects either.
+- `SourceReferenceIndexService` is a static class and holds no state of a pipeline execution, because several pipelines can use one configuration at the same time. It is not a project service: a project service that stored the service provider of an execution would retain the compilation of that execution. The validators of Metalama.Premium still build their own index; their migration to the shared index is tracked as item F20 of the interceptor design.
+
+### Redirection of call sites
+
+The transforming hook can replace source call sites through `ExtensionTransformationContext.TransformationFactory` (namespace `Metalama.Framework.Engine.Extensibility.CallSites`, with `ExtensionTemplateServices` in `Metalama.Framework.Engine.Extensibility.Transformations`). The engine creates one `ExtensionTransformationFactory` per pipeline execution, shares it between the extensions, and completes it after the last extension. A request made after completion throws `InvalidOperationException`.
+
+- `RedirectInvocation( origin, InvocationRedirectionRequest )` replaces an invocation of an ordinary or extension method by an invocation of a static method. `CallSiteReceiverMode` defines how the receiver of the source call is passed: it is dropped, or passed as the first argument, by value, by `ref` or by `in`. An ordinary call site is written in the fully qualified static form. A call site in a conditional access, `a?.M( x )`, accepts only `FirstArgument`: the factory writes it as a call of a forwarder, `a?.F( x )`, so that the receiver stays in the conditional access and the compiler keeps its short-circuit. The forwarder is an extension method with the parameters of the target, whose body calls the target with its fully qualified name. The linker generates the forwarders in one internal static class of the global namespace per project, `__MetalamaCallSites_<assembly name>`, in the syntax tree `MetalamaCallSites.cs`, so no directive is added to the file of the call site. The factory refuses the request when the receiver converts to the first parameter by another conversion than an identity, reference or boxing conversion, when a top-level class cannot access the target, when the target is introduced by an aspect, and when the name of the forwarder already designates a member on the receiver at the call site.
+- `InvocationRedirectionRequest.Arguments` gives the complete argument list of the new call with `RedirectedArgument.SourceReceiver`, `RedirectedArgument.SourceArgument( parameterOrdinal )` and `RedirectedArgument.Value( expression )`. The linker writes every argument with its parameter name and in the order of the source call, so the arguments are evaluated in their original order without temporary variables. A source argument that the new list omits must not be passed by reference. When it can have a side effect, the linker evaluates it in its source order with the run-time helper `Metalama.Framework.RunTime.CallSiteHelper`: `DropBefore( D, next )` before the next argument, or `DropAfter( previous, D )` after the previous one when the next one cannot hold it. Several consecutive dropped values are passed as one tuple, and the type arguments are written when the kept value has no natural type. The factory refuses the request when no adjacent argument is passed by value, or when a dropped or kept value has a ref struct or pointer type. `RedirectedArgument.SourceArgument( i ).WithCast( type )` writes a source argument passed by value as `(T)(argument)`, which keeps the conversion of the source call site when the parameter of the new target has another type. When the call site passes a `params` argument in expanded form, `RedirectedArgument.SourceArgument` of its parameter packs the elements into one collection, `[e1, e2]`, or `new T[] { e1, e2 }` before C# 12.
+- The factory binds the rewritten call speculatively at the call site, exactly as the linker writes it, and refuses the request when the call does not bind to the target. This happens for instance when an overload of the target without its optional parameters exists, or when an instance method of the receiver hides an extension method.
+- `ExtraArguments` appends named arguments, `TypeArguments` writes the type arguments explicitly, and `ResultCast` casts the result of the new call. A request can name the method that the call site already calls, to add named arguments to it.
+- `RedirectMethodReference( origin, MethodReferenceRedirectionRequest )` replaces a method group that is converted to a delegate or to a function pointer, including an event subscription. The source method and the target must be static.
+- `IsRedirected( node )` tells whether a request already exists for a node. A second request for the same node throws `InvalidOperationException`.
+- `ExtensionTemplateServices.MethodTemplateExists( serviceProvider, templateProvider, name )` tells whether a template provider declares a method template of a given name, without throwing for a type that is not a template class of the project.
+
+The factory validates each request against the semantic model of the final compilation and throws `ArgumentException` for a request that it cannot honor. The node of a request must belong to a syntax tree of that compilation. The origin must be attributed to an ordered aspect layer of the pipeline, and the generated syntax receives the annotation of the aspect class of the origin.
+
+The factory does not change the code model. The injection step of the linker (`LinkerInjectionStep.Rewriter`) applies the redirections while it visits the source syntax trees, including the initializers of fields and events, constructor initializers and the base arguments of primary constructors. A redirection that the injection step does not reach, for example a call in the initializer of a field that an aspect promoted to a property, is reported with the warning LAMA0660 and the call site is kept unchanged.
+
+The in-repository proof of concept in `src/tests/Metalama.Framework.Tests.ExtensionPoints.*` and `src/tests/Metalama.Framework.Tests.AspectTests.ExtensionPoints` uses these extension points with the public API only. None of these assemblies is in an `InternalsVisibleTo` list, so its tests fail to compile if an extension point needs internal API. The design of the extension points is in `docs/future/interceptors/`, sections 10.2 to 10.5 and 10.7.5.
+
 ## Test Framework Plugins
 
 The test framework supports plugins for optional functionality like diff tools.

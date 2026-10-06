@@ -1,0 +1,2 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0041 on `C`: `'Exception of type 'System.ObjectDisposedException' thrown while executing BuildAspect for aspect [SecondAspect] applied to 'C': The adviser can no longer be used, because the aspect or fabric that received it has finished executing. Object name: 'IAdviser'. Exception details are in '(none)'. To attach a debugger to the compiler, use the  '-p:MetalamaDebugCompiler=True' command-line option.`

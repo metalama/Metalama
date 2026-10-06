@@ -737,5 +737,15 @@ namespace Metalama.Framework.Engine.Templating
                 + "references of the compilation contain a type that is part of the signature of the declaration.",
                 _category,
                 Error );
+
+        internal static readonly DiagnosticDefinition<string> InspectionOnlyExpressionCannotBeEmitted
+            = new(
+                "LAMA0297",
+                "A source expression that is only available for inspection cannot be used in generated code.",
+                "The source expression '{0}' is only available for inspection: it can be read by compile-time code but it cannot be used "
+                + "in generated code. It is already evaluated at its original location, so it may have side effects, and it may reference "
+                + "local variables and parameters that do not exist in the generated code.",
+                _category,
+                Error );
     }
 }

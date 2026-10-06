@@ -40,11 +40,16 @@ internal sealed class DiagnosticQueryPipelineExtension : PipelineExtension
         return new ExtensionPipelineContributorsResult( ImmutableArray<ITransitivePipelineContributor>.Empty, diagnostics.ToImmutable() );
     }
 
+    /// <summary>
+    /// Evaluates the diagnostic queries on the final compilation of the design-time hook.
+    /// </summary>
     public override Task<ExtensionPipelineContributorsResult> ExecuteDesignTimePipelineContributorsAsync(
-        AspectPipelineConfiguration pipelineConfiguration,
-        IEnumerable<IPipelineContributor> contributors,
-        CompilationModel initialCompilation,
-        CompilationModel finalCompilation,
+        DesignTimeContributorsContext context,
         CancellationToken cancellationToken )
-        => this.ExecutePipelineContributorsAsync( pipelineConfiguration, contributors, initialCompilation, finalCompilation, cancellationToken );
+        => this.ExecutePipelineContributorsAsync(
+            context.PipelineConfiguration,
+            context.Contributors,
+            context.SourceCompilation,
+            context.FinalCompilation,
+            cancellationToken );
 }

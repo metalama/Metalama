@@ -86,7 +86,7 @@ The baseline covers every requirement. The following gaps were not covered, or o
 | G6. Incomplete walker fixes. | Missed and duplicated call sites. | Complete list in 10.7. | 10.7 |
 | G7. Preview references to synthesized members that the preview drops. | Invalid preview output. | The premium engine does not rewrite a call site whose placement is outside the preview compilation (LAMA1030). | 9.8 |
 | G8. Behavior in preview, live templates and introspection. | Unexpected code in user sources. | The hook context exposes the execution scenario. | 9.8 |
-| G9. Files classified as generated code. | The build and the IDE disagree. | Not intercepted by default (PO12). | 9.5.4 |
+| G9. Files classified as generated code. | The build and the IDE disagree. | Not intercepted by default (PO12). Superseded by the rewritten decision PO12 (2026-10-05): files classified as generated code are in scope like any other source file, and `IncludeGeneratedFiles` does not exist. | 9.5.4 |
 | G10. Proceed when an aspect overrides the intercepted method. | The override is bypassed. | The proceed call is a plain call that binds to the final implementation. | 5.7.2, 10.6.3 |
 | G11. Top-level statements. | Silent loss of the rewrite. | The injection rewriter visits global statements, and it keeps the visited members when the compilation unit receives injections. Local functions and the calling type are not placements there in version 1. | 10.5.3 |
 | G12. Nullable context and flow attributes of synthesized methods. | New warnings, which become errors with warnings as errors. | Flow attributes copied when their type is available; nullable context part of the key; signature and body generated in the requested nullable context. | 6.4.5, 6.4.7, 10.6.4 |

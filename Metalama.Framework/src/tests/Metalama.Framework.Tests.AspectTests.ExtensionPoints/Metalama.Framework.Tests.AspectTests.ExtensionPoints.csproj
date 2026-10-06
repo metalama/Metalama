@@ -1,0 +1,71 @@
+<Project>
+
+    <!-- The aspect tests of the in-repository proof of concept of the extension points that the call-site interceptors of Metalama.Premium
+         use. The test extension is loaded as a MetalamaExtensionAssembly and its API as a MetalamaCompileTimeAssembly, as a premium package
+         would be. This assembly must not appear in any InternalsVisibleTo list of Metalama.
+         See Metalama.Framework/docs/future/interceptors/12-test-plan.md, section 12.5. -->
+
+    <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" Condition="$(MSBuildThisFileFullPath) == $(MSBuildProjectFullPath)" />
+
+    <PropertyGroup>
+        <MetalamaTestSourceDirectory>$(MSBuildThisFileDirectory)</MetalamaTestSourceDirectory>
+    </PropertyGroup>
+
+    <Import Project="../../../../eng/RoslynVersions/Latest.props" />
+    <Import Project="../../Metalama.Testing.AspectTesting/Metalama.Testing.AspectTesting.props" />
+
+    <PropertyGroup>
+        <TargetFrameworks>net48;net10.0</TargetFrameworks>
+        <IsPackable>false</IsPackable>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <MetalamaTestAutoExclude>False</MetalamaTestAutoExclude>
+        <MetalamaTestGenerateDefaultRunner>False</MetalamaTestGenerateDefaultRunner>
+        <RootNamespace>Metalama.Framework.Tests.AspectTests.ExtensionPoints</RootNamespace>
+        <OutputType>Exe</OutputType>
+        <AssemblyName>Metalama.Framework.Tests.AspectTests.ExtensionPoints.$(ThisRoslynVersionNoPreview)</AssemblyName>
+        <LangVersion Condition="'$(LangVersionOverride)'!=''">$(LangVersionOverride)</LangVersion>
+        <ImplicitUsings>disable</ImplicitUsings>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <NoWarn>$(NoWarn);1591,1572,1573,CS8892,VSTHRD100,VSTHRD200,CA1018,CA1305,CA1307,CA1725,CA1822,CA2201</NoWarn>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.NET.Test.Sdk" />
+        <PackageReference Include="xunit.v3" PrivateAssets="all" />
+        <PackageReference Include="xunit.runner.visualstudio" />
+        <PackageReference Include="Metalama.Compiler.Sdk" />
+        <PackageReference Include="SharpCrafters.Backstage.Testing" />
+        <PackageReference Include="System.Text.Json" VersionOverride="$(SystemTextJsonLatestVersion)" />
+        <PackageReference Include="System.Memory" />
+        <PackageReference Include="System.Buffers" VersionOverride="$(SystemBuffersLatestVersion)" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="../../Metalama.Framework.Engine$(ThisRoslynVersionProjectSuffix)/Metalama.Framework.Engine$(ThisRoslynVersionProjectSuffix).csproj" />
+        <ProjectReference Include="../../Metalama.Framework/Metalama.Framework.csproj" />
+        <ProjectReference Include="../../Metalama.Testing.AspectTesting$(ThisRoslynVersionProjectSuffix)/Metalama.Testing.AspectTesting$(ThisRoslynVersionProjectSuffix).csproj" />
+        <ProjectReference Include="../Metalama.Framework.Tests.ExtensionPoints.Api/Metalama.Framework.Tests.ExtensionPoints.Api.csproj" />
+        <ProjectReference Include="../Metalama.Framework.Tests.ExtensionPoints.Engine$(ThisRoslynVersionProjectSuffix)/Metalama.Framework.Tests.ExtensionPoints.Engine$(ThisRoslynVersionProjectSuffix).csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- These items are what a package of an extension would export. -->
+        <MetalamaCompileTimeAssembly Include="../Metalama.Framework.Tests.ExtensionPoints.Api/bin/$(Configuration)/netstandard2.0/Metalama.Framework.Tests.ExtensionPoints.Api.dll" />
+        <MetalamaExtensionAssembly Include="bin/$(Configuration)/$(TargetFramework)/Metalama.Framework.Tests.ExtensionPoints.Engine.$(ThisRoslynVersionNoPreview).dll" />
+    </ItemGroup>
+
+    <Import Project="../../Metalama.Testing.AspectTesting/Metalama.Testing.AspectTesting.targets" />
+
+    <ItemGroup>
+        <!-- This metadata attribute is used by the TestLicenseKeyProvider class in Backstage. -->
+        <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+            <_Parameter1>EngineeringDataDirectory</_Parameter1>
+            <_Parameter2>$(PostSharpEngineeringDataDirectory)</_Parameter2>
+        </AssemblyAttribute>
+    </ItemGroup>
+
+    <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" Condition="$(MSBuildThisFileFullPath) == $(MSBuildProjectFullPath)" />
+
+</Project>
