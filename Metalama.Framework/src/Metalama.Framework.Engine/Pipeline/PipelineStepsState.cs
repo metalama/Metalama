@@ -65,8 +65,10 @@ internal sealed class PipelineStepsState
         CompilationModel inputLastCompilation,
         PipelineContributorSources sources,
         AspectPipelineConfiguration pipelineConfiguration,
+        bool isFirstHighLevelStage,
         CancellationToken cancellationToken )
     {
+        this.IsFirstHighLevelStage = isFirstHighLevelStage;
         this._concurrentTaskRunner = pipelineConfiguration.ServiceProvider.GetRequiredService<IConcurrentTaskRunner>();
         this._introspectionListener = pipelineConfiguration.ServiceProvider.GetService<IntrospectionPipelineListener>();
         this._shouldDetectUnorderedAspects = pipelineConfiguration.ServiceProvider.GetRequiredService<IProjectOptions>().RequireOrderedAspects;
@@ -473,6 +475,17 @@ internal sealed class PipelineStepsState
             this._inheritableAspectInstances.Add( aspectInstance );
         }
     }
+
+    /// <summary>
+    /// Gets a value indicating whether the steps belong to the first high-level stage, which executes before any low-level aspect weaver.
+    /// The extensions process only the contributions made in this stage.
+    /// </summary>
+    public bool IsFirstHighLevelStage { get; }
+
+    /// <summary>
+    /// Reports a diagnostic in the result of the steps.
+    /// </summary>
+    public void ReportDiagnostic( Diagnostic diagnostic ) => this.Diagnostics.Report( diagnostic );
 
     public void AddDiagnostics( ImmutableUserDiagnosticList diagnostics )
     {
