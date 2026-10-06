@@ -125,6 +125,37 @@ public sealed class InboundReferenceIndexBuilder : ReferenceIndexBuilder
         visitor.Visit( syntaxTree );
     }
 
+    /// <summary>
+    /// Indexes the references of the syntax of some declarations of one syntax tree.
+    /// </summary>
+    /// <param name="syntaxTree">The syntax tree of all the roots.</param>
+    /// <param name="roots">The syntax nodes of the declarations. A root must not be contained in another root.</param>
+    /// <param name="semanticModelProvider">The provider of the semantic model of the tree.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    internal void IndexDeclarationRoots(
+        SyntaxTree syntaxTree,
+        IEnumerable<SyntaxNode> roots,
+        SemanticModelProvider semanticModelProvider,
+        CancellationToken cancellationToken = default )
+    {
+        if ( this._frozen )
+        {
+            throw new InvalidOperationException();
+        }
+
+        var visitor = new ReferenceIndexWalker( this._serviceProvider, this, this._options, semanticModelProvider, cancellationToken );
+
+        foreach ( var root in roots )
+        {
+            if ( root.SyntaxTree != syntaxTree )
+            {
+                throw new ArgumentOutOfRangeException( nameof(roots), "All roots must belong to the given syntax tree." );
+            }
+
+            visitor.VisitDeclarationRoot( root );
+        }
+    }
+
     public InboundReferenceIndex ToReadOnly()
     {
         this._frozen = true;

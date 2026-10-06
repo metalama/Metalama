@@ -36,17 +36,24 @@ internal readonly struct AspectLinkerInput
     /// </summary>
     public CallSiteAdviceInfo CallSiteAdviceInfo { get; }
 
+    /// <summary>
+    /// Gets the input that extensions gave through the factory of transformations: the call-site redirections.
+    /// </summary>
+    public ExtensionLinkerInput Extensions { get; }
+
     public AspectLinkerInput(
         CompilationModel initialCompilationModel,
         CompilationModel finalCompilationModel,
         IReadOnlyCollection<ITransformation> transformations,
         IReadOnlyList<OrderedAspectLayer> orderedAspectLayers,
-        CallSiteAdviceInfo callSiteAdviceInfo )
+        CallSiteAdviceInfo callSiteAdviceInfo,
+        ExtensionLinkerInput? extensions = null )
     {
         this.InitialCompilationModel = initialCompilationModel;
         this.FinalCompilationModel = finalCompilationModel;
         this.Transformations = transformations;
         this.OrderedAspectLayers = orderedAspectLayers;
         this.CallSiteAdviceInfo = callSiteAdviceInfo;
+        this.Extensions = extensions ?? ExtensionLinkerInput.Empty;
     }
 }

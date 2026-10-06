@@ -13,6 +13,7 @@ using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.Diagnostics;
+using Metalama.Framework.Engine.Extensibility.CallSites;
 using Metalama.Framework.Engine.Observers;
 using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Services;
@@ -29,6 +30,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using SpecialType = Metalama.Framework.Code.SpecialType;
@@ -351,17 +353,34 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
         // Update the syntax trees and create a new partial compilation.
         var transformations = new ConcurrentQueue<SyntaxTreeTransformation>();
 
+        var unappliedRedirections = new ConcurrentQueue<CallSiteRedirection>();
+
         async Task RewriteSyntaxTreeAsync( SyntaxTree initialSyntaxTree )
         {
+            input.Extensions.CallSiteRedirections.TryGetValue( initialSyntaxTree, out var callSiteRedirections );
+
             Rewriter rewriter = new(
                 this,
                 transformationCollection,
                 input.FinalCompilationModel,
                 syntaxTreeForGlobalAttributes,
-                lexicalScopeFactory );
+                lexicalScopeFactory,
+                callSiteRedirections );
 
             var oldRoot = await initialSyntaxTree.GetRootAsync( cancellationToken );
             var newRoot = rewriter.Visit( oldRoot ).AssertNotNull();
+
+            // Every requested redirection must have been applied by the visit. A redirection that was not applied leaves the source code unchanged.
+            if ( callSiteRedirections != null )
+            {
+                foreach ( var redirection in callSiteRedirections.Values )
+                {
+                    if ( !rewriter.IsApplied( redirection ) )
+                    {
+                        unappliedRedirections.Enqueue( redirection );
+                    }
+                }
+            }
 
             if ( oldRoot != newRoot )
             {
@@ -377,8 +396,42 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
                 RewriteSyntaxTreeAsync,
                 cancellationToken );
 
+        // A redirection whose syntax tree was not rewritten at all was not applied either.
+        var rewrittenTrees = new HashSet<SyntaxTree>( compilationWithIntroducedTrees.SyntaxTreeCollection );
+
+        foreach ( var treeRedirections in input.Extensions.CallSiteRedirections )
+        {
+            if ( !rewrittenTrees.Contains( treeRedirections.Key ) )
+            {
+                foreach ( var redirection in treeRedirections.Value.Values )
+                {
+                    unappliedRedirections.Enqueue( redirection );
+                }
+            }
+        }
+
+        foreach ( var redirection in unappliedRedirections.OrderBy( r => r.Id ) )
+        {
+            diagnostics.Report(
+                AspectLinkerDiagnosticDescriptors.CallSiteRedirectionNotApplied.CreateRoslynDiagnostic(
+                    redirection.SourceNode.GetLocation(),
+                    redirection.Description ) );
+        }
+
         var helperSyntaxTree = injectionHelperProvider.GetLinkerHelperSyntaxTree( compilationWithIntroducedTrees.LanguageOptions );
         transformations.Enqueue( SyntaxTreeTransformation.AddTree( helperSyntaxTree ) );
+
+        // Add the forwarders of the redirected call sites in conditional accesses, in one syntax tree per project.
+        if ( input.Extensions.CallSiteForwarders != null )
+        {
+            var forwarderSyntaxTree = CSharpSyntaxTree.Create(
+                input.Extensions.CallSiteForwarders,
+                helperSyntaxTree.Options as CSharpParseOptions ?? CSharpParseOptions.Default,
+                ExtensionTransformationFactory.ForwarderSyntaxTreePath,
+                Encoding.UTF8 );
+
+            transformations.Enqueue( SyntaxTreeTransformation.AddTree( forwarderSyntaxTree ) );
+        }
 
         var intermediateCompilation = compilationWithIntroducedTrees.Update( transformations );
 

@@ -7,6 +7,7 @@ using Metalama.Framework.Code.Collections;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.Collections;
 using Metalama.Framework.Engine.ReferenceGraph;
+using Metalama.Framework.Engine.Utilities;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
 using System.Collections.Generic;
@@ -33,6 +34,24 @@ public sealed class DesignTimeAspectPipelineResultExtensionCollection
             ImmutableArray<DesignTimeAspectPipelineResultExtensionCollection>.Empty );
 
     public ReferenceIndexerOptions Options { get; }
+
+    /// <summary>
+    /// Gets the options of the design-time index of the references of the analyzed file: <see cref="Options"/>, plus the requirements of the
+    /// extensions of this project that implement <see cref="IDesignTimeReferenceIndexRequirementsProvider"/>.
+    /// </summary>
+    /// <remarks>
+    /// The requirements of <see cref="IDesignTimeReferenceIndexRequirementsProvider"/> are project-local: they are not part of <see cref="Options"/>, which
+    /// referencing projects merge.
+    /// </remarks>
+    [Memo]
+    public ReferenceIndexerOptions IndexOptions
+        => new(
+            new[]
+            {
+                this.Options,
+                new ReferenceIndexerOptions(
+                    this.Extensions.OfType<IDesignTimeReferenceIndexRequirementsProvider>().SelectMany( p => p.ReferenceIndexerRequirements ) )
+            } );
 
     public ImmutableArray<IDesignTimePipelineResultExtension> Extensions { get; }
 
@@ -79,10 +98,23 @@ public sealed class DesignTimeAspectPipelineResultExtensionCollection
 
     public Builder ToBuilder() => new( this._ownValidators.ToBuilder(), this.Extensions.ToBuilder() );
 
+    /// <summary>
+    /// Returns the transitive form of the design-time results that referencing projects receive. The results of a project-local kind
+    /// (<see cref="ContributorKind.IsProjectTransitive"/> is <c>false</c>) are never exported.
+    /// </summary>
+    /// <param name="includeValidators"><c>true</c> to include the results whose kind is <see cref="ContributorKind.IsDesignTimeValidator"/>.</param>
     public ImmutableArray<ITransitiveAspectsManifestExtension> ToTransitiveValidatorInstances( bool includeValidators )
-        => includeValidators
-            ? this.Extensions.SelectAsImmutableArray( x => x.ToTransitiveAspectManifestExtension() )
-            : this.Extensions.Where( e => !e.ContributorKind.IsDesignTimeValidator ).Select( x => x.ToTransitiveAspectManifestExtension() ).ToImmutableArray();
+        => this.Extensions
+            .Where( e => e.ContributorKind.IsProjectTransitive && (includeValidators || !e.ContributorKind.IsDesignTimeValidator) )
+            .Select( e => e.ToTransitiveAspectManifestExtension() )
+            .ToImmutableArray();
+
+    /// <summary>
+    /// Gets a value indicating whether referencing projects receive anything from this collection: a validator of this project or of a referenced
+    /// project, or a design-time result whose kind is not project-local.
+    /// </summary>
+    [Memo]
+    public bool HasExportedContent => !this._allValidators.IsEmpty || this.Extensions.Any( e => e.ContributorKind.IsProjectTransitive );
 
     public sealed class Builder
     {

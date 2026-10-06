@@ -8,6 +8,7 @@
 using Metalama.Framework.DesignTime.Pipeline;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.Utilities.Threading;
+using Metalama.Framework.Tests.UnitTestHelpers.MemoryLeaks;
 using Metalama.Framework.Tests.UnitTestHelpers.TestClasses;
 using Metalama.Testing.UnitTesting;
 using Microsoft.CodeAnalysis;

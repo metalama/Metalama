@@ -140,7 +140,7 @@ internal sealed class TypeFabricDriver : FabricDriver
             this.Type = namedType;
 
 #pragma warning disable CS0618 // ITypeAmender.Advice is obsolete
-            this.Advice = ((IAdviceFactoryImpl) aspectBuilder.AdviceFactory).WithTemplateClassInstance( templateClassInstance );
+            this.Advice = ((IAdviceFactoryImpl) aspectBuilder.AdviceFactory).WithTemplateClassInstance( templateClassInstance ).WithQueryOwner( this );
 #pragma warning restore CS0618
             this._adviser = (IAdviser<INamedType>) this.Advice;
         }
@@ -158,6 +158,14 @@ internal sealed class TypeFabricDriver : FabricDriver
             => this._userCodeExecutionContext.WithCompilationAndDiagnosticAdder( compilation, diagnostics );
 
         public override void AddContributor( IPipelineContributor contributor ) => this._aspectBuilder.AddContributor( contributor );
+
+        /// <inheritdoc />
+        /// <remarks>
+        /// The origin carries the layer of the aggregate fabric aspect, which orders the code in the linker, and the fabric instance as the
+        /// predecessor, which attributes the contribution.
+        /// </remarks>
+        public override ExtensionContributionOrigin CaptureContributionOrigin()
+            => ((IAdviceFactoryImpl) this.Advice).CreateExtensionContext( this ).CaptureOrigin();
 
 #pragma warning disable CS0618 // ITypeAmender.Advice is obsolete
         public IAdviceFactory Advice { get; }

@@ -843,16 +843,17 @@ public sealed partial class DesignTimeAspectPipelineResult
     /// the reference-construction site in <c>DesignTimeAspectPipeline</c>.
     /// </summary>
     /// <remarks>
-    /// <see cref="Extensions"/> is the design-time collection, a superset of the transitive validators; testing it
-    /// (rather than the narrower transitive projection) keeps this conservative and keeps
-    /// <c>DesignTimeProjectVersion.ReferencedExtensions</c> correct: whenever the live manifest is dropped, its
-    /// <see cref="Extensions"/> collection is necessarily empty here.
+    /// The extensions are tested with <see cref="DesignTimeAspectPipelineResultExtensionCollection.HasExportedContent"/>, which is <c>true</c>
+    /// when the collection holds a validator of this project or of a referenced project, or a design-time result whose kind is not
+    /// project-local (<see cref="ContributorKind.IsProjectTransitive"/> is <c>false</c>). When the manifest is dropped, <see cref="Extensions"/> can therefore still
+    /// hold project-local results. <c>DesignTimeProjectVersion.ReferencedExtensions</c> loses nothing, because a referencing project does not
+    /// receive project-local results.
     /// </remarks>
     internal bool HasTransitiveAspectManifestContent
         => !this._inheritableAspects.IsEmpty
            || !this.InheritableOptions.IsEmpty
            || !this.Annotations.IsEmpty
-           || !this.Extensions.IsEmpty;
+           || this.Extensions.HasExportedContent;
 
     /// <summary>
     /// Creates the transitive manifest. <paramref name="includeValidators"/> selects whether the design-time

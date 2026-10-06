@@ -50,7 +50,7 @@ internal sealed class OutboundReferenceIndexBuilder : ReferenceIndexBuilder
     private void IndexSyntaxNode( SyntaxNode node, SemanticModel semanticModel, CancellationToken cancellationToken = default )
     {
         var walker = new ReferenceIndexWalker( this._serviceProvider, this, ReferenceIndexerOptions.All, semanticModel, cancellationToken );
-        walker.Visit( node );
+        walker.VisitDeclarationRoot( node );
     }
 
     public void IndexDeclaration( IDeclaration declaration, CancellationToken cancellationToken )

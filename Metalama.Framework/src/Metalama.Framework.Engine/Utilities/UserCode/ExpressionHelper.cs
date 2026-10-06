@@ -47,6 +47,10 @@ internal sealed class ExpressionHelper : IExpressionHelper
                     false,
                     false );
 
+            case SourceUserExpression { IsInspectionOnly: true }:
+                throw new InvalidOperationException(
+                    $"The expression '{expression}' was created for inspection only, so it cannot be made durable. Store a durable reference to the declaration that contains the expression instead." );
+
             case UserExpression userExpression:
                 {
                     // The type the expression will be used as is not known here, which is the one thing the eager

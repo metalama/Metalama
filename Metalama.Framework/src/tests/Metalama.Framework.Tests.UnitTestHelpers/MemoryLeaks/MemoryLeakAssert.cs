@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+﻿// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
@@ -9,7 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Xunit;
 
-namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline.MemoryLeaks;
+namespace Metalama.Framework.Tests.UnitTestHelpers.MemoryLeaks;
 
 /// <summary>
 /// Assertions on the reachability of objects that a design-time editing session was expected to release.
@@ -19,12 +19,17 @@ namespace Metalama.Framework.Tests.UnitTests.DesignTime.Pipeline.MemoryLeaks;
 /// <see cref="RetentionPathFinder"/>. Without that chain, the only information a failure conveys is that something,
 /// somewhere, retains a compilation, which is not enough to act upon.
 /// </remarks>
-internal static class MemoryLeakAssert
+public static class MemoryLeakAssert
 {
     /// <summary>
     /// The maximum number of times that <see cref="CollectedAsync"/> leaves the current stack and collects before it fails.
     /// </summary>
-    private const int _maxCollectionAttempts = 5;
+    /// <remarks>
+    /// Each attempt runs several blocking collections, which also suspend the thread that must return from its frames. On a loaded build agent,
+    /// five attempts were not always enough for that thread to be scheduled. An attempt that succeeds returns immediately, so a higher limit costs
+    /// time only when the assertion fails.
+    /// </remarks>
+    private const int _maxCollectionAttempts = 20;
 
     /// <summary>
     /// Asserts that the target of a weak reference has been collected, and explains the retention if it has not.
@@ -66,7 +71,7 @@ internal static class MemoryLeakAssert
     /// thread has returned from its frames, so the method yields, collects and checks the reference up to
     /// <see cref="_maxCollectionAttempts"/> times before it fails. None of these attempts waits for a fixed time. Each
     /// attempt gives the other thread the time of several blocking rounds of collection, and the other thread needs a
-    /// few instructions to return. <see cref="MemoryLeakAssertSelfTests"/> verifies both that the synchronous assertion
+    /// few instructions to return. <c>MemoryLeakAssertSelfTests</c>, in <c>Metalama.Framework.Tests.UnitTests</c>, verifies both that the synchronous assertion
     /// fails in this situation and that this method succeeds.
     /// </para>
     /// </remarks>
@@ -222,7 +227,7 @@ internal static class MemoryLeakAssert
         }
 
         Assert.True(
-            path!.Contains( expectedInPath, StringComparison.Ordinal ),
+            path!.IndexOf( expectedInPath, StringComparison.Ordinal ) >= 0,
             $"{description} is retained, but not through {expectedInPath}. Retention path:{Environment.NewLine}{path}" );
     }
 

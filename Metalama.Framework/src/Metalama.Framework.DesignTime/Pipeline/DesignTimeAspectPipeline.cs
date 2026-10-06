@@ -690,8 +690,10 @@ public sealed partial class DesignTimeAspectPipeline : BaseDesignTimeAspectPipel
                     // this the common fast path: a Metalama project exporting no inheritable aspect, option,
                     // annotation or validator carries neither the live nor the serialized form, so nothing is
                     // serialized here and nothing is deserialized or merged on the consumer's side. Dropping the live
-                    // manifest along with it is safe, because a project with nothing to inherit also has an empty
-                    // Extensions collection, so DesignTimeProjectVersion.ReferencedExtensions loses nothing.
+                    // manifest along with it is safe. The Extensions collection of a project with nothing to inherit
+                    // holds no exported result, although it can hold project-local results (ContributorKind.IsProjectTransitive is false),
+                    // which a referencing project does not receive. DesignTimeProjectVersion.ReferencedExtensions therefore
+                    // loses nothing.
                     //
                     // The serialized form is compilation-neutral by definition: compile-time types are always written
                     // as their run-time names. It is produced by the *referenced* project's service provider because

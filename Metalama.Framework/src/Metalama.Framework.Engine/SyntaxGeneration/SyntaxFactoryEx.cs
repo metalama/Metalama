@@ -342,7 +342,16 @@ public static partial class SyntaxFactoryEx
                ?? throw new ArgumentOutOfRangeException( nameof(literal), $"'{literal}' is not a valid literal." );
     }
 
-    internal static ExpressionSyntax? LiteralExpressionOrNull( object? obj, ObjectDisplayOptions options = ObjectDisplayOptions.None )
+    /// <summary>
+    /// Returns the literal of a value of a primitive type or of a string, or <c>null</c> when the value has no literal. A <c>null</c> value gives the
+    /// <c>null</c> literal. A <see cref="byte"/>, <see cref="sbyte"/>, <see cref="short"/> or <see cref="ushort"/> value gives an <see cref="int"/>
+    /// literal, so the caller casts it when the type of the literal matters.
+    /// </summary>
+    /// <param name="obj">The value.</param>
+    /// <param name="options">The formatting options, for instance <see cref="ObjectDisplayOptions.IncludeTypeSuffix"/>, which gives the literal the
+    /// suffix of the type of the value.</param>
+    [PublicAPI]
+    public static ExpressionSyntax? LiteralExpressionOrNull( object? obj, ObjectDisplayOptions options = ObjectDisplayOptions.None )
         => obj switch
         {
             null => Null,

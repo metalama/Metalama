@@ -73,6 +73,11 @@ internal abstract partial class BaseTestRunner
 
     protected ITestOutputHelper? Logger { get; }
 
+    /// <summary>
+    /// Gets the file system through which the runner reads the expected files and writes the actual files.
+    /// </summary>
+    private protected IFileSystem FileSystem => this._fileSystem;
+
     public async Task RunAndAssertAsync( TestInput testInput, MetalamaTestContextOptions testContextOptions, CancellationToken cancellationToken = default )
     {
         CollectibleExecutionContext? collectibleExecutionContext;

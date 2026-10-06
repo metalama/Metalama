@@ -28,6 +28,12 @@ namespace Metalama.Framework.Engine.Fabrics
         private const string _aspectClassName = "<Fabric>";
 #pragma warning restore IDE1006
 
+        /// <summary>
+        /// The name of the aggregate fabric aspect class, which is also the name of its only layer. The top-level fabric aspect class,
+        /// which processes project and namespace fabrics, has the same name.
+        /// </summary>
+        internal const string AspectClassName = _aspectClassName;
+
         public static IBoundAspectClass CreateTopLevelAspectClass( in ProjectServiceProvider serviceProvider, CompilationModel compilation )
             => new SystemAspectClass( serviceProvider, compilation, _aspectClassName, typeof(Fabric) );
 

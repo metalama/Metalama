@@ -265,6 +265,7 @@ The rewritten method group keeps the trivia of the source node. The receiver `r`
 | `MemberOfReceiver` | `r.M(args)` | `r.I(args, extra)` |
 | `MemberOfReceiver` | `.M(args)` inside `a?....` | `.I(args, extra)` |
 | `MemberOfReceiver` | `M(args)` or `this.M(args)` | `this.I(args, extra)` |
+| Any mode, an argument list that omits source arguments with side effects | `M(d1, k, d2)` redirected to `I(k)` | `I(k: CallSiteHelper.DropBefore(d1, CallSiteHelper.DropAfter(k, d2)))`; several consecutive dropped values are one tuple, `DropBefore((d1, d2), k)`; the type arguments are written when the kept value has no natural type (decision of 2026-10-03, section 15.0) |
 
 | Target | Callee |
 |---|---|
@@ -316,7 +317,7 @@ No rule is needed. `GetCallerAttributeReferencesAsync` searches the intermediate
 
 #### 10.5.9 Completeness verification
 
-Each `Rewriter` records the redirections that it applied (section [10.5.3](#1053-injection-step-and-rewriter)). After `rewriter.Visit( oldRoot )`, the injection step compares the record with the dictionary of the tree and reports LAMA0660 for each redirection that was not applied, in the order of the redirection identifiers. The location is the source call site. The diagnostic is an error, because a missing rewrite changes program behavior without notice (PO34). The check costs one set lookup per redirection.
+Each `Rewriter` records the redirections that it applied (section [10.5.3](#1053-injection-step-and-rewriter)). After `rewriter.Visit( oldRoot )`, the injection step compares the record with the dictionary of the tree and reports LAMA0660 for each redirection that was not applied, in the order of the redirection identifiers. The location is the source call site. The diagnostic is a warning (PO34, decided on 2026-10-02, section [15.0](15-decisions.md#150-decisions-of-2026-10-02)). This design recommended an error, because a missing rewrite changes program behavior without notice. The check costs one set lookup per redirection.
 
 The record is added only when the rewriter returns the rewritten node, and the visitors that discarded visited members are fixed (fix F15), so a redirection counts as applied only when the rewritten call reaches the intermediate tree. The check does not see a node that the linking step drops later. The linking step drops intermediate code in two cases only: the body of an unreachable override target, by design (ENG27 `Linking\LinkerRewritingDriver.Methods.cs:60-65`), and the initializer of the existing defect of section [10.5.7](#1057-linking-step), which fix F19 repairs.
 

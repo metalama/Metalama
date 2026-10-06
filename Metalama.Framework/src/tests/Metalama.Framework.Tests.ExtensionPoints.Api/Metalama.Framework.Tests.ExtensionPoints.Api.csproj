@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!-- The compile-time API of the in-repository proof of concept of the extension points that the call-site interceptors of
+         Metalama.Premium use. See Metalama.Framework/docs/future/interceptors/12-test-plan.md, section 12.5. This assembly and the engine
+         assembly must not appear in any InternalsVisibleTo list of Metalama, so that they prove that the public API suffices. -->
+
+    <PropertyGroup>
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <IsPackable>false</IsPackable>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="../../Metalama.Framework/Metalama.Framework.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="Metalama.Framework.Tests.ExtensionPoints.Engine.5.11.0" />
+        <InternalsVisibleTo Include="Metalama.Framework.Tests.ExtensionPoints.Engine.5.0.0" />
+    </ItemGroup>
+
+</Project>

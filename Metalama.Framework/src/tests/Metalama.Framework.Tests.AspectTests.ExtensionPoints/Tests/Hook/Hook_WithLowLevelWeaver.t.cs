@@ -1,0 +1,3 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Warning TEST0001 on `C`: `Registration 'second' through the adviser: origin 'aspect [RegularAspect2] applied to 'C'', predecessor ChildAspect, template provider not checked.`
+// Error LAMA0091 on `C`: `The aspect 'RegularAspect1' makes an extension contribution, such as an interceptor registration, but it executes after a low-level aspect weaver, and contributions are processed only before the first low-level aspect weaver. Order the aspect before the aspects that require a low-level weaver.`

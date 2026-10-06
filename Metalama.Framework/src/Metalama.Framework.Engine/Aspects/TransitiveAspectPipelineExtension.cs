@@ -61,14 +61,14 @@ internal sealed partial class TransitiveAspectPipelineExtension : PipelineExtens
                 contributors.OfKind( ContributorKind.TransitiveAspectInstance ).ToImmutableArray<ITransitivePipelineContributor>(),
                 ImmutableUserDiagnosticList.Empty ) );
 
+    /// <summary>
+    /// Returns the transitive aspect instances of the pipeline execution.
+    /// </summary>
     public override Task<ExtensionPipelineContributorsResult> ExecuteDesignTimePipelineContributorsAsync(
-        AspectPipelineConfiguration pipelineConfiguration,
-        IEnumerable<IPipelineContributor> contributors,
-        CompilationModel initialCompilation,
-        CompilationModel finalCompilation,
+        DesignTimeContributorsContext context,
         CancellationToken cancellationToken )
         => Task.FromResult(
             new ExtensionPipelineContributorsResult(
-                contributors.OfKind( ContributorKind.TransitiveAspectInstance ).ToImmutableArray<ITransitivePipelineContributor>(),
+                context.Contributors.OfKind( ContributorKind.TransitiveAspectInstance ).ToImmutableArray<ITransitivePipelineContributor>(),
                 ImmutableUserDiagnosticList.Empty ) );
 }

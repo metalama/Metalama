@@ -220,8 +220,8 @@ internal interface IExtensionContributionOriginSource
 | ENG27 `Aspects\AspectDriver.cs:225-227` | After `new AspectBuilder<T>(...)`, add `adviceFactoryState.Owner = aspectBuilder;`. |
 | ENG27 `Advising\AdviceFactory.cs:56-80` | Add a required constructor parameter `IQueryOwner? ownerOverride` stored in `_ownerOverride`, and `internal IQueryOwner? Owner => this._ownerOverride ?? this._state.Owner;`. The parameter is required, not optional, so that a construction site that forgets it fails to compile. The four construction sites are ENG27 `Aspects\AspectDriver.cs:206` and `Advising\AdviceFactory.cs:186, 203, 382`. |
 | ENG27 `Advising\AdviceFactory.cs:185-208, 375-389` | Pass `this._ownerOverride` in `WithTemplateClassInstance`, `WithExplicitInterfaceImplementation` and `WithDeclaration`. |
-| ENG27 `Advising\IAdviceFactoryImpl.cs:13-27` | Add `IAdviceFactoryImpl WithOwner( IQueryOwner owner );` and `AdviserExtensionContext CreateExtensionContext( IDeclaration target, IQueryOwner? adviserOwner );`. |
-| ENG27 `Fabrics\TypeFabricDriver.cs:143` | `this.Advice = ((IAdviceFactoryImpl) aspectBuilder.AdviceFactory).WithTemplateClassInstance( templateClassInstance ).WithOwner( this );` |
+| ENG27 `Advising\IAdviceFactoryImpl.cs:13-27` | Add `IAdviceFactoryImpl WithQueryOwner( IQueryOwner owner );` and `AdviserExtensionContext CreateExtensionContext( IDeclaration target, IQueryOwner? adviserOwner );`. |
+| ENG27 `Fabrics\TypeFabricDriver.cs:143` | `this.Advice = ((IAdviceFactoryImpl) aspectBuilder.AdviceFactory).WithTemplateClassInstance( templateClassInstance ).WithQueryOwner( this );` |
 | ENG27 `Aspects\AspectBuilder.cs:25` | Implement `IExtensionContributionOriginSource`. The template provider falls back to `TemplateProvider.FromInstance( this.AspectInstance.Aspect )`, the provider that `AspectDriver` already uses for declarative advice. |
 | ENG27 `Fabrics\FabricDriver.BaseAmender.cs:25` | Implement `IExtensionContributionOriginSource` for project and namespace fabrics, with the fabric predecessor, the description of line 130, `TemplateProvider.FromInstance( this._fabricInstance.Fabric )`, and the identifier of the layer of the top-level fabric aggregate aspect class (ENG27 `Pipeline\AspectPipeline.cs:335`, G2). The origin holds no aspect instance, because the `AspectInstance` constructors that take an `IDeclaration` store a reference bound to the compilation (ENG27 `Aspects\AspectInstance.cs:70, 100`), and a static-fabric origin lives in the configuration (the defect class of issue #1799). The transformation factory creates the synthetic aspect instance per stage (section [10.4.7](#1047-attribution-and-ordering)). |
 | ENG27 `Fabrics\TypeFabricDriver.cs:119` | Override `CaptureContributionOrigin` in `Amender`: `((IAdviceFactoryImpl) this.Advice).CreateExtensionContext( this.Type, this ).CaptureOrigin()`. This origin carries the aggregate aspect layer (for linker ordering) and the fabric predecessor (for attribution). |
@@ -238,6 +238,10 @@ internal interface IExtensionContributionOriginSource
 The last row fixes the attribution of type-fabric contributions for extensions. Changing `AdviceFactory.AddAspect` and `RequireAspect` (ENG27 `Advising\AdviceFactory.cs:2325, 2374`) to use the owner's predecessor is a separate behavior change for existing child aspects, proposed as the optional fix F13.
 
 ### 10.3 Transforming pipeline hook (B2b)
+
+> Superseded in part by the decision "Source stage only" of section 15.0 (2026-10-03): the hook runs only in the source stage, so the members `HighLevelStageIndex`, `IsSourceStage`, `ContributorsAddedInStage` and `StageInitialCompilation` of the context described below were removed, and the stage index of a contribution is recorded by `ExtensionContributionOrigin.HighLevelStageIndex`.
+>
+> Superseded in part by the decision "No multi-stage support" of section 15.0 (2026-10-05): `ExtensionContributionOrigin.HighLevelStageIndex` is removed as well, `StageFinalCompilation` is renamed `FinalCompilation`, and a contribution made after a low-level weaver is not processed.
 
 #### 10.3.1 The hook
 
@@ -444,6 +448,8 @@ The code above shows the data flow. The implementation creates `LinkerNamingServ
 The new member of `PipelineExtension` is virtual with a default implementation, so extensions compiled without it load and behave as before. `ExtensionPipelineContributorsResult` is unchanged, and the Validation engine needs no change. No `IsTransforming` flag is added to `ContributorKind`: it would save only one context allocation per stage.
 
 ### 10.4 Extension transformation factory (B2c)
+
+> Superseded by the decision "Call-site forwarders" of section [15.0](15-decisions.md) (2026-10-04): a call in a conditional access is rewritten as a call of a forwarder, an extension method that the linker generates in one internal static class of the global namespace per project, and that calls the interceptor with its fully qualified name. The interceptor itself does not need to be an extension method, no directive is added, and the extension form is never used against a method written by the user. The receiver mode `ExtensionReceiver` described below is removed: the factory uses a forwarder for a request with `FirstArgument` in a conditional access, and no request kind is added for it.
 
 All public types live in the new namespace `Metalama.Framework.Engine.Extensibility.Transformations` of `Metalama.Framework.Engine`.
 

@@ -10,7 +10,7 @@ using System;
 namespace Metalama.Framework.Code;
 
 /// <summary>
-/// Represents a syntax node in source code. Using <c>Metalama.Framework.Sdk</c> you can use <c>ToSyntaxNodeOrToken</c> to convert it to a Roslyn object.
+/// Represents a syntax node in source code. Using <c>Metalama.Framework.Sdk</c> you can use the <c>SyntaxNodeOrToken</c> extension method to convert it to a Roslyn object.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -36,7 +36,7 @@ public readonly struct SourceReference : IDiagnosticLocation
     /// Gets the Roslyn <c>SyntaxNode</c>, <c>SyntaxToken</c>.
     /// This property can be used by SDK-based plugins. 
     /// </summary>
-    [Obsolete( "Use ToSyntaxNodeOrToken() from Metalama.Framework.Sdk." )]
+    [Obsolete( "Use the SyntaxNodeOrToken() extension method of Metalama.Framework.Sdk." )]
     public object NodeOrToken => this.NodeOrTokenInternal;
 
     internal object NodeOrTokenInternal { get; }

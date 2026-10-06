@@ -228,7 +228,7 @@ The rules that keep the design-time code from accumulating memory are documented
 - The analysis process is long-lived and Roslyn produces a **new `Compilation` per keystroke**. An object that outlives a single request must not strongly reference a `Compilation`, `SyntaxTree`, `SemanticModel`, `ISymbol`, `CompilationModel` or `PartialCompilation`, nor anything that transitively reaches one, apart from the single most recent version of the project.
 - Persist declarations as durable references (`IRef.ToDurable()`), and key caches by file path rather than by syntax tree or compilation instance.
 - Never pass a cancellation token to `Task.Run`: when the token is already signalled the delegate never runs, so any `finally` that removes the task from a pending-work collection never executes and the closure, with everything it captured, is retained forever.
-- The guard suite is `Metalama.Framework.Tests.UnitTests/DesignTime/Pipeline/MemoryLeaks/`; its `RetentionPathFinder` reports the chain of fields that retains an object when an assertion fails.
+- The guard suite is `Metalama.Framework.Tests.UnitTests/DesignTime/Pipeline/MemoryLeaks/`; its harness, including the `RetentionPathFinder` that reports the chain of fields that retains an object when an assertion fails, is in `Metalama.Framework.Tests.UnitTestHelpers/MemoryLeaks/`.
 
 ## Syntax Generation and Simplification
 

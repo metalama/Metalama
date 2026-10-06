@@ -1,0 +1,20 @@
+{
+ "ReportErrorMessage": true,
+ "FormatOutput": false,
+ "ReportOutputWarnings": true,
+ "IgnoredDiagnostics" : [
+    "CS0067",
+    "CS0162",
+    "CS0169",
+    "CS0219",
+    "CS0414",
+    "CS0649",
+    "CS8600",
+    "CS8602",
+    "CS8603",
+    "CS8604",
+    "CS8625"
+ ],
+ "CheckMemoryLeaks": true,
+ "IgnoreUserProfileLicenses": true
+}
