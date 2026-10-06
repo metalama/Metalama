@@ -1042,6 +1042,25 @@ class C<TC>
         Assert.Equal( "(int, string)", closedMethod2.ReturnType.ToString() );
     }
 
+    /// <summary>
+    /// Verifies that <see cref="TypeFactory.AsIType"/> and <see cref="TypeFactory.AsINamedType"/> return the types that
+    /// <see cref="TypeFactory.GetType(Type)"/> and <see cref="TypeFactory.GetNamedType"/> return, and that <see cref="TypeFactory.AsINamedType"/>
+    /// refuses a type that is not a named type.
+    /// </summary>
+    [Fact]
+    public void TypeFactory_AsITypeAndAsINamedType()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var compilation = testContext.CreateCompilationModel( "class C {}" );
+        using var userCodeContext = testContext.WithExecutionContext( compilation );
+
+        Assert.Equal( TypeFactory.GetNamedType( typeof(string) ), typeof(string).AsINamedType() );
+        Assert.Equal( TypeFactory.GetType( typeof(int[]) ), typeof(int[]).AsIType() );
+        Assert.Equal( "int[]", typeof(int[]).AsIType().ToString() );
+        Assert.Throws<ArgumentOutOfRangeException>( () => typeof(int[]).AsINamedType() );
+    }
+
     [Fact]
     public void WithinGenericTypeInstance()
     {

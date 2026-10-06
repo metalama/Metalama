@@ -144,7 +144,7 @@ internal sealed class SystemHookProvider : IMethodInterceptorProvider, ITemplate
 {
     public InterceptorResult GetInterceptor( MethodInterceptionContext context )
     {
-        var hooks = TypeFactory.GetNamedType( typeof(SystemHooks) );
+        var hooks = typeof(SystemHooks).AsINamedType();
         var hook = hooks.Properties.OfName( context.InterceptedMethod.Name ).SingleOrDefault();
 
         if ( hook == null )
@@ -266,7 +266,7 @@ public sealed class UseResilientFileAccessAttribute : TypeAspect
     {
         var intercepted = context.InterceptedMethod;
 
-        var replacement = TypeFactory.GetNamedType( typeof(ResilientFile) )
+        var replacement = typeof(ResilientFile).AsINamedType()
             .Methods
             .OfExactSignature( intercepted.Name, intercepted.Parameters.Select( p => p.Type ).ToList() );
 
@@ -786,7 +786,7 @@ internal sealed class BlockingSleepProvider : IMethodInterceptorProvider
             return InterceptorResult.Skip;
         }
 
-        var replacement = TypeFactory.GetNamedType( typeof(SleepMonitor) )
+        var replacement = typeof(SleepMonitor).AsINamedType()
             .Methods
             .OfExactSignature( nameof(SleepMonitor.Sleep), context.InterceptedMethod.Parameters.Select( p => p.Type ).ToList() );
 
