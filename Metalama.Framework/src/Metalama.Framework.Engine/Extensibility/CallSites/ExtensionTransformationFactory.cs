@@ -264,7 +264,19 @@ public sealed partial class ExtensionTransformationFactory
             callee = CreateStaticCallee( request.Target, request.TypeArguments, context );
             rewrittenCall = CreateRedirection( -1, callee ).Rewrite( callSite );
 
-            VerifyBinding( semanticModel, operation, rewrittenCall, targetMethod );
+            // When the rewritten call binds to another overload, the default values of the optional parameters that receive no argument are
+            // written by name, which selects the target method when the overload has fewer parameters.
+            if ( GetBindingError( semanticModel, operation, rewrittenCall, targetMethod ) != null
+                 && GetOmittedDefaultArguments( rewrittenCall, targetMethod, context ) is { IsEmpty: false } defaultArguments )
+            {
+                extraArguments = extraArguments.AddRange( defaultArguments.Select( a => a.WithAdditionalAnnotations( annotation ) ) );
+                rewrittenCall = CreateRedirection( -1, callee ).Rewrite( callSite );
+            }
+
+            if ( GetBindingError( semanticModel, operation, rewrittenCall, targetMethod ) is { } bindingError )
+            {
+                throw new ArgumentException( bindingError, nameof(request) );
+            }
         }
 
         if ( request.ReceiverMode == CallSiteReceiverMode.FirstArgumentByRef )
@@ -276,8 +288,8 @@ public sealed partial class ExtensionTransformationFactory
     }
 
     /// <summary>
-    /// Verifies that the rewritten call binds to the target method at the position of the call site, and throws an <see cref="ArgumentException"/>
-    /// otherwise.
+    /// Returns <c>null</c> when the rewritten call binds to the target method at the position of the call site, and otherwise the message that
+    /// describes the method to which it binds.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -289,7 +301,7 @@ public sealed partial class ExtensionTransformationFactory
     /// A call in a conditional access is verified by <see cref="GetForwarderCallee"/> instead, because it calls a forwarder.
     /// </para>
     /// </remarks>
-    private static void VerifyBinding(
+    private static string? GetBindingError(
         SemanticModel semanticModel,
         IInvocationOperation operation,
         ExpressionSyntax rewrittenCall,
@@ -298,7 +310,7 @@ public sealed partial class ExtensionTransformationFactory
         if ( targetMethod.GetSymbol() is not { } targetSymbol )
         {
             // An introduced method has no symbol in the compilation of the call site.
-            return;
+            return null;
         }
 
         var callSite = (InvocationExpressionSyntax) operation.Syntax;
@@ -314,7 +326,7 @@ public sealed partial class ExtensionTransformationFactory
 
         if ( !expression.IsKind( SyntaxKind.InvocationExpression ) )
         {
-            return;
+            return null;
         }
 
         var invocation = (InvocationExpressionSyntax) expression;
@@ -324,15 +336,85 @@ public sealed partial class ExtensionTransformationFactory
         if ( symbolInfo.Symbol is { Kind: SymbolKind.Method } and IMethodSymbol boundMethod
              && SymbolEqualityComparer.Default.Equals( (boundMethod.ReducedFrom ?? boundMethod).OriginalDefinition, targetSymbol.OriginalDefinition ) )
         {
-            return;
+            return null;
         }
 
         // The message is also embedded in the diagnostics of the clients of the factory, so it does not repeat the call site.
-        var message = symbolInfo.Symbol != null
+        return symbolInfo.Symbol != null
             ? $"The rewritten call binds to '{symbolInfo.Symbol.ToDisplayString( SymbolDisplayFormat.CSharpShortErrorMessageFormat )}' instead of '{targetMethod}'."
             : $"The rewritten call does not bind to '{targetMethod}' ({symbolInfo.CandidateReason}).";
+    }
 
-        throw new ArgumentException( message, "request" );
+    /// <summary>
+    /// Returns a named argument for each optional parameter of the target method that receives no argument in the rewritten call and that has a
+    /// default value that can be written.
+    /// </summary>
+    /// <remarks>
+    /// A positional argument binds to the parameter at its position, and a named argument to the parameter of its name. A <c>params</c> parameter
+    /// is never given a default value, because it receives an empty collection.
+    /// </remarks>
+    private static ImmutableArray<ArgumentSyntax> GetOmittedDefaultArguments( ExpressionSyntax rewrittenCall, IMethod targetMethod, SyntaxGenerationContext context )
+    {
+        var expression = rewrittenCall;
+
+        while ( expression.Kind() is SyntaxKind.ParenthesizedExpression or SyntaxKind.CastExpression )
+        {
+            expression = expression.Kind() == SyntaxKind.ParenthesizedExpression
+                ? ((ParenthesizedExpressionSyntax) expression).Expression
+                : ((CastExpressionSyntax) expression).Expression;
+        }
+
+        if ( !expression.IsKind( SyntaxKind.InvocationExpression ) )
+        {
+            return ImmutableArray<ArgumentSyntax>.Empty;
+        }
+
+        var parameters = targetMethod.Parameters;
+        var covered = new bool[parameters.Count];
+        var position = 0;
+
+        foreach ( var argument in ((InvocationExpressionSyntax) expression).ArgumentList.Arguments )
+        {
+            if ( argument.NameColon != null )
+            {
+                var name = argument.NameColon.Name.Identifier.ValueText;
+
+                for ( var i = 0; i < parameters.Count; i++ )
+                {
+                    if ( parameters[i].Name == name )
+                    {
+                        covered[i] = true;
+                    }
+                }
+            }
+            else if ( position < parameters.Count )
+            {
+                covered[position] = true;
+
+                if ( !parameters[position].IsParams )
+                {
+                    position++;
+                }
+            }
+        }
+
+        var arguments = ImmutableArray.CreateBuilder<ArgumentSyntax>();
+
+        for ( var i = 0; i < parameters.Count; i++ )
+        {
+            var parameter = parameters[i];
+
+            if ( !covered[i] && !parameter.IsParams && parameter.DefaultValue != null )
+            {
+                arguments.Add(
+                    Argument(
+                        NameColon( SyntaxFactoryEx.SafeIdentifierName( parameter.Name ) ),
+                        default,
+                        context.SyntaxGenerator.TypedConstant( parameter.DefaultValue.Value ) ) );
+            }
+        }
+
+        return arguments.ToImmutable();
     }
 
     /// <summary>
