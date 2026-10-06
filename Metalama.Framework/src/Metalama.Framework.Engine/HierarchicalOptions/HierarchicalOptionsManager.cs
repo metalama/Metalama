@@ -8,12 +8,15 @@ using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Framework.Engine.Utilities.UserCode;
 using Metalama.Framework.Options;
+using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -53,6 +56,44 @@ public sealed partial class HierarchicalOptionsManager : IHierarchicalOptionsMan
             this._typeResolver.GetCompileTimeType( type.GetSymbol().AssertSymbolNotNull(), false );
     }
 
+    /// <summary>
+    /// Returns the names of the hierarchical options types that the additional compile-time assemblies of the project declare.
+    /// </summary>
+    /// <remarks>
+    /// An additional compile-time assembly, such as the API of an extension that is not built by the Metalama compiler, is a standard reference
+    /// assembly and not a compile-time project, so <see cref="CompileTimeProject.ClosureOptionTypes"/> does not contain its options types. The
+    /// types are found from the symbols of the assemblies that the compilation references, including the types that are not public, because
+    /// the options of an extension can be internal and set only by the public API of the extension.
+    /// </remarks>
+    private IEnumerable<string> GetAdditionalCompileTimeAssemblyOptionTypes( CompilationModel compilationModel )
+    {
+        var additionalAssemblyNames = this._serviceProvider.GetReferenceAssemblyLocator()
+            .AdditionalCompileTimeAssemblyPaths
+            .Select( p => Path.GetFileNameWithoutExtension( p ) );
+
+        var additionalAssemblyNameSet = new HashSet<string>( additionalAssemblyNames, StringComparer.OrdinalIgnoreCase );
+
+        var roslynCompilation = compilationModel.RoslynCompilation;
+        var optionsInterface = roslynCompilation.GetTypeByMetadataName( typeof(IHierarchicalOptions).FullName.AssertNotNull() );
+
+        if ( additionalAssemblyNameSet.Count == 0 || optionsInterface == null )
+        {
+            return [];
+        }
+
+        return roslynCompilation.SourceModule.ReferencedAssemblySymbols
+            .Where( a => additionalAssemblyNameSet.Contains( a.Name ) )
+            .SelectMany( a => GetTypes( a.GlobalNamespace ) )
+            .Where( t => t is { TypeKind: Microsoft.CodeAnalysis.TypeKind.Class, IsAbstract: false } && t.AllInterfaces.Contains( optionsInterface, SymbolEqualityComparer.Default ) )
+            .Select( t => t.GetReflectionFullName() )
+            .ToList();
+
+        static IEnumerable<INamedTypeSymbol> GetTypes( INamespaceOrTypeSymbol container )
+            => container.GetMembers()
+                .OfType<INamespaceOrTypeSymbol>()
+                .SelectMany( m => m.Kind == SymbolKind.NamedType ? GetTypes( m ).Prepend( (INamedTypeSymbol) m ) : GetTypes( m ) );
+    }
+
     internal Task InitializeAsync(
         CompileTimeProject project,
         IEnumerable<IHierarchicalOptionsSource> sources,
@@ -72,7 +113,7 @@ public sealed partial class HierarchicalOptionsManager : IHierarchicalOptionsMan
 
         // Initialize all default options. We need to do this during initialization because we need a diagnostic sink and won't have it later.
 
-        foreach ( var optionTypeName in project.ClosureOptionTypes )
+        foreach ( var optionTypeName in project.ClosureOptionTypes.Concat( this.GetAdditionalCompileTimeAssemblyOptionTypes( compilationModel ) ).Distinct() )
         {
             var userCodeExecutionContext = UserCodeExecutionContext.CreateInstance(
                 this._serviceProvider,
