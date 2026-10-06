@@ -252,7 +252,7 @@ Other matching rules:
 - Generic methods and members of generic types are matched through their definitions. `MethodInterceptionContext.InterceptedMethod` gives the constructed method at a site.
 - With `MethodMatching.Overrides`, the engine also tests the members that the bound member overrides, directly or indirectly. With `MethodMatching.InterfaceImplementations`, it also tests the interface members that the bound member implements, implicitly or explicitly. For each member walked, in this order (the bound member, then the overridden members from the nearest, then the implemented interface members), the engine tests the declaring type, or evaluates the type predicate on it. The site matches when the name matches and one member passes. The first member that passes is `MethodInterceptionContext.MatchedMethod`.
 - `InterceptMethods` matches only ordinary methods, classic extension methods and C# 14 extension methods. It never matches an accessor, an operator, a constructor, a finalizer or a local function. A name that the declaring type uses only for a property or an event is reported with the warning LAMA1008, with the advice to use `InterceptAccessors` (section [9.4.7](09-premium-engine.md#947-registration-time-checks)).
-- Several registrations of the same source that overlap on a site count once for that site, under the one-source rule of section [9.5.8](09-premium-engine.md#958-conflict-detection-r7-b7). This happens, for example, when an aspect registers a base type and a derived type with `MethodMatching.Overrides`, or registers a type predicate and a declaring type that it also accepts. The source is the registering aspect instance or fabric instance.
+- Several registrations of the same source that overlap on a site count once for that site, under the one-source rule of section [9.5.8](09-premium-engine.md#958-conflict-detection-r7-b7). Superseded by the decision "Conflicts per registration and event unsubscriptions" of section 15.0 (2026-10-06): every registration is evaluated, and two results that are not skips are LAMA1010. This happens, for example, when an aspect registers a base type and a derived type with `MethodMatching.Overrides`, or registers a type predicate and a declaring type that it also accepts. The source is the registering aspect instance or fabric instance.
 
 ```csharp
 namespace Metalama.Extensions.Interceptors;
@@ -897,7 +897,7 @@ var a = list.Select( x => Transform( x ) );   // The call inside the lambda is a
 var b = list.Select( Transform );             // The method group is a method-reference site.
 ```
 
-> Superseded in part by the decision "Provider factories, event subscriptions as a use kind, and the call-site member" of section 15.0 (2026-10-06): a method group added to or removed from an event has the use kind `EventSubscription` instead of `DelegateCreation`, and `ConvertedType` and `IsEventSubscription` are removed with `IMethodReference`.
+> Superseded in part by the decision "Provider factories, event subscriptions as a use kind, and the call-site member" of section 15.0 (2026-10-06): a method group added to an event has the use kind `EventSubscription`, and a method group removed from an event has the use kind `EventUnsubscription`, instead of `DelegateCreation` (the decision "Conflicts per registration and event unsubscriptions" of section 15.0 (2026-10-06)), and `ConvertedType` and `IsEventSubscription` are removed with `IMethodReference`.
 
 A registration that intercepts `Transform` intercepts both statements, so both programs keep the same behavior. The default is therefore the sound behavior, and a provider that does not want a kind of use skips it:
 
@@ -907,7 +907,7 @@ internal sealed class TransformProvider : IMethodInterceptorProvider
     public InterceptorResult GetInterceptor( MethodInterceptionContext context )
     {
         // This provider must not change the identity of event handlers, so it leaves subscriptions unchanged.
-        if ( context.UseKind == MethodUseKind.EventSubscription )
+        if ( context.UseKind is MethodUseKind.EventSubscription or MethodUseKind.EventUnsubscription )
         {
             return InterceptorResult.Skip;
         }
