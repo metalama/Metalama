@@ -69,6 +69,8 @@ public interface IAwaitInterceptorProvider
 
 #### 5.5.1 InterceptionContext
 
+> Superseded in part by the decision "Interception contexts, type selector and implicit calls" of section 15.0 (2026-10-06): the members that describe the call site, the receiver and the method reference moved to `ICallSite`, `IInvocationReceiver` and `IMethodReference`, `Destination` is removed, and `NonInterceptableReason` is not nullable.
+
 ```csharp
 namespace Metalama.Extensions.Interceptors;
 
@@ -287,6 +289,8 @@ public enum NonInterceptableReason
 Call sites with a limitation are presented to the interceptor (RC5). Method groups converted to a delegate or to a function pointer are presented as method-reference sites (section [5.3.11](05a-api-registration.md#5311-kinds-of-method-use)). Uses of property and event accessors are presented as accessor sites (section [5.3.13](05a-api-registration.md#5313-accessors), [6.2.11](06a-call-site-model.md#6211-accessor-sites)). Call sites that are not calls in any observable sense are never presented: calls and method groups in expression trees (including query expressions over `IQueryable`), `nameof`, method groups that are not converted, delegate invocations, local-function calls, function-pointer invocations, dynamic invocations, dynamic awaits, calls that the compiler omits (`[Conditional]` without the symbol, partial methods without implementation), calls that do not bind, calls in compile-time code, and `await foreach` and `await using`. Section [6.2.2](06a-call-site-model.md#622-silent-refusals) gives the detection rules.
 
 #### 5.5.2 MethodInterceptionContext and InvocationArgument
+
+> Superseded in part by the decision "Interception contexts, type selector and implicit calls" of section 15.0 (2026-10-06): the members that describe the call site, the receiver and the method reference moved to `ICallSite`, `IInvocationReceiver` and `IMethodReference`, `Destination` is removed, and `NonInterceptableReason` is not nullable.
 
 ```csharp
 /// <summary>

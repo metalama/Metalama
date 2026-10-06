@@ -447,6 +447,8 @@ A flags enumeration follows the precedent of `ReferenceValidationOptions` (P27 `
 
 #### 5.3.6 Fabric and query surface
 
+> Superseded in part by the decision "Interception contexts, type selector and implicit calls" of section 15.0 (2026-10-06): the declaring types are given by the union `TypeSelector`, each surface has one overload per provider form, and the overloads with a single name are removed.
+
 Fabrics call these methods on their amender, because `IAmender<T>` derives from `IQuery<T>` (FW27 `Fabrics\IAmender.cs:63`). Aspects can call them on `IAspectBuilder<T>.Outbound` (FW27 `Aspects\IAspectBuilder.cs:240`).
 
 ```csharp
@@ -688,6 +690,8 @@ Overload resolution was checked shape by shape. The first parameter after the re
 
 #### 5.3.7 Aspect surface through IAdviser
 
+> Superseded in part by the decision "Interception contexts, type selector and implicit calls" of section 15.0 (2026-10-06): the declaring types are given by the union `TypeSelector`, each surface has one overload per provider form, and the overloads with a single name are removed.
+
 ```csharp
 namespace Metalama.Extensions.Interceptors;
 
@@ -802,6 +806,8 @@ public static class InterceptionAdviserExtensions
 No factory overload exists on `IAdviser<T>`, because an adviser has a single target. The methods return `void`, like `AddAspect` and `AddAnnotation` (FW27 `Aspects\AdviserExtensions.cs:1910-1918, 2035-2044`). A premium result type cannot implement `IAdviceResult`, which is `[InternalImplement]` (FW26 `Advising\IAdviceResult.cs:57-58`). The engine implementation obtains the owner, the aspect target and the current template provider through the open-source adviser bridge (section [10.2](10a-oss-bridge-hook-factory.md#102-adviser-bridge-b2a)). The target selection needs no context of the owner: a declaring type, names and a type predicate mean the same thing on every surface, and an await registration has no target selection.
 
 #### 5.3.8 ITypeAmender overloads
+
+> Superseded in part by the decision "Interception contexts, type selector and implicit calls" of section 15.0 (2026-10-06): the declaring types are given by the union `TypeSelector`, each surface has one overload per provider form, and the overloads with a single name are removed.
 
 EXISTING: `ITypeAmender` implements both `IAmender<INamedType>`, which is an `IQuery<INamedType>`, and `IAdviser<INamedType>` (FW27 `Fabrics\ITypeAmender.cs:34`). A call such as `amender.InterceptMethods( typeof(File), ["ReadAllText"], provider )` would find two candidates with equally good receiver conversions (CS0121). The framework solves the same problem for `AddAspect` with `ITypeAmender` overloads (FW27 `Aspects\AdviserExtensions.cs:1944-1967`).
 
