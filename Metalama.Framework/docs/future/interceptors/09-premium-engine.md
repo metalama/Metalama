@@ -8,6 +8,8 @@
 
 DECIDED on 2026-10-02 (PO3, section [15.0](15-decisions.md#150-decisions-of-2026-10-02)): the interceptor packages are available under the Community license. The Package project does not reference `Metalama.Licensing` and declares no `MetalamaPremiumComponent`, and the build program adds no licensing entry. The licensing content of sections 9.1.1 to 9.1.5 and 9.9.2 is superseded.
 
+DECIDED on 2026-10-06 (row "Community license required" of section [15.0](15-decisions.md#150-decisions-of-2026-10-02), metalama/Metalama#2122): the package requires a registered license again, and a Metalama Community license satisfies it. The Package project references `Metalama.Licensing` and declares `<MetalamaPremiumComponent Include="Metalama.Extensions.Interceptors" RequiredLicense="Community" />`. The licensing content of sections 9.1.1, 9.1.2 and 9.9.2 applies again, with Metalama Community added to the eligible products.
+
 #### 9.1.1 Projects
 
 PROPOSED. The package mirrors the layout of Metalama.Extensions.Validation.
