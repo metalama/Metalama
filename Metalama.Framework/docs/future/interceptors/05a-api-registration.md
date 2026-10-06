@@ -897,6 +897,8 @@ var a = list.Select( x => Transform( x ) );   // The call inside the lambda is a
 var b = list.Select( Transform );             // The method group is a method-reference site.
 ```
 
+> Superseded in part by the decision "Provider factories, event subscriptions as a use kind, and the call-site member" of section 15.0 (2026-10-06): a method group added to or removed from an event has the use kind `EventSubscription` instead of `DelegateCreation`, and `ConvertedType` and `IsEventSubscription` are removed with `IMethodReference`.
+
 A registration that intercepts `Transform` intercepts both statements, so both programs keep the same behavior. The default is therefore the sound behavior, and a provider that does not want a kind of use skips it:
 
 ```csharp
@@ -905,7 +907,7 @@ internal sealed class TransformProvider : IMethodInterceptorProvider
     public InterceptorResult GetInterceptor( MethodInterceptionContext context )
     {
         // This provider must not change the identity of event handlers, so it leaves subscriptions unchanged.
-        if ( context.IsEventSubscription )
+        if ( context.UseKind == MethodUseKind.EventSubscription )
         {
             return InterceptorResult.Skip;
         }
