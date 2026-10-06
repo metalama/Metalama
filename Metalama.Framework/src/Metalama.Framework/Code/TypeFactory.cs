@@ -64,6 +64,22 @@ public static class TypeFactory
            ?? throw new ArgumentOutOfRangeException( nameof(type), $"'{type}' is not a named type." );
 
     /// <summary>
+    /// Gets the <see cref="IType"/> that represents a reflection <see cref="Type"/> in the current compilation. This method is equivalent to
+    /// <see cref="GetType(Type)"/>.
+    /// </summary>
+    /// <param name="type">The reflection type, for instance <c>typeof(int[])</c>.</param>
+    public static IType AsIType( this Type type ) => GetType( type );
+
+    /// <summary>
+    /// Gets the <see cref="INamedType"/> that represents a reflection <see cref="Type"/> in the current compilation. This method is equivalent
+    /// to <see cref="GetNamedType(Type)"/>.
+    /// </summary>
+    /// <param name="type">The reflection type, for instance <c>typeof(Console)</c>.</param>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="type"/> is not a named type, for instance an array type or a pointer
+    /// type.</exception>
+    public static INamedType AsINamedType( this Type type ) => GetNamedType( type );
+
+    /// <summary>
     /// Get type based on its full name, as used in reflection.
     /// </summary>
     /// <remarks>

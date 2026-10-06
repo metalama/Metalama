@@ -225,7 +225,7 @@ internal sealed class LinkerInjectionNameProvider : InjectionNameProvider
                 {
                     var candidate = $"{hint}{counter.Value++}";
 
-                    if ( CheckFinalMemberNames( finalContainingType, hint ) )
+                    if ( CheckFinalMemberNames( finalContainingType, candidate ) )
                     {
                         lock ( injectedMemberNames )
                         {

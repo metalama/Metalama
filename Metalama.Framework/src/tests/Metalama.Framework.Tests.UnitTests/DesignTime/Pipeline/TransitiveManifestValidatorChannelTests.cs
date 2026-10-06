@@ -76,7 +76,7 @@ public sealed class TransitiveManifestValidatorChannelTests : UnitTestClass
         Func<SymbolDictionaryKey, ITransitivePipelineContributor[]> createExtensions )
     {
         var compilation = testContext.CreateCSharpCompilation( _code );
-        Assert.True( factory.TryExecute( testContext.ProjectOptions, compilation, default, out var executed ) );
+        Assert.True( factory.TryExecute( testContext.ProjectOptions, compilation, TestContext.Current.CancellationToken, out var executed ) );
 
         // A real key for the validated declaration. The fixture never looks a validator up by symbol, but the key
         // indexes the validator dictionary that Update populates, so a default (identity-less) one would be a

@@ -321,6 +321,11 @@ namespace Metalama.Framework.Code
         /// <summary>
         /// <c>checked --=</c> operator.
         /// </summary>
-        CheckedDecrementAssignment
+        CheckedDecrementAssignment,
+
+        /// <summary>
+        /// <c>??=</c> operator. This operator cannot be defined by user code, so no operator declaration has this kind.
+        /// </summary>
+        NullCoalescingAssignment
     }
 }

@@ -17,6 +17,14 @@ public abstract class ReferenceIndexBuilder
             return;
         }
 
+        // A classic extension method called in reduced form, for instance x.M(), is bound to a reduced method symbol, which is a different
+        // symbol from the static method. The reference is keyed by the static method so that it is found whichever form the call uses.
+        if ( referencedSymbol.Kind == SymbolKind.Method
+             && referencedSymbol is IMethodSymbol { MethodKind: MethodKind.ReducedExtension, ReducedFrom: { } unreducedMethod } )
+        {
+            referencedSymbol = unreducedMethod;
+        }
+
         referencedSymbol = referencedSymbol.OriginalDefinition;
         referencingSymbol = referencingSymbol.OriginalDefinition;
 
