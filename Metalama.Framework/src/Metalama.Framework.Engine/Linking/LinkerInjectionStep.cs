@@ -446,7 +446,7 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
             diagnostics.Report(
                 AspectLinkerDiagnosticDescriptors.HidingVariableRenamed.CreateRoslynDiagnostic(
                     rename.GetLocation(),
-                    (rename.VariableKind, rename.OldName, rename.NewName, rename.HiddenParameter.ContainingSymbol, rename.Description) ) );
+                    (rename.VariableKind, rename.OldName, rename.NewName, rename.Member, rename.Description) ) );
         }
 
         var helperSyntaxTree = injectionHelperProvider.GetLinkerHelperSyntaxTree( compilationWithIntroducedTrees.LanguageOptions );

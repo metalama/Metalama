@@ -76,7 +76,7 @@ public static class AspectLinkerDiagnosticDescriptors
             _category,
             Warning );
 
-    internal static readonly DiagnosticDefinition<(string VariableKind, string Name, string NewName, ISymbol Member, string Description)>
+    internal static readonly DiagnosticDefinition<(string VariableKind, string Name, string NewName, ISymbol? Member, string Description)>
         HidingVariableRenamed = new(
             "LAMA0661",
             "A variable that hides a parameter passed by a redirected call site was renamed.",

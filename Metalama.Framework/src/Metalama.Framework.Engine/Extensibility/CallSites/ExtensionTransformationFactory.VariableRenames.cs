@@ -40,8 +40,10 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
         /// <param name="variableRenames">The collection to which the variables to rename are added. It is created when the first variable is
         /// added.</param>
         /// <returns><paramref name="parameterName"/> when the name designates the parameter at the call site, and otherwise the name cast to the type
-        /// of the parameter.</returns>
-        /// <exception cref="ArgumentException">A variable that hides the parameter cannot be renamed.</exception>
+        /// of the parameter. The name of a parameter introduced by an aspect is always cast, because it designates nothing in the source
+        /// compilation.</returns>
+        /// <exception cref="ArgumentException">A variable that hides the parameter cannot be renamed, or the name designates another parameter at
+        /// the call site.</exception>
         /// <remarks>
         /// <para>
         /// Since C# 8, a lambda or a local function can declare a parameter or a local variable that has the name of a parameter of the containing
@@ -64,20 +66,17 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
             string description,
             ref List<CallSiteVariableRename>? variableRenames )
         {
+            // A parameter introduced by an aspect has no symbol in the source compilation, but a variable of the source code can still hide it.
+            var parameterSymbol = parameter.GetSymbol();
+
             // Only a lambda or a local function can declare a variable with the name of a parameter of the member, because C# forbids it in the body
             // of the member itself. The common case, a call site outside any nested function, therefore requires no binding.
             if ( !IsInNestedFunction( callSite ) )
             {
-                return parameterName;
+                return parameterSymbol == null ? CastToParameterType() : parameterName;
             }
-
-            if ( parameter.GetSymbol() is not IParameterSymbol parameterSymbol )
-            {
-                // A parameter introduced by an aspect has no symbol in the source compilation, and no source variable can hide it.
-                return parameterName;
-            }
-
-            var name = parameterSymbol.Name;
+            var member = parameterSymbol?.ContainingSymbol ?? GetEnclosingMemberSymbol( semanticModel, callSite );
+            var name = parameter.Name;
             var position = callSite.SpanStart;
             var hasRenames = false;
 
@@ -85,33 +84,71 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
             {
                 var symbol = semanticModel.GetSpeculativeSymbolInfo( position, parameterName, SpeculativeBindingOption.BindAsExpression ).Symbol;
 
-                if ( symbol is { Kind: SymbolKind.Parameter } && !IsNestedFunction( symbol.ContainingSymbol ) )
+                if ( symbol is not null && symbol.Kind is SymbolKind.Parameter or SymbolKind.Local && IsNestedFunction( symbol.ContainingSymbol ) )
                 {
-                    // The name designates a parameter of the member.
-                    break;
+                    var function = GetFunctionSyntax( semanticModel, callSite, (IMethodSymbol) symbol.ContainingSymbol! );
+                    (variableRenames ??= new List<CallSiteVariableRename>()).Add( CreateVariableRename( symbol, function, semanticModel, callSite, member, description ) );
+                    hasRenames = true;
+
+                    // The variables of the next enclosing scope are those that are visible where the function is declared.
+                    position = function.SpanStart;
+
+                    continue;
                 }
 
-                if ( symbol is not ({ Kind: SymbolKind.Parameter } or { Kind: SymbolKind.Local }) || !IsNestedFunction( symbol.ContainingSymbol ) )
+                // In the final code, an introduced parameter hides any symbol of the source code that is not declared inside the member. A parameter
+                // of the source code must be the symbol that the name designates.
+                if ( parameterSymbol != null && (symbol is not { Kind: SymbolKind.Parameter } || !IsSameParameter( (IParameterSymbol) symbol, parameterSymbol )) )
                 {
                     throw new ArgumentException(
-                        $"The parameter '{name}' cannot be passed at the call site '{callSite}', because the name designates "
+                        $"The parameter '{name}' of '{member}' cannot be passed at the call site '{callSite}', because the name designates "
                         + (symbol == null ? "no symbol" : $"'{symbol.ToDisplayString( SymbolDisplayFormat.CSharpShortErrorMessageFormat )}'")
-                        + " there, and only a parameter of a lambda or local function or a local variable can be renamed.",
+                        + " there.",
                         "request" );
                 }
 
-                var function = GetFunctionSyntax( semanticModel, callSite, (IMethodSymbol) symbol.ContainingSymbol );
-                (variableRenames ??= new List<CallSiteVariableRename>()).Add( CreateVariableRename( symbol, function, semanticModel, callSite, parameterSymbol, description ) );
-                hasRenames = true;
-
-                // The variables of the next enclosing scope are those that are visible where the function is declared.
-                position = function.SpanStart;
+                break;
             }
 
-            return hasRenames
-                ? ParenthesizedExpression( CastExpression( context.SyntaxGenerator.TypeSyntax( parameter.Type ), parameterName ).WithSimplifierAnnotation() )
-                    .WithSimplifierAnnotation()
-                : parameterName;
+            return hasRenames || parameterSymbol == null ? CastToParameterType() : parameterName;
+
+            ExpressionSyntax CastToParameterType()
+                => ParenthesizedExpression( CastExpression( context.SyntaxGenerator.TypeSyntax( parameter.Type ), parameterName ).WithSimplifierAnnotation() )
+                    .WithSimplifierAnnotation();
+        }
+
+        /// <summary>
+        /// Determines whether a parameter to which a name binds is the requested parameter. The parameters of an accessor and of its property or
+        /// indexer are distinct symbols that designate the same parameter.
+        /// </summary>
+        private static bool IsSameParameter( IParameterSymbol bound, IParameterSymbol requested )
+        {
+            if ( SymbolEqualityComparer.Default.Equals( bound, requested ) )
+            {
+                return true;
+            }
+
+            return bound.Ordinal == requested.Ordinal
+                   && bound.Name == requested.Name
+                   && (SymbolEqualityComparer.Default.Equals( GetAssociatedSymbol( bound.ContainingSymbol ), requested.ContainingSymbol )
+                       || SymbolEqualityComparer.Default.Equals( bound.ContainingSymbol, GetAssociatedSymbol( requested.ContainingSymbol ) ));
+
+            static ISymbol? GetAssociatedSymbol( ISymbol symbol ) => symbol is { Kind: SymbolKind.Method } ? ((IMethodSymbol) symbol).AssociatedSymbol : null;
+        }
+
+        /// <summary>
+        /// Returns the symbol of the member that contains a node, outside the lambdas and local functions.
+        /// </summary>
+        private static ISymbol? GetEnclosingMemberSymbol( SemanticModel semanticModel, SyntaxNode node )
+        {
+            var symbol = semanticModel.GetEnclosingSymbol( node.SpanStart );
+
+            while ( IsNestedFunction( symbol ) )
+            {
+                symbol = symbol!.ContainingSymbol;
+            }
+
+            return symbol;
         }
 
         /// <summary>
@@ -168,7 +205,7 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
         /// <param name="function">The syntax of the lambda or local function that declares the variable.</param>
         /// <param name="semanticModel">The semantic model of the call site.</param>
         /// <param name="callSite">The call site.</param>
-        /// <param name="hiddenParameter">The parameter of the containing member.</param>
+        /// <param name="member">The member whose parameter the variable hides.</param>
         /// <param name="description">The description of the redirection.</param>
         /// <exception cref="ArgumentException">The variable cannot be renamed.</exception>
         /// <remarks>
@@ -181,7 +218,7 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
             SyntaxNode function,
             SemanticModel semanticModel,
             SyntaxNode callSite,
-            IParameterSymbol hiddenParameter,
+            ISymbol? member,
             string description )
         {
             var name = variable.Name;
@@ -222,6 +259,17 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
                 references.Add( identifier );
             }
 
+            // An attribute can designate a parameter by its name, for instance CallerArgumentExpression, which the rename would change.
+            if ( variable.Kind == SymbolKind.Parameter
+                 && function.DescendantNodes()
+                     .Where( n => n.IsKind( SyntaxKind.AttributeArgument ) )
+                     .Any( n => semanticModel.GetConstantValue( ((AttributeArgumentSyntax) n).Expression ) is { HasValue: true, Value: string value } && value == name ) )
+            {
+                throw new ArgumentException(
+                    $"The parameter '{name}', which hides the parameter '{name}' at the call site '{callSite}', cannot be renamed, because an attribute designates it by its name.",
+                    "request" );
+            }
+
             var memberIdentifiers = new HashSet<string>(
                 GetMemberSyntax( callSite ).DescendantTokens().Where( t => t.IsKind( SyntaxKind.IdentifierToken ) ).Select( t => t.ValueText ),
                 StringComparer.Ordinal );
@@ -244,7 +292,7 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
                     ? "local function parameter"
                     : "lambda parameter";
 
-            return new CallSiteVariableRename( declaration, references.ToImmutable(), name, newName, variableKind, hiddenParameter, description );
+            return new CallSiteVariableRename( declaration, references.ToImmutable(), name, newName, variableKind, member, description );
 
             static bool IsNameOfExpression( SyntaxNode node )
                 => node.IsKind( SyntaxKind.InvocationExpression )

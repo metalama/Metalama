@@ -226,6 +226,11 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
                                      public int Compute( int x ) => x;
                                  }
 
+                                 internal sealed class NamedAttribute : Attribute
+                                 {
+                                     public NamedAttribute( string name ) { }
+                                 }
+
                                  [TheAspect]
                                  internal class C
                                  {
@@ -304,6 +309,7 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
                                          Func<int, Func<int, int>> nested = x => y => { var pair = new { x, t = (x, 1) }; return Source.Compute( 43 + x ); };
                                          Func<int, int> twice = x => { Func<int, int> inner = x => Source.Compute( 44 + x ); return x; };
                                          Action named = () => { var x = 45; _ = nameof(x); Source.Compute( 45 ); };
+                                         void Attributed( int x, [Named( "x" )] int y = 0 ) => Source.Compute( 47 + x );
                                          F( 0 );
                                      }
 
@@ -915,6 +921,40 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
             CallSiteReceiverMode.Drop,
             ( s, r ) => CreateRequestWithParameterOfH( s, r.CallSite ),
             "nameof" );
+
+    /// <summary>
+    /// Verifies that a parameter whose name designates another parameter at the call site is refused, here the parameter <c>x</c> of
+    /// <c>Source.Compute</c> passed at a call site of <c>C.H</c>, where the name designates the parameter <c>x</c> of <c>C.H</c>.
+    /// </summary>
+    [Fact]
+    public async Task RedirectInvocation_ValueOfParameterOfAnotherMember_Throws()
+        => await this.AssertInvocationRefusedAsync(
+            "Source.Compute( 40 + x )",
+            "Interceptors",
+            "Two",
+            CallSiteReceiverMode.Drop,
+            ( s, r ) => new InvocationRedirectionRequest( r.CallSite, r.Target, r.ReceiverMode )
+            {
+                Arguments = ImmutableArray.Create(
+                    RedirectedArgument.SourceArgument( 0 ).WithName( "a" ),
+                    RedirectedArgument.Value( s.Compilation.Types.OfName( "Source" ).Single().Methods.OfName( "Compute" ).Single().Parameters[0] )
+                        .WithName( "b" ) )
+            },
+            "cannot be passed" );
+
+    /// <summary>
+    /// Verifies that a parameter that hides the passed parameter and whose name an attribute gives is refused, because the rename would change
+    /// the value of the attribute.
+    /// </summary>
+    [Fact]
+    public async Task RedirectInvocation_ValueOfParameter_HiddenParameterNamedByAttribute_Throws()
+        => await this.AssertInvocationRefusedAsync(
+            "Source.Compute( 47 + x )",
+            "Interceptors",
+            "Two",
+            CallSiteReceiverMode.Drop,
+            ( s, r ) => CreateRequestWithParameterOfH( s, r.CallSite ),
+            "an attribute designates it by its name" );
 
     /// <summary>
     /// Requests that a call site in the method <c>C.H</c> be redirected to <c>Interceptors.Two</c>, with the source argument and the parameter

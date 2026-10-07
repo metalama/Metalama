@@ -35,7 +35,7 @@ internal sealed class CallSiteVariableRename
         string oldName,
         string newName,
         string variableKind,
-        ISymbol hiddenParameter,
+        ISymbol? member,
         string description )
     {
         this.DeclarationNode = declarationNode;
@@ -43,7 +43,7 @@ internal sealed class CallSiteVariableRename
         this.OldName = oldName;
         this.NewName = newName;
         this.VariableKind = variableKind;
-        this.HiddenParameter = hiddenParameter;
+        this.Member = member;
         this.Description = description;
     }
 
@@ -75,9 +75,9 @@ internal sealed class CallSiteVariableRename
     public string VariableKind { get; }
 
     /// <summary>
-    /// Gets the parameter of the member that the variable hides.
+    /// Gets the member whose parameter the variable hides, or <c>null</c> when the symbol of the member is not available.
     /// </summary>
-    public ISymbol HiddenParameter { get; }
+    public ISymbol? Member { get; }
 
     /// <summary>
     /// Gets the description of the first redirection that requires the renaming, which is written in the warning.

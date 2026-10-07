@@ -281,9 +281,9 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
     }
 
     /// <summary>
-    /// Returns the method that contains a call site, outside the lambdas and local functions.
+    /// Returns the method or constructor that contains a call site, outside the lambdas and local functions.
     /// </summary>
-    private static IMethod GetCallingMember( SyntaxNode node, CompilationModel compilation )
+    private static IHasParameters GetCallingMember( SyntaxNode node, CompilationModel compilation )
     {
         var semanticModel = compilation.RoslynCompilation.GetSemanticModel( node.SyntaxTree );
         var symbol = semanticModel.GetEnclosingSymbol( node.SpanStart )!;
@@ -293,7 +293,7 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
             symbol = symbol.ContainingSymbol;
         }
 
-        return (IMethod) compilation.Factory.GetDeclaration( symbol );
+        return (IHasParameters) compilation.Factory.GetDeclaration( symbol );
     }
 
     /// <summary>
