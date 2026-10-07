@@ -19,8 +19,9 @@ namespace Metalama.Framework.Engine.Extensibility.Synthesis;
 /// <see cref="HiddenLeadingParameterCount"/> first parameters nor one of the <see cref="NameOnlyTrailingParameterCount"/> last parameters.
 /// </para>
 /// <para>
-/// A run-time parameter of the template cannot have a default value or be a <c>params</c> parameter, and the template cannot have run-time type
-/// parameters. Compile-time parameters and type parameters receive their values from <see cref="Arguments"/>.
+/// A run-time parameter of the template cannot have a default value or be a <c>params</c> parameter. A run-time type parameter of the template
+/// binds to the type parameter of the declared method at the same position among the run-time type parameters, as for an override.
+/// Compile-time parameters and type parameters receive their values from <see cref="Arguments"/>.
 /// </para>
 /// </remarks>
 [PublicAPI]

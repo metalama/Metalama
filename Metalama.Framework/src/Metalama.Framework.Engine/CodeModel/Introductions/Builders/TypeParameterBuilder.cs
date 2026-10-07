@@ -59,6 +59,7 @@ internal sealed class TypeParameterBuilder : NamedDeclarationBuilder, ITypeParam
         set
         {
             this.CheckNotFrozen();
+            this.ThrowIfLocked();
             this._typeKindConstraint = value;
         }
     }
@@ -69,6 +70,7 @@ internal sealed class TypeParameterBuilder : NamedDeclarationBuilder, ITypeParam
         set
         {
             this.CheckNotFrozen();
+            this.ThrowIfLocked();
             this._name = value;
         }
     }
@@ -79,6 +81,7 @@ internal sealed class TypeParameterBuilder : NamedDeclarationBuilder, ITypeParam
         set
         {
             this.CheckNotFrozen();
+            this.ThrowIfLocked();
             this._variance = value;
         }
     }
@@ -89,6 +92,7 @@ internal sealed class TypeParameterBuilder : NamedDeclarationBuilder, ITypeParam
         set
         {
             this.CheckNotFrozen();
+            this.ThrowIfLocked();
 
             this._allowsRefStruct = value;
         }
@@ -100,6 +104,7 @@ internal sealed class TypeParameterBuilder : NamedDeclarationBuilder, ITypeParam
         set
         {
             this.CheckNotFrozen();
+            this.ThrowIfLocked();
             this._isConstraintNullable = value;
         }
     }
@@ -110,13 +115,33 @@ internal sealed class TypeParameterBuilder : NamedDeclarationBuilder, ITypeParam
         set
         {
             this.CheckNotFrozen();
+            this.ThrowIfLocked();
             this._hasDefaultConstructorConstraint = value;
         }
     }
 
-    public void AddTypeConstraint( IType type ) => this._typeConstraints.Add( this.Translate( type ) );
+    public void AddTypeConstraint( IType type )
+    {
+        this.ThrowIfLocked();
+        this._typeConstraints.Add( this.Translate( type ) );
+    }
 
-    public void AddTypeConstraint( Type type ) => this._typeConstraints.Add( this.Compilation.Factory.GetTypeByReflectionType( type ) );
+    public void AddTypeConstraint( Type type )
+    {
+        this.ThrowIfLocked();
+        this._typeConstraints.Add( this.Compilation.Factory.GetTypeByReflectionType( type ) );
+    }
+
+    /// <summary>
+    /// Throws an <see cref="InvalidOperationException"/> when the method that declares the type parameter locks its type parameters.
+    /// </summary>
+    private void ThrowIfLocked()
+    {
+        if ( this.ContainingDeclaration is MethodBuilder { Restrictions.AreTypeParametersLocked: true } method )
+        {
+            method.ThrowIfLocked( true, "type parameters" );
+        }
+    }
 
     TypeKind IType.TypeKind => TypeKind.TypeParameter;
 

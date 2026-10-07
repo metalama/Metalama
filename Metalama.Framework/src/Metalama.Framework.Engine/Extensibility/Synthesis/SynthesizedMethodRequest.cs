@@ -14,17 +14,21 @@ namespace Metalama.Framework.Engine.Extensibility.Synthesis;
 /// Describes a request to declare a method whose body is generated from a template, with
 /// <see cref="CallSites.ExtensionTransformationFactory.DeclareMethod"/>.
 /// </summary>
+/// <remarks>
+/// The signature of the method is given either by a delegate, or by a builder created with
+/// <see cref="CallSites.ExtensionTransformationFactory.CreateMethodBuilder"/>.
+/// </remarks>
 [PublicAPI]
 public sealed class SynthesizedMethodRequest
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="SynthesizedMethodRequest"/> class.
+    /// Initializes a new instance of the <see cref="SynthesizedMethodRequest"/> class with a delegate that sets the signature.
     /// </summary>
     /// <param name="placement">The type in which the method is declared.</param>
     /// <param name="nameHint">The name of the method. The factory adds a numeric suffix when the name is already used in the type or in one of its
     /// base types.</param>
-    /// <param name="buildSignature">A delegate that sets the signature of the method: its accessibility, whether it is static, its return type, its
-    /// parameters and its type parameters. The name of the method cannot be changed.</param>
+    /// <param name="buildSignature">A delegate that sets the signature of the method: its name, its accessibility, whether it is static, its
+    /// return type, its parameters and its type parameters.</param>
     /// <param name="template">The template that generates the body of the method.</param>
     /// <param name="createProceedBinding">A delegate that returns the expression of <c>meta.Proceed()</c>, given the declared method.</param>
     /// <exception cref="ArgumentNullException">An argument is <c>null</c>.</exception>
@@ -44,19 +48,43 @@ public sealed class SynthesizedMethodRequest
     }
 
     /// <summary>
-    /// Gets the type in which the method is declared.
+    /// Initializes a new instance of the <see cref="SynthesizedMethodRequest"/> class with a builder that already holds the signature.
     /// </summary>
-    public SynthesizedMethodPlacement Placement { get; }
+    /// <param name="builder">A builder created with <see cref="CallSites.ExtensionTransformationFactory.CreateMethodBuilder"/> and not declared yet.
+    /// Its name is used as the name hint.</param>
+    /// <param name="template">The template that generates the body of the method.</param>
+    /// <param name="createProceedBinding">A delegate that returns the expression of <c>meta.Proceed()</c>, given the declared method.</param>
+    /// <exception cref="ArgumentNullException">An argument is <c>null</c>.</exception>
+    public SynthesizedMethodRequest(
+        IMethodBuilder builder,
+        SynthesizedMethodTemplate template,
+        Func<IMethod, ProceedBinding> createProceedBinding )
+    {
+        this.Builder = builder ?? throw new ArgumentNullException( nameof(builder) );
+        this.Template = template ?? throw new ArgumentNullException( nameof(template) );
+        this.CreateProceedBinding = createProceedBinding ?? throw new ArgumentNullException( nameof(createProceedBinding) );
+    }
 
     /// <summary>
-    /// Gets the name of the method. The factory adds a numeric suffix when the name is already used.
+    /// Gets the type in which the method is declared, or <c>null</c> when the request gives a <see cref="Builder"/>.
     /// </summary>
-    public string NameHint { get; }
+    public SynthesizedMethodPlacement? Placement { get; }
 
     /// <summary>
-    /// Gets the delegate that sets the signature of the method.
+    /// Gets the name of the method, or <c>null</c> when the request gives a <see cref="Builder"/>. The factory adds a numeric suffix when the name
+    /// is already used.
     /// </summary>
-    public Action<IMethodBuilder> BuildSignature { get; }
+    public string? NameHint { get; }
+
+    /// <summary>
+    /// Gets the delegate that sets the signature of the method, or <c>null</c> when the request gives a <see cref="Builder"/>.
+    /// </summary>
+    public Action<IMethodBuilder>? BuildSignature { get; }
+
+    /// <summary>
+    /// Gets the builder that holds the signature of the method, or <c>null</c> when the request gives a <see cref="BuildSignature"/> delegate.
+    /// </summary>
+    public IMethodBuilder? Builder { get; }
 
     /// <summary>
     /// Gets the template that generates the body of the method.

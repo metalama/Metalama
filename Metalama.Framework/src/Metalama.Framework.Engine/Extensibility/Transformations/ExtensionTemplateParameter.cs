@@ -8,7 +8,7 @@ using Metalama.Framework.Code;
 namespace Metalama.Framework.Engine.Extensibility.Transformations;
 
 /// <summary>
-/// Describes a parameter of a method template, as returned by <see cref="ExtensionTemplateServices.TryGetMethodTemplateParameters"/>.
+/// Describes a parameter or a type parameter of a method template, as returned by <see cref="ExtensionTemplateServices.TryGetMethodTemplateParameters"/>.
 /// </summary>
 [PublicAPI]
 public sealed class ExtensionTemplateParameter
@@ -16,13 +16,19 @@ public sealed class ExtensionTemplateParameter
     /// <summary>
     /// Initializes a new instance of the <see cref="ExtensionTemplateParameter"/> class.
     /// </summary>
-    internal ExtensionTemplateParameter( string name, bool isCompileTime, IType type, RefKind refKind )
+    internal ExtensionTemplateParameter( string name, bool isCompileTime, IType type, RefKind refKind, bool isTypeParameter = false )
     {
         this.Name = name;
+        this.IsTypeParameter = isTypeParameter;
         this.IsCompileTime = isCompileTime;
         this.Type = type;
         this.RefKind = refKind;
     }
+
+    /// <summary>
+    /// Gets a value indicating whether this is a type parameter of the template rather than a parameter.
+    /// </summary>
+    public bool IsTypeParameter { get; }
 
     /// <summary>
     /// Gets the name of the parameter.
@@ -36,7 +42,8 @@ public sealed class ExtensionTemplateParameter
     public bool IsCompileTime { get; }
 
     /// <summary>
-    /// Gets the type of the parameter in the compilation given to <see cref="ExtensionTemplateServices.TryGetMethodTemplateParameters"/>.
+    /// Gets the type of the parameter in the compilation given to <see cref="ExtensionTemplateServices.TryGetMethodTemplateParameters"/>, or the
+    /// type parameter itself for a type parameter.
     /// </summary>
     public IType Type { get; }
 

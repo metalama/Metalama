@@ -9,6 +9,7 @@ using Metalama.Framework.Code.Invokers;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel.Abstractions;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
+using Metalama.Framework.Engine.Extensibility.Synthesis;
 using Metalama.Framework.Engine.CodeModel.Introductions.Collections;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.ReflectionMocks;
@@ -87,6 +88,11 @@ internal sealed class MethodBuilder : MethodBaseBuilder, IMethodBuilderImpl
                 throw new InvalidOperationException( "Cannot change the name of an operator method. The name is automatically set based on the OperatorKind." );
             }
 
+            if ( value != base.Name )
+            {
+                this.ThrowIfLocked( this.Restrictions is { IsNameLocked: true }, "name" );
+            }
+
             base.Name = value;
         }
     }
@@ -121,6 +127,35 @@ internal sealed class MethodBuilder : MethodBaseBuilder, IMethodBuilderImpl
 
     public IMethod? OverriddenMethod { get; set; }
 
+    /// <summary>
+    /// Gets or sets the parts of the signature that cannot change, for a builder created by <c>ExtensionTransformationFactory.CreateMethodBuilder</c>,
+    /// or <c>null</c>.
+    /// </summary>
+    internal SynthesizedMethodRestrictions? Restrictions { get; set; }
+
+    /// <summary>
+    /// Sets the name of the method, bypassing <see cref="SynthesizedMethodRestrictions.IsNameLocked"/>. The factory uses it to make the name unique.
+    /// </summary>
+    internal void SetUniqueName( string name )
+    {
+        var restrictions = this.Restrictions;
+        this.Restrictions = null;
+        this.Name = name;
+        this.Restrictions = restrictions;
+    }
+
+    /// <summary>
+    /// Throws an <see cref="InvalidOperationException"/> when a part of the signature is locked by <see cref="Restrictions"/>.
+    /// </summary>
+    internal void ThrowIfLocked( bool isLocked, string part )
+    {
+        if ( isLocked )
+        {
+            throw new InvalidOperationException(
+                $"The {part} of the method '{this.Name}' cannot be changed, because the extension that created the method builder locks it." );
+        }
+    }
+
     public MethodInfo ToMethodInfo() => CompileTimeMethodInfo.Create( this );
 
     IHasAccessors? IMethod.DeclaringMember => null;
@@ -140,6 +175,7 @@ internal sealed class MethodBuilder : MethodBaseBuilder, IMethodBuilderImpl
     public ITypeParameterBuilder AddTypeParameter( string name )
     {
         this.CheckNotFrozen();
+        this.ThrowIfLocked( this.Restrictions is { AreTypeParametersLocked: true }, "type parameters" );
 
         var builder = new TypeParameterBuilder( this, this.TypeParameters.Count, name );
         this.TypeParameters.Add( builder );
@@ -172,6 +208,7 @@ internal sealed class MethodBuilder : MethodBaseBuilder, IMethodBuilderImpl
         {
             this.CheckNotFrozen();
 
+            // The setter of the return parameter checks the restrictions.
             this.ReturnParameter.Type = value ?? throw new ArgumentNullException( nameof(value) );
         }
     }

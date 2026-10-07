@@ -12,6 +12,7 @@ using Metalama.Framework.Engine.Services;
 using System;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 
 namespace Metalama.Framework.Engine.Extensibility.Transformations;
 
@@ -47,7 +48,8 @@ public static class ExtensionTemplateServices
     }
 
     /// <summary>
-    /// Gets the parameters of a method template, in the order of their declaration, with their types in a given compilation.
+    /// Gets the parameters of a method template, in the order of their declaration, with their types in a given compilation, followed by its type
+    /// parameters.
     /// </summary>
     /// <param name="serviceProvider">The service provider of the project.</param>
     /// <param name="compilation">The compilation in which the types of the parameters are returned.</param>
@@ -87,12 +89,20 @@ public static class ExtensionTemplateServices
             .GetDeclaration( compilationModel );
 
         parameters = ImmutableArray.CreateRange(
-            member.Parameters,
-            p => new ExtensionTemplateParameter(
-                p.Name,
-                p.IsCompileTime,
-                declaration.Parameters[p.SourceIndex].Type,
-                declaration.Parameters[p.SourceIndex].RefKind ) );
+                member.Parameters,
+                p => new ExtensionTemplateParameter(
+                    p.Name,
+                    p.IsCompileTime,
+                    declaration.Parameters[p.SourceIndex].Type,
+                    declaration.Parameters[p.SourceIndex].RefKind ) )
+            .AddRange(
+                member.TypeParameters.Select(
+                    p => new ExtensionTemplateParameter(
+                        p.Name,
+                        p.IsCompileTime,
+                        declaration.TypeParameters[p.SourceIndex],
+                        RefKind.None,
+                        true ) ) );
 
         return true;
     }

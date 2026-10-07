@@ -667,7 +667,8 @@ internal static class TemplateBindingHelper
     /// <remarks>
     /// A run-time parameter of the template binds to the target parameter of the same name. Otherwise, it binds by its position among the run-time
     /// parameters of the template to a target parameter that is neither hidden nor name-only. A run-time parameter of the template cannot have a
-    /// default value or be a <c>params</c> parameter, and the template cannot have run-time type parameters.
+    /// default value or be a <c>params</c> parameter. A run-time type parameter of the template binds to the type parameter of the method at the same
+    /// position among the run-time type parameters, as for an override.
     /// </remarks>
     public static BoundTemplateMethod ForSynthesizedMethod(
         this TemplateMember<IMethod> template,
@@ -739,14 +740,34 @@ internal static class TemplateBindingHelper
             runTimeParameterIndex++;
         }
 
+        // A run-time type parameter of the template binds to the type parameter of the method at the same position among the run-time type
+        // parameters, as for an override, because the expansion maps the type parameters by position.
+        var runTimeTypeParameterIndex = 0;
+
         foreach ( var templateParameter in templateMethodSymbol.TypeParameters )
         {
-            if ( !template.TemplateClassMember.TypeParameters[templateParameter.Ordinal].IsCompileTime )
+            if ( template.TemplateClassMember.TypeParameters[templateParameter.Ordinal].IsCompileTime )
+            {
+                continue;
+            }
+
+            if ( runTimeTypeParameterIndex >= targetMethod.TypeParameters.Count )
             {
                 throw new InvalidTemplateSignatureException(
                     MetalamaStringFormatter.Format(
-                        $"Cannot use the template '{templateMethodSymbol}' to implement the method '{targetMethod}': the template must not have the run-time type parameter '{templateParameter.Name}'. Declare it as a compile-time type parameter." ) );
+                        $"Cannot use the template '{templateMethodSymbol}' to implement the method '{targetMethod}': the method has no type parameter for the run-time type parameter '{templateParameter.Name}' of the template." ) );
             }
+
+            var methodTypeParameter = targetMethod.TypeParameters[runTimeTypeParameterIndex];
+
+            if ( !templateParameter.IsCompatibleWith( methodTypeParameter ) )
+            {
+                throw new InvalidTemplateSignatureException(
+                    MetalamaStringFormatter.Format(
+                        $"Cannot use the template '{templateMethodSymbol}' to implement the method '{targetMethod}': the constraints on the type parameter '{templateParameter.Name}' of the template are not compatible with the constraints on the type parameter '{methodTypeParameter.Name}' of the method." ) );
+            }
+
+            runTimeTypeParameterIndex++;
         }
 
         var templateArguments = GetTemplateArguments( template, arguments, parameterMapping.ToImmutable() );

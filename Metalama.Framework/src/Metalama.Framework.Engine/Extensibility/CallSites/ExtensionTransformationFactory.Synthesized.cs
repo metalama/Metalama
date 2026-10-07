@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
+using Metalama.Framework.Code.DeclarationBuilders;
 using Metalama.Framework.Engine.AdviceImpl.Introduction;
 using Metalama.Framework.Engine.Advising;
 using Metalama.Framework.Engine.AspectOrdering;
@@ -50,13 +51,19 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
         private readonly Dictionary<string, NamespaceBuilder> _declaredNamespaces = new( StringComparer.Ordinal );
 
         /// <summary>
+        /// The builders that <see cref="CreateMethodBuilder"/> created and that are not declared yet. Protected by <see cref="_sync"/>.
+        /// </summary>
+        private readonly HashSet<MethodBuilder> _createdMethodBuilders = new();
+
+        /// <summary>
         /// Declares a static class, in which <see cref="DeclareMethod"/> can declare methods.
         /// </summary>
         /// <param name="origin">The aspect or fabric that requested the class.</param>
         /// <param name="request">The request.</param>
         /// <returns>The handle of the class.</returns>
         /// <remarks>
-        /// The class is not part of the code model that aspects observe. It is emitted in a new syntax tree.
+        /// The class is not visible in the code model to aspects, in any stage of the pipeline: the factory adds it only to the compilation that the
+        /// linker sees, after all aspects have executed, and the design-time pipeline does not produce it. It is emitted in a new syntax tree.
         /// </remarks>
         /// <exception cref="ArgumentNullException"><paramref name="origin"/> or <paramref name="request"/> is <c>null</c>.</exception>
         /// <exception cref="ArgumentException">The request is not valid.</exception>
@@ -93,6 +100,67 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
         }
 
         /// <summary>
+        /// Creates a builder for a method that <see cref="DeclareMethod"/> declares later, so that the caller can give it to other code, for
+        /// instance user code, before the method is declared.
+        /// </summary>
+        /// <param name="origin">The aspect or fabric that requests the method.</param>
+        /// <param name="placement">The type in which the method is declared.</param>
+        /// <param name="nameHint">The name of the method. <see cref="DeclareMethod"/> adds a numeric suffix when the name is already used.</param>
+        /// <param name="initialize">A delegate that sets the initial signature, before the restrictions apply, or <c>null</c>.</param>
+        /// <param name="restrictions">The parts of the signature that the code that receives the builder cannot change, or <c>null</c>.</param>
+        /// <returns>A builder that is not frozen. The method is declared only when the builder is passed to <see cref="DeclareMethod"/>.</returns>
+        /// <remarks>
+        /// <para>
+        /// The builder is detached: it is not part of the code model, so its declaring type does not list it, and no aspect sees it. A builder
+        /// that is never passed to <see cref="DeclareMethod"/> has no effect.
+        /// </para>
+        /// <para>
+        /// The builder enforces <paramref name="restrictions"/> when a member is set, and throws an <see cref="InvalidOperationException"/> for a
+        /// change of a locked part.
+        /// </para>
+        /// </remarks>
+        /// <exception cref="ArgumentNullException"><paramref name="origin"/> or <paramref name="placement"/> is <c>null</c>.</exception>
+        /// <exception cref="ArgumentException">The placement is not valid, or <paramref name="nameHint"/> is not a valid identifier.</exception>
+        /// <exception cref="InvalidOperationException">The factory was completed.</exception>
+        public IMethodBuilder CreateMethodBuilder(
+            ExtensionContributionOrigin origin,
+            SynthesizedMethodPlacement placement,
+            string nameHint,
+            Action<IMethodBuilder>? initialize = null,
+            SynthesizedMethodRestrictions? restrictions = null )
+        {
+            _ = placement ?? throw new ArgumentNullException( nameof(placement) );
+            SynthesisNames.ValidateIdentifier( nameHint, nameof(nameHint) );
+
+            var layerInstance = this.GetAspectLayerInstance( origin );
+            var declaringType = this.ResolvePlacement( placement );
+
+            lock ( this._sync )
+            {
+                this.ThrowIfCompleted();
+            }
+
+            var builder = new MethodBuilder( layerInstance, declaringType, nameHint ) { Accessibility = Accessibility.Private };
+
+            if ( initialize != null )
+            {
+                using ( UserCodeExecutionContext.WithContext( this._serviceProvider, this._compilation, $"initialization of the method '{nameHint}'" ) )
+                {
+                    initialize( builder );
+                }
+            }
+
+            builder.Restrictions = restrictions;
+
+            lock ( this._sync )
+            {
+                this._createdMethodBuilders.Add( builder );
+            }
+
+            return builder;
+        }
+
+        /// <summary>
         /// Declares a method whose body is generated from a template.
         /// </summary>
         /// <param name="origin">The aspect or fabric that requested the method.</param>
@@ -100,10 +168,11 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
         /// <returns>The handle of the method, which can be passed to <see cref="CallSiteRedirectionTarget.Synthesized"/>.</returns>
         /// <remarks>
         /// <para>
-        /// The method is not part of the code model that aspects observe. The factory gives it a unique name in its type, binds the template, and
-        /// creates the transformations that the linker applies. The template is expanded by the linker, which reports the diagnostics of the
-        /// template at <see cref="SynthesizedMethodRequest.DiagnosticLocation"/>. When the expansion fails, the call sites redirected to the
-        /// method are left unchanged.
+        /// The method is not visible in the code model to aspects, in any stage of the pipeline: the factory adds it only to the compilation that
+        /// the linker sees, after all aspects have executed, and the design-time pipeline does not produce it. The factory gives the method a
+        /// unique name in its type, binds the template, and creates the transformations that the linker applies. The template is expanded by the
+        /// linker, which reports the diagnostics of the template at <see cref="SynthesizedMethodRequest.DiagnosticLocation"/>. When the expansion
+        /// fails, the call sites redirected to the method are left unchanged.
         /// </para>
         /// <para>
         /// The numeric suffixes of the names depend on the order of the calls. A caller that requires a deterministic output must call this method
@@ -112,25 +181,11 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
         /// </remarks>
         /// <exception cref="ArgumentNullException"><paramref name="origin"/> or <paramref name="request"/> is <c>null</c>.</exception>
         /// <exception cref="ArgumentException">The request is not valid, for instance because the template does not exist or cannot implement the
-        /// method.</exception>
+        /// method, or because the builder of the request was not created by this factory or was already declared.</exception>
         /// <exception cref="InvalidOperationException">The factory was completed.</exception>
         public SynthesizedMethodHandle DeclareMethod( ExtensionContributionOrigin origin, SynthesizedMethodRequest request )
         {
             _ = request ?? throw new ArgumentNullException( nameof(request) );
-
-            var layerInstance = this.GetAspectLayerInstance( origin );
-
-            var declaringType = request.Placement.SynthesizedType?.Type
-                                ?? request.Placement.Type!.ForCompilation( this._compilation )
-                                ?? throw new ArgumentException( "The type of the placement does not belong to the compilation.", nameof(request) );
-
-            if ( declaringType.DeclaringAssembly.IsExternal
-                 || declaringType.TypeKind is not (TypeKind.Class or TypeKind.Struct) )
-            {
-                throw new ArgumentException(
-                    $"The method cannot be declared in '{declaringType}', because only a class, a struct or a record of the current compilation can contain it.",
-                    nameof(request) );
-            }
 
             var metaExtensions = request.Template.MetaExtensions.IsDefault ? ImmutableArray<IMetaExtension>.Empty : request.Template.MetaExtensions;
 
@@ -139,19 +194,48 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
                 throw new ArgumentException( "Two meta extensions of the template have the same type.", nameof(request) );
             }
 
-            string name;
+            MethodBuilder builder;
+
+            if ( request.Builder != null )
+            {
+                builder = request.Builder as MethodBuilder ?? throw new ArgumentException( "The builder was not created by this factory.", nameof(request) );
+
+                lock ( this._sync )
+                {
+                    this.ThrowIfCompleted();
+
+                    if ( !this._createdMethodBuilders.Remove( builder ) )
+                    {
+                        throw new ArgumentException( "The builder was not created by this factory, or it was already declared.", nameof(request) );
+                    }
+                }
+            }
+            else
+            {
+                builder = (MethodBuilder) this.CreateMethodBuilder( origin, request.Placement!, request.NameHint!, request.BuildSignature );
+
+                lock ( this._sync )
+                {
+                    this._createdMethodBuilders.Remove( builder );
+                }
+            }
+
+            var layerInstance = builder.AspectLayerInstance;
+            var declaringType = builder.DeclaringType;
 
             lock ( this._sync )
             {
                 this.ThrowIfCompleted();
 
-                name = this.ReserveName(
-                    "T:" + declaringType.FullName + "`" + declaringType.TypeParameters.Count,
-                    request.NameHint,
-                    candidate => IsMemberNameAvailable( declaringType, candidate ),
-                    request.IsNameAvailable );
+                builder.SetUniqueName(
+                    this.ReserveName(
+                        "T:" + declaringType.FullName + "`" + declaringType.TypeParameters.Count,
+                        SynthesisNames.ValidateIdentifier( builder.Name, nameof(request) ),
+                        candidate => IsMemberNameAvailable( declaringType, candidate ),
+                        request.IsNameAvailable ) );
             }
 
+            var name = builder.Name;
             var serviceProvider = this._serviceProvider;
             var templateProvider = request.Template.TemplateProvider.IsNull ? origin.DefaultTemplateProvider : request.Template.TemplateProvider;
 
@@ -162,7 +246,6 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
 
             var objectReaderFactory = serviceProvider.GetRequiredService<IObjectReaderFactory>();
 
-            MethodBuilder builder;
             BoundTemplateMethod boundTemplate;
             ProceedBinding proceedBinding;
 
@@ -170,15 +253,6 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
             {
                 try
                 {
-                    builder = new MethodBuilder( layerInstance, declaringType, name ) { Accessibility = Accessibility.Private };
-
-                    request.BuildSignature( builder );
-
-                    if ( builder.Name != name )
-                    {
-                        throw new ArgumentException( "The signature builder must not change the name of the method.", nameof(request) );
-                    }
-
                     var templateMember = MethodTemplateSelection.Select( templateClass, builder, request.Template.Selector )
                         .GetTemplateMember<IMethod>( this._compilation, serviceProvider, templateProvider, objectReaderFactory.GetReader( request.Template.Tags ) );
 
@@ -223,6 +297,26 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
             }
 
             return new SynthesizedMethodHandle( builder, body );
+        }
+
+        /// <summary>
+        /// Returns the type in which a placement declares a method, after checking that it is a class or a struct of the current compilation.
+        /// </summary>
+        private INamedType ResolvePlacement( SynthesizedMethodPlacement placement )
+        {
+            var declaringType = placement.SynthesizedType?.Type
+                                ?? placement.Type!.ForCompilation( this._compilation )
+                                ?? throw new ArgumentException( "The type of the placement does not belong to the compilation.", nameof(placement) );
+
+            if ( declaringType.DeclaringAssembly.IsExternal
+                 || declaringType.TypeKind is not (TypeKind.Class or TypeKind.Struct) )
+            {
+                throw new ArgumentException(
+                    $"The method cannot be declared in '{declaringType}', because only a class, a struct or a record of the current compilation can contain it.",
+                    nameof(placement) );
+            }
+
+            return declaringType;
         }
 
         /// <summary>

@@ -24,7 +24,8 @@ public sealed class SynthesizedTypeHandle
     }
 
     /// <summary>
-    /// Gets the declared type. It is not part of the code model that aspects observe.
+    /// Gets the declared type. It is not visible in the code model to aspects, in any stage of the pipeline, because it is added only to the
+    /// compilation that the linker sees.
     /// </summary>
     public INamedType Type { get; }
 

@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Code;
+using Metalama.Framework.Code.DeclarationBuilders;
 using Metalama.Framework.Diagnostics;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.CodeModel;
@@ -209,7 +210,7 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
                 var sourceSymbol = (IMethodSymbol) semanticModel.GetSymbolInfo( invocation ).Symbol!;
                 var sourceMethod = compilation.Factory.GetMethod( sourceSymbol );
                 var hasReceiver = !sourceMethod.IsStatic;
-                var key = options.OneMethodPerSite ? $"{invocation.SyntaxTree.FilePath}:{invocation.SpanStart}" : sourceSymbol.ToDisplayString();
+                var key = options.OneMethodPerSite ? $"{invocation.SyntaxTree.FilePath}:{invocation.SpanStart}" : (options.Generic ? sourceSymbol.OriginalDefinition : sourceSymbol).ToDisplayString();
 
                 if ( !declaredMethods.TryGetValue( key, out var method ) )
                 {
@@ -246,37 +247,96 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
                         ? ImmutableArray.Create<IMetaExtension>( new TestMetaExtension( $"declared for '{invocation}'" ) )
                         : ImmutableArray<IMetaExtension>.Empty;
 
-                    method = factory.DeclareMethod(
-                        origin,
-                        new SynthesizedMethodRequest(
+                    // With the Generic option, the declared method has the type parameters of the source method, and the types that are type
+                    // parameters of the source method are mapped to them.
+                    var signatureMethod = options.Generic ? sourceMethod.Definition : sourceMethod;
+
+                    void BuildSignature( IMethodBuilder builder )
+                    {
+                        builder.Accessibility = (Code.Accessibility) Enum.Parse( typeof(Code.Accessibility), options.Accessibility );
+                        builder.IsStatic = !options.IsInstance;
+
+                        if ( options.Generic )
+                        {
+                            foreach ( var typeParameter in signatureMethod.TypeParameters )
+                            {
+                                builder.AddTypeParameter( typeParameter.Name );
+                            }
+                        }
+
+                        IType Map( IType type )
+                            => options.Generic && type is ITypeParameter { TypeParameterKind: Code.TypeParameterKind.Method } typeParameter
+                                ? builder.TypeParameters[typeParameter.Index]
+                                : type;
+
+                        builder.ReturnType = Map( signatureMethod.ReturnType );
+
+                        if ( hasReceiver )
+                        {
+                            builder.AddParameter( "receiver", sourceMethod.DeclaringType );
+                        }
+
+                        foreach ( var parameter in signatureMethod.Parameters )
+                        {
+                            builder.AddParameter( parameter.Name, Map( parameter.Type ), parameter.RefKind );
+                        }
+                    }
+
+                    ProceedBinding CreateProceedBinding( IMethod declaredMethod )
+                    {
+                        var typeArguments = options.Generic ? declaredMethod.TypeParameters.ToImmutableArray<IType>() : default;
+
+                        return hasReceiver
+                            ? ProceedBinding.InvokeOnParameter( signatureMethod, 0, typeArguments )
+                            : ProceedBinding.InvokeStatic( signatureMethod, typeArguments );
+                    }
+
+                    var template = new SynthesizedMethodTemplate( redirection.Template! )
+                    {
+                        HiddenLeadingParameterCount = hasReceiver ? 1 : 0,
+                        Arguments = options.Label == null ? null : new { label = options.Label },
+                        MetaExtensions = metaExtensions
+                    };
+
+                    var nameHint = options.NameHint ?? (sourceMethod.Name + "_Interceptor");
+                    SynthesizedMethodRequest request;
+
+                    if ( options.PrebuiltBuilder )
+                    {
+                        // The builder is created with its signature and its restrictions, then given to code that changes it, as an interceptor
+                        // gives it to the configure delegate of the aspect.
+                        var builder = factory.CreateMethodBuilder(
+                            origin,
                             placement,
-                            options.NameHint ?? (sourceMethod.Name + "_Interceptor"),
-                            builder =>
+                            nameHint,
+                            BuildSignature,
+                            new SynthesizedMethodRestrictions
                             {
-                                builder.Accessibility = (Code.Accessibility) Enum.Parse( typeof(Code.Accessibility), options.Accessibility );
-                                builder.IsStatic = !options.IsInstance;
-                                builder.ReturnType = sourceMethod.ReturnType;
+                                LockedLeadingParameterCount = (hasReceiver ? 1 : 0) + sourceMethod.Parameters.Count, IsReturnTypeLocked = true
+                            } );
 
-                                if ( hasReceiver )
-                                {
-                                    builder.AddParameter( "receiver", sourceMethod.DeclaringType );
-                                }
+                        if ( options.RenameParameter is { } rename )
+                        {
+                            var equals = rename.IndexOf( '=' );
+                            builder.Parameters[rename.Substring( 0, equals )].Name = rename.Substring( equals + 1 );
+                        }
 
-                                foreach ( var parameter in sourceMethod.Parameters )
-                                {
-                                    builder.AddParameter( parameter.Name, parameter.Type, parameter.RefKind );
-                                }
-                            },
-                            new SynthesizedMethodTemplate( redirection.Template! )
-                            {
-                                HiddenLeadingParameterCount = hasReceiver ? 1 : 0,
-                                Arguments = options.Label == null ? null : new { label = options.Label },
-                                MetaExtensions = metaExtensions
-                            },
-                            _ => hasReceiver ? ProceedBinding.InvokeOnParameter( sourceMethod, 0 ) : ProceedBinding.InvokeStatic( sourceMethod ) )
+                        if ( options.ChangeLockedRefKind )
+                        {
+                            builder.Parameters[0].RefKind = Code.RefKind.Ref;
+                        }
+
+                        request = new SynthesizedMethodRequest( builder, template, CreateProceedBinding ) { DiagnosticLocation = invocation.GetLocation() };
+                    }
+                    else
+                    {
+                        request = new SynthesizedMethodRequest( placement, nameHint, BuildSignature, template, CreateProceedBinding )
                         {
                             DiagnosticLocation = invocation.GetLocation()
-                        } );
+                        };
+                    }
+
+                    method = factory.DeclareMethod( origin, request );
 
                     declaredMethods.Add( key, method );
                 }
@@ -286,7 +346,10 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
                     new InvocationRedirectionRequest(
                         invocation,
                         CallSiteRedirectionTarget.Synthesized( method ),
-                        hasReceiver ? CallSiteReceiverMode.FirstArgument : CallSiteReceiverMode.Drop ) );
+                        hasReceiver ? CallSiteReceiverMode.FirstArgument : CallSiteReceiverMode.Drop )
+                    {
+                        TypeArguments = options.Generic ? sourceMethod.TypeArguments.ToImmutableArray() : default
+                    } );
             }
             catch ( Exception e ) when ( e is ArgumentException or InvalidOperationException )
             {

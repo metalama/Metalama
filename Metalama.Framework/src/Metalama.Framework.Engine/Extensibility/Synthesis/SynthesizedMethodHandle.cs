@@ -23,7 +23,8 @@ public sealed class SynthesizedMethodHandle
     }
 
     /// <summary>
-    /// Gets the declared method. It is not part of the code model that aspects observe.
+    /// Gets the declared method. It is not visible in the code model to aspects, in any stage of the pipeline, because it is added only to the
+    /// compilation that the linker sees.
     /// </summary>
     public IMethod Method { get; }
 

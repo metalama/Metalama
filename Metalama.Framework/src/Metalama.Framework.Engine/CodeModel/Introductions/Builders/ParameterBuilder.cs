@@ -50,6 +50,11 @@ internal sealed class ParameterBuilder : BaseParameterBuilder
 
             if ( this._refKind != value )
             {
+                if ( !this.IsReturnParameter && this.DeclaringMember is MethodBuilder { Restrictions: { } restrictions } method )
+                {
+                    method.ThrowIfLocked( this.Index < restrictions.LockedLeadingParameterCount, $"reference kind of the parameter '{this.Name}'" );
+                }
+
                 if ( this.IsReturnParameter && !this.IsReturnParameterOfADelegate )
                 {
                     throw new InvalidOperationException( $"Changing the {nameof(this.RefKind)} property of a return parameter is not supported." );
@@ -91,6 +96,11 @@ internal sealed class ParameterBuilder : BaseParameterBuilder
         set
         {
             this.CheckNotFrozen();
+
+            if ( this.IsReturnParameter && this.DeclaringMember is MethodBuilder { Restrictions.IsReturnTypeLocked: true } method )
+            {
+                method.ThrowIfLocked( true, "return type" );
+            }
 
             this._type = this.Translate( value );
         }

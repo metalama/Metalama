@@ -61,4 +61,28 @@ public sealed class TestTemplateRedirectionOptions
     /// describes the call site that the method was declared for.
     /// </summary>
     public bool WithMetaExtension { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the signature is set on a builder created with <c>CreateMethodBuilder</c>, with restrictions that
+    /// lock the receiver, the parameters of the source method and the return type, and then changed according to <see cref="RenameParameter"/>
+    /// and <see cref="ChangeLockedRefKind"/>.
+    /// </summary>
+    public bool PrebuiltBuilder { get; set; }
+
+    /// <summary>
+    /// Gets or sets a rename of a parameter of the pre-built builder, as <c>old=new</c>, or <c>null</c>.
+    /// </summary>
+    public string? RenameParameter { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the reference kind of the first parameter of the pre-built builder is changed, which the
+    /// restrictions refuse.
+    /// </summary>
+    public bool ChangeLockedRefKind { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the declared method has the type parameters of the source method, and whether the call passes the
+    /// type arguments of the call site.
+    /// </summary>
+    public bool Generic { get; set; }
 }
