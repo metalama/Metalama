@@ -101,7 +101,7 @@ namespace Metalama.Framework.Engine.CodeModel.Comparers
                     return 0;
 
                 case SymbolKind.ArrayType when obj is IArrayTypeSymbol array:
-                    return HashCode.Combine( this.GetHashCode( array ) );
+                    return HashCode.Combine( array.Rank, this.GetHashCode( array.ElementType ) );
 
                 case SymbolKind.DynamicType:
                     return HashCode.Combine( 0x57446317 );
@@ -128,8 +128,9 @@ namespace Metalama.Framework.Engine.CodeModel.Comparers
                             method.Parameters.Length );
 
                 case SymbolKind.NamedType when obj is INamedTypeSymbol namedType:
+                    // The hash code must be the same as the one computed for an IType that represents the same type.
                     return
-                        HashCode.Combine( namedType.MetadataName );
+                        HashCode.Combine( namedType.Name, namedType.Arity );
 
                 default:
                     return this._inner.GetHashCode( obj );
@@ -204,7 +205,7 @@ namespace Metalama.Framework.Engine.CodeModel.Comparers
                         return 0;
 
                     case IArrayType array:
-                        return HashCode.Combine( this.GetHashCode( array ) );
+                        return HashCode.Combine( array.Rank, this.GetHashCode( array.ElementType ) );
 
                     case IDynamicType:
                         return HashCode.Combine( 0x57446317 );
@@ -220,7 +221,7 @@ namespace Metalama.Framework.Engine.CodeModel.Comparers
 
                     case INamedType namedType:
                         return
-                            HashCode.Combine( namedType.FullName, namedType.TypeParameters.Count );
+                            HashCode.Combine( namedType.Name, namedType.TypeParameters.Count );
 
                     default:
                         throw new AssertionFailedException();
