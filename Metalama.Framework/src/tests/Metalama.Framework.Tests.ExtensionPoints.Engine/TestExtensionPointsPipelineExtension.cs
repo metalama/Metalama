@@ -8,6 +8,8 @@ using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Extensibility.CallSites;
+using Metalama.Framework.Engine.Extensibility.Synthesis;
+using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.ReferenceGraph;
 using Metalama.Framework.Tests.ExtensionPoints.Engine;
 using Microsoft.CodeAnalysis;
@@ -125,7 +127,6 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
         foreach ( var redirection in redirections )
         {
             var roots = await GetScopeRootsAsync( redirection, context, cancellationToken );
-            var replacement = GetReplacement( redirection, compilation );
 
             var sites = index.ReferencedSymbols
                 .Where( s => s.ReferencedSymbol.Kind == SymbolKind.Method && s.ReferencedSymbol.Name == redirection.MethodName )
@@ -136,6 +137,15 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
                 .OrderBy( n => n.SyntaxTree.FilePath, StringComparer.Ordinal )
                 .ThenBy( n => n.SpanStart )
                 .ToList();
+
+            if ( redirection.Template != null )
+            {
+                RedirectCallsToTemplate( redirection, sites, context );
+
+                continue;
+            }
+
+            var replacement = GetReplacement( redirection, compilation );
 
             foreach ( var site in sites )
             {
@@ -167,6 +177,121 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
                             site.GetLocation(),
                             ((invocation ?? GetMethodGroup( site )).ToString(), e.GetType().Name, GetMessage( e )) ) );
                 }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Declares a method from the template of a <see cref="TestRedirection"/> for each source method, or for each call site, and redirects the call
+    /// sites to it. A refused declaration or redirection is reported as a warning.
+    /// </summary>
+    private static void RedirectCallsToTemplate( TestRedirection redirection, IReadOnlyList<SyntaxNode> sites, ExtensionTransformationContext context )
+    {
+        var options = redirection.TemplateOptions!;
+        var compilation = context.FinalCompilation;
+        var factory = context.TransformationFactory;
+        var origin = redirection.Origin;
+        var declaredMethods = new Dictionary<string, SynthesizedMethodHandle>( StringComparer.Ordinal );
+        SynthesizedTypeHandle? staticClass = null;
+
+        foreach ( var site in sites )
+        {
+            var invocation = GetInvocation( site );
+
+            if ( invocation == null )
+            {
+                continue;
+            }
+
+            try
+            {
+                var semanticModel = compilation.RoslynCompilation.GetSemanticModel( invocation.SyntaxTree );
+                var sourceSymbol = (IMethodSymbol) semanticModel.GetSymbolInfo( invocation ).Symbol!;
+                var sourceMethod = compilation.Factory.GetMethod( sourceSymbol );
+                var hasReceiver = !sourceMethod.IsStatic;
+                var key = options.OneMethodPerSite ? $"{invocation.SyntaxTree.FilePath}:{invocation.SpanStart}" : sourceSymbol.ToDisplayString();
+
+                if ( !declaredMethods.TryGetValue( key, out var method ) )
+                {
+                    SynthesizedMethodPlacement placement;
+
+                    if ( options.Placement == "StaticClass" )
+                    {
+                        if ( staticClass == null )
+                        {
+                            var lastDot = options.StaticClassName.LastIndexOf( '.' );
+
+                            staticClass = factory.DeclareStaticClass(
+                                origin,
+                                new SynthesizedStaticClassRequest( options.StaticClassName.Substring( lastDot + 1 ) )
+                                {
+                                    Namespace = lastDot < 0 ? null : options.StaticClassName.Substring( 0, lastDot )
+                                } );
+                        }
+
+                        placement = SynthesizedMethodPlacement.InType( staticClass );
+                    }
+                    else if ( options.Placement == "Caller" )
+                    {
+                        var callingType = semanticModel.GetEnclosingSymbol( invocation.SpanStart )!.ContainingType;
+                        placement = SynthesizedMethodPlacement.InType( compilation.Factory.GetNamedType( callingType.OriginalDefinition ) );
+                    }
+                    else
+                    {
+                        var typeName = options.Placement.Substring( "Type:".Length );
+                        placement = SynthesizedMethodPlacement.InType( compilation.AllTypes.Single( t => t.FullName == typeName ) );
+                    }
+
+                    var metaExtensions = options.WithMetaExtension
+                        ? ImmutableArray.Create<IMetaExtension>( new TestMetaExtension( $"declared for '{invocation}'" ) )
+                        : ImmutableArray<IMetaExtension>.Empty;
+
+                    method = factory.DeclareMethod(
+                        origin,
+                        new SynthesizedMethodRequest(
+                            placement,
+                            options.NameHint ?? (sourceMethod.Name + "_Interceptor"),
+                            builder =>
+                            {
+                                builder.Accessibility = (Code.Accessibility) Enum.Parse( typeof(Code.Accessibility), options.Accessibility );
+                                builder.IsStatic = !options.IsInstance;
+                                builder.ReturnType = sourceMethod.ReturnType;
+
+                                if ( hasReceiver )
+                                {
+                                    builder.AddParameter( "receiver", sourceMethod.DeclaringType );
+                                }
+
+                                foreach ( var parameter in sourceMethod.Parameters )
+                                {
+                                    builder.AddParameter( parameter.Name, parameter.Type, parameter.RefKind );
+                                }
+                            },
+                            new SynthesizedMethodTemplate( redirection.Template! )
+                            {
+                                HiddenLeadingParameterCount = hasReceiver ? 1 : 0,
+                                Arguments = options.Label == null ? null : new { label = options.Label },
+                                MetaExtensions = metaExtensions
+                            },
+                            _ => hasReceiver ? ProceedBinding.InvokeOnParameter( sourceMethod, 0 ) : ProceedBinding.InvokeStatic( sourceMethod ) )
+                        {
+                            DiagnosticLocation = invocation.GetLocation()
+                        } );
+
+                    declaredMethods.Add( key, method );
+                }
+
+                factory.RedirectInvocation(
+                    origin,
+                    new InvocationRedirectionRequest(
+                        invocation,
+                        CallSiteRedirectionTarget.Synthesized( method ),
+                        hasReceiver ? CallSiteReceiverMode.FirstArgument : CallSiteReceiverMode.Drop ) );
+            }
+            catch ( Exception e ) when ( e is ArgumentException or InvalidOperationException )
+            {
+                context.Diagnostics.Report(
+                    RedirectionRefused.CreateRoslynDiagnostic( site.GetLocation(), (invocation.ToString(), e.GetType().Name, GetMessage( e )) ) );
             }
         }
     }

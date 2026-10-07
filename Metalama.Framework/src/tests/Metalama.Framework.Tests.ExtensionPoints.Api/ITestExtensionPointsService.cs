@@ -33,6 +33,9 @@ internal interface ITestExtensionPointsService : IProjectService
     void RedirectCalls<T>( IAdviser<T> adviser, string methodName, IMethod replacement, TestRedirectionOptions options )
         where T : class, IDeclaration;
 
+    void RedirectCallsToTemplate<T>( IAdviser<T> adviser, string methodName, string template, TestTemplateRedirectionOptions options )
+        where T : class, IDeclaration;
+
     void RedirectCalls<T>( IQuery<T> query, string methodName, string replacementTypeName, string replacementMethodName, TestRedirectionOptions options )
         where T : class, IDeclaration;
 }

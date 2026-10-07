@@ -362,6 +362,13 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
         {
             input.Extensions.CallSiteRedirections.TryGetValue( initialSyntaxTree, out var callSiteRedirections );
 
+            // A redirection to a method whose template failed to expand is not applied. The template has reported the error.
+            if ( callSiteRedirections != null && callSiteRedirections.Values.Any( r => r.HasFailedTarget ) )
+            {
+                callSiteRedirections = callSiteRedirections.Where( r => !r.Value.HasFailedTarget )
+                    .ToDictionary( r => r.Key, r => r.Value, SyntaxNodeReferenceComparer.Instance );
+            }
+
             Rewriter rewriter = new(
                 this,
                 transformationCollection,
@@ -426,7 +433,10 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
             {
                 foreach ( var redirection in treeRedirections.Value.Values )
                 {
-                    unappliedRedirections.Enqueue( redirection );
+                    if ( !redirection.HasFailedTarget )
+                    {
+                        unappliedRedirections.Enqueue( redirection );
+                    }
                 }
             }
         }

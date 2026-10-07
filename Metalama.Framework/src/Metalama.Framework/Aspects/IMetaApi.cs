@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Diagnostics;
 using Metalama.Framework.Utilities;
+using System.Collections.Generic;
 
 namespace Metalama.Framework.Aspects
 {
@@ -40,6 +41,11 @@ namespace Metalama.Framework.Aspects
         object BaseType { get; }
 
         IObjectReader Tags { get; }
+
+        /// <summary>
+        /// Gets the objects that Metalama extensions make available to the current template.
+        /// </summary>
+        IReadOnlyList<IMetaExtension> Extensions { get; }
 
         ScopedDiagnosticSink Diagnostics { get; }
 

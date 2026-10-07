@@ -124,7 +124,8 @@ public sealed class ExtensionTransformationContext
                 return this._transformationFactory ??= new ExtensionTransformationFactory(
                     this.FinalCompilation,
                     this._aspectLayers,
-                    this.ServiceProvider.GetRequiredService<SyntaxGenerationOptions>() );
+                    this.ServiceProvider.GetRequiredService<SyntaxGenerationOptions>(),
+                    this.ServiceProvider );
             }
         }
     }

@@ -85,6 +85,24 @@ internal sealed class TestExtensionPointsService : ITestExtensionPointsService
     }
 
     /// <summary>
+    /// Adds a <see cref="TestRedirection"/> that redirects the calls to methods declared from a template, to the owner of an adviser.
+    /// </summary>
+    public void RedirectCallsToTemplate<T>( IAdviser<T> adviser, string methodName, string template, TestTemplateRedirectionOptions options )
+        where T : class, IDeclaration
+    {
+        var context = adviser.GetExtensionContext();
+        context.ThrowIfDisposed();
+
+        var roots = adviser.Target.Sources.Select( s => s.SyntaxNodeOrToken().AsNode() ).OfType<SyntaxNode>().ToImmutableArray();
+
+        context.QueryOwner.AddContributor(
+            new TestRedirection( methodName, context.CaptureOrigin(), new TestRedirectionOptions(), null, null, adviser.Target.ToRef(), null, roots )
+            {
+                Template = template, TemplateOptions = options
+            } );
+    }
+
+    /// <summary>
     /// Adds a <see cref="TestRedirection"/> to the owner of a query. The query is the scope of the redirection, and the replacement method is
     /// given by name.
     /// </summary>

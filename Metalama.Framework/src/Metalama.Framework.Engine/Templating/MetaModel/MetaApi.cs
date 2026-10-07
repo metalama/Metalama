@@ -15,6 +15,7 @@ using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Templating.Expressions;
 using Metalama.Framework.Engine.Utilities;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
@@ -176,7 +177,18 @@ namespace Metalama.Framework.Engine.Templating.MetaModel
 
         public IObjectReader Tags => this._common.Tags;
 
-        ScopedDiagnosticSink IMetaApi.Diagnostics => new( this._common.DiagnosticSink, this, this.Declaration, this.Declaration );
+        ScopedDiagnosticSink IMetaApi.Diagnostics
+            => this._common.DiagnosticLocationOverride is { } location
+                ? new ScopedDiagnosticSink( this._common.DiagnosticSink, this, new LocationWrapper( location ), this.Declaration )
+                : new ScopedDiagnosticSink( this._common.DiagnosticSink, this, this.Declaration, this.Declaration );
+
+        /// <summary>
+        /// Gets the location of the diagnostics that the template reports, when it must differ from the location of the target declaration, or
+        /// <c>null</c>.
+        /// </summary>
+        public Microsoft.CodeAnalysis.Location? DiagnosticLocationOverride => this._common.DiagnosticLocationOverride;
+
+        IReadOnlyList<IMetaExtension> IMetaApi.Extensions => this._common.Extensions;
 
         [ExcludeFromCodeCoverage]
         public void DebugBreak()

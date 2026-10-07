@@ -654,6 +654,113 @@ internal static class TemplateBindingHelper
         return new BoundTemplateMethod( template, templateArguments );
     }
 
+    /// <summary>
+    /// Binds a template to a method that a pipeline extension declares, for instance a generated interceptor method.
+    /// </summary>
+    /// <param name="template">The template.</param>
+    /// <param name="targetMethod">The declared method, which may be a builder that is not part of the compilation.</param>
+    /// <param name="hiddenLeadingParameterCount">The number of leading parameters of the target method that a run-time parameter of the template can
+    /// bind only by name. The receiver parameter of an interceptor is such a parameter.</param>
+    /// <param name="nameOnlyTrailingParameterCount">The number of trailing parameters of the target method that a run-time parameter of the template
+    /// can bind only by name. The parameters added to an interceptor are such parameters.</param>
+    /// <param name="arguments">The compile-time arguments of the template.</param>
+    /// <remarks>
+    /// A run-time parameter of the template binds to the target parameter of the same name. Otherwise, it binds by its position among the run-time
+    /// parameters of the template to a target parameter that is neither hidden nor name-only. A run-time parameter of the template cannot have a
+    /// default value or be a <c>params</c> parameter, and the template cannot have run-time type parameters.
+    /// </remarks>
+    public static BoundTemplateMethod ForSynthesizedMethod(
+        this TemplateMember<IMethod> template,
+        IMethod targetMethod,
+        int hiddenLeadingParameterCount,
+        int nameOnlyTrailingParameterCount = 0,
+        IObjectReader? arguments = null )
+    {
+        var templateMethodSymbol = (IMethodSymbol) template.Symbol;
+        arguments ??= ObjectReader.Empty;
+        var parameterMapping = ImmutableDictionary.CreateBuilder<string, ExpressionSyntax>();
+        var firstOrdinal = hiddenLeadingParameterCount;
+        var endOrdinal = targetMethod.Parameters.Count - nameOnlyTrailingParameterCount;
+
+        if ( firstOrdinal < 0 || nameOnlyTrailingParameterCount < 0 || firstOrdinal > endOrdinal )
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(hiddenLeadingParameterCount),
+                "The counts of hidden leading parameters and name-only trailing parameters exceed the number of parameters of the target method." );
+        }
+
+        var runTimeParameterIndex = 0;
+
+        foreach ( var templateParameter in templateMethodSymbol.Parameters )
+        {
+            if ( template.TemplateClassMember.Parameters[templateParameter.Ordinal].IsCompileTime )
+            {
+                continue;
+            }
+
+            if ( templateParameter.HasExplicitDefaultValue || templateParameter.IsParams )
+            {
+                throw new InvalidTemplateSignatureException(
+                    MetalamaStringFormatter.Format(
+                        $"Cannot use the template '{templateMethodSymbol}' to implement the method '{targetMethod}': the run-time template parameter '{templateParameter.Name}' must not have a default value or be a params parameter." ) );
+            }
+
+            var methodParameter = targetMethod.Parameters.OfName( templateParameter.Name );
+
+            if ( methodParameter == null )
+            {
+                var ordinal = firstOrdinal + runTimeParameterIndex;
+
+                if ( ordinal < endOrdinal )
+                {
+                    methodParameter = targetMethod.Parameters[ordinal];
+                }
+                else
+                {
+                    var parameterNames = string.Join( ", ", targetMethod.Parameters.SelectAsImmutableArray( p => "'" + p.Name + "'" ) );
+
+                    throw new InvalidTemplateSignatureException(
+                        MetalamaStringFormatter.Format(
+                            $"Cannot use the template '{templateMethodSymbol}' to implement the method '{targetMethod}': the method does not contain a parameter '{templateParameter.Name}'. Available parameters are: {parameterNames}." ) );
+                }
+            }
+
+            if ( !VerifyTemplateType( templateParameter.Type, methodParameter.Type, template, targetMethod, arguments ) )
+            {
+                throw new InvalidTemplateSignatureException(
+                    MetalamaStringFormatter.Format(
+                        $"Cannot use the template '{templateMethodSymbol}' to implement the method '{targetMethod}': the type of the template parameter '{templateParameter.Name}' is not compatible with the type of the parameter '{methodParameter.Name}'." ) );
+            }
+
+            ExpressionSyntax parameterSyntax = SyntaxFactoryEx.SafeIdentifierName( methodParameter.Name );
+            parameterSyntax = TypeAnnotationMapper.AddExpressionTypeAnnotation( parameterSyntax, methodParameter.Type );
+            parameterMapping.Add( templateParameter.Name, parameterSyntax );
+
+            runTimeParameterIndex++;
+        }
+
+        foreach ( var templateParameter in templateMethodSymbol.TypeParameters )
+        {
+            if ( !template.TemplateClassMember.TypeParameters[templateParameter.Ordinal].IsCompileTime )
+            {
+                throw new InvalidTemplateSignatureException(
+                    MetalamaStringFormatter.Format(
+                        $"Cannot use the template '{templateMethodSymbol}' to implement the method '{targetMethod}': the template must not have the run-time type parameter '{templateParameter.Name}'. Declare it as a compile-time type parameter." ) );
+            }
+        }
+
+        var templateArguments = GetTemplateArguments( template, arguments, parameterMapping.ToImmutable() );
+
+        if ( !VerifyTemplateType( templateMethodSymbol.ReturnType, targetMethod.ReturnType, template, targetMethod, arguments, targetMethod.GetAsyncInfo() ) )
+        {
+            throw new InvalidTemplateSignatureException(
+                MetalamaStringFormatter.Format(
+                    $"Cannot use the template '{templateMethodSymbol}' to implement the method '{targetMethod}': the template return type '{templateMethodSymbol.ReturnType}' is not compatible with the return type '{targetMethod.ReturnType}'." ) );
+        }
+
+        return new BoundTemplateMethod( template, templateArguments );
+    }
+
     private static bool VerifyTemplateType(
         IReadOnlyList<IType> fromTypes,
         IReadOnlyList<IType> toTypes,
