@@ -1,4 +1,4 @@
-// Warning TEST0003 on `Echo`: `The redirection of 'Source.Echo( 1 )' was refused with InvalidOperationException: The type parameter 'T' of the method 'Echo_Interceptor' cannot be changed, because the extension that created the method builder locks it.`
+// Warning TEST0003 on `Echo`: `The redirection of 'Source.Echo( 1 )' was refused with InvalidOperationException: The type parameter 'T' of the method 'Echo_Interceptor' cannot be changed.`
 [Redirect]
 internal class Program
 {

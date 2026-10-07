@@ -132,5 +132,5 @@ public abstract class MethodBuilderRestrictions
     /// <param name="method">The method that is changed, or that declares the parameter or type parameter that is changed.</param>
     /// <param name="part">The part that cannot change, for instance <c>return type</c> or <c>reference kind of the parameter 'x'</c>.</param>
     protected static InvalidOperationException CreateLockedException( IMethod method, string part )
-        => new( $"The {part} of the method '{method.Name}' cannot be changed, because the extension that created the method builder locks it." );
+        => new( $"The {part} of the method '{method.Name}' cannot be changed." );
 }
