@@ -111,7 +111,7 @@ internal sealed class SourceMethod : SourceMethodBase, IMethodImpl
             var genericContext = new IntroducedGenericContext(
                 typeArguments.SelectAsImmutableArray( t => t.ToFullRef() ),
                 this.Ref.DefinitionRef,
-                (IntroducedGenericContext?) ((SourceNamedType) this.DeclaringType).GenericContextForSymbolMapping );
+                ((SourceNamedType) this.DeclaringType).GenericContextForSymbolMapping as IntroducedGenericContext );
 
             return this.Compilation.Factory.GetMethod( this.MethodSymbol, genericContext );
         }

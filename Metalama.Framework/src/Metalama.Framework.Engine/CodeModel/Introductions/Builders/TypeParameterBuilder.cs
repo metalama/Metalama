@@ -39,7 +39,7 @@ internal sealed class TypeParameterBuilder : NamedDeclarationBuilder, ITypeParam
     {
         this.ContainingDeclaration = containingMethod;
         this.Index = index;
-        this._ref = new IntroducedRef<ITypeParameter>( this.Compilation.RefFactory );
+        this._ref = new IntroducedRef<ITypeParameter>( this.Compilation.RefFactory, this );
         this._name = name;
     }
 
@@ -47,7 +47,7 @@ internal sealed class TypeParameterBuilder : NamedDeclarationBuilder, ITypeParam
     {
         this.ContainingDeclaration = containingType;
         this.Index = index;
-        this._ref = new IntroducedRef<ITypeParameter>( this.Compilation.RefFactory );
+        this._ref = new IntroducedRef<ITypeParameter>( this.Compilation.RefFactory, this );
         this._name = name;
     }
 

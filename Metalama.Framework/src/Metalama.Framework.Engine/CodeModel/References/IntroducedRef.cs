@@ -6,6 +6,7 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Code.DeclarationBuilders;
 using Metalama.Framework.Engine.CodeModel.GenericContexts;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
+using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 using Metalama.Framework.Engine.SerializableIds;
 using Metalama.Framework.Engine.Services;
 using Microsoft.CodeAnalysis;
@@ -41,6 +42,16 @@ internal sealed partial class IntroducedRef<T> : FullRef<T>, IIntroducedRef
     // (1) the DeclarationBuilderData may be assigned after the constructor is called, typically just after DeclarationBuilde.Freeze.
     // (2) in the meantime, a copy of this reference may have been taken with the WithGenericContext method.
     private readonly StrongBox<DeclarationBuilderData> _builderData;
+
+    /// <summary>
+    /// The type parameter builder that the reference designates before it is frozen, or <c>null</c>.
+    /// </summary>
+    /// <remarks>
+    /// A type that an aspect builds from a type parameter of a builder, for instance <c>List&lt;T&gt;</c>, refers to the type parameter through
+    /// this reference, and its members can be read before the builder is frozen. The reference then resolves to the builder itself. Once the
+    /// builder data is set, the reference resolves to the introduced declaration.
+    /// </remarks>
+    private readonly TypeParameterBuilder? _unfrozenTypeParameter;
 
     public DeclarationBuilderData BuilderData
     {
@@ -82,12 +93,15 @@ internal sealed partial class IntroducedRef<T> : FullRef<T>, IIntroducedRef
     /// Initializes a new instance of the <see cref="IntroducedRef{TInterface}"/> class when the <see cref="DeclarationBuilderData"/>
     /// has not been created yet.
     /// </summary>
-    /// <param name="refFactory"></param>
-    public IntroducedRef( RefFactory refFactory ) : base( refFactory )
+    /// <param name="refFactory">The factory of references.</param>
+    /// <param name="unfrozenTypeParameter">The type parameter builder that the reference designates, which it resolves to before the builder is
+    /// frozen, or <c>null</c>.</param>
+    public IntroducedRef( RefFactory refFactory, TypeParameterBuilder? unfrozenTypeParameter = null ) : base( refFactory )
     {
         this._builderData = new StrongBox<DeclarationBuilderData>();
         this._genericContext = GenericContext.Empty;
         this._isNullable = false;
+        this._unfrozenTypeParameter = unfrozenTypeParameter;
     }
 
     private IntroducedRef( IntroducedRef<T> prototype, GenericContext? genericContext ) : this( prototype, genericContext, prototype._isNullable ) { }
@@ -97,6 +111,7 @@ internal sealed partial class IntroducedRef<T> : FullRef<T>, IIntroducedRef
         this._builderData = prototype._builderData;
         this._genericContext = genericContext ?? GenericContext.Empty;
         this._isNullable = isNullable;
+        this._unfrozenTypeParameter = prototype._unfrozenTypeParameter;
     }
 
     /// <summary>
@@ -222,7 +237,9 @@ internal sealed partial class IntroducedRef<T> : FullRef<T>, IIntroducedRef
         bool throwIfMissing,
         IGenericContext genericContext,
         Type interfaceType )
-        => ConvertDeclarationOrThrow(
+        => this._builderData.Value == null && this._unfrozenTypeParameter is { } typeParameter
+            ? this._isNullable == true ? ((IType) typeParameter).ToNullable() : typeParameter
+            : ConvertDeclarationOrThrow(
             compilation.Factory.GetDeclaration( this.BuilderData, this.SelectGenericContext( genericContext ), interfaceType, this._isNullable ),
             compilation,
             interfaceType );
