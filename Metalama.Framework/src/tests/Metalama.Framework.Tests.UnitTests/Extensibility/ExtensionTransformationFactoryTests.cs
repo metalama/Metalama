@@ -12,6 +12,7 @@ using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Extensibility.CallSites;
 using Metalama.Framework.Engine.Extensibility.Transformations;
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Engine.Templating;
 using Metalama.Framework.Engine.Pipeline.CompileTime;
 using Metalama.Framework.Services;
 using Metalama.Testing.UnitTesting;
@@ -67,6 +68,12 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
                                      public static void Log( string message, string origin = "source" ) { }
 
                                      public static void Widen( long value ) { }
+
+                                     public static int Lambda( Func<int> f ) => 0;
+
+                                     public static int Tree( System.Linq.Expressions.Expression<Func<int, int>> e ) => 0;
+
+                                     public static int Gen<T>( T item ) => 0;
 
                                      public static int Make( Instance a, int b ) => b;
 
@@ -135,6 +142,18 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
                                      public static void Out( int a ) { }
 
                                      public static int None() => 0;
+
+                                     public static int Typed( int x, System.Type type ) => x;
+
+                                     public static int Pair( object a, object b ) => 0;
+
+                                     public static int Boxed( object value ) => 0;
+
+                                     public static int Mixed( object a, int b ) => 0;
+
+                                     public static int LambdaPair( Func<int> a, Func<int> b ) => 0;
+
+                                     public static int TreePair( System.Linq.Expressions.Expression<Func<int, int>> a, System.Linq.Expressions.Expression<Func<int, int>> b ) => 0;
 
                                      public static void Widen( object value ) { }
 
@@ -269,7 +288,12 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
                                          Source.Many( 33, Next() );
                                          Source.Measure( 34, Next() );
                                          var natural = Source.Two;
+                                         Source.Lambda( () => 1 );
+                                         Source.Lambda( Next );
+                                         Source.Tree( x => x );
                                      }
+
+                                     private void G<T>( T item ) => Source.Gen( item );
 
                                      private unsafe void P()
                                      {
@@ -592,19 +616,40 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
             ( s, r ) => new InvocationRedirectionRequest( r.CallSite, r.Target, r.ReceiverMode ) { ResultCast = s.Compilation.Factory.GetSpecialType( Code.SpecialType.Int32 ) } );
 
     /// <summary>
-    /// Verifies that an argument list that passes the same source argument twice is refused.
+    /// Verifies that an argument list that passes the same source argument twice is refused when the evaluation of the argument can have a side
+    /// effect, here a property, because each occurrence would be evaluated.
     /// </summary>
     [Fact]
-    public async Task RedirectInvocation_ArgumentsUseSourceValueTwice_Throws()
+    public async Task RedirectInvocation_ArgumentsUseSourceValueWithSideEffectTwice_Throws()
         => await this.AssertInvocationRefusedAsync(
-            "Source.Two( 5, 6 )",
+            "Source.Two( Property, 20 )",
             "Interceptors",
             "Two",
             CallSiteReceiverMode.Drop,
             ( _, r ) => new InvocationRedirectionRequest( r.CallSite, r.Target, r.ReceiverMode )
             {
                 Arguments = ImmutableArray.Create( RedirectedArgument.SourceArgument( 0 ), RedirectedArgument.SourceArgument( 0 ) )
-            } );
+            },
+            "is passed more than once" );
+
+    /// <summary>
+    /// Verifies that an argument list that passes the same source argument twice is accepted when the evaluation of the argument has no side
+    /// effect, here a constant, and that the linker writes the argument twice.
+    /// </summary>
+    [Fact]
+    public async Task RedirectInvocation_ArgumentsUseSourceValueWithoutSideEffectTwice_Accepted()
+    {
+        var result = await this.ExecuteAsync(
+            s => s.Factory.RedirectInvocation(
+                s.Origin,
+                new InvocationRedirectionRequest( s.Invocation( "Source.Two( 5, 6 )" ), s.Target( "Interceptors", "Two" ), CallSiteReceiverMode.Drop )
+                {
+                    Arguments = ImmutableArray.Create( RedirectedArgument.SourceArgument( 0 ), RedirectedArgument.SourceArgument( 0 ) )
+                } ) );
+
+        // The linker output is not formatted, so the test ignores the whitespace.
+        Assert.Contains( "Interceptors.Two(a:5,b:5)", GetText( result ).Replace( " ", "" ), StringComparison.Ordinal );
+    }
 
     /// <summary>
     /// Verifies that an argument list that names the same parameter twice is refused.
@@ -684,6 +729,187 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
         // The linker output is not formatted, so the test ignores the whitespace.
         Assert.Contains( "Source.Log(\"message\",origin:\"redirected\")", GetText( result ).Replace( " ", "" ), StringComparison.Ordinal );
     }
+
+    /// <summary>
+    /// Verifies that an argument given as an expression of the code model is generated at the call site.
+    /// </summary>
+    [Fact]
+    public async Task RedirectInvocation_ValueOfCodeModelExpression_Written()
+    {
+        var result = await this.ExecuteAsync(
+            s => s.Factory.RedirectInvocation(
+                s.Origin,
+                new InvocationRedirectionRequest( s.Invocation( "Source.Compute( 1 )" ), s.Target( "Interceptors", "Two" ), CallSiteReceiverMode.Drop )
+                {
+                    Arguments = ImmutableArray.Create(
+                        RedirectedArgument.SourceArgument( 0 ).WithName( "a" ),
+                        RedirectedArgument.Value( Code.TypedConstant.Create( 7, s.Compilation.Factory.GetSpecialType( Code.SpecialType.Int32 ) ) )
+                            .WithName( "b" ) )
+                } ) );
+
+        // The linker output is not formatted, so the test ignores the whitespace.
+        Assert.Contains( "Interceptors.Two(a:1,b:7)", GetText( result ).Replace( " ", "" ), StringComparison.Ordinal );
+    }
+
+    /// <summary>
+    /// Verifies that an argument given as a <see cref="Code.TypedConstant"/> whose value is a type is written as <c>typeof</c>.
+    /// </summary>
+    [Fact]
+    public async Task RedirectInvocation_ValueOfTypeConstant_WrittenAsTypeOf()
+    {
+        var result = await this.ExecuteAsync(
+            s => s.Factory.RedirectInvocation(
+                s.Origin,
+                new InvocationRedirectionRequest( s.Invocation( "Source.Compute( 1 )" ), s.Target( "Interceptors", "Typed" ), CallSiteReceiverMode.Drop )
+                {
+                    Arguments = ImmutableArray.Create(
+                        RedirectedArgument.SourceArgument( 0 ).WithName( "x" ),
+                        RedirectedArgument.Value(
+                                Code.TypedConstant.Create(
+                                    s.Compilation.Factory.GetSpecialType( Code.SpecialType.String ),
+                                    s.Compilation.Factory.GetTypeByReflectionType( typeof(Type) ) ) )
+                            .WithName( "type" ) )
+                } ) );
+
+        // The linker output is not formatted, so the test ignores the whitespace.
+        Assert.Contains( "Interceptors.Typed(x:1,type:typeof(", GetText( result ).Replace( " ", "" ), StringComparison.Ordinal );
+    }
+
+    /// <summary>
+    /// Verifies that an argument given as an instance field of the calling type is generated in the context of the calling member, with
+    /// <c>this</c>.
+    /// </summary>
+    [Fact]
+    public async Task RedirectInvocation_ValueOfInstanceField_Written()
+    {
+        var result = await this.ExecuteAsync(
+            s => s.Factory.RedirectInvocation(
+                s.Origin,
+                new InvocationRedirectionRequest( s.Invocation( "Source.Compute( 1 )" ), s.Target( "Interceptors", "Two" ), CallSiteReceiverMode.Drop )
+                {
+                    Arguments = ImmutableArray.Create(
+                        RedirectedArgument.SourceArgument( 0 ).WithName( "a" ),
+                        RedirectedArgument.Value( s.Compilation.Types.OfName( "C" ).Single().Fields.OfName( "_field" ).Single() ).WithName( "b" ) )
+                } ) );
+
+        // The linker output is not formatted, so the test ignores the whitespace.
+        Assert.Contains( "Interceptors.Two(a:1,b:this._field)", GetText( result ).Replace( " ", "" ), StringComparison.Ordinal );
+    }
+
+    /// <summary>
+    /// Verifies that a constant of an integral type narrower than <see cref="int"/> is cast to its type, so that a parameter of type
+    /// <see cref="object"/> receives a boxed value of that type and not a boxed <see cref="int"/>.
+    /// </summary>
+    [Fact]
+    public async Task RedirectInvocation_ValueOfNarrowConstant_Cast()
+    {
+        var result = await this.ExecuteAsync(
+            s => s.Factory.RedirectInvocation(
+                s.Origin,
+                new InvocationRedirectionRequest( s.Invocation( "Source.Compute( 1 )" ), s.Target( "Interceptors", "Boxed" ), CallSiteReceiverMode.Drop )
+                {
+                    Arguments = ImmutableArray.Create(
+                        RedirectedArgument.Value( Code.TypedConstant.Create( (byte) 7, s.Compilation.Factory.GetSpecialType( Code.SpecialType.Byte ) ) )
+                            .WithName( "value" ) )
+                } ) );
+
+        // The linker output is not formatted or simplified, so the test ignores the whitespace and accepts the qualified name of the type.
+        Assert.Matches( @"Interceptors\.Boxed\(value:\((byte|global::System\.Byte)\)7\)", GetText( result ).Replace( " ", "" ) );
+    }
+
+    /// <summary>
+    /// Verifies that a source argument of a value type passed twice to parameters of a reference type is refused, because each occurrence would
+    /// be boxed into a different object.
+    /// </summary>
+    [Fact]
+    public async Task RedirectInvocation_ArgumentsUseBoxedSourceValueTwice_Throws()
+        => await this.AssertInvocationRefusedAsync(
+            "Source.Compute( 1 )",
+            "Interceptors",
+            "Pair",
+            CallSiteReceiverMode.Drop,
+            ( _, r ) => new InvocationRedirectionRequest( r.CallSite, r.Target, r.ReceiverMode )
+            {
+                Arguments = ImmutableArray.Create( RedirectedArgument.SourceArgument( 0 ).WithName( "a" ), RedirectedArgument.SourceArgument( 0 ).WithName( "b" ) )
+            },
+            "is passed more than once" );
+
+    /// <summary>
+    /// Verifies that a source argument passed to a parameter of a value type and to a parameter of a reference type is refused in either order of
+    /// the argument list, because the occurrence received by the reference type is boxed.
+    /// </summary>
+    [Theory]
+    [InlineData( "a", "b" )]
+    [InlineData( "b", "a" )]
+    public async Task RedirectInvocation_ArgumentsUseSourceValueTwice_BoxedOnce_Throws( string first, string second )
+        => await this.AssertInvocationRefusedAsync(
+            "Source.Compute( 1 )",
+            "Interceptors",
+            "Mixed",
+            CallSiteReceiverMode.Drop,
+            ( _, r ) => new InvocationRedirectionRequest( r.CallSite, r.Target, r.ReceiverMode )
+            {
+                Arguments = ImmutableArray.Create( RedirectedArgument.SourceArgument( 0 ).WithName( first ), RedirectedArgument.SourceArgument( 0 ).WithName( second ) )
+            },
+            "is passed more than once" );
+
+    /// <summary>
+    /// Verifies that a source argument of a type parameter without the <c>class</c> constraint, passed twice to parameters of a reference type, is
+    /// refused, because the type argument can be a value type, which is boxed at each occurrence.
+    /// </summary>
+    [Fact]
+    public async Task RedirectInvocation_ArgumentsUseTypeParameterValueTwice_Throws()
+        => await this.AssertInvocationRefusedAsync(
+            "Source.Gen( item )",
+            "Interceptors",
+            "Pair",
+            CallSiteReceiverMode.Drop,
+            ( _, r ) => new InvocationRedirectionRequest( r.CallSite, r.Target, r.ReceiverMode )
+            {
+                Arguments = ImmutableArray.Create( RedirectedArgument.SourceArgument( 0 ).WithName( "a" ), RedirectedArgument.SourceArgument( 0 ).WithName( "b" ) )
+            },
+            "is passed more than once" );
+
+    /// <summary>
+    /// Verifies that a lambda, a method group, or a lambda converted to an expression tree, passed twice, is refused, because each occurrence creates
+    /// a new delegate or a new expression tree.
+    /// </summary>
+    [Theory]
+    [InlineData( "Source.Lambda( () => 1 )", "LambdaPair" )]
+    [InlineData( "Source.Lambda( Next )", "LambdaPair" )]
+    [InlineData( "Source.Tree( x => x )", "TreePair" )]
+    public async Task RedirectInvocation_ArgumentsUseDelegateTwice_Throws( string callSite, string target )
+        => await this.AssertInvocationRefusedAsync(
+            callSite,
+            "Interceptors",
+            target,
+            CallSiteReceiverMode.Drop,
+            ( _, r ) => new InvocationRedirectionRequest( r.CallSite, r.Target, r.ReceiverMode )
+            {
+                Arguments = ImmutableArray.Create( RedirectedArgument.SourceArgument( 0 ).WithName( "a" ), RedirectedArgument.SourceArgument( 0 ).WithName( "b" ) )
+            },
+            "is passed more than once" );
+
+    /// <summary>
+    /// Verifies that an argument given as an inspection-only source expression, which cannot be emitted, is refused.
+    /// </summary>
+    [Fact]
+    public async Task RedirectInvocation_ValueOfInspectionOnlyExpression_Throws()
+        => await this.AssertInvocationRefusedAsync(
+            "Source.Compute( 1 )",
+            "Interceptors",
+            "Two",
+            CallSiteReceiverMode.Drop,
+            ( s, r ) => new InvocationRedirectionRequest( r.CallSite, r.Target, r.ReceiverMode )
+            {
+                Arguments = ImmutableArray.Create(
+                    RedirectedArgument.SourceArgument( 0 ).WithName( "a" ),
+                    RedirectedArgument.Value(
+                            SourceExpressionFactory.CreateInspectionOnly(
+                                r.CallSite.ArgumentList.Arguments[0].Expression,
+                                s.Compilation.Factory.GetSpecialType( Code.SpecialType.Int32 ) ) )
+                        .WithName( "b" ) )
+            } );
 
     /// <summary>
     /// Verifies that a method group that is not converted to a delegate or to a function pointer, here the operand of <c>nameof</c>, is refused.

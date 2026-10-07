@@ -949,6 +949,8 @@ Consequences:
 
 #### 6.6.1 Rules
 
+DECIDED on 2026-10-06 (metalama/Metalama#2126): the explicit bindings are the properties of the `args` object of the result. Rule E6 is replaced: each type parameter of the method and of its containing types is bound to the property of `args` that has its name, or to the type argument of the type parameter of the same name of the site, and otherwise the method is refused. An interceptor declared in a generic type is accepted.
+
 One validator, `InterceptorSignatureValidator`, checks both paths of R9, together with the binding of their parameters (section [5.6.8](05b-api-providers-contexts-results.md#568-parameter-binding-and-the-signature-builder)):
 
 - an existing method `E` returned by a provider, after its `bind` function has run;

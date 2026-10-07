@@ -6,6 +6,8 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Linking;
 using Metalama.Framework.Engine.SyntaxGeneration;
+using Metalama.Framework.Engine.SyntaxSerialization;
+using Metalama.Framework.Engine.Templating.Expressions;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Framework.RunTime;
 using Microsoft.CodeAnalysis;
@@ -31,6 +33,7 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
             IInvocationOperation operation,
             bool isReducedExtensionCall,
             bool hasReceiverValue,
+            CompilationModel compilation,
             SyntaxGenerationContext context )
         {
             var callSite = request.CallSite;
@@ -66,13 +69,26 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
             var names = new HashSet<string>( StringComparer.Ordinal );
             var items = new List<(int Order, CallSiteArgumentPlanItem Item, IParameter Parameter, IType? CastType)>();
 
+            // The linker writes each argument with its name, so the parameter of this name receives it. The receiving parameters are computed first,
+            // because the validation of an argument passed more than once considers all the parameters that receive it.
+            var argumentNames = new string[request.Arguments.Length];
+            var receivingParameters = new IParameter[request.Arguments.Length];
+
+            for ( var i = 0; i < request.Arguments.Length; i++ )
+            {
+                argumentNames[i] = request.Arguments[i].Name ?? targetParameters[i + parameterOffset].Name;
+                receivingParameters[i] = targetParameters.FirstOrDefault( p => p.Name == argumentNames[i] ) ?? targetParameters[i + parameterOffset];
+            }
+
+            // The context in which expressions of the code model are generated. It depends only on the call site, so it is created once, when the first
+            // such expression is generated.
+            SyntaxSerializationContext? serializationContext = null;
+
             for ( var i = 0; i < request.Arguments.Length; i++ )
             {
                 var argument = request.Arguments[i];
-                var name = argument.Name ?? targetParameters[i + parameterOffset].Name;
-
-                // The linker writes the argument with this name, so the parameter of this name receives it.
-                var receivingParameter = targetParameters.FirstOrDefault( p => p.Name == name ) ?? targetParameters[i + parameterOffset];
+                var name = argumentNames[i];
+                var receivingParameter = receivingParameters[i];
 
                 if ( !names.Add( name ) )
                 {
@@ -157,12 +173,23 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
                                 nameof(request) );
                         }
 
-                        if ( !usedSourceArguments.Add( sourceIndex ) )
-                        {
-                            throw new ArgumentException( $"The argument {sourceIndex} of the call site '{callSite}' is passed more than once.", nameof(request) );
-                        }
-
                         var sourceArgument = sourceArgumentSyntaxes[sourceIndex];
+
+                        // An argument can be passed more than once only when it is passed by value and each occurrence gives the same value, because
+                        // each occurrence is evaluated and converted.
+                        if ( !usedSourceArguments.Add( sourceIndex )
+                             && (!sourceArgument.RefKindKeyword.IsKind( SyntaxKind.None )
+                                 || !CanBeDuplicated(
+                                     operation.SemanticModel!,
+                                     sourceArgument,
+                                     receivingParameters.Where(
+                                         ( _, j ) => request.Arguments[j].Kind == RedirectedArgumentKind.SourceArgument
+                                                     && request.Arguments[j].ParameterOrdinal == argument.ParameterOrdinal ) )) )
+                        {
+                            throw new ArgumentException(
+                                $"The argument '{sourceArgument}' of the call site '{callSite}' is passed more than once, which is accepted only for an argument passed by value whose evaluation has no side effect and gives the same value at each occurrence.",
+                                nameof(request) );
+                        }
 
                         if ( !IsCompatibleRefKind( sourceArgument, receivingParameter ) )
                         {
@@ -192,8 +219,20 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
                         break;
 
                     default:
-                        // Expressions are evaluated after all the values of the source call site.
-                        items.Add( (int.MaxValue, new CallSiteArgumentPlanItem( RedirectedArgumentKind.Value, -1, argument.Expression, name ), receivingParameter, null) );
+                        // Expressions are evaluated after all the values of the source call site. An expression of the code model is generated in the
+                        // context of the call site.
+                        if ( argument.Expression == null )
+                        {
+                            serializationContext ??= new SyntaxSerializationContext(
+                                compilation,
+                                context,
+                                null,
+                                GetEnclosingDeclaration( operation.SemanticModel!, callSite, compilation ) );
+                        }
+
+                        var valueSyntax = argument.Expression ?? GetValueExpressionSyntax( argument.ValueExpression!, name, serializationContext! );
+
+                        items.Add( (int.MaxValue, new CallSiteArgumentPlanItem( RedirectedArgumentKind.Value, -1, valueSyntax, name ), receivingParameter, null) );
 
                         break;
                 }
@@ -515,6 +554,76 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
             var parameterType = item.Parameter.Type.GetSymbol();
 
             return naturalType == null || parameterType == null || !semanticModel.Compilation.ClassifyConversion( naturalType, parameterType ).IsImplicit;
+        }
+
+        /// <summary>
+        /// Generates the syntax of an expression of the code model that a request passes with <see cref="RedirectedArgument.Value(IExpression)"/>,
+        /// in the context of the call site.
+        /// </summary>
+        /// <exception cref="ArgumentException">The expression cannot be emitted, for instance because it is an inspection-only source
+        /// expression.</exception>
+        /// <remarks>
+        /// The expression is generated in the context of the declaration that contains the call site, so that an instance member of the calling type
+        /// is written with <c>this</c>.
+        /// </remarks>
+        private static ExpressionSyntax GetValueExpressionSyntax( IExpression expression, string name, SyntaxSerializationContext serializationContext )
+        {
+            try
+            {
+                return expression.ToTypedExpressionSyntax( serializationContext ).Syntax;
+            }
+            catch ( Exception e ) when ( e is not OperationCanceledException )
+            {
+                throw new ArgumentException( $"The value of the argument '{name}' cannot be emitted at the call site: {e.Message}", "request", e );
+            }
+        }
+
+        /// <summary>
+        /// Returns the declaration of the code model that contains a call site: the member, or the field, property or event of an initializer. A
+        /// lambda or a local function is attributed to the member that contains it.
+        /// </summary>
+        private static IDeclaration? GetEnclosingDeclaration( SemanticModel semanticModel, SyntaxNode callSite, CompilationModel compilation )
+        {
+            var symbol = semanticModel.GetEnclosingSymbol( callSite.SpanStart );
+
+            while ( symbol is { Kind: SymbolKind.Method } && ((IMethodSymbol) symbol).MethodKind is Microsoft.CodeAnalysis.MethodKind.AnonymousFunction or Microsoft.CodeAnalysis.MethodKind.LocalFunction )
+            {
+                symbol = symbol.ContainingSymbol;
+            }
+
+            return symbol != null && compilation.Factory.TryGetDeclaration( symbol, out var declaration ) ? declaration : null;
+        }
+
+        /// <summary>
+        /// Determines whether an argument of the call site can be passed to several parameters, which evaluate and convert it once each.
+        /// </summary>
+        /// <remarks>
+        /// The argument must have no side effect, and the evaluations must give the same value. An anonymous function or a method group creates a new
+        /// delegate or a new expression tree at each evaluation, also under an implicit conversion, and a value that is not of a reference type is
+        /// boxed at each conversion to a reference type. These arguments are refused, because the parameters would receive different objects. A type
+        /// parameter without the <c>class</c> constraint is not of a reference type, because it can be a value type.
+        /// </remarks>
+        /// <param name="semanticModel">The semantic model of the call site.</param>
+        /// <param name="argument">The argument of the call site.</param>
+        /// <param name="receivingParameters">All the parameters of the target that receive the argument.</param>
+        private static bool CanBeDuplicated( SemanticModel semanticModel, ArgumentSyntax argument, IEnumerable<IParameter> receivingParameters )
+        {
+            var value = GetArgumentValue( semanticModel, argument );
+            var convertedValue = value;
+
+            while ( convertedValue is IConversionOperation { IsImplicit: true } conversion )
+            {
+                convertedValue = conversion.Operand;
+            }
+
+            if ( !IsWithoutSideEffect( value ) || convertedValue is IAnonymousFunctionOperation or IMethodReferenceOperation or IDelegateCreationOperation )
+            {
+                return false;
+            }
+
+            var type = semanticModel.GetTypeInfo( argument.Expression ).Type;
+
+            return type is null or { IsReferenceType: true } || receivingParameters.All( p => p.Type.GetSymbol() is not { IsReferenceType: true } );
         }
 
         /// <summary>

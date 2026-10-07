@@ -36,13 +36,20 @@ public sealed class RedirectedArgument
     /// <summary>
     /// Initializes a new instance of the <see cref="RedirectedArgument"/> class. Use the static members of the class to create an instance.
     /// </summary>
-    private RedirectedArgument( RedirectedArgumentKind kind, int parameterOrdinal, ExpressionSyntax? expression, string? name, IType? castType = null )
+    private RedirectedArgument(
+        RedirectedArgumentKind kind,
+        int parameterOrdinal,
+        ExpressionSyntax? expression,
+        string? name,
+        IType? castType = null,
+        IExpression? valueExpression = null )
     {
         this.Kind = kind;
         this.ParameterOrdinal = parameterOrdinal;
         this.Expression = expression;
         this.Name = name;
         this.CastType = castType;
+        this.ValueExpression = valueExpression;
     }
 
     /// <summary>
@@ -82,13 +89,28 @@ public sealed class RedirectedArgument
     /// Gets an argument that passes an expression, which is emitted at the call site after the values of the source call site.
     /// </summary>
     /// <param name="expression">The expression. It must bind at the call site.</param>
-    public static RedirectedArgument Value( ExpressionSyntax expression ) => new( RedirectedArgumentKind.Value, -1, expression, null );
+    public static RedirectedArgument Value( ExpressionSyntax expression )
+        => new( RedirectedArgumentKind.Value, -1, expression ?? throw new ArgumentNullException( nameof(expression) ), null );
+
+    /// <summary>
+    /// Gets an argument that passes an expression of the code model, which is emitted at the call site after the values of the source call site.
+    /// </summary>
+    /// <remarks>
+    /// The factory generates the syntax of the expression in the context of the call site. The expression can be any <see cref="IExpression"/> that
+    /// compile-time code can emit, for instance a <see cref="TypedConstant"/>, a parameter of the member that contains the call site, or an
+    /// expression created with <c>ExpressionFactory</c>. An inspection-only source expression cannot be emitted; pass the source argument or the
+    /// source receiver instead.
+    /// </remarks>
+    /// <param name="expression">The expression. It must bind at the call site.</param>
+    public static RedirectedArgument Value( IExpression expression )
+        => new( RedirectedArgumentKind.Value, -1, null, null, null, expression ?? throw new ArgumentNullException( nameof(expression) ) );
 
     /// <summary>
     /// Returns a copy of this argument that is written with the given parameter name instead of the name of the corresponding parameter of the
     /// target.
     /// </summary>
-    public RedirectedArgument WithName( string parameterName ) => new( this.Kind, this.ParameterOrdinal, this.Expression, parameterName, this.CastType );
+    public RedirectedArgument WithName( string parameterName )
+        => new( this.Kind, this.ParameterOrdinal, this.Expression, parameterName, this.CastType, this.ValueExpression );
 
     /// <summary>
     /// Returns a copy of this argument whose value is cast to the given type before it is passed, <c>(T)(value)</c>.
@@ -101,7 +123,7 @@ public sealed class RedirectedArgument
     /// argument that is passed by value.
     /// </remarks>
     /// <param name="type">The type to which the value is cast, typically the type of the parameter of the source method.</param>
-    public RedirectedArgument WithCast( IType type ) => new( this.Kind, this.ParameterOrdinal, this.Expression, this.Name, type );
+    public RedirectedArgument WithCast( IType type ) => new( this.Kind, this.ParameterOrdinal, this.Expression, this.Name, type, this.ValueExpression );
 
     /// <summary>
     /// Gets the kind of the argument.
@@ -114,9 +136,14 @@ public sealed class RedirectedArgument
     public int ParameterOrdinal { get; }
 
     /// <summary>
-    /// Gets the expression, for <see cref="RedirectedArgumentKind.Value"/>, and <c>null</c> otherwise.
+    /// Gets the expression, for an argument created by <see cref="Value(ExpressionSyntax)"/>, and <c>null</c> otherwise.
     /// </summary>
     public ExpressionSyntax? Expression { get; }
+
+    /// <summary>
+    /// Gets the expression of the code model, for an argument created by <see cref="Value(IExpression)"/>, and <c>null</c> otherwise.
+    /// </summary>
+    public IExpression? ValueExpression { get; }
 
     /// <summary>
     /// Gets the name with which the argument is written, or <c>null</c> to use the name of the corresponding parameter of the target.

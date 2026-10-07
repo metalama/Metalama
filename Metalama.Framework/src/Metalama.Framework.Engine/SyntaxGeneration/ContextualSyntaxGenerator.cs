@@ -536,6 +536,11 @@ public sealed partial class ContextualSyntaxGenerator
         {
             return this.FieldReference( field );
         }
+        else if ( typedConstant.RawValue is IType type )
+        {
+            // A constant of type System.Type, as in an attribute argument, is written as typeof.
+            return this.TypeOfExpression( type );
+        }
         else if ( typedConstant.Type is INamedType { TypeKind: TypeKind.Enum } enumType )
         {
             return this.EnumValueExpression( enumType, typedConstant.Value! );
@@ -550,7 +555,7 @@ public sealed partial class ContextualSyntaxGenerator
         }
         else
         {
-            return LiteralExpression( typedConstant.Value! );
+            return this.PrimitiveLiteral( typedConstant.Value! );
         }
     }
 
@@ -573,6 +578,11 @@ public sealed partial class ContextualSyntaxGenerator
         {
             return this.FieldReference( fieldRef.ToFullRef( refFactory ) );
         }
+        else if ( typedConstant.RawValue is IRef<IType> typeRef )
+        {
+            // A constant of type System.Type, as in an attribute argument, is written as typeof.
+            return this.TypeOfExpression( typeRef.ToFullRef( refFactory ).Definition );
+        }
         else if ( type?.Definition is INamedType { TypeKind: TypeKind.Enum } enumType )
         {
             return this.EnumValueExpression( enumType, typedConstant.RawValue! );
@@ -587,8 +597,35 @@ public sealed partial class ContextualSyntaxGenerator
         }
         else
         {
-            return LiteralExpression( typedConstant.RawValue! );
+            return this.PrimitiveLiteral( typedConstant.RawValue! );
         }
+    }
+
+    /// <summary>
+    /// Returns the expression of a value of a primitive type.
+    /// </summary>
+    /// <remarks>
+    /// C# has no literal of the types <see cref="byte"/>, <see cref="sbyte"/>, <see cref="short"/> and <see cref="ushort"/>: their literal has the
+    /// type <see cref="int"/>. Such a value is therefore cast to its type, as an enumeration value without member is, because the type of the
+    /// expression decides the conversion to <see cref="object"/> and the overload resolution. The cast has a simplifier annotation, so the formatter
+    /// removes it where it is redundant.
+    /// </remarks>
+    private ExpressionSyntax PrimitiveLiteral( object value )
+    {
+        var literal = LiteralExpression( value );
+
+        var keyword = value switch
+        {
+            byte => SyntaxKind.ByteKeyword,
+            sbyte => SyntaxKind.SByteKeyword,
+            short => SyntaxKind.ShortKeyword,
+            ushort => SyntaxKind.UShortKeyword,
+            _ => SyntaxKind.None
+        };
+
+        return keyword == SyntaxKind.None
+            ? literal
+            : this.CastExpression( PredefinedType( Token( keyword ) ), literal ).WithSimplifierAnnotationIfNecessary( this.SyntaxGenerationContext );
     }
 
     // ReSharper disable once MemberCanBeMadeStatic.Global
