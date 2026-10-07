@@ -66,9 +66,9 @@ internal sealed partial class LinkerInjectionStep
         private readonly Dictionary<SyntaxNode, CallSiteVariableRename>? _renamedReferences;
 
         /// <summary>
-        /// The variable renames whose declaration the visit renamed.
+        /// The variable renames whose declaration the visit renamed, or <c>null</c> until the first one, because a rename is rare.
         /// </summary>
-        private readonly HashSet<CallSiteVariableRename> _appliedVariableRenames = new();
+        private HashSet<CallSiteVariableRename>? _appliedVariableRenames;
 
         public Rewriter(
             LinkerInjectionStep parent,
@@ -110,7 +110,7 @@ internal sealed partial class LinkerInjectionStep
         /// <summary>
         /// Determines whether the visit renamed the declaration of a variable.
         /// </summary>
-        public bool IsApplied( CallSiteVariableRename rename ) => this._appliedVariableRenames.Contains( rename );
+        public bool IsApplied( CallSiteVariableRename rename ) => this._appliedVariableRenames?.Contains( rename ) == true;
 
         /// <summary>
         /// Returns the renamed identifier of a variable whose source declaration is given, or <c>null</c> when the variable is not renamed.
@@ -119,7 +119,7 @@ internal sealed partial class LinkerInjectionStep
         {
             if ( this._renamedDeclarations != null && this._renamedDeclarations.TryGetValue( originalNode, out var rename ) )
             {
-                this._appliedVariableRenames.Add( rename );
+                (this._appliedVariableRenames ??= new HashSet<CallSiteVariableRename>()).Add( rename );
 
                 return RenameIdentifier( identifier, rename );
             }
@@ -221,7 +221,7 @@ internal sealed partial class LinkerInjectionStep
         {
             var visitedNode = (AnonymousObjectMemberDeclaratorSyntax) base.VisitAnonymousObjectMemberDeclarator( node )!;
 
-            return node.NameEquals == null && this.TryGetRenamedReference( node.Expression, out var rename )
+            return this._renamedReferences != null && node.NameEquals == null && this.TryGetRenamedReference( node.Expression, out var rename )
                 ? visitedNode.WithNameEquals( NameEquals( SafeIdentifierName( rename.OldName ) ) )
                 : visitedNode;
         }
@@ -234,7 +234,8 @@ internal sealed partial class LinkerInjectionStep
         {
             var visitedNode = (ArgumentSyntax) base.VisitArgument( node )!;
 
-            return node is { NameColon: null, Parent: TupleExpressionSyntax } && this.TryGetRenamedReference( node.Expression, out var rename )
+            return this._renamedReferences != null && node is { NameColon: null, Parent: TupleExpressionSyntax }
+                                                   && this.TryGetRenamedReference( node.Expression, out var rename )
                 ? visitedNode.WithNameColon( NameColon( SafeIdentifierName( rename.OldName ) ) )
                 : visitedNode;
         }

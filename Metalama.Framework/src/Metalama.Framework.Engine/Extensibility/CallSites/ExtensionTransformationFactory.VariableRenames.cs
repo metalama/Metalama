@@ -23,9 +23,9 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
     {
         /// <summary>
         /// The variable renames of all the redirections, keyed by the source node that declares the variable, so that the redirections that rename
-        /// the same variable share one instance. Protected by <see cref="_sync"/>.
+        /// the same variable share one instance, or <c>null</c> until the first rename, because a rename is rare. Protected by <see cref="_sync"/>.
         /// </summary>
-        private readonly Dictionary<SyntaxNode, CallSiteVariableRename> _variableRenames = new( SyntaxNodeReferenceComparer.Instance );
+        private Dictionary<SyntaxNode, CallSiteVariableRename>? _variableRenames;
 
         /// <summary>
         /// Returns the syntax that passes a parameter of the member that contains a call site, and adds the variables that hide the parameter at the
@@ -37,7 +37,8 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
         /// <param name="callSite">The call site.</param>
         /// <param name="context">The syntax generation context of the call site.</param>
         /// <param name="description">The description of the redirection.</param>
-        /// <param name="variableRenames">The collection to which the variables to rename are added.</param>
+        /// <param name="variableRenames">The collection to which the variables to rename are added. It is created when the first variable is
+        /// added.</param>
         /// <returns><paramref name="parameterName"/> when the name designates the parameter at the call site, and otherwise the name cast to the type
         /// of the parameter.</returns>
         /// <exception cref="ArgumentException">A variable that hides the parameter cannot be renamed.</exception>
@@ -61,8 +62,15 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
             InvocationExpressionSyntax callSite,
             SyntaxGenerationContext context,
             string description,
-            List<CallSiteVariableRename> variableRenames )
+            ref List<CallSiteVariableRename>? variableRenames )
         {
+            // Only a lambda or a local function can declare a variable with the name of a parameter of the member, because C# forbids it in the body
+            // of the member itself. The common case, a call site outside any nested function, therefore requires no binding.
+            if ( !IsInNestedFunction( callSite ) )
+            {
+                return parameterName;
+            }
+
             if ( parameter.GetSymbol() is not IParameterSymbol parameterSymbol )
             {
                 // A parameter introduced by an aspect has no symbol in the source compilation, and no source variable can hide it.
@@ -93,7 +101,7 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
                 }
 
                 var function = GetFunctionSyntax( semanticModel, callSite, (IMethodSymbol) symbol.ContainingSymbol );
-                variableRenames.Add( CreateVariableRename( symbol, function, semanticModel, callSite, parameterSymbol, description ) );
+                (variableRenames ??= new List<CallSiteVariableRename>()).Add( CreateVariableRename( symbol, function, semanticModel, callSite, parameterSymbol, description ) );
                 hasRenames = true;
 
                 // The variables of the next enclosing scope are those that are visible where the function is declared.
@@ -104,6 +112,23 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
                 ? ParenthesizedExpression( CastExpression( context.SyntaxGenerator.TypeSyntax( parameter.Type ), parameterName ).WithSimplifierAnnotation() )
                     .WithSimplifierAnnotation()
                 : parameterName;
+        }
+
+        /// <summary>
+        /// Determines whether a node is inside a lambda, an anonymous method or a local function.
+        /// </summary>
+        private static bool IsInNestedFunction( SyntaxNode node )
+        {
+            for ( var ancestor = node.Parent; ancestor != null; ancestor = ancestor.Parent )
+            {
+                if ( ancestor.Kind() is SyntaxKind.SimpleLambdaExpression or SyntaxKind.ParenthesizedLambdaExpression or SyntaxKind.AnonymousMethodExpression
+                    or SyntaxKind.LocalFunctionStatement )
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -243,10 +268,7 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
         /// </summary>
         private ImmutableArray<CallSiteVariableRename> RegisterVariableRenames( List<CallSiteVariableRename> variableRenames )
         {
-            if ( variableRenames.Count == 0 )
-            {
-                return ImmutableArray<CallSiteVariableRename>.Empty;
-            }
+            this._variableRenames ??= new Dictionary<SyntaxNode, CallSiteVariableRename>( SyntaxNodeReferenceComparer.Instance );
 
             var result = ImmutableArray.CreateBuilder<CallSiteVariableRename>( variableRenames.Count );
 

@@ -354,7 +354,9 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
         var transformations = new ConcurrentQueue<SyntaxTreeTransformation>();
 
         var unappliedRedirections = new ConcurrentQueue<CallSiteRedirection>();
-        var appliedVariableRenames = new ConcurrentQueue<CallSiteVariableRename>();
+
+        // A rename is rare, so the queue is created when the first rename is applied.
+        ConcurrentQueue<CallSiteVariableRename>? appliedVariableRenames = null;
 
         async Task RewriteSyntaxTreeAsync( SyntaxTree initialSyntaxTree )
         {
@@ -374,7 +376,7 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
             // Every requested redirection must have been applied by the visit. A redirection that was not applied leaves the source code unchanged.
             if ( callSiteRedirections != null )
             {
-                var reportedVariableRenames = new HashSet<CallSiteVariableRename>();
+                HashSet<CallSiteVariableRename>? reportedVariableRenames = null;
 
                 foreach ( var redirection in callSiteRedirections.Values )
                 {
@@ -392,9 +394,10 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
                         {
                             unappliedRedirections.Enqueue( redirection );
                         }
-                        else if ( reportedVariableRenames.Add( rename ) )
+                        else if ( (reportedVariableRenames ??= new HashSet<CallSiteVariableRename>()).Add( rename ) )
                         {
-                            appliedVariableRenames.Enqueue( rename );
+                            LazyInitializer.EnsureInitialized( ref appliedVariableRenames, () => new ConcurrentQueue<CallSiteVariableRename>() )
+                                .Enqueue( rename );
                         }
                     }
                 }
@@ -437,7 +440,7 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
         }
 
         // The compiled code of a renamed variable no longer matches the source code, which the debugger shows.
-        foreach ( var rename in appliedVariableRenames.OrderBy( r => r.DeclarationNode.SyntaxTree.FilePath, StringComparer.Ordinal )
+        foreach ( var rename in (appliedVariableRenames ?? Enumerable.Empty<CallSiteVariableRename>()).OrderBy( r => r.DeclarationNode.SyntaxTree.FilePath, StringComparer.Ordinal )
                      .ThenBy( r => r.DeclarationNode.SpanStart ) )
         {
             diagnostics.Report(

@@ -138,7 +138,7 @@ public sealed partial class ExtensionTransformationFactory
         var argumentPlan = default(ImmutableArray<CallSiteArgumentPlanItem>?);
         var usesForwarder = false;
         var description = request.Description ?? $"the call '{callSite}' redirected to '{targetMethod}' by {origin.DiagnosticSourceDescription}";
-        var variableRenames = new List<CallSiteVariableRename>();
+        List<CallSiteVariableRename>? variableRenames = null;
         var registeredVariableRenames = ImmutableArray<CallSiteVariableRename>.Empty;
 
         switch ( request.ReceiverMode )
@@ -238,7 +238,7 @@ public sealed partial class ExtensionTransformationFactory
                 this._compilation,
                 context,
                 description,
-                variableRenames );
+                ref variableRenames );
         }
 
         var extraArguments = request.ExtraArguments.IsDefaultOrEmpty
@@ -297,7 +297,7 @@ public sealed partial class ExtensionTransformationFactory
             VerifyReferenceArguments( semanticModel, callSite, rewrittenCall, CancellationToken.None );
         }
 
-        if ( variableRenames.Count > 0 )
+        if ( variableRenames != null )
         {
             lock ( this._sync )
             {

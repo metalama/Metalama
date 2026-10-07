@@ -30,7 +30,7 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
         /// </summary>
         /// <param name="description">The description of the redirection, which is stored in the variable renames.</param>
         /// <param name="variableRenames">The collection to which the method adds the variables that must be renamed, because they hide a parameter
-        /// that the request passes as a value.</param>
+        /// that the request passes as a value. It is created when the first variable is added, because a rename is rare.</param>
         private static ImmutableArray<CallSiteArgumentPlanItem> CreateArgumentPlan(
             InvocationRedirectionRequest request,
             IInvocationOperation operation,
@@ -39,7 +39,7 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
             CompilationModel compilation,
             SyntaxGenerationContext context,
             string description,
-            List<CallSiteVariableRename> variableRenames )
+            ref List<CallSiteVariableRename>? variableRenames )
         {
             var callSite = request.CallSite;
             var targetParameters = request.Target.Method.Parameters;
@@ -240,7 +240,7 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
                         // A parameter of the calling member is written as its name, which a variable of a lambda or local function can hide.
                         if ( argument.ValueExpression is IParameter parameter && valueSyntax.IsKind( SyntaxKind.IdentifierName ) )
                         {
-                            valueSyntax = GetParameterValueSyntax( parameter, (IdentifierNameSyntax) valueSyntax, operation.SemanticModel!, callSite, context, description, variableRenames );
+                            valueSyntax = GetParameterValueSyntax( parameter, (IdentifierNameSyntax) valueSyntax, operation.SemanticModel!, callSite, context, description, ref variableRenames );
                         }
 
                         items.Add( (int.MaxValue, new CallSiteArgumentPlanItem( RedirectedArgumentKind.Value, -1, valueSyntax, name ), receivingParameter, null) );
