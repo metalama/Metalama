@@ -28,13 +28,18 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
         /// Creates the plan of the argument list of a redirected invocation from the arguments of the request, and validates it against the parameters
         /// of the target method and the arguments of the call site.
         /// </summary>
+        /// <param name="description">The description of the redirection, which is stored in the variable renames.</param>
+        /// <param name="variableRenames">The collection to which the method adds the variables that must be renamed, because they hide a parameter
+        /// that the request passes as a value.</param>
         private static ImmutableArray<CallSiteArgumentPlanItem> CreateArgumentPlan(
             InvocationRedirectionRequest request,
             IInvocationOperation operation,
             bool isReducedExtensionCall,
             bool hasReceiverValue,
             CompilationModel compilation,
-            SyntaxGenerationContext context )
+            SyntaxGenerationContext context,
+            string description,
+            List<CallSiteVariableRename> variableRenames )
         {
             var callSite = request.CallSite;
             var targetParameters = request.Target.Method.Parameters;
@@ -231,6 +236,12 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
                         }
 
                         var valueSyntax = argument.Expression ?? GetValueExpressionSyntax( argument.ValueExpression!, name, serializationContext! );
+
+                        // A parameter of the calling member is written as its name, which a variable of a lambda or local function can hide.
+                        if ( argument.ValueExpression is IParameter parameter && valueSyntax.IsKind( SyntaxKind.IdentifierName ) )
+                        {
+                            valueSyntax = GetParameterValueSyntax( parameter, (IdentifierNameSyntax) valueSyntax, operation.SemanticModel!, callSite, context, description, variableRenames );
+                        }
 
                         items.Add( (int.MaxValue, new CallSiteArgumentPlanItem( RedirectedArgumentKind.Value, -1, valueSyntax, name ), receivingParameter, null) );
 

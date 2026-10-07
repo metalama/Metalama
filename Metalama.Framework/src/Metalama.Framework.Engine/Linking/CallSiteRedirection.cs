@@ -35,7 +35,8 @@ internal sealed class CallSiteRedirection
         ImmutableArray<CallSiteArgumentPlanItem>? argumentPlan,
         ImmutableArray<ArgumentSyntax> extraArguments,
         TypeSyntax? resultCast,
-        string description )
+        string description,
+        ImmutableArray<CallSiteVariableRename> variableRenames = default )
     {
         this.Id = id;
         this.SourceNode = sourceNode;
@@ -47,6 +48,7 @@ internal sealed class CallSiteRedirection
         this.ExtraArguments = extraArguments;
         this.ResultCast = resultCast;
         this.Description = description;
+        this.VariableRenames = variableRenames.IsDefault ? ImmutableArray<CallSiteVariableRename>.Empty : variableRenames;
     }
 
     /// <summary>
@@ -101,6 +103,12 @@ internal sealed class CallSiteRedirection
     /// Gets a human-readable description of the redirection, which is used in the diagnostic reported when the redirection is not applied.
     /// </summary>
     public string Description { get; }
+
+    /// <summary>
+    /// Gets the variables that the linker renames, because they hide a parameter that the new call passes by name. Several redirections can share
+    /// the same instance.
+    /// </summary>
+    public ImmutableArray<CallSiteVariableRename> VariableRenames { get; }
 
     /// <summary>
     /// Builds the final syntax of the call site.

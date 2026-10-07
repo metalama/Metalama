@@ -44,7 +44,8 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites;
 public sealed partial class ExtensionTransformationFactory
 {
     /// <summary>
-    /// The lock that protects <see cref="_redirections"/>, <see cref="_forwarders"/>, <see cref="_nextRedirectionId"/> and <see cref="_isCompleted"/>.
+    /// The lock that protects <see cref="_redirections"/>, <see cref="_forwarders"/>, <see cref="_variableRenames"/>, <see cref="_nextRedirectionId"/>
+    /// and <see cref="_isCompleted"/>.
     /// </summary>
     private readonly object _sync = new();
 
@@ -136,6 +137,9 @@ public sealed partial class ExtensionTransformationFactory
                          && ((MemberAccessExpressionSyntax) callSite.Expression).Expression.Kind() == SyntaxKind.BaseExpression;
         var argumentPlan = default(ImmutableArray<CallSiteArgumentPlanItem>?);
         var usesForwarder = false;
+        var description = request.Description ?? $"the call '{callSite}' redirected to '{targetMethod}' by {origin.DiagnosticSourceDescription}";
+        var variableRenames = new List<CallSiteVariableRename>();
+        var registeredVariableRenames = ImmutableArray<CallSiteVariableRename>.Empty;
 
         switch ( request.ReceiverMode )
         {
@@ -226,7 +230,15 @@ public sealed partial class ExtensionTransformationFactory
                     nameof(request) );
             }
 
-            argumentPlan = CreateArgumentPlan( request, operation, isReducedExtensionCall, hasReceiverValue, this._compilation, context );
+            argumentPlan = CreateArgumentPlan(
+                request,
+                operation,
+                isReducedExtensionCall,
+                hasReceiverValue,
+                this._compilation,
+                context,
+                description,
+                variableRenames );
         }
 
         var extraArguments = request.ExtraArguments.IsDefaultOrEmpty
@@ -247,7 +259,8 @@ public sealed partial class ExtensionTransformationFactory
                 argumentPlan,
                 extraArguments,
                 resultCast,
-                request.Description ?? $"the call '{callSite}' redirected to '{targetMethod}' by {origin.DiagnosticSourceDescription}" );
+                description,
+                registeredVariableRenames );
 
         ExpressionSyntax callee;
         ExpressionSyntax rewrittenCall;
@@ -282,6 +295,14 @@ public sealed partial class ExtensionTransformationFactory
         if ( request.ReceiverMode == CallSiteReceiverMode.FirstArgumentByRef )
         {
             VerifyReferenceArguments( semanticModel, callSite, rewrittenCall, CancellationToken.None );
+        }
+
+        if ( variableRenames.Count > 0 )
+        {
+            lock ( this._sync )
+            {
+                registeredVariableRenames = this.RegisterVariableRenames( variableRenames );
+            }
         }
 
         this.AddRedirection( callSite, id => CreateRedirection( id, callee ) );

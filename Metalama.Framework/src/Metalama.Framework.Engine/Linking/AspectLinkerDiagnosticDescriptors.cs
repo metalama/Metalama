@@ -76,6 +76,16 @@ public static class AspectLinkerDiagnosticDescriptors
             _category,
             Warning );
 
+    internal static readonly DiagnosticDefinition<(string VariableKind, string Name, string NewName, ISymbol Member, string Description)>
+        HidingVariableRenamed = new(
+            "LAMA0661",
+            "A variable that hides a parameter passed by a redirected call site was renamed.",
+            "The {0} '{1}' is renamed to '{2}' in the compiled code, because it hides the parameter '{1}' of '{3}', and this parameter is passed by "
+            + "{4}. The compiled code no longer matches the source code, so the debugger shows the new name. Rename the {0} in the source code to "
+            + "remove this warning.",
+            _category,
+            Warning );
+
     internal static readonly DiagnosticDefinition<(string AspectType, ISymbol TargetDeclaration)>
         DeclarationMustBeInlined = new(
             "LAMA0699",

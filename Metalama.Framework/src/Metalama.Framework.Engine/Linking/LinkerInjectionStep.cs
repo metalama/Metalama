@@ -354,6 +354,7 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
         var transformations = new ConcurrentQueue<SyntaxTreeTransformation>();
 
         var unappliedRedirections = new ConcurrentQueue<CallSiteRedirection>();
+        var appliedVariableRenames = new ConcurrentQueue<CallSiteVariableRename>();
 
         async Task RewriteSyntaxTreeAsync( SyntaxTree initialSyntaxTree )
         {
@@ -373,11 +374,28 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
             // Every requested redirection must have been applied by the visit. A redirection that was not applied leaves the source code unchanged.
             if ( callSiteRedirections != null )
             {
+                var reportedVariableRenames = new HashSet<CallSiteVariableRename>();
+
                 foreach ( var redirection in callSiteRedirections.Values )
                 {
                     if ( !rewriter.IsApplied( redirection ) )
                     {
                         unappliedRedirections.Enqueue( redirection );
+
+                        continue;
+                    }
+
+                    // A redirection that passes a hidden parameter is correct only when the hiding variables were renamed.
+                    foreach ( var rename in redirection.VariableRenames )
+                    {
+                        if ( !rewriter.IsApplied( rename ) )
+                        {
+                            unappliedRedirections.Enqueue( redirection );
+                        }
+                        else if ( reportedVariableRenames.Add( rename ) )
+                        {
+                            appliedVariableRenames.Enqueue( rename );
+                        }
                     }
                 }
             }
@@ -410,12 +428,22 @@ internal sealed partial class LinkerInjectionStep : AspectLinkerPipelineStep<Asp
             }
         }
 
-        foreach ( var redirection in unappliedRedirections.OrderBy( r => r.Id ) )
+        foreach ( var redirection in unappliedRedirections.Distinct().OrderBy( r => r.Id ) )
         {
             diagnostics.Report(
                 AspectLinkerDiagnosticDescriptors.CallSiteRedirectionNotApplied.CreateRoslynDiagnostic(
                     redirection.SourceNode.GetLocation(),
                     redirection.Description ) );
+        }
+
+        // The compiled code of a renamed variable no longer matches the source code, which the debugger shows.
+        foreach ( var rename in appliedVariableRenames.OrderBy( r => r.DeclarationNode.SyntaxTree.FilePath, StringComparer.Ordinal )
+                     .ThenBy( r => r.DeclarationNode.SpanStart ) )
+        {
+            diagnostics.Report(
+                AspectLinkerDiagnosticDescriptors.HidingVariableRenamed.CreateRoslynDiagnostic(
+                    rename.GetLocation(),
+                    (rename.VariableKind, rename.OldName, rename.NewName, rename.HiddenParameter.ContainingSymbol, rename.Description) ) );
         }
 
         var helperSyntaxTree = injectionHelperProvider.GetLinkerHelperSyntaxTree( compilationWithIntroducedTrees.LanguageOptions );
