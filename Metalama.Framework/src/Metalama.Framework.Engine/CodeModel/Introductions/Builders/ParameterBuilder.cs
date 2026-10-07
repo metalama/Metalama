@@ -50,10 +50,7 @@ internal sealed class ParameterBuilder : BaseParameterBuilder
 
             if ( this._refKind != value )
             {
-                if ( !this.IsReturnParameter && this.DeclaringMember is MethodBuilder { Restrictions: { } restrictions } method )
-                {
-                    method.ThrowIfLocked( this.Index < restrictions.LockedLeadingParameterCount, $"reference kind of the parameter '{this.Name}'" );
-                }
+                this.Restrictions?.ValidateParameterRefKind( this, value );
 
                 if ( this.IsReturnParameter && !this.IsReturnParameterOfADelegate )
                 {
@@ -97,9 +94,16 @@ internal sealed class ParameterBuilder : BaseParameterBuilder
         {
             this.CheckNotFrozen();
 
-            if ( this.IsReturnParameter && this.DeclaringMember is MethodBuilder { Restrictions.IsReturnTypeLocked: true } method )
+            if ( this.Restrictions is { } restrictions && !ReferenceEquals( value, this._type ) )
             {
-                method.ThrowIfLocked( true, "return type" );
+                if ( this.IsReturnParameter )
+                {
+                    restrictions.ValidateReturnType( (MethodBuilder) this.DeclaringMember, value );
+                }
+                else
+                {
+                    restrictions.ValidateParameterType( this, value );
+                }
             }
 
             this._type = this.Translate( value );
@@ -112,6 +116,11 @@ internal sealed class ParameterBuilder : BaseParameterBuilder
         set
         {
             this.CheckNotFrozen();
+
+            if ( this._name != null && value != this._name && value != null )
+            {
+                this.Restrictions?.ValidateParameterName( this, value );
+            }
 
             this._name = this._name != null
                 ? value ?? throw new NotSupportedException( "Cannot set the parameter name to null." )
@@ -136,6 +145,11 @@ internal sealed class ParameterBuilder : BaseParameterBuilder
                 throw new NotSupportedException( "Cannot set default value of a return parameter." );
             }
 
+            if ( !Nullable.Equals( value, this._defaultValue ) )
+            {
+                this.Restrictions?.ValidateParameterDefaultValue( this, value );
+            }
+
             this._defaultValue = this.Translate( value );
         }
     }
@@ -156,6 +170,11 @@ internal sealed class ParameterBuilder : BaseParameterBuilder
 
                 // We could check here if the parameter is the last one, but that wouldn't prevent the user from adding more parameters afterwards.
                 // So we'll let the C# compiler handle this.
+            }
+
+            if ( value != this._isParams )
+            {
+                this.Restrictions?.ValidateParameterIsParams( this, value );
             }
 
             this._isParams = value;
@@ -201,6 +220,11 @@ internal sealed class ParameterBuilder : BaseParameterBuilder
                 {
                     throw new NotSupportedException( "Cannot set the 'this' modifier on a parameter of a method that's not declared in a static class." );
                 }
+            }
+
+            if ( value != this._isThis )
+            {
+                this.Restrictions?.ValidateParameterIsThis( this, value );
             }
 
             this._isThis = value;

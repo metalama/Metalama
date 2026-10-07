@@ -28,6 +28,7 @@ internal abstract class MemberOrNamedTypeBuilder : NamedDeclarationBuilder, IMem
         set
         {
             this.CheckNotFrozen();
+            this.ValidateModifier( nameof(this.IsSealed), this._isSealed, value );
             this._isSealed = value;
         }
     }
@@ -38,6 +39,7 @@ internal abstract class MemberOrNamedTypeBuilder : NamedDeclarationBuilder, IMem
         set
         {
             this.CheckNotFrozen();
+            this.ValidateModifier( nameof(this.IsNew), this._isNew, value );
 
             this._isNew = value;
         }
@@ -61,12 +63,28 @@ internal abstract class MemberOrNamedTypeBuilder : NamedDeclarationBuilder, IMem
 
     public ExecutionScope ExecutionScope => ExecutionScope.RunTime;
 
+    /// <summary>
+    /// Validates the change of a Boolean modifier of a method with <see cref="DeclarationBuilder.Restrictions"/>, when the value changes.
+    /// </summary>
+    private protected void ValidateModifier( string propertyName, bool currentValue, bool value )
+    {
+        if ( value != currentValue && this is MethodBuilder method )
+        {
+            this.Restrictions?.ValidateModifier( method, propertyName, value );
+        }
+    }
+
     public virtual Accessibility Accessibility
     {
         get => this._accessibility;
         set
         {
             this.CheckNotFrozen();
+
+            if ( value != this._accessibility && this is MethodBuilder method )
+            {
+                this.Restrictions?.ValidateAccessibility( method, value );
+            }
 
             this._accessibility = value;
         }
@@ -78,6 +96,7 @@ internal abstract class MemberOrNamedTypeBuilder : NamedDeclarationBuilder, IMem
         set
         {
             this.CheckNotFrozen();
+            this.ValidateModifier( nameof(this.IsAbstract), this._isAbstract, value );
 
             this._isAbstract = value;
         }
@@ -90,6 +109,11 @@ internal abstract class MemberOrNamedTypeBuilder : NamedDeclarationBuilder, IMem
         {
             this.CheckNotFrozen();
 
+            if ( value != this._isStatic && this is MethodBuilder method )
+            {
+                this.Restrictions?.ValidateIsStatic( method, value );
+            }
+
             this._isStatic = value;
         }
     }
@@ -100,6 +124,7 @@ internal abstract class MemberOrNamedTypeBuilder : NamedDeclarationBuilder, IMem
         set
         {
             this.CheckNotFrozen();
+            this.ValidateModifier( nameof(this.IsPartial), this._isPartial, value );
 
             this._isPartial = value;
         }

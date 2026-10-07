@@ -39,12 +39,13 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
         /// </remarks>
         private SimpleNameSyntax GetSynthesizedForwarderCallee(
             InvocationRedirectionRequest request,
+            SynthesizedCallSiteRedirectionTarget target,
             IInvocationOperation operation,
             SemanticModel semanticModel,
             SyntaxGenerationContext context )
         {
             var callSite = (InvocationExpressionSyntax) operation.Syntax;
-            var handle = request.Target.SynthesizedMethod!;
+            var handle = target.Handle;
             var targetMethod = handle.Method;
 
             string? reason = null;

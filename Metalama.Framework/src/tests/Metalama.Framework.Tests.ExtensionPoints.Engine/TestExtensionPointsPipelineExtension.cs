@@ -7,6 +7,7 @@ using Metalama.Framework.Code.DeclarationBuilders;
 using Metalama.Framework.Diagnostics;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.CodeModel;
+using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Extensibility.CallSites;
 using Metalama.Framework.Engine.Extensibility.Synthesis;
@@ -16,6 +17,7 @@ using Metalama.Framework.Tests.ExtensionPoints.Engine;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Operations;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -256,20 +258,19 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
                         builder.Accessibility = (Code.Accessibility) Enum.Parse( typeof(Code.Accessibility), options.Accessibility );
                         builder.IsStatic = !options.IsInstance;
 
+                        // The type parameters and the parameters are copied from the source method. The copies of the parameters refer to the
+                        // copies of the type parameters.
                         if ( options.Generic )
                         {
                             foreach ( var typeParameter in signatureMethod.TypeParameters )
                             {
-                                builder.AddTypeParameter( typeParameter.Name );
+                                builder.AddTypeParameter( typeParameter );
                             }
                         }
 
-                        IType Map( IType type )
-                            => options.Generic && type is ITypeParameter { TypeParameterKind: Code.TypeParameterKind.Method } typeParameter
-                                ? builder.TypeParameters[typeParameter.Index]
-                                : type;
-
-                        builder.ReturnType = Map( signatureMethod.ReturnType );
+                        builder.ReturnType = options.Generic && signatureMethod.ReturnType is ITypeParameter { TypeParameterKind: Code.TypeParameterKind.Method } returnTypeParameter
+                            ? builder.TypeParameters[returnTypeParameter.Index]
+                            : signatureMethod.ReturnType;
 
                         if ( hasReceiver )
                         {
@@ -278,13 +279,15 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
 
                         foreach ( var parameter in signatureMethod.Parameters )
                         {
-                            builder.AddParameter( parameter.Name, Map( parameter.Type ), parameter.RefKind );
+                            builder.AddParameter( parameter );
                         }
                     }
 
                     ProceedBinding CreateProceedBinding( IMethod declaredMethod )
                     {
-                        var typeArguments = options.Generic ? declaredMethod.TypeParameters.ToImmutableArray<IType>() : default;
+                        var typeArguments = options.Generic
+                            ? declaredMethod.TypeParameters.Take( signatureMethod.TypeParameters.Count ).ToImmutableArray<IType>()
+                            : default;
 
                         return hasReceiver
                             ? ProceedBinding.InvokeOnParameter( signatureMethod, 0, typeArguments )
@@ -305,15 +308,16 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
                     {
                         // The builder is created with its signature and its restrictions, then given to code that changes it, as an interceptor
                         // gives it to the configure delegate of the aspect.
-                        var builder = factory.CreateMethodBuilder(
-                            origin,
-                            placement,
-                            nameHint,
-                            BuildSignature,
-                            new SynthesizedMethodRestrictions
+                        MethodBuilderRestrictions restrictions = options.RefusedParameterType is { } refusedParameterType
+                            ? new TestRefusingRestrictions( refusedParameterType )
+                            : new LockedSignatureRestrictions
                             {
-                                LockedLeadingParameterCount = (hasReceiver ? 1 : 0) + sourceMethod.Parameters.Count, IsReturnTypeLocked = true
-                            } );
+                                LockedLeadingParameterCount = (hasReceiver ? 1 : 0) + sourceMethod.Parameters.Count,
+                                IsReturnTypeLocked = true,
+                                LockedTypeParameterCount = options.Generic ? signatureMethod.TypeParameters.Count : 0
+                            };
+
+                        var builder = factory.CreateMethodBuilder( origin, placement, nameHint, BuildSignature, restrictions );
 
                         if ( options.RenameParameter is { } rename )
                         {
@@ -324,6 +328,29 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
                         if ( options.ChangeLockedRefKind )
                         {
                             builder.Parameters[0].RefKind = Code.RefKind.Ref;
+                        }
+
+                        if ( options.ChangeParameterType is { } changeParameterType )
+                        {
+                            var equals = changeParameterType.IndexOf( '=' );
+                            var newType = compilation.AllTypes.SingleOrDefault( t => t.FullName == changeParameterType.Substring( equals + 1 ) )
+                                          ?? compilation.Factory.GetTypeByReflectionType( Type.GetType( changeParameterType.Substring( equals + 1 ), true )! );
+
+                            builder.Parameters[changeParameterType.Substring( 0, equals )].Type = newType;
+                        }
+
+                        if ( options.RenameTypeParameter is { } renameTypeParameter )
+                        {
+                            var equals = renameTypeParameter.IndexOf( '=' );
+                            ((ITypeParameterBuilder) builder.TypeParameters.Single( t => t.Name == renameTypeParameter.Substring( 0, equals ) )).Name =
+                                renameTypeParameter.Substring( equals + 1 );
+                        }
+
+                        if ( options.AddTypeParameterFor is { } parameterName )
+                        {
+                            // The added type parameter becomes the type of the parameter, and each call site gives the static type of its argument.
+                            var addedTypeParameter = builder.AddTypeParameter( "TArg" );
+                            builder.Parameters[parameterName].Type = addedTypeParameter;
                         }
 
                         request = new SynthesizedMethodRequest( builder, template, CreateProceedBinding ) { DiagnosticLocation = invocation.GetLocation() };
@@ -348,8 +375,24 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
                         CallSiteRedirectionTarget.Synthesized( method ),
                         hasReceiver ? CallSiteReceiverMode.FirstArgument : CallSiteReceiverMode.Drop )
                     {
-                        TypeArguments = options.Generic ? sourceMethod.TypeArguments.ToImmutableArray() : default
+                        TypeArguments = GetTypeArguments()
                     } );
+
+                ImmutableArray<IType> GetTypeArguments()
+                {
+                    var typeArguments = options.Generic ? sourceMethod.TypeArguments.ToImmutableArray() : ImmutableArray<IType>.Empty;
+
+                    if ( options.AddTypeParameterFor is { } parameterName )
+                    {
+                        var operation = (IInvocationOperation) semanticModel.GetOperation( invocation )!;
+                        var argument = operation.Arguments.Single( a => a.Parameter!.Name == parameterName ).Value;
+                        var argumentType = argument is IConversionOperation { IsImplicit: true } conversion ? conversion.Operand.Type! : argument.Type!;
+
+                        typeArguments = typeArguments.Add( compilation.Factory.GetIType( argumentType ) );
+                    }
+
+                    return typeArguments.IsEmpty ? default : typeArguments;
+                }
             }
             catch ( Exception e ) when ( e is ArgumentException or InvalidOperationException )
             {

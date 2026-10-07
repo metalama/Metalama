@@ -37,6 +37,23 @@ namespace Metalama.Framework.Code.DeclarationBuilders
         IParameterBuilder AddParameter( string name, Type type, RefKind refKind = RefKind.None, TypedConstant? defaultValue = null );
 
         /// <summary>
+        /// Appends a parameter that copies an existing parameter: its name, its type and its reference kind.
+        /// </summary>
+        /// <param name="prototype">The parameter to copy, typically a parameter of another method.</param>
+        /// <param name="includeCustomAttributes">A value indicating whether the custom attributes of <paramref name="prototype"/> are copied.</param>
+        /// <param name="includeDefaultValues">A value indicating whether the default value and the <c>params</c> modifier of
+        /// <paramref name="prototype"/> are copied.</param>
+        /// <returns>An <see cref="IParameterBuilder"/> that allows you to change the copy.</returns>
+        /// <remarks>
+        /// <para>
+        /// In the type of the copy, a reference to a type parameter that was copied with <c>AddTypeParameter(ITypeParameter, bool)</c> is replaced
+        /// by a reference to its copy. The <c>this</c> modifier is never copied.
+        /// </para>
+        /// </remarks>
+        /// <exception cref="ArgumentException">A parameter of the same name already exists.</exception>
+        IParameterBuilder AddParameter( IParameter prototype, bool includeCustomAttributes = false, bool includeDefaultValues = false );
+
+        /// <summary>
         /// Inserts a parameter at the specified index in the method's parameter list.
         /// </summary>
         /// <param name="index">The zero-based index at which the parameter should be inserted.</param>

@@ -318,6 +318,12 @@ internal sealed partial class AccessorBuilder : DeclarationBuilder, IMethodBuild
 
     public ITypeParameterBuilder AddTypeParameter( string name ) => throw new NotSupportedException( "Cannot add generic parameters to accessors." );
 
+    public ITypeParameterBuilder AddTypeParameter( ITypeParameter prototype, bool includeCustomAttributes = false )
+        => throw new NotSupportedException( "Cannot add generic parameters to accessors." );
+
+    public IParameterBuilder AddParameter( IParameter prototype, bool includeCustomAttributes = false, bool includeDefaultValues = false )
+        => throw new NotSupportedException( "Cannot directly add parameters to accessors." );
+
     public IParameterBuilder AddParameter( string name, IType type, RefKind refKind = RefKind.None, TypedConstant? defaultValue = null )
         => throw new NotSupportedException( "Cannot directly add parameters to accessors." );
 

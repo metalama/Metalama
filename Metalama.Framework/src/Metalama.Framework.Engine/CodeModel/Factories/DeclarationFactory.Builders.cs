@@ -241,7 +241,8 @@ public partial class DeclarationFactory
             DeclarationKind.Attribute when builder is AttributeBuilderData attributeBuilder => this.GetAttribute( attributeBuilder, genericContext ),
             DeclarationKind.TypeParameter when builder is TypeParameterBuilderData genericParameterBuilder => this.GetTypeParameter(
                 genericParameterBuilder,
-                genericContext ),
+                genericContext,
+                isNullable ),
             DeclarationKind.Constructor when builder is ConstructorBuilderData constructorBuilder => this.GetConstructor( constructorBuilder, genericContext ),
             DeclarationKind.NamedType when builder is NamedTypeBuilderData namedTypeBuilder => this.GetNamedType(
                 namedTypeBuilder,

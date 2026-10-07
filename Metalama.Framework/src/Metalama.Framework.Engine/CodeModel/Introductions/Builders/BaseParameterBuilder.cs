@@ -42,6 +42,11 @@ internal abstract class BaseParameterBuilder : NamedDeclarationBuilder, IParamet
 
     public override IDeclaration ContainingDeclaration => this.DeclaringMember.AssertNotNull();
 
+    /// <summary>
+    /// Gets the restrictions of the method builder that declares the parameter, or <c>null</c>.
+    /// </summary>
+    internal override MethodBuilderRestrictions? Restrictions => (this.DeclaringMember as DeclarationBuilder)?.Restrictions;
+
     protected BaseParameterBuilder( CompilationModel compilation, AspectLayerInstance aspectLayerInstance ) : base( aspectLayerInstance )
     {
         this.Ref = new IntroducedRef<IParameter>( compilation.RefFactory );

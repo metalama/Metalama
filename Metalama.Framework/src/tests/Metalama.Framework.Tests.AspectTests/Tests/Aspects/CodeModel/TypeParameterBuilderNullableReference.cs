@@ -6,7 +6,7 @@ using Metalama.Framework.Advising;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 
-namespace Metalama.Framework.Tests.PublicPipeline.Aspects.CodeModel.TypeParameterBuilderPointer;
+namespace Metalama.Framework.Tests.PublicPipeline.Aspects.CodeModel.TypeParameterBuilderNullableReference;
 
 public class Aspect : TypeAspect
 {
@@ -17,9 +17,8 @@ public class Aspect : TypeAspect
             buildMethod: methodBuilder =>
             {
                 var typeParameter = methodBuilder.AddTypeParameter( "T" );
-                typeParameter.TypeKindConstraint = TypeKindConstraint.Unmanaged;
-                var typeParameterPointer = typeParameter.MakePointerType();
-                methodBuilder.AddParameter( "arg", typeParameterPointer );
+                var nullableTypeParameter =  typeParameter.ToNullable();
+                methodBuilder.AddParameter( "arg", nullableTypeParameter );
             } );
     }
 
@@ -29,4 +28,4 @@ public class Aspect : TypeAspect
 
 // <target>
 [Aspect]
-internal unsafe class TargetCode { }
+internal class TargetCode { }

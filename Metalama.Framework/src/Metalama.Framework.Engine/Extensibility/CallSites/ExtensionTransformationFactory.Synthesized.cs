@@ -107,7 +107,8 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
         /// <param name="placement">The type in which the method is declared.</param>
         /// <param name="nameHint">The name of the method. <see cref="DeclareMethod"/> adds a numeric suffix when the name is already used.</param>
         /// <param name="initialize">A delegate that sets the initial signature, before the restrictions apply, or <c>null</c>.</param>
-        /// <param name="restrictions">The parts of the signature that the code that receives the builder cannot change, or <c>null</c>.</param>
+        /// <param name="restrictions">The restrictions that validate the changes that the code that receives the builder makes, or <c>null</c>.
+        /// <see cref="LockedSignatureRestrictions"/> locks parts of the signature.</param>
         /// <returns>A builder that is not frozen. The method is declared only when the builder is passed to <see cref="DeclareMethod"/>.</returns>
         /// <remarks>
         /// <para>
@@ -115,8 +116,8 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
         /// that is never passed to <see cref="DeclareMethod"/> has no effect.
         /// </para>
         /// <para>
-        /// The builder enforces <paramref name="restrictions"/> when a member is set, and throws an <see cref="InvalidOperationException"/> for a
-        /// change of a locked part.
+        /// The builder calls the <c>Validate*</c> methods of <paramref name="restrictions"/> before each change, and these methods throw an
+        /// exception to refuse the change. The changes that <paramref name="initialize"/> makes are not validated.
         /// </para>
         /// </remarks>
         /// <exception cref="ArgumentNullException"><paramref name="origin"/> or <paramref name="placement"/> is <c>null</c>.</exception>
@@ -127,7 +128,7 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
             SynthesizedMethodPlacement placement,
             string nameHint,
             Action<IMethodBuilder>? initialize = null,
-            SynthesizedMethodRestrictions? restrictions = null )
+            MethodBuilderRestrictions? restrictions = null )
         {
             _ = placement ?? throw new ArgumentNullException( nameof(placement) );
             SynthesisNames.ValidateIdentifier( nameHint, nameof(nameHint) );
@@ -150,7 +151,7 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
                 }
             }
 
-            builder.Restrictions = restrictions;
+            builder.SetRestrictions( restrictions );
 
             lock ( this._sync )
             {

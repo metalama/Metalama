@@ -34,4 +34,7 @@ public interface IIndexerBuilder : IPropertyOrIndexerBuilder, IIndexer, IHasPara
     /// <param name="defaultValue">The default value of the parameter, or <c>null</c> if the parameter has no default value.</param>
     /// <returns>An <see cref="IParameterBuilder"/> that allows further configuration of the new parameter.</returns>
     IParameterBuilder AddParameter( string name, Type type, RefKind refKind = RefKind.None, TypedConstant? defaultValue = default );
+
+    /// <inheritdoc cref="IMethodBaseBuilder.AddParameter(IParameter, bool, bool)"/>
+    IParameterBuilder AddParameter( IParameter prototype, bool includeCustomAttributes = false, bool includeDefaultValues = false );
 }

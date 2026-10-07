@@ -9,7 +9,6 @@ using Metalama.Framework.Code.Invokers;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel.Abstractions;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
-using Metalama.Framework.Engine.Extensibility.Synthesis;
 using Metalama.Framework.Engine.CodeModel.Introductions.Collections;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.ReflectionMocks;
@@ -25,6 +24,7 @@ namespace Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 internal sealed class MethodBuilder : MethodBaseBuilder, IMethodBuilderImpl
 {
     private bool _isReadOnly;
+    private MethodBuilderRestrictions? _restrictions;
     private bool _isIteratorMethod;
     private bool _isImplicitlyDeclared;
     private MethodKind _methodKind;
@@ -90,7 +90,7 @@ internal sealed class MethodBuilder : MethodBaseBuilder, IMethodBuilderImpl
 
             if ( value != base.Name )
             {
-                this.ThrowIfLocked( this.Restrictions is { IsNameLocked: true }, "name" );
+                this._restrictions?.ValidateName( this, value );
             }
 
             base.Name = value;
@@ -118,6 +118,7 @@ internal sealed class MethodBuilder : MethodBaseBuilder, IMethodBuilderImpl
         set
         {
             this.CheckNotFrozen();
+            this.ValidateModifier( nameof(this.IsReadOnly), this._isReadOnly, value );
 
             this._isReadOnly = value;
         }
@@ -128,31 +129,31 @@ internal sealed class MethodBuilder : MethodBaseBuilder, IMethodBuilderImpl
     public IMethod? OverriddenMethod { get; set; }
 
     /// <summary>
-    /// Gets or sets the parts of the signature that cannot change, for a builder created by <c>ExtensionTransformationFactory.CreateMethodBuilder</c>,
-    /// or <c>null</c>.
+    /// Gets the restrictions that validate the changes of the method, for a builder created by
+    /// <c>ExtensionTransformationFactory.CreateMethodBuilder</c>, or <c>null</c>.
     /// </summary>
-    internal SynthesizedMethodRestrictions? Restrictions { get; set; }
+    internal override MethodBuilderRestrictions? Restrictions => this._restrictions;
 
     /// <summary>
-    /// Sets the name of the method, bypassing <see cref="SynthesizedMethodRestrictions.IsNameLocked"/>. The factory uses it to make the name unique.
+    /// Sets the restrictions that validate the changes of the method. The changes made before this call are not validated.
+    /// </summary>
+    internal void SetRestrictions( MethodBuilderRestrictions? restrictions ) => this._restrictions = restrictions;
+
+    /// <summary>
+    /// Sets the name of the method without validating the change with <see cref="Restrictions"/>. The factory uses it to make the name unique.
     /// </summary>
     internal void SetUniqueName( string name )
     {
-        var restrictions = this.Restrictions;
-        this.Restrictions = null;
-        this.Name = name;
-        this.Restrictions = restrictions;
-    }
+        var restrictions = this._restrictions;
+        this._restrictions = null;
 
-    /// <summary>
-    /// Throws an <see cref="InvalidOperationException"/> when a part of the signature is locked by <see cref="Restrictions"/>.
-    /// </summary>
-    internal void ThrowIfLocked( bool isLocked, string part )
-    {
-        if ( isLocked )
+        try
         {
-            throw new InvalidOperationException(
-                $"The {part} of the method '{this.Name}' cannot be changed, because the extension that created the method builder locks it." );
+            this.Name = name;
+        }
+        finally
+        {
+            this._restrictions = restrictions;
         }
     }
 
@@ -175,7 +176,15 @@ internal sealed class MethodBuilder : MethodBaseBuilder, IMethodBuilderImpl
     public ITypeParameterBuilder AddTypeParameter( string name )
     {
         this.CheckNotFrozen();
-        this.ThrowIfLocked( this.Restrictions is { AreTypeParametersLocked: true }, "type parameters" );
+
+        foreach ( var existing in this.TypeParameters )
+        {
+            if ( existing.Name == name )
+            {
+                throw new ArgumentException( $"The type parameter '{name}' already exists in '{this.ToDisplayString()}'." );
+            }
+        }
+        this._restrictions?.ValidateAddTypeParameter( this, name );
 
         var builder = new TypeParameterBuilder( this, this.TypeParameters.Count, name );
         this.TypeParameters.Add( builder );
@@ -183,20 +192,12 @@ internal sealed class MethodBuilder : MethodBaseBuilder, IMethodBuilderImpl
         return builder;
     }
 
-    /// <summary>
-    /// Adds a type parameter based on a prototype type parameter. Does not copy type constraints or attributes.
-    /// </summary>
-    internal ITypeParameterBuilder AddTypeParameter( ITypeParameter prototype )
+    public ITypeParameterBuilder AddTypeParameter( ITypeParameter prototype, bool includeCustomAttributes = false )
     {
-        var typeParameterBuilder = this.AddTypeParameter( prototype.Name );
+        var copy = (TypeParameterBuilder) this.AddTypeParameter( prototype.Name );
+        this.CopyTypeParameter( copy, prototype, includeCustomAttributes );
 
-        typeParameterBuilder.Variance = prototype.Variance;
-        typeParameterBuilder.HasDefaultConstructorConstraint = prototype.HasDefaultConstructorConstraint;
-        typeParameterBuilder.TypeKindConstraint = prototype.TypeKindConstraint;
-        typeParameterBuilder.IsConstraintNullable = prototype.IsConstraintNullable;
-        typeParameterBuilder.AllowsRefStruct = prototype.AllowsRefStruct;
-
-        return typeParameterBuilder;
+        return copy;
     }
 
     IParameterBuilder IMethodBuilder.ReturnParameter => this.ReturnParameter;
@@ -248,6 +249,8 @@ internal sealed class MethodBuilder : MethodBaseBuilder, IMethodBuilderImpl
             {
                 return;
             }
+
+            this._restrictions?.ValidateOperatorKind( this, value );
 
             if ( value == OperatorKind.None )
             {

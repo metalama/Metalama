@@ -85,6 +85,9 @@ public interface IDelegateBuilder : IMemberOrNamedTypeBuilder
     /// <inheritdoc cref="AddParameter(string,IType,RefKind,TypedConstant?)"/>
     IParameterBuilder AddParameter( string name, Type type, RefKind refKind = RefKind.None, TypedConstant? defaultValue = null );
 
+    /// <inheritdoc cref="IMethodBaseBuilder.AddParameter(IParameter, bool, bool)"/>
+    IParameterBuilder AddParameter( IParameter prototype, bool includeCustomAttributes = false, bool includeDefaultValues = false );
+
     /// <summary>
     /// Appends a type parameter to the delegate.
     /// </summary>
@@ -97,4 +100,7 @@ public interface IDelegateBuilder : IMemberOrNamedTypeBuilder
     /// <param name="name">The name of the type parameter.</param>
     /// <returns>An <see cref="ITypeParameterBuilder"/> that allows you to complete the construction of the type parameter.</returns>
     ITypeParameterBuilder AddTypeParameter( string name );
+
+    /// <inheritdoc cref="IMethodBuilder.AddTypeParameter(ITypeParameter, bool)"/>
+    ITypeParameterBuilder AddTypeParameter( ITypeParameter prototype, bool includeCustomAttributes = false );
 }

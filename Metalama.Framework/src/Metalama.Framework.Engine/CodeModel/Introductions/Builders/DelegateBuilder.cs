@@ -117,6 +117,17 @@ internal sealed class DelegateBuilder : NamedTypeBuilder, IDelegateBuilder, ITyp
         return this.InvokeMethodBuilder.AddParameter( name, type, refKind, defaultValue );
     }
 
+    /// <remarks>
+    /// The parameter is added to the <c>Invoke</c> method, whose declaring type is this delegate, so the type parameters copied into the
+    /// delegate are replaced by their copies.
+    /// </remarks>
+    public IParameterBuilder AddParameter( IParameter prototype, bool includeCustomAttributes = false, bool includeDefaultValues = false )
+    {
+        this.CheckNotFrozen();
+
+        return this.InvokeMethodBuilder.AddParameter( prototype, includeCustomAttributes, includeDefaultValues );
+    }
+
     /// <summary>
     /// Always <c>false</c>. The setter throws a <see cref="NotSupportedException"/>, because the language has no
     /// static delegate.

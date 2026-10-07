@@ -134,7 +134,7 @@ public sealed partial class ExtensionTransformationFactory
 
         if ( !targetMethod.IsStatic )
         {
-            if ( request.Target.SynthesizedMethod == null )
+            if ( request.Target.Kind != CallSiteRedirectionTargetKind.Synthesized )
             {
                 throw new ArgumentException( $"The target method '{targetMethod}' must be static.", nameof(request) );
             }
@@ -281,7 +281,7 @@ public sealed partial class ExtensionTransformationFactory
                 resultCast,
                 description,
                 registeredVariableRenames,
-                request.Target.SynthesizedMethod?.BodyTransformation );
+                (request.Target as SynthesizedCallSiteRedirectionTarget)?.Handle.BodyTransformation );
 
         ExpressionSyntax callee;
         ExpressionSyntax rewrittenCall;
@@ -291,9 +291,17 @@ public sealed partial class ExtensionTransformationFactory
             // The arguments of the forwarder call do not depend on its name, which is computed from the binding of the static form of the call.
             var argumentList = ((InvocationExpressionSyntax) CreateRedirection( -1, IdentifierName( "_" ) ).Rewrite( callSite )).ArgumentList;
 
-            callee = request.Target.SynthesizedMethod != null
-                ? this.GetSynthesizedForwarderCallee( request, operation, semanticModel, context )
-                : this.GetForwarderCallee( request, operation, semanticModel, argumentList, context );
+            callee = request.Target switch
+            {
+                SynthesizedCallSiteRedirectionTarget synthesizedTarget => this.GetSynthesizedForwarderCallee(
+                    request,
+                    synthesizedTarget,
+                    operation,
+                    semanticModel,
+                    context ),
+                ExistingCallSiteRedirectionTarget => this.GetForwarderCallee( request, operation, semanticModel, argumentList, context ),
+                _ => throw new AssertionFailedException( $"Unexpected target kind: {request.Target.Kind}." )
+            };
             rewrittenCall = CreateRedirection( -1, callee ).Rewrite( callSite );
         }
         else

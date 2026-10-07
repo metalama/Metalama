@@ -72,18 +72,7 @@ internal static class ExtensionImplementationHelper
         // Copy type parameters from the extension block.
         foreach ( var extTypeParam in extensionBlock.TypeParameters )
         {
-            var typeParamBuilder = implicitMethodBuilder.AddTypeParameter( extTypeParam.Name );
-            typeParamBuilder.Variance = extTypeParam.Variance;
-            typeParamBuilder.HasDefaultConstructorConstraint = extTypeParam.HasDefaultConstructorConstraint;
-            typeParamBuilder.TypeKindConstraint = extTypeParam.TypeKindConstraint;
-            typeParamBuilder.IsConstraintNullable = extTypeParam.IsConstraintNullable;
-            typeParamBuilder.AllowsRefStruct = extTypeParam.AllowsRefStruct;
-
-            // Copy type constraints (e.g., base types and interfaces).
-            foreach ( var typeConstraint in extTypeParam.TypeConstraints )
-            {
-                typeParamBuilder.AddTypeConstraint( typeConstraint );
-            }
+            implicitMethodBuilder.AddTypeParameter( extTypeParam );
         }
 
         // For instance members, add the receiver as the first parameter.
@@ -192,18 +181,7 @@ internal static class ExtensionImplementationHelper
         // Copy type parameters from the extension block.
         foreach ( var extTypeParam in extensionBlock.TypeParameters )
         {
-            var typeParamBuilder = implicitMethodBuilder.AddTypeParameter( extTypeParam.Name );
-            typeParamBuilder.Variance = extTypeParam.Variance;
-            typeParamBuilder.HasDefaultConstructorConstraint = extTypeParam.HasDefaultConstructorConstraint;
-            typeParamBuilder.TypeKindConstraint = extTypeParam.TypeKindConstraint;
-            typeParamBuilder.IsConstraintNullable = extTypeParam.IsConstraintNullable;
-            typeParamBuilder.AllowsRefStruct = extTypeParam.AllowsRefStruct;
-
-            // Copy type constraints (e.g., base types and interfaces).
-            foreach ( var typeConstraint in extTypeParam.TypeConstraints )
-            {
-                typeParamBuilder.AddTypeConstraint( typeConstraint );
-            }
+            implicitMethodBuilder.AddTypeParameter( extTypeParam );
         }
 
         // For instance properties, add the receiver as the first parameter.

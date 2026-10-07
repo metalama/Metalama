@@ -711,6 +711,10 @@ public partial class DeclarationFactory
             }
         }
 
-        return this.GetIType( newTypeSymbol, defaultNullability: null );
+        // A generic instance whose type arguments include an introduced type or a type parameter of a builder maps its type parameters through an
+        // introduced generic context, which the new symbol does not carry, so the context is passed again.
+        var genericContext = type.GenericContextForSymbolMapping as IntroducedGenericContext;
+
+        return this.GetIType( newTypeSymbol, genericContext, defaultNullability: null );
     }
 }

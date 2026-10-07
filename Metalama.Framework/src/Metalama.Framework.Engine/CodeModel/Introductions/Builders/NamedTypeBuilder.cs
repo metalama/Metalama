@@ -276,10 +276,26 @@ internal class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, I
     {
         this.CheckNotFrozen();
 
+        foreach ( var existing in this.TypeParameters )
+        {
+            if ( existing.Name == name )
+            {
+                throw new ArgumentException( $"The type parameter '{name}' already exists in '{this.ToDisplayString()}'." );
+            }
+        }
+
         var builder = new TypeParameterBuilder( this, this.TypeParameters.Count, name );
         this.TypeParameters.Add( builder );
 
         return builder;
+    }
+
+    public ITypeParameterBuilder AddTypeParameter( ITypeParameter prototype, bool includeCustomAttributes = false )
+    {
+        var copy = (TypeParameterBuilder) this.AddTypeParameter( prototype.Name );
+        this.CopyTypeParameter( copy, prototype, includeCustomAttributes );
+
+        return copy;
     }
 
     public override IDeclaration ContainingDeclaration => (IDeclaration?) this.DeclaringType ?? this.ContainingNamespace;

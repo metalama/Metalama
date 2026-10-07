@@ -1,0 +1,4 @@
+Logging a value of type Int32.
+42
+Logging a value of type String.
+text

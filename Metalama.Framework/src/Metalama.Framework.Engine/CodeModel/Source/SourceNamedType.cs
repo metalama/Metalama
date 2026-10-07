@@ -8,6 +8,7 @@ using Metalama.Framework.Code.Comparers;
 using Metalama.Framework.Code.Types;
 using Metalama.Framework.Engine.CodeModel.Abstractions;
 using Metalama.Framework.Engine.CodeModel.GenericContexts;
+using Metalama.Framework.Engine.CodeModel.Introductions.ConstructedTypes;
 using Metalama.Framework.Engine.CodeModel.References;
 using Metalama.Framework.Engine.CodeModel.Visitors;
 using Metalama.Framework.Engine.Diagnostics;
@@ -17,6 +18,7 @@ using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Reflection;
 using SpecialType = Metalama.Framework.Code.SpecialType;
 using TypeKind = Metalama.Framework.Code.TypeKind;
@@ -163,9 +165,24 @@ namespace Metalama.Framework.Engine.CodeModel.Source
                 _ => false
             };
 
-        public IArrayType MakeArrayType( int rank = 1 ) => this.Compilation.Factory.MakeArrayType( this.NamedTypeSymbol, rank );
+        /// <inheritdoc />
+        /// <remarks>
+        /// A generic instance whose type arguments include an introduced type or a type parameter of a builder has no symbol of its own, so the
+        /// array type refers to it through its reference.
+        /// </remarks>
+        public IArrayType MakeArrayType( int rank = 1 )
+            => this.GenericContextForSymbolMapping is IntroducedGenericContext
+                ? new ConstructedArrayType( this.Compilation, this.ToFullRef(), rank )
+                : this.Compilation.Factory.MakeArrayType( this.NamedTypeSymbol, rank );
 
-        public IPointerType MakePointerType() => this.Compilation.Factory.MakePointerType( this.NamedTypeSymbol );
+        /// <inheritdoc />
+        /// <remarks>
+        /// The remarks of <see cref="MakeArrayType"/> apply.
+        /// </remarks>
+        public IPointerType MakePointerType()
+            => this.GenericContextForSymbolMapping is IntroducedGenericContext
+                ? new ConstructedPointerType( this.Compilation, this.ToFullRef() )
+                : this.Compilation.Factory.MakePointerType( this.NamedTypeSymbol );
 
         public INamedType ToNullable() => (INamedType) this.Compilation.Factory.MakeNullableType( this, true );
 
@@ -649,6 +666,12 @@ namespace Metalama.Framework.Engine.CodeModel.Source
             if ( !hasDifference )
             {
                 return this;
+            }
+
+            // A type argument without a symbol, such as an introduced type or a type parameter of a builder, requires a generic context.
+            if ( types.Any( GenericContext.ReferencesAnyIntroducedType ) )
+            {
+                return (ITypeImpl) this.Implementation.MakeGenericInstance( types );
             }
 
             var typeArgumentSymbols = new ITypeSymbol[types.Count];

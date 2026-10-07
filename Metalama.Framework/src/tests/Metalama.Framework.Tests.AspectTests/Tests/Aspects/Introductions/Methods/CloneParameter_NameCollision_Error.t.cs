@@ -1,0 +1,2 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0041 on `Target`: `'Exception of type 'System.ArgumentException' thrown while executing BuildAspect for aspect [CopyAttribute] applied to 'Target': The parameter 'value' already exists in 'Target.Template(int)'. Exception details are in '(none)'. To attach a debugger to the compiler, use the  '-p:MetalamaDebugCompiler=True' command-line option.`

@@ -90,12 +90,21 @@ internal sealed partial class IntroducedRef<T> : FullRef<T>, IIntroducedRef
         this._isNullable = false;
     }
 
-    private IntroducedRef( IntroducedRef<T> prototype, GenericContext? genericContext ) : base( prototype.RefFactory )
+    private IntroducedRef( IntroducedRef<T> prototype, GenericContext? genericContext ) : this( prototype, genericContext, prototype._isNullable ) { }
+
+    private IntroducedRef( IntroducedRef<T> prototype, GenericContext? genericContext, bool? isNullable ) : base( prototype.RefFactory )
     {
         this._builderData = prototype._builderData;
         this._genericContext = genericContext ?? GenericContext.Empty;
-        this._isNullable = prototype._isNullable;
+        this._isNullable = isNullable;
     }
+
+    /// <summary>
+    /// Returns a reference to the same declaration with a different nullable annotation. The new reference shares the builder data of this
+    /// one, so it can be created before the builder is frozen.
+    /// </summary>
+    public IntroducedRef<T> WithNullability( bool? isNullable )
+        => isNullable == this._isNullable ? this : new IntroducedRef<T>( this, this._genericContext, isNullable );
 
     [Conditional( "DEBUG" )]
     private static void CheckBuilderData( DeclarationBuilderData builderData )
@@ -265,7 +274,15 @@ internal sealed partial class IntroducedRef<T> : FullRef<T>, IIntroducedRef
             comparison is RefComparison.Structural or RefComparison.StructuralIncludeNullability,
             "Compilation mistmatch in a non-structural comparison." );
 
-        if ( !this.BuilderData.Equals( otherRef.BuilderData ) )
+        // Before the builder is frozen, the builder data is not set, and the references that share the same box designate the same builder.
+        if ( this._builderData.Value == null || otherRef._builderData.Value == null )
+        {
+            if ( !ReferenceEquals( this._builderData, otherRef._builderData ) )
+            {
+                return false;
+            }
+        }
+        else if ( !this.BuilderData.Equals( otherRef.BuilderData ) )
         {
             return false;
         }
@@ -287,7 +304,11 @@ internal sealed partial class IntroducedRef<T> : FullRef<T>, IIntroducedRef
     // The nullability is deliberately left out of the hash code, so that the same hash serves the comparisons that
     // take it into account and those that do not. Two references differing only by it collide, which is what
     // SymbolEqualityComparer does as well.
-    public override int GetHashCode( RefComparison comparison ) => HashCode.Combine( this.BuilderData.GetHashCode(), this._genericContext );
+    //
+    // Before the builder is frozen, the builder data is not set, and the hash code does not depend on the declaration. The hash code of a
+    // reference therefore changes when the builder is frozen, so a reference to a builder that is not frozen must not be stored as the key
+    // of a long-lived dictionary.
+    public override int GetHashCode( RefComparison comparison ) => HashCode.Combine( this._builderData.Value?.GetHashCode() ?? 0, this._genericContext );
 
     public override DeclarationKind DeclarationKind => this.BuilderData.DeclarationKind;
 }

@@ -85,4 +85,26 @@ public sealed class TestTemplateRedirectionOptions
     /// type arguments of the call site.
     /// </summary>
     public bool Generic { get; set; }
+
+    /// <summary>
+    /// Gets or sets the full name of a type that the pre-built builder refuses as the type of a parameter, or <c>null</c>. When it is set, the
+    /// builder is created with restrictions defined by the test extension instead of the locked signature.
+    /// </summary>
+    public string? RefusedParameterType { get; set; }
+
+    /// <summary>
+    /// Gets or sets a change of the type of a parameter of the pre-built builder, as <c>name=Full.Type.Name</c>, or <c>null</c>.
+    /// </summary>
+    public string? ChangeParameterType { get; set; }
+
+    /// <summary>
+    /// Gets or sets a rename of a type parameter of the pre-built builder, as <c>old=new</c>, or <c>null</c>.
+    /// </summary>
+    public string? RenameTypeParameter { get; set; }
+
+    /// <summary>
+    /// Gets or sets the name of a parameter of the pre-built builder whose type becomes an added type parameter <c>TArg</c>, or <c>null</c>.
+    /// Each call site passes the static type of its argument as the type argument of <c>TArg</c>.
+    /// </summary>
+    public string? AddTypeParameterFor { get; set; }
 }

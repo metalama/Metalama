@@ -30,6 +30,7 @@ internal abstract class MemberBuilder : MemberOrNamedTypeBuilder, IMemberBuilder
         set
         {
             this.CheckNotFrozen();
+            this.ValidateModifier( nameof(this.IsVirtual), this._isVirtual, value );
 
             this._isVirtual = value;
         }
@@ -41,6 +42,7 @@ internal abstract class MemberBuilder : MemberOrNamedTypeBuilder, IMemberBuilder
         set
         {
             this.CheckNotFrozen();
+            this.ValidateModifier( nameof(this.IsAsync), this._isAsync, value );
 
             this._isAsync = value;
         }
@@ -52,6 +54,7 @@ internal abstract class MemberBuilder : MemberOrNamedTypeBuilder, IMemberBuilder
         set
         {
             this.CheckNotFrozen();
+            this.ValidateModifier( nameof(this.IsOverride), this._isOverride, value );
 
             this._isOverride = value;
         }
@@ -63,6 +66,7 @@ internal abstract class MemberBuilder : MemberOrNamedTypeBuilder, IMemberBuilder
         set
         {
             this.CheckNotFrozen();
+            this.ValidateModifier( nameof(this.IsExtern), this._isExtern, value );
 
             this._isExtern = value;
         }
