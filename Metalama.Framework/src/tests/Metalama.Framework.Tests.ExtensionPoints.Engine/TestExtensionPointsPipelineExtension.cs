@@ -207,7 +207,9 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
 
         return new InvocationRedirectionRequest( invocation, CallSiteRedirectionTarget.Existing( replacement ), ParseReceiverMode( options ) )
         {
-            Arguments = options.Arguments == null ? default : ParseItems( options.Arguments ).Select( x => ParseArgument( x, compilation ) ).ToImmutableArray(),
+            Arguments = options.Arguments == null
+                ? default
+                : ParseItems( options.Arguments ).Select( x => ParseArgument( x, invocation, compilation ) ).ToImmutableArray(),
             ExtraArguments = options.ExtraArguments == null ? default : ParseItems( options.ExtraArguments ).Select( ParseExtraArgument ).ToImmutableArray(),
             ResultCast = options.CastResult ? compilation.Factory.GetIType( sourceMethod.ReturnType ) : null,
             TypeArguments = options.ExplicitTypeArguments ? GetTypeArguments( invocation.Expression, compilation ) : default
@@ -240,7 +242,7 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
     /// <summary>
     /// Parses an item of <see cref="TestRedirectionOptions.Arguments"/>.
     /// </summary>
-    private static RedirectedArgument ParseArgument( string item, CompilationModel compilation )
+    private static RedirectedArgument ParseArgument( string item, InvocationExpressionSyntax invocation, CompilationModel compilation )
     {
         // The suffix " as <reflection name>" casts the argument to the named type.
         var asIndex = item.IndexOf( " as ", StringComparison.Ordinal );
@@ -249,7 +251,7 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
         {
             var castType = compilation.Factory.GetTypeByReflectionName( item.Substring( asIndex + 4 ).Trim() );
 
-            return ParseArgument( item.Substring( 0, asIndex ), compilation ).WithCast( castType );
+            return ParseArgument( item.Substring( 0, asIndex ), invocation, compilation ).WithCast( castType );
         }
 
         string? name = null;
@@ -271,10 +273,27 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
             "receiver" => RedirectedArgument.SourceReceiver,
             "argument" => RedirectedArgument.SourceArgument( int.Parse( value, CultureInfo.InvariantCulture ) ),
             "value" => RedirectedArgument.Value( SyntaxFactory.ParseExpression( value ) ),
+            "parameter" => RedirectedArgument.Value( GetCallingMember( invocation, compilation ).Parameters[int.Parse( value, CultureInfo.InvariantCulture )] ),
             _ => throw new InvalidOperationException( $"Unknown argument item: '{item}'." )
         };
 
         return name == null ? argument : argument.WithName( name );
+    }
+
+    /// <summary>
+    /// Returns the method or constructor that contains a call site, outside the lambdas and local functions.
+    /// </summary>
+    private static IHasParameters GetCallingMember( SyntaxNode node, CompilationModel compilation )
+    {
+        var semanticModel = compilation.RoslynCompilation.GetSemanticModel( node.SyntaxTree );
+        var symbol = semanticModel.GetEnclosingSymbol( node.SpanStart )!;
+
+        while ( symbol is IMethodSymbol { MethodKind: Microsoft.CodeAnalysis.MethodKind.AnonymousFunction or Microsoft.CodeAnalysis.MethodKind.LocalFunction } )
+        {
+            symbol = symbol.ContainingSymbol;
+        }
+
+        return (IHasParameters) compilation.Factory.GetDeclaration( symbol );
     }
 
     /// <summary>

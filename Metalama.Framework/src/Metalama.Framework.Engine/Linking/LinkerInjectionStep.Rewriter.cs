@@ -9,6 +9,7 @@ using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 using Metalama.Framework.Engine.CodeModel.References;
+using Metalama.Framework.Engine.Extensibility.CallSites;
 using Metalama.Framework.Engine.Formatting;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.SyntaxGeneration;
@@ -21,6 +22,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using static Metalama.Framework.Engine.SyntaxGeneration.SyntaxFactoryEx;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
@@ -51,6 +53,23 @@ internal sealed partial class LinkerInjectionStep
         /// </summary>
         private readonly HashSet<CallSiteRedirection> _appliedCallSiteRedirections = new();
 
+        /// <summary>
+        /// The variable renames of the redirections of the syntax tree, keyed by the source node that declares the variable, or <c>null</c> when the
+        /// tree has none.
+        /// </summary>
+        private readonly Dictionary<SyntaxNode, CallSiteVariableRename>? _renamedDeclarations;
+
+        /// <summary>
+        /// The variable renames of the redirections of the syntax tree, keyed by the source identifiers that reference the variable, or <c>null</c>
+        /// when the tree has none.
+        /// </summary>
+        private readonly Dictionary<SyntaxNode, CallSiteVariableRename>? _renamedReferences;
+
+        /// <summary>
+        /// The variable renames whose declaration the visit renamed, or <c>null</c> until the first one, because a rename is rare.
+        /// </summary>
+        private HashSet<CallSiteVariableRename>? _appliedVariableRenames;
+
         public Rewriter(
             LinkerInjectionStep parent,
             TransformationCollection syntaxTransformationCollection,
@@ -66,6 +85,67 @@ internal sealed partial class LinkerInjectionStep
             this._syntaxTreeForGlobalAttributes = syntaxTreeForGlobalAttributes;
             this._lexicalScopeFactory = lexicalScopeFactory;
             this._callSiteRedirections = callSiteRedirections is { Count: > 0 } ? callSiteRedirections : null;
+
+            if ( this._callSiteRedirections != null )
+            {
+                foreach ( var redirection in this._callSiteRedirections.Values )
+                {
+                    foreach ( var rename in redirection.VariableRenames )
+                    {
+                        this._renamedDeclarations ??= new Dictionary<SyntaxNode, CallSiteVariableRename>( SyntaxNodeReferenceComparer.Instance );
+                        this._renamedReferences ??= new Dictionary<SyntaxNode, CallSiteVariableRename>( SyntaxNodeReferenceComparer.Instance );
+
+                        if ( this._renamedDeclarations.TryAdd( rename.DeclarationNode, rename ) )
+                        {
+                            foreach ( var reference in rename.References )
+                            {
+                                this._renamedReferences.Add( reference, rename );
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Determines whether the visit renamed the declaration of a variable.
+        /// </summary>
+        public bool IsApplied( CallSiteVariableRename rename ) => this._appliedVariableRenames?.Contains( rename ) == true;
+
+        /// <summary>
+        /// Returns the renamed identifier of a variable whose source declaration is given, or <c>null</c> when the variable is not renamed.
+        /// </summary>
+        private SyntaxToken? GetRenamedDeclarationIdentifier( SyntaxNode originalNode, SyntaxToken identifier )
+        {
+            if ( this._renamedDeclarations != null && this._renamedDeclarations.TryGetValue( originalNode, out var rename ) )
+            {
+                (this._appliedVariableRenames ??= new HashSet<CallSiteVariableRename>()).Add( rename );
+
+                return RenameIdentifier( identifier, rename );
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Returns an identifier token that has the new name of a renamed variable and the trivia of the source token.
+        /// </summary>
+        /// <remarks>
+        /// The new name is the source name followed by a suffix such as <c>_1</c>, so it is never a keyword.
+        /// </remarks>
+        private static SyntaxToken RenameIdentifier( SyntaxToken identifier, CallSiteVariableRename rename )
+#pragma warning disable LAMA0850
+            => Identifier( identifier.LeadingTrivia, rename.NewName, identifier.TrailingTrivia );
+#pragma warning restore LAMA0850
+
+        /// <summary>
+        /// Determines whether an expression is a source identifier that references a renamed variable, and returns the rename.
+        /// </summary>
+        private bool TryGetRenamedReference( ExpressionSyntax? originalExpression, [NotNullWhen( true )] out CallSiteVariableRename? rename )
+        {
+            rename = null;
+
+            return this._renamedReferences != null && originalExpression != null && this._renamedReferences.TryGetValue( originalExpression, out rename );
         }
 
         /// <summary>
@@ -96,7 +176,69 @@ internal sealed partial class LinkerInjectionStep
             => this.ApplyCallSiteRedirection( node, base.VisitInvocationExpression( node ) );
 
         public override SyntaxNode? VisitIdentifierName( IdentifierNameSyntax node )
-            => this.ApplyCallSiteRedirection( node, base.VisitIdentifierName( node ) );
+        {
+            if ( this.TryGetRenamedReference( node, out var rename ) )
+            {
+                return node.WithIdentifier( RenameIdentifier( node.Identifier, rename ) );
+            }
+
+            return this.ApplyCallSiteRedirection( node, base.VisitIdentifierName( node ) );
+        }
+
+        public override SyntaxNode? VisitVariableDeclarator( VariableDeclaratorSyntax node )
+        {
+            var visitedNode = (VariableDeclaratorSyntax) base.VisitVariableDeclarator( node )!;
+
+            return this.GetRenamedDeclarationIdentifier( node, visitedNode.Identifier ) is { } identifier ? visitedNode.WithIdentifier( identifier ) : visitedNode;
+        }
+
+        public override SyntaxNode? VisitSingleVariableDesignation( SingleVariableDesignationSyntax node )
+        {
+            var visitedNode = (SingleVariableDesignationSyntax) base.VisitSingleVariableDesignation( node )!;
+
+            return this.GetRenamedDeclarationIdentifier( node, visitedNode.Identifier ) is { } identifier ? visitedNode.WithIdentifier( identifier ) : visitedNode;
+        }
+
+        public override SyntaxNode? VisitForEachStatement( ForEachStatementSyntax node )
+        {
+            var visitedNode = (ForEachStatementSyntax) base.VisitForEachStatement( node )!;
+
+            return this.GetRenamedDeclarationIdentifier( node, visitedNode.Identifier ) is { } identifier ? visitedNode.WithIdentifier( identifier ) : visitedNode;
+        }
+
+        public override SyntaxNode? VisitCatchDeclaration( CatchDeclarationSyntax node )
+        {
+            var visitedNode = (CatchDeclarationSyntax) base.VisitCatchDeclaration( node )!;
+
+            return this.GetRenamedDeclarationIdentifier( node, visitedNode.Identifier ) is { } identifier ? visitedNode.WithIdentifier( identifier ) : visitedNode;
+        }
+
+        /// <summary>
+        /// Visits a member of an anonymous object. A member declared by a renamed variable, <c>new { x }</c>, takes its name from the variable, so it is
+        /// given its name explicitly.
+        /// </summary>
+        public override SyntaxNode? VisitAnonymousObjectMemberDeclarator( AnonymousObjectMemberDeclaratorSyntax node )
+        {
+            var visitedNode = (AnonymousObjectMemberDeclaratorSyntax) base.VisitAnonymousObjectMemberDeclarator( node )!;
+
+            return this._renamedReferences != null && node.NameEquals == null && this.TryGetRenamedReference( node.Expression, out var rename )
+                ? visitedNode.WithNameEquals( NameEquals( SafeIdentifierName( rename.OldName ) ) )
+                : visitedNode;
+        }
+
+        /// <summary>
+        /// Visits an argument. An element of a tuple written with a renamed variable, <c>(x, y)</c>, takes its name from the variable, so it is given its
+        /// name explicitly.
+        /// </summary>
+        public override SyntaxNode? VisitArgument( ArgumentSyntax node )
+        {
+            var visitedNode = (ArgumentSyntax) base.VisitArgument( node )!;
+
+            return this._renamedReferences != null && node is { NameColon: null, Parent: TupleExpressionSyntax }
+                                                   && this.TryGetRenamedReference( node.Expression, out var rename )
+                ? visitedNode.WithNameColon( NameColon( SafeIdentifierName( rename.OldName ) ) )
+                : visitedNode;
+        }
 
         public override SyntaxNode? VisitGenericName( GenericNameSyntax node ) => this.ApplyCallSiteRedirection( node, base.VisitGenericName( node ) );
 
@@ -1712,6 +1854,11 @@ internal sealed partial class LinkerInjectionStep
         {
             var originalNode = node;
             node = (ParameterSyntax) base.VisitParameter( node )!;
+
+            if ( this.GetRenamedDeclarationIdentifier( originalNode, node.Identifier ) is { } renamedIdentifier )
+            {
+                node = node.WithIdentifier( renamedIdentifier );
+            }
 
             // Rewrite attributes.
             var rewrittenAttributes = this.RewriteDeclarationAttributeLists( originalNode, originalNode.AttributeLists );

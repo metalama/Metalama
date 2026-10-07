@@ -226,6 +226,11 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
                                      public int Compute( int x ) => x;
                                  }
 
+                                 internal sealed class NamedAttribute : Attribute
+                                 {
+                                     public NamedAttribute( string name ) { }
+                                 }
+
                                  [TheAspect]
                                  internal class C
                                  {
@@ -294,6 +299,19 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
                                      }
 
                                      private void G<T>( T item ) => Source.Gen( item );
+
+                                     private void H( int x, int[] values )
+                                     {
+                                         Source.Compute( 46 );
+                                         Array.ForEach( values, x => Source.Compute( 40 + x ) );
+                                         Action local = () => { var x = 41; Source.Compute( x - 41 ); };
+                                         void F( int x ) => Source.Compute( 42 + x );
+                                         Func<int, Func<int, int>> nested = x => y => { var pair = new { x, t = (x, 1) }; return Source.Compute( 43 + x ); };
+                                         Func<int, int> twice = x => { Func<int, int> inner = x => Source.Compute( 44 + x ); return x; };
+                                         Action named = () => { var x = 45; _ = nameof(x); Source.Compute( 45 ); };
+                                         void Attributed( int x, [Named( "x" )] int y = 0 ) => Source.Compute( 47 + x );
+                                         F( 0 );
+                                     }
 
                                      private unsafe void P()
                                      {
@@ -795,6 +813,166 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
         // The linker output is not formatted, so the test ignores the whitespace.
         Assert.Contains( "Interceptors.Two(a:1,b:this._field)", GetText( result ).Replace( " ", "" ), StringComparison.Ordinal );
     }
+
+    /// <summary>
+    /// Verifies that a parameter of the calling member that no variable hides is written as its name, without a cast and without a warning.
+    /// </summary>
+    [Fact]
+    public async Task RedirectInvocation_ValueOfParameter_NotHidden_WrittenAsName()
+    {
+        var diagnostics = new List<Diagnostic>();
+        var result = await this.ExecuteAsync( s => RedirectWithParameterOfH( s, "Source.Compute( 46 )" ), diagnostics );
+
+        // The linker output is not formatted, so the test ignores the whitespace.
+        Assert.Contains( "global::Interceptors.Two(a:46,b:x)", GetText( result ).Replace( " ", "" ), StringComparison.Ordinal );
+        Assert.DoesNotContain( diagnostics, d => d.Id == "LAMA0661" );
+    }
+
+    /// <summary>
+    /// Verifies that a lambda parameter that hides the passed parameter of the calling member is renamed with its references, and that the linker
+    /// reports a warning.
+    /// </summary>
+    [Fact]
+    public async Task RedirectInvocation_ValueOfParameter_HiddenByLambdaParameter_Renamed()
+    {
+        var diagnostics = new List<Diagnostic>();
+        var result = await this.ExecuteAsync( s => RedirectWithParameterOfH( s, "Source.Compute( 40 + x )" ), diagnostics );
+
+        var text = GetText( result ).Replace( " ", "" );
+        Assert.Contains( "x_1=>global::Interceptors.Two(a:40+x_1,b:((", text, StringComparison.Ordinal );
+        Assert.Contains( "Int32)x))", text, StringComparison.Ordinal );
+
+        var warning = Assert.Single( diagnostics, d => d.Id == "LAMA0661" );
+        Assert.Equal( DiagnosticSeverity.Warning, warning.Severity );
+        Assert.Contains( "lambda parameter 'x' is renamed to 'x_1'", warning.GetMessage(), StringComparison.Ordinal );
+        Assert.Contains( "hides the parameter 'x' of 'C.H(int, int[])'", warning.GetMessage(), StringComparison.Ordinal );
+    }
+
+    /// <summary>
+    /// Verifies that a local variable of a lambda that hides the passed parameter of the calling member is renamed with its references.
+    /// </summary>
+    [Fact]
+    public async Task RedirectInvocation_ValueOfParameter_HiddenByLocal_Renamed()
+    {
+        var diagnostics = new List<Diagnostic>();
+        var result = await this.ExecuteAsync( s => RedirectWithParameterOfH( s, "Source.Compute( x - 41 )" ), diagnostics );
+
+        Assert.Contains( "varx_1=41;global::Interceptors.Two(a:x_1-41,b:((", GetText( result ).Replace( " ", "" ), StringComparison.Ordinal );
+        Assert.Contains( "local variable 'x' is renamed to 'x_1'", Assert.Single( diagnostics, d => d.Id == "LAMA0661" ).GetMessage(), StringComparison.Ordinal );
+    }
+
+    /// <summary>
+    /// Verifies that a parameter of a local function that hides the passed parameter of the calling member is renamed with its references.
+    /// </summary>
+    [Fact]
+    public async Task RedirectInvocation_ValueOfParameter_HiddenByLocalFunctionParameter_Renamed()
+    {
+        var diagnostics = new List<Diagnostic>();
+        var result = await this.ExecuteAsync( s => RedirectWithParameterOfH( s, "Source.Compute( 42 + x )" ), diagnostics );
+
+        Assert.Contains( "voidF(intx_1)=>global::Interceptors.Two(a:42+x_1,b:((", GetText( result ).Replace( " ", "" ), StringComparison.Ordinal );
+        Assert.Contains(
+            "local function parameter 'x' is renamed to 'x_1'",
+            Assert.Single( diagnostics, d => d.Id == "LAMA0661" ).GetMessage(),
+            StringComparison.Ordinal );
+    }
+
+    /// <summary>
+    /// Verifies that a renamed variable that declares a member of an anonymous object or an element of a tuple by its name keeps the name of the
+    /// member and of the element.
+    /// </summary>
+    [Fact]
+    public async Task RedirectInvocation_ValueOfParameter_HiddenVariableNamesMember_NameKept()
+    {
+        var result = await this.ExecuteAsync( s => RedirectWithParameterOfH( s, "Source.Compute( 43 + x )" ) );
+
+        var text = GetText( result ).Replace( " ", "" );
+        Assert.Contains( "x_1=>y=>{varpair=new{x=x_1,t=(x:x_1,1)};returnglobal::Interceptors.Two(a:43+x_1,b:((", text, StringComparison.Ordinal );
+    }
+
+    /// <summary>
+    /// Verifies that all the variables that hide the passed parameter between the call site and the calling member are renamed, here the
+    /// parameters of two nested lambdas.
+    /// </summary>
+    [Fact]
+    public async Task RedirectInvocation_ValueOfParameter_HiddenTwice_BothRenamed()
+    {
+        var diagnostics = new List<Diagnostic>();
+        var result = await this.ExecuteAsync( s => RedirectWithParameterOfH( s, "Source.Compute( 44 + x )" ), diagnostics );
+
+        Assert.Contains(
+            "x_1=>{Func<int,int>inner=x_1=>global::Interceptors.Two(a:44+x_1,b:((",
+            GetText( result ).Replace( " ", "" ),
+            StringComparison.Ordinal );
+
+        Assert.Equal( 2, diagnostics.Count( d => d.Id == "LAMA0661" ) );
+    }
+
+    /// <summary>
+    /// Verifies that a variable that hides the passed parameter and is used in a <c>nameof</c> expression is refused, because the rename would
+    /// change the value of the expression.
+    /// </summary>
+    [Fact]
+    public async Task RedirectInvocation_ValueOfParameter_HiddenVariableInNameOf_Throws()
+        => await this.AssertInvocationRefusedAsync(
+            "Source.Compute( 45 )",
+            "Interceptors",
+            "Two",
+            CallSiteReceiverMode.Drop,
+            ( s, r ) => CreateRequestWithParameterOfH( s, r.CallSite ),
+            "nameof" );
+
+    /// <summary>
+    /// Verifies that a parameter whose name designates another parameter at the call site is refused, here the parameter <c>x</c> of
+    /// <c>Source.Compute</c> passed at a call site of <c>C.H</c>, where the name designates the parameter <c>x</c> of <c>C.H</c>.
+    /// </summary>
+    [Fact]
+    public async Task RedirectInvocation_ValueOfParameterOfAnotherMember_Throws()
+        => await this.AssertInvocationRefusedAsync(
+            "Source.Compute( 40 + x )",
+            "Interceptors",
+            "Two",
+            CallSiteReceiverMode.Drop,
+            ( s, r ) => new InvocationRedirectionRequest( r.CallSite, r.Target, r.ReceiverMode )
+            {
+                Arguments = ImmutableArray.Create(
+                    RedirectedArgument.SourceArgument( 0 ).WithName( "a" ),
+                    RedirectedArgument.Value( s.Compilation.Types.OfName( "Source" ).Single().Methods.OfName( "Compute" ).Single().Parameters[0] )
+                        .WithName( "b" ) )
+            },
+            "cannot be passed" );
+
+    /// <summary>
+    /// Verifies that a parameter that hides the passed parameter and whose name an attribute gives is refused, because the rename would change
+    /// the value of the attribute.
+    /// </summary>
+    [Fact]
+    public async Task RedirectInvocation_ValueOfParameter_HiddenParameterNamedByAttribute_Throws()
+        => await this.AssertInvocationRefusedAsync(
+            "Source.Compute( 47 + x )",
+            "Interceptors",
+            "Two",
+            CallSiteReceiverMode.Drop,
+            ( s, r ) => CreateRequestWithParameterOfH( s, r.CallSite ),
+            "an attribute designates it by its name" );
+
+    /// <summary>
+    /// Requests that a call site in the method <c>C.H</c> be redirected to <c>Interceptors.Two</c>, with the source argument and the parameter
+    /// <c>x</c> of <c>C.H</c>.
+    /// </summary>
+    private static void RedirectWithParameterOfH( ScriptContext s, string callSiteText )
+        => s.Factory.RedirectInvocation( s.Origin, CreateRequestWithParameterOfH( s, s.Invocation( callSiteText ) ) );
+
+    /// <summary>
+    /// Creates the request of <see cref="RedirectWithParameterOfH"/>.
+    /// </summary>
+    private static InvocationRedirectionRequest CreateRequestWithParameterOfH( ScriptContext s, InvocationExpressionSyntax callSite )
+        => new( callSite, s.Target( "Interceptors", "Two" ), CallSiteReceiverMode.Drop )
+        {
+            Arguments = ImmutableArray.Create(
+                RedirectedArgument.SourceArgument( 0 ).WithName( "a" ),
+                RedirectedArgument.Value( s.Compilation.Types.OfName( "C" ).Single().Methods.OfName( "H" ).Single().Parameters[0] ).WithName( "b" ) )
+        };
 
     /// <summary>
     /// Verifies that a constant of an integral type narrower than <see cref="int"/> is cast to its type, so that a parameter of type
@@ -1638,7 +1816,9 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
     /// Runs the compile-time pipeline on <see cref="_code"/> with <see cref="ScriptedExtension"/>, which runs the given script in its transforming
     /// hook, and asserts that the pipeline succeeds and that the script has run.
     /// </summary>
-    private async Task<CompileTimeAspectPipelineResult> ExecuteAsync( Action<ScriptContext> script )
+    /// <param name="script">The script.</param>
+    /// <param name="diagnostics">The list to which the diagnostics of the pipeline are added, or <c>null</c>.</param>
+    private async Task<CompileTimeAspectPipelineResult> ExecuteAsync( Action<ScriptContext> script, List<Diagnostic>? diagnostics = null )
     {
         var scriptService = new Script( script );
         var additionalServices = new AdditionalServiceCollection();
@@ -1650,7 +1830,7 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
 
         var pipeline = new CompileTimeAspectPipeline( testContext.ServiceProvider );
         var compilation = testContext.CreateCSharpCompilation( _code );
-        var diagnostics = new List<Diagnostic>();
+        diagnostics ??= new List<Diagnostic>();
 
         var result = await pipeline.ExecuteAsync( diagnostics.Add, null, compilation, ImmutableArray<ManagedResource>.Empty );
 

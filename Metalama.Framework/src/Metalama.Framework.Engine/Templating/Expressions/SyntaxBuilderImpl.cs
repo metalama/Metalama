@@ -212,9 +212,10 @@ internal class SyntaxBuilderImpl : ISyntaxBuilderImpl
 
     public IExpression ThisExpression( INamedType type )
     {
-        var aspectReferenceSpecification = this.GetAspectReferenceSpecification( AspectReferenceOrder.Final ).AssertNotNull();
-
-        if ( ThisInstanceUserReceiver.TryCreate( this.CurrentDeclaration, aspectReferenceSpecification, true, out var receiver ) )
+        // Outside a template, for instance in the provider of an extension, there is no aspect layer to reference, and `this` designates the
+        // instance of the code in which the expression is written.
+        if ( this.GetAspectReferenceSpecification( AspectReferenceOrder.Final ) is { } aspectReferenceSpecification
+             && ThisInstanceUserReceiver.TryCreate( this.CurrentDeclaration, aspectReferenceSpecification, true, out var receiver ) )
         {
             return receiver;
         }
