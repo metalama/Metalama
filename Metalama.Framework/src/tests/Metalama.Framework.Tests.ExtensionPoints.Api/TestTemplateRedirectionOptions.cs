@@ -113,4 +113,41 @@ public sealed class TestTemplateRedirectionOptions
     /// Each call site passes the static type of its argument as the type argument of <c>TArg</c>.
     /// </summary>
     public string? AddTypeParameterFor { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the restrictions of the pre-built builder lock the name of the method.
+    /// </summary>
+    public bool LockName { get; set; }
+
+    /// <summary>
+    /// Gets or sets the new name of the method of the pre-built builder, or <c>null</c> to keep the name.
+    /// </summary>
+    public string? RenameMethod { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the restrictions of the pre-built builder refuse new type parameters.
+    /// </summary>
+    public bool RefuseNewTypeParameters { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the proceed binding gives an index of a parameter that the declared method does not have.
+    /// </summary>
+    public bool InvalidProceedBinding { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the declared method receives two meta extensions of the same type, which the factory refuses.
+    /// </summary>
+    public bool DuplicateMetaExtension { get; set; }
+
+    /// <summary>
+    /// Gets or sets a comma-separated list of names that the declared method must not have, which the request gives as
+    /// <c>SynthesizedMethodRequest.IsNameAvailable</c>, or <c>null</c>.
+    /// </summary>
+    public string? UnavailableNames { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the return type of the pre-built builder, which the restrictions lock, is assigned a new instance
+    /// of the same type.
+    /// </summary>
+    public bool ReassignReturnType { get; set; }
 }

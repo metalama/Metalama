@@ -88,6 +88,11 @@ public sealed partial class ExtensionTransformationFactory
     /// <summary>
     /// Initializes a new instance of the <see cref="ExtensionTransformationFactory"/> class.
     /// </summary>
+    /// <param name="compilation">The compilation in which the transformations are created.</param>
+    /// <param name="aspectLayers">The ordered aspect layers of the pipeline, which give the layer of a transformation of a fabric origin.</param>
+    /// <param name="syntaxGenerationOptions">The options of the syntax generation.</param>
+    /// <param name="serviceProvider">The service provider of the project, from which the factory resolves the template classes and the object
+    /// readers that methods declared from templates need.</param>
     internal ExtensionTransformationFactory(
         CompilationModel compilation,
         IReadOnlyList<OrderedAspectLayer> aspectLayers,
@@ -967,10 +972,13 @@ public sealed partial class ExtensionTransformationFactory
 
         foreach ( var ancestor in callSite.Ancestors() )
         {
+            // 'this' is not available in an attribute, a constructor initializer, the initializer of a field, of an event field or of a property,
+            // and the default value of a parameter.
             if ( ancestor.Kind() is SyntaxKind.Attribute or SyntaxKind.BaseConstructorInitializer or SyntaxKind.ThisConstructorInitializer
-                or SyntaxKind.PrimaryConstructorBaseType or SyntaxKind.FieldDeclaration )
+                    or SyntaxKind.PrimaryConstructorBaseType or SyntaxKind.FieldDeclaration or SyntaxKind.EventFieldDeclaration
+                || (ancestor.IsKind( SyntaxKind.EqualsValueClause ) && ancestor.Parent?.Kind() is SyntaxKind.PropertyDeclaration or SyntaxKind.Parameter) )
             {
-                reason = "the call site is in an attribute, a constructor initializer or a field initializer";
+                reason = "the call site is in an attribute, a constructor initializer, the initializer of a field, an event or a property, or the default value of a parameter";
 
                 break;
             }

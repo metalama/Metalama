@@ -1,0 +1,2 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0041 on `TargetCode`: `'Exception of type 'System.InvalidOperationException' thrown while executing BuildAspect for aspect [Aspect] applied to 'TargetCode': The type parameter 'T' cannot be constrained to value types after its nullable form was created, because the nullable form of such a type parameter is a different type. Set the constraint before calling ToNullable. Exception details are in '(none)'. To attach a debugger to the compiler, use the  '-p:MetalamaDebugCompiler=True' command-line option.`

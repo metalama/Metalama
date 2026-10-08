@@ -240,9 +240,23 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
             var serviceProvider = this._serviceProvider;
             var templateProvider = request.Template.TemplateProvider.IsNull ? origin.DefaultTemplateProvider : request.Template.TemplateProvider;
 
-            if ( !serviceProvider.GetRequiredService<TemplateClassProvider>().TryGet( templateProvider, out var templateClass ) )
+            // The template class of a type fabric is not registered in the TemplateClassProvider, but the origin holds it when the fabric is the
+            // template provider. A project fabric or a namespace fabric cannot provide templates.
+            TemplateClass? templateClass;
+
+            if ( origin.TemplateClassInstance is { } templateClassInstance && templateClassInstance.TemplateProvider == templateProvider )
             {
-                throw new ArgumentException( $"The template provider '{templateProvider}' is not a known template provider.", nameof(request) );
+                templateClass = templateClassInstance.TemplateClass;
+            }
+            else if ( !serviceProvider.GetRequiredService<TemplateClassProvider>().TryGet( templateProvider, out templateClass ) )
+            {
+                var providerName = templateProvider.Type?.FullName ?? "null";
+
+                throw new ArgumentException(
+                    origin.Predecessor.Instance is IFabricInstance
+                        ? $"The template provider '{providerName}' is a project fabric or a namespace fabric, which cannot provide templates. Declare the template in an aspect, a type fabric, or a class that implements ITemplateProvider."
+                        : $"The template provider '{providerName}' is not a known template provider.",
+                    nameof(request) );
             }
 
             var objectReaderFactory = serviceProvider.GetRequiredService<IObjectReaderFactory>();
@@ -262,6 +276,7 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
                     builder.Freeze();
 
                     proceedBinding = request.CreateProceedBinding( builder ) ?? throw new ArgumentException( "The proceed binding is null.", nameof(request) );
+                    ValidateProceedBinding( proceedBinding, builder );
 
                     boundTemplate = templateMember.ForSynthesizedMethod(
                         builder,
@@ -396,6 +411,65 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
         }
 
         /// <summary>
+        /// Validates a proceed binding against the parameters of the declared method, so that an invalid binding is refused by
+        /// <see cref="DeclareMethod"/> instead of failing when the code is linked.
+        /// </summary>
+        private static void ValidateProceedBinding( ProceedBinding binding, IMethod declaredMethod )
+        {
+            var parameterCount = declaredMethod.Parameters.Count;
+
+            void ValidateIndex( int index, string description )
+            {
+                if ( index < 0 || index >= parameterCount )
+                {
+                    throw new ArgumentException(
+                        $"The proceed binding gives the parameter index {index} as {description}, which is outside the range of the parameters of the method '{declaredMethod.Name}'.",
+                        "request" );
+                }
+            }
+
+            if ( binding.Kind == ProceedBindingKind.InvokeOnParameter )
+            {
+                ValidateIndex( binding.ReceiverParameterIndex, "the receiver" );
+            }
+
+            if ( !binding.ArgumentParameterIndices.IsDefault )
+            {
+                if ( binding.ArgumentParameterIndices.Length != binding.Method.Parameters.Count )
+                {
+                    throw new ArgumentException(
+                        $"The number of argument parameter indices of the proceed binding differs from the number of parameters of the method '{binding.Method.Name}'.",
+                        "request" );
+                }
+
+                foreach ( var index in binding.ArgumentParameterIndices )
+                {
+                    ValidateIndex( index, "an argument" );
+                }
+            }
+            else
+            {
+                // The default mapping passes the parameters of the declared method in order, skipping the receiver parameter.
+                var availableCount = parameterCount - (binding.Kind == ProceedBindingKind.InvokeOnParameter ? 1 : 0);
+
+                if ( availableCount < binding.Method.Parameters.Count )
+                {
+                    throw new ArgumentException(
+                        $"The method '{declaredMethod.Name}' does not have enough parameters to pass to the parameters of the method '{binding.Method.Name}'.",
+                        "request" );
+                }
+            }
+
+            if ( !binding.ArgumentCasts.IsDefault )
+            {
+                foreach ( var cast in binding.ArgumentCasts )
+                {
+                    ValidateIndex( cast.ParameterIndex, "a cast argument" );
+                }
+            }
+        }
+
+        /// <summary>
         /// Determines whether a type can declare a member of a given name: the name must differ from the name of the type and of its type
         /// parameters, and from the names of the members and nested types of the type and of its base types.
         /// </summary>
@@ -408,7 +482,8 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
 
             for ( var t = type; t != null; t = t.BaseType )
             {
-                if ( t.Members().Any( m => m.Name == name ) || t.Types.OfName( name ).Any() )
+                if ( t.Methods.OfName( name ).Any() || t.Properties.OfName( name ).Any() || t.Fields.OfName( name ).Any() || t.Events.OfName( name ).Any()
+                     || t.Indexers.OfName( name ).Any() || t.Types.OfName( name ).Any() )
                 {
                     return false;
                 }
@@ -481,6 +556,9 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
         /// </summary>
         private sealed class FabricOriginAspect : IAspect
         {
+            /// <summary>
+            /// Gets the only instance of the class.
+            /// </summary>
             public static FabricOriginAspect Instance { get; } = new();
         }
     }

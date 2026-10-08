@@ -122,13 +122,7 @@ internal sealed class IndexerBuilder : PropertyOrIndexerBuilder, IIndexerBuilder
     {
         this.CheckNotFrozen();
 
-        foreach ( var existing in this.Parameters )
-        {
-            if ( existing.Name == name )
-            {
-                throw new ArgumentException( $"The parameter '{name}' already exists in '{this.ToDisplayString()}'." );
-            }
-        }
+        this.ThrowIfNameExists( this.Parameters, name, "parameter" );
 
         var parameter = new ParameterBuilder( this, this.Parameters.Count, name, type, refKind, this.AspectLayerInstance );
         parameter.DefaultValue = defaultValue;

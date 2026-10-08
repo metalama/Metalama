@@ -249,6 +249,11 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
                         ? ImmutableArray.Create<IMetaExtension>( new TestMetaExtension( $"declared for '{invocation}'" ) )
                         : ImmutableArray<IMetaExtension>.Empty;
 
+                    if ( options.DuplicateMetaExtension )
+                    {
+                        metaExtensions = metaExtensions.Add( new TestMetaExtension( "first" ) ).Add( new TestMetaExtension( "second" ) );
+                    }
+
                     // With the Generic option, the declared method has the type parameters of the source method, and the types that are type
                     // parameters of the source method are mapped to them.
                     var signatureMethod = options.Generic ? sourceMethod.Definition : sourceMethod;
@@ -289,6 +294,15 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
                             ? declaredMethod.TypeParameters.Take( signatureMethod.TypeParameters.Count ).ToImmutableArray<IType>()
                             : default;
 
+                        if ( options.InvalidProceedBinding )
+                        {
+                            // Every argument is taken from a parameter index that the declared method does not have.
+                            return ProceedBinding.InvokeStatic(
+                                signatureMethod,
+                                typeArguments,
+                                Enumerable.Repeat( declaredMethod.Parameters.Count, signatureMethod.Parameters.Count ).ToImmutableArray() );
+                        }
+
                         return hasReceiver
                             ? ProceedBinding.InvokeOnParameter( signatureMethod, 0, typeArguments )
                             : ProceedBinding.InvokeStatic( signatureMethod, typeArguments );
@@ -314,10 +328,23 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
                             {
                                 LockedLeadingParameterCount = (hasReceiver ? 1 : 0) + sourceMethod.Parameters.Count,
                                 IsReturnTypeLocked = true,
-                                LockedTypeParameterCount = options.Generic ? signatureMethod.TypeParameters.Count : 0
+                                LockedTypeParameterCount = options.Generic ? signatureMethod.TypeParameters.Count : 0,
+                                IsNameLocked = options.LockName,
+                                AreNewTypeParametersRefused = options.RefuseNewTypeParameters
                             };
 
                         var builder = factory.CreateMethodBuilder( origin, placement, nameHint, BuildSignature, restrictions );
+
+                        if ( options.ReassignReturnType )
+                        {
+                            // An equal type is not a change of the locked return type.
+                            builder.ReturnType = compilation.Factory.GetTypeByReflectionType( typeof(int) );
+                        }
+
+                        if ( options.RenameMethod is { } newName )
+                        {
+                            builder.Name = newName;
+                        }
 
                         if ( options.RenameParameter is { } rename )
                         {
@@ -359,17 +386,23 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
                             builder.Parameters[parameterName].Type = addedTypeParameter;
                         }
 
-                        request = new SynthesizedMethodRequest( builder, template, CreateProceedBinding ) { DiagnosticLocation = invocation.GetLocation() };
+                        request = new SynthesizedMethodRequest( builder, template, CreateProceedBinding )
+                        {
+                            DiagnosticLocation = invocation.GetLocation(), IsNameAvailable = GetIsNameAvailable()
+                        };
                     }
                     else
                     {
                         request = new SynthesizedMethodRequest( placement, nameHint, BuildSignature, template, CreateProceedBinding )
                         {
-                            DiagnosticLocation = invocation.GetLocation()
+                            DiagnosticLocation = invocation.GetLocation(), IsNameAvailable = GetIsNameAvailable()
                         };
                     }
 
                     method = factory.DeclareMethod( origin, request );
+
+                    Func<string, bool>? GetIsNameAvailable()
+                        => options.UnavailableNames is { } unavailableNames ? name => !unavailableNames.Split( ',' ).Contains( name ) : null;
 
                     declaredMethods.Add( key, method );
                 }

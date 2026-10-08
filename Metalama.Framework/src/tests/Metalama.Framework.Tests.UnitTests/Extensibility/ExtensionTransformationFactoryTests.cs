@@ -53,6 +53,9 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
                                      public void Template() { }
 
                                      public void NotTemplate() { }
+
+                                     [Template]
+                                     public void ParameterizedTemplate<[CompileTime] T>( [CompileTime] string label, int value ) { }
                                  }
 
                                  internal static class Source
@@ -1451,6 +1454,42 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
                 Assert.False( ExtensionTemplateServices.MethodTemplateExists( serviceProvider, aspectProvider, "Missing" ) );
                 Assert.False( ExtensionTemplateServices.MethodTemplateExists( serviceProvider, TemplateProvider.FromInstanceUnsafe( new object() ), "Template" ) );
                 Assert.False( ExtensionTemplateServices.MethodTemplateExists( serviceProvider, default, "Template" ) );
+            } );
+
+    /// <summary>
+    /// Verifies that <see cref="ExtensionTemplateServices.TryGetMethodTemplateParameters"/> returns the parameters and the type parameters of a method
+    /// template, with their compile-time flags and types, and that it returns <c>false</c> for a method that is not a template and for a missing
+    /// method.
+    /// </summary>
+    [Fact]
+    public async Task ExtensionTemplateServices_TryGetMethodTemplateParameters()
+        => await this.ExecuteAsync(
+            s =>
+            {
+                var serviceProvider = s.Context.ServiceProvider;
+                var aspectProvider = s.Origin.DefaultTemplateProvider;
+                var compilation = s.Context.FinalCompilation;
+
+                Assert.True(
+                    ExtensionTemplateServices.TryGetMethodTemplateParameters( serviceProvider, compilation, aspectProvider, "ParameterizedTemplate", out var parameters ) );
+
+                var typeParameter = parameters.Single( p => p.Name == "T" );
+                Assert.True( typeParameter.IsTypeParameter );
+                Assert.True( typeParameter.IsCompileTime );
+
+                var label = parameters.Single( p => p.Name == "label" );
+                Assert.False( label.IsTypeParameter );
+                Assert.True( label.IsCompileTime );
+
+                var value = parameters.Single( p => p.Name == "value" );
+                Assert.False( value.IsCompileTime );
+                Assert.True( value.Type.Equals( Code.SpecialType.Int32 ) );
+
+                Assert.True( ExtensionTemplateServices.TryGetMethodTemplateParameters( serviceProvider, compilation, aspectProvider, "Template", out var none ) );
+                Assert.Empty( none );
+
+                Assert.False( ExtensionTemplateServices.TryGetMethodTemplateParameters( serviceProvider, compilation, aspectProvider, "NotTemplate", out _ ) );
+                Assert.False( ExtensionTemplateServices.TryGetMethodTemplateParameters( serviceProvider, compilation, aspectProvider, "Missing", out _ ) );
             } );
 
     /// <summary>

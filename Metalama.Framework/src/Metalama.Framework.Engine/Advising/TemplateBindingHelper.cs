@@ -707,8 +707,9 @@ internal static class TemplateBindingHelper
     /// can bind only by name. The parameters added to an interceptor are such parameters.</param>
     /// <param name="arguments">The compile-time arguments of the template.</param>
     /// <remarks>
-    /// A run-time parameter of the template binds to the target parameter of the same name. Otherwise, it binds by its position among the run-time
-    /// parameters of the template to a target parameter that is neither hidden nor name-only. A run-time parameter of the template that has a default
+    /// A run-time parameter of the template binds to the target parameter of the same name. Otherwise, it binds by position to a target parameter that
+    /// is neither hidden nor name-only and that no other run-time parameter of the template binds by name: the first run-time parameter of the
+    /// template that binds by position takes the first such target parameter, and so on. A run-time parameter of the template that has a default
     /// value and binds to no target parameter is replaced by its default value. A run-time parameter of the template cannot be a <c>params</c>
     /// parameter. A run-time type parameter of the template binds to the type parameter of the method at the same position among the run-time type
     /// parameters, as for an override.
@@ -733,7 +734,21 @@ internal static class TemplateBindingHelper
                 "The counts of hidden leading parameters and name-only trailing parameters exceed the number of parameters of the target method." );
         }
 
-        var runTimeParameterIndex = 0;
+        // The target parameters that a run-time parameter of the template binds by name are not available to the binding by position, so that no
+        // target parameter is bound twice.
+        var nameBoundOrdinals = new HashSet<int>();
+
+        foreach ( var templateParameter in templateMethodSymbol.Parameters )
+        {
+            if ( !template.TemplateClassMember.Parameters[templateParameter.Ordinal].IsCompileTime
+                 && targetMethod.Parameters.OfName( templateParameter.Name ) is { } nameBoundParameter )
+            {
+                nameBoundOrdinals.Add( nameBoundParameter.Index );
+            }
+        }
+
+        var positionalOrdinals = Enumerable.Range( firstOrdinal, endOrdinal - firstOrdinal ).Where( i => !nameBoundOrdinals.Contains( i ) ).ToList();
+        var positionalIndex = 0;
 
         foreach ( var templateParameter in templateMethodSymbol.Parameters )
         {
@@ -753,11 +768,10 @@ internal static class TemplateBindingHelper
 
             if ( methodParameter == null )
             {
-                var ordinal = firstOrdinal + runTimeParameterIndex;
-
-                if ( ordinal < endOrdinal )
+                if ( positionalIndex < positionalOrdinals.Count )
                 {
-                    methodParameter = targetMethod.Parameters[ordinal];
+                    methodParameter = targetMethod.Parameters[positionalOrdinals[positionalIndex]];
+                    positionalIndex++;
                 }
                 else if ( templateParameter.HasExplicitDefaultValue )
                 {
@@ -786,8 +800,6 @@ internal static class TemplateBindingHelper
             ExpressionSyntax parameterSyntax = SyntaxFactoryEx.SafeIdentifierName( methodParameter.Name );
             parameterSyntax = TypeAnnotationMapper.AddExpressionTypeAnnotation( parameterSyntax, methodParameter.Type );
             parameterMapping.Add( templateParameter.Name, parameterSyntax );
-
-            runTimeParameterIndex++;
         }
 
         // A run-time type parameter of the template binds to the type parameter of the method at the same position among the run-time type

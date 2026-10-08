@@ -177,6 +177,23 @@ internal abstract class DeclarationBuilder : IDeclarationBuilderImpl
         }
     }
 
+    /// <summary>
+    /// Throws an <see cref="ArgumentException"/> when a list of declarations of this builder already contains a declaration of a given name.
+    /// </summary>
+    /// <param name="declarations">The parameters or the type parameters of this builder.</param>
+    /// <param name="name">The name of the declaration to add.</param>
+    /// <param name="kind">The kind of the declarations in the message, for instance <c>parameter</c> or <c>type parameter</c>.</param>
+    protected void ThrowIfNameExists( IEnumerable<INamedDeclaration> declarations, string name, string kind )
+    {
+        foreach ( var existing in declarations )
+        {
+            if ( existing.Name == name )
+            {
+                throw new ArgumentException( $"The {kind} '{name}' already exists in '{this.ToDisplayString()}'." );
+            }
+        }
+    }
+
     public string ToDisplayString( CodeDisplayFormat? format = null, CodeDisplayContext? context = null )
         => DisplayStringFormatter.Format( this, format, context );
 

@@ -42,6 +42,18 @@ internal sealed class SynthesizedMethodBodyTransformation : OverrideMethodBaseTr
     private readonly IAspectInstanceInternal? _metaAspectInstance;
     private volatile bool _hasFailed;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SynthesizedMethodBodyTransformation"/> class.
+    /// </summary>
+    /// <param name="aspectLayerInstance">The aspect layer of the transformation. For a method declared from a fabric origin, it is the layer of the
+    /// aspect instance that represents the fabric.</param>
+    /// <param name="method">The declared method, whose body the transformation generates.</param>
+    /// <param name="boundTemplate">The template, bound to the declared method.</param>
+    /// <param name="proceedBinding">The binding that gives the expression of <c>meta.Proceed()</c>.</param>
+    /// <param name="diagnosticLocation">The location of the diagnostics that the template reports, or <c>null</c> for the default location.</param>
+    /// <param name="metaExtensions">The extensions that the template reads with <c>meta.GetExtension</c>.</param>
+    /// <param name="metaAspectInstance">The aspect instance that the template reads with <c>meta.AspectInstance</c>, or <c>null</c> when the
+    /// origin of the declaration is a fabric. In that case, reading <c>meta.AspectInstance</c> throws an <see cref="System.InvalidOperationException"/>.</param>
     public SynthesizedMethodBodyTransformation(
         AspectLayerInstance aspectLayerInstance,
         IFullRef<IMethod> method,
@@ -64,6 +76,9 @@ internal sealed class SynthesizedMethodBodyTransformation : OverrideMethodBaseTr
     /// </summary>
     public bool HasFailed => this._hasFailed;
 
+    /// <summary>
+    /// Expands the template into the body of the declared method. The expression of <c>meta.Proceed()</c> is given by the proceed binding.
+    /// </summary>
     public override IEnumerable<InjectedMember> GetInjectedMembers( MemberInjectionContext context )
     {
         var declaredMethod = this.OverriddenMethod.GetTarget( this.InitialCompilation );

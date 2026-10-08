@@ -61,6 +61,15 @@ internal sealed class TypeParameterBuilder : NamedDeclarationBuilder, ITypeParam
         set
         {
             this.CheckNotFrozen();
+
+            // The nullable form of a type parameter constrained to value types is Nullable<T>, not the annotated type parameter. A nullable form
+            // that was already created and assigned, for instance to a return type, would otherwise remain the annotated form.
+            if ( this._nullable != null && value is TypeKindConstraint.Struct or TypeKindConstraint.Unmanaged && value != this._typeKindConstraint )
+            {
+                throw new InvalidOperationException(
+                    $"The type parameter '{this.Name}' cannot be constrained to value types after its nullable form was created, because the nullable form of such a type parameter is a different type. Set the constraint before calling ToNullable." );
+            }
+
             this.ValidateConstraintChange( nameof(this.TypeKindConstraint), value != this._typeKindConstraint, value );
             this._typeKindConstraint = value;
         }

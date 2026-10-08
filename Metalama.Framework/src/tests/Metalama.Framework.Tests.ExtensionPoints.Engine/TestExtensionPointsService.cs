@@ -119,6 +119,25 @@ internal sealed class TestExtensionPointsService : ITestExtensionPointsService
     }
 
     /// <summary>
+    /// Adds a <see cref="TestRedirection"/> that redirects the calls to methods declared from a template, to the owner of a query. The query is the
+    /// scope of the redirection.
+    /// </summary>
+    public void RedirectCallsToTemplate<T>( IQuery<T> query, string methodName, string template, TestTemplateRedirectionOptions options )
+        where T : class, IDeclaration
+    {
+        var queryImpl = (IQueryImpl<T>) query;
+        queryImpl.OnChildAdded();
+
+        var origin = ExtensionContributionOrigin.Capture( queryImpl.Owner );
+
+        queryImpl.Owner.AddContributor(
+            new TestRedirection( methodName, origin, new TestRedirectionOptions(), null, null, null, queryImpl, default )
+            {
+                Template = template, TemplateOptions = options
+            } );
+    }
+
+    /// <summary>
     /// Returns the source initializer of a field or property as an inspection-only expression created by
     /// <see cref="SourceExpressionFactory.CreateInspectionOnly"/>.
     /// </summary>

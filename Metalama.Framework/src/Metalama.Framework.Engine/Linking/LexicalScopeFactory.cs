@@ -34,6 +34,13 @@ internal sealed partial class LexicalScopeFactory : ITemplateLexicalScopeProvide
     private readonly CompilationModel _compilationModel;
     private readonly ConcurrentDictionary<IFullRef<IDeclaration>, TemplateLexicalScope> _scopes;
     private readonly ConcurrentDictionary<TypeDeclarationSyntax, ImmutableHashSet<string>> _identifiersInTypeDeclaration = new();
+
+    /// <summary>
+    /// The names visible in a type that has no syntax, keyed by the reference of the type, because several declarations of the type need them.
+    /// </summary>
+    private readonly ConcurrentDictionary<IFullRef<IDeclaration>, ImmutableHashSet<string>> _identifiersInTypeWithoutSyntax =
+        new( RefEqualityComparer<IDeclaration>.Default );
+
     private readonly SemanticModelProvider _semanticModelProvider;
 
     public LexicalScopeFactory( CompilationModel compilation )
@@ -148,9 +155,17 @@ internal sealed partial class LexicalScopeFactory : ITemplateLexicalScopeProvide
                     else
                     {
                         // The type has no syntax, for instance because an aspect or an extension introduced it. The names that are visible in it
-                        // are collected from the code model.
-                        identifiers = ImmutableHashSet<string>.Empty.ToBuilder();
-                        CollectNamesInTypeScope( contextType, identifiers );
+                        // are collected from the code model, once per type.
+                        identifiers = this._identifiersInTypeWithoutSyntax.GetOrAdd(
+                                contextType.ToFullRef(),
+                                _ =>
+                                {
+                                    var names = ImmutableHashSet<string>.Empty.ToBuilder();
+                                    CollectNamesInTypeScope( contextType, names );
+
+                                    return names.ToImmutable();
+                                } )
+                            .ToBuilder();
                     }
 
                     if ( declaration.DeclarationKind == DeclarationKind.Method && declaration is IMethod method )

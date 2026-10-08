@@ -94,7 +94,8 @@ internal sealed class ParameterBuilder : BaseParameterBuilder
         {
             this.CheckNotFrozen();
 
-            if ( this.Restrictions is { } restrictions && !ReferenceEquals( value, this._type ) )
+            // The restrictions validate a change of the type, which an assignment of an equal type is not.
+            if ( this.Restrictions is { } restrictions && !value.Equals( this._type, Metalama.Framework.Code.Comparers.TypeComparison.IncludeNullability ) )
             {
                 if ( this.IsReturnParameter )
                 {

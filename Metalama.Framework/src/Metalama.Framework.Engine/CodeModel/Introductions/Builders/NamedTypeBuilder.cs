@@ -276,13 +276,7 @@ internal class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, I
     {
         this.CheckNotFrozen();
 
-        foreach ( var existing in this.TypeParameters )
-        {
-            if ( existing.Name == name )
-            {
-                throw new ArgumentException( $"The type parameter '{name}' already exists in '{this.ToDisplayString()}'." );
-            }
-        }
+        this.ThrowIfNameExists( this.TypeParameters, name, "type parameter" );
 
         var builder = new TypeParameterBuilder( this, this.TypeParameters.Count, name );
         this.TypeParameters.Add( builder );

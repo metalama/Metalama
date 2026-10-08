@@ -35,7 +35,7 @@ internal abstract class MethodBaseBuilder : MemberBuilder, IMethodBaseBuilder, I
     public IParameterBuilder AddParameter( string name, IType type, RefKind refKind = RefKind.None, TypedConstant? defaultValue = null )
     {
         this.CheckNotFrozen();
-        this.ThrowIfParameterNameExists( name );
+        this.ThrowIfNameExists( this.Parameters, name, "parameter" );
         this.ValidateAddParameter( this.Parameters.Count, name, type, refKind );
 
         var parameter = new ParameterBuilder( this, this.Parameters.Count, name, type, refKind, this.AspectLayerInstance );
@@ -64,7 +64,7 @@ internal abstract class MethodBaseBuilder : MemberBuilder, IMethodBaseBuilder, I
             throw new ArgumentOutOfRangeException( nameof(index) );
         }
 
-        this.ThrowIfParameterNameExists( name );
+        this.ThrowIfNameExists( this.Parameters, name, "parameter" );
         this.ValidateAddParameter( index, name, type, refKind );
 
         // Validate that inserting at this index doesn't displace an extension receiver ('this') parameter from position 0.
@@ -96,20 +96,6 @@ internal abstract class MethodBaseBuilder : MemberBuilder, IMethodBaseBuilder, I
         TypedConstant? typedConstant = defaultValue != null ? TypedConstant.Create( defaultValue.Value.Value, iType ) : null;
 
         return this.InsertParameter( index, name, iType, refKind, typedConstant );
-    }
-
-    /// <summary>
-    /// Throws an <see cref="ArgumentException"/> when a parameter of the given name already exists.
-    /// </summary>
-    private void ThrowIfParameterNameExists( string name )
-    {
-        foreach ( var existing in this.Parameters )
-        {
-            if ( existing.Name == name )
-            {
-                throw new ArgumentException( $"The parameter '{name}' already exists in '{this.ToDisplayString()}'." );
-            }
-        }
     }
 
     public IParameterBuilder AddParameter( IParameter prototype, bool includeCustomAttributes = false, bool includeDefaultValues = false )
