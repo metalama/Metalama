@@ -68,8 +68,8 @@ public static class RetryHandler
     }
 }
 
-// Provider: a new factory of InterceptorResult.
-return InterceptorResult.Handler( retryHandlerInterceptMethod );
+// Delegate given to ForEachSite: a new method of IMethodResultFactory.
+return site.RedirectToHandler( retryHandlerInterceptMethod );
 
 // Call site after the rewrite.
 var text = RetryHandler.Intercept(
@@ -106,7 +106,7 @@ What it needs:
 
 What version 1 keeps open:
 
-- `InterceptorResult` is a sealed class with a private constructor and static factories (section [5.6.1](05b-api-providers-contexts-results.md#561-interceptorresult)). `Handler` is a new factory and a new member of `InterceptorResultKind`, which is an addition.
+- The result factories `IMethodResultFactory` and `IMethodSiteResultFactory` are `[InternalImplement]` interfaces (section [5.6.1](05b-api-providers-contexts-results.md#561-interceptorresult)). A handler is a new method of `IMethodResultFactory`, for instance `RedirectToHandler`, which is an addition. The engine converts each result to the internal `InterceptorResult`, so the handler is also a new internal kind of result.
 - `ProceedBinding` is declarative, so a binding that invokes an accessor parameter is an addition (section [16.4](#164-accessor-mode-for-inaccessible-targets)).
 - The group key contains the implementation identity (`ImplementationKey`, section [8.2](08-deduplication-and-naming.md#82-the-key)). A handler adds an implementation kind to it.
 - The sources `Proceed` and `PackedArguments` of section [16.8](#168-the-proceed-and-packedarguments-sources-interception-without-a-template) give an ordinary method the same data without a `MethodInvocation` value. The two directions overlap, and the product owner defers the choice to the end of M2 (PO67).
@@ -161,7 +161,7 @@ amender.InterceptOperators( typeof(Money), [OperatorKind.Addition, OperatorKind.
 amender.InterceptOperators( t => t.ContainingNamespace.FullName == "Contoso.Units", [OperatorKind.Multiplication], new UnitProvider() );
 ```
 
-- `IOperatorInterceptorProvider.GetInterceptor( OperatorInterceptionContext context )` returns an `InterceptorResult`.
+- `IOperatorInterceptorProvider.GetInterceptor( OperatorInterceptionContext context )` returns a result. A later design aligns the operator verb with the fluent registration API of `InterceptMethods` (row "Fluent registration API" of section [15.0](15-decisions.md#150-decisions-of-2026-10-02)).
 - `OperatorInterceptionContext` exposes `OperatorKind`, `OperatorMethod` (or `null` for an intrinsic operator such as `int + int`), `OperandTypes`, `ResultType`, `IsChecked`, `IsLifted`, a use kind (expression, compound assignment, increment, implicit conversion, explicit conversion), and the operands as inspection-only `IExpression` values.
 - The rewrite is `a + b` into `I( a, b )`, which keeps the left-to-right evaluation. `meta.Proceed()` emits the operator itself, which keeps the lifting and the checked context; the checked context is part of the group key.
 - The operator token is the name filter before binding, except for implicit user-defined conversions, which have no token; their cost is a decision to take.
@@ -206,8 +206,8 @@ public static class Telemetry
     }
 }
 
-// Provider.
-return InterceptorResult.ExistingMethod( measureMethod, m => m.Parameters["proceed"].Bind( InterceptorArgument.Proceed ) );
+// Delegate given to ForEachSite. The Proceed source is the subject of this section.
+return site.RedirectToExistingMethod( measureMethod, new { proceed = InterceptorArgument.Proceed } );
 
 // Site in OrderService.Process.
 gross = order.Total( true );

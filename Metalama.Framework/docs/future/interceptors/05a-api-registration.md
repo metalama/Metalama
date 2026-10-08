@@ -6,6 +6,8 @@
 
 All types of this section are PROPOSED and live in the namespace `Metalama.Extensions.Interceptors` of the assembly `Metalama.Extensions.Interceptors` (package `Metalama.Extensions.Interceptors.Redist`). The API uses no type of another premium package.
 
+> Superseded in part by the row "Fluent registration API" of section [15.0](15-decisions.md#150-decisions-of-2026-10-02) (2026-10-08, metalama/Metalama#2141): `InterceptMethods` takes one delegate, `Func<IMethodInterceptionBuilder, IMethodInterception>`, which describes the interception as a chain of immutable values. `MethodSelector`, `IMethodInterceptorProvider`, `MethodInterceptorProvider`, `InterceptorResult`, `InterceptorResultKind`, `MethodInterceptionOptions`, `MethodMatching`, `InterceptionScopeOptions`, `IInterceptorBuilder` and `IMethodInterceptorBuilder` are no longer public. Some of them remain internal types of the package. The sections below describe `InterceptMethods` with the fluent API. Where the accessor and await verbs still name these types, the text describes their earlier design, which their milestones revise.
+
 ### 5.1 The API at a glance
 
 | Concern | Types and members |
@@ -13,15 +15,16 @@ All types of this section are PROPOSED and live in the namespace `Metalama.Exten
 | Registration verbs | `InterceptMethods` (ordinary methods and extension methods), `InterceptAccessors` (property and event accessors, with a mandatory `MethodKind` accessor kind), `InterceptAwaits` |
 | Fabric and query surface | `InterceptionQueryExtensions` (extension methods on `IQuery<T>` and `ITaggedQuery<T,TTag>`) |
 | Aspect surface | `InterceptionAdviserExtensions` (extension methods on `IAdviser<T>`, plus `ITypeAmender` overloads) |
-| Target selection | Members: a declaring type (`Type` or `INamedType`, matched by definition) or a `[Durable] Func<INamedType, bool>` over declaring type definitions, plus a mandatory list of member names (`IReadOnlyList<string>`, or one `string`). Awaits: no target selection; the scope selects the await expressions, and the provider skips the ones that it does not want (section [5.3.4](#534-await-registrations)). The enumeration `MethodMatching`. A method registration has no filter by kind of use (section [5.3.11](#5311-kinds-of-method-use)). |
-| Registration options | `MethodInterceptionOptions` (for both member verbs), `AwaitInterceptionOptions`, `InterceptionScopeOptions` |
-| Interceptor provider interfaces | `IMethodInterceptorProvider` (for both member verbs), `IAwaitInterceptorProvider`, each with a method `GetInterceptor` |
+| Method registration chain | `IMethodInterceptionBuilder` (call-site options and type selection), `ITypeSelection` and `ITypeFilterSelection` (method selection), `IMethodSelection` (filter, matching of overrides and interface implementations, and result), `IMethodResultFactory` and `IMethodSiteResultFactory` (results), `IMethodInterception` and `ITemplateInterception` (complete interceptions and the options of a synthesized method) |
+| Target selection | Methods: `Type( Type )` or `Type( INamedType )`, matched by definition, then `Methods( params string[] names )` or `AllMethods()`; or `Types( [Durable] Func<INamedType, bool> )` over declaring type definitions, then `Methods( names )`. The `Where` method filters the selected method definitions. Accessors: a declaring type or a type predicate, plus a mandatory list of member names. Awaits: no target selection; the scope selects the await expressions, and the provider skips the ones that it does not want (section [5.3.4](#534-await-registrations)). A method registration has no filter by kind of use (section [5.3.11](#5311-kinds-of-method-use)). |
+| Registration options | Methods: `IncludingNestedTypes` and `ExcludingLambdas` on the root of the chain, and `IncludingInterfaceImplementations` and `ExcludingOverrides` after the method selection. Accessors and awaits, earlier design: `MethodInterceptionOptions`, `AwaitInterceptionOptions`, `InterceptionScopeOptions` |
+| Per-site decision | Methods: the delegate given to `IMethodSelection.ForEachSite`, which returns a result created by `IMethodSiteResultFactory`. Awaits: `IAwaitInterceptorProvider`, with a method `GetInterceptor` |
 | Contexts | `InterceptionContext` (with `Origin` and `IsInNestedFunction`), `MethodInterceptionContext` (with `Kind`, `ConvertedType`, `IsEventSubscription`, `Receiver`, `Destination`, `AssignmentOperator`, `IsPostfix` and `IsChecked`), `AwaitInterceptionContext` (with `Operand`), `InvocationArgument` (with `Expression`), `AwaitConfiguration` |
 | Context enumerations | `MethodUseKind` (`Call`, `DelegateCreation`, `FunctionPointer`), `InvocationArgumentKind`, `InvocationDispatchKind`, `InvocationReceiverKind`, `EnclosingCodeKind`, `NonInterceptableReason`, `AwaitResumption`, `AwaitConfigurationFlags`, `AwaitableKind` (the kind of one awaited expression, not a flags enumeration); the existing `OperatorKind`, with the new member `NullCoalescingAssignment` |
-| Result model | `InterceptorResult`, `InterceptorResultKind`, `AwaitRewriteOptions`, `AwaitInterceptionMode`, `AwaitInterceptorTaskKind` |
+| Result model | Methods: `IMethodInterception`, created by `Skip`, `RedirectToExistingMethod` and `RedirectToSynthesizedMethod`, and `ITemplateInterception` with `WithArgs`, `WithTags`, `WithTemplateProvider`, `WithPlacement`, `WithGranularity` and `Configure`. Awaits, earlier design: `InterceptorResult`, `AwaitRewriteOptions`, `AwaitInterceptionMode`, `AwaitInterceptorTaskKind` |
 | Placement model | `InterceptorPlacement` (`CallingType`, `InType`, `BaseMostAccessibleType`, `GeneratedStaticClass`, `LocalFunction`), `InterceptorPlacementKind` |
 | Parameter binding | `InterceptorArgument` (the source of the value of one interceptor parameter: `Receiver`, `Argument`, `Value`, `Awaitable`, `CallerInstance`, `CallerInfo`, `Pull`), `CallerInfoKind`, `IInterceptorMethodBinder` (for existing methods), `IInterceptorParameterBinder`, `IInterceptorParameterBinderList`, `InterceptorReceiverMapping` |
-| Signature builder | `IInterceptorBuilder` (for template results, derived from `IInterceptorMethodBinder`), `IInterceptorParameterBuilder`, `IInterceptorParameterBuilderList`, `InterceptorDefaultMode` |
+| Signature builder | `IInterceptorMethodBuilder`, passed to the delegate of `ITemplateInterception.Configure`, with `Method`, `ReceiverMapping`, `Context`, `SetArgument` and `SetTypeArgument`. The earlier `IInterceptorBuilder`, `IInterceptorParameterBuilder`, `IInterceptorParameterBuilderList` and `InterceptorDefaultMode` are not introduced. |
 | Template side | `meta.MethodInterception` and `meta.AwaitInterception` (C# 14 static extension properties of `meta`, declared in `InterceptionMetaExtensions`), which return the meta extensions `MethodInterceptionInfo` and `AwaitInterceptionInfo` |
 | Internal seam to the engine | `IInterceptionRegistrationService`, `InterceptionRegistration`, `InterceptorDefinition` (internal, visible to the engine assemblies) |
 
@@ -161,16 +164,18 @@ internal abstract class InterceptorDefinition
 }
 ```
 
+The code above is the internal model of the earlier design. Since the row "Fluent registration API" of section [15.0](15-decisions.md#150-decisions-of-2026-10-02), the internal registration of a method is created from the chain that the registration delegate returns. The internal helper `InterceptionApiHelper.CreateRegistration` executes the delegate under an `InterceptionChainTracker`, checks that no created value was discarded, and converts the returned chain to an `InterceptionRegistration`. That registration holds an internal `MethodSelector`, an `InterceptorDefinition` that wraps an internal `IMethodInterceptorProvider`, and the internal `MethodInterceptionOptions`. The engine consumes these internal types unchanged.
+
 The public extension methods resolve the service with `GetService`, not `GetRequiredService`. When the service is missing, they throw `InvalidOperationException` with a message that names the package `Metalama.Extensions.Interceptors`. This happens when a library references only the Redist package and its transitive fabric runs in a consumer that does not load the engine (section [9.9.2](09-premium-engine.md#992-licensing-implications)).
 
 ### 5.3 Registration
 
 #### 5.3.1 Three verbs
 
-The API has three verbs: `InterceptMethods`, `InterceptAccessors` and `InterceptAwaits`. `InterceptMethods` intercepts ordinary methods, classic extension methods and C# 14 extension methods. `InterceptAccessors` intercepts the accessors of properties and events (section [5.3.13](#5313-accessors)). `InterceptMethods` never matches an accessor. The two member verbs share the provider interface, the context, the options and the result model. The API has no single `Intercept` verb, for these reasons:
+The API has three verbs: `InterceptMethods`, `InterceptAccessors` and `InterceptAwaits`. `InterceptMethods` intercepts ordinary methods, classic extension methods and C# 14 extension methods. `InterceptAccessors` intercepts the accessors of properties and events (section [5.3.13](#5313-accessors)). `InterceptMethods` never matches an accessor. The two member verbs share the context. In the earlier design, they also share the provider interface, the options and the result model; `InterceptMethods` now uses the fluent registration API, and `InterceptAccessors` keeps the earlier design until M2 revises it. The API has no single `Intercept` verb, for these reasons:
 
 - Members and awaits need different target selections, options and contexts. A member registration has a declaring type, names and a matching policy, and its context describes the kind of use. An await registration has no target selection, and its context describes the awaitable, the resumption and the `ConfigureAwait` call (section [5.3.4](#534-await-registrations)).
-- A single verb with delegate overloads is ambiguous in C#. The lambda `ctx => ...` converts to both `Func<MethodInterceptionContext, InterceptorResult>` and `Func<AwaitInterceptionContext, InterceptorResult>`, which raises CS0121.
+- A single verb with delegate overloads is ambiguous in C#. In the earlier design, where both providers returned the same result type, the lambda `ctx => ...` converted to the delegate types of both overloads, which raised CS0121.
 - A single verb with interface overloads is ambiguous for a class that implements both interfaces.
 - The verb names the target, not the syntax that uses it. `InterceptMethods` intercepts every use of a method: a call, or a method group converted to a delegate or to a function pointer. The kind of use is a property of the context, `MethodInterceptionContext.Kind`, and not an option of the registration (section [5.3.11](#5311-kinds-of-method-use), RC44). An earlier version of this design named the verb `InterceptInvocations`. That name excluded delegate creation at the verb level, although delegate creation produces the same interceptor method and the same template (decision PO44).
 - An accessor registration needs an accessor kind, which a method registration does not have. A separate verb makes the kind a required parameter instead of an option that most method registrations would ignore.
@@ -189,10 +194,10 @@ A site is in the scope when its origin is contained in the scope declaration. Th
 |---|---|
 | `ICompilation` | All source code of the current project (interpretation I4). |
 | `INamespace` | All types of the namespace and of its descendant namespaces, as `IDeclaration.IsContainedIn` defines it (FW26 `Code\DeclarationExtensions.cs:33-95`). |
-| `INamedType` | All members of the type, including field and property initializers, constructor initializers and primary-constructor base arguments. Nested types are excluded unless `InterceptionScopeOptions.IncludeNestedTypes` is set. |
+| `INamedType` | All members of the type, including field and property initializers, constructor initializers and primary-constructor base arguments. Nested types are excluded unless the chain calls the `IncludingNestedTypes` method. |
 | `IMember` | The body of the member, its accessors, its initializer and its constructor initializer. |
 
-Code in lambdas and local functions is in scope unless `InterceptionScopeOptions.ExcludeLambdasAndLocalFunctions` is set.
+Code in lambdas and local functions is in scope unless the chain calls the `ExcludingLambdas` method.
 
 The following code is never in scope: compile-time code; code introduced by aspects (R6, interpretation I5); code produced by source generators, which runs after Metalama (section [3.8](03-background.md#38-roslyn-fork-and-compiler-order)); and, by default, files that Roslyn classifies as generated code (PO12). Code of a member that aspects override is in scope, because it is source code. Superseded by the rewritten decision PO12 (2026-10-05): files classified as generated code are in scope like any other source file, and `IncludeGeneratedFiles` does not exist.
 
@@ -200,114 +205,102 @@ Nested types are excluded by default for a concrete reason (RC18). An aspect app
 
 #### 5.3.3 Target selection for members
 
-The target is a registration parameter, not a property of the provider object. One provider class can therefore serve several targets.
+The target is part of the chain of the registration, not a property of the per-site delegate. One per-site method can therefore serve several targets.
 
-A member registration selects its targets with a declaring type and a list of member names (decision PO52, RC46). Section [5.3.12](#5312-target-selection-options-considered) compares this choice with the other options that were considered. The shapes are the same for `InterceptMethods` and `InterceptAccessors`, which adds the accessor kind after the names (section [5.3.13](#5313-accessors)):
+A method registration selects its targets with a declaring type and member names (decision PO52, RC46). Section [5.3.12](#5312-target-selection-options-considered) compares this choice with the other options that were considered. Since the row "Fluent registration API" of section [15.0](15-decisions.md#150-decisions-of-2026-10-02), the selection is a stage of the chain that the registration delegate returns. `InterceptAccessors` keeps the positional shapes of its earlier design, with the accessor kind after the names (section [5.3.13](#5313-accessors)).
 
 ```csharp
 // One declaring type, given as a System.Type, and a list of names.
-InterceptMethods( Type declaringType, IReadOnlyList<string> names, <provider form>, MethodInterceptionOptions? options = null )
+b => b.Type( typeof(File) ).Methods( nameof(File.ReadAllText), nameof(File.WriteAllText) ) /* result */
 
 // One declaring type, given as a code-model type.
-InterceptMethods( INamedType declaringType, IReadOnlyList<string> names, <provider form>, MethodInterceptionOptions? options = null )
+b => b.Type( namedType ).Methods( names ) /* result */
 
-// A durable predicate over declaring type definitions.
-InterceptMethods( [Durable] Func<INamedType, bool> declaringTypes, IReadOnlyList<string> names, <provider form>, MethodInterceptionOptions? options = null )
+// A durable predicate over declaring type definitions. The names are mandatory.
+b => b.Types( t => t.ContainingNamespace.FullName == "Contoso.Legacy" ).Methods( names ) /* result */
 
-// Convenience: one declaring type and one name.
-InterceptMethods( Type declaringType, string name, <provider form>, MethodInterceptionOptions? options = null )
+// Every ordinary method that one type declares.
+b => b.Type( typeof(Order) ).AllMethods() /* result */
 ```
 
-The provider form is an interceptor provider object, a delegate, an existing method, a template shorthand, or a factory (section [5.3.6](#536-fabric-and-query-surface)).
+The chain then chooses the result: an existing method, a synthesized method, or a decision per site (section [5.4](05b-api-providers-contexts-results.md#54-interceptor-provider-interfaces)).
 
 ```csharp
-amender.InterceptMethods( typeof(Guid), nameof(Guid.NewGuid), new SystemHookProvider() );
+amender.InterceptMethods( b => b.Type( typeof(Guid) ).Methods( nameof(Guid.NewGuid) ).ForEachSite( InterceptSystemCall ) );
 
-amender.InterceptMethods( typeof(File), [nameof(File.ReadAllText), nameof(File.WriteAllText)], new FileAccessProvider() );
+amender.InterceptMethods( b => b.Type( typeof(File) ).Methods( nameof(File.ReadAllText), nameof(File.WriteAllText) ).ForEachSite( InterceptFileAccess ) );
 
 // Every type of a namespace. A project fabric cannot enumerate the types of the compilation, so a type predicate is the
 // way to select several declaring types.
-amender.InterceptMethods(
-    t => t.ContainingNamespace.FullName.StartsWith( "Contoso.Legacy", StringComparison.Ordinal ),
-    ["Save", "Load"],
-    new LegacyStorageProvider() );
+amender.InterceptMethods( b => b
+    .Types( t => t.ContainingNamespace.FullName.StartsWith( "Contoso.Legacy", StringComparison.Ordinal ) )
+    .Methods( "Save", "Load" )
+    .ForEachSite( InterceptLegacyStorage ) );
 ```
 
 Rules for the declaring type:
 
-- A `Type` is resolved with `TypeFactory.GetNamedType` (FW27 `Code\TypeFactory.cs:62`) when the registration is made, and the registration stores the definition as a durable reference. An `INamedType` is stored in the same way. `typeof(List<>)` matches every construction of `List<T>`. A constructed type such as `typeof(List<int>)` is reduced to its definition, so it also matches every construction. A provider that cares about one construction tests `context.InterceptedMethod.DeclaringType` and returns `InterceptorResult.Skip`.
+- A `Type` is resolved with `TypeFactory.GetNamedType` (FW27 `Code\TypeFactory.cs:62`) when the registration is made, and the registration stores the definition as a durable reference. An `INamedType` is stored in the same way. `typeof(List<>)` matches every construction of `List<T>`. A constructed type such as `typeof(List<int>)` is reduced to its definition, so it also matches every construction. A delegate given to the `ForEachSite` method that cares about one construction tests `context.InterceptedMethod.DeclaringType` and returns `site.Skip()`.
 - The declaring type of a site is the type that declares the member to which the C# compiler binds the site, taken as its definition. It is not the static type of the receiver. For example, `fileStream.CopyTo( other )` binds to `Stream.CopyTo`, so a registration on `FileStream` does not match it, and a registration on `Stream` does. Matching is static: it does not consider the run-time type of the receiver.
-- The predicate overload takes a `[Durable] Func<INamedType, bool>`. The engine evaluates it after a name matched and the site was bound, once per distinct declaring type definition, and memoizes the result per compilation. The predicate receives a type definition of the scanned compilation. It must be deterministic and thread-safe. The `[Durable]` parameter lets the durability analyzer reject a lambda that captures a declaration, a symbol or another compilation-bound object (LAMA0878). An exception thrown by the predicate is reported once, and the type then counts as not matching (section [9.5.5](09-premium-engine.md#955-target-matching)).
-- The predicate is the only way to select several declaring types, for example the types of a namespace, as above (`INamedType.ContainingNamespace`, FW27 `Code\INamedType.cs:79`). Project and namespace fabrics run once per pipeline configuration (section [3.1](03-background.md#31-pipeline-stages-and-extension-hooks)) and cannot enumerate the types of the compilation. There is deliberately no dedicated namespace overload and no overload that takes several types.
+- The `Types` method takes a `[Durable] Func<INamedType, bool>`. The engine evaluates it after a name matched and the site was bound, once per distinct declaring type definition, and memoizes the result per compilation. The predicate receives a type definition of the scanned compilation. It must be deterministic and thread-safe. The `[Durable]` parameter lets the durability analyzer reject a lambda that captures a declaration, a symbol or another compilation-bound object (LAMA0878). An exception thrown by the predicate is reported once, and the type then counts as not matching (section [9.5.5](09-premium-engine.md#955-target-matching)).
+- The predicate is the only way to select several declaring types, for example the types of a namespace, as above (`INamedType.ContainingNamespace`, FW27 `Code\INamedType.cs:79`). Project and namespace fabrics run once per pipeline configuration (section [3.1](03-background.md#31-pipeline-stages-and-extension-hooks)) and cannot enumerate the types of the compilation. There is deliberately no dedicated namespace method and no method that takes several types.
 
 Rules for the names:
 
-- At least one name is required. An empty list throws `ArgumentException`, and so does a name that is not a valid C# identifier. There is no registration without names.
+- At least one name is required. A call of the `Methods` method without a name throws `ArgumentException`, and so does a name that is not a valid C# identifier. There is no registration without names. The `AllMethods` method lists the names of the ordinary methods that the type declares, static and instance, when the chain is created; it does not select operators, conversions, explicit interface implementations, accessors, constructors, finalizers or inherited methods. A predicate over types cannot be combined with all methods, because the shared index needs method names.
 - The names are always the pre-binding filter of the shared index (section [9.5.3](09-premium-engine.md#953-registration-index-and-index-requirements)): the index binds only the member bodies that contain one of the names.
-- All overloads of a matched name match. The registration does not filter by signature. The provider tests the signature through the context, for example `context.InterceptedMethod.Parameters`, and returns `InterceptorResult.Skip` for the overloads that it does not want. Sample 5 shows this.
-- A generic method is matched by its bare name, without type arguments, for example `Select` for `Select<int>( ... )`. A classic extension method has the same name in its reduced form and in its static form, because the index normalizes the reduced form (section [10.7.3](10c-oss-reference-graph-design-time.md#1073-reducedfrom-normalization)). An override and an implicit interface implementation have the name of the method that they override or implement, so the names are compatible with every `MethodMatching` policy. An explicit interface implementation can only be called through the interface method, whose name the registration states.
+- All overloads of a selected name are selected. The `Where` method keeps the selected method definitions that a `[Durable] Func<IMethod, bool>` predicate accepts, for instance one overload. The predicate is invoked once for each method definition that has a selected name, and several calls combine their predicates. A delegate given to the `ForEachSite` method can also test the constructed method through the context, for example `context.InterceptedMethod.Parameters`, and return `site.Skip()`. Sample 5 shows the `Where` method.
+- A generic method is matched by its bare name, without type arguments, for example `Select` for `Select<int>( ... )`. A classic extension method has the same name in its reduced form and in its static form, because the index normalizes the reduced form (section [10.7.3](10c-oss-reference-graph-design-time.md#1073-reducedfrom-normalization)). An override and an implicit interface implementation have the name of the method that they override or implement, so the names are compatible with the default matching and with the `ExcludingOverrides` and `IncludingInterfaceImplementations` methods. An explicit interface implementation can only be called through the interface method, whose name the registration states.
 
 Other matching rules:
 
 - Generic methods and members of generic types are matched through their definitions. `MethodInterceptionContext.InterceptedMethod` gives the constructed method at a site.
-- With `MethodMatching.Overrides`, the engine also tests the members that the bound member overrides, directly or indirectly. With `MethodMatching.InterfaceImplementations`, it also tests the interface members that the bound member implements, implicitly or explicitly. For each member walked, in this order (the bound member, then the overridden members from the nearest, then the implemented interface members), the engine tests the declaring type, or evaluates the type predicate on it. The site matches when the name matches and one member passes. The first member that passes is `MethodInterceptionContext.MatchedMethod`.
+- By default, the engine also tests the members that the bound member overrides, directly or indirectly. After the `ExcludingOverrides` method, it does not. After the `IncludingInterfaceImplementations` method, it also tests the interface members that the bound member implements, implicitly or explicitly. For each member walked, in this order (the bound member, then the overridden members from the nearest, then the implemented interface members), the engine tests the declaring type, or evaluates the type predicate on it. The site matches when the name matches and one member passes. The first member that passes is `MethodInterceptionContext.MatchedMethod`.
 - `InterceptMethods` matches only ordinary methods, classic extension methods and C# 14 extension methods. It never matches an accessor, an operator, a constructor, a finalizer or a local function. A name that the declaring type uses only for a property or an event is reported with the warning LAMA1008, with the advice to use `InterceptAccessors` (section [9.4.7](09-premium-engine.md#947-registration-time-checks)).
-- Several registrations of the same source that overlap on a site count once for that site, under the one-source rule of section [9.5.8](09-premium-engine.md#958-conflict-detection-r7-b7). Superseded by the decision "Conflicts per registration and event unsubscriptions" of section 15.0 (2026-10-06): every registration is evaluated, and two results that are not skips are LAMA1010. This happens, for example, when an aspect registers a base type and a derived type with `MethodMatching.Overrides`, or registers a type predicate and a declaring type that it also accepts. The source is the registering aspect instance or fabric instance.
+- Several registrations of the same source that overlap on a site count once for that site, under the one-source rule of section [9.5.8](09-premium-engine.md#958-conflict-detection-r7-b7). Superseded by the decision "Conflicts per registration and event unsubscriptions" of section 15.0 (2026-10-06): every registration is evaluated, and two results that are not skips are LAMA1010. This happens, for example, when an aspect registers a base type and a derived type with the default matching of overrides, or registers a type predicate and a declaring type that it also accepts. The source is the registering aspect instance or fabric instance.
 
 ```csharp
 namespace Metalama.Extensions.Interceptors;
 
 /// <summary>
-/// Options of a registration made with <c>InterceptMethods</c> or <c>InterceptAccessors</c>.
+/// The stage of a method interception at which the intercepted methods are selected. It filters the methods, decides whether the calls bound
+/// to their overrides and to their interface implementations match, and then chooses how the calls are intercepted.
 /// </summary>
 /// <remarks>
-/// The object contains no declaration, so it can be kept across compilations.
+/// By default, a call matches a selected method when it is bound to that method or to an override of it.
 /// </remarks>
 [CompileTime]
+[InternalImplement]
 [PublicAPI]
-[Durable]
-[ImmutableType]
-public sealed record MethodInterceptionOptions
+public interface IMethodSelection : IMethodResultFactory
 {
-    /// <summary>
-    /// Gets the policy for calls that the C# compiler binds to an override or to an interface implementation.
-    /// The default value is <see cref="MethodMatching.Overrides"/>.
-    /// </summary>
-    public MethodMatching Matching { get; init; } = MethodMatching.Overrides;
+    /// <summary>Keeps only the selected methods that a predicate accepts, for instance one overload of a method name.</summary>
+    [Pure]
+    IMethodSelection Where( [Durable] Func<IMethod, bool> predicate );
 
-    /// <summary>Gets the options that determine which code of each scope declaration is in scope.</summary>
-    public InterceptionScopeOptions Scope { get; init; } = InterceptionScopeOptions.Default;
-}
+    /// <summary>Also matches the calls bound to a method that implements a selected interface method, implicitly or explicitly.</summary>
+    [Pure]
+    IMethodSelection IncludingInterfaceImplementations();
 
-/// <summary>
-/// Determines whether a site that the C# compiler binds to an override or to an interface implementation matches a
-/// member that the registration selects by its declaring type and its name.
-/// </summary>
-[CompileTime]
-[Flags]
-public enum MethodMatching
-{
-    /// <summary>A site matches only when the registration selects the member to which it is bound.</summary>
-    Exact = 0,
+    /// <summary>Does not match the calls bound to an override of a selected method. Only the calls bound to the selected method itself match.</summary>
+    [Pure]
+    IMethodSelection ExcludingOverrides();
 
-    /// <summary>A site also matches when the registration selects a member that the bound member overrides, directly or indirectly.</summary>
-    Overrides = 1,
-
-    /// <summary>A site also matches when the registration selects an interface member that the bound member implements, implicitly or explicitly.</summary>
-    InterfaceImplementations = 2,
-
-    /// <summary>Combines <see cref="Overrides"/> and <see cref="InterfaceImplementations"/>.</summary>
-    OverridesAndInterfaceImplementations = Overrides | InterfaceImplementations
+    /// <summary>Decides the interception of each call site with a delegate, for instance to skip some call sites or to choose a template per site.</summary>
+    [Pure]
+    IMethodInterception ForEachSite( [Durable] Func<MethodInterceptionContext, IMethodSiteResultFactory, IMethodInterception> intercept );
 }
 ```
 
-The enumeration `MethodMatching` was named `InterceptedMethodMatching` in an earlier version of this design. Its members are unchanged.
+The methods `ExcludingOverrides` and `IncludingInterfaceImplementations` replace the flags enumeration `MethodMatching` of the earlier design, which was named `InterceptedMethodMatching` before that. `MethodMatching.Overrides` is the default chain. `Exact` is `ExcludingOverrides()`. `OverridesAndInterfaceImplementations` is `IncludingInterfaceImplementations()`. `InterfaceImplementations` alone is `ExcludingOverrides().IncludingInterfaceImplementations()`.
 
-A matching policy is necessary. The compiler binds `derived.M()` to the override declared by the static type (RC `CodeGen\EmitExpression.cs:1999-2008`), and it binds `stream.Dispose()` to the class method rather than to `IDisposable.Dispose`. The default is `Overrides` (RC17, decision PO6): a registration on `Stream.Write` then intercepts `fileStream.Write(...)`, which is the same logical method with virtual dispatch. Interface implementations are opt-in, because a call bound to a class method is not obviously a call to the interface. Name filtering in the index still works under every policy, because an override or an implicit implementation is called with the same simple name, and an explicit implementation can only be called through the interface method, whose name the registration states.
+A matching policy is necessary. The compiler binds `derived.M()` to the override declared by the static type (RC `CodeGen\EmitExpression.cs:1999-2008`), and it binds `stream.Dispose()` to the class method rather than to `IDisposable.Dispose`. By default, overrides match (RC17, decision PO6): a registration on `Stream.Write` then intercepts `fileStream.Write(...)`, which is the same logical method with virtual dispatch. Interface implementations are opt-in, because a call bound to a class method is not obviously a call to the interface. Name filtering in the index still works with every matching option, because an override or an implicit implementation is called with the same simple name, and an explicit implementation can only be called through the interface method, whose name the registration states.
 
-Targets are matched by definition. Durable references identify definitions, and the reference index normalizes references to `OriginalDefinition` (ENG26 `ReferenceGraph\ReferenceIndexBuilder.cs:20-21`). A provider that cares about a specific construction filters it and returns `InterceptorResult.Skip`.
+Targets are matched by definition. Durable references identify definitions, and the reference index normalizes references to `OriginalDefinition` (ENG26 `ReferenceGraph\ReferenceIndexBuilder.cs:20-21`). A delegate given to the `ForEachSite` method that cares about a specific construction filters it and returns `site.Skip()`.
 
 #### 5.3.4 Await registrations
+
+The await verb is not part of the fluent registration API of the row "Fluent registration API" of section [15.0](15-decisions.md#150-decisions-of-2026-10-02). This section keeps its earlier design, with `IAwaitInterceptorProvider` and the earlier result model, until milestone M5 revises it.
 
 An await registration has no target selection (decision PO58, RC58). Its scope is its only selection: every await expression of the scope that section [7.1](07-await-interception.md#71-which-await-sites-are-targets) accepts reaches the interceptor provider, whatever its awaitable type, including the awaits of custom awaitables. The verb has one shape on every surface (sections [5.3.6](#536-fabric-and-query-surface) to [5.3.8](#538-itypeamender-overloads)):
 
@@ -420,6 +413,8 @@ The following members of earlier versions are removed (RC58): the overloads that
 
 #### 5.3.5 Scope options
 
+> Superseded for `InterceptMethods` by the row "Fluent registration API" of section [15.0](15-decisions.md#150-decisions-of-2026-10-02) (2026-10-08): the call-site options are the methods `IncludingNestedTypes` and `ExcludingLambdas`, which come first on the root of the chain, for example `b => b.IncludingNestedTypes().ExcludingLambdas().Type( typeof(File) )`. `InterceptionScopeOptions` is internal. `IncludeGeneratedFiles` does not exist (decision PO12, rewritten on 2026-10-05). The enumeration below remains the earlier design of the accessor and await verbs.
+
 ```csharp
 /// <summary>Options that determine which code of a scope declaration is intercepted.</summary>
 [CompileTime]
@@ -447,7 +442,7 @@ A flags enumeration follows the precedent of `ReferenceValidationOptions` (P27 `
 
 #### 5.3.6 Fabric and query surface
 
-> Superseded in part by the decision "Interception contexts, method selector and implicit calls" of section 15.0 (2026-10-06): the intercepted methods are given by `MethodSelector` (`Named` and `AllMethodsOf`), and each surface has one overload per provider form.
+> Superseded in part by the row "Fluent registration API" of section [15.0](15-decisions.md#150-decisions-of-2026-10-02) (2026-10-08, metalama/Metalama#2141): `InterceptMethods` has one overload on `IQuery<T>` and one on `ITaggedQuery<T, TTag>`, each of which takes a `Func<IMethodInterceptionBuilder, IMethodInterception>`. The overloads that took a `MethodSelector` and an `IMethodInterceptorProvider`, and the factory and tagged-factory overloads, are removed. The code below gives the new method overloads. The accessor and await overloads keep their earlier design.
 
 Fabrics call these methods on their amender, because `IAmender<T>` derives from `IQuery<T>` (FW27 `Fabrics\IAmender.cs:63`). Aspects can call them on `IAspectBuilder<T>.Outbound` (FW27 `Aspects\IAspectBuilder.cs:240`).
 
@@ -455,19 +450,22 @@ Fabrics call these methods on their amender, because `IAmender<T>` derives from 
 namespace Metalama.Extensions.Interceptors;
 
 /// <summary>
-/// Provides extension methods that register interceptors. Each declaration selected by the query is a scope: the
-/// invocations, method references, property and event accesses, and await expressions located in its code are presented
-/// to the interceptor provider.
+/// Provides extension methods that register interceptors through a query. Each declaration selected by the query is a scope: the uses of
+/// the selected methods located in its code are intercepted.
 /// </summary>
 /// <remarks>
 /// <para>
-/// Registration only records the interceptor. Call sites are found later, in the source compilation, after all aspects
-/// and fabrics have run. Call sites in code introduced by aspects are never intercepted.
+/// Registration only records the interception. Sites are found later, in the source compilation, after all aspects and fabrics have run.
+/// Sites in code introduced by aspects are never intercepted.
 /// </para>
 /// <para>
-/// At most one interceptor can apply to a call site. When several registrations match the same call site, each
-/// interceptor is evaluated, and it is an error when more than one of them returns a result other than
-/// <see cref="InterceptorResult.Skip"/>.
+/// At most one interceptor can apply to a site. When several registrations match the same site, each one is evaluated, and it is an error
+/// when more than one of them returns a result other than <see cref="IMethodSiteResultFactory.Skip"/>.
+/// </para>
+/// <para>
+/// The selected methods are the same for every scope declaration. A result that depends on the scope declaration is chosen per site with
+/// <see cref="IMethodSelection.ForEachSite"/>, which reads <see cref="InterceptionContext.ScopeDeclaration"/> and, for a tagged query,
+/// <see cref="InterceptionContext.ScopeTag"/>.
 /// </para>
 /// </remarks>
 /// <seealso href="@intercepting-call-sites"/>
@@ -475,127 +473,31 @@ namespace Metalama.Extensions.Interceptors;
 [PublicAPI]
 public static class InterceptionQueryExtensions
 {
-    // Methods. Every overload of this group exists with four target selections, which have the same documentation:
-    // (Type declaringType, IReadOnlyList<string> names), (INamedType declaringType, IReadOnlyList<string> names),
-    // ([Durable] Func<INamedType, bool> declaringTypes, IReadOnlyList<string> names), and (Type declaringType, string name).
-    // Only the first selection is written out below.
-
     /// <summary>
-    /// Registers an interceptor provider for the uses of the methods that have one of the given names and that are declared
-    /// by a given type, in the code of each selected declaration.
+    /// Registers the interception of the uses of methods in the declarations selected by a query, described by a delegate.
     /// </summary>
     /// <param name="query">A query that selects the scope declarations.</param>
-    /// <param name="declaringType">The type that declares the intercepted methods. It is matched by definition, so
-    /// <c>typeof(List&lt;&gt;)</c> selects the methods of every construction of <c>List&lt;T&gt;</c>.</param>
-    /// <param name="names">The names of the intercepted methods. Every overload of each name is selected. At least one name
-    /// is required. The provider tests the signature and returns <see cref="InterceptorResult.Skip"/> for the overloads
-    /// that it does not intercept.</param>
-    /// <param name="provider">The interceptor provider, which is invoked once for each matching site and returns the
-    /// interceptor of that site.</param>
-    /// <param name="options">The matching policy and the scope options. When the value is <c>null</c>,
-    /// the default values of <see cref="MethodInterceptionOptions"/> apply.</param>
-    /// <exception cref="ArgumentException"><paramref name="names"/> is empty or contains a string that is not a valid C# identifier.</exception>
-    public static void InterceptMethods<TScope>(
-        this IQuery<TScope> query,
-        Type declaringType,
-        IReadOnlyList<string> names,
-        IMethodInterceptorProvider provider,
-        MethodInterceptionOptions? options = null )
+    /// <param name="build">A delegate that receives an <see cref="IMethodInterceptionBuilder"/>, selects the intercepted methods, chooses how the
+    /// calls are intercepted, and returns the resulting <see cref="IMethodInterception"/>. It is invoked once, before this method returns.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="build"/> is <c>null</c>.</exception>
+    /// <exception cref="ArgumentException">The delegate returned <c>null</c>, or a value that does not describe a complete interception.</exception>
+    /// <exception cref="InvalidOperationException">The delegate discarded a value that it created, or the project that executes the registration
+    /// does not reference the <c>Metalama.Extensions.Interceptors</c> package.</exception>
+    public static void InterceptMethods<TScope>( this IQuery<TScope> query, Func<IMethodInterceptionBuilder, IMethodInterception> build )
         where TScope : class, IDeclaration
-        => GetService( query ).Register(
-            query,
-            InterceptionRegistration.ForMethods(
-                TypeSelector.FromType( declaringType ),
-                ValidateNames( names ),
-                InterceptorDefinition.FromProvider( provider ),
-                options ?? new MethodInterceptionOptions() ) );
+        => InterceptionApiHelper.GetService( query.Project ).Register( query, InterceptionApiHelper.CreateRegistration( build ) );
 
     /// <summary>
-    /// Registers an interceptor provider for the uses of the methods that have one of the given names and whose declaring
-    /// type satisfies a predicate.
+    /// Registers the interception of the uses of methods in the declarations selected by a tagged query, described by a delegate. The tag of
+    /// each declaration is available to <see cref="IMethodSelection.ForEachSite"/> through <see cref="InterceptionContext.ScopeTag"/>.
     /// </summary>
-    /// <param name="declaringTypes">A predicate over type definitions. The engine evaluates it once per distinct declaring
-    /// type of a site whose name matches, and memoizes the result. It must be deterministic and thread-safe, and it must not
-    /// capture declarations or other objects of a compilation. The durability analyzer checks what a lambda expression
-    /// captures.</param>
-    public static void InterceptMethods<TScope>(
-        this IQuery<TScope> query,
-        [Durable] Func<INamedType, bool> declaringTypes,
-        IReadOnlyList<string> names,
-        IMethodInterceptorProvider provider,
-        MethodInterceptionOptions? options = null )
-        where TScope : class, IDeclaration;
-
-    /// <summary>Registers an interceptor provider, given as a delegate, for the uses of the selected methods.</summary>
-    /// <param name="getInterceptor">A method of the aspect or fabric, or a lambda expression. The durability analyzer
-    /// checks what a lambda expression captures.</param>
-    public static void InterceptMethods<TScope>(
-        this IQuery<TScope> query,
-        Type declaringType,
-        IReadOnlyList<string> names,
-        [Durable] Func<MethodInterceptionContext, InterceptorResult> getInterceptor,
-        MethodInterceptionOptions? options = null )
-        where TScope : class, IDeclaration;
-
-    /// <summary>Replaces the uses of the selected methods with uses of an existing method.</summary>
-    /// <param name="replacementMethod">The existing method. See <see cref="InterceptorResult.ExistingMethod"/> for the rules.</param>
-    /// <param name="bind">A function that binds the parameters of the existing method for each site (see
-    /// <see cref="IInterceptorMethodBinder"/>), or <c>null</c> for the canonical binding. The durability analyzer checks
-    /// what a lambda expression captures, because the registration stores the function.</param>
-    public static void InterceptMethods<TScope>(
-        this IQuery<TScope> query,
-        Type declaringType,
-        IReadOnlyList<string> names,
-        IMethod replacementMethod,
-        [Durable] Action<IInterceptorMethodBinder>? bind = null,
-        MethodInterceptionOptions? options = null )
-        where TScope : class, IDeclaration;
-
-    /// <summary>
-    /// Intercepts the uses of the selected methods with a method generated from a template. This is equivalent to an
-    /// interceptor that always returns <see cref="InterceptorResult.Template(in MethodTemplateSelector, InterceptorPlacement, Action{IInterceptorBuilder}?, object?, object?, TemplateProvider)"/>.
-    /// </summary>
-    /// <param name="template">The name of the template, or a <see cref="MethodTemplateSelector"/>. The template is resolved
-    /// on the aspect or fabric that owns the query.</param>
-    /// <param name="placement">The declaration in which the interceptor method is generated.</param>
-    /// <param name="configure">A function that adjusts the generated signature for each site, for example its name
-    /// (see <see cref="IInterceptorBuilder"/>), or <c>null</c>. The durability analyzer checks what a lambda
-    /// expression captures, because the registration stores the function.</param>
-    public static void InterceptMethods<TScope>(
-        this IQuery<TScope> query,
-        Type declaringType,
-        IReadOnlyList<string> names,
-        in MethodTemplateSelector template,
-        InterceptorPlacement placement,
-        [Durable] Action<IInterceptorBuilder>? configure = null,
-        MethodInterceptionOptions? options = null )
-        where TScope : class, IDeclaration;
-
-    /// <summary>Registers an interceptor provider created by a factory for each selected declaration.</summary>
-    public static void InterceptMethods<TScope, TProvider>(
-        this IQuery<TScope> query,
-        Type declaringType,
-        IReadOnlyList<string> names,
-        [Durable] Func<TScope, TProvider> createProvider,
-        MethodInterceptionOptions? options = null )
+    public static void InterceptMethods<TScope, TTag>( this ITaggedQuery<TScope, TTag> query, Func<IMethodInterceptionBuilder, IMethodInterception> build )
         where TScope : class, IDeclaration
-        where TProvider : class, IMethodInterceptorProvider;
+        => InterceptionApiHelper.GetService( query.Project ).Register( query, InterceptionApiHelper.CreateRegistration( build ) );
 
-    /// <summary>
-    /// Registers an interceptor provider created by a factory for each selected declaration. The factory receives the tag
-    /// of the declaration. The tag is consumed by the factory and is not exposed to the provider.
-    /// </summary>
-    public static void InterceptMethods<TScope, TTag, TProvider>(
-        this ITaggedQuery<TScope, TTag> query,
-        Type declaringType,
-        IReadOnlyList<string> names,
-        [Durable] Func<TScope, TTag, TProvider> createProvider,
-        MethodInterceptionOptions? options = null )
-        where TScope : class, IDeclaration
-        where TProvider : class, IMethodInterceptorProvider;
-
-    // Accessors (section 5.3.13). Every overload of the methods group has a twin named InterceptAccessors, with the same
-    // four target selections, and with a parameter MethodKind accessorKind after the names. For example:
+    // Accessors (section 5.3.13), earlier design. Every overload of the earlier methods group has a twin named
+    // InterceptAccessors, with four target selections, and with a parameter MethodKind accessorKind after the names.
+    // For example:
 
     /// <summary>
     /// Registers an interceptor provider for the uses of one accessor of the properties or events that have one of the given
@@ -617,7 +519,7 @@ public static class InterceptionQueryExtensions
         where TScope : class, IDeclaration;
 
     // Awaits. An await registration has no target selection: every await expression of the scope is presented to the
-    // provider (section 5.3.4). The factory overloads have the same documentation as the method overloads.
+    // provider (section 5.3.4). This part keeps the earlier design, until milestone M5 revises it.
 
     /// <summary>Registers an interceptor provider for the await expressions of the scope.</summary>
     /// <param name="provider">The interceptor provider, which is invoked once for each await expression of the scope and
@@ -678,19 +580,18 @@ public static class InterceptionQueryExtensions
 
 Notes on the parameters:
 
-- The factory and tagged-factory shapes are copied from `ValidateInboundReferences` (P27 `Metalama.Extensions.Validation\ReferenceValidationQueryExtensions.cs:64-79`). The tag is consumed at creation time, so the context needs no `Tag` property.
-- `[Durable]` on delegate parameters follows the existing precedents `SuppressionDefinition.WithFilter( [Durable] Func<...> )` (FW27 `Diagnostics\SuppressionDefinition.cs:85`) and `EligibilityExtensions.MustSatisfy( [Durable] Predicate<T>, ... )` (FW27 `Eligibility\EligibilityExtensions.cs:419-422`). The durability analyzer then checks each argument, including what a lambda captures. The type predicates of the member verbs are stored in the registration and evaluated in later compilations, so they carry `[Durable]` too.
+- The method overloads have no factory and no tagged-factory shape. The earlier design copied these shapes from `ValidateInboundReferences` (P27 `Metalama.Extensions.Validation\ReferenceValidationQueryExtensions.cs:64-79`). The engine finds the call sites by the name of the called method, so the selected methods must be fixed for each registration and cannot depend on the scope declaration. A result that depends on the scope declaration is chosen in the delegate given to the `ForEachSite` method, which reads `InterceptionContext.ScopeDeclaration` and, for a tagged query, `InterceptionContext.ScopeTag`. The await factories keep the earlier shapes, in which the tag is consumed at creation time.
+- `[Durable]` on delegate parameters follows the existing precedents `SuppressionDefinition.WithFilter( [Durable] Func<...> )` (FW27 `Diagnostics\SuppressionDefinition.cs:85`) and `EligibilityExtensions.MustSatisfy( [Durable] Predicate<T>, ... )` (FW27 `Eligibility\EligibilityExtensions.cs:419-422`). The durability analyzer then checks each argument, including what a lambda captures. The delegate given to `InterceptMethods` is not `[Durable]`, because it runs once, immediately. The delegates that it gives to the `Types`, `Where`, `ForEachSite` and `Configure` methods are stored in the registration and evaluated in later compilations, so these parameters carry `[Durable]`, and so do the `args` of `RedirectToExistingMethod` and the parameters of `WithArgs`, `WithTags` and `WithTemplateProvider`.
 - The declaring type given as a `Type` or an `INamedType` is stored as a durable reference to its definition (section [5.2](#52-seam-between-the-public-api-and-the-engine)). The names are stored as strings.
-- The options are records with default values, so that a later option does not add a parameter to every overload. `null` stands for the default values, because a default parameter value must be a compile-time constant.
-- The template shorthands take an optional `configure` function instead of a name, and the `IMethod` shorthands take an optional `bind` function (section [5.6.8](05b-api-providers-contexts-results.md#568-parameter-binding-and-the-signature-builder)). The registration stores the functions, so the parameters carry `[Durable]`, like the `getInterceptor` delegate. The functions themselves store nothing: they run once per call site in stage 1.
-- The template shorthands have no `args` and no `tags` parameter. Registrations are stored across compilations at design time, so these values would have to be `[Durable]`. The durability analyzer classifies anonymous types as not durable and would report LAMA0872 for `args: new { ... }`, which is the usual form of template arguments. A template that needs arguments or tags is returned by an interceptor provider, given as an object or a delegate, through `InterceptorResult.Template`, whose `args` and `tags` are not `[Durable]` because a result is consumed within one run.
-- `AwaitRewriteOptions` is `[Durable]` and contains no code-model type. The type returned by an interceptor in mode `Awaitable` is passed to `InterceptorResult.WithAwaitRewriteOptions` by an interceptor provider (section [5.6.1](05b-api-providers-contexts-results.md#561-interceptorresult)). The record was named `AwaitInterceptorOptions` in earlier versions. The third product-owner batch renamed it, because the name was too close to `AwaitInterceptionOptions`, which selects await expressions (RC53).
+- The options of a method registration are methods of the chain, so that a later option adds a method to one stage instead of a parameter to every overload. The options of the earlier accessor and await design are records with default values, for the same reason, and `null` stands for the default values, because a default parameter value must be a compile-time constant.
+- A synthesized method chosen on the chain takes its template arguments, tags, template provider, placement, granularity and `Configure` delegates from the methods of `ITemplateInterception`. The same methods apply to a result created in the delegate given to the `ForEachSite` method. The `args` object of `RedirectToExistingMethod` binds the parameters of an existing method by name (row "Explicit binding through arguments" of section [15.0](15-decisions.md#150-decisions-of-2026-10-02)).
+- `AwaitRewriteOptions` is `[Durable]` and contains no code-model type. The type returned by an interceptor in mode `Awaitable` is passed to `InterceptorResult.WithAwaitRewriteOptions` by an await interceptor provider, in the earlier design of the await verb (section [5.6.2](05b-api-providers-contexts-results.md#562-await-rewrite-options)). The record was named `AwaitInterceptorOptions` in earlier versions. The third product-owner batch renamed it, because the name was too close to `AwaitInterceptionOptions`, which selects await expressions (RC53).
 
-Overload resolution was checked shape by shape. The first parameter after the receiver is a `System.Type`, an `INamedType` or a delegate over `INamedType`, and these three types have no conversion between them, except the `null` literal, which is not a valid declaring type and which C# reports as ambiguous (CS0121). A string does not convert to `IReadOnlyList<string>`, so the overload with one name and the overload with a list never compete; a string array and a collection expression convert only to the list. A string converts to `MethodTemplateSelector` through its implicit operator (FW27 `Advising\MethodTemplateSelector.cs:174`), and does not convert to a provider interface, to `IMethod` or to a delegate. The await template shorthand takes a `string`, so no conversion to a selector happens for awaits (RC60). A method group whose parameter is a context type does not convert to `Func<TScope, TProvider>`, because `TScope` is a declaration type fixed by the receiver. `IMethod` is `[InternalImplement]`, so no user object implements both `IMethod` and a provider interface. `MethodKind` is an enumeration, so the accessor kind of `InterceptAccessors` does not compete with a provider form. The await verb has one overload per provider form, and a string, a provider interface, a delegate over `AwaitInterceptionContext` and a factory delegate over `TScope` do not convert to each other.
+Each surface has one `InterceptMethods` overload for each receiver type, so the method verb has no overload resolution question. The stages of the chain are distinct interfaces, and each method of a stage returns the interface of the next stage, so the compiler rejects a chain that skips a stage or chooses two results. The await verb has one overload per provider form, and a string, a provider interface, a delegate over `AwaitInterceptionContext` and a factory delegate over `TScope` do not convert to each other. The await template shorthand takes a `string`, so no conversion to a selector happens for awaits (RC60). `MethodKind` is an enumeration, so the accessor kind of `InterceptAccessors` does not compete with a provider form.
 
 #### 5.3.7 Aspect surface through IAdviser
 
-> Superseded in part by the decision "Interception contexts, method selector and implicit calls" of section 15.0 (2026-10-06): the intercepted methods are given by `MethodSelector` (`Named` and `AllMethodsOf`), and each surface has one overload per provider form.
+> Superseded in part by the row "Fluent registration API" of section [15.0](15-decisions.md#150-decisions-of-2026-10-02) (2026-10-08, metalama/Metalama#2141): `InterceptMethods` has one overload on `IAdviser<T>`, which takes a `Func<IMethodInterceptionBuilder, IMethodInterception>`. The code below gives the new method overload. The accessor and await overloads keep their earlier design.
 
 ```csharp
 namespace Metalama.Extensions.Interceptors;
@@ -711,67 +612,32 @@ namespace Metalama.Extensions.Interceptors;
 /// project is accepted.
 /// </para>
 /// <para>
-/// Template shorthands resolve templates with the current template provider of the adviser. They therefore honor
+/// A synthesized method whose template provider is not set with <see cref="ITemplateInterception.WithTemplateProvider"/> resolves its
+/// template with the current template provider of the adviser. It therefore honors
 /// <see cref="AdviserExtensions.WithTemplateProvider{TDeclaration}(IAdviser{TDeclaration}, ITemplateProvider)"/>.
-/// </para>
-/// <para>
-/// Each method of this class has the same parameters, and the same XML documentation, as the corresponding method of
-/// <see cref="InterceptionQueryExtensions"/>. The documentation is omitted below for brevity only.
 /// </para>
 /// </remarks>
 [CompileTime]
 [PublicAPI]
 public static class InterceptionAdviserExtensions
 {
-    // Methods: four provider forms (provider object, delegate, existing method, template shorthand), each with the four
-    // target selections of section 5.3.3. Only the first selection is written out.
-
-    public static void InterceptMethods<TScope>(
-        this IAdviser<TScope> adviser,
-        Type declaringType,
-        IReadOnlyList<string> names,
-        IMethodInterceptorProvider provider,
-        MethodInterceptionOptions? options = null )
+    /// <summary>
+    /// Registers the interception of the uses of methods, described by a delegate.
+    /// </summary>
+    /// <param name="adviser">An adviser whose target is the scope declaration.</param>
+    /// <param name="build">A delegate that receives an <see cref="IMethodInterceptionBuilder"/>, selects the intercepted methods, chooses how the
+    /// calls are intercepted, and returns the resulting <see cref="IMethodInterception"/>, for instance
+    /// <c>b =&gt; b.Type( typeof(Console) ).Methods( "WriteLine" ).RedirectToSynthesizedMethod( nameof(this.Log) )</c>. It is invoked once,
+    /// before this method returns.</param>
+    public static void InterceptMethods<TScope>( this IAdviser<TScope> adviser, Func<IMethodInterceptionBuilder, IMethodInterception> build )
         where TScope : class, IDeclaration
-        => GetService( adviser ).Register(
-            adviser,
-            InterceptionRegistration.ForMethods(
-                TypeSelector.FromType( declaringType ),
-                ValidateNames( names ),
-                InterceptorDefinition.FromProvider( provider ),
-                options ?? new MethodInterceptionOptions() ) );
+        => InterceptionApiHelper.GetService( adviser.Compilation.Project ).Register( adviser, InterceptionApiHelper.CreateRegistration( build ) );
 
-    public static void InterceptMethods<TScope>(
-        this IAdviser<TScope> adviser,
-        Type declaringType,
-        IReadOnlyList<string> names,
-        [Durable] Func<MethodInterceptionContext, InterceptorResult> getInterceptor,
-        MethodInterceptionOptions? options = null )
-        where TScope : class, IDeclaration;
+    // Accessors, earlier design: each overload of the earlier methods group has a twin named InterceptAccessors with a
+    // parameter MethodKind accessorKind after the names (section 5.3.13).
 
-    public static void InterceptMethods<TScope>(
-        this IAdviser<TScope> adviser,
-        Type declaringType,
-        IReadOnlyList<string> names,
-        IMethod replacementMethod,
-        [Durable] Action<IInterceptorMethodBinder>? bind = null,
-        MethodInterceptionOptions? options = null )
-        where TScope : class, IDeclaration;
-
-    public static void InterceptMethods<TScope>(
-        this IAdviser<TScope> adviser,
-        Type declaringType,
-        IReadOnlyList<string> names,
-        in MethodTemplateSelector template,
-        InterceptorPlacement placement,
-        [Durable] Action<IInterceptorBuilder>? configure = null,
-        MethodInterceptionOptions? options = null )
-        where TScope : class, IDeclaration;
-
-    // Accessors: each overload of the methods group has a twin named InterceptAccessors with a parameter
-    // MethodKind accessorKind after the names (section 5.3.13).
-
-    // Awaits: three provider forms (provider object, delegate, template shorthand), with no target selection (section 5.3.4).
+    // Awaits, earlier design: three provider forms (provider object, delegate, template shorthand), with no target selection
+    // (section 5.3.4).
 
     public static void InterceptAwaits<TScope>(
         this IAdviser<TScope> adviser,
@@ -807,28 +673,24 @@ No factory overload exists on `IAdviser<T>`, because an adviser has a single tar
 
 #### 5.3.8 ITypeAmender overloads
 
-> Superseded in part by the decision "Interception contexts, method selector and implicit calls" of section 15.0 (2026-10-06): the intercepted methods are given by `MethodSelector` (`Named` and `AllMethodsOf`), and each surface has one overload per provider form.
+> Superseded in part by the row "Fluent registration API" of section [15.0](15-decisions.md#150-decisions-of-2026-10-02) (2026-10-08, metalama/Metalama#2141): `InterceptMethods` has one `ITypeAmender` overload, which takes the registration delegate and routes to the query path. The accessor and await overloads keep their earlier design.
 
-EXISTING: `ITypeAmender` implements both `IAmender<INamedType>`, which is an `IQuery<INamedType>`, and `IAdviser<INamedType>` (FW27 `Fabrics\ITypeAmender.cs:34`). A call such as `amender.InterceptMethods( typeof(File), ["ReadAllText"], provider )` would find two candidates with equally good receiver conversions (CS0121). The framework solves the same problem for `AddAspect` with `ITypeAmender` overloads (FW27 `Aspects\AdviserExtensions.cs:1944-1967`).
+EXISTING: `ITypeAmender` implements both `IAmender<INamedType>`, which is an `IQuery<INamedType>`, and `IAdviser<INamedType>` (FW27 `Fabrics\ITypeAmender.cs:34`). A call such as `amender.InterceptMethods( b => b.Type( typeof(File) ).Methods( "ReadAllText" ).ForEachSite( Intercept ) )` would find two candidates with equally good receiver conversions (CS0121). The framework solves the same problem for `AddAspect` with `ITypeAmender` overloads (FW27 `Aspects\AdviserExtensions.cs:1944-1967`).
 
-PROPOSED: one overload for each shape that exists on both surfaces. `InterceptMethods` and `InterceptAccessors` have four provider forms and four target selections each (32 overloads), and `InterceptAwaits` has three provider forms and no target selection (3 overloads), which gives 35 overloads. Earlier versions had four type selections for awaits and 44 overloads (RC58). They route to the query path, so the fabric is the owner and the default template provider.
+PROPOSED: one overload for each shape that exists on both surfaces. `InterceptMethods` has one overload. In the earlier design, `InterceptAccessors` has four provider forms and four target selections (16 overloads), and `InterceptAwaits` has three provider forms and no target selection (3 overloads). Earlier versions had 16 overloads of `InterceptMethods`, four type selections for awaits and 44 overloads in total (RC58). The overloads route to the query path, so the fabric is the owner and the default template provider.
 
 ```csharp
+    /// <summary>
+    /// Registers the interception of the uses of methods, described by a delegate. The scope declaration is the type of the fabric.
+    /// </summary>
     /// <remarks>
     /// This overload resolves the ambiguity between the <see cref="IAdviser{T}"/> and <see cref="IQuery{T}"/> overloads
-    /// for <see cref="ITypeAmender"/>, which implements both interfaces.
+    /// for <see cref="ITypeAmender"/>, which implements both interfaces. The registration is made through the query.
     /// </remarks>
-    public static void InterceptMethods( this ITypeAmender amender, Type declaringType, IReadOnlyList<string> names, IMethodInterceptorProvider provider, MethodInterceptionOptions? options = null )
-        => ((IQuery<INamedType>) amender).InterceptMethods( declaringType, names, provider, options );
+    public static void InterceptMethods( this ITypeAmender amender, Func<IMethodInterceptionBuilder, IMethodInterception> build )
+        => InterceptionQueryExtensions.InterceptMethods<INamedType>( amender, build );
 
-    public static void InterceptMethods( this ITypeAmender amender, Type declaringType, IReadOnlyList<string> names, [Durable] Func<MethodInterceptionContext, InterceptorResult> getInterceptor, MethodInterceptionOptions? options = null );
-
-    public static void InterceptMethods( this ITypeAmender amender, Type declaringType, IReadOnlyList<string> names, IMethod replacementMethod, [Durable] Action<IInterceptorMethodBinder>? bind = null, MethodInterceptionOptions? options = null );
-
-    public static void InterceptMethods( this ITypeAmender amender, Type declaringType, IReadOnlyList<string> names, in MethodTemplateSelector template, InterceptorPlacement placement, [Durable] Action<IInterceptorBuilder>? configure = null, MethodInterceptionOptions? options = null );
-
-    // The same four forms with (INamedType, IReadOnlyList<string>), ([Durable] Func<INamedType, bool>, IReadOnlyList<string>)
-    // and (Type, string); and the same sixteen overloads named InterceptAccessors, with MethodKind accessorKind after the names.
+    // Earlier design: sixteen overloads named InterceptAccessors, with MethodKind accessorKind after the names.
 
     public static void InterceptAwaits( this ITypeAmender amender, IAwaitInterceptorProvider provider, AwaitInterceptionOptions? options = null );
 
@@ -837,14 +699,15 @@ PROPOSED: one overload for each shape that exists on both surfaces. `InterceptMe
     public static void InterceptAwaits( this ITypeAmender amender, string template, InterceptorPlacement placement, [Durable] Action<IInterceptorBuilder>? configure = null, AwaitRewriteOptions? rewriteOptions = null, AwaitInterceptionOptions? options = null );
 ```
 
-The factory overloads need no `ITypeAmender` variant, because only the query surface declares them.
+The await factory overloads need no `ITypeAmender` variant, because only the query surface declares them.
 
 #### 5.3.9 Registration rules
 
 Timing:
 
 - Registration is accepted only while the owner is active: during `BuildAspect`, `AmendProject`, `AmendNamespace` or `AmendType`. A registration through an adviser after `BuildAspect` returns throws `InvalidOperationException`, because the engine calls `ThrowIfDisposed` on the adviser context (section [10.2](10a-oss-bridge-hook-factory.md#102-adviser-bridge-b2a)). A registration through `builder.Outbound` after `BuildAspect` is silently lost today, because `AspectBuilderState.AddContributor` adds to a list that `ToResult` has already read (ENG27 `Aspects\AspectBuilderState.cs:78-101`). Open-source fix F12 makes it throw.
-- A call from inside an interceptor provider or from a template throws `InvalidOperationException`.
+- A call from inside an interceptor provider, from a delegate given to the `ForEachSite` or `Configure` method, or from a template throws `InvalidOperationException`.
+- The delegate given to `InterceptMethods` runs once, before `InterceptMethods` returns. The delegates that it passes to the `Types`, `Where`, `ForEachSite` and `Configure` methods are stored with the registration and run later, in the engine.
 - Interceptors registered by an aspect whose outcome is Error or Ignore are discarded (ENG26 `Pipeline\ExecuteAspectLayerPipelineStep.cs:137-147`). This is documented behavior, not a diagnostic.
 - An aspect that runs in a later high-level stage, after a low-level weaver, cannot register interceptors. The engine reports LAMA1007.
 
@@ -858,23 +721,25 @@ Argument validation (synchronous exceptions):
 
 | Condition | Exception |
 |---|---|
-| A required argument is null, including a declaring type, a type predicate, a name and a template name. | `ArgumentNullException` |
-| The list of names is empty. | `ArgumentException` |
+| A required argument is null, including the registration delegate, a declaring type, a type predicate, a method predicate, a name, a template name and a delegate given to the `ForEachSite` or `Configure` method. | `ArgumentNullException` |
+| The list of names is empty, or `AllMethods` selects no method that can be intercepted. | `ArgumentException` |
 | A name is not a valid C# identifier. | `ArgumentException` |
 | The accessor kind of `InterceptAccessors` is not `PropertyGet`, `PropertySet`, `EventAdd` or `EventRemove`. | `ArgumentException` |
 | A `Type` cannot be resolved in the current compilation by `TypeFactory.GetNamedType`. | The exception of `TypeFactory.GetNamedType`, which propagates to the caller. |
+| The registration delegate returns `null`, or a value that does not select the intercepted methods and choose a result. | `ArgumentException` |
+| The registration delegate creates a value that is not part of the returned chain, or creates more than 64 values. | `InvalidOperationException` |
 | Registration outside the active period of the owner. | `InvalidOperationException` |
 
-The type predicates are not invoked during the registration call. An exception thrown later by a type predicate is reported by the engine (section [9.5.5](09-premium-engine.md#955-target-matching)).
+The type predicates and the method predicates are not invoked during the registration call. An exception thrown later by a type predicate is reported by the engine (section [9.5.5](09-premium-engine.md#955-target-matching)).
 
-Delegate rules (RC33). Every delegate may be a method of the aspect or fabric, or a lambda expression: the `getInterceptor` delegate, the factories, the `configure` function of the template shorthands, and the type predicates of the member verbs. Their parameters carry `[Durable]`, so the durability analyzer checks what a lambda captures at the point where it is written (LAMA0878). An earlier version of this design required an `interceptMethod` delegate to point to a uniquely named method of the owner type, so that a manifest could rebuild it by name, as transitive validators do (P27 `Metalama.Extensions.Validation.Engine\TransitiveValidatorInstance.cs:85-88`). Registrations are never serialized in version 1 (section [5.4](05b-api-providers-contexts-results.md#54-interceptor-provider-interfaces)), so the rule is removed.
+Delegate rules (RC33). Every stored delegate may be a method of the aspect or fabric, or a lambda expression: the delegate given to the `ForEachSite` method, the delegates given to the `Configure` method, the type predicates given to the `Types` method, the method predicates given to the `Where` method, and, in the earlier design of the accessor and await verbs, the `getInterceptor` delegate, the factories and the `configure` function of the template shorthands. Their parameters carry `[Durable]`, so the durability analyzer checks what a lambda captures at the point where it is written (LAMA0878). An earlier version of this design required an `interceptMethod` delegate to point to a uniquely named method of the owner type, so that a manifest could rebuild it by name, as transitive validators do (P27 `Metalama.Extensions.Validation.Engine\TransitiveValidatorInstance.cs:85-88`). Registrations are never serialized in version 1 (section [5.4](05b-api-providers-contexts-results.md#54-interceptor-provider-interfaces)), so the rule is removed.
 
 #### 5.3.10 Default template provider
 
-A template result or a template shorthand can omit the template provider. The provider is then chosen in this order:
+A synthesized method, or a template shorthand of the earlier await design, can omit the template provider. The provider is then chosen in this order:
 
-1. The provider given explicitly in the result (`TemplateInvocation.TemplateProvider` or the `templateProvider` parameter).
-2. The provider object, when the interceptor provider is a class instance (not a delegate) that implements `ITemplateProvider`.
+1. The provider given explicitly: the `WithTemplateProvider` method of `ITemplateInterception`, `TemplateInvocation.TemplateProvider`, or the `templateProvider` parameter of the earlier await design.
+2. In the earlier await design only, the provider object, when the interceptor provider is a class instance (not a delegate) that implements `ITemplateProvider`. A method registration has no provider object, so this rule does not apply to it.
 3. The default provider of the registration. On the adviser surface, this is the current template provider of the adviser, so `WithTemplateProvider` is honored (FW27 `Aspects\AdviserExtensions.cs:2052-2073`). On the query surface, this is the aspect or the fabric that owns the query. Both `IAspect` and `Fabric` implement `ITemplateProvider` (FW27 `Aspects\IAspect.cs:48`; `Fabrics\Fabric.cs:45`).
 
 Rule 2 excludes delegates, because the target of a delegate is the aspect, and rule 2 would otherwise ignore `WithTemplateProvider`.
@@ -899,22 +764,18 @@ var b = list.Select( Transform );             // The method group is a method-re
 
 > Superseded in part by the decision "Provider factories, event subscriptions as a use kind, and the call-site member" of section 15.0 (2026-10-06): a method group added to an event has the use kind `EventSubscription`, and a method group removed from an event has the use kind `EventUnsubscription`, instead of `DelegateCreation` (the decision "Conflicts per registration and event unsubscriptions" of section 15.0 (2026-10-06)), and `ConvertedType` and `IsEventSubscription` are removed with `IMethodReference`.
 
-A registration that intercepts `Transform` intercepts both statements, so both programs keep the same behavior. The default is therefore the sound behavior, and a provider that does not want a kind of use skips it:
+A registration that intercepts `Transform` intercepts both statements, so both programs keep the same behavior. The default is therefore the sound behavior, and a delegate given to the `ForEachSite` method skips a kind of use that it does not want:
 
 ```csharp
-internal sealed class TransformProvider : IMethodInterceptorProvider
-{
-    public InterceptorResult GetInterceptor( MethodInterceptionContext context )
-    {
-        // This provider must not change the identity of event handlers, so it leaves subscriptions unchanged.
-        if ( context.UseKind is MethodUseKind.EventSubscription or MethodUseKind.EventUnsubscription )
-        {
-            return InterceptorResult.Skip;
-        }
+amender.InterceptMethods( b => b
+    .Type( typeof(Transforms) ).Methods( nameof(Transforms.Transform) )
+    .ForEachSite(
+        ( context, site ) =>
 
-        return InterceptorResult.Template( "LogTransform", InterceptorPlacement.GeneratedStaticClass() );
-    }
-}
+            // This registration must not change the identity of event handlers, so it leaves subscriptions unchanged.
+            context.UseKind is MethodUseKind.EventSubscription or MethodUseKind.EventUnsubscription
+                ? site.Skip()
+                : site.RedirectToSynthesizedMethod( "LogTransform" ).WithPlacement( InterceptorPlacement.GeneratedStaticClass() ) ) );
 ```
 
 Rules:
@@ -979,9 +840,13 @@ The reasons of the third batch for option 7:
 3. The provider already receives the constructed method and filters signatures, so a predicate over members duplicates what the provider does.
 4. The shared index does not need a shared predicate language: every extension states its requirements as `ReferenceIndexerRequirements`. Without predicates, the extraction of `Metalama.Extensions.References` and its breaking changes have no purpose (RC47).
 
+The row "Fluent registration API" of section [15.0](15-decisions.md#150-decisions-of-2026-10-02) (2026-10-08) added the `Where` method, a `[Durable]` predicate over the method definitions that the names select. It does not replace the names, which remain the filter of the index. It lets a registration keep one overload without a delegate per site, which reason 3 above required.
+
 #### 5.3.13 Accessors
 
-`InterceptAccessors` intercepts the uses of one accessor of properties and events (decision PO53, RC48). It has the four target selections of section [5.3.3](#533-target-selection-for-members) and every provider form of `InterceptMethods`, and it takes a mandatory `MethodKind accessorKind` after the names:
+The accessor verb is not part of the fluent registration API of the row "Fluent registration API" of section [15.0](15-decisions.md#150-decisions-of-2026-10-02). This section keeps its earlier design, with `IMethodInterceptorProvider`, `MethodInterceptionOptions` and `MethodMatching`, until milestone M2 revises it.
+
+`InterceptAccessors` intercepts the uses of one accessor of properties and events (decision PO53, RC48). It has the four target selections of the earlier design of section [5.3.3](#533-target-selection-for-members) and every provider form of the earlier design of `InterceptMethods`, and it takes a mandatory `MethodKind accessorKind` after the names:
 
 ```csharp
 InterceptAccessors( Type declaringType, IReadOnlyList<string> names, MethodKind accessorKind, <provider form>, MethodInterceptionOptions? options = null )

@@ -127,7 +127,7 @@ Remarks on the table:
 - Under R3, `order?.Total( false )` cannot be rewritten, because a conditional access needs R1x or R2. The engine reports LAMA1015 for this site.
 - Under R2 and R4, the receiver is the `this` of the interceptor, so `Parameters` has no receiver parameter, and `InterceptorArgument.Receiver` is not available.
 
-Permitted overrides of `IInterceptorBuilder.ReceiverMapping` and `IsStatic`:
+Permitted overrides of the receiver mapping and of `IsStatic`. In the earlier design, `IInterceptorBuilder.ReceiverMapping` and `IsStatic` requested them. Since the row "Fluent registration API" of section [15.0](15-decisions.md#150-decisions-of-2026-10-02), `IInterceptorMethodBuilder.ReceiverMapping` is read-only, and a delegate given to the `Configure` method requests an override through `IInterceptorMethodBuilder.Method.IsStatic`:
 
 | Default | Request | Result |
 |---|---|---|
@@ -164,20 +164,16 @@ public static class Telemetry
     }
 }
 
-// In the provider, for the site order.Total( true ).
-return InterceptorResult.ExistingMethod(
+// In the delegate given to the ForEachSite method, for the site order.Total( true ).
+return site.RedirectToExistingMethod(
     trackMethod,
-    m =>
-    {
-        m.Parameters["target"].Bind( InterceptorArgument.Receiver );
-        m.Parameters["operation"].Bind( InterceptorArgument.CallerInfo( CallerInfoKind.MemberName ) );
-    } );
+    new { target = context.Receiver.Expression, operation = context.CallSite.Member.Name } );
 
 // Rewritten site in OrderService.Process.
 var gross = Telemetry.Track( "Process", order, true );
 ```
 
-`Track` is static and the site has a receiver, so the mapping is `StaticReceiverParameter`, and the canonical binding would give the receiver to the first parameter. The function binds it to `target` instead. `withTax` binds to the argument of the same name. The constant `"Process"` has no side effect, and `order` and `true` keep their order, so no temporary is needed. `Track` returns `decimal`, which the site needs, because the value of `order.Total( true )` is used. The site `order?.Total( false )` cannot use `Track`, because a conditional access needs an extension method or R2 (E8); a provider skips it when `context.IsConditionalAccess` is `true`.
+`Track` is static and the site has a receiver, so the mapping is `StaticReceiverParameter`, and the canonical binding would give the receiver to the first parameter. The `args` object binds it to `target` instead, and binds `operation` to the name of the calling member. `withTax` binds to the argument of the same name. The constant `"Process"` has no side effect, and `order` and `true` keep their order, so no temporary is needed. `Track` returns `decimal`, which the site needs, because the value of `order.Total( true )` is used. The site `order?.Total( false )` cannot use `Track`, because a conditional access needs an extension method or R2 (E8); the delegate given to the `ForEachSite` method skips it when `context.Receiver.IsConditionalAccess` is `true`.
 
 Accessor sites follow the same tables, with the property or event access in place of the call (section [6.4.13](#6413-accessor-sites)). Await sites always report `None`, because an await has no receiver, and the awaited operand is bound through `InterceptorArgument.Awaitable`.
 
@@ -299,7 +295,7 @@ public sealed class OrderService : ServiceBase
    }
    ```
 
-5. R3, instance interceptor in the calling type with a receiver of another type. Placement `CallingType()` with `configure: b => b.IsStatic = false`, call `this._bus.Publish( order )` in `OrderService.Submit`. `IMessageBus` is not in the hierarchy of `OrderService`, so R2 does not apply.
+5. R3, instance interceptor in the calling type with a receiver of another type. Placement `CallingType()` with `.Configure( m => m.Method.IsStatic = false )`, call `this._bus.Publish( order )` in `OrderService.Submit`. `IMessageBus` is not in the hierarchy of `OrderService`, so R2 does not apply.
 
    ```csharp
    this.Publish_Interceptor( this._bus, order );
@@ -487,7 +483,7 @@ Constraint copying is exact. `T?` means `Nullable<T>` only under a struct constr
 
 #### 6.4.8 Signature adjustments of the builder
 
-The static, instance, readonly and extension-form rules, and the accessibility rules, are part of the receiver mapping (section [6.4.1](#641-receiver-mapping)). This section states how the adjustments and the bindings of an `IInterceptorBuilder` (sections [5.6.8](05b-api-providers-contexts-results.md#568-parameter-binding-and-the-signature-builder) and [5.6.9](05b-api-providers-contexts-results.md#569-added-parameters-and-pulled-values)) change the results of sections [6.4.1](#641-receiver-mapping) to [6.4.10](#6410-rewrite-plan). The bindings of an `IInterceptorMethodBinder` change only the rewrite plan.
+The static, instance, readonly and extension-form rules, and the accessibility rules, are part of the receiver mapping (section [6.4.1](#641-receiver-mapping)). This section states how the adjustments and the bindings of an `IInterceptorBuilder` of the earlier design, whose adjustments `IInterceptorMethodBuilder` now makes (sections [5.6.8](05b-api-providers-contexts-results.md#568-parameter-binding-and-the-signature-builder) and [5.6.9](05b-api-providers-contexts-results.md#569-added-parameters-and-pulled-values)) change the results of sections [6.4.1](#641-receiver-mapping) to [6.4.10](#6410-rewrite-plan). The bindings of an `IInterceptorMethodBinder` change only the rewrite plan.
 
 | Adjustment | Signature | Rewrite plan | Proceed shape |
 |---|---|---|---|
@@ -630,20 +626,20 @@ internal sealed record InterceptorParameter(
     TypedConstant? DefaultValue,
     InterceptorParameterRole Role,                   // Internal enumeration: Receiver, TargetParameter or Added.
     int TargetParameterOrdinal,                      // -1 for the receiver and for added parameters.
-    SignatureType? OriginalType,                     // The derived type when the configure function widened it; otherwise null.
+    SignatureType? OriginalType,                     // The derived type when a Configure delegate widened it; otherwise null.
     ImmutableArray<AttributeCopy> Attributes );      // The source of an added parameter is site data, in the rewrite plan.
 
 internal static class InterceptorSignatureBuilder
 {
     /// <summary>
     /// Derives the signature, the rewrite plan and the proceed shape for a call site in an admissible placement, invokes
-    /// the configure function on an InterceptorBuilder, applies its adjustments and bindings (section 6.4.8), and
+    /// the Configure delegates on a TemplateInterceptorBuilder, applies their adjustments (section 6.4.8), and
     /// validates the result with InterceptorSignatureValidator (section 6.6).
     /// </summary>
     public static InterceptorPlanResult Build(
         InvocationCallSite callSite,
         AdmissiblePlacement placement,
-        Action<IInterceptorBuilder>? configure,
+        ImmutableArray<Action<IInterceptorMethodBuilder>> configure,
         SemanticModel semanticModel,
         CancellationToken cancellationToken );
 
