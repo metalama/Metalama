@@ -207,7 +207,7 @@ public static class Telemetry
 }
 
 // Delegate given to ForEachSite. The Proceed source is the subject of this section.
-return site.RedirectToExistingMethod( measureMethod, new { proceed = InterceptorArgument.Proceed } );
+return site.RedirectToExistingMethod( measureMethod ).WithArgs( new { proceed = InterceptorArgument.Proceed } );
 
 // Site in OrderService.Process.
 gross = order.Total( true );

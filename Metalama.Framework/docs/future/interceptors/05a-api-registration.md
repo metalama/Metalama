@@ -775,7 +775,7 @@ amender.InterceptMethods( b => b
             // This registration must not change the identity of event handlers, so it leaves subscriptions unchanged.
             site.UseKind is MethodUseKind.EventSubscription or MethodUseKind.EventUnsubscription
                 ? site.Skip()
-                : site.RedirectToSynthesizedMethod( "LogTransform" ).WithPlacement( InterceptorPlacement.GeneratedStaticClass() ) ) );
+                : site.RedirectToSynthesizedMethod( "LogTransform" ).PlaceInStaticClass() ) );
 ```
 
 Rules:

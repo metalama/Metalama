@@ -28,7 +28,7 @@ internal sealed class LogFileAccessFabric : ProjectFabric
         amender.InterceptMethods( b => b
             .Type( typeof(File) ).Methods( nameof(File.ReadAllText), nameof(File.WriteAllText) )
             .RedirectToSynthesizedMethod( nameof(this.LogFileAccess) )
-            .WithPlacement( InterceptorPlacement.CallingType() ) );
+            .PlaceInCallingType() );
     }
 
     [Template]
@@ -91,7 +91,7 @@ public sealed class OrderArchive
 }
 ```
 
-What it shows: the query surface, a declaring type with two method names, a synthesized method chosen once for every call site, a placement set with the `WithPlacement` method, a static interceptor in the calling type, parameter names copied from the intercepted method, and two call sites of `ReadAllText` that share one method.
+What it shows: the query surface, a declaring type with two method names, a synthesized method chosen once for every call site, a placement set with the `PlaceInCallingType` method, a static interceptor in the calling type, parameter names copied from the intercepted method, and two call sites of `ReadAllText` that share one method.
 
 #### Sample 2. Namespace fabric: replace static methods for testability
 
@@ -149,7 +149,7 @@ internal sealed class TestabilityFabric : NamespaceFabric
 
         return site.RedirectToSynthesizedMethod( nameof(UseHook) )
             .WithArgs( new { hook } )
-            .WithPlacement( InterceptorPlacement.InType( hooks ) );
+            .PlaceInType( hooks );
     }
 
     [Template]
@@ -466,7 +466,7 @@ public sealed class PropagateCancellationAttribute : MethodAspect
             .Type( typeof(Task) ).Methods( nameof(Task.Delay) )
             .Where( m => m.Parameters.Count == 1 )
             .RedirectToSynthesizedMethod( nameof(this.DelayWithCallerToken) )
-            .WithPlacement( InterceptorPlacement.LocalFunction() ) );
+            .PlaceInLocalFunction() ); // Added when the local function placement is implemented.
     }
 
     [Template]
@@ -598,7 +598,7 @@ public sealed class AuditPublishedMessagesAttribute : TypeAspect
         builder.InterceptMethods( b => b
             .Type( typeof(IMessageBus) ).Methods( nameof(IMessageBus.Publish) )
             .RedirectToSynthesizedMethod( nameof(this.AuditPublish) )
-            .WithPlacement( InterceptorPlacement.CallingType() )
+            .PlaceInCallingType()
             .Configure( m => m.Method.IsStatic = false ) );
     }
 
@@ -645,7 +645,7 @@ internal sealed class AuditFabric : ProjectFabric
             .InterceptMethods( b => b
                 .Type( typeof(IMessageBus) ).Methods( nameof(IMessageBus.Publish) )
                 .RedirectToSynthesizedMethod( nameof(this.AuditPublish) )
-                .WithPlacement( InterceptorPlacement.InType( typeof(ServiceBase) ) )
+                .PlaceInType( typeof(ServiceBase) )
                 .Configure( m => m.Method.IsStatic = false ) );
     }
 
@@ -839,7 +839,7 @@ public sealed class StorageFabric : TransitiveProjectFabric
         amender.InterceptMethods( b => b
             .Type( typeof(BlobClient) ).Methods( nameof(BlobClient.Upload) )
             .RedirectToSynthesizedMethod( nameof(this.TrackUpload) )
-            .WithPlacement( InterceptorPlacement.CallingType() ) );
+            .PlaceInCallingType() );
     }
 
     [Template]

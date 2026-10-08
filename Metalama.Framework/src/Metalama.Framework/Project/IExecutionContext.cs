@@ -56,6 +56,12 @@ namespace Metalama.Framework.Project
         IMetaApi? MetaApi { get; }
 
         IExpressionHelper ExpressionHelper { get; }
+
+        /// <summary>
+        /// Gets the type of the <c>this</c> expression that <see cref="Code.SyntaxBuilders.ExpressionFactory.This()"/> returns, or <c>null</c> when
+        /// the context defines no such type.
+        /// </summary>
+        INamedType? ThisType { get; }
     }
 
     internal interface IExpressionHelper

@@ -166,7 +166,7 @@ public static class Telemetry
 
 // In the delegate given to the ForEachSite method, for the site order.Total( true ).
 return site.RedirectToExistingMethod(
-    trackMethod,
+    trackMethod ).WithArgs(
     new { target = site.Receiver.Expression, operation = site.Caller.Member.Name } );
 
 // Rewritten site in OrderService.Process.

@@ -5,6 +5,7 @@
 using JetBrains.Annotations;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
+using Metalama.Framework.Code.SyntaxBuilders;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Diagnostics;
@@ -41,6 +42,11 @@ public class UserCodeExecutionContext : IExecutionContextInternal
     private readonly INamedType? _targetType;
     private readonly ImmutableArray<SyntaxTree>? _sourceTrees;
     private readonly ISyntaxBuilderImpl? _syntaxBuilder;
+
+    /// <summary>
+    /// The type of the <c>this</c> expression that <see cref="ExpressionFactory.This()"/> returns, when the context defines it explicitly.
+    /// </summary>
+    private readonly INamedType? _thisType;
 
     private bool _collectDependencyDisabled;
 
@@ -147,7 +153,8 @@ public class UserCodeExecutionContext : IExecutionContextInternal
         ISyntaxBuilderImpl? syntaxBuilder = null,
         MetaApi? metaApi = null,
         IDiagnosticAdder? diagnostics = null,
-        ImmutableArray<SyntaxTree> sourceTrees = default ) : this(
+        ImmutableArray<SyntaxTree> sourceTrees = default,
+        INamedType? thisType = null ) : this(
         serviceProvider,
         description,
         compilationModel.CompilationContext,
@@ -157,7 +164,8 @@ public class UserCodeExecutionContext : IExecutionContextInternal
         syntaxBuilder,
         metaApi,
         diagnostics,
-        sourceTrees ) { }
+        sourceTrees,
+        thisType: thisType ) { }
 
     public static UserCodeExecutionContext CreateInstance(
         ProjectServiceProvider serviceProvider,
@@ -181,13 +189,16 @@ public class UserCodeExecutionContext : IExecutionContextInternal
     /// <param name="compilation">The compilation that the user code sees.</param>
     /// <param name="diagnostics">The sink of the diagnostics, including the exceptions of the user code.</param>
     /// <param name="targetDeclaration">The declaration on which an exception of the user code is reported.</param>
+    /// <param name="thisType">The type of the <c>this</c> expression that <see cref="ExpressionFactory.This()"/> returns in the user code, or
+    /// <c>null</c> when the user code has no <c>this</c>.</param>
     public static UserCodeExecutionContext CreateInstance(
         ProjectServiceProvider serviceProvider,
         UserCodeDescription description,
         CompilationModel compilation,
         IDiagnosticAdder? diagnostics,
-        IDeclaration targetDeclaration )
-        => new( serviceProvider, description, compilation, targetDeclaration: targetDeclaration, diagnostics: diagnostics );
+        IDeclaration targetDeclaration,
+        INamedType? thisType = null )
+        => new( serviceProvider, description, compilation, targetDeclaration: targetDeclaration, diagnostics: diagnostics, thisType: thisType );
 
     /// <summary>
     /// Creates a <see cref="UserCodeExecutionContext"/> that inherits nothing from the context that happens to be
@@ -249,7 +260,8 @@ public class UserCodeExecutionContext : IExecutionContextInternal
         MetaApi? metaApi = null,
         IDiagnosticAdder? diagnostics = null,
         ImmutableArray<SyntaxTree> sourceTrees = default,
-        bool throwOnUnsupportedDependencies = false )
+        bool throwOnUnsupportedDependencies = false,
+        INamedType? thisType = null )
     {
         var current = CurrentOrNull;
         this.Description = description;
@@ -261,6 +273,7 @@ public class UserCodeExecutionContext : IExecutionContextInternal
         this._dependencyCollector = serviceProvider.GetService<IDependencyCollector>();
         this._targetType = targetDeclaration?.GetTopmostNamedType();
         this.MetaApi = metaApi ?? current?.MetaApi;
+        this._thisType = thisType ?? (metaApi == null ? current?._thisType : null);
         this._diagnosticAdder = diagnostics ?? current?._diagnosticAdder;
         this._throwOnUnsupportedDependencies = throwOnUnsupportedDependencies;
         this._sourceTrees = sourceTrees;
@@ -283,6 +296,7 @@ public class UserCodeExecutionContext : IExecutionContextInternal
         this.CompilationContext = prototype.CompilationContext;
         this._syntaxBuilder = prototype._syntaxBuilder;
         this.MetaApi = prototype.MetaApi;
+        this._thisType = prototype._thisType;
     }
 
     private UserCodeExecutionContext( UserCodeExecutionContext prototype, UserCodeDescription description ) : this( prototype )
@@ -305,6 +319,7 @@ public class UserCodeExecutionContext : IExecutionContextInternal
             this.Compilation = compilation;
             this.CompilationContext = compilation.CompilationContext;
             this.TargetDeclaration = prototype.TargetDeclaration?.ForCompilation( compilation );
+            this._thisType = prototype._thisType?.ForCompilation( compilation );
             this._syntaxBuilder = GetSyntaxBuilder( compilation, this.TargetDeclaration, this.ServiceProvider, this._syntaxBuilder );
         }
     }
@@ -378,6 +393,9 @@ public class UserCodeExecutionContext : IExecutionContextInternal
     ISyntaxBuilderImpl? IExecutionContextInternal.SyntaxBuilder => this._syntaxBuilder;
 
     IMetaApi? IExecutionContextInternal.MetaApi => this.MetaApi;
+
+    /// <inheritdoc />
+    INamedType? IExecutionContextInternal.ThisType => this._thisType ?? this.MetaApi?.TypeOrNull;
 
     [field: AllowNull]
     IExpressionHelper IExecutionContextInternal.ExpressionHelper => field ??= new ExpressionHelper( SyntaxGenerationContext.Contextless );

@@ -41,9 +41,19 @@ public interface IMethodResultFactory
 
     /// <summary>Redirects the calls to an existing method.</summary>
     /// <param name="method">The existing method.</param>
-    /// <param name="args">An object whose properties bind parameters and type parameters of <paramref name="method"/> by name, or <c>null</c>.</param>
     [Pure]
-    IMethodInterception RedirectToExistingMethod( IMethod method, [Durable] object? args = null );
+    IExistingMethodInterception RedirectToExistingMethod( IMethod method );
+}
+
+/// <summary>A method interception whose calls are redirected to an existing method.</summary>
+[CompileTime]
+[InternalImplement]
+[PublicAPI]
+public interface IExistingMethodInterception : IMethodInterception
+{
+    /// <summary>Sets the arguments that bind parameters and type parameters of the existing method by name.</summary>
+    [Pure]
+    IExistingMethodInterception WithArgs( [Durable] object args );
 }
 
 /// <summary>
@@ -240,16 +250,17 @@ public interface IInterceptionContext
     CancellationToken CancellationToken { get; }
 
     /// <summary>
-    /// Determines whether an interceptor generated in a given placement can intercept this call site. The check covers the
-    /// availability of <c>this</c>, the accessibility of the intercepted method and of the types of its signature, the type
-    /// parameters of the calling context, conditional access, and the receiver-mapping rules, including the rules for
-    /// <c>base</c> calls. It checks the default signature, without the adjustments of an <see cref="IInterceptorMethodBuilder"/>.
+    /// Gets a value indicating whether a method synthesized with <see cref="ITemplateInterception.PlaceInCallingType"/> can intercept this call
+    /// site. The value is <c>false</c> for instance in top-level statements. It checks the default signature, without the adjustments of an
+    /// <see cref="IInterceptorMethodBuilder"/>.
     /// </summary>
-    /// <param name="reason">A sentence that explains why the placement is not supported, or <c>null</c>.</param>
-    bool SupportsPlacement( InterceptorPlacement placement, out string? reason );
+    bool CanPlaceInCallingType { get; }
 
-    /// <summary>Determines whether an interceptor generated in a given placement can intercept this call site.</summary>
-    public bool SupportsPlacement( InterceptorPlacement placement ) => this.SupportsPlacement( placement, out _ );
+    /// <summary>
+    /// Determines whether a method synthesized with <see cref="ITemplateInterception.PlaceInType(INamedType)"/> in a given type can intercept
+    /// this call site.
+    /// </summary>
+    bool CanPlaceInType( INamedType type );
 }
 
 /// <summary>Kinds of code that immediately contain a call site.</summary>
@@ -764,7 +775,7 @@ DECIDED on 2026-10-08 (row "Fluent registration API" of section [15.0](15-decisi
 A method interception has three kinds of result:
 
 - `site.Skip()` leaves a call site unchanged for this registration. Only the factory passed to the delegate of the `ForEachSite` method declares it.
-- `RedirectToExistingMethod( method, args )` redirects the calls to an existing method. The `args` object binds parameters and type parameters of the method by name (section [5.6.4](#564-rules-for-existing-methods)).
+- `RedirectToExistingMethod( method ).WithArgs( args )` redirects the calls to an existing method. The `args` object binds parameters and type parameters of the method by name (section [5.6.4](#564-rules-for-existing-methods)).
 - `RedirectToSynthesizedMethod( template )` redirects the calls to a method synthesized from a template, given as a name, a `MethodTemplateSelector` or a `TemplateInvocation`. It returns an `ITemplateInterception`, whose methods set the options of the synthesized method.
 
 ```csharp
@@ -797,10 +808,23 @@ public interface ITemplateInterception : IMethodInterception
     ITemplateInterception WithTemplateProvider( [Durable] TemplateProvider templateProvider );
 
     /// <summary>
-    /// Sets the declaration in which the method is synthesized. The default value is <see cref="InterceptorPlacement.GeneratedStaticClass"/>.
+    /// Synthesizes the method in an internal static class that Metalama generates, by default <c>MetalamaInterceptors</c>. It is the default
+    /// placement.
     /// </summary>
     [Pure]
-    ITemplateInterception WithPlacement( InterceptorPlacement placement );
+    ITemplateInterception PlaceInStaticClass( string? fullName = null );
+
+    /// <summary>Synthesizes the method in the innermost type that contains the call site.</summary>
+    [Pure]
+    ITemplateInterception PlaceInCallingType();
+
+    /// <summary>Synthesizes the method in a given type of the current project.</summary>
+    [Pure]
+    ITemplateInterception PlaceInType( INamedType type );
+
+    /// <summary>Synthesizes the method in a given type of the current project.</summary>
+    [Pure]
+    ITemplateInterception PlaceInType( Type type );
 
     /// <summary>
     /// Sets what the template depends on, and therefore which call sites share the synthesized method. The default value is
@@ -1015,6 +1039,8 @@ public enum InterceptorPlacementKind
     LocalFunction
 }
 ```
+
+> Superseded in part by the row "Placement methods, arguments of existing methods and the default this" of section 15.0 (2026-10-08): the placement of a method interception is chosen by a method of `ITemplateInterception`: `PlaceInStaticClass`, `PlaceInCallingType` or `PlaceInType`. `InterceptorPlacement` is an internal type. The placements `BaseMostAccessibleType` and `LocalFunction` are not implemented in this version, so they have no method yet. They become `PlaceInBaseMostAccessibleType` and `PlaceInLocalFunction` when they are implemented. The table and the example below use the earlier names.
 
 | Requirement | API |
 |---|---|
@@ -1680,7 +1706,7 @@ Limitation of version 1. A provider cannot reach the parameters of a lambda that
 
 #### 5.6.10 The caller's instance and method-reference sites
 
-This section describes the binder design of 2026-09-25 and is kept as a record. Since the row "Fluent registration API" of section [15.0](15-decisions.md#150-decisions-of-2026-10-02), the caller's instance is passed through the `args` of `RedirectToExistingMethod` or of `WithArgs`, as an expression built with `ExpressionFactory.This` when `ICaller.CanAccessThis` is `true`.
+This section describes the binder design of 2026-09-25 and is kept as a record. Since the row "Fluent registration API" of section [15.0](15-decisions.md#150-decisions-of-2026-10-02), the caller's instance is passed through the arguments given to `WithArgs`, as the expression `ExpressionFactory.This()`, when `ICaller.CanAccessThis` is `true`. In a delegate that runs for a site, the type of this expression is the declaring type of `ICaller.Member`, and the method throws when `ICaller.CanAccessThis` is `false`.
 
 `InterceptorArgument.CallerInstance` gives the `this` of the origin to an interceptor parameter, for example to a static helper (decision PO62, RC63). It is part of version 1. The rules follow the rules of C# for `this`:
 
