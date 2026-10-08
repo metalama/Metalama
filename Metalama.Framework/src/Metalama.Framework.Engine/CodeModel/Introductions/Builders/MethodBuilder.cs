@@ -226,6 +226,8 @@ internal sealed class MethodBuilder : MethodBaseBuilder, IMethodBuilderImpl
 
     ITypeParameterList IGeneric.TypeParameters => this.TypeParameters;
 
+    ITypeParameterBuilderList IMethodBuilder.TypeParameters => this.TypeParameters;
+
     public bool IsGeneric => this.TypeParameters.Count > 0;
 
     public bool IsCanonicalGenericInstance => true;

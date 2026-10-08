@@ -108,12 +108,25 @@ public abstract class MethodBuilderRestrictions
     public virtual void ValidateAddTypeParameter( IMethodBuilder method, string name ) { }
 
     /// <summary>
-    /// Validates a change of a type parameter: its name, its variance, one of its constraints, or the addition of a type constraint.
+    /// Validates a change of the name of a type parameter.
+    /// </summary>
+    public virtual void ValidateTypeParameterName( ITypeParameterBuilder typeParameter, string name ) { }
+
+    /// <summary>
+    /// Validates the addition of a type constraint to a type parameter.
+    /// </summary>
+    public virtual void ValidateAddTypeConstraint( ITypeParameterBuilder typeParameter, IType type ) { }
+
+    /// <summary>
+    /// Validates a change of a constraint or of the variance of a type parameter, given by the
+    /// <see cref="ITypeParameterBuilder.TypeKindConstraint"/>, <see cref="ITypeParameterBuilder.HasDefaultConstructorConstraint"/>,
+    /// <see cref="ITypeParameterBuilder.AllowsRefStruct"/>, <see cref="ITypeParameterBuilder.IsConstraintNullable"/> or
+    /// <see cref="ITypeParameterBuilder.Variance"/> property.
     /// </summary>
     /// <param name="typeParameter">The type parameter.</param>
-    /// <param name="propertyName">The name of the property of <see cref="ITypeParameterBuilder"/> that changes, or
-    /// <see cref="ITypeParameter.TypeConstraints"/> when a type constraint is added.</param>
-    public virtual void ValidateTypeParameterChange( ITypeParameterBuilder typeParameter, string propertyName ) { }
+    /// <param name="propertyName">The name of the property of <see cref="ITypeParameterBuilder"/> that changes.</param>
+    /// <param name="value">The new value of the property.</param>
+    public virtual void ValidateTypeParameterConstraintChange( ITypeParameterBuilder typeParameter, string propertyName, object? value ) { }
 
     /// <summary>
     /// Validates the addition of an attribute to the method, to one of its parameters, to its return parameter or to one of its type parameters.

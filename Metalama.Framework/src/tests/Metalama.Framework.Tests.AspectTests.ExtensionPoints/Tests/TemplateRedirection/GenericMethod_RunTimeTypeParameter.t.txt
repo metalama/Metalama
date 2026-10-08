@@ -1,4 +1,0 @@
-Echoing a Int32.
-1
-Echoing a String.
-a

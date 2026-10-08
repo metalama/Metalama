@@ -1,2 +1,0 @@
-Greeting 'world'.
-Hello, world!

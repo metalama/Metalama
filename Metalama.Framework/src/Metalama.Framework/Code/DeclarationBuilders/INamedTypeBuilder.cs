@@ -96,6 +96,11 @@ public interface INamedTypeBuilder : IMemberOrNamedTypeBuilder, INamedType
     ITypeParameterBuilder AddTypeParameter( string name );
 
     /// <summary>
+    /// Gets the type parameters of the type, as builders that can be changed.
+    /// </summary>
+    new ITypeParameterBuilderList TypeParameters { get; }
+
+    /// <summary>
     /// Adds a type parameter that copies an existing type parameter: its name, its variance, its kind constraints and its type constraints.
     /// </summary>
     /// <param name="prototype">The type parameter to copy, typically a type parameter of another method or type.</param>

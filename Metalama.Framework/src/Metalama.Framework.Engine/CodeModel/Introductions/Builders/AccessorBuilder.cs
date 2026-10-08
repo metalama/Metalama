@@ -76,6 +76,8 @@ internal sealed partial class AccessorBuilder : DeclarationBuilder, IMethodBuild
     [Memo]
     public ITypeParameterList TypeParameters => TypeParameterList.Empty;
 
+    ITypeParameterBuilderList IMethodBuilder.TypeParameters => TypeParameterBuilderList.Empty;
+
     public IReadOnlyList<IType> TypeArguments => ImmutableArray<IType>.Empty;
 
     public override bool IsImplicitlyDeclared { get; }

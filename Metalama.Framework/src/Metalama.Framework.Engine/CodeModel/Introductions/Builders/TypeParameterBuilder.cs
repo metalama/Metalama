@@ -61,7 +61,7 @@ internal sealed class TypeParameterBuilder : NamedDeclarationBuilder, ITypeParam
         set
         {
             this.CheckNotFrozen();
-            this.ValidateChange( nameof(this.TypeKindConstraint), value != this._typeKindConstraint );
+            this.ValidateConstraintChange( nameof(this.TypeKindConstraint), value != this._typeKindConstraint, value );
             this._typeKindConstraint = value;
         }
     }
@@ -72,7 +72,12 @@ internal sealed class TypeParameterBuilder : NamedDeclarationBuilder, ITypeParam
         set
         {
             this.CheckNotFrozen();
-            this.ValidateChange( nameof(this.Name), value != this._name );
+
+            if ( value != this._name )
+            {
+                this.Restrictions?.ValidateTypeParameterName( this, value );
+            }
+
             this._name = value;
         }
     }
@@ -83,7 +88,7 @@ internal sealed class TypeParameterBuilder : NamedDeclarationBuilder, ITypeParam
         set
         {
             this.CheckNotFrozen();
-            this.ValidateChange( nameof(this.Variance), value != this._variance );
+            this.ValidateConstraintChange( nameof(this.Variance), value != this._variance, value );
             this._variance = value;
         }
     }
@@ -94,7 +99,7 @@ internal sealed class TypeParameterBuilder : NamedDeclarationBuilder, ITypeParam
         set
         {
             this.CheckNotFrozen();
-            this.ValidateChange( nameof(this.AllowsRefStruct), value != this._allowsRefStruct );
+            this.ValidateConstraintChange( nameof(this.AllowsRefStruct), value != this._allowsRefStruct, value );
 
             this._allowsRefStruct = value;
         }
@@ -106,7 +111,7 @@ internal sealed class TypeParameterBuilder : NamedDeclarationBuilder, ITypeParam
         set
         {
             this.CheckNotFrozen();
-            this.ValidateChange( nameof(this.IsConstraintNullable), value != this._isConstraintNullable );
+            this.ValidateConstraintChange( nameof(this.IsConstraintNullable), value != this._isConstraintNullable, value );
             this._isConstraintNullable = value;
         }
     }
@@ -117,7 +122,7 @@ internal sealed class TypeParameterBuilder : NamedDeclarationBuilder, ITypeParam
         set
         {
             this.CheckNotFrozen();
-            this.ValidateChange( nameof(this.HasDefaultConstructorConstraint), value != this._hasDefaultConstructorConstraint );
+            this.ValidateConstraintChange( nameof(this.HasDefaultConstructorConstraint), value != this._hasDefaultConstructorConstraint, value );
             this._hasDefaultConstructorConstraint = value;
         }
     }
@@ -125,16 +130,11 @@ internal sealed class TypeParameterBuilder : NamedDeclarationBuilder, ITypeParam
     public void AddTypeConstraint( IType type )
     {
         this.CheckNotFrozen();
-        this.ValidateChange( nameof(this.TypeConstraints), true );
+        this.Restrictions?.ValidateAddTypeConstraint( this, type );
         this._typeConstraints.Add( this.Translate( type ) );
     }
 
-    public void AddTypeConstraint( Type type )
-    {
-        this.CheckNotFrozen();
-        this.ValidateChange( nameof(this.TypeConstraints), true );
-        this._typeConstraints.Add( this.Compilation.Factory.GetTypeByReflectionType( type ) );
-    }
+    public void AddTypeConstraint( Type type ) => this.AddTypeConstraint( this.Compilation.Factory.GetTypeByReflectionType( type ) );
 
     /// <summary>
     /// Replaces each type constraint by the result of a mapping, without validating the change with <see cref="Restrictions"/>. The declaring
@@ -156,13 +156,13 @@ internal sealed class TypeParameterBuilder : NamedDeclarationBuilder, ITypeParam
     internal override MethodBuilderRestrictions? Restrictions => (this.ContainingDeclaration as DeclarationBuilder)?.Restrictions;
 
     /// <summary>
-    /// Validates a change of the type parameter with <see cref="Restrictions"/>, when the value changes.
+    /// Validates a change of a constraint or of the variance with <see cref="Restrictions"/>, when the value changes.
     /// </summary>
-    private void ValidateChange( string propertyName, bool isChanged )
+    private void ValidateConstraintChange( string propertyName, bool isChanged, object? value )
     {
         if ( isChanged )
         {
-            this.Restrictions?.ValidateTypeParameterChange( this, propertyName );
+            this.Restrictions?.ValidateTypeParameterConstraintChange( this, propertyName, value );
         }
     }
 

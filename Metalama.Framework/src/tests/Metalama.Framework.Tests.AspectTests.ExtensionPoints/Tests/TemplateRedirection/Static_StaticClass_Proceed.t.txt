@@ -1,4 +1,0 @@
-Intercepting Compute_Interceptor with 1 parameter(s).
-42
-Intercepting Compute_Interceptor with 1 parameter(s).
-2

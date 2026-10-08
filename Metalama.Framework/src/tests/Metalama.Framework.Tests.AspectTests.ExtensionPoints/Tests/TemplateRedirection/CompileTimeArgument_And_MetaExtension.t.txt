@@ -1,4 +1,0 @@
-[log] declared for 'Source.Compute( 1 )'
-2
-[log] declared for 'Source.Compute( 2 )'
-4

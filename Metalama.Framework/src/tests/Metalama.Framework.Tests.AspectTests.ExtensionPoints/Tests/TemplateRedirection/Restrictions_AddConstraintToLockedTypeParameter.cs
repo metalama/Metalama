@@ -7,31 +7,31 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Tests.ExtensionPoints;
 using System;
 
-namespace Metalama.Framework.Tests.AspectTests.ExtensionPoints.Tests.TemplateRedirection.Restrictions_ChangeLockedRefKind_Refused;
+namespace Metalama.Framework.Tests.AspectTests.ExtensionPoints.Tests.TemplateRedirection.Restrictions_AddConstraintToLockedTypeParameter;
 
-// The signature is set on a builder created with CreateMethodBuilder, whose first parameter is locked. Changing its reference kind throws,
-// so the method is not declared and the call site is left unchanged.
+// The type parameter of the declared method is copied from the source method and locked. Constraints can be added to a locked type
+// parameter, so the declared method has the struct and IComparable constraints.
 
 internal class RedirectAttribute : TypeAspect
 {
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
         => builder.TestRedirectCallsToTemplate(
-            "Compute",
+            "Echo",
             nameof(this.Intercept),
-            new TestTemplateRedirectionOptions { Placement = "Caller", PrebuiltBuilder = true, ChangeLockedRefKind = true } );
+            new TestTemplateRedirectionOptions { Placement = "Caller", Generic = true, PrebuiltBuilder = true, AddConstraintToLockedTypeParameter = "T" } );
 
     [Template]
-    public dynamic? Intercept() => meta.Proceed();
+    public T Intercept<T>( T value ) => meta.Proceed()!;
 }
 
 internal static class Source
 {
-    public static int Compute( int x ) => x * 2;
+    public static T Echo<T>( T value ) => value;
 }
 
 // <target>
 [Redirect]
 internal class Program
 {
-    public static void TestMain() => Console.WriteLine( Source.Compute( 21 ) );
+    public static void TestMain() => Console.WriteLine( Source.Echo( 1 ) );
 }

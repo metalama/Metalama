@@ -342,8 +342,14 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
                         if ( options.RenameTypeParameter is { } renameTypeParameter )
                         {
                             var equals = renameTypeParameter.IndexOf( '=' );
-                            ((ITypeParameterBuilder) builder.TypeParameters.Single( t => t.Name == renameTypeParameter.Substring( 0, equals ) )).Name =
-                                renameTypeParameter.Substring( equals + 1 );
+                            builder.TypeParameters[renameTypeParameter.Substring( 0, equals )].Name = renameTypeParameter.Substring( equals + 1 );
+                        }
+
+                        if ( options.AddConstraintToLockedTypeParameter is { } constrainedTypeParameter )
+                        {
+                            // A locked type parameter can gain constraints.
+                            builder.TypeParameters[constrainedTypeParameter].TypeKindConstraint = Code.TypeKindConstraint.Struct;
+                            builder.TypeParameters[constrainedTypeParameter].AddTypeConstraint( typeof(IComparable) );
                         }
 
                         if ( options.AddTypeParameterFor is { } parameterName )

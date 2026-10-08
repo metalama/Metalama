@@ -103,6 +103,12 @@ public sealed class TestTemplateRedirectionOptions
     public string? RenameTypeParameter { get; set; }
 
     /// <summary>
+    /// Gets or sets the name of a locked type parameter of the pre-built builder to which a <c>struct</c> constraint and an <c>IComparable</c>
+    /// constraint are added, or <c>null</c>.
+    /// </summary>
+    public string? AddConstraintToLockedTypeParameter { get; set; }
+
+    /// <summary>
     /// Gets or sets the name of a parameter of the pre-built builder whose type becomes an added type parameter <c>TArg</c>, or <c>null</c>.
     /// Each call site passes the static type of its argument as the type argument of <c>TArg</c>.
     /// </summary>

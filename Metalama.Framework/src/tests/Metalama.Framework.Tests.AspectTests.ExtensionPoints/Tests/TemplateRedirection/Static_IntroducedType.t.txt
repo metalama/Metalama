@@ -1,2 +1,0 @@
-Computed 42 in Helpers.
-42

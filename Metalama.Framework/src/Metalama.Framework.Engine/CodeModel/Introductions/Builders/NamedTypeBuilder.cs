@@ -494,6 +494,8 @@ internal class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, I
 
     ITypeParameterList IGeneric.TypeParameters => this.TypeParameters;
 
+    ITypeParameterBuilderList INamedTypeBuilder.TypeParameters => this.TypeParameters;
+
     [Memo]
     public IReadOnlyList<IType> TypeArguments => Array.Empty<IType>();
 

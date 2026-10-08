@@ -37,8 +37,8 @@ public sealed class LockedSignatureRestrictions : MethodBuilderRestrictions
     public bool IsReturnTypeLocked { get; init; }
 
     /// <summary>
-    /// Gets the number of leading type parameters whose name and constraints cannot change. Type parameters can be added after them, unless
-    /// <see cref="AreNewTypeParametersRefused"/> is <c>true</c>.
+    /// Gets the number of leading type parameters that cannot be renamed and whose constraints cannot be removed or relaxed. Constraints can be
+    /// added to them. Type parameters can be added after them, unless <see cref="AreNewTypeParametersRefused"/> is <c>true</c>.
     /// </summary>
     public int LockedTypeParameterCount { get; init; }
 
@@ -116,11 +116,42 @@ public sealed class LockedSignatureRestrictions : MethodBuilderRestrictions
     }
 
     /// <inheritdoc />
-    public override void ValidateTypeParameterChange( ITypeParameterBuilder typeParameter, string propertyName )
+    public override void ValidateTypeParameterName( ITypeParameterBuilder typeParameter, string name )
     {
         if ( typeParameter.Index < this.LockedTypeParameterCount )
         {
-            throw CreateLockedException( (IMethod) typeParameter.ContainingDeclaration!, $"type parameter '{typeParameter.Name}'" );
+            throw CreateLockedException( (IMethod) typeParameter.ContainingDeclaration!, $"name of the type parameter '{typeParameter.Name}'" );
+        }
+    }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// A locked type parameter can gain constraints: <see cref="ITypeParameterBuilder.TypeKindConstraint"/> can be set when it is
+    /// <see cref="TypeKindConstraint.None"/>, <see cref="ITypeParameterBuilder.HasDefaultConstructorConstraint"/> can become <c>true</c>, and
+    /// <see cref="ITypeParameterBuilder.AllowsRefStruct"/> can become <c>false</c>. A change that removes or relaxes a constraint, and a change of
+    /// <see cref="ITypeParameterBuilder.IsConstraintNullable"/> or <see cref="ITypeParameterBuilder.Variance"/>, is refused.
+    /// </remarks>
+    public override void ValidateTypeParameterConstraintChange( ITypeParameterBuilder typeParameter, string propertyName, object? value )
+    {
+        if ( typeParameter.Index >= this.LockedTypeParameterCount )
+        {
+            return;
+        }
+
+        var isAddition = propertyName switch
+        {
+            nameof(ITypeParameterBuilder.TypeKindConstraint) => typeParameter.TypeKindConstraint == TypeKindConstraint.None,
+            nameof(ITypeParameterBuilder.HasDefaultConstructorConstraint) => value is true,
+            nameof(ITypeParameterBuilder.AllowsRefStruct) => value is false,
+            _ => false
+        };
+
+        if ( !isAddition )
+        {
+            var method = (IMethod) typeParameter.ContainingDeclaration!;
+
+            throw new InvalidOperationException(
+                $"The {propertyName} property of the type parameter '{typeParameter.Name}' of the method '{method.Name}' cannot be changed, because constraints can only be added to this type parameter." );
         }
     }
 }
