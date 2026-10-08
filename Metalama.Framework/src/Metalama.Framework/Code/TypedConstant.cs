@@ -186,8 +186,8 @@ namespace Metalama.Framework.Code
                 if ( throwOnError )
                 {
                     throw new ArgumentException(
-                        nameof(value),
-                        $"The value should be of type '{actualExpectedType}' but is of type '{value.GetType()}'." );
+                        $"The value should be of type '{actualExpectedType}' but is of type '{value.GetType()}'.",
+                        nameof(value) );
                 }
                 else
                 {
@@ -200,8 +200,8 @@ namespace Metalama.Framework.Code
                 if ( throwOnError )
                 {
                     throw new ArgumentException(
-                        nameof(value),
-                        $"The type '{expectedType}' is not supported in a TypedConstant." );
+                        $"The type '{expectedType}' is not supported in a TypedConstant.",
+                        nameof(value) );
                 }
                 else
                 {

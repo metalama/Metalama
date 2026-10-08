@@ -619,9 +619,11 @@ namespace Metalama.Framework.Engine.CodeModel.Source
             return this.Implementation.TryFindImplementationForInterfaceMember( interfaceMember, out implementationMember );
         }
 
+        // A generic instance whose type arguments are introduced types, for instance type parameter builders, has the symbol of the definition
+        // and stores its type arguments in the generic context, so it is the definition only when the generic context is empty.
         [Memo]
         public INamedType Definition
-            => this.NamedTypeSymbol.Equals( this.NamedTypeSymbol.OriginalDefinition )
+            => this.NamedTypeSymbol.Equals( this.NamedTypeSymbol.OriginalDefinition ) && this.GenericContextForSymbolMapping.IsEmptyOrIdentity
                 ? this
                 : this.Compilation.Factory.GetNamedType( this.NamedTypeSymbol.OriginalDefinition );
 
