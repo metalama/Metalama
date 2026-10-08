@@ -16,8 +16,9 @@ namespace Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 /// <remarks>
 /// <para>
 /// The builder calls the <c>Validate*</c> method that corresponds to a change before it makes the change, and only when the new value differs
-/// from the current one. A method refuses the change by throwing an exception, normally an <see cref="InvalidOperationException"/>, so the code
-/// that makes the change receives the error at the statement that makes it. The default implementation of every method accepts the change.
+/// from the current one. The <see cref="ValidateAccessibility"/> method is the exception: it is called for every assignment. A method refuses the
+/// change by throwing an exception, normally an <see cref="InvalidOperationException"/>, so the code that makes the change receives the error at
+/// the statement that makes it. The default implementation of every method accepts the change.
 /// </para>
 /// <para>
 /// <see cref="Extensibility.CallSites.ExtensionTransformationFactory.CreateMethodBuilder"/> gives the restrictions to the builder after the
@@ -34,8 +35,12 @@ public abstract class MethodBuilderRestrictions
     public virtual void ValidateName( IMethodBuilder method, string name ) { }
 
     /// <summary>
-    /// Validates a change of the accessibility of the method.
+    /// Validates an assignment of the accessibility of the method.
     /// </summary>
+    /// <remarks>
+    /// Unlike the other methods, this method is called for every assignment of the <see cref="IMemberOrNamedType.Accessibility"/> property, including
+    /// an assignment of the current value, so that an implementation can record that the accessibility was set explicitly.
+    /// </remarks>
     public virtual void ValidateAccessibility( IMethodBuilder method, Accessibility accessibility ) { }
 
     /// <summary>

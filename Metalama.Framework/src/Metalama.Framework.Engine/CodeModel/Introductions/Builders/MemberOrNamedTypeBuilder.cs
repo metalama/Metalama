@@ -81,7 +81,9 @@ internal abstract class MemberOrNamedTypeBuilder : NamedDeclarationBuilder, IMem
         {
             this.CheckNotFrozen();
 
-            if ( value != this._accessibility && this is MethodBuilder method )
+            // The restrictions validate every assignment of the accessibility, including one that does not change the value, so that they can
+            // record that the accessibility was set explicitly.
+            if ( this is MethodBuilder method )
             {
                 this.Restrictions?.ValidateAccessibility( method, value );
             }

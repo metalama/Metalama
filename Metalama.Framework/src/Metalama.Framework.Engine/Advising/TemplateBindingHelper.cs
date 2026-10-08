@@ -8,6 +8,7 @@ using Metalama.Framework.Code.Collections;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
+using Metalama.Framework.Engine.Formatting;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.SyntaxSerialization;
 using Metalama.Framework.Engine.Templating;
@@ -655,6 +656,47 @@ internal static class TemplateBindingHelper
     }
 
     /// <summary>
+    /// Returns the expression of the default value of a run-time parameter of a template that binds to no parameter of the target method.
+    /// </summary>
+    /// <remarks>
+    /// The expression is a literal, a literal cast to an enumeration type, <c>null</c>, or the <c>default</c> expression of a value type. The type
+    /// names are fully qualified, because the expression is created before the target context is known, and the simplifier shortens them.
+    /// </remarks>
+    private static ExpressionSyntax GetDefaultValueSyntax( IParameterSymbol templateParameter, IMethodSymbol templateMethodSymbol, IMethod targetMethod )
+    {
+        var type = templateParameter.Type;
+
+        if ( type is ITypeParameterSymbol )
+        {
+            throw new InvalidTemplateSignatureException(
+                MetalamaStringFormatter.Format(
+                    $"Cannot use the template '{templateMethodSymbol}' to implement the method '{targetMethod}': the method does not contain a parameter '{templateParameter.Name}', and the default value of a parameter whose type is a type parameter cannot be used instead." ) );
+        }
+
+        TypeSyntax GetTypeSyntax() => ParseTypeName( type.ToDisplayString( SymbolDisplayFormat.FullyQualifiedFormat ) ).WithSimplifierAnnotation();
+
+        var value = templateParameter.ExplicitDefaultValue;
+        ExpressionSyntax expression;
+
+        if ( value == null )
+        {
+            expression = type.IsValueType && type.OriginalDefinition.SpecialType != RoslynSpecialType.System_Nullable_T
+                ? DefaultExpression( GetTypeSyntax() )
+                : CastExpression( GetTypeSyntax(), SyntaxFactoryEx.Null ).WithSimplifierAnnotation();
+        }
+        else
+        {
+            var literal = SyntaxFactoryEx.LiteralExpressionOrNull( value, ObjectDisplayOptions.IncludeTypeSuffix ).AssertNotNull();
+
+            expression = type.TypeKind == Microsoft.CodeAnalysis.TypeKind.Enum
+                ? CastExpression( GetTypeSyntax(), ParenthesizedExpression( literal ) ).WithSimplifierAnnotation()
+                : literal;
+        }
+
+        return expression;
+    }
+
+    /// <summary>
     /// Binds a template to a method that a pipeline extension declares, for instance a generated interceptor method.
     /// </summary>
     /// <param name="template">The template.</param>
@@ -666,9 +708,10 @@ internal static class TemplateBindingHelper
     /// <param name="arguments">The compile-time arguments of the template.</param>
     /// <remarks>
     /// A run-time parameter of the template binds to the target parameter of the same name. Otherwise, it binds by its position among the run-time
-    /// parameters of the template to a target parameter that is neither hidden nor name-only. A run-time parameter of the template cannot have a
-    /// default value or be a <c>params</c> parameter. A run-time type parameter of the template binds to the type parameter of the method at the same
-    /// position among the run-time type parameters, as for an override.
+    /// parameters of the template to a target parameter that is neither hidden nor name-only. A run-time parameter of the template that has a default
+    /// value and binds to no target parameter is replaced by its default value. A run-time parameter of the template cannot be a <c>params</c>
+    /// parameter. A run-time type parameter of the template binds to the type parameter of the method at the same position among the run-time type
+    /// parameters, as for an override.
     /// </remarks>
     public static BoundTemplateMethod ForSynthesizedMethod(
         this TemplateMember<IMethod> template,
@@ -699,11 +742,11 @@ internal static class TemplateBindingHelper
                 continue;
             }
 
-            if ( templateParameter.HasExplicitDefaultValue || templateParameter.IsParams )
+            if ( templateParameter.IsParams )
             {
                 throw new InvalidTemplateSignatureException(
                     MetalamaStringFormatter.Format(
-                        $"Cannot use the template '{templateMethodSymbol}' to implement the method '{targetMethod}': the run-time template parameter '{templateParameter.Name}' must not have a default value or be a params parameter." ) );
+                        $"Cannot use the template '{templateMethodSymbol}' to implement the method '{targetMethod}': the run-time template parameter '{templateParameter.Name}' must not be a params parameter." ) );
             }
 
             var methodParameter = targetMethod.Parameters.OfName( templateParameter.Name );
@@ -715,6 +758,13 @@ internal static class TemplateBindingHelper
                 if ( ordinal < endOrdinal )
                 {
                     methodParameter = targetMethod.Parameters[ordinal];
+                }
+                else if ( templateParameter.HasExplicitDefaultValue )
+                {
+                    // The parameter binds to no parameter of the method, so the template receives its default value. It does not take a position.
+                    parameterMapping.Add( templateParameter.Name, GetDefaultValueSyntax( templateParameter, templateMethodSymbol, targetMethod ) );
+
+                    continue;
                 }
                 else
                 {

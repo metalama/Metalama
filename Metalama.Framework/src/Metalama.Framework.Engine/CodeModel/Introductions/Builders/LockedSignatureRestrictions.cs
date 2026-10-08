@@ -24,7 +24,7 @@ namespace Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 /// </para>
 /// </remarks>
 [PublicAPI]
-public sealed class LockedSignatureRestrictions : MethodBuilderRestrictions
+public class LockedSignatureRestrictions : MethodBuilderRestrictions
 {
     /// <summary>
     /// Gets the number of leading parameters whose reference kind and position cannot change. Their name and their type can change.
