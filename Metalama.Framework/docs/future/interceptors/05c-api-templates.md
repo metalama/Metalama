@@ -53,7 +53,7 @@ Additional rules:
 
 #### 5.7.3 meta.MethodInterception and meta.AwaitInterception
 
-Templates read interception facts through two meta extensions, `MethodInterceptionInfo` and `AwaitInterceptionInfo`. The open-source mechanism of section [10.6.6](10b-oss-linker-and-templates.md#1066-meta-extensions-per-expansion-extension-data) attaches them to the expansion of a synthesized method, and `meta.GetExtension<T>()` returns them. The premium package adds two C# 14 static extension properties to the class `meta`, so a template writes `meta.MethodInterception.Receiver` or `meta.AwaitInterception.AwaitableType` (RC40). The extensions expose only facts that are part of the grouping identity, so the generated code is the same for every call site of a group. A group can contain call sites and method-reference sites (section [8.2](08-deduplication-and-naming.md#82-the-key)), so the extensions do not expose the kind of use. A group of accessor interceptors can contain plain accesses and compound sites, so the extensions do not expose the assignment operator, `IsPostfix` or `IsChecked` either.
+Templates read interception facts through two meta extensions, `IMethodInterceptionInfo` and `AwaitInterceptionInfo`. The open-source mechanism of section [10.6.6](10b-oss-linker-and-templates.md#1066-meta-extensions-per-expansion-extension-data) attaches them to the expansion of a synthesized method, and `meta.GetExtension<T>()` returns them. The premium package adds two C# 14 static extension properties to the class `meta`, so a template writes `meta.MethodInterception.Receiver` or `meta.AwaitInterception.AwaitableType` (RC40). The extensions expose only facts that are part of the grouping identity, so the generated code is the same for every call site of a group. A group can contain call sites and method-reference sites (section [8.2](08-deduplication-and-naming.md#82-the-key)), so the extensions do not expose the kind of use. A group of accessor interceptors can contain plain accesses and compound sites, so the extensions do not expose the assignment operator, `IsPostfix` or `IsChecked` either.
 
 ```csharp
 namespace Metalama.Extensions.Interceptors;
@@ -64,9 +64,9 @@ namespace Metalama.Extensions.Interceptors;
 /// </summary>
 /// <remarks>
 /// The accessors require C# 14. With an older language version, call
-/// <c>meta.GetExtension&lt;MethodInterceptionInfo&gt;()</c> or <c>meta.GetExtension&lt;AwaitInterceptionInfo&gt;()</c>
+/// <c>meta.GetExtension&lt;IMethodInterceptionInfo&gt;()</c> or <c>meta.GetExtension&lt;AwaitInterceptionInfo&gt;()</c>
 /// directly. To test whether the current template implements an interceptor, call
-/// <c>meta.TryGetExtension&lt;MethodInterceptionInfo&gt;( out var info )</c>.
+/// <c>meta.TryGetExtension&lt;IMethodInterceptionInfo&gt;( out var info )</c>.
 /// </remarks>
 [CompileTime]
 [PublicAPI]
@@ -75,7 +75,7 @@ public static class InterceptionMetaExtensions
     extension( meta )
     {
         /// <summary>Gets the facts of the invocation that the current template intercepts.</summary>
-        public static MethodInterceptionInfo MethodInterception => meta.GetExtension<MethodInterceptionInfo>();
+        public static IMethodInterceptionInfo MethodInterception => meta.GetExtension<IMethodInterceptionInfo>();
 
         /// <summary>Gets the facts of the await expression that the current template intercepts.</summary>
         public static AwaitInterceptionInfo AwaitInterception => meta.GetExtension<AwaitInterceptionInfo>();
@@ -93,9 +93,9 @@ public static class InterceptionMetaExtensions
 /// </remarks>
 [CompileTime]
 [PublicAPI]
-public sealed class MethodInterceptionInfo : IMetaExtension
+public sealed class IMethodInterceptionInfo : IMetaExtension
 {
-    internal MethodInterceptionInfo( /* filled by the engine */ );
+    internal IMethodInterceptionInfo( /* filled by the engine */ );
 
     /// <summary>
     /// Gets the intercepted method, constructed with the type arguments that the generated method uses. For an accessor
@@ -177,7 +177,7 @@ public sealed class AwaitInterceptionInfo : IMetaExtension
     /// </summary>
     public IExpression? IsCompleted { get; }
 
-    /// <summary>Gets the origin of the intercepted awaits, which contains the generated local function. See <see cref="MethodInterceptionInfo.Origin"/>.</summary>
+    /// <summary>Gets the origin of the intercepted awaits, which contains the generated local function. See <see cref="IMethodInterceptionInfo.Origin"/>.</summary>
     public IMethodBase Origin { get; }
 }
 ```
@@ -197,14 +197,14 @@ private dynamic? LogCall()
 [Template]
 private dynamic? LogCallCSharp13()
 {
-    var info = meta.GetExtension<MethodInterceptionInfo>();
+    var info = meta.GetExtension<IMethodInterceptionInfo>();
     Console.WriteLine( $"Calling {info.Method.Name}." );
 
     return meta.Proceed();
 }
 ```
 
-Implementation (PROPOSED). When the premium engine requests a synthesized method, it passes one `MethodInterceptionInfo` or one `AwaitInterceptionInfo` in `SynthesizedMethodTemplate.MetaExtensions` (section [10.4.4](10a-oss-bridge-hook-factory.md#1044-synthesized-methods-and-proceed-bindings)). The object is built from the representative request of the group, and it holds declarations of the final compilation of the stage. The open-source engine stores the extensions on the `MetaApi` of the expansion, and `meta.GetExtension<T>()` returns the first extension that is an instance of `T` (section [10.6.6](10b-oss-linker-and-templates.md#1066-meta-extensions-per-expansion-extension-data)). An earlier version passed an internal service through `SynthesizedMethodTemplate.ExpansionServices` and read it through `MetalamaExecutionContext.Current.ServiceProvider`, behind static accessor classes named `MethodInterception` and `InterceptedAwait` (RC12). RC40 replaced that design.
+Implementation (PROPOSED). When the premium engine requests a synthesized method, it passes one `IMethodInterceptionInfo` or one `AwaitInterceptionInfo` in `SynthesizedMethodTemplate.MetaExtensions` (section [10.4.4](10a-oss-bridge-hook-factory.md#1044-synthesized-methods-and-proceed-bindings)). The object is built from the representative request of the group, and it holds declarations of the final compilation of the stage. The open-source engine stores the extensions on the `MetaApi` of the expansion, and `meta.GetExtension<T>()` returns the first extension that is an instance of `T` (section [10.6.6](10b-oss-linker-and-templates.md#1066-meta-extensions-per-expansion-extension-data)). An earlier version passed an internal service through `SynthesizedMethodTemplate.ExpansionServices` and read it through `MetalamaExecutionContext.Current.ServiceProvider`, behind static accessor classes named `MethodInterception` and `InterceptedAwait` (RC12). RC40 replaced that design.
 
 Language rules, verified in the Roslyn fork:
 
@@ -259,5 +259,5 @@ The documentation states these rules for template authors:
 | `meta.This` | See section [5.7.1](#571-metatarget). |
 | `meta.Receiver` | Not supported, because it denotes `this` or an extension receiver of `meta.Target`. Use `meta.MethodInterception.Receiver`. |
 | `meta.InvokeTemplate` | Supported. Called templates inherit the meta extensions of their caller, so they can read `meta.MethodInterception` and `meta.AwaitInterception` (section [10.6.6](10b-oss-linker-and-templates.md#1066-meta-extensions-per-expansion-extension-data)). |
-| `meta.GetExtension<T>()`, `meta.TryGetExtension<T>(out T?)` | Return `MethodInterceptionInfo` or `AwaitInterceptionInfo`. `GetExtension` throws `InvalidOperationException` when the expansion has no extension of type `T`. |
+| `meta.GetExtension<T>()`, `meta.TryGetExtension<T>(out T?)` | Return `IMethodInterceptionInfo` or `AwaitInterceptionInfo`. `GetExtension` throws `InvalidOperationException` when the expansion has no extension of type `T`. |
 | `meta.InsertStatement`, `meta.DefineLocalVariable` | Supported, as in other method templates. |

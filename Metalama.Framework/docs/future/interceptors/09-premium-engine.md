@@ -662,7 +662,7 @@ internal sealed class InterceptorRequest
 
 After all trees are processed, `InterceptorGrouper` sorts the requests with `SourceOrderComparer` (section [8.6](08-deduplication-and-naming.md#86-representative-order)) and inserts them into a `Dictionary<InterceptorRequestKey, InterceptorGroup>` in that order. The first request of a group is the representative. The accessibility of the group is computed (section [8.7](08-deduplication-and-naming.md#87-names-and-accessibility)), and LAMA1017 is reported when it is inconsistent with the signature.
 
-The template of a group can read only data that is part of the key. The meta extension of the group (`MethodInterceptionInfo` or `AwaitInterceptionInfo`, section [5.7.3](05c-api-templates.md#573-metamethodinterception-and-metaawaitinterception)) is built from the representative request.
+The template of a group can read only data that is part of the key. The meta extension of the group (`IMethodInterceptionInfo` or `AwaitInterceptionInfo`, section [5.7.3](05c-api-templates.md#573-metamethodinterception-and-metaawaitinterception)) is built from the representative request.
 
 #### 9.5.11 Emission
 
@@ -674,7 +674,7 @@ The template of a group can read only data that is part of the key. The meta ext
    - the `SynthesizedMethodPlacement` to which the `InterceptorPlacement` of the group resolves: `InType(type)`, `InType(staticClassHandle)` or `AsLocalFunction(host)`, where the host is the origin of the sites (section [5.6.3](05b-api-providers-contexts-results.md#563-interceptorplacement));
    - the requested name of the key as name hint (the default name, or the name set by a `Configure` delegate);
    - a `BuildSignature` callback that calls `InterceptorSignatureBuilder.Apply` (section [6.4.11](06b-signatures-and-validation.md#6411-signature-types)) with the adjusted signature, including the requested accessibility;
-   - a `SynthesizedMethodTemplate` with the template selector (for an await interceptor, a selector that the engine builds from the template name, with `UseAsyncTemplateForAnyAwaitable` in mode `Await`, section [7.9.1](07-await-interception.md#791-accepted-template-shapes)), the template provider, the arguments and tags, `HiddenLeadingParameterCount = 1` when a receiver parameter exists (R1, R1x, R3), and 0 under R0, R2 and R4, `ProceedMultiplicity.AtMostOnce` for await interceptors, and `MetaExtensions = [ new MethodInterceptionInfo( ... ) ]` or `[ new AwaitInterceptionInfo( ... ) ]` (section [5.7.3](05c-api-templates.md#573-metamethodinterception-and-metaawaitinterception));
+   - a `SynthesizedMethodTemplate` with the template selector (for an await interceptor, a selector that the engine builds from the template name, with `UseAsyncTemplateForAnyAwaitable` in mode `Await`, section [7.9.1](07-await-interception.md#791-accepted-template-shapes)), the template provider, the arguments and tags, `HiddenLeadingParameterCount = 1` when a receiver parameter exists (R1, R1x, R3), and 0 under R0, R2 and R4, `ProceedMultiplicity.AtMostOnce` for await interceptors, and `MetaExtensions = [ new IMethodInterceptionInfo( ... ) ]` or `[ new AwaitInterceptionInfo( ... ) ]` (section [5.7.3](05c-api-templates.md#573-metamethodinterception-and-metaawaitinterception));
    - a `CreateProceedBinding` callback that translates the proceed recipe with the frozen method;
    - for a method in extension form, an `IsNameAvailable` function that runs the lookup of check C5 (section [6.5.2](06b-signatures-and-validation.md#652-checks)) at every call site of the group.
 

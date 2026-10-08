@@ -25,14 +25,16 @@ All types of this section are PROPOSED and live in the namespace `Metalama.Exten
 | Placement model | `InterceptorPlacement` (`CallingType`, `InType`, `BaseMostAccessibleType`, `GeneratedStaticClass`, `LocalFunction`), `InterceptorPlacementKind` |
 | Parameter binding | `InterceptorArgument` (the source of the value of one interceptor parameter: `Receiver`, `Argument`, `Value`, `Awaitable`, `CallerInstance`, `CallerInfo`, `Pull`), `CallerInfoKind`, `IInterceptorMethodBinder` (for existing methods), `IInterceptorParameterBinder`, `IInterceptorParameterBinderList`, `InterceptorReceiverMapping` |
 | Signature builder | `IInterceptorMethodBuilder`, passed to the delegate of `ITemplateInterception.Configure`, with `Method`, `ReceiverMapping`, `Context`, `SetArgument` and `SetTypeArgument`. The earlier `IInterceptorBuilder`, `IInterceptorParameterBuilder`, `IInterceptorParameterBuilderList` and `InterceptorDefaultMode` are not introduced. |
-| Template side | `meta.MethodInterception` and `meta.AwaitInterception` (C# 14 static extension properties of `meta`, declared in `InterceptionMetaExtensions`), which return the meta extensions `MethodInterceptionInfo` and `AwaitInterceptionInfo` |
-| Internal seam to the engine | `IInterceptionRegistrationService`, `InterceptionRegistration`, `InterceptorDefinition` (internal, visible to the engine assemblies) |
+| Template side | `meta.MethodInterception` and `meta.AwaitInterception` (C# 14 static extension properties of `meta`, declared in `InterceptionMetaExtensions`), which return the meta extensions `IMethodInterceptionInfo` and `AwaitInterceptionInfo` |
+| Internal seam to the engine | `IInterceptionRegistrationService` (internal, visible to the engine assemblies), which receives the delegate given to `InterceptMethods`. Since the row "Implementation in the engine" of section [15.0](15-decisions.md#150-decisions-of-2026-10-02), the registration model (`InterceptionRegistration`, `MethodSelector`, the providers, `InterceptorResult`, `InterceptorPlacement`) and the fluent chain are internal types of the engine assembly. |
 
 EXISTING public types reused without change: `TemplateInvocation` (FW27 `Aspects\TemplateInvocation.cs:35`), `MethodTemplateSelector` (FW27 `Advising\MethodTemplateSelector.cs:58`; it receives `[Durable]`, section [10.1](10a-oss-bridge-hook-factory.md#101-overview), because it contains only strings and Boolean values and is stored in durable registrations; it is used by method and accessor interceptors only, and await interceptors take a template name, RC60), `TemplateProvider` (FW27 `Aspects\TemplateProvider.cs:36`), `ScopedDiagnosticSink` (FW27 `Diagnostics\ScopedDiagnosticSink.cs:35`), `IAspectState` (FW27 `Aspects\IAspectState.cs:29`), `SourceReference` (FW27 `Code\SourceReference.cs:25`), `IDurableRef<T>` and `ToDurableRef` (FW27 `Code\IDurableRef.cs`; `Code\RefExtensions.cs:193`), `DurableAttribute` and `ImmutableTypeAttribute` (FW27 `Utilities`), `IExpression` (FW27 `Code\IExpression.cs:46`), `ISourceExpression` (FW27 `Code\ISourceExpression.cs:10`), and `PullAction` (FW27 `Advising\PullAction.cs:40`), whose factories `UseExpression`, `UseExistingParameter`, `UseConstant` and `None` give the pulled values of `InterceptorArgument.Pull`.
 
 PROPOSED open-source public types used by this API (section [10](10a-oss-bridge-hook-factory.md#10-open-source-extension-points)): `IMetaExtension`, `meta.GetExtension<T>()` and `meta.TryGetExtension<T>(out T?)` in `Metalama.Framework` (section [10.6.6](10b-oss-linker-and-templates.md#1066-meta-extensions-per-expansion-extension-data)), `OperatorKind.NullCoalescingAssignment` in `Metalama.Framework` (section [10.1](10a-oss-bridge-hook-factory.md#101-overview)), `AnyAwaitable` and `AnyAwaitable<T>` in `Metalama.Framework.Aspects` (section [10.6.9](10b-oss-linker-and-templates.md#1069-anyawaitable)), the public kind and parameter of `PullAction` (section [10.9](10c-oss-reference-graph-design-time.md#109-small-public-helpers-b2g)), and `SourceExpressionExtensions.GetSourceSyntax` in `Metalama.Framework.Sdk` (section [10.9](10c-oss-reference-graph-design-time.md#109-small-public-helpers-b2g)). EXISTING public types reused for accessors: `MethodKind` (FW27 `Code\MethodKind.cs:29-49`) and `OperatorKind` (FW27 `Code\OperatorKind.cs:16`).
 
 ### 5.2 Seam between the public API and the engine
+
+> Superseded in part by the row "Implementation in the engine" of section 15.0 (2026-10-08): `IInterceptionRegistrationService.Register` receives the delegate given to `InterceptMethods`, a `Func<IMethodInterceptionBuilder, IMethodInterception>`, instead of an `InterceptionRegistration`. The engine executes the delegate and creates the registration. Every type of the registration model, and `InterceptorDefinition`, which is removed, are internal types of the engine assembly, as in the Validation package.
 
 EXISTING precedent: the Validation API resolves an internal `IProjectService` from the project service provider (P27 `Metalama.Extensions.Validation\ReferenceValidationQueryExtensions.cs:36-37`), and the engine registers the implementation in `Initialize` (P27 `Metalama.Extensions.Validation.Engine\ValidationPipelineExtension.cs:28-30`).
 
@@ -485,7 +487,7 @@ public static class InterceptionQueryExtensions
     /// does not reference the <c>Metalama.Extensions.Interceptors</c> package.</exception>
     public static void InterceptMethods<TScope>( this IQuery<TScope> query, Func<IMethodInterceptionBuilder, IMethodInterception> build )
         where TScope : class, IDeclaration
-        => InterceptionApiHelper.GetService( query.Project ).Register( query, InterceptionApiHelper.CreateRegistration( build ) );
+        => InterceptionApiHelper.GetService( query.Project ).Register( query, build );
 
     /// <summary>
     /// Registers the interception of the uses of methods in the declarations selected by a tagged query, described by a delegate. The tag of
@@ -493,7 +495,7 @@ public static class InterceptionQueryExtensions
     /// </summary>
     public static void InterceptMethods<TScope, TTag>( this ITaggedQuery<TScope, TTag> query, Func<IMethodInterceptionBuilder, IMethodInterception> build )
         where TScope : class, IDeclaration
-        => InterceptionApiHelper.GetService( query.Project ).Register( query, InterceptionApiHelper.CreateRegistration( build ) );
+        => InterceptionApiHelper.GetService( query.Project ).Register( query, build );
 
     // Accessors (section 5.3.13), earlier design. Every overload of the earlier methods group has a twin named
     // InterceptAccessors, with four target selections, and with a parameter MethodKind accessorKind after the names.
@@ -631,7 +633,7 @@ public static class InterceptionAdviserExtensions
     /// before this method returns.</param>
     public static void InterceptMethods<TScope>( this IAdviser<TScope> adviser, Func<IMethodInterceptionBuilder, IMethodInterception> build )
         where TScope : class, IDeclaration
-        => InterceptionApiHelper.GetService( adviser.Compilation.Project ).Register( adviser, InterceptionApiHelper.CreateRegistration( build ) );
+        => InterceptionApiHelper.GetService( adviser.Compilation.Project ).Register( adviser, build );
 
     // Accessors, earlier design: each overload of the earlier methods group has a twin named InterceptAccessors with a
     // parameter MethodKind accessorKind after the names (section 5.3.13).

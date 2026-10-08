@@ -1014,7 +1014,7 @@ public sealed class InterceptorPlacement
     /// <summary>
     /// Gets a placement that adds a local function to the root block of the body of the origin, which is the member that
     /// contains the call site. The generated code can use the parameters of the origin through
-    /// <see cref="MethodInterceptionInfo.Origin"/>, which templates read as <c>meta.MethodInterception.Origin</c>, and
+    /// <see cref="IMethodInterceptionInfo.Origin"/>, which templates read as <c>meta.MethodInterception.Origin</c>, and
     /// <c>this</c> when the origin is an instance member of a class. A local function in a struct member cannot use
     /// <c>this</c>. Call sites in initializers, in constructor initializers, in primary-constructor base arguments, in
     /// top-level statements and in static lambdas or static local functions do not support this placement.
