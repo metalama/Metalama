@@ -9,7 +9,7 @@ DECIDED on 2026-10-08 (row "Fluent registration API" of section [15.0](15-decisi
 An interceptor provider is the user code that chooses the interceptor of each call site. The interceptor itself is the method that the rewritten call site calls (section [0.4](00-conventions.md#04-terminology-aligned-with-roslyn-interceptors)). A method registration expresses the choice in one of two ways:
 
 - A result that does not depend on the site is chosen on the chain, after the method selection, with the `RedirectToExistingMethod` or `RedirectToSynthesizedMethod` method of `IMethodSelection`, which inherits them from `IMethodResultFactory`.
-- A result that depends on the site is chosen by the delegate given to the `ForEachSite` method of `IMethodSelection`. The delegate receives the context of the site and a factory of results, `IMethodSiteResultFactory`, and returns a result that this factory creates.
+- A result that depends on the site is chosen by the delegate given to the `ForEachSite` method of `IMethodSelection`. The delegate receives a factory of results, `IMethodSiteResultFactory`, whose `Context` property is the context of the site, and returns a result that this factory creates.
 
 ```csharp
 namespace Metalama.Extensions.Interceptors;
@@ -55,6 +55,11 @@ public interface IMethodResultFactory
 public interface IMethodSiteResultFactory : IMethodResultFactory
 {
     /// <summary>
+    /// Gets the context of the call site whose result is created.
+    /// </summary>
+    MethodInterceptionContext Context { get; }
+
+    /// <summary>
     /// Leaves the call site unchanged for this registration. Other registrations for the same site are still evaluated. To explain a skip,
     /// report a diagnostic through <see cref="InterceptionContext.Diagnostics"/>.
     /// </summary>
@@ -89,7 +94,7 @@ public interface IAwaitInterceptorProvider
 The `ForEachSite` method is declared by `IMethodSelection` (section [5.3.3](05a-api-registration.md#533-target-selection-for-members)):
 
 ```csharp
-IMethodInterception ForEachSite( [Durable] Func<MethodInterceptionContext, IMethodSiteResultFactory, IMethodInterception> intercept );
+IMethodInterception ForEachSite( [Durable] Func<IMethodSiteResultFactory, IMethodInterception> intercept );
 ```
 
 Rules of the delegate given to the `ForEachSite` method:
@@ -97,7 +102,7 @@ Rules of the delegate given to the `ForEachSite` method:
 - Metalama invokes it during the build. When the IDE option of decision PO26 is enabled, it also invokes it in the IDE. Invocations can be concurrent, and the same call site can be evaluated several times. The delegate must be thread-safe and deterministic, and it must not modify state.
 - The delegate is stored with the registration and kept across compilations in the IDE. It must therefore not capture declarations, types, or objects that reference them. The parameter carries `[Durable]`, so the durability analyzer checks what a lambda captures. A method group of the aspect or of the fabric is also accepted.
 - The delegate returns a value created by the factory that it receives: `site.Skip()`, `site.RedirectToExistingMethod( ... )` or `site.RedirectToSynthesizedMethod( ... )`, possibly followed by the methods of `ITemplateInterception`. A value that no factory of results created, for instance a value of the registration chain, is refused with an `ArgumentException`, which is reported as an error.
-- The delegate can report diagnostics through `InterceptionContext.Diagnostics`. An exception thrown by the delegate is reported as an error on the declaration that contains the site, and the site is not intercepted.
+- The delegate reads the context of the site through `site.Context`. It can report diagnostics through `site.Context.Diagnostics`. An exception thrown by the delegate is reported as an error on the declaration that contains the site, and the site is not intercepted.
 - The delegate is invoked only for call sites written in the source code.
 - The selected methods are the same for every scope declaration. A result that depends on the scope declaration reads `InterceptionContext.ScopeDeclaration` and, for a registration made through a tagged query, `InterceptionContext.ScopeTag`.
 
@@ -105,6 +110,7 @@ Rules of the delegate given to the `ForEachSite` method:
 |---|---|
 | A delegate, not an interface | A registration needs one decision function, not a class. A method group of the aspect or of the fabric, or a lambda checked by the durability analyzer, expresses it without a provider class. The earlier interface `IMethodInterceptorProvider`, with its factories `MethodInterceptorProvider.FromDelegate`, `ExistingMethod` and `Template`, duplicated the results that the chain now chooses directly. |
 | A factory of results passed to the delegate | Only `IMethodSiteResultFactory` declares `Skip`, so a registration cannot skip every site, which has no use. The engine also refuses a returned value that no factory of results created. |
+| The context as a property of the factory | The delegate has a single parameter, `site`, so a lambda and a method group have the shortest form, and a lambda that ignores the context does not need a discard parameter. The context and the factory belong to the same site, so one object can expose both. |
 | `[Durable]` | Fabric registrations live in the pipeline configuration, and design-time registrations are kept across compilations. `IAspect` (FW27 `Aspects\IAspect.cs:46`), `IAspectState` and `Fabric` carry the same attribute. The analyzer verifies each argument of a `[Durable]` parameter (FW27 analyzers, LAMA0870 and LAMA0876). |
 | No `ICompileTimeSerializable` | Serialization is not required. Registrations are project-local and are never written to a manifest in version 1 (section [9.9.4](09-premium-engine.md#994-deferred-route-manifest-based-transitive-interceptors)). Manifest-based transitive interceptors stay deferred. If they are ever needed, they get a separate opt-in entry point. A declaring type and names can be serialized, which keeps that path open; a type predicate, a method predicate and a delegate cannot. |
 | Results that stay open to handlers | A future delegate-based interceptor (section [16.2](16-future-directions.md#162-delegate-based-handler-interceptors)) is a new method of `IMethodResultFactory`. The interfaces are `[InternalImplement]`, so adding a method is not a breaking change. |
@@ -1087,7 +1093,7 @@ These rules implement R9 and R13 for the `RedirectToExistingMethod` method, on t
 - The parameters of the method are bound by name (row "Explicit binding through arguments" of section [15.0](15-decisions.md#150-decisions-of-2026-10-02)). Each parameter receives the first of these values that exists: the property of the `args` object of `RedirectToExistingMethod` that has its name; the receiver of the site, when the parameter is the first one and the site has a receiver; the argument of the site whose parameter has the same name; the caller information that its attribute requests (section [6.7](06b-signatures-and-validation.md#67-caller-information-materialization)); its own default value. An unbound required parameter is reported with LAMA1013. A property of `args` can pass the receiver in another position, the caller's `this`, a parameter of the calling member or a constant.
 - A generic existing method used for an invocation has either no type parameter, or as many type parameters as the total arity of the type-argument slots of the call site, in the slot order of section [6.2.7](06a-call-site-model.md#627-arguments-generic-context-and-passing-mode) (RC29). It is called with the type arguments of the call site.
 - A generic existing method used for an await expression is called without explicit type arguments, and C# type inference must succeed from the awaited expression.
-- Parameter names that differ from those of the intercepted method need a property of `args`, for instance `new { target = context.Receiver.Expression }`, because the canonical binding matches names only (RC64). The rewrite passes the arguments in the order of the parameters of the method, with the temporaries of section [5.6.8](#568-parameter-binding-and-the-signature-builder) when the order of evaluation would otherwise change.
+- Parameter names that differ from those of the intercepted method need a property of `args`, for instance `new { target = site.Context.Receiver.Expression }`, because the canonical binding matches names only (RC64). The rewrite passes the arguments in the order of the parameters of the method, with the temporaries of section [5.6.8](#568-parameter-binding-and-the-signature-builder) when the order of evaluation would otherwise change.
 - When the return type differs and is implicitly convertible, the engine inserts a cast when the value of the call site is used, so that the rewritten expression keeps the original type. When the value is not used, no cast is inserted, because a cast is not a valid statement expression (CS0201). An existing method whose return type differs cannot intercept a call site inside a conditional access, because a cast cannot be placed inside a `?.` chain (section [6.6](06b-signatures-and-validation.md#66-signature-validation-existing-methods-and-adjusted-signatures-r9), E14).
 - For an await expression, the call site is rewritten according to the rules of section [7.5](07-await-interception.md#75-the-adaptive-rewrite-challenge-to-b8-adopted), which depend on the type returned by the method. The method can return another awaitable type than the awaited expression. The result of awaiting its return value must convert implicitly to the result type of the await, and a cast restores the original result type when the value is used (section [7.6.1](07-await-interception.md#761-result-compatibility)).
 - For an accessor site, the method follows the accessor shapes of section [6.4.13](06b-signatures-and-validation.md#6413-accessor-sites) and rule E19 of section [6.6](06b-signatures-and-validation.md#66-signature-validation-existing-methods-and-adjusted-signatures-r9). A `void` setter interceptor is admissible only at sites whose value is not used. A setter interceptor that returns a type implicitly convertible to the property type is admissible at every site.

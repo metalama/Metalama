@@ -167,13 +167,13 @@ public static class Telemetry
 // In the delegate given to the ForEachSite method, for the site order.Total( true ).
 return site.RedirectToExistingMethod(
     trackMethod,
-    new { target = context.Receiver.Expression, operation = context.CallSite.Member.Name } );
+    new { target = site.Context.Receiver.Expression, operation = site.Context.CallSite.Member.Name } );
 
 // Rewritten site in OrderService.Process.
 var gross = Telemetry.Track( "Process", order, true );
 ```
 
-`Track` is static and the site has a receiver, so the mapping is `StaticReceiverParameter`, and the canonical binding would give the receiver to the first parameter. The `args` object binds it to `target` instead, and binds `operation` to the name of the calling member. `withTax` binds to the argument of the same name. The constant `"Process"` has no side effect, and `order` and `true` keep their order, so no temporary is needed. `Track` returns `decimal`, which the site needs, because the value of `order.Total( true )` is used. The site `order?.Total( false )` cannot use `Track`, because a conditional access needs an extension method or R2 (E8); the delegate given to the `ForEachSite` method skips it when `context.Receiver.IsConditionalAccess` is `true`.
+`Track` is static and the site has a receiver, so the mapping is `StaticReceiverParameter`, and the canonical binding would give the receiver to the first parameter. The `args` object binds it to `target` instead, and binds `operation` to the name of the calling member. `withTax` binds to the argument of the same name. The constant `"Process"` has no side effect, and `order` and `true` keep their order, so no temporary is needed. `Track` returns `decimal`, which the site needs, because the value of `order.Total( true )` is used. The site `order?.Total( false )` cannot use `Track`, because a conditional access needs an extension method or R2 (E8); the delegate given to the `ForEachSite` method skips it when `site.Context.Receiver.IsConditionalAccess` is `true`.
 
 Accessor sites follow the same tables, with the property or event access in place of the call (section [6.4.13](#6413-accessor-sites)). Await sites always report `None`, because an await has no receiver, and the awaited operand is bound through `InterceptorArgument.Awaitable`.
 

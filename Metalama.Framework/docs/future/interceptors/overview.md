@@ -102,7 +102,7 @@ Registration only records the interceptor. Call sites are found later, in the so
 | Member targets | A declaring type plus mandatory member names (PO52): `b.Type( typeof(File) ).Methods( "ReadAllText", "WriteAllText" )`, `b.Type( namedType ).Methods( ... )`, `b.Types( t => ... ).Methods( ... )`, or `b.Type( typeof(Order) ).AllMethods()`. The type is matched by definition, so `typeof(List<>)` matches every construction. Every overload of a name matches, and the `Where` method keeps the overloads that a predicate accepts. The names always filter the index before binding. The type predicate, evaluated once per declaring type definition, is the only way to select several types, for example a namespace: `b.Types( t => t.ContainingNamespace.FullName.StartsWith( "Contoso.Legacy", StringComparison.Ordinal ) )`. Two registrations that both return a result other than a skip for the same site are an error (LAMA1010). |
 | Await registrations | `InterceptAwaits( <provider form>, AwaitInterceptionOptions? options = null )` on every surface, with no awaited type, no type predicate and no kind filter (PO58). Every await of the scope reaches the provider, including custom awaitables. The provider filters from the context (`AwaitableType`, `AwaitableKind`, `Configuration`, `AwaitedMethod`, `Resumption`), and its recommended first statement is `if ( context.Resumption == AwaitResumption.Unknown ) return InterceptorResult.Skip;`. The name filter never applied to awaits, so the binding cost is unchanged. |
 | Options | Methods: the call-site options come first on the root of the chain, `b.IncludingNestedTypes()` and `b.ExcludingLambdas()`. After the method selection, overrides match by default, `ExcludingOverrides()` matches only the selected methods, and `IncludingInterfaceImplementations()` also matches the implementations of a selected interface method. Awaits: `AwaitInterceptionOptions { Scope }`: the record keeps only the scope, so that a later option adds no overload; `AwaitableKinds`, `Kinds` and `LookThroughConfigureAwait` are removed (full RC58). |
-| Interceptor forms | Methods: `RedirectToExistingMethod( method, args )` or `RedirectToSynthesizedMethod( template )` for a result that is the same at every site, or `ForEachSite( ( context, site ) => ... )` for a result per site. A result that depends on the scope declaration reads `context.ScopeDeclaration` and, for a tagged query, `context.ScopeTag` in `ForEachSite`. Awaits: an `IAwaitInterceptorProvider` object; a delegate, which can be a lambda checked by the durability analyzer; a template shorthand (template, placement, optional `configure` function), whose template is a name; a factory per selected scope (query surface only). No existing-method form exists for awaits (PO70). |
+| Interceptor forms | Methods: `RedirectToExistingMethod( method, args )` or `RedirectToSynthesizedMethod( template )` for a result that is the same at every site, or `ForEachSite( site => ... )` for a result per site, where `site.Context` is the context of the site. A result that depends on the scope declaration reads `site.Context.ScopeDeclaration` and, for a tagged query, `site.Context.ScopeTag` in `ForEachSite`. Awaits: an `IAwaitInterceptorProvider` object; a delegate, which can be a lambda checked by the durability analyzer; a template shorthand (template, placement, optional `configure` function), whose template is a name; a factory per selected scope (query surface only). No existing-method form exists for awaits (PO70). |
 | Contexts | `InterceptionContext`, the base class, with `Origin` and `IsInNestedFunction`; `MethodInterceptionContext`, for methods and accessors, with `Kind` (`MethodUseKind`: `Call`, `DelegateCreation`, `FunctionPointer`; accessor sites are `Call`), `ConvertedType`, `IsEventSubscription`, the intercepted method (the accessor at an accessor site), `Destination` (the definition of the bound method, or the property or event at an accessor site), `AssignmentOperator` (`OperatorKind`: `None`, a compound kind, `Increment`, `Decrement`, or the new `NullCoalescingAssignment`), `IsPostfix`, `IsChecked`, the receiver and the arguments; `AwaitInterceptionContext`, whose `AwaitableType` is the destination of an await site. `Receiver`, `InvocationArgument.Expression` and `AwaitInterceptionContext.Operand` are `IExpression` values for inspection only: a provider reads their type and constant value, and their Roslyn syntax through the SDK method `GetSourceSyntax`; generated code cannot contain them (LAMA0297). |
 | Results | Methods: `IMethodInterception`, created by `site.Skip()`, `RedirectToExistingMethod( method, args )` or `RedirectToSynthesizedMethod( template )`, with a `MethodTemplateSelector`, a template name (`string`) or a `TemplateInvocation`. `RedirectToSynthesizedMethod` returns an `ITemplateInterception`, whose methods set the options of the synthesized method: `WithArgs`, `WithTags`, `WithTemplateProvider`, `WithPlacement`, `WithGranularity` and `Configure`. Awaits: the earlier result model, with `WithAwaitRewriteOptions( AwaitRewriteOptions, ... )` (the record was named `AwaitInterceptorOptions`). An await site takes a template name only: a selector with an alternative template gives LAMA1014 (PO60). The `string` overload wins over the implicit conversion to a selector, so a name never becomes a selector. A provider explains a skip with its own diagnostic through `context.Diagnostics`. |
 | Placements | `InterceptorPlacement.CallingType`, `InType`, `BaseMostAccessibleType`, `GeneratedStaticClass` and `LocalFunction`. The placement names the declaration only; the receiver-mapping rules decide whether the method is static (section [6.2](#62-placements-and-receiver-mapping)). |
@@ -115,7 +115,7 @@ The per-site decision of R8, on the method selection of the chain:
 ```csharp
 public interface IMethodSelection : IMethodResultFactory
 {
-    IMethodInterception ForEachSite( [Durable] Func<MethodInterceptionContext, IMethodSiteResultFactory, IMethodInterception> intercept );
+    IMethodInterception ForEachSite( [Durable] Func<IMethodSiteResultFactory, IMethodInterception> intercept );
 
     // Where, IncludingInterfaceImplementations and ExcludingOverrides are omitted.
 }
@@ -163,10 +163,10 @@ internal sealed class TestabilityFabric : NamespaceFabric
         amender.InterceptMethods( b => b.Type( typeof(Stopwatch) ).Methods( nameof(Stopwatch.GetTimestamp) ).ForEachSite( UseHookIfAny ) );
     }
 
-    private static IMethodInterception UseHookIfAny( MethodInterceptionContext context, IMethodSiteResultFactory site )
+    private static IMethodInterception UseHookIfAny( IMethodSiteResultFactory site )
     {
         var hooks = typeof(SystemHooks).AsINamedType();
-        var hook = hooks.Properties.OfName( context.InterceptedMethod.Name ).SingleOrDefault();
+        var hook = hooks.Properties.OfName( site.Context.InterceptedMethod.Name ).SingleOrDefault();
 
         if ( hook == null )
         {
@@ -218,7 +218,7 @@ public sealed class InvoiceFactory
 }
 ```
 
-The targets are declared in the .NET runtime, which no Metalama aspect can advise today. The two registrations share one per-site method, and their names `NewGuid` and `GetTimestamp` filter the index, so the build binds only the bodies that contain one of them. The `ForEachSite` method stores the method group, which is durable because the method is static and captures nothing. The method decides per call site, and the fabric is the default template provider. The interceptors are placed in an explicit static class. The methods are `internal`, because the calling type is another type. The two targets produce two methods, because the intercepted target is part of the group key. When the result does not depend on the call site, the chain chooses it directly with the `RedirectToSynthesizedMethod` method, as in sample B. A method group such as `Func<Guid> factory = Guid.NewGuid;` in the namespace would be rewritten to `SystemHooks.NewGuid_Interceptor` by the same registration, whose per-site method can test `context.UseKind` to skip it.
+The targets are declared in the .NET runtime, which no Metalama aspect can advise today. The two registrations share one per-site method, and their names `NewGuid` and `GetTimestamp` filter the index, so the build binds only the bodies that contain one of them. The `ForEachSite` method stores the method group, which is durable because the method is static and captures nothing. The method decides per call site, and the fabric is the default template provider. The interceptors are placed in an explicit static class. The methods are `internal`, because the calling type is another type. The two targets produce two methods, because the intercepted target is part of the group key. When the result does not depend on the call site, the chain chooses it directly with the `RedirectToSynthesizedMethod` method, as in sample B. A method group such as `Func<Guid> factory = Guid.NewGuid;` in the namespace would be rewritten to `SystemHooks.NewGuid_Interceptor` by the same registration, whose per-site method can test `site.Context.UseKind` to skip it.
 
 ### 3.3 Sample B. Type aspect: an instance interceptor in the calling type
 
@@ -458,7 +458,7 @@ public static class Telemetry
 
 return site.RedirectToExistingMethod(
     trackMethod,
-    new { target = context.Receiver.Expression, operation = context.CallSite.Member.Name } );
+    new { target = site.Context.Receiver.Expression, operation = site.Context.CallSite.Member.Name } );
 
 // In OrderService.Process, the site order.Total( true ) becomes:
 var gross = Telemetry.Track( "Process", order, true );

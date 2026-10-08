@@ -137,10 +137,10 @@ internal sealed class TestabilityFabric : NamespaceFabric
         amender.InterceptMethods( b => b.Type( typeof(Stopwatch) ).Methods( nameof(Stopwatch.GetTimestamp) ).ForEachSite( UseHookIfAny ) );
     }
 
-    private static IMethodInterception UseHookIfAny( MethodInterceptionContext context, IMethodSiteResultFactory site )
+    private static IMethodInterception UseHookIfAny( IMethodSiteResultFactory site )
     {
         var hooks = typeof(SystemHooks).AsINamedType();
-        var hook = hooks.Properties.OfName( context.InterceptedMethod.Name ).SingleOrDefault();
+        var hook = hooks.Properties.OfName( site.Context.InterceptedMethod.Name ).SingleOrDefault();
 
         if ( hook == null )
         {
@@ -255,9 +255,9 @@ public sealed class UseResilientFileAccessAttribute : TypeAspect
             .ForEachSite( RedirectToResilientFile ) );
     }
 
-    private static IMethodInterception RedirectToResilientFile( MethodInterceptionContext context, IMethodSiteResultFactory site )
+    private static IMethodInterception RedirectToResilientFile( IMethodSiteResultFactory site )
     {
-        var intercepted = context.InterceptedMethod;
+        var intercepted = site.Context.InterceptedMethod;
 
         var replacement = typeof(ResilientFile).AsINamedType()
             .Methods
@@ -265,7 +265,7 @@ public sealed class UseResilientFileAccessAttribute : TypeAspect
 
         if ( replacement == null )
         {
-            context.Diagnostics.Report( _noResilientVariant.WithArguments( intercepted ) );
+            site.Context.Diagnostics.Report( _noResilientVariant.WithArguments( intercepted ) );
 
             return site.Skip();
         }
@@ -751,32 +751,32 @@ internal sealed class BlockingCallsFabric : ProjectFabric
     public override void AmendProject( IProjectAmender amender )
         => amender.InterceptMethods( b => b.Type( typeof(Thread) ).Methods( nameof(Thread.Sleep) ).ForEachSite( MonitorSleep ) );
 
-    private static IMethodInterception MonitorSleep( MethodInterceptionContext context, IMethodSiteResultFactory site )
+    private static IMethodInterception MonitorSleep( IMethodSiteResultFactory site )
     {
-        var callingMember = context.CallSite.Member;
+        var callingMember = site.Context.CallSite.Member;
 
         if ( callingMember.DeclaringType.Is( typeof(SleepMonitor) ) )
         {
             return site.Skip();
         }
 
-        if ( context.CallSite.IsInAsyncFunction )
+        if ( site.Context.CallSite.IsInAsyncFunction )
         {
-            context.Diagnostics.Report( _sleepInAsyncCode.WithArguments( callingMember ) );
+            site.Context.Diagnostics.Report( _sleepInAsyncCode.WithArguments( callingMember ) );
 
             return site.Skip();
         }
 
         if ( callingMember.DeclaringType.ContainingNamespace.FullName.EndsWith( ".Tests", StringComparison.Ordinal ) )
         {
-            context.Diagnostics.Report( _sleepInTests.WithArguments( callingMember ) );
+            site.Context.Diagnostics.Report( _sleepInTests.WithArguments( callingMember ) );
 
             return site.Skip();
         }
 
         var replacement = typeof(SleepMonitor).AsINamedType()
             .Methods
-            .OfExactSignature( nameof(SleepMonitor.Sleep), context.InterceptedMethod.Parameters.Select( p => p.Type ).ToList() );
+            .OfExactSignature( nameof(SleepMonitor.Sleep), site.Context.InterceptedMethod.Parameters.Select( p => p.Type ).ToList() );
 
         return replacement != null ? site.RedirectToExistingMethod( replacement ) : site.Skip();
     }

@@ -240,7 +240,7 @@ amender.InterceptMethods( b => b
 
 Rules for the declaring type:
 
-- A `Type` is resolved with `TypeFactory.GetNamedType` (FW27 `Code\TypeFactory.cs:62`) when the registration is made, and the registration stores the definition as a durable reference. An `INamedType` is stored in the same way. `typeof(List<>)` matches every construction of `List<T>`. A constructed type such as `typeof(List<int>)` is reduced to its definition, so it also matches every construction. A delegate given to the `ForEachSite` method that cares about one construction tests `context.InterceptedMethod.DeclaringType` and returns `site.Skip()`.
+- A `Type` is resolved with `TypeFactory.GetNamedType` (FW27 `Code\TypeFactory.cs:62`) when the registration is made, and the registration stores the definition as a durable reference. An `INamedType` is stored in the same way. `typeof(List<>)` matches every construction of `List<T>`. A constructed type such as `typeof(List<int>)` is reduced to its definition, so it also matches every construction. A delegate given to the `ForEachSite` method that cares about one construction tests `site.Context.InterceptedMethod.DeclaringType` and returns `site.Skip()`.
 - The declaring type of a site is the type that declares the member to which the C# compiler binds the site, taken as its definition. It is not the static type of the receiver. For example, `fileStream.CopyTo( other )` binds to `Stream.CopyTo`, so a registration on `FileStream` does not match it, and a registration on `Stream` does. Matching is static: it does not consider the run-time type of the receiver.
 - The `Types` method takes a `[Durable] Func<INamedType, bool>`. The engine evaluates it after a name matched and the site was bound, once per distinct declaring type definition, and memoizes the result per compilation. The predicate receives a type definition of the scanned compilation. It must be deterministic and thread-safe. The `[Durable]` parameter lets the durability analyzer reject a lambda that captures a declaration, a symbol or another compilation-bound object (LAMA0878). An exception thrown by the predicate is reported once, and the type then counts as not matching (section [9.5.5](09-premium-engine.md#955-target-matching)).
 - The predicate is the only way to select several declaring types, for example the types of a namespace, as above (`INamedType.ContainingNamespace`, FW27 `Code\INamedType.cs:79`). Project and namespace fabrics run once per pipeline configuration (section [3.1](03-background.md#31-pipeline-stages-and-extension-hooks)) and cannot enumerate the types of the compilation. There is deliberately no dedicated namespace method and no method that takes several types.
@@ -249,7 +249,7 @@ Rules for the names:
 
 - At least one name is required. A call of the `Methods` method without a name throws `ArgumentException`, and so does a name that is not a valid C# identifier. There is no registration without names. The `AllMethods` method lists the names of the ordinary methods that the type declares, static and instance, when the chain is created; it does not select operators, conversions, explicit interface implementations, accessors, constructors, finalizers or inherited methods. A predicate over types cannot be combined with all methods, because the shared index needs method names.
 - The names are always the pre-binding filter of the shared index (section [9.5.3](09-premium-engine.md#953-registration-index-and-index-requirements)): the index binds only the member bodies that contain one of the names.
-- All overloads of a selected name are selected. The `Where` method keeps the selected method definitions that a `[Durable] Func<IMethod, bool>` predicate accepts, for instance one overload. The predicate is invoked once for each method definition that has a selected name, and several calls combine their predicates. A delegate given to the `ForEachSite` method can also test the constructed method through the context, for example `context.InterceptedMethod.Parameters`, and return `site.Skip()`. Sample 5 shows the `Where` method.
+- All overloads of a selected name are selected. The `Where` method keeps the selected method definitions that a `[Durable] Func<IMethod, bool>` predicate accepts, for instance one overload. The predicate is invoked once for each method definition that has a selected name, and several calls combine their predicates. A delegate given to the `ForEachSite` method can also test the constructed method through the context, for example `site.Context.InterceptedMethod.Parameters`, and return `site.Skip()`. Sample 5 shows the `Where` method.
 - A generic method is matched by its bare name, without type arguments, for example `Select` for `Select<int>( ... )`. A classic extension method has the same name in its reduced form and in its static form, because the index normalizes the reduced form (section [10.7.3](10c-oss-reference-graph-design-time.md#1073-reducedfrom-normalization)). An override and an implicit interface implementation have the name of the method that they override or implement, so the names are compatible with the default matching and with the `ExcludingOverrides` and `IncludingInterfaceImplementations` methods. An explicit interface implementation can only be called through the interface method, whose name the registration states.
 
 Other matching rules:
@@ -288,7 +288,7 @@ public interface IMethodSelection : IMethodResultFactory
 
     /// <summary>Decides the interception of each call site with a delegate, for instance to skip some call sites or to choose a template per site.</summary>
     [Pure]
-    IMethodInterception ForEachSite( [Durable] Func<MethodInterceptionContext, IMethodSiteResultFactory, IMethodInterception> intercept );
+    IMethodInterception ForEachSite( [Durable] Func<IMethodSiteResultFactory, IMethodInterception> intercept );
 }
 ```
 
@@ -770,10 +770,10 @@ A registration that intercepts `Transform` intercepts both statements, so both p
 amender.InterceptMethods( b => b
     .Type( typeof(Transforms) ).Methods( nameof(Transforms.Transform) )
     .ForEachSite(
-        ( context, site ) =>
+        site =>
 
             // This registration must not change the identity of event handlers, so it leaves subscriptions unchanged.
-            context.UseKind is MethodUseKind.EventSubscription or MethodUseKind.EventUnsubscription
+            site.Context.UseKind is MethodUseKind.EventSubscription or MethodUseKind.EventUnsubscription
                 ? site.Skip()
                 : site.RedirectToSynthesizedMethod( "LogTransform" ).WithPlacement( InterceptorPlacement.GeneratedStaticClass() ) ) );
 ```
