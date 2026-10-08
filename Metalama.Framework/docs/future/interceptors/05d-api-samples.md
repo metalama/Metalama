@@ -137,10 +137,10 @@ internal sealed class TestabilityFabric : NamespaceFabric
         amender.InterceptMethods( b => b.Type( typeof(Stopwatch) ).Methods( nameof(Stopwatch.GetTimestamp) ).ForEachSite( UseHookIfAny ) );
     }
 
-    private static IMethodInterception UseHookIfAny( IMethodSiteResultFactory site )
+    private static IMethodInterception UseHookIfAny( IMethodInterceptionSite site )
     {
         var hooks = typeof(SystemHooks).AsINamedType();
-        var hook = hooks.Properties.OfName( site.Context.InterceptedMethod.Name ).SingleOrDefault();
+        var hook = hooks.Properties.OfName( site.InterceptedMethod.Name ).SingleOrDefault();
 
         if ( hook == null )
         {
@@ -255,9 +255,9 @@ public sealed class UseResilientFileAccessAttribute : TypeAspect
             .ForEachSite( RedirectToResilientFile ) );
     }
 
-    private static IMethodInterception RedirectToResilientFile( IMethodSiteResultFactory site )
+    private static IMethodInterception RedirectToResilientFile( IMethodInterceptionSite site )
     {
-        var intercepted = site.Context.InterceptedMethod;
+        var intercepted = site.InterceptedMethod;
 
         var replacement = typeof(ResilientFile).AsINamedType()
             .Methods
@@ -265,7 +265,7 @@ public sealed class UseResilientFileAccessAttribute : TypeAspect
 
         if ( replacement == null )
         {
-            site.Context.Diagnostics.Report( _noResilientVariant.WithArguments( intercepted ) );
+            site.Diagnostics.Report( _noResilientVariant.WithArguments( intercepted ) );
 
             return site.Skip();
         }
@@ -312,7 +312,7 @@ public sealed class MeasureAwaitsAttribute : MethodAspect
         builder.InterceptAwaits( this.MeasureAwait );
     }
 
-    private InterceptorResult MeasureAwait( AwaitInterceptionContext context )
+    private InterceptorResult MeasureAwait( IAwaitInterceptionContext context )
     {
         if ( context.Resumption == AwaitResumption.Unknown )
         {
@@ -751,32 +751,32 @@ internal sealed class BlockingCallsFabric : ProjectFabric
     public override void AmendProject( IProjectAmender amender )
         => amender.InterceptMethods( b => b.Type( typeof(Thread) ).Methods( nameof(Thread.Sleep) ).ForEachSite( MonitorSleep ) );
 
-    private static IMethodInterception MonitorSleep( IMethodSiteResultFactory site )
+    private static IMethodInterception MonitorSleep( IMethodInterceptionSite site )
     {
-        var callingMember = site.Context.CallSite.Member;
+        var callingMember = site.Caller.Member;
 
         if ( callingMember.DeclaringType.Is( typeof(SleepMonitor) ) )
         {
             return site.Skip();
         }
 
-        if ( site.Context.CallSite.IsInAsyncFunction )
+        if ( site.Caller.IsInAsyncFunction )
         {
-            site.Context.Diagnostics.Report( _sleepInAsyncCode.WithArguments( callingMember ) );
+            site.Diagnostics.Report( _sleepInAsyncCode.WithArguments( callingMember ) );
 
             return site.Skip();
         }
 
         if ( callingMember.DeclaringType.ContainingNamespace.FullName.EndsWith( ".Tests", StringComparison.Ordinal ) )
         {
-            site.Context.Diagnostics.Report( _sleepInTests.WithArguments( callingMember ) );
+            site.Diagnostics.Report( _sleepInTests.WithArguments( callingMember ) );
 
             return site.Skip();
         }
 
         var replacement = typeof(SleepMonitor).AsINamedType()
             .Methods
-            .OfExactSignature( nameof(SleepMonitor.Sleep), site.Context.InterceptedMethod.Parameters.Select( p => p.Type ).ToList() );
+            .OfExactSignature( nameof(SleepMonitor.Sleep), site.InterceptedMethod.Parameters.Select( p => p.Type ).ToList() );
 
         return replacement != null ? site.RedirectToExistingMethod( replacement ) : site.Skip();
     }
@@ -903,7 +903,7 @@ internal sealed class Fabric : NamespaceFabric
 [CompileTime]
 internal sealed class ConfigureAwaitFalseProvider : IAwaitInterceptorProvider, ITemplateProvider
 {
-    public InterceptorResult GetInterceptor( AwaitInterceptionContext context )
+    public InterceptorResult GetInterceptor( IAwaitInterceptionContext context )
     {
         if ( context.Resumption == AwaitResumption.Unknown )
         {

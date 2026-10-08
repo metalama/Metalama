@@ -148,7 +148,7 @@ Option B was rejected in the first version of this design because of its breakin
 
 #### 9.2.2 Withdrawn: the package Metalama.Extensions.References
 
-The second product-owner review adopted a new neutral package, `Metalama.Extensions.References` (RC35, PO45, PO47). The predicates of Architecture would have moved into it, together with `ReferenceEnd`, `ReferenceEndRole` and `ReferenceGranularity` of Validation, and a new base class `ReferenceContext` would have been shared by `ReferenceValidationContext` and `InterceptionContext`. The move renamed `ValidatedRole` to `Role` and changed the parameter of `ReferencePredicate.IsMatchCore` (P27 `Metalama.Extensions.Architecture\Predicates\ReferencePredicate.cs:51`), which broke user predicates (CS0115).
+The second product-owner review adopted a new neutral package, `Metalama.Extensions.References` (RC35, PO45, PO47). The predicates of Architecture would have moved into it, together with `ReferenceEnd`, `ReferenceEndRole` and `ReferenceGranularity` of Validation, and a new base class `ReferenceContext` would have been shared by `ReferenceValidationContext` and `IInterceptionContext`. The move renamed `ValidatedRole` to `Role` and changed the parameter of `ReferencePredicate.IsMatchCore` (P27 `Metalama.Extensions.Architecture\Predicates\ReferencePredicate.cs:51`), which broke user predicates (CS0115).
 
 The third product-owner batch withdrew the extraction (RC47). No package is created, no type moves, nothing is renamed: `ValidatedRole` and `IsMatchCore( ReferenceValidationContext )` stay, and no breaking change ships. The reason is RC46: interceptors select targets by declaring type and member names, so they no longer evaluate reference predicates, and the shared base class and the predicate analysis have no consumer. The option is recorded in the table of section [5.3.12](05a-api-registration.md#5312-target-selection-options-considered) as considered and not adopted.
 
@@ -451,7 +451,7 @@ internal sealed record InterceptorRegistrationCollector(
 1. Reject a scope that is not a namespace, a named type, a member or the compilation (LAMA1001).
 2. Reject an external scope (LAMA1001). `InvokeAsync` does not reject external declarations when the origin is the compilation (ENG27 `Queries\Query.cs:483-484`).
 3. Reject a scope introduced by an aspect (LAMA1002).
-4. Take the interceptor provider. For a method registration, the internal provider was created from the chain of the registration delegate when the registration was made (row "Fluent registration API" of section [15.0](15-decisions.md#150-decisions-of-2026-10-02)), and it is the same for every scope. The tag of an `ITaggedQuery` is stored with the registration instance and exposed to the delegate of the `ForEachSite` method as `InterceptionContext.ScopeTag`. In the earlier design of the await verb, a per-scope factory is invoked through the owner's `UserCodeInvoker`, as P27 `...\Queries\DynamicReferenceValidatorQuerySource.cs:40-47` does, and the tag is consumed there.
+4. Take the interceptor provider. For a method registration, the internal provider was created from the chain of the registration delegate when the registration was made (row "Fluent registration API" of section [15.0](15-decisions.md#150-decisions-of-2026-10-02)), and it is the same for every scope. The tag of an `ITaggedQuery` is stored with the registration instance and exposed to the delegate of the `ForEachSite` method as `IInterceptionContext.ScopeTag`. In the earlier design of the await verb, a per-scope factory is invoked through the owner's `UserCodeInvoker`, as P27 `...\Queries\DynamicReferenceValidatorQuerySource.cs:40-47` does, and the tag is consumed there.
 5. Add an `InterceptorRegistrationInstance`, which computes its scope key, its index requirements from its names (section [9.5.3](#953-registration-index-and-index-requirements)) and its filing key (section [9.7.2](#972-filing-key)).
 
 ### 9.5 Compile-time run
@@ -592,7 +592,7 @@ internal abstract class InterceptorProviderDriver
     /// <summary>Invokes the user code. Returns null when the user code threw; UserCodeInvoker has then reported the exception.</summary>
     public abstract InterceptorResult? Invoke(
         in InterceptorProviderInstance provider,
-        InterceptionContext context,
+        IInterceptionContext context,
         UserCodeInvoker invoker,
         UserCodeExecutionContext executionContext );
 }
@@ -1010,7 +1010,7 @@ Where: EV = `ExecuteContributorsAsync`, CT = compile-time hook, PA = Phase A, PB
 | LAMA1017 | Error | The accessibility of the interceptor method is inconsistent. | The interceptor '{0}' in '{1}' must be accessible from '{2}', but its signature uses '{3}', which is less accessible. | CT |
 | LAMA1018 | Error | An interceptor method cannot intercept a call site in its own body. | The {0} is inside the method '{1}', which is its interceptor. The interception would call '{1}' recursively. | CT, PB Removed by the decision "Conversions of invocations, optional parameters, exclusions and flags enumerations" of section 15.0 (2026-10-06). |
 | LAMA1019 | Hidden | An event handler is replaced by an interceptor. | The handler '{0}' of the event '{1}' is replaced by the interceptor '{2}'. A handler added or removed outside the scope of the {3} is a different delegate, so '+=' and '-=' match only within the scope. | CT, PB |
-| LAMA1020 | Warning | The resumption context of the await cannot be preserved. | The await interceptor '{0}' returns '{1}', which cannot preserve the context on which '{2}' resumes after awaiting '{3}', because {4}. Set AwaitRewriteOptions.Resumption, use AwaitInterceptionMode.Awaitable, or skip the await, for example when AwaitInterceptionContext.Resumption is Unknown. The await is left unchanged. | CT, PB |
+| LAMA1020 | Warning | The resumption context of the await cannot be preserved. | The await interceptor '{0}' returns '{1}', which cannot preserve the context on which '{2}' resumes after awaiting '{3}', because {4}. Set AwaitRewriteOptions.Resumption, use AwaitInterceptionMode.Awaitable, or skip the await, for example when IAwaitInterceptionContext.Resumption is Unknown. The await is left unchanged. | CT, PB |
 | LAMA1021 | Error | The result of the await interceptor has the wrong type. | Awaiting the value returned by the interceptor '{0}' produces '{1}', which cannot replace '{2}', the result of the original await, because {3}. | CT, PB |
 | LAMA1022 | Error | An async template cannot be used in Awaitable mode. | The template '{0}' cannot be used in AwaitInterceptionMode.Awaitable because it is async. | CT, PB |
 | LAMA1023 | Error | ValueTask is not available. | The type '{0}' is not available in project '{1}'. Reference System.Threading.Tasks.Extensions or use AwaitInterceptorTaskKind.Task. | CT, PB |

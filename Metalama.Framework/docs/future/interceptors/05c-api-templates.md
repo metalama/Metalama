@@ -89,7 +89,7 @@ public static class InterceptionMetaExtensions
 /// The generated method can be shared by several call sites. For this reason, this class exposes only information that
 /// is the same for all of them. Pass call-site information as template arguments. The expressions of this class, such as
 /// <see cref="Receiver"/>, denote members of the generated method, so templates can emit them. They differ from the
-/// inspection-only expressions of <see cref="MethodInterceptionContext"/>, which denote source code of one call site.
+/// inspection-only expressions of <see cref="IMethodInterceptionContext"/>, which denote source code of one call site.
 /// </remarks>
 [CompileTime]
 [PublicAPI]
@@ -105,7 +105,7 @@ public sealed class MethodInterceptionInfo : IMetaExtension
 
     /// <summary>
     /// Gets the destination of the intercepted sites: the property or the event for an accessor interceptor, and the
-    /// definition of <see cref="Method"/> otherwise. It has the meaning of <see cref="MethodInterceptionContext.Destination"/>.
+    /// definition of <see cref="Method"/> otherwise. It has the meaning of <see cref="IMethodInterceptionContext.Destination"/>.
     /// </summary>
     public IMember Destination { get; }
 

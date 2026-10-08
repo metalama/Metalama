@@ -9,14 +9,14 @@ DECIDED on 2026-10-08 (row "Fluent registration API" of section [15.0](15-decisi
 An interceptor provider is the user code that chooses the interceptor of each call site. The interceptor itself is the method that the rewritten call site calls (section [0.4](00-conventions.md#04-terminology-aligned-with-roslyn-interceptors)). A method registration expresses the choice in one of two ways:
 
 - A result that does not depend on the site is chosen on the chain, after the method selection, with the `RedirectToExistingMethod` or `RedirectToSynthesizedMethod` method of `IMethodSelection`, which inherits them from `IMethodResultFactory`.
-- A result that depends on the site is chosen by the delegate given to the `ForEachSite` method of `IMethodSelection`. The delegate receives a factory of results, `IMethodSiteResultFactory`, whose `Context` property is the context of the site, and returns a result that this factory creates.
+- A result that depends on the site is chosen by the delegate given to the `ForEachSite` method of `IMethodSelection`. The delegate receives the call site, an `IMethodInterceptionSite`, which derives from `IMethodInterceptionContext` and from `IMethodResultFactory`. It describes the site and creates the result that the delegate returns.
 
 ```csharp
 namespace Metalama.Extensions.Interceptors;
 
 /// <summary>
 /// Chooses how the selected calls are intercepted: redirected to an existing method, or redirected to a method synthesized from a template. It
-/// is the base of <see cref="IMethodSelection"/>, for a result that applies to every call site, and of <see cref="IMethodSiteResultFactory"/>,
+/// is the base of <see cref="IMethodSelection"/>, for a result that applies to every call site, and of <see cref="IMethodInterceptionSite"/>,
 /// for the result of one call site.
 /// </summary>
 [CompileTime]
@@ -47,21 +47,17 @@ public interface IMethodResultFactory
 }
 
 /// <summary>
-/// Creates the result of one call site in the delegate given to <see cref="IMethodSelection.ForEachSite"/>.
+/// One call site in the delegate given to <see cref="IMethodSelection.ForEachSite"/>. It describes the site, through the members of
+/// <see cref="IMethodInterceptionContext"/>, and creates the result of the site.
 /// </summary>
 [CompileTime]
 [InternalImplement]
 [PublicAPI]
-public interface IMethodSiteResultFactory : IMethodResultFactory
+public interface IMethodInterceptionSite : IMethodResultFactory, IMethodInterceptionContext
 {
     /// <summary>
-    /// Gets the context of the call site whose result is created.
-    /// </summary>
-    MethodInterceptionContext Context { get; }
-
-    /// <summary>
     /// Leaves the call site unchanged for this registration. Other registrations for the same site are still evaluated. To explain a skip,
-    /// report a diagnostic through <see cref="InterceptionContext.Diagnostics"/>.
+    /// report a diagnostic through <see cref="IInterceptionContext.Diagnostics"/>.
     /// </summary>
     [Pure]
     IMethodInterception Skip();
@@ -87,14 +83,14 @@ public interface IMethodInterception;
 public interface IAwaitInterceptorProvider
 {
     /// <summary>Returns the interceptor to use for an await expression, or <see cref="InterceptorResult.Skip"/>.</summary>
-    InterceptorResult GetInterceptor( AwaitInterceptionContext context );
+    InterceptorResult GetInterceptor( IAwaitInterceptionContext context );
 }
 ```
 
 The `ForEachSite` method is declared by `IMethodSelection` (section [5.3.3](05a-api-registration.md#533-target-selection-for-members)):
 
 ```csharp
-IMethodInterception ForEachSite( [Durable] Func<IMethodSiteResultFactory, IMethodInterception> intercept );
+IMethodInterception ForEachSite( [Durable] Func<IMethodInterceptionSite, IMethodInterception> intercept );
 ```
 
 Rules of the delegate given to the `ForEachSite` method:
@@ -102,34 +98,36 @@ Rules of the delegate given to the `ForEachSite` method:
 - Metalama invokes it during the build. When the IDE option of decision PO26 is enabled, it also invokes it in the IDE. Invocations can be concurrent, and the same call site can be evaluated several times. The delegate must be thread-safe and deterministic, and it must not modify state.
 - The delegate is stored with the registration and kept across compilations in the IDE. It must therefore not capture declarations, types, or objects that reference them. The parameter carries `[Durable]`, so the durability analyzer checks what a lambda captures. A method group of the aspect or of the fabric is also accepted.
 - The delegate returns a value created by the factory that it receives: `site.Skip()`, `site.RedirectToExistingMethod( ... )` or `site.RedirectToSynthesizedMethod( ... )`, possibly followed by the methods of `ITemplateInterception`. A value that no factory of results created, for instance a value of the registration chain, is refused with an `ArgumentException`, which is reported as an error.
-- The delegate reads the context of the site through `site.Context`. It can report diagnostics through `site.Context.Diagnostics`. An exception thrown by the delegate is reported as an error on the declaration that contains the site, and the site is not intercepted.
+- The delegate reads the context of the site through the members of `site`. It can report diagnostics through `site.Diagnostics`. An exception thrown by the delegate is reported as an error on the declaration that contains the site, and the site is not intercepted.
 - The delegate is invoked only for call sites written in the source code.
-- The selected methods are the same for every scope declaration. A result that depends on the scope declaration reads `InterceptionContext.ScopeDeclaration` and, for a registration made through a tagged query, `InterceptionContext.ScopeTag`.
+- The selected methods are the same for every scope declaration. A result that depends on the scope declaration reads `IInterceptionContext.ScopeDeclaration` and, for a registration made through a tagged query, `IInterceptionContext.ScopeTag`.
 
 | Choice | Reason and precedent |
 |---|---|
 | A delegate, not an interface | A registration needs one decision function, not a class. A method group of the aspect or of the fabric, or a lambda checked by the durability analyzer, expresses it without a provider class. The earlier interface `IMethodInterceptorProvider`, with its factories `MethodInterceptorProvider.FromDelegate`, `ExistingMethod` and `Template`, duplicated the results that the chain now chooses directly. |
-| A factory of results passed to the delegate | Only `IMethodSiteResultFactory` declares `Skip`, so a registration cannot skip every site, which has no use. The engine also refuses a returned value that no factory of results created. |
-| The context as a property of the factory | The delegate has a single parameter, `site`, so a lambda and a method group have the shortest form, and a lambda that ignores the context does not need a discard parameter. The context and the factory belong to the same site, so one object can expose both. |
+| A factory of results passed to the delegate | Only `IMethodInterceptionSite` declares `Skip`, so a registration cannot skip every site, which has no use. The engine also refuses a returned value that no factory of results created. |
+| The site as a context | The delegate has a single parameter, `site`, which both describes the site and creates its result, for instance `site.Caller.IsInAsyncFunction ? site.Skip() : site.RedirectToSynthesizedMethod( "Log" )`. The context members are declared once, by `IMethodInterceptionContext`, and `IMethodInterceptionSite` inherits them, so they are not repeated. `IInterceptorMethodBuilder.Context` exposes the context and not the site, because a delegate given to `Configure` runs after the result is chosen. |
 | `[Durable]` | Fabric registrations live in the pipeline configuration, and design-time registrations are kept across compilations. `IAspect` (FW27 `Aspects\IAspect.cs:46`), `IAspectState` and `Fabric` carry the same attribute. The analyzer verifies each argument of a `[Durable]` parameter (FW27 analyzers, LAMA0870 and LAMA0876). |
 | No `ICompileTimeSerializable` | Serialization is not required. Registrations are project-local and are never written to a manifest in version 1 (section [9.9.4](09-premium-engine.md#994-deferred-route-manifest-based-transitive-interceptors)). Manifest-based transitive interceptors stay deferred. If they are ever needed, they get a separate opt-in entry point. A declaring type and names can be serialized, which keeps that path open; a type predicate, a method predicate and a delegate cannot. |
 | Results that stay open to handlers | A future delegate-based interceptor (section [16.2](16-future-directions.md#162-delegate-based-handler-interceptors)) is a new method of `IMethodResultFactory`. The interfaces are `[InternalImplement]`, so adding a method is not a breaking change. |
 
 ### 5.5 Interception contexts
 
-#### 5.5.1 InterceptionContext
+#### 5.5.1 IInterceptionContext
 
-> Superseded in part by the decision "Interception contexts, method selector and implicit calls" of section 15.0 (2026-10-06): the members that describe the call site, the receiver and the method reference moved to `ICallSite`, `IInvocationReceiver` and `IMethodReference`, `Destination` is removed, and `NonInterceptableReason` is not nullable.
+> Superseded in part by the decision "Interception contexts, method selector and implicit calls" of section 15.0 (2026-10-06): the members that describe the call site, the receiver and the method reference moved to `ICaller`, `IInvocationReceiver` and `IMethodReference`, `Destination` is removed, and `NonInterceptableReason` is not nullable.
 >
-> Superseded in part by the decision "Provider factories, event subscriptions as a use kind, and the call-site member" of section 15.0 (2026-10-06): `ICallSite.Origin` is `IMember Member`, `CallingType`, `CallingNamespace` and `DiagnosticLocation` are removed, and `IMethodReference` is removed in favor of the use kind `MethodUseKind.EventSubscription`.
+> Superseded in part by the decision "Provider factories, event subscriptions as a use kind, and the call-site member" of section 15.0 (2026-10-06): `ICaller.Origin` is `IMember Member`, `CallingType`, `CallingNamespace` and `DiagnosticLocation` are removed, and `IMethodReference` is removed in favor of the use kind `MethodUseKind.EventSubscription`.
 >
 > Superseded in part by the row "Fluent registration API" of section 15.0 (2026-10-08): the method context is passed to the delegate given to `IMethodSelection.ForEachSite` and exposed by `IInterceptorMethodBuilder.Context`, and `ScopeTag` gives the tag of the scope declaration for a registration made through a tagged query.
+>
+> Superseded in part by the row "Interception sites and callers" of section 15.0 (2026-10-08): the contexts are `[InternalImplement]` interfaces, `IInterceptionContext`, `IMethodInterceptionContext` and `IAwaitInterceptionContext`, instead of abstract classes. The delegate given to `IMethodSelection.ForEachSite` receives an `IMethodInterceptionSite`, which derives from `IMethodInterceptionContext`. The `CallSite` property is renamed `Caller`, `ICallSite` is renamed `ICaller`, `CallSiteKind` is renamed `CallerKind`, and the `Source` property moves from `ICaller` to `IInterceptionContext`.
 
 ```csharp
 namespace Metalama.Extensions.Interceptors;
 
 /// <summary>
-/// The base class of the contexts of a call site, which the delegate given to <see cref="IMethodSelection.ForEachSite"/> and
+/// The base interface of the contexts of a call site, which the delegate given to <see cref="IMethodSelection.ForEachSite"/> and
 /// <see cref="IAwaitInterceptorProvider.GetInterceptor"/> receive and which <see cref="IInterceptorMethodBuilder.Context"/> exposes. It
 /// describes one call site.
 /// </summary>
@@ -152,17 +150,16 @@ namespace Metalama.Extensions.Interceptors;
 /// </remarks>
 [CompileTime]
 [PublicAPI]
-public abstract class InterceptionContext
+[InternalImplement]
+public interface IInterceptionContext
 {
-    internal InterceptionContext() { }
-
     /// <summary>Gets the declaration selected at registration whose scope contains the call site.</summary>
-    public abstract IDeclaration ScopeDeclaration { get; }
+    IDeclaration ScopeDeclaration { get; }
 
     /// <summary>
     /// Gets the tag of <see cref="ScopeDeclaration"/> when the registration was made through a tagged query, or <c>null</c> otherwise.
     /// </summary>
-    public abstract object? ScopeTag { get; }
+    object? ScopeTag { get; }
 
     /// <summary>
     /// Gets the origin of the site: the innermost declaration of the code model that contains the site. It is a member, an
@@ -173,22 +170,22 @@ public abstract class InterceptionContext
     /// The origin is an <see cref="IMember"/> except for primary-constructor base arguments, where it is the
     /// <see cref="INamedType"/>. The term has the meaning of <c>ReferenceEndRole.Origin</c> in reference validation.
     /// </remarks>
-    public abstract IDeclaration Origin { get; }
+    IDeclaration Origin { get; }
 
     /// <summary>
     /// Gets the innermost type that contains the site: <see cref="Origin"/> itself when it is a type, and otherwise the
     /// declaring type of <see cref="Origin"/>.
     /// </summary>
-    public abstract INamedType CallingType { get; }
+    INamedType CallingType { get; }
 
     /// <summary>Gets the namespace of <see cref="CallingType"/>.</summary>
-    public abstract INamespace CallingNamespace { get; }
+    INamespace CallingNamespace { get; }
 
     /// <summary>Gets the kind of code that immediately contains the call site.</summary>
-    public abstract EnclosingCodeKind EnclosingCodeKind { get; }
+    EnclosingCodeKind EnclosingCodeKind { get; }
 
     /// <summary>Gets a value indicating whether the innermost enclosing method, local function or lambda is <c>async</c>.</summary>
-    public abstract bool IsInAsyncFunction { get; }
+    bool IsInAsyncFunction { get; }
 
     /// <summary>
     /// Gets a value indicating whether the site is inside a lambda, an anonymous method or a local function of the origin.
@@ -199,48 +196,48 @@ public abstract class InterceptionContext
     /// for which this property is <c>true</c>, because a parameter of the enclosing function can shadow the pulled
     /// parameter, and the site is then refused (section 5.6.9 of the design).
     /// </remarks>
-    public abstract bool IsInNestedFunction { get; }
+    bool IsInNestedFunction { get; }
 
     /// <summary>
     /// Gets a value indicating whether code at the call site can reference <c>this</c>. The value is <c>false</c> in static
     /// members, static lambdas, static local functions, field initializers, constructor initializers, and lambdas or local
     /// functions of struct members.
     /// </summary>
-    public abstract bool CanAccessThis { get; }
+    bool CanAccessThis { get; }
 
     /// <summary>
     /// Gets the source of the site: the invocation expression, the method group, the member access of an accessor site, or
     /// the await expression.
     /// </summary>
-    public abstract SourceReference Source { get; }
+    SourceReference Source { get; }
 
     /// <summary>
     /// Gets the default location of diagnostics: the name of the invoked method or of the accessed property or event, and the
     /// <c>await</c> keyword for await expressions.
     /// </summary>
-    public abstract IDiagnosticLocation DiagnosticLocation { get; }
+    IDiagnosticLocation DiagnosticLocation { get; }
 
     /// <summary>
     /// Gets a sink that reports diagnostics at <see cref="DiagnosticLocation"/> and suppresses diagnostics in
     /// <see cref="Origin"/>. Diagnostics are attributed to the aspect or fabric that registered the interceptor.
     /// </summary>
-    public abstract ScopedDiagnosticSink Diagnostics { get; }
+    ScopedDiagnosticSink Diagnostics { get; }
 
     /// <summary>
     /// Gets the state of the aspect instance that registered the interceptor, as it is when <see cref="IAspect{T}.BuildAspect"/>
     /// exits, or <c>null</c> when a fabric registered the interceptor.
     /// </summary>
-    public abstract IAspectState? AspectState { get; }
+    IAspectState? AspectState { get; }
 
     /// <summary>
     /// Gets the reason why the call site cannot be intercepted, or <c>null</c> when it can be intercepted. When this property
-    /// is not <c>null</c>, any result other than <see cref="IMethodSiteResultFactory.Skip"/> produces a warning and the call site is
+    /// is not <c>null</c>, any result other than <see cref="IMethodInterceptionSite.Skip"/> produces a warning and the call site is
     /// left unchanged.
     /// </summary>
-    public abstract NonInterceptableReason? NonInterceptableReason { get; }
+    NonInterceptableReason? NonInterceptableReason { get; }
 
     /// <summary>Gets a cancellation token that the provider should pass to long operations.</summary>
-    public abstract CancellationToken CancellationToken { get; }
+    CancellationToken CancellationToken { get; }
 
     /// <summary>
     /// Determines whether an interceptor generated in a given placement can intercept this call site. The check covers the
@@ -249,7 +246,7 @@ public abstract class InterceptionContext
     /// <c>base</c> calls. It checks the default signature, without the adjustments of an <see cref="IInterceptorMethodBuilder"/>.
     /// </summary>
     /// <param name="reason">A sentence that explains why the placement is not supported, or <c>null</c>.</param>
-    public abstract bool SupportsPlacement( InterceptorPlacement placement, out string? reason );
+    bool SupportsPlacement( InterceptorPlacement placement, out string? reason );
 
     /// <summary>Determines whether an interceptor generated in a given placement can intercept this call site.</summary>
     public bool SupportsPlacement( InterceptorPlacement placement ) => this.SupportsPlacement( placement, out _ );
@@ -348,11 +345,13 @@ public enum NonInterceptableReason
 
 Call sites with a limitation are presented to the interceptor (RC5). Method groups converted to a delegate or to a function pointer are presented as method-reference sites (section [5.3.11](05a-api-registration.md#5311-kinds-of-method-use)). Uses of property and event accessors are presented as accessor sites (section [5.3.13](05a-api-registration.md#5313-accessors), [6.2.11](06a-call-site-model.md#6211-accessor-sites)). Call sites that are not calls in any observable sense are never presented: calls and method groups in expression trees (including query expressions over `IQueryable`), `nameof`, method groups that are not converted, delegate invocations, local-function calls, function-pointer invocations, dynamic invocations, dynamic awaits, calls that the compiler omits (`[Conditional]` without the symbol, partial methods without implementation), calls that do not bind, calls in compile-time code, and `await foreach` and `await using`. Section [6.2.2](06a-call-site-model.md#622-silent-refusals) gives the detection rules.
 
-#### 5.5.2 MethodInterceptionContext and InvocationArgument
+#### 5.5.2 IMethodInterceptionContext and InvocationArgument
 
-> Superseded in part by the decision "Interception contexts, method selector and implicit calls" of section 15.0 (2026-10-06): the members that describe the call site, the receiver and the method reference moved to `ICallSite`, `IInvocationReceiver` and `IMethodReference`, `Destination` is removed, and `NonInterceptableReason` is not nullable.
+> Superseded in part by the decision "Interception contexts, method selector and implicit calls" of section 15.0 (2026-10-06): the members that describe the call site, the receiver and the method reference moved to `ICaller`, `IInvocationReceiver` and `IMethodReference`, `Destination` is removed, and `NonInterceptableReason` is not nullable.
 >
-> Superseded in part by the decision "Provider factories, event subscriptions as a use kind, and the call-site member" of section 15.0 (2026-10-06): `ICallSite.Origin` is `IMember Member`, `CallingType`, `CallingNamespace` and `DiagnosticLocation` are removed, and `IMethodReference` is removed in favor of the use kind `MethodUseKind.EventSubscription`.
+> Superseded in part by the decision "Provider factories, event subscriptions as a use kind, and the call-site member" of section 15.0 (2026-10-06): `ICaller.Origin` is `IMember Member`, `CallingType`, `CallingNamespace` and `DiagnosticLocation` are removed, and `IMethodReference` is removed in favor of the use kind `MethodUseKind.EventSubscription`.
+>
+> Superseded in part by the row "Interception sites and callers" of section 15.0 (2026-10-08): the contexts are `[InternalImplement]` interfaces, `IInterceptionContext`, `IMethodInterceptionContext` and `IAwaitInterceptionContext`, instead of abstract classes. The delegate given to `IMethodSelection.ForEachSite` receives an `IMethodInterceptionSite`, which derives from `IMethodInterceptionContext`. The `CallSite` property is renamed `Caller`, `ICallSite` is renamed `ICaller`, `CallSiteKind` is renamed `CallerKind`, and the `Source` property moves from `ICaller` to `IInterceptionContext`.
 
 ```csharp
 /// <summary>
@@ -366,32 +365,31 @@ Call sites with a limitation are presented to the interceptor (RC5). Method grou
 /// </remarks>
 [CompileTime]
 [PublicAPI]
-public abstract class MethodInterceptionContext : InterceptionContext
+[InternalImplement]
+public interface IMethodInterceptionContext : IInterceptionContext
 {
-    internal MethodInterceptionContext() { }
-
     /// <summary>
     /// Gets the kind of use at the site. Every registration receives every kind. A delegate given to
-    /// <see cref="IMethodSelection.ForEachSite"/> that does not support a kind returns <see cref="IMethodSiteResultFactory.Skip"/>.
+    /// <see cref="IMethodSelection.ForEachSite"/> that does not support a kind returns <see cref="IMethodInterceptionSite.Skip"/>.
     /// </summary>
     /// <remarks>
     /// Later versions can add values to <see cref="MethodUseKind"/>. A provider that depends on the kind tests for the
     /// kinds that it supports and skips the others.
     /// </remarks>
-    public abstract MethodUseKind Kind { get; }
+    MethodUseKind Kind { get; }
 
     /// <summary>
     /// Gets the delegate type or the function pointer type to which the method group is converted, or <c>null</c> for a
     /// call. For <c>var d = M;</c>, it is the natural function type of the method group.
     /// </summary>
-    public abstract IType? ConvertedType { get; }
+    IType? ConvertedType { get; }
 
     /// <summary>
     /// Gets a value indicating whether the method group is the right operand of <c>+=</c> or <c>-=</c> on an event. The
     /// rewrite changes the identity of the handler, so a handler added in the scope is not removed by code outside the
     /// scope, and the reverse.
     /// </summary>
-    public abstract bool IsEventSubscription { get; }
+    bool IsEventSubscription { get; }
 
     /// <summary>
     /// Gets the method to which the C# compiler binds the call, or that the method-group conversion selects, constructed
@@ -400,7 +398,7 @@ public abstract class MethodInterceptionContext : InterceptionContext
     /// A classic extension method called in reduced form is represented in its static form, and its receiver is the first
     /// element of <see cref="Arguments"/>.
     /// </summary>
-    public abstract IMethod InterceptedMethod { get; }
+    IMethod InterceptedMethod { get; }
 
     /// <summary>
     /// Gets the destination of the site: the definition of the member that the site uses. For a use of a method, it is the
@@ -414,7 +412,7 @@ public abstract class MethodInterceptionContext : InterceptionContext
     /// references the property. The accessor itself is <see cref="InterceptedMethod"/>, constructed with the type
     /// arguments of the site.
     /// </remarks>
-    public abstract IMember Destination { get; }
+    IMember Destination { get; }
 
     /// <summary>
     /// Gets the method or accessor definition that the registration matched by its declaring type and its name. It differs
@@ -422,7 +420,7 @@ public abstract class MethodInterceptionContext : InterceptionContext
     /// override or to an interface implementation, according to <see cref="IMethodSelection.ExcludingOverrides"/> and
     /// <see cref="IMethodSelection.IncludingInterfaceImplementations"/>.
     /// </summary>
-    public abstract IMethod MatchedMethod { get; }
+    IMethod MatchedMethod { get; }
 
     /// <summary>
     /// Gets the assignment operator of an accessor site: <see cref="OperatorKind.None"/> for a plain read, a plain write,
@@ -437,28 +435,28 @@ public abstract class MethodInterceptionContext : InterceptionContext
     /// For <c>+=</c> and <c>-=</c> on an event, the value is <see cref="OperatorKind.None"/>, because the accessor kind
     /// already says whether a handler is added or removed.
     /// </remarks>
-    public abstract OperatorKind AssignmentOperator { get; }
+    OperatorKind AssignmentOperator { get; }
 
     /// <summary>
     /// Gets a value indicating whether an increment or a decrement is written in postfix form, <c>r.P++</c>. It is
     /// <c>false</c> for every other site.
     /// </summary>
-    public abstract bool IsPostfix { get; }
+    bool IsPostfix { get; }
 
     /// <summary>
     /// Gets a value indicating whether the operator of the site performs overflow checking, which happens in a
     /// <c>checked</c> context for integral types. It is <c>false</c> when the site has no operator.
     /// </summary>
-    public abstract bool IsChecked { get; }
+    bool IsChecked { get; }
 
     /// <summary>Gets how the call dispatches to the intercepted method.</summary>
-    public abstract InvocationDispatchKind DispatchKind { get; }
+    InvocationDispatchKind DispatchKind { get; }
 
     /// <summary>Gets the kind of receiver written at the call site.</summary>
-    public abstract InvocationReceiverKind ReceiverKind { get; }
+    InvocationReceiverKind ReceiverKind { get; }
 
     /// <summary>Gets the static type of the receiver, or <c>null</c> when <see cref="ReceiverKind"/> is <see cref="InvocationReceiverKind.None"/>.</summary>
-    public abstract IType? ReceiverType { get; }
+    IType? ReceiverType { get; }
 
     /// <summary>
     /// Gets the receiver expression written at the call site, for inspection only, or <c>null</c> when the intercepted
@@ -473,13 +471,13 @@ public abstract class MethodInterceptionContext : InterceptionContext
     /// <see cref="ISourceExpression.AsTypedConstant"/> can be read. The Roslyn syntax is available through the SDK method
     /// <c>SourceExpressionExtensions.GetSourceSyntax</c>. The expression cannot be emitted in generated code (LAMA0297).
     /// </remarks>
-    public abstract IExpression? Receiver { get; }
+    IExpression? Receiver { get; }
 
     /// <summary>
     /// Gets a value indicating whether the call is written with the null-conditional operator <c>?.</c>. It is always
     /// <c>false</c> for a method-reference site.
     /// </summary>
-    public abstract bool IsConditionalAccess { get; }
+    bool IsConditionalAccess { get; }
 
     /// <summary>
     /// Gets a value indicating whether the value returned by the call is used. It is always <c>false</c> for a
@@ -487,7 +485,7 @@ public abstract class MethodInterceptionContext : InterceptionContext
     /// tells whether the value of the source expression is used: the read, the assignment, the compound assignment or the
     /// increment. Both uses of one compound site report the same value.
     /// </summary>
-    public abstract bool IsResultUsed { get; }
+    bool IsResultUsed { get; }
 
     /// <summary>
     /// Gets one element for each parameter of <see cref="InterceptedMethod"/>, in parameter order, including parameters
@@ -495,7 +493,7 @@ public abstract class MethodInterceptionContext : InterceptionContext
     /// the delegate or the function pointer is invoked, and for a getter. For a setter, the element is the value; for an
     /// add or remove accessor, it is the handler.
     /// </summary>
-    public abstract IReadOnlyList<InvocationArgument> Arguments { get; }
+    IReadOnlyList<InvocationArgument> Arguments { get; }
 }
 
 /// <summary>Kinds of use of a method at a site.</summary>
@@ -547,7 +545,7 @@ public readonly struct InvocationArgument
     /// several expressions (<see cref="InvocationArgumentKind.ParamsElements"/>). For a <c>ref</c>, <c>out</c> or <c>in</c>
     /// argument, it is the expression after the modifier.
     /// </summary>
-    /// <remarks>The rules of <see cref="MethodInterceptionContext.Receiver"/> apply.</remarks>
+    /// <remarks>The rules of <see cref="IMethodInterceptionContext.Receiver"/> apply.</remarks>
     public IExpression? Expression { get; }
 }
 
@@ -609,7 +607,7 @@ For a call, the data comes from `IInvocationOperation.TargetMethod`, `Instance`,
 
 Three members describe the called side of a site. `MatchedMethod` is the definition that the target selection of the registration selected. `Destination` is the definition of the member that the site uses, which can be an override or an implementation of it; at an accessor site, it is the property or the event. `InterceptedMethod` is the method or the accessor that the site calls, constructed with the type arguments of the site. `Origin`, on the base class, describes the calling side (section [0.3](00-conventions.md#03-terms)).
 
-The expressions of the contexts (`MethodInterceptionContext.Receiver`, `InvocationArgument.Expression` and `AwaitInterceptionContext.Operand`) wrap source syntax in the way the code model wraps field initializers: the code model creates a `SourceUserExpression` over the source node, typed in the source compilation (ENG27 `CodeModel\Source\SourceField.cs:149`; `Templating\Expressions\SourceUserExpression.cs:18-24`). The premium engine cannot create that internal class, so it calls the open-source factory of inspection-only source expressions (section [10.6.8](10b-oss-linker-and-templates.md#1068-inspection-only-source-expressions)). The rules are:
+The expressions of the contexts (`IMethodInterceptionContext.Receiver`, `InvocationArgument.Expression` and `IAwaitInterceptionContext.Operand`) wrap source syntax in the way the code model wraps field initializers: the code model creates a `SourceUserExpression` over the source node, typed in the source compilation (ENG27 `CodeModel\Source\SourceField.cs:149`; `Templating\Expressions\SourceUserExpression.cs:18-24`). The premium engine cannot create that internal class, so it calls the open-source factory of inspection-only source expressions (section [10.6.8](10b-oss-linker-and-templates.md#1068-inspection-only-source-expressions)). The rules are:
 
 - The expressions are for inspection. A provider can read the type, the constant value through `ISourceExpression.AsTypedConstant` (FW27 `Code\ISourceExpression.cs:31`), the text, and, through the SDK, the Roslyn syntax (section [10.9](10c-oss-reference-graph-design-time.md#109-small-public-helpers-b2g)).
 - Generated code cannot contain them. Emitting one would evaluate the operand a second time, would place it outside the scope where its locals exist, and would make the template depend on one call site, which splits groups. A template result whose arguments or tags contain an expression of a context is rejected with LAMA1014 at evaluation. Any other attempt to emit such an expression during a template expansion fails with the open-source error LAMA0297.
@@ -617,8 +615,10 @@ The expressions of the contexts (`MethodInterceptionContext.Receiver`, `Invocati
 
 The expressions are created lazily, on the first read of the property. A provider that does not read them pays nothing.
 
-#### 5.5.3 AwaitInterceptionContext
+#### 5.5.3 IAwaitInterceptionContext
 
+
+> Superseded in part by the row "Interception sites and callers" of section 15.0 (2026-10-08): the contexts are `[InternalImplement]` interfaces, `IInterceptionContext`, `IMethodInterceptionContext` and `IAwaitInterceptionContext`, instead of abstract classes. The delegate given to `IMethodSelection.ForEachSite` receives an `IMethodInterceptionSite`, which derives from `IMethodInterceptionContext`. The `CallSite` property is renamed `Caller`, `ICallSite` is renamed `ICaller`, `CallSiteKind` is renamed `CallerKind`, and the `Source` property moves from `ICaller` to `IInterceptionContext`.
 ```csharp
 /// <summary>Describes where the calling function resumes after the original await.</summary>
 [CompileTime]
@@ -671,57 +671,56 @@ public sealed class AwaitConfiguration
 /// </remarks>
 [CompileTime]
 [PublicAPI]
-public abstract class AwaitInterceptionContext : InterceptionContext
+[InternalImplement]
+public interface IAwaitInterceptionContext : IInterceptionContext
 {
-    internal AwaitInterceptionContext() { }
-
     /// <summary>
     /// Gets the type of the awaited expression, including nullable annotations, for example <c>Task&lt;int&gt;</c> or
     /// <c>ConfiguredTaskAwaitable</c>. It is the destination of the await site.
     /// </summary>
-    public abstract IType AwaitableType { get; }
+    IType AwaitableType { get; }
 
     /// <summary>
     /// Gets the awaited expression, for inspection only. For <c>await client.GetAsync(url).ConfigureAwait(false)</c>, it
     /// is the whole operand, including the call to <c>ConfigureAwait</c>.
     /// </summary>
-    /// <remarks>The rules of <see cref="MethodInterceptionContext.Receiver"/> apply.</remarks>
-    public abstract IExpression Operand { get; }
+    /// <remarks>The rules of <see cref="IMethodInterceptionContext.Receiver"/> apply.</remarks>
+    IExpression Operand { get; }
 
     /// <summary>Gets the type of the await expression, or the <c>void</c> type when the await expression has no value.</summary>
-    public abstract IType ResultType { get; }
+    IType ResultType { get; }
 
     /// <summary>Gets the kind of the awaited expression.</summary>
-    public abstract AwaitableKind AwaitableKind { get; }
+    AwaitableKind AwaitableKind { get; }
 
     /// <summary>
     /// Gets where the calling function resumes after the original await. The value is <see cref="AwaitResumption.Unknown"/>
     /// for a custom awaitable, for a <c>ConfigureAwait</c> call whose argument is not a constant, and for a stored
     /// configured awaitable.
     /// </summary>
-    public abstract AwaitResumption Resumption { get; }
+    AwaitResumption Resumption { get; }
 
     /// <summary>Gets the <c>ConfigureAwait</c> call that produces the awaited value, or <c>null</c>.</summary>
-    public abstract AwaitConfiguration? Configuration { get; }
+    AwaitConfiguration? Configuration { get; }
 
     /// <summary>
     /// Gets the method invoked by the awaited expression, after removing a call to <c>ConfigureAwait</c>, or <c>null</c>
     /// when the awaited expression is not an invocation. For <c>await client.GetAsync(url).ConfigureAwait(false)</c>,
     /// this is <c>HttpClient.GetAsync</c>.
     /// </summary>
-    public abstract IMethod? AwaitedMethod { get; }
+    IMethod? AwaitedMethod { get; }
 
     /// <summary>
     /// Gets the return type of <c>ConfigureAwait(bool)</c> on <see cref="AwaitableType"/>, or <c>null</c> when this method
     /// does not exist. For <c>Task&lt;int&gt;</c>, it is <c>ConfiguredTaskAwaitable&lt;int&gt;</c>.
     /// </summary>
-    public abstract IType? ConfiguredAwaitableType { get; }
+    IType? ConfiguredAwaitableType { get; }
 
     /// <summary>Gets a value indicating whether the awaiter is obtained through an extension <c>GetAwaiter</c> method.</summary>
-    public abstract bool UsesExtensionGetAwaiter { get; }
+    bool UsesExtensionGetAwaiter { get; }
 
     /// <summary>Gets a value indicating whether the value of the await expression is used.</summary>
-    public abstract bool IsResultUsed { get; }
+    bool IsResultUsed { get; }
 }
 ```
 
@@ -733,7 +732,7 @@ The awaitable facts come from Roslyn's await-expression information and from the
 
 #### 5.5.4 Relationship with ReferenceValidationContext
 
-The interception contexts do not share a base class with `ReferenceValidationContext`. `InterceptionContext` is its own base class, with its own `AspectState` property. The two features share vocabulary instead: the origin and the destination of a site have the meaning of the ends of a reference (section [0.3](00-conventions.md#03-terms)).
+The interception contexts do not share a base class with `ReferenceValidationContext`. `IInterceptionContext` is its own base class, with its own `AspectState` property. The two features share vocabulary instead: the origin and the destination of a site have the meaning of the ends of a reference (section [0.3](00-conventions.md#03-terms)).
 
 The second product-owner review had adopted a shared base class, `ReferenceContext`, in a new package `Metalama.Extensions.References` (RC35, PO45). Its purpose was to evaluate reference predicates on interception contexts, which required changing the parameter of `ReferencePredicate.IsMatchCore` from `ReferenceValidationContext` to the base class (P27 `Metalama.Extensions.Architecture\Predicates\ReferencePredicate.cs:51`), a breaking change for user predicates (CS0115). The third batch selects targets by declaring type and member names (RC46), so the engine no longer evaluates reference predicates, and the shared base has no remaining purpose. It is withdrawn with the extraction (RC47). No Validation or Architecture type changes.
 
@@ -745,7 +744,7 @@ The contexts stay separate for these reasons:
 
 For the same reasons, the interception contexts expose the origin and the destination as plain `IDeclaration`, `IMember` and `IType` values, and not as `ReferenceEnd` values. `ReferenceEnd` is a type of the Validation package, and its granularity contract would restrict providers, which always see one site.
 
-| `ReferenceValidationContext` | `InterceptionContext` |
+| `ReferenceValidationContext` | `IInterceptionContext` |
 |---|---|
 | `Origin.Declaration` at the finest granularity | `Origin` |
 | `Origin.Type`, `Origin.Namespace`, `Origin.Member` | `CallingType`, `CallingNamespace`, and `Origin` when it is a member |
@@ -760,7 +759,7 @@ For the same reasons, the interception contexts expose the origin and the destin
 
 #### 5.6.1 InterceptorResult
 
-DECIDED on 2026-10-08 (row "Fluent registration API" of section [15.0](15-decisions.md#150-decisions-of-2026-10-02), metalama/Metalama#2141): the result of a method interception is an immutable value of the registration chain, and `InterceptorResult` and `InterceptorResultKind` are internal types that the engine consumes. The public result types of a method registration are `IMethodInterception` and `ITemplateInterception`, created by `IMethodResultFactory` and `IMethodSiteResultFactory` (section [5.4](#54-interceptor-provider-interfaces)). The await verb keeps the earlier `InterceptorResult` until milestone M5 revises it, and section [5.6.2](#562-await-rewrite-options) describes its await options.
+DECIDED on 2026-10-08 (row "Fluent registration API" of section [15.0](15-decisions.md#150-decisions-of-2026-10-02), metalama/Metalama#2141): the result of a method interception is an immutable value of the registration chain, and `InterceptorResult` and `InterceptorResultKind` are internal types that the engine consumes. The public result types of a method registration are `IMethodInterception` and `ITemplateInterception`, created by `IMethodResultFactory` and `IMethodInterceptionSite` (section [5.4](#54-interceptor-provider-interfaces)). The await verb keeps the earlier `InterceptorResult` until milestone M5 revises it, and section [5.6.2](#562-await-rewrite-options) describes its await options.
 
 A method interception has three kinds of result:
 
@@ -827,7 +826,7 @@ The earlier `InterceptorResult` was not `[Durable]`, because a result was consum
 
 The rules of an existing method at an await site and at an accessor site, which the earlier `InterceptorResult.ExistingMethod` documented, stay in the earlier design of these verbs: sections [5.6.4](#564-rules-for-existing-methods), [6.4.13](06b-signatures-and-validation.md#6413-accessor-sites) and [7.6.1](07-await-interception.md#761-result-compatibility).
 
-R14 is covered by two members: the `Skip` method of `IMethodSiteResultFactory` declines a call site, and `InterceptionContext.Diagnostics` reports any diagnostic, including one that explains a skip. An earlier version also had `SkipWithJustification( string )`, which the second product-owner batch removed (RC42). A provider that wants the IDE to show why it skipped a call site reports its own diagnostic, with its own identifier and severity.
+R14 is covered by two members: the `Skip` method of `IMethodInterceptionSite` declines a call site, and `IInterceptionContext.Diagnostics` reports any diagnostic, including one that explains a skip. An earlier version also had `SkipWithJustification( string )`, which the second product-owner batch removed (RC42). A provider that wants the IDE to show why it skipped a call site reports its own diagnostic, with its own identifier and severity.
 
 Diagnostics reported by a provider do not depend on the linker. The premium engine produces them when it evaluates the provider, which happens in two places:
 
@@ -1093,7 +1092,7 @@ These rules implement R9 and R13 for the `RedirectToExistingMethod` method, on t
 - The parameters of the method are bound by name (row "Explicit binding through arguments" of section [15.0](15-decisions.md#150-decisions-of-2026-10-02)). Each parameter receives the first of these values that exists: the property of the `args` object of `RedirectToExistingMethod` that has its name; the receiver of the site, when the parameter is the first one and the site has a receiver; the argument of the site whose parameter has the same name; the caller information that its attribute requests (section [6.7](06b-signatures-and-validation.md#67-caller-information-materialization)); its own default value. An unbound required parameter is reported with LAMA1013. A property of `args` can pass the receiver in another position, the caller's `this`, a parameter of the calling member or a constant.
 - A generic existing method used for an invocation has either no type parameter, or as many type parameters as the total arity of the type-argument slots of the call site, in the slot order of section [6.2.7](06a-call-site-model.md#627-arguments-generic-context-and-passing-mode) (RC29). It is called with the type arguments of the call site.
 - A generic existing method used for an await expression is called without explicit type arguments, and C# type inference must succeed from the awaited expression.
-- Parameter names that differ from those of the intercepted method need a property of `args`, for instance `new { target = site.Context.Receiver.Expression }`, because the canonical binding matches names only (RC64). The rewrite passes the arguments in the order of the parameters of the method, with the temporaries of section [5.6.8](#568-parameter-binding-and-the-signature-builder) when the order of evaluation would otherwise change.
+- Parameter names that differ from those of the intercepted method need a property of `args`, for instance `new { target = site.Receiver.Expression }`, because the canonical binding matches names only (RC64). The rewrite passes the arguments in the order of the parameters of the method, with the temporaries of section [5.6.8](#568-parameter-binding-and-the-signature-builder) when the order of evaluation would otherwise change.
 - When the return type differs and is implicitly convertible, the engine inserts a cast when the value of the call site is used, so that the rewritten expression keeps the original type. When the value is not used, no cast is inserted, because a cast is not a valid statement expression (CS0201). An existing method whose return type differs cannot intercept a call site inside a conditional access, because a cast cannot be placed inside a `?.` chain (section [6.6](06b-signatures-and-validation.md#66-signature-validation-existing-methods-and-adjusted-signatures-r9), E14).
 - For an await expression, the call site is rewritten according to the rules of section [7.5](07-await-interception.md#75-the-adaptive-rewrite-challenge-to-b8-adopted), which depend on the type returned by the method. The method can return another awaitable type than the awaited expression. The result of awaiting its return value must convert implicitly to the result type of the await, and a cast restores the original result type when the value is used (section [7.6.1](07-await-interception.md#761-result-compatibility)).
 - For an accessor site, the method follows the accessor shapes of section [6.4.13](06b-signatures-and-validation.md#6413-accessor-sites) and rule E19 of section [6.6](06b-signatures-and-validation.md#66-signature-validation-existing-methods-and-adjusted-signatures-r9). A `void` setter interceptor is admissible only at sites whose value is not used. A setter interceptor that returns a type implicitly convertible to the property type is admissible at every site.
@@ -1297,7 +1296,7 @@ public interface IInterceptorParameterBinderList : IReadOnlyList<IInterceptorPar
 [InternalImplement]
 public interface IInterceptorMethodBinder : IMethod
 {
-    /// <summary>Gets the intercepted method, as <see cref="MethodInterceptionContext.InterceptedMethod"/> gives it.</summary>
+    /// <summary>Gets the intercepted method, as <see cref="IMethodInterceptionContext.InterceptedMethod"/> gives it.</summary>
     IMethod InterceptedMethod { get; }
 
     /// <summary>Gets the parameters of the interceptor, with their bindings.</summary>
@@ -1573,7 +1572,7 @@ The binding of an existing method is shown in section [6.4.1](06b-signatures-and
 
 #### 5.6.9 Added parameters and pulled values
 
-This section describes the binder design of 2026-09-25 and is kept as a record. Since the row "Fluent registration API" of section [15.0](15-decisions.md#150-decisions-of-2026-10-02), a parameter is added by the delegate given to the `Configure` method, with the `Method` property of `IInterceptorMethodBuilder`. Its value at each call site is given by the property of `WithArgs` that has its name or by the `SetArgument` method. A value of the calling member, such as a pulled parameter, is an `IParameter` of `ICallSite.Parameters` or an `IExpression` (row "Caller values and responsibility for valid code" of section [15.0](15-decisions.md#150-decisions-of-2026-10-02)).
+This section describes the binder design of 2026-09-25 and is kept as a record. Since the row "Fluent registration API" of section [15.0](15-decisions.md#150-decisions-of-2026-10-02), a parameter is added by the delegate given to the `Configure` method, with the `Method` property of `IInterceptorMethodBuilder`. Its value at each call site is given by the property of `WithArgs` that has its name or by the `SetArgument` method. A value of the calling member, such as a pulled parameter, is an `IParameter` of `ICaller.Parameters` or an `IExpression` (row "Caller values and responsibility for valid code" of section [15.0](15-decisions.md#150-decisions-of-2026-10-02)).
 
 `IInterceptorBuilder.AddParameter( name, type, argument )` adds a trailing parameter to a synthesized interceptor (decision PO64, RC65). Its value is supplied at each site by its source, typically a pulled value: `InterceptorArgument.Pull( PullAction.UseExpression( expression ) )` or `InterceptorArgument.Pull( PullAction.UseExistingParameter( parameter ) )`. Caller information and `CallerInstance` are other common sources. The same mechanism applies to accessor interceptors and to await interceptors. An existing method has a fixed signature, so its binder has no `AddParameter`: the trailing parameters of an existing method are bound with `Bind`.
 
@@ -1581,7 +1580,7 @@ Rules:
 
 - The value is site data. Two sites that pass different values share one method, because the source is not part of the key. Only the added parameter, its name and its type are part of the signature.
 - `PullAction.None` at a site means that the site cannot supply the value. The site is left unchanged with LAMA1012 and the clause "the value of the parameter '{0}' is not available at this site". A provider that expects this case returns `Skip` instead.
-- An expression created with `ExpressionFactory.Parse` is accepted as a pulled value. It is checked only by the speculative binding of E16. The remark of `PullAction.UseExpression` that restricts it to static expressions (FW27 `Advising\PullAction.cs:197-208`) concerns the pull of constructor parameters. At an interception site, the expression is emitted in the origin, so it can use `this` when `InterceptionContext.CanAccessThis` is `true`, and E16 checks it.
+- An expression created with `ExpressionFactory.Parse` is accepted as a pulled value. It is checked only by the speculative binding of E16. The remark of `PullAction.UseExpression` that restricts it to static expressions (FW27 `Advising\PullAction.cs:197-208`) concerns the pull of constructor parameters. At an interception site, the expression is emitted in the origin, so it can use `this` when `IInterceptionContext.CanAccessThis` is `true`, and E16 checks it.
 - Added parameters have no default value in version 1.
 - No registration-level overload takes an `IPullStrategy` in version 1. Section [16.9](16-future-directions.md#169-pull-strategies-at-the-registration-and-at-the-site) sketches it.
 - Template binding. A run-time template parameter binds to an added parameter by name only (section [10.6.2](10b-oss-linker-and-templates.md#1062-binder-with-hidden-leading-parameters)).
@@ -1675,17 +1674,17 @@ A pull never refers to a parameter of a lambda, an anonymous method or a local f
 - A static lambda or a static local function lies between the parameter and the site, so the parameter cannot be captured.
 - The parameter is `ref`, `out` or `in`, and a lambda, an anonymous method or a local function lies between it and the site, so it would be captured (CS1628).
 
-The value is never silently wrong. Rule E16 alone would accept a shadowing parameter of the same type, because the name binds to that parameter. `InterceptionContext.IsInNestedFunction` tells a provider that the site is inside a lambda, an anonymous method or a local function, so that it can skip such sites. An expression created with `ExpressionFactory.Parse` receives only the check of E16.
+The value is never silently wrong. Rule E16 alone would accept a shadowing parameter of the same type, because the name binds to that parameter. `IInterceptionContext.IsInNestedFunction` tells a provider that the site is inside a lambda, an anonymous method or a local function, so that it can skip such sites. An expression created with `ExpressionFactory.Parse` receives only the check of E16.
 
 Limitation of version 1. A provider cannot reach the parameters of a lambda that contains the site. For example, the `CancellationToken` parameter of the handler lambda of an ASP.NET Core minimal API is not a parameter of the origin, which is the method that calls `MapGet`. The SDK gives an advanced route that the engine does not check beyond E16: the provider reads the Roslyn syntax around the site through the SDK accessor of section [10.9](10c-oss-reference-graph-design-time.md#109-small-public-helpers-b2g) (`GetSourceSyntax` of an expression of the context), finds the parameter of the enclosing lambda, and pulls it with `ExpressionFactory.Parse( name, type )`. Section [16.11](16-future-directions.md#1611-functions-and-locals-that-enclose-a-site) sketches the supported form.
 
 #### 5.6.10 The caller's instance and method-reference sites
 
-This section describes the binder design of 2026-09-25 and is kept as a record. Since the row "Fluent registration API" of section [15.0](15-decisions.md#150-decisions-of-2026-10-02), the caller's instance is passed through the `args` of `RedirectToExistingMethod` or of `WithArgs`, as an expression built with `ExpressionFactory.This` when `ICallSite.CanAccessThis` is `true`.
+This section describes the binder design of 2026-09-25 and is kept as a record. Since the row "Fluent registration API" of section [15.0](15-decisions.md#150-decisions-of-2026-10-02), the caller's instance is passed through the `args` of `RedirectToExistingMethod` or of `WithArgs`, as an expression built with `ExpressionFactory.This` when `ICaller.CanAccessThis` is `true`.
 
 `InterceptorArgument.CallerInstance` gives the `this` of the origin to an interceptor parameter, for example to a static helper (decision PO62, RC63). It is part of version 1. The rules follow the rules of C# for `this`:
 
-- It is not available in static members, instance field initializers, constructor initializers, static lambdas, static local functions and top-level statements, nor in lambdas and local functions of struct members, which cannot capture `this` (CS1673). It is available exactly when `InterceptionContext.CanAccessThis` is `true`. Otherwise the site gets LAMA1013 with the reason `CallerInstanceNotAvailable`.
+- It is not available in static members, instance field initializers, constructor initializers, static lambdas, static local functions and top-level statements, nor in lambdas and local functions of struct members, which cannot capture `this` (CS1673). It is available exactly when `IInterceptionContext.CanAccessThis` is `true`. Otherwise the site gets LAMA1013 with the reason `CallerInstanceNotAvailable`.
 - The type of the parameter must accept the calling type through an implicit conversion.
 - For a calling type that is a class, the parameter is passed by value.
 - For a calling type that is a struct, the helper receives a copy, unless its parameter is `in` or `ref`. A `ref` parameter is possible only when its type is the calling struct type, and only in a member that is not `readonly`, because `this` is then a writable variable. In a `readonly` member, `this` is a readonly variable, so only an `in` parameter or a copy is possible.

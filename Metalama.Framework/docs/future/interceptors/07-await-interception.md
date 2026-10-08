@@ -441,7 +441,7 @@ When `A` or `R` mentions type parameters of the calling context that the placeme
 ### 7.11 Internal components
 
 ```csharp
-internal sealed class AwaitInterceptionContextImpl : AwaitInterceptionContext { /* wraps AwaitSiteAnalysis and the code model */ }
+internal sealed class AwaitInterceptionContextImpl : IAwaitInterceptionContext { /* wraps AwaitSiteAnalysis and the code model */ }
 
 internal static class AwaitableClassifier
 {
