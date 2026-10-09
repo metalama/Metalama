@@ -127,7 +127,7 @@ Remarks on the table:
 - Under R3, `order?.Total( false )` cannot be rewritten, because a conditional access needs R1x or R2. The engine reports LAMA1015 for this site.
 - Under R2 and R4, the receiver is the `this` of the interceptor, so `Parameters` has no receiver parameter, and `InterceptorArgument.Receiver` is not available.
 
-Permitted overrides of `IInterceptorBuilder.ReceiverMapping` and `IsStatic`:
+Permitted overrides of the receiver mapping and of `IsStatic`. In the earlier design, `IInterceptorBuilder.ReceiverMapping` and `IsStatic` requested them. Since the row "Fluent registration API" of section [15.0](15-decisions.md#150-decisions-of-2026-10-02), `IInterceptorMethodBuilder.ReceiverMapping` is read-only, and a delegate given to the `Configure` method requests an override through `IInterceptorMethodBuilder.Method.IsStatic`:
 
 | Default | Request | Result |
 |---|---|---|
@@ -164,20 +164,16 @@ public static class Telemetry
     }
 }
 
-// In the provider, for the site order.Total( true ).
-return InterceptorResult.ExistingMethod(
-    trackMethod,
-    m =>
-    {
-        m.Parameters["target"].Bind( InterceptorArgument.Receiver );
-        m.Parameters["operation"].Bind( InterceptorArgument.CallerInfo( CallerInfoKind.MemberName ) );
-    } );
+// In the delegate given to the ForEachSite method, for the site order.Total( true ).
+return site.RedirectToExistingMethod(
+    trackMethod ).WithArgs(
+    new { target = site.Receiver.Expression, operation = site.Caller.Member.Name } );
 
 // Rewritten site in OrderService.Process.
 var gross = Telemetry.Track( "Process", order, true );
 ```
 
-`Track` is static and the site has a receiver, so the mapping is `StaticReceiverParameter`, and the canonical binding would give the receiver to the first parameter. The function binds it to `target` instead. `withTax` binds to the argument of the same name. The constant `"Process"` has no side effect, and `order` and `true` keep their order, so no temporary is needed. `Track` returns `decimal`, which the site needs, because the value of `order.Total( true )` is used. The site `order?.Total( false )` cannot use `Track`, because a conditional access needs an extension method or R2 (E8); a provider skips it when `context.IsConditionalAccess` is `true`.
+`Track` is static and the site has a receiver, so the mapping is `StaticReceiverParameter`, and the canonical binding would give the receiver to the first parameter. The `args` object binds it to `target` instead, and binds `operation` to the name of the calling member. `withTax` binds to the argument of the same name. The constant `"Process"` has no side effect, and `order` and `true` keep their order, so no temporary is needed. `Track` returns `decimal`, which the site needs, because the value of `order.Total( true )` is used. The site `order?.Total( false )` cannot use `Track`, because a conditional access needs an extension method or R2 (E8); the delegate given to the `ForEachSite` method skips it when `site.Receiver.IsConditionalAccess` is `true`.
 
 Accessor sites follow the same tables, with the property or event access in place of the call (section [6.4.13](#6413-accessor-sites)). Await sites always report `None`, because an await has no receiver, and the awaited operand is bound through `InterceptorArgument.Awaitable`.
 
@@ -299,7 +295,7 @@ public sealed class OrderService : ServiceBase
    }
    ```
 
-5. R3, instance interceptor in the calling type with a receiver of another type. Placement `CallingType()` with `configure: b => b.IsStatic = false`, call `this._bus.Publish( order )` in `OrderService.Submit`. `IMessageBus` is not in the hierarchy of `OrderService`, so R2 does not apply.
+5. R3, instance interceptor in the calling type with a receiver of another type. Placement `CallingType()` with `.Configure( m => m.Method.IsStatic = false )`, call `this._bus.Publish( order )` in `OrderService.Submit`. `IMessageBus` is not in the hierarchy of `OrderService`, so R2 does not apply.
 
    ```csharp
    this.Publish_Interceptor( this._bus, order );
@@ -487,7 +483,7 @@ Constraint copying is exact. `T?` means `Nullable<T>` only under a struct constr
 
 #### 6.4.8 Signature adjustments of the builder
 
-The static, instance, readonly and extension-form rules, and the accessibility rules, are part of the receiver mapping (section [6.4.1](#641-receiver-mapping)). This section states how the adjustments and the bindings of an `IInterceptorBuilder` (sections [5.6.8](05b-api-providers-contexts-results.md#568-parameter-binding-and-the-signature-builder) and [5.6.9](05b-api-providers-contexts-results.md#569-added-parameters-and-pulled-values)) change the results of sections [6.4.1](#641-receiver-mapping) to [6.4.10](#6410-rewrite-plan). The bindings of an `IInterceptorMethodBinder` change only the rewrite plan.
+The static, instance, readonly and extension-form rules, and the accessibility rules, are part of the receiver mapping (section [6.4.1](#641-receiver-mapping)). This section states how the adjustments and the bindings of an `IInterceptorBuilder` of the earlier design, whose adjustments `IInterceptorMethodBuilder` now makes (sections [5.6.8](05b-api-providers-contexts-results.md#568-parameter-binding-and-the-signature-builder) and [5.6.9](05b-api-providers-contexts-results.md#569-added-parameters-and-pulled-values)) change the results of sections [6.4.1](#641-receiver-mapping) to [6.4.10](#6410-rewrite-plan). The bindings of an `IInterceptorMethodBinder` change only the rewrite plan.
 
 | Adjustment | Signature | Rewrite plan | Proceed shape |
 |---|---|---|---|
@@ -630,20 +626,20 @@ internal sealed record InterceptorParameter(
     TypedConstant? DefaultValue,
     InterceptorParameterRole Role,                   // Internal enumeration: Receiver, TargetParameter or Added.
     int TargetParameterOrdinal,                      // -1 for the receiver and for added parameters.
-    SignatureType? OriginalType,                     // The derived type when the configure function widened it; otherwise null.
+    SignatureType? OriginalType,                     // The derived type when a Configure delegate widened it; otherwise null.
     ImmutableArray<AttributeCopy> Attributes );      // The source of an added parameter is site data, in the rewrite plan.
 
 internal static class InterceptorSignatureBuilder
 {
     /// <summary>
     /// Derives the signature, the rewrite plan and the proceed shape for a call site in an admissible placement, invokes
-    /// the configure function on an InterceptorBuilder, applies its adjustments and bindings (section 6.4.8), and
+    /// the Configure delegates on a TemplateInterceptorBuilder, applies their adjustments (section 6.4.8), and
     /// validates the result with InterceptorSignatureValidator (section 6.6).
     /// </summary>
     public static InterceptorPlanResult Build(
         InvocationCallSite callSite,
         AdmissiblePlacement placement,
-        Action<IInterceptorBuilder>? configure,
+        ImmutableArray<Action<IInterceptorMethodBuilder>> configure,
         SemanticModel semanticModel,
         CancellationToken cancellationToken );
 
@@ -883,7 +879,7 @@ Facts:
 - For a protected instance target, C# also constrains the receiver: the receiver must be of the type that makes the access, or of a type derived from it (CS1540, RC `Errors\ErrorCode.cs:713`; resource text "the qualifier must be of type '{2}' (or derived from it)"). A placement that derives from the declaring type but not from the calling type fails this rule for a receiver typed as the calling type. `IsSymbolAccessibleWithin( symbol, within, throughType )` checks both conditions (RC `Core\Portable\Compilation\Compilation.cs:1647`), which is why check C10 passes the receiver type as `throughType`.
 - The same restriction applies to C# interceptors, which must be accessible at the call site and must be able to call the interceptable method (RCDOCS `features\interceptors.md:249`).
 
-Option 1, version 1. The interceptor must have access. When a template result or an existing method requests a placement without access, the engine reports LAMA1015 (template) or LAMA1013 (existing method) with the reason clause of C10. The documentation of the clause suggests `InterceptorPlacement.CallingType()` or `InterceptorPlacement.LocalFunction()`, which always have access. `InterceptionContext.SupportsPlacement` returns `false` with the same sentence, so a provider can choose another placement before it returns. No new diagnostic identifier is allocated.
+Option 1, version 1. The interceptor must have access. When a template result or an existing method requests a placement without access, the engine reports LAMA1015 (template) or LAMA1013 (existing method) with the reason clause of C10. The documentation of the clause suggests `InterceptorPlacement.CallingType()` or `InterceptorPlacement.LocalFunction()`, which always have access. `IInterceptionContext.SupportsPlacement` returns `false` with the same sentence, so a provider can choose another placement before it returns. No new diagnostic identifier is allocated.
 
 Option 2, future, sketch only (section [16.4](16-future-directions.md#164-accessor-mode-for-inaccessible-targets)). An accessor mode gives an interceptor elsewhere a way to call an inaccessible target. The engine generates, at the call site or once per calling type, a static lambda that has access because it is declared in the calling type, and passes it to the interceptor as an extra argument:
 
@@ -977,7 +973,7 @@ The validation runs per call site, on the binding of that site: the canonical bi
 - E17 (`SelfInterception`, reported as LAMA1018, existing methods only). The call site is not inside the body of `E`, or of a method of the current compilation that overrides `E` directly or indirectly, including their lambdas and local functions. An instance `E` is called with virtual dispatch, so a call site in an override of `E` would call that override. Superseded by the decision "Conversions of invocations, optional parameters, exclusions and flags enumerations" of section 15.0 (2026-10-06): E17 and LAMA1018 are removed, and `[ExcludeInterceptors]` excludes the code of a declaration.
 - E18 (`NotMethodGroupConvertible`, method-reference sites only). After the receiver mapping, `E` has exactly the parameters of the callee in static form, with identical types, reference kinds, default values, `params` and scopes, and an identical return type with the same reference kind (section [6.4.12](#6412-method-reference-sites)). E7 to E14 are replaced by this rule at a method-reference site. The rewritten method group, built as the rewrite plan builds it, is then bound speculatively. For a site whose converted type `D` can be named, the engine binds `(D) X.E` with `GetSpeculativeSymbolInfo` at the site and requires `E` with `CandidateReason.None`. For a site whose converted type is an anonymous delegate type, the engine binds the statement `var d = X.E;` through `TryGetSpeculativeSemanticModel` and requires the type of `d` to be equal to the converted type of the site. This catches overloads of `E` that make the method group ambiguous, which the natural function type rejects. For a function-pointer site, `E` must also be static and must not be called in reduced form.
 - E19 (`AccessorShapeMismatch`, accessor sites only). After the receiver mapping, `E` has the parameters of the accessor shape of section [6.4.13](#6413-accessor-sites): none for a getter, the value for a setter, and the handler for an add or remove accessor, followed by optional trailing parameters as in E7. The value and the handler follow E10, and the getter follows E14. A setter whose return type is `void` is admissible only at a site whose value is not used (`IsResultUsed` false); a setter whose return type is implicitly convertible to the property type is admissible at every site, and the rewrite casts its result when the value is used and the return type differs (E14). An add or remove interceptor can return any type, because the value of `+=` and `-=` on an event is `void` and is never used. At a compound site, E19 is checked for each accessor use, and the computed value of the setter must convert implicitly to the value parameter. E7 to E14 are replaced by this rule at an accessor site, except where this rule names them.
-Rules E20 and E21 are withdrawn (metalama/Metalama#2129, section [15](15-decisions.md)): the aspect author checks them with the queries of `ICallSite`, and the linker renames a variable that hides a pulled parameter.
+Rules E20 and E21 are withdrawn (metalama/Metalama#2129, section [15](15-decisions.md)): the aspect author checks them with the queries of `ICaller`, and the linker renames a variable that hides a pulled parameter.
 
 - E20 (`PulledParameterNotAccessible`). A value pulled with `PullAction.UseExistingParameter` names a parameter of the origin, and that name, bound at the site, resolves to this parameter: no parameter of an enclosing lambda, anonymous method or local function shadows it, no static lambda or static local function lies between it and the site, and it is not a `ref`, `out` or `in` parameter that an enclosing lambda, anonymous method or local function would capture (section [5.6.9](05b-api-providers-contexts-results.md#569-added-parameters-and-pulled-values)). E16 alone would accept a shadowing parameter of the same type.
 - E21 (`CallerInstanceNotAvailable`). A parameter bound to `InterceptorArgument.CallerInstance` requires `IsThisAvailable` at the site, and its type accepts the calling type through an implicit conversion. A `ref` parameter requires the calling struct type and a member that is not `readonly` (section [5.6.10](05b-api-providers-contexts-results.md#5610-the-callers-instance-and-method-reference-sites)).

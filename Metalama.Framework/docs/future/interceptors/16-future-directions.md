@@ -68,8 +68,8 @@ public static class RetryHandler
     }
 }
 
-// Provider: a new factory of InterceptorResult.
-return InterceptorResult.Handler( retryHandlerInterceptMethod );
+// Delegate given to ForEachSite: a new method of IMethodResultFactory.
+return site.RedirectToHandler( retryHandlerInterceptMethod );
 
 // Call site after the rewrite.
 var text = RetryHandler.Intercept(
@@ -106,7 +106,7 @@ What it needs:
 
 What version 1 keeps open:
 
-- `InterceptorResult` is a sealed class with a private constructor and static factories (section [5.6.1](05b-api-providers-contexts-results.md#561-interceptorresult)). `Handler` is a new factory and a new member of `InterceptorResultKind`, which is an addition.
+- The result factories `IMethodResultFactory` and `IMethodInterceptionSite` are `[InternalImplement]` interfaces (section [5.6.1](05b-api-providers-contexts-results.md#561-interceptorresult)). A handler is a new method of `IMethodResultFactory`, for instance `RedirectToHandler`, which is an addition. The engine converts each result to the internal `InterceptorResult`, so the handler is also a new internal kind of result.
 - `ProceedBinding` is declarative, so a binding that invokes an accessor parameter is an addition (section [16.4](#164-accessor-mode-for-inaccessible-targets)).
 - The group key contains the implementation identity (`ImplementationKey`, section [8.2](08-deduplication-and-naming.md#82-the-key)). A handler adds an implementation kind to it.
 - The sources `Proceed` and `PackedArguments` of section [16.8](#168-the-proceed-and-packedarguments-sources-interception-without-a-template) give an ordinary method the same data without a `MethodInvocation` value. The two directions overlap, and the product owner defers the choice to the end of M2 (PO67).
@@ -161,8 +161,8 @@ amender.InterceptOperators( typeof(Money), [OperatorKind.Addition, OperatorKind.
 amender.InterceptOperators( t => t.ContainingNamespace.FullName == "Contoso.Units", [OperatorKind.Multiplication], new UnitProvider() );
 ```
 
-- `IOperatorInterceptorProvider.GetInterceptor( OperatorInterceptionContext context )` returns an `InterceptorResult`.
-- `OperatorInterceptionContext` exposes `OperatorKind`, `OperatorMethod` (or `null` for an intrinsic operator such as `int + int`), `OperandTypes`, `ResultType`, `IsChecked`, `IsLifted`, a use kind (expression, compound assignment, increment, implicit conversion, explicit conversion), and the operands as inspection-only `IExpression` values.
+- `IOperatorInterceptorProvider.GetInterceptor( IOperatorInterceptionContext context )` returns a result. A later design aligns the operator verb with the fluent registration API of `InterceptMethods` (row "Fluent registration API" of section [15.0](15-decisions.md#150-decisions-of-2026-10-02)).
+- `IOperatorInterceptionContext` exposes `OperatorKind`, `OperatorMethod` (or `null` for an intrinsic operator such as `int + int`), `OperandTypes`, `ResultType`, `IsChecked`, `IsLifted`, a use kind (expression, compound assignment, increment, implicit conversion, explicit conversion), and the operands as inspection-only `IExpression` values.
 - The rewrite is `a + b` into `I( a, b )`, which keeps the left-to-right evaluation. `meta.Proceed()` emits the operator itself, which keeps the lifting and the checked context; the checked context is part of the group key.
 - The operator token is the name filter before binding, except for implicit user-defined conversions, which have no token; their cost is a decision to take.
 - Limitations and sites never presented: the short-circuit operators `&&` and `||` with user-defined `true` and `false` operators, because the rewrite would evaluate both operands; constant expressions, which the compiler folds; expression trees, which are data; string concatenation, which the compiler lowers to `string.Concat`.
@@ -206,8 +206,8 @@ public static class Telemetry
     }
 }
 
-// Provider.
-return InterceptorResult.ExistingMethod( measureMethod, m => m.Parameters["proceed"].Bind( InterceptorArgument.Proceed ) );
+// Delegate given to ForEachSite. The Proceed source is the subject of this section.
+return site.RedirectToExistingMethod( measureMethod ).WithArgs( new { proceed = InterceptorArgument.Proceed } );
 
 // Site in OrderService.Process.
 gross = order.Total( true );
@@ -247,7 +247,7 @@ Not planned for version 1 (PO64, PO67). Version 1 pulls values only through a `P
 [Durable]
 public interface ISitePullStrategy
 {
-    PullAction GetPullAction( IParameter pulledParameter, InterceptionContext site );
+    PullAction GetPullAction( IParameter pulledParameter, IInterceptionContext site );
 }
 ```
 
@@ -302,7 +302,7 @@ Doors that version 1 must keep open:
 
 Not planned for version 1 (PO65, PO67). In version 1, a pulled parameter always belongs to the origin member (section [5.6.9](05b-api-providers-contexts-results.md#569-added-parameters-and-pulled-values)). Three options would give providers access to the parameters and locals of the functions that enclose a site.
 
-Option B: the enclosing functions. `InterceptionContext.EnclosingFunctions` lists the functions from the innermost one to the origin member:
+Option B: the enclosing functions. `IInterceptionContext.EnclosingFunctions` lists the functions from the innermost one to the origin member:
 
 ```csharp
 [CompileTime]
@@ -333,6 +333,6 @@ Option C: the locals. The same model, extended to the locals that are in scope a
 
 Alias hoisting. The engine would insert `var __ct = ct;` at the start of the body of the origin, and pull `__ct` instead of `ct`. The alias is never shadowed, and a lambda can capture it where it could not capture a `ref` parameter. The value is a snapshot at the start of the body, so an assignment to `ct` later in the body is not seen. Hoisting would turn some limitations of version 1 into rewrites without changing any site that version 1 already rewrites.
 
-The site-level pull strategy of section [16.9](#169-pull-strategies-at-the-registration-and-at-the-site) would receive these models through its `InterceptionContext`.
+The site-level pull strategy of section [16.9](#169-pull-strategies-at-the-registration-and-at-the-site) would receive these models through its `IInterceptionContext`.
 
-What version 1 keeps open: `InterceptionContext` is an abstract class that can receive members; `IsInNestedFunction` already reports that a site is inside a nested function; the internal `CallSiteEnclosingContext.Functions` (section [6.2.8](06a-call-site-model.md#628-enclosing-function-and-body-context)) already holds the enclosing functions, innermost first.
+What version 1 keeps open: `IInterceptionContext` is an abstract class that can receive members; `IsInNestedFunction` already reports that a site is inside a nested function; the internal `CallSiteEnclosingContext.Functions` (section [6.2.8](06a-call-site-model.md#628-enclosing-function-and-body-context)) already holds the enclosing functions, innermost first.

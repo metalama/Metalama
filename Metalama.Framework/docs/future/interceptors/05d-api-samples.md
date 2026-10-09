@@ -6,6 +6,8 @@
 
 Each sample shows the compile-time code, the run-time source and the expected transformed code. The formatter decides the exact layout. Unchanged members are omitted with a comment. Each sample becomes an aspect test with a verified baseline (section [12](12-test-plan.md#12-test-plan)) and a documentation sample (section [13](13-documentation-plan.md#13-documentation-plan)).
 
+The samples of `InterceptMethods` use the fluent registration API of the row "Fluent registration API" of section [15.0](15-decisions.md#150-decisions-of-2026-10-02) (metalama/Metalama#2141). The verbs `InterceptAwaits` and `InterceptAccessors` are not part of that API yet, so samples 4, 9, 10 and 12 keep their earlier provider and result model until their milestones revise it.
+
 #### Sample 1. Fabric: log calls to an external library method
 
 Compile-time code:
@@ -23,11 +25,10 @@ internal sealed class LogFileAccessFabric : ProjectFabric
 {
     public override void AmendProject( IProjectAmender amender )
     {
-        amender.InterceptMethods(
-            typeof(File),
-            [nameof(File.ReadAllText), nameof(File.WriteAllText)],
-            nameof(this.LogFileAccess),
-            InterceptorPlacement.CallingType() );
+        amender.InterceptMethods( b => b
+            .Type( typeof(File) ).Methods( nameof(File.ReadAllText), nameof(File.WriteAllText) )
+            .RedirectToSynthesizedMethod( nameof(this.LogFileAccess) )
+            .PlaceInCallingType() );
     }
 
     [Template]
@@ -90,7 +91,7 @@ public sealed class OrderArchive
 }
 ```
 
-What it shows: the query surface, a declaring type with two method names, the template shorthand, a static interceptor in the calling type, parameter names copied from the intercepted method, and two call sites of `ReadAllText` that share one method.
+What it shows: the query surface, a declaring type with two method names, a synthesized method chosen once for every call site, a placement set with the `PlaceInCallingType` method, a static interceptor in the calling type, parameter names copied from the intercepted method, and two call sites of `ReadAllText` that share one method.
 
 #### Sample 2. Namespace fabric: replace static methods for testability
 
@@ -132,30 +133,23 @@ internal sealed class TestabilityFabric : NamespaceFabric
 {
     public override void AmendNamespace( INamespaceAmender amender )
     {
-        var provider = new SystemHookProvider();
-
-        amender.InterceptMethods( typeof(Guid), nameof(Guid.NewGuid), provider );
-        amender.InterceptMethods( typeof(Stopwatch), nameof(Stopwatch.GetTimestamp), provider );
+        amender.InterceptMethods( b => b.Type( typeof(Guid) ).Methods( nameof(Guid.NewGuid) ).ForEachSite( UseHookIfAny ) );
+        amender.InterceptMethods( b => b.Type( typeof(Stopwatch) ).Methods( nameof(Stopwatch.GetTimestamp) ).ForEachSite( UseHookIfAny ) );
     }
-}
 
-[CompileTime]
-internal sealed class SystemHookProvider : IMethodInterceptorProvider, ITemplateProvider
-{
-    public InterceptorResult GetInterceptor( MethodInterceptionContext context )
+    private static IMethodInterception UseHookIfAny( IMethodInterceptionSite site )
     {
         var hooks = typeof(SystemHooks).AsINamedType();
-        var hook = hooks.Properties.OfName( context.InterceptedMethod.Name ).SingleOrDefault();
+        var hook = hooks.Properties.OfName( site.InterceptedMethod.Name ).SingleOrDefault();
 
         if ( hook == null )
         {
-            return InterceptorResult.Skip;
+            return site.Skip();
         }
 
-        return InterceptorResult.Template(
-            nameof(this.UseHook),
-            InterceptorPlacement.InType( hooks ),
-            args: new { hook } );
+        return site.RedirectToSynthesizedMethod( nameof(UseHook) )
+            .WithArgs( new { hook } )
+            .PlaceInType( hooks );
     }
 
     [Template]
@@ -198,7 +192,7 @@ public sealed class InvoiceFactory
 }
 ```
 
-What it shows: a namespace scope, two registrations that share one provider object (the index receives the names `NewGuid` and `GetTimestamp`, section [9.5.3](09-premium-engine.md#953-registration-index-and-index-requirements)), a class-based interceptor provider that is its own template provider (rule 2 of section [5.3.10](05a-api-registration.md#5310-default-template-provider)), an explicit placement in another type, and a declaration passed as a compile-time template argument.
+What it shows: a namespace scope, two registrations that share one per-site method given to the `ForEachSite` method (the index receives the names `NewGuid` and `GetTimestamp`, section [9.5.3](09-premium-engine.md#953-registration-index-and-index-requirements)), the fabric as the default template provider (section [5.3.10](05a-api-registration.md#5310-default-template-provider)), an explicit placement in another type, and a declaration passed as a compile-time template argument with the `WithArgs` method.
 
 #### Sample 3. Type aspect through IAdviser: redirect to an existing method
 
@@ -256,15 +250,14 @@ public sealed class UseResilientFileAccessAttribute : TypeAspect
 
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        builder.InterceptMethods(
-            typeof(File),
-            [nameof(File.ReadAllText), nameof(File.ReadAllLines), nameof(File.ReadAllBytes)],
-            this.RedirectToResilientFile );
+        builder.InterceptMethods( b => b
+            .Type( typeof(File) ).Methods( nameof(File.ReadAllText), nameof(File.ReadAllLines), nameof(File.ReadAllBytes) )
+            .ForEachSite( RedirectToResilientFile ) );
     }
 
-    private InterceptorResult RedirectToResilientFile( MethodInterceptionContext context )
+    private static IMethodInterception RedirectToResilientFile( IMethodInterceptionSite site )
     {
-        var intercepted = context.InterceptedMethod;
+        var intercepted = site.InterceptedMethod;
 
         var replacement = typeof(ResilientFile).AsINamedType()
             .Methods
@@ -272,12 +265,12 @@ public sealed class UseResilientFileAccessAttribute : TypeAspect
 
         if ( replacement == null )
         {
-            context.Diagnostics.Report( _noResilientVariant.WithArguments( intercepted ) );
+            site.Diagnostics.Report( _noResilientVariant.WithArguments( intercepted ) );
 
-            return InterceptorResult.Skip;
+            return site.Skip();
         }
 
-        return InterceptorResult.ExistingMethod( replacement );
+        return site.RedirectToExistingMethod( replacement );
     }
 }
 ```
@@ -297,7 +290,7 @@ public sealed class ConfigurationLoader
 // Warning CONTOSO002 on `ReadAllLines`: `There is no resilient variant of 'File.ReadAllLines(string)'. The call is not redirected.`
 ```
 
-What it shows: the adviser surface with a delegate to a method of the aspect, a declaring type with a list of names, an existing-method result, and a skip with a diagnostic at the call site. The provider receives every overload of the three names and chooses by signature, which replaces a predicate over members (section [5.3.3](05a-api-registration.md#533-target-selection-for-members)). The call to `File.ReadAllText` inside `ResilientFile.ReadAllText` is not in the scope, because the aspect is applied to `ConfigurationLoader` only.
+What it shows: the adviser surface with a per-site method of the aspect given to the `ForEachSite` method, a declaring type with a list of names, an existing-method result, and a skip with a diagnostic at the call site. The per-site method receives every overload of the three names and chooses by signature. A filter that does not depend on the call site could instead be given to the `Where` method (section [5.3.3](05a-api-registration.md#533-target-selection-for-members)). The call to `File.ReadAllText` inside `ResilientFile.ReadAllText` is not in the scope, because the aspect is applied to `ConfigurationLoader` only.
 
 #### Sample 4. Method aspect: measure awaits
 
@@ -319,7 +312,7 @@ public sealed class MeasureAwaitsAttribute : MethodAspect
         builder.InterceptAwaits( this.MeasureAwait );
     }
 
-    private InterceptorResult MeasureAwait( AwaitInterceptionContext context )
+    private InterceptorResult MeasureAwait( IAwaitInterceptionContext context )
     {
         if ( context.Resumption == AwaitResumption.Unknown )
         {
@@ -468,13 +461,12 @@ public sealed class PropagateCancellationAttribute : MethodAspect
 
     public override void BuildAspect( IAspectBuilder<IMethod> builder )
     {
-        // Every overload of Task.Delay matches. The provider keeps the overloads with one parameter.
-        builder.InterceptMethods(
-            typeof(Task),
-            nameof(Task.Delay),
-            context => context.InterceptedMethod.Parameters.Count == 1
-                ? InterceptorResult.Template( nameof(this.DelayWithCallerToken), InterceptorPlacement.LocalFunction() )
-                : InterceptorResult.Skip );
+        // Every overload of Task.Delay is selected. The Where method keeps the overloads with one parameter.
+        builder.InterceptMethods( b => b
+            .Type( typeof(Task) ).Methods( nameof(Task.Delay) )
+            .Where( m => m.Parameters.Count == 1 )
+            .RedirectToSynthesizedMethod( nameof(this.DelayWithCallerToken) )
+            .PlaceInLocalFunction() ); // Added when the local function placement is implemented.
     }
 
     [Template]
@@ -536,7 +528,7 @@ public sealed class Poller
 }
 ```
 
-What it shows: R12, and a lambda provider that filters the overloads of a name by signature, because a registration selects every overload of its names (section [5.3.3](05a-api-registration.md#533-target-selection-for-members)). The lambda has the default template provider of the registration, the aspect (section [5.3.10](05a-api-registration.md#5310-default-template-provider)). The template does not call `meta.Proceed()`. It calls another overload with a captured parameter of the origin, found through `meta.MethodInterception.Origin` (FW27 `Code\Collections\ParameterListExtensions.cs:24`). The local function is appended to the root block of the body (section [10.5.4](10b-oss-linker-and-templates.md#1054-local-function-injection)).
+What it shows: R12, and the `Where` method, which filters the overloads of a name by signature, because the `Methods` method selects every overload of its names (section [5.3.3](05a-api-registration.md#533-target-selection-for-members)). The predicate captures nothing, so it satisfies `[Durable]`. The synthesized method has the default template provider of the registration, the aspect (section [5.3.10](05a-api-registration.md#5310-default-template-provider)). The template does not call `meta.Proceed()`. It calls another overload with a captured parameter of the origin, found through `meta.MethodInterception.Origin` (FW27 `Code\Collections\ParameterListExtensions.cs:24`). The local function is appended to the root block of the body (section [10.5.4](10b-oss-linker-and-templates.md#1054-local-function-injection)).
 
 #### Sample 6. Instance interceptor in the calling hierarchy that uses the caller's this
 
@@ -603,12 +595,11 @@ public sealed class AuditPublishedMessagesAttribute : TypeAspect
 
     public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        builder.InterceptMethods(
-            typeof(IMessageBus),
-            nameof(IMessageBus.Publish),
-            nameof(this.AuditPublish),
-            InterceptorPlacement.CallingType(),
-            configure: b => b.IsStatic = false );
+        builder.InterceptMethods( b => b
+            .Type( typeof(IMessageBus) ).Methods( nameof(IMessageBus.Publish) )
+            .RedirectToSynthesizedMethod( nameof(this.AuditPublish) )
+            .PlaceInCallingType()
+            .Configure( m => m.Method.IsStatic = false ) );
     }
 
     [Template]
@@ -640,7 +631,7 @@ public sealed class OrderService : ServiceBase
 }
 ```
 
-The run-time template parameter `message` is bound by name to `IMessageBus.Publish( object message )`. The receiver `this._bus` has the type `IMessageBus`, which is not in the hierarchy of `OrderService`, so rule R2 does not apply. By default, the interceptor would be static (rule R1). The `configure` function sets `IsStatic` to `false`, which selects rule R3: the interceptor is an instance member of the calling type, `meta.This` is the caller, and the receiver is the first parameter (section [6.4.1](06b-signatures-and-validation.md#641-receiver-mapping)). The receiver parameter has the type of the target's containing type, `IMessageBus` (section [6.4.1](06b-signatures-and-validation.md#641-receiver-mapping)). It carries `[NotNull]` (rules table row 2), because the target framework of the sample declares `NotNullAttribute` (section [6.4.5](06b-signatures-and-validation.md#645-attributes)). The lambda passed to `configure` captures nothing, so it satisfies `[Durable]`.
+The run-time template parameter `message` is bound by name to `IMessageBus.Publish( object message )`. The receiver `this._bus` has the type `IMessageBus`, which is not in the hierarchy of `OrderService`, so rule R2 does not apply. By default, the interceptor would be static (rule R1). The delegate of the `Configure` method sets `IsStatic` to `false`, which selects rule R3: the interceptor is an instance member of the calling type, `meta.This` is the caller, and the receiver is the first parameter (section [6.4.1](06b-signatures-and-validation.md#641-receiver-mapping)). The receiver parameter has the type of the target's containing type, `IMessageBus` (section [6.4.1](06b-signatures-and-validation.md#641-receiver-mapping)). It carries `[NotNull]` (rules table row 2), because the target framework of the sample declares `NotNullAttribute` (section [6.4.5](06b-signatures-and-validation.md#645-attributes)). The lambda passed to the `Configure` method captures nothing, so it satisfies `[Durable]`.
 
 Variant 6b, a fabric with one shared instance method in the base type:
 
@@ -651,12 +642,11 @@ internal sealed class AuditFabric : ProjectFabric
     {
         amender
             .SelectTypesDerivedFrom( typeof(ServiceBase) )
-            .InterceptMethods(
-                typeof(IMessageBus),
-                nameof(IMessageBus.Publish),
-                nameof(this.AuditPublish),
-                InterceptorPlacement.InType( typeof(ServiceBase) ),
-                configure: b => b.IsStatic = false );
+            .InterceptMethods( b => b
+                .Type( typeof(IMessageBus) ).Methods( nameof(IMessageBus.Publish) )
+                .RedirectToSynthesizedMethod( nameof(this.AuditPublish) )
+                .PlaceInType( typeof(ServiceBase) )
+                .Configure( m => m.Method.IsStatic = false ) );
     }
 
     [Template]
@@ -699,7 +689,7 @@ public sealed class InvoiceService : ServiceBase
 }
 ```
 
-What it shows: the overload that takes a declaring type and a method name, R13 for the calling type and for a base type through rule R3 of section [6.4.1](06b-signatures-and-validation.md#641-receiver-mapping), the `configure` function that selects an instance method, `meta.This` as the caller's `this`, and the grouping rule of section [5.6.7](05b-api-providers-contexts-results.md#567-grouping-identity-as-seen-by-users): one fabric owner gives one shared method, while variant 6a produces one method per aspect instance. Section [6.4.3](06b-signatures-and-validation.md#643-worked-examples-of-the-receiver-mapping) shows the other receiver-mapping rules on the same types.
+What it shows: a chain that selects one declaring type and one method name, R13 for the calling type and for a base type through rule R3 of section [6.4.1](06b-signatures-and-validation.md#641-receiver-mapping), the `Configure` delegate that selects an instance method, `meta.This` as the caller's `this`, and the grouping rule of section [5.6.7](05b-api-providers-contexts-results.md#567-grouping-identity-as-seen-by-users): one fabric owner gives one shared method, while variant 6a produces one method per aspect instance. Section [6.4.3](06b-signatures-and-validation.md#643-worked-examples-of-the-receiver-mapping) shows the other receiver-mapping rules on the same types.
 
 #### Sample 7. Skip plus diagnostic
 
@@ -748,13 +738,6 @@ namespace Contoso.Workers;
 
 internal sealed class BlockingCallsFabric : ProjectFabric
 {
-    public override void AmendProject( IProjectAmender amender )
-        => amender.InterceptMethods( typeof(Thread), nameof(Thread.Sleep), new BlockingSleepProvider() );
-}
-
-[CompileTime]
-internal sealed class BlockingSleepProvider : IMethodInterceptorProvider
-{
     private static readonly DiagnosticDefinition<IDeclaration> _sleepInAsyncCode = new(
         "CONTOSO001",
         Severity.Error,
@@ -765,32 +748,37 @@ internal sealed class BlockingSleepProvider : IMethodInterceptorProvider
         Severity.Hidden,
         "Thread.Sleep is not monitored in '{0}' because tests may block." );
 
-    public InterceptorResult GetInterceptor( MethodInterceptionContext context )
+    public override void AmendProject( IProjectAmender amender )
+        => amender.InterceptMethods( b => b.Type( typeof(Thread) ).Methods( nameof(Thread.Sleep) ).ForEachSite( MonitorSleep ) );
+
+    private static IMethodInterception MonitorSleep( IMethodInterceptionSite site )
     {
-        if ( context.CallingType.Is( typeof(SleepMonitor) ) )
+        var callingMember = site.Caller.Member;
+
+        if ( callingMember.DeclaringType.Is( typeof(SleepMonitor) ) )
         {
-            return InterceptorResult.Skip;
+            return site.Skip();
         }
 
-        if ( context.IsInAsyncFunction )
+        if ( site.Caller.IsInAsyncFunction )
         {
-            context.Diagnostics.Report( _sleepInAsyncCode.WithArguments( context.Origin ) );
+            site.Diagnostics.Report( _sleepInAsyncCode.WithArguments( callingMember ) );
 
-            return InterceptorResult.Skip;
+            return site.Skip();
         }
 
-        if ( context.CallingNamespace.FullName.EndsWith( ".Tests", StringComparison.Ordinal ) )
+        if ( callingMember.DeclaringType.ContainingNamespace.FullName.EndsWith( ".Tests", StringComparison.Ordinal ) )
         {
-            context.Diagnostics.Report( _sleepInTests.WithArguments( context.Origin ) );
+            site.Diagnostics.Report( _sleepInTests.WithArguments( callingMember ) );
 
-            return InterceptorResult.Skip;
+            return site.Skip();
         }
 
         var replacement = typeof(SleepMonitor).AsINamedType()
             .Methods
-            .OfExactSignature( nameof(SleepMonitor.Sleep), context.InterceptedMethod.Parameters.Select( p => p.Type ).ToList() );
+            .OfExactSignature( nameof(SleepMonitor.Sleep), site.InterceptedMethod.Parameters.Select( p => p.Type ).ToList() );
 
-        return replacement != null ? InterceptorResult.ExistingMethod( replacement ) : InterceptorResult.Skip;
+        return replacement != null ? site.RedirectToExistingMethod( replacement ) : site.Skip();
     }
 }
 ```
@@ -848,11 +836,10 @@ public sealed class StorageFabric : TransitiveProjectFabric
 {
     public override void AmendProject( IProjectAmender amender )
     {
-        amender.InterceptMethods(
-            typeof(BlobClient),
-            nameof(BlobClient.Upload),
-            nameof(this.TrackUpload),
-            InterceptorPlacement.CallingType() );
+        amender.InterceptMethods( b => b
+            .Type( typeof(BlobClient) ).Methods( nameof(BlobClient.Upload) )
+            .RedirectToSynthesizedMethod( nameof(this.TrackUpload) )
+            .PlaceInCallingType() );
     }
 
     [Template]
@@ -916,7 +903,7 @@ internal sealed class Fabric : NamespaceFabric
 [CompileTime]
 internal sealed class ConfigureAwaitFalseProvider : IAwaitInterceptorProvider, ITemplateProvider
 {
-    public InterceptorResult GetInterceptor( AwaitInterceptionContext context )
+    public InterceptorResult GetInterceptor( IAwaitInterceptionContext context )
     {
         if ( context.Resumption == AwaitResumption.Unknown )
         {
@@ -1146,11 +1133,9 @@ internal sealed class TraceParsingFabric : ProjectFabric
 {
     public override void AmendProject( IProjectAmender amender )
     {
-        amender.InterceptMethods(
-            typeof(PriceParser),
-            nameof(PriceParser.Parse),
-            nameof(this.TraceParse),
-            InterceptorPlacement.GeneratedStaticClass() );
+        amender.InterceptMethods( b => b
+            .Type( typeof(PriceParser) ).Methods( nameof(PriceParser.Parse) )
+            .RedirectToSynthesizedMethod( nameof(this.TraceParse) ) );
     }
 
     [Template]
@@ -1205,7 +1190,7 @@ internal static class MetalamaInterceptors
 }
 ```
 
-What it shows: a registration receives call sites and method-reference sites with no option (section [5.3.11](05a-api-registration.md#5311-kinds-of-method-use)). The call site inside the lambda and the method group share one interceptor, because their signatures are identical and method-group convertible (section [8.2](08-deduplication-and-naming.md#82-the-key)). The method group of a static target becomes a method group of a static interceptor (section [6.4.12](06b-signatures-and-validation.md#6412-method-reference-sites)). The two methods of `Catalog` print the same lines, which the runtime test `MethodReference_LambdaAndMethodGroup_SameOutput` checks (section [12.8](12-test-plan.md#128-premium-runtime-execution-tests-runtime)).
+What it shows: a registration receives call sites and method-reference sites with no option (section [5.3.11](05a-api-registration.md#5311-kinds-of-method-use)). The chain sets no placement, so the synthesized method is in the generated static class, which is the default placement. The call site inside the lambda and the method group share one interceptor, because their signatures are identical and method-group convertible (section [8.2](08-deduplication-and-naming.md#82-the-key)). The method group of a static target becomes a method group of a static interceptor (section [6.4.12](06b-signatures-and-validation.md#6412-method-reference-sites)). The two methods of `Catalog` print the same lines, which the runtime test `MethodReference_LambdaAndMethodGroup_SameOutput` checks (section [12.8](12-test-plan.md#128-premium-runtime-execution-tests-runtime)).
 
 #### Sample 12. Fabric: reads and writes of a property of an external type, with a compound site
 

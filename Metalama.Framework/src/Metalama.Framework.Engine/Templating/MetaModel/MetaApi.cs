@@ -139,6 +139,11 @@ namespace Metalama.Framework.Engine.Templating.MetaModel
 
         public INamedType Type => this._type ?? throw this.CreateInvalidOperationException( nameof(this.Type), nameof(INamedType) );
 
+        /// <summary>
+        /// Gets the declaring type of the target declaration, or <c>null</c> when the target declaration has none.
+        /// </summary>
+        internal INamedType? TypeOrNull => this._type;
+
         public ContractDirection ContractDirection
         {
             get

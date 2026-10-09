@@ -4,6 +4,7 @@
 
 using JetBrains.Annotations;
 using Metalama.Framework.Aspects;
+using Metalama.Framework.Project;
 using System;
 using System.Diagnostics.CodeAnalysis;
 
@@ -210,10 +211,25 @@ public static class ExpressionFactory
     public static IExpression This( INamedType type ) => SyntaxBuilder.CurrentImplementation.ThisExpression( type );
 
     /// <summary>
-    /// Gets a <c>this</c> expression for the current type when inside a template.
+    /// Gets a <c>this</c> expression for the type of <c>this</c> that the current context defines.
     /// </summary>
+    /// <remarks>
+    /// In a template, the type is the declaring type of the target declaration, given by <c>meta.Target.Type</c>. A context that executes user
+    /// code outside of a template can define another type, for instance the type that contains a call site.
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">The current context defines no type of <c>this</c>.</exception>
     /// <seealso cref="meta.This"/>
-    public static IExpression This() => This( meta.Target.Type );
+    public static IExpression This()
+    {
+        var context = MetalamaExecutionContext.CurrentInternal;
+
+        return This(
+            context.ThisType
+            ?? (context.MetaApi != null
+                ? meta.Target.Type
+                : throw new InvalidOperationException(
+                    "ExpressionFactory.This() requires a context that defines the type of this, such as a template. Use ExpressionFactory.This( INamedType )." )) );
+    }
 
     /// <summary>
     /// Gets an expression representing the receiver, i.e. <c>this</c> in an instance member, or the receiver parameter in an extension member,
