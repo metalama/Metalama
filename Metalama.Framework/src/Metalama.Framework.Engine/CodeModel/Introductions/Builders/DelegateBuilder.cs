@@ -3,7 +3,6 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Code;
-using Metalama.Framework.Code.Collections;
 using Metalama.Framework.Code.DeclarationBuilders;
 using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
@@ -101,7 +100,7 @@ internal sealed class DelegateBuilder : NamedTypeBuilder, IDelegateBuilder, ITyp
 
     public IParameterBuilderList Parameters => this.InvokeMethodBuilder.Parameters;
 
-    ITypeParameterList IDelegateBuilder.TypeParameters => this.TypeParameters;
+    ITypeParameterBuilderList IDelegateBuilder.TypeParameters => this.TypeParameters;
 
     public IParameterBuilder AddParameter( string name, IType type, RefKind refKind = RefKind.None, TypedConstant? defaultValue = default )
     {
@@ -115,6 +114,17 @@ internal sealed class DelegateBuilder : NamedTypeBuilder, IDelegateBuilder, ITyp
         this.CheckNotFrozen();
 
         return this.InvokeMethodBuilder.AddParameter( name, type, refKind, defaultValue );
+    }
+
+    /// <remarks>
+    /// The parameter is added to the <c>Invoke</c> method, whose declaring type is this delegate, so the type parameters copied into the
+    /// delegate are replaced by their copies.
+    /// </remarks>
+    public IParameterBuilder AddParameter( IParameter prototype, bool includeCustomAttributes = false, bool includeDefaultValues = false )
+    {
+        this.CheckNotFrozen();
+
+        return this.InvokeMethodBuilder.AddParameter( prototype, includeCustomAttributes, includeDefaultValues );
     }
 
     /// <summary>

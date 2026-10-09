@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Aspects;
+using System;
 
 namespace Metalama.Framework.Code.DeclarationBuilders
 {
@@ -15,14 +16,33 @@ namespace Metalama.Framework.Code.DeclarationBuilders
     /// <seealso href="@introducing-members"/>
     public interface IMethodBuilder : IMethod, IMethodBaseBuilder
     {
-        // TODO: Add an overload for adding generic parameter which would initialize it with values for covariance/contravariance and constraints.
-
         /// <summary>
         /// Adds a generic parameter to the method.
         /// </summary>
         /// <param name="name">The name of the generic type parameter to add.</param>
         /// <returns>An <see cref="ITypeParameterBuilder"/> that allows you to further configure the new type parameter, including constraints and variance.</returns>
         ITypeParameterBuilder AddTypeParameter( string name );
+
+        /// <summary>
+        /// Gets the type parameters of the method, as builders that can be changed.
+        /// </summary>
+        new ITypeParameterBuilderList TypeParameters { get; }
+
+        /// <summary>
+        /// Adds a type parameter that copies an existing type parameter: its name, its variance, its kind constraints and its type constraints.
+        /// </summary>
+        /// <param name="prototype">The type parameter to copy, typically a type parameter of another method or type.</param>
+        /// <param name="includeCustomAttributes">A value indicating whether the custom attributes of <paramref name="prototype"/> are copied.</param>
+        /// <returns>An <see cref="ITypeParameterBuilder"/> that allows you to change the copy.</returns>
+        /// <remarks>
+        /// <para>
+        /// The builder records the copy. In the type constraints of the copy, and in the types of the type parameters and parameters that are
+        /// copied afterwards, a reference to <paramref name="prototype"/> is replaced by a reference to the copy. Copy the type parameters
+        /// before the parameters that use them.
+        /// </para>
+        /// </remarks>
+        /// <exception cref="ArgumentException">A type parameter of the same name already exists.</exception>
+        ITypeParameterBuilder AddTypeParameter( ITypeParameter prototype, bool includeCustomAttributes = false );
 
         /// <summary>
         /// Gets an object allowing to read and modify the method return type and custom attributes,

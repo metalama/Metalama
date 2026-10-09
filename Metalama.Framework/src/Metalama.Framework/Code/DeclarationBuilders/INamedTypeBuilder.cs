@@ -94,4 +94,25 @@ public interface INamedTypeBuilder : IMemberOrNamedTypeBuilder, INamedType
     /// <param name="name">Name of the generic parameter.</param>
     /// <returns>An <see cref="ITypeParameterBuilder"/> that allows you to further build the new parameter.</returns>
     ITypeParameterBuilder AddTypeParameter( string name );
+
+    /// <summary>
+    /// Gets the type parameters of the type, as builders that can be changed.
+    /// </summary>
+    new ITypeParameterBuilderList TypeParameters { get; }
+
+    /// <summary>
+    /// Adds a type parameter that copies an existing type parameter: its name, its variance, its kind constraints and its type constraints.
+    /// </summary>
+    /// <param name="prototype">The type parameter to copy, typically a type parameter of another method or type.</param>
+    /// <param name="includeCustomAttributes">A value indicating whether the custom attributes of <paramref name="prototype"/> are copied.</param>
+    /// <returns>An <see cref="ITypeParameterBuilder"/> that allows you to change the copy.</returns>
+    /// <remarks>
+    /// <para>
+    /// The builder records the copy. In the type constraints of the copy, and in the types of the type parameters and parameters that are
+    /// copied afterwards, a reference to <paramref name="prototype"/> is replaced by a reference to the copy. Copy the type parameters
+    /// before the parameters that use them.
+    /// </para>
+    /// </remarks>
+    /// <exception cref="ArgumentException">A type parameter of the same name already exists.</exception>
+    ITypeParameterBuilder AddTypeParameter( ITypeParameter prototype, bool includeCustomAttributes = false );
 }

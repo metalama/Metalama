@@ -35,6 +35,8 @@ internal abstract class MethodBaseBuilder : MemberBuilder, IMethodBaseBuilder, I
     public IParameterBuilder AddParameter( string name, IType type, RefKind refKind = RefKind.None, TypedConstant? defaultValue = null )
     {
         this.CheckNotFrozen();
+        this.ThrowIfNameExists( this.Parameters, name, "parameter" );
+        this.ValidateAddParameter( this.Parameters.Count, name, type, refKind );
 
         var parameter = new ParameterBuilder( this, this.Parameters.Count, name, type, refKind, this.AspectLayerInstance );
         parameter.DefaultValue = defaultValue;
@@ -61,6 +63,9 @@ internal abstract class MethodBaseBuilder : MemberBuilder, IMethodBaseBuilder, I
         {
             throw new ArgumentOutOfRangeException( nameof(index) );
         }
+
+        this.ThrowIfNameExists( this.Parameters, name, "parameter" );
+        this.ValidateAddParameter( index, name, type, refKind );
 
         // Validate that inserting at this index doesn't displace an extension receiver ('this') parameter from position 0.
         if ( index == 0 && this.Parameters.Count > 0 && this.Parameters[0] is ParameterBuilder { IsThis: true } )
@@ -91,6 +96,24 @@ internal abstract class MethodBaseBuilder : MemberBuilder, IMethodBaseBuilder, I
         TypedConstant? typedConstant = defaultValue != null ? TypedConstant.Create( defaultValue.Value.Value, iType ) : null;
 
         return this.InsertParameter( index, name, iType, refKind, typedConstant );
+    }
+
+    public IParameterBuilder AddParameter( IParameter prototype, bool includeCustomAttributes = false, bool includeDefaultValues = false )
+    {
+        this.CheckNotFrozen();
+
+        return this.CopyParameter( ( name, type, refKind ) => this.AddParameter( name, type, refKind ), prototype, includeCustomAttributes, includeDefaultValues );
+    }
+
+    /// <summary>
+    /// Validates the addition of a parameter with <see cref="DeclarationBuilder.Restrictions"/>, when the builder is a method builder.
+    /// </summary>
+    private void ValidateAddParameter( int index, string name, IType type, RefKind refKind )
+    {
+        if ( this is MethodBuilder method )
+        {
+            this.Restrictions?.ValidateAddParameter( method, index, name, type, refKind );
+        }
     }
 
     IParameterList IHasParameters.Parameters => this.Parameters;

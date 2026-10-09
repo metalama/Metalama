@@ -358,5 +358,44 @@ namespace Metalama.Framework.Tests.UnitTests.CodeModel
 
             Assert.Equal( value.GetType(), roundtrip.GetType() );
         }
+
+        /// <summary>
+        /// Checks that the conversions from the primitive types and from <see cref="string"/> create a constant of the type and the value of the
+        /// converted value.
+        /// </summary>
+        [Fact]
+        public void Conversions()
+        {
+            using var testContext = this.CreateTestContext();
+
+            var emptyCompilation = testContext.CreateCompilationModel( "" );
+
+            using var userCodeContext = testContext.WithExecutionContext( emptyCompilation );
+
+            AssertConversion( true, true, SpecialType.Boolean );
+            AssertConversion( 'a', 'a', SpecialType.Char );
+            AssertConversion( (sbyte) 1, (sbyte) 1, SpecialType.SByte );
+            AssertConversion( (byte) 1, (byte) 1, SpecialType.Byte );
+            AssertConversion( (short) 1, (short) 1, SpecialType.Int16 );
+            AssertConversion( (ushort) 1, (ushort) 1, SpecialType.UInt16 );
+            AssertConversion( 1, 1, SpecialType.Int32 );
+            AssertConversion( 1U, 1U, SpecialType.UInt32 );
+            AssertConversion( 1L, 1L, SpecialType.Int64 );
+            AssertConversion( 1UL, 1UL, SpecialType.UInt64 );
+            AssertConversion( 1F, 1F, SpecialType.Single );
+            AssertConversion( 1D, 1D, SpecialType.Double );
+            AssertConversion( 1M, 1M, SpecialType.Decimal );
+            AssertConversion( (TypedConstant) "text", "text", SpecialType.String );
+
+            var nullString = (TypedConstant) (string?) null;
+            Assert.True( nullString.Type.Equals( SpecialType.String ) );
+            Assert.Null( nullString.Value );
+
+            static void AssertConversion( TypedConstant constant, object expectedValue, SpecialType expectedType )
+            {
+                Assert.True( constant.Type.Equals( expectedType ), $"The type of the constant is '{constant.Type}'." );
+                Assert.Equal( expectedValue, constant.Value );
+            }
+        }
     }
 }

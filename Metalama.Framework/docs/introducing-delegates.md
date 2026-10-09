@@ -142,14 +142,19 @@ public interface IDelegateBuilder : IMemberOrNamedTypeBuilder
 
     IParameterBuilder AddParameter( string name, Type type, RefKind refKind = RefKind.None, TypedConstant? defaultValue = null );
 
+    IParameterBuilder AddParameter( IParameter prototype, bool includeCustomAttributes = false, bool includeDefaultValues = false );
+
     ITypeParameterBuilder AddTypeParameter( string name );
+
+    ITypeParameterBuilder AddTypeParameter( ITypeParameter prototype, bool includeCustomAttributes = false );
 }
 ```
 
-The seven members above are the whole surface. The engine class `DelegateBuilder` derives from `NamedTypeBuilder`,
+The nine members above are the whole surface. The overloads that take a prototype copy an existing parameter or type
+parameter (metalama/Metalama#2140). The engine class `DelegateBuilder` derives from `NamedTypeBuilder`,
 because the compilation model requires an `INamedTypeImpl`, and owns an internal `MethodBuilder` named `Invoke` in the
 way `ExtensionBlockBuilder` owns its receiver parameter builder: created in the constructor, frozen in
-`FreezeChildren`, and registered as its own transformation. `ReturnType`, `ReturnParameter`, `Parameters` and the two
+`FreezeChildren`, and registered as its own transformation. `ReturnType`, `ReturnParameter`, `Parameters` and the three
 `AddParameter` overloads forward to it, so no logic is duplicated. `AddTypeParameter` and `TypeParameters` are
 declared on the type, which is where the language places them.
 

@@ -34,7 +34,7 @@ internal sealed class ConstructedPointerType : ConstructedType, IPointerType
 
     public override IType Accept( TypeRewriter visitor ) => visitor.Visit( this );
 
-    protected override IFullRef<IType> ToTypeFullRef() => this.Compilation.RefFactory.FromConstructedType<IArrayType>( this );
+    protected override IFullRef<IType> ToTypeFullRef() => this.Compilation.RefFactory.FromConstructedType<IPointerType>( this );
 
     public override TypeKind TypeKind => TypeKind.Pointer;
 

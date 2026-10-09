@@ -1,0 +1,565 @@
+// Copyright (c) 2020-2025 SharpCrafters s.r.o. and contributors.
+// SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
+// Refer to LICENSE.md in the repository root for complete details.
+
+using Metalama.Framework.Aspects;
+using Metalama.Framework.Code;
+using Metalama.Framework.Code.DeclarationBuilders;
+using Metalama.Framework.Engine.AdviceImpl.Introduction;
+using Metalama.Framework.Engine.Advising;
+using Metalama.Framework.Engine.AspectOrdering;
+using Metalama.Framework.Engine.Aspects;
+using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
+using Metalama.Framework.Engine.CodeModel.References;
+using Metalama.Framework.Engine.Diagnostics;
+using Metalama.Framework.Engine.Extensibility.Synthesis;
+using Metalama.Framework.Engine.Transformations;
+using Metalama.Framework.Engine.Utilities.UserCode;
+using Metalama.Framework.Fabrics;
+using Metalama.Framework.Services;
+using System;
+using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Linq;
+using TypeKind = Metalama.Framework.Code.TypeKind;
+
+namespace Metalama.Framework.Engine.Extensibility.CallSites
+{
+    public sealed partial class ExtensionTransformationFactory
+    {
+        /// <summary>
+        /// The transformations that introduce the declared types and methods and generate the bodies of the methods, in the order of the requests.
+        /// Protected by <see cref="_sync"/>.
+        /// </summary>
+        private readonly List<ITransformation> _synthesizedTransformations = [];
+
+        /// <summary>
+        /// The names that the factory gave to the declared members, keyed by the full name of the containing type, and the names of the declared
+        /// types, keyed by the full name of the containing namespace. Protected by <see cref="_sync"/>.
+        /// </summary>
+        private readonly Dictionary<string, HashSet<string>> _reservedNames = new( StringComparer.Ordinal );
+
+        /// <summary>
+        /// The aspect instances that represent project and namespace fabrics in the transformations, keyed by aspect layer. Protected by
+        /// <see cref="_sync"/>.
+        /// </summary>
+        private readonly Dictionary<AspectLayerId, AspectInstance> _fabricAspectInstances = new();
+
+        /// <summary>
+        /// The namespaces that the factory declared for the declared static classes, keyed by full name. Protected by <see cref="_sync"/>.
+        /// </summary>
+        private readonly Dictionary<string, NamespaceBuilder> _declaredNamespaces = new( StringComparer.Ordinal );
+
+        /// <summary>
+        /// The builders that <see cref="CreateMethodBuilder"/> created and that are not declared yet. Protected by <see cref="_sync"/>.
+        /// </summary>
+        private readonly HashSet<MethodBuilder> _createdMethodBuilders = new();
+
+        /// <summary>
+        /// Declares a static class, in which <see cref="DeclareMethod"/> can declare methods.
+        /// </summary>
+        /// <param name="origin">The aspect or fabric that requested the class.</param>
+        /// <param name="request">The request.</param>
+        /// <returns>The handle of the class.</returns>
+        /// <remarks>
+        /// The class is not visible in the code model to aspects, in any stage of the pipeline: the factory adds it only to the compilation that the
+        /// linker sees, after all aspects have executed, and the design-time pipeline does not produce it. It is emitted in a new syntax tree.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException"><paramref name="origin"/> or <paramref name="request"/> is <c>null</c>.</exception>
+        /// <exception cref="ArgumentException">The request is not valid.</exception>
+        /// <exception cref="InvalidOperationException">The factory was completed.</exception>
+        public SynthesizedTypeHandle DeclareStaticClass( ExtensionContributionOrigin origin, SynthesizedStaticClassRequest request )
+        {
+            _ = request ?? throw new ArgumentNullException( nameof(request) );
+
+            var layerInstance = this.GetAspectLayerInstance( origin );
+
+            NamedTypeBuilder builder;
+
+            lock ( this._sync )
+            {
+                this.ThrowIfCompleted();
+
+                var ns = this.GetOrDeclareNamespace( layerInstance, request.Namespace );
+                var isDeclaredNamespace = ns is NamespaceBuilder;
+
+                var name = this.ReserveName(
+                    "N:" + ns.FullName,
+                    request.NameHint,
+                    candidate => isDeclaredNamespace || (!ns.Types.OfName( candidate ).Any() && ns.Namespaces.OfName( candidate ) == null),
+                    null );
+
+                builder = new NamedTypeBuilder( layerInstance, ns, name, TypeKind.Class ) { Accessibility = request.Accessibility, IsStatic = true };
+                builder.Freeze();
+
+                var transformation = builder.CreateTransformation();
+                this.AddSynthesizedTransformation( transformation );
+            }
+
+            return new SynthesizedTypeHandle( builder, builder.BuilderData.ToRef().GetTarget( this._compilation ) );
+        }
+
+        /// <summary>
+        /// Creates a builder for a method that <see cref="DeclareMethod"/> declares later, so that the caller can give it to other code, for
+        /// instance user code, before the method is declared.
+        /// </summary>
+        /// <param name="origin">The aspect or fabric that requests the method.</param>
+        /// <param name="placement">The type in which the method is declared.</param>
+        /// <param name="nameHint">The name of the method. <see cref="DeclareMethod"/> adds a numeric suffix when the name is already used.</param>
+        /// <param name="initialize">A delegate that sets the initial signature, before the restrictions apply, or <c>null</c>.</param>
+        /// <param name="restrictions">The restrictions that validate the changes that the code that receives the builder makes, or <c>null</c>.
+        /// <see cref="LockedSignatureRestrictions"/> locks parts of the signature.</param>
+        /// <returns>A builder that is not frozen. The method is declared only when the builder is passed to <see cref="DeclareMethod"/>.</returns>
+        /// <remarks>
+        /// <para>
+        /// The builder is detached: it is not part of the code model, so its declaring type does not list it, and no aspect sees it. A builder
+        /// that is never passed to <see cref="DeclareMethod"/> has no effect.
+        /// </para>
+        /// <para>
+        /// The builder calls the <c>Validate*</c> methods of <paramref name="restrictions"/> before each change, and these methods throw an
+        /// exception to refuse the change. The changes that <paramref name="initialize"/> makes are not validated.
+        /// </para>
+        /// </remarks>
+        /// <exception cref="ArgumentNullException"><paramref name="origin"/> or <paramref name="placement"/> is <c>null</c>.</exception>
+        /// <exception cref="ArgumentException">The placement is not valid, or <paramref name="nameHint"/> is not a valid identifier.</exception>
+        /// <exception cref="InvalidOperationException">The factory was completed.</exception>
+        public IMethodBuilder CreateMethodBuilder(
+            ExtensionContributionOrigin origin,
+            SynthesizedMethodPlacement placement,
+            string nameHint,
+            Action<IMethodBuilder>? initialize = null,
+            MethodBuilderRestrictions? restrictions = null )
+        {
+            _ = placement ?? throw new ArgumentNullException( nameof(placement) );
+            SynthesisNames.ValidateIdentifier( nameHint, nameof(nameHint) );
+
+            var layerInstance = this.GetAspectLayerInstance( origin );
+            var declaringType = this.ResolvePlacement( placement );
+
+            lock ( this._sync )
+            {
+                this.ThrowIfCompleted();
+            }
+
+            var builder = new MethodBuilder( layerInstance, declaringType, nameHint ) { Accessibility = Accessibility.Private };
+
+            if ( initialize != null )
+            {
+                using ( UserCodeExecutionContext.WithContext( this._serviceProvider, this._compilation, $"initialization of the method '{nameHint}'" ) )
+                {
+                    initialize( builder );
+                }
+            }
+
+            builder.SetRestrictions( restrictions );
+
+            lock ( this._sync )
+            {
+                this._createdMethodBuilders.Add( builder );
+            }
+
+            return builder;
+        }
+
+        /// <summary>
+        /// Declares a method whose body is generated from a template.
+        /// </summary>
+        /// <param name="origin">The aspect or fabric that requested the method.</param>
+        /// <param name="request">The request.</param>
+        /// <returns>The handle of the method, which can be passed to <see cref="CallSiteRedirectionTarget.Synthesized"/>.</returns>
+        /// <remarks>
+        /// <para>
+        /// The method is not visible in the code model to aspects, in any stage of the pipeline: the factory adds it only to the compilation that
+        /// the linker sees, after all aspects have executed, and the design-time pipeline does not produce it. The factory gives the method a
+        /// unique name in its type, binds the template, and creates the transformations that the linker applies. The template is expanded by the
+        /// linker, which reports the diagnostics of the template at <see cref="SynthesizedMethodRequest.DiagnosticLocation"/>. When the expansion
+        /// fails, the call sites redirected to the method are left unchanged.
+        /// </para>
+        /// <para>
+        /// The numeric suffixes of the names depend on the order of the calls. A caller that requires a deterministic output must call this method
+        /// in a deterministic order.
+        /// </para>
+        /// </remarks>
+        /// <exception cref="ArgumentNullException"><paramref name="origin"/> or <paramref name="request"/> is <c>null</c>.</exception>
+        /// <exception cref="ArgumentException">The request is not valid, for instance because the template does not exist or cannot implement the
+        /// method, or because the builder of the request was not created by this factory or was already declared.</exception>
+        /// <exception cref="InvalidOperationException">The factory was completed.</exception>
+        public SynthesizedMethodHandle DeclareMethod( ExtensionContributionOrigin origin, SynthesizedMethodRequest request )
+        {
+            _ = request ?? throw new ArgumentNullException( nameof(request) );
+
+            var metaExtensions = request.Template.MetaExtensions.IsDefault ? ImmutableArray<IMetaExtension>.Empty : request.Template.MetaExtensions;
+
+            if ( metaExtensions.Select( e => e.GetType() ).Distinct().Count() != metaExtensions.Length )
+            {
+                throw new ArgumentException( "Two meta extensions of the template have the same type.", nameof(request) );
+            }
+
+            MethodBuilder builder;
+
+            if ( request.Builder != null )
+            {
+                builder = request.Builder as MethodBuilder ?? throw new ArgumentException( "The builder was not created by this factory.", nameof(request) );
+
+                lock ( this._sync )
+                {
+                    this.ThrowIfCompleted();
+
+                    if ( !this._createdMethodBuilders.Remove( builder ) )
+                    {
+                        throw new ArgumentException( "The builder was not created by this factory, or it was already declared.", nameof(request) );
+                    }
+                }
+            }
+            else
+            {
+                builder = (MethodBuilder) this.CreateMethodBuilder( origin, request.Placement!, request.NameHint!, request.BuildSignature );
+
+                lock ( this._sync )
+                {
+                    this._createdMethodBuilders.Remove( builder );
+                }
+            }
+
+            var layerInstance = builder.AspectLayerInstance;
+            var declaringType = builder.DeclaringType;
+
+            lock ( this._sync )
+            {
+                this.ThrowIfCompleted();
+
+                builder.SetUniqueName(
+                    this.ReserveName(
+                        "T:" + declaringType.FullName + "`" + declaringType.TypeParameters.Count,
+                        SynthesisNames.ValidateIdentifier( builder.Name, nameof(request) ),
+                        candidate => IsMemberNameAvailable( declaringType, candidate ),
+                        request.IsNameAvailable ) );
+            }
+
+            var name = builder.Name;
+            var serviceProvider = this._serviceProvider;
+            var templateProvider = request.Template.TemplateProvider.IsNull ? origin.DefaultTemplateProvider : request.Template.TemplateProvider;
+
+            // The template class of a type fabric is not registered in the TemplateClassProvider, but the origin holds it when the fabric is the
+            // template provider. A project fabric or a namespace fabric cannot provide templates.
+            TemplateClass? templateClass;
+
+            if ( origin.TemplateClassInstance is { } templateClassInstance && templateClassInstance.TemplateProvider == templateProvider )
+            {
+                templateClass = templateClassInstance.TemplateClass;
+            }
+            else if ( !serviceProvider.GetRequiredService<TemplateClassProvider>().TryGet( templateProvider, out templateClass ) )
+            {
+                var providerName = templateProvider.Type?.FullName ?? "null";
+
+                throw new ArgumentException(
+                    origin.Predecessor.Instance is IFabricInstance
+                        ? $"The template provider '{providerName}' is a project fabric or a namespace fabric, which cannot provide templates. Declare the template in an aspect, a type fabric, or a class that implements ITemplateProvider."
+                        : $"The template provider '{providerName}' is not a known template provider.",
+                    nameof(request) );
+            }
+
+            var objectReaderFactory = serviceProvider.GetRequiredService<IObjectReaderFactory>();
+
+            BoundTemplateMethod boundTemplate;
+            ProceedBinding proceedBinding;
+
+            using ( UserCodeExecutionContext.WithContext( serviceProvider, this._compilation, $"declaration of the method '{name}'" ) )
+            {
+                try
+                {
+                    var templateMember = MethodTemplateSelection.Select( templateClass, builder, request.Template.Selector )
+                        .GetTemplateMember<IMethod>( this._compilation, serviceProvider, templateProvider, objectReaderFactory.GetReader( request.Template.Tags ) );
+
+                    builder.IsAsync = templateMember.GetDeclaration( this._compilation ).IsAsync;
+                    builder.SetIsIteratorMethod( templateMember.IsIteratorMethod );
+                    builder.Freeze();
+
+                    proceedBinding = request.CreateProceedBinding( builder ) ?? throw new ArgumentException( "The proceed binding is null.", nameof(request) );
+                    ValidateProceedBinding( proceedBinding, builder );
+
+                    boundTemplate = templateMember.ForSynthesizedMethod(
+                        builder,
+                        request.Template.HiddenLeadingParameterCount,
+                        request.Template.NameOnlyTrailingParameterCount,
+                        objectReaderFactory.GetReader( request.Template.Arguments ) );
+                }
+                catch ( InvalidTemplateSignatureException e )
+                {
+                    throw new ArgumentException( e.Message, nameof(request), e );
+                }
+                catch ( DiagnosticException e )
+                {
+                    throw new ArgumentException( e.Message, nameof(request), e );
+                }
+            }
+
+            var introduction = builder.ToTransformation();
+
+            var body = new SynthesizedMethodBodyTransformation(
+                layerInstance,
+                builder.ToFullRef(),
+                boundTemplate,
+                proceedBinding,
+                request.DiagnosticLocation,
+                metaExtensions,
+                origin.AspectInstance );
+
+            lock ( this._sync )
+            {
+                this.ThrowIfCompleted();
+                this.AddSynthesizedTransformation( introduction );
+                this.AddSynthesizedTransformation( body );
+            }
+
+            return new SynthesizedMethodHandle( builder, body );
+        }
+
+        /// <summary>
+        /// Returns the type in which a placement declares a method, after checking that it is a class or a struct of the current compilation.
+        /// </summary>
+        private INamedType ResolvePlacement( SynthesizedMethodPlacement placement )
+        {
+            var declaringType = placement.SynthesizedType?.Type
+                                ?? placement.Type!.ForCompilation( this._compilation )
+                                ?? throw new ArgumentException( "The type of the placement does not belong to the compilation.", nameof(placement) );
+
+            if ( declaringType.DeclaringAssembly.IsExternal
+                 || declaringType.TypeKind is not (TypeKind.Class or TypeKind.Struct) )
+            {
+                throw new ArgumentException(
+                    $"The method cannot be declared in '{declaringType}', because only a class, a struct or a record of the current compilation can contain it.",
+                    nameof(placement) );
+            }
+
+            return declaringType;
+        }
+
+        /// <summary>
+        /// Returns the namespace of a given full name, and declares the parts of the name that do not exist in the compilation. The caller must hold
+        /// <see cref="_sync"/>.
+        /// </summary>
+        private INamespace GetOrDeclareNamespace( AspectLayerInstance layerInstance, string? fullName )
+        {
+            var ns = this._compilation.GlobalNamespace;
+
+            if ( string.IsNullOrEmpty( fullName ) )
+            {
+                return ns;
+            }
+
+            var prefix = "";
+
+            foreach ( var part in fullName!.Split( '.' ) )
+            {
+                SynthesisNames.ValidateIdentifier( part, "request" );
+                prefix = prefix.Length == 0 ? part : prefix + "." + part;
+
+                if ( ns is not NamespaceBuilder && ns.Namespaces.OfName( part ) is { } existingNamespace )
+                {
+                    ns = existingNamespace;
+
+                    continue;
+                }
+
+                if ( !this._declaredNamespaces.TryGetValue( prefix, out var namespaceBuilder ) )
+                {
+                    namespaceBuilder = new NamespaceBuilder( layerInstance, ns, part );
+                    namespaceBuilder.Freeze();
+                    this.AddSynthesizedTransformation( namespaceBuilder.CreateTransformation() );
+                    this._declaredNamespaces.Add( prefix, namespaceBuilder );
+                }
+
+                ns = namespaceBuilder;
+            }
+
+            return ns;
+        }
+
+        /// <summary>
+        /// Adds a transformation, ordered after all the transformations of the aspects. The caller must hold <see cref="_sync"/>.
+        /// </summary>
+        private void AddSynthesizedTransformation( ITransformation transformation )
+        {
+            transformation.SetAdviceOrderingIndices( new AdviceOrderingIndices( int.MaxValue, 0, this._synthesizedTransformations.Count ) );
+            this._synthesizedTransformations.Add( transformation );
+        }
+
+        /// <summary>
+        /// Returns the first name, among the hint and the hint followed by a number, that the factory has not reserved in the scope and that the
+        /// delegates accept, and reserves it. The caller must hold <see cref="_sync"/>.
+        /// </summary>
+        private string ReserveName( string scopeKey, string hint, Func<string, bool> isAvailable, Func<string, bool>? isAvailableForCaller )
+        {
+            if ( !this._reservedNames.TryGetValue( scopeKey, out var reserved ) )
+            {
+                reserved = new HashSet<string>( StringComparer.Ordinal );
+                this._reservedNames.Add( scopeKey, reserved );
+            }
+
+            for ( var i = 0;; i++ )
+            {
+                var candidate = i == 0 ? hint : hint + i;
+
+                if ( !reserved.Contains( candidate ) && isAvailable( candidate ) && isAvailableForCaller?.Invoke( candidate ) != false )
+                {
+                    reserved.Add( candidate );
+
+                    return candidate;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Validates a proceed binding against the parameters of the declared method, so that an invalid binding is refused by
+        /// <see cref="DeclareMethod"/> instead of failing when the code is linked.
+        /// </summary>
+        private static void ValidateProceedBinding( ProceedBinding binding, IMethod declaredMethod )
+        {
+            var parameterCount = declaredMethod.Parameters.Count;
+
+            void ValidateIndex( int index, string description )
+            {
+                if ( index < 0 || index >= parameterCount )
+                {
+                    throw new ArgumentException(
+                        $"The proceed binding gives the parameter index {index} as {description}, which is outside the range of the parameters of the method '{declaredMethod.Name}'.",
+                        "request" );
+                }
+            }
+
+            if ( binding.Kind == ProceedBindingKind.InvokeOnParameter )
+            {
+                ValidateIndex( binding.ReceiverParameterIndex, "the receiver" );
+            }
+
+            if ( !binding.ArgumentParameterIndices.IsDefault )
+            {
+                if ( binding.ArgumentParameterIndices.Length != binding.Method.Parameters.Count )
+                {
+                    throw new ArgumentException(
+                        $"The number of argument parameter indices of the proceed binding differs from the number of parameters of the method '{binding.Method.Name}'.",
+                        "request" );
+                }
+
+                foreach ( var index in binding.ArgumentParameterIndices )
+                {
+                    ValidateIndex( index, "an argument" );
+                }
+            }
+            else
+            {
+                // The default mapping passes the parameters of the declared method in order, skipping the receiver parameter.
+                var availableCount = parameterCount - (binding.Kind == ProceedBindingKind.InvokeOnParameter ? 1 : 0);
+
+                if ( availableCount < binding.Method.Parameters.Count )
+                {
+                    throw new ArgumentException(
+                        $"The method '{declaredMethod.Name}' does not have enough parameters to pass to the parameters of the method '{binding.Method.Name}'.",
+                        "request" );
+                }
+            }
+
+            if ( !binding.ArgumentCasts.IsDefault )
+            {
+                foreach ( var cast in binding.ArgumentCasts )
+                {
+                    ValidateIndex( cast.ParameterIndex, "a cast argument" );
+                }
+            }
+        }
+
+        /// <summary>
+        /// Determines whether a type can declare a member of a given name: the name must differ from the name of the type and of its type
+        /// parameters, and from the names of the members and nested types of the type and of its base types.
+        /// </summary>
+        private static bool IsMemberNameAvailable( INamedType type, string name )
+        {
+            if ( type.Name == name || type.TypeParameters.Any( p => p.Name == name ) )
+            {
+                return false;
+            }
+
+            for ( var t = type; t != null; t = t.BaseType )
+            {
+                if ( t.Methods.OfName( name ).Any() || t.Properties.OfName( name ).Any() || t.Fields.OfName( name ).Any() || t.Events.OfName( name ).Any()
+                     || t.Indexers.OfName( name ).Any() || t.Types.OfName( name ).Any() )
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Returns the aspect layer instance to which the transformations requested by an origin are attributed.
+        /// </summary>
+        private AspectLayerInstance GetAspectLayerInstance( ExtensionContributionOrigin origin )
+        {
+            var layer = this.GetOrderedLayer( origin );
+
+            if ( origin.AspectInstance != null )
+            {
+                return new AspectLayerInstance( origin.AspectInstance, layer.LayerName, this._compilation );
+            }
+
+            // A project or namespace fabric has no aspect instance. The transformations are attributed to an instance of the top-level fabric
+            // aspect class, whose predecessor is the fabric.
+            var aspectClass = layer.AspectClassIfAny
+                              ?? throw new ArgumentException( $"The aspect layer '{origin.AspectLayerId}' of the origin has no aspect class.", nameof(origin) );
+
+            lock ( this._sync )
+            {
+                if ( !this._fabricAspectInstances.TryGetValue( layer.AspectLayerId, out var aspectInstance ) )
+                {
+                    aspectInstance = new AspectInstance(
+                        FabricOriginAspect.Instance,
+                        this._compilation.ToRef(),
+                        0,
+                        aspectClass,
+                        [],
+                        [origin.Predecessor],
+                        false );
+
+                    this._fabricAspectInstances.Add( layer.AspectLayerId, aspectInstance );
+                }
+
+                return new AspectLayerInstance( aspectInstance, layer.LayerName, this._compilation );
+            }
+        }
+
+        /// <summary>
+        /// Returns the ordered aspect layer of an origin.
+        /// </summary>
+        private OrderedAspectLayer GetOrderedLayer( ExtensionContributionOrigin origin )
+        {
+            _ = origin ?? throw new ArgumentNullException( nameof(origin) );
+
+            // A project or namespace fabric is processed by the top-level fabric aspect class, whose layer is identified by the type of Fabric.
+            return this._aspectLayers.FirstOrDefault( l => l.AspectLayerId == origin.AspectLayerId )
+                   ?? (origin.Predecessor.Kind == AspectPredecessorKind.Fabric
+                       ? this._aspectLayers.FirstOrDefault( l => l.AspectName == typeof(Fabric).FullName )
+                       : null)
+                   ?? throw new ArgumentException(
+                       $"The aspect layer '{origin.AspectLayerId}' of the origin is not an ordered layer of the pipeline.",
+                       nameof(origin) );
+        }
+
+        /// <summary>
+        /// Returns the transformations of the declared types and methods. The caller must hold <see cref="_sync"/>.
+        /// </summary>
+        private ImmutableArray<ITransformation> GetSynthesizedTransformations() => this._synthesizedTransformations.ToImmutableArray();
+
+        /// <summary>
+        /// The aspect object of the aspect instance that represents a project or namespace fabric in the transformations. It is never executed.
+        /// </summary>
+        private sealed class FabricOriginAspect : IAspect
+        {
+            /// <summary>
+            /// Gets the only instance of the class.
+            /// </summary>
+            public static FabricOriginAspect Instance { get; } = new();
+        }
+    }
+}

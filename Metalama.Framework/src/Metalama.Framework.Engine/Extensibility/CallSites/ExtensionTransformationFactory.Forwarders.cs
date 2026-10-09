@@ -316,7 +316,7 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
         /// </remarks>
         private CompilationUnitSyntax? CreateForwarderCompilationUnit()
         {
-            if ( this._forwarders.Count == 0 )
+            if ( this._forwarders.Count == 0 && this._synthesizedForwarders.Count == 0 )
             {
                 return null;
             }
@@ -337,7 +337,10 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
                 null,
                 null,
                 default,
-                List<MemberDeclarationSyntax>( this._forwarders.Values.OrderBy( f => f.Signature, StringComparer.Ordinal ).Select( f => f.Declaration ) ) );
+                List<MemberDeclarationSyntax>(
+                    this._forwarders.Values.Concat( this._synthesizedForwarders.Values )
+                        .OrderBy( f => f.Signature, StringComparer.Ordinal )
+                        .Select( f => f.Declaration ) ) );
 
             // The class is created once per project, after all the requests, and it is not formatted by the linker.
 #pragma warning disable LAMA0830 // NormalizeWhitespace is expensive.

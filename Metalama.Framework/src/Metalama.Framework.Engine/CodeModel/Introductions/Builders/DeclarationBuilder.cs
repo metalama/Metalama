@@ -19,8 +19,8 @@ using Microsoft.CodeAnalysis;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Linq;
 using SyntaxReference = Microsoft.CodeAnalysis.SyntaxReference;
+using RefKind = Metalama.Framework.Code.RefKind;
 using TypedConstant = Metalama.Framework.Code.TypedConstant;
 
 namespace Metalama.Framework.Engine.CodeModel.Introductions.Builders;
@@ -92,11 +92,105 @@ internal abstract class DeclarationBuilder : IDeclarationBuilderImpl
 
     public bool IsFrozen { get; private set; }
 
+    /// <summary>
+    /// Gets the restrictions that validate the changes of this declaration, or <c>null</c>. A method builder created with restrictions returns
+    /// them, and so do its parameters, its return parameter and its type parameters.
+    /// </summary>
+    internal virtual MethodBuilderRestrictions? Restrictions => null;
+
+    /// <summary>
+    /// Gets the type parameters that were copied into this builder with <c>AddTypeParameter(ITypeParameter, bool)</c>, each with its prototype,
+    /// or <c>null</c>.
+    /// </summary>
+    internal List<(ITypeParameter Prototype, TypeParameterBuilder Copy)>? CopiedTypeParameters { get; private set; }
+
+    /// <summary>
+    /// Copies a type parameter into a type parameter builder that was just added to this builder, and records the copy.
+    /// </summary>
+    /// <remarks>
+    /// The type constraints of the copy refer to the copies of the type parameters that were copied before it. Because a constraint can refer
+    /// to a type parameter that is copied after it, the constraints of the earlier copies are mapped again.
+    /// </remarks>
+    internal void CopyTypeParameter( TypeParameterBuilder copy, ITypeParameter prototype, bool includeCustomAttributes )
+    {
+        copy.Variance = prototype.Variance;
+        copy.TypeKindConstraint = prototype.TypeKindConstraint;
+        copy.HasDefaultConstructorConstraint = prototype.HasDefaultConstructorConstraint;
+        copy.IsConstraintNullable = prototype.IsConstraintNullable;
+        copy.AllowsRefStruct = prototype.AllowsRefStruct;
+
+        (this.CopiedTypeParameters ??= []).Add( (prototype, copy) );
+
+        foreach ( var typeConstraint in prototype.TypeConstraints )
+        {
+            copy.AddTypeConstraint( CopiedTypeParameterMapper.Map( this, typeConstraint ) );
+        }
+
+        foreach ( var (_, earlierCopy) in this.CopiedTypeParameters )
+        {
+            if ( !ReferenceEquals( earlierCopy, copy ) )
+            {
+                earlierCopy.MapTypeConstraints( t => CopiedTypeParameterMapper.Map( this, t ) );
+            }
+        }
+
+        if ( includeCustomAttributes )
+        {
+            copy.AddAttributes( prototype.Attributes );
+        }
+    }
+
+    /// <summary>
+    /// Adds a parameter that copies a prototype, using a delegate that adds a parameter to this builder.
+    /// </summary>
+    /// <param name="addParameter">A delegate that adds a parameter of the given name, type and reference kind.</param>
+    /// <param name="prototype">The parameter to copy.</param>
+    /// <param name="includeCustomAttributes">A value indicating whether the attributes are copied.</param>
+    /// <param name="includeDefaultValues">A value indicating whether the default value and the <c>params</c> modifier are copied.</param>
+    internal IParameterBuilder CopyParameter(
+        Func<string, IType, RefKind, IParameterBuilder> addParameter,
+        IParameter prototype,
+        bool includeCustomAttributes,
+        bool includeDefaultValues )
+    {
+        var copy = addParameter( prototype.Name, CopiedTypeParameterMapper.Map( this, prototype.Type ), prototype.RefKind );
+
+        if ( includeDefaultValues )
+        {
+            copy.DefaultValue = prototype.DefaultValue;
+            copy.IsParams = prototype.IsParams;
+        }
+
+        if ( includeCustomAttributes )
+        {
+            copy.AddAttributes( prototype.Attributes );
+        }
+
+        return copy;
+    }
+
     protected void CheckNotFrozen()
     {
         if ( this.IsFrozen )
         {
             throw new InvalidOperationException( $"You can no longer modify '{this.ToDisplayString()}'." );
+        }
+    }
+
+    /// <summary>
+    /// Throws an <see cref="ArgumentException"/> when a list of declarations of this builder already contains a declaration of a given name.
+    /// </summary>
+    /// <param name="declarations">The parameters or the type parameters of this builder.</param>
+    /// <param name="name">The name of the declaration to add.</param>
+    /// <param name="kind">The kind of the declarations in the message, for instance <c>parameter</c> or <c>type parameter</c>.</param>
+    protected void ThrowIfNameExists( IEnumerable<INamedDeclaration> declarations, string name, string kind )
+    {
+        foreach ( var existing in declarations )
+        {
+            if ( existing.Name == name )
+            {
+                throw new ArgumentException( $"The {kind} '{name}' already exists in '{this.ToDisplayString()}'." );
+            }
         }
     }
 
@@ -106,6 +200,7 @@ internal abstract class DeclarationBuilder : IDeclarationBuilderImpl
     public void AddAttribute( AttributeConstruction attribute )
     {
         this.CheckNotFrozen();
+        this.Restrictions?.ValidateAddAttribute( this, attribute );
 
         this.Attributes.Add( new AttributeBuilder( this.AspectLayerInstance, this, attribute ) );
     }
@@ -114,19 +209,26 @@ internal abstract class DeclarationBuilder : IDeclarationBuilderImpl
     {
         this.CheckNotFrozen();
 
-        this.Attributes.AddRange( attributes.Select( a => new AttributeBuilder( this.AspectLayerInstance, this, a ) ) );
+        foreach ( var attribute in attributes )
+        {
+            this.AddAttribute( attribute );
+        }
     }
 
     public void AddAttributes( IEnumerable<IAttribute> attributes )
     {
         this.CheckNotFrozen();
 
-        this.Attributes.AddRange( attributes.Select( a => new AttributeBuilder( this.AspectLayerInstance, this, a.ToAttributeConstruction() ) ) );
+        foreach ( var attribute in attributes )
+        {
+            this.AddAttribute( attribute.ToAttributeConstruction() );
+        }
     }
 
     public void RemoveAttributes( INamedType type )
     {
         this.CheckNotFrozen();
+        this.Restrictions?.ValidateRemoveAttributes( this, type );
 
         this.Attributes.RemoveAll( a => a.Type.IsConvertibleTo( type ) );
     }

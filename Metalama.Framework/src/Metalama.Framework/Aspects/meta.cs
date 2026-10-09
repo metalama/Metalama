@@ -334,6 +334,47 @@ namespace Metalama.Framework.Aspects
         public static IObjectReader Tags => CurrentContext.Tags;
 
         /// <summary>
+        /// Gets the object of a given type that a Metalama extension makes available to the current template.
+        /// </summary>
+        /// <typeparam name="T">The type of the object.</typeparam>
+        /// <returns>The object of type <typeparamref name="T"/>.</returns>
+        /// <exception cref="InvalidOperationException">The current template has no object of type <typeparamref name="T"/>.</exception>
+        /// <seealso cref="TryGetExtension{T}"/>
+        /// <seealso cref="IMetaExtension"/>
+        public static T GetExtension<T>()
+            where T : class, IMetaExtension
+            => TryGetExtension<T>( out var extension )
+                ? extension
+                : throw new InvalidOperationException(
+                    $"The extension '{typeof(T).FullName}' is not available to the current template. It is available only to the templates that the extension expands." );
+
+        /// <summary>
+        /// Gets the object of a given type that a Metalama extension makes available to the current template, if there is one.
+        /// </summary>
+        /// <typeparam name="T">The type of the object.</typeparam>
+        /// <param name="extension">The object of type <typeparamref name="T"/>, or <c>null</c> when there is none.</param>
+        /// <returns><c>true</c> when the current template has an object of type <typeparamref name="T"/>; otherwise <c>false</c>.</returns>
+        /// <seealso cref="GetExtension{T}"/>
+        /// <seealso cref="IMetaExtension"/>
+        public static bool TryGetExtension<T>( [NotNullWhen( true )] out T? extension )
+            where T : class, IMetaExtension
+        {
+            foreach ( var candidate in CurrentContext.Extensions )
+            {
+                if ( candidate is T typedCandidate )
+                {
+                    extension = typedCandidate;
+
+                    return true;
+                }
+            }
+
+            extension = null;
+
+            return false;
+        }
+
+        /// <summary>
         /// Gets the current <see cref="IAspectInstance"/>, which gives access to the <see cref="IAspectPredecessor.Predecessors"/>
         /// and the <see cref="IAspectInstance.SecondaryInstances"/> of the current aspect.
         /// </summary>

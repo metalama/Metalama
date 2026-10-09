@@ -88,6 +88,38 @@ public static class TestExtensionPointsExtensions
         => GetService( query.Project ).RedirectCalls( query, methodName, replacementTypeName, replacementMethodName, options ?? new TestRedirectionOptions() );
 
     /// <summary>
+    /// Redirects the source calls to the methods of a given name, inside the target of the adviser, to methods that the extension declares and
+    /// whose body is generated from a template of the aspect.
+    /// </summary>
+    /// <param name="adviser">The adviser, whose target is the scope of the redirection.</param>
+    /// <param name="methodName">The name of the source methods.</param>
+    /// <param name="template">The name of the template.</param>
+    /// <param name="options">The options of the redirection, or <c>null</c> for the default options.</param>
+    public static void TestRedirectCallsToTemplate<T>(
+        this IAdviser<T> adviser,
+        string methodName,
+        string template,
+        TestTemplateRedirectionOptions? options = null )
+        where T : class, IDeclaration
+        => GetService( adviser.Compilation.Project ).RedirectCallsToTemplate( adviser, methodName, template, options ?? new TestTemplateRedirectionOptions() );
+
+    /// <summary>
+    /// Redirects the source calls to the methods of a given name, inside the declarations of a query, to methods that the extension declares and
+    /// whose body is generated from a template of the owner of the query, for instance a fabric.
+    /// </summary>
+    /// <param name="query">The query, whose declarations are the scope of the redirection.</param>
+    /// <param name="methodName">The name of the source methods.</param>
+    /// <param name="template">The name of the template.</param>
+    /// <param name="options">The options of the redirection, or <c>null</c> for the default options.</param>
+    public static void TestRedirectCallsToTemplate<T>(
+        this IQuery<T> query,
+        string methodName,
+        string template,
+        TestTemplateRedirectionOptions? options = null )
+        where T : class, IDeclaration
+        => GetService( query.Project ).RedirectCallsToTemplate( query, methodName, template, options ?? new TestTemplateRedirectionOptions() );
+
+    /// <summary>
     /// Gets the initializer of a field or property as an expression that compile-time code can inspect but that cannot be emitted in generated
     /// code.
     /// </summary>

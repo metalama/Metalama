@@ -2,7 +2,6 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
-using Metalama.Framework.Code.Collections;
 using Metalama.Framework.Utilities;
 using System;
 
@@ -61,7 +60,7 @@ public interface IDelegateBuilder : IMemberOrNamedTypeBuilder
     IParameterBuilderList Parameters { get; }
 
     /// <summary>
-    /// Gets the type parameters of the delegate, in the order in which they were added.
+    /// Gets the type parameters of the delegate, in the order in which they were added, as builders that can be changed.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -70,7 +69,7 @@ public interface IDelegateBuilder : IMemberOrNamedTypeBuilder
     /// generic.
     /// </para>
     /// </remarks>
-    ITypeParameterList TypeParameters { get; }
+    ITypeParameterBuilderList TypeParameters { get; }
 
     /// <summary>
     /// Appends a parameter to the delegate.
@@ -85,6 +84,9 @@ public interface IDelegateBuilder : IMemberOrNamedTypeBuilder
     /// <inheritdoc cref="AddParameter(string,IType,RefKind,TypedConstant?)"/>
     IParameterBuilder AddParameter( string name, Type type, RefKind refKind = RefKind.None, TypedConstant? defaultValue = null );
 
+    /// <inheritdoc cref="IMethodBaseBuilder.AddParameter(IParameter, bool, bool)"/>
+    IParameterBuilder AddParameter( IParameter prototype, bool includeCustomAttributes = false, bool includeDefaultValues = false );
+
     /// <summary>
     /// Appends a type parameter to the delegate.
     /// </summary>
@@ -97,4 +99,7 @@ public interface IDelegateBuilder : IMemberOrNamedTypeBuilder
     /// <param name="name">The name of the type parameter.</param>
     /// <returns>An <see cref="ITypeParameterBuilder"/> that allows you to complete the construction of the type parameter.</returns>
     ITypeParameterBuilder AddTypeParameter( string name );
+
+    /// <inheritdoc cref="IMethodBuilder.AddTypeParameter(ITypeParameter, bool)"/>
+    ITypeParameterBuilder AddTypeParameter( ITypeParameter prototype, bool includeCustomAttributes = false );
 }

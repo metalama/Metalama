@@ -86,13 +86,24 @@ namespace Metalama.Framework.Engine.Pipeline.CompileTime
                 extensionLinkerInput = extensionTransformationContext.CompleteTransformationFactory();
             }
 
+            // The types and methods that extensions declared are added to the final compilation, which only the linker sees, so that the linker
+            // processes them like the declarations that aspects introduce.
+            var linkerFinalCompilation = pipelineStepsResult.LastCompilation;
+            var linkerTransformations = pipelineStepsResult.Transformations;
+
+            if ( !extensionLinkerInput.Transformations.IsEmpty )
+            {
+                linkerFinalCompilation = linkerFinalCompilation.WithTransformations( extensionLinkerInput.Transformations, "With extension declarations" );
+                linkerTransformations = linkerTransformations.Concat( extensionLinkerInput.Transformations ).ToList();
+            }
+
             // Run the linker.
             var linker = new AspectLinker(
                 pipelineConfiguration.ServiceProvider,
                 new AspectLinkerInput(
                     input.FirstCompilationModel.AssertNotNull(),
-                    pipelineStepsResult.LastCompilation,
-                    pipelineStepsResult.Transformations,
+                    linkerFinalCompilation,
+                    linkerTransformations,
                     input.AspectLayers,
                     new CallSiteAdviceInfo( input.ContributorSources.ReferencesContainInitializableTypes ),
                     extensionLinkerInput ) );

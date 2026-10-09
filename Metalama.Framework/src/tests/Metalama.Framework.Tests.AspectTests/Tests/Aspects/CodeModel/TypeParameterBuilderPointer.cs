@@ -17,7 +17,7 @@ public class Aspect : TypeAspect
             buildMethod: methodBuilder =>
             {
                 var typeParameter = methodBuilder.AddTypeParameter( "T" );
-                typeParameter.TypeKindConstraint = TypeKindConstraint.Struct;
+                typeParameter.TypeKindConstraint = TypeKindConstraint.Unmanaged;
                 var typeParameterPointer = typeParameter.MakePointerType();
                 methodBuilder.AddParameter( "arg", typeParameterPointer );
             } );
@@ -29,4 +29,4 @@ public class Aspect : TypeAspect
 
 // <target>
 [Aspect]
-internal class TargetCode { }
+internal unsafe class TargetCode { }

@@ -5,6 +5,7 @@
 using JetBrains.Annotations;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Collections;
+using Metalama.Framework.Code.DeclarationBuilders;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
 using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 using Metalama.Framework.Engine.CodeModel.References;
@@ -14,13 +15,22 @@ using System.Linq;
 
 namespace Metalama.Framework.Engine.CodeModel.Introductions.Collections;
 
-internal sealed class TypeParameterBuilderList : List<TypeParameterBuilder>, ITypeParameterList
+internal sealed class TypeParameterBuilderList : List<TypeParameterBuilder>, ITypeParameterList, ITypeParameterBuilderList
 {
     public static TypeParameterBuilderList Empty { get; } = new();
 
     IEnumerator<ITypeParameter> IEnumerable<ITypeParameter>.GetEnumerator() => this.GetEnumerator();
 
     ITypeParameter IReadOnlyList<ITypeParameter>.this[ int index ] => this[index];
+
+    IEnumerator<ITypeParameterBuilder> IEnumerable<ITypeParameterBuilder>.GetEnumerator() => this.GetEnumerator();
+
+    ITypeParameterBuilder IReadOnlyList<ITypeParameterBuilder>.this[ int index ] => this[index];
+
+    /// <inheritdoc />
+    public ITypeParameterBuilder this[ string name ]
+        => this.AsBuilderList.SingleOrDefault( t => t.Name == name )
+           ?? throw new System.ArgumentOutOfRangeException( nameof(name), $"There is no type parameter named '{name}'." );
 
     // This is to avoid ambiguities in extension methods because this class implements several IEnumerable<>
     [PublicAPI]

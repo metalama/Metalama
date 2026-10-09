@@ -3,14 +3,13 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using JetBrains.Annotations;
-using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.AspectOrdering;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Linking;
+using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Utilities.Roslyn;
-using Metalama.Framework.Fabrics;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -28,7 +27,7 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites;
 
 /// <summary>
 /// Creates linker transformations on behalf of a <see cref="PipelineExtension"/>: it redirects source call sites and method references to other
-/// methods.
+/// methods, and it declares methods whose body is generated from a template.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -37,15 +36,17 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites;
 /// <see cref="ArgumentException"/> for a request that it cannot honor.
 /// </para>
 /// <para>
-/// The factory does not change the code model. The rewritten call sites are not visible to aspects and do not appear in design-time generated code.
+/// The factory does not change the code model. The rewritten call sites and the declared types and methods are not visible to aspects and do not
+/// appear in design-time generated code.
 /// </para>
 /// </remarks>
 [PublicAPI]
 public sealed partial class ExtensionTransformationFactory
 {
     /// <summary>
-    /// The lock that protects <see cref="_redirections"/>, <see cref="_forwarders"/>, <see cref="_variableRenames"/>, <see cref="_nextRedirectionId"/>
-    /// and <see cref="_isCompleted"/>.
+    /// The lock that protects <see cref="_redirections"/>, <see cref="_forwarders"/>, <see cref="_variableRenames"/>, <see cref="_nextRedirectionId"/>,
+    /// <see cref="_synthesizedTransformations"/>, <see cref="_reservedNames"/>, <see cref="_fabricAspectInstances"/>, <see cref="_declaredNamespaces"/>,
+    /// <see cref="_synthesizedForwarders"/> and <see cref="_isCompleted"/>.
     /// </summary>
     private readonly object _sync = new();
 
@@ -65,6 +66,11 @@ public sealed partial class ExtensionTransformationFactory
     private readonly SyntaxGenerationOptions _syntaxGenerationOptions;
 
     /// <summary>
+    /// The services of the project, used to bind templates.
+    /// </summary>
+    private readonly ProjectServiceProvider _serviceProvider;
+
+    /// <summary>
     /// The requested redirections, indexed by syntax tree and then by source node.
     /// </summary>
     private readonly Dictionary<SyntaxTree, Dictionary<SyntaxNode, CallSiteRedirection>> _redirections = new();
@@ -82,14 +88,21 @@ public sealed partial class ExtensionTransformationFactory
     /// <summary>
     /// Initializes a new instance of the <see cref="ExtensionTransformationFactory"/> class.
     /// </summary>
+    /// <param name="compilation">The compilation in which the transformations are created.</param>
+    /// <param name="aspectLayers">The ordered aspect layers of the pipeline, which give the layer of a transformation of a fabric origin.</param>
+    /// <param name="syntaxGenerationOptions">The options of the syntax generation.</param>
+    /// <param name="serviceProvider">The service provider of the project, from which the factory resolves the template classes and the object
+    /// readers that methods declared from templates need.</param>
     internal ExtensionTransformationFactory(
         CompilationModel compilation,
         IReadOnlyList<OrderedAspectLayer> aspectLayers,
-        SyntaxGenerationOptions syntaxGenerationOptions )
+        SyntaxGenerationOptions syntaxGenerationOptions,
+        in ProjectServiceProvider serviceProvider )
     {
         this._compilation = compilation;
         this._aspectLayers = aspectLayers;
         this._syntaxGenerationOptions = syntaxGenerationOptions;
+        this._serviceProvider = serviceProvider;
     }
 
     /// <summary>
@@ -126,7 +139,12 @@ public sealed partial class ExtensionTransformationFactory
 
         if ( !targetMethod.IsStatic )
         {
-            throw new ArgumentException( $"The target method '{targetMethod}' must be static.", nameof(request) );
+            if ( request.Target.Kind != CallSiteRedirectionTargetKind.Synthesized )
+            {
+                throw new ArgumentException( $"The target method '{targetMethod}' must be static.", nameof(request) );
+            }
+
+            ValidateInstanceCalleeContext( semanticModel, callSite, targetMethod );
         }
 
         // The receiver of a call to a classic extension method in reduced form is its first argument, whose syntax is not an ArgumentSyntax.
@@ -173,6 +191,13 @@ public sealed partial class ExtensionTransformationFactory
                 if ( isConditionalAccess )
                 {
                     // The receiver exists only inside the conditional access, so it is passed as the receiver of a forwarder.
+                    if ( !targetMethod.IsStatic )
+                    {
+                        throw new ArgumentException(
+                            $"The call site '{callSite}' is in a conditional access, so it cannot be redirected to the instance method '{targetMethod}'.",
+                            nameof(request) );
+                    }
+
                     if ( request.ReceiverMode != CallSiteReceiverMode.FirstArgument )
                     {
                         throw new ArgumentException(
@@ -260,7 +285,8 @@ public sealed partial class ExtensionTransformationFactory
                 extraArguments,
                 resultCast,
                 description,
-                registeredVariableRenames );
+                registeredVariableRenames,
+                (request.Target as SynthesizedCallSiteRedirectionTarget)?.Handle.BodyTransformation );
 
         ExpressionSyntax callee;
         ExpressionSyntax rewrittenCall;
@@ -269,12 +295,23 @@ public sealed partial class ExtensionTransformationFactory
         {
             // The arguments of the forwarder call do not depend on its name, which is computed from the binding of the static form of the call.
             var argumentList = ((InvocationExpressionSyntax) CreateRedirection( -1, IdentifierName( "_" ) ).Rewrite( callSite )).ArgumentList;
-            callee = this.GetForwarderCallee( request, operation, semanticModel, argumentList, context );
+
+            callee = request.Target switch
+            {
+                SynthesizedCallSiteRedirectionTarget synthesizedTarget => this.GetSynthesizedForwarderCallee(
+                    request,
+                    synthesizedTarget,
+                    operation,
+                    semanticModel,
+                    context ),
+                ExistingCallSiteRedirectionTarget => this.GetForwarderCallee( request, operation, semanticModel, argumentList, context ),
+                _ => throw new AssertionFailedException( $"Unexpected target kind: {request.Target.Kind}." )
+            };
             rewrittenCall = CreateRedirection( -1, callee ).Rewrite( callSite );
         }
         else
         {
-            callee = CreateStaticCallee( request.Target, request.TypeArguments, context );
+            callee = CreateCallee( request.Target, request.TypeArguments, context );
             rewrittenCall = CreateRedirection( -1, callee ).Rewrite( callSite );
 
             // When the rewritten call binds to another overload, the default values of the optional parameters that receive no argument are
@@ -740,7 +777,7 @@ public sealed partial class ExtensionTransformationFactory
         {
             this._isCompleted = true;
 
-            if ( this._redirections.Count == 0 )
+            if ( this._redirections.Count == 0 && this._synthesizedTransformations.Count == 0 )
             {
                 return ExtensionLinkerInput.Empty;
             }
@@ -749,7 +786,8 @@ public sealed partial class ExtensionTransformationFactory
                 this._redirections.ToDictionary(
                     x => x.Key,
                     x => (IReadOnlyDictionary<SyntaxNode, CallSiteRedirection>) x.Value ),
-                this.CreateForwarderCompilationUnit() );
+                this.CreateForwarderCompilationUnit(),
+                this.GetSynthesizedTransformations() );
         }
     }
 
@@ -820,16 +858,7 @@ public sealed partial class ExtensionTransformationFactory
     /// </summary>
     private SyntaxAnnotation GetGeneratedCodeAnnotation( ExtensionContributionOrigin origin )
     {
-        _ = origin ?? throw new ArgumentNullException( nameof(origin) );
-
-        // A project or namespace fabric is processed by the top-level fabric aspect class, whose layer is identified by the type of Fabric.
-        var layer = this._aspectLayers.FirstOrDefault( l => l.AspectLayerId == origin.AspectLayerId )
-                    ?? (origin.Predecessor.Kind == AspectPredecessorKind.Fabric
-                        ? this._aspectLayers.FirstOrDefault( l => l.AspectName == typeof(Fabric).FullName )
-                        : null)
-                    ?? throw new ArgumentException(
-                        $"The aspect layer '{origin.AspectLayerId}' of the origin is not an ordered layer of the pipeline.",
-                        nameof(origin) );
+        var layer = this.GetOrderedLayer( origin );
 
         // A layer that was created from the name of the aspect type only, which happens in tests, has no aspect class.
         return (origin.AspectInstance?.AspectClass ?? layer.AspectClassIfAny)?.GeneratedCodeAnnotation
@@ -922,6 +951,83 @@ public sealed partial class ExtensionTransformationFactory
         => typeArguments.IsDefaultOrEmpty
             ? SyntaxFactoryEx.SafeIdentifierName( method.Name )
             : GenericName( SyntaxFactoryEx.SafeIdentifier( method.Name ), TypeArgumentList( SeparatedList( typeArguments.Select( t => context.SyntaxGenerator.TypeSyntax( t ) ) ) ) );
+
+    /// <summary>
+    /// Creates the member access that designates a target method: <c>this.M</c> for an instance method, and otherwise the static form created by
+    /// <see cref="CreateStaticCallee"/>.
+    /// </summary>
+    private static ExpressionSyntax CreateCallee( CallSiteRedirectionTarget target, ImmutableArray<IType> typeArguments, SyntaxGenerationContext context )
+        => target.Method.IsStatic
+            ? CreateStaticCallee( target, typeArguments, context )
+            : MemberAccessExpression( SyntaxKind.SimpleMemberAccessExpression, ThisExpression(), CreateMethodName( target.Method, typeArguments, context ) );
+
+    /// <summary>
+    /// Throws an <see cref="ArgumentException"/> when a call site cannot call an instance method on <c>this</c>: the call site must be in an
+    /// instance member of the declaring type of the method or of a type derived from it, outside any static lambda or local function, outside any
+    /// lambda or local function of a struct, and outside a field initializer, a constructor initializer and an attribute.
+    /// </summary>
+    private static void ValidateInstanceCalleeContext( SemanticModel semanticModel, InvocationExpressionSyntax callSite, IMethod targetMethod )
+    {
+        string? reason = null;
+
+        foreach ( var ancestor in callSite.Ancestors() )
+        {
+            // 'this' is not available in an attribute, a constructor initializer, the initializer of a field, of an event field or of a property,
+            // and the default value of a parameter.
+            if ( ancestor.Kind() is SyntaxKind.Attribute or SyntaxKind.BaseConstructorInitializer or SyntaxKind.ThisConstructorInitializer
+                    or SyntaxKind.PrimaryConstructorBaseType or SyntaxKind.FieldDeclaration or SyntaxKind.EventFieldDeclaration
+                || (ancestor.IsKind( SyntaxKind.EqualsValueClause ) && ancestor.Parent?.Kind() is SyntaxKind.PropertyDeclaration or SyntaxKind.Parameter) )
+            {
+                reason = "the call site is in an attribute, a constructor initializer, the initializer of a field, an event or a property, or the default value of a parameter";
+
+                break;
+            }
+        }
+
+        var symbol = semanticModel.GetEnclosingSymbol( callSite.SpanStart );
+
+        while ( reason == null && symbol is { Kind: SymbolKind.Method } && ((IMethodSymbol) symbol).MethodKind is MethodKind.AnonymousFunction or MethodKind.LocalFunction )
+        {
+            var function = (IMethodSymbol) symbol;
+
+            if ( function.IsStatic )
+            {
+                reason = "the call site is in a static lambda or local function";
+            }
+            else if ( function.ContainingType is { IsValueType: true } )
+            {
+                reason = "the call site is in a lambda or local function of a struct, which cannot capture the current instance";
+            }
+
+            symbol = function.ContainingSymbol;
+        }
+
+        if ( reason == null && (symbol is not (IMethodSymbol or IPropertySymbol or IEventSymbol) || symbol.IsStatic) )
+        {
+            reason = "the call site is not in an instance member";
+        }
+
+        if ( reason == null )
+        {
+            var declaringType = targetMethod.DeclaringType.GetSymbol()?.OriginalDefinition;
+            reason = "the call site is not in the declaring type of the method or in a type derived from it";
+
+            for ( var type = symbol!.ContainingType; type != null; type = type.BaseType )
+            {
+                if ( SymbolEqualityComparer.Default.Equals( type.OriginalDefinition, declaringType ) )
+                {
+                    reason = null;
+
+                    break;
+                }
+            }
+        }
+
+        if ( reason != null )
+        {
+            throw new ArgumentException( $"The call site '{callSite}' cannot be redirected to the instance method '{targetMethod}', because {reason}.", "request" );
+        }
+    }
 
     /// <summary>
     /// Creates the member access that designates a static target method, qualified by <see cref="CallSiteRedirectionTarget.ContainingTypeAtCallSite"/>

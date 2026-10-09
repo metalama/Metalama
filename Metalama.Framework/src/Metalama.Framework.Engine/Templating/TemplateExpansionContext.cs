@@ -693,7 +693,7 @@ internal sealed partial class TemplateExpansionContext : UserCodeExecutionContex
                 {
                     this.Diagnostics.Report(
                         TemplatingDiagnosticDescriptors.CannotConvertProceedReturnToType.CreateRoslynDiagnostic(
-                            this.TargetDeclaration?.GetDiagnosticLocation(),
+                            this.MetaApi.DiagnosticLocationOverride ?? this.TargetDeclaration?.GetDiagnosticLocation(),
                             (
                                 this.AspectLayerId!.Value.AspectShortName,
                                 this.TargetDeclaration!,
@@ -790,7 +790,7 @@ internal sealed partial class TemplateExpansionContext : UserCodeExecutionContex
 
         this.Diagnostics.Report(
             TemplatingDiagnosticDescriptors.CannotUseNormalTemplateWithTryCatchOnAsyncIterator.CreateRoslynDiagnostic(
-                this.TargetDeclaration?.GetDiagnosticLocation(),
+                this.MetaApi.DiagnosticLocationOverride ?? this.TargetDeclaration?.GetDiagnosticLocation(),
                 (aspectClass?.ShortName ?? "unknown", this.TargetDeclaration!) ) );
 
         return false;
@@ -870,7 +870,7 @@ internal sealed partial class TemplateExpansionContext : UserCodeExecutionContex
 
             this.Diagnostics.Report(
                 TemplatingDiagnosticDescriptors.AspectUsesHigherCSharpVersion.CreateRoslynDiagnostic(
-                    this.TargetDeclaration?.GetDiagnosticLocation(),
+                    context.MetaApi.DiagnosticLocationOverride ?? this.TargetDeclaration?.GetDiagnosticLocation(),
                     (aspectClass?.ShortName, requiredLanguageVersion.Value.ToDisplayStringSafe(),
                      targetLanguageVersion.Value.ToDisplayStringSafe(), templateMember.GetDeclaration( context.Compilation.AssertNotNull() )),
                     deduplicationKey: aspectClass?.FullName ) );

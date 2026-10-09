@@ -3,16 +3,21 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Code;
+using Metalama.Framework.Code.DeclarationBuilders;
 using Metalama.Framework.Diagnostics;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.CodeModel;
+using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 using Metalama.Framework.Engine.Extensibility;
 using Metalama.Framework.Engine.Extensibility.CallSites;
+using Metalama.Framework.Engine.Extensibility.Synthesis;
+using Metalama.Framework.Aspects;
 using Metalama.Framework.Engine.ReferenceGraph;
 using Metalama.Framework.Tests.ExtensionPoints.Engine;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Operations;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -125,7 +130,6 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
         foreach ( var redirection in redirections )
         {
             var roots = await GetScopeRootsAsync( redirection, context, cancellationToken );
-            var replacement = GetReplacement( redirection, compilation );
 
             var sites = index.ReferencedSymbols
                 .Where( s => s.ReferencedSymbol.Kind == SymbolKind.Method && s.ReferencedSymbol.Name == redirection.MethodName )
@@ -136,6 +140,15 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
                 .OrderBy( n => n.SyntaxTree.FilePath, StringComparer.Ordinal )
                 .ThenBy( n => n.SpanStart )
                 .ToList();
+
+            if ( redirection.Template != null )
+            {
+                RedirectCallsToTemplate( redirection, sites, context );
+
+                continue;
+            }
+
+            var replacement = GetReplacement( redirection, compilation );
 
             foreach ( var site in sites )
             {
@@ -167,6 +180,263 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
                             site.GetLocation(),
                             ((invocation ?? GetMethodGroup( site )).ToString(), e.GetType().Name, GetMessage( e )) ) );
                 }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Declares a method from the template of a <see cref="TestRedirection"/> for each source method, or for each call site, and redirects the call
+    /// sites to it. A refused declaration or redirection is reported as a warning.
+    /// </summary>
+    private static void RedirectCallsToTemplate( TestRedirection redirection, IReadOnlyList<SyntaxNode> sites, ExtensionTransformationContext context )
+    {
+        var options = redirection.TemplateOptions!;
+        var compilation = context.FinalCompilation;
+        var factory = context.TransformationFactory;
+        var origin = redirection.Origin;
+        var declaredMethods = new Dictionary<string, SynthesizedMethodHandle>( StringComparer.Ordinal );
+        SynthesizedTypeHandle? staticClass = null;
+
+        foreach ( var site in sites )
+        {
+            var invocation = GetInvocation( site );
+
+            if ( invocation == null )
+            {
+                continue;
+            }
+
+            try
+            {
+                var semanticModel = compilation.RoslynCompilation.GetSemanticModel( invocation.SyntaxTree );
+                var sourceSymbol = (IMethodSymbol) semanticModel.GetSymbolInfo( invocation ).Symbol!;
+                var sourceMethod = compilation.Factory.GetMethod( sourceSymbol );
+                var hasReceiver = !sourceMethod.IsStatic;
+                var key = options.OneMethodPerSite ? $"{invocation.SyntaxTree.FilePath}:{invocation.SpanStart}" : (options.Generic ? sourceSymbol.OriginalDefinition : sourceSymbol).ToDisplayString();
+
+                if ( !declaredMethods.TryGetValue( key, out var method ) )
+                {
+                    SynthesizedMethodPlacement placement;
+
+                    if ( options.Placement == "StaticClass" )
+                    {
+                        if ( staticClass == null )
+                        {
+                            var lastDot = options.StaticClassName.LastIndexOf( '.' );
+
+                            staticClass = factory.DeclareStaticClass(
+                                origin,
+                                new SynthesizedStaticClassRequest( options.StaticClassName.Substring( lastDot + 1 ) )
+                                {
+                                    Namespace = lastDot < 0 ? null : options.StaticClassName.Substring( 0, lastDot )
+                                } );
+                        }
+
+                        placement = SynthesizedMethodPlacement.InType( staticClass );
+                    }
+                    else if ( options.Placement == "Caller" )
+                    {
+                        var callingType = semanticModel.GetEnclosingSymbol( invocation.SpanStart )!.ContainingType;
+                        placement = SynthesizedMethodPlacement.InType( compilation.Factory.GetNamedType( callingType.OriginalDefinition ) );
+                    }
+                    else
+                    {
+                        var typeName = options.Placement.Substring( "Type:".Length );
+                        placement = SynthesizedMethodPlacement.InType( compilation.AllTypes.Single( t => t.FullName == typeName ) );
+                    }
+
+                    var metaExtensions = options.WithMetaExtension
+                        ? ImmutableArray.Create<IMetaExtension>( new TestMetaExtension( $"declared for '{invocation}'" ) )
+                        : ImmutableArray<IMetaExtension>.Empty;
+
+                    if ( options.DuplicateMetaExtension )
+                    {
+                        metaExtensions = metaExtensions.Add( new TestMetaExtension( "first" ) ).Add( new TestMetaExtension( "second" ) );
+                    }
+
+                    // With the Generic option, the declared method has the type parameters of the source method, and the types that are type
+                    // parameters of the source method are mapped to them.
+                    var signatureMethod = options.Generic ? sourceMethod.Definition : sourceMethod;
+
+                    void BuildSignature( IMethodBuilder builder )
+                    {
+                        builder.Accessibility = (Code.Accessibility) Enum.Parse( typeof(Code.Accessibility), options.Accessibility );
+                        builder.IsStatic = !options.IsInstance;
+
+                        // The type parameters and the parameters are copied from the source method. The copies of the parameters refer to the
+                        // copies of the type parameters.
+                        if ( options.Generic )
+                        {
+                            foreach ( var typeParameter in signatureMethod.TypeParameters )
+                            {
+                                builder.AddTypeParameter( typeParameter );
+                            }
+                        }
+
+                        builder.ReturnType = options.Generic && signatureMethod.ReturnType is ITypeParameter { TypeParameterKind: Code.TypeParameterKind.Method } returnTypeParameter
+                            ? builder.TypeParameters[returnTypeParameter.Index]
+                            : signatureMethod.ReturnType;
+
+                        if ( hasReceiver )
+                        {
+                            builder.AddParameter( "receiver", sourceMethod.DeclaringType );
+                        }
+
+                        foreach ( var parameter in signatureMethod.Parameters )
+                        {
+                            builder.AddParameter( parameter );
+                        }
+                    }
+
+                    ProceedBinding CreateProceedBinding( IMethod declaredMethod )
+                    {
+                        var typeArguments = options.Generic
+                            ? declaredMethod.TypeParameters.Take( signatureMethod.TypeParameters.Count ).ToImmutableArray<IType>()
+                            : default;
+
+                        if ( options.InvalidProceedBinding )
+                        {
+                            // Every argument is taken from a parameter index that the declared method does not have.
+                            return ProceedBinding.InvokeStatic(
+                                signatureMethod,
+                                typeArguments,
+                                Enumerable.Repeat( declaredMethod.Parameters.Count, signatureMethod.Parameters.Count ).ToImmutableArray() );
+                        }
+
+                        return hasReceiver
+                            ? ProceedBinding.InvokeOnParameter( signatureMethod, 0, typeArguments )
+                            : ProceedBinding.InvokeStatic( signatureMethod, typeArguments );
+                    }
+
+                    var template = new SynthesizedMethodTemplate( redirection.Template! )
+                    {
+                        HiddenLeadingParameterCount = hasReceiver ? 1 : 0,
+                        Arguments = options.Label == null ? null : new { label = options.Label },
+                        MetaExtensions = metaExtensions
+                    };
+
+                    var nameHint = options.NameHint ?? (sourceMethod.Name + "_Interceptor");
+                    SynthesizedMethodRequest request;
+
+                    if ( options.PrebuiltBuilder )
+                    {
+                        // The builder is created with its signature and its restrictions, then given to code that changes it, as an interceptor
+                        // gives it to the configure delegate of the aspect.
+                        MethodBuilderRestrictions restrictions = options.RefusedParameterType is { } refusedParameterType
+                            ? new TestRefusingRestrictions( refusedParameterType )
+                            : new LockedSignatureRestrictions
+                            {
+                                LockedLeadingParameterCount = (hasReceiver ? 1 : 0) + sourceMethod.Parameters.Count,
+                                IsReturnTypeLocked = true,
+                                LockedTypeParameterCount = options.Generic ? signatureMethod.TypeParameters.Count : 0,
+                                IsNameLocked = options.LockName,
+                                AreNewTypeParametersRefused = options.RefuseNewTypeParameters
+                            };
+
+                        var builder = factory.CreateMethodBuilder( origin, placement, nameHint, BuildSignature, restrictions );
+
+                        if ( options.ReassignReturnType )
+                        {
+                            // An equal type is not a change of the locked return type.
+                            builder.ReturnType = compilation.Factory.GetTypeByReflectionType( typeof(int) );
+                        }
+
+                        if ( options.RenameMethod is { } newName )
+                        {
+                            builder.Name = newName;
+                        }
+
+                        if ( options.RenameParameter is { } rename )
+                        {
+                            var equals = rename.IndexOf( '=' );
+                            builder.Parameters[rename.Substring( 0, equals )].Name = rename.Substring( equals + 1 );
+                        }
+
+                        if ( options.ChangeLockedRefKind )
+                        {
+                            builder.Parameters[0].RefKind = Code.RefKind.Ref;
+                        }
+
+                        if ( options.ChangeParameterType is { } changeParameterType )
+                        {
+                            var equals = changeParameterType.IndexOf( '=' );
+                            var newType = compilation.AllTypes.SingleOrDefault( t => t.FullName == changeParameterType.Substring( equals + 1 ) )
+                                          ?? compilation.Factory.GetTypeByReflectionType( Type.GetType( changeParameterType.Substring( equals + 1 ), true )! );
+
+                            builder.Parameters[changeParameterType.Substring( 0, equals )].Type = newType;
+                        }
+
+                        if ( options.RenameTypeParameter is { } renameTypeParameter )
+                        {
+                            var equals = renameTypeParameter.IndexOf( '=' );
+                            builder.TypeParameters[renameTypeParameter.Substring( 0, equals )].Name = renameTypeParameter.Substring( equals + 1 );
+                        }
+
+                        if ( options.AddConstraintToLockedTypeParameter is { } constrainedTypeParameter )
+                        {
+                            // A locked type parameter can gain constraints.
+                            builder.TypeParameters[constrainedTypeParameter].TypeKindConstraint = Code.TypeKindConstraint.Struct;
+                            builder.TypeParameters[constrainedTypeParameter].AddTypeConstraint( typeof(IComparable) );
+                        }
+
+                        if ( options.AddTypeParameterFor is { } parameterName )
+                        {
+                            // The added type parameter becomes the type of the parameter, and each call site gives the static type of its argument.
+                            var addedTypeParameter = builder.AddTypeParameter( "TArg" );
+                            builder.Parameters[parameterName].Type = addedTypeParameter;
+                        }
+
+                        request = new SynthesizedMethodRequest( builder, template, CreateProceedBinding )
+                        {
+                            DiagnosticLocation = invocation.GetLocation(), IsNameAvailable = GetIsNameAvailable()
+                        };
+                    }
+                    else
+                    {
+                        request = new SynthesizedMethodRequest( placement, nameHint, BuildSignature, template, CreateProceedBinding )
+                        {
+                            DiagnosticLocation = invocation.GetLocation(), IsNameAvailable = GetIsNameAvailable()
+                        };
+                    }
+
+                    method = factory.DeclareMethod( origin, request );
+
+                    Func<string, bool>? GetIsNameAvailable()
+                        => options.UnavailableNames is { } unavailableNames ? name => !unavailableNames.Split( ',' ).Contains( name ) : null;
+
+                    declaredMethods.Add( key, method );
+                }
+
+                factory.RedirectInvocation(
+                    origin,
+                    new InvocationRedirectionRequest(
+                        invocation,
+                        CallSiteRedirectionTarget.Synthesized( method ),
+                        hasReceiver ? CallSiteReceiverMode.FirstArgument : CallSiteReceiverMode.Drop )
+                    {
+                        TypeArguments = GetTypeArguments()
+                    } );
+
+                ImmutableArray<IType> GetTypeArguments()
+                {
+                    var typeArguments = options.Generic ? sourceMethod.TypeArguments.ToImmutableArray() : ImmutableArray<IType>.Empty;
+
+                    if ( options.AddTypeParameterFor is { } parameterName )
+                    {
+                        var operation = (IInvocationOperation) semanticModel.GetOperation( invocation )!;
+                        var argument = operation.Arguments.Single( a => a.Parameter!.Name == parameterName ).Value;
+                        var argumentType = argument is IConversionOperation { IsImplicit: true } conversion ? conversion.Operand.Type! : argument.Type!;
+
+                        typeArguments = typeArguments.Add( compilation.Factory.GetIType( argumentType ) );
+                    }
+
+                    return typeArguments.IsEmpty ? default : typeArguments;
+                }
+            }
+            catch ( Exception e ) when ( e is ArgumentException or InvalidOperationException )
+            {
+                context.Diagnostics.Report(
+                    RedirectionRefused.CreateRoslynDiagnostic( site.GetLocation(), (invocation.ToString(), e.GetType().Name, GetMessage( e )) ) );
             }
         }
     }

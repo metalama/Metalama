@@ -8,6 +8,7 @@ using Metalama.Framework.Code.Collections;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
+using Metalama.Framework.Engine.Formatting;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.SyntaxSerialization;
 using Metalama.Framework.Engine.Templating;
@@ -649,6 +650,195 @@ internal static class TemplateBindingHelper
             throw new InvalidTemplateSignatureException(
                 MetalamaStringFormatter.Format(
                     $"Cannot use the template '{templateMethodSymbol}' to override the method '{targetMethod}': the template return type '{templateMethodSymbol.ReturnType}' is not compatible with the type of the target method '{targetMethod.ReturnType}'." ) );
+        }
+
+        return new BoundTemplateMethod( template, templateArguments );
+    }
+
+    /// <summary>
+    /// Returns the expression of the default value of a run-time parameter of a template that binds to no parameter of the target method.
+    /// </summary>
+    /// <remarks>
+    /// The expression is a literal, a literal cast to an enumeration type, <c>null</c>, or the <c>default</c> expression of a value type. The type
+    /// names are fully qualified, because the expression is created before the target context is known, and the simplifier shortens them.
+    /// </remarks>
+    private static ExpressionSyntax GetDefaultValueSyntax( IParameterSymbol templateParameter, IMethodSymbol templateMethodSymbol, IMethod targetMethod )
+    {
+        var type = templateParameter.Type;
+
+        if ( type is ITypeParameterSymbol )
+        {
+            throw new InvalidTemplateSignatureException(
+                MetalamaStringFormatter.Format(
+                    $"Cannot use the template '{templateMethodSymbol}' to implement the method '{targetMethod}': the method does not contain a parameter '{templateParameter.Name}', and the default value of a parameter whose type is a type parameter cannot be used instead." ) );
+        }
+
+        TypeSyntax GetTypeSyntax() => ParseTypeName( type.ToDisplayString( SymbolDisplayFormat.FullyQualifiedFormat ) ).WithSimplifierAnnotation();
+
+        var value = templateParameter.ExplicitDefaultValue;
+        ExpressionSyntax expression;
+
+        if ( value == null )
+        {
+            expression = type.IsValueType && type.OriginalDefinition.SpecialType != RoslynSpecialType.System_Nullable_T
+                ? DefaultExpression( GetTypeSyntax() )
+                : CastExpression( GetTypeSyntax(), SyntaxFactoryEx.Null ).WithSimplifierAnnotation();
+        }
+        else
+        {
+            var literal = SyntaxFactoryEx.LiteralExpressionOrNull( value, ObjectDisplayOptions.IncludeTypeSuffix ).AssertNotNull();
+
+            expression = type.TypeKind == Microsoft.CodeAnalysis.TypeKind.Enum
+                ? CastExpression( GetTypeSyntax(), ParenthesizedExpression( literal ) ).WithSimplifierAnnotation()
+                : literal;
+        }
+
+        return expression;
+    }
+
+    /// <summary>
+    /// Binds a template to a method that a pipeline extension declares, for instance a generated interceptor method.
+    /// </summary>
+    /// <param name="template">The template.</param>
+    /// <param name="targetMethod">The declared method, which may be a builder that is not part of the compilation.</param>
+    /// <param name="hiddenLeadingParameterCount">The number of leading parameters of the target method that a run-time parameter of the template can
+    /// bind only by name. The receiver parameter of an interceptor is such a parameter.</param>
+    /// <param name="nameOnlyTrailingParameterCount">The number of trailing parameters of the target method that a run-time parameter of the template
+    /// can bind only by name. The parameters added to an interceptor are such parameters.</param>
+    /// <param name="arguments">The compile-time arguments of the template.</param>
+    /// <remarks>
+    /// A run-time parameter of the template binds to the target parameter of the same name. Otherwise, it binds by position to a target parameter that
+    /// is neither hidden nor name-only and that no other run-time parameter of the template binds by name: the first run-time parameter of the
+    /// template that binds by position takes the first such target parameter, and so on. A run-time parameter of the template that has a default
+    /// value and binds to no target parameter is replaced by its default value. A run-time parameter of the template cannot be a <c>params</c>
+    /// parameter. A run-time type parameter of the template binds to the type parameter of the method at the same position among the run-time type
+    /// parameters, as for an override.
+    /// </remarks>
+    public static BoundTemplateMethod ForSynthesizedMethod(
+        this TemplateMember<IMethod> template,
+        IMethod targetMethod,
+        int hiddenLeadingParameterCount,
+        int nameOnlyTrailingParameterCount = 0,
+        IObjectReader? arguments = null )
+    {
+        var templateMethodSymbol = (IMethodSymbol) template.Symbol;
+        arguments ??= ObjectReader.Empty;
+        var parameterMapping = ImmutableDictionary.CreateBuilder<string, ExpressionSyntax>();
+        var firstOrdinal = hiddenLeadingParameterCount;
+        var endOrdinal = targetMethod.Parameters.Count - nameOnlyTrailingParameterCount;
+
+        if ( firstOrdinal < 0 || nameOnlyTrailingParameterCount < 0 || firstOrdinal > endOrdinal )
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(hiddenLeadingParameterCount),
+                "The counts of hidden leading parameters and name-only trailing parameters exceed the number of parameters of the target method." );
+        }
+
+        // The target parameters that a run-time parameter of the template binds by name are not available to the binding by position, so that no
+        // target parameter is bound twice.
+        var nameBoundOrdinals = new HashSet<int>();
+
+        foreach ( var templateParameter in templateMethodSymbol.Parameters )
+        {
+            if ( !template.TemplateClassMember.Parameters[templateParameter.Ordinal].IsCompileTime
+                 && targetMethod.Parameters.OfName( templateParameter.Name ) is { } nameBoundParameter )
+            {
+                nameBoundOrdinals.Add( nameBoundParameter.Index );
+            }
+        }
+
+        var positionalOrdinals = Enumerable.Range( firstOrdinal, endOrdinal - firstOrdinal ).Where( i => !nameBoundOrdinals.Contains( i ) ).ToList();
+        var positionalIndex = 0;
+
+        foreach ( var templateParameter in templateMethodSymbol.Parameters )
+        {
+            if ( template.TemplateClassMember.Parameters[templateParameter.Ordinal].IsCompileTime )
+            {
+                continue;
+            }
+
+            if ( templateParameter.IsParams )
+            {
+                throw new InvalidTemplateSignatureException(
+                    MetalamaStringFormatter.Format(
+                        $"Cannot use the template '{templateMethodSymbol}' to implement the method '{targetMethod}': the run-time template parameter '{templateParameter.Name}' must not be a params parameter." ) );
+            }
+
+            var methodParameter = targetMethod.Parameters.OfName( templateParameter.Name );
+
+            if ( methodParameter == null )
+            {
+                if ( positionalIndex < positionalOrdinals.Count )
+                {
+                    methodParameter = targetMethod.Parameters[positionalOrdinals[positionalIndex]];
+                    positionalIndex++;
+                }
+                else if ( templateParameter.HasExplicitDefaultValue )
+                {
+                    // The parameter binds to no parameter of the method, so the template receives its default value. It does not take a position.
+                    parameterMapping.Add( templateParameter.Name, GetDefaultValueSyntax( templateParameter, templateMethodSymbol, targetMethod ) );
+
+                    continue;
+                }
+                else
+                {
+                    var parameterNames = string.Join( ", ", targetMethod.Parameters.SelectAsImmutableArray( p => "'" + p.Name + "'" ) );
+
+                    throw new InvalidTemplateSignatureException(
+                        MetalamaStringFormatter.Format(
+                            $"Cannot use the template '{templateMethodSymbol}' to implement the method '{targetMethod}': the method does not contain a parameter '{templateParameter.Name}'. Available parameters are: {parameterNames}." ) );
+                }
+            }
+
+            if ( !VerifyTemplateType( templateParameter.Type, methodParameter.Type, template, targetMethod, arguments ) )
+            {
+                throw new InvalidTemplateSignatureException(
+                    MetalamaStringFormatter.Format(
+                        $"Cannot use the template '{templateMethodSymbol}' to implement the method '{targetMethod}': the type of the template parameter '{templateParameter.Name}' is not compatible with the type of the parameter '{methodParameter.Name}'." ) );
+            }
+
+            ExpressionSyntax parameterSyntax = SyntaxFactoryEx.SafeIdentifierName( methodParameter.Name );
+            parameterSyntax = TypeAnnotationMapper.AddExpressionTypeAnnotation( parameterSyntax, methodParameter.Type );
+            parameterMapping.Add( templateParameter.Name, parameterSyntax );
+        }
+
+        // A run-time type parameter of the template binds to the type parameter of the method at the same position among the run-time type
+        // parameters, as for an override, because the expansion maps the type parameters by position.
+        var runTimeTypeParameterIndex = 0;
+
+        foreach ( var templateParameter in templateMethodSymbol.TypeParameters )
+        {
+            if ( template.TemplateClassMember.TypeParameters[templateParameter.Ordinal].IsCompileTime )
+            {
+                continue;
+            }
+
+            if ( runTimeTypeParameterIndex >= targetMethod.TypeParameters.Count )
+            {
+                throw new InvalidTemplateSignatureException(
+                    MetalamaStringFormatter.Format(
+                        $"Cannot use the template '{templateMethodSymbol}' to implement the method '{targetMethod}': the method has no type parameter for the run-time type parameter '{templateParameter.Name}' of the template." ) );
+            }
+
+            var methodTypeParameter = targetMethod.TypeParameters[runTimeTypeParameterIndex];
+
+            if ( !templateParameter.IsCompatibleWith( methodTypeParameter ) )
+            {
+                throw new InvalidTemplateSignatureException(
+                    MetalamaStringFormatter.Format(
+                        $"Cannot use the template '{templateMethodSymbol}' to implement the method '{targetMethod}': the constraints on the type parameter '{templateParameter.Name}' of the template are not compatible with the constraints on the type parameter '{methodTypeParameter.Name}' of the method." ) );
+            }
+
+            runTimeTypeParameterIndex++;
+        }
+
+        var templateArguments = GetTemplateArguments( template, arguments, parameterMapping.ToImmutable() );
+
+        if ( !VerifyTemplateType( templateMethodSymbol.ReturnType, targetMethod.ReturnType, template, targetMethod, arguments, targetMethod.GetAsyncInfo() ) )
+        {
+            throw new InvalidTemplateSignatureException(
+                MetalamaStringFormatter.Format(
+                    $"Cannot use the template '{templateMethodSymbol}' to implement the method '{targetMethod}': the template return type '{templateMethodSymbol.ReturnType}' is not compatible with the return type '{targetMethod.ReturnType}'." ) );
         }
 
         return new BoundTemplateMethod( template, templateArguments );

@@ -111,6 +111,32 @@ After `Freeze()`:
 - The `DeclarationBuilderData` is the authoritative representation
 - The `IntroducedRef` points to the builder data
 
+### Types Built From a Builder Before It Is Frozen
+
+An aspect can use a type parameter of a builder in a type before the builder is frozen, for instance
+`List<T>`, `T[]`, `T*` or `T?` for a type parameter `T` that it has just added (metalama/Metalama#2139). A type
+parameter of a builder has no symbol, so these types are represented without one:
+
+- `MakeArrayType` and `MakePointerType` of `TypeParameterBuilder` return a `ConstructedArrayType` or a
+  `ConstructedPointerType` that holds the `IntroducedRef` of the builder. The reference is resolved only when the
+  element type is read, which happens after the freeze.
+- `MakeGenericInstance` and `WithTypeArguments` of a source generic type create an `IntroducedGenericContext` when a
+  type argument is an introduced type or a type parameter of a builder, as `GenericContext.ReferencesAnyIntroducedType`
+  decides. The array, pointer and nullable forms of such an instance keep the generic context.
+- `ToNullable` of a `TypeParameterBuilder` returns `Nullable<T>` when the type parameter is constrained to value types.
+  Otherwise, it returns a `NullableTypeParameterBuilder`, which reads the builder and whose reference is the
+  `IntroducedRef` of the builder with a nullable annotation.
+- Before the builder data is set, two `IntroducedRef` instances are equal when they share the same box of builder data,
+  which is the case for the references of the same builder. Their hash code does not depend on the declaration until
+  the builder is frozen, so a reference to a builder that is not frozen must not be the key of a long-lived dictionary.
+
+The builders can copy a declaration with `AddTypeParameter(ITypeParameter, bool)` and
+`AddParameter(IParameter, bool, bool)` (metalama/Metalama#2140). A builder records each copied type parameter with its
+prototype in `DeclarationBuilder.CopiedTypeParameters`. `CopiedTypeParameterMapper` replaces the prototypes by their
+copies in the types of the copied parameters and in the copied constraints, looking in the builder and in the builders
+that contain it. A copied type parameter whose constraint refers to a type parameter that is copied after it is mapped
+again when that type parameter is copied.
+
 ### Example: Constructor Introduction
 
 ```

@@ -78,6 +78,16 @@ internal sealed class TestRedirection : IExtensionPipelineContributor
     /// </summary>
     public ImmutableArray<SyntaxNode> DeclarationRoots { get; }
 
+    /// <summary>
+    /// Gets the name of the template from which the replacement methods are declared, or <c>null</c> when the replacement is an existing method.
+    /// </summary>
+    public string? Template { get; init; }
+
+    /// <summary>
+    /// Gets the options of a redirection to methods declared from a template, or <c>null</c>.
+    /// </summary>
+    public TestTemplateRedirectionOptions? TemplateOptions { get; init; }
+
     /// <inheritdoc />
     public ContributorKind ContributorKind => TestContributorKinds.Redirection;
 }

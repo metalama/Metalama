@@ -384,6 +384,12 @@ public class UserCodeExecutionContext : IExecutionContextInternal
 
     private protected MetaApi? MetaApi { get; }
 
+    /// <summary>
+    /// Gets the location of the diagnostics that the user code reports, when it must differ from the location of
+    /// <see cref="DiagnosticDeclaration"/>, or <c>null</c>.
+    /// </summary>
+    internal Location? DiagnosticLocationOverride => this.MetaApi?.DiagnosticLocationOverride;
+
     [Memo]
     public IExecutionScenario ExecutionScenario => this.ServiceProvider.GetRequiredService<ExecutionScenario>();
 

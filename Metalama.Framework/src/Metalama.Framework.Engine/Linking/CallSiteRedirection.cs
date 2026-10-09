@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Engine.Extensibility.CallSites;
+using Metalama.Framework.Engine.Extensibility.Synthesis;
 using Metalama.Framework.Engine.SyntaxGeneration;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Microsoft.CodeAnalysis;
@@ -36,8 +37,10 @@ internal sealed class CallSiteRedirection
         ImmutableArray<ArgumentSyntax> extraArguments,
         TypeSyntax? resultCast,
         string description,
-        ImmutableArray<CallSiteVariableRename> variableRenames = default )
+        ImmutableArray<CallSiteVariableRename> variableRenames = default,
+        SynthesizedMethodBodyTransformation? targetBody = null )
     {
+        this.TargetBody = targetBody;
         this.Id = id;
         this.SourceNode = sourceNode;
         this.Kind = kind;
@@ -50,6 +53,18 @@ internal sealed class CallSiteRedirection
         this.Description = description;
         this.VariableRenames = variableRenames.IsDefault ? ImmutableArray<CallSiteVariableRename>.Empty : variableRenames;
     }
+
+    /// <summary>
+    /// Gets the transformation that generates the body of the target method, when the target is a method declared by an extension, or <c>null</c>.
+    /// The linker does not apply the redirection when the expansion of the template of the target failed.
+    /// </summary>
+    public SynthesizedMethodBodyTransformation? TargetBody { get; }
+
+    /// <summary>
+    /// Gets a value indicating whether the target is a method declared by an extension whose template failed to expand, in which case the
+    /// redirection is not applied and not reported as missing.
+    /// </summary>
+    public bool HasFailedTarget => this.TargetBody is { HasFailed: true };
 
     /// <summary>
     /// Gets the sequential identifier of the redirection, which orders the diagnostics of the completeness check.

@@ -1040,12 +1040,7 @@ internal sealed partial class ImplementInterfaceAdvice : Advice<ImplementInterfa
 
         foreach ( var interfaceGenericParameter in interfaceMethod.TypeParameters )
         {
-            var genericParameterBuilder = methodBuilder.AddTypeParameter( interfaceGenericParameter );
-
-            foreach ( var interfaceGenericParameterConstraint in interfaceGenericParameter.TypeConstraints )
-            {
-                genericParameterBuilder.AddTypeConstraint( interfaceGenericParameterConstraint );
-            }
+            methodBuilder.AddTypeParameter( interfaceGenericParameter );
         }
 
         if ( isExplicit )

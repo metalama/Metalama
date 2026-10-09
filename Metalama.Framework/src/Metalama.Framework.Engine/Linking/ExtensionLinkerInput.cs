@@ -3,6 +3,7 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using Metalama.Framework.Engine.Extensibility.CallSites;
+using Metalama.Framework.Engine.Transformations;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Generic;
@@ -25,11 +26,19 @@ internal sealed class ExtensionLinkerInput
     /// </summary>
     public ExtensionLinkerInput(
         IReadOnlyDictionary<SyntaxTree, IReadOnlyDictionary<SyntaxNode, CallSiteRedirection>> callSiteRedirections,
-        CompilationUnitSyntax? callSiteForwarders = null )
+        CompilationUnitSyntax? callSiteForwarders = null,
+        ImmutableArray<ITransformation> transformations = default )
     {
         this.CallSiteRedirections = callSiteRedirections;
         this.CallSiteForwarders = callSiteForwarders;
+        this.Transformations = transformations.IsDefault ? ImmutableArray<ITransformation>.Empty : transformations;
     }
+
+    /// <summary>
+    /// Gets the transformations that introduce the types and methods that extensions declared, and that generate the bodies of these methods.
+    /// The pipeline adds them to the final compilation before the linker runs, and the linker applies them like the transformations of aspects.
+    /// </summary>
+    public ImmutableArray<ITransformation> Transformations { get; }
 
     /// <summary>
     /// Gets the requested call-site redirections, keyed by the syntax tree of the source compilation and then by the source node. The node keys are
@@ -44,7 +53,7 @@ internal sealed class ExtensionLinkerInput
     public CompilationUnitSyntax? CallSiteForwarders { get; }
 
     /// <summary>
-    /// Gets a value indicating whether the input contains no redirection.
+    /// Gets a value indicating whether the input contains no redirection and no transformation.
     /// </summary>
-    public bool IsEmpty => this.CallSiteRedirections.Count == 0;
+    public bool IsEmpty => this.CallSiteRedirections.Count == 0 && this.Transformations.IsEmpty;
 }

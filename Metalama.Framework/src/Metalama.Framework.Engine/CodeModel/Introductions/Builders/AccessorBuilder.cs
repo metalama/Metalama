@@ -76,6 +76,8 @@ internal sealed partial class AccessorBuilder : DeclarationBuilder, IMethodBuild
     [Memo]
     public ITypeParameterList TypeParameters => TypeParameterList.Empty;
 
+    ITypeParameterBuilderList IMethodBuilder.TypeParameters => TypeParameterBuilderList.Empty;
+
     public IReadOnlyList<IType> TypeArguments => ImmutableArray<IType>.Empty;
 
     public override bool IsImplicitlyDeclared { get; }
@@ -317,6 +319,12 @@ internal sealed partial class AccessorBuilder : DeclarationBuilder, IMethodBuild
     bool IMemberOrNamedType.IsSealed => this.IsSealed;
 
     public ITypeParameterBuilder AddTypeParameter( string name ) => throw new NotSupportedException( "Cannot add generic parameters to accessors." );
+
+    public ITypeParameterBuilder AddTypeParameter( ITypeParameter prototype, bool includeCustomAttributes = false )
+        => throw new NotSupportedException( "Cannot add generic parameters to accessors." );
+
+    public IParameterBuilder AddParameter( IParameter prototype, bool includeCustomAttributes = false, bool includeDefaultValues = false )
+        => throw new NotSupportedException( "Cannot directly add parameters to accessors." );
 
     public IParameterBuilder AddParameter( string name, IType type, RefKind refKind = RefKind.None, TypedConstant? defaultValue = null )
         => throw new NotSupportedException( "Cannot directly add parameters to accessors." );

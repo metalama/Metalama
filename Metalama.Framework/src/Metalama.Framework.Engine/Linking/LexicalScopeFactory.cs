@@ -34,6 +34,13 @@ internal sealed partial class LexicalScopeFactory : ITemplateLexicalScopeProvide
     private readonly CompilationModel _compilationModel;
     private readonly ConcurrentDictionary<IFullRef<IDeclaration>, TemplateLexicalScope> _scopes;
     private readonly ConcurrentDictionary<TypeDeclarationSyntax, ImmutableHashSet<string>> _identifiersInTypeDeclaration = new();
+
+    /// <summary>
+    /// The names visible in a type that has no syntax, keyed by the reference of the type, because several declarations of the type need them.
+    /// </summary>
+    private readonly ConcurrentDictionary<IFullRef<IDeclaration>, ImmutableHashSet<string>> _identifiersInTypeWithoutSyntax =
+        new( RefEqualityComparer<IDeclaration>.Default );
+
     private readonly SemanticModelProvider _semanticModelProvider;
 
     public LexicalScopeFactory( CompilationModel compilation )
@@ -96,6 +103,33 @@ internal sealed partial class LexicalScopeFactory : ITemplateLexicalScopeProvide
         }
     }
 
+    /// <summary>
+    /// Adds the names that are visible in a type that has no syntax: the names of the members and type parameters of the type, of its base types and
+    /// of its declaring types, and the names of the types of its containing namespaces.
+    /// </summary>
+    private static void CollectNamesInTypeScope( INamedType type, ImmutableHashSet<string>.Builder builder )
+    {
+        for ( var declaringType = type; declaringType != null; declaringType = declaringType.DeclaringType )
+        {
+            builder.AddRange( declaringType.TypeParameters.SelectAsReadOnlyList( p => p.Name ) );
+
+            for ( var baseType = declaringType; baseType != null; baseType = baseType.BaseType )
+            {
+                builder.Add( baseType.Name );
+                builder.AddRange( baseType.Members().Select( m => m.Name ) );
+                builder.AddRange( baseType.Types.SelectAsReadOnlyCollection( t => t.Name ) );
+            }
+
+            if ( declaringType.DeclaringType == null )
+            {
+                for ( var ns = declaringType.ContainingNamespace; ns != null; ns = ns.ContainingNamespace )
+                {
+                    builder.AddRange( ns.Types.SelectAsReadOnlyCollection( t => t.Name ) );
+                }
+            }
+        }
+    }
+
     private TemplateLexicalScope CreateLexicalScope( IFullRef<IDeclaration> declarationRef )
     {
         switch ( declarationRef )
@@ -111,16 +145,28 @@ internal sealed partial class LexicalScopeFactory : ITemplateLexicalScopeProvide
                         _ => throw new AssertionFailedException( $"Declarations without declaring type are not supported {declaration}." )
                     };
 
-                    // Builder-based source.
-                    if ( contextType.GetPrimaryDeclarationSyntax() == null )
+                    ImmutableHashSet<string>.Builder identifiers;
+
+                    if ( contextType.GetPrimaryDeclarationSyntax() is { } primaryDeclaration )
                     {
-                        // TODO: Temp hack.
-                        return new TemplateLexicalScope( ImmutableHashSet<string>.Empty );
+                        var typeDeclaration = primaryDeclaration.GetDeclaringType().AssertNotNull();
+                        identifiers = this.GetIdentifiersInTypeScope( typeDeclaration ).ToBuilder();
                     }
+                    else
+                    {
+                        // The type has no syntax, for instance because an aspect or an extension introduced it. The names that are visible in it
+                        // are collected from the code model, once per type.
+                        identifiers = this._identifiersInTypeWithoutSyntax.GetOrAdd(
+                                contextType.ToFullRef(),
+                                _ =>
+                                {
+                                    var names = ImmutableHashSet<string>.Empty.ToBuilder();
+                                    CollectNamesInTypeScope( contextType, names );
 
-                    var typeDeclaration = contextType.GetPrimaryDeclarationSyntax().AssertNotNull().GetDeclaringType().AssertNotNull();
-
-                    var identifiers = this.GetIdentifiersInTypeScope( typeDeclaration ).ToBuilder();
+                                    return names.ToImmutable();
+                                } )
+                            .ToBuilder();
+                    }
 
                     if ( declaration.DeclarationKind == DeclarationKind.Method && declaration is IMethod method )
                     {

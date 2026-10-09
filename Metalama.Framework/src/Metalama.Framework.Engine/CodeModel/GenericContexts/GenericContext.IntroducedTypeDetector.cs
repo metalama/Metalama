@@ -4,6 +4,7 @@
 
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.Types;
+using Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 using Metalama.Framework.Engine.CodeModel.Introductions.Introduced;
 using Metalama.Framework.Engine.CodeModel.Visitors;
 using System;
@@ -32,6 +33,9 @@ public partial class GenericContext
 
         protected override bool VisitFunctionPointerType( IFunctionPointerType functionPointerType ) => false;
 
-        protected override bool VisitTypeParameter( ITypeParameter typeParameter ) => false;
+        /// <summary>
+        /// Returns <c>true</c> for a type parameter of an introduced declaration, which has no symbol either.
+        /// </summary>
+        protected override bool VisitTypeParameter( ITypeParameter typeParameter ) => typeParameter is TypeParameterBuilder or IntroducedTypeParameter;
     }
 }

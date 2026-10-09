@@ -186,8 +186,8 @@ namespace Metalama.Framework.Code
                 if ( throwOnError )
                 {
                     throw new ArgumentException(
-                        nameof(value),
-                        $"The value should be of type '{actualExpectedType}' but is of type '{value.GetType()}'." );
+                        $"The value should be of type '{actualExpectedType}' but is of type '{value.GetType()}'.",
+                        nameof(value) );
                 }
                 else
                 {
@@ -200,8 +200,8 @@ namespace Metalama.Framework.Code
                 if ( throwOnError )
                 {
                     throw new ArgumentException(
-                        nameof(value),
-                        $"The type '{expectedType}' is not supported in a TypedConstant." );
+                        $"The type '{expectedType}' is not supported in a TypedConstant.",
+                        nameof(value) );
                 }
                 else
                 {
@@ -625,6 +625,82 @@ namespace Metalama.Framework.Code
         public static bool operator ==( TypedConstant left, TypedConstant right ) => left.Equals( right );
 
         public static bool operator !=( TypedConstant left, TypedConstant right ) => !left.Equals( right );
+
+        /// <summary>
+        /// Converts a <see cref="bool"/> value into a <see cref="TypedConstant"/> of type <see cref="bool"/>.
+        /// </summary>
+        public static implicit operator TypedConstant( bool value ) => Create( value );
+
+        /// <summary>
+        /// Converts a <see cref="char"/> value into a <see cref="TypedConstant"/> of type <see cref="char"/>.
+        /// </summary>
+        public static implicit operator TypedConstant( char value ) => Create( value );
+
+        /// <summary>
+        /// Converts a <see cref="sbyte"/> value into a <see cref="TypedConstant"/> of type <see cref="sbyte"/>.
+        /// </summary>
+        public static implicit operator TypedConstant( sbyte value ) => Create( value );
+
+        /// <summary>
+        /// Converts a <see cref="byte"/> value into a <see cref="TypedConstant"/> of type <see cref="byte"/>.
+        /// </summary>
+        public static implicit operator TypedConstant( byte value ) => Create( value );
+
+        /// <summary>
+        /// Converts a <see cref="short"/> value into a <see cref="TypedConstant"/> of type <see cref="short"/>.
+        /// </summary>
+        public static implicit operator TypedConstant( short value ) => Create( value );
+
+        /// <summary>
+        /// Converts a <see cref="ushort"/> value into a <see cref="TypedConstant"/> of type <see cref="ushort"/>.
+        /// </summary>
+        public static implicit operator TypedConstant( ushort value ) => Create( value );
+
+        /// <summary>
+        /// Converts a <see cref="int"/> value into a <see cref="TypedConstant"/> of type <see cref="int"/>.
+        /// </summary>
+        public static implicit operator TypedConstant( int value ) => Create( value );
+
+        /// <summary>
+        /// Converts a <see cref="uint"/> value into a <see cref="TypedConstant"/> of type <see cref="uint"/>.
+        /// </summary>
+        public static implicit operator TypedConstant( uint value ) => Create( value );
+
+        /// <summary>
+        /// Converts a <see cref="long"/> value into a <see cref="TypedConstant"/> of type <see cref="long"/>.
+        /// </summary>
+        public static implicit operator TypedConstant( long value ) => Create( value );
+
+        /// <summary>
+        /// Converts a <see cref="ulong"/> value into a <see cref="TypedConstant"/> of type <see cref="ulong"/>.
+        /// </summary>
+        public static implicit operator TypedConstant( ulong value ) => Create( value );
+
+        /// <summary>
+        /// Converts a <see cref="float"/> value into a <see cref="TypedConstant"/> of type <see cref="float"/>.
+        /// </summary>
+        public static implicit operator TypedConstant( float value ) => Create( value );
+
+        /// <summary>
+        /// Converts a <see cref="double"/> value into a <see cref="TypedConstant"/> of type <see cref="double"/>.
+        /// </summary>
+        public static implicit operator TypedConstant( double value ) => Create( value );
+
+        /// <summary>
+        /// Converts a <see cref="decimal"/> value into a <see cref="TypedConstant"/> of type <see cref="decimal"/>.
+        /// </summary>
+        public static implicit operator TypedConstant( decimal value ) => Create( value );
+
+        /// <summary>
+        /// Converts a <see cref="string"/> value into a <see cref="TypedConstant"/> of type <see cref="string"/>. A <c>null</c> value gives a
+        /// <c>null</c> constant of type <see cref="string"/>.
+        /// </summary>
+        /// <remarks>
+        /// The conversion is explicit, unlike the conversions from the other primitive types. An implicit conversion would also apply to the
+        /// <c>null</c> literal, so that an expression such as <c>condition ? constant : null</c> would have the type <see cref="TypedConstant"/>
+        /// instead of a nullable <see cref="TypedConstant"/>.
+        /// </remarks>
+        public static explicit operator TypedConstant( string? value ) => Create( value, typeof(string) );
 
         public static bool TryConvertFromExpression( IExpression expression, [NotNullWhen( true )] out TypedConstant? typedConstant )
             => SyntaxBuilder.CurrentImplementation.TryConvertExpressionToTypedConstant( expression, out typedConstant );

@@ -10,6 +10,8 @@ using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.SyntaxGeneration;
+using Microsoft.CodeAnalysis;
+using System.Collections.Immutable;
 
 namespace Metalama.Framework.Engine.Templating.MetaModel
 {
@@ -35,6 +37,21 @@ namespace Metalama.Framework.Engine.Templating.MetaModel
         private ICompilation SourceCompilation { get; }
 
         public AdviceKind AdviceKind { get; }
+
+        /// <summary>
+        /// Gets the location of the diagnostics that the template reports, when it must differ from the location of the target declaration, or
+        /// <c>null</c>.
+        /// </summary>
+        /// <remarks>
+        /// A method that a pipeline extension declares from a template, and that several call sites share, reports the diagnostics of the template
+        /// at one of these call sites, because the method has no source code.
+        /// </remarks>
+        public Location? DiagnosticLocationOverride { get; init; }
+
+        /// <summary>
+        /// Gets the objects that Metalama extensions make available to the template through <c>meta.GetExtension</c>.
+        /// </summary>
+        public ImmutableArray<IMetaExtension> Extensions { get; init; } = ImmutableArray<IMetaExtension>.Empty;
 
         public MetaApiProperties(
             ICompilation sourceCompilation,

@@ -9,6 +9,7 @@ using Metalama.Framework.Code.Types;
 using Metalama.Framework.Engine.CodeModel.Abstractions;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.CodeModel.Introductions.BuilderData;
+using Metalama.Framework.Engine.CodeModel.Introductions.ConstructedTypes;
 using Metalama.Framework.Engine.CodeModel.References;
 using System;
 using System.Collections.Generic;
@@ -24,6 +25,7 @@ namespace Metalama.Framework.Engine.CodeModel.Introductions.Builders;
 internal sealed class TypeParameterBuilder : NamedDeclarationBuilder, ITypeParameterBuilder
 {
     private readonly IntroducedRef<ITypeParameter> _ref;
+    private NullableTypeParameterBuilder? _nullable;
 
     private readonly List<IType> _typeConstraints = [];
     private bool _allowsRefStruct;
@@ -37,7 +39,7 @@ internal sealed class TypeParameterBuilder : NamedDeclarationBuilder, ITypeParam
     {
         this.ContainingDeclaration = containingMethod;
         this.Index = index;
-        this._ref = new IntroducedRef<ITypeParameter>( this.Compilation.RefFactory );
+        this._ref = new IntroducedRef<ITypeParameter>( this.Compilation.RefFactory, this );
         this._name = name;
     }
 
@@ -45,7 +47,7 @@ internal sealed class TypeParameterBuilder : NamedDeclarationBuilder, ITypeParam
     {
         this.ContainingDeclaration = containingType;
         this.Index = index;
-        this._ref = new IntroducedRef<ITypeParameter>( this.Compilation.RefFactory );
+        this._ref = new IntroducedRef<ITypeParameter>( this.Compilation.RefFactory, this );
         this._name = name;
     }
 
@@ -59,6 +61,16 @@ internal sealed class TypeParameterBuilder : NamedDeclarationBuilder, ITypeParam
         set
         {
             this.CheckNotFrozen();
+
+            // The nullable form of a type parameter constrained to value types is Nullable<T>, not the annotated type parameter. A nullable form
+            // that was already created and assigned, for instance to a return type, would otherwise remain the annotated form.
+            if ( this._nullable != null && value is TypeKindConstraint.Struct or TypeKindConstraint.Unmanaged && value != this._typeKindConstraint )
+            {
+                throw new InvalidOperationException(
+                    $"The type parameter '{this.Name}' cannot be constrained to value types after its nullable form was created, because the nullable form of such a type parameter is a different type. Set the constraint before calling ToNullable." );
+            }
+
+            this.ValidateConstraintChange( nameof(this.TypeKindConstraint), value != this._typeKindConstraint, value );
             this._typeKindConstraint = value;
         }
     }
@@ -69,6 +81,12 @@ internal sealed class TypeParameterBuilder : NamedDeclarationBuilder, ITypeParam
         set
         {
             this.CheckNotFrozen();
+
+            if ( value != this._name )
+            {
+                this.Restrictions?.ValidateTypeParameterName( this, value );
+            }
+
             this._name = value;
         }
     }
@@ -79,6 +97,7 @@ internal sealed class TypeParameterBuilder : NamedDeclarationBuilder, ITypeParam
         set
         {
             this.CheckNotFrozen();
+            this.ValidateConstraintChange( nameof(this.Variance), value != this._variance, value );
             this._variance = value;
         }
     }
@@ -89,6 +108,7 @@ internal sealed class TypeParameterBuilder : NamedDeclarationBuilder, ITypeParam
         set
         {
             this.CheckNotFrozen();
+            this.ValidateConstraintChange( nameof(this.AllowsRefStruct), value != this._allowsRefStruct, value );
 
             this._allowsRefStruct = value;
         }
@@ -100,6 +120,7 @@ internal sealed class TypeParameterBuilder : NamedDeclarationBuilder, ITypeParam
         set
         {
             this.CheckNotFrozen();
+            this.ValidateConstraintChange( nameof(this.IsConstraintNullable), value != this._isConstraintNullable, value );
             this._isConstraintNullable = value;
         }
     }
@@ -110,13 +131,49 @@ internal sealed class TypeParameterBuilder : NamedDeclarationBuilder, ITypeParam
         set
         {
             this.CheckNotFrozen();
+            this.ValidateConstraintChange( nameof(this.HasDefaultConstructorConstraint), value != this._hasDefaultConstructorConstraint, value );
             this._hasDefaultConstructorConstraint = value;
         }
     }
 
-    public void AddTypeConstraint( IType type ) => this._typeConstraints.Add( this.Translate( type ) );
+    public void AddTypeConstraint( IType type )
+    {
+        this.CheckNotFrozen();
+        this.Restrictions?.ValidateAddTypeConstraint( this, type );
+        this._typeConstraints.Add( this.Translate( type ) );
+    }
 
-    public void AddTypeConstraint( Type type ) => this._typeConstraints.Add( this.Compilation.Factory.GetTypeByReflectionType( type ) );
+    public void AddTypeConstraint( Type type ) => this.AddTypeConstraint( this.Compilation.Factory.GetTypeByReflectionType( type ) );
+
+    /// <summary>
+    /// Replaces each type constraint by the result of a mapping, without validating the change with <see cref="Restrictions"/>. The declaring
+    /// builder uses it to replace the prototypes of copied type parameters by their copies.
+    /// </summary>
+    internal void MapTypeConstraints( Func<IType, IType> map )
+    {
+        this.CheckNotFrozen();
+
+        for ( var i = 0; i < this._typeConstraints.Count; i++ )
+        {
+            this._typeConstraints[i] = this.Translate( map( this._typeConstraints[i] ) );
+        }
+    }
+
+    /// <summary>
+    /// Gets the restrictions of the method builder that declares the type parameter, or <c>null</c>.
+    /// </summary>
+    internal override MethodBuilderRestrictions? Restrictions => (this.ContainingDeclaration as DeclarationBuilder)?.Restrictions;
+
+    /// <summary>
+    /// Validates a change of a constraint or of the variance with <see cref="Restrictions"/>, when the value changes.
+    /// </summary>
+    private void ValidateConstraintChange( string propertyName, bool isChanged, object? value )
+    {
+        if ( isChanged )
+        {
+            this.Restrictions?.ValidateTypeParameterConstraintChange( this, propertyName, value );
+        }
+    }
 
     TypeKind IType.TypeKind => TypeKind.TypeParameter;
 
@@ -156,18 +213,41 @@ internal sealed class TypeParameterBuilder : NamedDeclarationBuilder, ITypeParam
             _ => false
         };
 
-    // TODO: Type constructions can't be supported with the current model because the NamedTypeBuilder would need to be frozen,
-    // but when these methods would be used (in the build action), it is not frozen yet.
+    /// <summary>
+    /// Returns an array type of this type parameter.
+    /// </summary>
+    /// <remarks>
+    /// The array type refers to the type parameter through its reference, which is resolved only when the element type is read. The element
+    /// type can therefore be read only after the declaring builder is frozen, but the array type can be assigned to a builder before.
+    /// </remarks>
+    public IArrayType MakeArrayType( int rank = 1 ) => new ConstructedArrayType( this.Compilation, this._ref, rank );
 
-    public IArrayType MakeArrayType( int rank = 1 ) => throw new NotImplementedException();
+    /// <summary>
+    /// Returns a pointer type of this type parameter. The remarks of <see cref="MakeArrayType"/> apply.
+    /// </summary>
+    public IPointerType MakePointerType() => new ConstructedPointerType( this.Compilation, this._ref );
 
-    public IPointerType MakePointerType() => throw new NotImplementedException();
+    /// <summary>
+    /// Returns this type parameter, because a type parameter of a builder never carries a nullable annotation.
+    /// </summary>
+    public ITypeParameter ToNonNullable() => this;
 
-    public ITypeParameter ToNonNullable() => throw new NotImplementedException();
+    /// <summary>
+    /// Returns this type parameter, because a type parameter of a builder never carries a nullable annotation.
+    /// </summary>
+    public ITypeParameter StripNullabilityAnnotation() => this;
 
-    public ITypeParameter StripNullabilityAnnotation() => throw new NotImplementedException();
-
-    IType IType.ToNullable() => throw new NotImplementedException();
+    /// <summary>
+    /// Returns the nullable form of this type parameter.
+    /// </summary>
+    /// <remarks>
+    /// When the type parameter is constrained to value types, the nullable form is the generic instance <see cref="Nullable{T}"/>. Otherwise,
+    /// it is the type parameter with a nullable annotation, represented by a <see cref="NullableTypeParameterBuilder"/>.
+    /// </remarks>
+    IType IType.ToNullable()
+        => this.IsReferenceType == false
+            ? this.Compilation.Factory.CreateNullableValueType( this )
+            : this._nullable ??= new NullableTypeParameterBuilder( this, this._ref );
 
     IType IType.ToNonNullable() => this.ToNonNullable();
 

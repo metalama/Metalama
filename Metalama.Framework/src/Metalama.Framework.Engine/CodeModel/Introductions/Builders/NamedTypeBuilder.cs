@@ -276,10 +276,20 @@ internal class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, I
     {
         this.CheckNotFrozen();
 
+        this.ThrowIfNameExists( this.TypeParameters, name, "type parameter" );
+
         var builder = new TypeParameterBuilder( this, this.TypeParameters.Count, name );
         this.TypeParameters.Add( builder );
 
         return builder;
+    }
+
+    public ITypeParameterBuilder AddTypeParameter( ITypeParameter prototype, bool includeCustomAttributes = false )
+    {
+        var copy = (TypeParameterBuilder) this.AddTypeParameter( prototype.Name );
+        this.CopyTypeParameter( copy, prototype, includeCustomAttributes );
+
+        return copy;
     }
 
     public override IDeclaration ContainingDeclaration => (IDeclaration?) this.DeclaringType ?? this.ContainingNamespace;
@@ -477,6 +487,8 @@ internal class NamedTypeBuilder : MemberOrNamedTypeBuilder, INamedTypeBuilder, I
     public bool? IsNullable => false;
 
     ITypeParameterList IGeneric.TypeParameters => this.TypeParameters;
+
+    ITypeParameterBuilderList INamedTypeBuilder.TypeParameters => this.TypeParameters;
 
     [Memo]
     public IReadOnlyList<IType> TypeArguments => Array.Empty<IType>();
