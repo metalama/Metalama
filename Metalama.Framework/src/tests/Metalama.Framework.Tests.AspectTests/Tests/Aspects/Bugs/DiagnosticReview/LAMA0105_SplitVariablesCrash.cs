@@ -6,6 +6,8 @@ using Metalama.Framework.Aspects;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Bugs.DiagnosticReview.LAMA0105_SplitVariablesCrash;
 
+#pragma warning disable CS0219
+
 // Regression test for https://github.com/metalama/Metalama/issues/2154.
 // A local declaration that mixes a compile-time and a run-time variable must report LAMA0105 without crashing the template compiler.
 
