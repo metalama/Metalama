@@ -8,6 +8,8 @@ using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Code.SyntaxBuilders;
 using Metalama.Framework.Eligibility;
+using Metalama.Framework.Fabrics;
+using Metalama.Framework.Options;
 using Metalama.Framework.Project;
 using Metalama.Patterns.Wpf.Configuration;
 using Metalama.Patterns.Wpf.Implementation;
@@ -43,11 +45,13 @@ namespace Metalama.Patterns.Wpf;
 /// <seealso href="@wpf-command"/>
 [PublicAPI]
 [AttributeUsage( AttributeTargets.Method )]
-public sealed partial class CommandAttribute : Attribute, IAspect<IMethod>
+public sealed partial class CommandAttribute : Attribute, IAspect<IMethod>, IHierarchicalOptionsProvider
 {
     internal const string CommandPropertyCategory = "command property";
     internal const string CanExecuteMethodCategory = "can-execute method";
     internal const string CanExecutePropertyCategory = "can-execute property";
+
+    private readonly bool? _enableINotifyPropertyChangedIntegration;
 
     /// <summary>
     /// Gets or sets the name of the <see cref="ICommand"/> property that is introduced.
@@ -98,8 +102,15 @@ public sealed partial class CommandAttribute : Attribute, IAspect<IMethod>
     /// the command will be raised when the can-execute property changes. A warning is reported if the can-execute property is not public because <see cref="INotifyPropertyChanged"/>
     /// implementations typically only notify changes to public properties.
     /// </para>
+    /// <para>
+    /// When this property is not set, the value configured with the <see cref="CommandExtensions.ConfigureCommand(IQuery{ICompilation},Action{CommandOptionsBuilder})"/> method or its overloads applies.
+    /// </para>
     /// </remarks>
-    public bool? EnableINotifyPropertyChangedIntegration { get; init; }
+    public bool EnableINotifyPropertyChangedIntegration
+    {
+        get => this._enableINotifyPropertyChangedIntegration ?? true;
+        init => this._enableINotifyPropertyChangedIntegration = value;
+    }
 
     /// <summary>
     /// Gets or sets a value indicating whether several executions of the command can run concurrently. This property is only considered for asynchronous methods.
@@ -119,6 +130,9 @@ public sealed partial class CommandAttribute : Attribute, IAspect<IMethod>
     /// even for non-<see cref="Task"/> execution methods.
     /// </summary>
     public bool Background { get; init; }
+
+    IEnumerable<IHierarchicalOptions> IHierarchicalOptionsProvider.GetOptions( in OptionsProviderContext context )
+        => new[] { new CommandOptions { EnableINotifyPropertyChangedIntegration = this._enableINotifyPropertyChangedIntegration } };
 
     void IEligible<IMethod>.BuildEligibility( IEligibilityBuilder<IMethod> builder )
     {
