@@ -887,7 +887,7 @@ internal sealed class ClassicObservabilityStrategyImpl : IObservabilityStrategyI
             .Method;
 
         // We must also have a method that we are able to override, and here we support either string or PropertyChangedEventArgs. 
-        // We give priority to PropertyChangedEventArgs.
+        // We give priority to string.
         var overridableMethod = methodsOfCorrectName.Where(
                 m =>
                     (m.Method.IsVirtual || m.Method.IsOverride)
