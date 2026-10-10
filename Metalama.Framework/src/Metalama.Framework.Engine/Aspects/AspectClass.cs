@@ -216,7 +216,9 @@ public sealed class AspectClass : TemplateClass, IBoundAspectClass
 
         this.Layers = layers.SelectAsImmutableArray( l => new AspectLayer( this, l ) );
 
-        if ( this.EditorExperienceOptions.SuggestAsLiveTemplate.GetValueOrDefault() )
+        // An abstract aspect class cannot be instantiated, so it does not need a default constructor.
+        // Its SuggestAsLiveTemplate option is inherited and checked on derived classes.
+        if ( this.EditorExperienceOptions.SuggestAsLiveTemplate.GetValueOrDefault() && !typeSymbol.IsAbstract )
         {
             if ( !typeSymbol.HasDefaultConstructor() )
             {
