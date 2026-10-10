@@ -892,10 +892,7 @@ internal sealed class ClassicObservabilityStrategyImpl : IObservabilityStrategyI
                 m =>
                     (m.Method.IsVirtual || m.Method.IsOverride)
                     && !m.Method.IsSealed
-                    && m.Method.Parameters[0].Type is { SpecialType: SpecialType.String } or INamedType
-                    {
-                        Name: nameof(PropertyChangedEventArgs)
-                    } )
+                    && m.Method.Parameters is [{ Type: { SpecialType: SpecialType.String } or INamedType { Name: nameof(PropertyChangedEventArgs) } }] )
             .OrderBy( m => m.Method.Parameters[0].Type is { SpecialType: SpecialType.String } ? 0 : 1 )
             .ThenBy( m => m.MethodNameIndex )
             .FirstOrDefault()
