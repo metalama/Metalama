@@ -39,6 +39,7 @@ internal class B : A
 {
     public override void Dispose()
     {
+        base.Dispose();
         Console.WriteLine( "B.Dispose()" );
     }
 }
