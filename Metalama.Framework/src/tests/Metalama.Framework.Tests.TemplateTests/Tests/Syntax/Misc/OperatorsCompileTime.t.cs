@@ -12,7 +12,7 @@ private object Method(int a, int b)
     _ => false
   };
   var t = (x: x, y: true);
-  (x: x, y: true) = t;
+  (x, true) = t;
   bool? z = ((x ^ true) && true) || !x;
   string s = default;
   s ??= "42";

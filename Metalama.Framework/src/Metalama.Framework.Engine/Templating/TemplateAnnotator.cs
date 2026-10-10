@@ -2262,10 +2262,10 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
     {
         if ( this._currentScopeContext.IsRunTimeConditionalBlock )
         {
-            if ( expression is TupleExpressionSyntax tuple )
+            if ( expression.IsKind( SyntaxKind.TupleExpression ) )
             {
                 // Each element of a deconstructing assignment is checked separately.
-                foreach ( var argument in tuple.Arguments )
+                foreach ( var argument in ((TupleExpressionSyntax) expression).Arguments )
                 {
                     this.CheckForMutatingCompileTimeExpressionInRunTimeConditionalBlock( argument.Expression );
                 }

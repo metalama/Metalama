@@ -323,12 +323,21 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
     /// Determines whether a tuple expression is the left side of a deconstructing assignment, or an element of such a tuple.
     /// </summary>
     private static bool IsDeconstructionTarget( TupleExpressionSyntax node )
-        => node.Parent switch
+    {
+        var parent = node.Parent;
+
+        if ( parent.IsKind( SyntaxKind.SimpleAssignmentExpression ) )
         {
-            AssignmentExpressionSyntax assignment => assignment.Left == node,
-            ArgumentSyntax { Parent: TupleExpressionSyntax parentTuple } => IsDeconstructionTarget( parentTuple ),
-            _ => false
-        };
+            return ((AssignmentExpressionSyntax) parent!).Left == node;
+        }
+
+        if ( parent.IsKind( SyntaxKind.Argument ) && parent!.Parent.IsKind( SyntaxKind.TupleExpression ) )
+        {
+            return IsDeconstructionTarget( (TupleExpressionSyntax) parent.Parent! );
+        }
+
+        return false;
+    }
 
     private TupleExpressionSyntax AddTupleNames( TupleExpressionSyntax node )
     {
