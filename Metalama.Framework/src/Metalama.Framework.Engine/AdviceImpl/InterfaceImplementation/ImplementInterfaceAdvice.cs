@@ -515,7 +515,8 @@ internal sealed partial class ImplementInterfaceAdvice : Advice<ImplementInterfa
                             break;
 
                         case DeclarationKind.Property when interfaceMember is IProperty interfaceProperty:
-                            var existingProperty = targetType.Properties.SingleOrDefault( p => p.SignatureEquals( interfaceProperty ) );
+                            var existingProperty = targetType.AllProperties.OfName( interfaceProperty.Name )
+                                .SingleOrDefault( p => p.SignatureEquals( interfaceProperty ) );
                             var templateProperty = memberSpec.Template?.As<IProperty>();
                             var templatePropertyDeclaration = templateProperty?.GetDeclaration( context.MutableCompilation );
                             var redirectionTargetProperty = memberSpec.TargetMember?.As<IProperty>().GetTarget( context.MutableCompilation );
@@ -780,7 +781,8 @@ internal sealed partial class ImplementInterfaceAdvice : Advice<ImplementInterfa
                             throw new NotImplementedException( "Implementing interface indexers is not yet supported." );
 
                         case DeclarationKind.Event when interfaceMember is IEvent interfaceEvent:
-                            var existingEvent = targetType.Events.SingleOrDefault( p => p.SignatureEquals( interfaceEvent ) );
+                            var existingEvent = targetType.AllEvents.OfName( interfaceEvent.Name )
+                                .SingleOrDefault( e => e.SignatureEquals( interfaceEvent ) );
                             var templateEvent = memberSpec.Template?.As<IEvent>();
                             var redirectionTargetEvent = memberSpec.TargetMember?.AsFullRef<IEvent>();
 
