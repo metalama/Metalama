@@ -253,7 +253,9 @@ public sealed class LicenseRequirementTests : LicenseConsumptionServiceTestsBase
         var message = Assert.Single( messages ).Text;
         this.Logger.WriteLine( message );
 
-        Assert.Contains( "considered", message, StringComparison.Ordinal );
+        Assert.True( license.TryGetConsumptionProperties( new LicenseConsumptionOptions(), out var licenseProperties, out _ ) );
+
+        Assert.Contains( $"1 license keys were considered, but none was eligible: {licenseProperties.DisplayName}.", message, StringComparison.Ordinal );
         Assert.DoesNotContain( licenseKey, message, StringComparison.Ordinal );
     }
 }
