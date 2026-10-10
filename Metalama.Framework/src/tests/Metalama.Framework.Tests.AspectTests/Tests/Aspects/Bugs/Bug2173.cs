@@ -31,9 +31,18 @@ public class TheAspect : BaseAspect
     }
 }
 
+// The setter is inherited through two getter-only overrides.
+public class DerivedAspect : TheAspect
+{
+    public override string? Message => base.Message;
+}
+
 // <target>
 public class C
 {
     [TheAspect( Message = "Hello" )]
     public void M() { }
+
+    [DerivedAspect( Message = "World" )]
+    public void N() { }
 }
