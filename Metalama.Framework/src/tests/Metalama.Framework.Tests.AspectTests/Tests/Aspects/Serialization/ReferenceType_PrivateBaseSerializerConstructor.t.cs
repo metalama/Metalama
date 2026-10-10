@@ -1,0 +1,2 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0207 on `TargetClass`: `Cannot generate a compile-time serializer for 'TargetClass' because the base type serializer 'BaseClass.Serializer' must declare a visible parameterless constructor.`

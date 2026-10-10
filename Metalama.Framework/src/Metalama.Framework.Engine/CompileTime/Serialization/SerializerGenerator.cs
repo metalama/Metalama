@@ -258,8 +258,9 @@ internal sealed class SerializerGenerator : ISerializerGenerator
             return null;
         }
 
-        // Get base serializer ctor.
-        var baseCtor = baseSerializerType.Constructors.SingleOrDefault( c => c.Parameters.Length == 0 );
+        // Get base serializer ctor. The generated serializer derives from the base serializer and calls this constructor, so it must be visible.
+        var baseCtor = baseSerializerType.Constructors.SingleOrDefault(
+            c => c is { Parameters: [], DeclaredAccessibility: Accessibility.Public or Accessibility.Protected } );
 
         if ( baseCtor == null )
         {
