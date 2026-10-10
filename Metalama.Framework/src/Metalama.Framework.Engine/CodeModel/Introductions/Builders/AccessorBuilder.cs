@@ -343,6 +343,9 @@ internal sealed partial class AccessorBuilder : DeclarationBuilder, IMethodBuild
         {
             (PropertyBuilder propertyBuilder, MethodKind.PropertyGet)
                 => propertyBuilder.ExplicitInterfaceImplementations.SelectAsImmutableArray( p => p.GetMethod ).AssertNoneNull(),
+
+            // The pseudo-setter of a get-only automatic property does not implement any interface accessor.
+            (PropertyBuilder, MethodKind.PropertySet) when this.IsImplicitlyDeclared => Array.Empty<IMethod>(),
             (PropertyBuilder propertyBuilder, MethodKind.PropertySet)
                 => propertyBuilder.ExplicitInterfaceImplementations.SelectAsImmutableArray( p => p.SetMethod ).AssertNoneNull(),
             (IndexerBuilder indexerBuilder, MethodKind.PropertyGet)

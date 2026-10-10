@@ -628,8 +628,11 @@ internal sealed partial class ImplementInterfaceAdvice : Advice<ImplementInterfa
                                 var hasGetter =
                                     interfaceProperty.GetMethod != null || (!isExplicit && templatePropertyDeclaration?.GetMethod != null);
 
+                                // An explicit implementation keeps the implicitly declared pseudo-setter of a get-only automatic property.
                                 var hasSetter =
-                                    interfaceProperty.SetMethod != null || (!isExplicit && templatePropertyDeclaration?.SetMethod != null);
+                                    interfaceProperty.SetMethod != null
+                                    || (templatePropertyDeclaration?.SetMethod is { } templateSetMethod
+                                        && (!isExplicit || templateSetMethod.IsImplicitlyDeclared));
 
                                 // Check that there are no accessors required by interface that are missing from the template.
 
@@ -640,7 +643,9 @@ internal sealed partial class ImplementInterfaceAdvice : Advice<ImplementInterfa
                                     var getMethodMissingFromTemplate = interfaceProperty.GetMethod != null && templatePropertyDeclaration.GetMethod == null;
                                     var setMethodMissingFromTemplate = interfaceProperty.SetMethod != null && templatePropertyDeclaration.SetMethod == null;
                                     var getMethodUnexpectedInTemplate = interfaceProperty.GetMethod == null && templatePropertyDeclaration.GetMethod != null;
-                                    var setMethodUnexpectedInTemplate = interfaceProperty.SetMethod == null && templatePropertyDeclaration.SetMethod != null;
+                                    // The pseudo-setter of a get-only automatic property is implicitly declared and is not an unexpected accessor.
+                                    var setMethodUnexpectedInTemplate = interfaceProperty.SetMethod == null
+                                                                        && templatePropertyDeclaration.SetMethod is { IsImplicitlyDeclared: false };
                                     var setInitOnlyInTemplate = templatePropertyDeclaration.Writeability is Writeability.InitOnly;
                                     var setInitOnlyInInterface = interfaceProperty.Writeability is Writeability.InitOnly;
 
