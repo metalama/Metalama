@@ -403,12 +403,12 @@ internal sealed class CompileTimeProject : IProjectService
         var aspectTypes = types.Where( t => typeof(IAspect).IsAssignableFrom( t ) ).Select( t => t.FullName ).ToImmutableArray();
 
         var fabricTypes = types
-            .Where( t => typeof(ProjectFabric).IsAssignableFrom( t ) && !typeof(TransitiveProjectFabric).IsAssignableFrom( t ) )
+            .Where( t => !t.IsAbstract && typeof(ProjectFabric).IsAssignableFrom( t ) && !typeof(TransitiveProjectFabric).IsAssignableFrom( t ) )
             .Select( t => t.FullName.AssertNotNull() )
             .ToReadOnlyList();
 
         var transitiveFabricTypes = types
-            .Where( t => typeof(TransitiveProjectFabric).IsAssignableFrom( t ) )
+            .Where( t => !t.IsAbstract && typeof(TransitiveProjectFabric).IsAssignableFrom( t ) )
             .Select( t => t.FullName.AssertNotNull() )
             .ToReadOnlyList();
 
