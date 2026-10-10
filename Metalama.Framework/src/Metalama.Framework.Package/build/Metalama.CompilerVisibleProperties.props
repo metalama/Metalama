@@ -21,7 +21,7 @@
         <CompilerVisibleProperty Include="MetalamaCompileTimeAssemblies"/>
         <CompilerVisibleProperty Include="MetalamaProjectReferenceNames"/>
         <CompilerVisibleProperty Include="MetalamaWriteHtml"/>
-        <CompilerVisibleProperty Include="MetalamaWriteLicenseCreditData" />
+        <CompilerVisibleProperty Include="MetalamaWriteLicenseUsageData"/>
         <CompilerVisibleProperty Include="ProjectAssetsFile"/>
         <CompilerVisibleProperty Include="MetalamaReferenceAssemblyRestoreTimeout"/>
         <CompilerVisibleProperty Include="NuGetTargetMoniker"/>
@@ -52,6 +52,9 @@
         <CompilerVisibleProperty Include="MetalamaImmutableTypes"/>
         <CompilerVisibleProperty Include="MetalamaImmutableContractTypes"/>
         <CompilerVisibleProperty Include="MetalamaEnforceImmutabilityContract"/>
+        <CompilerVisibleProperty Include="MetalamaRequireOrderedAspects"/>
+        <!-- The .NET SDK exports TargetFramework only when EnableNETAnalyzers is true. -->
+        <CompilerVisibleProperty Include="TargetFramework"/>
         <!-- Set by the MetalamaComputeIgnoredWarnings target of Metalama.Framework.targets. -->
         <CompilerVisibleProperty Include="MetalamaIgnoredWarnings"/>
     </ItemGroup>
