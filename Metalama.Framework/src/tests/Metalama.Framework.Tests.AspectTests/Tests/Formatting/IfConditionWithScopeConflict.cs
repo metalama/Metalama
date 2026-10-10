@@ -5,7 +5,6 @@
 using System;
 using System.Linq;
 using Metalama.Framework.Aspects;
-using Metalama.Framework.Code;
 
 #pragma warning disable CS0169
 
@@ -18,11 +17,11 @@ internal class Aspect : OverrideMethodAspect
 {
     public override dynamic? OverrideMethod()
     {
-        IFieldOrProperty? logger = meta.Target.Type.FieldsAndProperties.FirstOrDefault( f => f.Name == "_logger" );
+        var logger = meta.Target.Type.FieldsAndProperties.FirstOrDefault( f => f.Name == "_logger" );
 
         if (logger != null && logger.Value != null)
         {
-            logger.Value!.ToString();
+            Console.WriteLine( "The logger is not null." );
         }
         else if (logger != null && logger.Value == null)
         {
