@@ -1237,9 +1237,10 @@ internal sealed partial class CompileTimeCompilationBuilder
                             .Select( t => t.GetReflectionFullName().AssertNotNull() )
                             .ToReadOnlyList();
 
+                        // Abstract fabric types are base classes of other fabrics and cannot be instantiated.
                         var fabricTypes = allTypes
                             .Where(
-                                t => IsFabric( t ) &&
+                                t => IsFabric( t ) && !t.IsAbstract &&
                                      !compilationForManifest.HasImplicitConversion( t, transitiveFabricType ) )
                             .ToReadOnlyList();
 
@@ -1247,7 +1248,7 @@ internal sealed partial class CompileTimeCompilationBuilder
                             .SelectAsArray( t => t.GetReflectionFullName().AssertNotNull() );
 
                         var transitiveFabricTypeNames = allTypes
-                            .Where( t => compilationForManifest.HasImplicitConversion( t, transitiveFabricType ) )
+                            .Where( t => !t.IsAbstract && compilationForManifest.HasImplicitConversion( t, transitiveFabricType ) )
                             .Concat( fabricTypes.Where( t => t.GetAttributes().Any( a => a.AttributeClass?.Name == nameof(InheritableAttribute) ) ) )
                             .Select( t => t.GetReflectionFullName().AssertNotNull() )
                             .ToReadOnlyList();
