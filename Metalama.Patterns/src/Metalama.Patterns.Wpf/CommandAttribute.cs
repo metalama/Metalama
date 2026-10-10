@@ -150,10 +150,10 @@ public sealed partial class CommandAttribute : Attribute, IAspect<IMethod>
             return;
         }
 
-        var hasExplicitCanExecuteNaming = this.CanExecuteMethod != null || this.CanExecuteProperty != null;
+        var hasExplicitNaming = this.CommandPropertyName != null || this.CanExecuteMethod != null || this.CanExecuteProperty != null;
 
         // Find the CanExecute method or property.
-        var namingConventions = hasExplicitCanExecuteNaming
+        var namingConventions = hasExplicitNaming
             ? [new ExplicitCommandNamingConvention( this.CommandPropertyName, this.CanExecuteMethod, this.CanExecuteProperty )]
             : options.GetSortedNamingConventions();
 

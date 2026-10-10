@@ -11,6 +11,9 @@ public class ExplicitCommandPropertyNameOnly
     [Command( CommandPropertyName = "TheFooCommand" )]
     private void ExecuteFoo() { }
 
+    // Found by the default CanExecute name, which still applies.
+    private bool CanExecuteFoo() => true;
+
     // Conflicts with the name determined by the default naming convention.
     private int FooCommand;
 }

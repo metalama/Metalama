@@ -13,6 +13,9 @@ public class ExplicitRegistrationFieldOnly : DependencyObject
     [DependencyProperty( RegistrationField = "TheFooProperty" )]
     public int Foo { get; set; }
 
+    // Found by the default callback name, which still applies.
+    private void OnFooChanged() { }
+
     // Conflicts with the name determined by the default naming convention.
     private void FooProperty() { }
 }
