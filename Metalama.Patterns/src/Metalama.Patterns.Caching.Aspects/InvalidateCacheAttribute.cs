@@ -409,7 +409,7 @@ public sealed class InvalidateCacheAttribute : MethodAspect
                     matchingErrorsDictionary.Add(
                         invalidatedMethod.Name,
                         CachingDiagnosticDescriptors.InvalidateCache.ErrorMissingParameterInInvalidatingMethod.WithArguments(
-                            (invalidatedMethod, invalidatedMethod, invalidatedMethodParameter.Name) ) );
+                            (invalidatingMethod, invalidatedMethod, invalidatedMethodParameter.Name) ) );
 
                     allParametersMatching = false;
 
