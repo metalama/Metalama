@@ -1,1 +1,2 @@
-// TODO: Replace this file with the correct transformed code. See the test output for the actual transformed code.
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0522 on `TargetClass`: `The aspect 'Override' cannot introduce finalizer into type 'TargetClass' because the specified override strategy 'New' is not valid.`
