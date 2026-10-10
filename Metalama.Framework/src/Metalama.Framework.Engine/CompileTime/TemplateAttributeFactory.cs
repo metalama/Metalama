@@ -103,9 +103,11 @@ internal sealed class TemplateAttributeFactory : IProjectService, IDisposable
         IDiagnosticAdder diagnosticAdder,
         out IAdviceAttribute? adviceAttribute )
     {
+        // A declaration with several advice attributes is invalid, and TemplatingCodeValidator reports LAMA0261 for it.
+        // This method can run before the validator has reported it, so it must not throw in this case.
         var attributeData = member
             .GetAttributes()
-            .SingleOrDefault( a => a.AttributeClass != null && ImplementsAdviceAttributeInterface( a.AttributeClass ) );
+            .FirstOrDefault( a => a.AttributeClass != null && ImplementsAdviceAttributeInterface( a.AttributeClass ) );
 
         if ( attributeData == null )
         {

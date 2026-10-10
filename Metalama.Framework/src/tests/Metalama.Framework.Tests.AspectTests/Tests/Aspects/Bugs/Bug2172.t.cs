@@ -1,2 +1,3 @@
 // CompileTimeAspectPipeline.ExecuteAsync failed.
+// Warning LAMA0119 on `Aspect`: `The compile-time declaration 'Aspect' contains compile-time code but it does not explicitly import any of the the 'Metalama.Framework' namespaces. This may cause an inconsistent design-time experience. Add the [RunTimeOrCompileTimeAttribute] attribute to 'Aspect' and import this namespace explicitly.`
 // Error LAMA0261 on `M`: `Multiple template or advice attributes found on the same declaration: IntroduceAttribute on Aspect.M() and TemplateAttribute on Aspect.M().`
