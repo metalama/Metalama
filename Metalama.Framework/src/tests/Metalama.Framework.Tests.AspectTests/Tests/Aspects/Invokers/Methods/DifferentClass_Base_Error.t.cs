@@ -1,2 +1,2 @@
 // CompileTimeAspectPipeline.ExecuteAsync failed.
-// Error LAMA0063 on `Invoker`: `Cannot invoke member 'DifferentClass.Method()' when specifying InvokerOptions.Base here, because it does not belong to the template target type 'TargetClass'.`
+// Error LAMA0063 on `Invoker`: `Cannot invoke the member 'DifferentClass.Method()' with InvokerOptions.Base on an explicit object or type, because 'DifferentClass.Method()' is not a member of the template target type 'TargetClass', of its base types, or of its interfaces. Use InvokerOptions.Default or InvokerOptions.Final instead.`

@@ -1,4 +1,4 @@
-// Warning LAMA5003 on `items`: `The [RequiredAttribute] contract is redundant because the [NotNull] contract is automatically added by a fabric.`
+// Warning LAMA5003 on `items`: `The [RequiredAttribute] contract on '${p0}' is redundant because a fabric automatically adds the [NotNull] contract to this declaration.`
 public class TestClass
 {
   // [Required] on collection parameter SHOULD trigger LAMA5003 because [Required]

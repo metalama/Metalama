@@ -30,9 +30,10 @@ namespace Metalama.Framework.Engine.Advising
         internal static readonly DiagnosticDefinition<(string AspectType, IDeclaration Member, IDeclaration TargetType, IDeclaration DeclaringType)>
             CannotIntroduceOverrideOfSealed = new(
                 "LAMA0502",
-                "Cannot introduce a member into a type because it is sealed in a base class.",
-                "The aspect '{0}' cannot introduce member '{1}' into type '{2}' because it is already defined in type '{3}' " +
-                "and is static, non-virtual or sealed.",
+                "Cannot introduce a member into a type because the existing member of the base class cannot be overridden.",
+                "The aspect '{0}' cannot introduce member '{1}' into type '{2}' because it is already defined in type '{3}' and is static, " +
+                "non-virtual or sealed, so it cannot be overridden. Use OverrideStrategy.New to hide the existing member, or " +
+                "OverrideStrategy.Ignore to keep it.",
                 _category,
                 Error );
 
@@ -50,8 +51,8 @@ namespace Metalama.Framework.Engine.Advising
             CannotIntroduceWithDifferentStaticity = new(
                 "LAMA0504",
                 "Cannot introduce a member into a type because the type already contains a member of the same name or signature but with a different staticity.",
-                "The aspect '{0}' cannot introduce member '{1}' into type '{2}' because it is already defined in type '{3}' and " +
-                "its IsStatic flag is opposite of the introduced member.",
+                "The aspect '{0}' cannot introduce member '{1}' into type '{2}' because it is already defined in type '{3}', and one of the two " +
+                "members is static while the other is not.",
                 _category,
                 Error );
 
@@ -59,7 +60,7 @@ namespace Metalama.Framework.Engine.Advising
             CannotIntroduceInstanceMember = new(
                 "LAMA0505",
                 "Cannot introduce an instance member into a static type.",
-                "The aspect '{0}' cannot introduce instance member '{1}' into a type '{2}' because it is static.",
+                "The aspect '{0}' cannot introduce instance member '{1}' into type '{2}' because the type is static.",
                 _category,
                 Error );
 
@@ -101,9 +102,9 @@ namespace Metalama.Framework.Engine.Advising
                 IMember InterfaceMember)>
             DeclarativeInterfaceMemberDoesNotMatch = new(
                 "LAMA0511",
-                "Declarative interface member does match the interface member return type.",
-                "The aspect '{0}' cannot implicitly implement interface '{2}' in the type '{1}' because the aspect member '{3}'" +
-                " marked with [InterfaceMember] attribute does not have the same return type as the corresponding interface member '{4}'.",
+                "An aspect member marked with [InterfaceMember] does not have the same type as the interface member.",
+                "The aspect '{0}' cannot implement interface '{2}' in the type '{1}' because the aspect member '{3}', marked with the " +
+                "[InterfaceMember] attribute, does not have the same type or return type as the corresponding interface member '{4}'.",
                 _category,
                 Error );
 
@@ -111,7 +112,9 @@ namespace Metalama.Framework.Engine.Advising
             InterfaceIsAlreadyImplemented = new(
                 "LAMA0512",
                 "Cannot implement an interface when the target type already implements it.",
-                "The aspect '{0}' cannot implement interface '{1}' in the type '{2}' because the type already implements it and WhenExists is set to Fail.",
+                "The aspect '{0}' cannot implement interface '{1}' in the type '{2}' because the type already implements it. To skip or override " +
+                "the existing implementation, set the whenExists parameter of ImplementInterface to OverrideStrategy.Ignore or " +
+                "OverrideStrategy.Override.",
                 _category,
                 Error );
 
@@ -128,18 +131,19 @@ namespace Metalama.Framework.Engine.Advising
             ImplicitInterfaceMemberAlreadyExists = new(
                 "LAMA0514",
                 "Cannot implement an implicit interface member when the target type already contains a declaration with the same signature.",
-                "The aspect '{0}' cannot implement interface member '{1}' in the type '{2}' because the type already contains '{3}' "
-                +
-                "which has the same signature as the interface member and WhenExists of the interface member specification is set to Fail.",
+                "The aspect '{0}' cannot implement the interface member '{1}' in the type '{2}' because the type already contains '{3}', which has " +
+                "the same signature. Set the WhenExists property of the [InterfaceMember] attribute to Ignore or MakeExplicit, or pass " +
+                "OverrideStrategy.Override to ImplementInterface.",
                 _category,
                 Error );
 
         internal static readonly DiagnosticDefinition<(string AspectType, INamedType InterfaceType, INamedType TargetType, OverrideStrategy Strategy)>
             InterfaceUnsupportedOverrideStrategy = new(
                 "LAMA0516",
-                "Using unsupported override strategy for interface type.",
-                "The aspect '{0}' cannot implement interface '{1}' in type '{2}' with 'whenExists={3}' because it is not supported. " +
-                "Only Ignore or Fail strategies are supported for interface types. You can use 'whenExists' on individual members.",
+                "The override strategy is not supported when implementing an interface.",
+                "The aspect '{0}' cannot implement the interface '{1}' in the type '{2}' because the strategy 'whenExists={3}' is not supported for " +
+                "interfaces. Use Fail, Ignore, or Override. To handle conflicts with individual members, use the WhenExists property of the " +
+                "[InterfaceMember] attribute.",
                 _category,
                 Error );
 
@@ -147,10 +151,9 @@ namespace Metalama.Framework.Engine.Advising
                 AccessorKind)>
             InterfacePropertyIsMissingAccessor = new(
                 "LAMA0517",
-                "Cannot implement an interface property, the template is missing an accessor.",
-                "The aspect '{0}' cannot implement an interface property '{1}' in the type '{2}' because the template '{3}' "
-                +
-                "is missing a '{4}' accessor.",
+                "Cannot implement an interface property because the template is missing an accessor.",
+                "The aspect '{0}' cannot implement the interface property '{1}' in the type '{2}' because the template '{3}' does not have the " +
+                "'{4}' accessor required by the interface property.",
                 _category,
                 Error );
 
@@ -158,18 +161,20 @@ namespace Metalama.Framework.Engine.Advising
                 AccessorKind)>
             ExplicitInterfacePropertyHasSuperficialAccessor = new(
                 "LAMA0518",
-                "Cannot implement an interface property, the template has superficial accessor.",
-                "The aspect '{0}' cannot implement an interface property '{1}' in the type '{2}' explicitly because the template '{3}' "
-                +
-                "has an unexpected '{4}' accessor.",
+                "Cannot implement an interface property explicitly because the template has an accessor that the interface property does not have.",
+                "The aspect '{0}' cannot implement the interface property '{1}' in the type '{2}' explicitly because the template '{3}' has the " +
+                "'{4}' accessor, which the interface property does not have. Remove the accessor from the template or implement the property " +
+                "implicitly.",
                 _category,
                 Error );
 
         internal static readonly DiagnosticDefinition<(string AspectType, INamedType InterfaceType, IMember TargetMember)>
             ImplicitInterfaceImplementationHasToBePublic = new(
                 "LAMA0519",
-                "Cannot implement an interface implicitly using non-public member.",
-                "The aspect '{0}' cannot implicitly implement interface '{1}' using member '{2}', because it is not public.",
+                "Cannot implement an interface implicitly with a non-public member.",
+                "The aspect '{0}' cannot implicitly implement the interface '{1}' with the member '{2}' because this member or one of its accessors " +
+                "is not public. Make the member and its accessors public, or set the IsExplicit property of the [InterfaceMember] attribute to " +
+                "true.",
                 _category,
                 Error );
 
@@ -186,7 +191,8 @@ namespace Metalama.Framework.Engine.Advising
             AttributeAlreadyPresent = new(
                 "LAMA0521",
                 "Cannot introduce a custom attribute when the attribute is already present on the target declaration.",
-                "The aspect '{0}' cannot introduce the custom attribute '{1}' into '{2}' because it this attribute is already present on the declaration and WhenExists is set to Fail.",
+                "The aspect '{0}' cannot introduce the custom attribute '{1}' into '{2}' because this attribute is already present on the " +
+                "declaration. To keep or replace the existing attribute, set the 'whenExists' parameter to 'Ignore' or 'Override'.",
                 _category,
                 Error );
 
@@ -194,7 +200,8 @@ namespace Metalama.Framework.Engine.Advising
             CannotUseNewOverrideStrategyWithFinalizers = new(
                 "LAMA0522",
                 "Invalid override strategy when introducing a finalizer.",
-                "The aspect '{0}' cannot introduce finalizer into type '{1}' because the specified override strategy '{2}' is not valid.",
+                "The aspect '{0}' cannot introduce a finalizer into the type '{1}' because the override strategy '{2}' is not supported for " +
+                "finalizers. Use 'Fail', 'Ignore', or 'Override'.",
                 _category,
                 Error );
 
@@ -214,7 +221,8 @@ namespace Metalama.Framework.Engine.Advising
             CannotIntroduceIndexerWithoutParameters = new(
                 "LAMA0526",
                 "Cannot introduce an indexer without any parameter.",
-                "The aspect '{0}' cannot introduce indexer '{1}' into type '{2}' because it has no parameter.",
+                "The aspect '{0}' cannot introduce the indexer '{1}' into the type '{2}' because the indexer has no parameter. An indexer must have " +
+                "at least one parameter.",
                 _category,
                 Error );
 
@@ -222,39 +230,44 @@ namespace Metalama.Framework.Engine.Advising
             CannotIntroduceStaticIndexer = new(
                 "LAMA0527",
                 "Cannot introduce a static indexer.",
-                "The aspect '{0}' cannot introduce indexer '{1}' into type '{2}' because it is static.",
+                "The aspect '{0}' cannot introduce the indexer '{1}' into the type '{2}' because the indexer is static. C# does not support static " +
+                "indexers.",
                 _category,
                 Error );
 
         internal static readonly DiagnosticDefinition<(string AspectType, IDeclaration Member)>
             CannotOverrideNonPublicInterfaceMember = new(
                 "LAMA0528",
-                "Cannot override an interface member because it is not public.",
-                "The aspect '{0}' cannot override the member '{1}' because it is not public.",
+                "Cannot implement an interface member by overriding an existing member that is not public.",
+                "The aspect '{0}' cannot override the member '{1}' to implement an interface member because '{1}' is not public. Make '{1}' public, " +
+                "or implement the interface member explicitly.",
                 _category,
                 Error );
 
         internal static readonly DiagnosticDefinition<(string AspectType, IDeclaration Member)>
             CannotOverrideNonVirtualInterfaceMember = new(
                 "LAMA0529",
-                "Cannot override an interface member because it is not virtual.",
-                "The aspect '{0}' cannot override the member '{1}' because it is not virtual.",
+                "Cannot implement an interface member by overriding an inherited member that is not virtual or is sealed.",
+                "The aspect '{0}' cannot override the member '{1}' to implement an interface member because '{1}' is inherited from a base type and " +
+                "is either not virtual or sealed. Make '{1}' virtual and not sealed.",
                 _category,
                 Error );
 
         internal static readonly DiagnosticDefinition<(string AspectType, string Parameter, IDeclaration TargetDeclaration, string ExistingParameterName)>
             CannotIntroduceParameterAlreadyExists = new(
                 "LAMA0530",
-                "Cannot introduce a parameter when a parameter with the same name already exists.",
-                "The aspect '{0}' cannot introduce parameter '{1}' to '{2}' because the target declaration already has a parameter '{3}'.",
+                "Cannot introduce a constructor parameter when an aspect has already introduced a parameter with the same name.",
+                "The aspect '{0}' cannot introduce the parameter '{1}' into '{2}' because an aspect has already introduced a parameter named '{3}' " +
+                "into this constructor.",
                 _category,
                 Error );
 
         internal static readonly DiagnosticDefinition<(string AspectType, INamedType Type, INamespaceOrNamedType TargetNamespaceOrType)>
             CannotIntroduceNewTypeWhenItAlreadyExists = new(
                 "LAMA0531",
-                "Cannot introduce a new type because a type with the same name and type parameters already exists.",
-                "The aspect '{0}' cannot introduce type '{1}' into '{2}' because the type already exists.",
+                "Cannot introduce a type because a type with the same name and the same number of type parameters already exists.",
+                "The aspect '{0}' cannot introduce the type '{1}' into '{2}' because '{2}' already contains or inherits a type with the same name " +
+                "and the same number of type parameters. Use a different name, or specify another OverrideStrategy.",
                 _category,
                 Error );
 
@@ -262,15 +275,16 @@ namespace Metalama.Framework.Engine.Advising
             CannotIntroduceAbstractMemberToNonAbstractType = new(
                 "LAMA0532",
                 "Cannot introduce an abstract member into a non-abstract type.",
-                "The aspect '{0}' cannot introduce the abstract member '{1}' into type '{2}' because it is not abstract.",
+                "The aspect '{0}' cannot introduce the abstract member '{1}' into the type '{2}' because '{2}' is not abstract.",
                 _category,
                 Error );
 
         internal static readonly DiagnosticDefinition<(string AspectType, IDeclaration Member, OverrideStrategy OverrideStrategy)>
             CannotIntroduceAbstractMemberWithOverrideStrategy = new(
                 "LAMA0533",
-                "Cannot introduce an abstract member with override strategy Override.",
-                "The aspect '{0}' cannot introduce the abstract member '{1}' with override strategy '{2}'.",
+                "Cannot introduce an abstract member with override strategy Override or New.",
+                "The aspect '{0}' cannot introduce the abstract member '{1}' with the override strategy '{2}' because an introduced abstract member " +
+                "cannot override or hide an existing member. Use the override strategy 'Fail' or 'Ignore'.",
                 _category,
                 Error );
 
@@ -286,7 +300,8 @@ namespace Metalama.Framework.Engine.Advising
             CannotIntroducePartialMemberToNonPartialType = new(
                 "LAMA0535",
                 "Cannot introduce a partial member into a non-partial type.",
-                "The aspect '{0}' cannot introduce the partial member '{1}' into type '{2}' because it is not partial.",
+                "The aspect '{0}' cannot introduce the partial member '{1}' into the type '{2}' because the type is not partial. Add the partial " +
+                "modifier to the type.",
                 _category,
                 Error );
 
@@ -294,8 +309,9 @@ namespace Metalama.Framework.Engine.Advising
             InvalidPullActionForForwardingConstructor = new(
                 "LAMA0536",
                 "Invalid pull action for a forwarding constructor.",
-                "The aspect '{0}' cannot pull parameter '{1}' into the forwarding constructor '{2}' because the pull strategy returned '{3}'. " +
-                "For forwarding constructors, DoNotPull and ReplaceParameterTypeAndPull are not valid.",
+                "The aspect '{0}' cannot generate the forwarding constructor '{2}' because the pull strategy returned '{3}' for the parameter " +
+                "'{1}'. For a forwarding constructor, the pull strategy must provide a value, for instance with PullAction.UseExpression, and must " +
+                "not return PullAction.None.",
                 _category,
                 Error );
 
@@ -322,8 +338,10 @@ namespace Metalama.Framework.Engine.Advising
         internal static readonly DiagnosticDefinition<(string AspectType, INamedType TargetType)>
             InitializeNotVirtual = new(
                 "LAMA0550",
-                "Initialize method must be public virtual on a non-sealed class implementing IInitializable.",
-                "The aspect '{0}' targets type '{1}' whose 'Initialize' method is not 'public virtual' (or 'override'). On a non-sealed class implementing IInitializable, the method must be virtual so that derived types can extend initialization behavior.",
+                "The Initialize method of a non-sealed class must be public and virtual.",
+                "The aspect '{0}' cannot add an initializer to the 'Initialize' method of type '{1}' because the method is not both 'public' and " +
+                "'virtual' (or 'override'). Since '{1}' is not sealed, its 'Initialize' method must be 'public virtual' so that derived types can " +
+                "extend the initialization. Make the method 'public virtual', or make the type 'sealed'.",
                 _category,
                 Error );
 

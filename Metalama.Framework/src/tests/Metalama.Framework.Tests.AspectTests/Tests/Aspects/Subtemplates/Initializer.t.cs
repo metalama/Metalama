@@ -1,2 +1,2 @@
 // CompileTimeAspectPipeline.ExecuteAsync failed.
-// Error LAMA0270 on `Compute()`: `Template call 'Compute()' cannot be part of another expression or statement, it can only be done as a stand-alone statement.`
+// Error LAMA0270 on `Compute()`: `The template call 'Compute()' cannot be part of another expression or statement. A template can only be called as a stand-alone statement.`

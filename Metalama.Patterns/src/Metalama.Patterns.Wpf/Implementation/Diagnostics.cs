@@ -35,8 +35,9 @@ internal static class Diagnostics
         new(
             "LAMA5202",
             Warning,
-            "The can-execute property for command method {0} is not public, and INotifyPropertyChanged integration is enabled and applicable. " +
-            "Because the can-execute property is not public, INotifyPropertyChanged.PropertyChanged events might not be raised depending on the INotifyPropertyChanged implementation.",
+            "The can-execute property of the command method '{0}' is not public, but INotifyPropertyChanged integration is enabled. Because " +
+            "INotifyPropertyChanged implementations usually raise the PropertyChanged event only for public properties, the CanExecuteChanged " +
+            "event of the command might not be raised. Make the property public or disable INotifyPropertyChanged integration.",
             "Notifiable can-execute property is not public." );
 
     /// <summary>
@@ -48,7 +49,8 @@ internal static class Diagnostics
             new(
                 "LAMA5203",
                 Error,
-                "The name of existing {0} {1}, defined in or inherited by class {2}, conflicts with the {3}{4} name determined by the {5} naming convention.",
+                "The name of the existing {0} '{1}', defined in or inherited by the type '{2}', conflicts with the {4} name determined by the '{5}' " +
+                "naming convention. Rename the existing {0} or change the naming convention.",
                 "Existing member conflicts with member to be introduced.",
                 _category );
 
@@ -84,7 +86,8 @@ internal static class Diagnostics
             new(
                 "LAMA5205",
                 Error,
-                "Ambiguous match while identifying the {1} for {2}'{3}' {4}by the '{5}' naming convention.",
+                "Several members, including this {0}, can be used as the {1} for {2}'{3}' {4}by the '{5}' naming convention. Rename or remove the " +
+                "members that must not be used, so that only one member matches.",
                 "Ambiguous candidate member.",
                 _category );
 
@@ -101,8 +104,8 @@ internal static class Diagnostics
             new(
                 "LAMA5206",
                 Error,
-                "No {0} matching the {1} {2} was found for '{3}'.",
-                "Optional member not found.",
+                "No {0} matching {2} was found for the {1} '{3}'.",
+                "Required member not found.",
                 _category );
 
     /// <summary>
@@ -113,7 +116,8 @@ internal static class Diagnostics
             new(
                 "LAMA5207",
                 Error,
-                "No {0} naming conventioned matched '{1}'.",
+                "No {0} naming convention matched '{1}'. Add a naming convention that matches this name, or do not remove the default naming " +
+                "convention.",
                 "No configured naming convention matched.",
                 _category );
 
@@ -122,7 +126,8 @@ internal static class Diagnostics
             new(
                 "LAMA5208",
                 Error,
-                "The '{0}' method has a CancellationToken parameter, but is neither returns a Task nor has the Background property set to true.",
-                "The method has a CancellationToken parameter, but is neither returns a Task nor has the Background property set to true.",
+                "The '{0}' method has a CancellationToken parameter, but it does not return a Task and the Background property of the [Command] " +
+                "attribute is not set to true.",
+                "A command method with a CancellationToken parameter must return a Task or run in the background.",
                 _category );
 }

@@ -1,1 +1,1 @@
-// Error LAMA5154 on `A`: `The 'HasVirtualProperty.A' property is virtual. This is not supported by the [Observable] aspect.`
+// Error LAMA5154 on `A`: `The 'HasVirtualProperty.A' property is virtual, which is not supported by the [Observable] aspect. Remove the 'virtual' modifier, or exclude the property from the aspect with the [NotObservable] attribute.`

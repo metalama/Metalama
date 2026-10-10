@@ -1,2 +1,2 @@
 // TestTemplateCompiler.TryCompile failed.
-// Error LAMA0104 on `AppDomain`: `The expression 'AppDomain' is run-time but it is expected to be compile-time because the expression appears in a compile-time expression 'meta.CompileTime'.`
+// Error LAMA0104 on `AppDomain`: `The expression 'AppDomain' is run-time, but it is expected to be compile-time because the expression appears in a compile-time expression 'meta.CompileTime'.`

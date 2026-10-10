@@ -18,7 +18,8 @@ public static class FrameworkDiagnosticDescriptors
         CannotUseIntroduceWithoutDeclaringType = new(
             "LAMA0700",
             "Cannot use [Introduce] in an aspect that is applied to a declaration that is neither a type nor a type member.",
-            "The aspect '{0}' cannot introduce a {1} because it has been applied to a {2}, which is neither a type nor a type member.",
+            "The aspect '{0}' cannot introduce a member of kind '{1}' because it has been applied to a declaration of kind '{2}', which is " +
+            "neither a type nor a type member.",
             "Metalama.Advices",
             Severity.Error );
 
@@ -26,7 +27,8 @@ public static class FrameworkDiagnosticDescriptors
         CannotApplyAdviceOnTypeOrItsMembers = new(
             "LAMA0750",
             "Cannot use [Introduce] in an aspect that is applied to an unsupported type or its member.",
-            "The aspect '{0}' cannot introduce a {1} because {2} is not a supported target type.",
+            "The aspect '{0}' cannot introduce a member of kind '{1}' because the target type is of kind '{2}'. Members can be introduced only " +
+            "into a class, a struct, or an interface.",
             "Metalama.Advices",
             Severity.Error );
 

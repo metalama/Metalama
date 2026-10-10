@@ -1,2 +1,2 @@
 // CompileTimeAspectPipeline.ExecuteAsync failed.
-// Error LAMA0527 on `TargetClass`: `The aspect 'Introduction' cannot introduce indexer 'TargetClass.this[int]' into type 'TargetClass' because it is static.`
+// Error LAMA0527 on `TargetClass`: `The aspect 'Introduction' cannot introduce the indexer 'TargetClass.this[int]' into the type 'TargetClass' because the indexer is static. C# does not support static indexers.`

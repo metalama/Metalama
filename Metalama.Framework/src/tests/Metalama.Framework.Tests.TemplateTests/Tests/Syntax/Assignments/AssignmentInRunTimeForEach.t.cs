@@ -1,2 +1,2 @@
 // TestTemplateCompiler.TryCompile failed.
-// Error LAMA0108 on `x`: `Cannot set the compile-time variable 'x' here because it is part of a block whose execution depends on the run-time condition 'foreach ( var i in ... )' and it was not declared inside the block. Move the assignment out of the run-time-conditional block or move the variable into the block.`
+// Error LAMA0108 on `x`: `The compile-time variable 'x' cannot be set here because the assignment is in a block whose execution depends on a run-time condition ('foreach ( var i in ... )'), and the variable is not declared in that block. Move the assignment out of this block, or declare the variable inside the block.`

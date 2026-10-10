@@ -1,2 +1,2 @@
 // CompileTimeAspectPipeline.ExecuteAsync failed.
-// Error LAMA0055 on `MyAspect`: `The aspect 'MyAspect' applied to method 'C.M()' cannot add an aspect of the same type to type 'C' because the type is not contained the method.`
+// Error LAMA0055 on `MyAspect`: `The aspect 'MyAspect' applied to method 'C.M()' cannot add an aspect of the same type to type 'C' because this type has already been processed by aspects of this type. An aspect can add an aspect of its own type only to a declaration that is processed later, such as a member or a parameter of its target.`

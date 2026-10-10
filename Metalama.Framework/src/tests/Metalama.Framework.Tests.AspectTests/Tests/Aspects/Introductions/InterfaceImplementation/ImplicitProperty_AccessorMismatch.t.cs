@@ -1,3 +1,3 @@
 // CompileTimeAspectPipeline.ExecuteAsync failed.
-// Error LAMA0517 on `TargetClass`: `The aspect 'Introduction' cannot implement an interface property 'IInterface.TemplateWithInit' in the type 'TargetClass' because the template 'IntroductionAttribute.TemplateWithInit' is missing a 'set' accessor.`
-// Error LAMA0517 on `TargetClass`: `The aspect 'Introduction' cannot implement an interface property 'IInterface.TemplateWithoutInit' in the type 'TargetClass' because the template 'IntroductionAttribute.TemplateWithoutInit' is missing a 'init' accessor.`
+// Error LAMA0517 on `TargetClass`: `The aspect 'Introduction' cannot implement the interface property 'IInterface.TemplateWithInit' in the type 'TargetClass' because the template 'IntroductionAttribute.TemplateWithInit' does not have the 'set' accessor required by the interface property.`
+// Error LAMA0517 on `TargetClass`: `The aspect 'Introduction' cannot implement the interface property 'IInterface.TemplateWithoutInit' in the type 'TargetClass' because the template 'IntroductionAttribute.TemplateWithoutInit' does not have the 'init' accessor required by the interface property.`

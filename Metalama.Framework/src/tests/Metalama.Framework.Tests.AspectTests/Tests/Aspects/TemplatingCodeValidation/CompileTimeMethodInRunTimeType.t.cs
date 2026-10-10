@@ -1,2 +1,2 @@
 // CompileTimeAspectPipeline.ExecuteAsync failed.
-// Error LAMA0292 on `M`: `Execution scope mismatch: the member 'C.M()' is compile-time, but the declaring type 'C' is run-time.`
+// Error LAMA0292 on `M`: `Execution scope mismatch: the member 'C.M()' is compile-time, but the declaring type 'C' is run-time. Change the scope of the declaring type, for example with the [CompileTime] or [RunTimeOrCompileTime] attribute, or move the member to a type of a compatible scope.`
