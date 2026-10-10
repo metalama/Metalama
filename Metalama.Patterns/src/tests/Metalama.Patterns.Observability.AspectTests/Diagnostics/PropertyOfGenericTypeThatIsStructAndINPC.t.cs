@@ -1,1 +1,1 @@
-// Error LAMA5152 on `C1`: `The type 'PropertyOfGenericTypeThatIsStructAndInpc<T>/T' of property 'PropertyOfGenericTypeThatIsStructAndInpc<T>.C1' is a struct implementing INotifyPropertyChanged. Structs implementing INotifyPropertyChanged are not supported.`
+// Error LAMA5152 on `C1`: `The type 'PropertyOfGenericTypeThatIsStructAndInpc<T>/T' of the property 'PropertyOfGenericTypeThatIsStructAndInpc<T>.C1' is a struct that implements INotifyPropertyChanged. The [Observable] aspect does not support structs that implement INotifyPropertyChanged.`

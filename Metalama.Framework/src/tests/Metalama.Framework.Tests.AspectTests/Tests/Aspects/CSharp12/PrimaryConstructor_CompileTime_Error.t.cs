@@ -1,2 +1,2 @@
 // CompileTimeAspectPipeline.ExecuteAsync failed.
-// Error LAMA0283 on `TheAspect`: `Compile-time type 'TheAspect' uses non-record primary constructors which is not currently supported. You should remove the parameter list from the type and use explicitly defined constructors instead.`
+// Error LAMA0283 on `TheAspect`: `The compile-time type 'TheAspect' has a primary constructor, which is not supported in compile-time code. Remove the parameter list from the type and declare an explicit constructor instead.`

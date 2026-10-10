@@ -1,2 +1,2 @@
 // TestTemplateCompiler.TryCompile failed.
-// Error LAMA0280 on `(i, j)`: `Cannot set the compile-time expression '(i, j)' here because it is part of a block whose execution depends on the run-time condition 'if ( meta.Target.Parameters.Single().Value > 0 )'.`
+// Error LAMA0280 on `(i, j)`: `The compile-time expression '(i, j)' cannot be set here because the assignment is in a block whose execution depends on a run-time condition ('if ( meta.Target.Parameters.Single().Value > 0 )'). In such a block, only compile-time local variables declared in the block can be set.`

@@ -1,2 +1,2 @@
-// Warning LAMA5161 on `C1`: `The children of fields or properties of type 'B' cannot be observed because the type does not implement INotifyPropertyChanged.`
-// Warning LAMA5161 on `B1`: `The children of fields or properties of type 'A' cannot be observed because the type does not implement INotifyPropertyChanged.`
+// Warning LAMA5161 on `C1`: `The members of 'B' cannot be observed because 'B' does not implement INotifyPropertyChanged and is not immutable. Implement INotifyPropertyChanged in 'B', for example with the [Observable] aspect, or mark 'B' as immutable.`
+// Warning LAMA5161 on `B1`: `The members of 'A' cannot be observed because 'A' does not implement INotifyPropertyChanged and is not immutable. Implement INotifyPropertyChanged in 'A', for example with the [Observable] aspect, or mark 'A' as immutable.`

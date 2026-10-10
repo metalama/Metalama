@@ -23,7 +23,7 @@ namespace Metalama.Framework.DesignTime.DiagnosticAnalysis
                     Error,
                     "{0}: {1} — Diagnostic '{0}' is new and could not be registered in the current session due to an IDE limitation."
                     + " Please restart your IDE to see it under its correct ID.",
-                    "A Metalama user error." );
+                    "An error diagnostic is not yet registered in the current IDE session." );
 
         internal static readonly DiagnosticDefinition<(string Id, string Message)>
             UserWarning
@@ -32,7 +32,7 @@ namespace Metalama.Framework.DesignTime.DiagnosticAnalysis
                     Warning,
                     "{0}: {1} — Diagnostic '{0}' is new and could not be registered in the current session due to an IDE limitation."
                     + " Please restart your IDE to see it under its correct ID.",
-                    "A Metalama user warning.",
+                    "A warning diagnostic is not yet registered in the current IDE session.",
                     _category );
 
         internal static readonly DiagnosticDefinition<(string Id, string Message)>
@@ -42,7 +42,7 @@ namespace Metalama.Framework.DesignTime.DiagnosticAnalysis
                     Info,
                     "{0}: {1} — Diagnostic '{0}' is new and could not be registered in the current session due to an IDE limitation."
                     + " Please restart your IDE to see it under its correct ID.",
-                    "A Metalama user info.",
+                    "An informational diagnostic is not yet registered in the current IDE session.",
                     _category );
 
         internal static readonly DiagnosticDefinition<(string Id, string Message)>
@@ -52,7 +52,7 @@ namespace Metalama.Framework.DesignTime.DiagnosticAnalysis
                     Hidden,
                     "{0}: {1} — Diagnostic '{0}' is new and could not be registered in the current session due to an IDE limitation."
                     + " Please restart your IDE to see it under its correct ID.",
-                    "A Metalama user hidden message.",
+                    "A hidden diagnostic is not yet registered in the current IDE session.",
                     _category );
 
         /// <summary>
@@ -79,9 +79,9 @@ namespace Metalama.Framework.DesignTime.DiagnosticAnalysis
                 = new(
                     "LAMA0306",
                     Warning,
-                    "An aspect tried to suppress diagnostic '{0}' on '{1}', but '{0}' was not registered in the current session due to an IDE limitation."
-                    + " Please restart your IDE to apply the suppression.",
-                    "An aspect tried to suppress an unregistered diagnostic.",
+                    "An aspect suppressed the diagnostic '{0}' on '{1}', but this suppression is not yet registered in the current IDE session due to " +
+                    "an IDE limitation. Restart your IDE to apply the suppression.",
+                    "A diagnostic suppression defined by an aspect is not yet registered in the IDE.",
                     _category );
     }
 }

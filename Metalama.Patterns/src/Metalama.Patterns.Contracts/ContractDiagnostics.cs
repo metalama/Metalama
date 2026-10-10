@@ -34,7 +34,7 @@ internal static class ContractDiagnostics
         = new(
             "LAMA5003",
             Severity.Warning,
-            "The [{1}] contract is redundant because the [NotNull] contract is automatically added by a fabric.",
+            "The [{1}] contract on '{0}' is redundant because a fabric automatically adds the [NotNull] contract to this declaration.",
             $"The non-nullable contract is redundant because it is automatically added by a fabric.",
             "Metalama.Patterns.Contracts" );
 
@@ -42,15 +42,15 @@ internal static class ContractDiagnostics
         = new(
             "LAMA5004",
             Severity.Error,
-            $"The [{nameof(SuspendInvariantsAttribute)}] aspect cannot be applied to method '{{0}}' because the {nameof(ContractOptions.IsInvariantSuspensionSupported)} option is not set for the type '{{1}}'.",
-            $"The [${nameof(SuspendInvariantsAttribute)}] aspect cannot be applied to the method because the {nameof(ContractOptions.IsInvariantSuspensionSupported)} option is not set for the its declaring type." );
+            $"The [{nameof(SuspendInvariantsAttribute)}] aspect cannot be applied to the method '{{0}}' because the {nameof(ContractOptions.IsInvariantSuspensionSupported)} contract option is not enabled for the type '{{1}}'. " +
+            $"The [{nameof(SuspendInvariantsAttribute)}] aspect cannot be applied to the method because the {nameof(ContractOptions.IsInvariantSuspensionSupported)} option is not enabled for its declaring type." );
 
     public static DiagnosticDefinition<(IMethod Method, INamedType Type)> SuspensionRedundant { get; }
         = new(
             "LAMA5005",
             Severity.Warning,
-            $"The [{nameof(SuspendInvariantsAttribute)}] aspect on method '{{0}}' is redundant the type '{{1}}' does not contain any invariants.",
-            $"The [${nameof(SuspendInvariantsAttribute)}] aspect is redundant because the type does not contain any invariants." );
+            $"The [{nameof(SuspendInvariantsAttribute)}] aspect on method '{{0}}' is redundant because the type '{{1}}' does not contain any invariants.",
+            $"The [{nameof(SuspendInvariantsAttribute)}] aspect is redundant because the type does not contain any invariants." );
 
     public static DiagnosticDefinition<(IDeclaration Declaration, string TargetBasicType, string AspectType, NumericRange Range)> RangeIsRedundant { get; }
         = new(
@@ -65,9 +65,9 @@ internal static class ContractDiagnostics
         = new(
             "LAMA5007",
             Severity.Warning,
-            "The meaning of the [{1}] attribute on {0} is ambiguous because the inequality strictness is not specified. " +
+            "The meaning of the [{1}] attribute on '{0}' is ambiguous because the inequality strictness is not specified. " +
             "It is now interpreted as {4}, which is non-standard, and this behavior might be changed in the future. " +
-            $"Use either [{{2}}] or [{{3}}] or specify the {nameof(ContractOptions.DefaultInequalityStrictness)} property in {nameof(ContractOptions)} " +
+            $"Use either [{{2}}] or [{{3}}], or specify the {nameof(ContractOptions.DefaultInequalityStrictness)} property in {nameof(ContractOptions)} " +
             $"using the {nameof(ContractConfigurationExtensions.ConfigureContracts)} fabric extension method.",
             $"The meaning of the inequality contract is ambiguous.",
             "Metalama.Patterns.Contracts" );

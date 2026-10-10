@@ -1,3 +1,3 @@
 // CompileTimeAspectPipeline.ExecuteAsync failed.
-// Error LAMA0699 on `this`: `Version of declaration 'TargetClass.this[int] provided by 'Test' cannot be inlined. It is not currently possible to generate non-inlined code for this declaration.`
-// Error LAMA0699 on `this`: `Version of declaration 'TargetClass.this[string] provided by 'Test' cannot be inlined. It is not currently possible to generate non-inlined code for this declaration.`
+// Error LAMA0699 on `this`: `The implementation of 'TargetClass.this[int]' provided by 'Test' cannot be inlined, but Metalama can only generate inlined code for constructors and indexers. Call meta.Proceed() at most once in the template, in a simple statement such as 'meta.Proceed();' or 'return meta.Proceed();'.`
+// Error LAMA0699 on `this`: `The implementation of 'TargetClass.this[string]' provided by 'Test' cannot be inlined, but Metalama can only generate inlined code for constructors and indexers. Call meta.Proceed() at most once in the template, in a simple statement such as 'meta.Proceed();' or 'return meta.Proceed();'.`

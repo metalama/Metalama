@@ -1858,8 +1858,8 @@ Target.cs:
         var expectedResult = $"""
                               (none):
                               2 diagnostic(s):
-                                 Error LAMA0113 on ``: `Cannot find in the current compilation the aspect type 'MyAspect' defined in the aspect library '{aspect1AssemblyName}'.`
-                                 Error LAMA0113 on ``: `Cannot find in the current compilation the aspect type 'MyAspect' defined in the aspect library '{aspect2AssemblyName}'.`
+                                 Error LAMA0113 on ``: `The aspect or template provider type 'MyAspect' defined in the assembly '{aspect1AssemblyName}' cannot be found in the current compilation.`
+                                 Error LAMA0113 on ``: `The aspect or template provider type 'MyAspect' defined in the assembly '{aspect2AssemblyName}' cannot be found in the current compilation.`
                               0 suppression(s):
                               0 introductions(s):
                               ----------------------------------------------------------
