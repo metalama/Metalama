@@ -81,7 +81,7 @@ public sealed class AdditionalDiagnosticAnalyzer : DiagnosticAnalyzer
                                     .CannotImplementBecauseOfInternalImplementAttribute
                                     .CreateRoslynDiagnostic(
                                         context.Symbol.GetDiagnosticLocation(),
-                                        (attribute.AttributeClass, attribute.AttributeClass.ContainingAssembly.Name) ) );
+                                        (@interface, @interface.ContainingAssembly.Name) ) );
 
                             return;
                         }

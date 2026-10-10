@@ -6,6 +6,8 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Engine.Analyzers;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Testing.UnitTesting;
+using System;
+using System.Globalization;
 using System.Linq;
 using Xunit;
 
@@ -62,6 +64,38 @@ public sealed class AdditionalDiagnosticAnalyzerTests : UnitTestClass
                             """;
 
         this.Test( code, 0, false );
+    }
+
+    [Fact]
+    public void MessageNamesInterfaceAndItsAssembly()
+    {
+        using var testContext = this.CreateTestContext();
+
+        var dependency = testContext.CreateCSharpCompilation(
+            """
+            using Metalama.Framework.Utilities;
+
+            [InternalImplement]
+            public interface ITheInterface;
+            """,
+            assemblyName: "TheDependency" );
+
+        var compilation = testContext.CreateCompilation(
+            "class TheClass : ITheInterface;",
+            additionalReferences: [dependency.ToMetadataReference()] );
+
+        var type = compilation.Types.Single( t => t.TypeKind is TypeKind.Class ).GetSymbol()!;
+
+        var analysisContext = new TestSymbolActionContext( type, compilation.GetRoslynCompilation() );
+        new AdditionalDiagnosticAnalyzer().AnalyzeNamedTypeSymbol( analysisContext );
+
+        var diagnostic = Assert.Single( analysisContext.Diagnostics );
+        Assert.Equal( "LAMA0120", diagnostic.Id );
+
+        var message = diagnostic.GetMessage( CultureInfo.InvariantCulture );
+        Assert.Contains( "ITheInterface", message, StringComparison.Ordinal );
+        Assert.Contains( "TheDependency", message, StringComparison.Ordinal );
+        Assert.DoesNotContain( "InternalImplement", message, StringComparison.Ordinal );
     }
 
     private void Test( string code, int expectedDiagnostics, bool ignoreErrors = true )
