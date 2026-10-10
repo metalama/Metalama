@@ -1,1 +1,1 @@
-// Error LAMA5206 on `Foo`: `No property-changed method matching the dependency property 'DoesNotExist' was found for 'ConfiguredPropertyChangedMethodDoesNotExist.Foo'.`
+// Error LAMA5206 on `Foo`: `No property-changed method matching property 'DoesNotExist' was found for the dependency 'ConfiguredPropertyChangedMethodDoesNotExist.Foo'.`

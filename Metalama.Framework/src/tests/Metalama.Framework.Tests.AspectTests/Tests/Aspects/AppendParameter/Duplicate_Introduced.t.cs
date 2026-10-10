@@ -1,2 +1,2 @@
 // CompileTimeAspectPipeline.ExecuteAsync failed.
-// Error LAMA0530 on `C`: `The aspect 'MyAspect' cannot introduce parameter 'p' to 'C.C(int)' because the target declaration already has a parameter 'p'.`
+// Error LAMA0530 on `C`: `The aspect 'MyAspect' cannot introduce the parameter 'p' into 'C.C(int)' because an aspect has already introduced a parameter named 'p' into this constructor.`

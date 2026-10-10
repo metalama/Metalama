@@ -23,9 +23,10 @@ internal static class CachingDiagnosticDescriptors
     public static DiagnosticDefinition<IMethod> MethodCannotBeStaticBecauseItUsesDependencyInjection { get; } = new(
         "LAMA5110",
         Error,
-        "The method '{0}' cannot be cached because it is static and caching is configured to use dependency injection. " +
-        "Disable dependency injection using CacheAttribute.UseDependencyInjection or CacheConfigurationAttribute.UseDependencyInjection or make the method non-static.",
-        "The method cannot be cached because it is static and caching is configured to use dependency injection." );
+        "The method '{0}' cannot be static because caching is configured to use dependency injection, and a static method cannot access an " +
+        "injected dependency. Make the method non-static, or disable dependency injection by setting the UseDependencyInjection property of " +
+        "the [Cache] or [CachingConfiguration] attribute to false.",
+        "A static method cannot use caching with dependency injection." );
 
     public static class InvalidateCache
     {
@@ -51,8 +52,9 @@ internal static class CachingDiagnosticDescriptors
                 new(
                     "LAMA5101",
                     Error,
-                    "The [InvalidateCache] aspect applied to '{0}' cannot invalidate '{1}': the 'this' parameter cannot be mapped because " +
-                    "(a) '{1}' is an instance method, (b) the IgnoreThisParameter is not enabled and (c) the type {2} is either static or not derived from '{3}'.",
+                    "The [InvalidateCache] aspect applied to '{0}' cannot invalidate '{1}': the 'this' parameter cannot be mapped because '{1}' is an " +
+                    "instance method, the IgnoreThisParameter option is not enabled for '{1}', and '{0}' is either static or declared in the type " +
+                    "'{2}', which is neither '{3}' nor derived from '{3}'.",
                     "'this' parameter cannot be mapped.",
                     _category );
 
@@ -65,9 +67,8 @@ internal static class CachingDiagnosticDescriptors
                 new(
                     "LAMA5102",
                     Error,
-                    "The [InvalidateCache] aspect applied to '{0}' cannot invalidate '{1}': the invalidating method does not contain a parameter named '{2}'. "
-                    +
-                    "Make sure '{0}' contains a parameter named '{2}' or add the [NotCachedKey] attribute to the '{2}' parameter in '{1}'.",
+                    "The [InvalidateCache] aspect applied to '{0}' cannot invalidate '{1}': the invalidating method does not contain a parameter named " +
+                    "'{2}'. Make sure '{0}' contains a parameter named '{2}' or add the [NotCacheKey] attribute to the '{2}' parameter in '{1}'.",
                     "No matching parameter in invalidating method.",
                     _category );
 
@@ -131,7 +132,8 @@ internal static class CachingDiagnosticDescriptors
             new(
                 "LAMA5107",
                 Error,
-                "Invalid [InvalidateCache] aspect on '{0}': there are several suitable overloads of the '{1}' method. Set the AllowMultipleOverloads property to \"true\" to allow invalidation of all of them.",
+                "Invalid [InvalidateCache] aspect on '{0}': there are several suitable overloads of the '{1}' method. Set the " +
+                "AllowMultipleOverloads property to true to invalidate all of them.",
                 "Multiple suitable overloads found.",
                 _category );
 
@@ -172,7 +174,7 @@ internal static class CachingDiagnosticDescriptors
             new(
                 "LAMA5111",
                 Error,
-                "The [Cache] aspect can be applied to the method '{0}' because the classifier '{1}' marked the  parameter '{2}' as ineligible.",
+                "The [Cache] aspect cannot be applied to the method '{0}' because the classifier '{1}' marked the parameter '{2}' as ineligible.",
                 "[Cache] aspect cannot be applied to the method because a parameter is ineligible.",
                 _category );
     }

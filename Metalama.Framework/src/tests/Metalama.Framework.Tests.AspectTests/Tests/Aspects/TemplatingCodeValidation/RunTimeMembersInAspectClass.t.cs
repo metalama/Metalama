@@ -1,6 +1,6 @@
 // CompileTimeAspectPipeline.ExecuteAsync failed.
-// Error LAMA0236 on `RunTimeClass`: `Cannot reference 'RunTimeClass' in 'MyAspect' because 'RunTimeClass' is run-time-only but 'MyAspect' is run-time-or-compile-time.`
-// Error LAMA0236 on `RunTimeClass`: `Cannot reference 'RunTimeClass' in 'MyAspect' because 'RunTimeClass' is run-time-only but 'MyAspect' is run-time-or-compile-time.`
-// Error LAMA0236 on `RunTimeClass`: `Cannot reference 'RunTimeClass' in 'MyAspect' because 'RunTimeClass' is run-time-only but 'MyAspect' is run-time-or-compile-time.`
-// Error LAMA0236 on `Action<RunTimeClass>`: `Cannot reference 'Action<RunTimeClass>' in 'MyAspect' because 'Action<RunTimeClass>' is run-time-only but 'MyAspect' is run-time-or-compile-time.`
-// Error LAMA0236 on `RunTimeClass`: `Cannot reference 'RunTimeClass' in 'MyAspect' because 'RunTimeClass' is run-time-only but 'MyAspect' is run-time-or-compile-time.`
+// Error LAMA0236 on `RunTimeClass`: `Cannot reference 'RunTimeClass' in 'MyAspect' because 'RunTimeClass' is run-time-only but 'MyAspect' is run-time-or-compile-time. Run-time-only declarations can be referenced only in templates and in run-time code.`
+// Error LAMA0236 on `RunTimeClass`: `Cannot reference 'RunTimeClass' in 'MyAspect' because 'RunTimeClass' is run-time-only but 'MyAspect' is run-time-or-compile-time. Run-time-only declarations can be referenced only in templates and in run-time code.`
+// Error LAMA0236 on `RunTimeClass`: `Cannot reference 'RunTimeClass' in 'MyAspect' because 'RunTimeClass' is run-time-only but 'MyAspect' is run-time-or-compile-time. Run-time-only declarations can be referenced only in templates and in run-time code.`
+// Error LAMA0236 on `Action<RunTimeClass>`: `Cannot reference 'Action<RunTimeClass>' in 'MyAspect' because 'Action<RunTimeClass>' is run-time-only but 'MyAspect' is run-time-or-compile-time. Run-time-only declarations can be referenced only in templates and in run-time code.`
+// Error LAMA0236 on `RunTimeClass`: `Cannot reference 'RunTimeClass' in 'MyAspect' because 'RunTimeClass' is run-time-only but 'MyAspect' is run-time-or-compile-time. Run-time-only declarations can be referenced only in templates and in run-time code.`

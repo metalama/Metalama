@@ -26,8 +26,8 @@ internal class GeneratedCodeAnalyzer : DiagnosticAnalyzer
 
     private static readonly DiagnosticDefinition<(string AspectType, ISymbol Target, string Addendum)> _aspectAppliedToGeneratedCode = new(
         "LAMA0320",
-        "Aspect can't be applied to source generated code.",
-        "The aspect '{0}' can't be applied to '{1}', because it's in source generated code.{2}",
+        "An aspect cannot be applied to source-generated code.",
+        "The aspect '{0}' cannot be applied to '{1}' because it is in source-generated code.{2}",
         _diagnosticCategory,
         Severity.Warning );
 

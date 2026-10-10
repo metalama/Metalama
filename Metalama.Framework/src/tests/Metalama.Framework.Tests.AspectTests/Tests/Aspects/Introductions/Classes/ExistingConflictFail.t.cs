@@ -1,2 +1,2 @@
 // CompileTimeAspectPipeline.ExecuteAsync failed.
-// Error LAMA0531 on `TargetClass`: `The aspect 'Introduction' cannot introduce type 'TargetClass.ExistingType' into 'TargetClass' because the type already exists.`
+// Error LAMA0531 on `TargetClass`: `The aspect 'Introduction' cannot introduce the type 'TargetClass.ExistingType' into 'TargetClass' because 'TargetClass' already contains or inherits a type with the same name and the same number of type parameters. Use a different name, or specify another OverrideStrategy.`
