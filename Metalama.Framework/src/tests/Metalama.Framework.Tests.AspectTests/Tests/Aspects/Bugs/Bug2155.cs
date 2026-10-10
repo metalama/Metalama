@@ -20,7 +20,10 @@ public class TheAspect : OverrideMethodAspect
         foreach ( var parameter in meta.Target.Parameters )
         {
             values.Add( parameter.Value );
+            values?.Add( parameter.Value );
         }
+
+        var count = values.Count;
 
         return meta.Proceed();
     }
