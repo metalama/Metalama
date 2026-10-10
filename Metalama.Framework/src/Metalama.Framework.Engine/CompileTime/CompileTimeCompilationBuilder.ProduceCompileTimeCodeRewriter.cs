@@ -508,11 +508,11 @@ namespace Metalama.Framework.Engine.CompileTime
                         {
                             this._parent._logger.Warning.Log( error.ToString() );
                         }
-
-                        // We report an error because if some some reasons (because of a bug) these errors were _not_ reported to the user,
-                        // we would silently fail the compilation, and this would be very difficult to diagnose.
-                        this._diagnosticAdder.Report( GeneralDiagnosticDescriptors.ErrorsInSourceCode.CreateRoslynDiagnostic( null, default ) );
                     }
+
+                    // We report an error because if some some reasons (because of a bug) these errors were _not_ reported to the user,
+                    // we would silently fail the compilation, and this would be very difficult to diagnose.
+                    this._diagnosticAdder.Report( GeneralDiagnosticDescriptors.ErrorsInSourceCode.CreateRoslynDiagnostic( null, default ) );
 
                     this.Success = false;
 
