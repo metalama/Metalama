@@ -256,6 +256,26 @@ public sealed class DiagnosticAnalyzerTests( ITestOutputHelper logger ) : Diagno
         Assert.DoesNotContain( "Roslyn limitation", message, StringComparison.OrdinalIgnoreCase );
     }
 
+    [Theory]
+    [InlineData( "LAMA0301" )]
+    [InlineData( "LAMA0302" )]
+    [InlineData( "LAMA0303" )]
+    [InlineData( "LAMA0304" )]
+    public void DiagnosticCategoryIsDesignTime( string diagnosticId )
+    {
+        // Regression test for #2176: All placeholder diagnostics of user diagnostics should have the same category.
+        var descriptor = diagnosticId switch
+        {
+            "LAMA0301" => DesignTimeDiagnosticDescriptors.UserError,
+            "LAMA0302" => DesignTimeDiagnosticDescriptors.UserWarning,
+            "LAMA0303" => DesignTimeDiagnosticDescriptors.UserInfo,
+            "LAMA0304" => DesignTimeDiagnosticDescriptors.UserHidden,
+            _ => throw new ArgumentOutOfRangeException( nameof(diagnosticId) )
+        };
+
+        Assert.Equal( "Metalama.DesignTime", descriptor.Category );
+    }
+
     [Fact]
     public async Task UserWarningIsWrappedWhenNotRegistered()
     {

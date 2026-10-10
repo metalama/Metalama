@@ -23,7 +23,8 @@ namespace Metalama.Framework.DesignTime.DiagnosticAnalysis
                     Error,
                     "{0}: {1} — Diagnostic '{0}' is new and could not be registered in the current session due to an IDE limitation."
                     + " Please restart your IDE to see it under its correct ID.",
-                    "A Metalama user error." );
+                    "A Metalama user error.",
+                    _category );
 
         internal static readonly DiagnosticDefinition<(string Id, string Message)>
             UserWarning
