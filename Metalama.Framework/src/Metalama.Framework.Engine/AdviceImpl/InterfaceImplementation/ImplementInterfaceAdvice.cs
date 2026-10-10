@@ -434,7 +434,7 @@ internal sealed partial class ImplementInterfaceAdvice : Advice<ImplementInterfa
                                         }
                                         else
                                         {
-                                            if ( !existingMethod.IsVirtual || existingMethod.IsSealed )
+                                            if ( !existingMethod.IsOverridable() )
                                             {
                                                 diagnostics.Report(
                                                     AdviceDiagnosticDescriptors.CannotOverrideNonVirtualInterfaceMember.CreateRoslynDiagnostic(
@@ -583,7 +583,7 @@ internal sealed partial class ImplementInterfaceAdvice : Advice<ImplementInterfa
                                         }
                                         else
                                         {
-                                            if ( !existingProperty.IsVirtual || existingProperty.IsSealed )
+                                            if ( !existingProperty.IsOverridable() )
                                             {
                                                 diagnostics.Report(
                                                     AdviceDiagnosticDescriptors.CannotOverrideNonVirtualInterfaceMember.CreateRoslynDiagnostic(
@@ -844,7 +844,7 @@ internal sealed partial class ImplementInterfaceAdvice : Advice<ImplementInterfa
                                         }
                                         else
                                         {
-                                            if ( !existingEvent.IsVirtual || existingEvent.IsSealed )
+                                            if ( !existingEvent.IsOverridable() )
                                             {
                                                 diagnostics.Report(
                                                     AdviceDiagnosticDescriptors.CannotOverrideNonVirtualInterfaceMember.CreateRoslynDiagnostic(
