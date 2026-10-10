@@ -81,8 +81,7 @@ public sealed class CompilerVisiblePropertiesTests
 
         var missingProperties = source.ReadNames
             .Where( name => !exportedProperties.Contains( name ) && !_propertiesExportedElsewhere.Contains( name ) )
-            .OrderBy( name => name, StringComparer.Ordinal )
-            .ToList();
+            .ToOrderedList( name => name, StringComparer.Ordinal );
 
         Assert.Empty( missingProperties );
     }
