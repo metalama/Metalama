@@ -269,7 +269,9 @@ internal abstract class AttributeDeserializer : IAttributeDeserializer
     {
         const BindingFlags bindingFlags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
 
-        for ( PropertyInfo? current = property; current != null; )
+        var current = property;
+
+        while ( true )
         {
             var setter = current.GetSetMethod( true );
 
@@ -286,10 +288,15 @@ internal abstract class AttributeDeserializer : IAttributeDeserializer
                 return null;
             }
 
-            current = current.DeclaringType?.BaseType?.GetProperty( current.Name, bindingFlags );
-        }
+            var overriddenProperty = current.DeclaringType?.BaseType?.GetProperty( current.Name, bindingFlags );
 
-        return null;
+            if ( overriddenProperty == null )
+            {
+                return null;
+            }
+
+            current = overriddenProperty;
+        }
     }
 
     private bool TryTranslateAttributeArgument(
