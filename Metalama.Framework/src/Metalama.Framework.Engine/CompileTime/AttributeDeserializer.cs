@@ -201,7 +201,7 @@ internal abstract class AttributeDeserializer : IAttributeDeserializer
                     return false;
                 }
 
-                var setter = property.SetMethod ?? property.GetSetMethod( true );
+                var setter = GetSetMethod( property );
 
                 if ( setter == null )
                 {
@@ -256,6 +256,47 @@ internal abstract class AttributeDeserializer : IAttributeDeserializer
         attributeInstance = localAttributeInstance;
 
         return true;
+    }
+
+    /// <summary>
+    /// Gets the setter of a property, including a setter that is inherited from an overridden property.
+    /// </summary>
+    /// <remarks>
+    /// A property override can declare only a getter. The <see cref="PropertyInfo"/> of such an override has no setter,
+    /// but C# allows a named attribute argument for the property because the override inherits the setter of the overridden property.
+    /// </remarks>
+    private static MethodInfo? GetSetMethod( PropertyInfo property )
+    {
+        const BindingFlags bindingFlags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
+
+        var current = property;
+
+        while ( true )
+        {
+            var setter = current.GetSetMethod( true );
+
+            if ( setter != null )
+            {
+                return setter;
+            }
+
+            var getter = current.GetGetMethod( true );
+
+            if ( getter == null || getter.GetBaseDefinition().DeclaringType == getter.DeclaringType )
+            {
+                // The property does not override another property.
+                return null;
+            }
+
+            var overriddenProperty = current.DeclaringType?.BaseType?.GetProperty( current.Name, bindingFlags );
+
+            if ( overriddenProperty == null )
+            {
+                return null;
+            }
+
+            current = overriddenProperty;
+        }
     }
 
     private bool TryTranslateAttributeArgument(
