@@ -102,12 +102,13 @@ public sealed class CompilerVisiblePropertiesTests
 
         Assert.True( File.Exists( path ), $"The file '{path}' does not exist." );
 
-        return XDocument.Load( path )
+        var names = XDocument.Load( path )
             .Descendants( "CompilerVisibleProperty" )
             .Select( e => e.Attribute( "Include" )?.Value.Trim() )
             .Where( name => !string.IsNullOrEmpty( name ) )
-            .Select( name => name! )
-            .ToHashSet( StringComparer.OrdinalIgnoreCase );
+            .Select( name => name! );
+
+        return new HashSet<string>( names, StringComparer.OrdinalIgnoreCase );
     }
 
     /// <summary>
