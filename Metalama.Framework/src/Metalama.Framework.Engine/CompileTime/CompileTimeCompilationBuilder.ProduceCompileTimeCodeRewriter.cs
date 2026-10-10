@@ -1213,6 +1213,8 @@ namespace Metalama.Framework.Engine.CompileTime
                                 TemplatingDiagnosticDescriptors.AbstractTemplateCannotHaveRunTimeSignature.CreateRoslynDiagnostic(
                                     propertySymbol.GetDiagnosticLocation(),
                                     propertySymbol ) );
+
+                            this.Success = false;
                         }
                         else
                         {
