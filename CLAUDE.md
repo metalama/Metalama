@@ -66,6 +66,7 @@ When starting work on a GitHub issue:
 3. Create a branch: `topic/YYYY.N/XXXX-short-description`
 4. Check CLAUDE-TODO.md before preparing PR
 5. Create issues promptly when discovering bugs during development
+6. Set the issue type of every issue you create or work on (`Bug`, `Enhancement`, `Feature`, `User Story`, `Task` or `Request`) with `gh issue edit <n> --type <Type>`. Never use the `bug` or `enhancement` labels, which no longer exist. The eng skill's `references/github-workflow.md` ("Issue Types") says which type to use
 
 ## Debugging Build Issues
 

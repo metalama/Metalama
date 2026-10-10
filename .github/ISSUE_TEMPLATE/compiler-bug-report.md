@@ -3,6 +3,7 @@ name: Compiler bug report
 about: Report a bug that can affects the project compilation
 title: ''
 labels: ''
+type: Bug
 assignees: ''
 
 ---
