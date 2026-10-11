@@ -1,2 +1,2 @@
 // CompileTimeAspectPipeline.ExecuteAsync failed.
-// Error LAMA0522 on `TargetClass`: `The aspect 'Override' cannot introduce finalizer into type 'TargetClass' because the specified override strategy 'New' is not valid.`
+// Error LAMA0522 on `TargetClass`: `The aspect 'Override' cannot introduce a finalizer into the type 'TargetClass' because the override strategy 'New' is not supported for finalizers. Use 'Fail', 'Ignore', or 'Override'.`

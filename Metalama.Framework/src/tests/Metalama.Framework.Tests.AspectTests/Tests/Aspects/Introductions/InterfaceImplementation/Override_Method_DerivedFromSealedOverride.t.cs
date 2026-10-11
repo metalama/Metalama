@@ -1,2 +1,2 @@
 // CompileTimeAspectPipeline.ExecuteAsync failed.
-// Error LAMA0529 on `C`: `The aspect 'TheAspect' cannot override the member 'B.Dispose()' because it is not virtual.`
+// Error LAMA0529 on `C`: `The aspect 'TheAspect' cannot override the member 'B.Dispose()' to implement an interface member because 'B.Dispose()' is inherited from a base type and is either not virtual or sealed. Make 'B.Dispose()' virtual and not sealed.`

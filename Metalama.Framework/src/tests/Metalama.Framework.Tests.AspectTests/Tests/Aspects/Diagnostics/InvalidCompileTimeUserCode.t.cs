@@ -1,3 +1,3 @@
 // CompileTimeAspectPipeline.ExecuteAsync failed.
-// Error LAMA0068 on ``: `Compile-time code contains C# errors.`
+// Error LAMA0068 on ``: `The compile-time code of the project contains C# errors, so it cannot be compiled. Fix the C# errors reported in the compile-time code.`
 // Error CS1061 on `BadMethod`: `'IAspectBuilder<IMethod>' does not contain a definition for 'BadMethod' and no accessible extension method 'BadMethod' accepting a first argument of type 'IAspectBuilder<IMethod>' could be found (are you missing a using directive or an assembly reference?)`

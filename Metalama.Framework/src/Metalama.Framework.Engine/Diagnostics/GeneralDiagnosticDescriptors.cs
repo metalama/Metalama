@@ -207,9 +207,9 @@ namespace Metalama.Framework.Engine.Diagnostics
             LiveTemplateMustHaveDefaultConstructor = new(
                 "LAMA0045",
                 _category,
-                $"The class '{{0}}' must be non-abstract and must have a parameterless constructor because of the [{nameof(EditorExperienceAttribute)}({nameof(EditorExperienceAttribute.SuggestAsLiveTemplate)} = true)] attribute.",
+                $"The class '{{0}}' must have a parameterless constructor because of the [{nameof(EditorExperienceAttribute)}({nameof(EditorExperienceAttribute.SuggestAsLiveTemplate)} = true)] attribute.",
                 Error,
-                "A live template must be a non-abstract class with a parameterless constructor." );
+                "A live template must have a parameterless constructor." );
 
         public static readonly DiagnosticDefinition<INamedType>
             TypeNotPartial

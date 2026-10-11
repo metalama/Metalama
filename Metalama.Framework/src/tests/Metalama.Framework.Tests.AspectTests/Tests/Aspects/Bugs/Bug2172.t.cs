@@ -1,3 +1,3 @@
 // CompileTimeAspectPipeline.ExecuteAsync failed.
-// Warning LAMA0119 on `Aspect`: `The compile-time declaration 'Aspect' contains compile-time code but it does not explicitly import any of the the 'Metalama.Framework' namespaces. This may cause an inconsistent design-time experience. Add the [RunTimeOrCompileTimeAttribute] attribute to 'Aspect' and import this namespace explicitly.`
-// Error LAMA0261 on `M`: `Multiple template or advice attributes found on the same declaration: IntroduceAttribute on Aspect.M() and TemplateAttribute on Aspect.M().`
+// Warning LAMA0119 on `Aspect`: `The compile-time declaration 'Aspect' is in a file that does not have a using directive for the 'Metalama.Framework' namespace or one of its main child namespaces. This may cause an inconsistent design-time experience. Add a using directive such as 'using Metalama.Framework.Aspects;' to the file.`
+// Error LAMA0261 on `M`: `Only one template or advice attribute is allowed on a declaration, the member it overrides, and its containing property or event, but 'IntroduceAttribute' is applied to 'Aspect.M()' and 'TemplateAttribute' is applied to 'Aspect.M()'.`

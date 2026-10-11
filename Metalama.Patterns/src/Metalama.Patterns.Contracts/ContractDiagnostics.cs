@@ -42,7 +42,8 @@ internal static class ContractDiagnostics
         = new(
             "LAMA5004",
             Severity.Error,
-            $"The [{nameof(SuspendInvariantsAttribute)}] aspect cannot be applied to the method '{{0}}' because the {nameof(ContractOptions.IsInvariantSuspensionSupported)} contract option is not enabled for the type '{{1}}'.",
+            $"The [{nameof(SuspendInvariantsAttribute)}] aspect cannot be applied to the method '{{0}}' because the {nameof(ContractOptions.IsInvariantSuspensionSupported)} contract option is not enabled for the type '{{1}}'. " +
+            $"Enable this option in {nameof(ContractOptions)} using a fabric.",
             $"The [{nameof(SuspendInvariantsAttribute)}] aspect cannot be applied to the method because the {nameof(ContractOptions.IsInvariantSuspensionSupported)} option is not enabled for its declaring type." );
 
     public static DiagnosticDefinition<(IMethod Method, INamedType Type)> SuspensionRedundant { get; }
