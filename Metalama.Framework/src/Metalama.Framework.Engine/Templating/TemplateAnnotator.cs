@@ -1372,6 +1372,9 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
 
             scopeContext = this._currentScopeContext.RunTimeConditional( "if ( " + node.Condition + " )" );
             ifScope = RunTimeOnly;
+
+            // The annotation of the condition can be undetermined when a scope conflict has been reported in the condition.
+            annotatedCondition = annotatedCondition.ReplaceScopeAnnotationIfUndetermined( RunTimeOnly );
         }
 
         using ( this.WithScopeContext( scopeContext ) )
