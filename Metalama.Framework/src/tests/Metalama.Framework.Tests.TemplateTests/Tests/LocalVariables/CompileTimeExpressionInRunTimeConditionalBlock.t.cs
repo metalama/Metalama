@@ -1,2 +1,8 @@
-// TestTemplateCompiler.TryCompile failed.
-// Error LAMA0280 on `(i, j)`: `Cannot set the compile-time expression '(i, j)' here because it is part of a block whose execution depends on the run-time condition 'if ( meta.Target.Parameters.Single().Value > 0 )'.`
+private int Method(int a)
+{
+  if (a > 0)
+  {
+    global::System.Console.WriteLine("i=3 j=4");
+  }
+  return this.Method(a);
+}

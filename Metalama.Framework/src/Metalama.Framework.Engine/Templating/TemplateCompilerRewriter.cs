@@ -313,9 +313,30 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
 
     public override SyntaxNode? VisitTupleExpression( TupleExpressionSyntax node )
     {
-        var qualifiedTuple = this.AddTupleNames( node );
+        // Tuple element names are not permitted on the left side of a deconstruction.
+        var qualifiedTuple = IsDeconstructionTarget( node ) ? node : this.AddTupleNames( node );
 
         return base.VisitTupleExpression( qualifiedTuple );
+    }
+
+    /// <summary>
+    /// Determines whether a tuple expression is the left side of a deconstructing assignment, or an element of such a tuple.
+    /// </summary>
+    private static bool IsDeconstructionTarget( TupleExpressionSyntax node )
+    {
+        var parent = node.Parent;
+
+        if ( parent.IsKind( SyntaxKind.SimpleAssignmentExpression ) )
+        {
+            return ((AssignmentExpressionSyntax) parent!).Left == node;
+        }
+
+        if ( parent.IsKind( SyntaxKind.Argument ) && parent!.Parent.IsKind( SyntaxKind.TupleExpression ) )
+        {
+            return IsDeconstructionTarget( (TupleExpressionSyntax) parent.Parent! );
+        }
+
+        return false;
     }
 
     private TupleExpressionSyntax AddTupleNames( TupleExpressionSyntax node )

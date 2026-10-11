@@ -2262,7 +2262,15 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
     {
         if ( this._currentScopeContext.IsRunTimeConditionalBlock )
         {
-            if ( this._syntaxTreeAnnotationMap.GetSymbol( expression ) is not ILocalSymbol local )
+            if ( expression.IsKind( SyntaxKind.TupleExpression ) )
+            {
+                // Each element of a deconstructing assignment is checked separately.
+                foreach ( var argument in ((TupleExpressionSyntax) expression).Arguments )
+                {
+                    this.CheckForMutatingCompileTimeExpressionInRunTimeConditionalBlock( argument.Expression );
+                }
+            }
+            else if ( this._syntaxTreeAnnotationMap.GetSymbol( expression ) is not ILocalSymbol local )
             {
                 this.ReportDiagnostic(
                     TemplatingDiagnosticDescriptors.CannotSetCompileTimeExpressionInRunTimeConditionalBlock,
