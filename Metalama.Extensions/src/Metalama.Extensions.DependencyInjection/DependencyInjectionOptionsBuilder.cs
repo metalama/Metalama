@@ -43,7 +43,7 @@ public class DependencyInjectionOptionsBuilder
     /// Registers a custom dependency injection framework.
     /// </summary>
     /// <typeparam name="TFramework">The type of the framework to register. Must implement <see cref="IDependencyInjectionFramework"/>.</typeparam>
-    /// <param name="priority">The priority of the framework. Frameworks with higher priority are consulted first. Default is 0.</param>
+    /// <param name="priority">The priority of the framework. Frameworks with a lower priority value are consulted first. Default is 0.</param>
     public void RegisterFramework<TFramework>( int priority = 0 )
         where TFramework : IDependencyInjectionFramework
     {
@@ -68,7 +68,7 @@ public class DependencyInjectionOptionsBuilder
     /// Sets the priority of a registered dependency injection framework.
     /// </summary>
     /// <typeparam name="TFramework">The type of the framework.</typeparam>
-    /// <param name="priority">The new priority value. Frameworks with higher priority are consulted first.</param>
+    /// <param name="priority">The new priority value. Frameworks with a lower priority value are consulted first.</param>
     public void SetFrameworkPriority<TFramework>( int priority )
         where TFramework : IDependencyInjectionFramework
     {

@@ -30,7 +30,7 @@ public sealed class LoggerDependencyInjectionFramework : DefaultDependencyInject
 {
     /// <inheritdoc />
     public override bool CanHandleDependency( DependencyProperties properties, in ScopedDiagnosticSink diagnostics )
-        => properties.DependencyType is INamedType { Name: "ILogger", FullName: "Microsoft.Extensions.Logging.ILogger" };
+        => !properties.IsStatic && properties.DependencyType is INamedType { Name: "ILogger", FullName: "Microsoft.Extensions.Logging.ILogger" };
 
     /// <inheritdoc />
     protected override DefaultDependencyInjectionStrategy GetStrategy( DependencyProperties properties ) => new InjectionStrategy( properties );
