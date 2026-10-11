@@ -72,8 +72,9 @@ public static class AspectLinkerDiagnosticDescriptors
         CallSiteRedirectionNotApplied = new(
             "LAMA0660",
             "A requested redirection of a call site was not applied.",
-            "The linker could not apply {0}, so the source code is kept unchanged. The call site is in a position that the linker does not "
-            + "rewrite, for instance the initializer of a field that an aspect has promoted to a property.",
+            "The linker could not apply {0}, so the source code is kept unchanged. The call site is in a position that the linker does not " +
+            "rewrite, for instance the initializer of a field that an aspect has promoted to a property. Move the call to a position that the " +
+            "linker rewrites, for instance to a constructor.",
             _category,
             Warning );
 
