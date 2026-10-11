@@ -1,2 +1,2 @@
 // CompileTimeAspectPipeline.ExecuteAsync failed.
-// Error LAMA0536 on `A`: `The aspect 'MyAspect' cannot generate the forwarding constructor 'A.A(int)' because the pull strategy returned 'DoNotPull' for the parameter 'A.A(int)@creationTime'. For a forwarding constructor, the pull strategy must provide a value, for instance with PullAction.UseExpression, and must not return PullAction.None.`
+// Error LAMA0536 on `A`: `The aspect 'MyAspect' cannot generate the forwarding constructor 'A.A(int)' because the pull strategy returned 'PullAction.None' for the parameter 'A.A(int)@creationTime'. For a forwarding constructor, the pull strategy must provide a value, for instance with PullAction.UseExpression, and must not return PullAction.None.`

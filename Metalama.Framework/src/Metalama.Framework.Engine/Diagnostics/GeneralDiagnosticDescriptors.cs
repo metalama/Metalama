@@ -73,8 +73,8 @@ namespace Metalama.Framework.Engine.Diagnostics
                     Error,
                     "Cannot pass an expression that is not a variable to an out or ref parameter." );
 
-        internal static readonly DiagnosticDefinition<(string TypeName, string? AssemblyName)> CannotFindType =
-            new( "LAMA0020", _category, "Cannot find the type '{0}' of assembly '{1}' in the project or its references. Use the reflection name of the type: separate " +
+        internal static readonly DiagnosticDefinition<(string TypeName, string AssemblyClause)> CannotFindType =
+            new( "LAMA0020", _category, "Cannot find the type '{0}'{1} in the project or its references. Use the reflection name of the type: separate " +
             "nested types with '+', and write generic types with a backtick followed by the number of type parameters, for example " +
             "'System.Collections.Generic.List`1'.", Error, "Cannot find a type" );
 
