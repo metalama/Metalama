@@ -37,6 +37,12 @@
             <_Parameter1>CompilerExtensionsAssemblyPath</_Parameter1>
             <_Parameter2>$(MSBuildThisFileDirectory)../../Metalama.Framework.CompilerExtensions/bin/$(Configuration)/netstandard2.0/Metalama.Framework.CompilerExtensions.dll</_Parameter2>
         </AssemblyAttribute>
+        <!-- CompilerVisiblePropertiesTests compares the properties that MSBuildProjectOptions reads with the properties
+             that this file exports to the compiler. -->
+        <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+            <_Parameter1>CompilerVisiblePropertiesFilePath</_Parameter1>
+            <_Parameter2>$(MSBuildThisFileDirectory)../../Metalama.Framework.Package/build/Metalama.CompilerVisibleProperties.props</_Parameter2>
+        </AssemblyAttribute>
     </ItemGroup>
 
     <ItemGroup>
