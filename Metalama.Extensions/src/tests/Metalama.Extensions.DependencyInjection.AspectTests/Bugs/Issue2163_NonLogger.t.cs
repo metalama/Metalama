@@ -1,1 +1,1 @@
-// Error LAMA0702 on `_serviceProvider`: `None of the registered dependency injection frameworks can handle the dependency 'IServiceProvider' in type 'TargetClass'.`
+// Error LAMA0702 on `_serviceProvider`: `None of the registered dependency injection frameworks can handle the dependency 'IServiceProvider' in type 'TargetClass'. Note that the default framework does not support static dependencies.`

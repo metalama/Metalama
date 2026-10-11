@@ -17,7 +17,8 @@ internal static class AdditionalDiagnosticDescriptors
         CannotImplementBecauseOfInternalImplementAttribute = new(
             "LAMA0120",
             Error,
-            "The interface '{0}' cannot be implemented in this project. It can only be implemented in '{1}' or in another project marked with InternalsVisibleTo.",
+            "The interface '{0}' cannot be implemented in this project. It can only be implemented in '{1}' or in a project to which '{1}' " +
+            "grants access with the InternalsVisibleTo attribute.",
             "The interface cannot be implemented in this project.",
             _category );
 }

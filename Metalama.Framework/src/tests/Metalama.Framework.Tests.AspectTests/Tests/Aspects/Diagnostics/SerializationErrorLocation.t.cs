@@ -1,2 +1,2 @@
 // CompileTimeAspectPipeline.ExecuteAsync failed.
-// Error LAMA0200 on `M`: `A compile-time value of type 'SourceMethod' was used in a context where a run-time value was expected.`
+// Error LAMA0200 on `M`: `A compile-time value cannot be converted to a run-time value because the type 'SourceMethod' is not supported. Use a supported type or a type that implements the IExpressionBuilder interface.`

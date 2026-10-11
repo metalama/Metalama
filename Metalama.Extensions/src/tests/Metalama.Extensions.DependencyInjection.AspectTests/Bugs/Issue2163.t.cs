@@ -1,1 +1,1 @@
-// Error LAMA0702 on `_logger`: `None of the registered dependency injection frameworks can handle the dependency 'ILogger' in type 'TargetClass'.`
+// Error LAMA0702 on `_logger`: `None of the registered dependency injection frameworks can handle the dependency 'ILogger' in type 'TargetClass'. Note that the default framework does not support static dependencies.`

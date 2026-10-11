@@ -1,2 +1,2 @@
 // CompileTimeAspectPipeline.ExecuteAsync failed.
-// Error LAMA0237 on `OverrideProperty`: `The template 'AbstractAspect.OverrideProperty' cannot be abstract because it has a run-time-ony signature.`
+// Error LAMA0237 on `OverrideProperty`: `The template property 'AbstractAspect.OverrideProperty' cannot be abstract because its type or the type of one of its parameters is run-time-only. Make the template property virtual and give it a default implementation.`

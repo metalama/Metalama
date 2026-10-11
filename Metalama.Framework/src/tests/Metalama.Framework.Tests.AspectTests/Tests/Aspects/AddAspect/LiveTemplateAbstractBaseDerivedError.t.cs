@@ -1,5 +1,2 @@
-// CompileTimeAspectPipeline.ExecuteAsync failed. 
-
-// Error LAMA0045 on `DerivedAspect`: `The class 'DerivedAspect' must have a default constructor because of the [EditorExperienceAttribute(SuggestAsLiveTemplate = true)] attribute.`
-
-
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0045 on `DerivedAspect`: `The class 'DerivedAspect' must have a parameterless constructor because of the [EditorExperienceAttribute(SuggestAsLiveTemplate = true)] attribute.`

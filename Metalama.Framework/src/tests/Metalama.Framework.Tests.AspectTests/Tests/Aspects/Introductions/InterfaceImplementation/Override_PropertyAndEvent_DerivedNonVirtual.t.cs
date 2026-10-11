@@ -1,3 +1,3 @@
 // CompileTimeAspectPipeline.ExecuteAsync failed.
-// Error LAMA0529 on `D`: `The aspect 'TheAspect' cannot override the member 'C.Event' because it is not virtual.`
-// Error LAMA0529 on `D`: `The aspect 'TheAspect' cannot override the member 'C.Property' because it is not virtual.`
+// Error LAMA0529 on `D`: `The aspect 'TheAspect' cannot override the member 'C.Event' to implement an interface member because 'C.Event' is inherited from a base type and is either not virtual or sealed. Make 'C.Event' virtual and not sealed.`
+// Error LAMA0529 on `D`: `The aspect 'TheAspect' cannot override the member 'C.Property' to implement an interface member because 'C.Property' is inherited from a base type and is either not virtual or sealed. Make 'C.Property' virtual and not sealed.`

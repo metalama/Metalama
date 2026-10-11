@@ -1,2 +1,2 @@
 // CompileTimeAspectPipeline.ExecuteAsync failed.
-// Error LAMA0699 on `this`: `Version of declaration 'C.extension(TestClass).this[int] provided by 'source code' cannot be inlined. It is not currently possible to generate non-inlined code for this declaration.`
+// Error LAMA0699 on `this`: `The implementation of 'C.extension(TestClass).this[int]' provided by 'source code' cannot be inlined, but Metalama can only generate inlined code for constructors and indexers. Call meta.Proceed() at most once in the template, in a simple statement such as 'meta.Proceed();' or 'return meta.Proceed();'.`

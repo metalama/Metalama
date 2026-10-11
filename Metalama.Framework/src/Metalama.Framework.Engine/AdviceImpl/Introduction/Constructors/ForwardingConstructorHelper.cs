@@ -312,7 +312,7 @@ internal sealed class ForwardingConstructorHelper
                     AdviceDiagnosticDescriptors.InvalidPullActionForForwardingConstructor.CreateRoslynDiagnostic(
                         forwarderTarget.GetDiagnosticLocation(),
                         (this._owningAdvice.AspectInstance.AspectClass.ShortName, introducedParameter, forwarderTarget,
-                         pullAction.Kind.ToString()),
+                         pullAction.Kind == PullActionKind.DoNotPull ? $"{nameof(PullAction)}.{nameof(PullAction.None)}" : pullAction.Kind.ToString()),
                         this._owningAdvice ) );
 
                 return null;

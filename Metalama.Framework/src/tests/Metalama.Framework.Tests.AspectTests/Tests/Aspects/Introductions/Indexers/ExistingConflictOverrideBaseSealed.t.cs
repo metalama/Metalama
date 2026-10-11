@@ -1,2 +1,2 @@
 // CompileTimeAspectPipeline.ExecuteAsync failed.
-// Error LAMA0502 on `TargetClass`: `The aspect 'Introduction' cannot introduce member 'TargetClass.this[int]' into type 'TargetClass' because it is already defined in type 'DerivedClass' and is static, non-virtual or sealed.`
+// Error LAMA0502 on `TargetClass`: `The aspect 'Introduction' cannot introduce member 'TargetClass.this[int]' into type 'TargetClass' because it is already defined in type 'DerivedClass' and is static, non-virtual or sealed, so it cannot be overridden. Use OverrideStrategy.New to hide the existing member, or OverrideStrategy.Ignore to keep it.`

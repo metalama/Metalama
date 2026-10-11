@@ -32,45 +32,45 @@ namespace Metalama.Framework.Engine.Templating
         internal static readonly DiagnosticDefinition<(string Expression, string ActualScope, string ExpectedScope, string Context)> ScopeMismatch
             = new(
                 "LAMA0104",
-                "The expression is expected to be of a different scope (run-time or compile-time)",
-                "The expression '{0}' is {1} but it is expected to be {2} because the expression appears in {3}.",
+                "The expression is expected to be of a different scope (run-time or compile-time).",
+                "The expression '{0}' is {1}, but it is expected to be {2} because the expression appears in {3}.",
                 _category,
                 Error );
 
         internal static readonly DiagnosticDefinition<string> SplitVariables
             = new(
                 "LAMA0105",
-                "Build-time and run-time local variables cannot be mixed in the same declaration. Split them into different declarations; "
-                + "one for run-time variables, and one for compile-time variables",
-                "Local variables {0} cannot be declared in the same declaration. "
-                + "Split them into different declarations; one for run-time variables, and one for compile-time variables",
+                "Compile-time and run-time local variables cannot be mixed in the same declaration.",
+                "The local variables {0} cannot be declared in the same declaration because some of them are compile-time and others are run-time. " +
+                "Split the declaration into two declarations: one for the compile-time variables and one for the run-time variables.",
                 _category,
                 Error );
 
         internal static readonly DiagnosticDefinition<(string VariableName, string RunTimeCondition)> CannotSetCompileTimeVariableInRunTimeConditionalBlock
             = new(
                 "LAMA0108",
-                "Cannot set an outside compile-time variable in a block whose execution depends on a run-time condition",
-                "Cannot set the compile-time variable '{0}' here because it is part of a block whose execution depends on the run-time condition '{1}' and it was not declared inside the block. "
-                +
-                "Move the assignment out of the run-time-conditional block or move the variable into the block.",
+                "A compile-time variable declared outside a block that depends on a run-time condition cannot be set in that block.",
+                "The compile-time variable '{0}' cannot be set here because the assignment is in a block whose execution depends on a run-time " +
+                "condition ('{1}'), and the variable is not declared in that block. Move the assignment out of this block, or declare the variable " +
+                "inside the block.",
                 _category,
                 Error );
 
         internal static readonly DiagnosticDefinition<string> UndeclaredRunTimeIdentifier
             = new(
                 "LAMA0109",
-                "The run-time identifier was not declared",
-                "The run-time identifier '{0}' was not defined.",
+                "The run-time identifier was not declared.",
+                "The run-time identifier '{0}' was not declared in the template. This can be caused by an error in the template or by a defect in " +
+                "Metalama.",
                 _category,
                 Error );
 
         internal static readonly DiagnosticDefinition<(string LoopKind, string RunTimeCondition)> CannotHaveCompileTimeLoopInRunTimeConditionalBlock
             = new(
                 "LAMA0110",
-                "Cannot have a compile-time loop in a block whose execution depends on a run-time condition",
-                "The compile-time {0} loop is not allowed here because it is a part of block whose execution depends on the run-time condition '{1}'. " +
-                "Move the loop out of the run-time-conditional block.",
+                "Cannot have a compile-time loop in a block whose execution depends on a run-time condition.",
+                "The compile-time '{0}' loop is not allowed here because it is part of a block whose execution depends on the run-time condition " +
+                "'{1}'. Move the loop out of the run-time-conditional block or use a compile-time 'foreach' loop instead.",
                 _category,
                 Error );
 
@@ -78,8 +78,8 @@ namespace Metalama.Framework.Engine.Templating
             CannotFindAspectInCompilation
                 = new(
                     "LAMA0113",
-                    "An aspect type defined in a reference assembly could not be found in the compilation",
-                    "Cannot find in the current compilation the aspect type '{0}' defined in the aspect library '{1}'.",
+                    "An aspect type defined in a referenced assembly cannot be found in the compilation.",
+                    "The aspect or template provider type '{0}' defined in the assembly '{1}' cannot be found in the current compilation.",
                     _category,
                     Error );
 
@@ -88,7 +88,7 @@ namespace Metalama.Framework.Engine.Templating
             CannotUseThisInStaticContext
                 = new(
                     "LAMA0114",
-                    "Cannot reference 'this' from a static context",
+                    "Cannot reference 'this' from a static context.",
                     "Cannot reference 'this' in an advice applied to {1} '{0}' because {2}.",
                     _category,
                     Error );
@@ -99,7 +99,7 @@ namespace Metalama.Framework.Engine.Templating
                 = new(
                     "LAMA0115",
                     "Cannot use a meta member in the current context",
-                    "The advice '{0}' cannot use '{1}' in an advice applied to {3} '{2}' because there is no '{4}'.{5}",
+                    "The template '{0}' cannot use '{1}' when applied to the {3} '{2}' because no '{4}' is available in this context.{5}",
                     _category,
                     Error );
 
@@ -108,8 +108,8 @@ namespace Metalama.Framework.Engine.Templating
                 = new(
                     "LAMA0117",
                     "Cannot reference a compile-time-only declaration in a non-compile-time-only declaration.",
-                    "Cannot reference '{1}' in '{0}' because '{1}' is compile-time-only but '{0}' is {2}. " +
-                    "Consider adding [CompileTime] to '{0}', or do not use '{1}' in '{0}'.'",
+                    "Cannot reference '{1}' in '{0}' because '{1}' is compile-time-only but '{0}' is {2}. Consider adding [CompileTime] to '{0}', or do " +
+                    "not use '{1}' in '{0}'.",
                     _category,
                     Error );
 
@@ -118,10 +118,10 @@ namespace Metalama.Framework.Engine.Templating
                 = new(
                     "LAMA0291",
                     "Cannot reference a compile-time-only Roslyn type in a non-compile-time-only declaration.",
-                    "Cannot reference '{1}' in '{0}' because '{1}' is compile-time-only but '{0}' is {2}. " +
-                    "Roslyn types are treated as compile-time-only because the MSBuild property 'MetalamaRoslynIsCompileTimeOnly' is set to true. " +
-                    "You can change this behavior by setting <MetalamaRoslynIsCompileTimeOnly>false</MetalamaRoslynIsCompileTimeOnly> in your project file. " +
-                    "Note that the Metalama.Framework.Sdk package sets this property to true by default.",
+                    "Cannot reference '{1}' in '{0}' because '{1}' is compile-time-only but '{0}' is {2}. Roslyn types are compile-time-only because " +
+                    "the MSBuild property 'MetalamaRoslynIsCompileTimeOnly' is set to true, which is the default when the project references the " +
+                    "Metalama.Framework.Sdk package. Consider adding [CompileTime] to '{0}', or set " +
+                    "<MetalamaRoslynIsCompileTimeOnly>false</MetalamaRoslynIsCompileTimeOnly> in your project file.",
                     _category,
                     Error );
 
@@ -129,10 +129,10 @@ namespace Metalama.Framework.Engine.Templating
             CompileTimeTypeNeedsRebuild
                 = new(
                     "LAMA0118",
-                    "The compile-time type needs rebuild.",
-                    "The compile-time type '{0}' has been modified since the last build. Metalama will stop analyzing this solution until the "
-                    + "next build and you may get errors related to the absence of generated source. "
-                    + "To resume analysis, finish the work on all compile-time logic, then build the project (even if the run-time code still has issues).",
+                    "The compile-time type must be rebuilt.",
+                    "The compile-time type '{0}' has been modified since the last build. Metalama will stop analyzing this solution until the next " +
+                    "build, and you may get errors caused by the absence of generated code. To resume analysis, finish the work on all compile-time " +
+                    "logic, then build the project (even if the run-time code still has issues).",
                     _category,
                     Warning );
 
@@ -140,9 +140,10 @@ namespace Metalama.Framework.Engine.Templating
             CompileTimeCodeNeedsNamespaceImport
                 = new(
                     "LAMA0119",
-                    "The declaration contains compile-time code but it does not import the proper namespaces.",
-                    "The compile-time declaration '{0}' contains compile-time code but it does not explicitly import any of the the '{1}' namespaces. "
-                    + "This may cause an inconsistent design-time experience. Add the [{2}] attribute to '{0}' and import this namespace explicitly.",
+                    "A file that contains compile-time code does not import a Metalama.Framework namespace.",
+                    "The compile-time declaration '{0}' is in a file that does not have a using directive for the '{1}' namespace or one of its main " +
+                    "child namespaces. This may cause an inconsistent design-time experience. Add a using directive such as 'using {1}.Aspects;' to the " +
+                    "file.",
                     _category,
                     Warning );
 
@@ -151,7 +152,8 @@ namespace Metalama.Framework.Engine.Templating
                 = new(
                     "LAMA0220",
                     "A template can only reference other templates that are methods.",
-                    "The declaration '{0}' cannot be referenced from '{1}', because it is a template, but not a method.",
+                    "The template '{0}' cannot be referenced from the template '{1}' because it is not a method. A template can only call other " +
+                    "templates that are methods.",
                     _category,
                     Error );
 
@@ -181,8 +183,9 @@ namespace Metalama.Framework.Engine.Templating
             CannotUseSpecificProceedInThisContext
                 = new(
                     "LAMA0223",
-                    "Cannot use a specific Proceed variant in the current context.",
-                    "Cannot use the {0} method in '{1}' because the return type of the method is not compatible with the {0} method.",
+                    "Cannot use a Proceed variant that is not compatible with the return type of the target method.",
+                    "Cannot use 'meta.{0}()' in '{1}' because the return type of '{1}' is not compatible with 'meta.{0}()'. Use 'meta.Proceed()', which " +
+                    "supports any return type.",
                     _category,
                     Error );
 
@@ -190,8 +193,9 @@ namespace Metalama.Framework.Engine.Templating
             CannotUseDynamicInUninitializedLocal
                 = new(
                     "LAMA0224",
-                    "Cannot declare local variable with the dynamic type if the variable is not initialized.",
-                    "The 'dynamic' keyword cannot be used in the local variable '{0}' because it is not initialized.",
+                    "Cannot declare a local variable of type 'dynamic' without an initializer.",
+                    "The 'dynamic' keyword cannot be used in the local variable '{0}' because it is not initialized. Initialize the variable in its " +
+                    "declaration, or use 'meta.DefineLocalVariable' to declare a run-time variable without an initializer.",
                     _category,
                     Error );
 
@@ -200,7 +204,8 @@ namespace Metalama.Framework.Engine.Templating
                 = new(
                     "LAMA0225",
                     "Cannot initialize a dynamic-typed variable with a target-typed expression.",
-                    "The 'dynamic' keyword cannot be used in the local variable '{0}' because it is initialized with a target-typed expression (such as 'default' or 'null'). Use an explicit cast or a different initializer.",
+                    "The 'dynamic' keyword cannot be used in the local variable '{0}' because it is initialized with a target-typed expression (such as " +
+                    "'default' or 'null'). Initialize the variable with an expression of type 'dynamic', for example 'meta.Default( type )'.",
                     _category,
                     Error );
 
@@ -215,7 +220,7 @@ namespace Metalama.Framework.Engine.Templating
         internal static readonly DiagnosticDefinition<string> InvalidDynamicTypeConstruction
             = new(
                 "LAMA0227",
-                "'dynamic' is forbidden as a generic parameter type or array element type in a template.",
+                "'dynamic' cannot be used as a generic argument, an array element type, a tuple element type, or a ref type in a template.",
                 "The type '{0}' is forbidden in a template: 'dynamic' cannot be used as a generic argument type, an array element type, a tuple element type or a ref type.",
                 _category,
                 Error );
@@ -224,7 +229,8 @@ namespace Metalama.Framework.Engine.Templating
             = new(
                 "LAMA0229",
                 "Types that are both compile-time and run-time are forbidden in run-time-only types.",
-                "The type '{0}' cannot be [CompileOrRunTime] because it is nested in a run-time-only type.",
+                "The type '{0}' cannot be both run-time and compile-time, like an aspect class or a [RunTimeOrCompileTime] class, because it is " +
+                "nested in a run-time-only type. Move it out of the containing type.",
                 _category,
                 Error );
 
@@ -232,7 +238,7 @@ namespace Metalama.Framework.Engine.Templating
             = new(
                 "LAMA0230",
                 "Nested compile-time types must have private accessibility.",
-                "The compile-time type '{0}' must have private visibility because it is nested in a run-time-type.",
+                "The compile-time type '{0}' must be private because it is nested in a run-time type.",
                 _category,
                 Error );
 
@@ -240,15 +246,16 @@ namespace Metalama.Framework.Engine.Templating
             = new(
                 "LAMA0231",
                 "Compile-time types cannot be nested in run-time types, except for type fabrics.",
-                "The compile-time type '{0}' cannot be nested in a run-time type. The only compile-time type that can be nested in run-time type is a class inheriting '{1}'.",
+                "The compile-time type '{0}' cannot be nested in a run-time type. The only compile-time types that can be nested in a run-time type " +
+                "are classes derived from '{1}'. Move '{0}' out of the containing type.",
                 _category,
                 Error );
 
         internal static readonly DiagnosticDefinition<string> TemplateUsesUnsupportedLanguageVersion
             = new(
                 "LAMA0232",
-                "Template code must be written in the specified C# version.",
-                "Template code must be written in C# {0}.",
+                "Template code uses a feature of a C# version later than the template language version.",
+                "Template code must be compatible with C# {0}, but this syntax requires a later version of C#.",
                 _category,
                 Error );
 
@@ -256,7 +263,7 @@ namespace Metalama.Framework.Engine.Templating
             CannotUseTemplateOnlyOutOfTemplate
                 = new(
                     "LAMA0233",
-                    "Cannot use a template-only method out of a template.",
+                    "Cannot use a template-only member outside of a template.",
                     "Cannot use '{1}' in '{0}' because it is only allowed inside a template.{2}",
                     _category,
                     Error );
@@ -264,8 +271,9 @@ namespace Metalama.Framework.Engine.Templating
         internal static readonly DiagnosticDefinition<ISymbol> PartiallyUnresolvedSymbolInTemplate
             = new(
                 "LAMA0235",
-                "The definition of a type or member used in a template is partially invalid.",
-                "The definition of the type or member '{0}' is invalid. Metalama could report irrelevant errors in the current template.",
+                "A type or member used in a template refers to a type that cannot be resolved.",
+                "The type or member '{0}' refers to a type that cannot be resolved. Fix this error first, otherwise Metalama may report irrelevant " +
+                "errors in the current template.",
                 _category,
                 Error );
 
@@ -273,8 +281,9 @@ namespace Metalama.Framework.Engine.Templating
             CannotReferenceRunTimeOnly
                 = new(
                     "LAMA0236",
-                    "Cannot reference a run-time-only declaration in a compile-time-only declaration.",
-                    "Cannot reference '{1}' in '{0}' because '{1}' is run-time-only but '{0}' is {2}.",
+                    "Cannot reference a run-time-only declaration in code that can execute at compile time.",
+                    "Cannot reference '{1}' in '{0}' because '{1}' is run-time-only but '{0}' is {2}. Run-time-only declarations can be referenced only " +
+                    "in templates and in run-time code.",
                     _category,
                     Error );
 
@@ -282,8 +291,9 @@ namespace Metalama.Framework.Engine.Templating
             AbstractTemplateCannotHaveRunTimeSignature
                 = new(
                     "LAMA0237",
-                    "Abstract templates cannot include a run-time-only type in their signature.",
-                    "The template '{0}' cannot be abstract because it has a run-time-ony signature.",
+                    "An abstract template property cannot have a run-time-only type.",
+                    "The template property '{0}' cannot be abstract because its type or the type of one of its parameters is run-time-only. Make the " +
+                    "template property virtual and give it a default implementation.",
                     _category,
                     Error );
 
@@ -291,8 +301,9 @@ namespace Metalama.Framework.Engine.Templating
             OnlyNamedTemplatesCanHaveDynamicSignature
                 = new(
                     "LAMA0238",
-                    "Only templates of [Template] kind can have a dynamic type or signature.",
-                    "'{0}' cannot be of 'dynamic' type because the type '{1}' is {2} and '{0}' is not a template.",
+                    "Only templates and members of run-time-only types can use the 'dynamic' type.",
+                    "'{0}' cannot use the 'dynamic' type because it is not a template and its declaring type '{1}' is {2}. Only templates and members " +
+                    "of run-time-only types can use the 'dynamic' type.",
                     _category,
                     Error );
 
@@ -301,7 +312,7 @@ namespace Metalama.Framework.Engine.Templating
                 = new(
                     "LAMA0241",
                     Error,
-                    "Execution scope mismatch in the expression `{0}`: the sub-expression `{1}` is {2}, but the other sub-expression `{3}` is {4}.",
+                    "Execution scope mismatch in the expression '{0}': the sub-expression '{1}' is {2}, but the other sub-expression '{3}' is {4}.",
                     "Execution scope mismatch in an expression because two sub-expressions have a different execution scope.",
                     _category );
 
@@ -310,7 +321,7 @@ namespace Metalama.Framework.Engine.Templating
                 = new(
                     "LAMA0242",
                     Error,
-                    "Execution scope mismatch in the expression `{0}`: the expression is {1}, but the sub-expression `{2}` is {3}",
+                    "Execution scope mismatch in the expression '{0}': the type of the expression is {1}, but the sub-expression '{2}' is {3}.",
                     "Execution scope mismatch in an expression because a sub-expression has a different execution scope than the parent expression.",
                     _category );
 
@@ -319,8 +330,8 @@ namespace Metalama.Framework.Engine.Templating
                 = new(
                     "LAMA0244",
                     Error,
-                    "Execution scope mismatch: the type '{0}' is {1}, but the base type '{2}' is {3}.",
-                    "Execution scope mismatch: mismatch between the run-time or compile-time nature of the declaration and its type arguments.",
+                    "Execution scope mismatch: the type '{0}' is {1}, but its base type or interface '{2}' is {3}.",
+                    "Execution scope mismatch between a type and its base type or interface.",
                     _category );
 
         internal static readonly DiagnosticDefinition<ISymbol> UnexplainedTemplatingScopeConflict
@@ -334,8 +345,9 @@ namespace Metalama.Framework.Engine.Templating
         internal static readonly DiagnosticDefinition<None> CannotUseDynamicTypingInLocalFunction
             = new(
                 "LAMA0246",
-                "Signatures of Local function in templates cannot use dynamic typing",
-                "The return type or parameter type of a local function in a template cannot be dynamic.",
+                "The signature of a local function in a template cannot use dynamic typing.",
+                "The return type or a parameter type of a local function in a template cannot be dynamic. Use a specific type, for instance " +
+                "'object', instead.",
                 _category,
                 Error );
 
@@ -344,16 +356,17 @@ namespace Metalama.Framework.Engine.Templating
             CannotConvertProceedReturnToType
                 = new(
                     "LAMA0247",
-                    "Cannot convert the actual return type of the Proceed method to the desired type",
-                    "Cannot apply the aspect '{0}' to '{1}': cannot convert the result of '{2}', of type '{3}', to the desired type '{4}'.",
+                    "A template cannot return a void expression from a method or local function that has a non-void return type.",
+                    "Cannot apply the aspect '{0}' to '{1}': the template returns '{2}', of type '{3}', from a method or local function whose return " +
+                    "type is '{4}'.",
                     _category,
                     Error );
 
         internal static readonly DiagnosticDefinition<(ISymbol Declaration, string Scope)> UnsafeCodeForbiddenInCompileTimeCode
             = new(
                 "LAMA0248",
-                "Compile-time code cannot contain unsafe code",
-                "'{0}' cannot contain unsafe code because it is {1}.",
+                "Compile-time code cannot contain unsafe code.",
+                "'{0}' cannot contain unsafe code because it is {1} code.",
                 _category,
                 Error );
 
@@ -368,16 +381,18 @@ namespace Metalama.Framework.Engine.Templating
         internal static readonly DiagnosticDefinition<None> ForbiddenDynamicUseInTemplate
             = new(
                 "LAMA0250",
-                "Template code cannot use dynamic like this",
-                "This use of 'dynamic' is not allowed in a template.",
+                "The 'dynamic' type cannot be used in this context in a template.",
+                "In a template, 'dynamic' cannot be used as the type of a cast, 'as', 'is', or 'default' expression, as the type of a lambda " +
+                "parameter or return value, or as a type argument of a method.",
                 _category,
                 Error );
 
         internal static readonly DiagnosticDefinition<string> DynamicVariableSetToNonDynamic
             = new(
                 "LAMA0251",
-                "Dynamic variables cannot be set to non-dynamic values.",
-                "Dynamic variable '{0}' cannot be set to a non-dynamic value.",
+                "A 'dynamic' variable must be initialized with a 'dynamic' expression.",
+                "The variable '{0}' is declared as 'dynamic', so it must be initialized with an expression of type 'dynamic'. Declare the variable " +
+                "with 'var' or with a non-dynamic type.",
                 _category,
                 Error );
 
@@ -400,8 +415,9 @@ namespace Metalama.Framework.Engine.Templating
         internal static readonly DiagnosticDefinition<string> OnlyLiteralArgumentInConfigureAwaitAfterProceedAsync
             = new(
                 "LAMA0254",
-                "ConfigureAwait after ProceedAsync has to have literal argument.",
-                "The argument of ConfigureAwait after ProceedAsync can only be 'true' or 'false', it can't be '{0}'.",
+                "The argument of ConfigureAwait after ProceedAsync must be a literal.",
+                "The argument of 'ConfigureAwait' after 'meta.ProceedAsync()' must be the literal 'true' or 'false', but it is '{0}'. To choose the " +
+                "value at compile time, use a compile-time 'if' statement with a literal argument in each branch.",
                 _category,
                 Error );
 
@@ -424,16 +440,18 @@ namespace Metalama.Framework.Engine.Templating
         internal static readonly DiagnosticDefinition<string> CannotSetTemplateMemberFromAttribute
             = new(
                 "LAMA0257",
-                "Cannot set a template member from an attribute.",
-                "Cannot set a template member {0} from an attribute.",
+                "A template member cannot be set from an aspect custom attribute.",
+                "The template member '{0}' cannot be set from an aspect custom attribute. Add a separate aspect property that is not a template and " +
+                "set this property instead.",
                 _category,
                 Error );
 
         internal static readonly DiagnosticDefinition<ISymbol> CannotMarkDeclarationAsTemplate
             = new(
                 "LAMA0258",
-                "Declaration is an invalid declaration to be marked as a template.",
-                "'{0}' is an invalid declaration to be marked as a template.",
+                "The declaration cannot be a template.",
+                "'{0}' cannot be a template because constructors, finalizers, operators, and conversion operators are not supported as templates. " +
+                "Introduce the member programmatically from a template method instead.",
                 _category,
                 Error );
 
@@ -458,7 +476,8 @@ namespace Metalama.Framework.Engine.Templating
                 = new(
                     "LAMA0261",
                     "Declarations cannot have more than one template or advice attribute applied.",
-                    "Multiple template or advice attributes found on the same declaration: {1} on {0} and {3} on {2}.",
+                    "Only one template or advice attribute is allowed on a declaration, the member it overrides, and its containing property or event, " +
+                    "but '{1}' is applied to '{0}' and '{3}' is applied to '{2}'.",
                     _category,
                     Error );
 
@@ -474,8 +493,9 @@ namespace Metalama.Framework.Engine.Templating
         internal static readonly DiagnosticDefinition<None> DynamicInLambdaUnsupported
             = new(
                 "LAMA0263",
-                "Lambdas or anonymous functions returning a dynamic type are not supported.",
-                "Lambdas or anonymous functions returning a dynamic type are not supported. Consider using a local function. Alternatively, cast the result to IExpression. For void expressions, use a lambda statement.",
+                "Expression-bodied lambdas whose expression is of type 'dynamic' are not supported.",
+                "Expression-bodied lambdas whose expression is of type 'dynamic' are not supported. Cast the expression to a non-dynamic type, for " +
+                "example 'object' or 'IExpression'. Alternatively, use a local function, or, for a void expression, a lambda with a block body.",
                 _category,
                 Error );
 
@@ -491,7 +511,8 @@ namespace Metalama.Framework.Engine.Templating
             = new(
                 "LAMA0265",
                 "Accessing static interface members is not supported on compile-time template type parameters.",
-                "Accessing the static interface member '{0}' is not supported on compile-time template type parameter '{1}'.",
+                "Accessing the static interface member '{0}' is not supported on the compile-time template type parameter '{1}'. Call a run-time " +
+                "generic method that accesses the member instead, or make the type parameter run-time.",
                 _category,
                 Error );
 
@@ -499,23 +520,26 @@ namespace Metalama.Framework.Engine.Templating
             = new(
                 "LAMA0267",
                 "Method group conversion for extension methods is not supported.",
-                "Converting extension method '{0}' to a delegate using a method group conversion is currently not supported.",
+                "Converting the extension method '{0}' to a delegate using a method group conversion is not supported in templates. Use a lambda " +
+                "expression that invokes the method instead.",
                 _category,
                 Error );
 
         internal static readonly DiagnosticDefinition<string> CantResolveDeclaration
             = new(
                 "LAMA0268",
-                "Could not resolve declaration when looking for template attributes.",
-                "Could not resolve declaration with id '{0}' when looking for template attributes. This can happen when multiple references contain a type that's part of the declaration signature.",
+                "Could not resolve a declaration when looking for template attributes.",
+                "Could not resolve the declaration with id '{0}' when looking for template attributes. This can happen when several referenced " +
+                "assemblies define a type that is part of the declaration signature.",
                 _category,
                 Warning );
 
         internal static readonly DiagnosticDefinition<ISymbol> AnonymousTypeDifferentScopes
             = new(
                 "LAMA0269",
-                "Anonymous type can't can't be used as both run-time and compile-time in the same template.",
-                "The anonymous type '{0}' can't can't be used as both run-time and compile-time in the same template.",
+                "An anonymous type cannot be used in both run-time and compile-time code in the same template.",
+                "The anonymous type '{0}' cannot be used in both run-time and compile-time code in the same template. Change the property names or " +
+                "types of one of the anonymous objects, or use a named type instead.",
                 _category,
                 Error );
 
@@ -523,15 +547,17 @@ namespace Metalama.Framework.Engine.Templating
             = new(
                 "LAMA0270",
                 "Template call cannot be part of another expression or statement.",
-                "Template call '{0}' cannot be part of another expression or statement, it can only be done as a stand-alone statement.",
+                "The template call '{0}' cannot be part of another expression or statement. A template can only be called as a stand-alone " +
+                "statement.",
                 _category,
                 Error );
 
         internal static readonly DiagnosticDefinition<ISymbol> ExtensionMethodTemplateNotSupported
             = new(
                 "LAMA0271",
-                "Template can't be an extension method.",
-                "The template '{0}' can't be an extension method. To introduce an extension method, mark the first parameter of the method with the [This] attribute or programmatically set its IParameterBuilder.IsThis property.",
+                "A template cannot be an extension method.",
+                "The template '{0}' cannot be an extension method. To introduce an extension method, mark the first parameter of the template with " +
+                "the [This] attribute, or set the IParameterBuilder.IsThis property programmatically.",
                 _category,
                 Error );
 
@@ -539,15 +565,16 @@ namespace Metalama.Framework.Engine.Templating
             = new(
                 "LAMA0272",
                 Error,
-                "Redundant return statements are not allowed in templates.",
+                "Redundant 'return' statements are not allowed in templates. Remove this 'return' statement.",
                 "Redundant return statement is not allowed in a template.",
                 _category );
 
         internal static readonly DiagnosticDefinition<ISymbol> SubtemplatesHaveToBeInvoked
             = new(
                 "LAMA0273",
-                "When a template references another template, it has to be directly invoked.",
-                "The template '{0}' has to be directly invoked.",
+                "A template can only be referenced in a direct call.",
+                "The template '{0}' can only be referenced in a direct call. It cannot be assigned to a delegate, passed as an argument, or called " +
+                "with the '?.' operator.",
                 _category,
                 Error );
 
@@ -562,48 +589,53 @@ namespace Metalama.Framework.Engine.Templating
         internal static readonly DiagnosticDefinition<string> SubtemplateCallWithMissingArgumentsCantBeVirtual
             = new(
                 "LAMA0275",
-                "Template call that uses optional parameters currently can't be virtual.",
-                "Template call '{0}' currently cannot be virtual and use optional parameters at the same time.",
+                "A call to a virtual template cannot omit arguments of optional parameters.",
+                "The template call '{0}' omits arguments of optional parameters, which is not supported when the called template is virtual, " +
+                "abstract, or an override. Specify all arguments, or make the template non-virtual.",
                 _category,
                 Error );
 
         internal static readonly DiagnosticDefinition<ISymbol> SubtemplateCantHaveRunTimeTypeParameter
             = new(
                 "LAMA0276",
-                "Called template can't have run-time type parameters.",
-                "Called template '{0}' can't have run-time type parameters.",
+                "A called template cannot have run-time type parameters.",
+                "The called template '{0}' has a run-time type parameter. The type parameters of a called template must be marked with " +
+                "[CompileTime].",
                 _category,
                 Error );
 
         internal static readonly DiagnosticDefinition<(ISymbol, TypeSyntax)> SubtemplateCantBeCalledWithRunTimeTypeParameter
             = new(
                 "LAMA0277",
-                "A template can't be called with run-time type parameters.",
-                "The template '{0}' can't be called with type argument '{1}', which contains run-time template type parameter.",
+                "A template cannot be called with a type argument that contains a run-time type parameter.",
+                "The template '{0}' cannot be called with the type argument '{1}' because this type argument contains a run-time type parameter of " +
+                "the calling template.",
                 _category,
                 Error );
 
         internal static readonly DiagnosticDefinition<ISymbol> AspectCantBeStruct
             = new(
                 "LAMA0278",
-                "An aspect or can't be a value type.",
-                "The aspect '{0}' can't be a value type.",
+                "An aspect cannot be a value type.",
+                "The aspect '{0}' cannot be a value type. Declare it as a class.",
                 _category,
                 Error );
 
         internal static readonly DiagnosticDefinition<ISymbol> CantCallAbstractSubtemplate
             = new(
                 "LAMA0279",
-                "Abstract or empty template can't be called.",
-                "The abstract or empty template '{0}' can't be called.",
+                "An abstract or empty template cannot be called.",
+                "The template '{0}' cannot be called because it is abstract or marked with [Template(IsEmpty = true)]. Call a template that has an " +
+                "implementation instead, for example a virtual template with a default implementation.",
                 _category,
                 Error );
 
         internal static readonly DiagnosticDefinition<(string Expression, string RunTimeCondition)> CannotSetCompileTimeExpressionInRunTimeConditionalBlock
             = new(
                 "LAMA0280",
-                "Cannot set a compile-time expression in a block whose execution depends on a run-time condition.",
-                "Cannot set the compile-time expression '{0}' here because it is part of a block whose execution depends on the run-time condition '{1}'.",
+                "A compile-time expression cannot be set in a block whose execution depends on a run-time condition.",
+                "The compile-time expression '{0}' cannot be set here because the assignment is in a block whose execution depends on a run-time " +
+                "condition ('{1}'). In such a block, only compile-time local variables declared in the block can be set.",
                 _category,
                 Error );
 
@@ -611,7 +643,7 @@ namespace Metalama.Framework.Engine.Templating
             = new(
                 "LAMA0281",
                 "Attribute is not allowed on compile-time code.",
-                "The attribute '{0}' is not allowed on the compile-time declaration '{1}', because it wouldn't have the expected effect.",
+                "The attribute '{0}' is not allowed on the compile-time declaration '{1}', because it would not have the expected effect.",
                 _category,
                 Error );
 
@@ -619,7 +651,7 @@ namespace Metalama.Framework.Engine.Templating
             AspectUsesHigherCSharpVersion
                 = new(
                     "LAMA0282",
-                    "Aspect uses higher C# version than what is allowed in the project.",
+                    "The aspect uses a higher C# version than the project allows.",
                     "The aspect '{0}' uses features of C# {1}, but it is used in a project built with C# {2}. Consider specifying <LangVersion>{1}</LangVersion> in this project or removing newer language features from the template '{3}' and then specifying <MetalamaTemplateLanguageVersion> in the aspect project.",
                     _category,
                     Warning );
@@ -628,8 +660,8 @@ namespace Metalama.Framework.Engine.Templating
             = new(
                 "LAMA0283",
                 _category,
-                "Compile-time type '{0}' uses non-record primary constructors which is not currently supported. " +
-                "You should remove the parameter list from the type and use explicitly defined constructors instead.",
+                "The compile-time type '{0}' has a primary constructor, which is not supported in compile-time code. Remove the parameter list from " +
+                "the type and declare an explicit constructor instead.",
                 Error,
                 "Non-record primary constructors are not currently supported in compile-time code." );
 
@@ -637,9 +669,10 @@ namespace Metalama.Framework.Engine.Templating
             = new(
                 "LAMA0284",
                 _category,
-                "The scope of the anonymous method or lambda block cannot be determined. Use meta.RunTime or meta.CompileTime to resolve the ambiguity.",
+                "The scope of the anonymous method or lambda expression with a block body cannot be determined. Use 'meta.RunTime' or " +
+                "'meta.CompileTime' to resolve the ambiguity.",
                 Error,
-                "The scope of the anonymous method or lambda block cannot be determined. Use meta.RunTime or meta.CompileTime to resolve the ambiguity." );
+                "The scope of an anonymous method or lambda expression with a block body cannot be determined." );
 
         internal static readonly DiagnosticDefinition<ITypeSymbol> TemplateAttributeOnLocalFunction
             = new(
@@ -670,10 +703,10 @@ namespace Metalama.Framework.Engine.Templating
             CannotCallCompileTimeMethodWithSideEffectsInRunTimeConditionalBlock
                 = new(
                     "LAMA0288",
-                    "Cannot call a compile-time method with side effects from a run-time conditional block.",
-                    "Cannot call the compile-time expression '{0}' as a statement here because it is part of a block whose execution depends on the run-time "
-                    + "condition '{1}'. A compile-time expression used as a statement is assumed to have side effects and cannot be conditionally executed "
-                    + "based on a run-time condition.",
+                    "A compile-time expression with side effects cannot be used as a statement in a block that depends on a run-time condition.",
+                    "The compile-time expression '{0}' cannot be used as a statement here because the statement is in a block whose execution depends " +
+                    "on a run-time condition ('{1}'). A compile-time expression used as a statement is assumed to have side effects, and these side " +
+                    "effects cannot depend on a run-time condition. Move the statement out of this block, or make the condition compile-time.",
                     _category,
                     Error );
 
@@ -692,9 +725,8 @@ namespace Metalama.Framework.Engine.Templating
             = new(
                 "LAMA0290",
                 "Multiple aspect types with the same name were found in the compilation.",
-                "The aspect type '{0}' was found in multiple referenced assemblies. "
-                + "This typically happens when two versions of the same assembly are loaded. "
-                + "Remove one of the conflicting assembly references.",
+                "The aspect type '{0}' was found in two different versions of the same referenced assembly. Make sure that all references to this " +
+                "assembly use the same version.",
                 _category,
                 Error );
 
@@ -703,7 +735,8 @@ namespace Metalama.Framework.Engine.Templating
                 = new(
                     "LAMA0292",
                     Error,
-                    "Execution scope mismatch: the member '{0}' is {1}, but the declaring type '{2}' is {3}.",
+                    "Execution scope mismatch: the member '{0}' is {1}, but the declaring type '{2}' is {3}. Change the scope of the declaring type, " +
+                    "for example with the [CompileTime] or [RunTimeOrCompileTime] attribute, or move the member to a type of a compatible scope.",
                     "Execution scope mismatch: the scope of a member is not compatible with the scope of its declaring type.",
                     _category );
 
@@ -711,7 +744,7 @@ namespace Metalama.Framework.Engine.Templating
             CannotUseNormalTemplateWithTryCatchOnAsyncIterator
                 = new(
                     "LAMA0293",
-                    "Cannot apply a normal template with try-catch to an async iterator method.",
+                    "Cannot apply a template that contains a try-catch block to an async iterator method.",
                     "The aspect '{0}' cannot override the async iterator method '{1}' because the expanded template contains "
                     + "'yield return' inside a try block with a catch clause, which is not allowed by C#. "
                     + "Use a dedicated async iterator template or restructure the template to avoid wrapping 'meta.Proceed()' in a try-catch block.",

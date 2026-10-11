@@ -1,1 +1,1 @@
-// Error LAMA5207 on `Foo`: `No dependency property naming conventioned matched 'MultipleNamingConventionsNoMatch.Foo'.`
+// Error LAMA5207 on `Foo`: `No dependency property naming convention matched 'MultipleNamingConventionsNoMatch.Foo'. Add a naming convention that matches this name, or do not remove the default naming convention.`

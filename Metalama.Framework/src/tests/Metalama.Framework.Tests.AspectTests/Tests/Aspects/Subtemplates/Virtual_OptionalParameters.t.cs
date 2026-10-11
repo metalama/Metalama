@@ -1,3 +1,3 @@
 // CompileTimeAspectPipeline.ExecuteAsync failed.
-// Error LAMA0275 on `CalledTemplate( 1 )`: `Template call 'CalledTemplate( 1 )' currently cannot be virtual and use optional parameters at the same time.`
-// Error LAMA0275 on `CalledTemplate()`: `Template call 'CalledTemplate()' currently cannot be virtual and use optional parameters at the same time.`
+// Error LAMA0275 on `CalledTemplate( 1 )`: `The template call 'CalledTemplate( 1 )' omits arguments of optional parameters, which is not supported when the called template is virtual, abstract, or an override. Specify all arguments, or make the template non-virtual.`
+// Error LAMA0275 on `CalledTemplate()`: `The template call 'CalledTemplate()' omits arguments of optional parameters, which is not supported when the called template is virtual, abstract, or an override. Specify all arguments, or make the template non-virtual.`

@@ -2990,7 +2990,7 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
                 }
             }
 
-            using ( this.WithScopeContext( this._currentScopeContext.BreakOrContinue( switchScope, scopeReason ) ) )
+            using ( this.WithScopeContext( this._currentScopeContext.BreakOrContinue( switchScope, $"switch( {node.Expression} )" ) ) )
             {
                 // Statements of a compile-time control block must have an explicitly-set scope otherwise the template compiler
                 // will look at the scope in the parent node, which is here incorrect.
@@ -3345,8 +3345,8 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
         var scopeContext = expressionScope switch
         {
             RunTimeOnly =>
-                this._currentScopeContext.RunTimePreferred( "on the right side of a 'with' initializer whose left side is run-time" ),
-            CompileTimeOnly => this._currentScopeContext.CompileTimeOnly( "on the right side of a 'with' initializer whose left side is compile-time" ),
+                this._currentScopeContext.RunTimePreferred( "the right side of a 'with' initializer whose left side is run-time" ),
+            CompileTimeOnly => this._currentScopeContext.CompileTimeOnly( "the right side of a 'with' initializer whose left side is compile-time" ),
             _ => null
         };
 
