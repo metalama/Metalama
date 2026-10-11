@@ -162,7 +162,7 @@ internal static class CachingDiagnosticDescriptors
         /// </summary>
         public static readonly DiagnosticDefinition ErrorMultipleInstancesOfCachedAttribute =
             new(
-                "LAMA5110",
+                "LAMA5112",
                 Error,
                 "The [Cache] aspect can be applied at most once to a method.",
                 "[Cache] aspect applied more than once.",
