@@ -54,7 +54,7 @@ namespace Metalama.Framework.Analyzers.Durability
         internal static readonly DiagnosticDescriptor WeakReferenceShouldBeNamedDangerous = new(
             "LAMA0875",
             "A weak reference held by a durable type should be named Dangerous",
-            "'{0}' holds a weak reference, so its name should end in 'Dangerous' to show that the value may be absent",
+            "'{0}' holds a weak reference, so its name should end in 'Dangerous' to show that the value may be absent.",
             _category,
             DiagnosticSeverity.Info,
             true );

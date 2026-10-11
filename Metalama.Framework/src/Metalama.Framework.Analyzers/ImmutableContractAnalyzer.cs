@@ -34,7 +34,7 @@ namespace Metalama.Framework.Analyzers.Immutability
         private const string _category = "Metalama";
 
         private const string _because =
-            "'{0}' must be written in an immutable style because it is an aspect, a fabric or a validator";
+            "'{0}' must be written in an immutable style because it is an aspect, a fabric, a validator, or another type bound by the [ImmutableType] contract";
 
         // Range: 0880-0889.
 
@@ -93,7 +93,7 @@ namespace Metalama.Framework.Analyzers.Immutability
         /// </remarks>
         internal static readonly DiagnosticDescriptor InterfaceIsNotImmutable = new(
             "LAMA0884",
-            "A member of a type that must be immutable is typed as an interface that is not marked immutable",
+            "A member of a type that must be immutable is typed as an interface or abstract type that is not marked immutable",
             _because + ", but '{1}' is not marked [ImmutableType]. Marking it requires every implementation "
             + "to be immutable, which this analyzer verifies. Path: {2}.",
             _category,
