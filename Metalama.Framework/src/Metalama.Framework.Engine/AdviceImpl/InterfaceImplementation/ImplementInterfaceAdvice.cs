@@ -154,14 +154,16 @@ internal sealed partial class ImplementInterfaceAdvice : Advice<ImplementInterfa
                             if ( interfaceMember.DeclarationKind is DeclarationKind.Property or DeclarationKind.Indexer
                                  && interfaceMember is IPropertyOrIndexer property )
                             {
+                                // An accessor that the template does not declare has an undefined accessibility. It is not checked here
+                                // because IntroduceProperty reports the missing accessor (LAMA0517).
                                 if ( property.GetMethod != null )
                                 {
-                                    isPublic &= memberTemplate.GetAccessorAccessibility == Accessibility.Public;
+                                    isPublic &= memberTemplate.GetAccessorAccessibility is Accessibility.Public or Accessibility.Undefined;
                                 }
 
                                 if ( property.SetMethod != null )
                                 {
-                                    isPublic &= memberTemplate.SetAccessorAccessibility == Accessibility.Public;
+                                    isPublic &= memberTemplate.SetAccessorAccessibility is Accessibility.Public or Accessibility.Undefined;
                                 }
                             }
 
