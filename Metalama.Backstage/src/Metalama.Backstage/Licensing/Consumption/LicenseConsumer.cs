@@ -90,8 +90,9 @@ internal sealed class LicenseConsumer : ILicenseConsumer
         }
         else
         {
+            // Identify the license keys by their display name and never by their license string, because the message is written to the build log.
             messageText +=
-                $" {this._licenses.Length} license keys were considered, but none was eligible: {string.Join( "; ", this._licenses.Select( x => x.Properties.LicenseString ) )}.";
+                $" {this._licenses.Length} license keys were considered, but none was eligible: {string.Join( "; ", this._licenses.Select( x => x.Properties.DisplayName ) )}.";
         }
 
         // Report a licensing message (this is typically reported as a compiler diagnostic).

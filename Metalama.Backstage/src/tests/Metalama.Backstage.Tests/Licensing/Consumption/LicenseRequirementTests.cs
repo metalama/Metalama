@@ -6,6 +6,7 @@ using Metalama.Backstage.Licensing;
 using Metalama.Backstage.Licensing.Consumption;
 using Metalama.Backstage.Licensing.Consumption.Requirements;
 using Metalama.Backstage.Testing;
+using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using Xunit;
@@ -229,5 +230,32 @@ public sealed class LicenseRequirementTests : LicenseConsumptionServiceTestsBase
         var productList = match.Groups[1].Value;
         this.Logger.WriteLine( productList );
         Assert.Equal( expectedProductList, productList.Trim() );
+    }
+
+    /// <summary>
+    /// Tests that the error message reported when no license key is eligible does not contain the license keys.
+    /// </summary>
+    /// <remarks>
+    /// The message is reported as a build error, so it is written to the build log. A license key is a secret on a continuous integration server.
+    /// </remarks>
+    [Theory]
+    [InlineData( nameof(TestLicenseKeyProvider.MetalamaCommunity) )]
+    [InlineData( nameof(TestLicenseKeyProvider.MetalamaProfessionalBusiness) )]
+    public void ErrorMessageDoesNotContainLicenseKey( string licenseKeyName )
+    {
+        var messages = new List<LicensingMessage>();
+
+        var licenseKey = LicenseKeyProvider.GetLicenseKey( licenseKeyName );
+        var license = this.CreateInstrumentedLicenseWrapper( licenseKey );
+        var consumer = this.CreateConsumptionService( license ).CreateConsumer( reportMessage: messages.Add );
+        Assert.False( consumer.TryConsume( new MetalamaExtensionLicenseRequirement( "<Component>", ServicingPhase.LongTerm ), reportMessage: messages.Add ) );
+
+        var message = Assert.Single( messages ).Text;
+        this.Logger.WriteLine( message );
+
+        Assert.True( license.TryGetConsumptionProperties( new LicenseConsumptionOptions(), out var licenseProperties, out _ ) );
+
+        Assert.Contains( $"1 license keys were considered, but none was eligible: {licenseProperties.DisplayName}.", message, StringComparison.Ordinal );
+        Assert.DoesNotContain( licenseKey, message, StringComparison.Ordinal );
     }
 }
