@@ -76,7 +76,7 @@ namespace Metalama.Framework.Engine.CodeModel.Helpers
 
             if ( symbol == null )
             {
-                throw GeneralDiagnosticDescriptors.CannotFindType.CreateException( (metadataName, assemblyName?.ToString()) );
+                throw GeneralDiagnosticDescriptors.CannotFindType.CreateException( (metadataName, assemblyName == null ? "" : $" of assembly '{assemblyName}'") );
             }
 
             return symbol;
