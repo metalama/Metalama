@@ -138,7 +138,7 @@ internal static class DiagnosticDescriptors
 
     public static readonly DiagnosticDefinition<(ISymbol Member, INamedTypeSymbol DeclaringType)> DeclaringTypeDoesNotImplementInpcLeaf =
         new(
-            "LAMA5163",
+            "LAMA5166",
             Warning,
             "The '{0}' property cannot be observed because '{1}' does not implement INotifyPropertyChanged. Consider implementing the INotifyPropertyChanged interface in '{1}', marking '{0}' with [Constant], or using "
             + nameof(ObservabilityExtensions.ConfigureObservability) + " via a fabric.",
