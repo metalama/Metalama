@@ -992,6 +992,13 @@ internal sealed partial class TemplateAnnotator : SafeSyntaxRewriter, IDiagnosti
                 scope = RunTimeOnly;
 
                 break;
+
+            case DynamicTypeConstruction:
+                // A member of a type that has a dynamic type argument, such as List<dynamic>.Add. LAMA0227 is reported elsewhere,
+                // so we continue considering it is run-time.
+                scope = RunTimeOnly;
+
+                break;
         }
 
         using ( this.WithScopeContext( context ) )
