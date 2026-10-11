@@ -270,14 +270,15 @@ public sealed partial class ContextualSyntaxGenerator
     // ReSharper disable once MemberCanBeMadeStatic.Global
     internal IdentifierNameSyntax IdentifierName( string identifier ) => (IdentifierNameSyntax) _roslynSyntaxGenerator.IdentifierName( identifier );
 
-    internal TypeSyntax ArrayTypeExpression( TypeSyntax type )
+    internal TypeSyntax ArrayTypeExpression( TypeSyntax type, int rank = 1 )
     {
         var arrayType = (ArrayTypeSyntax) _roslynSyntaxGenerator.ArrayTypeExpression( type )
             .WithSimplifierAnnotationIfNecessary( this.SyntaxGenerationContext );
 
         // Roslyn does not specify the rank properly so it needs to be fixed up.
 
-        return arrayType.WithRankSpecifiers( SingletonList( ArrayRankSpecifier( SingletonSeparatedList<ExpressionSyntax>( OmittedArraySizeExpression() ) ) ) );
+        return arrayType.WithRankSpecifiers(
+            SingletonList( ArrayRankSpecifier( SeparatedList<ExpressionSyntax>( Enumerable.Repeat( OmittedArraySizeExpression(), rank ) ) ) ) );
     }
 
     internal TypeSyntax ReturnType( IMethod method ) => this.TypeSyntax( method.ReturnType );
