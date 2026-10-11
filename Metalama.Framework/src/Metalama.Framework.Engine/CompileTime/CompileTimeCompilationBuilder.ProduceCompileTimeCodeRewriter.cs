@@ -358,14 +358,29 @@ namespace Metalama.Framework.Engine.CompileTime
                         case var childKind when childKind.IsBaseTypeDeclaration:
                             Invariant.Assert( childSymbol != null );
 
-                            if ( this.SymbolClassifier.GetTemplatingScope( childSymbol ).GetExpressionExecutionScope() == TemplatingScope.CompileTimeOnly )
+                            switch ( this.SymbolClassifier.GetTemplatingScope( childSymbol ).GetExpressionExecutionScope() )
                             {
-                                this._diagnosticAdder.Report(
-                                    TemplatingDiagnosticDescriptors.RunTimeTypesCannotHaveCompileTimeTypesExceptTypeFabrics.CreateRoslynDiagnostic(
-                                        childSymbol.GetDiagnosticLocation(),
-                                        (childSymbol, typeof(TypeFabric)) ) );
+                                case TemplatingScope.CompileTimeOnly:
+                                    this._diagnosticAdder.Report(
+                                        TemplatingDiagnosticDescriptors.RunTimeTypesCannotHaveCompileTimeTypesExceptTypeFabrics.CreateRoslynDiagnostic(
+                                            childSymbol.GetDiagnosticLocation(),
+                                            (childSymbol, typeof(TypeFabric)) ) );
 
-                                this.Success = false;
+                                    this.Success = false;
+
+                                    break;
+
+                                case TemplatingScope.RunTimeOnly:
+                                    break;
+
+                                // A run-time-or-compile-time type is reported as in the class arm. See issue #2150.
+                                default:
+                                    this._diagnosticAdder.Report(
+                                        TemplatingDiagnosticDescriptors.NeutralTypesForbiddenInNestedRunTimeTypes.CreateRoslynDiagnostic(
+                                            childSymbol.GetDiagnosticLocation(),
+                                            childSymbol ) );
+
+                                    break;
                             }
 
                             break;
