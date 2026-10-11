@@ -1,1 +1,1 @@
-// Error LAMA5004 on `ExecuteWithoutInvariants`: `The [SuspendInvariantsAttribute] aspect cannot be applied to the method 'BaseClass.ExecuteWithoutInvariants()' because the IsInvariantSuspensionSupported contract option is not enabled for the type 'BaseClass'. Enable this option in ContractOptions using a fabric.`
+// Error LAMA5004 on `ExecuteWithoutInvariants`: `The [SuspendInvariantsAttribute] aspect cannot be applied to the method 'BaseClass.ExecuteWithoutInvariants()' because the IsInvariantSuspensionSupported contract option is not enabled for the type 'BaseClass'.`

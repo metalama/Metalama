@@ -1,4 +1,4 @@
-// Warning LAMA5003 on `foo`: `The [NotNullAttribute] contract on '${p0}' is redundant because a fabric automatically adds the [NotNull] contract to this declaration.`
+// Warning LAMA5003 on `foo`: `The [NotNullAttribute] contract is redundant because a fabric automatically adds the [NotNull] contract to this declaration.`
 public class TestClass
 {
   // When both [Required] and [NotNull] are on a string, [NotNull] is redundant

@@ -86,7 +86,7 @@ internal static class Diagnostics
             new(
                 "LAMA5205",
                 Error,
-                "Several members, including this {0}, can be used as the {1} for {2}'{3}' {4}by the '{5}' naming convention. Rename or remove the " +
+                "Several members can be used as the {1} for {2}'{3}' {4}by the '{5}' naming convention. Rename or remove the " +
                 "members that must not be used, so that only one member matches.",
                 "Ambiguous candidate member.",
                 _category );
