@@ -23,7 +23,7 @@ namespace Metalama.Testing.AspectTesting
         {
             if ( logger != null && testInput.Options.EnableLogging.GetValueOrDefault() )
             {
-                serviceProvider = serviceProvider.Underlying.WithUntypedService( typeof(ILoggerFactory), new XunitLoggerFactory( logger ) );
+                serviceProvider = serviceProvider.Underlying.WithUntypedService( typeof(ILoggerFactory), new XunitLoggerFactory( logger ), allowOverride: true );
             }
 
             // Create the ITestRunnerFactory.
