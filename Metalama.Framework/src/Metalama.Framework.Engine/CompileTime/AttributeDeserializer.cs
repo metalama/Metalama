@@ -2,15 +2,18 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using Metalama.Framework.Advising;
 using Metalama.Framework.Code;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Engine.Utilities.Caching;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Framework.Engine.Utilities.UserCode;
 using Microsoft.CodeAnalysis;
 using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
@@ -27,6 +30,7 @@ internal abstract class AttributeDeserializer : IAttributeDeserializer
     private readonly CompileTimeTypeResolver _compileTimeTypeResolver;
     private readonly CompilationContext _compilationContext;
     private readonly UserCodeInvoker _userCodeInvoker;
+    private readonly WeakCache<INamedTypeSymbol, ConcurrentDictionary<string, bool>> _isTemplateMemberCache = new();
 
     protected AttributeDeserializer(
         in ProjectServiceProvider serviceProvider,
@@ -38,6 +42,8 @@ internal abstract class AttributeDeserializer : IAttributeDeserializer
         this._compilationContext = compilationContext;
         this._userCodeInvoker = serviceProvider.GetRequiredService<UserCodeInvoker>();
     }
+
+    public void Dispose() => this._isTemplateMemberCache.Dispose();
 
     // Coverage: ignore
     public bool TryCreateAttribute<T>( AttributeData attribute, IDiagnosticAdder diagnosticAdder, [NotNullWhen( true )] out T? attributeInstance )
@@ -244,10 +250,19 @@ internal abstract class AttributeDeserializer : IAttributeDeserializer
                     return false;
                 }
             }
+            else if ( this.IsTemplateMember( constructorSymbol.ContainingType, arg.Key ) )
+            {
+                // Template members, including introduced ones, may be removed from the compile-time compilation,
+                // so they are not found above. The templating code validator reports LAMA0257 for them.
+                // When the attribute is in a syntax tree without compile-time code, this validation runs concurrently
+                // with the pipeline, so LAMA0257 may not be reported yet. If the pipeline failed here, the validation
+                // would be canceled and LAMA0257 would never be reported. Therefore, we skip the attribute without an error.
+                attributeInstance = null;
+
+                return false;
+            }
             else
             {
-                // Template properties (incl. introduced ones) may be removed from compile-time compilation,
-                // so they would not be found above, but are already reported as LAMA0257.
                 // We should not get an invalid member otherwise.
                 throw new AssertionFailedException( $"Cannot find a FieldInfo or PropertyInfo named '{arg.Key}'." );
             }
@@ -256,6 +271,36 @@ internal abstract class AttributeDeserializer : IAttributeDeserializer
         attributeInstance = localAttributeInstance;
 
         return true;
+    }
+
+    /// <summary>
+    /// Determines whether a member of an attribute type or of one of its base types is a template member,
+    /// i.e. whether it has a custom attribute that implements <see cref="ITemplateAttribute"/>.
+    /// </summary>
+    private bool IsTemplateMember( INamedTypeSymbol attributeType, string memberName )
+        => this._isTemplateMemberCache.GetOrAdd( attributeType, _ => new ConcurrentDictionary<string, bool>() )
+            .GetOrAdd( memberName, name => this.IsTemplateMemberCore( attributeType, name ) );
+
+    /// <summary>
+    /// Computes the result of <see cref="IsTemplateMember"/> without using the cache.
+    /// </summary>
+    private bool IsTemplateMemberCore( INamedTypeSymbol attributeType, string memberName )
+    {
+        var templateAttribute = this._compilationContext.ReflectionMapper.GetTypeSymbol( typeof(ITemplateAttribute) );
+        var compilation = this._compilationContext.Compilation;
+
+        for ( var type = attributeType; type != null; type = type.BaseType )
+        {
+            foreach ( var member in type.GetMembers( memberName ) )
+            {
+                if ( member.GetAttributes().Any( a => compilation.HasImplicitConversion( a.AttributeClass, templateAttribute ) ) )
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /// <summary>
