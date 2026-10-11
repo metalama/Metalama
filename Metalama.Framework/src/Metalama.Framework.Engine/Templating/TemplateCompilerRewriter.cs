@@ -1040,14 +1040,7 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
         // its type is unknown, so type-preserving run-time code cannot be generated.
         if ( transformationKind != TransformationKind.Transform )
         {
-            var firstMemberBinding = node.WhenNotNull.Kind() switch
-            {
-                SyntaxKind.MemberBindingExpression => (MemberBindingExpressionSyntax) node.WhenNotNull,
-                SyntaxKind.ConditionalAccessExpression
-                    when ((ConditionalAccessExpressionSyntax) node.WhenNotNull).Expression.Kind() == SyntaxKind.MemberBindingExpression
-                    => (MemberBindingExpressionSyntax) ((ConditionalAccessExpressionSyntax) node.WhenNotNull).Expression,
-                _ => null
-            };
+            var firstMemberBinding = GetLeftmostMemberBinding( node.WhenNotNull );
 
             if ( firstMemberBinding != null
                  && firstMemberBinding.GetScopeFromAnnotation().GetValueOrDefault().IsCompileTimeMemberReturningRunTimeValue() )
@@ -1062,6 +1055,53 @@ internal sealed partial class TemplateCompilerRewriter : MetaSyntaxRewriter, IDi
         }
 
         return base.TransformConditionalAccessExpression( node );
+    }
+
+    /// <summary>
+    /// Gets the member binding that is evaluated first in the <see cref="ConditionalAccessExpressionSyntax.WhenNotNull"/> part
+    /// of a conditional access expression, for instance <c>.Value</c> in <c>a?.Value.ToLower()</c>, or <c>null</c> if the leftmost
+    /// expression is not a member binding.
+    /// </summary>
+    private static MemberBindingExpressionSyntax? GetLeftmostMemberBinding( ExpressionSyntax whenNotNull )
+    {
+        var expression = whenNotNull;
+
+        while ( true )
+        {
+            switch ( expression.Kind() )
+            {
+                case SyntaxKind.MemberBindingExpression:
+                    return (MemberBindingExpressionSyntax) expression;
+
+                case SyntaxKind.InvocationExpression:
+                    expression = ((InvocationExpressionSyntax) expression).Expression;
+
+                    break;
+
+                case SyntaxKind.SimpleMemberAccessExpression:
+                    expression = ((MemberAccessExpressionSyntax) expression).Expression;
+
+                    break;
+
+                case SyntaxKind.ElementAccessExpression:
+                    expression = ((ElementAccessExpressionSyntax) expression).Expression;
+
+                    break;
+
+                case SyntaxKind.ConditionalAccessExpression:
+                    expression = ((ConditionalAccessExpressionSyntax) expression).Expression;
+
+                    break;
+
+                case SyntaxKind.SuppressNullableWarningExpression:
+                    expression = ((PostfixUnaryExpressionSyntax) expression).Operand;
+
+                    break;
+
+                default:
+                    return null;
+            }
+        }
     }
 
     private (ExpressionSyntax Condition, ExpressionSyntax Invocation)? ProcessConditionalAccessExtensionMethod(
