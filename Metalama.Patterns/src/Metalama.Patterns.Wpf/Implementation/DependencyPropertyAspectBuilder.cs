@@ -44,7 +44,8 @@ internal sealed partial class DependencyPropertyAspectBuilder
                                                                                        || this._builder.Target.SetMethod.Accessibility.IsSubsetOf(
                                                                                            this._builder.Target.GetMethod!.Accessibility ));
 
-        var hasExplicitNaming = this._attribute.PropertyChangedMethod != null
+        var hasExplicitNaming = this._attribute.RegistrationField != null
+                                || this._attribute.PropertyChangedMethod != null
                                 || this._attribute.ValidateMethod != null;
 
         var namingConventions = hasExplicitNaming
