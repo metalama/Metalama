@@ -10,7 +10,7 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Metalama.Framework.Engine.CompileTime;
 
-internal interface IAttributeDeserializer : ICompilationService
+internal interface IAttributeDeserializer : ICompilationService, IDisposable
 {
     bool TryCreateAttribute<T>( AttributeData attribute, IDiagnosticAdder diagnosticAdder, [NotNullWhen( true )] out T? attributeInstance )
         where T : Attribute;

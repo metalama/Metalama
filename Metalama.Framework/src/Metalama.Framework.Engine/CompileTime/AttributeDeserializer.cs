@@ -24,10 +24,7 @@ using TypeKind = Microsoft.CodeAnalysis.TypeKind;
 
 namespace Metalama.Framework.Engine.CompileTime;
 
-// WeakCache.Dispose does nothing, so the cache does not need to be disposed.
-#pragma warning disable CA1001 // Types that own disposable fields should be disposable
 internal abstract class AttributeDeserializer : IAttributeDeserializer
-#pragma warning restore CA1001 // Types that own disposable fields should be disposable
 {
     private readonly ProjectServiceProvider _serviceProvider;
     private readonly CompileTimeTypeResolver _compileTimeTypeResolver;
@@ -45,6 +42,8 @@ internal abstract class AttributeDeserializer : IAttributeDeserializer
         this._compilationContext = compilationContext;
         this._userCodeInvoker = serviceProvider.GetRequiredService<UserCodeInvoker>();
     }
+
+    public void Dispose() => this._isTemplateMemberCache.Dispose();
 
     // Coverage: ignore
     public bool TryCreateAttribute<T>( AttributeData attribute, IDiagnosticAdder diagnosticAdder, [NotNullWhen( true )] out T? attributeInstance )
