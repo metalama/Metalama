@@ -44,18 +44,6 @@ internal sealed class IntroduceFinalizerAdvice : IntroduceMemberAdvice<IMethod, 
         TemplateAttributeProperties? templateAttributeProperties,
         AdviceImplementationContext context )
     {
-        switch ( this.OverrideStrategy )
-        {
-            case OverrideStrategy.New:
-                context.Diagnostics.Report(
-                    AdviceDiagnosticDescriptors.CannotUseNewOverrideStrategyWithFinalizers.CreateRoslynDiagnostic(
-                        this.TargetDeclaration.GetDiagnosticLocation(),
-                        (this.AspectInstance.AspectClass.ShortName, this.TargetDeclaration, this.OverrideStrategy),
-                        this ) );
-
-                break;
-        }
-
         // TODO: The base implementation may take more than needed from the template. Most would be ignored by the transformation, but
         //       the user may see it in the code model.
         base.InitializeBuilderCore( builder, templateAttributeProperties, context );
@@ -67,6 +55,17 @@ internal sealed class IntroduceFinalizerAdvice : IntroduceMemberAdvice<IMethod, 
     {
         // Determine whether we need introduction transformation (something may exist in the original code or could have been introduced by previous steps).
         var targetDeclaration = this.TargetDeclaration;
+
+        if ( this.OverrideStrategy == OverrideStrategy.New )
+        {
+            // A type can declare only one finalizer, so the New strategy is never valid.
+            return
+                this.CreateFailedResult(
+                    AdviceDiagnosticDescriptors.CannotUseNewOverrideStrategyWithFinalizers.CreateRoslynDiagnostic(
+                        targetDeclaration.GetDiagnosticLocation(),
+                        (this.AspectInstance.AspectClass.ShortName, targetDeclaration, this.OverrideStrategy),
+                        this ) );
+        }
 
         var existingFinalizer = targetDeclaration.Finalizer;
 
