@@ -105,6 +105,7 @@ internal sealed class PipelineStepsState
     {
         using var enumerator = this._steps.GetEnumerator();
         PipelineStep? previousStep = null;
+        ExecuteAspectLayerPipelineStep? previousExecuteStep = null;
 
         var stepIndex = 0;
 
@@ -114,7 +115,7 @@ internal sealed class PipelineStepsState
 
             this._currentStep = enumerator.Current.Value;
 
-            this.DetectUnorderedSteps( ref previousStep, this._currentStep );
+            this.DetectUnorderedSteps( ref previousStep, ref previousExecuteStep, this._currentStep );
 
             var compilation = this.LastCompilation;
 
@@ -134,19 +135,34 @@ internal sealed class PipelineStepsState
             this._aspectInstanceResults );
     }
 
-    private void DetectUnorderedSteps( ref PipelineStep? previousStep, PipelineStep currentStep )
+    /// <summary>
+    /// Reports <see cref="GeneralDiagnosticDescriptors.UnorderedLayers"/> when the current step and the previous step that executes
+    /// aspect instances belong to two layers that are not strongly ordered.
+    /// </summary>
+    /// <remarks>
+    /// Only <see cref="ExecuteAspectLayerPipelineStep"/> instances are compared. An <see cref="EvaluateAspectSourcesPipelineStep"/> exists for every
+    /// aspect class of the closure of the project, including the aspect classes of referenced assemblies that the project does not apply,
+    /// whereas an <see cref="ExecuteAspectLayerPipelineStep"/> exists only for the layers that have aspect instances in the current compilation.
+    /// </remarks>
+    private void DetectUnorderedSteps( ref PipelineStep? previousStep, ref ExecuteAspectLayerPipelineStep? previousExecuteStep, PipelineStep currentStep )
     {
-        if ( previousStep != null && this._shouldDetectUnorderedAspects )
+        if ( this._shouldDetectUnorderedAspects )
         {
-            if ( previousStep.AspectLayer != currentStep.AspectLayer && previousStep.AspectLayer.ExplicitOrder >= currentStep.AspectLayer.ExplicitOrder )
+            if ( currentStep is ExecuteAspectLayerPipelineStep currentExecuteStep )
             {
-                this.Diagnostics.Report(
-                    GeneralDiagnosticDescriptors.UnorderedLayers.CreateRoslynDiagnostic(
-                        null,
-                        (previousStep.AspectLayer.AspectLayerId.ToString(), currentStep.AspectLayer.AspectLayerId.ToString()) ) );
+                if ( previousExecuteStep != null && previousExecuteStep.AspectLayer != currentExecuteStep.AspectLayer
+                                                 && previousExecuteStep.AspectLayer.ExplicitOrder >= currentExecuteStep.AspectLayer.ExplicitOrder )
+                {
+                    this.Diagnostics.Report(
+                        GeneralDiagnosticDescriptors.UnorderedLayers.CreateRoslynDiagnostic(
+                            null,
+                            (previousExecuteStep.AspectLayer.AspectLayerId.ToString(), currentExecuteStep.AspectLayer.AspectLayerId.ToString()) ) );
+                }
+
+                previousExecuteStep = currentExecuteStep;
             }
 
-            if ( this._comparer.Compare( currentStep.Id, previousStep.Id ) < 0 )
+            if ( previousStep != null && this._comparer.Compare( currentStep.Id, previousStep.Id ) < 0 )
             {
                 throw new AssertionFailedException( "Steps with lower depth must be processed before steps with higher depth." );
             }
