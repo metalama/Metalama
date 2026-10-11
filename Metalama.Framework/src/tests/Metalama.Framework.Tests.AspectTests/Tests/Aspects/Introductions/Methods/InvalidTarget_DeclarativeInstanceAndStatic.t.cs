@@ -1,0 +1,5 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0037 on `InstanceFirst`: `The aspect 'InstanceFirst' cannot be applied to the type 'StaticTargetClass' because the aspect contains an instance declarative introduction and therefore cannot be applied to static types.`
+// Error LAMA0037 on `StaticFirst`: `The aspect 'StaticFirst' cannot be applied to the type 'StaticTargetClass' because the aspect contains an instance declarative introduction and therefore cannot be applied to static types.`
+// Error LAMA0037 on `InstanceFirstReverseNames`: `The aspect 'InstanceFirstReverseNames' cannot be applied to the type 'StaticTargetClass' because the aspect contains an instance declarative introduction and therefore cannot be applied to static types.`
+// Error LAMA0037 on `StaticFirstReverseNames`: `The aspect 'StaticFirstReverseNames' cannot be applied to the type 'StaticTargetClass' because the aspect contains an instance declarative introduction and therefore cannot be applied to static types.`
