@@ -7,11 +7,13 @@ using Metalama.Framework.Code;
 using Metalama.Framework.Engine.CodeModel.Helpers;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Engine.Utilities.Caching;
 using Metalama.Framework.Engine.Utilities.Roslyn;
 using Metalama.Framework.Engine.Utilities.UserCode;
 using Microsoft.CodeAnalysis;
 using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
@@ -22,12 +24,16 @@ using TypeKind = Microsoft.CodeAnalysis.TypeKind;
 
 namespace Metalama.Framework.Engine.CompileTime;
 
+// WeakCache.Dispose does nothing, so the cache does not need to be disposed.
+#pragma warning disable CA1001 // Types that own disposable fields should be disposable
 internal abstract class AttributeDeserializer : IAttributeDeserializer
+#pragma warning restore CA1001 // Types that own disposable fields should be disposable
 {
     private readonly ProjectServiceProvider _serviceProvider;
     private readonly CompileTimeTypeResolver _compileTimeTypeResolver;
     private readonly CompilationContext _compilationContext;
     private readonly UserCodeInvoker _userCodeInvoker;
+    private readonly WeakCache<INamedTypeSymbol, ConcurrentDictionary<string, bool>> _isTemplateMemberCache = new();
 
     protected AttributeDeserializer(
         in ProjectServiceProvider serviceProvider,
@@ -273,6 +279,13 @@ internal abstract class AttributeDeserializer : IAttributeDeserializer
     /// i.e. whether it has a custom attribute that implements <see cref="ITemplateAttribute"/>.
     /// </summary>
     private bool IsTemplateMember( INamedTypeSymbol attributeType, string memberName )
+        => this._isTemplateMemberCache.GetOrAdd( attributeType, _ => new ConcurrentDictionary<string, bool>() )
+            .GetOrAdd( memberName, name => this.IsTemplateMemberCore( attributeType, name ) );
+
+    /// <summary>
+    /// Computes the result of <see cref="IsTemplateMember"/> without using the cache.
+    /// </summary>
+    private bool IsTemplateMemberCore( INamedTypeSymbol attributeType, string memberName )
     {
         var templateAttribute = this._compilationContext.ReflectionMapper.GetTypeSymbol( typeof(ITemplateAttribute) );
         var compilation = this._compilationContext.Compilation;
