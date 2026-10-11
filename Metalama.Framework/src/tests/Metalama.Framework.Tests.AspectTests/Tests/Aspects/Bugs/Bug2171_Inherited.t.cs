@@ -1,2 +1,2 @@
 // CompileTimeAspectPipeline.ExecuteAsync failed.
-// Error LAMA0257 on `IntroducedProperty`: `Cannot set a template member IntroducedProperty from an attribute.`
+// Error LAMA0257 on `IntroducedProperty`: `The template member 'IntroducedProperty' cannot be set from an aspect custom attribute. Add a separate aspect property that is not a template and set this property instead.`

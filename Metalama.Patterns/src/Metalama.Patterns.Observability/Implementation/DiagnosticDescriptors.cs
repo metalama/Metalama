@@ -141,7 +141,7 @@ internal static class DiagnosticDescriptors
         new(
             "LAMA5166",
             Warning,
-            "The '{0}' property cannot be observed because '{1}' does not implement INotifyPropertyChanged. Consider implementing the INotifyPropertyChanged interface in '{1}', marking '{0}' with [Constant], or using "
+            "The '{0}' property cannot be observed because '{1}' does not implement INotifyPropertyChanged. Consider implementing the INotifyPropertyChanged interface in '{1}', marking '{1}' with [Constant], or using "
             + nameof(ObservabilityExtensions.ConfigureObservability) + " via a fabric.",
             "Properties cannot be observed unless their declaring type implements INotifyPropertyChanged.",
             _category );
