@@ -12,6 +12,7 @@ using Metalama.Framework.Engine.CompileTime.Serialization;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Services;
 using Metalama.Framework.Engine.SyntaxGeneration;
+using Metalama.Framework.Engine.SyntaxSerialization;
 using Metalama.Framework.Engine.Templating;
 using Metalama.Framework.Engine.Utilities.Comparers;
 using Metalama.Framework.Engine.Utilities.Roslyn;
@@ -645,7 +646,13 @@ namespace Metalama.Framework.Engine.CompileTime
                             out var existingSerializer,
                             out var ambiguous ) && ambiguous )
                     {
-                        throw new AssertionFailedException( $"Ambiguous serializer for {symbol}. This should have been caught by TemplatingCodeValidator." );
+                        // TemplatingCodeValidator reports this error too, but the design-time pipeline does not stop on validation errors.
+                        this._diagnosticAdder.Report(
+                            SerializationDiagnosticDescriptors.AmbiguousManualSerializer.CreateRoslynDiagnostic(
+                                symbol.GetDiagnosticLocation(),
+                                symbol ) );
+
+                        this.Success = false;
                     }
                     else if ( existingSerializer == null )
                     {

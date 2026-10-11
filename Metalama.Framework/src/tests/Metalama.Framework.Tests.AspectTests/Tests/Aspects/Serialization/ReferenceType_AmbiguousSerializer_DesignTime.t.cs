@@ -1,0 +1,2 @@
+// DesignTimeAspectPipeline.TryExecute failed
+// Error LAMA0208 on `SerializableClass`: `Compile-time serializable type 'SerializableClass' declares multiple nested classes implementing ReferenceTypeSerializer or ValueTypeSerializer. Only one manual serializer is allowed.`
