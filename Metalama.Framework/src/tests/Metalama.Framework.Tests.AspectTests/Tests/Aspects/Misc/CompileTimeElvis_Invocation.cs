@@ -5,6 +5,8 @@
 using Metalama.Framework.Aspects;
 using System.Linq;
 
+#pragma warning disable CS8602
+
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Misc.CompileTimeElvis_Invocation;
 
 internal class Aspect : OverrideMethodAspect
