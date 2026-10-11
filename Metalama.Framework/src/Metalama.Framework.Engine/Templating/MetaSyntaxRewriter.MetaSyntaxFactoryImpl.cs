@@ -38,7 +38,8 @@ namespace Metalama.Framework.Engine.Templating
                 => type.Kind switch
                 {
                     SymbolKind.ArrayType when type is IArrayTypeSymbol arrayType => this.SyntaxGenerationContext.SyntaxGenerator.ArrayTypeExpression(
-                        this.SyntaxGenerationContext.SyntaxGenerator.TypeSyntax( arrayType.ElementType ) ),
+                        this.SyntaxGenerationContext.SyntaxGenerator.TypeSyntax( arrayType.ElementType ),
+                        arrayType.Rank ),
                     _ => this.SyntaxGenerationContext.SyntaxGenerator.TypeOrNamespace( type )
                 };
 

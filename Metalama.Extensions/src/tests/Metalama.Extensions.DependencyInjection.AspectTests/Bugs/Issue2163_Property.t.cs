@@ -1,0 +1,1 @@
+// Error LAMA0702 on `Logger`: `None of the registered dependency injection frameworks can handle the dependency 'ILogger' in type 'TargetClass'.`

@@ -1,2 +1,2 @@
-// Error LAMA5110 on `MethodWithAttribute`: `The [Cache] aspect can be applied at most once to a method.`
-// Error LAMA5110 on `MethodWithoutAttribute`: `The [Cache] aspect can be applied at most once to a method.`
+// Error LAMA5112 on `MethodWithAttribute`: `The [Cache] aspect can be applied at most once to a method.`
+// Error LAMA5112 on `MethodWithoutAttribute`: `The [Cache] aspect can be applied at most once to a method.`

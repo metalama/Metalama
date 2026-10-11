@@ -58,16 +58,17 @@ internal sealed class AspectDriver : IAspectDriver
 
         if ( declarativeAdviceAttributes.Count > 0 )
         {
+            // All declarative advice members add their rules to the same builder, so the aspect is eligible only if all rules are satisfied.
+            var eligibilityBuilder = new EligibilityBuilder<IDeclaration>();
+
             foreach ( var declarativeAdvice in declarativeAdviceAttributes )
             {
-                var eligibilityBuilder = new EligibilityBuilder<IDeclaration>();
-
                 ((DeclarativeAdviceAttribute) declarativeAdvice.AdviceAttribute!).BuildAspectEligibility(
                     eligibilityBuilder,
                     declarativeAdvice.GetDeclaration( compilation ) );
-
-                this.EligibilityRule = eligibilityBuilder.Build();
             }
+
+            this.EligibilityRule = eligibilityBuilder.Build();
         }
     }
 

@@ -1,0 +1,1 @@
+// Error LAMA0702 on `_serviceProvider`: `None of the registered dependency injection frameworks can handle the dependency 'IServiceProvider' in type 'TargetClass'.`
