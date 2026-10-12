@@ -714,6 +714,11 @@ available, the typed `AddAspectForAttribute` reports LAMA0401 with the hint to m
 Nothing in this section is specific to build-only amender projects. The overloads are useful in the current
 topology whenever an aspect library reacts to attributes that it does not own.
 
+A declarative form of the same binding, `[AppliedBy(typeof(LogAttribute))]` on the aspect class, is proposed in
+[attribute-bound aspects](attribute-bound-aspects.md) as a separate user story. It is the recommended form for
+the common case, needs no fabric, and reports ineligibility at the attribute with a configurable severity. The
+helpers of this section remain for computed bindings.
+
 ## 8. Changes by component
 
 | Component | Change |
