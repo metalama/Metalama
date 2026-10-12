@@ -271,7 +271,10 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
                     var templateMember = MethodTemplateSelection.Select( templateClass, builder, request.Template.Selector )
                         .GetTemplateMember<IMethod>( this._compilation, serviceProvider, templateProvider, objectReaderFactory.GetReader( request.Template.Tags ) );
 
-                    builder.IsAsync = templateMember.GetDeclaration( this._compilation ).IsAsync;
+                    // A default template that is interpreted as an async template is expanded as an async method, which awaits meta.Proceed(),
+                    // as when it overrides an async method.
+                    builder.IsAsync = templateMember.GetDeclaration( this._compilation ).IsAsync
+                                      || templateMember is { SelectedTemplateKind: TemplateKind.Default, InterpretedTemplateKind: TemplateKind.Async };
                     builder.SetIsIteratorMethod( templateMember.IsIteratorMethod );
                     builder.Freeze();
 

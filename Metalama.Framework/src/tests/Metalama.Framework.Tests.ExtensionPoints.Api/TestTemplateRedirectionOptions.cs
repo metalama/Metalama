@@ -150,4 +150,11 @@ public sealed class TestTemplateRedirectionOptions
     /// of the same type.
     /// </summary>
     public bool ReassignReturnType { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the template selector of the declared method has the
+    /// <c>MethodTemplateSelector.UseAsyncTemplateForAnyAwaitable</c> flag, so that the template is interpreted as an async template when the
+    /// declared method returns an awaitable type.
+    /// </summary>
+    public bool UseAsyncTemplateForAnyAwaitable { get; set; }
 }
