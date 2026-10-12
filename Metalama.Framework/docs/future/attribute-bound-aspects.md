@@ -15,7 +15,7 @@ for a binding that is often one line of intent: "every declaration marked `[Log]
 
 Two situations need that binding and cannot use the first way:
 
-- An compiler project ([compiler projects](compiler-projects.md)) whose aspects react to attributes declared in a
+- A compiler project ([compiler projects](compiler-projects.md)) whose aspects react to attributes declared in a
   attributes project. The business code applies the attribute and never sees the aspect class.
 - A Metalama project that reacts to attributes of a third-party framework, for example a logging aspect on every
   method marked `[HttpGet]`, or a validation aspect on every type marked with an object-relational mapper's
