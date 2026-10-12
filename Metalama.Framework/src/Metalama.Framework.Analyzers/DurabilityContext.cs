@@ -6,6 +6,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 
 namespace Metalama.Framework.Analyzers.Durability
@@ -24,15 +25,23 @@ namespace Metalama.Framework.Analyzers.Durability
     /// key and its value are strings.
     /// </para>
     /// <para>
-    /// No cycle can arise while evaluating a type, because the evaluation never descends into the members of a type:
-    /// a type is durable when it is marked or well known, and is otherwise not durable, so the recursion follows only
-    /// array elements, type arguments and tuple elements. Those form a finite tree. The budget below therefore guards
-    /// against pathological nesting rather than against non-termination.
+    /// The evaluation descends into the members of a type only for a union, whose case types it evaluates. Otherwise a
+    /// type is durable when it is marked or well known, and is otherwise not durable, so the recursion follows only
+    /// array elements, type arguments and tuple elements. Those form a finite tree. A union can have a case type that
+    /// mentions the union itself, and the evaluation stops at a union that an enclosing frame is already evaluating.
+    /// The budget below therefore guards against pathological nesting rather than against non-termination.
     /// </para>
     /// </remarks>
     internal sealed partial class DurabilityContext
     {
         private const int _maxDepth = 20;
+
+        /// <summary>
+        /// The empty set of unions in progress, with which every evaluation starts. The set holds no symbol, so a
+        /// static field does not retain a compilation.
+        /// </summary>
+        private static readonly ImmutableHashSet<INamedTypeSymbol> _noUnionInProgress =
+            ImmutableHashSet.Create<INamedTypeSymbol>( SymbolEqualityComparer.Default );
 
         /// <summary>
         /// The full metadata name of the attribute, matched by name because this project deliberately does not
@@ -197,7 +206,7 @@ namespace Metalama.Framework.Analyzers.Durability
                 return cached;
             }
 
-            var verdict = this.GetVerdictCore( type, 0 );
+            var verdict = this.GetVerdictCore( type, 0, _noUnionInProgress );
 
             // The function is pure, so a racing duplicate computation is harmless and TryAdd is preferred over
             // GetOrAdd with a recursive value factory.
@@ -206,7 +215,13 @@ namespace Metalama.Framework.Analyzers.Durability
             return verdict;
         }
 
-        private DurabilityVerdict GetVerdictCore( ITypeSymbol type, int depth )
+        /// <summary>
+        /// Evaluates the durability of a type, at a given depth of the recursion.
+        /// </summary>
+        /// <param name="type">The type to evaluate.</param>
+        /// <param name="depth">The depth of the recursion, which is limited by <see cref="_maxDepth"/>.</param>
+        /// <param name="unionsInProgress">The unions whose case types are being evaluated by an enclosing frame.</param>
+        private DurabilityVerdict GetVerdictCore( ITypeSymbol type, int depth, ImmutableHashSet<INamedTypeSymbol> unionsInProgress )
         {
             if ( depth > _maxDepth )
             {
@@ -252,13 +267,13 @@ namespace Metalama.Framework.Analyzers.Durability
             // Rule 4. A nullable value type is exactly its underlying type, and adds no step to the chain.
             if ( type is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } nullableType )
             {
-                return this.GetVerdictCore( nullableType.TypeArguments[0], depth + 1 );
+                return this.GetVerdictCore( nullableType.TypeArguments[0], depth + 1, unionsInProgress );
             }
 
             // Rule 5. An array is durable when its elements are.
             if ( type is IArrayTypeSymbol arrayType )
             {
-                return this.GetVerdictCore( arrayType.ElementType, depth + 1 ).Prepend( "[]" );
+                return this.GetVerdictCore( arrayType.ElementType, depth + 1, unionsInProgress ).Prepend( "[]" );
             }
 
             // Rule 6. A type parameter is durable inside the definition. The obligation moves to the construction
@@ -273,7 +288,7 @@ namespace Metalama.Framework.Analyzers.Durability
             {
                 foreach ( var element in tupleType.TupleElements )
                 {
-                    var elementVerdict = this.GetVerdictCore( element.Type, depth + 1 );
+                    var elementVerdict = this.GetVerdictCore( element.Type, depth + 1, unionsInProgress );
 
                     if ( !elementVerdict.IsDurable )
                     {
@@ -333,7 +348,7 @@ namespace Metalama.Framework.Analyzers.Durability
                         return DurabilityVerdict.NotDurable( GetDisplayName( type ), entry.Reason );
 
                     case WellKnownDurability.Transparent:
-                        return this.GetTransparentVerdict( namedType, entry, depth );
+                        return this.GetTransparentVerdict( namedType, entry, depth, unionsInProgress );
                 }
             }
 
@@ -347,7 +362,36 @@ namespace Metalama.Framework.Analyzers.Durability
                 return inherited;
             }
 
-            // Rule 13. The declaration is trusted here. It is verified separately, by the rule that walks the members
+            // Rule 13. A union is durable when each of its case types is. The compiler lowers a union to a type whose
+            // only storage is an object property, so that storage says nothing about what the union may hold. This
+            // rule comes before the next one, so that a union marked [Durable] is judged by its case types too.
+            //
+            // A case type that mentions a union already being evaluated adds nothing: that union is durable when its
+            // other case types are, and the frame that evaluates it examines them. Stopping here keeps the cost linear
+            // in the number of case types, which the depth budget alone would not.
+            if ( UnionFacts.IsUnion( namedType ) )
+            {
+                if ( unionsInProgress.Contains( namedType ) )
+                {
+                    return DurabilityVerdict.Durable;
+                }
+
+                var caseUnionsInProgress = unionsInProgress.Add( namedType );
+
+                foreach ( var creationMember in UnionFacts.GetCreationMembers( namedType ) )
+                {
+                    var caseVerdict = this.GetVerdictCore( creationMember.Parameters[0].Type, depth + 1, caseUnionsInProgress );
+
+                    if ( !caseVerdict.IsDurable )
+                    {
+                        return caseVerdict.Prepend( GetDisplayName( type ) );
+                    }
+                }
+
+                return DurabilityVerdict.Durable;
+            }
+
+            // Rule 14. The declaration is trusted here. It is verified separately, by the rule that walks the members
             // of every type bound by the contract. A constructed generic is trusted only for the type arguments it
             // does not store: DurableLazy<T> holds a T, so DurableLazy<Compilation> is not durable however well
             // DurableLazy<T> itself satisfies its contract.
@@ -364,7 +408,7 @@ namespace Metalama.Framework.Analyzers.Durability
                             continue;
                         }
 
-                        var argumentVerdict = this.GetVerdictCore( namedType.TypeArguments[i], depth + 1 );
+                        var argumentVerdict = this.GetVerdictCore( namedType.TypeArguments[i], depth + 1, unionsInProgress );
 
                         if ( !argumentVerdict.IsDurable )
                         {
@@ -376,7 +420,7 @@ namespace Metalama.Framework.Analyzers.Durability
                 return DurabilityVerdict.Durable;
             }
 
-            // Rule 14. An interface or an abstract type has no members of its own to examine, so marking it does not
+            // Rule 15. An interface or an abstract type has no members of its own to examine, so marking it does not
             // check anything here; it requires every implementation to be durable, which the rule that walks the
             // members of a type bound by the contract then verifies. That is a different remedy from marking a class,
             // so it carries its own diagnostic.
@@ -387,14 +431,18 @@ namespace Metalama.Framework.Analyzers.Durability
                     "an interface or abstract type that is not marked [Durable]" );
             }
 
-            // Rule 15. Durability is opt-in.
+            // Rule 16. Durability is opt-in.
             return DurabilityVerdict.NotDurable( GetDisplayName( type ), "the type is not marked [Durable]" );
         }
 
         /// <summary>
         /// Evaluates a type whose durability follows that of the type arguments selected by its mask.
         /// </summary>
-        private DurabilityVerdict GetTransparentVerdict( INamedTypeSymbol type, WellKnownEntry entry, int depth )
+        private DurabilityVerdict GetTransparentVerdict(
+            INamedTypeSymbol type,
+            WellKnownEntry entry,
+            int depth,
+            ImmutableHashSet<INamedTypeSymbol> unionsInProgress )
         {
             var typeArguments = type.TypeArguments;
 
@@ -405,7 +453,7 @@ namespace Metalama.Framework.Analyzers.Durability
                     continue;
                 }
 
-                var argumentVerdict = this.GetVerdictCore( typeArguments[i], depth + 1 );
+                var argumentVerdict = this.GetVerdictCore( typeArguments[i], depth + 1, unionsInProgress );
 
                 if ( !argumentVerdict.IsDurable )
                 {

@@ -95,6 +95,45 @@ public sealed class DurableUnionTests : DurableAnalyzerTestBase
     public async Task DurableUnionWithDurableCases_IsNotReported()
         => await AssertNoUnionDiagnosticAsync( "[Durable] union U( string, int );" );
 
+    [Fact]
+    public async Task DurableUnionWithACompilationBoundCase_IsReportedOnTheCase()
+    {
+        var message = await AssertSingleUnionDiagnosticAsync( "[Durable] union U( string, SyntaxTree );", "LAMA0870" );
+
+        Assert.Contains( "U -> SyntaxTree", message, StringComparison.Ordinal );
+    }
+
+    /// <remarks>
+    /// A case type that mentions the union itself must not make the evaluation loop or grow exponentially.
+    /// </remarks>
+    [Fact]
+    public async Task FieldOfRecursiveUnionWithDurableCases_IsNotReported()
+        => await AssertNoUnionDiagnosticAsync( "[Durable] class A { private U _u; } union U( string, U[], U?[] );" );
+
+    [Fact]
+    public async Task FieldOfRecursiveUnionWithACompilationBoundCase_IsReported()
+    {
+        var message = await AssertSingleUnionDiagnosticAsync(
+            "[Durable] class A { private U _u; } union U( U[], SyntaxTree );",
+            "LAMA0870" );
+
+        Assert.Contains( "SyntaxTree", message, StringComparison.Ordinal );
+    }
+
+    [Fact]
+    public async Task FieldOfGenericUnionWithDurableTypeArgument_IsNotReported()
+        => await AssertNoUnionDiagnosticAsync( "[Durable] class A { private U<string> _u; } union U<T>( T, int );" );
+
+    [Fact]
+    public async Task FieldOfGenericUnionWithACompilationBoundTypeArgument_IsReported()
+    {
+        var message = await AssertSingleUnionDiagnosticAsync(
+            "[Durable] class A { private U<SyntaxTree> _u; } union U<T>( T, int );",
+            "LAMA0870" );
+
+        Assert.Contains( "U<SyntaxTree> -> SyntaxTree", message, StringComparison.Ordinal );
+    }
+
     /// <remarks>
     /// The attribute form of a union. Its case types are the parameter types of its public constructors that have a
     /// single parameter.
