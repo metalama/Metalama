@@ -3,12 +3,16 @@
 // Refer to LICENSE.md in the repository root for complete details.
 
 using JetBrains.Annotations;
+using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
+using Metalama.Framework.Engine.Services;
+using System.Collections.Immutable;
 
 namespace Metalama.Framework.Engine.Extensibility.Transformations;
 
 /// <summary>
-/// Describes a parameter or a type parameter of a method template, as returned by <see cref="ExtensionTemplateServices.TryGetMethodTemplateParameters"/>.
+/// Describes a parameter or a type parameter of a method template, as returned by
+/// <see cref="ExtensionTemplateServices.TryGetMethodTemplateParameters(in ProjectServiceProvider, ICompilation, ExtensionContributionOrigin?, TemplateProvider, string, out ImmutableArray{ExtensionTemplateParameter})"/>.
 /// </summary>
 [PublicAPI]
 public sealed class ExtensionTemplateParameter
@@ -42,8 +46,9 @@ public sealed class ExtensionTemplateParameter
     public bool IsCompileTime { get; }
 
     /// <summary>
-    /// Gets the type of the parameter in the compilation given to <see cref="ExtensionTemplateServices.TryGetMethodTemplateParameters"/>, or the
-    /// type parameter itself for a type parameter.
+    /// Gets the type of the parameter in the compilation given to
+    /// <see cref="ExtensionTemplateServices.TryGetMethodTemplateParameters(in ProjectServiceProvider, ICompilation, ExtensionContributionOrigin?, TemplateProvider, string, out ImmutableArray{ExtensionTemplateParameter})"/>,
+    /// or the type parameter itself for a type parameter.
     /// </summary>
     public IType Type { get; }
 

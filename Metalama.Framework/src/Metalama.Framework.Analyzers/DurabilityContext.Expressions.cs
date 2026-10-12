@@ -130,6 +130,15 @@ namespace Metalama.Framework.Analyzers.Durability
 
                         break;
 
+                    // A union conversion. The operator method is the creation member of the union, and the union stores
+                    // the operand as the value of its case, so the operand is the value to evaluate. The union type
+                    // itself would be judged by all its case types and not by the one the operand converts to.
+                    case IConversionOperation { Conversion.IsUserDefined: false, OperatorMethod: not null, Type: { } unionType } conversion
+                        when UnionFacts.IsUnion( unionType ):
+                        value = conversion.Operand;
+
+                        break;
+
                     case IParenthesizedOperation parenthesized:
                         value = parenthesized.Operand;
 
