@@ -201,7 +201,9 @@ document; the others are additions.
    `MetalamaAspectsAssembly` item, exactly as extension packages ship `MetalamaExtensionAssembly` items today
    (`Metalama.Framework/docs/extensibility.md`, `Metalama.Extensions.HtmlWriter/build/*.props`). Section 1
    refines this: the assembly stays in `lib/` so that aspects projects can compile against it, the props
-   register it in every case, and the aspects form of the reference is `PrivateAssets="all" ExcludeAssets="compile;runtime"`.
+   register it in every case, and the aspects form of the reference is `PrivateAssets="all" ExcludeAssets="compile;runtime"`,
+   which the [NuGet experiment](aspects-projects-nuget-experiment.md) confirms: the props run, the compiler gets
+   no reference, nothing is copied and nothing flows.
    The package depends on `Metalama.Framework.Build` and on its `Redist` package. The business project's
    dependency on the `Redist` package must be a direct, non-private reference for the reason given in section
    6.2 of the aspects projects document, and the pack-time check there should be generalized from
@@ -266,7 +268,10 @@ document; the others are additions.
    with several business projects: a `[Observable]` base class in one project and a derived class in another,
    both referencing the same aspects package, must inherit the aspect, and `TransitivePipelineContributorSource`
    can deserialize the manifest because the aspects project's compile-time project is in the consumer's closure. The
-   manifest must be written as today, and the warning dropped. Affects the aspects projects document, section 6.8.
+   manifest must be written as today, and the warning dropped. The requirement that such a consumer builds with
+   the same aspects is carried by the `Metalama.ConsumerRequirements.json` resource and checked by the `Redist`
+   targets, specified in section 6.8 of the aspects projects document. Affects the aspects projects document,
+   section 6.8; resolved there.
 
 8. **MSBuild-driven defaults through an aspects project reference.** `ObservabilityOptions.GetDefaultOptions`
    reads `InpcDiagnosticCommentVerbosity`, which the consuming project must export with
