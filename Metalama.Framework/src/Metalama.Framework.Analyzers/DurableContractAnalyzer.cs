@@ -163,9 +163,19 @@ namespace Metalama.Framework.Analyzers.Durability
         {
             var reportedProperties = new HashSet<ISymbol>( SymbolEqualityComparer.Default );
 
+            // The storage of a union is an object property, which says nothing about what the union may hold. The case
+            // types are examined instead, and the storage is skipped by the two loops below.
+            var isUnion = UnionFacts.IsUnion( type );
+
+            if ( isUnion )
+            {
+                AnalyzeUnionCases( context, durabilityContext, type );
+            }
+
             foreach ( var member in type.GetMembers() )
             {
-                if ( member is not IFieldSymbol { IsStatic: false, IsConst: false } field )
+                if ( member is not IFieldSymbol { IsStatic: false, IsConst: false } field
+                     || (isUnion && UnionFacts.IsValueStorage( field )) )
                 {
                     continue;
                 }
@@ -190,12 +200,59 @@ namespace Metalama.Framework.Analyzers.Durability
             {
                 if ( member is not IPropertySymbol { IsStatic: false, IsAbstract: false, IsExtern: false } property
                      || reportedProperties.Contains( property )
+                     || (isUnion && UnionFacts.IsValueStorage( property ))
                      || !SymbolFacts.IsAutomaticallyImplemented( property ) )
                 {
                     continue;
                 }
 
                 AnalyzeMember( context, durabilityContext, type, property, property.Type );
+            }
+        }
+
+        /// <summary>
+        /// Reports each case type of a union bound by the contract that is not durable. The diagnostic is reported on
+        /// the parameter of the creation member, which is the case type in the header of a union declaration.
+        /// </summary>
+        private static void AnalyzeUnionCases( SymbolAnalysisContext context, DurabilityContext durabilityContext, INamedTypeSymbol union )
+        {
+            // Two creation members can have the same case type, for instance U( T ) and U( in T ). The case is reported
+            // once, on the first of them.
+            var analyzedCaseTypes = new HashSet<ITypeSymbol>( SymbolEqualityComparer.Default );
+
+            foreach ( var creationMember in UnionFacts.GetCreationMembers( union ) )
+            {
+                var parameter = creationMember.Parameters[0];
+
+                if ( !analyzedCaseTypes.Add( parameter.Type ) )
+                {
+                    continue;
+                }
+
+                var verdict = durabilityContext.GetVerdict( parameter.Type );
+
+                if ( verdict.IsDurable )
+                {
+                    continue;
+                }
+
+                var location = parameter.Locations.FirstOrDefault( l => l.IsInSource )
+                               ?? creationMember.Locations.FirstOrDefault( l => l.IsInSource );
+
+                if ( location == null )
+                {
+                    continue;
+                }
+
+                var descriptor = verdict.Kind == DurabilityKind.NotAnnotated ? InterfaceIsNotDurable : MemberIsNotDurable;
+
+                context.ReportDiagnostic(
+                    Diagnostic.Create(
+                        descriptor,
+                        location,
+                        DurabilityContext.GetDisplayName( union ),
+                        DurabilityContext.GetDisplayName( parameter.Type ),
+                        verdict.Prepend( DurabilityContext.GetDisplayName( union ) ).FormatChain() ) );
             }
         }
 
