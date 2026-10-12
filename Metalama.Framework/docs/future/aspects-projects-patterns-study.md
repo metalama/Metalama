@@ -233,12 +233,15 @@ document; the others are additions.
    as the only run-time reference), Metalama extracts its `[RunTimeOrCompileTime]` types into the embedded
    compile-time project, and consumers recompile those sources. Only the shared types are extracted, so the
    package may be as thick as it likes at run time, and nothing is loaded from the run-time assembly in the
-   compile-time domain. `CachingOptions : ICacheItemConfiguration` depends on it. This path requires the engine
-   to run the compile-time extraction in a project that references neither `Metalama.Framework.dll` nor any
-   aspects assembly, and to embed the resource even when the project has no aspect class; whether the early
-   exit at `AspectPipeline.cs:689-691` (`BoundAspectClasses.Count == 0`) prevents the embedding today must be
-   verified. The foreign compile-time assembly kind then serves only libraries that are not built with Metalama.
-   Affects the aspects projects document, sections 4.1 and 6.5.
+   compile-time domain. `CachingOptions : ICacheItemConfiguration` depends on it. Verified against the code:
+   the early exit at `AspectPipeline.cs:689-691` never fires for a project with a compile-time project, because
+   `BoundAspectClasses` includes the three system aspect classes (`AspectPipeline.cs:333-343`), and
+   `ExecuteCoreAsync` embeds the resource whenever the compile-time project is not empty
+   (`CompileTimeAspectPipeline.cs:306-309`). The only condition that stops such a package today is the marker
+   reference to `Metalama.Framework.dll` in the three checks of section 6.4 of the aspects projects document,
+   and that marker becomes `Metalama.Framework.Redist.dll`, which the package references. No further engine
+   change is needed. The foreign compile-time assembly kind then serves only libraries that are not built with
+   Metalama. Affects the aspects projects document, sections 4.1, 6.4 and 6.5; resolved there.
 
 5. **Serializable state of bound aspects.** Contracts aspects are `IConditionallyInheritableAspect`, `[Observable]`
    and `[Immutable]` are `[Inheritable]`, so their instances are serialized into `Metalama.InheritableAspects.bin`

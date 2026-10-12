@@ -165,9 +165,10 @@ as a private reference and `Metalama.Framework.Redist` as its only run-time refe
 recompiles those sources as it does for any referenced compile-time project. Only the shared types are
 extracted, so the project may be as thick as it likes at run time and nothing is loaded from its assembly in the
 compile-time domain. This is how the caching run-time packages of `Metalama.Patterns` already work, and it is
-the recommended path for Metalama's own run-time packages. It requires the engine to run the compile-time
-extraction in a project with no aspect and no framework reference; the [Patterns study](aspects-projects-patterns-study.md),
-gap 4, records what must be verified.
+the recommended path for Metalama's own run-time packages. The engine already embeds the compile-time project
+of a project that has no aspect class of its own: the only remaining condition is the marker reference of
+section 6.4, which becomes `Metalama.Framework.Redist.dll` and which every project built with the `Build`
+package references. The [Patterns study](aspects-projects-patterns-study.md), gap 4, records the verification.
 
 ### 4.2. The aspects project
 
@@ -493,21 +494,35 @@ The compile-time project of the business project is empty, because the project h
 `CompileTimeCompilationBuilder` already supports when referenced projects exist
 (`CompileTimeCompilationBuilder.cs:1180-1198`).
 
-Three checks that require a reference to `Metalama.Framework.dll` change their condition to "the project
-references `Metalama.Framework.dll` or declares at least one aspects assembly". A reference to the run-time
-package alone does not enable the pipeline: the contracts project references it and is an ordinary project.
+Three checks use a reference to `Metalama.Framework.dll` as the marker of a Metalama project. The marker
+becomes `Metalama.Framework.Redist.dll`, which every project built with the `Build` package references through
+the package dependency of section 6.2, whether it is a business project, an aspects project or a run-time
+package built with Metalama. The `METALAMA` preprocessor symbol, which the build files define, stays as the
+second half of the condition. The version of the framework is read from the identity of the `Redist`
+assembly, which shares the version of the engine. A project that references the `Redist` package without the
+`Build` package has neither the symbol nor the analyzers, and the engine never runs in it.
 
 - `MetalamaProjectClassifier.TryGetMetalamaVersion` (`MetalamaProjectClassifier.cs:16-39`) requires the
-  `METALAMA` preprocessor symbol and a referenced assembly named `Metalama.Framework`. The build files define
-  `METALAMA` in every Metalama-enabled project, so the symbol check stays. The assembly check is replaced, and the
-  version that the classifier returns comes from `CompileTimeProjectManifest.MetalamaVersion` of the aspect
-  assemblies when there is no reference.
+  `METALAMA` preprocessor symbol and a referenced assembly named `Metalama.Framework`. The assembly name
+  changes to `Metalama.Framework.Redist`.
 - `CompileTimeCompilationBuilder.TryGetCompileTimeProject` (`CompileTimeCompilationBuilder.cs:869-879`) returns
-  no project when no reference has the file name `Metalama.Framework`. The condition gains the aspects assemblies.
+  no project when no reference has the file name `Metalama.Framework`. The file name changes to
+  `Metalama.Framework.Redist`.
 - `AspectPipeline.TryInitialize` (`AspectPipeline.cs:165-180`) compares the referenced `Metalama.Framework`
-  version with the engine version. With no reference, the comparison uses the manifest version of each aspect
-  assembly, which the existing `DependencyMustBeRecompiled` diagnostic already covers when the manifest version
-  differs (`CompileTimeProjectRepository.Builder.cs:616-734`).
+  version with the engine version, and reports `MetalamaVersionNotSupported` when several versions are
+  referenced or one is newer than the engine. The same comparison applies to the `Redist` assembly.
+
+An earlier draft widened the condition to "references `Metalama.Framework.dll` or declares at least one aspects
+assembly". The `Redist` marker is simpler, and it covers the run-time packages built with Metalama (section 4.1),
+which declare no aspects assembly and reference no `Metalama.Framework.dll`.
+
+The early exit of the pipeline when there is no aspect class (`AspectPipeline.cs:689-691`) does not prevent the
+compile-time project of such a package from being embedded: `BoundAspectClasses` is the collection that
+includes the three system aspect classes added at `AspectPipeline.cs:333-343`, so its count is never zero when
+a compile-time project exists, and `ExecuteCoreAsync` adds the resource whenever the project is not empty
+(`CompileTimeAspectPipeline.cs:306-309`). `RunTimeAssemblyRewriter` then stubs compile-time-only members only,
+so the `[RunTimeOrCompileTime]` types of the package keep their bodies and the package is fully functional at
+run time.
 
 The compile-time compilation of the business project does not need the business project to reference
 `Metalama.Framework.dll`. It references `CompileTimeAssemblyLocator.MetadataReferences`
