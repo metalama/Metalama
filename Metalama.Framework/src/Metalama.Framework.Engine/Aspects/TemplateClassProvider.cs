@@ -40,7 +40,7 @@ internal sealed class TemplateClassProvider : IProjectService
     }
 
     /// <summary>
-    /// Returns a new <see cref="TemplateClassProvider"/> that also contains given template classes.
+    /// Returns a new <see cref="TemplateClassProvider"/> that also contains the given template classes.
     /// </summary>
     public TemplateClassProvider WithTemplateClasses( IEnumerable<TemplateClass> templateClasses )
         => new( this._templateClasses.SetItems( templateClasses.Select( x => new KeyValuePair<string, TemplateClass>( x.FullName, x ) ) ) );
