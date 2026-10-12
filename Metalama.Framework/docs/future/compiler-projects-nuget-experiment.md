@@ -2,8 +2,8 @@
 
 This note records an experiment run on 2026-10-12 with the .NET 11 SDK (11.0.100-rc.1) to establish how
 `PrivateAssets`, `ExcludeAssets` and `developmentDependency` behave along a chain of three packages, because the
-package convention of [aspects projects](aspects-projects.md), section 6.2, and the transitive requirement
-problem discussed in the [Patterns study](aspects-projects-patterns-study.md) depend on it. The documentation
+package convention of [compiler projects](compiler-projects.md), section 6.2, and the transitive requirement
+problem discussed in the [Patterns study](compiler-projects-patterns-study.md) depend on it. The documentation
 of NuGet is ambiguous on the propagation of exclusions down a chain; the facts below are measured, not recalled.
 
 ## Setup
@@ -63,7 +63,7 @@ directory does not contain it.
    with an explicit `PrivateAssets="all"`, and the documentation must say so.
 2. **A dependency reached only through a private reference is absent from the nuspec.** `B1` declares `Redist`
    because it references it directly; it would not declare it through `Build` alone. This is the basis of the
-   pack-time check of the aspects projects document, section 6.2, and it is confirmed.
+   pack-time check of the compiler projects document, section 6.2, and it is confirmed.
 3. **Build-asset exclusions propagate down the whole chain.** Excluding or privatizing the build assets of a
    direct reference (`B3`, `B4`) removes the build assets of every package reachable through it, two levels
    down, while their `lib` assets still flow. A library cannot rely on its own `buildTransitive` props reaching a
@@ -85,4 +85,4 @@ directory does not contain it.
   even a flowing `buildTransitive` check can be silenced by an intermediate exclusion. The check therefore has
   to travel with the assembly, not with the package graph: the engine writes the requirement into the produced
   assembly, and the `Redist` targets, which reach every consumer that did not exclude build assets, read it and
-  report. This mechanism is specified in the aspects projects document.
+  report. This mechanism is specified in the compiler projects document.
