@@ -96,6 +96,12 @@ cannot be annotated at all. The reverse form, naming the aspect by a string on t
 considered and rejected: it loses the compile-time check of the name, does not cover third-party attributes,
 and moves a decision about aspects into the project that was meant to know nothing about them.
 
+An aspect class that carries `[AppliedBy]` is compile-time-only. It is never applied as an attribute and has no
+run-time role, so the engine classifies it as `[CompileTime]` without the attribute being written, and the
+single-assembly layout of the aspects projects document (section 6.10) removes it from the implementation
+assembly. A bound aspect class must therefore not be applied as a custom attribute; the engine reports an error
+when it is.
+
 `AllowMultiple` lets one aspect serve several attribute types. Two aspect classes bound to the same attribute
 type both apply, ordered by the usual aspect ordering. Neither case needs a rule of its own.
 

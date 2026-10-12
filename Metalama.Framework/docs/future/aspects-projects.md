@@ -354,7 +354,7 @@ The proposal follows one naming convention for every aspect library: the `Redist
 package that business code depends on, the `Aspects` suffix names the package with the aspects, and the
 unsuffixed name is a meta-package that depends on both and gives the one-reference experience of today. The
 [Patterns study](aspects-projects-patterns-study.md), section 3, applies the convention to the pattern libraries.
-The framework itself needs two packages only, because the single-assembly layout (section 9, question 8) leaves no user
+The framework itself needs two packages only, because the single-assembly layout (section 6.10) leaves no user
 for an authoring assembly without the compiler:
 
 | Package | Content | Dependencies | Flags |
@@ -385,7 +385,7 @@ and `distributing.md` tells a library author to reference `Metalama.Framework` p
 `Metalama.Framework.Redist`, so that consumers get the authoring assembly at run time without the compiler. After
 the change, such a library gets only the minimal assembly from `Metalama.Framework.Redist`, and its aspect classes
 no longer find `Metalama.Framework.dll` in consumers. There is no substitute package: the migration for such a
-library is to adopt the single-assembly layout (section 9, question 8), in which the run-time assembly no longer references
+library is to adopt the single-assembly layout (section 6.10), in which the run-time assembly no longer references
 `Metalama.Framework.dll`, or to reference `Metalama.Framework` without `PrivateAssets`, which flows it to consumers
 as it did before the author followed `distributing.md`. This is a breaking change and is accepted for a major
 version; the release notes and `distributing.md` carry the two options.
@@ -868,6 +868,127 @@ The license is consumed in the project where aspects are applied, which is the b
 (`Metalama.Compiler.props:150`), so license resolution is unchanged. The aspects project also builds with a
 license, as any Metalama project does today.
 
+### 6.10. The single-assembly layout
+
+This section records the result of the research announced in question 8 of section 9, and proposes a layout in
+which one project produces one package whose run-time assembly is free of compile-time code. The research
+covered the engine side (what resolves compile-time declarations of a referenced library, and from where) and
+the compiler side (whether a reference assembly can be emitted from a compilation other than the one emitted
+as the implementation).
+
+#### 6.10.1. What the engine resolves, and from where
+
+The engine resolves the compile-time declarations of a referenced library L in two different ways.
+
+- Aspect instances, fabrics and options are instantiated by reflection from the compile-time project, the
+  `ml!L_<hash>` assembly recompiled from the embedded sources (`Fabrics/FabricManager.cs:53-68`,
+  `HierarchicalOptionsManager.cs:42-57`, the serialization binder). This path does not need the types in `L.dll`.
+- Template discovery, aspect class metadata and advice binding read Roslyn symbols of `L.dll` as the consumer's
+  compiler sees it. `CacheableTemplateDiscoveryContextProvider` (`CompileTime/CacheableTemplateDiscoveryContextProvider.cs:43-71`)
+  builds a discovery compilation from the consumer's portable executable references, and `TemplateClassFactory`,
+  `TemplateClass`, `TemplateMemberRef` and `TemplateMember` (`Aspects/TemplateClassFactory.cs:57-94`,
+  `Advising/TemplateMemberRef.cs:57-75`, `Advising/TemplateMember.cs:244-294`) resolve the aspect types and the
+  original template signatures there, including the `[CompiledTemplate]` metadata that `RunTimeAssemblyRewriter`
+  adds. The `ml!` assembly cannot serve this path: it does not contain the original template declarations, which
+  are replaced by template-generating methods (`CompileTimeCompilationBuilder.ProduceCompileTimeCodeRewriter.cs:927-939`),
+  and their signatures use run-time types of L that the compile-time compilation does not reference.
+
+The second path is the constraint. Whatever the layout, the assembly that the consumer's compiler receives for L
+must contain the aspect types and their templates. The implementation assembly that the consumer loads at run
+time need not.
+
+#### 6.10.2. What the compiler can do
+
+Metalama.Compiler emits the implementation assembly and the reference assembly from one `Compilation` and one
+module builder (`Compilers/Core/Portable/Compilation/Compilation.cs:3412-3471`), after the transformers have
+replaced the compilation (`Compilers/Core/Portable/CommandLine/CommonCompiler.cs:1543-1551`). No existing hook
+lets a transformer supply a different compilation for the reference assembly. Two facts make the change
+contained:
+
+- The fork already lets a resource into the reference assembly when it was added with
+  `ManagedResource.IncludeInRefAssembly` (`Compilers/Core/Portable/Emit/CommonPEModuleBuilder.cs:590-628`,
+  `CSharpCompiler.cs:642-645`), and Metalama already sets that flag on the compile-time project resource and the
+  transitive manifest (`CompileTime/CompileTimeProject.cs:494-506`, `Aspects/TransitiveAspectsManifest.cs:127-136`).
+  The reference assembly of a Metalama project already carries the embedded compile-time project.
+- `RunTimeAssemblyRewriter` already marks the templates it stubs with `WithIncludeInReferenceAssemblyAnnotation`
+  so that their metadata survives into the reference assembly (`RunTimeAssemblyRewriter.cs:418-460`,
+  `Compilers/Core/Portable/PEWriter/Members.cs:1056-1077`).
+
+The change is a new field on the transformer result, a reference compilation, and a second emit in
+`CommonCompiler.CompileAndEmitImpl`: the implementation from the transformed compilation as today, the reference
+assembly from the reference compilation through its own metadata-only module builder, with the same resource
+instances so that the marked resources are kept, and with the generator-produced trees added to both
+(`CommonCompiler.cs:1706-1721`, `2055-2081`). `/refonly` emits the reference compilation as the primary output.
+`TransformerContext` gains the corresponding member, which `Metalama.Framework.Engine/Pipeline/SourceTransformer.cs`
+feeds from `CompileTimeAspectPipeline` with the compilation before `RunTimeAssemblyRewriter` runs
+(`CompileTimeAspectPipeline.cs:353-380`). Emitting the reference assembly from inside the transformer as an
+additional output file was assessed and rejected: it runs before csc writes its own reference assembly and
+would have to be copied over it by a target, it has no access to the emit options, and the resource marker is
+internal to the compiler and attached after the transformer returns.
+
+#### 6.10.3. The layout
+
+A library L built with Metalama produces two assemblies from one project:
+
+- The reference assembly, emitted from the compilation before stripping. It contains every type, including the
+  aspect classes with their templates, the fabrics, the options and the configuration extension methods, and
+  the embedded compile-time project. NuGet places it in `ref/`; a project reference hands it to the consumer's
+  compiler through `ReferencePathWithRefAssemblies`. It references `Metalama.Framework.dll`.
+- The implementation assembly, emitted from the stripped compilation. `RunTimeAssemblyRewriter` removes every
+  compile-time-only type instead of stubbing its members, and removes the compile-time assembly-level attributes
+  such as `[assembly: AspectOrder]`. What remains is the run-time surface: the attributes that business code
+  applies, the run-time helpers, the shared `[RunTimeOrCompileTime]` types. NuGet places it in `lib/`; it is what
+  the consumer copies and loads. It references `Metalama.Framework.Redist.dll` and nothing else of Metalama.
+
+Every engine path of section 6.10.1 keeps working unchanged, because the consumer's compiler, and therefore the
+discovery compilation and the compile-time project repository, see the reference assembly: for a package through
+NuGet's compile assets, for a project reference through the reference assembly that the .NET SDK produces by
+default. The run-time loader sees the implementation assembly, which loads nothing of the compile-time surface.
+
+Stripping applies to compile-time-only types, which today are the fabrics, the options, the `[CompileTime]`
+classes, and nothing else. Aspect classes are run-time-or-compile-time by inheritance from `IAspect`
+(`Metalama.Framework/Aspects/IAspect.cs:45`) and would stay in the implementation assembly, with their base
+types in `Metalama.Framework.dll`. The attribute-bound design removes the reason for that scope: an aspect
+class bound with `[AppliedBy]` is never applied as an attribute, has no run-time role, and is compile-time-only.
+The engine classifies such a class as compile-time-only, and the implementation assembly of a library whose
+aspects are all bound references `Metalama.Framework.Redist.dll` only. A library that keeps attribute aspects
+keeps them in the implementation assembly, with the `Metalama.Framework.dll` dependency that implies, which is
+today's situation and remains supported.
+
+#### 6.10.4. What must change
+
+| Component | Change |
+|---|---|
+| Metalama.Compiler | The reference compilation on `TransformersResult` and `TransformerContext`; the second emit in `CompileAndEmitImpl`; the `/refonly` case; a version bump of `Metalama.Compiler.Interface`. |
+| `SourceTransformer`, `CompileTimeAspectPipeline` | Hand the pre-strip compilation to the compiler as the reference compilation. |
+| `RunTimeAssemblyRewriter` | Remove compile-time-only types and compile-time assembly-level attributes instead of stubbing; filter the base lists of kept types that implemented a removed interface; keep stubbing the compile-time members of run-time-or-compile-time types, which cannot be removed (`IAspect<T>.BuildAspect` has no default body on `netstandard2.0`). Off for untransformed projects (`MetalamaRemoveCompileTimeOnlyCode=false`), as today. |
+| `SymbolClassifier` | An aspect class with `[AppliedBy]` is compile-time-only. |
+| `TemplatingCodeValidator` | Run-time code that names a compile-time-only type compiles against the reference assembly and fails at run time once the type is stripped. LAMA0117 covers signatures only and exempts `typeof`, `nameof`, attribute arguments and, by default, method bodies (`Templating/TemplatingCodeValidator.Visitor.cs:97-104`, `245-292`, `1072-1075`). The rule must cover all of them for types that will be stripped, in every project. |
+| `AttributeAspectOrderingSource`, `AttributeDeserializer` | Read `[assembly: AspectOrder]` from the reference assembly, which the discovery compilation already is; report a diagnostic instead of dropping the ordering silently when a `typeof` argument does not resolve (`CompileTime/AttributeDeserializer.cs:357-361`). |
+| Build files | Force `ProduceReferenceAssembly=true` in a project that strips, and report an error when the user disabled it: a consumer handed the implementation assembly as a compile reference would find no aspect types. The pack-time check and the consumer requirements resource are unchanged; the resource is marked for the reference assembly as well, so that both assemblies carry it. |
+| Design time | Nothing. In-solution references are compilation references with full source; package references are the reference assembly. |
+
+The two silent failures the research found, the dropped aspect ordering and the skipped unresolvable aspect
+types in `CompilationAspectSource.cs:79`, are reported today as nothing and become diagnostics.
+
+#### 6.10.5. What the layout does to the package convention
+
+With one project producing both assemblies, the `Redist` and `Aspects` packages of the pattern libraries
+(section 6.2, [Patterns study](aspects-projects-patterns-study.md) section 1) are no longer needed: the
+unsuffixed package carries the implementation in `lib/` and the reference assembly in `ref/`, and a business
+project references it as an ordinary package. Its nuspec depends on `Metalama.Framework.Redist`, which the
+implementation references, and on nothing else of Metalama; a consumer that compiles against the reference
+assembly and reaches a type of `Metalama.Framework.dll` is a Metalama project and has it. The private reference
+with `ExcludeAssets="compile;runtime"` of the earlier aspects package form is not needed either.
+
+What remains of the convention is `Metalama.Framework.Redist` and `Metalama.Framework`, and the build-only
+project reference of section 6.1 for a project that contains compile-time code only, whose implementation
+assembly would be empty. `Metalama.Patterns.Caching` keeps its existing split, which predates this design and
+exists for users without Metalama.
+
+This simplification is the outcome of the research and is proposed, not yet decided. The study's package
+tables stand until it is.
+
 ## 7. Fabric application programming interface
 
 The scenario needs the attribute instance in the `AddAspect` delegate. Today the only way is a tagged query, as
@@ -997,20 +1118,10 @@ helpers of this section remain for computed bindings.
    `Construct<LogAttribute>()` returns an instance of the projection and `attribute.Category` compiles. The
    projection would be a new kind of compile-time type, distinct from the real type, and its identity rules need
    a design of their own. It is not part of this proposal.
-8. The single-assembly layout. With `[AppliedBy]`, the aspect classes of a library are no longer attributes that
-   business code applies, so nothing outside the compile-time project names them. The compile-time-only types
-   of a project (aspects, fabrics, options, templates, the configuration extension classes) can then be removed
-   from the run-time assembly instead of stubbed by `RunTimeAssemblyRewriter`, which leaves a run-time assembly
-   that contains the attributes and helpers only, references `Metalama.Framework.Redist.dll` only, and carries
-   the compile-time project in the resource it carries today. One project would then produce what the `Redist`
-   and `Aspects` split of the [Patterns study](aspects-projects-patterns-study.md) produces by hand, and the
-   framework needs no package between `Metalama.Framework.Redist` and `Metalama.Framework` (section 6.2). The
-   open points are the compile reference that a user's aspects project needs to the stripped types in order to
-   call `ConfigureContracts`, which NuGet's `ref/` and `lib/` separation can provide if Metalama.Compiler can
-   emit the reference assembly from the compilation before stripping; what the embedded manifest and
-   `TemplateClassFactory` need when the aspect types are absent from the run-time assembly; and whether the rule
-   that reports a compile-time-only type used in run-time code is enough to keep business code off the stripped
-   surface. This research is the next step; the package decisions of section 6.2 assume its outcome.
+8. The single-assembly layout, researched and specified in section 6.10. What remains open there: whether
+   the package convention of the libraries is reduced to one package per library (section 6.10.5); how far the
+   validator must go for run-time code that names a strippable type in a method body, since bodies are not
+   validated by default; and the error for a project that strips with `ProduceReferenceAssembly` disabled.
 
 ## 10. Alternatives considered
 
