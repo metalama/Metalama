@@ -120,6 +120,25 @@ public sealed class DurableUnionTests : DurableAnalyzerTestBase
         Assert.Contains( "SyntaxTree", message, StringComparison.Ordinal );
     }
 
+    /// <remarks>
+    /// Each case type constructs the union with new type arguments, so no enclosing frame is evaluating the union of
+    /// a case. Without a bound on the number of unions that one evaluation examines, the evaluation would examine a
+    /// number of unions that grows exponentially with the depth.
+    /// </remarks>
+    [Fact]
+    public async Task FieldOfGenericUnionThatConstructsItselfInItsCases_IsNotReported()
+        => await AssertNoUnionDiagnosticAsync( "[Durable] class A { private U<string> _u; } union U<T>( U<T[]>, U<(T, T)>, U<(T, int)> );" );
+
+    [Fact]
+    public async Task FieldOfGenericUnionThatConstructsItselfInItsCasesWithACompilationBoundCase_IsReported()
+    {
+        var message = await AssertSingleUnionDiagnosticAsync(
+            "[Durable] class A { private U<string> _u; } union U<T>( U<T[]>, U<(T, T)>, U<(T, int)>, SyntaxTree );",
+            "LAMA0870" );
+
+        Assert.Contains( "SyntaxTree", message, StringComparison.Ordinal );
+    }
+
     [Fact]
     public async Task FieldOfGenericUnionWithDurableTypeArgument_IsNotReported()
         => await AssertNoUnionDiagnosticAsync( "[Durable] class A { private U<string> _u; } union U<T>( T, int );" );
@@ -178,6 +197,33 @@ public sealed class DurableUnionTests : DurableAnalyzerTestBase
     }
 
     /// <remarks>
+    /// Two constructors that differ only by the <c>in</c> modifier of their parameter create the same case, so the
+    /// case is reported once.
+    /// </remarks>
+    [Fact]
+    public async Task DurableAttributeUnionWithTwoCreationMembersForACompilationBoundCase_IsReportedOnce()
+    {
+        var message = await AssertSingleUnionDiagnosticAsync(
+            """
+            [Durable]
+            [Union]
+            class U : IUnion
+            {
+                public U( string s ) { this.Value = s; }
+
+                public U( SyntaxTree tree ) { this.Value = tree; }
+
+                public U( in SyntaxTree tree ) { this.Value = tree; }
+
+                public object Value { get; }
+            }
+            """,
+            "LAMA0870" );
+
+        Assert.Contains( "SyntaxTree", message, StringComparison.Ordinal );
+    }
+
+    /// <remarks>
     /// A union with a member provider interface. Its case types are the parameter types of its static
     /// <c>Create</c> methods.
     /// </remarks>
@@ -208,6 +254,43 @@ public sealed class DurableUnionTests : DurableAnalyzerTestBase
                 }
             }
             """ );
+
+    /// <remarks>
+    /// The <c>SyntaxTree</c> case is declared only by a <c>Create</c> method, so the test fails when the member
+    /// provider interface is not found.
+    /// </remarks>
+    [Fact]
+    public async Task FieldOfUnionWithMemberProviderAndACompilationBoundCase_IsReportedOnTheCase()
+    {
+        var message = await AssertSingleUnionDiagnosticAsync(
+            """
+            [Durable] class A { private U _u; }
+
+            [Union]
+            class U : IUnion, U.IUnionMembers
+            {
+                private U( object value ) { this.Value = value; }
+
+                public object Value { get; }
+
+                public static U Create( string s ) => new U( s );
+
+                public static U Create( SyntaxTree tree ) => new U( tree );
+
+                public interface IUnionMembers
+                {
+                    object Value { get; }
+
+                    static abstract U Create( string s );
+
+                    static abstract U Create( SyntaxTree tree );
+                }
+            }
+            """,
+            "LAMA0870" );
+
+        Assert.Contains( "SyntaxTree", message, StringComparison.Ordinal );
+    }
 
     #endregion
 

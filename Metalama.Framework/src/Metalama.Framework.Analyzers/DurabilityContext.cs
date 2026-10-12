@@ -6,7 +6,6 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 
 namespace Metalama.Framework.Analyzers.Durability
@@ -29,7 +28,9 @@ namespace Metalama.Framework.Analyzers.Durability
     /// type is durable when it is marked or well known, and is otherwise not durable, so the recursion follows only
     /// array elements, type arguments and tuple elements. Those form a finite tree. A union can have a case type that
     /// mentions the union itself, and the evaluation stops at a union that an enclosing frame is already evaluating.
-    /// The budget below therefore guards against pathological nesting rather than against non-termination.
+    /// The depth budget below therefore guards against pathological nesting rather than against non-termination. A
+    /// generic union can construct a new union at each level of the recursion, so a second budget limits the number
+    /// of unions that one evaluation examines.
     /// </para>
     /// </remarks>
     internal sealed partial class DurabilityContext
@@ -37,11 +38,15 @@ namespace Metalama.Framework.Analyzers.Durability
         private const int _maxDepth = 20;
 
         /// <summary>
-        /// The empty set of unions in progress, with which every evaluation starts. The set holds no symbol, so a
-        /// static field does not retain a compilation.
+        /// The maximal number of unions whose case types one evaluation examines.
         /// </summary>
-        private static readonly ImmutableHashSet<INamedTypeSymbol> _noUnionInProgress =
-            ImmutableHashSet.Create<INamedTypeSymbol>( SymbolEqualityComparer.Default );
+        /// <remarks>
+        /// A generic union can have case types that construct the union with new type arguments, for instance
+        /// <c>union U&lt;T&gt;( U&lt;T[]&gt;, U&lt;(T, T)&gt; )</c>. Each level of the recursion then constructs new
+        /// unions, which an enclosing frame is not evaluating, so the number of unions to examine grows exponentially
+        /// with the depth. This budget bounds the total work of one evaluation.
+        /// </remarks>
+        private const int _maxUnionExpansions = 256;
 
         /// <summary>
         /// The full metadata name of the attribute, matched by name because this project deliberately does not
@@ -206,7 +211,7 @@ namespace Metalama.Framework.Analyzers.Durability
                 return cached;
             }
 
-            var verdict = this.GetVerdictCore( type, 0, _noUnionInProgress );
+            var verdict = this.GetVerdictCore( type, 0, new UnionEvaluation() );
 
             // The function is pure, so a racing duplicate computation is harmless and TryAdd is preferred over
             // GetOrAdd with a recursive value factory.
@@ -220,8 +225,8 @@ namespace Metalama.Framework.Analyzers.Durability
         /// </summary>
         /// <param name="type">The type to evaluate.</param>
         /// <param name="depth">The depth of the recursion, which is limited by <see cref="_maxDepth"/>.</param>
-        /// <param name="unionsInProgress">The unions whose case types are being evaluated by an enclosing frame.</param>
-        private DurabilityVerdict GetVerdictCore( ITypeSymbol type, int depth, ImmutableHashSet<INamedTypeSymbol> unionsInProgress )
+        /// <param name="unionEvaluation">The state of the evaluation of unions, which all frames of one evaluation share.</param>
+        private DurabilityVerdict GetVerdictCore( ITypeSymbol type, int depth, UnionEvaluation unionEvaluation )
         {
             if ( depth > _maxDepth )
             {
@@ -267,13 +272,13 @@ namespace Metalama.Framework.Analyzers.Durability
             // Rule 4. A nullable value type is exactly its underlying type, and adds no step to the chain.
             if ( type is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } nullableType )
             {
-                return this.GetVerdictCore( nullableType.TypeArguments[0], depth + 1, unionsInProgress );
+                return this.GetVerdictCore( nullableType.TypeArguments[0], depth + 1, unionEvaluation );
             }
 
             // Rule 5. An array is durable when its elements are.
             if ( type is IArrayTypeSymbol arrayType )
             {
-                return this.GetVerdictCore( arrayType.ElementType, depth + 1, unionsInProgress ).Prepend( "[]" );
+                return this.GetVerdictCore( arrayType.ElementType, depth + 1, unionEvaluation ).Prepend( "[]" );
             }
 
             // Rule 6. A type parameter is durable inside the definition. The obligation moves to the construction
@@ -288,7 +293,7 @@ namespace Metalama.Framework.Analyzers.Durability
             {
                 foreach ( var element in tupleType.TupleElements )
                 {
-                    var elementVerdict = this.GetVerdictCore( element.Type, depth + 1, unionsInProgress );
+                    var elementVerdict = this.GetVerdictCore( element.Type, depth + 1, unionEvaluation );
 
                     if ( !elementVerdict.IsDurable )
                     {
@@ -348,7 +353,7 @@ namespace Metalama.Framework.Analyzers.Durability
                         return DurabilityVerdict.NotDurable( GetDisplayName( type ), entry.Reason );
 
                     case WellKnownDurability.Transparent:
-                        return this.GetTransparentVerdict( namedType, entry, depth, unionsInProgress );
+                        return this.GetTransparentVerdict( namedType, entry, depth, unionEvaluation );
                 }
             }
 
@@ -368,24 +373,32 @@ namespace Metalama.Framework.Analyzers.Durability
             //
             // A case type that mentions a union already being evaluated adds nothing: that union is durable when its
             // other case types are, and the frame that evaluates it examines them. Stopping here keeps the cost linear
-            // in the number of case types, which the depth budget alone would not.
+            // in the number of case types, which the depth budget alone would not. A generic union can construct a new
+            // union at each level, which no enclosing frame is evaluating, and the budget of union expansions bounds
+            // that case.
             if ( UnionFacts.IsUnion( namedType ) )
             {
-                if ( unionsInProgress.Contains( namedType ) )
+                if ( !unionEvaluation.TryEnter( namedType ) )
                 {
+                    // As for the depth budget, silence is preferable to a verdict that was cut short.
                     return DurabilityVerdict.Durable;
                 }
 
-                var caseUnionsInProgress = unionsInProgress.Add( namedType );
-
-                foreach ( var creationMember in UnionFacts.GetCreationMembers( namedType ) )
+                try
                 {
-                    var caseVerdict = this.GetVerdictCore( creationMember.Parameters[0].Type, depth + 1, caseUnionsInProgress );
-
-                    if ( !caseVerdict.IsDurable )
+                    foreach ( var creationMember in UnionFacts.GetCreationMembers( namedType ) )
                     {
-                        return caseVerdict.Prepend( GetDisplayName( type ) );
+                        var caseVerdict = this.GetVerdictCore( creationMember.Parameters[0].Type, depth + 1, unionEvaluation );
+
+                        if ( !caseVerdict.IsDurable )
+                        {
+                            return caseVerdict.Prepend( GetDisplayName( type ) );
+                        }
                     }
+                }
+                finally
+                {
+                    unionEvaluation.Exit( namedType );
                 }
 
                 return DurabilityVerdict.Durable;
@@ -408,7 +421,7 @@ namespace Metalama.Framework.Analyzers.Durability
                             continue;
                         }
 
-                        var argumentVerdict = this.GetVerdictCore( namedType.TypeArguments[i], depth + 1, unionsInProgress );
+                        var argumentVerdict = this.GetVerdictCore( namedType.TypeArguments[i], depth + 1, unionEvaluation );
 
                         if ( !argumentVerdict.IsDurable )
                         {
@@ -442,7 +455,7 @@ namespace Metalama.Framework.Analyzers.Durability
             INamedTypeSymbol type,
             WellKnownEntry entry,
             int depth,
-            ImmutableHashSet<INamedTypeSymbol> unionsInProgress )
+            UnionEvaluation unionEvaluation )
         {
             var typeArguments = type.TypeArguments;
 
@@ -453,7 +466,7 @@ namespace Metalama.Framework.Analyzers.Durability
                     continue;
                 }
 
-                var argumentVerdict = this.GetVerdictCore( typeArguments[i], depth + 1, unionsInProgress );
+                var argumentVerdict = this.GetVerdictCore( typeArguments[i], depth + 1, unionEvaluation );
 
                 if ( !argumentVerdict.IsDurable )
                 {
@@ -524,5 +537,41 @@ namespace Metalama.Framework.Analyzers.Durability
         /// <c>+</c>, and the name of the type with its arity.
         /// </summary>
         public static string GetFullMetadataName( INamedTypeSymbol type ) => SymbolFacts.GetFullMetadataName( type );
+
+        /// <summary>
+        /// The state of the evaluation of unions during one evaluation of a type: the unions whose case types an
+        /// enclosing frame is examining, and the number of unions that the evaluation may still examine.
+        /// </summary>
+        /// <remarks>
+        /// An instance is created for each evaluation and is not shared between threads.
+        /// </remarks>
+        private sealed class UnionEvaluation
+        {
+            private readonly HashSet<INamedTypeSymbol> _inProgress = new( SymbolEqualityComparer.Default );
+            private int _remainingExpansions = _maxUnionExpansions;
+
+            /// <summary>
+            /// Starts the examination of the case types of a union. Returns <c>false</c> when an enclosing frame is
+            /// already examining the union, or when the evaluation has already examined
+            /// <see cref="_maxUnionExpansions"/> unions. When the method returns <c>true</c>, the caller must call
+            /// <see cref="Exit"/> after the examination.
+            /// </summary>
+            public bool TryEnter( INamedTypeSymbol union )
+            {
+                if ( this._remainingExpansions <= 0 || !this._inProgress.Add( union ) )
+                {
+                    return false;
+                }
+
+                this._remainingExpansions--;
+
+                return true;
+            }
+
+            /// <summary>
+            /// Completes the examination of the case types of a union that <see cref="TryEnter"/> started.
+            /// </summary>
+            public void Exit( INamedTypeSymbol union ) => this._inProgress.Remove( union );
+        }
     }
 }

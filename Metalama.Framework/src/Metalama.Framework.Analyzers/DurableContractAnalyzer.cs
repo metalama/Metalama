@@ -216,9 +216,19 @@ namespace Metalama.Framework.Analyzers.Durability
         /// </summary>
         private static void AnalyzeUnionCases( SymbolAnalysisContext context, DurabilityContext durabilityContext, INamedTypeSymbol union )
         {
+            // Two creation members can have the same case type, for instance U( T ) and U( in T ). The case is reported
+            // once, on the first of them.
+            var analyzedCaseTypes = new HashSet<ITypeSymbol>( SymbolEqualityComparer.Default );
+
             foreach ( var creationMember in UnionFacts.GetCreationMembers( union ) )
             {
                 var parameter = creationMember.Parameters[0];
+
+                if ( !analyzedCaseTypes.Add( parameter.Type ) )
+                {
+                    continue;
+                }
+
                 var verdict = durabilityContext.GetVerdict( parameter.Type );
 
                 if ( verdict.IsDurable )
