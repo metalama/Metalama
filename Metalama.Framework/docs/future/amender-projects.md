@@ -111,8 +111,11 @@ graph BT
     Redist -- depends on --> RunTime
 ```
 
-The solid edges are ordinary compile references. The dotted edges add nothing to the compilation of the business
-project and nothing to its output directory. The amender project must be built before the business project and
+The solid edges are ordinary compile references. The two dotted edges from the business project differ. The
+project reference to the amender project adds nothing to the compilation of the business project and nothing to
+its output directory. The package reference to `Metalama.Framework.Build` is private, so it flows to no consumer,
+but it brings `Metalama.Framework.RunTime.dll` into the compilation and the output directory of the business
+project through its dependency (section 6.2). The amender project must be built before the business project and
 must not reference it, because the amender project is an input of the build of the business project.
 
 ### 4.1. The contracts project
@@ -338,7 +341,7 @@ The proposal is the following package set:
 
 | Package | Content | Dependencies | Flags |
 |---|---|---|---|
-| `Metalama.Framework.RunTime` (restored) | `Metalama.Framework.RunTime.dll`: the scope attributes and the run-time helpers (section 6.3) | none | none |
+| `Metalama.Framework.RunTime` (restored) | `Metalama.Framework.RunTime.dll`: the scope attributes and the run-time helpers (section 6.3) | `Microsoft.Bcl.AsyncInterfaces` for `netstandard2.0` only; none for `net10.0` | none |
 | `Metalama.Framework.Build` (new) | Analyzers, `build`, `buildTransitive` | `Metalama.Compiler` (as today), `Metalama.Framework.RunTime` with every asset | `developmentDependency=true` |
 | `Metalama.Framework.Redist` | `Metalama.Framework.dll`, with type forwarders to the run-time assembly | `Metalama.Framework.RunTime` | as today |
 | `Metalama.Framework` (unchanged for users) | Empty `lib` placeholders | `Metalama.Framework.Build` with every asset, `Metalama.Framework.Redist` with every asset, `Microsoft.CSharp` | as today |
@@ -369,7 +372,9 @@ The `Build` package depends on the run-time package so that every Metalama proje
 `Metalama.Framework.RunTime.dll` and copies it to its output directory without configuration. Woven code can then
 use any run-time helper, and an application needs nothing beyond the two lines of section 4.3. The compiler drops
 the reference from the output assembly when nothing uses it, so a business assembly references the run-time
-assembly only when its woven code needs it.
+assembly only when its woven code needs it. The file is copied to the output directory in every case, because
+copy-local does not depend on whether the compiler kept the reference; the design accepts this, since the file is
+small and a packed library ships only its own assembly.
 
 This dependency has one consequence for projects that are packed. NuGet pack writes into the nuspec the direct
 package references of the project that are not private, and nothing else; a dependency reached only through a
@@ -422,11 +427,15 @@ Two rules keep the package minimal:
   `AdviceImpl/Initialization/OnConstructedEpilogueEmitter.cs:217`, `Advising/TemplateBindingHelper.cs`,
   `Extensibility/CallSites/ExtensionTransformationFactory.ArgumentPlan.cs:328`, `Linking/InitializableTypeRegistry.cs`,
   `Linking/Substitution/EventRaiseBrokerCallSubstitution.cs`).
-- The package depends on nothing, so that it never constrains the dependency graph of a business package. The
-  `netstandard2.0` flavor of `Metalama.Framework.Redist` today depends on `Microsoft.Bcl.AsyncInterfaces`,
-  `Microsoft.Bcl.HashCode`, `Microsoft.CSharp` and `System.Collections.Immutable`; the `AsyncEnumerable*` helpers
-  need `IAsyncEnumerable<T>`, so the `netstandard2.0` flavor of the run-time package needs
-  `Microsoft.Bcl.AsyncInterfaces` and nothing else. The `net10.0` flavor needs nothing.
+- The package has the smallest dependency set that its content allows, so that it never constrains the
+  dependency graph of a business package. The `netstandard2.0` flavor of `Metalama.Framework.Redist` today
+  depends on `Microsoft.Bcl.AsyncInterfaces`, `Microsoft.Bcl.HashCode`, `Microsoft.CSharp` and
+  `System.Collections.Immutable`. The `AsyncEnumerable*` helpers need `IAsyncEnumerable<T>`, so the
+  `netstandard2.0` flavor of the run-time package depends on `Microsoft.Bcl.AsyncInterfaces`, and that is its
+  only package dependency. The `net10.0` flavor has none. The move itself needs two small edits, because two
+  files carry a `using` for documentation references only: `AspectGeneratedAttribute.cs` imports
+  `Metalama.Framework.Code` and `AsyncEnumerableArray.cs` imports `System.Collections.Immutable`; the
+  documentation references are rewritten so that the new project compiles without those namespaces.
 
 `IFieldOrProperty.ToFieldOrPropertyInfo()` returns `FieldOrPropertyInfo`, so `Metalama.Framework.dll` references
 the run-time assembly, which is the same direction as in 2023.
@@ -641,28 +650,40 @@ amender
     .AddAspect( ( d, attribute ) => new LogAspect( attribute.Category ) );
 ```
 
-The proposal adds two overloads to `QueryExtensions` (`Metalama.Framework/Fabrics/QueryExtensions.cs`) that
-return a tagged query, so that the existing tagged `AddAspect` and `AddAspectIfEligible` overloads of
-`AspectQueryExtensions` (`AspectQueryExtensions.cs:190-240`) apply. The first serves the code model path and
-tags each declaration with its `IAttribute`; the second serves the typed path and tags it with the constructed
-instance:
+The proposal changes the return type of the two existing `SelectDeclarationsWithAttribute` overloads of
+`QueryExtensions` (`Metalama.Framework/Fabrics/QueryExtensions.cs:49-69`) from `IQuery<IDeclaration>` to
+`ITaggedQuery<IDeclaration, TTag>` (`Metalama.Framework/Fabrics/ITaggedQuery.cs:50`), which derives from
+`IQuery<IDeclaration>`, so every existing caller that discards the tag still compiles. The parameters do not
+change. The `Type` overload serves the code model path and tags each declaration with its `IAttribute`; the
+generic overload serves the typed path and tags it with the constructed instance. The existing tagged
+`AddAspect` and `AddAspectIfEligible` overloads of `AspectQueryExtensions` (`AspectQueryExtensions.cs:190-240`)
+then apply:
 
 ```csharp
-public static IQuery<IDeclaration, IAttribute> SelectDeclarationsWithAttribute(
+public static ITaggedQuery<IDeclaration, IAttribute> SelectDeclarationsWithAttribute(
     this IQuery<ICompilation> query,
     Type attributeType,
+    Func<IAttribute, bool>? predicate = null,
     bool includeDerivedTypes = true );
 
-public static IQuery<IDeclaration, TAttribute> SelectDeclarationsWithAttribute<TAttribute>(
+public static ITaggedQuery<IDeclaration, TAttribute> SelectDeclarationsWithAttribute<TAttribute>(
     this IQuery<ICompilation> query,
+    Func<TAttribute, bool>? predicate = null,
     bool includeDerivedTypes = true )
     where TAttribute : Attribute;
 ```
 
-The first overload conflicts with the existing `SelectDeclarationsWithAttribute(Type, Func<IAttribute, bool>?, bool)`
-only in the return type, so it needs a distinct name or the existing overload has to change its return type to
-the tagged query, which is source-compatible for every caller that discards the tag. The latter is the simpler
-option and is proposed.
+The multiplicity changes with the tag. The implementations today select the containing declaration of each
+matching attribute and apply `Distinct()` (`Metalama.Framework/Code/CompilationExtensions.cs:42-45,70-73`), so a
+declaration with two matching attributes, which `AllowMultiple` permits and which derived attribute types make
+possible, is returned once. A tagged result cannot carry two attributes in one tag, so the tagged query returns
+one row per matching attribute, and a declaration with two matching attributes appears twice, each time with
+its own attribute. This is the behaviour that an attribute-driven fabric needs: each attribute produces one
+aspect instance. For callers that discard the tag and apply an aspect, `AddAspect` on the same declaration
+twice is a change of behaviour (two aspect instances instead of one), so the implementation keeps `Distinct()`
+on the underlying `GetDeclarationsWithAttribute` of `CompilationExtensions`, which stays an `IEnumerable<IDeclaration>`
+and is unchanged, and performs the per-attribute enumeration only in the query extension. The predicate filters
+attributes, as it does today, so a filtered-out attribute produces no row.
 
 On top of them, one convenience per path, which also reports an error at the attribute when the target is not
 eligible, instead of skipping it silently as `AddAspectIfEligible` does:
@@ -707,8 +728,8 @@ topology whenever an aspect library reacts to attributes that it does not own.
 | `SymbolClassifier` | The template attributes become optional when only the run-time assembly is referenced. |
 | Pipeline output | Diagnostic pass for `Metalama.Framework.dll` types in the transformed code; omission of the inheritable manifest with a warning. |
 | Design time | Amender assemblies in the pipeline options; project-file mapping to workspace projects; graceful absence of the file. |
-| `Metalama.Framework` | `SelectDeclarationsWithAttribute` returning tagged queries for both the `Type` and the generic form; `AddAspectForAttribute` for both. |
-| Tests | Two standalone tests with the three projects, built twice each (command line and a design-time build). The first has a thin `netstandard2.0` contracts project with `[RunTimeOrCompileTime]` and the typed path. The second has a thick `net10.0`-only contracts project with a heavy dependency, no Metalama reference, and the code model path; it asserts that the business assembly references neither `Metalama.Framework` nor `Metalama.Framework.RunTime` and that its output directory contains no Metalama assembly. The aspect test suite runs with the diagnostic pass enabled, so that any new emitted type of `Metalama.Framework.dll` is caught. |
+| `Metalama.Framework` | `SelectDeclarationsWithAttribute` returning `ITaggedQuery` for both the `Type` and the generic form, one row per attribute; `AddAspectForAttribute` for both. |
+| Tests | Two standalone tests with the three projects, built twice each (command line and a design-time build). The first has a thin `netstandard2.0` contracts project with `[RunTimeOrCompileTime]` and the typed path. The second has a thick `net10.0`-only contracts project with a heavy dependency, no Metalama reference, and the code model path; it asserts that the business assembly references neither `Metalama.Framework` nor `Metalama.Framework.RunTime` and that its output directory contains no Metalama assembly other than `Metalama.Framework.RunTime.dll`, which the `Build` package copies in every case (section 6.2). The aspect test suite runs with the diagnostic pass enabled, so that any new emitted type of `Metalama.Framework.dll` is caught. |
 | Documentation | A conceptual article for the topology; updates to `distributing.md` and `packages.md`; the restored package in the package list. |
 
 ## 9. Open questions
@@ -774,10 +795,6 @@ issue.
 
 - `Metalama.Framework.targets:134` declares an `AssemblyAttributes` item; the .NET SDK reads `AssemblyAttribute`,
   so `MetalamaCompileTimeProject=True` never adds `[assembly: CompileTime]`.
-- `Metalama.CompilerVisibleProperties.props:24` exports `MetalamaWriteLicenseCreditData`, while the engine reads
-  `MetalamaWriteLicenseUsageData` (`MSBuildPropertyNames.cs:40`, `MSBuildProjectOptions.cs:154`).
-- `MetalamaRequireOrderedAspects` is read by the engine (`MSBuildPropertyNames.cs:32`) and exported by no build
-  file.
 - `Metalama.Framework.Workspaces/build/Metalama.Framework.Workspaces.targets` imports
   `../buildTransitive/Metalama.Framework.Workspace.targets`; the file in `buildTransitive` is named
   `Metalama.Framework.Workspaces.targets`.
