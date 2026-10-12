@@ -213,6 +213,7 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
                 var sourceSymbol = (IMethodSymbol) semanticModel.GetSymbolInfo( invocation ).Symbol!;
                 var sourceMethod = compilation.Factory.GetMethod( sourceSymbol );
                 var hasReceiver = !sourceMethod.IsStatic;
+                var hasReceiverParameter = hasReceiver && !options.ReceiverIsThis;
                 var key = options.OneMethodPerSite ? $"{invocation.SyntaxTree.FilePath}:{invocation.SpanStart}" : (options.Generic ? sourceSymbol.OriginalDefinition : sourceSymbol).ToDisplayString();
 
                 if ( !declaredMethods.TryGetValue( key, out var method ) )
@@ -304,6 +305,11 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
                                 Enumerable.Repeat( declaredMethod.Parameters.Count, signatureMethod.Parameters.Count ).ToImmutableArray() );
                         }
 
+                        if ( options.ReceiverIsThis )
+                        {
+                            return ProceedBinding.InvokeOnThis( signatureMethod, typeArguments );
+                        }
+
                         return hasReceiver
                             ? ProceedBinding.InvokeOnParameter( signatureMethod, 0, typeArguments )
                             : ProceedBinding.InvokeStatic( signatureMethod, typeArguments );
@@ -314,7 +320,7 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
                             redirection.Template!,
                             useAsyncTemplateForAnyAwaitable: options.UseAsyncTemplateForAnyAwaitable ) )
                     {
-                        HiddenLeadingParameterCount = hasReceiver ? 1 : 0,
+                        HiddenLeadingParameterCount = hasReceiverParameter ? 1 : 0,
                         Arguments = options.Label == null ? null : new { label = options.Label },
                         MetaExtensions = metaExtensions
                     };
@@ -338,6 +344,11 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
                             };
 
                         var builder = factory.CreateMethodBuilder( origin, placement, nameHint, BuildSignature, restrictions );
+
+                        if ( options.ReceiverIsThis )
+                        {
+                            factory.RemoveParameter( builder, 0 );
+                        }
 
                         if ( options.ReassignReturnType )
                         {
@@ -416,7 +427,7 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
                     new InvocationRedirectionRequest(
                         invocation,
                         CallSiteRedirectionTarget.Synthesized( method ),
-                        hasReceiver ? CallSiteReceiverMode.FirstArgument : CallSiteReceiverMode.Drop )
+                        hasReceiverParameter ? CallSiteReceiverMode.FirstArgument : CallSiteReceiverMode.Drop )
                     {
                         TypeArguments = GetTypeArguments()
                     } );

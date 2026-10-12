@@ -25,5 +25,10 @@ public enum ProceedBindingKind
     /// <summary>
     /// <c>meta.Proceed()</c> invokes an instance method on a parameter of the declared method, written <c>p.M( arguments )</c>.
     /// </summary>
-    InvokeOnParameter
+    InvokeOnParameter,
+
+    /// <summary>
+    /// <c>meta.Proceed()</c> invokes an instance method on the <c>this</c> instance of the declared method, written <c>this.M( arguments )</c>.
+    /// </summary>
+    InvokeOnThis
 }

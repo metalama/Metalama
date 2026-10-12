@@ -162,7 +162,7 @@ public sealed partial class ExtensionTransformationFactory
         switch ( request.ReceiverMode )
         {
             case CallSiteReceiverMode.Drop:
-                if ( hasReceiverValue && request.Arguments.IsDefault )
+                if ( hasReceiverValue && request.Arguments.IsDefault && !IsThisReceiverOfInstanceTarget( operation, targetMethod ) )
                 {
                     throw new ArgumentException(
                         $"The receiver of '{callSite}' must be passed, because the method is not static. Use another receiver mode or pass {nameof(RedirectedArgument)}.{nameof(RedirectedArgument.SourceReceiver)}.",
