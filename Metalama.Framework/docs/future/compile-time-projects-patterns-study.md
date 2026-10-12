@@ -134,7 +134,7 @@ WPF types with internal constructors, and WPF's `DependencyProperty` API. Option
 | Immutability | `[Immutable]`, `ImmutabilityKind` | `ImmutableAspect` bound to it, which also provides the options; `ConfigureImmutability`, the classifier, the transitive fabric |
 | Wpf | `[Command]`, `[DependencyProperty]`, `DelegateCommandFactory` and the command classes | `CommandAspect` and `DependencyPropertyAspect` bound to them, each also an options provider; the options, naming conventions, `ConfigureCommand`, `ConfigureDependencyProperty` |
 
-The package names per library follow section 1: `Metalama.Patterns.Contracts.Redist`, `.Compiler` and the
+The package names per library follow section 1: `Metalama.Patterns.Contracts.Redist`, `.CompileTime` and the
 unsuffixed `Metalama.Patterns.Contracts`, and the same for Memoization, Observability, Immutability and Wpf;
 Caching becomes `Metalama.Patterns.Caching.Redist`, `.CompileTime` and the unsuffixed authoring package, with `.Backend` unchanged.
 
