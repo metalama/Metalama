@@ -37,14 +37,45 @@ public static class ExtensionTemplateServices
             throw new ArgumentNullException( nameof(templateName) );
         }
 
-        if ( templateProvider.IsNull
-             || !serviceProvider.GetRequiredService<TemplateClassProvider>().TryGet( templateProvider, out var templateClass )
-             || !templateClass.Members.TryGetValue( templateName, out var member ) )
+        return TryGetTemplateClass( serviceProvider, null, templateProvider, out var templateClass ) && IsMethodTemplate( templateClass, templateName );
+    }
+
+    /// <summary>
+    /// Determines whether a template class declares a non-abstract method marked as a template with a given name.
+    /// </summary>
+    private static bool IsMethodTemplate( TemplateClass templateClass, string templateName )
+        => templateClass.Members.TryGetValue( templateName, out var member )
+           && member.TemplateInfo is { IsNone: false, IsAbstract: false }
+           && member.DeclarationId.Id.StartsWith( "M:", StringComparison.Ordinal );
+
+    /// <summary>
+    /// Gets the template class of a template provider.
+    /// </summary>
+    /// <remarks>
+    /// When the provider is the type fabric of <paramref name="origin"/>, the method returns the template class that the origin holds. Otherwise,
+    /// it returns the template class of the project for the type of the provider.
+    /// </remarks>
+    private static bool TryGetTemplateClass(
+        in ProjectServiceProvider serviceProvider,
+        ExtensionContributionOrigin? origin,
+        TemplateProvider templateProvider,
+        [NotNullWhen( true )] out TemplateClass? templateClass )
+    {
+        if ( templateProvider.IsNull )
         {
+            templateClass = null;
+
             return false;
         }
 
-        return member.TemplateInfo is { IsNone: false, IsAbstract: false } && member.DeclarationId.Id.StartsWith( "M:", StringComparison.Ordinal );
+        if ( origin?.TemplateClassInstance is { } templateClassInstance && templateClassInstance.TemplateProvider == templateProvider )
+        {
+            templateClass = templateClassInstance.TemplateClass;
+
+            return true;
+        }
+
+        return serviceProvider.GetRequiredService<TemplateClassProvider>().TryGet( templateProvider, out templateClass );
     }
 
     /// <summary>
@@ -67,21 +98,57 @@ public static class ExtensionTemplateServices
         TemplateProvider templateProvider,
         string templateName,
         [NotNullWhen( true )] out ImmutableArray<ExtensionTemplateParameter> parameters )
+        => TryGetMethodTemplateParameters( serviceProvider, compilation, null, templateProvider, templateName, out parameters );
+
+    /// <summary>
+    /// Gets the parameters of a method template, in the order of their declaration, with their types in a given compilation, followed by its type
+    /// parameters. The template provider can be the type fabric that made a contribution.
+    /// </summary>
+    /// <param name="serviceProvider">The service provider of the project.</param>
+    /// <param name="compilation">The compilation in which the types of the parameters are returned.</param>
+    /// <param name="origin">The origin of the contribution that uses the template, or <c>null</c>.</param>
+    /// <param name="templateProvider">The template provider.</param>
+    /// <param name="templateName">The name of the template.</param>
+    /// <param name="parameters">The parameters of the template, or a default array when the method returns <c>false</c>.</param>
+    /// <returns><c>true</c> when the template provider is a template class of the project, or the type fabric of <paramref name="origin"/>, and
+    /// declares a non-abstract method marked as a template with this name, and <c>false</c> otherwise.</returns>
+    /// <remarks>
+    /// <para>
+    /// The template class of a type fabric is not a template class of the project. Only the origin of a contribution made by the type fabric
+    /// holds it. Use this overload when the template provider can be <see cref="ExtensionContributionOrigin.DefaultTemplateProvider"/>.
+    /// </para>
+    /// <para>
+    /// A project fabric or a namespace fabric cannot provide templates, so this method returns <c>false</c> when the template provider is such a
+    /// fabric.
+    /// </para>
+    /// </remarks>
+    public static bool TryGetMethodTemplateParameters(
+        in ProjectServiceProvider serviceProvider,
+        ICompilation compilation,
+        ExtensionContributionOrigin? origin,
+        TemplateProvider templateProvider,
+        string templateName,
+        [NotNullWhen( true )] out ImmutableArray<ExtensionTemplateParameter> parameters )
     {
         if ( compilation == null )
         {
             throw new ArgumentNullException( nameof(compilation) );
         }
 
+        if ( templateName == null )
+        {
+            throw new ArgumentNullException( nameof(templateName) );
+        }
+
         parameters = default;
 
-        if ( !MethodTemplateExists( serviceProvider, templateProvider, templateName ) )
+        if ( !TryGetTemplateClass( serviceProvider, origin, templateProvider, out var templateClass )
+             || !IsMethodTemplate( templateClass, templateName ) )
         {
             return false;
         }
 
         var compilationModel = (CompilationModel) compilation;
-        var templateClass = serviceProvider.GetRequiredService<TemplateClassProvider>().Get( templateProvider );
         var member = templateClass.Members[templateName];
 
         var declaration = TemplateNameValidator.ValidateTemplateName( templateClass, templateName, TemplateKind.Default, true )!.Value

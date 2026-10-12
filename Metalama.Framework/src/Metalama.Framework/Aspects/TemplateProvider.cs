@@ -93,4 +93,9 @@ public readonly record struct TemplateProvider
     internal object? Object => this._value is Type ? null : this._value;
 
     internal Type? Type => this._value is Type type ? type : this._value?.GetType();
+
+    /// <summary>
+    /// Returns the full name of the type of the template provider, or the string <c>"null"</c> when <see cref="IsNull"/> is <c>true</c>.
+    /// </summary>
+    public override string ToString() => this.Type?.FullName ?? "null";
 }
