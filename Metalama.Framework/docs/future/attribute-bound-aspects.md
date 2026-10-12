@@ -2,7 +2,7 @@
 
 This document proposes a declarative way to bind an aspect class to a custom attribute that the aspect does not
 own, so that every declaration carrying the attribute receives an instance of the aspect without a fabric. It is
-a design proposal for a separate user story from [amender projects](amender-projects.md), which motivates it but
+a design proposal for a separate user story from [aspects projects](aspects-projects.md), which motivates it but
 does not depend on it. Nothing described here is implemented. The file and line references describe
 `develop/2027.0` in October 2026.
 
@@ -15,7 +15,7 @@ for a binding that is often one line of intent: "every declaration marked `[Log]
 
 Two situations need that binding and cannot use the first way:
 
-- An amender project ([amender projects](amender-projects.md)) whose aspects react to attributes declared in a
+- An aspects project ([aspects projects](aspects-projects.md)) whose aspects react to attributes declared in a
   contracts project. The business code applies the contract attribute and never sees the aspect class.
 - A Metalama project that reacts to attributes of a third-party framework, for example a logging aspect on every
   method marked `[HttpGet]`, or a validation aspect on every type marked with an object-relational mapper's
@@ -91,7 +91,7 @@ The attribute is defined in `Metalama.Framework`, not in `Metalama.Framework.Red
 classes, which always reference the framework, and the contracts assembly never needs it.
 
 The binding sits on the aspect and names the attribute, never the reverse. The contracts project must not know
-the aspects, and in the amender topology it cannot reference them without a cycle. A third-party attribute
+the aspects, and in the aspects topology it cannot reference them without a cycle. A third-party attribute
 cannot be annotated at all. The reverse form, naming the aspect by a string on the contract attribute, was
 considered and rejected: it loses the compile-time check of the name, does not cover third-party attributes,
 and moves a decision about aspects into the project that was meant to know nothing about them.
@@ -112,7 +112,7 @@ class is created:
 1. A constructor with a single parameter of the bound attribute type, or a base type of it. The engine constructs
    the attribute with `AttributeDeserializer` (`Metalama.Framework.Engine/CompileTime/AttributeDeserializer.cs:63-91`)
    and passes the instance. This requires the attribute type to be available at compile time, which is the typed
-   path of the amender document: the type is marked `[RunTimeOrCompileTime]` and its assembly is loadable in the
+   path of the aspects projects document: the type is marked `[RunTimeOrCompileTime]` and its assembly is loadable in the
    compile-time domain.
 2. A constructor with a single `IAttribute` parameter. The engine passes the code model representation of the
    attribute. This works with any attribute type, including a type from a thick framework assembly that is never
@@ -130,12 +130,12 @@ constructor.
 An inheritable bound aspect must not store the attribute instance or the `IAttribute` in a field: its instances
 are serialized into the inheritable aspects manifest, and a contract attribute type cannot implement
 `ICompileTimeSerializable`, which is a compile-time interface. The aspect copies the values it needs into its
-own fields. The [Patterns study](amender-projects-patterns-study.md), gap 5, records the alternative of moving
+own fields. The [Patterns study](aspects-projects-patterns-study.md), gap 5, records the alternative of moving
 the marker interface to the run-time package.
 
 ### 2.3. Options providers
 
-The [Patterns study](amender-projects-patterns-study.md), gap 2, shows that configuration attributes need the
+The [Patterns study](aspects-projects-patterns-study.md), gap 2, shows that configuration attributes need the
 same binding. A configuration attribute today implements `IHierarchicalOptionsProvider` and returns
 `IHierarchicalOptions` instances, which a run-time package cannot do, because both interfaces are in
 `Metalama.Framework` and the second is compile-time. `[AppliedBy]` is therefore accepted on a class that
@@ -215,7 +215,7 @@ instance whose predecessor is an attribute.
 ### 3.3. Exclusions
 
 `[ExcludeAspect(typeof(LogAspect))]` (`CompilationAspectSource.cs:44-69`) continues to exclude the aspect on a
-declaration and its children. It names the aspect, which the business code cannot reference in the amender
+declaration and its children. It names the aspect, which the business code cannot reference in the aspects
 topology, so the exclusion is available only where the aspect class is visible. A future addition could accept
 the bound attribute type as well; it is not part of this proposal.
 
@@ -260,7 +260,7 @@ virtual member, is not an error today and does not become one.
 The comment at `AspectDriver.cs:159` is resolved on the way: when the predecessor of the instance is an
 attribute, LAMA0003 is reported at the attribute.
 
-### 4.3. A static check when the amender project compiles
+### 4.3. A static check when the aspects project compiles
 
 The engine never compares the eligibility of an aspect with the `AttributeUsage` of an attribute; nothing in
 `AspectClass` or `EligibilityHelper` reads `AttributeTargets`. For a bound attribute, a mismatch is a design
@@ -268,7 +268,7 @@ error of the binding, and it should be reported once, where the binding is writt
 misplaced attribute in every business project.
 
 When `AspectClass` is created for the compile-time project of the project that declares the aspect, which
-happens when the amender project itself compiles, the engine reads the `[AttributeUsage]` of the bound attribute
+happens when the aspects project itself compiles, the engine reads the `[AttributeUsage]` of the bound attribute
 type from the run-time compilation, maps each `AttributeTargets` flag to the declaration interface that
 `IsEligibleFast` uses (`AspectClass.cs:381-410`), and checks that the aspect implements `IAspect<T>` for each.
 A flag with no matching `IAspect<T>` is reported at the `[AppliedBy]` attribute as a warning when `OnIneligible`
@@ -278,7 +278,7 @@ declarations and cannot be evaluated without one.
 
 ## 5. Relation to the fabric helper
 
-The amender document proposes `AddAspectForAttribute`, a fabric helper that selects by attribute, constructs the
+The aspects projects document proposes `AddAspectForAttribute`, a fabric helper that selects by attribute, constructs the
 aspect from the attribute and reports ineligibility at the attribute. The two are complementary. `[AppliedBy]`
 is the recommended form and covers the common case with no code. The helper remains for computed bindings: a
 predicate on the attribute, a choice of aspect that depends on the target, or a binding that the aspect author
@@ -297,7 +297,7 @@ does not own. Both report at the attribute, through the same predecessor mechani
 | `AspectDriver` | Report LAMA0003 at the attribute when the predecessor is an attribute. |
 | `TemplatingCodeValidator` | Allow `typeof` of a run-time-only type in the arguments of `[AppliedBy]`, if it does not already. |
 | Tests | Aspect tests for the three constructors, derived attribute types, two bindings on one aspect, two aspects on one attribute, each `OnIneligible` value, the warning of section 4.3, a thick attribute type that is never loaded, and the untransformed path. |
-| Documentation | A conceptual article under "Applying aspects"; a mention in the amender projects article. |
+| Documentation | A conceptual article under "Applying aspects"; a mention in the aspects projects article. |
 
 ## 7. Open questions
 

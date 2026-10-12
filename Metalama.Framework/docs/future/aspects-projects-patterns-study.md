@@ -1,7 +1,7 @@
-# Applying the amender topology to Metalama.Patterns
+# Applying the aspects topology to Metalama.Patterns
 
 This document studies how the libraries of `Metalama.Patterns` would be split into a run-time package and an
-aspects package under the designs of [amender projects](amender-projects.md) and
+aspects package under the designs of [aspects projects](aspects-projects.md) and
 [attribute-bound aspects](attribute-bound-aspects.md), and lists the gaps that the split exposes in those
 designs. It is a study, not a plan. The file and line references describe `develop/2027.0` in October 2026, with
 paths relative to `Metalama.Patterns/src/` unless stated otherwise.
@@ -23,27 +23,27 @@ dependency on the library and on `Metalama.Framework.dll`, because the attribute
 The second exploration report confirmed that the woven code of Contracts, Memoization, Observability,
 Immutability and Wpf never calls a `Metalama.Framework` API: the dependency is metadata only.
 
-Under the amender topology, each library becomes two packages:
+Under the aspects topology, each library becomes two packages:
 
 | Package | Content | References | Who references it |
 |---|---|---|---|
 | `Metalama.Patterns.X.Redist` (run-time) | The attributes as plain types marked `[RunTimeOrCompileTime]`, the run-time helpers, the shared enums and records | `Metalama.Framework.Redist`; `Metalama.Framework.Build` privately when built with Metalama (section 4) | The business project, as an ordinary reference |
-| `Metalama.Patterns.X.Aspects` (amender) | The aspect classes bound to the attributes with `[AppliedBy]`, the options, the options providers bound to the configuration attributes, the templates, the fabric extension methods | `Metalama.Framework`, `Metalama.Patterns.X.Redist` | The business project, as an amender reference; the user's own amender project, as an ordinary reference when it configures the library from a fabric |
+| `Metalama.Patterns.X.Aspects` (aspects) | The aspect classes bound to the attributes with `[AppliedBy]`, the options, the options providers bound to the configuration attributes, the templates, the fabric extension methods | `Metalama.Framework`, `Metalama.Patterns.X.Redist` | The business project, as an aspects reference; the user's own aspects project, as an ordinary reference when it configures the library from a fabric |
 | `Metalama.Patterns.X` (meta-package) | Nothing | `Metalama.Patterns.X.Redist`, `Metalama.Patterns.X.Aspects`, both with every asset | A project that wants the one-reference experience of today, with the aspects flowing to its consumers as they do today |
 
-The convention is the one of section 6.2 of the amender document: `Redist` for the run-time package, `Aspects`
+The convention is the one of section 6.2 of the aspects projects document: `Redist` for the run-time package, `Aspects`
 for the aspects, the unsuffixed name for a meta-package over both. It applies to the framework as well.
 Caching is the exception: `Metalama.Patterns.Caching` is a product with real content that is usable without
 Metalama and is documented as such, so it keeps its name, `Metalama.Patterns.Caching.Aspects` keeps its name,
 and there is no meta-package for it. The rule is that a run-time package takes the `Redist` suffix when its
 content is only what the aspects need; a run-time package with a life of its own keeps its name. The word
-"contracts project" of the amender document collides with `Metalama.Patterns.Contracts`, the code contracts
+"contracts project" of the aspects projects document collides with `Metalama.Patterns.Contracts`, the code contracts
 library, so this document says "run-time package" or "`Redist` package".
 
 The `Aspects` package serves both topologies with one layout. It ships its assembly in `lib/`, because the user's
-own amender project needs a compile reference to call `ConfigureContracts` or `ConfigureCaching`, and its
-`buildTransitive` props always register the assembly as a `MetalamaAmenderAssembly` item. Referenced normally,
-directly or through the meta-package, it reaches the compiler as a reference and the engine as an amender item,
+own aspects project needs a compile reference to call `ConfigureContracts` or `ConfigureCaching`, and its
+`buildTransitive` props always register the assembly as a `MetalamaAspectsAssembly` item. Referenced normally,
+directly or through the meta-package, it reaches the compiler as a reference and the engine as an aspects item,
 and the engine deduplicates by assembly identity. Referenced with `PrivateAssets="all" ExcludeAssets="compile;runtime"`,
 it reaches the engine only. The exclusion is written by the user: it is a restore-time flag, the `Build` targets
 run after restore, and a package cannot declare it for its consumers. The business assembly references the
@@ -164,15 +164,15 @@ Section 5, gap 1, explains the form of the private references.
 
 ## 4. Configuration
 
-The third exploration report answers the question of whether configuration already works in the amender
+The third exploration report answers the question of whether configuration already works in the aspects
 topology. It does for two of the three channels.
 
 **Fabrics.** A `TransitiveProjectFabric` in a referenced compile-time project runs against the referencing
 compilation, and its `SetOptions` calls pass the containment check because the originator is the compilation
 (`Metalama.Framework.Engine/Queries/Query.cs:473-490`, `Fabrics/FabricManager.cs:46-130`). So the user's own
-amender project configures the business project from a transitive fabric, by namespace and type names, with the
+aspects project configures the business project from a transitive fabric, by namespace and type names, with the
 `ConfigureContracts` and `ConfigureCaching` extension methods unchanged. Options types stay compile-time, as they
-are. Nothing is missing. In the amender topology the user's amender project is where per-solution policy lives,
+are. Nothing is missing. In the aspects topology the user's aspects project is where per-solution policy lives,
 which is the role the `TransitiveProjectFabric` documentation already gives it.
 
 **MSBuild properties.** `IHierarchicalOptions.GetDefaultOptions` reads them through
@@ -192,21 +192,21 @@ same binding as aspects, recorded as gap 2. Attributes that are both an aspect a
 
 ## 5. Gaps
 
-Each gap names the design document it affects. Gaps 4 and 7 are corrections of statements in the amender
+Each gap names the design document it affects. Gaps 4 and 7 are corrections of statements in the aspects projects
 document; the others are additions.
 
-1. **Amender packages.** The amender document defines the build-only reference for `ProjectReference` only.
-   Every pattern library is consumed as a package. The package form needs no new MSBuild concept: an amender
+1. **Aspects packages.** The aspects projects document defines the build-only reference for `ProjectReference` only.
+   Every pattern library is consumed as a package. The package form needs no new MSBuild concept: an aspects
    package ships its assembly outside `lib`, in `metalama/<tfm>/`, and its `buildTransitive` props add a
-   `MetalamaAmenderAssembly` item, exactly as extension packages ship `MetalamaExtensionAssembly` items today
+   `MetalamaAspectsAssembly` item, exactly as extension packages ship `MetalamaExtensionAssembly` items today
    (`Metalama.Framework/docs/extensibility.md`, `Metalama.Extensions.HtmlWriter/build/*.props`). Section 1
-   refines this: the assembly stays in `lib/` so that amender projects can compile against it, the props
-   register it in every case, and the amender form of the reference is `PrivateAssets="all" ExcludeAssets="compile;runtime"`.
+   refines this: the assembly stays in `lib/` so that aspects projects can compile against it, the props
+   register it in every case, and the aspects form of the reference is `PrivateAssets="all" ExcludeAssets="compile;runtime"`.
    The package depends on `Metalama.Framework.Build` and on its `Redist` package. The business project's
    dependency on the `Redist` package must be a direct, non-private reference for the reason given in section
-   6.2 of the amender document, and the pack-time check there should be generalized from
+   6.2 of the aspects projects document, and the pack-time check there should be generalized from
    `Metalama.Framework.Redist` to any assembly that the output references and that only a private reference
-   provides. Affects the amender document, section 6.1 and 6.2.
+   provides. Affects the aspects projects document, section 6.1 and 6.2.
 
 2. **Attribute-bound options providers.** `[AppliedBy]` must be accepted on a class implementing
    `IHierarchicalOptionsProvider` as well as on an aspect class. `CompilationHierarchicalOptionsSource` then
@@ -222,10 +222,10 @@ document; the others are additions.
    `Metalama.Framework.Redist`. The same applies to `[Durable]` and `[ImmutableType]` of
    `Metalama.Framework.Utilities`, which are analyzer annotations placed on run-time types
    (`InvariantSuspensionCounter.cs:17-19`, `CachingBaseAttribute.cs:26`). The content list of section 6.3 of the
-   amender document gains these, and a rule: a framework type that a run-time package needs in its own public
-   surface belongs to the run-time package. Affects the amender document, section 6.3.
+   aspects projects document gains these, and a rule: a framework type that a run-time package needs in its own public
+   surface belongs to the run-time package. Affects the aspects projects document, section 6.3.
 
-4. **A third path for shared types: a run-time package built with Metalama.** The amender document offers two
+4. **A third path for shared types: a run-time package built with Metalama.** The aspects projects document offers two
    paths for contract types: the code model path, which loads nothing, and the typed path, which loads the
    contracts assembly as a foreign compile-time assembly and requires it to be loadable in a .NET Framework
    host. Caching shows a third path that exists today and is better for Metalama's own run-time packages: the
@@ -235,10 +235,10 @@ document; the others are additions.
    package may be as thick as it likes at run time, and nothing is loaded from the run-time assembly in the
    compile-time domain. `CachingOptions : ICacheItemConfiguration` depends on it. This path requires the engine
    to run the compile-time extraction in a project that references neither `Metalama.Framework.dll` nor any
-   amender assembly, and to embed the resource even when the project has no aspect class; whether the early
+   aspects assembly, and to embed the resource even when the project has no aspect class; whether the early
    exit at `AspectPipeline.cs:689-691` (`BoundAspectClasses.Count == 0`) prevents the embedding today must be
    verified. The foreign compile-time assembly kind then serves only libraries that are not built with Metalama.
-   Affects the amender document, sections 4.1 and 6.5.
+   Affects the aspects projects document, sections 4.1 and 6.5.
 
 5. **Serializable state of bound aspects.** Contracts aspects are `IConditionallyInheritableAspect`, `[Observable]`
    and `[Immutable]` are `[Inheritable]`, so their instances are serialized into `Metalama.InheritableAspects.bin`
@@ -252,25 +252,25 @@ document; the others are additions.
 
 6. **Run-time helpers that live in aspect assemblies move.** `AsyncEnumerableHelper` in
    `Metalama.Patterns.Caching.Aspects` is called by woven code and must move to the run-time package; the
-   amender document's post-linking diagnostic pass would report it. The same pass must accept a reference from
+   aspects projects document's post-linking diagnostic pass would report it. The same pass must accept a reference from
    woven code to any ordinary run-time package, which it does, since it checks for `Metalama.Framework.dll` only.
    The rule for library authors: an aspects package must contain nothing that woven code references. Affects
-   the amender document, section 6.6, as a documented rule.
+   the aspects projects document, section 6.6, as a documented rule.
 
-7. **Inheritable aspects between business projects.** Section 6.8 of the amender document proposes to omit
+7. **Inheritable aspects between business projects.** Section 6.8 of the aspects projects document proposes to omit
    `Metalama.InheritableAspects.bin` with a warning in a project that does not reference `Metalama.Framework.dll`,
    on the assumption that its consumers are not built with Metalama. The assumption is wrong for a solution
    with several business projects: a `[Observable]` base class in one project and a derived class in another,
-   both referencing the same amender package, must inherit the aspect, and `TransitivePipelineContributorSource`
-   can deserialize the manifest because the amender's compile-time project is in the consumer's closure. The
-   manifest must be written as today, and the warning dropped. Affects the amender document, section 6.8.
+   both referencing the same aspects package, must inherit the aspect, and `TransitivePipelineContributorSource`
+   can deserialize the manifest because the aspects project's compile-time project is in the consumer's closure. The
+   manifest must be written as today, and the warning dropped. Affects the aspects projects document, section 6.8.
 
-8. **MSBuild-driven defaults through an amender project reference.** `ObservabilityOptions.GetDefaultOptions`
+8. **MSBuild-driven defaults through an aspects project reference.** `ObservabilityOptions.GetDefaultOptions`
    reads `InpcDiagnosticCommentVerbosity`, which the consuming project must export with
-   `CompilerVisibleProperty`. An amender package ships that export in its `buildTransitive` props; an amender
+   `CompilerVisibleProperty`. An aspects package ships that export in its `buildTransitive` props; an aspects
    project reference cannot, because MSBuild imports no props through a project reference. The documentation
    should say that a library configured through MSBuild properties exports them in its package, and that a
-   project-referenced amender uses a fabric or a `Directory.Build.props`. Affects the documentation only.
+   project-referenced aspects project uses a fabric or a `Directory.Build.props`. Affects the documentation only.
 
 9. **Migration of the existing libraries.** The attributes change assembly and base type: `[NotNull]` moves to
    `Metalama.Patterns.Contracts.Redist` and stops deriving from `ContractAspect`, `[Cache]` moves from
@@ -295,10 +295,11 @@ document; the others are additions.
     `Metalama.Framework.Redist`. Independent of the design, this is a defect today and needs an issue. With the
     design, the dependency becomes `Metalama.Framework.Redist` and is declared.
 
-12. **Vocabulary.** "Contracts project" in the amender document collides with `Metalama.Patterns.Contracts`.
-    "`Redist` package" names it after the convention and avoids the collision. Whether "amender project" becomes
-    "aspects project", to match the `Aspects` suffix, is a related choice still open. Affects the amender
-    document throughout, and is a choice to make before the documentation is written.
+12. **Vocabulary.** "Contracts project" in the aspects projects document collides with `Metalama.Patterns.Contracts`.
+    "`Redist` package" names it after the convention and avoids the collision. The project form was first
+    called "amender project", after `IProjectAmender`, and was renamed "aspects project" to match the `Aspects`
+    suffix. Affects the aspects projects document throughout, and is a choice to make before the documentation
+    is written.
 
 ## 6. What this study does not cover
 
@@ -307,5 +308,5 @@ document; the others are additions.
   works as well. Nothing specific was found.
 - Flashtrace and the logging integration of Caching, which are run-time only and unaffected.
 - Licensing of the pattern libraries, which is unchanged: the aspects are consumed in the business project.
-- Performance of the pipeline when several amender packages contribute aspect classes. The closure mechanism is
+- Performance of the pipeline when several aspects packages contribute aspect classes. The closure mechanism is
   the same as for several referenced aspect libraries today.
