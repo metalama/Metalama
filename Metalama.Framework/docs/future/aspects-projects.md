@@ -643,30 +643,104 @@ belongs in the package.
 
 ### 6.7. Design time
 
-Inside Visual Studio, Rider and the C# Dev Kit, the design-time pipeline reads `MetalamaAspectsAssemblies` from the
-analyzer configuration like any other property, and loads the aspects assemblies from disk. Two consequences
-follow from the fact that the aspects project is not a reference of the business project in the Roslyn workspace.
+Design-time support for aspects projects is a user story of its own (metalama/Metalama#2237). The first version of the aspects project
+story works at design time with the aspects assembly as it was last built, which is the fallback described
+below. The live-edit behaviour, in which an edit to an aspect is visible in the business project without a
+build, is the subject of the separate story, and this section specifies it.
 
-The first consequence is staleness. The design-time pipeline for a referenced Metalama project today works on a
-`CompilationReference` and reuses the pipeline of the upstream project
-(`CompileTimeProjectRepository.Builder.cs:255-352`, issue #1611), so an edit to an aspect is visible in the
-consuming project without a build. With a build-only reference, the business project sees the aspects assembly
-as it was last built. Before the first build, the file does not exist, and the pipeline must report nothing
-rather than fail, in the same way that `DesignTimeAspectPipelineFactory` returns null for a project where
-Metalama is not enabled (`DesignTimeAspectPipelineFactory.cs:453-458`).
+#### 6.7.1. What exists today for a referenced Metalama project
 
-The second consequence is the mitigation. The output item of a project reference carries the
-`MSBuildSourceProjectFile` metadata, so the build files export, next to each assembly path, the path of the
-project that produced it (`MetalamaAspectsProjectFiles` in section 6.1). The design-time pipeline factory can then
-look for a workspace project with that file path and, when it finds one, use its compilation as the source of the
-compile-time project, through the existing `TryGetCompileTimeProjectFromCompilation` branch. The disk file remains
-the fallback. This gives the same live-edit behaviour as today, and it is the part of the design that needs a
-prototype before the design is accepted, because the design-time pipeline keys its caches by project and by
-reference set (`design-time-memory.md`) and an aspects project that is not a reference does not participate in
-those keys.
+In the IDE, Roslyn hands the consuming compilation a `CompilationReference` for a project reference between two
+projects of the same language. `CompileTimeProjectRepository.Builder` first asks `IUpstreamCompileTimeProjectProvider`
+for the pipeline of the referenced project, found by the referenced compilation's `ProjectKey`, and reuses its
+`CompileTimeProject` when the run-time identity matches (`CompileTimeProjectRepository.Builder.cs:279-313`, issue
+#1611). Otherwise it builds a projection from the referenced compilation. A `ProjectKey` is the assembly name
+plus a hash of the preprocessor symbols, which include the `METALAMA_PROJECT_<hash>` symbol that the build files
+define (`Metalama.Framework.DesignTime/ProjectKeyFactory.cs:31-47`).
 
-The alternative of keeping a real `ProjectReference` during design-time builds only, so that Roslyn sees the
-aspects project as a compilation reference, is rejected. The business project would then see the aspect types and
+Change tracking is by project key. `ProjectVersion.ReferencedProjectVersions` is built from the
+`CompilationReference`s of the compilation (`Pipeline/Diff/ProjectVersionProvider.Implementation.cs:185-192`).
+`PipelineState.InvalidateCacheForNewCompilationAsync` treats a compile-time change in a referenced compilation as
+a compile-time change of the current project (`DesignTimeAspectPipeline.PipelineState.cs:219-221`), which
+discards the long-lived pipeline configuration. Pause and resume propagate through the event hub to every
+pipeline whose `ReferencedProjectVersions` contains the key of the pipeline that changed status
+(`DesignTimeAspectPipeline.cs:206-230`). A build of a project is noticed by that project's own pipeline through
+its `MetalamaBuildTouchFile` watcher, which resumes the pipeline and raises `OnExternalBuildCompleted`
+(`DesignTimeAspectPipeline.cs:310-350`).
+
+#### 6.7.2. What an aspects project lacks
+
+With `ReferenceOutputAssembly="false"`, the project system passes nothing to Roslyn: the business compilation has
+neither a `CompilationReference` nor a `PortableExecutableReference` to the aspects project. The business
+pipeline knows the aspects project through two strings of the analyzer configuration only: the output path
+(`MetalamaAspectsAssemblies`) and the project file (`MetalamaAspectsProjectFiles`, from the
+`MSBuildSourceProjectFile` metadata of the output item, section 6.1). Everything of section 6.7.1 keys on
+`ProjectKey`, which the business pipeline cannot compute for a project it does not see.
+
+#### 6.7.3. The fallback, which is the first version
+
+The design-time pipeline reads `MetalamaAspectsAssemblies` like any other option and loads each file through
+`TryGetCompileTimeProjectFromPath`, as the build does. The business project then sees the aspects assembly as it
+was last built. Before the first build the file does not exist; the pipeline skips the entry with a trace and
+reports nothing, as it does for a project where Metalama is not enabled
+(`DesignTimeAspectPipelineFactory.cs:453-458`), rather than failing the initialization of the business pipeline.
+
+A rebuilt assembly at the same path must be noticed. `TryGetPipeline` compares the paths of the metadata
+references and the equality of the options (`DesignTimeAspectPipelineFactory.cs:213-292`); the aspects path is a
+string in the options, so a rebuild changes nothing that the comparison sees. The business pipeline therefore
+watches each aspects assembly for changes, in the manner of the touch-file watcher, and resets its state when
+one changes. Whether the metadata cache of the repository, which records the timestamp of each file it reads,
+already re-reads a changed file is to be checked during implementation; the watcher is needed in any case to
+trigger the reset.
+
+#### 6.7.4. Live editing, the separate story
+
+The live-edit behaviour is rebuilt on top of the project file path, in four steps.
+
+1. **A secondary index in `DesignTimeAspectPipelineFactory`**, from project file path and target framework to
+   pipeline. Both are already in the options of every pipeline: `MSBuildProjectFullPath` is exported by
+   Metalama.Compiler and `TargetFramework` by the .NET SDK. The business project exports, next to each project
+   file, the target framework that the reference negotiated, read from the `SetTargetFramework` metadata of the
+   resolved reference item, so that the pair resolves one pipeline of a multi-targeted aspects project. The
+   property format is `path|targetFramework` per entry, with `,` between entries, as for the extension
+   assemblies.
+2. **A provider in the second discovery loop** of `CompileTimeProjectRepository.Builder` (section 6.4). For each
+   aspects entry, the builder asks a new global service, `IAspectsProjectProvider`, implemented in the design-time
+   assembly and absent in the build, for a live `CompileTimeProject`, found through the index with the readiness
+   and identity guards of the #1611 branch: the pipeline exists, its configuration is ready, and the run-time
+   identity of its compile-time project is the identity of the aspects assembly. When the provider returns
+   nothing, the builder uses the file as in section 6.7.3.
+3. **Invalidation.** The pipelines of the aspects projects must appear in the business pipeline's
+   `ReferencedProjectVersions`, so that a compile-time change in an aspects project discards the business
+   configuration, and so that pause and resume propagate. `ProjectVersionProvider` builds that dictionary from
+   `CompilationReference`s only and gains a second source, the project versions of the aspects pipelines obtained
+   through the factory index. Two cases need handling. If the aspects pipeline does not exist when the business
+   pipeline starts, the business pipeline uses the file and must become dirty when the aspects pipeline later
+   becomes ready, which means the factory records which business pipelines wait for which project file and
+   raises the dirty notification when a matching pipeline reaches the ready status. And when the aspects
+   pipeline is paused because its compile-time code changed, the business pipeline pauses with it and resumes
+   with it, as a dependent of a referenced project does today.
+4. **The dependency graph** that drives `OnOtherPipelineCompilationResultChanged`
+   (`DesignTimeAspectPipeline.cs:170-200`) tracks which upstream documents the results of a project depend on,
+   for run-time code of referenced projects. The business project depends on no run-time code of the aspects
+   project, and every change that matters to it is a compile-time change, handled by step 3. The aspects
+   project therefore does not participate in the dependency graph.
+
+The design-time memory rules (`design-time-memory.md`) apply as they apply to `CompilationReference`s today: the
+business `ProjectVersion` may hold the most recent version of each aspects project and nothing older, and the
+pipeline configuration must not pin any compilation, including those of the aspects projects.
+
+Steps 1, 2 and the watcher of section 6.7.3 are small and mirror existing code. Step 3 is the uncertain part and
+is the gate of the story: it is prototyped first, in the design-time test harness, with an aspects project holding
+a transitive fabric and a business project configured through the two options, and an assertion that an edit to
+the fabric changes the output of the business project without a build. The claim of section 6.7.2 that the
+project system passes nothing to Roslyn for a build-only reference is what `ResolveProjectReferences` implies and
+must be confirmed by hand in Visual Studio, Rider and the C# Dev Kit, each of which has its own project system.
+
+#### 6.7.5. Rejected alternative
+
+Keeping a real `ProjectReference` during design-time builds only, so that Roslyn sees the aspects project as a
+compilation reference, is rejected. The business project would then see the aspect types and
 `Metalama.Framework.dll` in the editor and not in the build, and code that compiles in the editor would fail on
 the command line.
 
@@ -785,7 +859,7 @@ helpers of this section remain for computed bindings.
 | `CacheableTemplateDiscoveryContextProvider`, `TemplateClassFactory`, `FabricDriver`, `ProjectFabricDriver` | Discovery compilation that includes the aspects assembly; fabric resolution and depth for a non-referenced fabric. |
 | `SymbolClassifier` | The template attributes become optional when only the run-time assembly is referenced. |
 | Pipeline output | Diagnostic pass for `Metalama.Framework.dll` types in the transformed code; omission of the inheritable manifest with a warning. |
-| Design time | Aspects assemblies in the pipeline options; project-file mapping to workspace projects; graceful absence of the file. |
+| Design time | First version: aspects assemblies in the pipeline options, loaded from the file, skipped with a trace when absent, and a watcher on each aspects assembly (section 6.7.3). Separate story: the factory index, `IAspectsProjectProvider` and the invalidation of section 6.7.4. |
 | `Metalama.Framework` | `SelectDeclarationsWithAttribute` returning `ITaggedQuery` for both the `Type` and the generic form, one row per attribute; `AddAspectForAttribute` for both. |
 | Tests | Two standalone tests with the three projects, built twice each (command line and a design-time build). The first has a thin `netstandard2.0` contracts project with `[RunTimeOrCompileTime]` and the typed path. The second has a thick `net10.0`-only contracts project with a heavy dependency, no Metalama reference, and the code model path; it asserts that the business assembly references neither `Metalama.Framework` nor `Metalama.Framework.Redist` and that its output directory contains no Metalama assembly other than `Metalama.Framework.Redist.dll`, which the `Build` package copies in every case (section 6.2). The aspect test suite runs with the diagnostic pass enabled, so that any new emitted type of `Metalama.Framework.dll` is caught. |
 | Documentation | A conceptual article for the topology; updates to `distributing.md` and `packages.md`; the restored package in the package list. |
@@ -795,8 +869,8 @@ helpers of this section remain for computed bindings.
 1. The code model identity of a fabric or an aspect class whose assembly is not referenced (section 6.4). The
    `IAssembly` that `IFabricInstance` and `IAspectClass` expose would belong to the discovery compilation. The
    public contract of these interfaces needs a review before the design is accepted.
-2. The design-time mapping of aspects assemblies to workspace projects (section 6.7) needs a prototype, because
-   the design-time caches are keyed by reference sets that the aspects project does not participate in.
+2. Live editing of aspects projects at design time (section 6.7.4) is a separate story whose gate is a prototype of
+   the invalidation step, because the design-time caches are keyed by reference sets that the aspects project does not participate in.
 3. The reference closure of the aspects project. When the aspects project uses a compile-time package
    (`MetalamaCompileTimePackage`) or a compile-time assembly, the business project must repeat the declaration
    today (`template-compile-time.md:167`). The build-only reference makes that repetition worse, because the
