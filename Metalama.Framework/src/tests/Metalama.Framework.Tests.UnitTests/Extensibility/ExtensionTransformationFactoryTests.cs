@@ -1457,9 +1457,10 @@ public sealed class ExtensionTransformationFactoryTests : UnitTestClass
             } );
 
     /// <summary>
-    /// Verifies that <see cref="ExtensionTemplateServices.TryGetMethodTemplateParameters"/> returns the parameters and the type parameters of a method
-    /// template, with their compile-time flags and types, and that it returns <c>false</c> for a method that is not a template and for a missing
-    /// method.
+    /// Verifies that
+    /// <see cref="ExtensionTemplateServices.TryGetMethodTemplateParameters(in ProjectServiceProvider, ICompilation, TemplateProvider, string, out ImmutableArray{ExtensionTemplateParameter})"/>
+    /// returns the parameters and the type parameters of a method template, with their compile-time flags and types, and that it returns
+    /// <c>false</c> for a method that is not a template and for a missing method.
     /// </summary>
     [Fact]
     public async Task ExtensionTemplateServices_TryGetMethodTemplateParameters()
