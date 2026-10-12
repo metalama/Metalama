@@ -271,8 +271,11 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
                     var templateMember = MethodTemplateSelection.Select( templateClass, builder, request.Template.Selector )
                         .GetTemplateMember<IMethod>( this._compilation, serviceProvider, templateProvider, objectReaderFactory.GetReader( request.Template.Tags ) );
 
-                    builder.IsAsync = templateMember.GetDeclaration( this._compilation ).IsAsync;
-                    builder.SetIsIteratorMethod( templateMember.IsIteratorMethod );
+                    // A default template that is interpreted as an async template is expanded as an async method, which awaits meta.Proceed(),
+                    // as when it overrides an async method. A default template that is interpreted as an async iterator template is expanded as
+                    // an async iterator, which buffers meta.Proceed() and yields the buffered items, as when it overrides an async iterator.
+                    builder.IsAsync = templateMember.MustInterpretAsAsyncTemplate();
+                    builder.SetIsIteratorMethod( templateMember.IsIteratorMethod || templateMember.MustInterpretAsAsyncIteratorTemplate() );
                     builder.Freeze();
 
                     proceedBinding = request.CreateProceedBinding( builder ) ?? throw new ArgumentException( "The proceed binding is null.", nameof(request) );
