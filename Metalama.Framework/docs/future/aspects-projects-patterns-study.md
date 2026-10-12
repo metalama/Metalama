@@ -214,7 +214,7 @@ document; the others are additions.
    calls `GetOptions` with the attribute's containing declaration as the target, as it does today for provider
    attributes. The manifest entry of the attribute-bound aspects document gains a kind (aspect or provider).
    `[CachingConfiguration]`, `[Constant]` and `[SuppressObservabilityWarnings]` need this. Affects the
-   attribute-bound aspects document, sections 2 and 3.
+   attribute-bound aspects document, section 4, which now specifies it.
 
 3. **Framework types used as attribute arguments move to the run-time package.** `ContractDirection` is a
    `[RunTimeOrCompileTime]` enum of `Metalama.Framework.Aspects` used as a named argument of every contract

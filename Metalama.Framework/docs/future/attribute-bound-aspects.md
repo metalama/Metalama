@@ -102,7 +102,7 @@ type both apply, ordered by the usual aspect ordering. Neither case needs a rule
 `IncludeDerivedTypes` defaults to `true`, as it does on `SelectDeclarationsWithAttribute`
 (`Metalama.Framework/Fabrics/QueryExtensions.cs:49-69`) and on `IAttributeCollection.OfAttributeType`.
 
-`OnIneligible` is described in section 4.
+`OnIneligible` is described in section 5.
 
 ### 2.2. The constructor of the aspect
 
@@ -135,28 +135,9 @@ the marker interface to the run-time package.
 
 ### 2.3. Options providers
 
-The [Patterns study](aspects-projects-patterns-study.md), gap 2, shows that configuration attributes need the
-same binding. A configuration attribute today implements `IHierarchicalOptionsProvider` and returns
-`IHierarchicalOptions` instances, which a run-time package cannot do, because both interfaces are in
-`Metalama.Framework` and the second is compile-time. `[AppliedBy]` is therefore accepted on a class that
-implements `IHierarchicalOptionsProvider` as well as on an aspect class:
-
-```csharp
-[AppliedBy( typeof(CachingConfigurationAttribute) )]
-internal sealed class CachingConfigurationProvider : IHierarchicalOptionsProvider
-{
-    public CachingConfigurationProvider( CachingConfigurationAttribute attribute ) { /* ... */ }
-
-    public IEnumerable<IHierarchicalOptions> GetOptions( in OptionsProviderContext context ) { /* ... */ }
-}
-```
-
-`CompilationHierarchicalOptionsSource` (`Metalama.Framework.Engine/HierarchicalOptions/CompilationHierarchicalOptionsSource.cs:48-92`)
-instantiates the provider once per bound attribute through the constructor rules of section 2.2 and calls
-`GetOptions` with the attribute's containing declaration as the target, as it does today for a provider
-attribute. `OnIneligible` does not apply to providers; option eligibility is checked by the options manager
-as today (LAMA0065). A bound aspect class that also implements `IHierarchicalOptionsProvider` needs nothing
-more: `AspectDriver` applies its options before `BuildAspect`, as for any aspect.
+The same binding serves configuration attributes: `[AppliedBy]` is accepted on a class that implements
+`IHierarchicalOptionsProvider`, or on an options class with a constructor from the attribute. Section 4
+specifies it.
 
 ## 3. Mechanism
 
@@ -219,9 +200,192 @@ declaration and its children. It names the aspect, which the business code canno
 topology, so the exclusion is available only where the aspect class is visible. A future addition could accept
 the bound attribute type as well; it is not part of this proposal.
 
-## 4. Eligibility
 
-### 4.1. How ineligibility is reported today
+## 4. Attribute-bound options providers
+
+### 4.1. The problem
+
+A configuration attribute today is a class that derives from `Attribute` and implements
+`IHierarchicalOptionsProvider`. `CompilationHierarchicalOptionsSource`
+(`Metalama.Framework.Engine/HierarchicalOptions/CompilationHierarchicalOptionsSource.cs:37-97`) finds every such
+type among the derived types of the interface in the compilation, skips the ones that are aspects, enumerates
+the attributes of each type, deserializes each attribute as a compile-time object with
+`UserCodeAttributeDeserializer`, calls `GetOptions` with the attribute's containing declaration as the target,
+and adds each returned options object as direct options of that declaration.
+
+Three things in this chain are unavailable to an attribute declared in a `Redist` package. The interface
+`IHierarchicalOptionsProvider` and the return type `IHierarchicalOptions` are in `Metalama.Framework`, and the
+second is compile-time through `IIncrementalObject` and `ICompileTimeSerializable`. The attribute must be
+deserialized as a compile-time object, which requires its type to be in a compile-time project or in a loadable
+compile-time assembly. And the options types it returns are internal to the aspects package.
+
+The pattern libraries have five configuration attributes: `[CachingConfiguration]` (`Metalama.Patterns.Caching.Aspects/CachingConfigurationAttribute.cs:25-28`),
+which wraps a `CachingOptions`; `[Constant]` and `[SuppressObservabilityWarnings]`
+(`Metalama.Patterns.Observability/ConstantAttribute.cs:37-40`, `SuppressObservabilityWarningsAttribute.cs:34-51`),
+which return a `DependencyAnalysisOptions`; and `[Command]`, `[DependencyProperty]` and `[Immutable]`, which are
+aspects that also provide options. The last group needs nothing beyond the aspect binding of section 2: a
+bound aspect class implements `IHierarchicalOptionsProvider` as today, and `AspectDriver.ApplyOptions`
+(`Metalama.Framework.Engine/Aspects/AspectDriver.cs:75-97`) applies its options with the `Aspect` axis before
+`BuildAspect`. The first group needs the binding specified here.
+
+### 4.2. The binding
+
+`[AppliedBy]` is accepted on a class that implements `IHierarchicalOptionsProvider` and is not an aspect. The
+class lives in the aspects package; the attribute it names lives in the `Redist` package.
+
+```csharp
+using Metalama.Framework.Aspects;
+using Metalama.Framework.Options;
+using Metalama.Patterns.Caching;
+
+namespace Metalama.Patterns.Caching.Aspects.Configuration;
+
+[AppliedBy( typeof(CachingConfigurationAttribute) )]
+internal sealed class CachingConfigurationProvider : IHierarchicalOptionsProvider
+{
+    private readonly CachingConfigurationAttribute _attribute;
+
+    public CachingConfigurationProvider( CachingConfigurationAttribute attribute )
+    {
+        this._attribute = attribute;
+    }
+
+    public IEnumerable<IHierarchicalOptions> GetOptions( in OptionsProviderContext context )
+    {
+        yield return new CachingOptions
+        {
+            AbsoluteExpiration = this._attribute.AbsoluteExpiration,
+            SlidingExpiration = this._attribute.SlidingExpiration,
+            ProfileName = this._attribute.ProfileName
+            // ...
+        };
+    }
+}
+```
+
+The attribute in the `Redist` package is a plain attribute:
+
+```csharp
+namespace Metalama.Patterns.Caching;
+
+[AttributeUsage( AttributeTargets.Class | AttributeTargets.Assembly )]
+[RunTimeOrCompileTime]
+public sealed class CachingConfigurationAttribute : CachingBaseAttribute;
+```
+
+The rules of the binding are those of section 2.1, with these differences:
+
+- The provider is instantiated through the constructor rules of section 2.2: the constructed attribute, then
+  `IAttribute`, then the default constructor. A `Redist` package built with Metalama (the third path of the
+  aspects projects document, section 4.1) extracts its `[RunTimeOrCompileTime]` attribute classes into its
+  embedded compile-time project, so the typed constructor is the normal case for the pattern libraries. A
+  provider bound to an attribute of a thick third-party assembly uses the `IAttribute` constructor.
+- `OnIneligible` does not apply. The eligibility of options is a property of each options type, checked by the
+  options manager (section 4.4), not of the provider. Setting `OnIneligible` on a provider binding is reported
+  as a warning at the binding and ignored.
+- `IncludeDerivedTypes` applies as for aspects, and defaults to `true`.
+- A class that implements both `IAspect` and `IHierarchicalOptionsProvider` is bound as an aspect. Its options
+  are applied by `AspectDriver` with the `Aspect` axis, which has the highest priority, exactly as for an aspect
+  attribute today.
+
+A shortcut covers the case where the attribute maps to one options type and nothing else: `[AppliedBy]` may be
+placed on the options class itself, which then needs a constructor from the attribute in addition to its
+parameterless constructor:
+
+```csharp
+[AppliedBy( typeof(CachingConfigurationAttribute) )]
+[RunTimeOrCompileTime]
+internal sealed record CachingOptions : IHierarchicalOptions<IMethod>, IHierarchicalOptions<INamedType>, /* ... */
+{
+    public CachingOptions() { }
+
+    public CachingOptions( CachingConfigurationAttribute attribute ) { /* ... */ }
+}
+```
+
+The engine treats it as a provider that returns one instance built by that constructor. The shortcut removes
+one class per configuration attribute, which is the whole content of `CachingConfigurationProvider` above. It is
+proposed as part of the first version because it is small; section 8 records it as a point to confirm.
+
+### 4.3. Mechanism
+
+The binding is read, recorded and stripped exactly as for aspects (section 3.1). The manifest entry gains a
+kind: aspect, provider or options. Nothing in the compile-time copy of the provider or options class refers to
+the attribute type except through the constructor parameter, which is a `[RunTimeOrCompileTime]` type of a
+compile-time project or a `CompileTimeType` mock, both of which the compile-time compilation already handles.
+
+`CompilationHierarchicalOptionsSource` gains a second loop, after the loop over provider attribute types, over
+the provider and options bindings of the compile-time project closure (`compileTimeProject.ClosureAttributeBindings`,
+the same list that `CompilationAspectSource` reads for aspects). For each binding it:
+
+1. Resolves the bound attribute type by its metadata name in the business compilation, with
+   `Factory.TryGetTypeByReflectionName`, and skips the binding when the type is absent, which happens at
+   design time with an incomplete compilation and is already the behaviour of `CompilationAspectSource.cs:79-85`
+   for aspect types.
+2. Enumerates `compilation.GetAllAttributesOfType( attributeType, includeDerivedTypes )`
+   (`Metalama.Framework.Engine/CodeModel/CompilationModel.cs:465-497`).
+3. For each attribute, instantiates the provider, or the options object for the shortcut form, through the
+   chosen constructor, inside `UserCodeInvoker` with a `UserCodeExecutionContext` whose target is the attribute's
+   containing declaration, so that an exception in the constructor is reported as a user code error at the
+   attribute.
+4. Calls `GetOptions` with an `OptionsProviderContext` whose target is the attribute's containing declaration
+   and whose diagnostic sink is scoped to the attribute, as today (`CompilationHierarchicalOptionsSource.cs:73-81`).
+5. Adds one `HierarchicalOptionsInstance` per returned options object, on the containing declaration.
+
+Everything after step 5 is unchanged. The options are direct options of the declaration, merged with other
+direct options of the same declaration along the `SameDeclaration` axis
+(`HierarchicalOptionsManager.OptionTypeNode.cs:86-90`), inherited along the containing, base and namespace axes
+according to `[HierarchicalOptions]`, exported to the inheritable manifest for referenced projects, and read by
+aspects through `Enhancements().GetOptions<T>()`. The precedence between a bound provider and a fabric's
+`SetOptions` on the same declaration is the precedence between a provider attribute and a fabric today, which
+is the order of the sources in the pipeline; the design does not change it.
+
+An assembly-level attribute, `[assembly: CachingConfiguration( ... )]`, has the compilation as its containing
+declaration and produces compilation-level options, as today.
+
+The options manager validates the option types on the way: `AddSourceAsync`
+(`HierarchicalOptionsManager.cs:171-190`) silently drops options whose type is not registered. The types
+returned by a bound provider are in the aspects package, which is in the closure, so they are registered
+through `ClosureOptionTypes`. No change is needed, and the silent drop stays as it is for an options type that
+is not in any compile-time project.
+
+### 4.4. Eligibility and diagnostics
+
+An options type may implement `IEligible<T>`, and the options manager reports LAMA0065,
+`OptionNotEligibleOnTarget`, when the options are set on an ineligible declaration
+(`OptionTypeNode.cs:70-83`). The diagnostic is reported at the declaration, because `HierarchicalOptionsInstance`
+carries no source (`HierarchicalOptionsInstance.cs:10-21`). For a bound provider the user wrote an attribute,
+so `HierarchicalOptionsInstance` gains an optional diagnostic source, set to the `IAttribute` by the new loop and
+left null by the existing paths, and LAMA0065 is reported at the attribute when the source is present. The
+message names the attribute: "The attribute [CachingConfiguration] cannot be applied to the field 'F' because
+the options 'CachingOptions' …".
+
+A static check at the provider binding, in the manner of section 5.3, is possible only for the shortcut form,
+where the options type and therefore its `IHierarchicalOptions<T>` interfaces are known: each `AttributeTargets`
+flag of the bound attribute's `AttributeUsage` is checked against the declaration interfaces of the options
+type, and a flag with no matching interface is reported at `[AppliedBy]` as a warning. For a provider class the
+returned types are known only at run time of the provider, and no static check is made.
+
+The diagnostics of the feature are: the shared ones of the aspect binding (no applicable constructor, LAMA0401
+for an attribute type that cannot be loaded with the typed constructor); a warning for `OnIneligible` on a
+provider binding; the relocated LAMA0065; and the static warning of the shortcut form.
+
+### 4.5. The pattern libraries under this binding
+
+| Attribute | Today | Under the binding |
+|---|---|---|
+| `[CachingConfiguration]` | `CachingBaseAttribute : Attribute, IHierarchicalOptionsProvider`, wrapping a `CachingOptions` built from its properties | Plain attribute in `Metalama.Patterns.Caching`; `CachingOptions` carries `[AppliedBy(typeof(CachingConfigurationAttribute))]` and a constructor from the attribute (shortcut form) |
+| `[Cache]` | `CacheAttribute : CachingBaseAttribute, IAspect<IMethod>`, providing its own options with the `Aspect` axis | Plain attribute in `Metalama.Patterns.Caching`; `CacheAspect` bound to it implements `IHierarchicalOptionsProvider` and provides the same options |
+| `[Constant]` | `Attribute, IHierarchicalOptionsProvider` returning `DependencyAnalysisOptions { ObservabilityContract = Constant }` | Plain attribute in `Metalama.Patterns.Observability.Redist`; a provider class or the shortcut form on `DependencyAnalysisOptions` |
+| `[SuppressObservabilityWarnings]` | Same mechanism | Same as `[Constant]`; the two attributes map to the same options type, so the shortcut form needs two constructors or one provider class |
+| `[Command]`, `[DependencyProperty]`, `[Immutable]` | Aspect and provider | Bound aspects; nothing more |
+
+The `CachingBaseAttribute` base class, shared by `[Cache]` and `[CachingConfiguration]`, stays in the `Redist`
+package as a plain base class with the common properties.
+
+## 5. Eligibility
+
+### 5.1. How ineligibility is reported today
 
 An aspect applied as an attribute is guarded three times. The C# compiler enforces the `[AttributeUsage]` of the
 aspect base class (`OverrideMethodAspect` allows `AttributeTargets.Method`, `TypeAspect` allows the type kinds),
@@ -236,7 +400,7 @@ first.
 An aspect added by a fabric is guarded once, by `AspectQuerySource`: `AddAspectIfEligible` skips the declaration
 silently, and `AddAspect` reports LAMA0039 at the fabric.
 
-### 4.2. What changes
+### 5.2. What changes
 
 The first guard is lost. The contract attribute's own `[AttributeUsage]` governs where it can be written, and the
 contracts author decides it without knowing the aspect; a third-party attribute's usage is fixed. The second
@@ -260,7 +424,7 @@ virtual member, is not an error today and does not become one.
 The comment at `AspectDriver.cs:159` is resolved on the way: when the predecessor of the instance is an
 attribute, LAMA0003 is reported at the attribute.
 
-### 4.3. A static check when the aspects project compiles
+### 5.3. A static check when the aspects project compiles
 
 The engine never compares the eligibility of an aspect with the `AttributeUsage` of an attribute; nothing in
 `AspectClass` or `EligibilityHelper` reads `AttributeTargets`. For a bound attribute, a mismatch is a design
@@ -276,7 +440,7 @@ is `Error`, and not at all otherwise, since the aspect author has stated that in
 expected. The check covers the declaration kind only; the finer eligibility rules are predicates over
 declarations and cannot be evaluated without one.
 
-## 5. Relation to the fabric helper
+## 6. Relation to the fabric helper
 
 The aspects projects document proposes `AddAspectForAttribute`, a fabric helper that selects by attribute, constructs the
 aspect from the attribute and reports ineligibility at the attribute. The two are complementary. `[AppliedBy]`
@@ -284,7 +448,7 @@ is the recommended form and covers the common case with no code. The helper rema
 predicate on the attribute, a choice of aspect that depends on the target, or a binding that the aspect author
 does not own. Both report at the attribute, through the same predecessor mechanism.
 
-## 6. Changes by component
+## 7. Changes by component
 
 | Component | Change |
 |---|---|
@@ -292,19 +456,31 @@ does not own. Both report at the attribute, through the same predecessor mechani
 | `ProduceCompileTimeCodeRewriter` | Remove `[AppliedBy]` from the compile-time copy. |
 | `CompileTimeCompilationBuilder`, `CompileTimeProjectManifest` | Read the bindings from the run-time symbol of each aspect type; additive `AttributeBindings` field. |
 | `CompileTimeProject.TryCreateUntransformed` | Read the bindings through `System.Reflection.Metadata`. |
-| `AspectClass` | Expose the bindings; choose the constructor per binding; the static `AttributeUsage` check of section 4.3. |
+| `AspectClass` | Expose the bindings; choose the constructor per binding; the static `AttributeUsage` check of section 5.3. |
 | `CompilationAspectSource` | Create instances for bound attributes; the new ineligibility descriptor; honour `OnIneligible`. |
+| `CompilationHierarchicalOptionsSource` | Second loop over the provider and options bindings of the closure; instantiate the provider or the options object per attribute; the shortcut form (section 4). |
+| `HierarchicalOptionsInstance`, `HierarchicalOptionsManager.OptionTypeNode` | Optional diagnostic source on the instance; LAMA0065 reported at the attribute when present. |
+| `AspectClass` and the manifest | Binding kinds: aspect, provider, options; the static `AttributeUsage` check for the shortcut form. |
 | `AspectDriver` | Report LAMA0003 at the attribute when the predecessor is an attribute. |
 | `TemplatingCodeValidator` | Allow `typeof` of a run-time-only type in the arguments of `[AppliedBy]`, if it does not already. |
-| Tests | Aspect tests for the three constructors, derived attribute types, two bindings on one aspect, two aspects on one attribute, each `OnIneligible` value, the warning of section 4.3, a thick attribute type that is never loaded, and the untransformed path. |
+| Tests | Aspect tests for the three constructors, derived attribute types, two bindings on one aspect, two aspects on one attribute, each `OnIneligible` value, the warning of section 5.3, a thick attribute type that is never loaded, and the untransformed path. For providers: a provider class, the shortcut form, two attributes of the same type on one declaration, an assembly-level attribute, an ineligible options type reported at the attribute, and a provider bound to a third-party attribute through the `IAttribute` constructor. |
 | Documentation | A conceptual article under "Applying aspects"; a mention in the aspects projects article. |
 
-## 7. Open questions
+## 8. Open questions
 
 1. Whether `[ExcludeAspect]` should accept the bound attribute type (section 3.3).
-2. Whether the static check of section 4.3 should be an error rather than a warning. A warning is proposed
+2. Whether the static check of section 5.3 should be an error rather than a warning. A warning is proposed
    because the check is approximate, and an aspect that is eligible for a kind only under conditions is not
    wrong.
 3. The name. `AppliedBy` reads in the direction of the relationship and reuses the vocabulary of the "applying
    aspects" documentation. `ForAttribute` was considered: it is shorter, but its class name is awkward and
    "for" does not state the direction.
+4. Whether the shortcut form of section 4.2, `[AppliedBy]` on an options class with a constructor from the
+   attribute, is kept. It saves one class per configuration attribute and allows the static check of section
+   4.4; against it, an options class gains a second constructor and a dependency on the attribute type, and two
+   attributes that map to the same options type, as `[Constant]` and `[SuppressObservabilityWarnings]` do, need
+   two constructors on that class.
+5. The order in which several attributes of the same type on one declaration are applied. The options of each
+   are merged along the `SameDeclaration` axis in the order the code model returns the attributes, which is not
+   specified today for provider attributes either. Declaration order in source would be the natural rule and
+   needs to be checked against `GetAllAttributesOfType`.
