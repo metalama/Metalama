@@ -27,28 +27,20 @@ Under the aspects topology, each library becomes two packages:
 
 | Package | Content | References | Who references it |
 |---|---|---|---|
-| `Metalama.Patterns.X.Redist` (run-time) | The attributes as plain types marked `[RunTimeOrCompileTime]`, the run-time helpers, the shared enums and records | `Metalama.Framework.Redist`; `Metalama.Framework` privately when built with Metalama (section 4) | The business project, as an ordinary reference |
-| `Metalama.Patterns.X.Aspects` (aspects) | The aspect classes bound to the attributes with `[AppliedBy]`, the options, the options providers bound to the configuration attributes, the templates, the fabric extension methods | `Metalama.Framework`, `Metalama.Patterns.X.Redist` | The business project, as an aspects reference; the user's own aspects project, as an ordinary reference when it configures the library from a fabric |
-| `Metalama.Patterns.X` (meta-package) | Nothing | `Metalama.Patterns.X.Redist`, `Metalama.Patterns.X.Aspects`, both with every asset | A project that wants the one-reference experience of today, with the aspects flowing to its consumers as they do today |
+| `Metalama.Patterns.X.Redist` | The attributes as plain types marked `[RunTimeOrCompileTime]`, the run-time helpers, the shared enums and records. No reference to `Metalama.Framework.dll`. | `Metalama.Framework.Redist`; `Metalama.Framework` privately when built with Metalama (section 4) | The business project, as an ordinary reference; flows to its consumers |
+| `Metalama.Patterns.X.Compiler` | `metalama/<tfm>/Metalama.Patterns.X.Aspects.dll`: the aspect classes bound to the attributes with `[AppliedBy]`, the options, the options providers bound to the configuration attributes, the templates, the fabric extension methods; registered by the props of the package, never a compile reference | `Metalama.Patterns.X.Redist` at an exact version; the `Compiler` packages of the libraries its aspects use | The business project, as an ordinary reference that flows to its consumers; the business project references `Metalama.Framework` privately |
+| `Metalama.Patterns.X` | `lib/<tfm>/Metalama.Patterns.X.Aspects.dll`, the same assembly as a compile reference | `Metalama.Patterns.X.Redist`, `Metalama.Framework` flowing | A project that writes fabrics or configuration code against the library, or that wants the one-reference experience of today |
 
-The convention is the one of section 6.2 of the aspects projects document: `Redist` for the run-time package, `Aspects`
-for the aspects, the unsuffixed name for a meta-package over both. It applies to the framework as well.
-Caching is the exception: `Metalama.Patterns.Caching` is a product with real content that is usable without
-Metalama and is documented as such, so it keeps its name, `Metalama.Patterns.Caching.Aspects` keeps its name,
-and there is no meta-package for it. The rule is that a run-time package takes the `Redist` suffix when its
-content is only what the aspects need; a run-time package with a life of its own keeps its name. The word
-"contracts project" of the aspects projects document collides with `Metalama.Patterns.Contracts`, the code contracts
-library, so this document says "run-time package" or "`Redist` package".
-
-The `Aspects` package serves both topologies with one layout. It ships its assembly in `lib/`, because the user's
-own aspects project needs a compile reference to call `ConfigureContracts` or `ConfigureCaching`, and its
-`buildTransitive` props always register the assembly as a `MetalamaAspectsAssembly` item. Referenced normally,
-directly or through the meta-package, it reaches the compiler as a reference and the engine as an aspects item,
-and the engine deduplicates by assembly identity. Referenced with `PrivateAssets="all" ExcludeAssets="compile;runtime"`,
-it reaches the engine only. The exclusion is written by the user: it is a restore-time flag, the `Metalama.Framework` targets
-run after restore, and a package cannot declare it for its consumers. The business assembly references the
-`Aspects` assembly in neither case, because the attributes are in the `Redist` package and the compiler drops
-the unused reference.
+The convention is the one of section 6.2 of the aspects projects document: `Redist` for the run-time package,
+`Compiler` for the package that the compiler loads, the unsuffixed name for the package that compile-time code
+is written against. Caching is the exception for its run-time package: `Metalama.Patterns.Caching` is a product
+with real content that is usable without Metalama and is documented as such, so it keeps its name, as do
+`Metalama.Patterns.Caching.Backend` and `Metalama.Patterns.Caching.Aspects`, which already has the role of the
+unsuffixed package; Caching gains `Metalama.Patterns.Caching.Compiler`. The rule is that a run-time package
+takes the `Redist` suffix when its content is only what the aspects need; a run-time package with a life of its
+own keeps its name. The word "contracts project" of the aspects projects document collides with
+`Metalama.Patterns.Contracts`, the code contracts library, so this document says "run-time package" or
+"`Redist` package".
 
 ## 2. The libraries today
 
@@ -141,9 +133,9 @@ WPF types with internal constructors, and WPF's `DependencyProperty` API. Option
 | Immutability | `[Immutable]`, `ImmutabilityKind` | `ImmutableAspect` bound to it, which also provides the options; `ConfigureImmutability`, the classifier, the transitive fabric |
 | Wpf | `[Command]`, `[DependencyProperty]`, `DelegateCommandFactory` and the command classes | `CommandAspect` and `DependencyPropertyAspect` bound to them, each also an options provider; the options, naming conventions, `ConfigureCommand`, `ConfigureDependencyProperty` |
 
-The package names per library follow section 1: `Metalama.Patterns.Contracts.Redist`, `.Aspects` and the
-meta-package `Metalama.Patterns.Contracts`, and the same for Memoization, Observability, Immutability and Wpf;
-Caching keeps `Metalama.Patterns.Caching`, `.Backend` and `.Aspects`.
+The package names per library follow section 1: `Metalama.Patterns.Contracts.Redist`, `.Compiler` and the
+unsuffixed `Metalama.Patterns.Contracts`, and the same for Memoization, Observability, Immutability and Wpf;
+Caching keeps `Metalama.Patterns.Caching`, `.Backend` and `.Aspects`, and gains `.Compiler`.
 
 A business project that uses contracts and caching, and wants no Metalama dependency in its package, then has:
 
@@ -152,15 +144,16 @@ A business project that uses contracts and caching, and wants no Metalama depend
   <PackageReference Include="Metalama.Framework" PrivateAssets="all" />
   <PackageReference Include="Metalama.Patterns.Contracts.Redist" />
   <PackageReference Include="Metalama.Patterns.Caching" />
-  <PackageReference Include="Metalama.Patterns.Contracts.Aspects" PrivateAssets="all" ExcludeAssets="compile;runtime" />
-  <PackageReference Include="Metalama.Patterns.Caching.Aspects" PrivateAssets="all" ExcludeAssets="compile;runtime" />
+  <PackageReference Include="Metalama.Patterns.Contracts.Compiler" />
+  <PackageReference Include="Metalama.Patterns.Caching.Compiler" />
 </ItemGroup>
 ```
 
-and its package depends on `Metalama.Patterns.Contracts.Redist`, `Metalama.Patterns.Caching` and, through them,
-`Metalama.Framework.Redist`. A project that does not care about the dependency references
+and its package depends on `Metalama.Patterns.Contracts.Redist`, `Metalama.Patterns.Contracts.Compiler`,
+`Metalama.Patterns.Caching`, `Metalama.Patterns.Caching.Compiler` and, through them, `Metalama.Framework.Redist`.
+The `Compiler` packages flow to its consumers with no content, so that a consumer that builds with Metalama
+inherits the contracts with no action. A project that writes fabrics against the libraries references
 `Metalama.Patterns.Contracts` and `Metalama.Patterns.Caching.Aspects` instead, and gets what it gets today.
-Section 5, gap 1, explains the form of the private references.
 
 ## 4. Configuration
 
@@ -199,12 +192,11 @@ document; the others are additions.
    Every pattern library is consumed as a package. The package form needs no new MSBuild concept: an aspects
    package ships its assembly outside `lib`, in `metalama/<tfm>/`, and its `buildTransitive` props add a
    `MetalamaAspectsAssembly` item, exactly as extension packages ship `MetalamaExtensionAssembly` items today
-   (`Metalama.Framework/docs/extensibility.md`, `Metalama.Extensions.HtmlWriter/build/*.props`). Section 1
-   refines this: the assembly stays in `lib/` so that aspects projects can compile against it, the props
-   register it in every case, and the aspects form of the reference is `PrivateAssets="all" ExcludeAssets="compile;runtime"`,
-   which the [NuGet experiment](aspects-projects-nuget-experiment.md) confirms: the props run, the compiler gets
-   no reference, nothing is copied and nothing flows.
-   The package depends on `Metalama.Framework` and on its `Redist` package. The business project's
+   (`Metalama.Framework/docs/extensibility.md`, `Metalama.Extensions.HtmlWriter/build/*.props`). This is the
+   `Compiler` package of section 1; the unsuffixed package carries the same assembly in `lib/` for projects
+   that compile against it. The `Compiler` package depends on its `Redist` package at an exact version and on
+   the `Compiler` packages of the libraries its aspects use, and not on `Metalama.Framework`; the business
+   project references `Metalama.Framework` privately itself. The business project's
    dependency on the `Redist` package must be a direct, non-private reference for the reason given in section
    6.2 of the aspects projects document, and the pack-time check there should be generalized from
    `Metalama.Framework.Redist` to any assembly that the output references and that only a private reference
@@ -285,7 +277,7 @@ document; the others are additions.
    `Metalama.Patterns.Caching.Aspects` to `Metalama.Patterns.Caching`. A type forwarder from the old assembly to
    the new one keeps binary compatibility for the attribute types when their namespace is kept, and
    `ContractDirection` is forwarded from `Metalama.Framework.dll` to `Metalama.Framework.Redist.dll`. The
-   meta-package keeps the one-reference experience, so a user of `Metalama.Patterns.Contracts` changes nothing in
+   unsuffixed package keeps the one-reference experience, so a user of `Metalama.Patterns.Contracts` changes nothing in
    the project file. Source compatibility breaks for a user who derives from `ContractBaseAttribute` or
    `CachingBaseAttribute` to write a custom contract, and a user of `Metalama.Patterns.Caching.Aspects` who wants
    the clean topology adds the private reference. At the framework level, a library that followed

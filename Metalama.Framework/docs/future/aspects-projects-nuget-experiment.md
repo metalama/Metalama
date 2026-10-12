@@ -71,10 +71,10 @@ directory does not contain it.
 4. **`buildTransitive` flows through the default `exclude="Build,Analyzers"`.** `C2`, `C5` and `C7` import the
    props of packages two levels down. This is what makes `Redist` the one package whose props reach every
    consumer of a business package, as long as no intermediate reference excluded build assets.
-5. **`PrivateAssets="all" ExcludeAssets="compile;runtime"` is the aspects form for a package.** The props of the
-   package run in the referencing project, the compiler gets no reference, nothing is copied, and nothing flows
-   to consumers (`B6`, `C6`). The props can therefore register the assembly for the engine while the compiler
-   never sees it.
+5. **`PrivateAssets="all" ExcludeAssets="compile;runtime"` hides the `lib` of a package while its props still run**
+   (`B6`, `C6`). The design does not use this form any more: a `Compiler` package has no `lib/` folder, so an
+   ordinary reference already gives the compiler nothing and the engine the props. The fact is recorded because
+   it is what makes a package with a `lib/` folder usable as a compile-time-only input when needed.
 
 ## What the facts decide
 
