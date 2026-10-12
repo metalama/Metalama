@@ -87,7 +87,7 @@ public enum IneligibilityHandling
 }
 ```
 
-The attribute is defined in `Metalama.Framework`, not in `Metalama.Framework.RunTime`: it is applied to aspect
+The attribute is defined in `Metalama.Framework`, not in `Metalama.Framework.Redist`: it is applied to aspect
 classes, which always reference the framework, and the contracts assembly never needs it.
 
 The binding sits on the aspect and names the attribute, never the reverse. The contracts project must not know

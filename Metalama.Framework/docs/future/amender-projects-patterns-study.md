@@ -27,13 +27,28 @@ Under the amender topology, each library becomes two packages:
 
 | Package | Content | References | Who references it |
 |---|---|---|---|
-| `Metalama.Patterns.X` (run-time) | The attributes as plain types marked `[RunTimeOrCompileTime]`, the run-time helpers, the shared enums and records | `Metalama.Framework.RunTime`; `Metalama.Framework.Build` privately when built with Metalama (section 4) | The business project, as an ordinary reference |
-| `Metalama.Patterns.X.Aspects` (amender) | The aspect classes bound to the attributes with `[AppliedBy]`, the options, the options providers bound to the configuration attributes, the templates, the fabric extension methods | `Metalama.Framework`, `Metalama.Patterns.X` | The business project, as an amender reference; the user's own amender project, as an ordinary reference when it configures the library from a fabric |
+| `Metalama.Patterns.X.Redist` (run-time) | The attributes as plain types marked `[RunTimeOrCompileTime]`, the run-time helpers, the shared enums and records | `Metalama.Framework.Redist`; `Metalama.Framework.Build` privately when built with Metalama (section 4) | The business project, as an ordinary reference |
+| `Metalama.Patterns.X.Aspects` (amender) | The aspect classes bound to the attributes with `[AppliedBy]`, the options, the options providers bound to the configuration attributes, the templates, the fabric extension methods | `Metalama.Framework`, `Metalama.Patterns.X.Redist` | The business project, as an amender reference; the user's own amender project, as an ordinary reference when it configures the library from a fabric |
+| `Metalama.Patterns.X` (meta-package) | Nothing | `Metalama.Patterns.X.Redist`, `Metalama.Patterns.X.Aspects`, both with every asset | A project that wants the one-reference experience of today, with the aspects flowing to its consumers as they do today |
 
-The naming follows the precedent of Caching, which is already split into `Metalama.Patterns.Caching` and
-`Metalama.Patterns.Caching.Aspects`. The word "contracts project" of the amender document collides with
-`Metalama.Patterns.Contracts`, the code contracts library, so this document says "run-time package" for the
-first package.
+The convention is the one of section 6.2 of the amender document: `Redist` for the run-time package, `Aspects`
+for the aspects, the unsuffixed name for a meta-package over both. It applies to the framework as well.
+Caching is the exception: `Metalama.Patterns.Caching` is a product with real content that is usable without
+Metalama and is documented as such, so it keeps its name, `Metalama.Patterns.Caching.Aspects` keeps its name,
+and there is no meta-package for it. The rule is that a run-time package takes the `Redist` suffix when its
+content is only what the aspects need; a run-time package with a life of its own keeps its name. The word
+"contracts project" of the amender document collides with `Metalama.Patterns.Contracts`, the code contracts
+library, so this document says "run-time package" or "`Redist` package".
+
+The `Aspects` package serves both topologies with one layout. It ships its assembly in `lib/`, because the user's
+own amender project needs a compile reference to call `ConfigureContracts` or `ConfigureCaching`, and its
+`buildTransitive` props always register the assembly as a `MetalamaAmenderAssembly` item. Referenced normally,
+directly or through the meta-package, it reaches the compiler as a reference and the engine as an amender item,
+and the engine deduplicates by assembly identity. Referenced with `PrivateAssets="all" ExcludeAssets="compile;runtime"`,
+it reaches the engine only. The exclusion is written by the user: it is a restore-time flag, the `Build` targets
+run after restore, and a package cannot declare it for its consumers. The business assembly references the
+`Aspects` assembly in neither case, because the attributes are in the `Redist` package and the compiler drops
+the unused reference.
 
 ## 2. The libraries today
 
@@ -54,7 +69,7 @@ Already split, and the most instructive case because the split is incomplete in 
   reaches them through `Metalama.Patterns.Contracts` with `PrivateAssets="all"`, so they are built with Metalama
   and embed a compile-time project of their shared types, and their packages hide the dependency. A consumer of
   the run-time package alone can fail at run time on an async enumerable. This is a packaging defect today and
-  is exactly the dependency that `Metalama.Framework.RunTime` absorbs.
+  is exactly the dependency that `Metalama.Framework.Redist` absorbs.
 - The user-facing attributes `[Cache]`, `[InvalidateCache]`, `[CacheKey]` and `[CachingConfiguration]` live in
   the aspects package (`Metalama.Patterns.Caching.Aspects/CacheAttribute.cs:37-39`,
   `CachingConfigurationAttribute.cs:25-28`); only `[NotCacheKey]` is in the run-time package. The business
@@ -126,20 +141,26 @@ WPF types with internal constructors, and WPF's `DependencyProperty` API. Option
 | Immutability | `[Immutable]`, `ImmutabilityKind` | `ImmutableAspect` bound to it, which also provides the options; `ConfigureImmutability`, the classifier, the transitive fabric |
 | Wpf | `[Command]`, `[DependencyProperty]`, `DelegateCommandFactory` and the command classes | `CommandAspect` and `DependencyPropertyAspect` bound to them, each also an options provider; the options, naming conventions, `ConfigureCommand`, `ConfigureDependencyProperty` |
 
-A business project that uses contracts and caching then has:
+The package names per library follow section 1: `Metalama.Patterns.Contracts.Redist`, `.Aspects` and the
+meta-package `Metalama.Patterns.Contracts`, and the same for Memoization, Observability, Immutability and Wpf;
+Caching keeps `Metalama.Patterns.Caching`, `.Backend` and `.Aspects`.
+
+A business project that uses contracts and caching, and wants no Metalama dependency in its package, then has:
 
 ```xml
 <ItemGroup>
   <PackageReference Include="Metalama.Framework.Build" />
-  <PackageReference Include="Metalama.Patterns.Contracts" />
+  <PackageReference Include="Metalama.Patterns.Contracts.Redist" />
   <PackageReference Include="Metalama.Patterns.Caching" />
-  <PackageReference Include="Metalama.Patterns.Contracts.Aspects" PrivateAssets="all" />
-  <PackageReference Include="Metalama.Patterns.Caching.Aspects" PrivateAssets="all" />
+  <PackageReference Include="Metalama.Patterns.Contracts.Aspects" PrivateAssets="all" ExcludeAssets="compile;runtime" />
+  <PackageReference Include="Metalama.Patterns.Caching.Aspects" PrivateAssets="all" ExcludeAssets="compile;runtime" />
 </ItemGroup>
 ```
 
-and its package depends on `Metalama.Patterns.Contracts`, `Metalama.Patterns.Caching` and, through them,
-`Metalama.Framework.RunTime`. Section 5, gap 1, explains the form of the last two references.
+and its package depends on `Metalama.Patterns.Contracts.Redist`, `Metalama.Patterns.Caching` and, through them,
+`Metalama.Framework.Redist`. A project that does not care about the dependency references
+`Metalama.Patterns.Contracts` and `Metalama.Patterns.Caching.Aspects` instead, and gets what it gets today.
+Section 5, gap 1, explains the form of the private references.
 
 ## 4. Configuration
 
@@ -162,7 +183,7 @@ which is the role the `TransitiveProjectFabric` documentation already gives it.
 to implement `IHierarchicalOptionsProvider` and return `IHierarchicalOptions` instances
 (`Metalama.Framework.Engine/HierarchicalOptions/CompilationHierarchicalOptionsSource.cs:48-92`). Both interfaces
 are in `Metalama.Framework`; the second is compile-time through `IIncrementalObject` and
-`ICompileTimeSerializable`. A run-time package that references only `Metalama.Framework.RunTime` cannot
+`ICompileTimeSerializable`. A run-time package that references only `Metalama.Framework.Redist` cannot
 implement them. `[CachingConfiguration]`, `[Constant]` and `[SuppressObservabilityWarnings]` therefore need the
 same binding as aspects, recorded as gap 2. Attributes that are both an aspect and a provider, such as
 `[Command]` and `[Immutable]`, need nothing more than `[AppliedBy]`: the bound aspect class implements
@@ -178,12 +199,14 @@ document; the others are additions.
    Every pattern library is consumed as a package. The package form needs no new MSBuild concept: an amender
    package ships its assembly outside `lib`, in `metalama/<tfm>/`, and its `buildTransitive` props add a
    `MetalamaAmenderAssembly` item, exactly as extension packages ship `MetalamaExtensionAssembly` items today
-   (`Metalama.Framework/docs/extensibility.md`, `Metalama.Extensions.HtmlWriter/build/*.props`). It is a
-   development dependency, depends on `Metalama.Framework.Build` and on its run-time package, and is referenced
-   with `PrivateAssets="all"`. The business project's dependency on the run-time package must be a direct,
-   non-private reference for the reason given in section 6.2 of the amender document, and the pack-time check
-   there should be generalized from `Metalama.Framework.RunTime` to any assembly that the output references and
-   that only a private reference provides. Affects the amender document, section 6.1 and 6.2.
+   (`Metalama.Framework/docs/extensibility.md`, `Metalama.Extensions.HtmlWriter/build/*.props`). Section 1
+   refines this: the assembly stays in `lib/` so that amender projects can compile against it, the props
+   register it in every case, and the amender form of the reference is `PrivateAssets="all" ExcludeAssets="compile;runtime"`.
+   The package depends on `Metalama.Framework.Build` and on its `Redist` package. The business project's
+   dependency on the `Redist` package must be a direct, non-private reference for the reason given in section
+   6.2 of the amender document, and the pack-time check there should be generalized from
+   `Metalama.Framework.Redist` to any assembly that the output references and that only a private reference
+   provides. Affects the amender document, section 6.1 and 6.2.
 
 2. **Attribute-bound options providers.** `[AppliedBy]` must be accepted on a class implementing
    `IHierarchicalOptionsProvider` as well as on an aspect class. `CompilationHierarchicalOptionsSource` then
@@ -196,7 +219,7 @@ document; the others are additions.
 3. **Framework types used as attribute arguments move to the run-time package.** `ContractDirection` is a
    `[RunTimeOrCompileTime]` enum of `Metalama.Framework.Aspects` used as a named argument of every contract
    attribute (`ContractBaseAttribute.cs:67`). A run-time contracts package cannot reference it unless it is in
-   `Metalama.Framework.RunTime`. The same applies to `[Durable]` and `[ImmutableType]` of
+   `Metalama.Framework.Redist`. The same applies to `[Durable]` and `[ImmutableType]` of
    `Metalama.Framework.Utilities`, which are analyzer annotations placed on run-time types
    (`InvariantSuspensionCounter.cs:17-19`, `CachingBaseAttribute.cs:26`). The content list of section 6.3 of the
    amender document gains these, and a rule: a framework type that a run-time package needs in its own public
@@ -206,7 +229,7 @@ document; the others are additions.
    paths for contract types: the code model path, which loads nothing, and the typed path, which loads the
    contracts assembly as a foreign compile-time assembly and requires it to be loadable in a .NET Framework
    host. Caching shows a third path that exists today and is better for Metalama's own run-time packages: the
-   run-time package is built with Metalama (`Metalama.Framework.Build` as a private reference, `Metalama.Framework.RunTime`
+   run-time package is built with Metalama (`Metalama.Framework.Build` as a private reference, `Metalama.Framework.Redist`
    as the only run-time reference), Metalama extracts its `[RunTimeOrCompileTime]` types into the embedded
    compile-time project, and consumers recompile those sources. Only the shared types are extracted, so the
    package may be as thick as it likes at run time, and nothing is loaded from the run-time assembly in the
@@ -223,7 +246,7 @@ document; the others are additions.
    the attribute type to be `ICompileTimeSerializable`, which is a compile-time interface a run-time package
    cannot implement. Two answers: the aspect copies the attribute's values into its own fields, which the
    serializer handles for primitive and framework types and which is the recommended rule for the first version;
-   or `ICompileTimeSerializable`, which is a marker interface, moves to `Metalama.Framework.RunTime`, which is a
+   or `ICompileTimeSerializable`, which is a marker interface, moves to `Metalama.Framework.Redist`, which is a
    larger decision with consequences for the serializer generator. Affects the attribute-bound aspects document,
    section 2.2.
 
@@ -249,14 +272,17 @@ document; the others are additions.
    should say that a library configured through MSBuild properties exports them in its package, and that a
    project-referenced amender uses a fabric or a `Directory.Build.props`. Affects the documentation only.
 
-9. **Migration of the existing libraries.** The attributes change assembly and base type: `[NotNull]` stops
-   deriving from `ContractAspect`, `[Cache]` moves from `Metalama.Patterns.Caching.Aspects` to
-   `Metalama.Patterns.Caching`. A type forwarder from the aspects package to the run-time package keeps binary
-   compatibility for the attribute types when their namespace is kept, and `ContractDirection` is forwarded from
-   `Metalama.Framework.dll` to the run-time assembly. Source compatibility breaks for a user who derives from
-   `ContractBaseAttribute` or `CachingBaseAttribute` to write a custom contract, and for every user, who must add
-   the aspects package as a second reference. The first version of each split library is a breaking change and
-   belongs to a major version. Affects the pattern libraries.
+9. **Migration of the existing libraries.** The attributes change assembly and base type: `[NotNull]` moves to
+   `Metalama.Patterns.Contracts.Redist` and stops deriving from `ContractAspect`, `[Cache]` moves from
+   `Metalama.Patterns.Caching.Aspects` to `Metalama.Patterns.Caching`. A type forwarder from the old assembly to
+   the new one keeps binary compatibility for the attribute types when their namespace is kept, and
+   `ContractDirection` is forwarded from `Metalama.Framework.dll` to `Metalama.Framework.Redist.dll`. The
+   meta-package keeps the one-reference experience, so a user of `Metalama.Patterns.Contracts` changes nothing in
+   the project file. Source compatibility breaks for a user who derives from `ContractBaseAttribute` or
+   `CachingBaseAttribute` to write a custom contract, and a user of `Metalama.Patterns.Caching.Aspects` who wants
+   the clean topology adds the private reference. At the framework level, a library that followed
+   `distributing.md` replaces `Metalama.Framework.Redist` with `Metalama.Framework.Aspects`. The first version of
+   each split library is a breaking change and belongs to a major version. Affects the pattern libraries.
 
 10. **`Metalama.Extensions.DependencyInjection`.** `CacheAspect` uses it at compile time to introduce the
     `ICachingService` dependency, and the woven code references no type of that extension, so it is a compile-time
@@ -267,11 +293,12 @@ document; the others are additions.
 11. **The existing packaging defect of the caching run-time packages.** `Metalama.Patterns.Caching` and
     `.Backend` reference `Metalama.Framework.dll` and call `RunTimeAspectHelper` without declaring
     `Metalama.Framework.Redist`. Independent of the design, this is a defect today and needs an issue. With the
-    design, the dependency becomes `Metalama.Framework.RunTime` and is declared.
+    design, the dependency becomes `Metalama.Framework.Redist` and is declared.
 
 12. **Vocabulary.** "Contracts project" in the amender document collides with `Metalama.Patterns.Contracts`.
-    "Run-time package" or "annotations package" avoids it. Affects the amender document throughout, and is a
-    choice to make before the documentation is written.
+    "`Redist` package" names it after the convention and avoids the collision. Whether "amender project" becomes
+    "aspects project", to match the `Aspects` suffix, is a related choice still open. Affects the amender
+    document throughout, and is a choice to make before the documentation is written.
 
 ## 6. What this study does not cover
 
