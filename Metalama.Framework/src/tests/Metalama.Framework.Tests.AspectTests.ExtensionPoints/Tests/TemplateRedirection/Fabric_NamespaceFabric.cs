@@ -7,15 +7,15 @@ using Metalama.Framework.Fabrics;
 using Metalama.Framework.Tests.ExtensionPoints;
 using System;
 
-namespace Metalama.Framework.Tests.AspectTests.ExtensionPoints.Tests.TemplateRedirection.Fabric_ProjectFabric_Refused;
+namespace Metalama.Framework.Tests.AspectTests.ExtensionPoints.Tests.TemplateRedirection.Fabric_NamespaceFabric;
 
-// A project fabric requests the redirection of the calls in the type Program to a method declared from a template of the fabric. A project
-// fabric cannot provide templates, so the declaration is refused with an explanation, and the call site is not redirected.
+// A namespace fabric redirects the calls in the type Program to a method declared from a template of the fabric. The fabric is the default
+// template provider, so the template is resolved against the fabric class (issue #2236).
 
-internal class Fabric : ProjectFabric
+internal class Fabric : NamespaceFabric
 {
-    public override void AmendProject( IProjectAmender amender )
-        => amender.SelectTypes().Where( t => t.Name == "Program" ).TestRedirectCallsToTemplate( "Compute", nameof(this.Intercept) );
+    public override void AmendNamespace( INamespaceAmender amender )
+        => amender.SelectMany( n => n.Types ).Where( t => t.Name == "Program" ).TestRedirectCallsToTemplate( "Compute", nameof(this.Intercept) );
 
     [Template]
     public dynamic? Intercept()
