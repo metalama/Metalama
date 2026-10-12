@@ -1,4 +1,4 @@
-// Warning LAMA0660 on `Source.Compute( 1 )`: `The linker could not apply the call 'Source.Compute( 1 )' redirected to 'Interceptors.Compute(int)' by aspect [RedirectAttribute] applied to 'Program', so the source code is kept unchanged. The call site is in a position that the linker does not rewrite, for instance the initializer of a field that an aspect has promoted to a property.`
+// Warning LAMA0660 on `Source.Compute( 1 )`: `The linker could not apply the call 'Source.Compute( 1 )' redirected to 'Interceptors.Compute(int)' by aspect [RedirectAttribute] applied to 'Program', so the source code is kept unchanged. The call site is in a position that the linker does not rewrite, for instance the initializer of a field that an aspect has promoted to a property. Move the call to a position that the linker rewrites, for instance to a constructor.`
 [Redirect]
 internal class Program
 {

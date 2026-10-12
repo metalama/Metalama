@@ -17,8 +17,9 @@ public static class AspectLinkerDiagnosticDescriptors
     internal static readonly DiagnosticDefinition<ISymbol>
         CannotInvokeAnotherInstanceBaseRequired = new(
             "LAMA0650",
-            "Can't invoke member, because correct invocation would require a base call on an instance other than this.",
-            "Can't invoke member '{0}', because correct invocation would require a base call on an instance other than this.",
+            "Cannot invoke the base implementation of a member on an instance other than 'this'.",
+            "Cannot invoke the base implementation of '{0}' on an instance other than 'this', because C# allows base calls only on the current " +
+            "instance. Use InvokerOptions.Final to invoke the member on another instance.",
             _category,
             Error );
 
@@ -71,8 +72,9 @@ public static class AspectLinkerDiagnosticDescriptors
         CallSiteRedirectionNotApplied = new(
             "LAMA0660",
             "A requested redirection of a call site was not applied.",
-            "The linker could not apply {0}, so the source code is kept unchanged. The call site is in a position that the linker does not "
-            + "rewrite, for instance the initializer of a field that an aspect has promoted to a property.",
+            "The linker could not apply {0}, so the source code is kept unchanged. The call site is in a position that the linker does not " +
+            "rewrite, for instance the initializer of a field that an aspect has promoted to a property. Move the call to a position that the " +
+            "linker rewrites, for instance to a constructor.",
             _category,
             Warning );
 
@@ -89,8 +91,10 @@ public static class AspectLinkerDiagnosticDescriptors
     internal static readonly DiagnosticDefinition<(string AspectType, ISymbol TargetDeclaration)>
         DeclarationMustBeInlined = new(
             "LAMA0699",
-            "Declaration must be inlined.",
-            "Version of declaration '{1} provided by '{0}' cannot be inlined. It is not currently possible to generate non-inlined code for this declaration.",
+            "The implementation of a constructor or indexer cannot be inlined.",
+            "The implementation of '{1}' provided by '{0}' cannot be inlined, but Metalama can only generate inlined code for constructors and " +
+            "indexers. Call meta.Proceed() at most once in the template, in a simple statement such as 'meta.Proceed();' or 'return " +
+            "meta.Proceed();'.",
             _category,
             Error );
 }

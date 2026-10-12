@@ -1,2 +1,2 @@
 // CompileTimeAspectPipeline.ExecuteAsync failed.
-// Error LAMA0531 on `TargetType`: `The aspect 'Introduction' cannot introduce type 'TargetType.TestNestedType' into 'TargetType' because the type already exists.`
+// Error LAMA0531 on `TargetType`: `The aspect 'Introduction' cannot introduce the type 'TargetType.TestNestedType' into 'TargetType' because 'TargetType' already contains or inherits a type with the same name and the same number of type parameters. Use a different name, or specify another OverrideStrategy.`

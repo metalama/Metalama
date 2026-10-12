@@ -1,3 +1,3 @@
 // CompileTimeAspectPipeline.ExecuteAsync failed.
-// Error LAMA0517 on `TargetClass`: `The aspect 'Introduction' cannot implement an interface property 'IInterface.MissingGetter' in the type 'TargetClass' because the template 'IntroductionAttribute.MissingGetter' is missing a 'get' accessor.`
-// Error LAMA0517 on `TargetClass`: `The aspect 'Introduction' cannot implement an interface property 'IInterface.MissingSetter' in the type 'TargetClass' because the template 'IntroductionAttribute.MissingSetter' is missing a 'set' accessor.`
+// Error LAMA0517 on `TargetClass`: `The aspect 'Introduction' cannot implement the interface property 'IInterface.MissingGetter' in the type 'TargetClass' because the template 'IntroductionAttribute.MissingGetter' does not have the 'get' accessor required by the interface property.`
+// Error LAMA0517 on `TargetClass`: `The aspect 'Introduction' cannot implement the interface property 'IInterface.MissingSetter' in the type 'TargetClass' because the template 'IntroductionAttribute.MissingSetter' does not have the 'set' accessor required by the interface property.`

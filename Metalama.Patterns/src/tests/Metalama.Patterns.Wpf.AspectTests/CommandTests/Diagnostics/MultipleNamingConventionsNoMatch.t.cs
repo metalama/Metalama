@@ -1,1 +1,1 @@
-// Error LAMA5207 on `ExecuteFoo`: `No command naming conventioned matched 'MultipleNamingConventionsNoMatch.ExecuteFoo()'.`
+// Error LAMA5207 on `ExecuteFoo`: `No command naming convention matched 'MultipleNamingConventionsNoMatch.ExecuteFoo()'. Add a naming convention that matches this name, or do not remove the default naming convention.`

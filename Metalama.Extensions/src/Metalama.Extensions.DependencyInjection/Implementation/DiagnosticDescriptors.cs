@@ -20,7 +20,8 @@ internal static class DiagnosticDescriptors
         NoDependencyInjectionFrameworkRegistered = new(
             "LAMA0701",
             Severity.Error,
-            "No dependency injection framework can handle the dependency '{0}' in type '{1}'.",
+            "The dependency '{0}' in type '{1}' cannot be handled because no dependency injection framework is registered. Register a framework " +
+            "by calling the RegisterFramework method from ConfigureDependencyInjection in a fabric.",
             "No dependency injection framework has been registered.",
             _category );
 
@@ -28,7 +29,8 @@ internal static class DiagnosticDescriptors
         NoSuitableDependencyInjectionFramework = new(
             "LAMA0702",
             Severity.Error,
-            "None of the registered dependency injection frameworks can handle the dependency '{0}' in type '{1}'.",
+            "None of the registered dependency injection frameworks can handle the dependency '{0}' in type '{1}'. Note that the default " +
+            "framework does not support static dependencies.",
             "None of the registered dependency injection frameworks can handle a dependency.",
             _category );
 
