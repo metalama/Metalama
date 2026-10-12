@@ -27,7 +27,7 @@ Under the aspects topology, each library becomes two packages:
 
 | Package | Content | References | Who references it |
 |---|---|---|---|
-| `Metalama.Patterns.X.Redist` (run-time) | The attributes as plain types marked `[RunTimeOrCompileTime]`, the run-time helpers, the shared enums and records | `Metalama.Framework.Redist`; `Metalama.Framework.Build` privately when built with Metalama (section 4) | The business project, as an ordinary reference |
+| `Metalama.Patterns.X.Redist` (run-time) | The attributes as plain types marked `[RunTimeOrCompileTime]`, the run-time helpers, the shared enums and records | `Metalama.Framework.Redist`; `Metalama.Framework` privately when built with Metalama (section 4) | The business project, as an ordinary reference |
 | `Metalama.Patterns.X.Aspects` (aspects) | The aspect classes bound to the attributes with `[AppliedBy]`, the options, the options providers bound to the configuration attributes, the templates, the fabric extension methods | `Metalama.Framework`, `Metalama.Patterns.X.Redist` | The business project, as an aspects reference; the user's own aspects project, as an ordinary reference when it configures the library from a fabric |
 | `Metalama.Patterns.X` (meta-package) | Nothing | `Metalama.Patterns.X.Redist`, `Metalama.Patterns.X.Aspects`, both with every asset | A project that wants the one-reference experience of today, with the aspects flowing to its consumers as they do today |
 
@@ -45,7 +45,7 @@ own aspects project needs a compile reference to call `ConfigureContracts` or `C
 `buildTransitive` props always register the assembly as a `MetalamaAspectsAssembly` item. Referenced normally,
 directly or through the meta-package, it reaches the compiler as a reference and the engine as an aspects item,
 and the engine deduplicates by assembly identity. Referenced with `PrivateAssets="all" ExcludeAssets="compile;runtime"`,
-it reaches the engine only. The exclusion is written by the user: it is a restore-time flag, the `Build` targets
+it reaches the engine only. The exclusion is written by the user: it is a restore-time flag, the `Metalama.Framework` targets
 run after restore, and a package cannot declare it for its consumers. The business assembly references the
 `Aspects` assembly in neither case, because the attributes are in the `Redist` package and the compiler drops
 the unused reference.
@@ -149,7 +149,7 @@ A business project that uses contracts and caching, and wants no Metalama depend
 
 ```xml
 <ItemGroup>
-  <PackageReference Include="Metalama.Framework.Build" />
+  <PackageReference Include="Metalama.Framework" PrivateAssets="all" />
   <PackageReference Include="Metalama.Patterns.Contracts.Redist" />
   <PackageReference Include="Metalama.Patterns.Caching" />
   <PackageReference Include="Metalama.Patterns.Contracts.Aspects" PrivateAssets="all" ExcludeAssets="compile;runtime" />
@@ -204,7 +204,7 @@ document; the others are additions.
    register it in every case, and the aspects form of the reference is `PrivateAssets="all" ExcludeAssets="compile;runtime"`,
    which the [NuGet experiment](aspects-projects-nuget-experiment.md) confirms: the props run, the compiler gets
    no reference, nothing is copied and nothing flows.
-   The package depends on `Metalama.Framework.Build` and on its `Redist` package. The business project's
+   The package depends on `Metalama.Framework` and on its `Redist` package. The business project's
    dependency on the `Redist` package must be a direct, non-private reference for the reason given in section
    6.2 of the aspects projects document, and the pack-time check there should be generalized from
    `Metalama.Framework.Redist` to any assembly that the output references and that only a private reference
@@ -231,7 +231,7 @@ document; the others are additions.
    paths for contract types: the code model path, which loads nothing, and the typed path, which loads the
    contracts assembly as a foreign compile-time assembly and requires it to be loadable in a .NET Framework
    host. Caching shows a third path that exists today and is better for Metalama's own run-time packages: the
-   run-time package is built with Metalama (`Metalama.Framework.Build` as a private reference, `Metalama.Framework.Redist`
+   run-time package is built with Metalama (`Metalama.Framework` as a private reference, `Metalama.Framework.Redist`
    as the only run-time reference), Metalama extracts its `[RunTimeOrCompileTime]` types into the embedded
    compile-time project, and consumers recompile those sources. Only the shared types are extracted, so the
    package may be as thick as it likes at run time, and nothing is loaded from the run-time assembly in the
@@ -289,7 +289,7 @@ document; the others are additions.
    the project file. Source compatibility breaks for a user who derives from `ContractBaseAttribute` or
    `CachingBaseAttribute` to write a custom contract, and a user of `Metalama.Patterns.Caching.Aspects` who wants
    the clean topology adds the private reference. At the framework level, a library that followed
-   `distributing.md` replaces `Metalama.Framework.Redist` with `Metalama.Framework.Aspects`. The first version of
+   `distributing.md` adopts the single-assembly layout or flows `Metalama.Framework` again, as section 6.2 of the aspects projects document states, because no package replaces today's `Redist`. The first version of
    each split library is a breaking change and belongs to a major version. Affects the pattern libraries.
 
 10. **`Metalama.Extensions.DependencyInjection`.** `CacheAspect` uses it at compile time to introduce the

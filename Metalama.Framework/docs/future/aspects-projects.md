@@ -97,24 +97,20 @@ graph BT
     Contracts[Contoso.Contracts<br/>attributes and interfaces]
     Aspects[Contoso.Aspects<br/>aspects and fabrics]
     RunTime[Metalama.Framework.Redist package<br/>scope attributes, run-time helpers]
-    Build[Metalama.Framework.Build package<br/>compiler and analyzers, build-only]
-    Framework[Metalama.Framework meta-package]
+    Framework[Metalama.Framework package<br/>compiler, analyzers, authoring API]
 
     Business -- ProjectReference --> Contracts
     Business -. ProjectReference MetalamaAspects=true<br/>build order only .-> Aspects
-    Business -. PackageReference<br/>PrivateAssets=all .-> Build
+    Business -. PackageReference<br/>PrivateAssets=all .-> Framework
     Contracts -. PackageReference<br/>optional, typed access only .-> RunTime
     Aspects -- ProjectReference --> Contracts
     Aspects -- PackageReference --> Framework
-    Framework -- depends on --> Build
-    Framework -- depends on --> Api[Metalama.Framework.Aspects package<br/>Metalama.Framework.dll]
-    Build -- depends on --> RunTime
-    Api -- depends on --> RunTime
+    Framework -- depends on --> RunTime
 ```
 
 The solid edges are ordinary compile references. The two dotted edges from the business project differ. The
 project reference to the aspects project adds nothing to the compilation of the business project and nothing to
-its output directory. The package reference to `Metalama.Framework.Build` is private, so it flows to no consumer,
+its output directory. The package reference to `Metalama.Framework` is private, so it flows to no consumer,
 but it brings `Metalama.Framework.Redist.dll` into the compilation and the output directory of the business
 project through its dependency (section 6.2). The aspects project must be built before the business project and
 must not reference it, because the aspects project is an input of the build of the business project.
@@ -125,7 +121,7 @@ The contracts project is any class library. It declares the custom attributes th
 example `[Log]` or `[Cached]`, and the interfaces or options types that both sides use. It may be a thin set of
 attributes, or it may be a thick application framework targeting `net10.0` only, with heavy dependencies, in
 which the attributes are a small part. The contracts project is not built with Metalama: it has no
-`Metalama.Framework.Build` reference, so the compiler is the standard one and no analyzer runs.
+`Metalama.Framework` reference, so the compiler is the standard one and no analyzer runs.
 
 ```csharp
 namespace Contoso.Contracts;
@@ -159,7 +155,7 @@ type:
 The second path is a convenience, not a requirement. A thick contracts assembly uses the first path and loses
 nothing except the typed `LogAttribute` instance inside the fabric.
 
-A third path exists for a contracts project that its author builds with Metalama: with `Metalama.Framework.Build`
+A third path exists for a contracts project that its author builds with Metalama: with `Metalama.Framework`
 as a private reference and `Metalama.Framework.Redist` as its only run-time reference, Metalama extracts the
 `[RunTimeOrCompileTime]` types of the project into its embedded compile-time project, and the business project
 recompiles those sources as it does for any referenced compile-time project. Only the shared types are
@@ -167,7 +163,7 @@ extracted, so the project may be as thick as it likes at run time and nothing is
 compile-time domain. This is how the caching run-time packages of `Metalama.Patterns` already work, and it is
 the recommended path for Metalama's own run-time packages. The engine already embeds the compile-time project
 of a project that has no aspect class of its own: the only remaining condition is the marker reference of
-section 6.4, which becomes `Metalama.Framework.Redist.dll` and which every project built with the `Build`
+section 6.4, which becomes `Metalama.Framework.Redist.dll` and which every project built with the `Metalama.Framework`
 package references. The [Patterns study](aspects-projects-patterns-study.md), gap 4, records the verification.
 
 ### 4.2. The aspects project
@@ -231,7 +227,7 @@ extensions used above.
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <PackageReference Include="Metalama.Framework.Build" Version="2027.0.x" />
+    <PackageReference Include="Metalama.Framework" Version="2027.0.x" PrivateAssets="all" />
     <ProjectReference Include="../Contoso.Contracts/Contoso.Contracts.csproj" />
     <ProjectReference Include="../Contoso.Aspects/Contoso.Aspects.csproj" MetalamaAspects="true" />
   </ItemGroup>
@@ -239,14 +235,14 @@ extensions used above.
 </Project>
 ```
 
-`Metalama.Framework.Build` is a new package described in section 6.2. It is a development dependency: the
-`developmentDependency` flag of its manifest makes `PrivateAssets="all"` the default when the reference is added
-with the .NET command line interface or with Visual Studio, and the package has no run-time asset. The flag changes
-nothing for a reference written by hand: the [NuGet experiment](aspects-projects-nuget-experiment.md) shows that
-such a reference flows as an ordinary dependency, so the documentation must tell users to write
+`Metalama.Framework` is the package of today, with its run-time assembly inside it instead of in a dependency
+(section 6.2). The business project references it with `PrivateAssets="all"`, so that nothing of it flows to the
+consumers of the business project. The `developmentDependency` flag of a package only changes what
+`dotnet add package` writes into the project file; for a reference written by hand it changes nothing, as the
+[NuGet experiment](aspects-projects-nuget-experiment.md) shows, so the documentation must tell users to write
 `PrivateAssets="all"` themselves.
 
-`Metalama.Framework.Redist` reaches the business project through `Metalama.Framework.Build`, so woven code can
+`Metalama.Framework.Redist` reaches the business project through `Metalama.Framework`, so woven code can
 use any run-time helper without configuration. The output assembly references the run-time assembly only when
 the woven code uses one of its types. A business project that is packed and whose assembly references the
 run-time assembly must also provide the dependency through a non-private reference, either directly or through
@@ -293,7 +289,7 @@ The user marks an ordinary `ProjectReference` with `MetalamaAspects="true"`, and
 rewrite it into the build-only form that MSBuild already understands:
 
 ```xml
-<!-- Metalama.Framework.Build.targets -->
+<!-- Metalama.Framework.targets -->
 <ItemGroup>
   <ProjectReference Update="@(ProjectReference)"
                     Condition="'%(ProjectReference.MetalamaAspects)'=='true'"
@@ -354,26 +350,33 @@ analyzers in `analyzers/dotnet/cs` (the compiler extension with the embedded eng
 with every asset and on `Metalama.Compiler` with `Build` and `Analyzers` excluded. `Metalama.Framework.Redist` is
 the whole `Metalama.Framework.dll`.
 
-The proposal is the following package set:
-
-The proposal follows one naming convention for every aspect library, including the framework itself: the
-`Redist` suffix names the run-time package that business code depends on, the `Aspects` suffix names the
-package with the aspects, and the unsuffixed name is a meta-package that depends on both and gives the
-one-reference experience of today. The [Patterns study](aspects-projects-patterns-study.md), section 3, applies
-the convention to the pattern libraries. For the framework it gives:
+The proposal follows one naming convention for every aspect library: the `Redist` suffix names the run-time
+package that business code depends on, the `Aspects` suffix names the package with the aspects, and the
+unsuffixed name is a meta-package that depends on both and gives the one-reference experience of today. The
+[Patterns study](aspects-projects-patterns-study.md), section 3, applies the convention to the pattern libraries.
+The framework itself needs two packages only, because the single-assembly layout (section 9, question 8) leaves no user
+for an authoring assembly without the compiler:
 
 | Package | Content | Dependencies | Flags |
 |---|---|---|---|
-| `Metalama.Framework.Redist` (redefined) | `Metalama.Framework.Redist.dll`: the scope attributes and the run-time helpers (section 6.3) | `Microsoft.Bcl.AsyncInterfaces` for `netstandard2.0` only; none for `net10.0` | none |
-| `Metalama.Framework.Aspects` (new) | `Metalama.Framework.dll`, the aspect-authoring application programming interface, with type forwarders to the run-time assembly | `Metalama.Framework.Redist`, `Microsoft.CSharp` | none |
-| `Metalama.Framework.Build` (new) | Analyzers, `build`, `buildTransitive` | `Metalama.Compiler` (as today), `Metalama.Framework.Redist` with every asset | `developmentDependency=true` |
-| `Metalama.Framework` (meta-package) | Empty `lib` placeholders | `Metalama.Framework.Aspects` and `Metalama.Framework.Build`, both with every asset | as today |
+| `Metalama.Framework.Redist` (redefined) | `Metalama.Framework.Redist.dll`: the scope attributes and the run-time helpers (section 6.3); the `buildTransitive` targets and the task of the consumer requirements check (section 6.8) | `Microsoft.Bcl.AsyncInterfaces` for `netstandard2.0` only; none for `net10.0` | none |
+| `Metalama.Framework` | `lib/Metalama.Framework.dll`, the aspect-authoring application programming interface, with type forwarders to the run-time assembly; the analyzers; the `build` and `buildTransitive` files | `Metalama.Framework.Redist` with every asset, `Metalama.Compiler` (as today), `Microsoft.CSharp` | as today |
 
-A project that references `Metalama.Framework` gets the analyzers and build files through
-`Metalama.Framework.Build`, the authoring assembly through `Metalama.Framework.Aspects`, and the run-time assembly
-through either. The `PackageReference Update="Metalama.Framework" PrivateAssets="none"` at
+Earlier drafts had two more packages, `Metalama.Framework.Build` (the analyzers and build files alone, as a
+development dependency) and `Metalama.Framework.Aspects` (the authoring assembly alone). Both were dropped. The
+first existed for the `developmentDependency` default, which the experiment showed to be inert for a hand-written
+reference, and to keep the authoring assembly out of business projects, which the pack-time check below and the
+diagnostic pass of section 6.6 already guarantee. The second would have served a library that needs the
+authoring assembly at run time without the compiler, which is today's `Metalama.Framework.Redist` usage; with the
+single-assembly layout, a library's run-time assembly references `Metalama.Framework.Redist.dll` only, and no
+such package is needed. A business project therefore references `Metalama.Framework` with `PrivateAssets="all"`
+and compiles against the authoring assembly, which the compiler drops from the output when nothing uses it; the
+cost is an assembly in the output directory that nothing loads.
+
+A project that references `Metalama.Framework` gets the analyzers, the build files and the authoring assembly
+from it, and the run-time assembly through its dependency. The `PackageReference Update="Metalama.Framework" PrivateAssets="none"` at
 `build/Metalama.Framework.props:4` keeps flowing the build assets to the consumers of aspect libraries. The
-`buildTransitive` files of `Metalama.Compiler` keep flowing through the `Build` package, because
+`buildTransitive` files of `Metalama.Compiler` keep flowing through the `Metalama.Framework` package, because
 `ExcludeAssets="Build"` excludes the `build` folder and not the `buildTransitive` folder, which is what the current
 nuspec relies on.
 
@@ -381,10 +384,11 @@ The convention breaks one documented usage. `Metalama.Framework.Redist` is today
 and `distributing.md` tells a library author to reference `Metalama.Framework` privately plus
 `Metalama.Framework.Redist`, so that consumers get the authoring assembly at run time without the compiler. After
 the change, such a library gets only the minimal assembly from `Metalama.Framework.Redist`, and its aspect classes
-no longer find `Metalama.Framework.dll` in consumers. The migration is one substitution, `Metalama.Framework.Redist`
-to `Metalama.Framework.Aspects`, which is the exact successor of today's package for that purpose. This is a
-breaking change and is accepted for a major version; the release notes and `distributing.md` carry the
-substitution.
+no longer find `Metalama.Framework.dll` in consumers. There is no substitute package: the migration for such a
+library is to adopt the single-assembly layout (section 9, question 8), in which the run-time assembly no longer references
+`Metalama.Framework.dll`, or to reference `Metalama.Framework` without `PrivateAssets`, which flows it to consumers
+as it did before the author followed `distributing.md`. This is a breaking change and is accepted for a major
+version; the release notes and `distributing.md` carry the two options.
 
 The run-time package is a project of this repository, `Metalama.Framework.Redist`, targeting `netstandard2.0`
 and `net10.0` like `Metalama.Framework`, referenced by `Metalama.Framework` and by `Metalama.Framework.CompileTime`
@@ -394,13 +398,13 @@ enough that the version churn costs nothing. The reference assembly locator need
 because it obtains `Metalama.Framework.dll` and its dependencies through the `Metalama.Framework` package of its
 generated project (`Metalama.Framework.Engine/CompileTime/CompileTimeAssemblyLocator.cs`).
 
-The `Metalama.Framework.Build` package is what makes a project a Metalama project. A business project references
+The `Metalama.Framework` package is what makes a project a Metalama project. A business project references
 it directly and privately. Its consumers see no Metalama package other than the run-time package, which is the
 desired outcome and is also a constraint: a transitive fabric or an inheritable aspect that the business project
-would expose cannot be honoured by its consumers. The build files should report a warning when a project with no
-`Metalama.Framework` reference embeds an inheritable aspect manifest (section 6.8).
+would expose reaches its consumers only if they build with the same aspects, which the consumer requirements
+check of section 6.8 enforces.
 
-The `Build` package depends on the run-time package so that every Metalama project compiles against
+The `Metalama.Framework` package depends on the run-time package so that every Metalama project compiles against
 `Metalama.Framework.Redist.dll` and copies it to its output directory without configuration. Woven code can then
 use any run-time helper, and an application needs nothing beyond the two lines of section 4.3. The compiler drops
 the reference from the output assembly when nothing uses it, so a business assembly references the run-time
@@ -410,7 +414,7 @@ small and a packed library ships only its own assembly.
 
 This dependency has one consequence for projects that are packed. NuGet pack writes into the nuspec the direct
 package references of the project that are not private, and nothing else; a dependency reached only through a
-private reference is omitted. The reference to `Build` is private, so `Metalama.Framework.Redist` does not appear in the nuspec of
+private reference is omitted. The reference to `Metalama.Framework` is private, so `Metalama.Framework.Redist` does not appear in the nuspec of
 a business package unless the project references it directly as well, or reaches it through a project reference
 to a contracts project that does. A business package whose assembly references the run-time assembly and whose
 nuspec does not declare it would fail on the consumer's machine, with no diagnostic at build time. The `Build`
@@ -418,7 +422,7 @@ targets therefore add a check before `GenerateNuspec`: when the output assembly 
 `Metalama.Framework.Redist` and no `PackageReference` or `ProjectReference` of the project provides it without
 `PrivateAssets="all"`, pack fails with an error that names the missing reference. The check reads the assembly
 references of the built output, which `GetReferencedAssemblies` on a metadata reader gives for the cost of
-opening the file. Adding the reference from the `Build` props instead is not an option: NuGet imports the props
+opening the file. Adding the reference from the `Metalama.Framework` props instead is not an option: NuGet imports the props
 of a package after restore, so a `PackageReference` declared there is not part of the restore graph.
 
 The alternative of keeping one package and referencing it with `ExcludeAssets="runtime;compile"` is rejected. The
@@ -426,13 +430,9 @@ asset flags of a direct reference apply to the direct package, and whether and h
 is a NuGet detail that users would have to get right in every project. A package whose name says what it is for
 needs no such knowledge.
 
-The name of the new build package is open. `Metalama.Framework.Build` matches the content.
-`Metalama.Framework.BuildTools` and `Metalama.Framework.Compiler` were considered; the latter collides with the
-`Metalama.Compiler` fork in the mind of a reader. The run-time package takes the `Redist` name of the convention;
-an earlier draft restored the historical `Metalama.Framework.RunTime` name, which was dropped so that the framework
-follows the same convention as the libraries built on it. The package `Metalama.Framework.Aspects` shares its
-name with the `Metalama.Framework.Aspects` namespace, which the assembly contains among others; the coincidence
-is accepted because the package is what an aspect author references.
+The run-time package takes the `Redist` name of the convention; an earlier draft restored the historical
+`Metalama.Framework.RunTime` name, which was dropped so that the framework follows the same convention as the
+libraries built on it.
 
 ### 6.3. The content of `Metalama.Framework.Redist`
 
@@ -498,12 +498,12 @@ The compile-time project of the business project is empty, because the project h
 (`CompileTimeCompilationBuilder.cs:1180-1198`).
 
 Three checks use a reference to `Metalama.Framework.dll` as the marker of a Metalama project. The marker
-becomes `Metalama.Framework.Redist.dll`, which every project built with the `Build` package references through
+becomes `Metalama.Framework.Redist.dll`, which every project built with the `Metalama.Framework` package references through
 the package dependency of section 6.2, whether it is a business project, an aspects project or a run-time
 package built with Metalama. The `METALAMA` preprocessor symbol, which the build files define, stays as the
 second half of the condition. The version of the framework is read from the identity of the `Redist`
-assembly, which shares the version of the engine. A project that references the `Redist` package without the
-`Build` package has neither the symbol nor the analyzers, and the engine never runs in it.
+assembly, which shares the version of the engine. A project that references the `Redist` package without
+`Metalama.Framework` has neither the symbol nor the analyzers, and the engine never runs in it.
 
 - `MetalamaProjectClassifier.TryGetMetalamaVersion` (`MetalamaProjectClassifier.cs:16-39`) requires the
   `METALAMA` preprocessor symbol and a referenced assembly named `Metalama.Framework`. The assembly name
@@ -630,7 +630,7 @@ the contracts project is not.
 ### 6.6. Engine: what woven code references in the business assembly
 
 The transformed business assembly may reference `Metalama.Framework.Redist.dll`, which every Metalama project
-references through the `Build` package (section 6.2), and must not reference `Metalama.Framework.dll`. With the
+references through the `Metalama.Framework` package (section 6.2), and must not reference `Metalama.Framework.dll`. With the
 content of section 6.3, every type that the engine emits on its own is in the run-time assembly, and the helpers
 that templates call explicitly (`ToFieldOrPropertyInfo()`, enumerable buffering through `meta.Proceed()`) are
 too.
@@ -754,7 +754,7 @@ the command line.
 A business project B that uses a library L whose aspects are inheritable, or whose fabrics are transitive, or
 whose validators check references, produces an output that acts on its consumers: a project C that references B
 must run those aspects on its own code. Today this works because `Metalama.Framework` flows to C as an ordinary
-dependency. In the aspects topology, `Build` is private and nothing carries it to C, and NuGet has no way to say
+dependency. In the aspects topology, `Metalama.Framework` is private and nothing carries it to C, and NuGet has no way to say
 "whoever consumes B must also build with these packages". The [NuGet experiment](aspects-projects-nuget-experiment.md)
 establishes that none of the package-graph mechanisms can express it: `developmentDependency` does not make a
 reference private, a dependency reached only through a private reference is absent from the nuspec, and an
@@ -771,7 +771,7 @@ wrong. The `Metalama.CompileTimeProject.zip` resource is not written for a proje
 
 #### 6.8.2. The requirements resource
 
-When the engine writes `Metalama.InheritableAspects.bin`, it knows what the consumer will need: the `Build`
+When the engine writes `Metalama.InheritableAspects.bin`, it knows what the consumer will need: the `Metalama.Framework`
 package, and each aspects assembly whose aspect classes, fabrics or validators are the reason the manifest has
 content. It writes that knowledge as a second managed resource, `Metalama.ConsumerRequirements.json`, next to
 the manifest. The resource is JSON so that a build task can read it with no dependency on the engine:
@@ -808,8 +808,8 @@ the manifest. The resource is JSON so that a build task can read it with no depe
 - `reasons` is a list of `inheritable-aspects`, `transitive-fabric`, `reference-validators` and
   `initializable-types`, computed from the content of the manifest; it is informational.
 
-The requirement for the `Build` package is implicit: a consumer that must run any aspects assembly must build
-with Metalama, so the check first verifies that the `Build` targets are imported.
+The requirement for the `Metalama.Framework` package is implicit: a consumer that must run any aspects assembly must build
+with Metalama, so the check first verifies that the `Metalama.Framework` targets are imported.
 
 The engine computes the requirements from its own manifest only. A consumer C that is itself built with
 Metalama and re-exposes aspects it inherited from B writes its own resource from its own manifest, so a chain
@@ -829,13 +829,13 @@ and the current .NET, in the manner of the tasks that `Metalama.Compiler` ships.
    assembly of a project reference, under `obj/<configuration>/<tfm>/ref/`, which does not carry managed
    resources, while the former points at the implementation assembly. The cost is one metadata open per
    reference; a reference whose `NuGetPackageId` starts with `System.` or `Microsoft.` is skipped.
-2. For each resource found, the task checks that `Build` is imported, which the `Build` targets signal with a
+2. For each resource found, the task checks that the `Metalama.Framework` targets are imported, which the `Metalama.Framework` targets signal with a
    property, and that each required assembly name is present either among `@(ReferencePath)` file names or
    among the assembly names of `$(MetalamaAspectsAssemblies)`.
 3. For each missing requirement it reports one diagnostic, LAMA0604, with the severity of the resource:
    "The project references '{producer}', which was built with aspects from '{assembly}' that apply to the
    projects that reference it. Add a reference to the package '{package}' (or to the project '{project}') with
-   `PrivateAssets="all" ExcludeAssets="compile;runtime"`, and the `Metalama.Framework.Build` package."
+   `PrivateAssets="all" ExcludeAssets="compile;runtime"`, and the `Metalama.Framework` package with `PrivateAssets="all"`."
 
 The check runs in every consumer, including one that builds with Metalama. There it is also the only report:
 since issue #633, the engine tolerates a referenced manifest whose aspect types it cannot resolve and skips it,
@@ -851,7 +851,7 @@ For a project reference, the same resource is read from the referenced project's
 
 #### 6.8.4. Opting out
 
-Two properties, both exported with `CompilerVisibleProperty` by the `Build` files:
+Two properties, both exported with `CompilerVisibleProperty` by the `Metalama.Framework` build files:
 
 - On the producer, `MetalamaConsumerRequirements`, with the values `Warning` (the default), `Error` and `None`.
   `Warning` and `Error` set the severity written into the resource. `None` suppresses the resource, so that a
@@ -864,7 +864,7 @@ Two properties, both exported with `CompilerVisibleProperty` by the `Build` file
 ### 6.9. Licensing
 
 The license is consumed in the project where aspects are applied, which is the business project. The
-`Metalama.Framework.Build` package carries the `Metalama.Compiler` dependency that exports `MetalamaLicense`
+`Metalama.Framework` package carries the `Metalama.Compiler` dependency that exports `MetalamaLicense`
 (`Metalama.Compiler.props:150`), so license resolution is unchanged. The aspects project also builds with a
 license, as any Metalama project does today.
 
@@ -954,7 +954,7 @@ helpers of this section remain for computed bindings.
 | Component | Change |
 |---|---|
 | `Metalama.Framework.Redist` project (new) | Scope attributes and the `RunTime` folder, moved from `Metalama.Framework`; type forwarders left in `Metalama.Framework.dll`; project references from `Metalama.Framework` and `Metalama.Framework.CompileTime`; entry in `eng/src/Program.cs`. |
-| Packaging | New `Metalama.Framework.Build` and `Metalama.Framework.Aspects` packages; `Metalama.Framework.Redist` redefined as the minimal run-time package; `Metalama.Framework` becomes a meta-package over `Aspects` and `Build`; the `Metalama.Framework.Package` project becomes a shell; the `Redist` package gains `buildTransitive` targets and a task assembly for the consumer requirements check (section 6.8.3, LAMA0604). |
+| Packaging | `Metalama.Framework.Redist` redefined as the minimal run-time package; `Metalama.Framework.dll` moves into the `Metalama.Framework` package; the `Redist` package gains `buildTransitive` targets and a task assembly for the consumer requirements check (section 6.8.3, LAMA0604). |
 | Build files | `MetalamaAspects` metadata of `ProjectReference` and its rewrite to a build-only reference, the `ExportMetalamaAspectsAssemblies` target, the `MetalamaAspectsAssemblies` and `MetalamaAspectsProjectFiles` compiler-visible properties; the pack-time check for an undeclared `Metalama.Framework.Redist` dependency; the `MetalamaConsumerRequirements` and `MetalamaIgnoreConsumerRequirements` properties. |
 | `MSBuildProjectOptions` | `AspectsAssemblies` and `AspectsProjectFiles` members, parsed like `CompileTimeAssemblies`. |
 | `CompileTimeProjectRepository.Builder` | Second discovery loop over aspects assemblies; foreign compile-time assembly kind; `MetadataReader` flag for `[RunTimeOrCompileTime]`. |
@@ -964,7 +964,7 @@ helpers of this section remain for computed bindings.
 | Pipeline output | Diagnostic pass for `Metalama.Framework.dll` types in the transformed code; the `Metalama.ConsumerRequirements.json` resource (section 6.8.2). |
 | Design time | First version: aspects assemblies in the pipeline options, loaded from the file, skipped with a trace when absent, and a watcher on each aspects assembly (section 6.7.3). Separate story: the factory index, `IAspectsProjectProvider` and the invalidation of section 6.7.4. |
 | `Metalama.Framework` | `SelectDeclarationsWithAttribute` returning `ITaggedQuery` for both the `Type` and the generic form, one row per attribute; `AddAspectForAttribute` for both. |
-| Tests | Two standalone tests with the three projects, built twice each (command line and a design-time build). The first has a thin `netstandard2.0` contracts project with `[RunTimeOrCompileTime]` and the typed path. The second has a thick `net10.0`-only contracts project with a heavy dependency, no Metalama reference, and the code model path; it asserts that the business assembly references neither `Metalama.Framework` nor `Metalama.Framework.Redist` and that its output directory contains no Metalama assembly other than `Metalama.Framework.Redist.dll`, which the `Build` package copies in every case (section 6.2). The aspect test suite runs with the diagnostic pass enabled, so that any new emitted type of `Metalama.Framework.dll` is caught. |
+| Tests | Two standalone tests with the three projects, built twice each (command line and a design-time build). The first has a thin `netstandard2.0` contracts project with `[RunTimeOrCompileTime]` and the typed path. The second has a thick `net10.0`-only contracts project with a heavy dependency, no Metalama reference, and the code model path; it asserts that the business assembly references neither `Metalama.Framework` nor `Metalama.Framework.Redist` and that its output directory contains no Metalama assembly other than `Metalama.Framework.Redist.dll`, which the `Metalama.Framework` package copies in every case (section 6.2). The aspect test suite runs with the diagnostic pass enabled, so that any new emitted type of `Metalama.Framework.dll` is caught. |
 | Documentation | A conceptual article for the topology; updates to `distributing.md` and `packages.md`; the restored package in the package list. |
 
 ## 9. Open questions
@@ -997,6 +997,20 @@ helpers of this section remain for computed bindings.
    `Construct<LogAttribute>()` returns an instance of the projection and `attribute.Category` compiles. The
    projection would be a new kind of compile-time type, distinct from the real type, and its identity rules need
    a design of their own. It is not part of this proposal.
+8. The single-assembly layout. With `[AppliedBy]`, the aspect classes of a library are no longer attributes that
+   business code applies, so nothing outside the compile-time project names them. The compile-time-only types
+   of a project (aspects, fabrics, options, templates, the configuration extension classes) can then be removed
+   from the run-time assembly instead of stubbed by `RunTimeAssemblyRewriter`, which leaves a run-time assembly
+   that contains the attributes and helpers only, references `Metalama.Framework.Redist.dll` only, and carries
+   the compile-time project in the resource it carries today. One project would then produce what the `Redist`
+   and `Aspects` split of the [Patterns study](aspects-projects-patterns-study.md) produces by hand, and the
+   framework needs no package between `Metalama.Framework.Redist` and `Metalama.Framework` (section 6.2). The
+   open points are the compile reference that a user's aspects project needs to the stripped types in order to
+   call `ConfigureContracts`, which NuGet's `ref/` and `lib/` separation can provide if Metalama.Compiler can
+   emit the reference assembly from the compilation before stripping; what the embedded manifest and
+   `TemplateClassFactory` need when the aspect types are absent from the run-time assembly; and whether the rule
+   that reports a compile-time-only type used in run-time code is enough to keep business code off the stripped
+   surface. This research is the next step; the package decisions of section 6.2 assume its outcome.
 
 ## 10. Alternatives considered
 

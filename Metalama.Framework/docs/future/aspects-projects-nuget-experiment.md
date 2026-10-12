@@ -71,7 +71,7 @@ directory does not contain it.
 4. **`buildTransitive` flows through the default `exclude="Build,Analyzers"`.** `C2`, `C5` and `C7` import the
    props of packages two levels down. This is what makes `Redist` the one package whose props reach every
    consumer of a business package, as long as no intermediate reference excluded build assets.
-5. **`PrivateAssets="all" ExcludeAssets="compile;runtime"` is the amender form for a package.** The props of the
+5. **`PrivateAssets="all" ExcludeAssets="compile;runtime"` is the aspects form for a package.** The props of the
    package run in the referencing project, the compiler gets no reference, nothing is copied, and nothing flows
    to consumers (`B6`, `C6`). The props can therefore register the assembly for the engine while the compiler
    never sees it.
