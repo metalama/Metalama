@@ -127,6 +127,37 @@ When the first constructor is chosen and the attribute type cannot be loaded, wh
 contracts assembly, the engine reports LAMA0401 at the binding, with the hint to use the `IAttribute`
 constructor.
 
+An inheritable bound aspect must not store the attribute instance or the `IAttribute` in a field: its instances
+are serialized into the inheritable aspects manifest, and a contract attribute type cannot implement
+`ICompileTimeSerializable`, which is a compile-time interface. The aspect copies the values it needs into its
+own fields. The [Patterns study](amender-projects-patterns-study.md), gap 5, records the alternative of moving
+the marker interface to the run-time package.
+
+### 2.3. Options providers
+
+The [Patterns study](amender-projects-patterns-study.md), gap 2, shows that configuration attributes need the
+same binding. A configuration attribute today implements `IHierarchicalOptionsProvider` and returns
+`IHierarchicalOptions` instances, which a run-time package cannot do, because both interfaces are in
+`Metalama.Framework` and the second is compile-time. `[AppliedBy]` is therefore accepted on a class that
+implements `IHierarchicalOptionsProvider` as well as on an aspect class:
+
+```csharp
+[AppliedBy( typeof(CachingConfigurationAttribute) )]
+internal sealed class CachingConfigurationProvider : IHierarchicalOptionsProvider
+{
+    public CachingConfigurationProvider( CachingConfigurationAttribute attribute ) { /* ... */ }
+
+    public IEnumerable<IHierarchicalOptions> GetOptions( in OptionsProviderContext context ) { /* ... */ }
+}
+```
+
+`CompilationHierarchicalOptionsSource` (`Metalama.Framework.Engine/HierarchicalOptions/CompilationHierarchicalOptionsSource.cs:48-92`)
+instantiates the provider once per bound attribute through the constructor rules of section 2.2 and calls
+`GetOptions` with the attribute's containing declaration as the target, as it does today for a provider
+attribute. `OnIneligible` does not apply to providers; option eligibility is checked by the options manager
+as today (LAMA0065). A bound aspect class that also implements `IHierarchicalOptionsProvider` needs nothing
+more: `AspectDriver` applies its options before `BuildAspect`, as for any aspect.
+
 ## 3. Mechanism
 
 ### 3.1. Reading the binding

@@ -158,6 +158,16 @@ type:
 The second path is a convenience, not a requirement. A thick contracts assembly uses the first path and loses
 nothing except the typed `LogAttribute` instance inside the fabric.
 
+A third path exists for a contracts project that its author builds with Metalama: with `Metalama.Framework.Build`
+as a private reference and `Metalama.Framework.RunTime` as its only run-time reference, Metalama extracts the
+`[RunTimeOrCompileTime]` types of the project into its embedded compile-time project, and the business project
+recompiles those sources as it does for any referenced compile-time project. Only the shared types are
+extracted, so the project may be as thick as it likes at run time and nothing is loaded from its assembly in the
+compile-time domain. This is how the caching run-time packages of `Metalama.Patterns` already work, and it is
+the recommended path for Metalama's own run-time packages. It requires the engine to run the compile-time
+extraction in a project with no aspect and no framework reference; the [Patterns study](amender-projects-patterns-study.md),
+gap 4, records what must be verified.
+
 ### 4.2. The amender project
 
 The amender project is an ordinary Metalama project. It references `Metalama.Framework`, references the contracts
@@ -411,7 +421,12 @@ The scope attributes, in `Metalama.Framework.Aspects`: `CompileTimeAttribute`, `
 `ForcedGenericRunTimeOrCompileTimeAttribute`, which are the attributes that `SymbolClassifier.GetTemplatingScope`
 recognizes (`SymbolClassifier.cs:255-267`) and that a contracts project needs. `TemplateAttribute`,
 `IntroduceAttribute` and `InterfaceMemberAttribute` are recognized by the same method but belong to aspect
-classes, which always reference `Metalama.Framework`, so they stay where they are.
+classes, which always reference `Metalama.Framework`, so they stay where they are. The same group holds the
+framework types that a run-time package needs in its own public surface: `ContractDirection`, a
+`[RunTimeOrCompileTime]` enum used as a named argument of every contract attribute of `Metalama.Patterns.Contracts`,
+and the analyzer annotations `[Durable]` and `[ImmutableType]` of `Metalama.Framework.Utilities`, which are placed
+on run-time types. The rule is that a framework type which a run-time package exposes to its own users belongs to
+the run-time package.
 
 The run-time helpers, in `Metalama.Framework.RunTime`, which is the whole `Metalama.Framework/RunTime` folder:
 `AspectGeneratedAttribute`, `AsyncEnumerableArray`, `AsyncEnumerableList`, `CallSiteHelper`,
@@ -626,9 +641,12 @@ A project that references the business project is not built with Metalama. The o
 should therefore contain nothing that a Metalama-built consumer would act on:
 
 - The `Metalama.InheritableAspects.bin` resource (`CompileTimeAspectPipeline.cs:333-351`) is written when the
-  project has inheritable aspect instances, inheritable options or annotations. In this topology the resource is
-  inert and should be omitted, with a warning when it would have had content, because the user expects the
-  inheritable aspect to flow and it will not.
+  project has inheritable aspect instances, inheritable options or annotations. It is written as today. A
+  consumer that is not built with Metalama ignores it, and a consumer that is another business project with the
+  same amender reference needs it: an inheritable aspect on a base class in one business project must reach a
+  derived class in another, and `TransitivePipelineContributorSource` can deserialize the manifest there because
+  the amender's compile-time project is in the consumer's closure. An earlier draft proposed to omit the resource
+  with a warning; the [Patterns study](amender-projects-patterns-study.md), gap 7, explains why that was wrong.
 - The `Metalama.CompileTimeProject.zip` resource is not written for a project without compile-time code.
 
 ### 6.9. Licensing
@@ -751,12 +769,11 @@ helpers of this section remain for computed bindings.
    by the build of the amender project, listing its `ReferencePathWithRefAssemblies`, and read by the engine next
    to the amender assembly, would remove the repetition. This is a separate improvement that applies to the current
    topology as well.
-4. Whether `Metalama.Patterns.*` and `Metalama.Extensions.*` libraries can be used from the amender project. They
-   are referenced by the amender project and their run-time parts (for example the caching back-ends) are then
-   needed by the business project through an ordinary package reference. The compile-time parts come through the
-   closure of the amender assembly. Nothing in this document prevents it, and nothing in this document tests it.
-   The run-time parts of those libraries reference `Metalama.Framework.dll` today and would need the same split
-   to stay free of it.
+4. How `Metalama.Patterns.*` and `Metalama.Extensions.*` are split and consumed under this topology. The
+   [Patterns study](amender-projects-patterns-study.md) answers it per library and lists twelve gaps, of which
+   the amender package form (consuming an amender as a `PackageReference` through a `metalama/` folder and a
+   `MetalamaAmenderAssembly` item in its props) and the attribute-bound options providers are the two that this
+   document and the attribute-bound aspects document must absorb.
 5. The exact boundary of the run-time package (section 6.3). The two rules decide the first version; whether
    `ExcludeAspectAttribute`, the `Metalama.Framework.Options` types or `ICompileTimeSerializable` belong there
    depends on whether contract types need them, and is best decided on the first real contracts project.
