@@ -3,6 +3,7 @@ name: UI or IDE bug report
 about: Report a bug that requires interaction with the UI or the IDE
 title: ''
 labels: ''
+type: Bug
 assignees: ''
 
 ---
