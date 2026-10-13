@@ -35,5 +35,10 @@
 		     the user sees no diagnostic, no code lens and no generated code. Measured for #2238; see
 		     Directory.Packages.md. -->
 		<SystemTextJsonVersion>10.0.10</SystemTextJsonVersion>
+		<!-- SystemTextJsonLatestVersion is the version that the test frameworks and the test projects of this variant
+		     reference. It must not exceed the System.Text.Json that the hosts of this variant provide, so that the
+		     tests run against the version the payload meets in a host. The Visual Studio 18.11 redirect stops at
+		     10.0.0.10, so the value is 10.0.10 and not the highest patch of the 10.0 line. -->
+		<SystemTextJsonLatestVersion>10.0.10</SystemTextJsonLatestVersion>
 	</PropertyGroup>
 </Project>

@@ -80,6 +80,8 @@ The bound therefore meets the floor. `RoslynVariantPolicy` selects the Roslyn 5.
 
 The ceiling is exact and there is no headroom above 10.0.10. Re-read it before a Roslyn update raises the floor again.
 
+`SystemTextJsonLatestVersion` is set per Roslyn variant for the same reason, next to `SystemTextJsonVersion`. It feeds `Metalama.Testing.UnitTesting` and the test projects, which a design-time host does not load. It still must not exceed what the hosts of the variant provide, so that the tests of each variant run against the `System.Text.Json` that the payload of that variant meets in a host. The Roslyn 5.11 variant therefore takes 10.0.10 and not the highest patch of the 10.0 line, and the Roslyn 5.0 variant takes 9.0.10.
+
 The other packages that the update to Roslyn 5.11 raised, `Microsoft.Build` and `Microsoft.Build.Framework` 18.7.1, do not reach the payload. No `Microsoft.Build` assembly is in the output of `Metalama.Framework.CompilerExtensions.Resources`, because only projects that target `net10.0` and that no design-time host loads consume them. Their constraint is the MSBuild of the .NET SDK that `Microsoft.Build.Locator` resolves, which is recorded in the comment of `MicrosoftBuildVersion`.
 
 ### What Metalama.Vsx does and does not constrain

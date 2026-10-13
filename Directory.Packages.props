@@ -67,8 +67,8 @@
     <!-- Microsoft.CodeAnalysis 5.11 requires the .NET 10 line of System.Text.Json, Microsoft.Bcl.AsyncInterfaces
          and System.IO.Pipelines. The *LatestVersion properties feed the projects that host themselves, which no
          design-time host loads, so they take the highest patch of that line rather than a version that the
-         binding redirects of Visual Studio admit. -->
-    <SystemTextJsonLatestVersion>10.0.11</SystemTextJsonLatestVersion>
+         binding redirects of Visual Studio admit. SystemTextJsonLatestVersion is the exception: it is set per
+         Roslyn variant in eng/RoslynVersions, together with SystemTextJsonVersion. -->
     <MicrosoftBclAsyncInterfacesLatestVersion>10.0.11</MicrosoftBclAsyncInterfacesLatestVersion>
 
     <!-- SystemTextJsonVersion is set per Roslyn variant in eng/RoslynVersions, because each Roslyn version
