@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="Metalama.Testing.AspectTesting" />
+    <PackageReference Include="Metalama.Framework" />
+  </ItemGroup>
+
+  <!-- The options assembly is referenced as a public assembly of an extension package is: it is a run-time reference of the
+       project, so it is also in the output directory of the test runner, and it is both a compile-time assembly and an
+       extension assembly. -->
+  <ItemGroup>
+    <ProjectReference Include="../Issue2235.Options/Issue2235.Options.csproj" />
+    <MetalamaCompileTimeAssembly Include="../Issue2235.Options/bin/$(Configuration)/netstandard2.0/Issue2235.Options.dll" />
+    <MetalamaExtensionAssembly Include="../Issue2235.Options/bin/$(Configuration)/netstandard2.0/Issue2235.Options.dll" />
+  </ItemGroup>
+
+</Project>
