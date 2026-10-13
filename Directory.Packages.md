@@ -51,15 +51,36 @@ Three limits decide the version instead, and each is measured per package rather
 
 - A package that reaches a design-time host is capped by what the host ships, because the host-provided assembly wins on load. This is the bucket model above. For a `net472` payload the cap is the `oldVersion` upper bound of the matching binding redirect, derived with the commands in *Verifying a package's VS-shipped version*. Establish first whether the package reaches a host at all: the authoritative answer is the content of `Metalama.Framework.CompilerExtensions.Resources/bin/<configuration>/net472` and `.../net10.0`, which are the two flavours of the payload, together with the embedding rules in `Metalama.Framework.CompilerExtensions.csproj`. Being referenced by a user-surfacing project says nothing about this, in either direction.
 - A package that is also restored for `netstandard2.0` or `net472` must still publish an asset for those target frameworks at the higher version. The `Microsoft.Extensions.*` family and the Windows-specific `System.*` packages publish both on the 10.0 line. The out-of-band family is where this limit actually bites; see *The Out-of-band family*.
-- When no single version satisfies both the floor that the consumed Roslyn imposes and the ceiling that the lowest host in the baseline imposes, the package version follows the Roslyn version. A direct reference below the Roslyn floor is a package downgrade and fails the restore of every solution, so the floor is not negotiable, while the ceiling is a run-time risk confined to the hosts below it. Record the resulting host floor rather than hiding it. Two values are governed this way today. `SystemTextJsonVersion` is set per Roslyn variant in `eng/RoslynVersions`, because both variants consume it and each needs a floor of its own. `MicrosoftBuildVersion` is set once in `Directory.Packages.props`, because every consumer of the `Microsoft.Build` packages binds `Microsoft.CodeAnalysis` at `$(RoslynMaxVersion)` and no project of the Roslyn 5.0 variant consumes MSBuild at all, so the value is already a property of the latest Roslyn.
+- When no single version satisfies both the floor that the consumed Roslyn imposes and the ceiling that the lowest host in the baseline imposes, the package version follows the Roslyn version. A direct reference below the Roslyn floor is a package downgrade and fails the restore of every solution, so the floor is not negotiable, while the ceiling is a run-time risk confined to the hosts below it. Record the resulting host floor rather than hiding it. `MicrosoftBuildVersion` is governed this way today. It is set once in `Directory.Packages.props`, because every consumer of the `Microsoft.Build` packages binds `Microsoft.CodeAnalysis` at `$(RoslynMaxVersion)` and no project of the Roslyn 5.0 variant consumes MSBuild at all, so the value is already a property of the latest Roslyn. `SystemTextJsonVersion` was governed this way as well, and no longer is, because the floor and the ceiling now meet; see *The .NET 10.0 line in the desktop payload* below. It is still set per Roslyn variant in `eng/RoslynVersions`, because both variants consume it and each needs a floor of its own.
 
 - A package that the core flavour of the payload does not embed is capped by the host in a second way. That flavour deliberately does not embed `System.Text.Json`, because the parent assembly load context, which is Roslyn, provides it, and assembly binding rolls forward and never back. The cap is then the lowest version any host in the supported set provides. `Microsoft.CodeAnalysis` 5.0 carries the 9.0 line and the Rider backend presents it, which is why `SystemTextJsonMinVersion` and the Roslyn 5.0 variant sit on 9.0.10 while the Roslyn 5.11 variant sits on 10.0.10.
 
 Internal packages are free to bump up to the Visual-Studio-shipped cap regardless.
 
-Within the chosen .NET line we take the **highest available patch** that the limits above admit; the rule only freezes the *major.minor*, not the patch level. For every package that reaches the `net472` design-time payload that patch is **10.0.8**, because the binding redirects of Visual Studio 2026 stop at assembly version 10.0.0.8 and the `lib/net462` asset of 10.0.8 carries exactly that. The `*LatestVersion` properties, which feed the projects that host themselves and that no design-time host loads, stay on the highest patch of the line.
+Within the chosen .NET line we take the **highest available patch** that the limits above admit; the rule only freezes the *major.minor*, not the patch level. For a package that reaches the `net472` design-time payload, the ceiling is the binding redirect of the lowest Visual Studio that loads the variant in question, as set out in *The .NET 10.0 line in the desktop payload* below. Our central pins of the .NET 10.0 line stay on **10.0.8**, which fits every Visual Studio 2026 release measured. A package that Roslyn 5.11 requires at 10.0.10 resolves to 10.0.10 in the Roslyn 5.11 variant, which fits every Visual Studio that selects that variant. The `*LatestVersion` properties, which feed the projects that host themselves and that no design-time host loads, stay on the highest patch of the line.
 
 `System.Collections.Immutable` and `System.Reflection.Metadata` are outside this rule entirely: they are governed by the Roslyn version.
+
+### The .NET 10.0 line in the desktop payload
+
+The desktop flavour of the payload embeds `System.Text.Json`, `System.Text.Encodings.Web`, `System.IO.Pipelines` and `Microsoft.Bcl.AsyncInterfaces`, among others. In the Roslyn 5.11 variant all four resolve to NuGet 10.0.10, whose `lib/net462` asset carries assembly version 10.0.0.10. Roslyn 5.11 imposes that version: the `netstandard2.0` group of `Microsoft.CodeAnalysis.Features` 5.11 requires all four at 10.0.10, which is above the central pins of 10.0.8.
+
+The binding redirects were measured on 2026-10-13 for issue #2238:
+
+| Visual Studio | Roslyn presented | Upper bound of the four redirects in `devenv.exe.config` | Variant selected |
+| --- | --- | --- | --- |
+| 2022 17.14.41 | 4.14 | 10.0.0.8 | none; out of PB-2027.0 |
+| 2026 18.9.12112.369 | below 5.10 | 10.0.0.8 | `Roslyn.5.0.0` |
+| 2026 18.10.3 | 5.10 | 10.0.0.10 | `Roslyn.5.0.0` |
+| 2026 18.11.0 Insiders | 5.11 | 10.0.0.10 | `Roslyn.5.11.0` |
+
+The 18.9 row is the measurement recorded in *The Out-of-band family*; its Roslyn version follows from that of 18.10. In Visual Studio 18.10 and 18.11, `ServiceHub.RoslynCodeAnalysisService.exe.config` carries the same bound as `devenv.exe.config`, and `devenv.exe.config` points the `codeBase` of each redirect at the 10.0.10 assemblies that Visual Studio ships under `SharedAssemblies`. In `devenv.exe.config`, `System.Collections.Immutable`, `System.Reflection.Metadata`, `System.Threading.Channels` and `System.Threading.AccessControl` carry the same bound as well.
+
+The bound therefore meets the floor. `RoslynVariantPolicy` selects the Roslyn 5.11 variant only in a host that presents Roslyn 5.11 or later, and the first Visual Studio that does so admits 10.0.0.10. This is expected to hold for later releases as well, because a Visual Studio that ships Roslyn 5.11 also ships the version of `System.Text.Json` that Roslyn 5.11 requires. A Visual Studio that admits only 10.0.0.8 presents an older Roslyn and receives the Roslyn 5.0 variant, whose `System.Text.Json` 9.0.10 the redirect raises to the version that Visual Studio ships.
+
+The ceiling is exact and there is no headroom above 10.0.10. Re-read it before a Roslyn update raises the floor again.
+
+The other packages that the update to Roslyn 5.11 raised, `Microsoft.Build` and `Microsoft.Build.Framework` 18.7.1, do not reach the payload. No `Microsoft.Build` assembly is in the output of `Metalama.Framework.CompilerExtensions.Resources`, because only projects that target `net10.0` and that no design-time host loads consume them. Their constraint is the MSBuild of the .NET SDK that `Microsoft.Build.Locator` resolves, which is recorded in the comment of `MicrosoftBuildVersion`.
 
 ### What Metalama.Vsx does and does not constrain
 
@@ -110,7 +131,7 @@ no `devenv.runtimeconfig.json`, and
 
 What changed is the outcome. The ceilings were measured on a machine carrying both Visual Studio Professional
 2022 17.14.37614.0 and Visual Studio Professional 2026 18.9.12112.369 (channel `VisualStudio.18.Release`), and
-they are identical in the two releases:
+they are identical in the two releases. Visual Studio 2026 18.10.3 and 18.11.0 Insiders, measured on 2026-10-13 for issue #2238, carry the same five ceilings in `devenv.exe.config` and `MSBuild.exe.config`:
 
 | Assembly | 17.14 `devenv.exe.config` | 18.9 `devenv.exe.config` | 18.9 `MSBuild.exe.config` |
 | --- | --- | --- | --- |
@@ -410,6 +431,7 @@ Per-package rationales (why a specific version is pinned, what host shipped it, 
 
 Time-bounded policy items that affect future bumps. PR-specific work in flight is tracked in the corresponding PR / GitHub issues, not here.
 
-- The Out-of-band-family ceilings are measured against Visual Studio 2026 18.9, which is a Stable-channel release and not the floor. Re-read them against the long-term servicing channel baseline once it ships on 2026-11-10, and again whenever Microsoft ships a Stable feature update that rotates the assemblies Visual Studio ships. The values are recorded in *The Out-of-band family* above.
+- The ceilings of the .NET 10.0 line in the desktop payload are recorded in *The .NET 10.0 line in the desktop payload*. They are exact for the Roslyn 5.11 variant, so the Roslyn update that follows it must re-read them, because it may require an 11.0 version that no Visual Studio 2026 release admits.
+- The Out-of-band-family ceilings are measured against Visual Studio 2026 18.9, 18.10 and 18.11, which are Stable-channel and preview releases and not the floor. Re-read them against the long-term servicing channel baseline once it ships on 2026-11-10, and again whenever Microsoft ships a Stable feature update that rotates the assemblies Visual Studio ships. The values are recorded in *The Out-of-band family* above.
 - The Visual Studio floor itself is tracked in [`Metalama.Framework/docs/platform-support.md`](Metalama.Framework/docs/platform-support.md), together with the checklist of measurements that must be taken against real machines before the floor moves.
 - The pins shared with `metalama/Metalama.Vsx` (`StreamJsonRpc`, `System.Diagnostics.DiagnosticSource`, `System.Threading.Tasks.Extensions`, `System.IO.Pipelines`, `Microsoft.Bcl.AsyncInterfaces`, `System.Memory`, `System.Runtime.CompilerServices.Unsafe`, `System.Text.Json`) must be raised in both repositories in the same change, because that repository enables central transitive pinning and its build fails if its pins sit below what our packages require. This is a build-time coupling; see the gotcha above for why it is not a deployment-time one. It disappears once Metalama.Vsx moves onto `Metalama.Framework.DesignTime.Contracts` (metalama/Metalama#1605, metalama/Metalama.Vsx.Public#18).

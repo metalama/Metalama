@@ -66,8 +66,8 @@
     <MessagePackLatestVersion>2.5.302</MessagePackLatestVersion>
     <!-- Microsoft.CodeAnalysis 5.11 requires the .NET 10 line of System.Text.Json, Microsoft.Bcl.AsyncInterfaces
          and System.IO.Pipelines. The *LatestVersion properties feed the projects that host themselves, which no
-         design-time host loads, so they take the highest patch of that line rather than the 10.0.8 that the
-         binding redirects impose on the payload. -->
+         design-time host loads, so they take the highest patch of that line rather than a version that the
+         binding redirects of Visual Studio admit. -->
     <SystemTextJsonLatestVersion>10.0.11</SystemTextJsonLatestVersion>
     <MicrosoftBclAsyncInterfacesLatestVersion>10.0.11</MicrosoftBclAsyncInterfacesLatestVersion>
 
@@ -153,7 +153,7 @@
     <PackageVersion Include="System.IO.Hashing" Version="9.0.15" />
     <!-- Metalama.Backstage references this package and is loaded into devenv.exe. The binding-redirect
          oldVersion range in devenv.exe.config of Visual Studio 2026 18.9 is 4.0.0.0-99.0.0.0, redirected to the
-         11.0.0.0 that Visual Studio ships, so this package is not capped at 10.0.0.8 the way the rest of the
+         11.0.0.0 that Visual Studio ships, so this package is not capped by the redirect the way the rest of the
          payload is. It takes 10.0.8 with the rest of the .NET 10.0 line rather than a higher patch, so that one
          version governs the whole line. Measured for #1903; see Directory.Packages.md. -->
     <PackageVersion Include="System.IO.Packaging" Version="10.0.8" />
@@ -177,10 +177,11 @@
     <PackageVersion Include="System.Threading.ThreadPool" Version="4.3.0" />
     <!-- Metalama.Framework.CompilerExtensions embeds the net472 asset of this package in the desktop flavour of
          the design-time payload, and Metalama.Vsx merges it into Metalama.Repacked, so the assembly is loaded
-         into devenv.exe and the binding redirect governs it. The redirect in Visual Studio 2026 18.9 is
-         4.0.0.0-10.0.0.8, and the lib/net462 asset of NuGet 10.0.8 carries exactly 10.0.0.8. There is no
-         headroom: do not take a version above 10.0.8 before a Visual Studio release ships it and moves the
-         redirect. Measured for #1903; see Directory.Packages.md. -->
+         into devenv.exe and the binding redirect governs it. The redirect was 4.0.0.0-10.0.0.8 in Visual Studio
+         2026 18.9 and is 4.0.0.0-10.0.0.10 in 18.10 and 18.11. The lib/net462 asset of NuGet 10.0.8 carries
+         10.0.0.8, which fits both. Do not take a version above 10.0.10, and do not take 10.0.10 itself before
+         the long-term servicing channel baseline is measured, which is item 1 of the verification checklist of
+         Metalama.Framework/docs/platform-support.md. Measured for #1903 and #2238; see Directory.Packages.md. -->
     <PackageVersion Include="System.Threading.AccessControl" Version="10.0.8" />
     <PackageVersion Include="System.ComponentModel.Annotations" Version="5.0.0" />
     <PackageVersion Include="System.Interactive.Async" Version="6.0.1" />
@@ -250,9 +251,12 @@
     <PackageVersion Include="StreamJsonRpc" Version="2.20.17" />
     <!-- The three packages below are the flowed transitive dependencies of Metalama.Framework.DesignTime.Rpc,
          and they follow the .NET 10.0 line at the version the design-time binding redirects admit. The redirect
-         oldVersion upper bound in devenv.exe.config of Visual Studio 2026 18.9 is assembly version 10.0.0.8 for
-         all three, and 10.0.8 is the NuGet version whose lib/net462 asset carries exactly that. No headroom: do
-         not take a version above it before a Visual Studio release ships one and moves the redirect.
+         oldVersion upper bound in devenv.exe.config is assembly version 10.0.0.8 for all three in Visual Studio
+         2026 18.9, and 10.0.0.10 in 18.10 and 18.11. 10.0.8 is the NuGet version whose lib/net462 asset carries
+         10.0.0.8, so it fits every Visual Studio 2026 release measured. This pin is a lower bound only: the
+         Roslyn 5.11 variant of the payload resolves System.IO.Pipelines and Microsoft.Bcl.AsyncInterfaces 10.0.10
+         transitively, which fits the redirect of Visual Studio 18.11, the first release that selects that
+         variant. Do not take a version above 10.0.10.
          Metalama.Vsx constrains these values at its build and not at its deployment.
          It does not constrain them at deployment. Metalama.Vsx merges SharpCrafters.Backstage, SharpCrafters.Common, Metalama.Backstage, Metalama.Backstage.Tools
          and Metalama.Framework.DesignTime.Rpc into a single Metalama.Repacked assembly with its own identity, so
