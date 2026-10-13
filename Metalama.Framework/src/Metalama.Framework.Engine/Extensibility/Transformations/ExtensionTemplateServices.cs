@@ -53,7 +53,7 @@ public static class ExtensionTemplateServices
     /// </summary>
     /// <remarks>
     /// When the provider is the type fabric of <paramref name="origin"/>, the method returns the template class that the origin holds. Otherwise,
-    /// it returns the template class of the project for the type of the provider.
+    /// it returns the template class of the project for the type of the provider, which includes project fabrics and namespace fabrics.
     /// </remarks>
     private static bool TryGetTemplateClass(
         in ProjectServiceProvider serviceProvider,
@@ -102,7 +102,7 @@ public static class ExtensionTemplateServices
 
     /// <summary>
     /// Gets the parameters of a method template, in the order of their declaration, with their types in a given compilation, followed by its type
-    /// parameters. The template provider can be the type fabric that made a contribution.
+    /// parameters. The template provider can be the fabric that made a contribution.
     /// </summary>
     /// <param name="serviceProvider">The service provider of the project.</param>
     /// <param name="compilation">The compilation in which the types of the parameters are returned.</param>
@@ -113,14 +113,8 @@ public static class ExtensionTemplateServices
     /// <returns><c>true</c> when the template provider is a template class of the project, or the type fabric of <paramref name="origin"/>, and
     /// declares a non-abstract method marked as a template with this name, and <c>false</c> otherwise.</returns>
     /// <remarks>
-    /// <para>
     /// The template class of a type fabric is not a template class of the project. Only the origin of a contribution made by the type fabric
     /// holds it. Use this overload when the template provider can be <see cref="ExtensionContributionOrigin.DefaultTemplateProvider"/>.
-    /// </para>
-    /// <para>
-    /// A project fabric or a namespace fabric cannot provide templates, so this method returns <c>false</c> when the template provider is such a
-    /// fabric.
-    /// </para>
     /// </remarks>
     public static bool TryGetMethodTemplateParameters(
         in ProjectServiceProvider serviceProvider,

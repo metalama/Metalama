@@ -43,7 +43,8 @@ internal sealed class FabricManager
 
     public UserCodeInvoker UserCodeInvoker => this.ServiceProvider.GetRequiredService<UserCodeInvoker>();
 
-    public (PipelineContributorSources PipelineContributorSources, ImmutableArray<string> FabricTypeNames) ExecuteFabrics(
+    public (PipelineContributorSources PipelineContributorSources, ImmutableArray<string> FabricTypeNames, ImmutableArray<TemplateClass>
+        StaticFabricTemplateClasses) ExecuteFabrics(
         CompileTimeProject compileTimeProject,
         CompilationModel compilationModel,
         ProjectModel project,
@@ -117,6 +118,19 @@ internal sealed class FabricManager
             }
         }
 
+        // Create the template classes of project and namespace fabrics, so that these fabrics can provide templates to the contributions they make.
+        // The template class of a type fabric is created when the type fabric is executed.
+        var staticFabricTemplateClasses = fabricDrivers.Concat( transitiveFabricDrivers )
+            .OfType<StaticFabricDriver>()
+            .Select(
+                driver => (TemplateClass) new FabricTemplateClass(
+                    this.ServiceProvider,
+                    driver,
+                    driver.CompileTimeProject.TemplateReflectionContext ?? compilationModel.CompilationContext,
+                    diagnosticAdder,
+                    null ) )
+            .ToImmutableArray();
+
         Execute( fabricDrivers.OfType<ProjectFabricDriver>() );
         Execute( transitiveFabricDrivers.OfType<ProjectFabricDriver>() );
         project.Freeze();
@@ -128,7 +142,7 @@ internal sealed class FabricManager
             .Where( aspectContributingFabricTypeNames.Contains )
             .ToImmutableArray();
 
-        return (pipelineContributorSources, allFabricTypeNames);
+        return (pipelineContributorSources, allFabricTypeNames, staticFabricTemplateClasses);
     }
 
     private IEnumerable<FabricDriver> CreateDrivers(

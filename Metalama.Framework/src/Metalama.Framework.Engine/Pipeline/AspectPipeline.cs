@@ -343,7 +343,14 @@ public abstract class AspectPipeline : IDisposable
 
         // Execute fabrics.
         var fabricManager = new FabricManager( allAspectClasses, projectServiceProviderWithProject );
-        var (fabricContributors, fabricTypes) = fabricManager.ExecuteFabrics( compileTimeProject, compilationModel, projectModel, diagnosticAdder );
+        var (fabricContributors, fabricTypes, staticFabricTemplateClasses) =
+            fabricManager.ExecuteFabrics( compileTimeProject, compilationModel, projectModel, diagnosticAdder );
+
+        // A project fabric or a namespace fabric is the default template provider of the contributions it makes, so its template class must be
+        // known to the TemplateClassProvider (issue #2236).
+        projectServiceProviderWithProject = projectServiceProviderWithProject.WithService(
+            projectServiceProviderWithProject.GetRequiredService<TemplateClassProvider>().WithTemplateClasses( staticFabricTemplateClasses ),
+            true );
 
         // Freeze the project model to prevent any further modification of configuration.
         projectModel.Freeze();
