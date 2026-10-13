@@ -162,37 +162,6 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
         }
 
         /// <summary>
-        /// Removes a parameter from a builder that <see cref="CreateMethodBuilder"/> created and that is not declared yet. The change is not
-        /// validated by the restrictions of the builder.
-        /// </summary>
-        /// <param name="builder">The builder.</param>
-        /// <param name="index">The index of the parameter to remove. The parameters after it move by one position.</param>
-        /// <remarks>
-        /// The <see cref="IMethodBuilder"/> interface has no method that removes a parameter. A pipeline extension uses this method when the signature
-        /// that it pre-filled depends on a change that the code that receives the builder makes, for instance when the method becomes an instance
-        /// method and a parameter is no longer needed.
-        /// </remarks>
-        /// <exception cref="ArgumentNullException"><paramref name="builder"/> is <c>null</c>.</exception>
-        /// <exception cref="ArgumentException">The builder was not created by this factory, or it was already declared.</exception>
-        /// <exception cref="ArgumentOutOfRangeException"><paramref name="index"/> is not the index of a parameter.</exception>
-        public void RemoveParameter( IMethodBuilder builder, int index )
-        {
-            _ = builder ?? throw new ArgumentNullException( nameof(builder) );
-
-            var methodBuilder = builder as MethodBuilder ?? throw new ArgumentException( "The builder was not created by this factory.", nameof(builder) );
-
-            lock ( this._sync )
-            {
-                if ( !this._createdMethodBuilders.Contains( methodBuilder ) )
-                {
-                    throw new ArgumentException( "The builder was not created by this factory, or it was already declared.", nameof(builder) );
-                }
-            }
-
-            methodBuilder.RemoveParameter( index );
-        }
-
-        /// <summary>
         /// Declares a method whose body is generated from a template.
         /// </summary>
         /// <param name="origin">The aspect or fabric that requested the method.</param>

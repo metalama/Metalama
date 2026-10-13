@@ -279,7 +279,7 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
                             ? builder.TypeParameters[returnTypeParameter.Index]
                             : signatureMethod.ReturnType;
 
-                        if ( hasReceiver )
+                        if ( hasReceiverParameter )
                         {
                             builder.AddParameter( "receiver", sourceMethod.DeclaringType );
                         }
@@ -336,7 +336,7 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
                             ? new TestRefusingRestrictions( refusedParameterType )
                             : new LockedSignatureRestrictions
                             {
-                                LockedLeadingParameterCount = (hasReceiver ? 1 : 0) + sourceMethod.Parameters.Count,
+                                LockedLeadingParameterCount = (hasReceiverParameter ? 1 : 0) + sourceMethod.Parameters.Count,
                                 IsReturnTypeLocked = true,
                                 LockedTypeParameterCount = options.Generic ? signatureMethod.TypeParameters.Count : 0,
                                 IsNameLocked = options.LockName,
@@ -344,11 +344,6 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
                             };
 
                         var builder = factory.CreateMethodBuilder( origin, placement, nameHint, BuildSignature, restrictions );
-
-                        if ( options.ReceiverIsThis )
-                        {
-                            factory.RemoveParameter( builder, 0 );
-                        }
 
                         if ( options.ReassignReturnType )
                         {

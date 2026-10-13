@@ -88,27 +88,6 @@ internal abstract class MethodBaseBuilder : MemberBuilder, IMethodBaseBuilder, I
         return parameter;
     }
 
-    /// <summary>
-    /// Removes a parameter without validating the change with <see cref="DeclarationBuilder.Restrictions"/>, and updates the indices of the
-    /// parameters after it.
-    /// </summary>
-    internal void RemoveParameter( int index )
-    {
-        this.CheckNotFrozen();
-
-        if ( index < 0 || index >= this.Parameters.Count )
-        {
-            throw new ArgumentOutOfRangeException( nameof(index) );
-        }
-
-        this.Parameters.RemoveAt( index );
-
-        for ( var i = index; i < this.Parameters.Count; i++ )
-        {
-            ((ParameterBuilder) this.Parameters[i]).SetIndex( i );
-        }
-    }
-
     public IParameterBuilder InsertParameter( int index, string name, Type type, RefKind refKind = RefKind.None, TypedConstant? defaultValue = null )
     {
         this.CheckNotFrozen();
