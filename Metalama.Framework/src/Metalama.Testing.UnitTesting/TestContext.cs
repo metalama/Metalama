@@ -278,8 +278,8 @@ public partial class TestContext : ITempFileManager, IApplicationInfoProvider, I
     /// <para>
     /// Plug-ins are created with their parameterless constructor and receive their context as method arguments, so one instance can serve
     /// every test. Plug-ins are cached only when their assemblies are not collectible, because the assemblies of a collectible domain
-    /// are unloaded when the <see cref="TestContext"/> that owns the domain is disposed. The key includes the last write time of each
-    /// extension assembly, so that an assembly rebuilt during the lifetime of the process is not served from the cache.
+    /// are unloaded when the <see cref="TestContext"/> that owns the domain is disposed. The key includes the last write time and the
+    /// length of each extension assembly, so that an assembly rebuilt during the lifetime of the process is not served from the cache.
     /// </para>
     /// </remarks>
     private static readonly ConcurrentDictionary<string, ImmutableArray<object>> _sharedPlugIns = new();
@@ -296,7 +296,7 @@ public partial class TestContext : ITempFileManager, IApplicationInfoProvider, I
 
         var cacheKey = string.Join(
             "|",
-            options.TestPlugInTypes.Concat( options.ExtensionAssemblies.Select( p => $"{p}@{File.GetLastWriteTimeUtc( p ).Ticks}" ) ) );
+            options.TestPlugInTypes.Concat( options.ExtensionAssemblies.Select( GetFileCacheKey ) ) );
 
         if ( _sharedPlugIns.TryGetValue( cacheKey, out var cachedPlugIns ) )
         {
@@ -311,6 +311,20 @@ public partial class TestContext : ITempFileManager, IApplicationInfoProvider, I
         }
 
         return plugIns;
+    }
+
+    /// <summary>
+    /// Gets the part of the plug-in cache key that identifies the content of an extension assembly file.
+    /// </summary>
+    /// <remarks>
+    /// The key combines the path, the last write time and the length of the file, which are the properties that
+    /// <c>SharedAssemblyLoadContext</c> compares to detect that a file has been replaced.
+    /// </remarks>
+    private static string GetFileCacheKey( string path )
+    {
+        var fileInfo = new FileInfo( path );
+
+        return fileInfo.Exists ? $"{path}@{fileInfo.LastWriteTimeUtc.Ticks}@{fileInfo.Length}" : $"{path}@missing";
     }
 
     /// <summary>

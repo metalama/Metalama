@@ -37,7 +37,12 @@ namespace Metalama.Framework.Engine.CompileTime
         /// <summary>
         /// The assemblies loaded by this context, indexed by full path.
         /// </summary>
-        private readonly ConcurrentDictionary<string, Entry> _entriesByPath = new( StringComparer.OrdinalIgnoreCase );
+        /// <remarks>
+        /// Paths are compared with <see cref="StringComparer.Ordinal"/>, because two paths that differ only by case designate two files on a
+        /// case-sensitive file system. On a case-insensitive file system, two spellings of the same path only create a second entry, and the
+        /// second request falls back to the context of the domain, because the assembly name is already used in this context.
+        /// </remarks>
+        private readonly ConcurrentDictionary<string, Entry> _entriesByPath = new( StringComparer.Ordinal );
 
         /// <summary>
         /// The assemblies loaded by this context, indexed by simple name, used to resolve references between them.
