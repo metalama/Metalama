@@ -22,17 +22,23 @@
 		     Roslyn 5.0 and Roslyn 5.11, require it as well. See Directory.Packages.md. -->
 		<DefineConstants>$(DefineConstants);ROSLYN_5_11_0_OR_GREATER</DefineConstants>
 		<!-- Microsoft.CodeAnalysis.CSharp.Features 5.11 requires System.Text.Json >= 10.0.10, where the 5.10 build
-		     required 10.0.8. The desktop flavour of the design-time payload embeds this assembly, and the
-		     System.Text.Json binding redirect of devenv.exe.config admits assembly versions up to 10.0.0.8 only, in
-		     Visual Studio 2022 17.14 and in Visual Studio 18.9 alike. The lib/net462 asset of NuGet 10.0.10 carries
-		     assembly version 10.0.0.10, which is above that bound, so the restore floor of Roslyn 5.11 and the load
-		     ceiling of Visual Studio no longer meet on a single value as they did for Roslyn 5.10.
-		     The floor is taken here, because a restore that fails with NU1605 blocks every build, while the ceiling
-		     is exceeded only in the desktop flavour and only until a Visual Studio servicing release ships
-		     System.Text.Json 10.0.10 and moves the redirect. Verify the design-time payload in Visual Studio before
-		     a release candidate of this line: an assembly that falls outside the redirect fails to load with
-		     System.IO.FileLoadException, and the analyzer host reports that failure to its own log only, so the user
-		     sees no diagnostic, no code lens and no generated code. See Directory.Packages.md and issue #2005. -->
+		     required 10.0.8. The desktop flavour of the design-time payload embeds this assembly, and the lib/net462
+		     asset of NuGet 10.0.10 carries assembly version 10.0.0.10.
+		     The binding redirect of devenv.exe.config admits that version in every Visual Studio that selects this
+		     variant. Visual Studio 2026 18.10 and 18.11 redirect System.Text.Json from 0.0.0.0-10.0.0.10 to the
+		     10.0.0.10 that they ship, so the floor of Roslyn 5.11 and the ceiling of Visual Studio meet on 10.0.10.
+		     Visual Studio 18.9 and earlier stop at 10.0.0.8, but they present a Roslyn version below the 5.10 of
+		     Visual Studio 18.10, so RoslynVariantPolicy hands them the Roslyn 5.0 variant, whose System.Text.Json
+		     9.0.10 the redirect raises to the version that Visual Studio ships.
+		     Re-read the bound before raising this value: an assembly that falls outside the redirect fails to load
+		     with System.IO.FileLoadException, and the analyzer host reports that failure to its own log only, so
+		     the user sees no diagnostic, no code lens and no generated code. Measured for #2238; see
+		     Directory.Packages.md. -->
 		<SystemTextJsonVersion>10.0.10</SystemTextJsonVersion>
+		<!-- SystemTextJsonLatestVersion is the version that the test frameworks and the test projects of this variant
+		     reference. It must not exceed the System.Text.Json that the hosts of this variant provide, so that the
+		     tests run against the version the payload meets in a host. The Visual Studio 18.11 redirect stops at
+		     10.0.0.10, so the value is 10.0.10 and not the highest patch of the 10.0 line. -->
+		<SystemTextJsonLatestVersion>10.0.10</SystemTextJsonLatestVersion>
 	</PropertyGroup>
 </Project>

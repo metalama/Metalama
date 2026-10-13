@@ -14,5 +14,10 @@
 		     forward and never back, so this variant must not reference a line above the one its hosts carry.
 		     9.0.10 is the highest patch of that line. -->
 		<SystemTextJsonVersion>9.0.10</SystemTextJsonVersion>
+		<!-- SystemTextJsonLatestVersion is the version that the test frameworks and the test projects of this variant
+		     reference. It must not exceed the System.Text.Json that the hosts of this variant provide, so that the
+		     tests run against the version the payload meets in a host. The hosts of this variant carry the 9.0 line,
+		     so the value is the same as SystemTextJsonVersion. -->
+		<SystemTextJsonLatestVersion>9.0.10</SystemTextJsonLatestVersion>
 	</PropertyGroup>
 </Project>
