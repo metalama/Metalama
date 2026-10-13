@@ -10,4 +10,12 @@
         <Content Include="$(MSBuildThisFileDirectory)xunit.runner.json" Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest"/>
     </ItemGroup>
 
+    <!-- Test processes run up to twice as many concurrent tests as there are processors, and each test allocates Roslyn compilations.
+         With workstation garbage collection, the process was suspended by the garbage collector for most of the time. Server garbage
+         collection collects in parallel. The property reaches the .NET test host through runtimeconfig.json. The .NET Framework test
+         host reads its own configuration file and ignores it. See #2254. -->
+    <PropertyGroup Condition="'$(IsTestProject)'=='true'">
+        <ServerGarbageCollection>true</ServerGarbageCollection>
+    </PropertyGroup>
+
 </Project>

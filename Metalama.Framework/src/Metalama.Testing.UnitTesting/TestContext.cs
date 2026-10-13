@@ -26,6 +26,7 @@ using Metalama.Framework.Project;
 using Metalama.Testing.Hooks;
 using Microsoft.CodeAnalysis;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -265,6 +266,27 @@ public partial class TestContext : ITempFileManager, IApplicationInfoProvider, I
         this._applicationExitManager.OnApplicationExiting();
     }
 
+    /// <summary>
+    /// The plug-in instances that can be reused by every <see cref="TestContext"/> of the process, indexed by a key that identifies the
+    /// plug-in types and the extension assembly files.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Loading the plug-ins requires a <see cref="CompileTimeDomain"/>. Without this cache, every test that reads <see cref="PlugIns"/>
+    /// creates a second domain and loads the extension assemblies into it. See #2254.
+    /// </para>
+    /// <para>
+    /// Plug-ins are created with their parameterless constructor and receive their context as method arguments, so one instance can serve
+    /// every test. Plug-ins are cached only when their assemblies are not collectible, because the assemblies of a collectible domain
+    /// are unloaded when the <see cref="TestContext"/> that owns the domain is disposed. The key includes the last write time of each
+    /// extension assembly, so that an assembly rebuilt during the lifetime of the process is not served from the cache.
+    /// </para>
+    /// </remarks>
+    private static readonly ConcurrentDictionary<string, ImmutableArray<object>> _sharedPlugIns = new();
+
+    /// <summary>
+    /// Gets the plug-ins of the test, from the process-wide cache when possible.
+    /// </summary>
     private ImmutableArray<object> LoadPlugIns( TestContextOptions options )
     {
         if ( options.TestPlugInTypes.IsDefaultOrEmpty )
@@ -272,6 +294,30 @@ public partial class TestContext : ITempFileManager, IApplicationInfoProvider, I
             return ImmutableArray<object>.Empty;
         }
 
+        var cacheKey = string.Join(
+            "|",
+            options.TestPlugInTypes.Concat( options.ExtensionAssemblies.Select( p => $"{p}@{File.GetLastWriteTimeUtc( p ).Ticks}" ) ) );
+
+        if ( _sharedPlugIns.TryGetValue( cacheKey, out var cachedPlugIns ) )
+        {
+            return cachedPlugIns;
+        }
+
+        var plugIns = this.LoadPlugInsCore( options );
+
+        if ( plugIns.All( p => !this.Domain.IsCollectible( p.GetType().Assembly ) ) )
+        {
+            _sharedPlugIns.TryAdd( cacheKey, plugIns );
+        }
+
+        return plugIns;
+    }
+
+    /// <summary>
+    /// Loads the extension assemblies into the domain of the test, then creates an instance of each plug-in type.
+    /// </summary>
+    private ImmutableArray<object> LoadPlugInsCore( TestContextOptions options )
+    {
         // Ensure extensions have been loaded.
         foreach ( var extensionAssembly in options.ExtensionAssemblies )
         {
