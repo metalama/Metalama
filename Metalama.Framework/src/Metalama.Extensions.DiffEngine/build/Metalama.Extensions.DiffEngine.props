@@ -1,5 +1,11 @@
 <Project>
-    <ItemGroup>
+    <!--
+        The items are not registered when ContinuousIntegrationBuild is True, because DiffEngine does not launch a diff tool on a
+        build server, and loading the extension assemblies for each test costs time. Set MetalamaEnableDiffEngine to True to
+        register them in this case too, or to False to never register them. MSBuild evaluates items after all properties, so
+        both properties can be set anywhere, including after this file is imported.
+    -->
+    <ItemGroup Condition="'$(MetalamaEnableDiffEngine)' == 'True' Or ('$(MetalamaEnableDiffEngine)' == '' And '$(ContinuousIntegrationBuild)' != 'True')">
         <!-- Load DiffEngine dependencies first -->
         <MetalamaExtensionAssembly Include="$(MSBuildThisFileDirectory)../metalama/net472/EmptyFiles.dll" TargetFramework="net472" />
         <MetalamaExtensionAssembly Include="$(MSBuildThisFileDirectory)../metalama/net8.0/EmptyFiles.dll" TargetFramework="net8.0" />

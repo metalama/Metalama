@@ -32,3 +32,17 @@ This opens the configuration file with the following settings:
 ```
 
 Without this package, tests work normally but diff tool features are silently disabled.
+
+## Continuous integration builds
+
+When the `ContinuousIntegrationBuild` MSBuild property is `True`, this package does not register its extension assemblies with the test framework. DiffEngine does not launch a diff tool on a build server, so loading these assemblies for each test would only cost time. Test failures are reported in the same way.
+
+To control this behavior, set the `MetalamaEnableDiffEngine` MSBuild property:
+
+| Value | Behavior |
+|---|---|
+| (not set) | The diff tool integration is enabled, except when `ContinuousIntegrationBuild` is `True`. |
+| `True` | The diff tool integration is always enabled. |
+| `False` | The diff tool integration is always disabled. |
+
+For example, set `MetalamaEnableDiffEngine` to `True` if your `Directory.Build.props` sets `ContinuousIntegrationBuild` to `True` for local builds too.
