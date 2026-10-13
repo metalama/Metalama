@@ -32,7 +32,20 @@ internal sealed class ProjectSpecificCompileTimeTypeResolver : CompileTimeTypeRe
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     protected override Type? GetCompileTimeNamedType( INamedTypeSymbol typeSymbol, CancellationToken cancellationToken = default )
+        => this.Cache.GetOrAdd( typeSymbol, this.GetCompileTimeNamedTypeCore, cancellationToken );
+
+    private Type? GetCompileTimeNamedTypeCore( ITypeSymbol typeSymbol, CancellationToken cancellationToken )
     {
+        // Check if the type belongs to an assembly that is loaded into the compile-time domain. This must be done before
+        // the SystemTypeResolver is called, because the domain may hold a copy of an assembly that the SystemTypeResolver
+        // would load again.
+        var domainType = this.GetTypeFromDomain( typeSymbol );
+
+        if ( domainType != null )
+        {
+            return domainType;
+        }
+
         // Check if the type is a .NET system one.
         var systemType = this._systemTypeResolver.GetCompileTimeType( typeSymbol, false, cancellationToken );
 
@@ -42,41 +55,45 @@ internal sealed class ProjectSpecificCompileTimeTypeResolver : CompileTimeTypeRe
         }
 
         // The type is not a system one. Check if it is a compile-time one.
-        return this.Cache.GetOrAdd( typeSymbol, this.GetCompileTimeNamedTypeCore );
-    }
-
-    private Type? GetCompileTimeNamedTypeCore( ITypeSymbol typeSymbol )
-    {
-        var assemblySymbol = typeSymbol.ContainingAssembly;
-        var reflectionName = typeSymbol.GetReflectionFullName();
-
-        if ( !this._projectRepository.TryGetCompileTimeProject( assemblySymbol.Identity, out var compileTimeProject ) )
-        {
-            return this.GetTypeFromDomain( assemblySymbol.Identity, reflectionName );
-        }
-
-        return compileTimeProject?.GetTypeOrNull( reflectionName );
-    }
-
-    /// <summary>
-    /// Gets a type of an assembly that has no compile-time project but is loaded into the <see cref="CompileTimeDomain"/>.
-    /// </summary>
-    /// <remarks>
-    /// An assembly that is referenced with the <c>MetalamaCompileTimeAssembly</c> item is a standard assembly, so it has no compile-time project.
-    /// When it is also an extension assembly, it is loaded only into the <see cref="CompileTimeDomain"/>, so the <see cref="SystemTypeResolver"/>
-    /// cannot find its types. This is the case of the public assembly of a Metalama extension package, which can define a custom attribute
-    /// that the pipeline instantiates, for instance an <see cref="Metalama.Framework.Options.IHierarchicalOptionsProvider"/>.
-    /// See https://github.com/metalama/Metalama/issues/2235.
-    /// </remarks>
-    private Type? GetTypeFromDomain( AssemblyIdentity assemblyIdentity, string reflectionName )
-    {
-        var domain = this._projectRepository.Domain;
-
-        if ( domain == null || !domain.TryGetLoadedAssembly( new AssemblyName( assemblyIdentity.GetDisplayName() ), out var assembly ) )
+        if ( !this._projectRepository.TryGetCompileTimeProject( typeSymbol.ContainingAssembly.Identity, out var compileTimeProject ) )
         {
             return null;
         }
 
-        return assembly.GetType( reflectionName, false );
+        return compileTimeProject?.GetTypeOrNull( typeSymbol.GetReflectionFullName() );
+    }
+
+    /// <summary>
+    /// Gets a type of an assembly that is loaded into the <see cref="CompileTimeDomain"/>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// An assembly that is referenced with the <c>MetalamaCompileTimeAssembly</c> item is a standard assembly, so it has no compile-time project.
+    /// When it is also an extension assembly, it is loaded into the <see cref="CompileTimeDomain"/>, and the compile-time code and the extensions
+    /// use the types of this copy. This is the case of the public assembly of a Metalama extension package, which can define a custom attribute
+    /// that the pipeline instantiates, for instance an <see cref="Metalama.Framework.Options.IHierarchicalOptionsProvider"/>.
+    /// </para>
+    /// <para>
+    /// In the compiler process, the <see cref="SystemTypeResolver"/> does not find the types of such an assembly. In the process of the aspect
+    /// test runner, the assembly is also a dependency of the test project, so the <see cref="SystemTypeResolver"/> returns the type of the copy
+    /// in the default <c>AssemblyLoadContext</c>. An object created from this type cannot be cast to the type of the same name that the
+    /// compile-time code and the extensions use. Therefore, the copy in the domain takes precedence.
+    /// </para>
+    /// <para>
+    /// See https://github.com/metalama/Metalama/issues/2235.
+    /// </para>
+    /// </remarks>
+    private Type? GetTypeFromDomain( ITypeSymbol typeSymbol )
+    {
+        var domain = this._projectRepository.Domain;
+
+        if ( domain == null
+             || typeSymbol.ContainingAssembly is not { } assemblySymbol
+             || !domain.TryGetLoadedAssembly( new AssemblyName( assemblySymbol.Identity.GetDisplayName() ), out var assembly ) )
+        {
+            return null;
+        }
+
+        return assembly.GetType( typeSymbol.GetReflectionFullName(), false );
     }
 }
