@@ -144,7 +144,11 @@ public sealed partial class ExtensionTransformationFactory
                 throw new ArgumentException( $"The target method '{targetMethod}' must be static.", nameof(request) );
             }
 
-            ValidateInstanceCalleeContext( semanticModel, callSite, targetMethod );
+            // A call on the receiver of the source call does not need 'this' at the call site.
+            if ( request.ReceiverMode != CallSiteReceiverMode.Receiver )
+            {
+                ValidateInstanceCalleeContext( semanticModel, callSite, targetMethod );
+            }
         }
 
         // The receiver of a call to a classic extension method in reduced form is its first argument, whose syntax is not an ArgumentSyntax.
@@ -211,6 +215,31 @@ public sealed partial class ExtensionTransformationFactory
                 if ( isBaseCall && IsVirtual( sourceMethod ) )
                 {
                     throw new ArgumentException( $"The base call '{callSite}' to a virtual method cannot pass its receiver.", nameof(request) );
+                }
+
+                break;
+
+            case CallSiteReceiverMode.Receiver:
+                if ( targetMethod.IsStatic )
+                {
+                    throw new ArgumentException( $"The receiver mode {request.ReceiverMode} requires an instance target method, but '{targetMethod}' is static.", nameof(request) );
+                }
+
+                if ( operation.Instance == null || isReducedExtensionCall )
+                {
+                    throw new ArgumentException( $"The call site '{callSite}' has no instance receiver on which the target method can be called.", nameof(request) );
+                }
+
+                if ( isBaseCall )
+                {
+                    throw new ArgumentException( $"The base call '{callSite}' cannot be redirected with the receiver mode {request.ReceiverMode}.", nameof(request) );
+                }
+
+                if ( !IsReceiverOfDeclaringType( operation.Instance.Type, targetMethod ) )
+                {
+                    throw new ArgumentException(
+                        $"The receiver of '{callSite}' is not of the declaring type of the target method '{targetMethod}' or of a type derived from it.",
+                        nameof(request) );
                 }
 
                 break;
@@ -311,7 +340,10 @@ public sealed partial class ExtensionTransformationFactory
         }
         else
         {
-            callee = CreateCallee( request.Target, request.TypeArguments, context );
+            callee = request.ReceiverMode == CallSiteReceiverMode.Receiver
+                ? CreateMethodName( targetMethod, request.TypeArguments, context )
+                : CreateCallee( request.Target, request.TypeArguments, context );
+
             rewrittenCall = CreateRedirection( -1, callee ).Rewrite( callSite );
 
             // When the rewritten call binds to another overload, the default values of the optional parameters that receive no argument are
@@ -960,6 +992,31 @@ public sealed partial class ExtensionTransformationFactory
         => target.Method.IsStatic
             ? CreateStaticCallee( target, typeArguments, context )
             : MemberAccessExpression( SyntaxKind.SimpleMemberAccessExpression, ThisExpression(), CreateMethodName( target.Method, typeArguments, context ) );
+
+    /// <summary>
+    /// Determines whether the type of a receiver is the declaring type of an instance target method or a type derived from it, so that the
+    /// target method can be called on the receiver.
+    /// </summary>
+    private static bool IsReceiverOfDeclaringType( ITypeSymbol? receiverType, IMethod targetMethod )
+    {
+        var declaringType = targetMethod.DeclaringType.GetSymbol()?.OriginalDefinition;
+
+        if ( declaringType == null )
+        {
+            // An introduced declaring type has no symbol, so the receiver cannot be of that type.
+            return false;
+        }
+
+        for ( var type = receiverType; type != null; type = type.BaseType )
+        {
+            if ( SymbolEqualityComparer.Default.Equals( type.OriginalDefinition, declaringType ) )
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     /// <summary>
     /// Throws an <see cref="ArgumentException"/> when a call site cannot call an instance method on <c>this</c>: the call site must be in an

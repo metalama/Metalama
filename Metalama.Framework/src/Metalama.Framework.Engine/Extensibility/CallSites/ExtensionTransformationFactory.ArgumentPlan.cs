@@ -43,7 +43,7 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
         {
             var callSite = request.CallSite;
             var targetParameters = request.Target.Method.Parameters;
-            var parameterOffset = request.ReceiverMode == CallSiteReceiverMode.Drop ? 0 : 1;
+            var parameterOffset = request.ReceiverMode is CallSiteReceiverMode.Drop or CallSiteReceiverMode.Receiver ? 0 : 1;
 
             if ( request.Arguments.Length > targetParameters.Count - parameterOffset )
             {

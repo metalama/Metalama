@@ -432,6 +432,13 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
                 ValidateIndex( binding.ReceiverParameterIndex, "the receiver" );
             }
 
+            if ( binding.Kind == ProceedBindingKind.InvokeOnThis && declaredMethod.IsStatic )
+            {
+                throw new ArgumentException(
+                    $"The proceed binding invokes the method '{binding.Method.Name}' on 'this', but the method '{declaredMethod.Name}' is static.",
+                    "request" );
+            }
+
             if ( !binding.ArgumentParameterIndices.IsDefault )
             {
                 if ( binding.ArgumentParameterIndices.Length != binding.Method.Parameters.Count )
