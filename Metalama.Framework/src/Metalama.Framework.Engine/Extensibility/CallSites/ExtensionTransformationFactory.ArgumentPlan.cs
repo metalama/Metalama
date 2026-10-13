@@ -43,7 +43,7 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
         {
             var callSite = request.CallSite;
             var targetParameters = request.Target.Method.Parameters;
-            var parameterOffset = request.ReceiverMode == CallSiteReceiverMode.Drop ? 0 : 1;
+            var parameterOffset = request.ReceiverMode is CallSiteReceiverMode.Drop or CallSiteReceiverMode.Receiver ? 0 : 1;
 
             if ( request.Arguments.Length > targetParameters.Count - parameterOffset )
             {
@@ -249,10 +249,7 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
                 }
             }
 
-            // A receiver that is an implicit or explicit 'this' does not need to be passed to an instance target method, because the redirected call
-            // invokes the target method on 'this'.
-            if ( request.ReceiverMode == CallSiteReceiverMode.Drop && hasReceiverValue && !receiverUsed
-                 && !IsThisReceiverOfInstanceTarget( operation, request.Target.Method ) )
+            if ( request.ReceiverMode == CallSiteReceiverMode.Drop && hasReceiverValue && !receiverUsed )
             {
                 throw new ArgumentException( $"The receiver of '{callSite}' is not passed.", nameof(request) );
             }
@@ -736,15 +733,6 @@ namespace Metalama.Framework.Engine.Extensibility.CallSites
 
             return operation;
         }
-
-        /// <summary>
-        /// Determines whether the receiver of a call is an implicit or explicit <c>this</c>, not <c>base</c>, and the target method is an instance
-        /// method, which the redirected call invokes on <c>this</c>.
-        /// </summary>
-        private static bool IsThisReceiverOfInstanceTarget( IInvocationOperation operation, IMethod targetMethod )
-            => !targetMethod.IsStatic
-               && operation.Instance is IInstanceReferenceOperation { ReferenceKind: InstanceReferenceKind.ContainingTypeInstance } instance
-               && !instance.Syntax.IsKind( SyntaxKind.BaseExpression );
 
         /// <summary>
         /// Determines whether the evaluation of a value can be omitted without changing the behavior of the program.

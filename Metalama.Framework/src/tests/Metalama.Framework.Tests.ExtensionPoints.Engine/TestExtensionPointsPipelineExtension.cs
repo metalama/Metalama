@@ -422,7 +422,9 @@ public sealed class TestExtensionPointsPipelineExtension : PipelineExtension
                     new InvocationRedirectionRequest(
                         invocation,
                         CallSiteRedirectionTarget.Synthesized( method ),
-                        hasReceiverParameter ? CallSiteReceiverMode.FirstArgument : CallSiteReceiverMode.Drop )
+                        hasReceiverParameter ? CallSiteReceiverMode.FirstArgument
+                        : hasReceiver ? CallSiteReceiverMode.Receiver
+                        : CallSiteReceiverMode.Drop )
                     {
                         TypeArguments = GetTypeArguments()
                     } );

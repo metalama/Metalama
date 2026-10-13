@@ -160,8 +160,8 @@ public sealed class TestTemplateRedirectionOptions
 
     /// <summary>
     /// Gets or sets a value indicating whether the receiver of the source call is the <c>this</c> instance of the declared method, which must be
-    /// an instance method. The declared method has no receiver parameter, the call sites drop their receiver, and <c>meta.Proceed()</c> invokes
-    /// the source method on <c>this</c>.
+    /// an instance method. The declared method has no receiver parameter, the call sites call it on their receiver with
+    /// <c>CallSiteReceiverMode.Receiver</c>, and <c>meta.Proceed()</c> invokes the source method on <c>this</c>.
     /// </summary>
     public bool ReceiverIsThis { get; set; }
 }
