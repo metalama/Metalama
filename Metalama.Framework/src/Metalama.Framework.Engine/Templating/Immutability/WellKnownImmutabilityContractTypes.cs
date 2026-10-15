@@ -6,7 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 
-namespace Metalama.Framework.Analyzers.Immutability
+namespace Metalama.Framework.Engine.Templating.Immutability
 {
     /// <summary>
     /// The types that carry the immutability contract without declaring it, matched by metadata name.
@@ -15,9 +15,7 @@ namespace Metalama.Framework.Analyzers.Immutability
     /// <para>
     /// <c>IAspect</c> and <c>Fabric</c> declare <c>[ImmutableType]</c> themselves and do not appear here.
     /// Validators do, because they no longer live in this repository: validation was extracted into the
-    /// <c>Metalama.Extensions.Validation</c> package of Metalama.Premium, which this assembly neither references nor
-    /// can see. Naming them is the same technique the sibling contract uses to match its own attribute without
-    /// referencing <c>Metalama.Framework</c>.
+    /// <c>Metalama.Extensions.Validation</c> package of Metalama.Premium, which the engine does not reference.
     /// </para>
     /// <para>
     /// <b>These names are unverified, and nothing here can verify them.</b> They must be confirmed against
@@ -48,7 +46,7 @@ namespace Metalama.Framework.Analyzers.Immutability
         public static bool Contains( string fullMetadataName ) => Names.Contains( fullMetadataName );
 
         /// <summary>
-        /// Gets every name, so that the analyzer can report the ones that match no type.
+        /// Gets every name.
         /// </summary>
         public static IEnumerable<string> AllNames => Names;
     }

@@ -13,7 +13,10 @@ namespace Metalama.Patterns.Observability.Implementation.ClassicStrategy;
 [CompileTime]
 internal sealed class Templates : ITemplateProvider
 {
+    // TemplateProvider is a read-only wrapper around this stateless template class.
+#pragma warning disable LAMA0890
     internal static TemplateProvider Provider { get; } = TemplateProvider.FromInstance( new Templates() );
+#pragma warning restore LAMA0890
 
     private Templates() { }
 

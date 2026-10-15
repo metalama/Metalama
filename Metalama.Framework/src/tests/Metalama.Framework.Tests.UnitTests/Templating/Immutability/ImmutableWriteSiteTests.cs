@@ -2,15 +2,17 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using System;
+using System.Threading.Tasks;
 using Xunit;
 
-namespace Metalama.Framework.Analyzers.Tests;
+namespace Metalama.Framework.Tests.UnitTests.Templating.Immutability;
 
 /// <summary>
 /// The rules that accept a member whose write access is private and check its assignments instead, reporting at the
 /// assignment rather than at the declaration.
 /// </summary>
-public sealed class ImmutableWriteSiteTests : ImmutableAnalyzerTestBase
+public sealed class ImmutableWriteSiteTests : ImmutabilityTestBase
 {
     private const string _wrap = "[ImmutableType] class C {{ {0} }}";
 
@@ -19,6 +21,28 @@ public sealed class ImmutableWriteSiteTests : ImmutableAnalyzerTestBase
     // ------------------------------------------------------------------------------------------------------------
     // Where a write is allowed.
     // ------------------------------------------------------------------------------------------------------------
+
+    /// <remarks>
+    /// A lambda in a field initializer runs after construction, whenever the delegate is invoked, so a write in its body
+    /// is a mutation.
+    /// </remarks>
+    [Fact]
+    public async Task WriteInALambdaOfAFieldInitializer_IsReported()
+        => await AssertSingleDiagnosticAsync(
+            Code( "private int _count; private readonly Action<C> _update = c => c._count++;" ),
+            "LAMA0887" );
+
+    [Fact]
+    public async Task WriteInALambdaOfAPropertyInitializer_IsReported()
+        => await AssertSingleDiagnosticAsync(
+            Code( "private int _count; public Action<C> Update { get; } = c => c._count = 1;" ),
+            "LAMA0887" );
+
+    [Fact]
+    public async Task WriteInALambdaOfAConstructorInitializer_IsReported()
+        => await AssertSingleDiagnosticAsync(
+            Code( "private int _count; public C() : this( c => c._count = 1 ) { } private C( Action<C> a ) { }" ),
+            "LAMA0887" );
 
     [Fact]
     public async Task WriteInAConstructor_IsNotReported()
@@ -188,9 +212,13 @@ public sealed class ImmutableWriteSiteTests : ImmutableAnalyzerTestBase
         => await AssertNoDiagnosticAsync(
             _prologue + "class Other { private int _count; public void M() { this._count = 1; } }" );
 
+    /// <remarks>
+    /// The write itself is not reported. The declaration of the static field is reported instead, by the rule on the
+    /// static members of compile-time types.
+    /// </remarks>
     [Fact]
     public async Task WriteToAStaticField_IsNotReported()
-        => await AssertNoDiagnosticAsync( Code( "private static int _count; public void M() { _count = 1; }" ) );
+        => await AssertSingleDiagnosticAsync( Code( "private static int _count; public void M() { _count = 1; }" ), "LAMA0889" );
 
     /// <remarks>
     /// An advice member is code injected into the target, not state of the aspect, so writing it is not a defect.

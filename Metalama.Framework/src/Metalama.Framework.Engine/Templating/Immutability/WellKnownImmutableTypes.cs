@@ -6,7 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 
-namespace Metalama.Framework.Analyzers.Immutability
+namespace Metalama.Framework.Engine.Templating.Immutability
 {
     /// <summary>
     /// The classification of the types whose immutability is decided without examining their members.
@@ -15,9 +15,8 @@ namespace Metalama.Framework.Analyzers.Immutability
     /// <para>
     /// This table is the static counterpart of <c>ImmutabilityExtensions.GetImmutabilityKind</c> and of the collection
     /// list in <c>Fabric</c>, both in <c>Metalama.Patterns.Immutability</c>, which decide the same question over the
-    /// Metalama code model. **The two must be kept in correspondence.** This project cannot reference the patterns
-    /// assembly, nor the engine that its options system needs, so the correspondence is enforced by a test rather than
-    /// by sharing the list.
+    /// Metalama code model. The two must be kept in correspondence. The engine cannot reference the patterns assembly,
+    /// so the correspondence is enforced by a test rather than by sharing the list.
     /// </para>
     /// <para>
     /// Five divergences from the patterns implementation are deliberate.
@@ -47,8 +46,8 @@ namespace Metalama.Framework.Analyzers.Immutability
     /// <item>
     /// <description>
     /// The <c>Shallow</c> kind is not ported at all. This contract is deep or nothing. The patterns implementation
-    /// calls a <c>readonly struct</c> shallowly immutable, which is a useful distinction there and is not one this
-    /// analyzer can act on: a field of such a struct typed as a mutable class still reaches a mutable object. A
+    /// calls a <c>readonly struct</c> shallowly immutable, which is a useful distinction there and is not one these
+    /// rules can act on: a field of such a struct typed as a mutable class still reaches a mutable object. A
     /// <c>readonly struct</c> therefore falls through to the last rule and is reported as not marked, which is true
     /// and actionable, since marking it has its members verified.
     /// </description>
@@ -188,14 +187,19 @@ namespace Metalama.Framework.Analyzers.Immutability
             // Metalama types that an aspect routinely stores.
             //
             // SerializableDeclarationId, SerializableTypeId and DocumentKey are deliberately absent: they live in the
-            // contract assembly and should carry [ImmutableType] at their declaration, where the analyzer
-            // verifies the claim instead of taking it on trust.
+            // contract assembly and should carry [ImmutableType] at their declaration.
             // ----------------------------------------------------------------------------------------------------
 
             Immutable( "Metalama.Framework.Code.IRef" );
             Immutable( "Metalama.Framework.Code.IRef`1" );
             Immutable( "Metalama.Framework.Code.IDurableRef" );
             Immutable( "Metalama.Framework.Code.IDurableRef`1" );
+
+            // DiagnosticDefinition<T> carries [ImmutableType] and declares no field of type T: the type argument only
+            // types the arguments of the message. A compilation that references Metalama.Framework cannot see the
+            // private fields of the type, so the rules would otherwise assume that T is stored, and would report
+            // every diagnostic definition whose argument is a declaration, which is the usual case.
+            Immutable( "Metalama.Framework.Diagnostics.DiagnosticDefinition`1" );
 
             // ----------------------------------------------------------------------------------------------------
             // Types that are named as mutable rather than left to fall through, so that the message explains itself.
@@ -239,7 +243,7 @@ namespace Metalama.Framework.Analyzers.Immutability
             // ----------------------------------------------------------------------------------------------------
             // The Roslyn roots, which are immutable.
             //
-            // This is the sharpest place where the two contracts of this assembly must not be confused, and an
+            // This is the sharpest place where the immutability and durability contracts must not be confused, and an
             // earlier version of this table got it wrong by importing the durability reasons wholesale. "A
             // compilation is rebuilt on every edit" and "a syntax node belongs to one syntax tree" are statements
             // about lifetime, which is what WellKnownDurableTypes is about. They say nothing about mutability, and
@@ -257,6 +261,7 @@ namespace Metalama.Framework.Analyzers.Immutability
             Immutable( "Microsoft.CodeAnalysis.ISymbol" );
             Immutable( "Microsoft.CodeAnalysis.Location" );
             Immutable( "Microsoft.CodeAnalysis.Text.SourceText" );
+            Immutable( "Microsoft.CodeAnalysis.SyntaxAnnotation" );
 
             return table;
         }

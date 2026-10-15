@@ -60,17 +60,3 @@ public sealed class DurableOptionsCollectionTests : DurableAnalyzerTestBase
         => await AssertNoDiagnosticAsync( OptionsCollectionCode.Options );
 }
 
-/// <summary>
-/// Tests that an options class storing the incremental collections of the framework satisfies the immutable contract
-/// that <see cref="IIncrementalObject"/> imposes on it.
-/// </summary>
-/// <remarks>
-/// Both collections are trusted for the type arguments they store, so the verdict of a property is that of its type
-/// arguments.
-/// </remarks>
-public sealed class ImmutableOptionsCollectionTests : ImmutableAnalyzerTestBase
-{
-    [Fact]
-    public async Task IncrementalCollectionsOfAnOptionsClass_AreNotReported()
-        => await AssertNoDiagnosticAsync( OptionsCollectionCode.Options );
-}

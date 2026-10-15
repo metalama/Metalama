@@ -228,6 +228,21 @@ public partial class MSBuildProjectOptions : DefaultProjectOptions
     [Memo]
     public override ImmutableArray<string> SourceGeneratorAttributes => this.GetListOption( MSBuildPropertyNames.MetalamaSourceGeneratorAttributes );
 
+    public override bool EnforceImmutabilityContract => this.GetBooleanOption( MSBuildPropertyNames.MetalamaEnforceImmutabilityContract, true );
+
+    [Memo]
+    public override ImmutableArray<string> ImmutableTypes => this.GetListOption( MSBuildPropertyNames.MetalamaImmutableTypes, _immutableTypeListSeparators );
+
+    [Memo]
+    public override ImmutableArray<string> ImmutableContractTypes
+        => this.GetListOption( MSBuildPropertyNames.MetalamaImmutableContractTypes, _immutableTypeListSeparators );
+
+    /// <summary>
+    /// The separator of the type-name lists, into which the build joins an MSBuild item. A type name can contain a comma,
+    /// so the default separators of <see cref="GetListOption"/> do not apply.
+    /// </summary>
+    private static readonly char[] _immutableTypeListSeparators = [';'];
+
     [Memo]
     public override ImmutableArray<string> IgnoredWarnings
         => ParseIgnoredWarnings( this.GetStringOption( MSBuildPropertyNames.MetalamaIgnoredWarnings, string.Empty ) );

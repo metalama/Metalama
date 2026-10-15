@@ -341,6 +341,24 @@ public interface IProjectOptions : IProjectService, IEquatable<IProjectOptions>
     ImmutableArray<string> IgnoredWarnings { get; }
 
     /// <summary>
+    /// Gets a value indicating whether the immutability rules of compile-time code are enforced, as set by the
+    /// <c>MetalamaEnforceImmutabilityContract</c> MSBuild property. The default value is <c>true</c>.
+    /// </summary>
+    bool EnforceImmutabilityContract { get; }
+
+    /// <summary>
+    /// Gets the full metadata names of the types that the project declares immutable with the <c>MetalamaImmutableType</c>
+    /// MSBuild item.
+    /// </summary>
+    ImmutableArray<string> ImmutableTypes { get; }
+
+    /// <summary>
+    /// Gets the full metadata names of the base types and interfaces whose implementations must be immutable, as declared
+    /// with the <c>MetalamaImmutableContractType</c> MSBuild item.
+    /// </summary>
+    ImmutableArray<string> ImmutableContractTypes { get; }
+
+    /// <summary>
     /// Gets the kind of durable reference that the project produces. The default value is
     /// <see cref="Options.DurableRefKind.Default"/>, which lets the execution scenario select the representation.
     /// </summary>

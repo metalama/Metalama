@@ -2,9 +2,12 @@
 // SharpCrafters s.r.o. licenses this file to you under either the MIT license or a proprietary license, depending on the repository from which it was obtained.
 // Refer to LICENSE.md in the repository root for complete details.
 
+using System;
+using System.Linq;
+using System.Threading.Tasks;
 using Xunit;
 
-namespace Metalama.Framework.Analyzers.Tests;
+namespace Metalama.Framework.Tests.UnitTests.Templating.Immutability;
 
 /// <summary>
 /// Tests of LAMA0886, which reports a marker stating a contract the declaration is bound by anyway.
@@ -13,7 +16,7 @@ namespace Metalama.Framework.Analyzers.Tests;
 /// The rule is sound only if it fires exactly where deleting the marker changes nothing, so the assertions come in
 /// pairs: one that the marker is reported, and one that the contract is still enforced without it.
 /// </remarks>
-public sealed class ImmutableRedundantAttributeTests : ImmutableAnalyzerTestBase
+public sealed class ImmutableRedundantAttributeTests : ImmutabilityTestBase
 {
     [Fact]
     public async Task AMarkerOnATypeThatInheritsTheContractFromABaseType_IsReported()

@@ -5,6 +5,7 @@
 using JetBrains.Annotations;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
+using Metalama.Framework.Utilities;
 
 namespace Metalama.Extensions.DependencyInjection;
 
@@ -16,6 +17,7 @@ namespace Metalama.Extensions.DependencyInjection;
 /// <seealso href="@dependency-injection"/>
 [CompileTime]
 [PublicAPI]
+[ImmutableType]
 public sealed record DependencyOptions
 {
     /// <summary>

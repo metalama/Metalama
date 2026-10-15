@@ -5,8 +5,10 @@
 using Metalama.Framework.Engine.CompileTime;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Observers;
+using Metalama.Framework.Engine.Options;
 using Metalama.Framework.Engine.Pipeline;
 using Metalama.Framework.Engine.Services;
+using Metalama.Framework.Engine.Templating.Immutability;
 using Metalama.Framework.Engine.Utilities.Threading;
 using Microsoft.CodeAnalysis;
 using System;
@@ -92,6 +94,13 @@ namespace Metalama.Framework.Engine.Templating
                     phase2Trees.Add( syntaxTree );
                 }
             }
+
+            // The names declared in the MSBuild items of the immutability rules are a property of the compilation, so they
+            // are verified once here rather than once per syntax tree.
+            ImmutabilityValidator.ReportUnknownDeclaredTypeNames(
+                compilationContext.SourceCompilation,
+                serviceProvider.GetService<IProjectOptions>(),
+                reportDiagnostic );
 
             // Create a linked cancellation token source for phase 2 that can be cancelled independently.
             var phase2Cts = CancellationTokenSource.CreateLinkedTokenSource( cancellationToken );

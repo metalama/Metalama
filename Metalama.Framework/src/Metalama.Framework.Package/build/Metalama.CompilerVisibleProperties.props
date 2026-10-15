@@ -85,8 +85,8 @@
     </Target>
 
     <!--
-        Declares the immutability of types that a project does not own, for the [ImmutableType] analyzer, which
-        requires aspects, fabrics and validators to be written in an immutable style. A project writes:
+        Declares the immutability of types that a project does not own, for the immutability rules of the Metalama
+        compiler, which require aspects, fabrics and validators to be written in an immutable style. A project writes:
 
             <ItemGroup>
                 <MetalamaImmutableType Include="Contoso.Money" />
@@ -101,10 +101,10 @@
         built-in verdicts a project may have to override.
 
         MetalamaImmutableContractType names a base type or an interface whose implementations must be immutable, for
-        the case that Metalama.Extensions.Validation covers: the validator base types live in a package that the
-        analyzer cannot reference, and the analyzer's own table of them may be older than the package installed here.
+        the case that Metalama.Extensions.Validation covers: the validator base types live in a package that Metalama
+        cannot reference, and the built-in table of them may be older than the package installed here.
 
-        A verdict that holds in general belongs in the WellKnownImmutableTypes table of Metalama.Framework.Analyzers
+        A verdict that holds in general belongs in the WellKnownImmutableTypes table of Metalama.Framework.Engine
         rather than in a project file, so that every project benefits from it and the reasoning is recorded in one
         place.
 

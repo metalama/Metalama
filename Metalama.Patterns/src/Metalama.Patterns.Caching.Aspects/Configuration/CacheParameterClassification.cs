@@ -6,6 +6,7 @@ using JetBrains.Annotations;
 using Metalama.Framework.Aspects;
 using Metalama.Framework.Code;
 using Metalama.Framework.Diagnostics;
+using Metalama.Framework.Utilities;
 
 namespace Metalama.Patterns.Caching.Aspects.Configuration;
 
@@ -25,6 +26,7 @@ namespace Metalama.Patterns.Caching.Aspects.Configuration;
 /// <seealso cref="CachingOptionsBuilder.AddParameterClassifier"/>
 [PublicAPI]
 [CompileTime]
+[ImmutableType]
 public sealed class CacheParameterClassification
 {
     private readonly Func<IParameter, ICacheParameterClassifier, IDiagnostic>? _diagnostic;

@@ -59,9 +59,7 @@ public partial class IncrementalKeyedCollection<TKey, TValue> : IIncrementalObje
 
     private readonly bool _clear;
     
-#pragma warning disable LAMA0882
     private ImmutableDictionary<TKey, Item> _dictionary;
-#pragma warning restore LAMA0882
 
     [NonCompileTimeSerialized]
     private int? _count;
@@ -213,9 +211,7 @@ public partial class IncrementalKeyedCollection<TKey, TValue> : IIncrementalObje
     /// <value>
     /// The count of items that are enabled (not removed) in this incremental keyed collection layer.
     /// </value>
-#pragma warning disable LAMA0887
     public int Count => this._count ??= this._dictionary.Count( i => i.Value.IsEnabled );
-#pragma warning restore LAMA0887
 
     /// <summary>
     /// Gets a value indicating whether this collection layer is empty.

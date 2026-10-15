@@ -62,6 +62,9 @@ public static class MSBuildPropertyNames
     public const string MetalamaDiagnoseMemoryLeaks = nameof(MetalamaDiagnoseMemoryLeaks);
     public const string MetalamaDurableRefKind = nameof(MetalamaDurableRefKind);
     public const string MetalamaIgnoredWarnings = nameof(MetalamaIgnoredWarnings);
+    public const string MetalamaEnforceImmutabilityContract = nameof(MetalamaEnforceImmutabilityContract);
+    public const string MetalamaImmutableTypes = nameof(MetalamaImmutableTypes);
+    public const string MetalamaImmutableContractTypes = nameof(MetalamaImmutableContractTypes);
 
     public static ImmutableArray<string> All { get; } = ImmutableArray.Create(
         MetalamaBuildTouchFile,
@@ -109,5 +112,8 @@ public static class MSBuildPropertyNames
         MetalamaCompilationScenario,
         MetalamaDiagnoseMemoryLeaks,
         MetalamaDurableRefKind,
-        MetalamaIgnoredWarnings );
+        MetalamaIgnoredWarnings,
+        MetalamaEnforceImmutabilityContract,
+        MetalamaImmutableTypes,
+        MetalamaImmutableContractTypes );
 }

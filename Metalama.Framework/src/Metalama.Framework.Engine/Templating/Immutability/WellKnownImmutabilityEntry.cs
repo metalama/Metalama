@@ -4,7 +4,7 @@
 
 using System.Collections.Immutable;
 
-namespace Metalama.Framework.Analyzers.Immutability
+namespace Metalama.Framework.Engine.Templating.Immutability
 {
     /// <summary>
     /// An entry of the well-known immutable type table.

@@ -4,6 +4,7 @@
 
 using JetBrains.Annotations;
 using Metalama.Framework.Aspects;
+using Metalama.Framework.Utilities;
 using Metalama.Patterns.Caching.Implementation;
 
 namespace Metalama.Patterns.Caching;
@@ -18,6 +19,7 @@ namespace Metalama.Patterns.Caching;
 /// <seealso cref="Implementation.ICacheItemConfiguration"/>
 [RunTimeOrCompileTime]
 [PublicAPI]
+[ImmutableType]
 public record CacheItemConfiguration : ICacheItemConfiguration
 {
     /// <inheritdoc />
