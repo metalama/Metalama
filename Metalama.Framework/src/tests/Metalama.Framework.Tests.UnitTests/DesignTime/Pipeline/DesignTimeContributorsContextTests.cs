@@ -9,6 +9,7 @@ using Metalama.Framework.Engine.Aspects;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Engine.Diagnostics;
 using Metalama.Framework.Engine.Extensibility;
+using Metalama.Framework.Engine.Pipeline;
 using Metalama.Framework.Engine.Pipeline.CompileTime;
 using Metalama.Framework.Engine.ReferenceGraph;
 using Metalama.Framework.Engine.Services;
@@ -254,6 +255,50 @@ public sealed class DesignTimeContributorsContextTests : UnitTestClass
     }
 
     /// <summary>
+    /// Verifies that, with a low-level aspect weaver, the compile-time hook is called once, with the contributor of the fabric and the contributor
+    /// of the aspect that executes before the weaver.
+    /// </summary>
+    [Fact]
+    public async Task CompileTime_WithLowLevelWeaver_CalledOnce()
+    {
+        var recorder = await this.ExecuteCompileTimeAsync( _withWeaverCode );
+
+        Assert.Equal( 2, Assert.Single( recorder.CompileTimeCalls ) );
+    }
+
+    /// <summary>
+    /// Verifies that the transitive contributors returned by the compile-time hook in the first stage are given to the transitive manifest when
+    /// the project uses a low-level aspect weaver. The extension returns one transitive contributor per contributor.
+    /// </summary>
+    [Fact]
+    public async Task CompileTime_WithLowLevelWeaver_TransitiveContributorsKept()
+    {
+        var recorder = await this.ExecuteCompileTimeAsync( _withWeaverCode );
+
+        Assert.Equal( 2, Assert.Single( recorder.ManifestContributorCounts ) );
+    }
+
+    /// <summary>
+    /// Executes the compile-time pipeline on the given code, with the weaver in a separate file, and returns the recorder.
+    /// </summary>
+    private async Task<HookRecorder> ExecuteCompileTimeAsync( string code )
+    {
+        var recorder = new HookRecorder();
+        using var testContext = this.CreateRecordingTestContext( recorder );
+
+        var compilation = CreateCompilation( testContext, new Dictionary<string, string> { ["code.cs"] = code, ["weaver.cs"] = _weaverCode } );
+
+        var pipeline = new CompileTimeAspectPipeline( testContext.ServiceProvider );
+        var reported = new List<Diagnostic>();
+
+        var result = await pipeline.ExecuteAsync( reported.Add, null, compilation, ImmutableArray<ManagedResource>.Empty, Xunit.TestContext.Current.CancellationToken );
+
+        Assert.True( result.IsSuccessful, string.Join( Environment.NewLine, reported ) );
+
+        return recorder;
+    }
+
+    /// <summary>
     /// Executes the design-time pipeline on the given code and returns the recorder and the result.
     /// </summary>
     private (HookRecorder Recorder, DesignTimeAspectPipelineResult Result) Execute( string code )
@@ -316,10 +361,57 @@ public sealed class DesignTimeContributorsContextTests : UnitTestClass
         /// recorded by <see cref="RecordingExtension"/>.
         /// </summary>
         public ConcurrentQueue<int> Calls { get; } = new();
+
+        /// <summary>
+        /// Gets the number of contributors passed to each call of <see cref="PipelineExtension.ExecutePipelineContributorsAsync"/>, as recorded by
+        /// <see cref="RecordingExtension"/>.
+        /// </summary>
+        public ConcurrentQueue<int> CompileTimeCalls { get; } = new();
+
+        /// <summary>
+        /// Gets the number of <see cref="RecordedContributor"/> instances passed to each call of
+        /// <see cref="PipelineExtension.GetTransitiveManifestExtensions"/>, as recorded by <see cref="RecordingExtension"/>.
+        /// </summary>
+        public ConcurrentQueue<int> ManifestContributorCounts { get; } = new();
     }
 
     private sealed class RecordingExtension : PipelineExtension
     {
+        public override Task<ExtensionPipelineContributorsResult> ExecutePipelineContributorsAsync(
+            AspectPipelineConfiguration pipelineConfiguration,
+            IEnumerable<IPipelineContributor> contributors,
+            CompilationModel initialCompilation,
+            CompilationModel finalCompilation,
+            CancellationToken cancellationToken )
+        {
+            var recorder = pipelineConfiguration.ServiceProvider.GetService<HookRecorder>();
+
+            if ( recorder == null )
+            {
+                return Task.FromResult( ExtensionPipelineContributorsResult.Empty );
+            }
+
+            var contributorCount = contributors.OfType<IExtensionPipelineContributor>().Count();
+            recorder.CompileTimeCalls.Enqueue( contributorCount );
+
+            var transitiveContributors = Enumerable.Range( 0, contributorCount )
+                .Select( ITransitivePipelineContributor ( _ ) => new RecordedContributor( recorder ) )
+                .ToImmutableArray();
+
+            return Task.FromResult( new ExtensionPipelineContributorsResult( transitiveContributors, ImmutableUserDiagnosticList.Empty ) );
+        }
+
+        public override IEnumerable<ITransitiveAspectsManifestExtension> GetTransitiveManifestExtensions(
+            IEnumerable<ITransitivePipelineContributor> contributors )
+        {
+            // This method receives no service provider, so the count is recorded on the recorder of the contributors.
+            var recordedContributors = contributors.OfType<RecordedContributor>().ToList();
+
+            recordedContributors.FirstOrDefault()?.Recorder.ManifestContributorCounts.Enqueue( recordedContributors.Count );
+
+            return [];
+        }
+
         public override Task<ExtensionPipelineContributorsResult> ExecuteDesignTimePipelineContributorsAsync(
             DesignTimeContributorsContext context,
             CancellationToken cancellationToken )
@@ -339,7 +431,7 @@ public sealed class DesignTimeContributorsContextTests : UnitTestClass
 
             for ( var i = 0; i < context.Contributors.Count; i++ )
             {
-                transitiveContributors.Add( new RecordedContributor() );
+                transitiveContributors.Add( new RecordedContributor( recorder ) );
 
                 if ( validatedType != null )
                 {
@@ -360,6 +452,19 @@ public sealed class DesignTimeContributorsContextTests : UnitTestClass
         /// The project-local kind of <see cref="RecordedContributor"/>.
         /// </summary>
         private static readonly ContributorKind<RecordedContributor> _kind = new( nameof(RecordedContributor) ) { IsProjectTransitive = false };
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="RecordedContributor"/> class.
+        /// </summary>
+        public RecordedContributor( HookRecorder recorder )
+        {
+            this.Recorder = recorder;
+        }
+
+        /// <summary>
+        /// Gets the recorder of the test that created the contributor.
+        /// </summary>
+        public HookRecorder Recorder { get; }
 
         /// <inheritdoc />
         public ContributorKind ContributorKind => _kind;
