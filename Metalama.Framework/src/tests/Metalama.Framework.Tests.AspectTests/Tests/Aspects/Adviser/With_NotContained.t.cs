@@ -1,0 +1,2 @@
+// CompileTimeAspectPipeline.ExecuteAsync failed.
+// Error LAMA0041 on `M`: `An exception of type 'System.ArgumentException' was thrown while executing BuildAspect for aspect [MyAspect] applied to 'C.M()': The declaration 'D.N()' is not contained in 'C', the target of the adviser. (Parameter 'declaration') Exception details are in '(none)'. To attach a debugger to the compiler, use the '-p:MetalamaDebugCompiler=True' command-line option.`
