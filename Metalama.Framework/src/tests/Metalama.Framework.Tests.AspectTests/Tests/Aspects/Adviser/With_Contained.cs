@@ -9,20 +9,22 @@ using Metalama.Framework.Code;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Adviser.With_Contained;
 
-// The adviser returned by WithDeclaringType targets C. C.N is contained in C, so With must succeed.
-public class MyAspect : MethodAspect
+// WithTemplateProvider returns an adviser for C. With accepts C itself and C.N, which is contained in C.
+public class MyAspect : TypeAspect
 {
-    public override void BuildAspect( IAspectBuilder<IMethod> builder )
+    public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        var typeAdviser = builder.WithDeclaringType();
-        var otherMethod = typeAdviser.Target.Methods.OfName( "N" ).Single();
+        var typeAdviser = builder.WithTemplateProvider( new Templates() );
 
-        typeAdviser.With( otherMethod ).Override( nameof(Template) );
+        typeAdviser.With( typeAdviser.Target.Methods.OfName( "N" ).Single() ).Override( nameof(Templates.OverrideTemplate) );
         typeAdviser.With( typeAdviser.Target ).IntroduceField( "_introducedField", typeof(int) );
     }
+}
 
+public class Templates : ITemplateProvider
+{
     [Template]
-    public dynamic? Template()
+    public dynamic? OverrideTemplate()
     {
         Console.WriteLine( "Overridden." );
 
@@ -31,9 +33,9 @@ public class MyAspect : MethodAspect
 }
 
 // <target>
+[MyAspect]
 internal class C
 {
-    [MyAspect]
     public void M() { }
 
     public void N() { }

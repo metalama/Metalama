@@ -9,18 +9,22 @@ using Metalama.Framework.Code;
 
 namespace Metalama.Framework.Tests.AspectTests.Tests.Aspects.Adviser.With_NotContained;
 
-// The adviser returned by WithDeclaringType targets C. D.N is not contained in C, so With must throw.
-public class MyAspect : MethodAspect
+// WithTemplateProvider returns an adviser for C.M. C.N is not contained in C.M, so With must throw,
+// even though C.N is contained in the target of the aspect.
+public class MyAspect : TypeAspect
 {
-    public override void BuildAspect( IAspectBuilder<IMethod> builder )
+    public override void BuildAspect( IAspectBuilder<INamedType> builder )
     {
-        var otherMethod = builder.Target.Compilation.Types.OfName( "D" ).Single().Methods.OfName( "N" ).Single();
+        var methodAdviser = builder.With( builder.Target.Methods.OfName( "M" ).Single() ).WithTemplateProvider( new Templates() );
 
-        builder.WithDeclaringType().With( otherMethod ).Override( nameof(Template) );
+        methodAdviser.With( builder.Target.Methods.OfName( "N" ).Single() ).Override( nameof(Templates.OverrideTemplate) );
     }
+}
 
+public class Templates : ITemplateProvider
+{
     [Template]
-    public dynamic? Template()
+    public dynamic? OverrideTemplate()
     {
         Console.WriteLine( "Overridden." );
 
@@ -29,14 +33,10 @@ public class MyAspect : MethodAspect
 }
 
 // <target>
+[MyAspect]
 internal class C
 {
-    [MyAspect]
     public void M() { }
-}
 
-// <target>
-internal class D
-{
     public void N() { }
 }

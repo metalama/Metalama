@@ -2106,7 +2106,9 @@ public static class AdviserExtensions
         public IAdviser<TNewDeclaration> With<TNewDeclaration>( TNewDeclaration declaration )
             where TNewDeclaration : class, IDeclaration
         {
-            if ( !declaration.IsContainedIn( declaration ) && declaration.DeclarationKind is not (DeclarationKind.Compilation or DeclarationKind.Namespace) )
+            // The declaration must be the target, a descendant of the target, or an ancestor of the target (as with WithDeclaringType).
+            if ( !declaration.IsContainedIn( this.Target ) && !this.Target.IsContainedIn( declaration )
+                                                           && declaration.DeclarationKind is not (DeclarationKind.Compilation or DeclarationKind.Namespace) )
             {
                 throw new ArgumentOutOfRangeException( nameof(declaration), $"'{declaration}' is not contained in '{this.Target}'." );
             }

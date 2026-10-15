@@ -1,6 +1,6 @@
+[MyAspect]
 internal class C
 {
-  [MyAspect]
   public void M()
   {
   }
