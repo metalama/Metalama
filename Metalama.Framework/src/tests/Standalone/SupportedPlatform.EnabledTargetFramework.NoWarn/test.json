@@ -1,0 +1,5 @@
+{
+    "BuildOnly": true,
+    "ExpectedDiagnosticsRegexes": [ "warning LAMA0600.*'net8[.]0'" ],
+    "ForbiddenDiagnosticsRegexes": [ "warning LAMA0604" ]
+}

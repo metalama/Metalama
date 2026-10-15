@@ -15,7 +15,8 @@
     <!--
         The platform matrix that Metalama.Framework supports. Any other package, or the project itself, can
         declare its own MetalamaPlatformRequirement item in a .props file. Every metadata entry is optional, an absent
-        entry means no constraint, and unknown metadata is ignored. See
+        entry means no constraint, and unknown metadata is ignored. A Minimum<Family>Version entry is the oldest version
+        that builds, and a MinimumSupported<Family>Version entry is the oldest version that is supported. See
         https://doc.metalama.net/conceptual/configuration/msbuild-properties.
 
         Maintainers: these values are the PB-2027.0 platform baseline. Keep them in sync with
@@ -24,7 +25,10 @@
     <ItemGroup>
         <MetalamaPlatformRequirement Include="Metalama.Framework">
             <TargetFrameworkIdentifiers>.NETFramework;.NETCoreApp;.NETStandard</TargetFrameworkIdentifiers>
+            <!-- The minimum is the shipped target framework, net472, and the supported floor is 4.8. The versions
+                 between them are enabled and not supported, by rule 9 of platform-support.md, and report LAMA0604. -->
             <MinimumNETFrameworkVersion>4.7.2</MinimumNETFrameworkVersion>
+            <MinimumSupportedNETFrameworkVersion>4.8</MinimumSupportedNETFrameworkVersion>
             <MinimumNETStandardVersion>2.0</MinimumNETStandardVersion>
             <MaximumNETStandardVersion>2.1</MaximumNETStandardVersion>
             <MinimumNETCoreAppVersion>10.0</MinimumNETCoreAppVersion>
@@ -35,7 +39,7 @@
                  18.0. The baseline names the November 2026 long-term servicing channel as the floor; its feature band
                  is measured after 2026-11-10, per the checklist of platform-support.md, and raises this value then. -->
             <MinimumVisualStudioVersion>18.0</MinimumVisualStudioVersion>
-            <SupportedTargetFrameworksDescription>The supported target frameworks are .NET Framework 4.7.2 and later, .NET Standard 2.0 and 2.1, .NET 10 and .NET 11.</SupportedTargetFrameworksDescription>
+            <SupportedTargetFrameworksDescription>The supported target frameworks are .NET Framework 4.8 and later, .NET Standard 2.0 and 2.1, .NET 10 and .NET 11. The target framework .NET Framework 4.7.2 is accepted but not supported.</SupportedTargetFrameworksDescription>
             <SupportedSdkVersionsDescription>The supported .NET SDK versions are 10.0 and 11.0.</SupportedSdkVersionsDescription>
             <SdkUpgradeDescription>Install the .NET 10 SDK or a later one, which Visual Studio 2026 also carries. A 'global.json' file may pin an older SDK after a newer one has been installed.</SdkUpgradeDescription>
             <SupportedVisualStudioVersionsDescription>The supported versions are Visual Studio 2026 and later. Visual Studio 2022 is not supported.</SupportedVisualStudioVersionsDescription>
